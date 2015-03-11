@@ -14,12 +14,12 @@ import org.junit.Test;
 
 /**
  * Test that prints the parse tree (AST) for a given query.<br/>
- * Useful to see the parse tree when making changes to derby's sql grammar.
+ * Useful to see the parse tree when making changes to db's sql grammar.
  * <p/>
  * For each query, a plan tree is printed for each of the three phases;
  * parse, bind, optimize.
  * <p/>
- * <b>TO RUN</b> This test depends on the splice derby jars you have built
+ * <b>TO RUN</b> This test depends on the splice db jars you have built
  * and installed into your local repo. The splice server must be built against
  * these jars and it must be running.  (See the pom.xml for dependency details)<br/>
  * <b>NOTE</b> currently you must have schema and tables populated for the given query you're running.

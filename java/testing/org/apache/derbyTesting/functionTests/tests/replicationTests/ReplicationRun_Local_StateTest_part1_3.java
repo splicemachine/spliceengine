@@ -32,31 +32,31 @@ import org.apache.derbyTesting.junit.SecurityManagerSetup;
  * Run a replication test on localhost
  * by using default values for master and slave hosts,
  * and master and slave ports.
- * 
+ *
  */
 
 public class ReplicationRun_Local_StateTest_part1_3 extends ReplicationRun
 {
-    
+
     /**
      * Creates a new instance of ReplicationRun_Local_StateTest_part1
-     * 
+     *
      * @param testcaseName Identifying the test.
      */
     public ReplicationRun_Local_StateTest_part1_3(String testcaseName)
     {
         super(testcaseName);
     }
-        
+
     public static Test suite()
     {
         TestSuite suite = new TestSuite("ReplicationRun_Local_StateTest_part1_3 Suite");
-        
+
         suite.addTestSuite( ReplicationRun_Local_StateTest_part1_3.class );
-        
+
         return SecurityManagerSetup.noSecurityManager(suite);
     }
-    
+
     //////////////////////////////////////////////////////////////
     ////
     //// The replication test framework (testReplication()):
@@ -67,50 +67,50 @@ public class ReplicationRun_Local_StateTest_part1_3 extends ReplicationRun
     ////     test run.
     ////
     //////////////////////////////////////////////////////////////
-    
+
     public void testReplication_Local_StateTest_part1_3()
-    throws Exception
+            throws Exception
     {
         cleanAllTestHosts();
-        
+
         initEnvironment();
-        
+
         initMaster(masterServerHost,
                 replicatedDb);
-        
+
         startServer(masterJvmVersion, derbyMasterVersion,
                 masterServerHost,
                 ALL_INTERFACES, // masterServerHost, // "0.0.0.0", // All. or use masterServerHost for interfacesToListenOn,
                 masterServerPort,
                 masterDbSubPath); // Distinguishing master/slave
-        
+
         startServer(slaveJvmVersion, derbySlaveVersion,
                 slaveServerHost,
                 ALL_INTERFACES, // slaveServerHost, // "0.0.0.0", // All. or use slaveServerHost for interfacesToListenOn,
                 slaveServerPort,
                 slaveDbSubPath); // Distinguishing master/slave
-        
+
         startServerMonitor(slaveServerHost);
-        
+
         bootMasterDatabase(jvmVersion,
                 masterDatabasePath +FS+ masterDbSubPath,
                 replicatedDb,
                 masterServerHost, // Where the startreplication command must be given
                 masterServerPort, // master server interface accepting client requests
                 null // bootLoad, // The "test" to start when booting db.
-                );
-        
+        );
+
         initSlave(slaveServerHost,
                 jvmVersion,
                 replicatedDb); // Trunk and Prototype V2: copy master db to db_slave.
-        
+
         startSlave(jvmVersion, replicatedDb,
                 slaveServerHost, // slaveClientInterface // where the slave db runs
                 slaveServerPort,
                 slaveServerHost, // for slaveReplInterface
                 slaveReplPort,
                 testClientHost);
-        
+
         startMaster(jvmVersion, replicatedDb,
                 masterServerHost, // Where the startMaster command must be given
                 masterServerPort, // master server interface accepting client requests
@@ -118,22 +118,22 @@ public class ReplicationRun_Local_StateTest_part1_3 extends ReplicationRun
                 slaveServerPort, // Not used since slave don't allow clients.
                 slaveServerHost, // for slaveReplInterface
                 slaveReplPort);
-        
+
         _testPostStartedMasterAndSlave_Failover(); // Not in a state to continue!
-        
+
         stopServer(jvmVersion, derbyVersion,
                 slaveServerHost, slaveServerPort);
-        
+
         stopServer(jvmVersion, derbyVersion,
                 masterServerHost, masterServerPort);
-        
+
     }
 
     private void _testPostStartedMasterAndSlave_Failover()
     {
         Connection conn = null;
         String db = slaveDatabasePath +FS+ReplicationRun.slaveDbSubPath +FS+ replicatedDb;
-        String connectionURL = "jdbc:derby:"  
+        String connectionURL = "jdbc:derby:"
                 + "//" + slaveServerHost + ":" + slaveServerPort + "/"
                 + db
                 + ";failover=true";
@@ -152,10 +152,10 @@ public class ReplicationRun_Local_StateTest_part1_3 extends ReplicationRun
             util.DEBUG(msg);
         }
         // Default replication test sequence still OK.
-        
+
         // Failover on master should succeed:
         db = masterDatabasePath +FS+ReplicationRun.masterDbSubPath +FS+ replicatedDb;
-        connectionURL = "jdbc:derby:"  
+        connectionURL = "jdbc:derby:"
                 + "//" + masterServerHost + ":" + masterServerPort + "/"
                 + db
                 + ";failover=true";
@@ -172,12 +172,12 @@ public class ReplicationRun_Local_StateTest_part1_3 extends ReplicationRun
             String ss = se.getSQLState();
             String msg = ec + " " + ss + " " + se.getMessage();
             // Failover OK: SQLCODE: -1, SQLSTATE: XRE20
-            assertTrue("connectionURL " + " failed: " + msg, 
+            assertTrue("connectionURL " + " failed: " + msg,
                     // SQLState.REPLICATION_FAILOVER_SUCCESSFUL.equals(ss)); // "XRE20.D"
                     "XRE20".equals(ss));
             util.DEBUG("Failover on master succeeded: " + connectionURL + " " + msg);
         }
         // Not meaningful to continue default replication test sequence after this point!
     }
-    
+
 }

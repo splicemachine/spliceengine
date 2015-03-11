@@ -74,7 +74,7 @@ public class AggregateClassLoadingTest extends BaseJDBCTestCase {
 		
 		/* this test creates a class loader, adding that permission to
 		 * derbyTesting.jar would mean that permission was granted all
-		 * the way up the stack to the derby engine. Thus increasing
+		 * the way up the stack to the db engine. Thus increasing
 		 * the chance that incorrectly a privileged block could be dropped
 		 * but the tests continue to pass. 
 		 */		
@@ -121,7 +121,7 @@ public class AggregateClassLoadingTest extends BaseJDBCTestCase {
 								 * class loader of this class which is most
 								 * likely the same as the engine. Since the
 								 * class loader delegates to its parent first
-								 * the bug would not show, as all the derby
+								 * the bug would not show, as all the db
 								 * engine classes would be from a single loader.
 								 */
                                 URLClassLoader cl = new URLClassLoader(new URL[] { derbyURL }, null);

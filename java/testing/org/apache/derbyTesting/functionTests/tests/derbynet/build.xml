@@ -51,7 +51,7 @@
   <!-- Release and Version info -->
   <property file="${properties.dir}/release.properties"/>
 
-  <!-- derby testing specific properties files -->
+  <!-- db testing specific properties files -->
   <property file="${ant.home}/properties/derbytesting.properties"/>
   <property file="${user.home}/properties/derbytesting.properties"/>
   <property name="this.dir" value="${derby.testing.functest.dir}/tests/derbynet"/>

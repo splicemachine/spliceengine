@@ -86,11 +86,11 @@ public class OptimizerOverridesTest extends BaseJDBCTestCase {
                 st.addBatch("create index t2_c3 on t2(c3)");
                         
                 st.addBatch("create view v1 as select * from t1 " +
-                        "--derby-properties index = t1_c1");
+                        "--db-properties index = t1_c1");
                 st.addBatch("create view v2 as select t1.* from t1, t2");
                 st.addBatch("create view v3 as select * from v1");
                 st.addBatch("create view neg_v1 as select * from t1" +
-                        " --derby-properties asdf = fdsa");
+                        " --db-properties asdf = fdsa");
                 
                 st.executeBatch();
             }            
@@ -107,15 +107,15 @@ public class OptimizerOverridesTest extends BaseJDBCTestCase {
         
         assertStatementError("42X01", st, 
             "select \n" +
-            "-- derby-properties index = t1_c1 \n" +
+            "-- db-properties index = t1_c1 \n" +
             "* from t1");
         
         assertStatementError("42X01", st, 
-            "select * -- derby-properties index = t1_c1 \n" +
+            "select * -- db-properties index = t1_c1 \n" +
             "from t1");
         
         assertStatementError("42X01", st, 
-            "select * -- derby-properties\n" +
+            "select * -- db-properties\n" +
             " index = t1_c1 from t1");
         
         st.close();
@@ -128,29 +128,29 @@ public class OptimizerOverridesTest extends BaseJDBCTestCase {
         Statement st = createStatement();
         
         assertStatementError("42Y44", st, "select * from t1" +
-            " --derby-properties asdf = i1");
+            " --db-properties asdf = i1");
         
         assertStatementError("42Y44", st, "select * from t1" +
-            " exposedname --derby-properties asdf = i1");
+            " exposedname --db-properties asdf = i1");
         
         assertStatementError("42Y44", st, 
             "select * from neg_v1");
         
         assertStatementError("42Y44", st, 
-            "select * from t1 --derby-properties i = a\n" + 
+            "select * from t1 --db-properties i = a\n" +
             "left outer join t2 on 1=1");
         
         assertStatementError("42Y44", st, 
             "select * from t1 left outer join t2 " +
-            "--derby-properties i = t1_c1\n on 1=1");
+            "--db-properties i = t1_c1\n on 1=1");
         
         assertStatementError("42Y46", st, 
             "select * from t1 left outer join t2 " + 
-            "--derby-properties index = t1_c1\n on 1=1");
+            "--db-properties index = t1_c1\n on 1=1");
         
         assertStatementError("42Y46", st, 
             "select * from t1 right outer join t2 " + 
-            "--derby-properties index = t1_c1\n on 1=1");
+            "--db-properties index = t1_c1\n on 1=1");
         
         st.close();
     }
@@ -163,22 +163,22 @@ public class OptimizerOverridesTest extends BaseJDBCTestCase {
         Statement st = createStatement();
         
         assertStatementError("42Y46", st, "select * from t1 " +
-            "--derby-properties index = t1_notexists");
+            "--db-properties index = t1_notexists");
         
         assertStatementError("42Y46", st, 
             "select * from t1 exposedname " +
-            "--derby-properties index = t1_notexists");
+            "--db-properties index = t1_notexists");
         
         assertStatementError("42Y48", st, "select * from t1 " +
-            "--derby-properties constraint = t1_notexists");
+            "--db-properties constraint = t1_notexists");
 
         assertStatementError("42Y48", st, 
             "select * from t1 exposedname " +
-            "--derby-properties constraint = t1_notexists");
+            "--db-properties constraint = t1_notexists");
         
         assertStatementError("42Y56", st, 
             "select * from t1 a, t1 b " +
-            "--derby-properties joinStrategy = asdf");
+            "--db-properties joinStrategy = asdf");
                                     
         st.close();
     }
@@ -188,12 +188,12 @@ public class OptimizerOverridesTest extends BaseJDBCTestCase {
      */
     public void testFragmentsAsComments() throws SQLException{
         String[] frags = {"--d", "-- de", "-- der",
-            "--derb", "--derby comment",
-            "-- derby another comment", "--derby-",
-            "--derby-p", "--derby-pr", "--derby-pro",
-            "--derby-prop", "--derby-prope", "--derby-proper",
-            "-- derby-propert", "-- derby-properti", 
-            "-- derby-propertie", "-- derby-propertiex"
+            "--derb", "--db comment",
+            "-- db another comment", "--db-",
+            "--db-p", "--db-pr", "--db-pro",
+            "--db-prop", "--db-prope", "--db-proper",
+            "-- db-propert", "-- db-properti",
+            "-- db-propertie", "-- db-propertiex"
         };
         
         Statement st = createStatement();
@@ -215,11 +215,11 @@ public class OptimizerOverridesTest extends BaseJDBCTestCase {
         Statement st = createStatement();
         
         assertStatementError("42Y50", st, "select * from t1" +
-            " --derby-properties index = t1_c1, " +
+            " --db-properties index = t1_c1, " +
             "constraint = cons1");
         
         assertStatementError("42Y50", st, "select * from t1" +
-                    " exposedname --derby-properties " +
+                    " exposedname --db-properties " +
                     "index = t1_c1, constraint = cons1");
         
         st.close();
@@ -234,42 +234,42 @@ public class OptimizerOverridesTest extends BaseJDBCTestCase {
         
         JDBC.assertFullResultSet(st.executeQuery(
                 "select * from t1 " + 
-                "--derby-properties index = t1_c1\n" + 
+                "--db-properties index = t1_c1\n" +
                 "for update"), FULL_TABLE);
         
         JDBC.assertFullResultSet(st.executeQuery(
                 "select * from t1 exposedname " + 
-                "--derby-properties index = t1_c1\n" + 
+                "--db-properties index = t1_c1\n" +
                 "for update"), FULL_TABLE);
         
         JDBC.assertFullResultSet(st.executeQuery(
                 "select * from t1 " + 
-                "--derby-properties index = t1_c1\n" + 
+                "--db-properties index = t1_c1\n" +
                 "for update of c2, c1"), FULL_TABLE);
         
         JDBC.assertFullResultSet(st.executeQuery(
                 "select * from t1 exposedname " + 
-                "--derby-properties index = t1_c1\n" + 
+                "--db-properties index = t1_c1\n" +
                 "for update of c2, c1"), FULL_TABLE);
         
         JDBC.assertFullResultSet(st.executeQuery(
                 "select * from t1 " +
-                "--derby-properties constraint = cons1\n" +  
+                "--db-properties constraint = cons1\n" +
                 "for update"), FULL_TABLE);
         
         JDBC.assertFullResultSet(st.executeQuery(
                 "select * from t1 exposedname " +
-                "--derby-properties constraint = cons1\n" +  
+                "--db-properties constraint = cons1\n" +
                 "for update"), FULL_TABLE);
         
         JDBC.assertFullResultSet(st.executeQuery(
                 "select * from t1 " +
-                "--derby-properties constraint = cons1\n" +  
+                "--db-properties constraint = cons1\n" +
                 "for update of c2, c1"), FULL_TABLE);
         
         JDBC.assertFullResultSet(st.executeQuery(
                 "select * from t1 exposedname " +
-                "--derby-properties constraint = cons1\n" +  
+                "--db-properties constraint = cons1\n" +
                 "for update of c2, c1"), FULL_TABLE);
         
         st.close();        
@@ -279,11 +279,11 @@ public class OptimizerOverridesTest extends BaseJDBCTestCase {
         Statement st = createStatement();
         
         assertStatementError("42Y50", st, "select * from t1" +
-            " --derby-properties index = t1_c1, " +
+            " --db-properties index = t1_c1, " +
             "constraint = cons1");
         
         assertStatementError("42Y50", st, "select * from t1" +
-            " exposedname --derby-properties " +
+            " exposedname --db-properties " +
             "index = t1_c1, constraint = cons1");
         
         st.close();
@@ -296,7 +296,7 @@ public class OptimizerOverridesTest extends BaseJDBCTestCase {
     public void testDependenceOnIndex() throws SQLException{
         PreparedStatement ps = 
             prepareStatement("select * from t1 " +
-                    "--derby-properties index = t1_c1");
+                    "--db-properties index = t1_c1");
                 
         JDBC.assertFullResultSet(ps.executeQuery(),
                 new String[][]{
@@ -327,7 +327,7 @@ public class OptimizerOverridesTest extends BaseJDBCTestCase {
     throws SQLException{
         PreparedStatement ps = 
             prepareStatement("select * from t1 " +
-                    "--derby-properties constraint = cons1");
+                    "--db-properties constraint = cons1");
         
         JDBC.assertFullResultSet(ps.executeQuery(), FULL_TABLE);
         
@@ -354,7 +354,7 @@ public class OptimizerOverridesTest extends BaseJDBCTestCase {
                 
         st.execute("CALL SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(1)");
         
-        //the token derby-properties is case insensitive.
+        //the token db-properties is case insensitive.
         JDBC.assertFullResultSet(
             st.executeQuery("select * from t1" +
             " --DeRbY-pRoPeRtIeS index = t1_c1"),
@@ -363,7 +363,7 @@ public class OptimizerOverridesTest extends BaseJDBCTestCase {
             SQLUtilities.getRuntimeStatisticsParser(st);
         assertTrue(rtsp.usedSpecificIndexForIndexScan("T1", "T1_C1"));
         
-        //-- misspell derby-properties and make sure that 
+        //-- misspell db-properties and make sure that
         //it gets treated as a regular comment 
         //rather than optimizer override
         JDBC.assertFullResultSet(
@@ -371,7 +371,7 @@ public class OptimizerOverridesTest extends BaseJDBCTestCase {
                         " --DeRbY-pRoPeRtIeAAAA index = t1_c1"),
                         FULL_TABLE);
         rtsp = SQLUtilities.getRuntimeStatisticsParser(st);
-        assertTrue("not using t1_c1, but what derby thinks is best index.",
+        assertTrue("not using t1_c1, but what db thinks is best index.",
                 rtsp.usedSpecificIndexForIndexScan("T1", "T1_C1C2C3"));
         
         
@@ -383,7 +383,7 @@ public class OptimizerOverridesTest extends BaseJDBCTestCase {
         //-- force index, delimited identifier
         JDBC.assertFullResultSet(
             st.executeQuery("select * from t1 " +
-                    "--derby-properties index = \"t1_c2c1\""),
+                    "--db-properties index = \"t1_c2c1\""),
                 FULL_TABLE);
         rtsp = SQLUtilities.getRuntimeStatisticsParser(st);
         assertTrue(rtsp.usedSpecificIndexForIndexScan("T1", "t1_c2c1"));
@@ -403,17 +403,17 @@ public class OptimizerOverridesTest extends BaseJDBCTestCase {
         
         JDBC.assertFullResultSet(
             st.executeQuery("select * from t1 " +
-            "--derby-properties index = null"), FULL_TABLE);
+            "--db-properties index = null"), FULL_TABLE);
         RuntimeStatisticsParser rtsp = 
             SQLUtilities.getRuntimeStatisticsParser(st);
         assertTrue("force table scan", rtsp.usedTableScan());
         
         JDBC.assertFullResultSet(
             st.executeQuery("select * from t1 " +
-            "--derby-properties constraint = null"), FULL_TABLE);
+            "--db-properties constraint = null"), FULL_TABLE);
         
         assertStatementError("42Y56", st, "select * from t1 " +
-            "--derby-properties joinStrategy = null");
+            "--db-properties joinStrategy = null");
         
         st.close();
     }
@@ -424,8 +424,8 @@ public class OptimizerOverridesTest extends BaseJDBCTestCase {
         st.execute("CALL SYSCS_UTIL.SYSCS_SET_RUNTIMESTATISTICS(1)");
         JDBC.assertFullResultSet(
             st.executeQuery("select 1 from t1 a" +
-                " --derby-properties index = t1_c1\n" +
-                ",t2 b --derby-properties index = t2_c2"),
+                " --db-properties index = t1_c1\n" +
+                ",t2 b --db-properties index = t2_c2"),
             new String[][]{
                 {"1"}, {"1"}, {"1"}, {"1"},
                 {"1"}, {"1"}, {"1"}, {"1"},
@@ -439,16 +439,16 @@ public class OptimizerOverridesTest extends BaseJDBCTestCase {
         
         JDBC.assertFullResultSet(
             st.executeQuery("select 1 from " +
-                " --derby-properties joinOrder=fixed\n" +
+                " --db-properties joinOrder=fixed\n" +
                 "t1, t2 where t1.c1 = t2.c1"),
             new String[][]{{"1"}, {"1"}, {"1"}, {"1"}, }
         );
         
         JDBC.assertFullResultSet(
             st.executeQuery("select * from t1" +
-                " --derby-properties index = t1_c1\n" +  
+                " --db-properties index = t1_c1\n" +
                 "left outer join t2 " +
-                "--derby-properties index = t2_c2\n" +  
+                "--db-properties index = t2_c2\n" +
                 "on t1.c1 = t2.c1"),
             new String[][]{
                     {"1", "1", "1", "1", "1", "1"}, 
@@ -474,7 +474,7 @@ public class OptimizerOverridesTest extends BaseJDBCTestCase {
         
         JDBC.assertFullResultSet(
             st.executeQuery("select * from t1" +
-                " --derby-properties index = t1_c1\n" +  
+                " --db-properties index = t1_c1\n" +
                 "where c1 = c1"), FULL_TABLE);
         RuntimeStatisticsParser rtsp = 
             SQLUtilities.getRuntimeStatisticsParser(st);
@@ -482,14 +482,14 @@ public class OptimizerOverridesTest extends BaseJDBCTestCase {
         
         JDBC.assertFullResultSet(
             st.executeQuery("select * from t1" +
-                " --derby-properties index = t1_c1\n" +  
+                " --db-properties index = t1_c1\n" +
                 "where c1 = c2"), FULL_TABLE);
         rtsp = SQLUtilities.getRuntimeStatisticsParser(st);
         assertTrue(rtsp.usedSpecificIndexForIndexScan("T1", "T1_C1"));
         
         JDBC.assertFullResultSet(
             st.executeQuery("select * from t1" +
-                " --derby-properties index = t1_c1\n" +  
+                " --db-properties index = t1_c1\n" +
                 "where c1 + 1 = 1 + c1"), FULL_TABLE);
         rtsp = SQLUtilities.getRuntimeStatisticsParser(st);
         assertTrue(rtsp.usedSpecificIndexForIndexScan("T1", "T1_C1"));
@@ -505,7 +505,7 @@ public class OptimizerOverridesTest extends BaseJDBCTestCase {
         
         JDBC.assertFullResultSet(
             st.executeQuery("select * from t1 a, t1 b " +
-                "--derby-properties joinStrategy = nestedloop\n" +
+                "--db-properties joinStrategy = nestedloop\n" +
                 "where a.c1 = b.c1"),
             new String[][]{
                 {"1", "1", "1", "1", "1", "1"}, 
@@ -516,7 +516,7 @@ public class OptimizerOverridesTest extends BaseJDBCTestCase {
 //        RuntimeStatisticsParser rtsp = 
 //            SQLUtilities.getRuntimeStatisticsParser(st);
 //        assertTrue(rtsp.usedHashJoin());
-//        assertTrue("not using t1_c1, but what derby thinks is best index.",
+//        assertTrue("not using t1_c1, but what db thinks is best index.",
 //                rtsp.usedSpecificIndexForIndexScan("T1", "T1_C1C2C3"));
                 
         st.close();
@@ -536,7 +536,7 @@ public class OptimizerOverridesTest extends BaseJDBCTestCase {
         
         assertStatementError("42X01", st,
             "insert into temp1 (c1,c2,c3)" +
-            " -- derby-properties insertModeValue=replace\n" +
+            " -- db-properties insertModeValue=replace\n" +
             "select * from t1");
         
         dropTable("temp1");

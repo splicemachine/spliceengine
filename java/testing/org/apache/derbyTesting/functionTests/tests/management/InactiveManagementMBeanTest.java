@@ -68,7 +68,7 @@ public class InactiveManagementMBeanTest extends MBeanTest {
         }
         else
         {
-            // TODO: Need to stop derby running on the remote
+            // TODO: Need to stop db running on the remote
             // machine but leave the vm up. How to do that?
             return;
         }

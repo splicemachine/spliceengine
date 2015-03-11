@@ -64,15 +64,15 @@ import org.apache.derbyTesting.perf.clients.SingleRecordSelectClient;
  * <p>
  * System properties controlling test behavior:
  * <dl>
- *      <dt>derby.tests.disableSmallClobs</dt>
+ *      <dt>db.tests.disableSmallClobs</dt>
  *      <dd>Whether or not to disable the testing of small Clobs.</dd>
- *      <dt>derby.tests.disableLargeClobs</dt>
+ *      <dt>db.tests.disableLargeClobs</dt>
  *      <dd>Whether or not to disable the testing of large Clobs.</dd>
- *      <dt>derby.tests.disableConcurrencyTest</dt>
+ *      <dt>db.tests.disableConcurrencyTest</dt>
  *      <dd>Whether or not to disable the concurrency test.</dd>
- *      <dt>derby.tests.largeClobSize</dt>
+ *      <dt>db.tests.largeClobSize</dt>
  *      <dd>Size of the large Clobs in MB, 15 MB is the default.</dd>
- *      <dt>derby.tests.runLargeClobTests</dt>
+ *      <dt>db.tests.runLargeClobTests</dt>
  *      <dd>A list of one or more tests to run. Only tests using large Clobs
  *          should be specified, but this is not enforced. Example:
  *          <tt>testFetchLargeClobPieceByPiece,testLargeClobGetLength</tt></dd>

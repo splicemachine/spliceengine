@@ -28,9 +28,8 @@ import java.io.PipedWriter;
 import java.io.PrintWriter;
 import java.sql.DatabaseMetaData;
 import java.sql.SQLException;
-import org.apache.derby.tools.sysinfo;
+import com.splicemachine.db.tools.sysinfo;
 import org.apache.derbyTesting.junit.BaseJDBCTestCase;
-import org.apache.derbyTesting.junit.SecurityManagerSetup;
 import junit.framework.Test;
 import junit.framework.TestSuite;
 

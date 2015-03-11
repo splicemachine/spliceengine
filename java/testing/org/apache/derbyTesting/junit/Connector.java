@@ -94,7 +94,7 @@ interface Connector {
     abstract void shutDatabase() throws SQLException;
    
     /**
-     * Shutdown the running derby engine (not the network server).
+     * Shutdown the running db engine (not the network server).
      * This method can only be called when the
      * engine is running embedded in this JVM.
      * Return nothing, exception is expected to be thrown with SQLState XJ015

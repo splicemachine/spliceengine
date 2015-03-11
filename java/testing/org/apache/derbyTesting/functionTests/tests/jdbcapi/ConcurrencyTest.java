@@ -33,7 +33,7 @@ import org.apache.derbyTesting.junit.JDBC;
 import org.apache.derbyTesting.junit.TestConfiguration;
 
 /**
- * Testing concurrency behaviour in derby when creating the resultsets with
+ * Testing concurrency behaviour in db when creating the resultsets with
  * different parameters.
  */
 public class ConcurrencyTest extends SURBaseTest {

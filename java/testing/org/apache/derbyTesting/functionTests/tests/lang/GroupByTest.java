@@ -36,7 +36,7 @@ import java.util.List;
 import junit.framework.Test;
 import junit.framework.TestSuite;
 
-import org.apache.derby.shared.common.sanity.SanityManager;
+import com.splicemachine.db.shared.common.sanity.SanityManager;
 
 import org.apache.derbyTesting.junit.BaseJDBCTestCase;
 import org.apache.derbyTesting.junit.CleanDatabaseTestSetup;

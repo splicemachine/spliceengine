@@ -35,7 +35,7 @@ import javax.sql.DataSource;
 import junit.framework.Test;
 import junit.framework.TestSuite;
 
-import org.apache.derby.jdbc.ClientDataSource;
+import com.splicemachine.db.jdbc.ClientDataSource;
 import org.apache.derbyTesting.junit.BaseJDBCTestCase;
 import org.apache.derbyTesting.junit.CleanDatabaseTestSetup;
 import org.apache.derbyTesting.junit.JDBC;

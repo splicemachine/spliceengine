@@ -25,7 +25,7 @@ package org.apache.derbyTesting.functionTests.util;
  * to make sure the right error is thrown.
  *
  * It is important to use these constants rather than those in
- * org.apache.derby.shared.common.reference.SQLState.java because
+ * com.splicemachine.db.shared.common.reference.SQLState.java because
  * (a) that class is not part of the public API and (b) that class contains
  * message ids, not SQL states.
 */

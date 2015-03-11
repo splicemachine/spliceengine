@@ -131,7 +131,7 @@ public class ConnectionHandlingJunit extends BaseJDBCTestCase {
      * <p>
      * <b>Note:</b> The JVM may slow down significantly (even appear to hang)
      * before an OOME is thrown. Depending on the avaliable resources, the error
-     * may or may not be reported in the logs (derby.log, server console).</p>
+     * may or may not be reported in the logs (db.log, server console).</p>
      * <p>
      * This fixture requires java.sql.DriverManager. This is because simple
      * and easy control of the connection handling and database creation is 

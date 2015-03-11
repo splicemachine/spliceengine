@@ -45,7 +45,7 @@ import java.util.Arrays;
 
 import junit.framework.Test;
 
-import org.apache.derby.iapi.types.HarmonySerialClob;
+import com.splicemachine.db.iapi.types.HarmonySerialClob;
 
 import org.apache.derbyTesting.functionTests.util.streams.CharAlphabet;
 import org.apache.derbyTesting.functionTests.util.streams.LoopingAlphabetReader;

@@ -42,7 +42,7 @@ import org.apache.derbyTesting.junit.TestConfiguration;
 public class BlobStoredProcedureTest extends BaseJDBCTestCase {
 
     //The test string that will be used in all the test runs.
-    final String testStr = "I am a simple derby test case";
+    final String testStr = "I am a simple db test case";
 
    
     //The length of the test string that will be used.

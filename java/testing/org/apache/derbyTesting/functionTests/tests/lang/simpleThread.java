@@ -25,8 +25,8 @@ import java.sql.Connection;
 import java.sql.Statement;
 import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
-import java.sql.DriverManager;
-import org.apache.derby.tools.ij;
+
+import com.splicemachine.db.tools.ij;
 
 /*
 	This is from a bug found by a beta customer.

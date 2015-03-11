@@ -22,12 +22,10 @@
 package org.apache.derbyTesting.functionTests.tests.derbynet;
 
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.Statement;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
-import org.apache.derby.tools.ij;
+import com.splicemachine.db.tools.ij;
 /**
 	This test tests the JDBC Statement executeUpdate method. Since IJ will eventually
 	just use execute rather then executeUpdate, I want to make sure that executeUpdate

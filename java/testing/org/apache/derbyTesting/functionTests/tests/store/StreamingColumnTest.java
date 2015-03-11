@@ -74,7 +74,7 @@ public class StreamingColumnTest extends BaseJDBCTestCase {
         // inputstream for insert
         fileName[1] = "extin/shortbanner"; // set up a long (longer than a
         // page) inputstream for insert
-        fileName[2] = "extin/derby.banner"; // set up a really long (over 300K)
+        fileName[2] = "extin/db.banner"; // set up a really long (over 300K)
         // inputstream for insert
         fileName[3] = "extin/empty.data"; // set up a file with nothing in it
     }
@@ -570,7 +570,7 @@ public class StreamingColumnTest extends BaseJDBCTestCase {
      * 
      * @throws Exception
      */
-    // This test fails when running w/ derby.language.logStatementText=true
+    // This test fails when running w/ db.language.logStatementText=true
     // see DERBY-595
     // public void testStream5_100000() throws Exception {
     // final long length = 100000;
@@ -2091,7 +2091,7 @@ public class StreamingColumnTest extends BaseJDBCTestCase {
         Test test = new SupportFilesSetup(suite, new String[] {
                 "functionTests/tests/store/short.data",
                 "functionTests/tests/store/shortbanner",
-                "functionTests/tests/store/derby.banner",
+                "functionTests/tests/store/db.banner",
                 "functionTests/tests/store/empty.data",
                 "functionTests/tests/store/char32703trailingblanks.data",
                 "functionTests/tests/store/char32703.data",
@@ -2118,11 +2118,11 @@ public class StreamingColumnTest extends BaseJDBCTestCase {
                                 + "'test data: a string column inserted as an object')");
                 // todo use setProperty method
                 stmt
-                        .execute("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.storage.pageSize', '1024')");
+                        .execute("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('db.storage.pageSize', '1024')");
                 stmt
                         .execute("create table foo1 (a int not null, b long varchar, primary key (a))");
                 stmt
-                        .execute("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.storage.pageSize', NULL)");
+                        .execute("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('db.storage.pageSize', NULL)");
 
                 // testStream2_1500
                 stmt.execute("create table foo2_1500 (a int not null, "
@@ -2195,11 +2195,11 @@ public class StreamingColumnTest extends BaseJDBCTestCase {
 
                 // testStream7
                 stmt
-                        .executeUpdate("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.storage.pageSize', '1024')");
+                        .executeUpdate("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('db.storage.pageSize', '1024')");
                 stmt
                         .execute("create table testlvc7 (a int, b char(100), lvc long varchar, d char(100))");
                 stmt
-                        .executeUpdate("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.storage.pageSize', NULL)");
+                        .executeUpdate("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('db.storage.pageSize', NULL)");
 
                 // testStream8_10_2500
                 stmt
@@ -2221,18 +2221,18 @@ public class StreamingColumnTest extends BaseJDBCTestCase {
 
                 // testStream10
                 stmt
-                        .execute("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.storage.pageSize', '1024')");
+                        .execute("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('db.storage.pageSize', '1024')");
                 stmt
                         .execute("create table tab10 (a int, b int, c long   varchar)");
                 stmt
-                        .execute("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.storage.pageSize', NULL)");
+                        .execute("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('db.storage.pageSize', NULL)");
                 // create the indexes which shares columns
                 stmt
-                        .execute("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.storage.pageSize', '4096')");
+                        .execute("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('db.storage.pageSize', '4096')");
                 stmt.execute("create index i_a on tab10 (a)");
                 stmt.execute("create index i_ab on tab10 (a, b)");
                 stmt
-                        .execute("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.storage.pageSize', NULL)");
+                        .execute("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('db.storage.pageSize', NULL)");
                 // insert a null long varchar
                 stmt.execute("insert into tab10 values(1, 1, '')");
                 // insert a long varchar with a short text string
@@ -2246,7 +2246,7 @@ public class StreamingColumnTest extends BaseJDBCTestCase {
 
                 // testStream12
                 stmt
-                        .executeUpdate("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.storage.pageSize', '4096')");
+                        .executeUpdate("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('db.storage.pageSize', '4096')");
                 stmt
                         .execute("create table testVarChar12 (a int, b varchar(32672))");
                 // create a table with 4 varchars. This table will be used to
@@ -2255,7 +2255,7 @@ public class StreamingColumnTest extends BaseJDBCTestCase {
                 stmt
                         .execute("create table testConcatenation12 (a varchar(16350), b varchar(16350), c varchar(16336), d varchar(16336))");
                 stmt
-                        .executeUpdate("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.storage.pageSize', NULL)");
+                        .executeUpdate("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('db.storage.pageSize', NULL)");
 
                 // testStream13
                 stmt
@@ -2263,7 +2263,7 @@ public class StreamingColumnTest extends BaseJDBCTestCase {
 
                 // testStream14
                 stmt
-                        .executeUpdate("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.storage.pageSize', '4096')");
+                        .executeUpdate("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('db.storage.pageSize', '4096')");
                 stmt.execute("create table testClob14 (a int, b clob(32672))");
                 // create a table with 4 varchars. This table will be used to
                 // try
@@ -2272,7 +2272,7 @@ public class StreamingColumnTest extends BaseJDBCTestCase {
                 stmt
                         .execute("create table testConcatenation14 (a clob(16350), b clob(16350), c clob(16336), d clob(16336))");
                 stmt
-                        .executeUpdate("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.storage.pageSize', NULL)");
+                        .executeUpdate("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('db.storage.pageSize', NULL)");
 
                 // testDerby500
                 stmt.execute("CREATE TABLE test500 (" + "id INTEGER NOT NULL,"

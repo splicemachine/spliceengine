@@ -21,7 +21,7 @@
 
 package org.apache.derbyTesting.unitTests.store;
 
-import org.apache.derby.iapi.store.access.*;
+import com.splicemachine.db.iapi.store.access.*;
 
 /**
 

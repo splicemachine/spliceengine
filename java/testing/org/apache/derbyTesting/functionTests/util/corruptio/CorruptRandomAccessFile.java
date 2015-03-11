@@ -20,7 +20,7 @@
  */
 
 package org.apache.derbyTesting.functionTests.util.corruptio;
-import org.apache.derby.io.StorageRandomAccessFile;
+import com.splicemachine.db.io.StorageRandomAccessFile;
 import java.io.IOException;
 import java.io.File;
 

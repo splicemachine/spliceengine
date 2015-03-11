@@ -42,7 +42,7 @@ import java.io.IOException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
-import org.apache.derby.iapi.types.HarmonySerialBlob;
+import com.splicemachine.db.iapi.types.HarmonySerialBlob;
 import org.apache.derbyTesting.functionTests.util.SQLStateConstants;
 
 import junit.framework.Test;

@@ -21,9 +21,9 @@
 
 package org.apache.derbyTesting.functionTests.util;
 
-import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-import org.apache.derby.iapi.sql.conn.ConnectionUtil;
-import org.apache.derby.iapi.store.access.AccessFactory;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
+import com.splicemachine.db.iapi.store.access.AccessFactory;
 import java.sql.SQLException;
 
 /**

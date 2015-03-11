@@ -76,13 +76,13 @@ public final class TestConfiguration {
     /**
      * Maximum number of ports used by Suites.All 
      * If this changes, this constant and the Wiki
-     * page at  http://wiki.apache.org/db-derby/DerbyJUnitTesting
+     * page at  http://wiki.apache.org/db-db/DerbyJUnitTesting
      * need to be updated. 
      */
     private final static int MAX_PORTS_USED = 20;
     
     /** This is the base port. This does NOT change EVER during the run of a suite.
-     *	It is set using the property derby.tests.basePort and it is set to default when
+     *	It is set using the property db.tests.basePort and it is set to default when
      *	a property isn't used. */
     private final static int basePort;
     private static int lastAssignedPort;
@@ -113,7 +113,7 @@ public final class TestConfiguration {
     private final static String KEY_USER_NAME = "user";
     private final static String KEY_HOSTNAME = "hostName";
     private final static String KEY_PORT = "port";
-    private final static String KEY_VERBOSE = "derby.tests.debug";    
+    private final static String KEY_VERBOSE = "derby.tests.debug";
     private final static String KEY_TRACE = "derby.tests.trace";
     private final static String KEY_SSL = "ssl";
     private final static String KEY_JMX_PORT = "jmxPort";
@@ -166,7 +166,7 @@ public final class TestConfiguration {
         if (!DERBY_HARNESS_CONFIG.getUserName().equals(DEFAULT_USER_NAME))
             assumeHarness = true;
         
-        // If derby.system.home set externally at startup assume
+        // If db.system.home set externally at startup assume
         // running in harness
         if (BaseTestCase.getSystemProperty("derby.system.home") != null)
             assumeHarness = true;
@@ -1573,7 +1573,7 @@ public final class TestConfiguration {
     	if (assignedPortCount+1 > MAX_PORTS_USED) {
     		Assert.fail("Port "+(lastAssignedPort+1)+" exceeeds expected maximum. " +
     					"You may need to update TestConfiguration.MAX_PORTS_USED and "+
-    					"the Wiki page at http://wiki.apache.org/db-derby/DerbyJUnitTesting "+
+    					"the Wiki page at http://wiki.apache.org/db-db/DerbyJUnitTesting "+
     					"if test runs now require more available ports");
     	}
     	

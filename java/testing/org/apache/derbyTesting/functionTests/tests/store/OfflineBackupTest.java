@@ -50,7 +50,7 @@ public class OfflineBackupTest extends BaseJDBCTestCase {
         File backupdbloc = new File("system","wombatbackup");
         PrivilegedFileOpsForTests.copy(origdbloc, backupdbloc);
         Connection connCreateFrom = DriverManager.getConnection(
-            "jdbc:derby:wombatCreateFrom;createFrom=system/wombatbackup");
+                "jdbc:derby:wombatCreateFrom;createFrom=system/wombatbackup");
         checkAllConsistency(connCreateFrom);
         try {
             DriverManager.getConnection("jdbc:derby:wombatCreateFrom;shutdown=true");
@@ -58,7 +58,7 @@ public class OfflineBackupTest extends BaseJDBCTestCase {
             assertSQLState("Database shutdown", "08006", se);
         }
         Connection connRestoreFrom = DriverManager.getConnection(
-            "jdbc:derby:wombatRestoreFrom;restoreFrom=system/wombatbackup");
+                "jdbc:derby:wombatRestoreFrom;restoreFrom=system/wombatbackup");
         checkAllConsistency(connRestoreFrom);
         try {
             DriverManager.getConnection("jdbc:derby:wombatRestoreFrom;shutdown=true");
@@ -69,16 +69,16 @@ public class OfflineBackupTest extends BaseJDBCTestCase {
         removeDirectory(backupdbloc);
         removeDirectory(new File("system","wombatCreateFrom"));
         removeDirectory(new File("system","wombatRestoreFrom"));
-        
+
     }
-    
-  
+
+
 
     public static Test suite() {
-        
+
         if (JDBC.vmSupportsJSR169())
             return new TestSuite("Empty OfflineBackupTest (uses DriverManager)");
-        return TestConfiguration.embeddedSuite(OfflineBackupTest.class);        
+        return TestConfiguration.embeddedSuite(OfflineBackupTest.class);
     }
 
 

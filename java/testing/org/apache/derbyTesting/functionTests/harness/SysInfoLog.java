@@ -70,7 +70,7 @@ public class SysInfoLog
                 }
 
 				Vector v = javavm.getCommandLine();
-                v.addElement("org.apache.derby.tools.sysinfo");
+                v.addElement("com.splicemachine.db.tools.sysinfo");
                 // Now convert the vector into a string array
                 String[] sCmd = new String[v.size()];
                 for (int i = 0; i < v.size(); i++)
@@ -119,12 +119,12 @@ public class SysInfoLog
             // For platforms where process exec fails or hangs
             // useprocess=false and attempt to get some info
             /*
-            pw.println(org.apache.derby.impl.tools.sysinfo.Main.javaSep);
-            org.apache.derby.impl.tools.sysinfo.Main.reportCloudscape(pw);
-            pw.println(org.apache.derby.impl.tools.sysinfo.Main.jbmsSep);
-            org.apache.derby.impl.tools.sysinfo.Main.reportDerby(pw);
-            pw.println(org.apache.derby.impl.tools.sysinfo.Main.licSep);
-            org.apache.derby.impl.tools.sysinfo.Main.printLicenseFile(pw);
+            pw.println(com.splicemachine.db.impl.tools.sysinfo.Main.javaSep);
+            com.splicemachine.db.impl.tools.sysinfo.Main.reportCloudscape(pw);
+            pw.println(com.splicemachine.db.impl.tools.sysinfo.Main.jbmsSep);
+            com.splicemachine.db.impl.tools.sysinfo.Main.reportDerby(pw);
+            pw.println(com.splicemachine.db.impl.tools.sysinfo.Main.licSep);
+            com.splicemachine.db.impl.tools.sysinfo.Main.printLicenseFile(pw);
             */
         }
     }

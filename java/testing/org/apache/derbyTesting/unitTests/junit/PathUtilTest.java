@@ -25,7 +25,7 @@ import java.io.File;
 import junit.framework.Test;
 import junit.framework.TestSuite;
 
-import org.apache.derby.impl.io.vfmem.PathUtil;
+import com.splicemachine.db.impl.io.vfmem.PathUtil;
 import org.apache.derbyTesting.junit.BaseTestCase;
 
 /**

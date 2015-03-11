@@ -52,7 +52,7 @@ public class StreamTruncationTest
 
     /**
      * Assumed conversion buffer size.
-     * @see org.apache.derby.iapi.types.ReaderToUTF8Stream
+     * @see com.splicemachine.db.iapi.types.ReaderToUTF8Stream
      */
     public static final int CONV_BUFFER_SIZE = 32*1024;
 

@@ -24,23 +24,21 @@ package org.apache.derbyTesting.unitTests.store;
 import org.apache.derbyTesting.unitTests.harness.T_Generic;
 import org.apache.derbyTesting.unitTests.harness.T_Fail;
 
-import org.apache.derby.iapi.store.access.xa.*;
-import org.apache.derby.iapi.store.access.*;
+import com.splicemachine.db.iapi.store.access.xa.*;
+import com.splicemachine.db.iapi.store.access.*;
 
-import org.apache.derby.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 
-import org.apache.derby.iapi.reference.Property;
+import com.splicemachine.db.iapi.reference.Property;
 
-import org.apache.derby.iapi.services.context.ContextService;
-import org.apache.derby.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.services.context.ContextService;
+import com.splicemachine.db.iapi.services.context.ContextManager;
 
-import org.apache.derby.iapi.services.monitor.Monitor;
+import com.splicemachine.db.iapi.services.monitor.Monitor;
 
-import org.apache.derby.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
-import org.apache.derby.iapi.services.io.FormatIdUtil;
-
-import org.apache.derby.iapi.error.StandardException; 
+import com.splicemachine.db.iapi.error.StandardException;
 
 import java.util.Properties; 
 

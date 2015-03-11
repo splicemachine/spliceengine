@@ -233,7 +233,7 @@ public class ReplicationRun_Local_3_p5 extends ReplicationRun_Local_3
             + LF + "  PORTNO=UNDEFINED_PORT_NUMBER"
             + LF + "fi"
             + LF + "ps auxwww"
-              + "| grep \"org.apache.derby.drda.NetworkServerControl "
+              + "| grep \"com.splicemachine.db.drda.NetworkServerControl "
               + "start -h 0.0.0.0 -p ${PORTNO}\" | grep -v grep "
               + "| gawk '{ print $2 }'";
         util.writeToFile(cmd, cmdName);

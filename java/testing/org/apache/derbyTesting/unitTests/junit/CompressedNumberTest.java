@@ -28,9 +28,9 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 
-import org.apache.derby.iapi.services.io.ArrayInputStream;
-import org.apache.derby.iapi.services.io.ArrayOutputStream;
-import org.apache.derby.iapi.services.io.CompressedNumber;
+import com.splicemachine.db.iapi.services.io.ArrayInputStream;
+import com.splicemachine.db.iapi.services.io.ArrayOutputStream;
+import com.splicemachine.db.iapi.services.io.CompressedNumber;
 
 import junit.framework.TestCase;
 

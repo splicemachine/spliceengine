@@ -41,7 +41,7 @@ remove;
 -- should fail because procedure is an illegal statement name
 prepare procedure as 'select * from bar';
 
--- should fail because text is passed on to derby, which
+-- should fail because text is passed on to db, which
 -- barfs on the unknown statement name. execute procedure is
 -- a foundation 2000 concept
 execute procedure sqlj.install_jar( 'file:c:/p4c/systest/out/DigIt.jar', 'SourceWUs', 1 );
@@ -52,7 +52,7 @@ execute procedure sqlj.install_jar( 'file:c:/p4c/systest/out/DigIt.jar', 'Source
 driver 'java.lang.Integer';
 
 -- now a valid driver
-driver 'org.apache.derby.jdbc.EmbeddedDriver';
+driver 'com.splicemachine.db.jdbc.EmbeddedDriver';
 
 -- specify an invalid database
 connect 'asdfasdf';

@@ -43,7 +43,7 @@ public class DriverUnloader {
         Enumeration e = DriverManager.getDrivers();
         while (e.hasMoreElements()) {
             Driver driver = (Driver) e.nextElement();
-            if (driver.getClass().getName().startsWith("org.apache.derby.")) {
+            if (driver.getClass().getName().startsWith("com.splicemachine.db.")) {
                 DriverManager.deregisterDriver(driver);
                 ret = true;
             }

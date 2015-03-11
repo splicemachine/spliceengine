@@ -25,7 +25,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import org.apache.derby.tools.ij;
+import com.splicemachine.db.tools.ij;
 
 /**
  * This class will do the setup for testing recovery after backup.
@@ -67,7 +67,7 @@ public class RecoveryAfterBackupSetup
             s.execute("CALL SYSCS_UTIL.SYSCS_BACKUP_DATABASE_AND_ENABLE_LOG_ARCHIVE_MODE('extinout/mybackup', 0)");
             System.out.println("Backup completed.  Test finished.");
         } catch (SQLException sqle) {
-            org.apache.derby.tools.JDBCDisplayUtil.ShowSQLException(System.out, 
+            com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(System.out,
                                                                     sqle);
             sqle.printStackTrace(System.out);
         }

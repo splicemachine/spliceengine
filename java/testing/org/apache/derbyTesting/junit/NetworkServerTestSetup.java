@@ -34,7 +34,7 @@ import java.security.PrivilegedExceptionAction;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import junit.framework.Test;
-import org.apache.derby.drda.NetworkServerControl;
+import com.splicemachine.db.drda.NetworkServerControl;
 
 /**
  * Test decorator that starts the network server on startup
@@ -56,7 +56,7 @@ final public class NetworkServerTestSetup extends BaseTestSetup {
      *  systems with fast port turnaround as the actual code loops for 
      *  SLEEP_TIME intervals, so should never see WAIT_TIME.
      *  For even slower systems (or for faster systems) the default value can
-     *  be overwritten using the property derby.tests.networkServerStartTimeout
+     *  be overwritten using the property db.tests.networkServerStartTimeout
      *  (which is in seconds, rather than milliseconds)
      * </p>
      */
@@ -311,7 +311,7 @@ final public class NetworkServerTestSetup extends BaseTestSetup {
 
                 String[]    args = getDefaultStartupArgs( false );
                 
-                org.apache.derby.drda.NetworkServerControl.main( args );
+                com.splicemachine.db.drda.NetworkServerControl.main( args );
             }
             
         }, "NetworkServerTestSetup command").start();
@@ -367,7 +367,7 @@ final public class NetworkServerTestSetup extends BaseTestSetup {
             al.add( "-D" + systemProperties[ i ] );
         }
 
-        al.add( "org.apache.derby.drda.NetworkServerControl" );
+        al.add( "com.splicemachine.db.drda.NetworkServerControl" );
 
         count = startupArgs.length;
         for ( int i = 0; i < count; i++ )
@@ -723,7 +723,7 @@ final public class NetworkServerTestSetup extends BaseTestSetup {
     
     /**
      * Set the period before network server times out on start up based on the
-     * value passed in with property derby.tests.networkServerStartTimeout
+     * value passed in with property db.tests.networkServerStartTimeout
      * in seconds, or use the default.
      * For example: with DEFAULT_WAIT_TIME set to 240000, i.e. 4 minutes,
      * setting the property like so: 

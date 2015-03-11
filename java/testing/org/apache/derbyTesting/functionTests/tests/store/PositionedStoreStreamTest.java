@@ -29,8 +29,8 @@ import java.io.InputStream;
 import java.util.Arrays;
 import junit.framework.Test;
 import junit.framework.TestSuite;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.impl.jdbc.PositionedStoreStream;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.impl.jdbc.PositionedStoreStream;
 import org.apache.derbyTesting.functionTests.util.streams.LoopingAlphabetStream;
 import org.apache.derbyTesting.junit.BaseTestCase;
 

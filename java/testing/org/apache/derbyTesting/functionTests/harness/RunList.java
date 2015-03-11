@@ -21,7 +21,7 @@
 
 package org.apache.derbyTesting.functionTests.harness;
 
-//import org.apache.derby.tools.sysinfo;
+//import com.splicemachine.db.tools.sysinfo;
 import java.io.File;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -622,7 +622,7 @@ public class RunList
             try 
             { 
                 String stopCmd = javaCmd + 
-                   " org.apache.derby.drda.NetworkServerControl shutdown";
+                   " com.splicemachine.db.drda.NetworkServerControl shutdown";
                 Process prstop = Runtime.getRuntime().exec(stopCmd);
             } catch (Exception e) {} // ignore
         }
@@ -1137,7 +1137,7 @@ public class RunList
 	    {
 		// skip if the derbynet.jar is not in the Classpath
 		try {
-			Class.forName("org.apache.derby.drda.NetworkServerControl");
+			Class.forName("com.splicemachine.db.drda.NetworkServerControl");
 		} catch (ClassNotFoundException cnfe) {
 			driverNotFound = true;
 			result = true;

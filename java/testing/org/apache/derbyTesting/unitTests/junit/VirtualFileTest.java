@@ -25,10 +25,10 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import junit.framework.Test;
 import junit.framework.TestSuite;
-import org.apache.derby.impl.io.vfmem.DataStore;
-import org.apache.derby.impl.io.vfmem.VirtualFile;
-import org.apache.derby.io.StorageFile;
-import org.apache.derby.io.StorageRandomAccessFile;
+import com.splicemachine.db.impl.io.vfmem.DataStore;
+import com.splicemachine.db.impl.io.vfmem.VirtualFile;
+import com.splicemachine.db.io.StorageFile;
+import com.splicemachine.db.io.StorageRandomAccessFile;
 import org.apache.derbyTesting.junit.BaseTestCase;
 
 /**

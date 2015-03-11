@@ -14,7 +14,7 @@
 --   See the License for the specific language governing permissions and
 --   limitations under the License.
 --
-driver 'org.apache.derby.jdbc.ClientDriver';
+driver 'com.splicemachine.db.jdbc.ClientDriver';
 --Bug 4632  Make the db italian to make sure string selects  are working
 connect 'testij;create=true;territory=it' USER 'dbadmin' PASSWORD 'dbadmin';
 

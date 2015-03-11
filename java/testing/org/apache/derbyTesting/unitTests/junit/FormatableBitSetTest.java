@@ -24,10 +24,7 @@ package org.apache.derbyTesting.unitTests.junit;
 import org.apache.derbyTesting.junit.BaseTestCase;
 import junit.framework.*;
 
-import org.apache.derby.iapi.services.io.FormatableBitSet;
-
-import org.apache.derby.shared.common.sanity.SanityManager;
-import org.apache.derby.shared.common.sanity.AssertFailure;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;

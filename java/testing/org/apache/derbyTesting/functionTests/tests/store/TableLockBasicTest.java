@@ -268,9 +268,9 @@ public class TableLockBasicTest extends BaseJDBCTestCase {
     public void testCreateIndex() throws SQLException {
         Statement st = createStatement();
         
-        st.execute("CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.storage.pageSize', '4096')");
+        st.execute("CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('db.storage.pageSize', '4096')");
         st.execute("create table indexed_heap (a int, b varchar(1000))");
-        st.execute("CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.storage.pageSize', NULL)");
+        st.execute("CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('db.storage.pageSize', NULL)");
         
         ResultSet rs = st.executeQuery(
                 " select * from lock_table order by tabname, type "
@@ -280,9 +280,9 @@ public class TableLockBasicTest extends BaseJDBCTestCase {
         });
         commit();
                 
-        st.execute("CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.storage.pageSize', '4096')");
+        st.execute("CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('db.storage.pageSize', '4096')");
         st.execute("create index a_idx on indexed_heap (a, b)");
-        st.execute("CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.storage.pageSize', NULL)");
+        st.execute("CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('db.storage.pageSize', NULL)");
         rs = st.executeQuery(
                 " select * from lock_table order by tabname, type "
                 + "desc, mode, cnt, lockname");

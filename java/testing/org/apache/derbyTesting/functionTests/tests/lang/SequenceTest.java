@@ -29,12 +29,11 @@ import java.sql.Statement;
 import junit.framework.Test;
 import junit.framework.TestSuite;
 
-import org.apache.derbyTesting.junit.BaseJDBCTestCase;
 import org.apache.derbyTesting.junit.CleanDatabaseTestSetup;
 import org.apache.derbyTesting.junit.DatabasePropertyTestSetup;
 import org.apache.derbyTesting.junit.JDBC;
 import org.apache.derbyTesting.junit.TestConfiguration;
-import org.apache.derby.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.reference.SQLState;
 
 /**
  * Test sequences.

@@ -23,10 +23,10 @@ package org.apache.derbyTesting.functionTests.tests.replicationTests;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.sql.Statement;
+
 import junit.framework.Test;
 import junit.framework.TestSuite;
-import org.apache.derby.jdbc.ClientDataSource;
+import com.splicemachine.db.jdbc.ClientDataSource;
 import org.apache.derbyTesting.junit.SecurityManagerSetup;
 
 
@@ -124,7 +124,7 @@ public class ReplicationRun_Local_1Indexing extends ReplicationRun
             int _noTuplesToInsert)
         throws SQLException
     {
-        ClientDataSource ds = new org.apache.derby.jdbc.ClientDataSource();
+        ClientDataSource ds = new com.splicemachine.db.jdbc.ClientDataSource();
         ds.setDatabaseName(dbPath);
         ds.setServerName(serverHost);
         ds.setPortNumber(serverPort);

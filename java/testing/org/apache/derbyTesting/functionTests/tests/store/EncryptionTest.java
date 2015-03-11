@@ -22,9 +22,6 @@
 package org.apache.derbyTesting.functionTests.tests.store;
 
 import java.sql.Connection;
-import java.sql.Statement;
-import java.sql.PreparedStatement;
-import java.sql.DriverManager;
 import java.util.Properties;
 import java.io.*;
 
@@ -39,8 +36,8 @@ public class EncryptionTest {
         try {
             // use the ij utility to read the property file and
             // make the initial connection.
-            org.apache.derby.tools.ij.getPropertyArg(args);
-            conn = org.apache.derby.tools.ij.startJBMS();
+            com.splicemachine.db.tools.ij.getPropertyArg(args);
+            conn = com.splicemachine.db.tools.ij.startJBMS();
 
             // Test 1
             // Derby 236 - boot password should not be written out

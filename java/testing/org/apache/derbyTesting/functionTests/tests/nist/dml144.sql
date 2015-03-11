@@ -38,7 +38,7 @@ AUTOCOMMIT OFF;
    FROM GRUB;
 -- PASS:0834 If 1 row selected and value is 4?
 
--- following is not supported in derby
+-- following is not supported in db
 --   SELECT OCTET_LENGTH (C1)
 --  FROM GRUB;
 -- PASS:0834 If 1 row selected and value is > 2?
@@ -50,7 +50,7 @@ AUTOCOMMIT OFF;
   FROM GRUB;
 -- PASS:0834 If 1 row selected and value is NULL?
 
--- following is not supported in derby
+-- following is not supported in db
 --   SELECT OCTET_LENGTH (C1)
 --  FROM GRUB;
 -- PASS:0834 If 1 row selected and value is NULL?

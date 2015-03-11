@@ -25,9 +25,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import junit.framework.Test;
 import junit.framework.TestSuite;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.jdbc.CharacterStreamDescriptor;
-import org.apache.derby.iapi.types.PositionedStream;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.jdbc.CharacterStreamDescriptor;
+import com.splicemachine.db.iapi.types.PositionedStream;
 import org.apache.derbyTesting.junit.BaseTestCase;
 
 /**

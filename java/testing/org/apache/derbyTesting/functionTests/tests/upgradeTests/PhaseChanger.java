@@ -209,7 +209,7 @@ final class PhaseChanger extends BaseTestSetup {
         }
 
         Class td = Class.forName(
-                "org.apache.derby.iapi.sql.dictionary.TableDescriptor",
+                "com.splicemachine.db.iapi.sql.dictionary.TableDescriptor",
                 true, loader);
         clearField(td, "referencedColumnMap", null);
     }
@@ -240,7 +240,7 @@ final class PhaseChanger extends BaseTestSetup {
         if (loader != null &&
                 UpgradeRun.lessThan(version, new int[] {10,2,1,6})) {
             Class cls = Class.forName(
-                    "org.apache.derby.iapi.services.context.ContextService",
+                    "com.splicemachine.db.iapi.services.context.ContextService",
                     true, loader);
             Field f = cls.getDeclaredField("factory");
             f.setAccessible(true);

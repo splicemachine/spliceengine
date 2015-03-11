@@ -37,7 +37,7 @@ import org.apache.derbyTesting.junit.SystemPropertyTestSetup;
 
 /**
  * This test verifies that <code>sysinfo</code> correctly localizes its
- * messages according to the default locale and <code>derby.ui.locale</code>.
+ * messages according to the default locale and <code>db.ui.locale</code>.
  */
 public class SysinfoLocaleTest extends BaseTestCase {
 
@@ -76,7 +76,7 @@ public class SysinfoLocaleTest extends BaseTestCase {
 
     /**
      * Returns the name of the test, which includes the default locale and
-     * derby.ui.locale to aid debugging.
+     * db.ui.locale to aid debugging.
      *
      * @return name of the test
      */
@@ -105,7 +105,7 @@ public class SysinfoLocaleTest extends BaseTestCase {
      * Create a suite of tests.
      *
      * @return a test suite with different combinations of
-     * <code>derby.ui.locale</code> and default locale
+     * <code>db.ui.locale</code> and default locale
      */
     public static Test suite() {
         if (!Derby.hasTools()) {
@@ -115,7 +115,7 @@ public class SysinfoLocaleTest extends BaseTestCase {
         TestSuite suite = new TestSuite("SysinfoLocaleTest");
 
         // Create test combinations. Messages should be localized to the
-        // locale specified by derby.ui.locale, if it's set. Otherwise, the
+        // locale specified by db.ui.locale, if it's set. Otherwise, the
         // JVM's default locale should be used.
         suite.addTest(createTest(Locale.ITALY, null, false));
         suite.addTest(createTest(Locale.ITALY, "it_IT", false));
@@ -135,7 +135,7 @@ public class SysinfoLocaleTest extends BaseTestCase {
      * Create a single test case.
      *
      * @param loc default locale for the test case
-     * @param ui <code>derby.ui.locale</code> for the test case
+     * @param ui <code>db.ui.locale</code> for the test case
      * @param german whether output is expected to be German
      */
     private static Test createTest(Locale loc, String ui, boolean german) {
@@ -154,10 +154,10 @@ public class SysinfoLocaleTest extends BaseTestCase {
     /**
      * Run a sysinfo class that is loaded in a separate class loader. A
      * separate class loader is required in order to force sysinfo to re-read
-     * <code>derby.ui.locale</code> (happens when the class is loaded).
+     * <code>db.ui.locale</code> (happens when the class is loaded).
      */
     private static void runSysinfo() throws Exception {
-        final String className = "org.apache.derby.tools.sysinfo";
+        final String className = "com.splicemachine.db.tools.sysinfo";
         URL sysinfoURL = SecurityManagerSetup.getURL(className);
         URL emmaURL = SecurityManagerSetup.getURL("com.vladium.emma.EMMAException");
         URL[] urls = null;

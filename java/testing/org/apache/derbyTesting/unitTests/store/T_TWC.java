@@ -21,14 +21,14 @@
 
 package org.apache.derbyTesting.unitTests.store;
 
-import org.apache.derby.iapi.store.raw.*;
+import com.splicemachine.db.iapi.store.raw.*;
 
-import org.apache.derby.iapi.services.context.ContextManager;
-import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.services.context.ContextService;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.locks.LockFactory;
-import org.apache.derby.iapi.store.access.AccessFactoryGlobals;
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.services.context.ContextService;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.locks.LockFactory;
+import com.splicemachine.db.iapi.store.access.AccessFactoryGlobals;
 
 /**
 	Transaction with context, a utility class for tests to create

@@ -1,7 +1,7 @@
 derby
 =====
 
-Splice fork of Derby source code
+Splice fork (from 10.9.1.0) of Derby source code
 
 Pulling Derby Source
 ===

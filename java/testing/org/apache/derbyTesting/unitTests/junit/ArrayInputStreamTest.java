@@ -24,11 +24,11 @@ package org.apache.derbyTesting.unitTests.junit;
 import java.io.IOException;
 import junit.framework.Test;
 import junit.framework.TestSuite;
-import org.apache.derby.iapi.services.io.ArrayInputStream;
+import com.splicemachine.db.iapi.services.io.ArrayInputStream;
 import org.apache.derbyTesting.junit.BaseTestCase;
 
 /**
- * Unit tests for {@code org.apache.derby.iapi.services.io.ArrayInputStream}.
+ * Unit tests for {@code com.splicemachine.db.iapi.services.io.ArrayInputStream}.
  */
 public class ArrayInputStreamTest extends BaseTestCase {
 

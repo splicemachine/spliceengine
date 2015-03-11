@@ -202,7 +202,7 @@ public	class	JDBCDriverTest	extends	CompatibilitySuite
 	//
 	/////////////////////////////////////////////////////////////
 
-	// map derby type name to type descriptor
+	// map db type name to type descriptor
 	private	static	HashMap		_types = new HashMap();	// maps Derby type names to TypeDescriptors
 
 	// map jdbc type to index into COERCIONS
@@ -445,7 +445,7 @@ public	class	JDBCDriverTest	extends	CompatibilitySuite
         
         if ( correctBehavior )
         {
-            String aliasInfoClassName = "org.apache.derby.catalog.AliasInfo";
+            String aliasInfoClassName = "com.splicemachine.db.catalog.AliasInfo";
             
             checkRSMD
                 (
@@ -1316,7 +1316,7 @@ public	class	JDBCDriverTest	extends	CompatibilitySuite
 	{
 		private	int		_jdbcType;
 		private	String	_derbyTypeName;
-		private	Version	_derbyVersion;		// first derby version which supports this type
+		private	Version	_derbyVersion;		// first db version which supports this type
 
 		public	TypeDescriptor
 		(

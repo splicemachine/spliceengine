@@ -33,12 +33,12 @@ import org.apache.derbyTesting.junit.BaseJDBCTestCase;
  * Run a replication test on localhost
  * by using default values for master and slave hosts,
  * and master and slave ports.
- * 
+ *
  */
 
 public class ReplicationRun_Local_StateTest_part1_2 extends ReplicationRun
 {
-    
+
     final static String CANNOT_CONNECT_TO_DB_IN_SLAVE_MODE     = "08004";
     final static String LOGIN_FAILED = "08004";
     final static String REPLICATION_DB_NOT_BOOTED = "XRE11";
@@ -48,23 +48,23 @@ public class ReplicationRun_Local_StateTest_part1_2 extends ReplicationRun
 
     /**
      * Creates a new instance of ReplicationRun_Local_StateTest_part1
-     * 
+     *
      * @param testcaseName Identifying the test.
      */
     public ReplicationRun_Local_StateTest_part1_2(String testcaseName)
     {
         super(testcaseName);
     }
-        
+
     public static Test suite()
     {
         TestSuite suite = new TestSuite("ReplicationRun_Local_StateTest_part1_2 Suite");
-        
+
         suite.addTestSuite( ReplicationRun_Local_StateTest_part1_2.class );
-        
+
         return SecurityManagerSetup.noSecurityManager(suite);
     }
-    
+
     //////////////////////////////////////////////////////////////
     ////
     //// The replication test framework (testReplication()):
@@ -75,51 +75,51 @@ public class ReplicationRun_Local_StateTest_part1_2 extends ReplicationRun
     ////     test run.
     ////
     //////////////////////////////////////////////////////////////
-    
+
     public void testReplication_Local_StateTest_part1_2()
-    throws Exception
+            throws Exception
     {
         cleanAllTestHosts();
-        
+
         initEnvironment();
-        
+
         initMaster(masterServerHost,
                 replicatedDb);
-        
+
         startServer(masterJvmVersion, derbyMasterVersion,
                 masterServerHost,
                 ALL_INTERFACES, // masterServerHost, // "0.0.0.0", // All. or use masterServerHost for interfacesToListenOn,
                 masterServerPort,
                 masterDbSubPath); // Distinguishing master/slave
-        
-        
+
+
         startServer(slaveJvmVersion, derbySlaveVersion,
                 slaveServerHost,
                 ALL_INTERFACES, // slaveServerHost, // "0.0.0.0", // All. or use slaveServerHost for interfacesToListenOn,
                 slaveServerPort,
                 slaveDbSubPath); // Distinguishing master/slave
-        
+
         startServerMonitor(slaveServerHost);
-        
+
         bootMasterDatabase(jvmVersion,
                 masterDatabasePath +FS+ masterDbSubPath,
                 replicatedDb,
                 masterServerHost, // Where the startreplication command must be given
                 masterServerPort, // master server interface accepting client requests
                 null // bootLoad, // The "test" to start when booting db.
-                );
-        
+        );
+
         initSlave(slaveServerHost,
                 jvmVersion,
                 replicatedDb); // Trunk and Prototype V2: copy master db to db_slave.
-        
+
         startSlave(jvmVersion, replicatedDb,
                 slaveServerHost, // slaveClientInterface // where the slave db runs
                 slaveServerPort,
                 slaveServerHost, // for slaveReplInterface
                 slaveReplPort,
                 testClientHost);
-        
+
         // With master started above, next will fail! 
         // Also seems failover will fail w/XRE21!
         // Further testing: skipping next startMaster seems to 
@@ -133,15 +133,15 @@ public class ReplicationRun_Local_StateTest_part1_2 extends ReplicationRun
                 slaveServerHost, // for slaveReplInterface
                 slaveReplPort);
          /* */
-        
+
         _testPostStartedMasterAndSlave_StopMaster(); // Not in a state to continue.
-                
+
         stopServer(jvmVersion, derbyVersion,
                 slaveServerHost, slaveServerPort);
-        
+
         stopServer(jvmVersion, derbyVersion,
                 masterServerHost, masterServerPort);
-        
+
     }
 
 
@@ -151,15 +151,15 @@ public class ReplicationRun_Local_StateTest_part1_2 extends ReplicationRun
         Connection conn = null;
         String db = null;
         String connectionURL = null;
-        
+
         // 1. Attempt to perform stopMaster on slave. Should fail.
-        db = slaveDatabasePath +FS+ReplicationRun.slaveDbSubPath 
+        db = slaveDatabasePath +FS+ReplicationRun.slaveDbSubPath
                 +FS+ replicatedDb;
-        connectionURL = "jdbc:derby:"  
+        connectionURL = "jdbc:derby:"
                 + "//" + slaveServerHost + ":" + slaveServerPort + "/"
                 + db
                 + ";stopMaster=true";
-        util.DEBUG("1. testPostStartedMasterAndSlave_StopMaster: " 
+        util.DEBUG("1. testPostStartedMasterAndSlave_StopMaster: "
                 + connectionURL);
         try
         {
@@ -174,22 +174,22 @@ public class ReplicationRun_Local_StateTest_part1_2 extends ReplicationRun
             String msg = ec + " " + ss + " " + se.getMessage();
             //  SQLCODE: -1, SQLSTATE: 08004
             BaseJDBCTestCase.assertSQLState(
-                "connectionURL +  failed: " + msg,
-                LOGIN_FAILED,
-                se);
-            util.DEBUG("stopMaster on slave failed as expected: " 
+                    "connectionURL +  failed: " + msg,
+                    LOGIN_FAILED,
+                    se);
+            util.DEBUG("stopMaster on slave failed as expected: "
                     + connectionURL + " " + msg);
         }
         // Default replication test sequence still OK.
-        
+
         // 2. stopMaster on master: OK
-        db = masterDatabasePath +FS+ReplicationRun.masterDbSubPath 
+        db = masterDatabasePath +FS+ReplicationRun.masterDbSubPath
                 +FS+ replicatedDb;
-        connectionURL = "jdbc:derby:"  
+        connectionURL = "jdbc:derby:"
                 + "//" + masterServerHost + ":" + masterServerPort + "/"
                 + db
                 + ";stopMaster=true";
-        util.DEBUG("2. testPostStartedMasterAndSlave_StopMaster: " 
+        util.DEBUG("2. testPostStartedMasterAndSlave_StopMaster: "
                 + connectionURL);
         try
         {
@@ -205,10 +205,10 @@ public class ReplicationRun_Local_StateTest_part1_2 extends ReplicationRun
             assertTrue("stopMaster on master failed: " + connectionURL + " " + msg,false);
         }
         // Not meaningful to continue default replication test sequence after this point!
-        
+
         // 3. Connect to slave which now is not in non-replication mode is OK.
         db = slaveDatabasePath +FS+ReplicationRun.slaveDbSubPath +FS+ replicatedDb;
-        connectionURL = "jdbc:derby:"  
+        connectionURL = "jdbc:derby:"
                 + "//" + slaveServerHost + ":" + slaveServerPort + "/"
                 + db;
         util.DEBUG("3. testPostStartedMasterAndSlave_StopMaster: " + connectionURL);
@@ -254,7 +254,7 @@ public class ReplicationRun_Local_StateTest_part1_2 extends ReplicationRun
 
         // 4. stopMaster on slave which now is not in replication mode should fail.
         db = slaveDatabasePath +FS+ReplicationRun.slaveDbSubPath +FS+ replicatedDb;
-        connectionURL = "jdbc:derby:"  
+        connectionURL = "jdbc:derby:"
                 + "//" + slaveServerHost + ":" + slaveServerPort + "/"
                 + db
                 + ";stopMaster=true";
@@ -271,17 +271,17 @@ public class ReplicationRun_Local_StateTest_part1_2 extends ReplicationRun
             String ss = se.getSQLState();
             String msg = ec + " " + ss + " " + se.getMessage();
             BaseJDBCTestCase.assertSQLState(
-                "4. stopMaster on slave failed with: " 
-                    + connectionURL + " " + msg,
-                REPLICATION_NOT_IN_MASTER_MODE,
-                se);
-            util.DEBUG("4. stopMaster on slave failed as expected: " 
+                    "4. stopMaster on slave failed with: "
+                            + connectionURL + " " + msg,
+                    REPLICATION_NOT_IN_MASTER_MODE,
+                    se);
+            util.DEBUG("4. stopMaster on slave failed as expected: "
                     + connectionURL + " " + msg);
         }
-        
+
         // 5. Connect master which now is now in non-replication mode should succeed.
         db = masterDatabasePath +FS+ReplicationRun.masterDbSubPath +FS+ replicatedDb;
-        connectionURL = "jdbc:derby:"  
+        connectionURL = "jdbc:derby:"
                 + "//" + masterServerHost + ":" + masterServerPort + "/"
                 + db;
         util.DEBUG("5. testPostStartedMasterAndSlave_StopMaster: " + connectionURL);
@@ -295,16 +295,16 @@ public class ReplicationRun_Local_StateTest_part1_2 extends ReplicationRun
             int ec = se.getErrorCode();
             String ss = se.getSQLState();
             String msg = ec + " " + ss + " " + se.getMessage();
-            util.DEBUG("5. Connect to db not in master mode unexpectedly failed : " 
+            util.DEBUG("5. Connect to db not in master mode unexpectedly failed : "
                     + connectionURL + " " + msg);
-            assertTrue("5. Connect to db not in master mode unexpectedly failed : " 
+            assertTrue("5. Connect to db not in master mode unexpectedly failed : "
                     + connectionURL + " " + msg, false);
         }
 
         // 6. Attempt to do stopmaster on master which now is now in non-replication mode should fail.
-        db = masterDatabasePath +FS+ReplicationRun.masterDbSubPath 
+        db = masterDatabasePath +FS+ReplicationRun.masterDbSubPath
                 +FS+ replicatedDb;
-        connectionURL = "jdbc:derby:"  
+        connectionURL = "jdbc:derby:"
                 + "//" + masterServerHost + ":" + masterServerPort + "/"
                 + db
                 + ";stopMaster=true";
@@ -321,13 +321,13 @@ public class ReplicationRun_Local_StateTest_part1_2 extends ReplicationRun
             String ss = se.getSQLState();
             String msg = ec + " " + ss + " " + se.getMessage();
             BaseJDBCTestCase.assertSQLState(
-                "6. stopMaster on server not in master mode failed with: " 
-                    + connectionURL + " " + msg,
-                REPLICATION_NOT_IN_MASTER_MODE,
-                se);
-            util.DEBUG("6. stopMaster on server not in master mode failed as expected: " 
+                    "6. stopMaster on server not in master mode failed with: "
+                            + connectionURL + " " + msg,
+                    REPLICATION_NOT_IN_MASTER_MODE,
+                    se);
+            util.DEBUG("6. stopMaster on server not in master mode failed as expected: "
                     + connectionURL + " " + msg);
         }
     }
-    
+
 }

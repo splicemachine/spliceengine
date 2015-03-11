@@ -531,7 +531,7 @@ public class DynamicLikeOptimizationTest extends BaseJDBCTestCase {
     public void testDynamicLikeOptimization() throws SQLException {
         Statement s = createStatement();
         ResultSet rs = s.executeQuery( 
-          		"VALUES SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('derby.database.collation')");
+          		"VALUES SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('db.database.collation')");
         if (rs.next()){
         	if (rs.getString(1).equals("TERRITORY_BASED")) {
         		rs.close();

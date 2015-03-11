@@ -25,8 +25,7 @@ import java.security.AccessController;
 import java.sql.Connection;
 import java.util.Locale;
 
-import org.apache.derby.iapi.tools.i18n.LocalizedResource;
-import org.apache.derbyTesting.junit.BaseTestCase;
+import com.splicemachine.db.iapi.tools.i18n.LocalizedResource;
 import org.apache.derbyTesting.junit.Derby;
 
 import junit.framework.Test;
@@ -174,21 +173,21 @@ public abstract class ScriptTestCase extends CanonTestCase {
         final String derby_ui_codeset = getSystemProperty("derby.ui.codeset");
 
         if (derby_ui_codeset != null) {
-            // IJ should format output according to the derby.ui.codeset
+            // IJ should format output according to the db.ui.codeset
             // variable. If we pass in an encoding explicitly to runScript(),
-            // we won't test that derby.ui.codeset is obeyed. Therefore,
+            // we won't test that db.ui.codeset is obeyed. Therefore,
             // leave it as null.
             outputEnc = null;
             assertEquals(
-                    "Requested output encoding and derby.ui.codeset differ",
+                    "Requested output encoding and db.ui.codeset differ",
                     outputEncoding, derby_ui_codeset);
         } else {
-            // derby.ui.codeset isn't set. Tell runScript() which output
+            // db.ui.codeset isn't set. Tell runScript() which output
             // encoding to use.
             outputEnc = outputEncoding;
         }
         
-		org.apache.derby.tools.ij.runScript(
+		com.splicemachine.db.tools.ij.runScript(
 				conn,
 				sqlIn,
 				inputEncoding,

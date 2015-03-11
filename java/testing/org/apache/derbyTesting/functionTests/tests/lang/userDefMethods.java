@@ -36,7 +36,7 @@ public class userDefMethods
         PreparedStatement statement = null;
         String delStr = null;
         Statement s = con.createStatement();
-        ResultSet rs = s.executeQuery("SELECT c1 from new org.apache.derby.catalog.TriggerOldTransitionRows() AS EQ");
+        ResultSet rs = s.executeQuery("SELECT c1 from new com.splicemachine.db.catalog.TriggerOldTransitionRows() AS EQ");
         Vector keys = new Vector();
         while(rs.next()){
             keys.addElement(new Long(rs.getLong(1)));
@@ -59,7 +59,7 @@ public class userDefMethods
 		Connection con = DriverManager.getConnection("jdbc:default:connection");
         String sqlstmt;
 		Statement stmt = con.createStatement();
-		sqlstmt = "SELECT a FROM new org.apache.derby.catalog.TriggerOldTransitionRows() AS EQ";
+		sqlstmt = "SELECT a FROM new com.splicemachine.db.catalog.TriggerOldTransitionRows() AS EQ";
 		ResultSet rs = stmt.executeQuery(sqlstmt);
 		sqlstmt = "delete from parent where a = ? ";
 		PreparedStatement pstmt = con.prepareStatement(sqlstmt);

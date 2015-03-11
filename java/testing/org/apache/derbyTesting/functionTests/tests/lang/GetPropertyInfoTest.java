@@ -33,7 +33,7 @@ public class GetPropertyInfoTest
 {
 	static String protocol = "jdbc:derby:";
 	static String url = "EncryptedDB;create=true;dataEncryption=true";
-	static String driver = "org.apache.derby.jdbc.EmbeddedDriver";
+	static String driver = "com.splicemachine.db.jdbc.EmbeddedDriver";
 
 	public static void main(String[] args) throws SQLException,
 		InterruptedException, Exception 

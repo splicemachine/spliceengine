@@ -22,7 +22,7 @@ package org.apache.derbyTesting.functionTests.tests.replicationTests;
 
 import java.sql.Connection;
 import java.sql.SQLException;
-import org.apache.derby.jdbc.ClientDataSource;
+import com.splicemachine.db.jdbc.ClientDataSource;
 
 
 /**
@@ -59,7 +59,7 @@ public class ReplicationRun_Local_3 extends ReplicationRun
     SQLException _failOver(String serverHost, int serverPort, String dbPath) 
     {
         util.DEBUG("BEGIN _failOver"); 
-        ClientDataSource ds = new org.apache.derby.jdbc.ClientDataSource();
+        ClientDataSource ds = new com.splicemachine.db.jdbc.ClientDataSource();
         ds.setDatabaseName(dbPath);
         ds.setServerName(serverHost);
         ds.setPortNumber(serverPort);
@@ -83,7 +83,7 @@ public class ReplicationRun_Local_3 extends ReplicationRun
         throws SQLException 
     {
         util.DEBUG("_startSlaveTrueAndCreateTrue");
-        ClientDataSource ds = new org.apache.derby.jdbc.ClientDataSource();
+        ClientDataSource ds = new com.splicemachine.db.jdbc.ClientDataSource();
         ds.setDatabaseName(dbPath);
         ds.setServerName(serverHost);
         ds.setPortNumber(serverPort);
@@ -101,7 +101,7 @@ public class ReplicationRun_Local_3 extends ReplicationRun
     SQLException _stopMaster(String masterServerHost, int masterServerPort, String dbPath) 
     {
         util.DEBUG("_stopMaster");
-        ClientDataSource ds = new org.apache.derby.jdbc.ClientDataSource();
+        ClientDataSource ds = new com.splicemachine.db.jdbc.ClientDataSource();
         ds.setDatabaseName(dbPath);
         ds.setServerName(masterServerHost);
         ds.setPortNumber(masterServerPort);

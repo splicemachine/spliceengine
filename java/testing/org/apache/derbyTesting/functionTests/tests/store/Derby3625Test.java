@@ -1,11 +1,7 @@
 package org.apache.derbyTesting.functionTests.tests.store;
 
-import org.apache.derbyTesting.junit.BaseJDBCTestCase;
 import org.apache.derbyTesting.junit.CleanDatabaseTestSetup;
 import org.apache.derbyTesting.junit.DatabasePropertyTestSetup;
-import org.apache.derbyTesting.junit.TestConfiguration;
-
-import org.apache.derby.shared.common.sanity.SanityManager;
 
 import junit.framework.Assert;
 import junit.framework.Test;
@@ -14,7 +10,6 @@ import junit.framework.TestSuite;
 import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.Statement;
 import java.sql.SQLException;
 
@@ -49,8 +44,8 @@ the defragment phase.
 Would throw following error:
 
 ERROR XSDA3: Limitation: Record cannot be updated or inserted due to lack of 
-space on the page. Use the parameters derby.storage.pageSize and/or 
-derby.storage.pageReservedSpace to work around this limitation.^M
+space on the page. Use the parameters db.storage.pageSize and/or
+db.storage.pageReservedSpace to work around this limitation.^M
 
 **/
 
@@ -205,7 +200,7 @@ public class Derby3625Test extends StoreBaseTest
         //
         // ERROR XSDA3: Limitation: Record cannot be updated or inserted due 
         // to lack of space on the page. Use the parameters 
-        // derby.storage.pageSize and/or derby.storage.pageReservedSpace to 
+        // db.storage.pageSize and/or db.storage.pageReservedSpace to
         // work around this limitation.
 
         CallableStatement call_compress = 

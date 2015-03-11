@@ -15,15 +15,7 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-<!-- ==================================================================== -->
-<!--                       Derby Shared Classes build file                -->
-<!-- ==================================================================== -->
 <project default="shared" basedir="../..">
-
-<!-- ==================================================================== -->
-<!--                           Set properties                             -->
-<!-- ==================================================================== -->
-
 
   <!-- User settings -->
   <property file="${user.home}/ant.properties"/>
@@ -82,13 +74,13 @@
       proceed="${proceed}"
       verbose="${verbose}"
       srcdir="${derby.shared.src.dir}"
-      includes="org/apache/derby/shared/**"
+      includes="${splice.package}/shared/**"
       destdir="${out.dir}">
       <classpath>
           <pathelement path="${java15compile.classpath}"/>
       </classpath>
-      <include name="org/apache/derby/shared/**"/>
-  	  <exclude name="org/apache/derby/shared/common/sanity/ThreadDump.java"/>
+      <include name="${splice.package}/shared/**"/>
+  	  <exclude name="${splice.package}/shared/common/sanity/ThreadDump.java"/>
     </javac>
   	
   	<javac
@@ -107,7 +99,7 @@
   	      <classpath>
   	        <pathelement path="${java15compile.classpath}"/>
   	      </classpath>
-  	    <include name="org/apache/derby/shared/common/sanity/ThreadDump.java"/>
+  	    <include name="${splice.package}/shared/common/sanity/ThreadDump.java"/>
   	    </javac>
 </target>
   

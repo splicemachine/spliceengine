@@ -36,7 +36,7 @@ import java.sql.ResultSet;
 import java.sql.Statement;
 import java.sql.SQLException;
 
-import org.apache.derby.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 /**
  * Test that an exception is raised if the flow of data from the server to the
@@ -46,7 +46,7 @@ import org.apache.derby.iapi.services.sanity.SanityManager;
  * added here. The requirements for this test are:<ol>
  *      <li>Must be run with the network client driver (DerbyNetClient)</li>
  *      <li>Derby must have been built in SANE mode</li>
- *      <li>System property <i>derby.debug.suicideOfLayerBStreaming</i> must be
+ *      <li>System property <i>db.debug.suicideOfLayerBStreaming</i> must be
  *          set to <i>true</i> in the server-side VM</li></ol>
  * 
  * Note that action must be taken if this test is to be run with a separate VM

@@ -23,31 +23,30 @@ package org.apache.derbyTesting.unitTests.store;
 
 import org.apache.derbyTesting.unitTests.harness.T_Fail;
 
-import org.apache.derby.impl.store.access.conglomerate.*;
+import com.splicemachine.db.impl.store.access.conglomerate.*;
 
 import java.util.Properties;
 import java.util.HashSet;
 import java.util.List;
 
-import java.io.PrintWriter;
-import org.apache.derby.iapi.services.stream.HeaderPrintWriter;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.store.access.ConglomerateController;
-import org.apache.derby.iapi.store.access.GroupFetchScanController;
-import org.apache.derby.iapi.store.access.Qualifier;
-import org.apache.derby.iapi.store.access.RowUtil;
-import org.apache.derby.iapi.store.access.ScanController;
-import org.apache.derby.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.services.stream.HeaderPrintWriter;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.store.access.ConglomerateController;
+import com.splicemachine.db.iapi.store.access.GroupFetchScanController;
+import com.splicemachine.db.iapi.store.access.Qualifier;
+import com.splicemachine.db.iapi.store.access.RowUtil;
+import com.splicemachine.db.iapi.store.access.ScanController;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 
-import org.apache.derby.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
-import org.apache.derby.iapi.types.Orderable;
-import org.apache.derby.iapi.types.RowLocation;
+import com.splicemachine.db.iapi.types.Orderable;
+import com.splicemachine.db.iapi.types.RowLocation;
 
-import org.apache.derby.iapi.types.SQLLongint;
+import com.splicemachine.db.iapi.types.SQLLongint;
 
-import org.apache.derby.iapi.store.access.BackingStoreHashtable;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.store.access.BackingStoreHashtable;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import java.util.Enumeration;
 
 public class T_QualifierTest 

@@ -121,7 +121,7 @@ public class InterruptResilienceTest extends BaseJDBCTestCase
     protected void setUp()
             throws java.lang.Exception {
         try {
-            Class.forName("org.apache.derby.jdbc.EmbeddedDriver").newInstance();
+            Class.forName("com.splicemachine.db.jdbc.EmbeddedDriver").newInstance();
         } catch (Exception e) {
         }
         super.setUp();

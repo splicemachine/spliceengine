@@ -30,8 +30,8 @@ import java.sql.ResultSet;
 import junit.framework.Test;
 import junit.framework.TestSuite;
 
-import org.apache.derby.catalog.types.RoutineAliasInfo;
-import org.apache.derby.catalog.TypeDescriptor;
+import com.splicemachine.db.catalog.types.RoutineAliasInfo;
+import com.splicemachine.db.catalog.TypeDescriptor;
 
 /**
  * Upgrade test cases for 10.6.

@@ -21,28 +21,21 @@
 
 package org.apache.derbyTesting.unitTests.crypto;
 
+import com.splicemachine.db.iapi.reference.Module;
 import org.apache.derbyTesting.unitTests.harness.T_Generic;
 import org.apache.derbyTesting.unitTests.harness.T_Fail;
 
-import org.apache.derby.iapi.services.crypto.*;
+import com.splicemachine.db.iapi.services.crypto.*;
 
-import org.apache.derby.iapi.services.monitor.Monitor;
+import com.splicemachine.db.iapi.services.monitor.Monitor;
 
-import org.apache.derby.iapi.db.PropertyInfo;
-
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.error.StandardException;
 
 import java.security.AccessController;
 import java.security.Key;
 import java.security.PrivilegedAction;
-import java.security.PrivilegedExceptionAction;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.RandomAccessFile;
 import java.io.IOException;
 
@@ -64,7 +57,7 @@ import java.lang.reflect.*;
 
 
 /*
-	To run, put the following line in derby.properties
+	To run, put the following line in db.properties
 	derby.module.test.T_Cipher=org.apache.derbyTesting.unitTests.crypto.T_Cipher
 
 	and run java org.apache.derbyTesting.unitTests.harness.UnitTestMain
@@ -91,7 +84,7 @@ public class T_Cipher extends T_Generic
 	*/
 
 	public String getModuleToTestProtocolName() {
-		return org.apache.derby.iapi.reference.Module.CipherFactoryBuilder;
+		return Module.CipherFactoryBuilder;
 	}
 
     protected String getAlgorithm()
@@ -214,7 +207,7 @@ public class T_Cipher extends T_Generic
         REPORT("encryption provider used : " + provider);
 
         CipherFactoryBuilder cb =  (CipherFactoryBuilder)
-            Monitor.startSystemModule(org.apache.derby.iapi.reference.Module.CipherFactoryBuilder);
+            Monitor.startSystemModule(Module.CipherFactoryBuilder);
 
         factory = cb.createCipherFactory(true, props, false);
 

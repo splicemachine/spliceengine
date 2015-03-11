@@ -24,29 +24,18 @@ package org.apache.derbyTesting.unitTests.store;
 import org.apache.derbyTesting.unitTests.harness.T_Generic;
 import org.apache.derbyTesting.unitTests.harness.T_Fail;
 
-import org.apache.derbyTesting.unitTests.harness.UnitTest;
+import com.splicemachine.db.impl.store.raw.log.*;
 
-import org.apache.derby.impl.store.raw.log.*;
+import com.splicemachine.db.iapi.services.context.ContextService;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
+import com.splicemachine.db.iapi.services.monitor.Monitor;
+import com.splicemachine.db.iapi.services.locks.LockFactory;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.reference.Property;
 
-import org.apache.derby.iapi.services.context.ContextService;
-import org.apache.derby.iapi.services.context.ContextManager;
-import org.apache.derby.iapi.services.daemon.DaemonService;
-import org.apache.derby.iapi.services.property.PropertyUtil;
-import org.apache.derby.iapi.services.monitor.Monitor;
-import org.apache.derby.iapi.services.monitor.ModuleFactory;
-import org.apache.derby.iapi.services.locks.LockFactory;
-import org.apache.derby.iapi.services.io.Storable;
-import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.reference.Property;
-import org.apache.derby.iapi.reference.EngineType;
-import org.apache.derby.iapi.services.property.PropertyUtil;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.error.StandardException;
 
-import org.apache.derby.iapi.error.StandardException;
-
-import org.apache.derby.iapi.store.raw.*;
-
-import org.apache.derby.iapi.store.access.conglomerate.LogicalUndo;
+import com.splicemachine.db.iapi.store.raw.*;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
@@ -57,7 +46,7 @@ import java.util.Properties;
 /**
 	A implementation unit test for log full condition
 
-    To run, create a derby.properties file in a new directory with the
+    To run, create a db.properties file in a new directory with the
 	contents
 
 	derby.module.test.recoverFullLog=org.apache.derbyTesting.unitTests.store.T_RecoverFullLog

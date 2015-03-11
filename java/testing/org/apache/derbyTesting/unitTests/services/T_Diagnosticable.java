@@ -21,25 +21,13 @@
 
 package org.apache.derbyTesting.unitTests.services;
 
-import org.apache.derby.iapi.services.context.ContextService;
-import org.apache.derby.iapi.services.diag.Diagnosticable;
-import org.apache.derby.iapi.services.diag.DiagnosticUtil;
-import org.apache.derby.iapi.services.monitor.Monitor;
-import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.store.access.AccessFactory;
-import org.apache.derby.iapi.store.access.ConglomerateController;
-import org.apache.derby.iapi.store.access.TransactionController;
-import org.apache.derby.iapi.store.raw.ContainerHandle;
-import org.apache.derby.iapi.store.raw.ContainerKey;
-import org.apache.derby.iapi.store.raw.Page;
-import org.apache.derby.iapi.store.raw.Transaction;
-import org.apache.derby.iapi.store.raw.RawStoreFactory;
+import com.splicemachine.db.iapi.services.diag.Diagnosticable;
+import com.splicemachine.db.iapi.services.diag.DiagnosticUtil;
 
 
 import org.apache.derbyTesting.unitTests.harness.T_MultiIterations;
 import org.apache.derbyTesting.unitTests.harness.T_Fail;
-import org.apache.derby.iapi.reference.Property;
+import com.splicemachine.db.iapi.reference.Property;
 
 import java.util.Properties;
 
@@ -192,7 +180,7 @@ public class T_Diagnosticable extends T_MultiIterations
 	*/
 
 	public String getModuleToTestProtocolName() {
-        return("org.apache.derby.iapi.services.diag.DiagnosticUtil");
+        return("com.splicemachine.db.iapi.services.diag.DiagnosticUtil");
 	}
 
     /**

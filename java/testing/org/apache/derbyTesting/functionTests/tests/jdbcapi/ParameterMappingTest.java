@@ -51,8 +51,8 @@ import org.apache.derbyTesting.junit.BaseJDBCTestCase;
 import org.apache.derbyTesting.junit.JDBC;
 import org.apache.derbyTesting.junit.TestConfiguration;
 
-import org.apache.derby.iapi.types.HarmonySerialBlob;
-import org.apache.derby.iapi.types.HarmonySerialClob;
+import com.splicemachine.db.iapi.types.HarmonySerialBlob;
+import com.splicemachine.db.iapi.types.HarmonySerialClob;
 
 /**
  * 
@@ -3599,7 +3599,7 @@ public class ParameterMappingTest extends BaseJDBCTestCase {
                 // a character column but sets the value to
                 // be the object's toString. This is probably a bug with JCC.
                 if (s.startsWith("com.ibm.db2.jcc.")
-                        || s.startsWith("org.apache.derby.client"))
+                        || s.startsWith("com.splicemachine.db.client"))
                     s = "<OBJECT.toString()>";
 
                 boolean hasNonAscii = false;

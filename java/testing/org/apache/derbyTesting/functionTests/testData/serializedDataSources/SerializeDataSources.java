@@ -34,7 +34,7 @@ import javax.naming.Reference;
 import javax.naming.Referenceable;
 import javax.sql.DataSource;
 
-import org.apache.derby.tools.sysinfo;
+import com.splicemachine.db.tools.sysinfo;
 
 /**
  * Serializes and writes data sources to file, or prints information about
@@ -61,16 +61,16 @@ public class SerializeDataSources {
 
     /** List of known data sources in the embedded driver. */
     private static final String[] KNOWN_EMBEDDED_DATA_SOURCES ={
-            "org.apache.derby.jdbc.EmbeddedDataSource",
-            "org.apache.derby.jdbc.EmbeddedConnectionPoolDataSource",
-            "org.apache.derby.jdbc.EmbeddedXADataSource"
+            "com.splicemachine.db.jdbc.EmbeddedDataSource",
+            "com.splicemachine.db.jdbc.EmbeddedConnectionPoolDataSource",
+            "com.splicemachine.db.jdbc.EmbeddedXADataSource"
         };
 
     /** List of known data sources in the client driver. */
     private static final String[] KNOWN_CLIENT_DATA_SOURCES ={
-            "org.apache.derby.jdbc.ClientDataSource",
-            "org.apache.derby.jdbc.ClientConnectionPoolDataSource",
-            "org.apache.derby.jdbc.ClientXADataSource"
+            "com.splicemachine.db.jdbc.ClientDataSource",
+            "com.splicemachine.db.jdbc.ClientConnectionPoolDataSource",
+            "com.splicemachine.db.jdbc.ClientXADataSource"
         };
     
     /**

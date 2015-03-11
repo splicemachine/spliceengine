@@ -101,7 +101,7 @@ public class StalePlansTest extends BaseJDBCTestCase {
         Statement stmt = createStatement();
         assertStatementError("XCY00", stmt,
                              "call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-                             "'derby.language.stalePlanCheckInterval', '2')");
+                             "'db.language.stalePlanCheckInterval', '2')");
         stmt.close();
     }
 

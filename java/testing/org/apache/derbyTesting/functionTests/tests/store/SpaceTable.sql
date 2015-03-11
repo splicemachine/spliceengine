@@ -30,19 +30,19 @@ insert into ideleteu values (PADSTRING('rrrrrrrrrr',2000), PADSTRING('ssssssssss
 
 -- This query also tests the SpaceTable class alias
 select conglomeratename, isindex, numallocatedpages, numfreepages, pagesize, estimspacesaving
-	from new org.apache.derby.diag.SpaceTable('IDELETEU') t
+	from new com.splicemachine.db.diag.SpaceTable('IDELETEU') t
 	order by conglomeratename; 
 
 delete from ideleteu;
 CALL WAIT_FOR_POST_COMMIT();
 
 select conglomeratename, isindex, numallocatedpages, numfreepages, pagesize, estimspacesaving
-	from new org.apache.derby.diag.SpaceTable('IDELETEU') t
+	from new com.splicemachine.db.diag.SpaceTable('IDELETEU') t
 	order by conglomeratename; 
 
 
 select conglomeratename, isindex, numallocatedpages, numfreepages, pagesize, estimspacesaving
-	from new org.apache.derby.diag.SpaceTable('PLATYPUS') t
+	from new com.splicemachine.db.diag.SpaceTable('PLATYPUS') t
 	order by conglomeratename; 
 
 create table platypus (a varchar(1000), b varchar(3500), c varchar(400), d varchar(100)) ;
@@ -51,7 +51,7 @@ create index echidna on platypus (c) ;
 create index wallaby on platypus (a,c,d) ;
 
 select conglomeratename, isindex, numallocatedpages, numfreepages, pagesize, estimspacesaving
-	from new org.apache.derby.diag.SpaceTable('PLATYPUS') t
+	from new com.splicemachine.db.diag.SpaceTable('PLATYPUS') t
 	order by conglomeratename; 
 
 insert into platypus values (PADSTRING('wwwwwww',1000), PADSTRING('xxx',3500), PADSTRING('yy',400), PADSTRING('zzz',100));
@@ -64,7 +64,7 @@ insert into platypus values (PADSTRING('wwwwwww',1000), PADSTRING('xxx',3500), P
 
 
 select conglomeratename, isindex, numallocatedpages, numfreepages, pagesize, estimspacesaving
-	from new org.apache.derby.diag.SpaceTable('PLATYPUS') t
+	from new com.splicemachine.db.diag.SpaceTable('PLATYPUS') t
 	order by conglomeratename; 
 
 
@@ -75,7 +75,7 @@ insert into platypus values (PADSTRING('wwwwwww',1000), PADSTRING('xxx',3500), P
 
 
 select conglomeratename, isindex, numallocatedpages, numfreepages, pagesize, estimspacesaving
-	from new org.apache.derby.diag.SpaceTable('PLATYPUS') t
+	from new com.splicemachine.db.diag.SpaceTable('PLATYPUS') t
 	order by conglomeratename; 
 
 delete from platypus;
@@ -83,12 +83,12 @@ CALL WAIT_FOR_POST_COMMIT();
 
 
 select conglomeratename, isindex, numallocatedpages, numfreepages, pagesize, estimspacesaving
-	from new org.apache.derby.diag.SpaceTable('PLATYPUS') t
+	from new com.splicemachine.db.diag.SpaceTable('PLATYPUS') t
 	order by conglomeratename; 
 
 
 select conglomeratename, isindex, numallocatedpages, numfreepages, numunfilledpages, pagesize, estimspacesaving
-	from new org.apache.derby.diag.SpaceTable('NONEXISTING') t
+	from new com.splicemachine.db.diag.SpaceTable('NONEXISTING') t
 	order by conglomeratename; 
 
 
@@ -109,13 +109,13 @@ create index echidna2 on "platypus2" (c);
 create index wallaby2 on "platypus2" (a,c,d) ;
 
 select conglomeratename, isindex, numallocatedpages, numfreepages, pagesize, estimspacesaving
-	from new org.apache.derby.diag.SpaceTable('platypus2') t
+	from new com.splicemachine.db.diag.SpaceTable('platypus2') t
 	order by conglomeratename; 
 
 select conglomeratename, isindex, numallocatedpages, numfreepages, pagesize, estimspacesaving
     from SYS.SYSSCHEMAS s,
          SYS.SYSTABLES t,
-         new org.apache.derby.diag.SpaceTable(SCHEMANAME,TABLENAME) v
+         new com.splicemachine.db.diag.SpaceTable(SCHEMANAME,TABLENAME) v
     where s.SCHEMAID = t.SCHEMAID
     and s.SCHEMANAME = 'SPLICE'
     order by conglomeratename;
@@ -152,7 +152,7 @@ create table foo_varbinary (a VARCHAR(10000) FOR BIT DATA) ;
 select v.CONGLOMERATENAME, PAGESIZE
 from SYS.SYSSCHEMAS s,
 SYS.SYSTABLES t,
-new org.apache.derby.diag.SpaceTable(SCHEMANAME,TABLENAME) v
+new com.splicemachine.db.diag.SpaceTable(SCHEMANAME,TABLENAME) v
 where s.SCHEMAID = t.SCHEMAID and CONGLOMERATENAME in  
     ('FOO_INT', 'FOO_VARCHAR', 'FOO_CHAR', 'FOO_LONGVARCHAR', 'FOO_VARBINARY', 'FOO_LONGVARBINARY', 'FOO_BIT') order by 1;
 
@@ -185,7 +185,7 @@ call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.storage.pageReservedSpace',NU
 select v.CONGLOMERATENAME, PAGESIZE
 from SYS.SYSSCHEMAS s,
 SYS.SYSTABLES t,
-new org.apache.derby.diag.SpaceTable(SCHEMANAME,TABLENAME) v
+new com.splicemachine.db.diag.SpaceTable(SCHEMANAME,TABLENAME) v
 where s.SCHEMAID = t.SCHEMAID and CONGLOMERATENAME in  
     ('FOO_INT', 'FOO_VARCHAR', 'FOO_CHAR', 'FOO_LONGVARCHAR', 'FOO_VARBINARY', 'FOO_LONGVARBINARY', 'FOO_BIT') order by 1;
 
@@ -210,7 +210,7 @@ create table foo_longvarbinary (a long varchar for bit data);
 select v.CONGLOMERATENAME, PAGESIZE
 from SYS.SYSSCHEMAS s,
 SYS.SYSTABLES t,
-new org.apache.derby.diag.SpaceTable(SCHEMANAME,TABLENAME) v
+new com.splicemachine.db.diag.SpaceTable(SCHEMANAME,TABLENAME) v
 where s.SCHEMAID = t.SCHEMAID and CONGLOMERATENAME in  
     ('FOO_INT', 'FOO_VARCHAR', 'FOO_CHAR', 'FOO_LONGVARCHAR', 'FOO_VARBINARY', 'FOO_LONGVARBINARY', 'FOO_BIT') order by 1;
 call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.storage.pageSize', '4096');
@@ -235,7 +235,7 @@ create table foo_longvarbinary (a long varchar for bit data);
 select v.CONGLOMERATENAME, PAGESIZE
 from SYS.SYSSCHEMAS s,
 SYS.SYSTABLES t,
-new org.apache.derby.diag.SpaceTable(SCHEMANAME,TABLENAME) v
+new com.splicemachine.db.diag.SpaceTable(SCHEMANAME,TABLENAME) v
 where s.SCHEMAID = t.SCHEMAID and CONGLOMERATENAME in  
     ('FOO_INT', 'FOO_VARCHAR', 'FOO_CHAR', 'FOO_LONGVARCHAR', 'FOO_VARBINARY', 'FOO_LONGVARBINARY', 'FOO_BIT') order by 1;
 

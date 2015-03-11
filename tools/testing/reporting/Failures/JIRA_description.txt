@@ -58,10 +58,10 @@ NEW:AI?'should_see_0vs20'  lang/autoincrement.sql
 # 937?FIXED:'Nested_Loop'_vs_'Hash'                     lang/wisconsin.sql
 # 800?Closed    lang/ConcurrentImplicitCreateSchema.java    intermittent, Closed
 273?Resolved    derbynet/dataSourcePermissions_net.java     intermittent, Resolved
-NEW?DRDA_NPE    derbynet/dataSourcePermissions_net.java     'org.apache.derby.iapi.services.context.ShutdownException: Exception in thread "DRDAConnThread_3" java.lang.NullPointerException'
+NEW?DRDA_NPE    derbynet/dataSourcePermissions_net.java     'com.splicemachine.db.iapi.services.context.ShutdownException: Exception in thread "DRDAConnThread_3" java.lang.NullPointerException'
 # 846           derbynet/dataSourcePermissions_net.java     r399351: Check in missing updated master file
-803?ShutdownException derbynet/DerbyNetAutoStart.java             intermittent "org.apache.derby.iapi.services.context.ShutdownException:"
-NEW?dnDNASnc derbynet/DerbyNetAutoStart.java 'org.apache.derby.impl.drda.DRDAProtocolException: Execution failed because of Permanent Agent Error: SVRCOD = 40; RDBNAM = database2; diagnostic msg = No current connection.'
+803?ShutdownException derbynet/DerbyNetAutoStart.java             intermittent "com.splicemachine.db.iapi.services.context.ShutdownException:"
+NEW?dnDNASnc derbynet/DerbyNetAutoStart.java 'com.splicemachine.db.impl.drda.DRDAProtocolException: Execution failed because of Permanent Agent Error: SVRCOD = 40; RDBNAM = database2; diagnostic msg = No current connection.'
 NEW?NPE derbynet/DerbyNetAutoStart.java NullPointerException
 # 1399?FIXED:ConnectException(port_1527_vs_31415)  derbynet/DerbyNetAutoStart.java   "Could not access database through the network server."
 830?Failed_to_start_database_'jar:(ina.jar)db7'    lang/dcl.sql
@@ -115,7 +115,7 @@ TEST:native2ascii i18n/JapanCodeConversion.sql
 1626                          store/TransactionTable.sql
 TEMP?r423132_fixed_by_r423348 # Very special case: '#' was used in a .runall file.
 1640?FIXED                          jdbcapi/XATest.java         Instability in XATest
-NEW:JSF?XBM0W_org.apache.derby.impl.io.JarStorageFactory store/encryptionKey_jar.sql "ERROR XBM0W: An exception was thrown while creating an instance of class class org.apache.derby.impl.io.JarStorageFactory registered for identifier jar."
+NEW:JSF?XBM0W_org.apache.derby.impl.io.JarStorageFactory store/encryptionKey_jar.sql "ERROR XBM0W: An exception was thrown while creating an instance of class class com.splicemachine.db.impl.io.JarStorageFactory registered for identifier jar."
 1585?X0X95_'CREATE_TRIGGER'_cannot_be_performed   lang/procedureInTrigger.sql "ERROR X0X95: Operation 'CREATE TRIGGER' cannot be performed on object 'T1' because there is an open ResultSet dependent on that object."
 1705?Invalid_attribute_syntax jdbcapi/dataSourceReference.java
 NEW:TQO?Expected_fix_in_JDK1.6_b98                  jdbc4/TestQueryObject.java

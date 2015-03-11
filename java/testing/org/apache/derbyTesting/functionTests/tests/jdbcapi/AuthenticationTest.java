@@ -56,7 +56,7 @@ public class AuthenticationTest extends BaseJDBCTestCase {
     private static final String PASSWORD_SUFFIX = "suf2ix";
     private static final String USERS[] = 
         {"SPLICE","dan","kreg","jeff","ames","jerry","francois","jamie","howardR",
-        "\"eVe\"","\"fred@derby.com\"", "\"123\"" };
+        "\"eVe\"","\"fred@db.com\"", "\"123\"" };
 
     private static final String zeus = "\u0396\u0395\u03A5\u03A3";
     private static final String apollo = "\u0391\u09A0\u039F\u039B\u039B\u039A\u0390";
@@ -463,7 +463,7 @@ public class AuthenticationTest extends BaseJDBCTestCase {
             "dan", ("dan" + PASSWORD_SUFFIX));
         Statement stmt = conn1.createStatement();
         ResultSet rs = stmt.executeQuery(
-            "values SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('derby.user.dan')");
+            "values SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('db.user.dan')");
         rs.next();
         assertNotSame(("dan"+PASSWORD_SUFFIX), rs.getString(1));
         conn1.commit();
@@ -472,7 +472,7 @@ public class AuthenticationTest extends BaseJDBCTestCase {
         // specify full-access users.
         conn1 = openDefaultConnection("dan", ("dan" + PASSWORD_SUFFIX));
         setDatabaseProperty(
-            "derby.database.fullAccessUsers", 
+            "derby.database.fullAccessUsers",
             "SPLICE,system,nomen,francois,jeff", conn1);
         setDatabaseProperty(
             "derby.database.defaultConnectionMode","NoAccess", conn1);
@@ -498,7 +498,7 @@ public class AuthenticationTest extends BaseJDBCTestCase {
         // now change fullAccessUsers & test again
         conn1 = 
             openDefaultConnection("francois", ("francois" + PASSWORD_SUFFIX));
-        setDatabaseProperty("derby.database.fullAccessUsers", 
+        setDatabaseProperty("derby.database.fullAccessUsers",
             "jeff,dan,francois,jamie", conn1);
         conn1.commit();
         conn1.close();
@@ -512,7 +512,7 @@ public class AuthenticationTest extends BaseJDBCTestCase {
         setDatabaseProperty(
             "derby.database.defaultConnectionMode","NoAccess", conn1);
         setDatabaseProperty(
-            "derby.database.fullAccessUsers", 
+            "derby.database.fullAccessUsers",
             "SPLICE,jeff,dan,francois,jamie", conn1);
         conn1.commit();
         conn1.close();
@@ -569,7 +569,7 @@ public class AuthenticationTest extends BaseJDBCTestCase {
         Connection conn1 = openDefaultConnection(
             "dan", ("dan" + PASSWORD_SUFFIX));
         setDatabaseProperty(
-            "derby.database.fullAccessUsers", 
+            "derby.database.fullAccessUsers",
             "francois,jeff,ames,jerry,jamie,dan,system", conn1);
         setDatabaseProperty(
             "derby.database.defaultConnectionMode","NoAccess", conn1);
@@ -642,7 +642,7 @@ public class AuthenticationTest extends BaseJDBCTestCase {
         // use valid user/pwd to set the full accessusers.
         Connection conn1 = openDefaultConnection(
             "dan", ("dan" + PASSWORD_SUFFIX));
-        setDatabaseProperty("derby.database.fullAccessUsers", 
+        setDatabaseProperty("derby.database.fullAccessUsers",
             "dan,jeff,system", conn1);
         setDatabaseProperty(
             "derby.database.defaultConnectionMode","NoAccess", conn1);
@@ -712,64 +712,64 @@ public class AuthenticationTest extends BaseJDBCTestCase {
         
         // Test duplicates on the list of users
         try {
-            setDatabaseProperty("derby.database.fullAccessUsers", 
+            setDatabaseProperty("derby.database.fullAccessUsers",
                     "dan,jamie,dan", conn1);
-            fail("Duplicate allowed on derby.database.fullAccessUsers");
+            fail("Duplicate allowed on db.database.fullAccessUsers");
         } catch (SQLException e) {
             assertSQLState("4250D", e);
         }
         try {
-            setDatabaseProperty("derby.database.fullAccessUsers", 
+            setDatabaseProperty("derby.database.fullAccessUsers",
                     "dan,jamie,DaN", conn1);
-            fail("Duplicate allowed on derby.database.fullAccessUsers");
+            fail("Duplicate allowed on db.database.fullAccessUsers");
         } catch (SQLException e) {
             assertSQLState("4250D", e);
         }
         try {
-            setDatabaseProperty("derby.database.fullAccessUsers", 
+            setDatabaseProperty("derby.database.fullAccessUsers",
                     "dan,jamie,\"DAN\"", conn1);
-            fail("Duplicate allowed on derby.database.fullAccessUsers");
+            fail("Duplicate allowed on db.database.fullAccessUsers");
         } catch (SQLException e) {
             assertSQLState("4250D", e);
         }
         try {
-            setDatabaseProperty("derby.database.fullAccessUsers", 
+            setDatabaseProperty("derby.database.fullAccessUsers",
                     "\"dan\",jamie,\"dan\"", conn1);
-            fail("Duplicate allowed on derby.database.fullAccessUsers");
+            fail("Duplicate allowed on db.database.fullAccessUsers");
         } catch (SQLException e) {
             assertSQLState("4250D", e);
         }
         
         try {
-            setDatabaseProperty("derby.database.readOnlyAccessUsers", 
+            setDatabaseProperty("derby.database.readOnlyAccessUsers",
                     "dan,jamie,dan", conn1);
-            fail("Duplicate allowed on derby.database.readOnlyAccessUsers");
+            fail("Duplicate allowed on db.database.readOnlyAccessUsers");
         } catch (SQLException e) {
             assertSQLState("4250D", e);
         }
         try {
-            setDatabaseProperty("derby.database.readOnlyAccessUsers", 
+            setDatabaseProperty("derby.database.readOnlyAccessUsers",
                     "dan,jamie,DaN", conn1);
-            fail("Duplicate allowed on derby.database.readOnlyAccessUsers");
+            fail("Duplicate allowed on db.database.readOnlyAccessUsers");
         } catch (SQLException e) {
             assertSQLState("4250D", e);
         }
         try {
-            setDatabaseProperty("derby.database.readOnlyAccessUsers", 
+            setDatabaseProperty("derby.database.readOnlyAccessUsers",
                     "dan,jamie,\"DAN\"", conn1);
-            fail("Duplicate allowed on derby.database.readOnlyAccessUsers");
+            fail("Duplicate allowed on db.database.readOnlyAccessUsers");
         } catch (SQLException e) {
             assertSQLState("4250D", e);
         }
         try {
-            setDatabaseProperty("derby.database.readOnlyAccessUsers", 
+            setDatabaseProperty("derby.database.readOnlyAccessUsers",
                     "\"dan\",jamie,\"dan\"", conn1);
-            fail("Duplicate allowed on derby.database.readOnlyAccessUsers");
+            fail("Duplicate allowed on db.database.readOnlyAccessUsers");
         } catch (SQLException e) {
             assertSQLState("4250D", e);
         }
         
-        setDatabaseProperty("derby.database.fullAccessUsers", 
+        setDatabaseProperty("derby.database.fullAccessUsers",
             "dan,jamie,system", conn1);
         // cannot set a user to both full and readonly access...
         assertFailSetDatabaseProperty(
@@ -968,7 +968,7 @@ public class AuthenticationTest extends BaseJDBCTestCase {
 
         // Random user will now have only READONLYACCESS
         setDatabaseProperty(
-                "derby.database.defaultConnectionMode","READONLYACCESS", conn1);       
+                "derby.database.defaultConnectionMode","READONLYACCESS", conn1);
         conn1.commit();             
         psGetAccess.setString(1, "TONYBLAIR");
         JDBC.assertSingleValueResultSet(psGetAccess.executeQuery(), "READONLYACCESS");
@@ -976,7 +976,7 @@ public class AuthenticationTest extends BaseJDBCTestCase {
 
         // Random user will now have FULLACCESS
         setDatabaseProperty(
-                "derby.database.defaultConnectionMode","FULLACCESS", conn1);       
+                "derby.database.defaultConnectionMode","FULLACCESS", conn1);
         conn1.commit();             
         psGetAccess.setString(1, "TONYBLAIR");
         JDBC.assertSingleValueResultSet(psGetAccess.executeQuery(), "FULLACCESS");
@@ -984,7 +984,7 @@ public class AuthenticationTest extends BaseJDBCTestCase {
         
         // and still full access
         setDatabaseProperty(
-                "derby.database.defaultConnectionMode", null, conn1);       
+                "derby.database.defaultConnectionMode", null, conn1);
         conn1.commit();             
         psGetAccess.setString(1, "TONYBLAIR");
         JDBC.assertSingleValueResultSet(psGetAccess.executeQuery(), "FULLACCESS");
@@ -1004,7 +1004,7 @@ public class AuthenticationTest extends BaseJDBCTestCase {
                 "dan", ("dan" + PASSWORD_SUFFIX));
         // add a database level user
         setDatabaseProperty(("derby.user." + zeus), apollo, conn1);
-        setDatabaseProperty("derby.database.fullAccessUsers", 
+        setDatabaseProperty("derby.database.fullAccessUsers",
                 ("dan,system,SPLICE" + zeus + "," + apollo) , conn1);
         conn1.commit();
         conn1.close();
@@ -1131,7 +1131,7 @@ public class AuthenticationTest extends BaseJDBCTestCase {
 
     /**
      * DERBY-4483: Test that setting the property
-     * {@code derby.authentication.builtin.algorithm} changes which hash
+     * {@code db.authentication.builtin.algorithm} changes which hash
      * algorithm is used to protect the stored password token.
      */
     public void testVariousBuiltinAlgorithms() throws SQLException {
@@ -1241,7 +1241,7 @@ public class AuthenticationTest extends BaseJDBCTestCase {
 
     /**
      * DERBY-4483: Test that we fail gracefully if an invalid algorithm name
-     * is specified in {@code derby.authentication.builtin.algorithm}.
+     * is specified in {@code db.authentication.builtin.algorithm}.
      */
     public void testInvalidAlgorithmName() throws SQLException {
         setDatabaseProperty(BUILTIN_ALGO_PROP, "not-a-valid-name");

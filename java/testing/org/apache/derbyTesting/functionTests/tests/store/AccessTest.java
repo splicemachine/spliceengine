@@ -131,12 +131,12 @@ public final class AccessTest extends BaseJDBCTestCase {
         setAutoCommit(false);
 
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.pageSize', '32768')");
+            "'db.storage.pageSize', '32768')");
         cSt.execute();
         st.executeUpdate("create table a ( " +
                 "i1 int, col00 varchar(384), col01 varchar(390), i2 int )");
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.pageSize', NULL)");
+            "'db.storage.pageSize', NULL)");
         cSt.execute();
 
         // insert rows
@@ -182,11 +182,11 @@ public final class AccessTest extends BaseJDBCTestCase {
 
         CallableStatement cSt;
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.pageSize', '4096')");
+            "'db.storage.pageSize', '4096')");
         cSt.execute();
         st.executeUpdate("create index foox on foo (a, b)");
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.pageSize', NULL)");
+            "'db.storage.pageSize', NULL)");
         cSt.execute();
         commit();
 
@@ -700,28 +700,28 @@ public final class AccessTest extends BaseJDBCTestCase {
         Statement st = createStatement();
         
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.pageSize', '1024')");
+            "'db.storage.pageSize', '1024')");
         cSt.execute();
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.minimumRecordSize', '1')");
+            "'db.storage.minimumRecordSize', '1')");
         cSt.execute();
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.pageReservedSpace', '0')");
+            "'db.storage.pageReservedSpace', '0')");
         cSt.execute();
 
         st.executeUpdate("create table testing (a varchar(100))");
 
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.pageSize', NULL)");
+            "'db.storage.pageSize', NULL)");
         cSt.execute();
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-        "'derby.storage.minimumRecordSize', NULL)");
+        "'db.storage.minimumRecordSize', NULL)");
         cSt.execute();
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-        "'derby.storage.minimumRecordSize', NULL)");
+        "'db.storage.minimumRecordSize', NULL)");
         cSt.execute();
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.pageReservedSpace', NULL)");
+            "'db.storage.pageReservedSpace', NULL)");
         cSt.execute();
 
         st.executeUpdate("insert into testing values ('a')");
@@ -735,11 +735,11 @@ public final class AccessTest extends BaseJDBCTestCase {
         st.executeUpdate("create index zz on testing (a)");
 
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.pageSize', '1024')");
+            "'db.storage.pageSize', '1024')");
         cSt.execute();
 
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.minimumRecordSize', '1')");
+            "'db.storage.minimumRecordSize', '1')");
         cSt.execute();
 
         st.executeUpdate("create table t1 (a varchar(100))");
@@ -769,7 +769,7 @@ public final class AccessTest extends BaseJDBCTestCase {
         setAutoCommit(false);
 
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.pageSize', '1024')");
+            "'db.storage.pageSize', '1024')");
         cSt.execute();
 
         st.executeUpdate(
@@ -783,7 +783,7 @@ public final class AccessTest extends BaseJDBCTestCase {
             "and longer to force a stream', 2, 3)");
 
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.pageSize', NULL)");
+            "'db.storage.pageSize', NULL)");
         cSt.execute();
 
         assertUpdateCount(st, 2, "update long1 set a = a||a||a||a||a||a");
@@ -798,17 +798,17 @@ public final class AccessTest extends BaseJDBCTestCase {
         JDBC.assertFullResultSet(rs, expRS, true);
 
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.pageSize', '1024')");
+            "'db.storage.pageSize', '1024')");
         cSt.execute();
 
         st.executeUpdate(
             "create table long2 (a varchar(16384), b int, c int)");
 
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.pageSize', NULL)");
+            "'db.storage.pageSize', NULL)");
         cSt.execute();
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.pageSize', '16384')");
+            "'db.storage.pageSize', '16384')");
         cSt.execute();
 
         st.executeUpdate("create index long2i1 on long2 (a)");
@@ -816,7 +816,7 @@ public final class AccessTest extends BaseJDBCTestCase {
         st.executeUpdate("create index long2i3 on long2 (a,b,c)");
 
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.pageSize', NULL)");
+            "'db.storage.pageSize', NULL)");
         cSt.execute();
 
         st.executeUpdate("insert into long2 select * from long1");
@@ -858,13 +858,13 @@ public final class AccessTest extends BaseJDBCTestCase {
         assertUpdateCount(st, 4, "delete from long2");
 
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.pageSize', '1024')");
+            "'db.storage.pageSize', '1024')");
         cSt.execute();
 
         st.executeUpdate("create index long2small on long2 (a, c)");
 
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.pageSize', NULL)");
+            "'db.storage.pageSize', NULL)");
         cSt.execute();
 
         // this small index should cause the insert to fail
@@ -901,13 +901,13 @@ public final class AccessTest extends BaseJDBCTestCase {
         setAutoCommit(false);
         
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.pageSize', '1024')");
+            "'db.storage.pageSize', '1024')");
         cSt.execute();
         st.executeUpdate(
             "create table long1 (a varchar(32000), b int, c int)");
 
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.pageSize', NULL)");
+            "'db.storage.pageSize', NULL)");
         cSt.execute();
 
         st.executeUpdate("insert into long1 values ('this is a long row " +
@@ -927,17 +927,17 @@ public final class AccessTest extends BaseJDBCTestCase {
         JDBC.assertFullResultSet(rs, expRS, true);
 
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.pageSize', '1024')");
+            "'db.storage.pageSize', '1024')");
         cSt.execute();
 
         st.executeUpdate(
             "create table long2 (a varchar(30000), b int, c int)");
 
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.pageSize', NULL)");
+            "'db.storage.pageSize', NULL)");
         cSt.execute();
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.pageSize', '16384')");
+            "'db.storage.pageSize', '16384')");
         cSt.execute();
 
         st.executeUpdate("create index long2i1 on long2 (a)");
@@ -945,7 +945,7 @@ public final class AccessTest extends BaseJDBCTestCase {
         st.executeUpdate("create index long2i3 on long2 (b, a, c)");
 
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.pageSize', NULL)");
+            "'db.storage.pageSize', NULL)");
         cSt.execute();
 
         st.executeUpdate("insert into long2 select * from long1");
@@ -972,14 +972,14 @@ public final class AccessTest extends BaseJDBCTestCase {
         String [] expColNames;
 
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.pageSize', '1024')");
+            "'db.storage.pageSize', '1024')");
         cSt.execute();
 
         st.executeUpdate(
             "create table long1 (a varchar(32000), b int, c int)");
 
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.pageSize', NULL)");
+            "'db.storage.pageSize', NULL)");
         cSt.execute();
 
         st.executeUpdate("insert into long1 values ('this is a long row " +
@@ -999,17 +999,17 @@ public final class AccessTest extends BaseJDBCTestCase {
         JDBC.assertFullResultSet(rs, expRS, true);
 
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.pageSize', '1024')");
+            "'db.storage.pageSize', '1024')");
         cSt.execute();
 
         st.executeUpdate(
             "create table long2 (a varchar(32000), b int, c int)");
 
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.pageSize', NULL)");
+            "'db.storage.pageSize', NULL)");
         cSt.execute();
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.pageSize', '16384')");
+            "'db.storage.pageSize', '16384')");
         cSt.execute();
 
         st.executeUpdate("create index long2i1 on long2 (a)");
@@ -1017,7 +1017,7 @@ public final class AccessTest extends BaseJDBCTestCase {
         st.executeUpdate("create index long2i3 on long2 (b, a, c)");
 
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.pageSize', NULL)");
+            "'db.storage.pageSize', NULL)");
         cSt.execute();
 
         // insert into the second table multiple times
@@ -1059,14 +1059,14 @@ public final class AccessTest extends BaseJDBCTestCase {
         String [] expColNames;
 
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.pageSize','4096')");
+            "'db.storage.pageSize','4096')");
         cSt.execute();
 
         st.executeUpdate("create table a " +
             "(a int, b varchar(4000), c varchar(4000), d varchar(4000))");
 
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.pageSize', NULL)");
+            "'db.storage.pageSize', NULL)");
         cSt.execute();
 
         st.executeUpdate("create index a_idx on a (a)");
@@ -1119,10 +1119,10 @@ public final class AccessTest extends BaseJDBCTestCase {
         String [] expColNames;
 
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.pageSize', NULL)");
+            "'db.storage.pageSize', NULL)");
         cSt.execute();
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.minimumRecordSize', NULL)");
+            "'db.storage.minimumRecordSize', NULL)");
         cSt.execute();
 
         st.executeUpdate("create table b2241 (a int, b varchar(32000))");
@@ -1153,7 +1153,7 @@ public final class AccessTest extends BaseJDBCTestCase {
                 + "b||b||b||b||b||b||b||b from b2241 where a = 1024)");
 
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.pageSize', '4096')");
+            "'db.storage.pageSize', '4096')");
         cSt.execute();
 
         // this create index use to fail with an assert - should 
@@ -1163,7 +1163,7 @@ public final class AccessTest extends BaseJDBCTestCase {
         assertStatementError("XSCB6", st, "create index a on b2241 (b, a)");
 
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.pageSize', NULL)");
+            "'db.storage.pageSize', NULL)");
         cSt.execute();
 
         // delete 2 big records and then index should work.
@@ -1198,10 +1198,10 @@ public final class AccessTest extends BaseJDBCTestCase {
 
         // set page size to default.
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.pageSize', '4096')");
+            "'db.storage.pageSize', '4096')");
         cSt.execute();
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.minimumRecordSize', '1')");
+            "'db.storage.minimumRecordSize', '1')");
         cSt.execute();
         cSt.close();        
         commit();
@@ -1368,10 +1368,10 @@ public final class AccessTest extends BaseJDBCTestCase {
         String [] expColNames;
 
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.pageSize', '2048')");
+            "'db.storage.pageSize', '2048')");
         cSt.execute();
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.pageReservedSpace', '10')");
+            "'db.storage.pageReservedSpace', '10')");
         cSt.execute();
 
         st.executeUpdate("create table t2778 (" +
@@ -1382,10 +1382,10 @@ public final class AccessTest extends BaseJDBCTestCase {
             "col15 char(1), col16 char(166), col17 char(207), col18 char(2))");
 
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.pageSize', NULL)");
+            "'db.storage.pageSize', NULL)");
         cSt.execute();
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.pageReservedSpace', NULL)");
+            "'db.storage.pageReservedSpace', NULL)");
         cSt.execute();
 
         st.executeUpdate("create unique index a_idx on t2778 (col00)");
@@ -1423,7 +1423,7 @@ public final class AccessTest extends BaseJDBCTestCase {
         commit();
 
         assertUpdateCount(st, 1, "update t2778 " +
-            "/*derby-properties index=a_idx*/ set col10 = " +
+            "/*db-properties index=a_idx*/ set col10 = " +
             "'0_col10lllllllllllllllllllllllllllllllllllllllllllllllllllllll" +
             "lllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll" +
             "lllllllllllllllllllllllllllllllllllllllllllllllllllllllllllllll" +
@@ -1549,11 +1549,11 @@ public final class AccessTest extends BaseJDBCTestCase {
         Statement st = createStatement();
 
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.pageReservedSpace', '100')");
+            "'db.storage.pageReservedSpace', '100')");
         cSt.execute();
         st.executeUpdate("create table a (a int)");
         cSt = prepareCall("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.pageReservedSpace', NULL)");
+            "'db.storage.pageReservedSpace', NULL)");
         cSt.execute();
 
         st.executeUpdate("insert into a values (1)");

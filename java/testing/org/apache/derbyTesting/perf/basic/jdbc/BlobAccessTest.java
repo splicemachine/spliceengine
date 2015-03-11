@@ -64,10 +64,10 @@ import org.apache.derbyTesting.perf.clients.SingleRecordSelectClient;
  * tested with the tests that modify the Blob content.
  * <p>
  * System properties controlling test behavior:
- * <ul><li>derby.tests.disableSmallBlobs</li>
- *     <li>derby.tests.disableLargeBlobs</li>
- *     <li>derby.tests.disableConcurrencyTest</li>
- *     <li>derby.tests.largeBlobSize (in MB, 15 is the default)</li>
+ * <ul><li>db.tests.disableSmallBlobs</li>
+ *     <li>db.tests.disableLargeBlobs</li>
+ *     <li>db.tests.disableConcurrencyTest</li>
+ *     <li>db.tests.largeBlobSize (in MB, 15 is the default)</li>
  * </ul>
  *
  * <p>

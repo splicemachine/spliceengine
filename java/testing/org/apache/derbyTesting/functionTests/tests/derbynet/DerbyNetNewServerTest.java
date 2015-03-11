@@ -29,7 +29,7 @@ import java.net.UnknownHostException;
 import junit.framework.Test;
 import junit.framework.TestSuite;
 
-import org.apache.derby.drda.NetworkServerControl;
+import com.splicemachine.db.drda.NetworkServerControl;
 import org.apache.derbyTesting.junit.BaseJDBCTestCase;
 import org.apache.derbyTesting.junit.Derby;
 import org.apache.derbyTesting.junit.JDBC;

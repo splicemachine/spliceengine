@@ -23,9 +23,8 @@ package org.apache.derbyTesting.functionTests.tests.store;
 import java.sql.Connection;
 import java.sql.Statement;
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import org.apache.derby.tools.ij;
+import com.splicemachine.db.tools.ij;
 import org.apache.derbyTesting.functionTests.util.TestUtil;
 import java.io.File;
 import java.io.IOException;
@@ -178,7 +177,7 @@ public class LogDeviceTest {
 	 */
 	static private void dumpSQLException(SQLException sqle) {
 		
-		org.apache.derby.tools.JDBCDisplayUtil.	ShowSQLException(System.out, sqle);
+		com.splicemachine.db.tools.JDBCDisplayUtil.	ShowSQLException(System.out, sqle);
 		sqle.printStackTrace(System.out);
 	}
 

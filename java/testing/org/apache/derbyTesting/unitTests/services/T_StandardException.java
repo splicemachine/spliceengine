@@ -21,7 +21,7 @@
 
 package org.apache.derbyTesting.unitTests.services;
 
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.error.StandardException;
 
 import java.text.MessageFormat;
 /**

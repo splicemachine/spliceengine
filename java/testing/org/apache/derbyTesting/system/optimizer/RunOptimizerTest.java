@@ -41,7 +41,7 @@ import org.apache.derbyTesting.system.optimizer.utils.TestViews;
  * No arguments will run all the default test queries, provided via classes
  * Query1 - Query6 in this test case.
  * 
- * Set the 'derby.langtest.mode' to 'client' to run this test using the 
+ * Set the 'db.langtest.mode' to 'client' to run this test using the
  * DerbyClient against a Derby Network Server running on port 1527
  */
 

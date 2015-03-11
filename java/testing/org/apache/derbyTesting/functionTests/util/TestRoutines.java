@@ -28,8 +28,6 @@ import java.security.PrivilegedExceptionAction;
 import java.sql.*;
 import java.io.*;
 
-import org.apache.derby.iapi.reference.JDBC30Translation;
-
 
 /**
 	Utility methods for tests routines, in order to bring some consistency to test output.

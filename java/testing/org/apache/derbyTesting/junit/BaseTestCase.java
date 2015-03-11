@@ -114,7 +114,7 @@ public abstract class BaseTestCase
         try {
             super.runBare();   
         }
-        // To log the exception to file, copy the derby.log file and copy
+        // To log the exception to file, copy the db.log file and copy
         // the database of the failed test.
         catch (Throwable running) {
             PrintWriter stackOut = null;
@@ -128,7 +128,7 @@ public abstract class BaseTestCase
                         new java.util.Date() + "]");
                 running.printStackTrace(stackOut);
                 stackOut.println(); // Add an extra blank line.
-                // Copy the derby.log file.
+                // Copy the db.log file.
                 File origLog = new File(DEFAULT_DB_DIR, DERBY_LOG);
                 File newLog = new File(failPath, DERBY_LOG);
                 PrivilegedFileOpsForTests.copy(origLog, newLog);
@@ -140,11 +140,11 @@ public abstract class BaseTestCase
            }
             catch (IOException ioe) {
                 // We need to throw the original exception so if there
-                // is an exception saving the db or derby.log we will print it
+                // is an exception saving the db or db.log we will print it
                 // and additionally try to log it to file.
                 BaseTestCase.printStackTrace(ioe);
                 if (stackOut != null) {
-                    stackOut.println("Copying derby.log or database failed:");
+                    stackOut.println("Copying db.log or database failed:");
                     ioe.printStackTrace(stackOut);
                     stackOut.println();
                 }

@@ -116,7 +116,7 @@ public class Derby4676Test extends BaseJDBCTestCase {
         // NullPointerExceptions.
         while (thread.isAlive()) {
             JDBC.assertDrainResults(s.executeQuery(
-                "select * from t --derby-properties index=idx"));
+                "select * from t --db-properties index=idx"));
         }
     }
 

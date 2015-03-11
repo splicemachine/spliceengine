@@ -24,14 +24,13 @@ package org.apache.derbyTesting.unitTests.services;
 import org.apache.derbyTesting.unitTests.harness.T_Generic;
 import org.apache.derbyTesting.unitTests.harness.T_Fail;
 
-import  org.apache.derby.catalog.UUID;
+import  com.splicemachine.db.catalog.UUID;
 
-import org.apache.derby.iapi.services.monitor.Monitor;
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.monitor.Monitor;
 
-import org.apache.derby.iapi.services.stream.HeaderPrintWriter;
+import com.splicemachine.db.iapi.services.stream.HeaderPrintWriter;
 
-import org.apache.derby.iapi.services.uuid.UUIDFactory;
+import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 
 /**
 	Test to ensure a implementation of the UUID module

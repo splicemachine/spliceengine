@@ -21,8 +21,8 @@
 
 package org.apache.derbyTesting.unitTests.services;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.diag.DiagnosticableGeneric;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.diag.DiagnosticableGeneric;
 
 /**
 

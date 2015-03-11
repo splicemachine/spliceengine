@@ -73,7 +73,7 @@ public class ErrorMessageTest extends BaseJDBCTestCase {
 
     /**
      * Test that a wait timeout prints the lock table correctly when the
-     * <code>derby.locks.deadlockTrace</code> property is set. DERBY-2817
+     * <code>db.locks.deadlockTrace</code> property is set. DERBY-2817
      *
      * After fix for DERBY-5564, the sql state for a lock timeout will be
      * the same whether diagnostics are on or not (ie. 40XL1).  

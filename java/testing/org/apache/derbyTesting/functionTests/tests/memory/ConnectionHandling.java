@@ -20,6 +20,8 @@ limitations under the License.
 */
 
 package org.apache.derbyTesting.functionTests.tests.memory;
+import com.splicemachine.db.jdbc.EmbeddedDriver;
+
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -39,7 +41,7 @@ public class ConnectionHandling {
         System.out.println("Test ConnectionHandling starting");
 
 
-        new org.apache.derby.jdbc.EmbeddedDriver();
+        new EmbeddedDriver();
         
         Connection conn = DriverManager.getConnection("jdbc:derby:wombat;create=true");
         conn.close();
@@ -94,7 +96,7 @@ public class ConnectionHandling {
             if (i == 300)
                 Thread.sleep(10000L);
             try {
-                  Connection c = DriverManager.getConnection("jdbc:derby:wombat", p);
+                Connection c = DriverManager.getConnection("jdbc:derby:wombat", p);
                   list.add(c);
                   ok++;
             } catch (SQLException e) {

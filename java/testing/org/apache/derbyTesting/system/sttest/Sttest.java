@@ -33,8 +33,8 @@ import java.util.Enumeration;
 import java.util.Properties;
 import java.util.Random;
 
-import org.apache.derby.tools.JDBCDisplayUtil;
-import org.apache.derby.tools.ij;
+import com.splicemachine.db.tools.JDBCDisplayUtil;
+import com.splicemachine.db.tools.ij;
 import org.apache.derbyTesting.system.sttest.tools.MemCheck;
 import org.apache.derbyTesting.system.sttest.utils.Datatypes;
 import org.apache.derbyTesting.system.sttest.utils.Setup;
@@ -110,7 +110,7 @@ public class Sttest extends Thread {
 
 	static String dbURL = "jdbc:derby:testDB";
 
-	static String driver = "org.apache.derby.jdbc.EmbeddedDriver";
+	static String driver = "com.splicemachine.db.jdbc.EmbeddedDriver";
 
 	static StStatus status = null;
 

@@ -51,5 +51,5 @@ select * from lock_table order by tabname, type desc, mode, cnt, lockname;
 drop table derby94_t1;
 drop table derby94_t2;
 commit;
---end derby-94 case
+--end db-94 case
 

@@ -38,78 +38,78 @@ import org.apache.derbyTesting.junit.TestConfiguration;
 
 public class BadConnectionTest extends BaseJDBCTestCase
 {
-	public void setUp() throws SQLException
-	{
-		// get the default connection so the driver is loaded.
-		getConnection().close();
-	}
-	
-	/**
-	 * Try to connect without a username or password.
-	 * Should fail with SQLState 08004.
-	 */
-	public void testNoUserOrPassword()
-	{
-		try {
-			Connection c = DriverManager.getConnection(
-					"jdbc:derby://" + getTestConfiguration().getHostName()
-                    + ":" + getTestConfiguration().getPort() + "/testbase");
-            fail("Connection with no user or password succeeded");
-		} catch (SQLException e) {
-			assertSQLState("08004", e);
-			assertEquals(40000, e.getErrorCode());
-		}
-	}
-	
-	/**
-	 * Try to connect to a non-existent database without create=true.
-	 * Should fail with SQLState 08004.
-	 */
-	public void testDatabaseNotFound()
-	{
-		try {
-			Properties p = new Properties();
-			p.put("user", "admin");
-			p.put("password", "admin");
-			Connection c = DriverManager.getConnection(
-					"jdbc:derby://" + getTestConfiguration().getHostName()
-                    + ":" + getTestConfiguration().getPort() + "/testbase", p);
-            fail("Connection with no database succeeded");
-		} catch (SQLException e)
-		{
-			assertSQLState("08004", e);
-			assertEquals(40000, e.getErrorCode());
-		}
-	}
-	
-	/**
-	 * Check that only valid values for connection attributes are accepted.
-	 * For this check, we attempt to connect using the upgrade attribute
-	 * with an invalid value.
-	 * 
-     * Should fail with SQLState XJ05B.
-	 */
-	public void testBadConnectionAttribute()
-	{
-		try {
-			Connection c = DriverManager.getConnection(
-					"jdbc:derby://" + getTestConfiguration().getHostName()
-                    + ":" + getTestConfiguration().getPort() + "/badAttribute;upgrade=notValidValue");
-            fail("Connection with bad atttributes succeeded");
-		} catch (SQLException e)
-		{
-			assertSQLState("XJ05B", e);
-			assertEquals(-1, e.getErrorCode());
-		}
-	}
+    public void setUp() throws SQLException
+    {
+        // get the default connection so the driver is loaded.
+        getConnection().close();
+    }
 
-	public BadConnectionTest(String name)
-	{
-		super(name);
-	}
-	
-	public static Test suite()
-	{
-		return TestConfiguration.clientServerSuite(BadConnectionTest.class);
-	}
+    /**
+     * Try to connect without a username or password.
+     * Should fail with SQLState 08004.
+     */
+    public void testNoUserOrPassword()
+    {
+        try {
+            Connection c = DriverManager.getConnection(
+                    "jdbc:derby://" + getTestConfiguration().getHostName()
+                            + ":" + getTestConfiguration().getPort() + "/testbase");
+            fail("Connection with no user or password succeeded");
+        } catch (SQLException e) {
+            assertSQLState("08004", e);
+            assertEquals(40000, e.getErrorCode());
+        }
+    }
+
+    /**
+     * Try to connect to a non-existent database without create=true.
+     * Should fail with SQLState 08004.
+     */
+    public void testDatabaseNotFound()
+    {
+        try {
+            Properties p = new Properties();
+            p.put("user", "admin");
+            p.put("password", "admin");
+            Connection c = DriverManager.getConnection(
+                    "jdbc:derby://" + getTestConfiguration().getHostName()
+                            + ":" + getTestConfiguration().getPort() + "/testbase", p);
+            fail("Connection with no database succeeded");
+        } catch (SQLException e)
+        {
+            assertSQLState("08004", e);
+            assertEquals(40000, e.getErrorCode());
+        }
+    }
+
+    /**
+     * Check that only valid values for connection attributes are accepted.
+     * For this check, we attempt to connect using the upgrade attribute
+     * with an invalid value.
+     *
+     * Should fail with SQLState XJ05B.
+     */
+    public void testBadConnectionAttribute()
+    {
+        try {
+            Connection c = DriverManager.getConnection(
+                    "jdbc:derby://" + getTestConfiguration().getHostName()
+                            + ":" + getTestConfiguration().getPort() + "/badAttribute;upgrade=notValidValue");
+            fail("Connection with bad atttributes succeeded");
+        } catch (SQLException e)
+        {
+            assertSQLState("XJ05B", e);
+            assertEquals(-1, e.getErrorCode());
+        }
+    }
+
+    public BadConnectionTest(String name)
+    {
+        super(name);
+    }
+
+    public static Test suite()
+    {
+        return TestConfiguration.clientServerSuite(BadConnectionTest.class);
+    }
 }

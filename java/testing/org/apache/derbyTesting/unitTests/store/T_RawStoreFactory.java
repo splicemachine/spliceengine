@@ -21,44 +21,37 @@
 
 package org.apache.derbyTesting.unitTests.store;
 
-import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-import org.apache.derby.iapi.store.raw.*;
+import com.splicemachine.db.iapi.store.raw.*;
 
 // impl imports are the preferred way to create unit tests.
 import org.apache.derbyTesting.unitTests.harness.T_MultiThreadedIterations;
 import org.apache.derbyTesting.unitTests.harness.T_Fail;
 
-import org.apache.derby.iapi.services.context.ContextService;
-import org.apache.derby.iapi.services.context.ContextManager;
-import org.apache.derby.iapi.services.locks.*;
-import org.apache.derby.iapi.services.monitor.Monitor;
-import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.services.uuid.UUIDFactory;
-import org.apache.derby.catalog.UUID;
-import org.apache.derby.iapi.db.Database;
-import org.apache.derby.iapi.services.property.PropertyUtil;
-import org.apache.derby.iapi.error.ExceptionSeverity;
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.context.ContextService;
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.services.locks.*;
+import com.splicemachine.db.iapi.services.monitor.Monitor;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
+import com.splicemachine.db.iapi.error.ExceptionSeverity;
+import com.splicemachine.db.iapi.error.StandardException;
 
-import org.apache.derby.iapi.store.access.*;
-import org.apache.derby.iapi.store.access.conglomerate.LogicalUndo;
+import com.splicemachine.db.iapi.store.access.conglomerate.LogicalUndo;
 
-import org.apache.derby.iapi.store.raw.xact.RawTransaction;
-import org.apache.derby.iapi.store.raw.data.RawContainerHandle;
-import org.apache.derby.iapi.store.raw.log.LogInstant;
+import com.splicemachine.db.iapi.store.raw.xact.RawTransaction;
+import com.splicemachine.db.iapi.store.raw.data.RawContainerHandle;
 
-import org.apache.derby.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
 // impl a logInstant implemented as log counter to test truncateLWMs
-import org.apache.derby.impl.store.raw.log.LogCounter;
 
-import org.apache.derby.iapi.types.SQLChar;
+import com.splicemachine.db.iapi.types.SQLChar;
 
-import org.apache.derby.iapi.reference.Property;
+import com.splicemachine.db.iapi.reference.Property;
 
-import org.apache.derby.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 
-import java.io.*;
 import java.util.Properties;
 
 /**

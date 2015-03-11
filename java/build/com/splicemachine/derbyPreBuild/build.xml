@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<project default="build" basedir="../../../../../..">
+
+  <property name="properties.dir" value="tools/ant/properties"/>
+  <!-- Significant dirs -->
+  <property file="${properties.dir}/dirs.properties"/>
+
+<!-- Targets -->
+  <target name="build" depends="compile"/>
+
+  <target name="compile">
+    <javac
+      source="1.6"
+      target="1.6"
+      nowarn="on"
+      debug="true"
+      depend="${depend}"
+      deprecation="${deprecation}"
+      optimize="${optimize}"
+      proceed="${proceed}"
+      verbose="${verbose}"
+      srcdir="${derby.build.src.dir}"
+      destdir="${out.dir}"
+      includeantruntime="false">
+      <include name="com/splicemachine/derbyPreBuild/**"/>
+      <classpath>
+        <pathelement path="${ant.core.lib}"/>
+      </classpath>
+    </javac>
+  </target>
+</project>

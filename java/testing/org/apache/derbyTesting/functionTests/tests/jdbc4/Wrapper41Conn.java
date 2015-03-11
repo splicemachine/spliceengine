@@ -25,10 +25,10 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.concurrent.Executor;
 
-import org.apache.derby.impl.jdbc.EmbedConnection40;
-import org.apache.derby.iapi.jdbc.BrokeredConnection40;
-import org.apache.derby.client.net.NetConnection40;
-import org.apache.derby.client.am.LogicalConnection40;
+import com.splicemachine.db.impl.jdbc.EmbedConnection40;
+import com.splicemachine.db.iapi.jdbc.BrokeredConnection40;
+import com.splicemachine.db.client.net.NetConnection40;
+import com.splicemachine.db.client.am.LogicalConnection40;
 
 /**
  * A wrapper around the abort(Executor) method added by JDBC 4.1.

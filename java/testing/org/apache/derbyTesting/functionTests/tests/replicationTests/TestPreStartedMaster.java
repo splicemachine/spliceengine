@@ -34,27 +34,27 @@ import org.apache.derbyTesting.junit.TestConfiguration;
  */
 public class TestPreStartedMaster extends ClientRunner
 {
-    
+
     public TestPreStartedMaster(String testcaseName)
     {
         super(testcaseName);
     }
-    
+
     public static Test suite()
-        throws Exception
+            throws Exception
     {
         System.out.println("**** TestPreStartedMaster.suite()");
-        
+
         initEnvironment();
-        
+
         // String masterHostName = System.getProperty("test.serverHost", "localhost");
         // int masterPortNo = Integer.parseInt(System.getProperty("test.serverPort", "1527"));
-        
+
         TestSuite suite = new TestSuite("TestPreStartedMaster");
-                
+
         suite.addTest(TestPreStartedMaster.suite(masterServerHost, masterServerPort));
         System.out.println("*** Done suite.addTest(TestPreStartedMaster.suite())");
-        
+
         return (Test)suite;
     }
 
@@ -64,33 +64,33 @@ public class TestPreStartedMaster extends ClientRunner
     public static Test suite(String serverHost, int serverPort)
     {
         System.out.println("*** TestPreStartedMaster.suite(serverHost,serverPort)");
-     
+
         Test t = TestConfiguration.existingServerSuite(TestPreStartedMaster.class,false,serverHost,serverPort);
         System.out.println("*** Done TestConfiguration.existingServerSuite(TestPreStartedMaster.class,false,serverHost,serverPort)");
         return t;
-   }
+    }
 
-    
+
     /**
      *
      *
-     * @throws java.sql.SQLException 
-     * @throws java.io.IOException 
-     * @throws java.lang.InterruptedException 
+     * @throws java.sql.SQLException
+     * @throws java.io.IOException
+     * @throws java.lang.InterruptedException
      */
     public void testStartMasterConnect_OK()
-    throws SQLException, IOException, InterruptedException
+            throws SQLException, IOException, InterruptedException
     {
         System.out.println("**** TestPreStartedMaster.testStartMasterConnect_OK() "+
                 getTestConfiguration().getJDBCClient().getJDBCDriverName());
-        
+
         Connection conn = null;
         String db = masterDatabasePath +"/"+ReplicationRun.masterDbSubPath +"/"+ replicatedDb;
-        String connectionURL = "jdbc:derby:"  
+        String connectionURL = "jdbc:derby:"
                 + "//" + masterServerHost + ":" + masterServerPort + "/"
                 + db
                 + ";startMaster=true"
-                + ";slaveHost=" + slaveServerHost 
+                + ";slaveHost=" + slaveServerHost
                 + ";slavePort=" + slaveReplPort;
         System.out.println(connectionURL);
         // First StartMaster connect ok:
@@ -107,35 +107,35 @@ public class TestPreStartedMaster extends ClientRunner
             System.out.println(msg);
             throw se;
         }
-        
+
         System.out.println("2. startMaster attempt should fail on: " + connectionURL);
         System.out.println("********************'' 2. CURRENTLY HANGS!!!! Skipping.");
         // if (false)
         { // FIXME! PRELIM Hangs!!
-        // A 2. StartMaster connect should fail:
-        try
-        {
-            conn = DriverManager.getConnection(connectionURL); // FIXME! PRELIM Hangs!!
-            System.out.println("2. Unexpectedly connected as: " + connectionURL);
-            assertTrue("2. Unexpectedly connected as: " + connectionURL, false);
+            // A 2. StartMaster connect should fail:
+            try
+            {
+                conn = DriverManager.getConnection(connectionURL); // FIXME! PRELIM Hangs!!
+                System.out.println("2. Unexpectedly connected as: " + connectionURL);
+                assertTrue("2. Unexpectedly connected as: " + connectionURL, false);
+            }
+            catch (SQLException se)
+            {
+                int ec = se.getErrorCode();
+                String ss = se.getSQLState();
+                String msg = ec + " " + ss + " " + se.getMessage();
+                System.out.println("2. startMaster No connection as expected: " + msg);
+                assertSQLState("2. startMaster Unexpected SQLException: " + msg, "XJ004", se);
+            }
         }
-        catch (SQLException se)
-        {
-            int ec = se.getErrorCode();
-            String ss = se.getSQLState();
-            String msg = ec + " " + ss + " " + se.getMessage();
-            System.out.println("2. startMaster No connection as expected: " + msg);
-            assertSQLState("2. startMaster Unexpected SQLException: " + msg, "XJ004", se);
-        }
-        }
-        
+
         // A 2. StartSlave connect should fail:
         db = slaveDatabasePath +"/"+ReplicationRun.slaveDbSubPath +"/"+ replicatedDb;
-        connectionURL = "jdbc:derby:"  
+        connectionURL = "jdbc:derby:"
                 + "//" + slaveServerHost + ":" + slaveServerPort + "/"
                 + db
                 + ";startSlave=true"
-                + ";slaveHost=" + slaveServerHost 
+                + ";slaveHost=" + slaveServerHost
                 + ";slavePort=" + slaveReplPort;
         System.out.println(connectionURL);
         try
@@ -153,11 +153,11 @@ public class TestPreStartedMaster extends ClientRunner
             // SQLCODE: -1, SQLSTATE: XRE09
             assertSQLState("2. startSlave Unexpected SQLException: " + msg, "XRE09", se);
         }
- 
+
     }
-    
+
     public void verifyTestStartMasterConnect_OK()
-    throws SQLException, IOException, InterruptedException
+            throws SQLException, IOException, InterruptedException
     {
 
     }

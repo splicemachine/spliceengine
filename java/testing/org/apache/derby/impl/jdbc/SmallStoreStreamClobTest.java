@@ -23,9 +23,12 @@
 package org.apache.derby.impl.jdbc;
 
 import java.io.InputStream;
+
+import com.splicemachine.db.impl.jdbc.EmbedStatement;
+import com.splicemachine.db.impl.jdbc.StoreStreamClob;
 import junit.framework.Test;
 import junit.framework.TestSuite;
-import org.apache.derby.iapi.jdbc.CharacterStreamDescriptor;
+import com.splicemachine.db.iapi.jdbc.CharacterStreamDescriptor;
 
 /**
  * Tests basic operations on a small read-only Clob from the store module.

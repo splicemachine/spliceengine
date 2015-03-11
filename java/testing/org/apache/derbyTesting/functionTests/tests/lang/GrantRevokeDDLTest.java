@@ -1096,14 +1096,14 @@ public final class GrantRevokeDDLTest extends BaseJDBCTestCase {
         
         cSt = samConnection.prepareCall(
             " call "
-            + "SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.storag"
+            + "SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('db.storag"
             + "e.pageSize', '4096')");
         assertStatementError("42504", cSt);
         cSt.close();
         
         assertStatementError("42504", st_samConnection,
             " values "
-            + "SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('derby.storag"
+            + "SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('db.storag"
             + "e.pageSize')");
 
         PreparedStatement psgua = samConnection.prepareStatement(
@@ -1148,13 +1148,13 @@ public final class GrantRevokeDDLTest extends BaseJDBCTestCase {
         
         cSt = samConnection.prepareCall(
             " call "
-            + "SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.storag"
+            + "SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('db.storag"
             + "e.pageSize', '4096')");
         assertUpdateCount(cSt, 0);
         
         rs = st_samConnection.executeQuery(
             " values "
-            + "SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('derby.storag"
+            + "SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('db.storag"
             + "e.pageSize')");
         
         expColNames = new String [] {"1"};
@@ -4715,7 +4715,7 @@ public final class GrantRevokeDDLTest extends BaseJDBCTestCase {
         
         // set connection mamta3
         //ij(MAMTA1)> --connect 
-        // 'jdbc:derby:c:/dellater/dbmaintest2;create=true' user 
+        // 'jdbc:derby:c:/dellater/dbmaintest2;create=true' user
         // 'mamta3' as mamta3
         
         
@@ -8739,12 +8739,12 @@ public final class GrantRevokeDDLTest extends BaseJDBCTestCase {
         
         cSt3 = user3.prepareCall(
             "CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY "
-            + "('derby.locks.deadlockTimeout', '10')");
+            + "('db.locks.deadlockTimeout', '10')");
         assertStatementError("42504", cSt3);
         
         assertStatementError("42504", st_user3,
             " VALUES "
-            + "SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('derby.locks."
+            + "SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('db.locks."
             + "deadlockTimeout')");
         
         // test compress routines, everyone have privilege as long 

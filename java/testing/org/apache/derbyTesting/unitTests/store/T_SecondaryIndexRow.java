@@ -21,17 +21,13 @@
 
 package org.apache.derbyTesting.unitTests.store;
 
-import org.apache.derby.impl.store.access.conglomerate.*;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
-import org.apache.derby.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.error.StandardException;
 
-import org.apache.derby.iapi.services.io.Storable;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
-import org.apache.derby.iapi.error.StandardException;
-
-import org.apache.derby.iapi.types.DataValueDescriptor;
-
-import org.apache.derby.iapi.types.RowLocation;
+import com.splicemachine.db.iapi.types.RowLocation;
 
 
 /**

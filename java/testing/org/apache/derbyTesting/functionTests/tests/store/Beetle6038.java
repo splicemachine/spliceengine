@@ -36,7 +36,7 @@ public class Beetle6038  {
 	public static void main(String[] args)
 		throws Exception
 	{
-		String driver = "org.apache.derby.jdbc.EmbeddedDriver";
+		String driver = "com.splicemachine.db.jdbc.EmbeddedDriver";
 		Class.forName(driver).newInstance();
 		String dburl = "jdbc:derby:Beetle6038Db;create=true;dataEncryption=true;bootPassword=Thursday;encryptionAlgorithm=DES/CBC/NoPadding";
 

@@ -25,11 +25,11 @@ if "%_USE_CLASSPATH%"=="no" goto runNoClasspath
 if not "%CLASSPATH%"=="" goto runWithClasspath
 
 :runNoClasspath
-"%_JAVACMD%" %DERBY_OPTS% -classpath "%LOCALCLASSPATH%" org.apache.derby.tools.dblook %DERBY_ARGS% %DERBY_CMD_LINE_ARGS%
+"%_JAVACMD%" %DERBY_OPTS% -classpath "%LOCALCLASSPATH%" com.splicemachine.db.tools.dblook %DERBY_ARGS% %DERBY_CMD_LINE_ARGS%
 goto end
 
 :runWithClasspath
-"%_JAVACMD%" %DERBY_OPTS% -classpath "%CLASSPATH%;%LOCALCLASSPATH%" org.apache.derby.tools.dblook %DERBY_ARGS% %DERBY_CMD_LINE_ARGS%
+"%_JAVACMD%" %DERBY_OPTS% -classpath "%CLASSPATH%;%LOCALCLASSPATH%" com.splicemachine.db.tools.dblook %DERBY_ARGS% %DERBY_CMD_LINE_ARGS%
 goto end
 
 :end

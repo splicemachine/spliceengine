@@ -26,7 +26,7 @@ import org.apache.derbyTesting.junit.JDBC;
 
 import junit.framework.Test;  
 import junit.framework.TestSuite;
-import org.apache.derby.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 /**
  * Suite to run all JUnit tests in this package:

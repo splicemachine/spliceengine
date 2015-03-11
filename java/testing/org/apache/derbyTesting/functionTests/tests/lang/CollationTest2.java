@@ -59,16 +59,16 @@ T5: (TODO) system catalogs should not be collated
 T6: (DONE) test like
 T7: (TODO) test create conglomerate triggered by DiskHashtable code
 T8: (TODO) test create conglomerate triggered by DataDictionaryImpl
-T9: (TODO) test create conglomerate triggered by java/engine/org/apache/derby/impl/sql/conn/GenericLanguageConnectionContext.java
+T9: (TODO) test create conglomerate triggered by java/engine/org/apache/db/impl/sql/conn/GenericLanguageConnectionContext.java
 T10: (DONE) alter table compress with indexes
 T11: (DONE) alter table drop column with indexes
 T12: (DONE) alter table add column with index
 T13: (DONE) bulk insert into empty table, with and without indexes
 T14: (DONE) bulk insert replace, with and without indexes
 
-T15: (TODO) java/engine/org/apache/derby/impl/sql/execute/MaterializedResultSet.java
-T16: (TODO) /java/engine/org/apache/derby/impl/sql/execute/TemporaryRowHolderImpl.java
-T17: (TODO) /java/engine/org/apache/derby/impl/store/access/PropertyConglomerate.java
+T15: (TODO) java/engine/org/apache/db/impl/sql/execute/MaterializedResultSet.java
+T16: (TODO) /java/engine/org/apache/db/impl/sql/execute/TemporaryRowHolderImpl.java
+T17: (TODO) /java/engine/org/apache/db/impl/store/access/PropertyConglomerate.java
 T18: (TODO) upgrade tests - may be changes to upgrade suite rather than here.
 T19: (TODO) recovery testing - may be old function harness changes as no one has
             suggested how to do this in junit harness.
@@ -2026,7 +2026,7 @@ public class CollationTest2 extends BaseJDBCTestCase
         // add support to use external files for import/export calls.
         Test test = new SupportFilesSetup(suite);
 
-        // turn on log statement text for sequence of statements in derby.log.  
+        // turn on log statement text for sequence of statements in db.log.
         if (verbose_debug)
         {
             Properties props = new Properties();

@@ -28,7 +28,7 @@ import java.util.StringTokenizer;
 import java.io.File;
 import java.io.IOException;
 
-import org.apache.derby.impl.tools.sysinfo.ZipInfoProperties;
+import com.splicemachine.db.impl.tools.sysinfo.ZipInfoProperties;
 import org.apache.derbyTesting.junit.SecurityManagerSetup;
 
 
@@ -316,7 +316,7 @@ public abstract class jvm {
 		String classpath = System.getProperty("java.class.path");
 		char sep = '/';
 		ZipInfoProperties zip[]= 
-			org.apache.derby.impl.tools.sysinfo.Main.getAllInfo (classpath);
+			com.splicemachine.db.impl.tools.sysinfo.Main.getAllInfo (classpath);
 		for (int i = 0; i < zip.length; i++)
 		{
 			// it's a url so should just have forward slashes

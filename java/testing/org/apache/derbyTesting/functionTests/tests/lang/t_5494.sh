@@ -20,7 +20,7 @@
 # it is hard to wire this test into our existing test frameworks.
 #
 #
-# $1  location of derby library
+# $1  location of db library
 
 export derbyLib=$1
 export script1=t_5494_1.sql

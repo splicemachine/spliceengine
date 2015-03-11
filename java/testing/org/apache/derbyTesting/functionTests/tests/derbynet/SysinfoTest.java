@@ -67,13 +67,13 @@ public class SysinfoTest extends BaseJDBCTestCase {
         ArrayList OUTPUT1 = new ArrayList();
         OUTPUT1.add("--------- Derby Network Server Information --------");
         OUTPUT1.add("derby.drda.maxThreads=0");
-        OUTPUT1.add("derby.drda.sslMode=off"); 
-        OUTPUT1.add("derby.drda.keepAlive=true"); 
+        OUTPUT1.add("derby.drda.sslMode=off");
+        OUTPUT1.add("derby.drda.keepAlive=true");
         OUTPUT1.add("derby.drda.minThreads=0");
         OUTPUT1.add("derby.drda.portNumber="+TestConfiguration.getCurrent().getPort());
         OUTPUT1.add("derby.drda.logConnections=false");
-        OUTPUT1.add("derby.drda.timeSlice=0"); 
-        OUTPUT1.add("derby.drda.startNetworkServer=false"); 
+        OUTPUT1.add("derby.drda.timeSlice=0");
+        OUTPUT1.add("derby.drda.startNetworkServer=false");
         OUTPUT1.add("derby.drda.traceAll=false");
         OUTPUT1.add("--------- Derby Information --------"); 
         OUTPUT1.add("------------------------------------------------------"); 
@@ -85,7 +85,7 @@ public class SysinfoTest extends BaseJDBCTestCase {
          */
         ArrayList OUTPUT2 = (ArrayList) OUTPUT1.clone();
         OUTPUT2.add("--------- Derby Network Server Information --------"); 
-        OUTPUT2.add("derby.drda.securityMechanism=USER_ONLY_SECURITY"); 
+        OUTPUT2.add("derby.drda.securityMechanism=USER_ONLY_SECURITY");
 
         if (useProperties)
             OUTPUT = OUTPUT2;
@@ -111,7 +111,7 @@ public class SysinfoTest extends BaseJDBCTestCase {
 
         useProperties = false;
         // a call to sysinfo will eventually attempt to load resource 
-        // org.apache.derby.info.DBMS.properties.
+        // com.splicemachine.db.info.DBMS.properties.
         // If we're using classes, we don't have read permission for the dir.
         // So, figure out the path & pass the property on so the reference
         // in the policy file can be resolved.
@@ -196,7 +196,7 @@ public class SysinfoTest extends BaseJDBCTestCase {
      */	
     public void testSysinfo() throws Exception {
         String[] SysInfoCmd = 
-            new String[] {"org.apache.derby.drda.NetworkServerControl", "sysinfo",
+            new String[] {"com.splicemachine.db.drda.NetworkServerControl", "sysinfo",
             "-p", String.valueOf(TestConfiguration.getCurrent().getPort())};
 
         Process p = execJavaCmd(SysInfoCmd);
@@ -229,7 +229,7 @@ public class SysinfoTest extends BaseJDBCTestCase {
 
         String[] SysInfoLocaleCmd = 
             new String[] {"-Duser.language=de", "-Duser.country=DE", 
-                "org.apache.derby.drda.NetworkServerControl", "sysinfo",
+                "com.splicemachine.db.drda.NetworkServerControl", "sysinfo",
                 "-p", String.valueOf(TestConfiguration.getCurrent().getPort())};
         Process p = execJavaCmd(SysInfoLocaleCmd);
         String s = readProcessOutput(p);
@@ -239,7 +239,7 @@ public class SysinfoTest extends BaseJDBCTestCase {
 
     /**
      * Prints strings to System.out to make it easier to update the tests
-     * when the output changes if derby.tests.debug is true.
+     * when the output changes if db.tests.debug is true.
      * 
      * @param name just a label to identify the string
      * @param s the string to be printed

@@ -24,8 +24,8 @@ package org.apache.derbyTesting.unitTests.junit;
 import java.sql.ResultSet;
 import java.sql.Statement;
 import junit.framework.Test;
-import org.apache.derby.client.am.stmtcache.StatementKey;
-import org.apache.derby.client.am.stmtcache.StatementKeyFactory;
+import com.splicemachine.db.client.am.stmtcache.StatementKey;
+import com.splicemachine.db.client.am.stmtcache.StatementKeyFactory;
 import org.apache.derbyTesting.junit.BaseTestCase;
 import org.apache.derbyTesting.junit.TestConfiguration;
 
@@ -36,7 +36,7 @@ import org.apache.derbyTesting.junit.TestConfiguration;
  * Objects implementing {@link StatementKey} is crucial for correct
  * operation of the JDBC statement object cache.
  * 
- * @see org.apache.derby.client.am.stmtcache.JDBCStatementCache
+ * @see com.splicemachine.db.client.am.stmtcache.JDBCStatementCache
  */
 public class StatementKeyFactoryTest
         extends BaseTestCase {

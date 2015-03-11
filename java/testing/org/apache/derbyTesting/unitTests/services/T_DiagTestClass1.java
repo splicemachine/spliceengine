@@ -21,8 +21,6 @@
 
 package org.apache.derbyTesting.unitTests.services;
 
-import org.apache.derby.iapi.error.StandardException;
-
 /**
 
 A test class for T_Diagnosticable.  A diagnostic class will be provided 

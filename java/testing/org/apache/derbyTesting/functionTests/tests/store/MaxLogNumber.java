@@ -25,14 +25,14 @@ import java.sql.Statement;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import org.apache.derby.tools.ij;
+import com.splicemachine.db.tools.ij;
 
 /*
  * This class tests log writes to the transaction log files with large log file
  * id's and does a setup to test recovery with large log file id's in 
  * MaxLogNumberRecovery.java test. Large log file id's are simulated using 
  * a debug flag 'testMaxLogFileNumber' in the log factory, this is enabled
- * by setting derby.debug.true=testMaxLogFileNumber in the properties file.
+ * by setting db.debug.true=testMaxLogFileNumber in the properties file.
  * In Non debug mode, this tests just acts as a plain log recovery test.
  *
  * @version 1.0
@@ -208,7 +208,7 @@ public class MaxLogNumber{
             test.runTest(conn);
         }
         catch (SQLException sqle) {
-			org.apache.derby.tools.JDBCDisplayUtil.ShowSQLException(
+			com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(
                 System.out, sqle);
 			sqle.printStackTrace(System.out);
 		}

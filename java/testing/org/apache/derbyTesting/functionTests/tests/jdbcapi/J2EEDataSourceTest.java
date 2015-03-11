@@ -53,10 +53,10 @@ import javax.transaction.xa.Xid;
 import junit.framework.Test;
 import junit.framework.TestSuite;
 
-import org.apache.derby.jdbc.ClientBaseDataSource;
-import org.apache.derby.jdbc.ClientConnectionPoolDataSource;
-import org.apache.derby.jdbc.ClientXADataSource;
-import org.apache.derby.jdbc.EmbeddedSimpleDataSource;
+import com.splicemachine.db.jdbc.ClientBaseDataSource;
+import com.splicemachine.db.jdbc.ClientConnectionPoolDataSource;
+import com.splicemachine.db.jdbc.ClientXADataSource;
+import com.splicemachine.db.jdbc.EmbeddedSimpleDataSource;
 import org.apache.derbyTesting.functionTests.util.PrivilegedFileOpsForTests;
 import org.apache.derbyTesting.functionTests.util.SecurityCheck;
 import org.apache.derbyTesting.functionTests.util.TestRoutines;
@@ -74,19 +74,19 @@ import org.apache.derbyTesting.junit.TestConfiguration;
  * Test the ConnectionPoolDataSource and XADataSource implementations of Derby.
  * DataSource functionality common to DataSources including what is
  * supported with JSR169 is tested in DataSourceTest. 
- * 
+ *
  * Performs SecurityCheck analysis on the JDBC objects returned.
  * This is because this test returns to the client a number of
  * different implementations of Connection, Statement etc.
- * 
+ *
  * @see org.apache.derbyTesting.functionTests.util.SecurityCheck
  *
  */
 public class J2EEDataSourceTest extends BaseJDBCTestCase {
 
-    private static final String dbName = 
-        TestConfiguration.getCurrent().getDefaultDatabaseName();
-    
+    private static final String dbName =
+            TestConfiguration.getCurrent().getDefaultDatabaseName();
+
     /**
      * A hashtable of opened connections.  This is used when checking to
      * make sure connection strings are unique; we need to make sure all
@@ -94,16 +94,16 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
      * in this hashtable
      */
     protected static Hashtable conns = new Hashtable();
-    
+
     /** The expected format of a connection string. In English:
      * "<classname>@<hashcode> (XID=<xid>), (SESSION = <sessionid>),
      *  (DATABASE=<dbname>), (DRDAID = <drdaid>)"
      */
-    private static final String CONNSTRING_FORMAT = 
-        "\\S+@\\-?[0-9]+.* \\(XID = .*\\), \\(SESSIONID = [0-9]+\\), " +
-        "\\(DATABASE = [A-Za-z]+\\), \\(DRDAID = .*\\) "; 
-    
-    
+    private static final String CONNSTRING_FORMAT =
+            "\\S+@\\-?[0-9]+.* \\(XID = .*\\), \\(SESSIONID = [0-9]+\\), " +
+                    "\\(DATABASE = [A-Za-z]+\\), \\(DRDAID = .*\\) ";
+
+
     /**
      * Hang onto the SecurityCheck class while running the
      * tests so that it is not garbage collected during the
@@ -111,11 +111,11 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
      * in case it should get printed out.
      */
     private final Object nogc = SecurityCheck.class;
-    
+
     public J2EEDataSourceTest(String name) {
         super(name);
     }
-    
+
     /**
      * Return a suite of tests that are run with a lower lock timeout.
      *
@@ -129,10 +129,10 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         // Reduce the timeout threshold to make the tests run faster.
         return DatabasePropertyTestSetup.setLockTimeouts(suite, 3, 5);
     }
-    
+
     /**
      * Return a suite of tests that are run with both client and embedded
-     * 
+     *
      * @param postfix suite name postfix
      * @return A suite of tests to be run with client and/or embedded
      */
@@ -146,14 +146,14 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         suite.addTest(new J2EEDataSourceTest("testCloseActiveConnection_DS"));
         suite.addTest(new J2EEDataSourceTest("testCloseActiveConnection_CP"));
         suite.addTest(
-            new J2EEDataSourceTest("testCloseActiveConnection_XA_local"));
+                new J2EEDataSourceTest("testCloseActiveConnection_XA_local"));
         suite.addTest(
-            new J2EEDataSourceTest("testCloseActiveConnection_XA_global"));
+                new J2EEDataSourceTest("testCloseActiveConnection_XA_global"));
         suite.addTest(new J2EEDataSourceTest("testDescriptionProperty"));
         suite.addTest(new J2EEDataSourceTest("testConnectionErrorEvent"));
         suite.addTest(new J2EEDataSourceTest("testIsolationWithFourConnections"));
         suite.addTest(new J2EEDataSourceTest(
-                              "testConnectionEventListenerIsNull"));
+                "testConnectionEventListenerIsNull"));
         suite.addTest(new J2EEDataSourceTest("testReadOnlyToWritableTran"));
         suite.addTest(new J2EEDataSourceTest("testAutoCommitOnXAResourceStart"));
         suite.addTest(new J2EEDataSourceTest("testAllDataSources"));
@@ -169,7 +169,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
 
     /**
      * Return a suite of tests that are run with client only
-     * 
+     *
      * @return A suite of tests being run with client only
      */
     private static Test getClientSuite() {
@@ -187,10 +187,10 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         //suite.addTest(new J2EEDataSourceTest("testConnectionFlowRollbackAlt"));
         return suite;
     }
-    
+
     /**
      * Return a suite of tests that are run with embedded only
-     * 
+     *
      * @param postfix suite name postfix
      * @return A suite of tests being run with embedded only
      */
@@ -203,15 +203,15 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         suite.addTest(new J2EEDataSourceTest("testXAHoldability"));
         return suite;
     }
-    
+
     public static Test suite() {
         if (JDBC.vmSupportsJSR169())
         {
             // test uses unsupported classes like DriverManager, XADataSource,
             // ConnectionPoolDataSource, ConnectionEvenListenere, as well as
             // unsupported methods, like Connection.setTypeMap()...
-            TestSuite suite = 
-                new TestSuite("J2EEDatasourceTest cannot run with JSR169");
+            TestSuite suite =
+                    new TestSuite("J2EEDatasourceTest cannot run with JSR169");
             return suite;
         }
         else
@@ -237,7 +237,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
             return new CleanDatabaseTestSetup(suite) {
                 /**
                  * Create and populate database objects
-                 * 
+                 *
                  * @see org.apache.derbyTesting.junit.CleanDatabaseTestSetup#decorateSQL(java.sql.Statement)
                  */
                 protected void decorateSQL(Statement s) throws SQLException {
@@ -246,17 +246,17 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
                     s.executeUpdate("insert into autocommitxastart values 1,2,3,4,5");
                     s.executeUpdate("create schema SCHEMA_Patricio");
                     s.executeUpdate("create table " +
-                    "SCHEMA_Patricio.Patricio (id VARCHAR(255), value INTEGER)");
+                            "SCHEMA_Patricio.Patricio (id VARCHAR(255), value INTEGER)");
                     s.executeUpdate("create table intTable(i int)");
                     s.executeUpdate("create table hold_30 " +
-                    "(id int not null primary key, b char(30))");
+                            "(id int not null primary key, b char(30))");
                     s.executeUpdate(
                             "create procedure checkConn2(in dsname varchar(20)) " +
-                            "parameter style java language java modifies SQL DATA " +
-                            "external name " +
-                            "'org.apache.derbyTesting.functionTests.tests.jdbcapi.J2EEDataSourceTest." +
-                            getNestedMethodName() +
-                    "'");
+                                    "parameter style java language java modifies SQL DATA " +
+                                    "external name " +
+                                    "'org.apache.derbyTesting.functionTests.tests.jdbcapi.J2EEDataSourceTest." +
+                                    getNestedMethodName() +
+                                    "'");
                     s.execute("create table derby3799 (dClob clob)");
                     s.executeUpdate("insert into derby3799 values (" +
                             "'myLittleTestClob')");
@@ -264,13 +264,13 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
             };
         }
     }
-    
+
     public void tearDown() throws Exception {
         // attempt to get rid of any left-over trace files
         AccessController.doPrivileged(new java.security.PrivilegedAction() {
             public Object run() {
                 for (int i=0 ; i < 6 ; i++)
-                {   
+                {
                     String traceFileName = "trace" + (i+1) + ".out";
                     File traceFile = new File(traceFileName);
                     if (traceFile.exists())
@@ -278,7 +278,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
                         // if it exists, attempt to get rid of it
                         traceFile.delete();
                     }
-                } 
+                }
                 return null;
             }
         });
@@ -294,7 +294,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         SecurityCheck.report();
     }
      */
-    
+
     /**
      * Test case for DERBY-3172
      * When the Derby engine is shutdown or Network Server is brought down, any
@@ -303,14 +303,14 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
     public void testConnectionErrorEvent() throws SQLException, Exception
     {
         AssertEventCatcher aes12 = new AssertEventCatcher(12);
-        
+
         ConnectionPoolDataSource ds = J2EEDataSource.getConnectionPoolDataSource();
 
         PooledConnection pc = ds.getPooledConnection();
         //Add a connection event listener to ConnectionPoolDataSource
         pc.addConnectionEventListener(aes12);
         Connection conn = pc.getConnection();
-        
+
         dropTable(conn, "TAB1");
 
         //No event should have been generated at this point
@@ -321,10 +321,10 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         //mode we are running in.
         if (usingEmbedded())
         {
-        	getTestConfiguration().shutdownDatabase();
+            getTestConfiguration().shutdownDatabase();
         } else
         {
-        	getTestConfiguration().stopNetworkServer();
+            getTestConfiguration().stopNetworkServer();
         }
         //Now try to use various apis on the JDBC Connection object created 
         //before shutdown and they all should generate connection error event.
@@ -336,7 +336,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
             //shutdown will generate a communication error and that's why we
             //are checking for SQL State 08006 rather than No current connection
             //SQL State 08003. In embedded mode, we will get SQL State 08003
-        	//meaning No current connection
+            //meaning No current connection
             if (usingEmbedded())
                 assertSQLState("08003", e);
             else
@@ -355,9 +355,9 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         assertTrue(aes12.didConnectionErrorEventHappen());
         aes12.resetState();
         try {
-        	int[] columnIndexes = {1};
-            conn.prepareStatement("CREATE TABLE TAB1(COL1 INT NOT NULL)", 
-            		columnIndexes);
+            int[] columnIndexes = {1};
+            conn.prepareStatement("CREATE TABLE TAB1(COL1 INT NOT NULL)",
+                    columnIndexes);
             fail("SQLException of 08003 should be thrown!");
         } catch (SQLException e) {
             assertSQLState("08003", e);
@@ -366,9 +366,9 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         assertTrue(aes12.didConnectionErrorEventHappen());
         aes12.resetState();
         try {
-        	String[] columnNames = {"col1"};
-            conn.prepareStatement("CREATE TABLE TAB1(COL1 INT NOT NULL)", 
-            		columnNames);
+            String[] columnNames = {"col1"};
+            conn.prepareStatement("CREATE TABLE TAB1(COL1 INT NOT NULL)",
+                    columnNames);
             fail("SQLException of 08003 should be thrown!");
         } catch (SQLException e) {
             assertSQLState("08003", e);
@@ -378,21 +378,21 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         aes12.resetState();
         try {
             conn.prepareStatement("CREATE TABLE TAB1(COL1 INT NOT NULL)",
-            		ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
+                    ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
             fail("SQLException of 08003 should be thrown!");
         } catch (SQLException e) {
-                assertSQLState("08003", e);
+            assertSQLState("08003", e);
         }
         assertFalse(aes12.didConnectionClosedEventHappen());
         assertTrue(aes12.didConnectionErrorEventHappen());
         aes12.resetState();
         try {
             conn.prepareStatement("CREATE TABLE TAB1(COL1 INT NOT NULL)",
-            		ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
-            		ResultSet.CLOSE_CURSORS_AT_COMMIT);
+                    ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
+                    ResultSet.CLOSE_CURSORS_AT_COMMIT);
             fail("SQLException of 08003 should be thrown!");
         } catch (SQLException e) {
-                assertSQLState("08003", e);
+            assertSQLState("08003", e);
         }
         assertFalse(aes12.didConnectionClosedEventHappen());
         assertTrue(aes12.didConnectionErrorEventHappen());
@@ -407,18 +407,18 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         assertTrue(aes12.didConnectionErrorEventHappen());
         aes12.resetState();
         try {
-            conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, 
-            		ResultSet.CONCUR_READ_ONLY,
-            		ResultSet.CLOSE_CURSORS_AT_COMMIT);
+            conn.createStatement(ResultSet.TYPE_FORWARD_ONLY,
+                    ResultSet.CONCUR_READ_ONLY,
+                    ResultSet.CLOSE_CURSORS_AT_COMMIT);
             fail("SQLException of 08003 should be thrown!");
         } catch (SQLException e) {
-                assertSQLState("08003", e);
+            assertSQLState("08003", e);
         }
         assertFalse(aes12.didConnectionClosedEventHappen());
         assertTrue(aes12.didConnectionErrorEventHappen());
         aes12.resetState();
         try {
-            conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, 
+            conn.createStatement(ResultSet.TYPE_FORWARD_ONLY,
                     ResultSet.CONCUR_READ_ONLY);
             fail("SQLException of 08003 should be thrown!");
         } catch (SQLException e) {
@@ -432,7 +432,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
                     ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY);
             fail("SQLException of 08003 should be thrown!");
         } catch (SQLException e) {
-                assertSQLState("08003", e);
+            assertSQLState("08003", e);
         }
         assertFalse(aes12.didConnectionClosedEventHappen());
         assertTrue(aes12.didConnectionErrorEventHappen());
@@ -441,7 +441,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
             conn.prepareCall("CREATE TABLE TAB1(COL1 INT NOT NULL)");
             fail("SQLException of 08003 should be thrown!");
         } catch (SQLException e) {
-                assertSQLState("08003", e);
+            assertSQLState("08003", e);
         }
         assertFalse(aes12.didConnectionClosedEventHappen());
         assertTrue(aes12.didConnectionErrorEventHappen());
@@ -452,7 +452,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
                     ResultSet.CLOSE_CURSORS_AT_COMMIT);
             fail("SQLException of 08003 should be thrown!");
         } catch (SQLException e) {
-                assertSQLState("08003", e);
+            assertSQLState("08003", e);
         }
         assertFalse(aes12.didConnectionClosedEventHappen());
         assertTrue(aes12.didConnectionErrorEventHappen());
@@ -461,7 +461,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
             conn.nativeSQL("CREATE TABLE TAB1(COL1 INT NOT NULL)");
             fail("SQLException of 08003 should be thrown!");
         } catch (SQLException e) {
-                assertSQLState("08003", e);
+            assertSQLState("08003", e);
         }
         assertFalse(aes12.didConnectionClosedEventHappen());
         assertTrue(aes12.didConnectionErrorEventHappen());
@@ -470,7 +470,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
             conn.getAutoCommit();
             fail("SQLException of 08003 should be thrown!");
         } catch (SQLException e) {
-                assertSQLState("08003", e);
+            assertSQLState("08003", e);
         }
         assertFalse(aes12.didConnectionClosedEventHappen());
         assertTrue(aes12.didConnectionErrorEventHappen());
@@ -515,7 +515,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
             conn.rollback();
             fail("SQLException of 08003 should be thrown!");
         } catch (SQLException e) {
-                assertSQLState("08003", e);
+            assertSQLState("08003", e);
         }
         assertFalse(aes12.didConnectionClosedEventHappen());
         assertTrue(aes12.didConnectionErrorEventHappen());
@@ -660,7 +660,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
             Class.forName("org.apache.derby.jdbc.EmbeddedDriver").newInstance();
         }else
         {
-        	getTestConfiguration().startNetworkServer();
+            getTestConfiguration().startNetworkServer();
         }
 
         // Get a new connection to the database
@@ -674,7 +674,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
      */
     public void testConnectionEventListenerIsNull() throws SQLException {
         ConnectionPoolDataSource cpds =
-            J2EEDataSource.getConnectionPoolDataSource();
+                J2EEDataSource.getConnectionPoolDataSource();
         subtestCloseEventWithNullListener(cpds.getPooledConnection());
         subtestErrorEventWithNullListener(cpds.getPooledConnection());
 
@@ -688,7 +688,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
      * listener is null.
      */
     private void subtestCloseEventWithNullListener(PooledConnection pc)
-        throws SQLException
+            throws SQLException
     {
         pc.addConnectionEventListener(null);
         // Trigger a close event
@@ -701,7 +701,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
      * listener is null.
      */
     private void subtestErrorEventWithNullListener(PooledConnection pc)
-        throws SQLException
+            throws SQLException
     {
         pc.addConnectionEventListener(null);
         Connection c = pc.getConnection();
@@ -738,7 +738,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
      */
     private void testCloseActiveConnection(Connection c, boolean autoCommit,
                                            boolean global)
-        throws SQLException
+            throws SQLException
     {
         if (global) {
             assertFalse("auto-commit should be false in XA", autoCommit);
@@ -784,7 +784,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
      */
     public void testCloseActiveConnection_CP() throws SQLException {
         ConnectionPoolDataSource ds =
-            J2EEDataSource.getConnectionPoolDataSource();
+                J2EEDataSource.getConnectionPoolDataSource();
         PooledConnection pc = ds.getPooledConnection();
         testCloseActiveConnection(pc.getConnection(), true, false);
         Connection c = pc.getConnection();
@@ -814,7 +814,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
      * called and the transaction is active.
      */
     public void testCloseActiveConnection_XA_global()
-        throws SQLException, XAException
+            throws SQLException, XAException
     {
         XADataSource ds = J2EEDataSource.getXADataSource();
         XAConnection xa = ds.getXAConnection();
@@ -835,91 +835,91 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
      * Test that a connection to XADataSource can be established
      * successfully while creating a database using setDatabaseName()
      * with create=true
-     *  
+     *
      * @throws SQLException
      * @throws XAException
      */
     public void testCreateInDatabaseName_XA() throws SQLException, XAException
     {
-    	//test with XADataSource
-    	XADataSource xads = J2EEDataSource.getXADataSource();
-    	String dbName = TestConfiguration.getCurrent().getDefaultDatabaseName();    	
-    	J2EEDataSource.setBeanProperty(xads,"databaseName",dbName +";create=true");       
-    	XAConnection xa = xads.getXAConnection();
-    	Connection c = xa.getConnection();  
-    	c.setAutoCommit(false); 
-    	c.close();
+        //test with XADataSource
+        XADataSource xads = J2EEDataSource.getXADataSource();
+        String dbName = TestConfiguration.getCurrent().getDefaultDatabaseName();
+        J2EEDataSource.setBeanProperty(xads,"databaseName",dbName +";create=true");
+        XAConnection xa = xads.getXAConnection();
+        Connection c = xa.getConnection();
+        c.setAutoCommit(false);
+        c.close();
     }
-    
+
     /**
      * Test that a connection to PoolDataSource can be established
      * successfully while creating a database using setDatabaseName()
      * with create=true
-     * 
+     *
      * @throws SQLException
      */
-    
+
     public void testCreateInDatabaseName_Pooled() throws SQLException
     {
-    	//test with PooledConnection
-    	ConnectionPoolDataSource cpds = J2EEDataSource.getConnectionPoolDataSource();
-    	PooledConnection pc = cpds.getPooledConnection();
-    	String dbName = TestConfiguration.getCurrent().getDefaultDatabaseName();
-    	J2EEDataSource.setBeanProperty(cpds, "databaseName",dbName +";create=true");
-    	Connection c;
-    	c = pc.getConnection();
-    	c.setAutoCommit(false);
-    	c.close();
-    	pc.close();
+        //test with PooledConnection
+        ConnectionPoolDataSource cpds = J2EEDataSource.getConnectionPoolDataSource();
+        PooledConnection pc = cpds.getPooledConnection();
+        String dbName = TestConfiguration.getCurrent().getDefaultDatabaseName();
+        J2EEDataSource.setBeanProperty(cpds, "databaseName",dbName +";create=true");
+        Connection c;
+        c = pc.getConnection();
+        c.setAutoCommit(false);
+        c.close();
+        pc.close();
     }
-    
+
     /**
      * Test that a connection to JDBCDataSource can be established
      * successfully while creating a database using setDatabaseName()
      * with create=true
-     * 
+     *
      * @throws SQLException
      */
-    
+
     public void testCreateInDatabaseName_DS() throws SQLException
     {
-    	DataSource ds = JDBCDataSource.getDataSource();
-    	String dbName = TestConfiguration.getCurrent().getDefaultDatabaseName();
-    	JDBCDataSource.setBeanProperty(ds, "databaseName", dbName +";create=true");
+        DataSource ds = JDBCDataSource.getDataSource();
+        String dbName = TestConfiguration.getCurrent().getDefaultDatabaseName();
+        JDBCDataSource.setBeanProperty(ds, "databaseName", dbName +";create=true");
         Connection c = ds.getConnection();
         c.setAutoCommit(false);
         c.close();
     }
-        
-    
+
+
     /**
      * Test that a PooledConnection can be reused and closed
      * (separately) during the close event raised by the
      * closing of its logical connection.
      * DERBY-2142.
-     * @throws SQLException 
+     * @throws SQLException
      *
      */
     public void testPooledReuseOnClose() throws SQLException
     {
-    	// PooledConnection from a ConnectionPoolDataSource
-    	ConnectionPoolDataSource cpds =
-    		J2EEDataSource.getConnectionPoolDataSource();
-    	subtestPooledReuseOnClose(cpds.getPooledConnection());
+        // PooledConnection from a ConnectionPoolDataSource
+        ConnectionPoolDataSource cpds =
+                J2EEDataSource.getConnectionPoolDataSource();
+        subtestPooledReuseOnClose(cpds.getPooledConnection());
         subtestPooledCloseOnClose(cpds.getPooledConnection());
         // DERBY-3401 - removing a callback during a close causes problems.
         subtestPooledRemoveListenerOnClose(cpds.getPooledConnection());
         subtestPooledAddListenerOnClose(cpds.getPooledConnection());
 
-    	// PooledConnection from an XDataSource
-    	XADataSource xads = J2EEDataSource.getXADataSource();
-    	subtestPooledReuseOnClose(xads.getXAConnection());
+        // PooledConnection from an XDataSource
+        XADataSource xads = J2EEDataSource.getXADataSource();
+        subtestPooledReuseOnClose(xads.getXAConnection());
         subtestPooledCloseOnClose(xads.getXAConnection());
         // DERBY-3401 - removing a callback during a close causes problems.
         subtestPooledRemoveListenerOnClose(xads.getXAConnection());
         subtestPooledAddListenerOnClose(xads.getXAConnection());
     }
-    
+
     /**
      * Tests that a pooled connection can successfully be reused
      * (a new connection obtained from it) during the processing
@@ -930,49 +930,49 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
      */
     private void subtestPooledReuseOnClose(final PooledConnection pc) throws SQLException
     {
-    	final Connection[] newConn = new Connection[1];
-    	pc.addConnectionEventListener(new ConnectionEventListener() {
+        final Connection[] newConn = new Connection[1];
+        pc.addConnectionEventListener(new ConnectionEventListener() {
 
-    		/**
-    		 * Mimic a pool handler that returns the PooledConnection
-    		 * to the pool and then reallocates it to a new logical connection.
-    		 */
-			public void connectionClosed(ConnectionEvent event) {
-				PooledConnection pce = (PooledConnection) event.getSource();
-				assertSame(pc, pce);
-				try {
-					// open a new logical connection and pass
-					// back to the fixture.
-					newConn[0] = pce.getConnection();
-				} catch (SQLException e) {
+            /**
+             * Mimic a pool handler that returns the PooledConnection
+             * to the pool and then reallocates it to a new logical connection.
+             */
+            public void connectionClosed(ConnectionEvent event) {
+                PooledConnection pce = (PooledConnection) event.getSource();
+                assertSame(pc, pce);
+                try {
+                    // open a new logical connection and pass
+                    // back to the fixture.
+                    newConn[0] = pce.getConnection();
+                } catch (SQLException e) {
                     // Need to catch the exception here because
                     // we cannot throw a checked exception through
                     // the api method. Wrap it in a RuntimeException.
                     throw new RuntimeException(e);
-				}
-			}
+                }
+            }
 
-			public void connectionErrorOccurred(ConnectionEvent event) {
-			}
-    		
-    	});
-    	
-    	// Open a connection then close it to trigger the
-    	// fetching of a new connection in the callback.
-    	Connection c1 = pc.getConnection();
-    	c1.close();
-    	
-    	// Fetch the connection created in the close callback
-    	Connection c2 = newConn[0];
-    	assertNotNull(c2);
-    	
-    	// Ensure the connection is useable, this hit a NPE before DERBY-2142
-    	// was fixed (for embedded).
-    	c2.createStatement().close();
-    	
-    	pc.close();
+            public void connectionErrorOccurred(ConnectionEvent event) {
+            }
+
+        });
+
+        // Open a connection then close it to trigger the
+        // fetching of a new connection in the callback.
+        Connection c1 = pc.getConnection();
+        c1.close();
+
+        // Fetch the connection created in the close callback
+        Connection c2 = newConn[0];
+        assertNotNull(c2);
+
+        // Ensure the connection is useable, this hit a NPE before DERBY-2142
+        // was fixed (for embedded).
+        c2.createStatement().close();
+
+        pc.close();
     }
-    
+
     /**
      * Tests that a pooled connection can successfully be closed
      * during the processing of its close event by its listener.
@@ -1000,13 +1000,13 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
 
             public void connectionErrorOccurred(ConnectionEvent event) {
             }
-            
+
         });
-        
+
         // Open and close a connection to invoke the logic above
         // through the callback
         pc.getConnection().close();
-                
+
         // The callback closed the actual pooled connection
         // so subsequent requests to get a logical connection
         // should fail.
@@ -1017,7 +1017,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
             assertSQLState("08003", sqle);
         }
     }
-    
+
     /**
      * Tests that a listener of a pooled connection can successfully
      * remove itself during the processing of its close event by its listener.
@@ -1025,7 +1025,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
      */
     private void subtestPooledRemoveListenerOnClose(final PooledConnection pc) throws SQLException
     {
-        
+
         final int[] count1 = new int[1];
         pc.addConnectionEventListener(new ConnectionEventListener() {
 
@@ -1042,9 +1042,9 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
 
             public void connectionErrorOccurred(ConnectionEvent event) {
             }
-            
+
         });
-        
+
         // and have another listener to ensure removing one leaves
         // the other working and intact.
         final int[] count2 = new int[1];
@@ -1054,7 +1054,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
              * Mimic a pool handler that closes the PooledConnection
              * (say it no longer needs it, pool size being reduced)
              */
-            public void connectionClosed(ConnectionEvent event) {             
+            public void connectionClosed(ConnectionEvent event) {
                 PooledConnection pce = (PooledConnection) event.getSource();
                 assertSame(pc, pce);
                 count2[0]++;
@@ -1062,26 +1062,26 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
 
             public void connectionErrorOccurred(ConnectionEvent event) {
             }
-            
-        });        
+
+        });
         // no callback yet
         assertEquals(0, count1[0]);
         assertEquals(0, count2[0]);
-        
+
         // Open and close a connection to invoke the logic above
         // through the callback
         pc.getConnection().close();
-        
+
         // one callback for each
         assertEquals(1, count1[0]);
         assertEquals(1, count2[0]);
-              
+
         // the callback (count1) that was removed is not called on the
         // second close but the second callback (count2) is called.
         pc.getConnection().close();
         assertEquals(1, count1[0]);
         assertEquals(2, count2[0]);
-        
+
         pc.close();
     }
 
@@ -1153,44 +1153,44 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         }
         cs.setString(1,"Nested2");
         cs.execute();
-        
+
         String EmptyMapValue = "OK";
         String NullMapValue = "XJ081";
         String MapMapValue = "0A000";
         Object[] expectedValues = {
-            new Integer(ResultSet.HOLD_CURSORS_OVER_COMMIT), "XJ010",
-            new Integer(2), new Boolean(true), new Boolean(false), 
-            EmptyMapValue, NullMapValue, MapMapValue};
+                new Integer(ResultSet.HOLD_CURSORS_OVER_COMMIT), "XJ010",
+                new Integer(2), new Boolean(true), new Boolean(false),
+                EmptyMapValue, NullMapValue, MapMapValue};
 
         assertConnectionOK(expectedValues, "DriverManager ", dmc);
-    
+
         if (usingEmbedded())
             assertTenConnectionsUnique();
 
         DataSource dscs = JDBCDataSource.getDataSource();
-        if (usingEmbedded()) 
-                assertToString(dscs);
+        if (usingEmbedded())
+            assertToString(dscs);
 
         DataSource ds = dscs;
         assertConnectionOK(expectedValues, "DataSource", ds.getConnection());
-        
+
         DataSource dssimple = null;
         // simple datasource is only supported with embedded
         if (usingEmbedded())
         {
-            EmbeddedSimpleDataSource realdssimple = 
-                new EmbeddedSimpleDataSource();
+            EmbeddedSimpleDataSource realdssimple =
+                    new EmbeddedSimpleDataSource();
             realdssimple.setDatabaseName(dbName);
             ds = realdssimple;
             dssimple = (DataSource)realdssimple;
             assertConnectionOK(
-                expectedValues, "SimpleDataSource", ds.getConnection());
+                    expectedValues, "SimpleDataSource", ds.getConnection());
         }
-            
-        ConnectionPoolDataSource dsp = 
-            J2EEDataSource.getConnectionPoolDataSource();      
-        
-        if (usingEmbedded()) 
+
+        ConnectionPoolDataSource dsp =
+                J2EEDataSource.getConnectionPoolDataSource();
+
+        if (usingEmbedded())
             assertToString(dsp);
 
         PooledConnection pc = dsp.getPooledConnection();
@@ -1198,7 +1198,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         if (usingEmbedded())
         {
             SecurityCheck.assertSourceSecurity(
-                pc, "javax.sql.PooledConnection");
+                    pc, "javax.sql.PooledConnection");
         }
         AssertEventCatcher aes1 = new AssertEventCatcher(1);
         pc.addConnectionEventListener(aes1);
@@ -1207,13 +1207,13 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         // with Network Server / DerbyNetClient, the assertConnectionOK check
         // returns a different connection object...
         assertConnectionOK(
-            expectedValues, "ConnectionPoolDataSource", pc.getConnection());
+                expectedValues, "ConnectionPoolDataSource", pc.getConnection());
         //Check if got connection closed event but not connection error event
         assertTrue(aes1.didConnectionClosedEventHappen());
         assertFalse(aes1.didConnectionErrorEventHappen());
         aes1.resetState();
         assertConnectionOK(
-            expectedValues, "ConnectionPoolDataSource", pc.getConnection());
+                expectedValues, "ConnectionPoolDataSource", pc.getConnection());
         //Check if got connection closed event but not connection error event
         assertTrue(aes1.didConnectionClosedEventHappen());
         assertFalse(aes1.didConnectionErrorEventHappen());
@@ -1233,7 +1233,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         if (usingEmbedded())
         {
             SecurityCheck.assertSourceSecurity(
-                cs, "java.sql.CallableStatement");
+                    cs, "java.sql.CallableStatement");
         }
         cs.setString(1,"Nested");
         try {
@@ -1254,17 +1254,17 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         AssertEventCatcher aes3 = new AssertEventCatcher(3);
         xac.addConnectionEventListener(aes3);
         assertConnectionOK(
-            expectedValues, "XADataSource", xac.getConnection());
+                expectedValues, "XADataSource", xac.getConnection());
         //Check if got connection closed event but not connection error event
         assertTrue(aes3.didConnectionClosedEventHappen());
         assertFalse(aes3.didConnectionErrorEventHappen());
         aes3.resetState();
-                       
+
         pc = dsp.getPooledConnection();
         AssertEventCatcher aes2 = new AssertEventCatcher(2);
         pc.addConnectionEventListener(aes2);
         assertConnectionOK(
-            expectedValues, "ConnectionPoolDataSource", pc.getConnection());
+                expectedValues, "ConnectionPoolDataSource", pc.getConnection());
         //Check if got connection closed event but not connection error event
         assertTrue(aes2.didConnectionClosedEventHappen());
         assertFalse(aes2.didConnectionErrorEventHappen());
@@ -1275,13 +1275,13 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         AssertEventCatcher aes4 = new AssertEventCatcher(4);
         xac.addConnectionEventListener(aes4);
         assertConnectionOK(
-            expectedValues, "XADataSource", xac.getConnection());
+                expectedValues, "XADataSource", xac.getConnection());
         //Check if got connection closed event but not connection error event
         assertTrue(aes4.didConnectionClosedEventHappen());
         assertFalse(aes4.didConnectionErrorEventHappen());
         aes4.resetState();
         assertConnectionOK(
-            expectedValues, "XADataSource", xac.getConnection());
+                expectedValues, "XADataSource", xac.getConnection());
         //Check if got connection closed event but not connection error event
         assertTrue(aes4.didConnectionClosedEventHappen());
         assertFalse(aes4.didConnectionErrorEventHappen());
@@ -1296,8 +1296,8 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         // checks currently only implemented for embedded 
         if (usingEmbedded())
         {
-           SecurityCheck.assertSourceSecurity(
-                xar, "javax.transaction.xa.XAResource");
+            SecurityCheck.assertSourceSecurity(
+                    xar, "javax.transaction.xa.XAResource");
         }
         Xid xid = new cdsXid(1, (byte) 35, (byte) 47);
         xar.start(xid, XAResource.TMNOFLAGS);
@@ -1308,13 +1308,13 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
             expectedValues[1] = "XJ058";
         expectedValues[3] = new Boolean(false);
         assertConnectionOK(
-            expectedValues, "Global XADataSource", xac.getConnection());
+                expectedValues, "Global XADataSource", xac.getConnection());
         //Check if got connection closed event but not connection error event
         assertTrue(aes5.didConnectionClosedEventHappen());
         assertFalse(aes5.didConnectionErrorEventHappen());
         aes5.resetState();
         assertConnectionOK(
-            expectedValues, "Global XADataSource", xac.getConnection());
+                expectedValues, "Global XADataSource", xac.getConnection());
         //Check if got connection closed event but not connection error event
         assertTrue(aes5.didConnectionClosedEventHappen());
         assertFalse(aes5.didConnectionErrorEventHappen());
@@ -1324,14 +1324,14 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
 
         expectedValues[0] = new Integer(ResultSet.HOLD_CURSORS_OVER_COMMIT);
         expectedValues[3] = new Boolean(true);
-        assertConnectionOK(expectedValues, 
-            "Switch to local XADataSource", xac.getConnection());
+        assertConnectionOK(expectedValues,
+                "Switch to local XADataSource", xac.getConnection());
         //Check if got connection closed event but not connection error event
         assertTrue(aes5.didConnectionClosedEventHappen());
         assertFalse(aes5.didConnectionErrorEventHappen());
         aes5.resetState();
-        assertConnectionOK(expectedValues, 
-            "Switch to local XADataSource", xac.getConnection());
+        assertConnectionOK(expectedValues,
+                "Switch to local XADataSource", xac.getConnection());
         //Check if got connection closed event but not connection error event
         assertTrue(aes5.didConnectionClosedEventHappen());
         assertFalse(aes5.didConnectionErrorEventHappen());
@@ -1342,14 +1342,14 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         xar.start(xid, XAResource.TMJOIN);
         expectedValues[0] = new Integer(ResultSet.CLOSE_CURSORS_AT_COMMIT);
         expectedValues[3] = new Boolean(false);
-        assertConnectionOK(expectedValues, 
-            "Switch to global XADataSource", backtoGlobal);
+        assertConnectionOK(expectedValues,
+                "Switch to global XADataSource", backtoGlobal);
         //Check if got connection closed event but not connection error event
         assertTrue(aes5.didConnectionClosedEventHappen());
         assertFalse(aes5.didConnectionErrorEventHappen());
         aes5.resetState();
-        assertConnectionOK(expectedValues, 
-            "Switch to global XADataSource", xac.getConnection());
+        assertConnectionOK(expectedValues,
+                "Switch to global XADataSource", xac.getConnection());
         //Check if got connection closed event but not connection error event
         assertTrue(aes5.didConnectionClosedEventHappen());
         assertFalse(aes5.didConnectionErrorEventHappen());
@@ -1359,12 +1359,12 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
 
         xac.close();
     }
-    
+
     public void testClosedCPDSConnection() throws SQLException, Exception {
         // verify that outstanding updates from a closed connection, obtained
         // from a ConnectionPoolDataSource, are not committed, but rolled back.
-        ConnectionPoolDataSource dsp = 
-            J2EEDataSource.getConnectionPoolDataSource();       
+        ConnectionPoolDataSource dsp =
+                J2EEDataSource.getConnectionPoolDataSource();
         PooledConnection pc = dsp.getPooledConnection();
         Connection c1 = pc.getConnection();
         Statement s = c1.createStatement();
@@ -1377,12 +1377,12 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         // this should automatically close the original connection
         c1 = pc.getConnection();
 
-        ResultSet rs = 
-            c1.createStatement().executeQuery("select count(*) from intTable");
+        ResultSet rs =
+                c1.createStatement().executeQuery("select count(*) from intTable");
         rs.next();
         assertEquals(0, rs.getInt(1));
         c1.close();
-        
+
         // check connection objects are closed once connection is closed
         try {
             rs.next();
@@ -1398,7 +1398,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         try {
             s.executeUpdate("update intTable set i = 1");
             fail("Statement is open for a closed connection " +
-                "obtained from PooledConnection");
+                    "obtained from PooledConnection");
         } catch (SQLException sqle) {
             assertSQLState("08003", sqle);
         }
@@ -1423,11 +1423,11 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
 
         // this update should be rolled back
         s.executeUpdate("insert into intTable values(2)");
-        
+
         c1 = xac.getConnection();
 
         ResultSet rs = c1.createStatement().executeQuery(
-           "select count(*) from intTable");
+                "select count(*) from intTable");
         rs.next();
 
         assertEquals(0, rs.getInt(1));
@@ -1440,7 +1440,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         PoolReset("XADataSource", dsx.getXAConnection());
     }
 
-    public void testGlobalLocalInterleaf() throws SQLException, XAException {    
+    public void testGlobalLocalInterleaf() throws SQLException, XAException {
         // now some explicit tests for how connection state behaves
         // when switching between global transactions and local
         // and setting connection state.
@@ -1457,15 +1457,15 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         Connection cs1 = xac.getConnection();
         // initial local
         assertConnectionState(
-            ResultSet.HOLD_CURSORS_OVER_COMMIT, 
-            Connection.TRANSACTION_READ_COMMITTED,
-            true, false, cs1);
+                ResultSet.HOLD_CURSORS_OVER_COMMIT,
+                Connection.TRANSACTION_READ_COMMITTED,
+                true, false, cs1);
         xar.start(xid, XAResource.TMNOFLAGS);
         // initial X1
         assertConnectionState(
-            ResultSet.CLOSE_CURSORS_AT_COMMIT, 
-            Connection.TRANSACTION_READ_COMMITTED,
-            false, false, cs1);
+                ResultSet.CLOSE_CURSORS_AT_COMMIT,
+                Connection.TRANSACTION_READ_COMMITTED,
+                false, false, cs1);
         cs1.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
         cs1.setReadOnly(true);
         setHoldability(cs1, false); // close cursors
@@ -1475,27 +1475,27 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         if (usingEmbedded())
             ReadOnly = true;
         assertConnectionState(
-            ResultSet.CLOSE_CURSORS_AT_COMMIT, 
-            Connection.TRANSACTION_READ_UNCOMMITTED,
-            false, ReadOnly, cs1);
+                ResultSet.CLOSE_CURSORS_AT_COMMIT,
+                Connection.TRANSACTION_READ_UNCOMMITTED,
+                false, ReadOnly, cs1);
         xar.end(xid, XAResource.TMSUCCESS);
         // the underlying local transaction/connection must pick up the
         // state of the Connection handle cs1
         // modified local:
         assertConnectionState(
-            ResultSet.CLOSE_CURSORS_AT_COMMIT, 
-            Connection.TRANSACTION_READ_UNCOMMITTED,
-            true, ReadOnly, cs1);
-        
+                ResultSet.CLOSE_CURSORS_AT_COMMIT,
+                Connection.TRANSACTION_READ_UNCOMMITTED,
+                true, ReadOnly, cs1);
+
         cs1.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
         cs1.setReadOnly(false);
         setHoldability(cs1, false); // close cursors
 
         // reset local
         assertConnectionState(
-            ResultSet.CLOSE_CURSORS_AT_COMMIT, 
-            Connection.TRANSACTION_READ_COMMITTED,
-            true, false, cs1);
+                ResultSet.CLOSE_CURSORS_AT_COMMIT,
+                Connection.TRANSACTION_READ_COMMITTED,
+                true, false, cs1);
 
         // now re-join the transaction, should pick up the read-only
         // and isolation level from the transaction,
@@ -1503,48 +1503,48 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         xar.start(xid, XAResource.TMJOIN);
         // re-join X1
         assertConnectionState(
-            ResultSet.CLOSE_CURSORS_AT_COMMIT, 
-            Connection.TRANSACTION_READ_UNCOMMITTED,
-            false, ReadOnly, cs1);
+                ResultSet.CLOSE_CURSORS_AT_COMMIT,
+                Connection.TRANSACTION_READ_UNCOMMITTED,
+                false, ReadOnly, cs1);
         xar.end(xid, XAResource.TMSUCCESS);
 
         // back to local - should be the same as the reset local
         assertConnectionState(
-            ResultSet.CLOSE_CURSORS_AT_COMMIT, 
-            Connection.TRANSACTION_READ_COMMITTED,
-            true, false, cs1);
-        
+                ResultSet.CLOSE_CURSORS_AT_COMMIT,
+                Connection.TRANSACTION_READ_COMMITTED,
+                true, false, cs1);
+
         // test suspend/resume
         // now re-join the transaction (X1) for the second time, should pick
         // up the read-only and isolation level from the transaction,
         // holdability remains that of this handle.
         xar.start(xid, XAResource.TMJOIN);
         assertConnectionState(
-            ResultSet.CLOSE_CURSORS_AT_COMMIT, 
-            Connection.TRANSACTION_READ_UNCOMMITTED,
-            false, ReadOnly, cs1);
-        
+                ResultSet.CLOSE_CURSORS_AT_COMMIT,
+                Connection.TRANSACTION_READ_UNCOMMITTED,
+                false, ReadOnly, cs1);
+
         xar.end(xid, XAResource.TMSUSPEND);
         // local after suspend
         assertConnectionState(
-            ResultSet.CLOSE_CURSORS_AT_COMMIT, 
-            Connection.TRANSACTION_READ_COMMITTED,
-            true, false, cs1);
-        
+                ResultSet.CLOSE_CURSORS_AT_COMMIT,
+                Connection.TRANSACTION_READ_COMMITTED,
+                true, false, cs1);
+
         xar.start(xid, XAResource.TMRESUME);
         // resume X1
         assertConnectionState(
-            ResultSet.CLOSE_CURSORS_AT_COMMIT, 
-            Connection.TRANSACTION_READ_UNCOMMITTED,
-            false, ReadOnly, cs1);
-        
+                ResultSet.CLOSE_CURSORS_AT_COMMIT,
+                Connection.TRANSACTION_READ_UNCOMMITTED,
+                false, ReadOnly, cs1);
+
         xar.end(xid, XAResource.TMSUCCESS);
         // back to local (second time)
         assertConnectionState(
-            ResultSet.CLOSE_CURSORS_AT_COMMIT, 
-            Connection.TRANSACTION_READ_COMMITTED,
-            true, false, cs1);
-        
+                ResultSet.CLOSE_CURSORS_AT_COMMIT,
+                Connection.TRANSACTION_READ_COMMITTED,
+                true, false, cs1);
+
         cs1.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
         cs1.setReadOnly(true);
         setHoldability(cs1, true); // hold
@@ -1557,26 +1557,26 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         assertTrue(aes6.didConnectionClosedEventHappen());
         assertFalse(aes6.didConnectionErrorEventHappen());
         aes6.resetState();
-        
+
         cs1 = xac.getConnection();
         // new handle - local
         assertConnectionState(
-            ResultSet.HOLD_CURSORS_OVER_COMMIT, 
-            Connection.TRANSACTION_READ_COMMITTED,
-            true, false, cs1);
+                ResultSet.HOLD_CURSORS_OVER_COMMIT,
+                Connection.TRANSACTION_READ_COMMITTED,
+                true, false, cs1);
         cs1.close();
         //Check if got connection closed event but not connection error event
         assertTrue(aes6.didConnectionClosedEventHappen());
         assertFalse(aes6.didConnectionErrorEventHappen());
         aes6.resetState();
-        
+
         xar.start(xid, XAResource.TMJOIN);
         cs1 = xac.getConnection();
         // re-join with new handle X1
         assertConnectionState(
-            ResultSet.CLOSE_CURSORS_AT_COMMIT, 
-            Connection.TRANSACTION_READ_UNCOMMITTED,
-            false, ReadOnly, cs1);
+                ResultSet.CLOSE_CURSORS_AT_COMMIT,
+                Connection.TRANSACTION_READ_UNCOMMITTED,
+                false, ReadOnly, cs1);
         cs1.close();
         xar.end(xid, XAResource.TMSUCCESS);
         //Check if got connection closed event but not connection error event
@@ -1591,27 +1591,27 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         cs1.setTransactionIsolation(Connection.TRANSACTION_REPEATABLE_READ);
         // pre-X1 commit - local
         assertConnectionState(
-            ResultSet.HOLD_CURSORS_OVER_COMMIT, 
-            Connection.TRANSACTION_REPEATABLE_READ,
-            true, false, cs1);
+                ResultSet.HOLD_CURSORS_OVER_COMMIT,
+                Connection.TRANSACTION_REPEATABLE_READ,
+                true, false, cs1);
         xar.start(xid, XAResource.TMJOIN);
         // pre-X1 commit - X1
         assertConnectionState(
-            ResultSet.CLOSE_CURSORS_AT_COMMIT, 
-            Connection.TRANSACTION_READ_UNCOMMITTED,
-            false, ReadOnly, cs1);
+                ResultSet.CLOSE_CURSORS_AT_COMMIT,
+                Connection.TRANSACTION_READ_UNCOMMITTED,
+                false, ReadOnly, cs1);
         xar.end(xid, XAResource.TMSUCCESS);
         // post-X1 end - local
         assertConnectionState(
-            ResultSet.HOLD_CURSORS_OVER_COMMIT, 
-            Connection.TRANSACTION_REPEATABLE_READ,
-            true, false, cs1);
+                ResultSet.HOLD_CURSORS_OVER_COMMIT,
+                Connection.TRANSACTION_REPEATABLE_READ,
+                true, false, cs1);
         xar.commit(xid, true);
         // post-X1 commit - local
         assertConnectionState(
-            ResultSet.HOLD_CURSORS_OVER_COMMIT, 
-            Connection.TRANSACTION_REPEATABLE_READ,
-            true, false, cs1);
+                ResultSet.HOLD_CURSORS_OVER_COMMIT,
+                Connection.TRANSACTION_REPEATABLE_READ,
+                true, false, cs1);
         //Confirm - no connection closed event & connection error event
         assertFalse(aes6.didConnectionClosedEventHappen());
         assertFalse(aes6.didConnectionErrorEventHappen());
@@ -1622,14 +1622,14 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         assertFalse(aes6.didConnectionErrorEventHappen());
         aes6.resetState();
     }
-    
+
     // really part of testGlobalLocalInterLeaf:
     /**
      * @throws SQLException
      * @throws XAException
      */
-    public void testSetIsolationWithStatement() 
-    throws SQLException, XAException {
+    public void testSetIsolationWithStatement()
+            throws SQLException, XAException {
         // DERBY-421 Setting isolation level with SQL was not getting 
         // handled correctly 
         // Some more isolation testing using SQL and JDBC api
@@ -1642,64 +1642,64 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         Statement s = conn.createStatement();
         // initial local
         assertConnectionState(
-            ResultSet.HOLD_CURSORS_OVER_COMMIT, 
-            Connection.TRANSACTION_READ_COMMITTED,
-            true, false, conn);
+                ResultSet.HOLD_CURSORS_OVER_COMMIT,
+                Connection.TRANSACTION_READ_COMMITTED,
+                true, false, conn);
 
         // Issue setTransactionIsolation in local transaction
         conn.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
         // setTransactionIsolation in local
         assertConnectionState(
-            ResultSet.HOLD_CURSORS_OVER_COMMIT, 
-            Connection.TRANSACTION_READ_UNCOMMITTED,
-            true, false, conn);
+                ResultSet.HOLD_CURSORS_OVER_COMMIT,
+                Connection.TRANSACTION_READ_UNCOMMITTED,
+                true, false, conn);
 
         Xid xid;
         //Issue SQL to change isolation in local transaction
         s.executeUpdate("set current isolation = RR");
-        assertConnectionState(ResultSet.HOLD_CURSORS_OVER_COMMIT, 
-            Connection.TRANSACTION_SERIALIZABLE,
-            true, false, conn);
+        assertConnectionState(ResultSet.HOLD_CURSORS_OVER_COMMIT,
+                Connection.TRANSACTION_SERIALIZABLE,
+                true, false, conn);
 
         xid = new cdsXid(1, (byte) 35, (byte) 47);
         xar.start(xid, XAResource.TMNOFLAGS);
         // 1st global (new)
         assertConnectionState(ResultSet.CLOSE_CURSORS_AT_COMMIT,
-            Connection.TRANSACTION_SERIALIZABLE,
-            false, false, conn);
+                Connection.TRANSACTION_SERIALIZABLE,
+                false, false, conn);
         xar.end(xid, XAResource.TMSUCCESS);
 
         // local
         assertConnectionState(ResultSet.HOLD_CURSORS_OVER_COMMIT,
-            Connection.TRANSACTION_SERIALIZABLE,
-            true, false, conn);
+                Connection.TRANSACTION_SERIALIZABLE,
+                true, false, conn);
         //Issue SQL to change isolation in local transaction
         s.executeUpdate("set current isolation = RS");
-        assertConnectionState(ResultSet.HOLD_CURSORS_OVER_COMMIT, 
-            Connection.TRANSACTION_REPEATABLE_READ,
-            true, false, conn);
+        assertConnectionState(ResultSet.HOLD_CURSORS_OVER_COMMIT,
+                Connection.TRANSACTION_REPEATABLE_READ,
+                true, false, conn);
 
         // DERBY-1325 - Isolation level of local connection does not get reset after ending 
         // a global transaction that was joined/resumed if the isolation level was changed 
         // using SQL 
         xar.start(xid, XAResource.TMJOIN);
         // 1st global(existing)
-        assertConnectionState(ResultSet.CLOSE_CURSORS_AT_COMMIT, 
-            Connection.TRANSACTION_SERIALIZABLE,
-            false, false, conn);
+        assertConnectionState(ResultSet.CLOSE_CURSORS_AT_COMMIT,
+                Connection.TRANSACTION_SERIALIZABLE,
+                false, false, conn);
         xar.end(xid, XAResource.TMSUCCESS);
         // local
-        assertConnectionState(ResultSet.HOLD_CURSORS_OVER_COMMIT, 
-            Connection.TRANSACTION_REPEATABLE_READ,
-            true, false, conn);
+        assertConnectionState(ResultSet.HOLD_CURSORS_OVER_COMMIT,
+                Connection.TRANSACTION_REPEATABLE_READ,
+                true, false, conn);
         // DERBY-1325 end test 
 
         Xid xid2 = new cdsXid(1, (byte) 93, (byte) 103);
         xar.start(xid2, XAResource.TMNOFLAGS);
         // 2nd global (new)
-        assertConnectionState(ResultSet.CLOSE_CURSORS_AT_COMMIT, 
-            Connection.TRANSACTION_REPEATABLE_READ,
-            false, false, conn);
+        assertConnectionState(ResultSet.CLOSE_CURSORS_AT_COMMIT,
+                Connection.TRANSACTION_REPEATABLE_READ,
+                false, false, conn);
         //DERBY-4314 create a statement(s2) and execute ddl sql
         Statement s2 = conn.createStatement();
         s2.executeUpdate("create table testglobal (i int)");
@@ -1708,51 +1708,51 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
 
         xar.start(xid, XAResource.TMJOIN);
         // 1st global (existing)
-        assertConnectionState(ResultSet.CLOSE_CURSORS_AT_COMMIT, 
-            Connection.TRANSACTION_SERIALIZABLE,
-            false, false, conn);
+        assertConnectionState(ResultSet.CLOSE_CURSORS_AT_COMMIT,
+                Connection.TRANSACTION_SERIALIZABLE,
+                false, false, conn);
         xar.end(xid, XAResource.TMSUCCESS);
 
         //local 
-        assertConnectionState(ResultSet.HOLD_CURSORS_OVER_COMMIT, 
-            Connection.TRANSACTION_REPEATABLE_READ,
-            true, false, conn);
+        assertConnectionState(ResultSet.HOLD_CURSORS_OVER_COMMIT,
+                Connection.TRANSACTION_REPEATABLE_READ,
+                true, false, conn);
 
         xar.start(xid, XAResource.TMJOIN);
-        
+
         // 1st global (existing)
-        assertConnectionState(ResultSet.CLOSE_CURSORS_AT_COMMIT, 
-            Connection.TRANSACTION_SERIALIZABLE,
-            false, false, conn);
+        assertConnectionState(ResultSet.CLOSE_CURSORS_AT_COMMIT,
+                Connection.TRANSACTION_SERIALIZABLE,
+                false, false, conn);
         // Issue SQL to change isolation in 1st global transaction
         s.executeUpdate("set current isolation = UR");
-        assertConnectionState(ResultSet.CLOSE_CURSORS_AT_COMMIT, 
-            Connection.TRANSACTION_READ_UNCOMMITTED,
-            false, false, conn);
+        assertConnectionState(ResultSet.CLOSE_CURSORS_AT_COMMIT,
+                Connection.TRANSACTION_READ_UNCOMMITTED,
+                false, false, conn);
         xar.end(xid, XAResource.TMSUCCESS);
 
         // local
-        assertConnectionState(ResultSet.HOLD_CURSORS_OVER_COMMIT, 
-            Connection.TRANSACTION_READ_UNCOMMITTED,
-            true, false, conn);
+        assertConnectionState(ResultSet.HOLD_CURSORS_OVER_COMMIT,
+                Connection.TRANSACTION_READ_UNCOMMITTED,
+                true, false, conn);
 
         xar.start(xid2, XAResource.TMJOIN);
         // 2nd global (existing)
-        assertConnectionState(ResultSet.CLOSE_CURSORS_AT_COMMIT, 
-            Connection.TRANSACTION_REPEATABLE_READ,
-            false, false, conn);
+        assertConnectionState(ResultSet.CLOSE_CURSORS_AT_COMMIT,
+                Connection.TRANSACTION_REPEATABLE_READ,
+                false, false, conn);
         xar.end(xid2, XAResource.TMSUCCESS);
         xar.rollback(xid2);
         // (After 2nd global rollback ) local
-        assertConnectionState(ResultSet.HOLD_CURSORS_OVER_COMMIT, 
-            Connection.TRANSACTION_READ_UNCOMMITTED,
-            true, false, conn);
+        assertConnectionState(ResultSet.HOLD_CURSORS_OVER_COMMIT,
+                Connection.TRANSACTION_READ_UNCOMMITTED,
+                true, false, conn);
 
         xar.rollback(xid);
         // (After 1st global rollback) local
-        assertConnectionState(ResultSet.HOLD_CURSORS_OVER_COMMIT, 
-            Connection.TRANSACTION_READ_UNCOMMITTED,
-            true, false, conn);
+        assertConnectionState(ResultSet.HOLD_CURSORS_OVER_COMMIT,
+                Connection.TRANSACTION_READ_UNCOMMITTED,
+                true, false, conn);
         //Confirm - no connection closed event & connection error event
         assertFalse(aes6.didConnectionClosedEventHappen());
         assertFalse(aes6.didConnectionErrorEventHappen());
@@ -1768,26 +1768,26 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         // on tearDown. Embedded requires a database shutdown
         if (usingDerbyNetClient())
             return;
-        
+
         int[] onetwothree = {1,2,3};
         int[] three = {3};
         int[] pspc = {1, 4}; // expected parameter count for prepared statements
         int[] cspc = {2, 12, 12}; // for callable statements
-        
+
         // statics for testReuseAcrossGlobalLocal
         int[] StatementExpectedValues = {
-            ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY,
-            ResultSet.FETCH_REVERSE, 444, 713, 19, 
-            ResultSet.HOLD_CURSORS_OVER_COMMIT};
-            //ResultSet.CLOSE_CURSORS_AT_COMMIT};
-        int[] PreparedStatementExpectedValues = { 
-            ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY,
-            ResultSet.FETCH_REVERSE, 888, 317, 91,
-            ResultSet.HOLD_CURSORS_OVER_COMMIT};
-        int[] CallableStatementExpectedValues = { 
-            ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY,
-            ResultSet.FETCH_REVERSE, 999, 137, 85,
-            ResultSet.HOLD_CURSORS_OVER_COMMIT};
+                ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY,
+                ResultSet.FETCH_REVERSE, 444, 713, 19,
+                ResultSet.HOLD_CURSORS_OVER_COMMIT};
+        //ResultSet.CLOSE_CURSORS_AT_COMMIT};
+        int[] PreparedStatementExpectedValues = {
+                ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY,
+                ResultSet.FETCH_REVERSE, 888, 317, 91,
+                ResultSet.HOLD_CURSORS_OVER_COMMIT};
+        int[] CallableStatementExpectedValues = {
+                ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY,
+                ResultSet.FETCH_REVERSE, 999, 137, 85,
+                ResultSet.HOLD_CURSORS_OVER_COMMIT};
 
         XADataSource dsx = J2EEDataSource.getXADataSource();
         XAConnection xac = dsx.getXAConnection();
@@ -1811,15 +1811,15 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         Statement sruBatch = cs1.createStatement();
         sruBatch.setCursorName("sruBatch");
         Statement sruState = createFloatStatementForStateChecking(
-            StatementExpectedValues, cs1);
+                StatementExpectedValues, cs1);
         PreparedStatement psruState = createFloatStatementForStateChecking(
-            new int[] {1, 4}, PreparedStatementExpectedValues, cs1, 
-            "select i from intTable where i = ?");
+                new int[] {1, 4}, PreparedStatementExpectedValues, cs1,
+                "select i from intTable where i = ?");
         CallableStatement csruState = createFloatCallForStateChecking(
-            new int[] {2, 12, 12}, CallableStatementExpectedValues, cs1, 
-            "CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(?,?)");
-        PreparedStatement psParams = 
-            cs1.prepareStatement("select * from intTable where i > ?");
+                new int[] {2, 12, 12}, CallableStatementExpectedValues, cs1,
+                "CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(?,?)");
+        PreparedStatement psParams =
+                cs1.prepareStatement("select * from intTable where i > ?");
         psParams.setCursorName("params");
         psParams.setInt(1, 2);
         // Params-local-1
@@ -1831,7 +1831,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         cs1.commit(); // need to commit to switch to an global connection;
 
         // simple case - underlying connection is re-used for global.
-        xar.start(xid, XAResource.TMNOFLAGS); 
+        xar.start(xid, XAResource.TMNOFLAGS);
         // Expecting downgrade because global transaction sru1-global-2 is 
         // using a statement with holdability true
         // sru1-global-2
@@ -1873,7 +1873,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         StatementExpectedValues[6] = ResultSet.HOLD_CURSORS_OVER_COMMIT;
         PreparedStatementExpectedValues[6] = ResultSet.HOLD_CURSORS_OVER_COMMIT;
         CallableStatementExpectedValues[6] = ResultSet.HOLD_CURSORS_OVER_COMMIT;
-        assertStatementState(null, StatementExpectedValues, sruState); 
+        assertStatementState(null, StatementExpectedValues, sruState);
         assertStatementState(pspc, PreparedStatementExpectedValues, psruState);
         assertStatementState(cspc, CallableStatementExpectedValues, csruState);
         // Params-local-2
@@ -1918,7 +1918,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         }
         // sruBatch
         queryOnStatement(
-            "sruBatch", new int[] {1,2,3,4,5,6,7,8}, cs1, sruBatch);
+                "sruBatch", new int[] {1,2,3,4,5,6,7,8}, cs1, sruBatch);
 
         xar2.end(xid, XAResource.TMSUCCESS);
         //Confirm - no connection closed event & connection error event
@@ -1988,7 +1988,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         } catch (XAException xae) {
             assertXAException("XAResource.isSameRM", xae);
         }
-        
+
         // close everything
         cs1.rollback();
         sruState.close();
@@ -2004,14 +2004,14 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         xac.removeConnectionEventListener(null);
         xac.close();
         xac2.close();
-        
+
         // but, still not enough.
         // what with all the switching between global and local transactions
         // we still have a lock open on intTable, which will interfere with
         // our tearDown efforts. Bounce the database.
         TestConfiguration.getCurrent().shutdownDatabase();
     }
-    
+
     public void testSetSchemaInXAConnection() throws SQLException {
         // tests that set schema works correctly in an XA connection.
 
@@ -2022,8 +2022,8 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         st3.execute("SET SCHEMA SCHEMA_Patricio");
         st3.close();
 
-        PreparedStatement ps3 = 
-            conn3.prepareStatement("INSERT INTO Patricio VALUES (?, ?)");
+        PreparedStatement ps3 =
+                conn3.prepareStatement("INSERT INTO Patricio VALUES (?, ?)");
         ps3.setString(1, "Patricio");
         ps3.setInt(2, 3);
         ps3.executeUpdate();
@@ -2145,7 +2145,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
      * on client. This test is run only for client where commits without an
      * active transactions will not flow to the server.
      * DERBY-4653
-     * 
+     *
      * @throws SQLException
      **/
     public void testConnectionFlowCommit()
@@ -2157,19 +2157,19 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
 
         testConnectionFlowCommitWork(conn);
         conn.close();
-        
+
         //Test for XADataSource
         XADataSource xs = J2EEDataSource.getXADataSource();
         XAConnection xc = xs.getXAConnection();
         conn = xc.getConnection();
         testConnectionFlowCommitWork(conn);
         conn.close();
-        
+
         //Test for DataSource
         DataSource jds = JDBCDataSource.getDataSource();
         conn = jds.getConnection();
         testConnectionFlowCommitWork(conn);
-        conn.close();       
+        conn.close();
     }
 
     /**
@@ -2193,7 +2193,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
 
         ConnectionPoolDataSource cpds = null;
         try {
-            cpds = J2EEDataSource.getConnectionPoolDataSource();        
+            cpds = J2EEDataSource.getConnectionPoolDataSource();
             cpds.setLoginTimeout(10);
             PooledConnection pc = cpds.getPooledConnection();
             Connection conn = pc.getConnection();
@@ -2217,7 +2217,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
 
         XADataSource xads = null;
         try {
-            xads = J2EEDataSource.getXADataSource();        
+            xads = J2EEDataSource.getXADataSource();
             xads.setLoginTimeout(10);
             XAConnection xac = xads.getXAConnection();
             Connection conn = xac.getConnection();
@@ -2239,12 +2239,12 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
                 xads.setLoginTimeout(0);
         }
     }
-    
+
     /**
      * Doing the work for test Connection.flowcommit() and Connection.flowrollback()
      * @param conn
      * @throws SQLException
-     **/  
+     **/
     private void testConnectionFlowCommitWork(Connection conn) throws SQLException {
         //DERBY 4653 - make sure commit with no work does not flow in client
         conn.setAutoCommit(false);
@@ -2258,12 +2258,12 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         // second commit should not flow
         conn.commit();
         int endXactId = getClientTransactionID(conn);
-        
+
         //to verify the fix for DERBY-4653. Only one transaction
         assertTrue("Should have had 1 xact, startXactId = "
-                    + startXactId + " endXactId = " + endXactId ,
-                    ((endXactId - startXactId) == 1) );
-        
+                        + startXactId + " endXactId = " + endXactId ,
+                ((endXactId - startXactId) == 1) );
+
         s.close();
     }
 
@@ -2278,9 +2278,9 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
     public void testConnectionFlowRollbackAlt()
             throws IOException, SQLException {
         Object[] dataSources = new Object[] {
-            JDBCDataSource.getDataSource(),
-            J2EEDataSource.getConnectionPoolDataSource(),
-            J2EEDataSource.getXADataSource()
+                JDBCDataSource.getDataSource(),
+                J2EEDataSource.getConnectionPoolDataSource(),
+                J2EEDataSource.getXADataSource()
         };
         for (int i=0; i < dataSources.length; i++) {
             Object ds = dataSources[i];
@@ -2290,7 +2290,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
             // in a rollback command being flowed to the server.
             int flowsExtra = testConnectionFlowCommitRollback(ds, true, false);
             assertEquals("Rollback optimization not working for connections " +
-                    "originating from " + ds.getClass().getName(),
+                            "originating from " + ds.getClass().getName(),
                     flowsBase, flowsExtra);
         }
     }
@@ -2306,9 +2306,9 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
     public void testConnectionFlowCommitAlt()
             throws IOException, SQLException {
         Object[] dataSources = new Object[] {
-            JDBCDataSource.getDataSource(),
-            J2EEDataSource.getConnectionPoolDataSource(),
-            J2EEDataSource.getXADataSource()
+                JDBCDataSource.getDataSource(),
+                J2EEDataSource.getConnectionPoolDataSource(),
+                J2EEDataSource.getXADataSource()
         };
         for (int i=0; i < dataSources.length; i++) {
             Object ds = dataSources[i];
@@ -2318,7 +2318,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
             // a commit command being flowed to the server.
             int flowsExtra = testConnectionFlowCommitRollback(ds, true, true);
             assertEquals("Commit optimization not working for connections " +
-                    "originating from " + ds.getClass().getName(),
+                            "originating from " + ds.getClass().getName(),
                     flowsBase, flowsExtra);
         }
     }
@@ -2340,7 +2340,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
      * @throws SQLException if something goes wrong
      */
     private int testConnectionFlowCommitRollback(
-                            Object ds, boolean invokeExtra, boolean isCommit)
+            Object ds, boolean invokeExtra, boolean isCommit)
             throws IOException, SQLException {
         final int extraInvokations = invokeExtra ? 25 : 0;
         final int rowCount = 10;
@@ -2418,7 +2418,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
 
         // Parse the trace file for commits or rollbacks.
         String token = "SEND BUFFER: " + (isXA ? "SYNCCTL" :
-            (isCommit ? "RDBCMM" : "RDBRLLBCK"));
+                (isCommit ? "RDBCMM" : "RDBRLLBCK"));
         int tokenCount = 0;
         BufferedReader r = new BufferedReader(
                 PrivilegedFileOpsForTests.getFileReader(traceFile));
@@ -2464,7 +2464,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
     /**
      * Check setTransactioIsolation and with four connection in connection pool
      * for DERBY-4343 case
-     * 
+     *
      * @throws SQLException
      */
     public void testIsolationWithFourConnections()
@@ -2483,25 +2483,25 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         rs.close();
         conn.rollback();
         conn.close();
-        
+
         //Second connection
         conn = pc.getConnection();
         conn.close();
-        
+
         //Third connection
         conn = pc.getConnection();
         conn.setTransactionIsolation(Connection.TRANSACTION_READ_COMMITTED);
         assertEquals(Connection.TRANSACTION_READ_COMMITTED, conn.getTransactionIsolation());
         conn.close();
-        
+
         //Fourth connetion
         conn = pc.getConnection();
         conn.setTransactionIsolation(Connection.TRANSACTION_READ_UNCOMMITTED);
         assertEquals(Connection.TRANSACTION_READ_UNCOMMITTED, conn.getTransactionIsolation());
         conn.close();
-    
+
     }
-    
+
     // test that an xastart in auto commit mode commits the existing work.
     // test fix of a bug ('beetle 5178') wherein XAresource.start() when 
     // auto-commit is true did not implictly commit any transaction
@@ -2521,7 +2521,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
             xid4a = new cdsXid(4, (byte) 23, (byte) 76);
         else if (usingDerbyNetClient())
             xid4a = new cdsXid(5, (byte) 23, (byte) 76);
-            
+
         Connection conn4 = xac4.getConnection();
         assertTrue(conn4.getAutoCommit());
 
@@ -2541,8 +2541,8 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
             fail ("expected an exception indicating resultset is closed.");
         } catch (SQLException sqle) {
             // Embedded gets 08003. No current connection (DERBY-2620)        	
-        	if (usingDerbyNetClient())
-        		assertSQLState("XCL16",sqle);
+            if (usingDerbyNetClient())
+                assertSQLState("XCL16",sqle);
         }
 
         conn4.setAutoCommit(false);
@@ -2553,8 +2553,8 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         assertEquals(1, rs4.getInt(1));
         rs4.next();
         assertEquals(2, rs4.getInt(1));
-        
-         // Get a new xid to begin another transaction. 
+
+        // Get a new xid to begin another transaction.
         if (usingEmbedded())
             xid4a = new cdsXid(4, (byte) 93, (byte) 103);
         else if (usingDerbyNetClient())
@@ -2573,7 +2573,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
             }
             assertEquals(-9, xae.errorCode);
         }
-        
+
         rs4.next();
         assertEquals(3, rs4.getInt(1));
         rs4.close();
@@ -2592,7 +2592,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         Statement s = createStatement();
         s.executeUpdate("delete from autocommitxastart where i = 6");
         s.executeUpdate("delete from autocommitxastart where i = 7");
-        
+
         // TESTING READ_ONLY TRANSACTION FOLLOWED BY WRITABLE TRANSACTION
         // Test following sequence of steps
         // 1)start a read-only global transaction 
@@ -2612,12 +2612,12 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         // holdability: (hold, or close cursors over commit) , 
         // transaction isolation: read-committed, 
         // auto-commit false, read-only true (with embedded)
-        if (usingEmbedded()) 
+        if (usingEmbedded())
         {
             assertConnectionState(
-                ResultSet.CLOSE_CURSORS_AT_COMMIT, 
-                Connection.TRANSACTION_READ_COMMITTED,
-                false, true, conn5);
+                    ResultSet.CLOSE_CURSORS_AT_COMMIT,
+                    Connection.TRANSACTION_READ_COMMITTED,
+                    false, true, conn5);
         }
         // Note: the original test had no comments about this difference
         //       between Embedded and DerbyNetClient, this has apparently
@@ -2625,31 +2625,31 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         else if (usingDerbyNetClient())
         {
             assertConnectionState(
-                ResultSet.CLOSE_CURSORS_AT_COMMIT, 
-                Connection.TRANSACTION_READ_COMMITTED,
-                false, false, conn5);
+                    ResultSet.CLOSE_CURSORS_AT_COMMIT,
+                    Connection.TRANSACTION_READ_COMMITTED,
+                    false, false, conn5);
         }
-        
+
         ResultSet rs5 = sru5a.executeQuery(
-            "select count(*) from autocommitxastart");
+                "select count(*) from autocommitxastart");
         rs5.next();
         assertEquals(5, rs5.getInt(1));
         rs5.close();
         xar.end(xid5a, XAResource.TMSUCCESS);
         xar.commit(xid5a, true);
         conn5.close();
-        
+
         //now start a new transaction
         conn5 = xac5.getConnection();
         sru5a = conn5.createStatement();
         xar.start(xid5a, XAResource.TMNOFLAGS);
-        
+
         // Writeable XA transaction
         // holdability: (hold, or close cursors over commit) , 
         // transaction isolation: read-committed, 
         // auto-commit false, read-only false
         assertConnectionState(
-                ResultSet.CLOSE_CURSORS_AT_COMMIT, 
+                ResultSet.CLOSE_CURSORS_AT_COMMIT,
                 Connection.TRANSACTION_READ_COMMITTED,
                 false, false, conn5);
         sru5a.executeUpdate("insert into autocommitxastart values 6,7");
@@ -2662,7 +2662,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         xac5.close();
         sru5a.close();
     }
-    
+
     // test jira-derby 95 - a NullPointerException was returned when passing
     // an incorrect database name, should now give error XCY00   
     // with ConnectionPoolDataSource
@@ -2678,7 +2678,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
             throw e;
         }
     }
-    
+
     // test jira-derby 95 - a NullPointerException was returned when passing
     // an incorrect database name, should now give error XCY00   
     // with XADataSource
@@ -2692,10 +2692,10 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
             assertSQLState("XCY00", sqle);
         }
     }
-    
+
     // there is a corresponding fixture for datasources in DataSourceTest
     public void testBadConnectionAttributeSyntax() throws SQLException {
-        
+
         // ConnectionPoolDataSource - bad connatr syntax
         ConnectionPoolDataSource cpds = J2EEDataSource.getConnectionPoolDataSource();
         JDBCDataSource.setBeanProperty(cpds, "ConnectionAttributes", "bad");
@@ -2704,7 +2704,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
             fail ("should have seen an error");
         } catch (SQLException e) {
             assertSQLState("XJ028", e);
-        } 
+        }
 
         // XADataSource - bad connattr syntax");
         XADataSource xads = J2EEDataSource.getXADataSource();
@@ -2714,13 +2714,13 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
             fail ("should have seen an error");
         } catch (SQLException e) {
             assertSQLState("XJ028", e);
-        } 
+        }
     } // End testBadConnectionAttributeSyntax
-        
+
     /**
      * Check that database name set using setConnectionAttributes is not used
      * by ClientDataSource. This method tests DERBY-1130.
-     * 
+     *
      * @throws SQLException
      */
     public void testClientDSConnectionAttributes() throws SQLException {
@@ -2728,23 +2728,23 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
             return;
 
         // now with ConnectionPoolDataSource
-        ClientConnectionPoolDataSource cpds = 
-            new ClientConnectionPoolDataSource();
+        ClientConnectionPoolDataSource cpds =
+                new ClientConnectionPoolDataSource();
         cpds.setPortNumber(TestConfiguration.getCurrent().getPort());
-        
+
         // ConnectionPoolDataSource - EMPTY
-        dsConnectionRequests(new String[]  
-            {"08001","08001","08001","08001",
-             "08001","08001","08001","08001","08001"}, 
-            (ConnectionPoolDataSource)cpds);
+        dsConnectionRequests(new String[]
+                        {"08001","08001","08001","08001",
+                                "08001","08001","08001","08001","08001"},
+                (ConnectionPoolDataSource)cpds);
 
         // ConnectionPoolDataSource 
         // - connectionAttributes=databaseName=<valid dbname>
         cpds.setConnectionAttributes("databaseName=" + dbName);
-        dsConnectionRequests(new String[]  
-            {"08001","08001","08001","08001",
-             "08001","08001","08001","08001","08001"},
-            (ConnectionPoolDataSource)cpds);
+        dsConnectionRequests(new String[]
+                        {"08001","08001","08001","08001",
+                                "08001","08001","08001","08001","08001"},
+                (ConnectionPoolDataSource)cpds);
         cpds.setConnectionAttributes(null);
 
         // Test that database name specified in connection attributes is 
@@ -2753,29 +2753,29 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         // connectionAttributes=databaseName=kangaroo
         cpds.setConnectionAttributes("databaseName=kangaroo");
         cpds.setDatabaseName(dbName);
-        dsConnectionRequests(new String[]  
-            {"OK","08001","OK","OK","08001","08001","OK","OK","OK"},
-            (ConnectionPoolDataSource)cpds);
+        dsConnectionRequests(new String[]
+                        {"OK","08001","OK","OK","08001","08001","OK","OK","OK"},
+                (ConnectionPoolDataSource)cpds);
         cpds.setConnectionAttributes(null);
         cpds.setDatabaseName(null);
 
         // now with XADataSource
         ClientXADataSource xads = new ClientXADataSource();
-        
+
         xads.setPortNumber(TestConfiguration.getCurrent().getPort());
-        
+
         // XADataSource - EMPTY
-        dsConnectionRequests(new String[]  
-            {"08001","08001","08001","08001",
-             "08001","08001","08001","08001","08001"}, 
-            (XADataSource) xads);
+        dsConnectionRequests(new String[]
+                        {"08001","08001","08001","08001",
+                                "08001","08001","08001","08001","08001"},
+                (XADataSource) xads);
 
         // XADataSource - connectionAttributes=databaseName=<valid dbname>
         xads.setConnectionAttributes("databaseName=wombat");
-        dsConnectionRequests(new String[]  
-            {"08001","08001","08001","08001",
-             "08001","08001","08001","08001","08001"},
-            (XADataSource) xads);
+        dsConnectionRequests(new String[]
+                        {"08001","08001","08001","08001",
+                                "08001","08001","08001","08001","08001"},
+                (XADataSource) xads);
         xads.setConnectionAttributes(null);
 
         // Test that database name specified in connection attributes is not used
@@ -2783,13 +2783,13 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         // connectionAttributes=databaseName=kangaroo
         xads.setConnectionAttributes("databaseName=kangaroo");
         xads.setDatabaseName("wombat");
-        dsConnectionRequests(new String[]  
-            {"OK","08001","OK","OK","08001","08001","OK","OK","OK"},
-            (XADataSource) xads);
+        dsConnectionRequests(new String[]
+                        {"OK","08001","OK","OK","08001","08001","OK","OK","OK"},
+                (XADataSource) xads);
         xads.setConnectionAttributes(null);
         xads.setDatabaseName(null);
     } // End testClientDSConnectionAttributes
-            
+
     // Following test is similar to testClientDSConnectionAttributes, but
     // for embedded datasources.
     // This subtest does not run for network server, it uses
@@ -2802,25 +2802,25 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
 
 //        if (usingDerbyNetClient())
 //            return;
-        
+
         JDBCClient dsclient = getTestConfiguration().getJDBCClient();
         String dsName = dsclient.getDataSourceClassName();
         DataSource ds = (DataSource) Class.forName(dsName).newInstance();
 
         // DataSource - attributesAsPassword=true");
         JDBCDataSource.setBeanProperty(ds, "attributesAsPassword", Boolean.TRUE);
-        dsConnectionRequests(new String[] {  
-            "XJ004","XJ004","XJ004","XJ028",
-            "XJ028","XJ004","XJ004","XJ004","XJ004"}, ds);
+        dsConnectionRequests(new String[] {
+                "XJ004","XJ004","XJ004","XJ028",
+                "XJ028","XJ004","XJ004","XJ004","XJ004"}, ds);
         JDBCDataSource.setBeanProperty(ds, "attributesAsPassword", Boolean.FALSE);
 
         // DataSource - attributesAsPassword=true, 
         // connectionAttributes=databaseName=kangaroo");
         JDBCDataSource.setBeanProperty(ds, "attributesAsPassword", Boolean.TRUE);
         JDBCDataSource.setBeanProperty(ds, "connectionAttributes", "databaseName=kangaroo");
-        dsConnectionRequests(new String[] {  
-            "XJ004","XJ004","XJ004","XJ028",
-            "XJ028","XJ004","XJ004","XJ004","XJ004"}, ds);
+        dsConnectionRequests(new String[] {
+                "XJ004","XJ004","XJ004","XJ028",
+                "XJ028","XJ004","XJ004","XJ004","XJ004"}, ds);
         JDBCDataSource.setBeanProperty(ds, "attributesAsPassword", Boolean.FALSE);
         JDBCDataSource.clearStringBeanProperty(ds, "connectionAttributes");
 
@@ -2830,7 +2830,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         setDatabaseProperty("derby.user.SPLICE", "SPLICE");
         setDatabaseProperty("derby.authentication.provider", "BUILTIN");
         setDatabaseProperty("derby.connection.requireAuthentication", "true");
-        
+
         JDBCDataSource.setBeanProperty(ds, "shutdownDatabase", "shutdown");
         try {
             ds.getConnection();
@@ -2846,9 +2846,9 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
 
         // DataSource - attributesAsPassword=true
         JDBCDataSource.setBeanProperty(ds, "attributesAsPassword", Boolean.TRUE);
-        dsConnectionRequests(new String[] {  
-            "XJ004","XJ004","XJ004","XJ028",
-            "XJ028","XJ004","XJ004","XJ004","XJ004"}, ds);
+        dsConnectionRequests(new String[] {
+                "XJ004","XJ004","XJ004","XJ028",
+                "XJ028","XJ004","XJ004","XJ004","XJ004"}, ds);
         JDBCDataSource.setBeanProperty(ds, "attributesAsPassword", Boolean.FALSE);
 
         // ensure the DS property password is not treated as a set of 
@@ -2858,9 +2858,9 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         JDBCDataSource.setBeanProperty(ds, "attributesAsPassword", Boolean.TRUE);
         JDBCDataSource.setBeanProperty(ds, "user", "fred");
         JDBCDataSource.setBeanProperty(ds, "password", "databaseName=" + dbName + ";password=wilma");
-        dsConnectionRequests(new String[] {  
-            "XJ004","XJ004","XJ004","XJ028",
-            "XJ028","XJ004","XJ004","XJ004","XJ004"}, ds);
+        dsConnectionRequests(new String[] {
+                "XJ004","XJ004","XJ004","XJ028",
+                "XJ028","XJ004","XJ004","XJ004","XJ004"}, ds);
         JDBCDataSource.setBeanProperty(ds, "attributesAsPassword", Boolean.FALSE);
         JDBCDataSource.clearStringBeanProperty(ds, "user");
         JDBCDataSource.clearStringBeanProperty(ds, "password");
@@ -2869,31 +2869,31 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         // now with ConnectionPoolDataSource
         String cpdsName = dsclient.getConnectionPoolDataSourceClassName();
         ConnectionPoolDataSource cpds =
-              (ConnectionPoolDataSource) Class.forName(cpdsName).newInstance();
+                (ConnectionPoolDataSource) Class.forName(cpdsName).newInstance();
 
         // ConnectionPoolDataSource - EMPTY
-        dsConnectionRequests(new String[] {  
-            "XJ004","XJ004","XJ004","XJ004",
-            "XJ004","XJ004","XJ004","XJ004","XJ004"},
-            (ConnectionPoolDataSource)cpds);
+        dsConnectionRequests(new String[] {
+                        "XJ004","XJ004","XJ004","XJ004",
+                        "XJ004","XJ004","XJ004","XJ004","XJ004"},
+                (ConnectionPoolDataSource)cpds);
 
         // ConnectionPoolDataSource - 
         // connectionAttributes=databaseName=wombat
         JDBCDataSource.setBeanProperty(cpds, "connectionAttributes", "databaseName=" + dbName);
-        dsConnectionRequests(new String[] {  
-            "XJ004","XJ004","XJ004","XJ004",
-            "XJ004","XJ004","XJ004","XJ004","XJ004"},
-            (ConnectionPoolDataSource)cpds);
+        dsConnectionRequests(new String[] {
+                        "XJ004","XJ004","XJ004","XJ004",
+                        "XJ004","XJ004","XJ004","XJ004","XJ004"},
+                (ConnectionPoolDataSource)cpds);
         JDBCDataSource.clearStringBeanProperty(cpds, "connectionAttributes");
 
         // ConnectionPoolDataSource - attributesAsPassword=true
         JDBCDataSource.setBeanProperty(cpds, "attributesAsPassword", Boolean.TRUE);
-        dsConnectionRequests(new String[] {  
-            "XJ004","XJ004","XJ004","XJ028",
-            "XJ028","XJ004","XJ004","XJ004","XJ004"},
-            (ConnectionPoolDataSource)cpds);
+        dsConnectionRequests(new String[] {
+                        "XJ004","XJ004","XJ004","XJ028",
+                        "XJ028","XJ004","XJ004","XJ004","XJ004"},
+                (ConnectionPoolDataSource)cpds);
         JDBCDataSource.setBeanProperty(cpds, "attributesAsPassword", Boolean.FALSE);
-        
+
         // ensure the DS property password is not treated as a set of
         // attributes.
         // ConnectionPoolDataSource - attributesAsPassword=true, 
@@ -2901,10 +2901,10 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         JDBCDataSource.setBeanProperty(cpds, "attributesAsPassword", Boolean.TRUE);
         JDBCDataSource.setBeanProperty(cpds, "user", "fred");
         JDBCDataSource.setBeanProperty(cpds, "password", "databaseName=" + dbName + ";password=wilma");
-        dsConnectionRequests(new String[] {  
-            "XJ004","XJ004","XJ004","XJ028",
-            "XJ028","XJ004","XJ004","XJ004","XJ004"},
-            (ConnectionPoolDataSource)cpds);
+        dsConnectionRequests(new String[] {
+                        "XJ004","XJ004","XJ004","XJ028",
+                        "XJ028","XJ004","XJ004","XJ004","XJ004"},
+                (ConnectionPoolDataSource)cpds);
         JDBCDataSource.setBeanProperty(cpds, "attributesAsPassword", Boolean.FALSE);
         JDBCDataSource.clearStringBeanProperty(cpds, "user");
         JDBCDataSource.clearStringBeanProperty(cpds, "password");
@@ -2917,49 +2917,49 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
                 (XADataSource) Class.forName(xadsName).newInstance();
 
         // XADataSource - EMPTY
-        dsConnectionRequests(new String[] {  
-            "08006","08006","08006","08006",
-            "08006","08006","08006","08006","08006"},
-            (XADataSource) xads);
+        dsConnectionRequests(new String[] {
+                        "08006","08006","08006","08006",
+                        "08006","08006","08006","08006","08006"},
+                (XADataSource) xads);
 
         // XADataSource - databaseName=wombat
         JDBCDataSource.setBeanProperty(xads, "databaseName", dbName);
-        dsConnectionRequests(new String[] {  
-            "08004","08004","08004","OK",
-            "08004","08004","08004","08004","08004"},
-            (XADataSource) xads);
+        dsConnectionRequests(new String[] {
+                        "08004","08004","08004","OK",
+                        "08004","08004","08004","08004","08004"},
+                (XADataSource) xads);
         JDBCDataSource.clearStringBeanProperty(xads, "databaseName");
 
         // XADataSource - connectionAttributes=databaseName=wombat");
         JDBCDataSource.setBeanProperty(xads, "connectionAttributes", "databaseName=" + dbName);
-        dsConnectionRequests(new String[] {  
-            "08006","08006","08006","08006",
-            "08006","08006","08006","08006","08006"},
-            (XADataSource) xads);
+        dsConnectionRequests(new String[] {
+                        "08006","08006","08006","08006",
+                        "08006","08006","08006","08006","08006"},
+                (XADataSource) xads);
         JDBCDataSource.clearStringBeanProperty(xads, "connectionAttributes");
 
         // XADataSource - attributesAsPassword=true
         JDBCDataSource.setBeanProperty(xads, "attributesAsPassword", Boolean.TRUE);
-        dsConnectionRequests(new String[] {  
-            "08006","08006","08006","08006",
-            "08006","08006","08006","08006","08006"},
-            (XADataSource) xads);
+        dsConnectionRequests(new String[] {
+                        "08006","08006","08006","08006",
+                        "08006","08006","08006","08006","08006"},
+                (XADataSource) xads);
         JDBCDataSource.setBeanProperty(xads, "attributesAsPassword", Boolean.FALSE);
 
         // XADataSource - databaseName=wombat, attributesAsPassword=true
         JDBCDataSource.setBeanProperty(xads, "databaseName", dbName);
         JDBCDataSource.setBeanProperty(xads, "attributesAsPassword", Boolean.TRUE);
-        dsConnectionRequests(new String[] {  
-            "08004","08004","08004","XJ028",
-            "XJ028","08004","08004","OK","08004"},
-            (XADataSource) xads);
+        dsConnectionRequests(new String[] {
+                        "08004","08004","08004","XJ028",
+                        "XJ028","08004","08004","OK","08004"},
+                (XADataSource) xads);
         JDBCDataSource.setBeanProperty(xads, "attributesAsPassword", Boolean.FALSE);
         JDBCDataSource.clearStringBeanProperty(xads, "databaseName");
-        
+
         setDatabaseProperty("derby.connection.requireAuthentication", "false");
         TestConfiguration.getCurrent().shutdownDatabase();
     }
-    
+
     /**
      * Check that traceFile connection attribute functions correctly.
      * tracefile was tested in checkDriver, but not for DataSources.
@@ -2970,7 +2970,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
      * Note also that this test cannot run against a remote server.
      * <p>
      * This is also a regression test for DERBY-4717.
-     *  
+     *
      * @throws SQLException
      */
     public void testClientTraceFileDSConnectionAttribute() throws SQLException
@@ -2982,7 +2982,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
 
         traceFile = "trace3.out";
         JDBCDataSource.setBeanProperty(cpds, "connectionAttributes",
-        		"traceFile="+traceFile);
+                "traceFile="+traceFile);
         // DERBY-2468 - trace3.out does not get created
         ((PooledConnection)getPhysicalConnection(cpds)).close();
         JDBCDataSource.clearStringBeanProperty(cpds, "connectionAttributes");
@@ -2997,7 +2997,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
 
         traceFile = "trace5.out";
         JDBCDataSource.setBeanProperty(xads, "connectionAttributes",
-        		"traceFile="+traceFile);
+                "traceFile="+traceFile);
         ((XAConnection)getPhysicalConnection(xads)).close();
         // DERBY-2468 - trace5.out does not get created
         JDBCDataSource.clearStringBeanProperty(xads, "connectionAttributes");
@@ -3010,7 +3010,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
     }
         
     /* -- Helper Methods for testClientTraceFileDSConnectionAttribute -- */
-    
+
     /**
      * Check that trace file exists in <framework> directory
      */
@@ -3022,7 +3022,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
                     File traceFile = new File("trace" + i + ".out");
                     assertTrue("Doesn't exist", traceFile.exists());
                     assertTrue("Delete failed", traceFile.delete());
-                } 
+                }
                 return null;
             }
         });
@@ -3034,9 +3034,9 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
      * but not tested for datasources, and in datasourcepermissions_net,
      * but as it has nothing to do with permissions/authentication,
      * this test seems a better place for it. 
-     * 
+     *
      * There is a corresponding fixture for clientDataSource in DataSourceTest
-     *  
+     *
      * @throws SQLException
      */
     public void testClientMessageTextConnectionAttribute() throws SQLException
@@ -3046,7 +3046,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         // ConnectionPoolDataSource - retrieveMessageTextProperty
         ClientConnectionPoolDataSource cpds = new ClientConnectionPoolDataSource();
         cpds.setPortNumber(TestConfiguration.getCurrent().getPort());
-        
+
         cpds.setDatabaseName(dbName);
         cpds.setConnectionAttributes(
                 retrieveMessageTextProperty + "=false");
@@ -3088,8 +3088,8 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
      * @throws SQLException if something goes wrong
      */
     private static void assertMessageText(
-            Connection conn, String retrieveMessageTextValue) 
-    throws SQLException
+            Connection conn, String retrieveMessageTextValue)
+            throws SQLException
     {
         try {
             conn.createStatement().executeQuery("SELECT * FROM SPLICE.NOTTHERE");
@@ -3123,42 +3123,42 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
      * (but not tested for datasources), and in datasourcepermissions_net,
      * but as it has nothing to do with permissions/authentication,
      * this test seems a better place for it. 
-     * 
+     *
      * there is a corresponding method call for datasources in DataSourceTest
-     *  
+     *
      * @throws SQLException
      */
-    public void testDescriptionProperty() 
-    throws SQLException, Exception {
-        
+    public void testDescriptionProperty()
+            throws SQLException, Exception {
+
         // ConnectionPoolDataSource - setDescription
         subTestDataSourceDescription(
-        		(DataSource) J2EEDataSource.getConnectionPoolDataSource());
+                (DataSource) J2EEDataSource.getConnectionPoolDataSource());
 
         // XADataSource - setDescription
         subTestDataSourceDescription(
-        		(DataSource) J2EEDataSource.getXADataSource());
+                (DataSource) J2EEDataSource.getXADataSource());
 
     }
-    
+
     /**
      * Utility method for testing setting and fetching the description
      * property on a data source.
      */
     private void subTestDataSourceDescription(DataSource ds) throws Exception
     {
-        String setDescription = 
-            "Everything you ever wanted to know about this datasource";
-        
+        String setDescription =
+                "Everything you ever wanted to know about this datasource";
+
         JDBCDataSource.setBeanProperty(ds, "description", setDescription);
         getPhysicalConnection(ds);
         assertEquals(setDescription, JDBCDataSource.getBeanProperty(ds, "description"));
         JDBCDataSource.clearStringBeanProperty(ds, "description");
-        assertNull(JDBCDataSource.getBeanProperty(ds, "description"));    	
+        assertNull(JDBCDataSource.getBeanProperty(ds, "description"));
     }
 
     /* ------------------ JDBC30 (and up) Fixtures ------------------ */
-    
+
     public void testXAHoldability() throws SQLException, XAException {
         // DERBY-2533 - 
         // This test, when run with Network server / DerbyNetClient
@@ -3178,7 +3178,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         // check that holdability is HOLD_CURSORS_OVER_COMMIT in a default
         // CONNECTION(not in xa transaction yet)
         assertEquals(
-            ResultSet.HOLD_CURSORS_OVER_COMMIT, conn1.getHoldability());
+                ResultSet.HOLD_CURSORS_OVER_COMMIT, conn1.getHoldability());
         // start a global transaction and default holdability and 
         // autocommit will be switched to match Derby XA restrictions
         xr.start(xid, XAResource.TMNOFLAGS);
@@ -3188,8 +3188,8 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         // Connection's holdability is now CLOSE_CURSORS_AT_COMMIT because
         // it is part of the global transaction
         assertEquals(
-            ResultSet.CLOSE_CURSORS_AT_COMMIT, conn1.getHoldability());
-        
+                ResultSet.CLOSE_CURSORS_AT_COMMIT, conn1.getHoldability());
+
         xr.end(xid, XAResource.TMSUCCESS);
         conn1.commit();
         conn1.close();
@@ -3199,7 +3199,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         conn1 = xac.getConnection();
         // CONNECTION(in xa transaction) HOLDABILITY:
         assertEquals(
-            ResultSet.CLOSE_CURSORS_AT_COMMIT, conn1.getHoldability());
+                ResultSet.CLOSE_CURSORS_AT_COMMIT, conn1.getHoldability());
         // Autocommit on Connection inside global transaction should be false
         assertFalse(conn1.getAutoCommit());
         xr.end(xid, XAResource.TMSUCCESS);
@@ -3210,97 +3210,97 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         conn.setHoldability(ResultSet.CLOSE_CURSORS_AT_COMMIT);
         // CONNECTION(non-xa transaction) HOLDABILITY: 
         assertEquals(
-            ResultSet.CLOSE_CURSORS_AT_COMMIT, conn.getHoldability());
+                ResultSet.CLOSE_CURSORS_AT_COMMIT, conn.getHoldability());
 
         Statement s = conn.createStatement();
         // STATEMENT HOLDABILITY: 
         assertEquals(
-            ResultSet.CLOSE_CURSORS_AT_COMMIT, s.getResultSetHoldability());
+                ResultSet.CLOSE_CURSORS_AT_COMMIT, s.getResultSetHoldability());
 
         s.executeUpdate("insert into hold_30 values " +
-            "(1,'init2'), (2, 'init3'), (3,'init3')");
+                "(1,'init2'), (2, 'init3'), (3,'init3')");
         s.executeUpdate("insert into hold_30 values " +
-            "(4,'init4'), (5, 'init5'), (6,'init6')");
+                "(4,'init4'), (5, 'init5'), (6,'init6')");
         s.executeUpdate("insert into hold_30 values " +
-            "(7,'init7'), (8, 'init8'), (9,'init9')");
+                "(7,'init7'), (8, 'init8'), (9,'init9')");
 
         // STATEMENT HOLDABILITY :
         assertEquals(
-            ResultSet.CLOSE_CURSORS_AT_COMMIT, s.getResultSetHoldability());
+                ResultSet.CLOSE_CURSORS_AT_COMMIT, s.getResultSetHoldability());
 
-        Statement sh = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY, 
-            ResultSet.CONCUR_READ_ONLY, ResultSet.HOLD_CURSORS_OVER_COMMIT);
+        Statement sh = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY,
+                ResultSet.CONCUR_READ_ONLY, ResultSet.HOLD_CURSORS_OVER_COMMIT);
         PreparedStatement psh = conn.prepareStatement(
-            "select id from hold_30 for update", ResultSet.TYPE_FORWARD_ONLY, 
-            ResultSet.CONCUR_READ_ONLY, ResultSet.HOLD_CURSORS_OVER_COMMIT);
+                "select id from hold_30 for update", ResultSet.TYPE_FORWARD_ONLY,
+                ResultSet.CONCUR_READ_ONLY, ResultSet.HOLD_CURSORS_OVER_COMMIT);
         CallableStatement csh = conn.prepareCall(
-            "select id from hold_30 for update", ResultSet.TYPE_FORWARD_ONLY, 
-            ResultSet.CONCUR_READ_ONLY, ResultSet.HOLD_CURSORS_OVER_COMMIT);
+                "select id from hold_30 for update", ResultSet.TYPE_FORWARD_ONLY,
+                ResultSet.CONCUR_READ_ONLY, ResultSet.HOLD_CURSORS_OVER_COMMIT);
 
         // STATEMENT HOLDABILITY :
         assertEquals(
-            ResultSet.HOLD_CURSORS_OVER_COMMIT, sh.getResultSetHoldability());
+                ResultSet.HOLD_CURSORS_OVER_COMMIT, sh.getResultSetHoldability());
         // PREPARED STATEMENT HOLDABILITY :
         assertEquals(
-            ResultSet.HOLD_CURSORS_OVER_COMMIT, psh.getResultSetHoldability());
+                ResultSet.HOLD_CURSORS_OVER_COMMIT, psh.getResultSetHoldability());
         // CALLABLE STATEMENT HOLDABILITY :
         assertEquals(
-            ResultSet.HOLD_CURSORS_OVER_COMMIT, csh.getResultSetHoldability());
+                ResultSet.HOLD_CURSORS_OVER_COMMIT, csh.getResultSetHoldability());
 
         ResultSet rsh = sh.executeQuery("select id from hold_30 for update");
-        rsh.next();  
+        rsh.next();
         assertEquals(1, rsh.getInt(1)); // H@1 id
-        rsh.next(); 
+        rsh.next();
         assertEquals(2, rsh.getInt(1)); // H@2 id 
         conn.commit();
-        rsh.next(); 
+        rsh.next();
         assertEquals(3, rsh.getInt(1)); // H@3 id 
         conn.commit();
 
         xid = new cdsXid(23, (byte) 21, (byte) 01);
         xr.start(xid, XAResource.TMNOFLAGS);
         Statement stmtInsideGlobalTransaction = conn.createStatement();
-        PreparedStatement prepstmtInsideGlobalTransaction = 
-            conn.prepareStatement("select id from hold_30");
-        CallableStatement callablestmtInsideGlobalTransaction = 
-            conn.prepareCall("select id from hold_30");
+        PreparedStatement prepstmtInsideGlobalTransaction =
+                conn.prepareStatement("select id from hold_30");
+        CallableStatement callablestmtInsideGlobalTransaction =
+                conn.prepareCall("select id from hold_30");
 
         // CONNECTION(xa) HOLDABILITY:
         assertEquals(ResultSet.CLOSE_CURSORS_AT_COMMIT, conn.getHoldability());
         // STATEMENT(this one was created with holdability false, outside the 
         // global transaction. Check its holdability inside global transaction
         assertEquals(
-            ResultSet.CLOSE_CURSORS_AT_COMMIT, s.getResultSetHoldability());
+                ResultSet.CLOSE_CURSORS_AT_COMMIT, s.getResultSetHoldability());
         // STATEMENT(this one was created with holdability true, 
         // outside the global transaction. Check its holdability inside 
         // global transaction:
         // DERBY-2531: network server / DerbyNetClient has a different value 
         // than embedded.
         if (usingEmbedded())
-            assertEquals(ResultSet.CLOSE_CURSORS_AT_COMMIT, 
-                sh.getResultSetHoldability());
+            assertEquals(ResultSet.CLOSE_CURSORS_AT_COMMIT,
+                    sh.getResultSetHoldability());
         else if (usingDerbyNetClient())
-            assertEquals(ResultSet.HOLD_CURSORS_OVER_COMMIT, 
-                sh.getResultSetHoldability());
+            assertEquals(ResultSet.HOLD_CURSORS_OVER_COMMIT,
+                    sh.getResultSetHoldability());
         // STATEMENT(this one was created with default holdability inside this
         // global transaction. Check its holdability:
         assertEquals(
-            ResultSet.CLOSE_CURSORS_AT_COMMIT, 
-            stmtInsideGlobalTransaction.getResultSetHoldability());
+                ResultSet.CLOSE_CURSORS_AT_COMMIT,
+                stmtInsideGlobalTransaction.getResultSetHoldability());
         // PREPAREDSTATEMENT(this one was created with default holdability
         // inside this global transaction. Check its holdability:
-        assertEquals(ResultSet.CLOSE_CURSORS_AT_COMMIT, 
-        prepstmtInsideGlobalTransaction.getResultSetHoldability());
+        assertEquals(ResultSet.CLOSE_CURSORS_AT_COMMIT,
+                prepstmtInsideGlobalTransaction.getResultSetHoldability());
         // CALLABLESTATEMENT(this one was created with default holdability 
         // inside this global transaction. Check its holdability:
         assertEquals(ResultSet.CLOSE_CURSORS_AT_COMMIT,
-        callablestmtInsideGlobalTransaction.getResultSetHoldability()); 
+                callablestmtInsideGlobalTransaction.getResultSetHoldability());
 
         ResultSet rsx = s.executeQuery("select id from hold_30 for update");
 
-        rsx.next(); 
+        rsx.next();
         assertEquals(1, rsx.getInt(1)); // X@1 id
-        rsx.next(); 
+        rsx.next();
         assertEquals(2, rsx.getInt(1)); // X@2 id
         xr.end(xid, XAResource.TMSUCCESS);
 
@@ -3325,10 +3325,10 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         // resume XA transaction and keep using rs");
         xr.start(xid, XAResource.TMJOIN);
         Statement stmtAfterGlobalTransactionResume = conn.createStatement();
-        PreparedStatement prepstmtAfterGlobalTransactionResume = 
-            conn.prepareStatement("select id from hold_30");
-        CallableStatement callablestmtAfterGlobalTransactionResume = 
-            conn.prepareCall("select id from hold_30");
+        PreparedStatement prepstmtAfterGlobalTransactionResume =
+                conn.prepareStatement("select id from hold_30");
+        CallableStatement callablestmtAfterGlobalTransactionResume =
+                conn.prepareCall("select id from hold_30");
 
         // Check holdability of various jdbc objects after resuming XA 
         // transaction
@@ -3337,46 +3337,46 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         // STATEMENT(this one was created with holdability false, outside the
         // global transaction. Check its holdability inside global transaction
         assertEquals(
-            ResultSet.CLOSE_CURSORS_AT_COMMIT, s.getResultSetHoldability());
+                ResultSet.CLOSE_CURSORS_AT_COMMIT, s.getResultSetHoldability());
         // STATEMENT(this one was created with holdability true, outside the 
         // global transaction. Check its holdability inside global transaction
         if (usingEmbedded())
-            assertEquals(ResultSet.CLOSE_CURSORS_AT_COMMIT, 
-                sh.getResultSetHoldability());
+            assertEquals(ResultSet.CLOSE_CURSORS_AT_COMMIT,
+                    sh.getResultSetHoldability());
         else if (usingDerbyNetClient())
-            assertEquals(ResultSet.HOLD_CURSORS_OVER_COMMIT, 
-                sh.getResultSetHoldability());
+            assertEquals(ResultSet.HOLD_CURSORS_OVER_COMMIT,
+                    sh.getResultSetHoldability());
         // STATEMENT(this one was created with default holdability inside the
         // global transaction when it was first started. Check its holdability
-        assertEquals(ResultSet.CLOSE_CURSORS_AT_COMMIT, 
-            stmtInsideGlobalTransaction.getResultSetHoldability());
+        assertEquals(ResultSet.CLOSE_CURSORS_AT_COMMIT,
+                stmtInsideGlobalTransaction.getResultSetHoldability());
         // PREPAREDSTATEMENT(this one was created with default holdability 
         // inside the global transaction when it was first started. Check its
         // holdability) 
         assertEquals(ResultSet.CLOSE_CURSORS_AT_COMMIT,
-            prepstmtInsideGlobalTransaction.getResultSetHoldability());
+                prepstmtInsideGlobalTransaction.getResultSetHoldability());
         // CALLABLESTATEMENT(this one was created with default holdability 
         // inside the global transaction when it was first started. Check its
         // holdability) HOLDABILITY
         assertEquals(ResultSet.CLOSE_CURSORS_AT_COMMIT,
-            callablestmtInsideGlobalTransaction.getResultSetHoldability());
+                callablestmtInsideGlobalTransaction.getResultSetHoldability());
         // STATEMENT(this one was created with default holdability after the
         // global transaction was resumed. Check its holdability
-        assertEquals(ResultSet.CLOSE_CURSORS_AT_COMMIT, 
-            stmtAfterGlobalTransactionResume.getResultSetHoldability());
+        assertEquals(ResultSet.CLOSE_CURSORS_AT_COMMIT,
+                stmtAfterGlobalTransactionResume.getResultSetHoldability());
         // PREPAREDSTATEMENT(this one was created with default holdability 
         // after the global transaction was resumed. Check its holdability
         assertEquals(ResultSet.CLOSE_CURSORS_AT_COMMIT,
-            prepstmtAfterGlobalTransactionResume.getResultSetHoldability());
+                prepstmtAfterGlobalTransactionResume.getResultSetHoldability());
         // CALLABLESTATEMENT(this one was created with default holdability
         // after the global transaction was resumed. Check its holdability
-        assertEquals(ResultSet.CLOSE_CURSORS_AT_COMMIT, 
-            callablestmtAfterGlobalTransactionResume.getResultSetHoldability());
+        assertEquals(ResultSet.CLOSE_CURSORS_AT_COMMIT,
+                callablestmtAfterGlobalTransactionResume.getResultSetHoldability());
         // DERBY-1370           
         if (usingEmbedded())
         {
             // Network XA BUG gives result set closed
-            rsx.next();  
+            rsx.next();
             assertEquals(3, rsx.getInt(1)); // X@3 id
         }
         xr.end(xid, XAResource.TMSUCCESS);
@@ -3386,13 +3386,13 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
 
         // try again once the xa transaction has been committed.            
         try {
-            rsx.next(); 
+            rsx.next();
             fail("rsx's connection not active id (B)");
         } catch (SQLException sqle) {
             assertSQLState("XCL16", sqle);
         }
         try {
-            rsh.next(); 
+            rsh.next();
             fail ("rsh's should be closed (B)");
         } catch (SQLException sqle) {
             assertSQLState("XCL16", sqle);
@@ -3401,8 +3401,8 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         // Set connection to hold
         conn.setHoldability(ResultSet.HOLD_CURSORS_OVER_COMMIT);
         // CONNECTION(held) HOLDABILITY:
-        assertEquals(ResultSet.HOLD_CURSORS_OVER_COMMIT, 
-            conn.getHoldability());
+        assertEquals(ResultSet.HOLD_CURSORS_OVER_COMMIT,
+                conn.getHoldability());
 
         xid = new cdsXid(24, (byte) 21, (byte) 01);
         xr.start(xid, XAResource.TMNOFLAGS);
@@ -3421,28 +3421,28 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         // a global transaction, so a valid statement is returned with close 
         // cursors on commit.
         Statement shxa = conn.createStatement(ResultSet.TYPE_FORWARD_ONLY,
-            ResultSet.CONCUR_READ_ONLY, ResultSet.HOLD_CURSORS_OVER_COMMIT);
+                ResultSet.CONCUR_READ_ONLY, ResultSet.HOLD_CURSORS_OVER_COMMIT);
         // HOLDABLE Statement in global xact " 
-        assertEquals(ResultSet.CLOSE_CURSORS_AT_COMMIT, 
-            s.getResultSetHoldability());
+        assertEquals(ResultSet.CLOSE_CURSORS_AT_COMMIT,
+                s.getResultSetHoldability());
         assertEquals(10000, conn.getWarnings().getErrorCode());
         shxa.close();
 
         shxa = conn.prepareStatement("select id from hold_30",
-            ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
-            ResultSet.HOLD_CURSORS_OVER_COMMIT);
+                ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
+                ResultSet.HOLD_CURSORS_OVER_COMMIT);
         // HOLDABLE PreparedStatement in global xact 
         assertEquals(ResultSet.CLOSE_CURSORS_AT_COMMIT,
-            s.getResultSetHoldability());
+                s.getResultSetHoldability());
         assertEquals(10000, conn.getWarnings().getErrorCode());
         shxa.close();
 
         shxa = conn.prepareCall("CALL SYSCS_UTIL.SYSCS_CHECKPOINT_DATABASE()",
-            ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY, 
-            ResultSet.HOLD_CURSORS_OVER_COMMIT);
+                ResultSet.TYPE_FORWARD_ONLY, ResultSet.CONCUR_READ_ONLY,
+                ResultSet.HOLD_CURSORS_OVER_COMMIT);
         // HOLDABLE CallableStatement in global xact:
         assertEquals(ResultSet.CLOSE_CURSORS_AT_COMMIT,
-            s.getResultSetHoldability());
+                s.getResultSetHoldability());
         assertEquals(10000, conn.getWarnings().getErrorCode());
         shxa.close();
 
@@ -3452,25 +3452,25 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         if(usingEmbedded()) {
             // STATEMENT HOLDABILITY:
             assertEquals(ResultSet.CLOSE_CURSORS_AT_COMMIT,
-                sh.getResultSetHoldability());
+                    sh.getResultSetHoldability());
             sh.executeQuery("select id from hold_30").close();
             sh.execute("select id from hold_30");
             sh.getResultSet().close();
 
             // PREPARED STATEMENT HOLDABILITY:
-            assertEquals(ResultSet.CLOSE_CURSORS_AT_COMMIT, 
-                psh.getResultSetHoldability());
+            assertEquals(ResultSet.CLOSE_CURSORS_AT_COMMIT,
+                    psh.getResultSetHoldability());
             psh.executeQuery().close();
             psh.execute();
             psh.getResultSet().close();
 
             // CALLABLE STATEMENT HOLDABILITY:
             assertEquals(ResultSet.CLOSE_CURSORS_AT_COMMIT,
-                csh.getResultSetHoldability());
+                    csh.getResultSetHoldability());
             csh.executeQuery().close();
             csh.execute();
             csh.getResultSet().close();
-        }        
+        }
 
         // but an update works
         sh.executeUpdate("insert into hold_30 values(10, 'init10')");
@@ -3479,7 +3479,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
 
         // CONNECTION(held) HOLDABILITY:
         assertEquals(
-            ResultSet.HOLD_CURSORS_OVER_COMMIT, conn.getHoldability());
+                ResultSet.HOLD_CURSORS_OVER_COMMIT, conn.getHoldability());
 
         s.close();
         sh.close();
@@ -3497,7 +3497,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         TestConfiguration.getCurrent().shutdownDatabase();
         // END XA HOLDABILITY TEST");
     }
-    
+
     /**
      * Tests that DatabaseMetaData.getConnection does not leak references to
      * physical connections or other logical connections.
@@ -3566,49 +3566,49 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
 
     /**
      * Tests for DERBY-1144
-     * 
+     *
      * This test tests that holdability, autocomit, and transactionIsolation 
      * are reset on getConnection for PooledConnections obtaind from 
      * connectionPoolDataSources 
-     * 
+     *
      * DERBY-1134 has been filed for more comprehensive testing of client 
      * connection state. 
-     * 
+     *
      * @throws SQLException
      */
     public void timeoutTestDerby1144PooledDS() throws SQLException {
-    
+
         PooledConnection pc1 = null;
 
         // Test holdability   
-        ConnectionPoolDataSource ds = 
-            J2EEDataSource.getConnectionPoolDataSource();
+        ConnectionPoolDataSource ds =
+                J2EEDataSource.getConnectionPoolDataSource();
         pc1 = ds.getPooledConnection();
         assertPooledConnHoldability("PooledConnection", pc1);
         pc1.close();
-        
+
         // Test autocommit
         pc1 = ds.getPooledConnection();
         assertPooledConnAutoCommit("PooledConnection", pc1);
         pc1.close();
-        
+
         // Test pooled connection isolation
         pc1 = ds.getPooledConnection();
-        assertPooledConnIso("PooledConnection" , pc1);   
+        assertPooledConnIso("PooledConnection" , pc1);
         pc1.close();
     }
-    
+
     public void timeoutTestDerby1144XADS() throws SQLException {
-       
+
         XADataSource xds = J2EEDataSource.getXADataSource();
         // Test xa connection isolation
-        XAConnection xpc1 = xds.getXAConnection();        
-        assertPooledConnIso("XAConnection", xpc1);                 
+        XAConnection xpc1 = xds.getXAConnection();
+        assertPooledConnIso("XAConnection", xpc1);
         xpc1.close();
     }
 
     /* -------------- Helper Methods for testDerby1144 -------------- */
-    
+
     /**
      * Make sure autocommit gets reset on PooledConnection.getConnection()
      * @param desc      description of connection
@@ -3616,7 +3616,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
      * @throws SQLException
      */
     private static void assertPooledConnAutoCommit(
-        String desc, PooledConnection pc1) throws SQLException 
+            String desc, PooledConnection pc1) throws SQLException
     {
         // ** Verify autoCommit state
         Connection conn  = pc1.getConnection();
@@ -3637,8 +3637,8 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
      * @throws SQLException
      */
     private static void assertPooledConnHoldability(
-        String desc, PooledConnection pc1) throws SQLException 
-    { 
+            String desc, PooledConnection pc1) throws SQLException
+    {
         // **Test holdability state
         Connection conn  = pc1.getConnection();
         conn.setHoldability(ResultSet.CLOSE_CURSORS_AT_COMMIT);
@@ -3653,11 +3653,11 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
     /**
      * Verify connection holdablity is expected holdability
      * @param conn
-     * @param expectedHoldability 
+     * @param expectedHoldability
      *   * @throws SQLException
      */
     private static void assertConnHoldability(
-        Connection conn, int expectedHoldability) throws SQLException 
+            Connection conn, int expectedHoldability) throws SQLException
     {
         int holdability = conn.getHoldability();
         assertEquals (expectedHoldability, holdability);
@@ -3670,7 +3670,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
      * @throws SQLException
      */
     private void assertPooledConnIso(
-        String pooledConnType, PooledConnection pc) throws SQLException {
+            String pooledConnType, PooledConnection pc) throws SQLException {
         Connection conn = pc.getConnection();
 
         setupDerby1144Table(conn);
@@ -3691,15 +3691,15 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
      * @param conn
      * @throws SQLException
      */
-    private static void  setupDerby1144Table(Connection conn) 
-    throws SQLException {
+    private static void  setupDerby1144Table(Connection conn)
+            throws SQLException {
         Statement stmt = conn.createStatement();
         stmt.executeUpdate("INSERT INTO intTable VALUES(1)");
         stmt.executeUpdate("INSERT INTO intTable VALUES(2)");
 
         conn.commit ();
     }
-    
+
     /**
      * Checks locks for designated isolation level on the connection.
      * Currently only supports TRANSACTION_READ_COMMITTED and 
@@ -3709,7 +3709,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
      *
      */
     private void assertIsoLocks(Connection conn, int expectedIsoLevel)
-    throws SQLException {
+            throws SQLException {
         int conniso = conn.getTransactionIsolation();
         assertEquals(expectedIsoLevel, conniso);
 
@@ -3724,18 +3724,18 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
                 System.out.println("No test support for isolation level");
         }
     }
-    
+
     /**
      * Determine if a select on this connection during update will timeout.
      * Used to establish isolation level.  If the connection isolation level
      * is <code> Connection.TRANSACTION_READ_UNCOMMITTED </code> it will not
      * timeout.  Otherwise it should.  
-     * 
+     *
      * @param conn   Connection to test.
      * @return  true if the select got a lock timeout, false otherwise.
      */
-    private boolean selectTimesoutDuringUpdate(Connection conn) 
-    throws SQLException {
+    private boolean selectTimesoutDuringUpdate(Connection conn)
+            throws SQLException {
 
         Connection updateConn=null;
         conn.setAutoCommit(false);
@@ -3752,7 +3752,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
             // now see if we can select them
             Statement stmt = conn.createStatement();
             JDBC.assertDrainResults(
-                stmt.executeQuery("Select * from intTable"));
+                    stmt.executeQuery("Select * from intTable"));
             stmt.close();
         }
         catch (SQLException e)
@@ -3761,7 +3761,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
             {
                 // If we got a lock timeout this is not read uncommitted
                 return true;
-            }   
+            }
         }
         finally {
             try {
@@ -3775,11 +3775,11 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
     }
     
     /* -------------------- Other Helper Methods -------------------- */
-    
+
     private void assertConnectionState(
-        int expectedHoldability, int expectedIsolation,
-        boolean expectedCommitSetting, boolean expectedReadOnly, 
-        Connection conn) throws SQLException 
+            int expectedHoldability, int expectedIsolation,
+            boolean expectedCommitSetting, boolean expectedReadOnly,
+            Connection conn) throws SQLException
     {
         assertEquals(expectedHoldability, conn.getHoldability());
         assertEquals(expectedIsolation, conn.getTransactionIsolation());
@@ -3787,35 +3787,35 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         assertEquals(expectedReadOnly, conn.isReadOnly());
     }
 
-    private static void setDatabaseProperty(String property, String value) 
-    throws SQLException
+    private static void setDatabaseProperty(String property, String value)
+            throws SQLException
     {
         DataSource ds = JDBCDataSource.getDataSource();
         Connection cadmin = ds.getConnection();
         CallableStatement cs = cadmin.prepareCall(
-            "CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(?, ?)");
+                "CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(?, ?)");
         cs.setString(1, property);
         cs.setString(2, value);
         cs.execute();
-        
+
         cs.close();
         cadmin.close();
     }
-    
+
     private void setHoldability(Connection conn, boolean hold) throws SQLException {
 
         conn.setHoldability(hold ? ResultSet.HOLD_CURSORS_OVER_COMMIT : ResultSet.CLOSE_CURSORS_AT_COMMIT);
     }
-    
+
     private static void dsConnectionRequests(
-        String[] expectedValues, DataSource ds) {
+            String[] expectedValues, DataSource ds) {
 
         // checks currently only implemented for embedded 
         if (usingEmbedded())
         {
             SecurityCheck.assertSourceSecurity(ds, "javax.sql.DataSource");
         }
-        
+
         try {
             ds.getConnection();
             if (!expectedValues[0].equals("OK"))
@@ -3828,17 +3828,17 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         dsConnectionRequest(expectedValues[3], ds, "fred", "wilma");
         dsConnectionRequest(expectedValues[4], ds, null, "wilma");
         dsConnectionRequest(
-            expectedValues[5], ds, null, "databaseName=wombat");
+                expectedValues[5], ds, null, "databaseName=wombat");
         dsConnectionRequest(
-            expectedValues[6], ds, "fred", "databaseName=wombat");
-        dsConnectionRequest(expectedValues[7], 
-            ds, "fred", "databaseName=wombat;password=wilma");
-        dsConnectionRequest(expectedValues[8], 
-            ds, "fred", "databaseName=wombat;password=betty");
+                expectedValues[6], ds, "fred", "databaseName=wombat");
+        dsConnectionRequest(expectedValues[7],
+                ds, "fred", "databaseName=wombat;password=wilma");
+        dsConnectionRequest(expectedValues[8],
+                ds, "fred", "databaseName=wombat;password=betty");
     }
 
     private static void dsConnectionRequest(
-        String expectedValue, DataSource ds, String user, String ConnAttr)
+            String expectedValue, DataSource ds, String user, String ConnAttr)
     {
         try {
             ds.getConnection(user, ConnAttr);
@@ -3848,9 +3848,9 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
             assertSQLState(expectedValue, sqle);
         }
     }
-    
+
     private static void dsConnectionRequests(
-        String[] expectedValues, ConnectionPoolDataSource ds) {
+            String[] expectedValues, ConnectionPoolDataSource ds) {
         try {
             ds.getPooledConnection();
             if (!expectedValues[0].equals("OK"))
@@ -3864,17 +3864,17 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         dsConnectionRequest(expectedValues[3], ds, "fred", "wilma");
         dsConnectionRequest(expectedValues[4], ds, null, "wilma");
         dsConnectionRequest(
-            expectedValues[5], ds, null, "databaseName=wombat");
+                expectedValues[5], ds, null, "databaseName=wombat");
         dsConnectionRequest(
-            expectedValues[6], ds, "fred", "databaseName=wombat");
-        dsConnectionRequest(expectedValues[7], 
-            ds, "fred", "databaseName=wombat;password=wilma");
-        dsConnectionRequest(expectedValues[8], 
-            ds, "fred", "databaseName=wombat;password=betty");
+                expectedValues[6], ds, "fred", "databaseName=wombat");
+        dsConnectionRequest(expectedValues[7],
+                ds, "fred", "databaseName=wombat;password=wilma");
+        dsConnectionRequest(expectedValues[8],
+                ds, "fred", "databaseName=wombat;password=betty");
     }
-    
-    private static void dsConnectionRequest(String expectedValue, 
-        ConnectionPoolDataSource ds, String user, String ConnAttr)
+
+    private static void dsConnectionRequest(String expectedValue,
+                                            ConnectionPoolDataSource ds, String user, String ConnAttr)
     {
         try {
             ds.getPooledConnection(user, ConnAttr);
@@ -3884,9 +3884,9 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
             assertSQLState(expectedValue, sqle);
         }
     }
-        
+
     private static void dsConnectionRequests(
-        String[] expectedValues, XADataSource ds) {
+            String[] expectedValues, XADataSource ds) {
         try {
             ds.getXAConnection();
             if (!expectedValues[0].equals("OK"))
@@ -3900,17 +3900,17 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         dsConnectionRequest(expectedValues[3], ds, "fred", "wilma");
         dsConnectionRequest(expectedValues[4], ds, null, "wilma");
         dsConnectionRequest(
-            expectedValues[5], ds, null, "databaseName=" + dbName);
+                expectedValues[5], ds, null, "databaseName=" + dbName);
         dsConnectionRequest(
-            expectedValues[6], ds, "fred", "databaseName=" + dbName);
-        dsConnectionRequest(expectedValues[7], 
-            ds, "fred", "databaseName=" + dbName + ";password=wilma");
-        dsConnectionRequest(expectedValues[8], 
-            ds, "fred", "databaseName=" + dbName + ";password=betty");
+                expectedValues[6], ds, "fred", "databaseName=" + dbName);
+        dsConnectionRequest(expectedValues[7],
+                ds, "fred", "databaseName=" + dbName + ";password=wilma");
+        dsConnectionRequest(expectedValues[8],
+                ds, "fred", "databaseName=" + dbName + ";password=betty");
     }
-    
-    private static void dsConnectionRequest(String expectedValue, 
-            XADataSource ds, String user, String ConnAttr)
+
+    private static void dsConnectionRequest(String expectedValue,
+                                            XADataSource ds, String user, String ConnAttr)
     {
         try {
             ds.getXAConnection(user, ConnAttr);
@@ -3929,15 +3929,15 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
             assertEquals("No current connection.", xae.getMessage());
         else if (usingDerbyNetClient())
             assertEquals(
-                "XAER_RMFAIL : No current connection.", xae.getMessage());
+                    "XAER_RMFAIL : No current connection.", xae.getMessage());
         Throwable t = xae.getCause();
         if (t instanceof SQLException)
             assertSQLState("08003", (SQLException)t);
     }
 
     private static void queryOnStatement(String expectedCursorName,
-        int[] expectedValues, Connection conn, Statement s) 
-    throws SQLException {
+                                         int[] expectedValues, Connection conn, Statement s)
+            throws SQLException {
 
         // DERBY-2531
         // network server gives mismatched connections. See also
@@ -3946,11 +3946,11 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
             assertEquals(conn, s.getConnection());
         }
         resultSetQuery(expectedCursorName, expectedValues,
-                       s.executeQuery("select * from intTable"));
+                s.executeQuery("select * from intTable"));
     }
 
-    private static void resultSetQuery(String expectedCursorName, 
-        int[] expectedValues, ResultSet rs) throws SQLException 
+    private static void resultSetQuery(String expectedCursorName,
+                                       int[] expectedValues, ResultSet rs) throws SQLException
     {
         // checks currently only implemented for embedded 
         if (usingEmbedded())
@@ -3967,12 +3967,12 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         rs.close();
     }
 
-    private static void assertLocks(int[] expectedValues, Connection conn) 
-    throws SQLException {
+    private static void assertLocks(int[] expectedValues, Connection conn)
+            throws SQLException {
         Statement s = conn.createStatement();
         ResultSet rs = s.executeQuery(
-            "SELECT XID, sum(cast (LOCKCOUNT AS INT)) " +
-            "FROM SYSCS_DIAG.LOCK_TABLE AS L GROUP BY XID");
+                "SELECT XID, sum(cast (LOCKCOUNT AS INT)) " +
+                        "FROM SYSCS_DIAG.LOCK_TABLE AS L GROUP BY XID");
 
         // Don't output actual XID's as they tend for every catalog change
         // to the system.
@@ -3980,25 +3980,25 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         while (rs.next()) {
             if (expectedValues != null)
                 assertEquals(expectedValues[xact_index], rs.getInt(2));
-            else 
+            else
                 fail("expected no locks");
             xact_index++;
         }
         if (expectedValues != null)
             assertEquals(expectedValues.length, xact_index);
-        
+
         rs.close();
         s.close();
     }
 
-    private void assertStatementState(int[] parameterExpectedValues, 
-        int[] expectedValues, Statement s) 
-    throws SQLException {
+    private void assertStatementState(int[] parameterExpectedValues,
+                                      int[] expectedValues, Statement s)
+            throws SQLException {
         assertEquals(expectedValues[0], s.getResultSetType());
         assertEquals(
-            expectedValues[1], s.getResultSetConcurrency());
+                expectedValues[1], s.getResultSetConcurrency());
         assertEquals(
-            expectedValues[2], s.getFetchDirection());
+                expectedValues[2], s.getFetchDirection());
         assertEquals(expectedValues[3], s.getFetchSize());
         assertEquals(expectedValues[4], s.getMaxFieldSize());
         assertEquals(expectedValues[5], s.getMaxRows());
@@ -4016,11 +4016,11 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
     }
 
     /**
-    Create a statement with modified State.
+     Create a statement with modified State.
      */
     private Statement createFloatStatementForStateChecking(
-        int[] StatementExpectedValues, Connection conn)
-    throws SQLException {
+            int[] StatementExpectedValues, Connection conn)
+            throws SQLException {
         Statement s = internalCreateFloatStatementForStateChecking(conn);
         s.setCursorName("StokeNewington");
         s.setFetchDirection(ResultSet.FETCH_REVERSE);
@@ -4034,19 +4034,19 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
     }
 
     private Statement internalCreateFloatStatementForStateChecking(
-        Connection conn) throws SQLException {
+            Connection conn) throws SQLException {
         return conn.createStatement(
-            ResultSet.TYPE_SCROLL_INSENSITIVE, 
-            ResultSet.CONCUR_READ_ONLY, 
-            ResultSet.HOLD_CURSORS_OVER_COMMIT);
+                ResultSet.TYPE_SCROLL_INSENSITIVE,
+                ResultSet.CONCUR_READ_ONLY,
+                ResultSet.HOLD_CURSORS_OVER_COMMIT);
     }
 
     private PreparedStatement createFloatStatementForStateChecking(
-        int[] parameterExpectedValues, int[] PreparedStatementExpectedValues,
-        Connection conn, String sql) 
-    throws SQLException {
-        PreparedStatement s = 
-            internalCreateFloatStatementForStateChecking(conn, sql);
+            int[] parameterExpectedValues, int[] PreparedStatementExpectedValues,
+            Connection conn, String sql)
+            throws SQLException {
+        PreparedStatement s =
+                internalCreateFloatStatementForStateChecking(conn, sql);
         s.setCursorName("StokeNewington");
         s.setFetchDirection(ResultSet.FETCH_REVERSE);
         s.setFetchSize(888);
@@ -4055,25 +4055,25 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
 
         // PreparedStatement Create        
         assertStatementState(
-            parameterExpectedValues, PreparedStatementExpectedValues, s);
+                parameterExpectedValues, PreparedStatementExpectedValues, s);
         return s;
     }
-    
+
     private PreparedStatement internalCreateFloatStatementForStateChecking(
-        Connection conn, String sql) throws SQLException {
-        return conn.prepareStatement(sql, 
-            ResultSet.TYPE_SCROLL_INSENSITIVE, 
-            ResultSet.CONCUR_READ_ONLY, 
-            ResultSet.HOLD_CURSORS_OVER_COMMIT);
+            Connection conn, String sql) throws SQLException {
+        return conn.prepareStatement(sql,
+                ResultSet.TYPE_SCROLL_INSENSITIVE,
+                ResultSet.CONCUR_READ_ONLY,
+                ResultSet.HOLD_CURSORS_OVER_COMMIT);
     }
 
     private CallableStatement createFloatCallForStateChecking(
-        int[] parameterExpectedValues, int[] CallableStatementExpectedValues,
-        Connection conn, String sql) 
-    throws SQLException 
+            int[] parameterExpectedValues, int[] CallableStatementExpectedValues,
+            Connection conn, String sql)
+            throws SQLException
     {
-        CallableStatement s = 
-            internalCreateFloatCallForStateChecking(conn, sql);
+        CallableStatement s =
+                internalCreateFloatCallForStateChecking(conn, sql);
         s.setCursorName("StokeNewington");
         s.setFetchDirection(ResultSet.FETCH_REVERSE);
         s.setFetchSize(999);
@@ -4082,24 +4082,24 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
 
         // Callable Statement Create
         assertStatementState(
-            parameterExpectedValues, CallableStatementExpectedValues, s);
+                parameterExpectedValues, CallableStatementExpectedValues, s);
         return s;
     }
-    
+
     private CallableStatement internalCreateFloatCallForStateChecking(
-        Connection conn, String sql) throws SQLException {
-        return conn.prepareCall(sql, 
-            ResultSet.TYPE_SCROLL_INSENSITIVE, 
-            ResultSet.CONCUR_READ_ONLY, 
-            ResultSet.HOLD_CURSORS_OVER_COMMIT);
+            Connection conn, String sql) throws SQLException {
+        return conn.prepareCall(sql,
+                ResultSet.TYPE_SCROLL_INSENSITIVE,
+                ResultSet.CONCUR_READ_ONLY,
+                ResultSet.HOLD_CURSORS_OVER_COMMIT);
     }
 
     private void assertConnectionOK(
-        Object[] expectedValues, String dsName, Connection conn) 
-    throws SQLException { 
-        
+            Object[] expectedValues, String dsName, Connection conn)
+            throws SQLException {
+
         assertEquals(
-            ((Integer)expectedValues[0]).intValue(), conn.getHoldability());
+                ((Integer)expectedValues[0]).intValue(), conn.getHoldability());
 
         // check it's a 3.0 connection object by checking if 
         // set & release Savepoint is ok.
@@ -4116,7 +4116,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
                 assertSQLState("XJ010", sqle);
             else if (((String)expectedValues[1]).equals("OK"))
                 throw sqle;
-            else 
+            else
                 assertSQLState((String)expectedValues[1], sqle);
         }
 
@@ -4126,15 +4126,15 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         {
             SecurityCheck.assertSourceSecurity(conn, "java.sql.Connection");
             SecurityCheck.assertSourceSecurity(
-                conn.getMetaData(), "java.sql.DatabaseMetaData");
+                    conn.getMetaData(), "java.sql.DatabaseMetaData");
         }
 
-        assertEquals(((Integer)expectedValues[2]).intValue(), 
-            conn.getTransactionIsolation());
-        assertEquals(((Boolean)expectedValues[3]).booleanValue(), 
-            conn.getAutoCommit());
-        assertEquals(((Boolean)expectedValues[4]).booleanValue(), 
-            conn.isReadOnly());
+        assertEquals(((Integer)expectedValues[2]).intValue(),
+                conn.getTransactionIsolation());
+        assertEquals(((Boolean)expectedValues[3]).booleanValue(),
+                conn.getAutoCommit());
+        assertEquals(((Boolean)expectedValues[4]).booleanValue(),
+                conn.isReadOnly());
 
         if (dsName.endsWith("DataSource"))
             assertNull(conn.getWarnings());
@@ -4142,7 +4142,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         Statement s1 = conn.createStatement();
         assertStatementOK(dsName, conn, s1);
         assertStatementOK(dsName, conn, conn.createStatement
-            (ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY));
+                (ResultSet.TYPE_SCROLL_INSENSITIVE, ResultSet.CONCUR_READ_ONLY));
 
         Connection c1 = conn.getMetaData().getConnection();
         // c1 and conn should be the same connection object.
@@ -4191,21 +4191,21 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         try {
             conn.createStatement();
             fail (dsName + " <closedconn>.createStatement(), " +
-                "expected 08003 - No current connection");
+                    "expected 08003 - No current connection");
         } catch (SQLException sqle) {
             assertSQLState("08003", sqle);
         }
         try {
             s1.execute("values 1");
             fail(dsName + " <closedstmt>.execute(), " +
-                "expected 08003 - No current connection");
+                    "expected 08003 - No current connection");
         } catch (SQLException sqle) {
             assertSQLState("08003", sqle);
         }
     }
 
-    private void assertConnectionPreClose(String dsName, Connection conn) 
-    throws SQLException {
+    private void assertConnectionPreClose(String dsName, Connection conn)
+            throws SQLException {
 
         // before closing the connection, attempt to change holdability
         // and readOnly
@@ -4222,9 +4222,9 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
             }
         }
     }
-    
+
     private void assertStatementOK(String dsName, Connection conn, Statement s)
-    throws SQLException {
+            throws SQLException {
 
         // checks currently only implemented for embedded 
         if (usingEmbedded())
@@ -4256,11 +4256,11 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
     }
 
     /**
-    When a connection is being pooled, the underlying JDBC embedded
-    connection object is re-used. As each application gets a new
-    Connection object, that is really a wrapper around the old connection
-    it should reset any connection spoecific state on the embedded connection
-    object.
+     When a connection is being pooled, the underlying JDBC embedded
+     connection object is re-used. As each application gets a new
+     Connection object, that is really a wrapper around the old connection
+     it should reset any connection spoecific state on the embedded connection
+     object.
      */
     private static void PoolReset(String type, PooledConnection pc) throws SQLException
     {
@@ -4272,8 +4272,8 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
     }
 
     private static void PoolResetWork(
-        String expectedID, String tableAction, Connection conn) 
-    throws SQLException
+            String expectedID, String tableAction, Connection conn)
+            throws SQLException
     {
         Statement s = conn.createStatement();
         if (tableAction.equals("C"))
@@ -4315,13 +4315,13 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
 
         if ( conns.containsKey(str))
         {
-            throw new Exception("ERROR: Connection toString() is not unique: " 
+            throw new Exception("ERROR: Connection toString() is not unique: "
                     + str);
         }
         conns.put(str, conn);
     }
 
-    /** 
+    /**
      * Check the format of a pooled connection
      **/
     private static void assertStringFormat(PooledConnection pc) throws Exception
@@ -4329,7 +4329,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         String prefix = assertStringPrefix(pc);
         String connstr = pc.toString();
         String format = prefix + " \\(ID = [0-9]+\\), Physical Connection = " +
-            "<none>|" + CONNSTRING_FORMAT;
+                "<none>|" + CONNSTRING_FORMAT;
         assertTrue(connstr.matches(format));
     }
 
@@ -4340,9 +4340,9 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
     private static void assertStringFormat(Connection conn) //throws Exception
     {
         assertStringPrefix(conn);
-        String str = conn.toString(); 
+        String str = conn.toString();
         assertTrue("\nexpected format:\n " + CONNSTRING_FORMAT + "\nactual value:\n " + str,
-            str.matches(CONNSTRING_FORMAT));
+                str.matches(CONNSTRING_FORMAT));
     }
 
     /**
@@ -4465,7 +4465,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
      * underlying physical connection. 
      */
     private static void assertToString(ConnectionPoolDataSource pds)
-    throws Exception
+            throws Exception
     {
         int numConnections = 10;
 
@@ -4529,13 +4529,13 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
         {
             EmptyMapValue="0A000"; NullMapValue="0A000"; MapMapValue="0A000";
         }
-        Object[] expectedValues = { 
-            new Integer(ResultSet.HOLD_CURSORS_OVER_COMMIT), "OK",
-            new Integer(2), new Boolean(false), new Boolean(false), 
-            EmptyMapValue, NullMapValue, MapMapValue};
+        Object[] expectedValues = {
+                new Integer(ResultSet.HOLD_CURSORS_OVER_COMMIT), "OK",
+                new Integer(2), new Boolean(false), new Boolean(false),
+                EmptyMapValue, NullMapValue, MapMapValue};
 
         new J2EEDataSourceTest("J2EEDataSourceTest").assertConnectionOK(
-            expectedValues, dsName, conn);
+                expectedValues, dsName, conn);
     }
 
     /**
@@ -4569,7 +4569,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
 
 class cdsXid implements Xid, Serializable
 {
-  private static final long serialVersionUID = 64467338100036L;
+    private static final long serialVersionUID = 64467338100036L;
 
     private final int format_id;
     private byte[] global_id;

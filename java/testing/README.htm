@@ -369,8 +369,8 @@ syntax:<br>
       </font>&nbsp; <font size="2">&lt;java&gt;
 -Xbootclasspath/a:$jardir/&lt;jdbc_jar&gt;
 -Dbootcp=$jardir/&lt;jdbc_jar&gt; <br>
--Dij.dataSource=org.apache.derby.jdbc.EmbeddedSimpleDataSource <br>
--Djvmflags="-Dij.dataSource=org.apache.derby.jdbc.EmbeddedSimpleDataSource"
+-Dij.dataSource=com.splicemachine.db.jdbc.EmbeddedSimpleDataSource <br>
+-Djvmflags="-Dij.dataSource=com.splicemachine.db.jdbc.EmbeddedSimpleDataSource"
       <br>
 org.apache.derbyTesting.functionTests.harness.RunSuite&nbsp;
 &lt;testsuite&gt;</font><br>
@@ -395,8 +395,8 @@ the suites under org/apache/derbyTesting/suites</font> </p>
 derbyall:<br>
       </font>&nbsp;&nbsp; <font size="2">j9 -jcl:foun11
 -Xbootclasspath/a:$jardir/jdbc.jar -Dbootcp=$jardir/jdbc.jar <br>
--Dij.dataSource=org.apache.derby.jdbc.EmbeddedSimpleDataSource <br>
--Djvmflags="-Dij.dataSource=org.apache.derby.jdbc.EmbeddedSimpleDataSource"
+-Dij.dataSource=com.splicemachine.db.jdbc.EmbeddedSimpleDataSource <br>
+-Djvmflags="-Dij.dataSource=com.splicemachine.db.jdbc.EmbeddedSimpleDataSource"
       <br>
 org.apache.derbyTesting.functionTests.harness.RunSuite derbyall</font></p>
       </td>
@@ -1825,7 +1825,7 @@ classpath.<br>
 -DderbyTesting.serverhost=localhost
 -DderbyTesting.clienthost=clientIPaddress
 -DderbyTesting.codejar=file://unused/
-org.apache.derby.drda.NetworkServerControl -h 0.0.0.0 start<br>
+com.splicemachine.db.drda.NetworkServerControl -h 0.0.0.0 start<br>
       <small>where /derbyt/classes is the directory where the
 classes can be found, </small><small>and clientIPaddress is your
 client machine's IP
@@ -1851,7 +1851,7 @@ or like so when using jars:<br>
 -DderbyTesting.codedir=/derby/tstbld
 -DderbyTesting.serverhost=localhost
 -DderbyTesting.codeclasses=file://unused/
-org.apache.derby.drda.NetworkServerControl -h 0.0.0.0 start<br>
+com.splicemachine.db.drda.NetworkServerControl -h 0.0.0.0 start<br>
       <small>where /derbyt/tstbld&nbsp; is the directory where
 derbynet.jar is found and derby.system.home points to the directory
 where your

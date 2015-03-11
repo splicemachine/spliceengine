@@ -126,9 +126,9 @@ public class BasicInMemoryDbTest
                 "insert into toverify values (?,?,?)");
         // The content to insert into the table.
         String[][] firstContent = new String[][] {
-            {"1", "one", getString(1000, CharAlphabet.modernLatinLowercase())},
-            {"2", "two", getString(10000, CharAlphabet.tamil())},
-            {"3", "three", getString(50000, CharAlphabet.cjkSubset())}
+                {"1", "one", getString(1000, CharAlphabet.modernLatinLowercase())},
+                {"2", "two", getString(10000, CharAlphabet.tamil())},
+                {"3", "three", getString(50000, CharAlphabet.cjkSubset())}
         };
         for (int i=0; i < firstContent.length; i++) {
             ps.setString(1, firstContent[i][0]);
@@ -160,7 +160,7 @@ public class BasicInMemoryDbTest
         JDBC.assertFullResultSet(rs, firstContent);
         ps = dirCon.prepareStatement("insert into toverify values (?,?,?)");
         String[] rowToAdd = new String[] {
-            "4", "four", getString(32*1024, CharAlphabet.tamil())};
+                "4", "four", getString(32*1024, CharAlphabet.tamil())};
         ps.setString(1, rowToAdd[0]);
         ps.setString(2, rowToAdd[1]);
         ps.setString(3, rowToAdd[2]);
@@ -170,7 +170,7 @@ public class BasicInMemoryDbTest
         // Shutdown.
         try {
             DriverManager.getConnection(
-                "jdbc:derby:" + dbPathBackedUp + ";shutdown=true");
+                    "jdbc:derby:" + dbPathBackedUp + ";shutdown=true");
         } catch (SQLException sqle) {
             assertSQLState("08006", sqle);
         }
@@ -273,43 +273,43 @@ public class BasicInMemoryDbTest
      */
     public void testDelete()
             throws SQLException {
-            loadDriver();
-            Connection conCreate = DriverManager.getConnection(
-                    "jdbc:derby:memory:deleteDbSimple;create=true");
-            Statement stmt = dbm.createStatement(conCreate);
-            JDBC.assertDrainResults(stmt.executeQuery(
-                    "select * from sys.systables"));
-            // Delete the database.
-            try {
-                DriverManager.getConnection(
+        loadDriver();
+        Connection conCreate = DriverManager.getConnection(
+                "jdbc:derby:memory:deleteDbSimple;create=true");
+        Statement stmt = dbm.createStatement(conCreate);
+        JDBC.assertDrainResults(stmt.executeQuery(
+                "select * from sys.systables"));
+        // Delete the database.
+        try {
+            DriverManager.getConnection(
                     "jdbc:derby:memory:deleteDbSimple;drop=true");
-                fail("Dropping database should have raised exception.");
-            } catch (SQLException sqle) {
-                assertSQLState("08006", sqle);
-            }
-            // Try to connect to the database again, without creation.
-            try {
-                DriverManager.getConnection(
+            fail("Dropping database should have raised exception.");
+        } catch (SQLException sqle) {
+            assertSQLState("08006", sqle);
+        }
+        // Try to connect to the database again, without creation.
+        try {
+            DriverManager.getConnection(
                     "jdbc:derby:memory:deleteDbSimple;create=false");
-                fail("Database should not exist after deletion.");
-            } catch (SQLException sqle) {
-                assertSQLState("XJ004", sqle);
-            }
+            fail("Database should not exist after deletion.");
+        } catch (SQLException sqle) {
+            assertSQLState("XJ004", sqle);
+        }
 
-            // Recreate and delete again.
-            conCreate = DriverManager.getConnection(
-                    "jdbc:derby:memory:deleteDbSimple;create=true");
-            stmt = dbm.createStatement(conCreate);
-            JDBC.assertDrainResults(stmt.executeQuery(
-                    "select * from sys.systables"));
-            // Delete the database.
-            try {
-                DriverManager.getConnection(
+        // Recreate and delete again.
+        conCreate = DriverManager.getConnection(
+                "jdbc:derby:memory:deleteDbSimple;create=true");
+        stmt = dbm.createStatement(conCreate);
+        JDBC.assertDrainResults(stmt.executeQuery(
+                "select * from sys.systables"));
+        // Delete the database.
+        try {
+            DriverManager.getConnection(
                     "jdbc:derby:memory:deleteDbSimple;drop=true");
-                fail("Dropping database should have raised exception.");
-            } catch (SQLException sqle) {
-                assertSQLState("08006", sqle);
-            }
+            fail("Dropping database should have raised exception.");
+        } catch (SQLException sqle) {
+            assertSQLState("08006", sqle);
+        }
     }
 
     /**
@@ -332,7 +332,7 @@ public class BasicInMemoryDbTest
         // Delete the database.
         try {
             DriverManager.getConnection(
-                "jdbc:derby:memory:deleteDb;drop=true");
+                    "jdbc:derby:memory:deleteDb;drop=true");
             fail("Dropping database should have raised exception.");
         } catch (SQLException sqle) {
             assertSQLState("08006", sqle);
@@ -366,7 +366,7 @@ public class BasicInMemoryDbTest
         // Delete the database.
         try {
             DriverManager.getConnection(
-                "jdbc:derby:memory:deleteDb;shutdown=true");
+                    "jdbc:derby:memory:deleteDb;shutdown=true");
             fail("Database shutdown should have raised exception.");
         } catch (SQLException sqle) {
             assertSQLState("08006", sqle);

@@ -21,19 +21,19 @@
 
 package org.apache.derbyTesting.unitTests.store;
 
-import org.apache.derby.iapi.store.access.*;
+import com.splicemachine.db.iapi.store.access.*;
 
-import org.apache.derby.iapi.types.SQLInteger;
+import com.splicemachine.db.iapi.types.SQLInteger;
 
-import org.apache.derby.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.error.StandardException;
 
-import org.apache.derby.iapi.store.raw.Transaction;
+import com.splicemachine.db.iapi.store.raw.Transaction;
 
-import org.apache.derby.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
-import org.apache.derby.iapi.types.RowLocation;
+import com.splicemachine.db.iapi.types.RowLocation;
 
 
 /**
@@ -45,7 +45,7 @@ import org.apache.derby.iapi.types.RowLocation;
   A RowSource can come from many sources - from rows that are from fast path
   import, to rows coming out of a sort for index creation.
 
-  @see org.apache.derby.iapi.store.access.RowSource
+  @see com.splicemachine.db.iapi.store.access.RowSource
 */ 
 public class T_RowSource implements RowSource {
 

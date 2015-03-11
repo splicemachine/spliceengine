@@ -26,7 +26,7 @@
  */
 package org.apache.derbyTesting.functionTests.tests.junitTests.compatibility;
 
-import org.apache.derby.drda.NetworkServerControl;
+import com.splicemachine.db.drda.NetworkServerControl;
 
 public	class	Pinger
 {

@@ -38,7 +38,7 @@ import java.sql.Array;
 import org.apache.derbyTesting.junit.JDBC;
 
 /**
-    This class has been adapted from org.apache.derby.vti.VTITemplate 
+    This class has been adapted from com.splicemachine.db.vti.VTITemplate
     because we do not want a test to depend on an engine class.
    
     This class implements most of the methods of the JDBC 1.2 interface java.sql.ResultSet,

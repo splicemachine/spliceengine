@@ -467,7 +467,7 @@ public class GroupByExpressionTest extends BaseJDBCTestCase
     
     /**
      * Check that duplicate columns are now allowed in group by's. Earlier
-     * (pre 883), derby would flag an error.
+     * (pre 883), db would flag an error.
      *
      */
     public void testDuplicateColumns() throws Exception

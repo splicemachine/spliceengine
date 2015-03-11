@@ -197,7 +197,7 @@ public class StreamTest extends BaseJDBCTestCase {
 
         // Prior to fix for this issue, with client driver, gc of ps causes
         // close to be called on reader, cf. code in
-        // org.apache.derby.client.net.EncodedInputStream#finalize.
+        // com.splicemachine.db.client.net.EncodedInputStream#finalize.
         System.gc();
 
         // Sleep so gc thread can do its thing

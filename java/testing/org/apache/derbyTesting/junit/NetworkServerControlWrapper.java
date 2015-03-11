@@ -61,7 +61,7 @@ public class NetworkServerControlWrapper {
         Class clazzSC = null;
         try {
             clazzSC =
-                    Class.forName("org.apache.derby.drda.NetworkServerControl");
+                    Class.forName("com.splicemachine.db.drda.NetworkServerControl");
         } catch (ClassNotFoundException cnfe) {
             BaseTestCase.fail("No runtime support for network server", cnfe);
         }
@@ -100,19 +100,19 @@ public class NetworkServerControlWrapper {
 
     // Method forwarding / invocation follows below //
 
-    /** @see org.apache.derby.drda.NetworkServerControl#ping */
+    /** @see com.splicemachine.db.drda.NetworkServerControl#ping */
     public void ping()
             throws Exception {
         invoke(PING, null);
     }
 
-    /** @see org.apache.derby.drda.NetworkServerControl#shutdown */
+    /** @see com.splicemachine.db.drda.NetworkServerControl#shutdown */
     public void shutdown()
             throws Exception {
         invoke(SHUTDOWN, null);
     }
 
-    /** @see org.apache.derby.drda.NetworkServerControl#start */
+    /** @see com.splicemachine.db.drda.NetworkServerControl#start */
     public void start(PrintWriter printWriter)
             throws Exception {
         invoke(START, new Object[] {printWriter});

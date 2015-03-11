@@ -33,7 +33,7 @@ import org.apache.derbyTesting.junit.SecurityManagerSetup;
  * Run a replication test on localhost
  * by using default values for master and slave hosts,
  * and master and slave ports.
- * 
+ *
  */
 
 public class ReplicationRun_Local_StateTest_part1 extends ReplicationRun
@@ -47,25 +47,25 @@ public class ReplicationRun_Local_StateTest_part1 extends ReplicationRun
 
 
 
-/**
+    /**
      * Creates a new instance of ReplicationRun_Local_StateTest_part1
-     * 
+     *
      * @param testcaseName Identifying the test.
      */
     public ReplicationRun_Local_StateTest_part1(String testcaseName)
     {
         super(testcaseName);
     }
-        
+
     public static Test suite()
     {
         TestSuite suite = new TestSuite("ReplicationRun_Local_StateTest_part1 Suite");
-        
+
         suite.addTestSuite( ReplicationRun_Local_StateTest_part1.class );
-        
+
         return SecurityManagerSetup.noSecurityManager(suite);
     }
-    
+
     //////////////////////////////////////////////////////////////
     ////
     //// The replication test framework (testReplication()):
@@ -76,65 +76,65 @@ public class ReplicationRun_Local_StateTest_part1 extends ReplicationRun
     ////     test run.
     ////
     //////////////////////////////////////////////////////////////
-    
+
     public void testReplication_Local_StateTest_part1()
-    throws Exception
+            throws Exception
     {
         cleanAllTestHosts();
-        
+
         initEnvironment();
-        
+
         // State test. Continuation OK.
-        _testPreStartedMasterServer(); 
-        
+        _testPreStartedMasterServer();
+
         initMaster(masterServerHost,
                 replicatedDb);
-        
+
         startServer(masterJvmVersion, derbyMasterVersion,
                 masterServerHost,
                 ALL_INTERFACES, // masterServerHost, // "0.0.0.0", // All. or use masterServerHost for interfacesToListenOn,
                 masterServerPort,
                 masterDbSubPath); // Distinguishing master/slave
-        
+
         // State test. 
-        _testPreStartedSlaveServer(); 
-        
+        _testPreStartedSlaveServer();
+
         startServer(slaveJvmVersion, derbySlaveVersion,
                 slaveServerHost,
                 ALL_INTERFACES, // slaveServerHost, // "0.0.0.0", // All. or use slaveServerHost for interfacesToListenOn,
                 slaveServerPort,
                 slaveDbSubPath); // Distinguishing master/slave
-        
+
         startServerMonitor(slaveServerHost);
-        
+
         bootMasterDatabase(jvmVersion,
                 masterDatabasePath +FS+ masterDbSubPath,
                 replicatedDb,
                 masterServerHost, // Where the startreplication command must be given
                 masterServerPort, // master server interface accepting client requests
                 null // bootLoad, // The "test" to start when booting db.
-                );
-        
+        );
+
         // State test. 
         _testPreInitSlave();
-        
+
         initSlave(slaveServerHost,
                 jvmVersion,
                 replicatedDb); // Trunk and Prototype V2: copy master db to db_slave.
-        
+
         // State test. 
         _testPreStartedSlave(); // Currently NOOP
-        
+
         startSlave(jvmVersion, replicatedDb,
                 slaveServerHost, // slaveClientInterface // where the slave db runs
                 slaveServerPort,
                 slaveServerHost, // for slaveReplInterface
                 slaveReplPort,
                 testClientHost);
-        
+
         // State test. 
         _testPreStartedMaster();
-        
+
         // With master started above, next will fail! 
         // Also seems failover will fail w/XRE21! : DERBY-3358!
         // Further testing: skipping next startMaster seems to 
@@ -148,12 +148,12 @@ public class ReplicationRun_Local_StateTest_part1 extends ReplicationRun
                 slaveServerHost, // for slaveReplInterface
                 slaveReplPort);
          / * */
-        
+
         // Used to run positive tests.
         // Handle negative testing in State.testPostStartedMasterAndSlave().
         // Observe that it will not be meaningful to do runTest if State.XXXX()
         // has led to incorrect replication state wrt. replicationTest.
-        
+
         replicationTest = "org.apache.derbyTesting.functionTests.tests.replicationTests.ReplicationTestRun";
         util.DEBUG("replicationTest: " + replicationTest);
         replicationVerify = "org.apache.derbyTesting.functionTests.tests.replicationTests.ReplicationTestRun_Verify";
@@ -164,28 +164,28 @@ public class ReplicationRun_Local_StateTest_part1 extends ReplicationRun
                 testClientHost,
                 masterServerHost, masterServerPort,
                 replicatedDb);
-        
+
         failOver(jvmVersion,
                 masterDatabasePath, masterDbSubPath, replicatedDb,
                 masterServerHost,  // Where the master db is run.
                 masterServerPort,
                 testClientHost);
-        
+
         connectPing(slaveDatabasePath+FS+slaveDbSubPath+FS+replicatedDb,
                 slaveServerHost,slaveServerPort,
                 testClientHost);
-        
+
         verifySlave();
-        
+
         // We should verify the master as well, at least to see that we still can connect.
         verifyMaster();
-        
+
         stopServer(jvmVersion, derbyVersion,
                 slaveServerHost, slaveServerPort);
-        
+
         stopServer(jvmVersion, derbyVersion,
                 masterServerHost, masterServerPort);
-        
+
     }
 
     private void _testPreStartedMasterServer()
@@ -220,11 +220,11 @@ public class ReplicationRun_Local_StateTest_part1 extends ReplicationRun
     {
         Connection conn = null;
         String db = slaveDatabasePath +FS+ReplicationRun.slaveDbSubPath +FS+ replicatedDb;
-        String connectionURL = "jdbc:derby:"  
+        String connectionURL = "jdbc:derby:"
                 + "//" + slaveServerHost + ":" + slaveServerPort + "/"
                 + db
                 + ";startSlave=true"
-                + ";slavehost=" + slaveServerHost 
+                + ";slavehost=" + slaveServerHost
                 + ";slaveport=" + slaveServerPort;
         util.DEBUG("testPreStartedSlaveServer: " + connectionURL);
         try
@@ -249,7 +249,7 @@ public class ReplicationRun_Local_StateTest_part1 extends ReplicationRun
         String db = null;
         String connectionURL = null;
         Connection conn = null;
-        
+
         // 1.  stopMaster on master: fail
         db = masterDatabasePath +FS+ReplicationRun.masterDbSubPath +FS+ replicatedDb;
         connectionURL = "jdbc:derby:"
@@ -271,12 +271,12 @@ public class ReplicationRun_Local_StateTest_part1 extends ReplicationRun
             // SQLState.REPLICATION_NOT_IN_MASTER_MODE
 
             BaseJDBCTestCase.assertSQLState(
-                "stopMaster on master failed: " + msg,
-                REPLICATION_NOT_IN_MASTER_MODE,
-                se);
+                    "stopMaster on master failed: " + msg,
+                    REPLICATION_NOT_IN_MASTER_MODE,
+                    se);
             util.DEBUG("stopMaster on master failed as expected: " + connectionURL + " " + msg);
         }
-        
+
         // 2. stopSlave on slave: fail
         db = slaveDatabasePath +FS+ReplicationRun.slaveDbSubPath +FS+ replicatedDb;
         connectionURL = "jdbc:derby:"
@@ -296,9 +296,9 @@ public class ReplicationRun_Local_StateTest_part1 extends ReplicationRun
             String ss = se.getSQLState();
             String msg = ec + " " + ss + " " + se.getMessage();
             BaseJDBCTestCase.assertSQLState(
-                "stopSlave on slave failed: " + msg,
-                REPLICATION_DB_NOT_BOOTED,
-                se);
+                    "stopSlave on slave failed: " + msg,
+                    REPLICATION_DB_NOT_BOOTED,
+                    se);
             util.DEBUG("stopSlave on slave failed as expected: " + connectionURL + " " + msg);
         }
     }
@@ -307,19 +307,19 @@ public class ReplicationRun_Local_StateTest_part1 extends ReplicationRun
     {
         Connection conn = null;
         String db = slaveDatabasePath +FS+ReplicationRun.slaveDbSubPath +FS+ replicatedDb;
-        String connectionURL = "jdbc:derby:"  
+        String connectionURL = "jdbc:derby:"
                 + "//" + slaveServerHost + ":" + slaveServerPort + "/"
                 + db
                 + ";startSlave=true"
-                + ";slaveHost=" + slaveServerHost 
+                + ";slaveHost=" + slaveServerHost
                 + ";slavePort=" + slaveReplPort;
         util.DEBUG("testPreStartedSlave: Test moved to TestPostStartedMasterAndSlave! " + connectionURL);
         if (true)return;
-        
+
         // First StartSlave connect ok:
         try
         {
-            conn = DriverManager.getConnection(connectionURL); 
+            conn = DriverManager.getConnection(connectionURL);
             // Will hang until startMaster!
             util.DEBUG("1. Successfully connected as: " + connectionURL);
         }
@@ -330,11 +330,11 @@ public class ReplicationRun_Local_StateTest_part1 extends ReplicationRun
             String msg = ec + " " + ss + " " + se.getMessage();
             util.DEBUG(msg);
             BaseJDBCTestCase.assertSQLState(
-                "2. Unexpected SQLException: " + msg,
-                REPLICATION_SLAVE_STARTED_OK,
-                se);
+                    "2. Unexpected SQLException: " + msg,
+                    REPLICATION_SLAVE_STARTED_OK,
+                    se);
         }
-        
+
         // Next StartSlave connect should fail:
         try
         {
@@ -349,28 +349,28 @@ public class ReplicationRun_Local_StateTest_part1 extends ReplicationRun
             String msg = ec + " " + ss + " " + se.getMessage();
             util.DEBUG(msg);
             BaseJDBCTestCase.assertSQLState(
-                "2. Unexpected SQLException: " + msg,
-                LOGIN_FAILED,
-                se);
+                    "2. Unexpected SQLException: " + msg,
+                    LOGIN_FAILED,
+                    se);
         }
-        
+
     }
 
     private void _testPreStartedMaster()
-    throws Exception
+            throws Exception
     {
         Connection conn = null;
         String db = masterDatabasePath +FS+ReplicationRun.masterDbSubPath +FS+ replicatedDb;
-        String connectionURL = "jdbc:derby:"  
+        String connectionURL = "jdbc:derby:"
                 + "//" + masterServerHost + ":" + masterServerPort + "/"
                 + db
                 + ";startMaster=true"
-                + ";slaveHost=" + slaveServerHost 
+                + ";slaveHost=" + slaveServerHost
                 + ";slavePort=" + slaveReplPort;
         util.DEBUG("_testPreStartedMaster: " + connectionURL);
         // First StartMaster connect ok:
         // Must use "full" startMaster - including wait-loop.
-        
+
         // Better move this to testPostStartedMasterAndSlave!
         startMaster(jvmVersion, replicatedDb,
                 masterServerHost, // Where the startMaster command must be given
@@ -399,39 +399,39 @@ public class ReplicationRun_Local_StateTest_part1 extends ReplicationRun
                 se);
         }
         */
-        
+
         util.DEBUG("2. startMaster attempt should fail on: " + connectionURL);
         // util.DEBUG("********************'' 2. CURRENTLY HANGS!!!! Skipping.");
         // if (false) // FIXME! ENABLE WHEN DERBY-3358 COMMITTED!
         {
-        // A 2. StartMaster connect should fail:
-        try
-        {
-            conn = DriverManager.getConnection(connectionURL);
-            util.DEBUG("2. Unexpectedly connected as: " + connectionURL);
-            assertTrue("2. Unexpectedly connected as: " + connectionURL, false);
+            // A 2. StartMaster connect should fail:
+            try
+            {
+                conn = DriverManager.getConnection(connectionURL);
+                util.DEBUG("2. Unexpectedly connected as: " + connectionURL);
+                assertTrue("2. Unexpectedly connected as: " + connectionURL, false);
+            }
+            catch (SQLException se)
+            {
+                int ec = se.getErrorCode();
+                String ss = se.getSQLState();
+                String msg = ec + " " + ss + " " + se.getMessage();
+                util.DEBUG("2. startMaster No connection as expected: " + msg);
+                BaseJDBCTestCase.assertSQLState(
+                        "2. Unexpected SQLException: " + msg,
+                        REPLICATION_MASTER_ALREADY_BOOTED,
+                        se);
+            }
         }
-        catch (SQLException se)
-        {
-            int ec = se.getErrorCode();
-            String ss = se.getSQLState();
-            String msg = ec + " " + ss + " " + se.getMessage();
-            util.DEBUG("2. startMaster No connection as expected: " + msg);
-            BaseJDBCTestCase.assertSQLState(
-                "2. Unexpected SQLException: " + msg,
-                REPLICATION_MASTER_ALREADY_BOOTED,
-                se);
-        }
-        }
-        
+
         // A 2. StartSlave connect should fail:
         util.DEBUG("startSlave attempt should fail on: " + connectionURL);
         db = slaveDatabasePath +FS+ReplicationRun.slaveDbSubPath +FS+ replicatedDb;
-        connectionURL = "jdbc:derby:"  
+        connectionURL = "jdbc:derby:"
                 + "//" + slaveServerHost + ":" + slaveServerPort + "/"
                 + db
                 + ";startSlave=true"
-                + ";slaveHost=" + slaveServerHost 
+                + ";slaveHost=" + slaveServerHost
                 + ";slavePort=" + slaveReplPort;
         util.DEBUG(connectionURL);
         try
@@ -447,10 +447,10 @@ public class ReplicationRun_Local_StateTest_part1 extends ReplicationRun
             String msg = ec + " " + ss + " " + se.getMessage();
             util.DEBUG("3. startSlave No connection as expected: " + msg);
             BaseJDBCTestCase.assertSQLState(
-                "3. Unexpected SQLException: " + msg,
-                CANNOT_CONNECT_TO_DB_IN_SLAVE_MODE,
-                se);
+                    "3. Unexpected SQLException: " + msg,
+                    CANNOT_CONNECT_TO_DB_IN_SLAVE_MODE,
+                    se);
         }
     }
-    
+
 }

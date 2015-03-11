@@ -21,15 +21,13 @@
 
 package org.apache.derbyTesting.unitTests.store;
 
-import org.apache.derby.iapi.store.access.*;
+import com.splicemachine.db.iapi.services.io.Storable;
 
-import org.apache.derby.iapi.services.io.Storable;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
-import org.apache.derby.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLInteger;
 
-import org.apache.derby.iapi.types.SQLInteger;
-
-import org.apache.derby.iapi.error.StandardException;
+import com.splicemachine.db.iapi.error.StandardException;
 
 public class T_AccessRow
 { 

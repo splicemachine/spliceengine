@@ -21,10 +21,7 @@
 
 package org.apache.derbyTesting.unitTests.store;
 
-import org.apache.derbyTesting.unitTests.harness.T_MultiThreadedIterations;
-import org.apache.derbyTesting.unitTests.harness.T_Fail;
-
-import org.apache.derby.iapi.store.access.*;
+import com.splicemachine.db.iapi.store.access.*;
 
 // used by unit tests, that needs  to simulate
 //  ColumnOrdering  data type parameter from the language layer.

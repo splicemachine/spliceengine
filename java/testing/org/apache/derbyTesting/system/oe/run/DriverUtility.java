@@ -45,7 +45,7 @@ import org.apache.derbyTesting.system.oe.util.OEChecks;
  * To load database with scale of 2
  * and to not do any checks, the command to run the test is as follows:
  * <BR>
- * java org.apache.derbyTesting.system.oe.run.DriverUtility -driver org.apache.derby.jdbc.ClientDriver -dbUrl 'jdbc:derby://localhost:1527/db' -scale 2 -doChecks false
+ * java org.apache.derbyTesting.system.oe.run.DriverUtility -driver com.splicemachine.db.jdbc.ClientDriver -dbUrl 'jdbc:derby://localhost:1527/db' -scale 2 -doChecks false
  * <BR>
  */
 public class DriverUtility {
@@ -67,7 +67,7 @@ public class DriverUtility {
     /**
      * JDBC Driver class
      */
-    private static String driver = "org.apache.derby.jdbc.EmbeddedDriver";
+    private static String driver = "com.splicemachine.db.jdbc.EmbeddedDriver";
 
     /**
      * flag to indicate if we should perform consistency, cardinality checks
@@ -176,13 +176,13 @@ public class DriverUtility {
      */
     private static void printUsage() {
         System.out.println("Usage: java org.apache.derbyTesting.system.oe." +
-                        "run.DriverUtility options");
+                "run.DriverUtility options");
         System.out.println();
         System.out.println("Options:");
         System.out.println("  -scale warehouse scaling factor. " +
-                        "Takes a short value. If not specified defaults to 1");
+                "Takes a short value. If not specified defaults to 1");
         System.out.println("  -doChecks  should consistency checks be run" +
-                        " on the database. Takes a boolean value");
+                " on the database. Takes a boolean value");
         System.out.println("  -driver  the class of the jdbc driver");
         System.out.println("  -dbUrl  the database connection url");
         System.out.println("  -help prints usage");

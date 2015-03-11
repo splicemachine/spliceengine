@@ -15,7 +15,7 @@
 --   limitations under the License.
 --
 -- This tests for the fix of a bug in the readExternal method of
--- org.apache.derby.iapi.types.execution.SQLDecimal
+-- com.splicemachine.db.iapi.types.execution.SQLDecimal
 -- (Track # 2834)
 
 create table test_numeric (v numeric(31,28));

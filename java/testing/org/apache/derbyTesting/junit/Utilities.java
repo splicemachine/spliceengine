@@ -150,12 +150,12 @@ public class Utilities {
      * 
      * @return a buffering character-input stream containing the output from
      *         sysinfo
-     * @see org.apache.derby.tools.sysinfo#getInfo(java.io.PrintWriter out)
+     * @see com.splicemachine.db.tools.sysinfo#getInfo(java.io.PrintWriter out)
      */
     public static BufferedReader getSysinfoLocally() {
         ByteArrayOutputStream byteStream = new ByteArrayOutputStream(20 * 1024);
         PrintWriter pw = new PrintWriter(byteStream, true); // autoflush
-        org.apache.derby.tools.sysinfo.getInfo(pw);
+        com.splicemachine.db.tools.sysinfo.getInfo(pw);
         pw.flush();
         pw.close();
         byte[] outBytes = byteStream.toByteArray();
@@ -176,7 +176,7 @@ public class Utilities {
      * 
      * @return a buffering character-input stream containing the output from 
      *         the server's sysinfo.
-     * @see org.apache.derby.drda.NetworkServerControl#getSysinfo()
+     * @see com.splicemachine.db.drda.NetworkServerControl#getSysinfo()
      */
     public static BufferedReader getSysinfoFromServer() throws Exception {
 
@@ -186,7 +186,7 @@ public class Utilities {
 
     /**
      * Splits a string around matches of the given delimiter character.
-     * Copied from org.apache.derby.iapi.util.StringUtil
+     * Copied from com.splicemachine.db.iapi.util.StringUtil
      *
      * Where applicable, this method can be used as a substitute for
      * {@code String.split(String regex)}, which is not available

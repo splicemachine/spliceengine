@@ -23,7 +23,7 @@ import java.io.*;
 import java.util.ArrayList;
 
 /**
- * Program that attempts to flag the derby i18n properties files for a variety
+ * Program that attempts to flag the db i18n properties files for a variety
  * of possible and actual problems.
  * For syntax, see USAGE string ( obtained with -h)
  * For further info, see readme file 
@@ -37,7 +37,7 @@ public class LocCompare {
     private static String USAGE=
     	"USAGE: \n java \n  [-Dderbysvntop=<svntop>] [-Dtranslations=<newloc>] LocCompare [<territories>][?|-h]\n" +
     	"  where \n" +
-    	"     svntop      = top of derby svn tree for branch or trunk \n" +
+    	"     svntop      = top of db svn tree for branch or trunk \n" +
     	"                   default is current dir is the top\n" +
     	"     newloc      = temporary location for translated files \n" +
     	"                   drda locale files are expected in a subdir 'drda'\n" +
@@ -89,14 +89,14 @@ public class LocCompare {
 		String[] typefiles = {"messages_","sysinfoMessages_","toolsmessages_"};
 		String[] drdatypefiles = {"messages_","servlet_"};
 		
-		String englishPath = svntop + "/java/engine/org/apache/derby/loc/";
+		String englishPath = svntop + "/java/engine/com/splicemachine/db/loc/";
 		String english = "en";
-		String englishDrdaPath = svntop + "/java/drda/org/apache/derby/loc/drda/";
-		String englishToolsPath = svntop + "/java/tools/org/apache/derby/loc/";
+		String englishDrdaPath = svntop + "/java/drda/com/splicemachine/db/loc/drda/";
+		String englishToolsPath = svntop + "/java/tools/com/splicemachine/db/loc/";
 	
-		String forLangPath = svntop + "/java/engine/org/apache/derby/loc/";
-		String forDrdaPath = svntop + "/java/drda/org/apache/derby/loc/drda/";
-		String forToolsPath = svntop + "/java/tools/org/apache/derby/loc/";
+		String forLangPath = svntop + "/java/engine/com/splicemachine/db/loc/";
+		String forDrdaPath = svntop + "/java/drda/com/splicemachine/db/loc/drda/";
+		String forToolsPath = svntop + "/java/tools/com/splicemachine/db/loc/";
 		if ( temporaryfiles )	
 		{
 			forLangPath = locnewlocfiles + "/";

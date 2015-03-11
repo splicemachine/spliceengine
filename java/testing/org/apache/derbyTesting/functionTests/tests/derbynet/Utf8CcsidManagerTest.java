@@ -25,7 +25,7 @@ import java.util.Arrays;
 
 import junit.framework.Test;
 
-import org.apache.derby.impl.drda.Utf8CcsidManager;
+import com.splicemachine.db.impl.drda.Utf8CcsidManager;
 import org.apache.derbyTesting.junit.BaseTestCase;
 import org.apache.derbyTesting.junit.TestConfiguration;
 

@@ -15,75 +15,60 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 -->
-
-<!-- ==================================================================== -->
-<!--                       Apache Derby build file                        -->
-<!-- ==================================================================== -->
-
 <project default="storeless" basedir="../..">
 
-<!-- ==================================================================== -->
-<!--                           Set properties                             -->
-<!-- ==================================================================== -->
-	
-  <property name="properties.dir" value="tools/ant/properties"/>
 
-  <!-- User settings -->
-  <property file="${user.home}/ant.properties"/>
+    <property name="properties.dir" value="tools/ant/properties"/>
 
-  <!-- Significant dirs -->
-  <property file="${properties.dir}/dirs.properties"/>
+    <!-- User settings -->
+    <property file="${user.home}/ant.properties"/>
 
-  <!-- Compiler settings -->
-  <property file="${properties.dir}/defaultcompiler.properties"/>
-  <property file="${properties.dir}/${build.compiler}.properties"/>
+    <!-- Significant dirs -->
+    <property file="${properties.dir}/dirs.properties"/>
 
-  <!-- Parser properties -->
-  <property file="${properties.dir}/parser.properties"/>
+    <!-- Compiler settings -->
+    <property file="${properties.dir}/defaultcompiler.properties"/>
+    <property file="${properties.dir}/${build.compiler}.properties"/>
 
-  <!-- Compile-time classpath properties files -->
-  <property file="${properties.dir}/extrapath.properties"/>
-  <property file="${properties.dir}/compilepath.properties"/>
+    <!-- Parser properties -->
+    <property file="${properties.dir}/parser.properties"/>
 
-  <!-- Release and Version info -->
-  <property file="${properties.dir}/release.properties"/>
+    <!-- Compile-time classpath properties files -->
+    <property file="${properties.dir}/extrapath.properties"/>
+    <property file="${properties.dir}/compilepath.properties"/>
 
+    <!-- Release and Version info -->
+    <property file="${properties.dir}/release.properties"/>
 
-<!--             ============ Begin Targets ==============                -->
- 
-  <target name="storeless"
-          description="Build storeless engine support code">
-  	    <mkdir dir="${out.storeless.dir}"/>
-      	<copy todir="${out.storeless.dir}/${derby.dir}">
-          <fileset dir="${derby.storeless.src.dir}/${derby.dir}">
-            <include name="modules.properties"/>
-          </fileset>
+    <target name="storeless" description="Build storeless engine support code">
+
+        <mkdir dir="${out.storeless.dir}"/>
+
+        <copy todir="${out.storeless.dir}/${splice.package}">
+            <fileset dir="${derby.storeless.src.dir}/${splice.package}">
+                <include name="modules.properties"/>
+            </fileset>
         </copy>
-    <javac
-      source="1.4"
-      target="1.4"
-      bootclasspath="${empty}"
-      nowarn="on"
-      debug="${debug}"
-      depend="${depend}"
-      deprecation="${deprecation}"
-      optimize="${optimize}"
-      proceed="${proceed}"
-      verbose="${verbose}"
-      srcdir="${derby.storeless.src.dir}"
-      destdir="${out.storeless.dir}">
-      <classpath>
-      	  <pathelement path="${out.dir}"/>
-          <pathelement path="${java15compile.classpath}"/>
-      </classpath>
-    </javac>
-  </target>
- 
 
-	
-<!--             ============= End Targets ==============                -->
-
-<!--             ============= End Project ==============                -->
+        <javac
+                source="1.4"
+                target="1.4"
+                bootclasspath="${empty}"
+                nowarn="on"
+                debug="${debug}"
+                depend="${depend}"
+                deprecation="${deprecation}"
+                optimize="${optimize}"
+                proceed="${proceed}"
+                verbose="${verbose}"
+                srcdir="${derby.storeless.src.dir}"
+                destdir="${out.storeless.dir}">
+            <classpath>
+                <pathelement path="${out.dir}"/>
+                <pathelement path="${java15compile.classpath}"/>
+            </classpath>
+        </javac>
+    </target>
 
 </project>
 

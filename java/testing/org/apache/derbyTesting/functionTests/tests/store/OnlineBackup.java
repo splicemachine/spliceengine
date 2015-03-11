@@ -66,7 +66,7 @@ public class OnlineBackup implements Runnable{
                 backupError = error;
                 notifyAll();
             }
-			org.apache.derby.tools.JDBCDisplayUtil.ShowException(System.out, error);
+			com.splicemachine.db.tools.JDBCDisplayUtil.ShowException(System.out, error);
 			error.printStackTrace(System.out);
         }
 	}

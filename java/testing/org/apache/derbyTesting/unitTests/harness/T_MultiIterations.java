@@ -21,17 +21,14 @@
 
 package org.apache.derbyTesting.unitTests.harness;
 
-import org.apache.derby.iapi.services.monitor.Monitor;
-import org.apache.derby.iapi.services.property.PropertyUtil;
-
-import java.util.Properties;
+import com.splicemachine.db.iapi.services.property.PropertyUtil;
 
 /**
 	Abstract class which executes T_Generic. This splits the running
 	of a test into two parts, the test setup and running the test.
 	This allows the setup to be performed once, and then the
 	test itself to be run for a number of iterations. The number
-	iterations is set by the property derby.unittests.iterations
+	iterations is set by the property db.unittests.iterations
 	and defaults to 1.
 	<P>
 	Statistics are provided about each iteration in the error log. The statistics
@@ -65,9 +62,9 @@ public abstract class T_MultiIterations extends T_Generic
 
 		/*
 		** The property name for the number of iterations is
-		** derby.className.iterations.  For example, if the test
-		** class is derby.com.package.to.test.T_Tester,
-		** the property name is derby.T_Tester.iterations.
+		** db.className.iterations.  For example, if the test
+		** class is db.com.package.to.test.T_Tester,
+		** the property name is db.T_Tester.iterations.
 		*/
 		String myClass = this.getClass().getName();
 		String noPackage = myClass.substring(myClass.lastIndexOf('.') + 1);

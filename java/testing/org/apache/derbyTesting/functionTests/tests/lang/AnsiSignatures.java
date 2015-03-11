@@ -29,8 +29,8 @@ import java.sql.SQLException;
 import java.sql.Time;
 import java.sql.Timestamp;
 
-import org.apache.derby.iapi.types.HarmonySerialBlob;
-import org.apache.derby.iapi.types.HarmonySerialClob;
+import com.splicemachine.db.iapi.types.HarmonySerialBlob;
+import com.splicemachine.db.iapi.types.HarmonySerialClob;
 
 /**
  * <p>

@@ -26,7 +26,7 @@ import java.io.DataInputStream;
 import java.io.EOFException;
 import java.io.IOException;
 
-import org.apache.derby.iapi.services.io.DataInputUtil;
+import com.splicemachine.db.iapi.services.io.DataInputUtil;
 
 import junit.framework.Test;
 import junit.framework.TestCase;

@@ -21,27 +21,13 @@
 
 package org.apache.derbyTesting.functionTests.tests.lang;
 
-import java.sql.SQLException;
-import java.sql.SQLWarning;
 import java.sql.Connection;
-import java.sql.Statement;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.DriverManager;
-import java.util.ArrayList;
+
 import junit.framework.Test;
 import junit.framework.TestSuite;
-import org.apache.derby.iapi.util.StringUtil;
-import org.apache.derby.catalog.DefaultInfo;
-import org.apache.derbyTesting.junit.BaseJDBCTestCase;
-import org.apache.derbyTesting.junit.JDBC;
 import org.apache.derbyTesting.junit.DatabasePropertyTestSetup;
-import org.apache.derbyTesting.junit.JDBC;
 import org.apache.derbyTesting.junit.TestConfiguration;
 import org.apache.derbyTesting.junit.CleanDatabaseTestSetup;
-import org.apache.derbyTesting.junit.JDBC;
-
-import org.apache.derby.catalog.types.RoutineAliasInfo;
 
 /**
  * <p>
@@ -133,7 +119,7 @@ public class UDAPermsTest extends GeneratedColumnsHelper
         goodStatement
             (
              ruthConnection,
-             "create derby aggregate mode_01 for int\n" +
+             "create db aggregate mode_01 for int\n" +
              "external name 'org.apache.derbyTesting.functionTests.tests.lang.ModeAggregate'\n"
              );
         goodStatement
@@ -203,7 +189,7 @@ public class UDAPermsTest extends GeneratedColumnsHelper
         goodStatement
             (
              ruthConnection,
-             "grant usage on derby aggregate mode_01 to public\n"
+             "grant usage on db aggregate mode_01 to public\n"
              );
         
         assertResults
@@ -256,7 +242,7 @@ public class UDAPermsTest extends GeneratedColumnsHelper
         goodStatement
             (
              ruthConnection,
-             "create derby aggregate mode_02 for int\n" +
+             "create db aggregate mode_02 for int\n" +
              "external name 'org.apache.derbyTesting.functionTests.tests.lang.ModeAggregate'\n"
              );
         goodStatement
@@ -276,18 +262,18 @@ public class UDAPermsTest extends GeneratedColumnsHelper
              );
 
         // only RESTRICTed revocations allowed
-        expectCompilationError( ruthConnection, SYNTAX_ERROR, "revoke usage on derby aggregate mode_02 from ruth\n" );
+        expectCompilationError( ruthConnection, SYNTAX_ERROR, "revoke usage on db aggregate mode_02 from ruth\n" );
 
         // can't revoke USAGE from owner
         expectCompilationError
             (
              ruthConnection,
              GRANT_REVOKE_NOT_ALLOWED,
-             "revoke usage on derby aggregate mode_02 from ruth restrict\n"
+             "revoke usage on db aggregate mode_02 from ruth restrict\n"
              );
 
-        String grantUsage = "grant usage on derby aggregate mode_02 to alice\n";
-        String revokeUsage = "revoke usage on derby aggregate mode_02 from alice restrict\n";
+        String grantUsage = "grant usage on db aggregate mode_02 to alice\n";
+        String revokeUsage = "revoke usage on db aggregate mode_02 from alice restrict\n";
         String createStatement;
         String dropStatement;
         String badRevokeSQLState;
@@ -353,9 +339,9 @@ public class UDAPermsTest extends GeneratedColumnsHelper
         String grantUsage = "grant usage on type Price to public";
         String revokeUsage = "revoke usage on type Price from public restrict";
         String createStatement =
-            "create derby aggregate priceMode for ruth.Price\n" +
+            "create db aggregate priceMode for ruth.Price\n" +
             "external name 'org.apache.derbyTesting.functionTests.tests.lang.GenericMode'\n";
-        String dropStatement = "drop derby aggregate priceMode restrict";
+        String dropStatement = "drop db aggregate priceMode restrict";
         String badRevokeSQLState = ROUTINE_DEPENDS_ON_TYPE;
 
         verifyRevokePrivilege
@@ -389,9 +375,9 @@ public class UDAPermsTest extends GeneratedColumnsHelper
         grantUsage = "grant usage on type Price_input to public";
         revokeUsage = "revoke usage on type Price_input from public restrict";
         createStatement =
-            "create derby aggregate priceMode for ruth.Price_input returns ruth.Price_return\n" +
+            "create db aggregate priceMode for ruth.Price_input returns ruth.Price_return\n" +
             "external name 'org.apache.derbyTesting.functionTests.tests.lang.GenericMode'\n";
-        dropStatement = "drop derby aggregate priceMode restrict";
+        dropStatement = "drop db aggregate priceMode restrict";
         badRevokeSQLState = ROUTINE_DEPENDS_ON_TYPE;
         
         verifyRevokePrivilege
@@ -425,9 +411,9 @@ public class UDAPermsTest extends GeneratedColumnsHelper
         grantUsage = "grant usage on type Price_return_2 to public";
         revokeUsage = "revoke usage on type Price_return_2 from public restrict";
         createStatement =
-            "create derby aggregate priceMode for ruth.Price_input_2 returns ruth.Price_return_2\n" +
+            "create db aggregate priceMode for ruth.Price_input_2 returns ruth.Price_return_2\n" +
             "external name 'org.apache.derbyTesting.functionTests.tests.lang.GenericMode'\n";
-        dropStatement = "drop derby aggregate priceMode restrict";
+        dropStatement = "drop db aggregate priceMode restrict";
         badRevokeSQLState = ROUTINE_DEPENDS_ON_TYPE;
         
         verifyRevokePrivilege

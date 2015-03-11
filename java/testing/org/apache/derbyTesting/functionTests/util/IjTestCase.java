@@ -26,7 +26,7 @@ import java.io.OutputStream;
 import java.security.AccessController;
 import java.security.PrivilegedAction;
 
-import org.apache.derby.tools.ij;
+import com.splicemachine.db.tools.ij;
 import org.apache.derbyTesting.junit.SupportFilesSetup;
 
 

@@ -27,12 +27,12 @@ import java.nio.CharBuffer;
 import java.util.Arrays;
 
 import junit.framework.Test;
-import org.apache.derby.client.am.Agent;
-import org.apache.derby.client.am.LogWriter;
+import com.splicemachine.db.client.am.Agent;
+import com.splicemachine.db.client.am.LogWriter;
 
-import org.apache.derby.client.am.SqlException;
-import org.apache.derby.client.net.NetAgent;
-import org.apache.derby.client.net.Utf8CcsidManager;
+import com.splicemachine.db.client.am.SqlException;
+import com.splicemachine.db.client.net.NetAgent;
+import com.splicemachine.db.client.net.Utf8CcsidManager;
 import org.apache.derbyTesting.functionTests.util.TestNullOutputStream;
 import org.apache.derbyTesting.junit.BaseTestCase;
 import org.apache.derbyTesting.junit.TestConfiguration;

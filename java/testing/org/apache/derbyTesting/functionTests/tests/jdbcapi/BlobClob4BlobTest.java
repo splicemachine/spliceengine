@@ -1594,7 +1594,7 @@ public class BlobClob4BlobTest extends BaseJDBCTestCase {
         rs2.close(); 
     }
     /**
-     * Test fix for derby-1382.
+     * Test fix for db-1382.
      *
      * Test that the getClob() returns the correct value for the clob before and
      * after updating the clob when using result sets of type
@@ -1667,7 +1667,7 @@ public class BlobClob4BlobTest extends BaseJDBCTestCase {
     }
 
     /**
-     * Test fix for derby-1421.
+     * Test fix for db-1421.
      *
      * Test that the getClob() returns the correct value for the blob before and
      * after updating the Clob using the method updateCharacterStream().
@@ -2715,7 +2715,7 @@ public class BlobClob4BlobTest extends BaseJDBCTestCase {
     }
 
     /**
-     * Test fix for derby-1382.
+     * Test fix for db-1382.
      *
      * Test that the getBlob() returns the correct value for the blob before and
      * after updating the blob when using result sets of type
@@ -2790,7 +2790,7 @@ public class BlobClob4BlobTest extends BaseJDBCTestCase {
     }
 
     /**
-     * Test fix for derby-1421.
+     * Test fix for db-1421.
      *
      * Test that the getBlob() returns the correct value for the blob before and
      * after updating the blob using the method updateBinaryStream().
@@ -2967,7 +2967,7 @@ public class BlobClob4BlobTest extends BaseJDBCTestCase {
     }
 
     /**
-     * Test fix for derby-265.
+     * Test fix for db-265.
      * Test that if getBlob is called after the transaction
      * in which it was created is committed, a proper user error
      * is thrown instead of an NPE.
@@ -3022,7 +3022,7 @@ public class BlobClob4BlobTest extends BaseJDBCTestCase {
     }
 
     /**
-     * Test fix for derby-265.
+     * Test fix for db-265.
      * Test that if getClob is called after the transaction
      * in which it was created is committed, a proper user error
      * is thrown instead of an NPE.

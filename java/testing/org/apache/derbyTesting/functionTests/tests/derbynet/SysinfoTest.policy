@@ -117,9 +117,9 @@ grant codeBase "${derbyTesting.codejar}derby.jar" {
   // In that case the application would need to create
   // a whole set of fine-grained permissions to allow specific
   // users access to MBeans and actions they perform.
-  permission org.apache.derby.security.SystemPermission "jmx", "control";
-  permission org.apache.derby.security.SystemPermission "engine", "monitor";
-  permission org.apache.derby.security.SystemPermission "server", "monitor";  
+  permission com.splicemachine.db.security.SystemPermission "jmx", "control";
+  permission com.splicemachine.db.security.SystemPermission "engine", "monitor";
+  permission com.splicemachine.db.security.SystemPermission "server", "monitor";
  
   // These permissions are needed by AssertFailure to dump the thread stack
   // traces upon failure.
@@ -144,7 +144,7 @@ grant codeBase "${derbyTesting.codejar}derbynet.jar" {
   // Need to be able to write to trace file for NetworkServerControlApiTest
   permission java.io.FilePermission "${user.dir}${/}system${/}trace${/}-", "write"; 
   // Needed for NetworkServerMBean access (see JMX section above)
-  permission org.apache.derby.security.SystemPermission "server", "control,monitor";
+  permission com.splicemachine.db.security.SystemPermission "server", "control,monitor";
   
 };
 
@@ -227,21 +227,21 @@ grant codeBase "${derbyTesting.testjar}derbyTesting.jar" {
   
   // Allow MBeanTest to register the application management MBean.
   permission javax.management.MBeanServerPermission "createMBeanServer";
-  permission javax.management.MBeanPermission "org.apache.derby.mbeans.Management#[org.apache.derby:type=Management]","registerMBean,unregisterMBean";
-  permission javax.management.MBeanPermission "org.apache.derby.mbeans.Management#-[-]", "instantiate";
+  permission javax.management.MBeanPermission "com.splicemachine.db.mbeans.Management#[org.apache.derby:type=Management]","registerMBean,unregisterMBean";
+  permission javax.management.MBeanPermission "com.splicemachine.db.mbeans.Management#-[-]", "instantiate";
   permission javax.management.MBeanTrustPermission "register";
    
   // And to find and use Derby's MBeans
-  permission javax.management.MBeanPermission "org.apache.derby.mbeans.*#[org.apache.derby:*]", "getAttribute,invoke";
-  permission javax.management.MBeanPermission "org.apache.derby.mbeans.*#-[org.apache.derby:*]", "getMBeanInfo";
+  permission javax.management.MBeanPermission "com.splicemachine.db.mbeans.*#[org.apache.derby:*]", "getAttribute,invoke";
+  permission javax.management.MBeanPermission "com.splicemachine.db.mbeans.*#-[org.apache.derby:*]", "getMBeanInfo";
   permission javax.management.MBeanPermission "-#-[-]", "queryNames";
-  permission javax.management.MBeanPermission "org.apache.derby.mbeans.*#-[org.apache.derby:*]", "queryNames";
+  permission javax.management.MBeanPermission "com.splicemachine.db.mbeans.*#-[org.apache.derby:*]", "queryNames";
   
   // Test code needs this as well for the platform MBeanServer
   // tests where the testing code is in the stack frame.
-  permission org.apache.derby.security.SystemPermission "jmx", "control";
-  permission org.apache.derby.security.SystemPermission "engine", "monitor";
-  permission org.apache.derby.security.SystemPermission "server", "control,monitor";
+  permission com.splicemachine.db.security.SystemPermission "jmx", "control";
+  permission com.splicemachine.db.security.SystemPermission "engine", "monitor";
+  permission com.splicemachine.db.security.SystemPermission "server", "control,monitor";
   
   //client side: test execs another jvm with relative path
   permission java.io.FilePermission "<<ALL FILES>>", "execute";
@@ -302,8 +302,8 @@ grant codeBase "${derbyTesting.codeclasses}" {
   
     // Allow MBeanTest to register the application management MBean.
   permission javax.management.MBeanServerPermission "createMBeanServer";
-  permission javax.management.MBeanPermission "org.apache.derby.mbeans.Management#[org.apache.derby:type=Management]","registerMBean,unregisterMBean";
-  permission javax.management.MBeanPermission "org.apache.derby.mbeans.Management#-[-]", "instantiate";
+  permission javax.management.MBeanPermission "com.splicemachine.db.mbeans.Management#[org.apache.derby:type=Management]","registerMBean,unregisterMBean";
+  permission javax.management.MBeanPermission "com.splicemachine.db.mbeans.Management#-[-]", "instantiate";
   permission javax.management.MBeanTrustPermission "register";
   
   // Allows access to Derby's built-in MBeans, within the domain org.apache.derby.
@@ -311,16 +311,16 @@ grant codeBase "${derbyTesting.codeclasses}" {
   
    
   // And to find and use Derby's MBeans
-  permission javax.management.MBeanPermission "org.apache.derby.mbeans.*#[org.apache.derby:*]", "getAttribute,invoke";
-  permission javax.management.MBeanPermission "org.apache.derby.mbeans.*#-[org.apache.derby:*]", "getMBeanInfo";
+  permission javax.management.MBeanPermission "com.splicemachine.db.mbeans.*#[org.apache.derby:*]", "getAttribute,invoke";
+  permission javax.management.MBeanPermission "com.splicemachine.db.mbeans.*#-[org.apache.derby:*]", "getMBeanInfo";
   permission javax.management.MBeanPermission "-#-[-]", "queryNames";
-  permission javax.management.MBeanPermission "org.apache.derby.mbeans.*#-[org.apache.derby:*]", "queryNames";
+  permission javax.management.MBeanPermission "com.splicemachine.db.mbeans.*#-[org.apache.derby:*]", "queryNames";
   
   // Test code needs this as well for the platform MBeanServer
   // tests where the testing code is in the stack frame.
-  permission org.apache.derby.security.SystemPermission "jmx", "control";
-  permission org.apache.derby.security.SystemPermission "engine", "monitor";
-  permission org.apache.derby.security.SystemPermission "server", "control,monitor";
+  permission com.splicemachine.db.security.SystemPermission "jmx", "control";
+  permission com.splicemachine.db.security.SystemPermission "engine", "monitor";
+  permission com.splicemachine.db.security.SystemPermission "server", "control,monitor";
   
   //client side: test execs another jvm with relative path
   permission java.io.FilePermission "<<ALL FILES>>", "execute";

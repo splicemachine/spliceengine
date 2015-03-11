@@ -22,21 +22,21 @@
     xmlns="http://maven.apache.org/POM/4.0.0"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>org.apache.derby</groupId>
+  <groupId>com.splicemachine</groupId>
   <parent>
-    <groupId>org.apache.derby</groupId>
-    <artifactId>derby-project</artifactId>
-    <version>1.1.0-SNAPSHOT</version>
+    <groupId>com.splicemachine</groupId>
+    <artifactId>db-project</artifactId>
+    <version>1.1.0.1-SNAPSHOT</version>
   </parent>
-  <artifactId>derbynet</artifactId>
+  <artifactId>dbnet</artifactId>
   <name>Apache Derby Network Server</name>
   <description>Contains the Apache Derby network server, which allows remote clients to connect to Derby databases over a network connection using the Derby client JDBC driver.</description>
 
   <dependencies>
     <dependency>
-      <groupId>org.apache.derby</groupId>
-      <artifactId>derby</artifactId>
-      <version>1.1.0-SNAPSHOT</version>
+      <groupId>com.splicemachine</groupId>
+      <artifactId>db</artifactId>
+      <version>1.1.0.1-SNAPSHOT</version>
       <optional>false</optional>
     </dependency>
   </dependencies>

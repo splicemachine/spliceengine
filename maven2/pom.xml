@@ -22,14 +22,14 @@
     xmlns="http://maven.apache.org/POM/4.0.0"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
   <modelVersion>4.0.0</modelVersion>
-  <groupId>org.apache.derby</groupId>
+  <groupId>com.splicemachine</groupId>
   <parent>
     <groupId>org.apache</groupId>
     <artifactId>apache</artifactId>
     <version>10</version>
   </parent>
-  <artifactId>derby-project</artifactId>
-  <version>1.1.0-SNAPSHOT</version>
+  <artifactId>db-project</artifactId>
+  <version>1.1.0.1-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>Apache Derby Project</name>
   <description>Apache Derby is an open source relational database implemented entirely in Java.</description>
@@ -80,7 +80,7 @@
   <scm>
     <connection>scm:git:git@github.com:splicemachine/derby.git</connection>
     <developerConnection>scm:git:git@github.com:splicemachine/derby.git</developerConnection>
-    <url>https://github.com/splicemachine/derby</url>
+    <url>https://github.com/splicemachine/db</url>
   </scm>
   <distributionManagement>
     <repository>
@@ -103,7 +103,6 @@
     <module>tools</module>
     <module>run</module>
     <module>testing</module>
-    <module>war</module>
     <module>derbyLocale_cs</module>
     <module>derbyLocale_de_DE</module>
     <module>derbyLocale_es</module>

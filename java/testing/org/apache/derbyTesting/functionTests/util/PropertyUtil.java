@@ -20,13 +20,13 @@
  */
 
 package org.apache.derbyTesting.functionTests.util;
-import org.apache.derby.iapi.services.context.ContextService;
-import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.services.context.ContextService;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import java.io.Serializable;
 /**
     A bread for the internalUtil class
 */
-public abstract class PropertyUtil extends org.apache.derby.iapi.util.PropertyUtil
+public abstract class PropertyUtil extends com.splicemachine.db.iapi.util.PropertyUtil
 {
 	public static Serializable getDatabasePropertyDefault(String k) throws Exception
 	{

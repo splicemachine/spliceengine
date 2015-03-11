@@ -21,9 +21,7 @@
 
 package org.apache.derbyTesting.unitTests.harness;
 
-import org.apache.derby.iapi.services.monitor.Monitor;
-
-import org.apache.derbyTesting.unitTests.harness.UnitTestManager;
+import com.splicemachine.db.iapi.services.monitor.Monitor;
 
 import java.util.Properties;
 

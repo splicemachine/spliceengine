@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Builds derby for splice developers. 
+# Builds db for splice developers.
 # Pass in "sane" or "" for typical debug builds
 # Pass in "insane" for a production build
 # see BUILDING.html for more detail on sane vs. insane builds

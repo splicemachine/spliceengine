@@ -22,16 +22,12 @@
 package org.apache.derbyTesting.functionTests.tests.store;
 
 
-import org.apache.derby.iapi.services.sanity.SanityManager;
-
-import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Statement;
 
-import org.apache.derby.tools.ij;
+import com.splicemachine.db.tools.ij;
 
 
 /**
@@ -181,7 +177,7 @@ public class dropcrash extends BaseTest
         }
         catch (SQLException sqle)
         {
-			org.apache.derby.tools.JDBCDisplayUtil.ShowSQLException(
+			com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(
                 System.out, sqle);
 			sqle.printStackTrace(System.out);
 		}

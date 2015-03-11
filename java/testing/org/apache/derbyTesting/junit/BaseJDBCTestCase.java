@@ -40,9 +40,9 @@ import java.util.List;
 
 import junit.framework.AssertionFailedError;
 
-import org.apache.derby.iapi.sql.execute.RunTimeStatistics;
-import org.apache.derby.impl.jdbc.EmbedConnection;
-import org.apache.derby.tools.ij;
+import com.splicemachine.db.iapi.sql.execute.RunTimeStatistics;
+import com.splicemachine.db.impl.jdbc.EmbedConnection;
+import com.splicemachine.db.tools.ij;
 import org.apache.derbyTesting.functionTests.util.PrivilegedFileOpsForTests;
 import org.apache.derbyTesting.functionTests.util.TestNullOutputStream;
 

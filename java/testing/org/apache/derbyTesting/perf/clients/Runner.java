@@ -38,7 +38,7 @@ import java.util.HashMap;
 public class Runner {
 
     private static final String DERBY_EMBEDDED_DRIVER =
-            "org.apache.derby.jdbc.EmbeddedDriver";
+            "com.splicemachine.db.jdbc.EmbeddedDriver";
 
     private static final String DEFAULT_URL = "jdbc:derby:db;create=true";
 

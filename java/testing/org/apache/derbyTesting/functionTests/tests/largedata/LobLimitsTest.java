@@ -170,7 +170,7 @@ public class LobLimitsTest extends BaseJDBCTestCase {
         // Test - 2Gb blob ( actually it is 2gb -1)
         // Note with setBinaryStream interface the maximum size for the
         // stream, can be max value for an int.
-        // Also note, that lobs in derby currently supports
+        // Also note, that lobs in db currently supports
         // maximum size of 2gb -1
 
         // first do insert blob of 2g, 2 rows
@@ -1475,7 +1475,7 @@ class RandomCharReaderT extends java.io.Reader {
 }
 
 /**
- * Class used to simulate a 4GB Clob implementation to check whether derby
+ * Class used to simulate a 4GB Clob implementation to check whether db
  * implements such large Clobs correctly. Derby throws an error if the clob size
  * exceeds 2GB
  **/

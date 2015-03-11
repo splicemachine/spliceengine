@@ -40,26 +40,26 @@ import org.apache.derbyTesting.junit.TestConfiguration;
  * Test case for connect.sql. 
  */
 public class ConnectTest extends BaseJDBCTestCase{
-    
+
     public ConnectTest(String name) {
         super(name);
     }
-    
+
     public static Test suite() {
         if ( JDBC.vmSupportsJSR169())
             // Test uses DriverManager which
             // is not supported with JSR169
-            return 
-            new TestSuite("empty ConnectTest:DriverManager not supported");
+            return
+                    new TestSuite("empty ConnectTest:DriverManager not supported");
         else  {
-                TestSuite suite = new TestSuite("ConnectTest suite");  
-                suite.addTest(TestConfiguration.defaultSuite(ConnectTest.class));
-                // Derby2026 test uses explicit client connection so not relevant to embedded
-                suite.addTest(TestConfiguration.
-                            clientServerDecorator(new ConnectTest("clientTestDerby2026LoginTimeout")));
-                return new CleanDatabaseTestSetup(suite);
+            TestSuite suite = new TestSuite("ConnectTest suite");
+            suite.addTest(TestConfiguration.defaultSuite(ConnectTest.class));
+            // Derby2026 test uses explicit client connection so not relevant to embedded
+            suite.addTest(TestConfiguration.
+                    clientServerDecorator(new ConnectTest("clientTestDerby2026LoginTimeout")));
+            return new CleanDatabaseTestSetup(suite);
         }
-                  
+
     }
 
     /**
@@ -155,7 +155,7 @@ public class ConnectTest extends BaseJDBCTestCase{
      */
     public void clientTestDerby2026LoginTimeout() throws SQLException  {
         String url = "jdbc:derby://" + TestConfiguration.getCurrent().getHostName() +":" +
-        TestConfiguration.getCurrent().getPort() + "/" + TestConfiguration.getCurrent().getDefaultDatabaseName();
+                TestConfiguration.getCurrent().getPort() + "/" + TestConfiguration.getCurrent().getDefaultDatabaseName();
         try {
             DriverManager.setLoginTimeout(10);
             //System.out.println(url);
@@ -173,6 +173,6 @@ public class ConnectTest extends BaseJDBCTestCase{
         } finally {
             DriverManager.setLoginTimeout(0);
         }
-    }   
-    
+    }
+
 }

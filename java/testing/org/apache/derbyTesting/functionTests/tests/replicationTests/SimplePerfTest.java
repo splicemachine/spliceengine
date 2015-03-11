@@ -29,7 +29,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import junit.framework.Test;
 import junit.framework.TestSuite;
-import org.apache.derby.jdbc.ClientDataSource;
+import com.splicemachine.db.jdbc.ClientDataSource;
 import org.apache.derbyTesting.junit.BaseJDBCTestCase;
 import org.apache.derbyTesting.junit.SecurityManagerSetup;
 import org.apache.derbyTesting.junit.TestConfiguration;
@@ -137,7 +137,7 @@ public class SimplePerfTest extends BaseJDBCTestCase
     private Connection clientConnection(String hostName, int portNo, String dbPath)
             throws SQLException
     {
-        ClientDataSource ds = new org.apache.derby.jdbc.ClientDataSource();
+        ClientDataSource ds = new com.splicemachine.db.jdbc.ClientDataSource();
         ds.setDatabaseName(dbPath);
         ds.setServerName(hostName);
         ds.setPortNumber(portNo);

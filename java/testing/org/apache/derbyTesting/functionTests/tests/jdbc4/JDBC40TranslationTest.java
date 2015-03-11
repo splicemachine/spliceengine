@@ -21,8 +21,7 @@ package org.apache.derbyTesting.functionTests.tests.jdbc4;
 
 import java.sql.DatabaseMetaData;
 import java.sql.Types;
-import org.apache.derby.shared.common.reference.JDBC40Translation;
-import org.apache.derbyTesting.junit.BaseJDBCTestCase;
+import com.splicemachine.db.shared.common.reference.JDBC40Translation;
 import org.apache.derbyTesting.junit.BaseTestCase;
 import org.apache.derbyTesting.junit.TestConfiguration;
 import junit.framework.Test;

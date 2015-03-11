@@ -38,9 +38,8 @@ import java.io.BufferedReader;
 import java.io.FileReader;
 import java.io.File;
 
-import org.apache.derby.tools.dblook;
-import org.apache.derby.tools.ij;
-import org.apache.derby.catalog.DependableFinder;
+import com.splicemachine.db.tools.dblook;
+import com.splicemachine.db.catalog.DependableFinder;
 import org.apache.derbyTesting.functionTests.util.TestUtil;
 
 
@@ -54,75 +53,75 @@ import java.util.StringTokenizer;
 
 public class dblook_test {
 
-	private static final int SERVER_PORT = 1527;
-	private static final int FRONT = -1;
-	private static final int REAR = 1;
+    private static final int SERVER_PORT = 1527;
+    private static final int FRONT = -1;
+    private static final int REAR = 1;
 
-	protected static final String dbCreationScript_1 = "dblook_makeDB.sql";
-	protected static final String dbCreationScript_2 = "dblook_makeDB_2.sql";
-	private static final char TEST_DELIMITER='#';
+    protected static final String dbCreationScript_1 = "dblook_makeDB.sql";
+    protected static final String dbCreationScript_2 = "dblook_makeDB_2.sql";
+    private static final char TEST_DELIMITER='#';
 
-	protected static String testDirectory = "dblook_test";
-	protected static String testDBName = "wombat";
-	protected static String separator;
+    protected static String testDirectory = "dblook_test";
+    protected static String testDBName = "wombat";
+    protected static String separator;
 
-	private static String dbPath;
-	private static int duplicateCounter = 0;
-	private static int sysNameCount = 0;
-	private static String jdbcProtocol;
-	protected static String territoryBased = "";
-	protected static String expectedCollation = "UCS_BASIC";
+    private static String dbPath;
+    private static int duplicateCounter = 0;
+    private static int sysNameCount = 0;
+    private static String jdbcProtocol;
+    protected static String territoryBased = "";
+    protected static String expectedCollation = "UCS_BASIC";
 
 	/* **********************************************
 	 * main:
 	 ****/
 
-	public static void main (String[] args) {
+    public static void main (String[] args) {
 
-		separator = System.getProperty("file.separator");
-		new dblook_test().doTest();
-		System.out.println("\n[ Done. ]\n");
-		renameDbLookLog("dblook_test");
+        separator = System.getProperty("file.separator");
+        new dblook_test().doTest();
+        System.out.println("\n[ Done. ]\n");
+        renameDbLookLog("dblook_test");
 
-	}
+    }
 
 	/* **********************************************
 	 * doTest
 	 * Run a full test of the dblook utility.
 	 ****/
 
-	protected void doTest() {
+    protected void doTest() {
 
-		try {
+        try {
 
-			// Test full dblook functionality.
-			System.out.println("\n-= Start dblook Functional Tests. =-");
-			createTestDatabase(dbCreationScript_1);
-			runDBLook(testDBName);
+            // Test full dblook functionality.
+            System.out.println("\n-= Start dblook Functional Tests. =-");
+            createTestDatabase(dbCreationScript_1);
+            runDBLook(testDBName);
 
-			// Test dblook messages.
-			System.out.println("\n-= Start dblook Message Tests =-");
-			createTestDatabase(dbCreationScript_2);
-			runMessageCheckTest(testDBName);
+            // Test dblook messages.
+            System.out.println("\n-= Start dblook Message Tests =-");
+            createTestDatabase(dbCreationScript_2);
+            runMessageCheckTest(testDBName);
 
-		} catch (SQLException se) {
+        } catch (SQLException se) {
 
-			System.out.println("FAILED: to complete the test:");
-			se.printStackTrace(System.out);
-			for (se = se.getNextException(); se != null;
-				se = se.getNextException())
-			{
-				se.printStackTrace(System.out);
-			}
-		
-		} catch (Exception e) {
+            System.out.println("FAILED: to complete the test:");
+            se.printStackTrace(System.out);
+            for (se = se.getNextException(); se != null;
+                 se = se.getNextException())
+            {
+                se.printStackTrace(System.out);
+            }
 
-			System.out.println("FAILED: to complete the test:");
-			e.printStackTrace(System.out);
+        } catch (Exception e) {
 
-		}
+            System.out.println("FAILED: to complete the test:");
+            e.printStackTrace(System.out);
 
-	}
+        }
+
+    }
 
 	/* **********************************************
 	 * createTestDatabase:
@@ -137,28 +136,28 @@ public class dblook_test {
 	 *  "./dblook/" (as created by the harness).
 	 ****/
 
-	protected void createTestDatabase(String scriptName)
-		throws Exception
-	{
+    protected void createTestDatabase(String scriptName)
+            throws Exception
+    {
 
-		// Delete existing database, if it exists.
-		try {
-			deleteDB(testDBName);
-		} catch (Exception e) {
-			System.out.println("** Warning: failed to delete " +
-				"old test db before creating a new one...");
-		}
+        // Delete existing database, if it exists.
+        try {
+            deleteDB(testDBName);
+        } catch (Exception e) {
+            System.out.println("** Warning: failed to delete " +
+                    "old test db before creating a new one...");
+        }
 
-		Class.forName("org.apache.derby.jdbc.EmbeddedDriver").newInstance();
-		jdbcProtocol = "jdbc:derby:";
-		createDBFromDDL(testDBName, scriptName);
+		Class.forName("com.splicemachine.db.jdbc.EmbeddedDriver").newInstance();
+        jdbcProtocol = "jdbc:derby:";
+        createDBFromDDL(testDBName, scriptName);
 
-		// Figure out where our database directory is (abs path).
-		String systemhome = System.getProperty("derby.system.home");
-		dbPath = systemhome + File.separatorChar;
-		return;
+        // Figure out where our database directory is (abs path).
+        String systemhome = System.getProperty("derby.system.home");
+        dbPath = systemhome + File.separatorChar;
+        return;
 
-	}
+    }
 
 	/* **********************************************
 	 * runDBLook:
@@ -171,51 +170,51 @@ public class dblook_test {
 	 *  has been run.
 	 ****/
 
-	private void runDBLook(String dbName)
-		throws Exception
-	{
+    private void runDBLook(String dbName)
+            throws Exception
+    {
 
-		// Close the error stream, so that messages
-		// printed to System.err aren't intermixed
-		// with our output (otherwise, the order
-		// of the System.out vs System.err is
-		// arbitrary (because of the way the harness
-		// works), and so we will get diffs with
-		// the master.
-		System.err.close();
+        // Close the error stream, so that messages
+        // printed to System.err aren't intermixed
+        // with our output (otherwise, the order
+        // of the System.out vs System.err is
+        // arbitrary (because of the way the harness
+        // works), and so we will get diffs with
+        // the master.
+        System.err.close();
 
-		// First, we dump all system catalogs for
-		// the original source database to file.
-		dumpSysCatalogs(dbName);
+        // First, we dump all system catalogs for
+        // the original source database to file.
+        dumpSysCatalogs(dbName);
 
-		// Then, we run dblook on the source database
-		// with no limitations (i.e. we generate the
-		// DDL for the FULL database).
-		lookOne(dbName);
-		dumpFileToSysOut("dblook.log");
+        // Then, we run dblook on the source database
+        // with no limitations (i.e. we generate the
+        // DDL for the FULL database).
+        lookOne(dbName);
+        dumpFileToSysOut("dblook.log");
 
-		// Now, create new db from the DDL that
-		// was generated by dblook.
-		String newDBName = dbName + "_new";
-		createDBFromDDL(newDBName, dbName + ".sql");
-		deleteFile(new File(dbName + ".sql"));
+        // Now, create new db from the DDL that
+        // was generated by dblook.
+        String newDBName = dbName + "_new";
+        createDBFromDDL(newDBName, dbName + ".sql");
+        deleteFile(new File(dbName + ".sql"));
 
-		// Dump all system catalogs for the database
-		// that was created from the DDL generated
-		// by dblook.
-		dumpSysCatalogs(newDBName);
+        // Dump all system catalogs for the database
+        // that was created from the DDL generated
+        // by dblook.
+        dumpSysCatalogs(newDBName);
 
-		// Delete the new database.
-		deleteDB(newDBName);
-		deleteFile(new File(newDBName + ".sql"));
+        // Delete the new database.
+        deleteDB(newDBName);
+        deleteFile(new File(newDBName + ".sql"));
 
-		// Run dblook on the source database
-		// with various parameter configurations,
-		// to make sure they are all working as
-		// planned.
-		runAllTests(dbName, newDBName);
+        // Run dblook on the source database
+        // with various parameter configurations,
+        // to make sure they are all working as
+        // planned.
+        runAllTests(dbName, newDBName);
 
-	}
+    }
 
 	/* **********************************************
 	 * runAllTests:
@@ -228,22 +227,22 @@ public class dblook_test {
 	 *  dblook) for the source database.
 	 ****/
 
-	protected void runAllTests(String dbName,
-		String newDBName) throws Exception
-	{
+    protected void runAllTests(String dbName,
+                               String newDBName) throws Exception
+    {
 
-		runTest(2, dbName, newDBName);
+        runTest(2, dbName, newDBName);
 
-		// Test 3 is run as part of derbynet suite;
-		// see derbynet/dblook_test_net.java.
+        // Test 3 is run as part of derbynet suite;
+        // see derbynet/dblook_test_net.java.
 
-		runTest(4, dbName, newDBName);
-		runTest(5, dbName, newDBName);
-		runTest(7, dbName, newDBName);
-		runTest(6, dbName, newDBName);
-		return;
+        runTest(4, dbName, newDBName);
+        runTest(5, dbName, newDBName);
+        runTest(7, dbName, newDBName);
+        runTest(6, dbName, newDBName);
+        return;
 
-	}
+    }
 
 	/* **********************************************
 	 * runTest:
@@ -272,48 +271,48 @@ public class dblook_test {
 	 *  been deleted.
 	 ****/
 
-	protected void runTest(int whichTest, String dbName,
-		String newDBName)
-	{
+    protected void runTest(int whichTest, String dbName,
+                           String newDBName)
+    {
 
-		try {
+        try {
 
-			switch(whichTest) {
-				case 2:		lookTwo(dbName); break;
-				case 3:		lookThree(dbName); break;
-				case 4:		lookFour(dbName); break;
-				case 5:		lookFive(dbName); break;
-				case 6:		lookSix(dbName); break;
-				case 7:		lookSeven(dbName); break;
-				default:	break;
-			}
+            switch(whichTest) {
+                case 2:		lookTwo(dbName); break;
+                case 3:		lookThree(dbName); break;
+                case 4:		lookFour(dbName); break;
+                case 5:		lookFive(dbName); break;
+                case 6:		lookSix(dbName); break;
+                case 7:		lookSeven(dbName); break;
+                default:	break;
+            }
 
-			dumpFileToSysOut("dblook.log");
-			createDBFromDDL(newDBName, dbName + ".sql");
-			dumpSysCatalogs(newDBName);
-			deleteDB(newDBName);
-			deleteFile(new File(dbName + ".sql"));
+            dumpFileToSysOut("dblook.log");
+            createDBFromDDL(newDBName, dbName + ".sql");
+            dumpSysCatalogs(newDBName);
+            deleteDB(newDBName);
+            deleteFile(new File(dbName + ".sql"));
 
-		} catch (SQLException e) {
+        } catch (SQLException e) {
 
-			System.out.println("FAILED: Test # : " + whichTest);
-			e.printStackTrace(System.out);
-			for (e = e.getNextException(); e != null;
-				e = e.getNextException())
-			{
-				e.printStackTrace(System.out);
-			}
+            System.out.println("FAILED: Test # : " + whichTest);
+            e.printStackTrace(System.out);
+            for (e = e.getNextException(); e != null;
+                 e = e.getNextException())
+            {
+                e.printStackTrace(System.out);
+            }
 
-		} catch (Exception e) {
+        } catch (Exception e) {
 
-			System.out.println("FAILED: Test # : " + whichTest);
-			e.printStackTrace(System.out);
+            System.out.println("FAILED: Test # : " + whichTest);
+            e.printStackTrace(System.out);
 
-		}
+        }
 
-		return;
+        return;
 
-	}
+    }
 
 	/* **********************************************
 	 * lookOne:
@@ -326,22 +325,22 @@ public class dblook_test {
 	 *  called <dbName + ".sql">.
 	 ****/
 
-	private void lookOne(String dbName)
-		throws Exception
-	{
+    private void lookOne(String dbName)
+            throws Exception
+    {
 
-		printAsHeader("\nDumping full schema for '" +
-			dbName + "'\nto file '" + dbName + ".sql':\n");
+        printAsHeader("\nDumping full schema for '" +
+                dbName + "'\nto file '" + dbName + ".sql':\n");
 
-		String [] args = new String[] {
-			"-o", dbName + ".sql",
-			"-td", ""
-		};
+        String [] args = new String[] {
+                "-o", dbName + ".sql",
+                "-td", ""
+        };
 
-		go(dbName, args);
-		return;
+        go(dbName, args);
+        return;
 
-	}
+    }
 
 	/* **********************************************
 	 * lookTwo:
@@ -355,24 +354,24 @@ public class dblook_test {
 	 *  and written to a file called <dbName + ".sql">.
 	 ****/
 
-	private void lookTwo(String dbName)
-		throws Exception
-	{
+    private void lookTwo(String dbName)
+            throws Exception
+    {
 
-		printAsHeader("\nDumping DDL for all objects " +
-			"with schema\n'BAR', excluding views:\n");
- 
-		String [] args = new String[] {
-			"-o", dbName + ".sql",
-			"-td", "",
-			"-z", "bar",
-			"-noview"
-		};
+        printAsHeader("\nDumping DDL for all objects " +
+                "with schema\n'BAR', excluding views:\n");
 
-		go(dbName, args);
-		return;
+        String [] args = new String[] {
+                "-o", dbName + ".sql",
+                "-td", "",
+                "-z", "bar",
+                "-noview"
+        };
 
-	}
+        go(dbName, args);
+        return;
+
+    }
 
 	/* **********************************************
 	 * lookThree:
@@ -385,49 +384,49 @@ public class dblook_test {
 	 *  and written to a file called <dbName + ".sql">.
 	 ****/
 
-	private void lookThree(String dbName)
-		throws Exception
-	{
+    private void lookThree(String dbName)
+            throws Exception
+    {
 
-		printAsHeader("\nDumping DDL for all objects, " +
-			"using\nNetwork Server:\n");
-		String hostName = TestUtil.getHostName();
-		jdbcProtocol = TestUtil.getJdbcUrlPrefix(hostName,SERVER_PORT);
+        printAsHeader("\nDumping DDL for all objects, " +
+                "using\nNetwork Server:\n");
+        String hostName = TestUtil.getHostName();
+        jdbcProtocol = TestUtil.getJdbcUrlPrefix(hostName,SERVER_PORT);
 
-		String sourceDBUrl;
-		if (TestUtil.isJCCFramework())
-			sourceDBUrl = jdbcProtocol + "\"" + dbPath +
-				separator + dbName + "\":user=app;password=apppw;";
-		else
-			sourceDBUrl = jdbcProtocol + dbPath +
-			separator + dbName + ";user=app;password=apppw";
+        String sourceDBUrl;
+        if (TestUtil.isJCCFramework())
+            sourceDBUrl = jdbcProtocol + "\"" + dbPath +
+                    separator + dbName + "\":user=app;password=apppw;";
+        else
+            sourceDBUrl = jdbcProtocol + dbPath +
+                    separator + dbName + ";user=app;password=apppw";
 
-		// Make sure we're not connected to the database
-		// (we connected to it in embedded mode when we
-		// created it, so we have to shut it down).
-		try {
-			DriverManager.getConnection(
-				"jdbc:derby:" + dbName +
-				";shutdown=true;user=app;password=apppw");
-		} catch (SQLException e) {}
+        // Make sure we're not connected to the database
+        // (we connected to it in embedded mode when we
+        // created it, so we have to shut it down).
+        try {
+            DriverManager.getConnection(
+                    "jdbc:derby:" + dbName +
+                            ";shutdown=true;user=app;password=apppw");
+        } catch (SQLException e) {}
 
-		// Run the test.
-		try {
+        // Run the test.
+        try {
 
-			new dblook(new String[] {
-				"-d", sourceDBUrl,
-				"-o", dbName + ".sql",
-				"-td", "" }
-			);
+            new dblook(new String[] {
+                    "-d", sourceDBUrl,
+                    "-o", dbName + ".sql",
+                    "-td", "" }
+            );
 
-		} catch (Exception e) {
-			System.out.println("FAILED: ");
-			e.printStackTrace(System.out);
-		}
+        } catch (Exception e) {
+            System.out.println("FAILED: ");
+            e.printStackTrace(System.out);
+        }
 
-		return;
+        return;
 
-	}
+    }
 
 	/* **********************************************
 	 * lookFour:
@@ -442,25 +441,25 @@ public class dblook_test {
 	 *  and written to a file called <dbName + ".sql">.
 	 ****/
 
-	private void lookFour(String dbName)
-		throws Exception
-	{
+    private void lookFour(String dbName)
+            throws Exception
+    {
 
-		printAsHeader("\nDumping DDL for all objects " +
-			"with schema 'BAR'\nthat are related to tables " +
-			"'T3', 'tWithKeys',\nand 'MULTI WORD NAME':\n");
- 
-		String [] args = new String [] {
-			"-o", dbName + ".sql",
-			"-td", "",
-			"-z", "BAR",
-			"-t", "t3", "\"tWithKeys\"", "Multi word name"
-		};
+        printAsHeader("\nDumping DDL for all objects " +
+                "with schema 'BAR'\nthat are related to tables " +
+                "'T3', 'tWithKeys',\nand 'MULTI WORD NAME':\n");
 
-		go(dbName, args);
-		return;
+        String [] args = new String [] {
+                "-o", dbName + ".sql",
+                "-td", "",
+                "-z", "BAR",
+                "-t", "t3", "\"tWithKeys\"", "Multi word name"
+        };
 
-	}
+        go(dbName, args);
+        return;
+
+    }
 
 	/* **********************************************
 	 * lookFive:
@@ -475,23 +474,23 @@ public class dblook_test {
 	 *  and written to a file called <dbName + ".sql">.
 	 ****/
 
-	private void lookFive(String dbName)
-		throws Exception
-	{
+    private void lookFive(String dbName)
+            throws Exception
+    {
 
-		printAsHeader("\nDumping DDL for all objects " +
-			"related to 'T1'\nand 'TWITHKEYS':\n");
- 
-		String [] args = new String [] {
-			"-o", dbName + ".sql",
-			"-td", "",
-			"-t", "t1", "tWithKeys"
-		};
+        printAsHeader("\nDumping DDL for all objects " +
+                "related to 'T1'\nand 'TWITHKEYS':\n");
 
-		go(dbName, args);
-		return;
+        String [] args = new String [] {
+                "-o", dbName + ".sql",
+                "-td", "",
+                "-t", "t1", "tWithKeys"
+        };
 
-	}
+        go(dbName, args);
+        return;
+
+    }
 
 	/* **********************************************
 	 * lookSix:
@@ -504,20 +503,20 @@ public class dblook_test {
 	 *  and written to a file called <dbName + ".sql">.
 	 ****/
 
-	private void lookSix(String dbName)
-		throws Exception
-	{
+    private void lookSix(String dbName)
+            throws Exception
+    {
 
-		printAsHeader("\nDumping DDL w/ invalid url, and " +
-			"writing\nerror to the log:\n");
- 
-		// Url is intentionally incorrect; it will cause an error.
-		new dblook(new String[] {
-			"-o", dbName + ".sql",
-			"-d", dbName }
-		);
+        printAsHeader("\nDumping DDL w/ invalid url, and " +
+                "writing\nerror to the log:\n");
 
-	}
+        // Url is intentionally incorrect; it will cause an error.
+        new dblook(new String[] {
+                "-o", dbName + ".sql",
+                "-d", dbName }
+        );
+
+    }
 
 	/* **********************************************
 	 * lookSeven:
@@ -530,23 +529,23 @@ public class dblook_test {
 	 *  and written to a file called <dbName + ".sql">.
 	 ****/
 
-	private void lookSeven(String dbName)
-		throws Exception
-	{
+    private void lookSeven(String dbName)
+            throws Exception
+    {
 
-		printAsHeader("\nDumping DDL for all objects " +
-			"with schema\n'\"Quoted\"Schema\"':\n");
- 
-		String [] args = new String[] {
-			"-o", dbName + ".sql",
-			"-td", "",
-			"-z", "\"\"Quoted\"Schema\"\""
-		};
+        printAsHeader("\nDumping DDL for all objects " +
+                "with schema\n'\"Quoted\"Schema\"':\n");
 
-		go(dbName, args);
-		return;
+        String [] args = new String[] {
+                "-o", dbName + ".sql",
+                "-td", "",
+                "-z", "\"\"Quoted\"Schema\"\""
+        };
 
-	}
+        go(dbName, args);
+        return;
+
+    }
 
 	/* **********************************************
 	 * go:
@@ -558,138 +557,138 @@ public class dblook_test {
 	 *  the dblook command.
 	 ****/
 
-	private void go(String dbName, String [] args) {
+    private void go(String dbName, String [] args) {
 
-		jdbcProtocol = "jdbc:derby:";
-		String sourceDBUrl = jdbcProtocol + dbPath +
-			separator + dbName + ";user=app;password=apppw";
+        jdbcProtocol = "jdbc:derby:";
+        String sourceDBUrl = jdbcProtocol + dbPath +
+                separator + dbName + ";user=app;password=apppw";
 
-		String [] fullArgs = new String[args.length+2];
-		fullArgs[0] = "-d";
-		fullArgs[1] = sourceDBUrl;
-		for (int i = 2; i < fullArgs.length; i++)
-			fullArgs[i] = args[i-2];
+        String [] fullArgs = new String[args.length+2];
+        fullArgs[0] = "-d";
+        fullArgs[1] = sourceDBUrl;
+        for (int i = 2; i < fullArgs.length; i++)
+            fullArgs[i] = args[i-2];
 
-		try {
-			new dblook(fullArgs);
-		} catch (Exception e) {
-			System.out.println("FAILED: to run dblook: ");
-			e.printStackTrace(System.out);
-		}
+        try {
+            new dblook(fullArgs);
+        } catch (Exception e) {
+            System.out.println("FAILED: to run dblook: ");
+            e.printStackTrace(System.out);
+        }
 
-	}
+    }
 
-	/* **********************************************
-	 * runMessageCheckTest
-	 * Run dblook and verify that all of the dblook
-	 * messages are correctly displayed.
-	 * @param dbName The name of the source database (i.e.
-	 *  the database for which the DDL is generated).
-	 * @return The DDL for a simple database, plus all
-	 *  dblook messages, have been generated and written
-	 *  to System.out.
-	 ****/
-	private void runMessageCheckTest(String dbName)
-		throws Exception
-	{
+    /* **********************************************
+     * runMessageCheckTest
+     * Run dblook and verify that all of the dblook
+     * messages are correctly displayed.
+     * @param dbName The name of the source database (i.e.
+     *  the database for which the DDL is generated).
+     * @return The DDL for a simple database, plus all
+     *  dblook messages, have been generated and written
+     *  to System.out.
+     ****/
+    private void runMessageCheckTest(String dbName)
+            throws Exception
+    {
 
-		// #1: First, run DB look standard to check for
-		// all of the "header" messages that are printed
-		// out along with DDL.
-		System.out.println("\n************\n" +
-			"Msg Test 1\n" +
-			"************\n");
-		lookOne(dbName);
-		dumpFileToSysOut(dbName + ".sql");
-		dumpFileToSysOut("dblook.log");
+        // #1: First, run DB look standard to check for
+        // all of the "header" messages that are printed
+        // out along with DDL.
+        System.out.println("\n************\n" +
+                "Msg Test 1\n" +
+                "************\n");
+        lookOne(dbName);
+        dumpFileToSysOut(dbName + ".sql");
+        dumpFileToSysOut("dblook.log");
 
-		// Now, we have to run some additional dblook commands
-		// to get the "non-standard" messages.
+        // Now, we have to run some additional dblook commands
+        // to get the "non-standard" messages.
 
-		// #2: Specify a target table and target schema, to
-		// make sure they are echoed correctly.  Also, specify
-		// an output file to make sure the file creation header
-		// is printed in the file.
-		System.out.println(
-			"\n************\n" +
-			"Msg Test 2\n" +
-			"************\n");
-		go(dbName, new String [] {
-				"-t", "t1",
-				"-z", "bar",
-				"-o", dbName + ".sql"
-			});
-		dumpFileToSysOut(dbName + ".sql");
-		dumpFileToSysOut("dblook.log");
+        // #2: Specify a target table and target schema, to
+        // make sure they are echoed correctly.  Also, specify
+        // an output file to make sure the file creation header
+        // is printed in the file.
+        System.out.println(
+                "\n************\n" +
+                        "Msg Test 2\n" +
+                        "************\n");
+        go(dbName, new String [] {
+                "-t", "t1",
+                "-z", "bar",
+                "-o", dbName + ".sql"
+        });
+        dumpFileToSysOut(dbName + ".sql");
+        dumpFileToSysOut("dblook.log");
 
-		// #3: Run without specifying a database, to make
-		// sure the usage message is printed to System.out
-		System.out.println(
-			"\n************\n" +
-			"Msg Test 3\n" +
-			"************\n");
-		try {
-			new dblook(new String[] { "-verbose" });
-		} catch (Exception e) {
-			System.out.println("FAILED: to run dblook: ");
-			e.printStackTrace(System.out);
-		}
+        // #3: Run without specifying a database, to make
+        // sure the usage message is printed to System.out
+        System.out.println(
+                "\n************\n" +
+                        "Msg Test 3\n" +
+                        "************\n");
+        try {
+            new dblook(new String[] { "-verbose" });
+        } catch (Exception e) {
+            System.out.println("FAILED: to run dblook: ");
+            e.printStackTrace(System.out);
+        }
 
-		// #4: Just to confirm, try once with a statement
-		// delimiter, to make sure it's actually working
-		// correctly (this isn't a "message" per se, but
-		// still, it's worth verifying).
-		System.out.println(
-			"\n************\n" +
-			"Msg Test 4\n" +
-			"************\n");
-		go(dbName, new String [] {
-				"-td", " " + TEST_DELIMITER
-			});
+        // #4: Just to confirm, try once with a statement
+        // delimiter, to make sure it's actually working
+        // correctly (this isn't a "message" per se, but
+        // still, it's worth verifying).
+        System.out.println(
+                "\n************\n" +
+                        "Msg Test 4\n" +
+                        "************\n");
+        go(dbName, new String [] {
+                "-td", " " + TEST_DELIMITER
+        });
 
-		// #5: Intentionally create an error while loading
-		// a jar file, to make sure the resultant message is
-		// printed correctly.
-		System.out.println(
-			"\n************\n" +
-			"Msg Test 5\n" +
-			"************\n");
+        // #5: Intentionally create an error while loading
+        // a jar file, to make sure the resultant message is
+        // printed correctly.
+        System.out.println(
+                "\n************\n" +
+                        "Msg Test 5\n" +
+                        "************\n");
 
-		// We'll cause the error by going in and deleting
-		// the jar file from the test database.  First,
-		// get the jar path.
-		String jarPath = (new
-			File(dbPath + separator + dbName)).getAbsolutePath();
+        // We'll cause the error by going in and deleting
+        // the jar file from the test database.  First,
+        // get the jar path.
+        String jarPath = (new
+                File(dbPath + separator + dbName)).getAbsolutePath();
 
-		// Have to shut db down before we can mess with it.
-		try {
-			Connection conn =
-				DriverManager.getConnection("jdbc:derby:" + 
-					jarPath + ";shutdown=true,user=app;password=apppw");
-			conn.close();
-		} catch (SQLException se) {
-		// shutdown exception.
-		}
+        // Have to shut db down before we can mess with it.
+        try {
+            Connection conn =
+                    DriverManager.getConnection("jdbc:derby:" +
+                            jarPath + ";shutdown=true,user=app;password=apppw");
+            conn.close();
+        } catch (SQLException se) {
+            // shutdown exception.
+        }
 
-		jarPath = jarPath + separator + "jar";
-		deleteFile(new File(jarPath));
+        jarPath = jarPath + separator + "jar";
+        deleteFile(new File(jarPath));
 
-		// Now that we've deleted the jar file, run dblook
-		// and check the error.
-		go(dbName, new String [] { 
-				"-verbose",
-				"-o", dbName + ".sql"
-			});
-		dumpFileToSysOut("dblook.log");
+        // Now that we've deleted the jar file, run dblook
+        // and check the error.
+        go(dbName, new String [] {
+                "-verbose",
+                "-o", dbName + ".sql"
+        });
+        dumpFileToSysOut("dblook.log");
 
-		// Clean up.
-		try {
-			deleteFile(new File(dbName + ".sql"));
-		} catch (Exception e) {
-		// not too big of a deal if we fail; just ignore...
-		}
+        // Clean up.
+        try {
+            deleteFile(new File(dbName + ".sql"));
+        } catch (Exception e) {
+            // not too big of a deal if we fail; just ignore...
+        }
 
-	}
+    }
 
 	/* **********************************************
 	 * dumpSysCatalogs:
@@ -710,148 +709,148 @@ public class dblook_test {
 	 *  to output.
 	 ****/
 
-	private void dumpSysCatalogs(String dbName)
-		throws Exception
-	{
+    private void dumpSysCatalogs(String dbName)
+            throws Exception
+    {
 
-		System.out.println("\nDumping system tables for '" + dbName + "'\n");
+        System.out.println("\nDumping system tables for '" + dbName + "'\n");
 
-		writeOut("\n----------------=================---------------");
-		writeOut("System Tables for: " + dbName);
-		writeOut("----------------=================---------------\n");
+        writeOut("\n----------------=================---------------");
+        writeOut("System Tables for: " + dbName);
+        writeOut("----------------=================---------------\n");
 
-		// Connect to the database.
-		Connection conn = DriverManager.getConnection(
-				"jdbc:derby:" + dbName + ";user=app;password=apppw");
-		conn.setAutoCommit(false);
+        // Connect to the database.
+        Connection conn = DriverManager.getConnection(
+                "jdbc:derby:" + dbName + ";user=app;password=apppw");
+        conn.setAutoCommit(false);
 
-		// Set the system schema to ensure that UCS_BASIC collation is used.
-		Statement stmt = conn.createStatement();
-		stmt.executeUpdate("SET SCHEMA SYS");
+        // Set the system schema to ensure that UCS_BASIC collation is used.
+        Statement stmt = conn.createStatement();
+        stmt.executeUpdate("SET SCHEMA SYS");
 
-		// Ensure that the database has the expected collation type. 
-		ResultSet rs = null;
-		try {
-			rs = stmt.executeQuery("VALUES SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('derby.database.collation')");
-			rs.next();
-			String collation = rs.getString(1); 
-			if (collation == null || !collation.equals(expectedCollation)) {
-				throw new SQLException("Collation doesn't match with the expected type " + 
-						expectedCollation);
-			}
-		} catch (Exception e) {
-			System.out.println("FAILED: incorrect database collation\n");
-			System.out.println(e.getMessage());
-		} finally {
-			if (rs != null) {
-				rs.close();
-			}
-		}
+        // Ensure that the database has the expected collation type.
+        ResultSet rs = null;
+        try {
+            rs = stmt.executeQuery("VALUES SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('derby.database.collation')");
+            rs.next();
+            String collation = rs.getString(1);
+            if (collation == null || !collation.equals(expectedCollation)) {
+                throw new SQLException("Collation doesn't match with the expected type " +
+                        expectedCollation);
+            }
+        } catch (Exception e) {
+            System.out.println("FAILED: incorrect database collation\n");
+            System.out.println(e.getMessage());
+        } finally {
+            if (rs != null) {
+                rs.close();
+            }
+        }
 
-		// Load any id-to-name mappings that will be useful
-		// when dumping the catalogs.
-		HashMap idToNameMap = loadIdMappings(stmt, conn);
+        // Load any id-to-name mappings that will be useful
+        // when dumping the catalogs.
+        HashMap idToNameMap = loadIdMappings(stmt, conn);
 
-		// Go through and dump all system catalog information,
-		// filtering out database-dependent id's so that they
-		// won't cause diffs.
+        // Go through and dump all system catalog information,
+        // filtering out database-dependent id's so that they
+        // won't cause diffs.
 
-		writeOut("\n========== SYSALIASES ==========\n");
-		rs =
-			stmt.executeQuery("select schemaid, sys.sysaliases.* from sys.sysaliases");
-		dumpResultSet(rs, idToNameMap, null);
+        writeOut("\n========== SYSALIASES ==========\n");
+        rs =
+                stmt.executeQuery("select schemaid, sys.sysaliases.* from sys.sysaliases");
+        dumpResultSet(rs, idToNameMap, null);
 
-		writeOut("\n========== SYSCHECKS ==========\n");
-		rs = stmt.executeQuery("select c.schemaid, ck.* from " +
-			"sys.syschecks ck, sys.sysconstraints c where " +
-			"ck.constraintid = c.constraintid");
-		dumpResultSet(rs, idToNameMap, null);
+        writeOut("\n========== SYSCHECKS ==========\n");
+        rs = stmt.executeQuery("select c.schemaid, ck.* from " +
+                "sys.syschecks ck, sys.sysconstraints c where " +
+                "ck.constraintid = c.constraintid");
+        dumpResultSet(rs, idToNameMap, null);
 
-		writeOut("\n========== SYSCOLUMNS ==========\n");
-		writeOut("--- Columns for Tables ---");
-		rs = stmt.executeQuery("select t.schemaid, c.* from " +
-			"sys.syscolumns c, sys.systables t where c.referenceid " +
-			"= t.tableid" );
-		dumpResultSet(rs, idToNameMap, null);
-		writeOut("\n--- Columns for Statements ---");
-		rs = stmt.executeQuery("select s.schemaid, c.* from " +
-			"sys.syscolumns c, sys.sysstatements s where c.referenceid " +
-			"= s.stmtid" );
-		dumpResultSet(rs, idToNameMap, null);
+        writeOut("\n========== SYSCOLUMNS ==========\n");
+        writeOut("--- Columns for Tables ---");
+        rs = stmt.executeQuery("select t.schemaid, c.* from " +
+                "sys.syscolumns c, sys.systables t where c.referenceid " +
+                "= t.tableid" );
+        dumpResultSet(rs, idToNameMap, null);
+        writeOut("\n--- Columns for Statements ---");
+        rs = stmt.executeQuery("select s.schemaid, c.* from " +
+                "sys.syscolumns c, sys.sysstatements s where c.referenceid " +
+                "= s.stmtid" );
+        dumpResultSet(rs, idToNameMap, null);
 
-		writeOut("\n========== SYSCONGLOMERATES ==========\n");
-		rs = stmt.executeQuery("select schemaid, sys.sysconglomerates.* " +
-			"from sys.sysconglomerates");
-		dumpResultSet(rs, idToNameMap, null);
+        writeOut("\n========== SYSCONGLOMERATES ==========\n");
+        rs = stmt.executeQuery("select schemaid, sys.sysconglomerates.* " +
+                "from sys.sysconglomerates");
+        dumpResultSet(rs, idToNameMap, null);
 
-		writeOut("\n========== SYSCONSTRAINTS ==========\n");
-		rs = stmt.executeQuery("select schemaid, sys.sysconstraints.* " +
-			"from sys.sysconstraints");
-		dumpResultSet(rs, idToNameMap, null);
+        writeOut("\n========== SYSCONSTRAINTS ==========\n");
+        rs = stmt.executeQuery("select schemaid, sys.sysconstraints.* " +
+                "from sys.sysconstraints");
+        dumpResultSet(rs, idToNameMap, null);
 
-		writeOut("\n========== SYSDEPENDS ==========\n");
-		rs = stmt.executeQuery("select dependentid, sys.sysdepends.* from sys.sysdepends");
-		dumpResultSet(rs, idToNameMap, conn);
+        writeOut("\n========== SYSDEPENDS ==========\n");
+        rs = stmt.executeQuery("select dependentid, sys.sysdepends.* from sys.sysdepends");
+        dumpResultSet(rs, idToNameMap, conn);
 
-		writeOut("\n========== SYSFILES ==========\n");
-		rs = stmt.executeQuery("select schemaid, sys.sysfiles.* from sys.sysfiles");
-		dumpResultSet(rs, idToNameMap, null);
+        writeOut("\n========== SYSFILES ==========\n");
+        rs = stmt.executeQuery("select schemaid, sys.sysfiles.* from sys.sysfiles");
+        dumpResultSet(rs, idToNameMap, null);
 
-		writeOut("\n========== SYSFOREIGNKEYS ==========\n");
-		rs = stmt.executeQuery("select c.schemaid, fk.* from " +
-			"sys.sysforeignkeys fk, sys.sysconstraints c where " +
-			"fk.constraintid = c.constraintid");
-		dumpResultSet(rs, idToNameMap, null);
+        writeOut("\n========== SYSFOREIGNKEYS ==========\n");
+        rs = stmt.executeQuery("select c.schemaid, fk.* from " +
+                "sys.sysforeignkeys fk, sys.sysconstraints c where " +
+                "fk.constraintid = c.constraintid");
+        dumpResultSet(rs, idToNameMap, null);
 
-		writeOut("\n========== SYSKEYS ==========\n");
-		rs = stmt.executeQuery("select c.schemaid, k.* from " +
-			"sys.syskeys k, sys.sysconstraints c where " +
-			"k.constraintid = c.constraintid");
-		dumpResultSet(rs, idToNameMap, null);
+        writeOut("\n========== SYSKEYS ==========\n");
+        rs = stmt.executeQuery("select c.schemaid, k.* from " +
+                "sys.syskeys k, sys.sysconstraints c where " +
+                "k.constraintid = c.constraintid");
+        dumpResultSet(rs, idToNameMap, null);
 
-		writeOut("\n========== SYSSCHEMAS ==========\n");
-		rs = stmt.executeQuery("select schemaid, sys.sysschemas.* from sys.sysschemas");
-		dumpResultSet(rs, idToNameMap, null);
+        writeOut("\n========== SYSSCHEMAS ==========\n");
+        rs = stmt.executeQuery("select schemaid, sys.sysschemas.* from sys.sysschemas");
+        dumpResultSet(rs, idToNameMap, null);
 
-		writeOut("\n========== SYSSTATEMENTS ==========\n");
-		rs = stmt.executeQuery("select schemaid, sys.sysstatements.* from sys.sysstatements");
-		dumpResultSet(rs, idToNameMap, null);
+        writeOut("\n========== SYSSTATEMENTS ==========\n");
+        rs = stmt.executeQuery("select schemaid, sys.sysstatements.* from sys.sysstatements");
+        dumpResultSet(rs, idToNameMap, null);
 
-		writeOut("\n========== SYSTABLES ==========\n");
-		rs = stmt.executeQuery("select schemaid, sys.systables.* from sys.systables");
-		dumpResultSet(rs, idToNameMap, null);
+        writeOut("\n========== SYSTABLES ==========\n");
+        rs = stmt.executeQuery("select schemaid, sys.systables.* from sys.systables");
+        dumpResultSet(rs, idToNameMap, null);
 
-		writeOut("\n========== SYSTRIGGERS ==========\n");
-		rs = stmt.executeQuery("select schemaid, sys.systriggers.* from sys.systriggers");
-		dumpResultSet(rs, idToNameMap, null);
+        writeOut("\n========== SYSTRIGGERS ==========\n");
+        rs = stmt.executeQuery("select schemaid, sys.systriggers.* from sys.systriggers");
+        dumpResultSet(rs, idToNameMap, null);
 
-		writeOut("\n========== SYSVIEWS ==========\n");
-		rs = stmt.executeQuery("select compilationschemaid, sys.sysviews.* from sys.sysviews");
-		dumpResultSet(rs, idToNameMap, null);
+        writeOut("\n========== SYSVIEWS ==========\n");
+        rs = stmt.executeQuery("select compilationschemaid, sys.sysviews.* from sys.sysviews");
+        dumpResultSet(rs, idToNameMap, null);
 
-		writeOut("\n========== SYSROLES ==========\n");
-		rs = stmt.executeQuery
-			("select 'dummyFirstCol', " +
-			 "roleid || '_' || grantee || '_' || grantor as rgd, " +
-			 "roleid, grantee, grantor, withadminoption, isdef " +
-			 "from sys.sysroles");
-		dumpResultSet(rs, idToNameMap, null);
+        writeOut("\n========== SYSROLES ==========\n");
+        rs = stmt.executeQuery
+                ("select 'dummyFirstCol', " +
+                        "roleid || '_' || grantee || '_' || grantor as rgd, " +
+                        "roleid, grantee, grantor, withadminoption, isdef " +
+                        "from sys.sysroles");
+        dumpResultSet(rs, idToNameMap, null);
 
-		stmt.close();
-		rs.close();
-		conn.commit();
-		conn.close();
-		return;
+        stmt.close();
+        rs.close();
+        conn.commit();
+        conn.close();
+        return;
 
-	}
+    }
 
-	/* **********************************************
-	 * isIgnorableSchema:
-     * Returns true if the the schema is a "system" schema, vs. a user 
-     * schema.  
-	 * @param schemaName name of schema to check.
-	 ****/
-	private boolean isIgnorableSchema(String schemaName) {
+    /* **********************************************
+     * isIgnorableSchema:
+     * Returns true if the the schema is a "system" schema, vs. a user
+     * schema.
+     * @param schemaName name of schema to check.
+     ****/
+    private boolean isIgnorableSchema(String schemaName) {
 
         boolean ret = false;
 
@@ -862,21 +861,21 @@ public class dblook_test {
         }
 
         return(ret);
-	}
+    }
 
     private static final String[] ignorableSchemaNames = {
-        "SYSIBM",
-        "SYS",
-        "SYSVISUAL",
-        "SYSCAT",
-        "SYSFUN",
-        "SYSPROC",
-        "SYSSTAT",
-        "NULLID",
-        "SYSCS_ADMIN",
-        "SYSCS_DIAG",
-        "SYSCS_UTIL",
-        "SQLJ"};
+            "SYSIBM",
+            "SYS",
+            "SYSVISUAL",
+            "SYSCAT",
+            "SYSFUN",
+            "SYSPROC",
+            "SYSSTAT",
+            "NULLID",
+            "SYSCS_ADMIN",
+            "SYSCS_DIAG",
+            "SYSCS_UTIL",
+            "SQLJ"};
 
 	/* **********************************************
 	 * dumpResultSet:
@@ -901,162 +900,162 @@ public class dblook_test {
 	 *  originated.
 	 ****/
 
-	private void dumpResultSet (ResultSet rs,
-		HashMap idToNameMap, Connection conn)
-		throws Exception
-	{
+    private void dumpResultSet (ResultSet rs,
+                                HashMap idToNameMap, Connection conn)
+            throws Exception
+    {
 
-		// We need to form unique names for the rows of the
-		// result set so that we can preserve the order of
-		// the output and avoid diffs with a master.  This is
-		// because a "select *" doesn't order rows--and even
-		// though the schema for two databases might be the
-		// same (i.e. the system tables contain all of the same
-		// information) there's nothing to say the various rows in
-		// the respective system tables will be the same (they
-		// usually are NOT).  While system id's automatically
-		// give us uniqueness, we can NOT order on them because
-		// they vary from database to database; so, we need
-		// to use something constant across the databases,
-		// which is why we use object names.
-		StringBuffer uniqueName = new StringBuffer();
+        // We need to form unique names for the rows of the
+        // result set so that we can preserve the order of
+        // the output and avoid diffs with a master.  This is
+        // because a "select *" doesn't order rows--and even
+        // though the schema for two databases might be the
+        // same (i.e. the system tables contain all of the same
+        // information) there's nothing to say the various rows in
+        // the respective system tables will be the same (they
+        // usually are NOT).  While system id's automatically
+        // give us uniqueness, we can NOT order on them because
+        // they vary from database to database; so, we need
+        // to use something constant across the databases,
+        // which is why we use object names.
+        StringBuffer uniqueName = new StringBuffer();
 
-		TreeMap orderedRows = new TreeMap();
-		ArrayList rowValues = new ArrayList();
-		ArrayList duplicateRowIds = new ArrayList();
-		ResultSetMetaData rsmd = rs.getMetaData();
-		int cols = rsmd.getColumnCount();
-		while (rs.next()) {
+        TreeMap orderedRows = new TreeMap();
+        ArrayList rowValues = new ArrayList();
+        ArrayList duplicateRowIds = new ArrayList();
+        ResultSetMetaData rsmd = rs.getMetaData();
+        int cols = rsmd.getColumnCount();
+        while (rs.next()) {
 
-			for (int i = 1; i <= cols; i++) {
+            for (int i = 1; i <= cols; i++) {
 
-				String colName = rsmd.getColumnName(i);
-				String value = rs.getString(i);
-				String mappedName = (String)idToNameMap.get(value);
+                String colName = rsmd.getColumnName(i);
+                String value = rs.getString(i);
+                String mappedName = (String)idToNameMap.get(value);
 
-				if ((colName.indexOf("SCHEMAID") != -1) &&
-					(mappedName != null) &&
-					((mappedName.indexOf("SYS") != -1) ||
-                     (isIgnorableSchema(mappedName))))
+                if ((colName.indexOf("SCHEMAID") != -1) &&
+                        (mappedName != null) &&
+                        ((mappedName.indexOf("SYS") != -1) ||
+                                (isIgnorableSchema(mappedName))))
                 {
-				// then this row of the result set is for a system
-				// object, which will always be the same for the
-				// source and new database, so don't bother dumping
-				// them to the output file (makes the test less
-				// like to require updates when changes to database
-				// metadata for system objects are checked in).
-					rowValues = null;
-					break;
-				}
-				else if (colName.equals("JAVACLASSNAME") && (value != null) &&
-					(value.indexOf("org.apache.derby") != -1) &&
-					(value.indexOf(".util.") == -1)) {
-				// this is a -- hack -- to see if the alias is a
-				// a system alias, needed because aliases
-				// (other than stored procedures) do not have
-				// an associated schema).
-					rowValues = null;
-					break;
-				}
+                    // then this row of the result set is for a system
+                    // object, which will always be the same for the
+                    // source and new database, so don't bother dumping
+                    // them to the output file (makes the test less
+                    // like to require updates when changes to database
+                    // metadata for system objects are checked in).
+                    rowValues = null;
+                    break;
+                }
+                else if (colName.equals("JAVACLASSNAME") && (value != null) &&
+					(value.indexOf("com.splicemachine.db") != -1) &&
+                        (value.indexOf(".util.") == -1)) {
+                    // this is a -- hack -- to see if the alias is a
+                    // a system alias, needed because aliases
+                    // (other than stored procedures) do not have
+                    // an associated schema).
+                    rowValues = null;
+                    break;
+                }
 
-				if (i == 1)
-				// 1st column is just for figuring out whether
-				// to dump this row; no need to actually include
-				// it in the results.
-					continue;
-
-
-				String uniquePiece;
-
-				if (colName.equals("RGD")) {
-					// Role Grant Descriptor: synthetic unique column, see query
-					// from SYS.SYSROLES.
-					uniquePiece = value;
-				} else {
-					uniquePiece = dumpColumnData(colName,
-												 value, mappedName, rowValues);
-				}
+                if (i == 1)
+                    // 1st column is just for figuring out whether
+                    // to dump this row; no need to actually include
+                    // it in the results.
+                    continue;
 
 
-				if (colName.equals("DEPENDENTID")) {
-				// Special case: rows in the "DEPENDS" table
-				// don't have unique ids or names; we have to
-				// build one by extracting information indirectly.
-					String hiddenInfo = getDependsData(rs, conn,
-						idToNameMap);
-					if (hiddenInfo.indexOf("SYS_OBJECT") != -1) {
-					// this info is for a system object, so
-					// ignore it.
-						rowValues = null;
-						break;
-					}
-					uniqueName.append(hiddenInfo);
-					// Include the hidden data as part of the
-					// output.
-					rowValues.add(hiddenInfo);
-				}
+                String uniquePiece;
 
-		 		if (uniquePiece != null)
-					uniqueName.append(uniquePiece);
+                if (colName.equals("RGD")) {
+                    // Role Grant Descriptor: synthetic unique column, see query
+                    // from SYS.SYSROLES.
+                    uniquePiece = value;
+                } else {
+                    uniquePiece = dumpColumnData(colName,
+                            value, mappedName, rowValues);
+                }
 
-				if (colName.equals("STMTNAME") &&
-				  (value.indexOf("TRIGGERACTN") != -1))
-				// Special case: can't use statement name, because
-				// the entire statement may be automatically generated
-				// in each database (to back a trigger), so the name
-				// in which case the generated name will be different
-				// every time; but filtering out the name means
-				// we have no other guaranteed unique 'id' for
-				// ordering.  So, just take "text" field, and
-				// design test db so that no two triggers have the
-				// same text value.
-				uniqueName.append(rs.getString(6));
 
-			}
+                if (colName.equals("DEPENDENTID")) {
+                    // Special case: rows in the "DEPENDS" table
+                    // don't have unique ids or names; we have to
+                    // build one by extracting information indirectly.
+                    String hiddenInfo = getDependsData(rs, conn,
+                            idToNameMap);
+                    if (hiddenInfo.indexOf("SYS_OBJECT") != -1) {
+                        // this info is for a system object, so
+                        // ignore it.
+                        rowValues = null;
+                        break;
+                    }
+                    uniqueName.append(hiddenInfo);
+                    // Include the hidden data as part of the
+                    // output.
+                    rowValues.add(hiddenInfo);
+                }
 
-			if (rowValues != null) {
+                if (uniquePiece != null)
+                    uniqueName.append(uniquePiece);
 
-				if (duplicateRowIds.contains(uniqueName.toString()))
-				// then we've already encountered this row id before;
-				// to preserve ordering, use the entire row as an
-				// id.
-					handleDuplicateRow(rowValues, null, orderedRows);
-				else {
-					ArrayList oldRow = (ArrayList)(orderedRows.put(
-						uniqueName.toString(), rowValues));
-					if (oldRow != null) {
-					// Duplicate row id.
-						duplicateRowIds.add(uniqueName.toString());
-						// Delete the row that has the duplicate row id.
-							orderedRows.remove(uniqueName.toString());
-						handleDuplicateRow(rowValues, oldRow, orderedRows);
-					}
-				}
-			}
+                if (colName.equals("STMTNAME") &&
+                        (value.indexOf("TRIGGERACTN") != -1))
+                    // Special case: can't use statement name, because
+                    // the entire statement may be automatically generated
+                    // in each database (to back a trigger), so the name
+                    // in which case the generated name will be different
+                    // every time; but filtering out the name means
+                    // we have no other guaranteed unique 'id' for
+                    // ordering.  So, just take "text" field, and
+                    // design test db so that no two triggers have the
+                    // same text value.
+                    uniqueName.append(rs.getString(6));
 
-			uniqueName = new StringBuffer();
-			rowValues = new ArrayList();
+            }
 
-		}
+            if (rowValues != null) {
 
-		// Now, print out all of the data in this result set
-		// using the order of the unique names that we created.
-		Set objectNames = orderedRows.keySet();
-		for (Iterator itr = objectNames.iterator();
-			itr.hasNext(); ) {
+                if (duplicateRowIds.contains(uniqueName.toString()))
+                    // then we've already encountered this row id before;
+                    // to preserve ordering, use the entire row as an
+                    // id.
+                    handleDuplicateRow(rowValues, null, orderedRows);
+                else {
+                    ArrayList oldRow = (ArrayList)(orderedRows.put(
+                            uniqueName.toString(), rowValues));
+                    if (oldRow != null) {
+                        // Duplicate row id.
+                        duplicateRowIds.add(uniqueName.toString());
+                        // Delete the row that has the duplicate row id.
+                        orderedRows.remove(uniqueName.toString());
+                        handleDuplicateRow(rowValues, oldRow, orderedRows);
+                    }
+                }
+            }
 
-			String row = (String)itr.next();
-			ArrayList colData = (ArrayList)orderedRows.get(row);
-			for (int i = 0; i < colData.size(); i++)
-				writeOut((String)colData.get(i));
-			writeOut("----");
+            uniqueName = new StringBuffer();
+            rowValues = new ArrayList();
 
-		}
+        }
 
-		orderedRows = null;
-		rs.close();
+        // Now, print out all of the data in this result set
+        // using the order of the unique names that we created.
+        Set objectNames = orderedRows.keySet();
+        for (Iterator itr = objectNames.iterator();
+             itr.hasNext(); ) {
 
-	}
+            String row = (String)itr.next();
+            ArrayList colData = (ArrayList)orderedRows.get(row);
+            for (int i = 0; i < colData.size(); i++)
+                writeOut((String)colData.get(i));
+            writeOut("----");
+
+        }
+
+        orderedRows = null;
+        rs.close();
+
+    }
 
 	/* **********************************************
 	 * dumpColumnData:
@@ -1081,70 +1080,70 @@ public class dblook_test {
 	 *  returned, if one exists.
 	 ****/
 
-	private String dumpColumnData(String colName,
-		String value, String mappedName, ArrayList rowVals)
-	{
+    private String dumpColumnData(String colName,
+                                  String value, String mappedName, ArrayList rowVals)
+    {
 
-		if (mappedName == null) {
-		// probably not an id.
-			if (colName.equals("CONGLOMERATENUMBER") ||
-				colName.equals("GENERATIONID"))
-			// special case: these numbers aren't ids per
-			// se, but they are still generated by the system,
-			// and will cause diffs with the master; so, ignore
-			// them.
-				rowVals.add("<systemnumber>");
-			else if (colName.equals("AUTOINCREMENTVALUE"))
-			// special case: new database won't have any data,
-			// old will, so unless we filter this out, we'll
-			// get a diff.
-				rowVals.add("<autoincval>");
-			else if (colName.equals("VALID"))
-			// special case: ignore whether or not stored
-			// statements are valid (have been compiled)
-			// since it depends on history of database,
-			// which we can't duplicate.
-				rowVals.add("<validityflag>");
-			else if (value != null) {
-				if (looksLikeSysGenName(value)) {
-					if (columnHoldsObjectName(colName))
-						rowVals.add("<systemname>");
-					else {
-					// looks like a sys gen name, but's actually a VALUE.
-						rowVals.add(value);
-						return value;
-					}
-				}
-				else if (looksLikeSysGenId(value))
-					rowVals.add("<systemid>");
-				else {
-					rowVals.add(value);
-					if (columnHoldsObjectName(colName))
-					// if it's a name, we need it as part of
-					// our unique id.
-						return value;
-				}
-			}
-			else
-			// null value.
-				rowVals.add(value);
-		}
-		else {
-		// it's an id, so write the corresponding name.
-			if (!isSystemGenerated(mappedName)) {
-			// Not an id-as-name, so use it as part of our unique id.
-				rowVals.add(mappedName);
-				return mappedName;
-			}
-			else
-				rowVals.add("<systemname>");
-		}
+        if (mappedName == null) {
+            // probably not an id.
+            if (colName.equals("CONGLOMERATENUMBER") ||
+                    colName.equals("GENERATIONID"))
+                // special case: these numbers aren't ids per
+                // se, but they are still generated by the system,
+                // and will cause diffs with the master; so, ignore
+                // them.
+                rowVals.add("<systemnumber>");
+            else if (colName.equals("AUTOINCREMENTVALUE"))
+                // special case: new database won't have any data,
+                // old will, so unless we filter this out, we'll
+                // get a diff.
+                rowVals.add("<autoincval>");
+            else if (colName.equals("VALID"))
+                // special case: ignore whether or not stored
+                // statements are valid (have been compiled)
+                // since it depends on history of database,
+                // which we can't duplicate.
+                rowVals.add("<validityflag>");
+            else if (value != null) {
+                if (looksLikeSysGenName(value)) {
+                    if (columnHoldsObjectName(colName))
+                        rowVals.add("<systemname>");
+                    else {
+                        // looks like a sys gen name, but's actually a VALUE.
+                        rowVals.add(value);
+                        return value;
+                    }
+                }
+                else if (looksLikeSysGenId(value))
+                    rowVals.add("<systemid>");
+                else {
+                    rowVals.add(value);
+                    if (columnHoldsObjectName(colName))
+                        // if it's a name, we need it as part of
+                        // our unique id.
+                        return value;
+                }
+            }
+            else
+                // null value.
+                rowVals.add(value);
+        }
+        else {
+            // it's an id, so write the corresponding name.
+            if (!isSystemGenerated(mappedName)) {
+                // Not an id-as-name, so use it as part of our unique id.
+                rowVals.add(mappedName);
+                return mappedName;
+            }
+            else
+                rowVals.add("<systemname>");
+        }
 
-		// If we get here, we do NOT want the received value
-		// to be treated as part of this row's unique name.
-		return null;
+        // If we get here, we do NOT want the received value
+        // to be treated as part of this row's unique name.
+        return null;
 
-	}
+    }
 
 	/* **********************************************
 	 * handleDuplicateRow:
@@ -1173,42 +1172,42 @@ public class dblook_test {
 	 *  unique id with it.
 	 ****/
 
-	private void handleDuplicateRow(
-		ArrayList newRow, ArrayList oldRow,
-		TreeMap orderedRows)
-	{
+    private void handleDuplicateRow(
+            ArrayList newRow, ArrayList oldRow,
+            TreeMap orderedRows)
+    {
 
-		// Add the received rows (old and new) with
-		// unique row ids.
+        // Add the received rows (old and new) with
+        // unique row ids.
 
-		StringBuffer newRowId = new StringBuffer();
-		for (int i = 0; i < newRow.size(); i++)
-			newRowId.append((String)newRow.get(i));
+        StringBuffer newRowId = new StringBuffer();
+        for (int i = 0; i < newRow.size(); i++)
+            newRowId.append((String)newRow.get(i));
 
-		Object obj = (ArrayList)(orderedRows.put(
-						newRowId.toString(), newRow));
-		if (obj != null)
-		// entire row is a duplicate.
-			orderedRows.put(newRowId.toString() + 
-				duplicateCounter++, newRow);
+        Object obj = (ArrayList)(orderedRows.put(
+                newRowId.toString(), newRow));
+        if (obj != null)
+            // entire row is a duplicate.
+            orderedRows.put(newRowId.toString() +
+                    duplicateCounter++, newRow);
 
-		if (oldRow != null) {
+        if (oldRow != null) {
 
-			StringBuffer oldRowId = new StringBuffer();
-			for (int i = 0; i < oldRow.size(); i++)
-				oldRowId.append((String)oldRow.get(i));
+            StringBuffer oldRowId = new StringBuffer();
+            for (int i = 0; i < oldRow.size(); i++)
+                oldRowId.append((String)oldRow.get(i));
 
-			obj = (ArrayList)(orderedRows.put(
-				oldRowId.toString(), oldRow));
-			if (obj != null)
-			// entire row is a duplicate.
-				orderedRows.put(oldRowId.toString() +
-					duplicateCounter++, oldRow);
-		}
+            obj = (ArrayList)(orderedRows.put(
+                    oldRowId.toString(), oldRow));
+            if (obj != null)
+                // entire row is a duplicate.
+                orderedRows.put(oldRowId.toString() +
+                        duplicateCounter++, oldRow);
+        }
 
-		return;
+        return;
 
-	}
+    }
 
 	/* **********************************************
 	 * createDBFromDDL:
@@ -1222,55 +1221,55 @@ public class dblook_test {
 	 *   failed to execute have been echoed to output.
 	 ****/
 
-	private void createDBFromDDL(String newDBName,
-		String scriptName) throws Exception
-	{
+    private void createDBFromDDL(String newDBName,
+                                 String scriptName) throws Exception
+    {
 
-		System.out.println("\n\nCreating database '" + newDBName +
-			"' from ddl script '" + scriptName + "'");
+        System.out.println("\n\nCreating database '" + newDBName +
+                "' from ddl script '" + scriptName + "'");
 
-		Connection conn = DriverManager.getConnection(
-				"jdbc:derby:" + newDBName +
-				";create=true;user=app;password=apppw" + territoryBased);
+        Connection conn = DriverManager.getConnection(
+                "jdbc:derby:" + newDBName +
+                        ";create=true;user=app;password=apppw" + territoryBased);
 
-		Statement stmt = conn.createStatement();
-		BufferedReader ddlScript =
-			new BufferedReader(new FileReader(scriptName));
+        Statement stmt = conn.createStatement();
+        BufferedReader ddlScript =
+                new BufferedReader(new FileReader(scriptName));
 
-		for (String sqlCmd = ddlScript.readLine(); sqlCmd != null;
-			sqlCmd = ddlScript.readLine()) {
+        for (String sqlCmd = ddlScript.readLine(); sqlCmd != null;
+             sqlCmd = ddlScript.readLine()) {
 
-			if (sqlCmd.indexOf("--") == 0)
-			// then this is a script comment; ignore it;
-				continue;
-			else if (sqlCmd.trim().length() == 0)
-			// blank line; ignore it.
-				continue;
+            if (sqlCmd.indexOf("--") == 0)
+                // then this is a script comment; ignore it;
+                continue;
+            else if (sqlCmd.trim().length() == 0)
+                // blank line; ignore it.
+                continue;
 
-			// Execute the command.
-			if ((sqlCmd.charAt(sqlCmd.length()-1) == TEST_DELIMITER)
-			  || (sqlCmd.charAt(sqlCmd.length()-1) == ';'))
-			// strip off the delimiter.
-				sqlCmd = sqlCmd.substring(0, sqlCmd.length()-1);
+            // Execute the command.
+            if ((sqlCmd.charAt(sqlCmd.length()-1) == TEST_DELIMITER)
+                    || (sqlCmd.charAt(sqlCmd.length()-1) == ';'))
+                // strip off the delimiter.
+                sqlCmd = sqlCmd.substring(0, sqlCmd.length()-1);
 
-			try {
-				stmt.execute(sqlCmd);
-			} catch (Exception e) {
-				System.out.println("FAILED: to execute cmd " +
-					"from DDL script:\n" + sqlCmd + "\n");
-				System.out.println(e.getMessage());
-			}
+            try {
+                stmt.execute(sqlCmd);
+            } catch (Exception e) {
+                System.out.println("FAILED: to execute cmd " +
+                        "from DDL script:\n" + sqlCmd + "\n");
+                System.out.println(e.getMessage());
+            }
 
-		}
+        }
 
-		// Cleanup.
-		ddlScript.close();
-		stmt.close();
-		conn.close();
+        // Cleanup.
+        ddlScript.close();
+        stmt.close();
+        conn.close();
 
-		return;
+        return;
 
-	}
+    }
 
 	/* **********************************************
 	 * writeOut:
@@ -1278,12 +1277,12 @@ public class dblook_test {
 	 * @param str String to write.
 	 ****/
 
-	private static void writeOut(String str) {
+    private static void writeOut(String str) {
 
-		System.out.println(str);
-		return;
+        System.out.println(str);
+        return;
 
-	}
+    }
 
 	/* **********************************************
 	 * loadIdMappings:
@@ -1299,33 +1298,33 @@ public class dblook_test {
 	 *  name mappings has been returned.
 	 ****/
 
-	private HashMap loadIdMappings(Statement stmt,
-		Connection conn) throws Exception {
+    private HashMap loadIdMappings(Statement stmt,
+                                   Connection conn) throws Exception {
 
-		HashMap idToNameMap = new HashMap();
+        HashMap idToNameMap = new HashMap();
 
-		// Table ids.
-		ResultSet rs = stmt.executeQuery(
-			"select tableid, tablename from sys.systables");
-		while (rs.next())
-			idToNameMap.put(rs.getString(1), rs.getString(2));
+        // Table ids.
+        ResultSet rs = stmt.executeQuery(
+                "select tableid, tablename from sys.systables");
+        while (rs.next())
+            idToNameMap.put(rs.getString(1), rs.getString(2));
 
-		// Schema ids.
-		rs = stmt.executeQuery(
-			"select schemaid, schemaname from sys.sysschemas");
-		while (rs.next())
-			idToNameMap.put(rs.getString(1), rs.getString(2));
+        // Schema ids.
+        rs = stmt.executeQuery(
+                "select schemaid, schemaname from sys.sysschemas");
+        while (rs.next())
+            idToNameMap.put(rs.getString(1), rs.getString(2));
 
-		// Constraint ids.
-		rs = stmt.executeQuery(
-			"select constraintid, constraintname from " +
-			"sys.sysconstraints");
-		while (rs.next())
-			idToNameMap.put(rs.getString(1), rs.getString(2));
+        // Constraint ids.
+        rs = stmt.executeQuery(
+                "select constraintid, constraintname from " +
+                        "sys.sysconstraints");
+        while (rs.next())
+            idToNameMap.put(rs.getString(1), rs.getString(2));
 
-		return idToNameMap;
+        return idToNameMap;
 
-	}
+    }
 
 	/* **********************************************
 	 * getDependsData:
@@ -1344,31 +1343,31 @@ public class dblook_test {
 	 *   SYSDEPENDS have been returned as a string.
 	 ****/
 
-	private String getDependsData(ResultSet rs,
-		Connection conn, HashMap idToNameMap)
-		throws Exception
-	{
+    private String getDependsData(ResultSet rs,
+                                  Connection conn, HashMap idToNameMap)
+            throws Exception
+    {
 
-		DependableFinder dep =
-			(DependableFinder)rs.getObject(3);
+        DependableFinder dep =
+                (DependableFinder)rs.getObject(3);
 
-		DependableFinder prov =
-			(DependableFinder)rs.getObject(5);
+        DependableFinder prov =
+                (DependableFinder)rs.getObject(5);
 
-		String depType = dep.getSQLObjectType();
-		String provType = prov.getSQLObjectType();
+        String depType = dep.getSQLObjectType();
+        String provType = prov.getSQLObjectType();
 
-		Statement dependsStmt = conn.createStatement();
-		StringBuffer dependsData = new StringBuffer();
-		dependsData.append(getHiddenDependsData(depType,
-			rs.getString(2), dependsStmt, idToNameMap));
-		dependsData.append(" -> ");
-		dependsData.append(getHiddenDependsData(provType,
-			rs.getString(4), dependsStmt, idToNameMap));
+        Statement dependsStmt = conn.createStatement();
+        StringBuffer dependsData = new StringBuffer();
+        dependsData.append(getHiddenDependsData(depType,
+                rs.getString(2), dependsStmt, idToNameMap));
+        dependsData.append(" -> ");
+        dependsData.append(getHiddenDependsData(provType,
+                rs.getString(4), dependsStmt, idToNameMap));
 
-		return dependsData.toString();
+        return dependsData.toString();
 
-	}
+    }
 
 	/* **********************************************
 	 * getHiddenDependsData:
@@ -1389,71 +1388,71 @@ public class dblook_test {
 	 *   the received id have been returned as a string.
 	 ****/
 
-	private String getHiddenDependsData(String type,
-		String id, Statement pStmt, HashMap idToNameMap)
-		throws Exception
-	{
+    private String getHiddenDependsData(String type,
+                                        String id, Statement pStmt, HashMap idToNameMap)
+            throws Exception
+    {
 
-		ResultSet rs = null;
-		if (type.equals("Constraint")) {
-			rs = pStmt.executeQuery(
-				"select schemaid, constraintname from " +
-				"sys.sysconstraints where " +
-				"constraintid = '" + id + "'");
-		}
-		else if (type.equals("StoredPreparedStatement")) {
-			rs = pStmt.executeQuery(
-				"select schemaid, stmtname from " +
-				"sys.sysstatements where stmtid = '" +
-				id + "'");
-		}
-		else if (type.equals("Trigger")) {
-			rs = pStmt.executeQuery(
-				"select schemaid, triggername from " +
-				"sys.systriggers where triggerid = '" +
-				id + "'");
-		}
-		else if (type.equals("View") || type.equals("Table")
-		  || type.equals("ColumnsInTable")) {
-			rs = pStmt.executeQuery(
-				"select schemaid, tablename from " +
-				"sys.systables where tableid = '" +
-				id + "'");
-		}
-		else if (type.equals("Conglomerate")) {
-			rs = pStmt.executeQuery(
-				"select schemaid, conglomeratename from " +
-				"sys.sysconglomerates where conglomerateid = '" +
-				id + "'");
-		}
-		else {
-			System.out.println("WARNING: Unexpected " +
-				"dependent type: " + type);
-			return "";
-		}
+        ResultSet rs = null;
+        if (type.equals("Constraint")) {
+            rs = pStmt.executeQuery(
+                    "select schemaid, constraintname from " +
+                            "sys.sysconstraints where " +
+                            "constraintid = '" + id + "'");
+        }
+        else if (type.equals("StoredPreparedStatement")) {
+            rs = pStmt.executeQuery(
+                    "select schemaid, stmtname from " +
+                            "sys.sysstatements where stmtid = '" +
+                            id + "'");
+        }
+        else if (type.equals("Trigger")) {
+            rs = pStmt.executeQuery(
+                    "select schemaid, triggername from " +
+                            "sys.systriggers where triggerid = '" +
+                            id + "'");
+        }
+        else if (type.equals("View") || type.equals("Table")
+                || type.equals("ColumnsInTable")) {
+            rs = pStmt.executeQuery(
+                    "select schemaid, tablename from " +
+                            "sys.systables where tableid = '" +
+                            id + "'");
+        }
+        else if (type.equals("Conglomerate")) {
+            rs = pStmt.executeQuery(
+                    "select schemaid, conglomeratename from " +
+                            "sys.sysconglomerates where conglomerateid = '" +
+                            id + "'");
+        }
+        else {
+            System.out.println("WARNING: Unexpected " +
+                    "dependent type: " + type);
+            return "";
+        }
 
-		if (rs.next()) {
-			String schema = (String)idToNameMap.get(rs.getString(1));
-			if (isIgnorableSchema(schema))
-			// system object (so we want to ignore it); indicate
-			// this by returning the string "SYS_OBJECT".
-				return "SYS_OBJECT";
-			StringBuffer result = new StringBuffer();
-			result.append("<");
-			result.append(type);
-			result.append(">");
-			result.append(schema);
-			result.append(".");
-			if (isSystemGenerated(rs.getString(2)))
-				result.append("<sysname>");
-			else
-				result.append(rs.getString(2));
-			return result.toString();
-		}
+        if (rs.next()) {
+            String schema = (String)idToNameMap.get(rs.getString(1));
+            if (isIgnorableSchema(schema))
+                // system object (so we want to ignore it); indicate
+                // this by returning the string "SYS_OBJECT".
+                return "SYS_OBJECT";
+            StringBuffer result = new StringBuffer();
+            result.append("<");
+            result.append(type);
+            result.append(">");
+            result.append(schema);
+            result.append(".");
+            if (isSystemGenerated(rs.getString(2)))
+                result.append("<sysname>");
+            else
+                result.append(rs.getString(2));
+            return result.toString();
+        }
 
-		return "";
+        return "";
 
-	}
+    }
 
 	/* **********************************************
 	 * deleteDB:
@@ -1465,48 +1464,48 @@ public class dblook_test {
 	 *   saying so has been printed to output.
 	 ****/
 
-	private void deleteDB(String dbName)
-		throws Exception
-	{
+    private void deleteDB(String dbName)
+            throws Exception
+    {
 
-		// Get the full path.
-		String deletePath = (new
-			File(dbPath + separator + dbName)).getAbsolutePath();
+        // Get the full path.
+        String deletePath = (new
+                File(dbPath + separator + dbName)).getAbsolutePath();
 
-		// Have to shut it down before we can delete it.
-		try {
-			Connection conn =
-				DriverManager.getConnection("jdbc:derby:" + 
-					deletePath + ";shutdown=true;user=app;password=apppw");
-			conn.close();
-		} catch (SQLException se) {
-		// shutdown exception.
-		}
+        // Have to shut it down before we can delete it.
+        try {
+            Connection conn =
+                    DriverManager.getConnection("jdbc:derby:" +
+                            deletePath + ";shutdown=true;user=app;password=apppw");
+            conn.close();
+        } catch (SQLException se) {
+            // shutdown exception.
+        }
 
-		File f = new File(deletePath);
-		if (!f.exists()) 
-		// nothing to do.
-			return;
+        File f = new File(deletePath);
+        if (!f.exists())
+            // nothing to do.
+            return;
 
-		File [] files = f.listFiles();
-		for (int i = 0; i < files.length; i++)
-			deleteFile(files[i]);
+        File [] files = f.listFiles();
+        for (int i = 0; i < files.length; i++)
+            deleteFile(files[i]);
 
-		if (!f.delete()) {
-		// still failed.
-			System.out.println("ERROR: deleting: " +
-				f.getName());
-		}
+        if (!f.delete()) {
+            // still failed.
+            System.out.println("ERROR: deleting: " +
+                    f.getName());
+        }
 
-		// And finally, delete the CSJARS directory,
-		// if there is one.
-		deleteFile(new File(System.getProperty("user.dir") +
-			separator + "CSJARS"));
+        // And finally, delete the CSJARS directory,
+        // if there is one.
+        deleteFile(new File(System.getProperty("user.dir") +
+                separator + "CSJARS"));
 
-		System.out.println("Database '" + dbName + "' deleted.");
-		return;
+        System.out.println("Database '" + dbName + "' deleted.");
+        return;
 
-	}
+    }
 
 	/* **********************************************
 	 * deleteFile:
@@ -1518,36 +1517,36 @@ public class dblook_test {
 	 *  has been deleted, as have all of its contents.
 	 ****/
 
-	private void deleteFile(File aFile)
-		throws Exception
-	{
+    private void deleteFile(File aFile)
+            throws Exception
+    {
 
-		if (!aFile.exists())
-		// don't bother.
-			return;
+        if (!aFile.exists())
+            // don't bother.
+            return;
 
-		if (aFile.delete())
-		// just a file; we're done.
-			return;
+        if (aFile.delete())
+            // just a file; we're done.
+            return;
 
-		// Otherwise, have to descend and delete all
-		// files in this directory.
-		File [] files = aFile.listFiles();
-		if (files != null) {
-			for (int i = 0; i < files.length; i++)
-				deleteFile(files[i]);
-		}
+        // Otherwise, have to descend and delete all
+        // files in this directory.
+        File [] files = aFile.listFiles();
+        if (files != null) {
+            for (int i = 0; i < files.length; i++)
+                deleteFile(files[i]);
+        }
 
-		// Now try to delete.
-		if (!aFile.delete()) {
-		// still failed.
-			System.out.println("ERROR: deleting: " +
-				aFile.getName());
-		}
+        // Now try to delete.
+        if (!aFile.delete()) {
+            // still failed.
+            System.out.println("ERROR: deleting: " +
+                    aFile.getName());
+        }
 
-		return;
+        return;
 
-	}
+    }
 
 	/* **********************************************
 	 * renameDbLookLog:
@@ -1563,24 +1562,24 @@ public class dblook_test {
 	 * @param nameOfTest Name of the finished test.
 	 ****/
 
-	protected static void renameDbLookLog(String nameOfTest)
-	{
-		File dbLookTestLog = new File("dblook.log");
-		if (dbLookTestLog.exists()) {
-			int i = 0;
-			String renamedLogName = nameOfTest + i + ".log";
-			File renamedLog = new File(renamedLogName);
-			while (renamedLog.exists()) {
-				i++;
-				renamedLogName = nameOfTest + i + ".log";
-				renamedLog = new File(renamedLogName);
-			}
-			if (!dbLookTestLog.renameTo(renamedLog)) {
-				System.out.println("Failed to rename dblook.org to " + 
-						renamedLogName);
-			}
-		}
-	}
+    protected static void renameDbLookLog(String nameOfTest)
+    {
+        File dbLookTestLog = new File("dblook.log");
+        if (dbLookTestLog.exists()) {
+            int i = 0;
+            String renamedLogName = nameOfTest + i + ".log";
+            File renamedLog = new File(renamedLogName);
+            while (renamedLog.exists()) {
+                i++;
+                renamedLogName = nameOfTest + i + ".log";
+                renamedLog = new File(renamedLogName);
+            }
+            if (!dbLookTestLog.renameTo(renamedLog)) {
+                System.out.println("Failed to rename dblook.org to " +
+                        renamedLogName);
+            }
+        }
+    }
 
 	/* **********************************************
 	 * dumpFileToSysOut:
@@ -1591,39 +1590,39 @@ public class dblook_test {
 	 *   been written to System.out.
 	 ****/
 
-	private void dumpFileToSysOut(String fName) {
+    private void dumpFileToSysOut(String fName) {
 
-		try {
+        try {
 
-			BufferedReader dumpFile =
-				new BufferedReader(new FileReader(fName));
+            BufferedReader dumpFile =
+                    new BufferedReader(new FileReader(fName));
 
-			String line = dumpFile.readLine();
-			if (line != null) {
-				System.out.println("File " + fName + " was NOT " +
-					"empty.  Contents are:\n" +
-					"############## Begin File Contents ################\n");
-				do {
-					System.out.println(line);
-					line = dumpFile.readLine();
-				} while (line != null);
-				System.out.println(
-					"############## End File Contents ################");
-			}
-			else
-				System.out.println("File " + fName + " was empty.");
+            String line = dumpFile.readLine();
+            if (line != null) {
+                System.out.println("File " + fName + " was NOT " +
+                        "empty.  Contents are:\n" +
+                        "############## Begin File Contents ################\n");
+                do {
+                    System.out.println(line);
+                    line = dumpFile.readLine();
+                } while (line != null);
+                System.out.println(
+                        "############## End File Contents ################");
+            }
+            else
+                System.out.println("File " + fName + " was empty.");
 
-			// Close the file.
-			dumpFile.close();
+            // Close the file.
+            dumpFile.close();
 
-		} catch (Exception e) {
-			System.out.println("FAILED: to dump file '" + fName + "'");
-			e.printStackTrace(System.out);
-		}
+        } catch (Exception e) {
+            System.out.println("FAILED: to dump file '" + fName + "'");
+            e.printStackTrace(System.out);
+        }
 
-		return;
+        return;
 
-	}
+    }
 
 	/* **********************************************
 	 * isSystemGenerated:
@@ -1638,12 +1637,12 @@ public class dblook_test {
 	 *  generated, false otherwise.
 	 ****/
 
-	private boolean isSystemGenerated(String str) {
+    private boolean isSystemGenerated(String str) {
 
-		return (looksLikeSysGenName(str) ||
-			looksLikeSysGenId(str));
+        return (looksLikeSysGenName(str) ||
+                looksLikeSysGenId(str));
 
-	}
+    }
 
 	/* **********************************************
 	 * looksLikeSysGenName:
@@ -1663,14 +1662,14 @@ public class dblook_test {
 	 *  generated name; false otherwise.
 	 ****/
 
-	private boolean looksLikeSysGenName(String val) {
+    private boolean looksLikeSysGenName(String val) {
 
-		return ((val != null) &&
-			((val.trim().indexOf("SQL") == 0) || 			// case 1.
-			((val.trim().indexOf("TRIGGERACTN_") == 0) &&	// case 2.
-			(val.indexOf("-") != -1))));
+        return ((val != null) &&
+                ((val.trim().indexOf("SQL") == 0) || 			// case 1.
+                        ((val.trim().indexOf("TRIGGERACTN_") == 0) &&	// case 2.
+                                (val.indexOf("-") != -1))));
 
-	}
+    }
 
 	/* **********************************************
 	 * looksLikeSysGenId:
@@ -1685,11 +1684,11 @@ public class dblook_test {
 	 *  generated id; false otherwise.
 	 ****/
 
-	private boolean looksLikeSysGenId(String val) {
+    private boolean looksLikeSysGenId(String val) {
 
-		return ((val != null) && (val.indexOf("-") != -1));
+        return ((val != null) && (val.indexOf("-") != -1));
 
-	}
+    }
 
 	/* **********************************************
 	 * columnHoldsObjectName:
@@ -1705,12 +1704,12 @@ public class dblook_test {
 	 *  column name indicates that it holds something else.
 	 ****/
 
-	private boolean columnHoldsObjectName(String colName) {
+    private boolean columnHoldsObjectName(String colName) {
 
-		return (colName.equals("ALIAS") ||
-				(colName.indexOf("NAME") != -1));
+        return (colName.equals("ALIAS") ||
+                (colName.indexOf("NAME") != -1));
 
-	}
+    }
 
 	/* **********************************************
 	 * printAsHeader:
@@ -1719,13 +1718,13 @@ public class dblook_test {
 	 * @param str String to print.
 	 ****/
 
-	private void printAsHeader(String str) {
+    private void printAsHeader(String str) {
 
-		writeOut("--\n*******************************************");
-		writeOut(str);
-		writeOut("*******************************************\n");
-		return;
+        writeOut("--\n*******************************************");
+        writeOut(str);
+        writeOut("*******************************************\n");
+        return;
 
-	}
+    }
 
 }

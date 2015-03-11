@@ -118,7 +118,7 @@ public final class HoldCursorJDBC30Test extends BaseJDBCTestCase {
     protected void setUp() throws SQLException {
         setAutoCommit(false);
         createStatement().execute("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-                             "'derby.language.bulkFetchDefault', '1')");
+                             "'db.language.bulkFetchDefault', '1')");
     }
 
     /**
@@ -1529,10 +1529,10 @@ public final class HoldCursorJDBC30Test extends BaseJDBCTestCase {
         Statement stUtil = createStatement();
 
         stUtil.executeUpdate("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.pageSize', '4096')");
+            "'db.storage.pageSize', '4096')");
         stUtil.executeUpdate("create index tx_11 on t1_11 (c1)");
         stUtil.executeUpdate("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-            "'derby.storage.pageSize', Null)");
+            "'db.storage.pageSize', Null)");
 
         PreparedStatement ps = prepareStatement(
             "insert into t1_11 values(?,1), (?,2), (?,3), " +
@@ -1710,7 +1710,7 @@ public final class HoldCursorJDBC30Test extends BaseJDBCTestCase {
                                        ResultSet.HOLD_CURSORS_OVER_COMMIT);
         ResultSet test12 = st.executeQuery("select * from t1_13, t2_13 where t1_13.t1_i1 = t2_13.t2_i1");
         stUtil.executeUpdate("call SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(" +
-                             "'derby.language.bulkFetchDefault', '16')");
+                             "'db.language.bulkFetchDefault', '16')");
 
         commit();
 

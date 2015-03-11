@@ -29,7 +29,7 @@ import java.sql.Statement;
 import junit.framework.Test;
 import junit.framework.TestSuite;
 
-import org.apache.derby.drda.NetworkServerControl;
+import com.splicemachine.db.drda.NetworkServerControl;
 import org.apache.derbyTesting.junit.BaseJDBCTestCase;
 import org.apache.derbyTesting.junit.NetworkServerTestSetup;
 import org.apache.derbyTesting.junit.TestConfiguration;
@@ -129,7 +129,7 @@ public class ShutDownDBWhenNSShutsDownTest extends BaseJDBCTestCase {
         TestConfiguration.getCurrent().shutdownEngine();
         
         if (loadEmbeddedDriver)
-            Class.forName("org.apache.derby.jdbc.EmbeddedDriver").newInstance();
+            Class.forName("com.splicemachine.db.jdbc.EmbeddedDriver").newInstance();
 
         // see if it is still possible to connect to the server (before
         // DERBY-1326, this would hang)

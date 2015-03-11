@@ -27,8 +27,8 @@ import java.sql.Statement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 
-import org.apache.derby.tools.JDBCDisplayUtil;
-import org.apache.derby.tools.ij;
+import com.splicemachine.db.tools.JDBCDisplayUtil;
+import com.splicemachine.db.tools.ij;
 import org.apache.derbyTesting.functionTests.util.Formatters;
 import org.apache.derbyTesting.functionTests.util.TestUtil;
 

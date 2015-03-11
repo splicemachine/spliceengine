@@ -21,7 +21,7 @@
 
 package org.apache.derbyTesting.unitTests.services;
 
-import org.apache.derby.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import java.io.DataInputStream;
 import java.io.IOException;
 
@@ -36,7 +36,7 @@ import java.io.IOException;
   before creating it.
 */
 
-public class MarkedLimitInputStream extends org.apache.derby.iapi.services.io.LimitInputStream
+public class MarkedLimitInputStream extends com.splicemachine.db.iapi.services.io.LimitInputStream
 {
     protected boolean isLastBlock;
     protected int blockLength;

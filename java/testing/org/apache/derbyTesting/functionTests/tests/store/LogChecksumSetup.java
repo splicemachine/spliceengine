@@ -26,18 +26,18 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.zip.CRC32;
 import org.apache.derbyTesting.functionTests.util.corruptio.CorruptibleIo;
-import org.apache.derby.tools.ij;
+import com.splicemachine.db.tools.ij;
 
 /*
  * Purpose of this class is to simulate out of order incomplete 
- * log write corruption (see derby-96 for details) using the proxy storage
+ * log write corruption (see db-96 for details) using the proxy storage
  * factory (org.apache.derbyTesting.functionTests.util.corruptio.
  * CorruptDiskStorageFactory) instead of the default storage factory.
  * By defailt all io is delegated to the default database storage factory,
  * except when corruption is enabled through CorruptibleIo class.
  * Proxy storage factory is loaded using the following properties in 
  * the test properties file:
- * derby.subSubProtocol.csf=org.apache.derbyTesting.functionTests.
+ * db.subSubProtocol.csf=org.apache.derbyTesting.functionTests.
  *             util.corruptio.CorruptDiskStorageFactory
  *  database=jdbc:derby:csf:wombat
  *
@@ -255,7 +255,7 @@ public class LogChecksumSetup{
             lctest.runTest(conn);
         }
         catch (SQLException sqle) {
-			org.apache.derby.tools.JDBCDisplayUtil.ShowSQLException(
+			com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(
                 System.out, sqle);
 			sqle.printStackTrace(System.out);
 		}

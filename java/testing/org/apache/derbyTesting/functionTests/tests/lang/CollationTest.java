@@ -23,33 +23,28 @@ package org.apache.derbyTesting.functionTests.tests.lang;
 
 import java.sql.Clob;
 import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.sql.Types;
 
 import java.text.Collator;
 import java.util.Locale;
-import javax.sql.DataSource;
 
 import junit.framework.Test;
 import junit.framework.TestCase;
 import junit.framework.TestSuite;
 
-import org.apache.derby.iapi.types.HarmonySerialClob;
+import com.splicemachine.db.iapi.types.HarmonySerialClob;
 
 import org.apache.derbyTesting.functionTests.tests.jdbcapi.BatchUpdateTest;
 import org.apache.derbyTesting.functionTests.tests.jdbcapi.DatabaseMetaDataTest;
-import org.apache.derbyTesting.functionTests.tests.nist.NistScripts;
 import org.apache.derbyTesting.junit.XML;
-//import org.apache.derby.iapi.types.XML;
+//import com.splicemachine.db.iapi.types.XML;
 import org.apache.derbyTesting.junit.BaseJDBCTestCase;
 import org.apache.derbyTesting.junit.CleanDatabaseTestSetup;
 import org.apache.derbyTesting.junit.Decorator;
 import org.apache.derbyTesting.junit.JDBC;
-import org.apache.derbyTesting.junit.JDBCDataSource;
 import org.apache.derbyTesting.junit.TestConfiguration;
 import org.apache.derbyTesting.functionTests.util.TestUtil;
 
@@ -88,7 +83,7 @@ public void testDefaultCollation() throws SQLException {
 
       //The collation should be UCS_BASIC for this database
       checkLangBasedQuery(s, 
-      		"VALUES SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('derby.database.collation')",
+      		"VALUES SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('db.database.collation')",
 			new String[][] {{"UCS_BASIC"}});
 
       checkLangBasedQuery(s, "SELECT ID, NAME FROM CUSTOMER ORDER BY NAME",
@@ -350,7 +345,7 @@ public void testPolishCollation() throws SQLException {
 
       //The collation should be TERRITORY_BASED for this database
       checkLangBasedQuery(s, 
-      		"VALUES SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('derby.database.collation')",
+      		"VALUES SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('db.database.collation')",
 			new String[][] {{"TERRITORY_BASED"}});
 
       checkLangBasedQuery(s, "SELECT ID, NAME FROM CUSTOMER ORDER BY NAME",
@@ -387,7 +382,7 @@ public void testPolishCollation() throws SQLException {
       /*s.executeUpdate("CREATE INDEX CUSTOMER_INDEX1 ON CUSTOMER(NAME)");
       s.executeUpdate("INSERT INTO CUSTOMER VALUES (NULL, NULL)");
       checkLangBasedQuery(s, 
-      		"SELECT ID, NAME FROM CUSTOMER -- derby-properties index=customer_index1 \r WHERE NAME between 'Acorn' and " +
+      		"SELECT ID, NAME FROM CUSTOMER -- db-properties index=customer_index1 \r WHERE NAME between 'Acorn' and " +
 			" 'Zebra'", //ORDER BY NAME",
       		new String[][] {{"4","Acorn"}, {"2","\u0104corn"}, {"0","Smith"}, 
 		      		{"5","\u015Amith"}, {"1","Zebra"} });
@@ -423,7 +418,7 @@ public void testNorwayCollation() throws SQLException {
 
       //The collation should be TERRITORY_BASED for this database
       checkLangBasedQuery(s, 
-      		"VALUES SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('derby.database.collation')",
+      		"VALUES SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('db.database.collation')",
 			new String[][] {{"TERRITORY_BASED"}});
 
       checkLangBasedQuery(s, "SELECT ID, NAME FROM CUSTOMER ORDER BY NAME",
@@ -457,7 +452,7 @@ public void testNorwayCollation() throws SQLException {
       /*s.executeUpdate("CREATE INDEX CUSTOMER_INDEX1 ON CUSTOMER(NAME)");
       s.executeUpdate("INSERT INTO CUSTOMER VALUES (NULL, NULL)");
       checkLangBasedQuery(s, 
-      		"SELECT ID, NAME FROM CUSTOMER  -- derby-properties index=customer_index1 \r WHERE NAME between 'Acorn' and " +
+      		"SELECT ID, NAME FROM CUSTOMER  -- db-properties index=customer_index1 \r WHERE NAME between 'Acorn' and " +
 			" 'Zebra'", //ORDER BY NAME",
       		new String[][] {{"4","Acorn"}, {"2","\u0104corn"}, {"0","Smith"}, 
 		      		{"5","\u015Amith"}, {"1","Zebra"} });
@@ -542,7 +537,7 @@ public void testUsingClauseAndNaturalJoin() throws SQLException {
       String collation; 
 
       ResultSet rs = null;
-      rs = s.executeQuery("VALUES SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('derby.database.collation')");
+      rs = s.executeQuery("VALUES SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('db.database.collation')");
       rs.next();
       collation = rs.getString(1); 
 
@@ -1175,7 +1170,7 @@ public void testEnglishCollation() throws SQLException {
 
       //The collation should be TERRITORY_BASED for this database
       checkLangBasedQuery(s,
-      		"VALUES SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('derby.database.collation')",
+      		"VALUES SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('db.database.collation')",
 			new String[][] {{"TERRITORY_BASED"}});
 
       checkLangBasedQuery(s, "SELECT ID, NAME FROM CUSTOMER ORDER BY NAME",
@@ -1204,7 +1199,7 @@ public void testEnglishCollation() throws SQLException {
       /*s.executeUpdate("CREATE INDEX CUSTOMER_INDEX1 ON CUSTOMER(NAME)");
       s.executeUpdate("INSERT INTO CUSTOMER VALUES (NULL, NULL)");
       checkLangBasedQuery(s,
-      		"SELECT ID, NAME FROM CUSTOMER -- derby-properties index=customer_index1 \r WHERE NAME between 'Acorn' and " +
+      		"SELECT ID, NAME FROM CUSTOMER -- db-properties index=customer_index1 \r WHERE NAME between 'Acorn' and " +
 			" 'Zebra'", //ORDER BY NAME",
       		new String[][] {{"4","Acorn"}, {"2","\u0104corn"}, {"0","Smith"},
       		{"5","\u015Amith"}, {"1","Zebra"} });
@@ -1239,7 +1234,7 @@ public void testSwedishCaseInsensitiveCollation() throws SQLException {
 
       //The collation should be TERRITORY_BASED for this database
       checkLangBasedQuery(s,
-      		"VALUES SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('derby.database.collation')",
+      		"VALUES SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('db.database.collation')",
 			new String[][] {{"TERRITORY_BASED:SECONDARY"}});
 
       checkLangBasedQuery(s, "SELECT ID, NAME FROM CUSTOMER ORDER BY NAME",
@@ -1853,9 +1848,9 @@ private void commonTestingForTerritoryBasedDB(Statement s) throws SQLException{
     
     // Test system functions. Should have UCS_BASIC collation
     // so a statement like this won't work, we need to cast the function.
-    assertStatementError("42818",s,"VALUES case WHEN SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('derby.stream.error.logSeverityLevel') = '50000'  THEN 'LOGSHUTDOWN  ERRORS' ELSE 'DONT KNOW' END");
+    assertStatementError("42818",s,"VALUES case WHEN SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('db.stream.error.logSeverityLevel') = '50000'  THEN 'LOGSHUTDOWN  ERRORS' ELSE 'DONT KNOW' END");
     // cast function output and we it will match the compilation schema and run
-    rs = s.executeQuery("VALUES case WHEN CAST(SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('derby.stream.error.logSeverityLevel') AS VARCHAR(30000))   = '50000'  THEN 'LOGSHUTDOWN  ERRORS' ELSE 'DONT KNOW' END");
+    rs = s.executeQuery("VALUES case WHEN CAST(SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY('db.stream.error.logSeverityLevel') AS VARCHAR(30000))   = '50000'  THEN 'LOGSHUTDOWN  ERRORS' ELSE 'DONT KNOW' END");
     JDBC.assertSingleValueResultSet(rs,"DONT KNOW");
     
     // Test system table function.  Should have UCS_BASIC collation

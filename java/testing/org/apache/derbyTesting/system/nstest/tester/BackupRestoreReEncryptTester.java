@@ -37,7 +37,7 @@ import org.apache.derbyTesting.system.nstest.NsTest;
 /**
  * BackupRestoreReEncryptTester: The thread that invokes the
  * Backup/Restore/Re-Encrypt functions. By default one instance of this thread
- * is always started, unless the System property 'derby.nstest.backupRestore'
+ * is always started, unless the System property 'db.nstest.backupRestore'
  * set to 'false'
  */
 public class BackupRestoreReEncryptTester extends TesterObject {

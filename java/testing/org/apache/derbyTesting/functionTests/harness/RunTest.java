@@ -45,7 +45,7 @@ import java.util.Vector;
 
 import junit.framework.TestSuite;
 
-import org.apache.derby.iapi.reference.Attribute;
+import com.splicemachine.db.iapi.reference.Attribute;
 
 public class RunTest
 {
@@ -171,7 +171,7 @@ public class RunTest
     static boolean lastTestFailed = false;
 
     static boolean isI18N = false;
-    /** The value of derby.ui.codeset if it has been specified in the
+    /** The value of db.ui.codeset if it has been specified in the
      * properties file. */
     static String codeset = null;
     static boolean junitXASingle = false;
@@ -257,7 +257,7 @@ public class RunTest
             isI18N=true;
         }
 
-        // Check for properties files, including derby.properties
+        // Check for properties files, including db.properties
         // and if needed, build the -p string to pass to the test
         AppsRequiredPassword creds = new AppsRequiredPassword();
         String propString = createPropString(creds);
@@ -1296,8 +1296,8 @@ public class RunTest
     private static String createPropString(AppsRequiredPassword creds)
         throws ClassNotFoundException, FileNotFoundException, IOException
     {
-        // Check for existence of app properties and/or derby.properties files
-        // Copy the derby.properties to the db base directory
+        // Check for existence of app properties and/or db.properties files
+        // Copy the db.properties to the db base directory
         // Then create the -p string for the test
 		String propString = "";
 		
@@ -1326,7 +1326,7 @@ public class RunTest
 		Properties ap = new Properties();
 
         // If there are special flags for ij or server, load these
-        // into properties to be merged with app and/or derby props
+        // into properties to be merged with app and/or db props
         Properties ijProps = new Properties();
         Properties srvProps = new Properties();
 		if ( (testSpecialProps != null) && (testSpecialProps.length()>0))
@@ -1334,7 +1334,7 @@ public class RunTest
 		    SpecialFlags.parse(testSpecialProps, ijProps, srvProps);
 		}
 
-        /* If there are more than one derby.properties, the rule is to
+        /* If there are more than one db.properties, the rule is to
            load either the test_derby.properties or the default one,
         */
         
@@ -1560,7 +1560,7 @@ clp.list(System.out);
 			String fileEnc = System.getProperty("file.encoding");
 		
 			if (ap.getProperty("derby.ui.codeset") != null) {
-				// derby.ui.codeset is specified explicitly, don't override
+				// db.ui.codeset is specified explicitly, don't override
 				codeset = ap.getProperty("derby.ui.codeset");
 			} else if (isI18N) {
 				ap.put("derby.ui.codeset", "UTF-8");
@@ -1573,7 +1573,7 @@ clp.list(System.out);
 			if (verbose)
 				System.out.println("console.encoding:" + conEnc + 
 								   " file.encoding:" + fileEnc +
-							   " derby.ui.codeset: " + ap.getProperty("derby.ui.codeset"));
+							   " db.ui.codeset: " + ap.getProperty("derby.ui.codeset"));
 			
 			// If the initial connection is being specified as a DataSource
 			// on the command line using -Dij.dataSource=<dsclassname>
@@ -1905,7 +1905,7 @@ clp.list(System.out);
 
 		
 		// jcc default requires userid
-		// derby client will default to "SPLICE" so doesn't need harness
+		// db client will default to "SPLICE" so doesn't need harness
 		// to set a user.
 		if (NetServer.isJCCConnection(framework))
 		{
@@ -2066,9 +2066,9 @@ clp.list(System.out);
 		        else 
 		        {
 			        status = appPropFile.delete();
-			        //no permission in Java to drop derby.log
+			        //no permission in Java to drop db.log
 			        //File logfile = new File(baseDir, "derby.log");
-			        //System.out.println("delete derby.log ");
+			        //System.out.println("delete db.log ");
 			        //System.out.println(logfile.getPath());
 			        //status = logfile.delete();
 		        }
@@ -2380,7 +2380,7 @@ clp.list(System.out);
             } else if ((isNotAscii == null) || (isNotAscii.equals("false"))) {
                 v.addElement("-Dconsole.encoding=Cp1252" );
             }
-            v.addElement("org.apache.derby.tools." + ij);
+            v.addElement("com.splicemachine.db.tools." + ij);
             if (ij.equals("ij"))
             {
                 //TODO: is there a setting/property we could check after which

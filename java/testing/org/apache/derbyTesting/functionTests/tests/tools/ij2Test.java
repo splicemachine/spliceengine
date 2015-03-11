@@ -39,25 +39,25 @@ public class ij2Test extends ScriptTestCase {
     public ij2Test(String script) {
         super(script, true);
     }
-    
-    public static Test suite() {        
+
+    public static Test suite() {
         Properties props = new Properties();
 
         // When running on JSR-169 platforms, we need to use a data source
         // instead of a JDBC URL since DriverManager isn't available.
         if (JDBC.vmSupportsJSR169()) {
             props.setProperty("ij.dataSource",
-                              "org.apache.derby.jdbc.EmbeddedSimpleDataSource");
+                              "com.splicemachine.db.jdbc.EmbeddedSimpleDataSource");
             props.setProperty("ij.dataSource.databaseName", "wombat");
             props.setProperty("ij.dataSource.createDatabase", "create");
         }
 
-        props.setProperty("derby.infolog.append", "true");  
+        props.setProperty("derby.infolog.append", "true");
         props.setProperty("ij.protocol", "jdbc:derby:");
         props.setProperty("ij.database", "wombat;create=true");
 
         Test test = new SystemPropertyTestSetup(new ij2Test("ij2"), props);
-        test = new LocaleTestSetup(test, Locale.ENGLISH);   
+        test = new LocaleTestSetup(test, Locale.ENGLISH);
         test = TestConfiguration.singleUseDatabaseDecorator(test, "wombat1");
         test = new CleanDatabaseTestSetup(test);
 
@@ -67,13 +67,13 @@ public class ij2Test extends ScriptTestCase {
         if (JDBC.vmSupportsJDBC3()) {
             props.setProperty("ij.protocol", "jdbc:derby:");
             props.setProperty("ij.showNoConnectionsAtStart", "true");
-            
+
             Test testb = new SystemPropertyTestSetup(new ij2Test("ij2b"), props);
-            testb = new LocaleTestSetup(testb, Locale.ENGLISH);   
+            testb = new LocaleTestSetup(testb, Locale.ENGLISH);
             testb = TestConfiguration.singleUseDatabaseDecorator(testb, "wombat1");
             testb = new CleanDatabaseTestSetup(testb);
             suite.addTest(testb);
         }
-        return getIJConfig(suite); 
-    }   
+        return getIJConfig(suite);
+    }
 }

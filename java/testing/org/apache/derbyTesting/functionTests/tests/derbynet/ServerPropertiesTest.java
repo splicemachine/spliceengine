@@ -25,30 +25,28 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.security.AccessController;
 import java.sql.SQLException;
-import java.util.Enumeration;
 import java.util.Locale;
 import java.util.Properties;
 
 import junit.framework.Test;
 import junit.framework.TestSuite;
 
-import org.apache.derby.drda.NetworkServerControl;
+import com.splicemachine.db.drda.NetworkServerControl;
 import org.apache.derbyTesting.junit.BaseJDBCTestCase;
 import org.apache.derbyTesting.junit.Derby;
 import org.apache.derbyTesting.junit.JDBC;
 import org.apache.derbyTesting.junit.NetworkServerTestSetup;
-import org.apache.derbyTesting.junit.OsName;
 import org.apache.derbyTesting.junit.SecurityManagerSetup;
 import org.apache.derbyTesting.junit.SupportFilesSetup;
 import org.apache.derbyTesting.junit.TestConfiguration;
 
 /** 
- * This test tests the derby.properties, system properties and command line
+ * This test tests the db.properties, system properties and command line
  * parameters to make sure the pick up settings in the correct order. 
  * Search order is:
  *     command line parameters
  *     System properties
- *     derby.properties
+ *     db.properties
  *     default     
  * The command line should take precedence
  * 
@@ -404,10 +402,10 @@ public class ServerPropertiesTest  extends BaseJDBCTestCase {
         String actionResult = startServer(basePort, true);
         checkWhetherNeedToShutdown(new int[] {basePort}, actionResult);
         
-        // set derby.drda.portNumber to an alternate number in derby.properties
+        // set db.drda.portNumber to an alternate number in db.properties
         int firstAlternatePort = TestConfiguration.getCurrent().getNextAvailablePort();
         final Properties derbyProperties = new Properties();
-        derbyProperties.put("derby.drda.portNumber", 
+        derbyProperties.put("derby.drda.portNumber",
                 new Integer(firstAlternatePort).toString());
 
         final String derbyHome = getSystemProperty("derby.system.home");
@@ -418,7 +416,7 @@ public class ServerPropertiesTest  extends BaseJDBCTestCase {
                 try {
                     FileOutputStream propFile = 
                         new FileOutputStream(derbyHome + File.separator + "derby.properties");
-                    derbyProperties.store(propFile,"testing derby.properties");
+                    derbyProperties.store(propFile,"testing db.properties");
                     propFile.close();
                 } catch (IOException ioe) {
                     fail = true;
@@ -428,16 +426,16 @@ public class ServerPropertiesTest  extends BaseJDBCTestCase {
         });
         if (b.booleanValue())
         {
-            checkWhetherNeedToShutdown(new int[] {TestConfiguration.getCurrent().getPort()}, "failed to write derby.properties");
+            checkWhetherNeedToShutdown(new int[] {TestConfiguration.getCurrent().getPort()}, "failed to write db.properties");
         }
-        // have to shutdown engine to force read of derby.properties
+        // have to shutdown engine to force read of db.properties
         TestConfiguration.getCurrent().shutdownEngine();
         actionResult = startServer(firstAlternatePort, false);
         checkWhetherNeedToShutdown(new int[] {basePort, firstAlternatePort}, actionResult);
 
         final int secondAlternatePort = TestConfiguration.getCurrent().getNextAvailablePort();
         // Now set system properties.
-        setSystemProperty("derby.drda.portNumber", 
+        setSystemProperty("derby.drda.portNumber",
             new Integer(secondAlternatePort).toString());
         actionResult = startServer(secondAlternatePort, false);
         checkWhetherNeedToShutdown( new int[] {basePort, firstAlternatePort, secondAlternatePort},
@@ -445,7 +443,7 @@ public class ServerPropertiesTest  extends BaseJDBCTestCase {
         
         // now try with specifying port
         // Note that we didn't unset the system property yet, nor did
-        // we get rid of derby.properties...
+        // we get rid of db.properties...
         // command line parameter should take hold
         int thirdAlternatePort = TestConfiguration.getCurrent().getNextAvailablePort();
         actionResult = startServer(thirdAlternatePort, true);
@@ -455,7 +453,7 @@ public class ServerPropertiesTest  extends BaseJDBCTestCase {
         // now with -p. 
         int fourthAlternatePort = TestConfiguration.getCurrent().getNextAvailablePort();
         String[] commandArray = {"-Dderby.system.home=" + derbyHome,
-            "org.apache.derby.drda.NetworkServerControl", "-p",
+            "com.splicemachine.db.drda.NetworkServerControl", "-p",
             String.valueOf(fourthAlternatePort).toString(), 
             "-noSecurityManager", "start"};
         execJavaCmd(commandArray);
@@ -468,7 +466,7 @@ public class ServerPropertiesTest  extends BaseJDBCTestCase {
                         
         // shutdown with -p
         commandArray = new String[] {"-Dderby.system.home=" + derbyHome,
-                "org.apache.derby.drda.NetworkServerControl", "-p",
+                "com.splicemachine.db.drda.NetworkServerControl", "-p",
                 String.valueOf(fourthAlternatePort).toString(), 
                 "-noSecurityManager", "shutdown"};
         execJavaCmd(commandArray);
@@ -491,11 +489,11 @@ public class ServerPropertiesTest  extends BaseJDBCTestCase {
         // remove system property
         removeSystemProperty("derby.drda.portNumber");
 
-        // shutdown server with port set in derby.properties
+        // shutdown server with port set in db.properties
         actionResult = shutdownServer(firstAlternatePort, false);
         checkWhetherNeedToShutdown ( new int[] {basePort, firstAlternatePort},
             actionResult);
-        // remove derby.properties
+        // remove db.properties
         Boolean ret = (Boolean) AccessController.doPrivileged
         (new java.security.PrivilegedAction() {
             public Object run() {
@@ -506,9 +504,9 @@ public class ServerPropertiesTest  extends BaseJDBCTestCase {
         );
         if (ret.booleanValue() == false) {
             checkWhetherNeedToShutdown ( new int[] {basePort, firstAlternatePort},
-                "unable to remove derby.properties");
+                "unable to remove db.properties");
         }
-        // have to shutdown engine to force re-evaluation of derby.properties
+        // have to shutdown engine to force re-evaluation of db.properties
         TestConfiguration.getCurrent().shutdownEngine();
         
         // shutdown the default server
@@ -523,14 +521,14 @@ public class ServerPropertiesTest  extends BaseJDBCTestCase {
     {
         //check that default properties are used
         verifyProperties(new String[] {
-                "derby.drda.maxThreads=0", 
-                "derby.drda.sslMode=off", 
-                "derby.drda.keepAlive=true", 
-                "derby.drda.minThreads=0", 
-                "derby.drda.portNumber=" + 
+                "derby.drda.maxThreads=0",
+                "derby.drda.sslMode=off",
+                "derby.drda.keepAlive=true",
+                "derby.drda.minThreads=0",
+                "derby.drda.portNumber=" +
                     String.valueOf(TestConfiguration.getCurrent().getPort()),
-                "derby.drda.logConnections=false", 
-                "derby.drda.timeSlice=0", 
+                "derby.drda.logConnections=false",
+                "derby.drda.timeSlice=0",
                 "derby.drda.startNetworkServer=false",
                 "derby.drda.host=" +
                     String.valueOf(TestConfiguration.getCurrent().getHostName()), 
@@ -545,19 +543,19 @@ public class ServerPropertiesTest  extends BaseJDBCTestCase {
     {        
         // we only care about the traceAll property, the rest will be unchanged
         String expectedTraceOff = "derby.drda.traceAll=false";
-        String expectedTraceOn = "derby.drda.traceAll=true";     
+        String expectedTraceOn = "derby.drda.traceAll=true";
         
         verifyProperties(expectedTraceOff);     
 
         int port = TestConfiguration.getCurrent().getPort();
 
         String[] traceCmd = new String[] {
-            "org.apache.derby.drda.NetworkServerControl", "trace", "on", "-p",String.valueOf(port) };
+            "com.splicemachine.db.drda.NetworkServerControl", "trace", "on", "-p",String.valueOf(port) };
         assertSuccessfulCmd("Trace turned on for all sessions.", traceCmd);
         verifyProperties(expectedTraceOn);     
 
         traceCmd = new String[] {
-                "org.apache.derby.drda.NetworkServerControl", "trace", "off", "-p",String.valueOf(port) };
+                "com.splicemachine.db.drda.NetworkServerControl", "trace", "off", "-p",String.valueOf(port) };
         assertSuccessfulCmd("Trace turned off for all sessions", traceCmd);
         // traceAll should be back to false
         verifyProperties(expectedTraceOff);     
@@ -578,12 +576,12 @@ public class ServerPropertiesTest  extends BaseJDBCTestCase {
         int port = TestConfiguration.getCurrent().getPort();
 
         String[] cmd = new String[] {
-            "org.apache.derby.drda.NetworkServerControl", "logconnections", "on","-p",String.valueOf(port) };
+            "com.splicemachine.db.drda.NetworkServerControl", "logconnections", "on","-p",String.valueOf(port) };
         assertSuccessfulCmd("Log Connections changed to on.", cmd);
         verifyProperties(expectedLogConnectionsOn);     
 
         cmd = new String[] {
-                "org.apache.derby.drda.NetworkServerControl", "logconnections", "off", "-p",String.valueOf(port) };
+                "com.splicemachine.db.drda.NetworkServerControl", "logconnections", "off", "-p",String.valueOf(port) };
         assertSuccessfulCmd("Log Connections changed to off.", cmd);
         // traceAll should be back to false
         verifyProperties(expectedLogConnectionsOff);    

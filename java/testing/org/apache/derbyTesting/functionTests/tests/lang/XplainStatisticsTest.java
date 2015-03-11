@@ -46,8 +46,8 @@ import junit.framework.Assert;
 import junit.framework.Test;
 import junit.framework.TestSuite;
 
-import org.apache.derby.impl.tools.planexporter.AccessDatabase;
-import org.apache.derby.impl.tools.planexporter.CreateXMLFile;
+import com.splicemachine.db.impl.tools.planexporter.AccessDatabase;
+import com.splicemachine.db.impl.tools.planexporter.CreateXMLFile;
 import org.apache.derbyTesting.junit.BaseJDBCTestCase;
 import org.apache.derbyTesting.junit.CleanDatabaseTestSetup;
 import org.apache.derbyTesting.junit.JDBC;

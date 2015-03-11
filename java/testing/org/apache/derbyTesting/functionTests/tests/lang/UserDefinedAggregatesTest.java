@@ -21,25 +21,18 @@
 
 package org.apache.derbyTesting.functionTests.tests.lang;
 
-import java.sql.CallableStatement;
 import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.ParameterMetaData;
-import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.Blob;
 import java.sql.Clob;
-import java.util.HashMap;
 
 import junit.framework.Test;
 import junit.framework.TestSuite;
 import org.apache.derbyTesting.junit.Decorator;
 import org.apache.derbyTesting.junit.TestConfiguration;
-import org.apache.derbyTesting.junit.JDBC;
 
-import org.apache.derby.iapi.types.HarmonySerialBlob;
-import org.apache.derby.iapi.types.HarmonySerialClob;
+import com.splicemachine.db.iapi.types.HarmonySerialBlob;
+import com.splicemachine.db.iapi.types.HarmonySerialClob;
 
 /**
  * <p>
@@ -153,20 +146,20 @@ public class UserDefinedAggregatesTest  extends GeneratedColumnsHelper
         goodStatement( conn, "create schema uda_schema3\n" );
 
         // some good aggregate creations
-        goodStatement( conn, "create derby aggregate mode_01 for int external name 'foo.bar.Wibble'" );
-        goodStatement( conn, "create derby aggregate uda_schema.mode_012 for int external name 'foo.bar.Wibble'" );
+        goodStatement( conn, "create db aggregate mode_01 for int external name 'foo.bar.Wibble'" );
+        goodStatement( conn, "create db aggregate uda_schema.mode_012 for int external name 'foo.bar.Wibble'" );
 
         // can't create an aggregate with an existing name
         expectExecutionError
-            ( conn, OBJECT_EXISTS, "create derby aggregate mode_01 for int external name 'foo.bar.Wibble'" );
+            ( conn, OBJECT_EXISTS, "create db aggregate mode_01 for int external name 'foo.bar.Wibble'" );
         expectExecutionError
-            ( conn, OBJECT_EXISTS, "create derby aggregate uda_schema.mode_012 for int external name 'foo.bar.Wibble'" );
+            ( conn, OBJECT_EXISTS, "create db aggregate uda_schema.mode_012 for int external name 'foo.bar.Wibble'" );
         
         // only RESTRICTed drops allowed now
-        expectCompilationError( SYNTAX_ERROR, "drop derby aggregate mode_01" );
+        expectCompilationError( SYNTAX_ERROR, "drop db aggregate mode_01" );
 
         // successfully drop an aggregate
-        goodStatement( conn, "drop derby aggregate mode_01 restrict" );
+        goodStatement( conn, "drop db aggregate mode_01 restrict" );
 
         // can't create an aggregate with the same name as a 1-arg function
         // but no collision with 2-arg function names
@@ -177,22 +170,22 @@ public class UserDefinedAggregatesTest  extends GeneratedColumnsHelper
             ( conn, "create function uda_schema3.agg_nocollide( a int, b int ) returns int language java\n" +
               "parameter style java external name 'Foo.f'" );
         expectExecutionError
-            ( conn, NAME_COLLISION, "create derby aggregate uda_schema3.agg_collide for int external name 'foo.bar.Wibble'" );
+            ( conn, NAME_COLLISION, "create db aggregate uda_schema3.agg_collide for int external name 'foo.bar.Wibble'" );
         goodStatement
-            ( conn, "create derby aggregate uda_schema3.agg_nocollide for int external name 'foo.bar.Wibble'" );
+            ( conn, "create db aggregate uda_schema3.agg_nocollide for int external name 'foo.bar.Wibble'" );
 
         goodStatement
             ( conn, "create function agg_collide( a int ) returns int language java parameter style java external name 'Foo.f'" );
         goodStatement
             ( conn, "create function agg_nocollide( a int, b int ) returns int language java parameter style java external name 'Foo.f'" );
-        expectExecutionError( conn, NAME_COLLISION, "create derby aggregate agg_collide for int external name 'foo.bar.Wibble'" );
-        goodStatement( conn, "create derby aggregate agg_nocollide for int external name 'foo.bar.Wibble'" );
+        expectExecutionError( conn, NAME_COLLISION, "create db aggregate agg_collide for int external name 'foo.bar.Wibble'" );
+        goodStatement( conn, "create db aggregate agg_nocollide for int external name 'foo.bar.Wibble'" );
 
         // can't create a 1-arg function with same name as an aggregate
         goodStatement
-            ( conn, "create derby aggregate func_collide for int external name 'foo.bar.Wibble'" );
+            ( conn, "create db aggregate func_collide for int external name 'foo.bar.Wibble'" );
         goodStatement
-            ( conn, "create derby aggregate func_nocollide for int external name 'foo.bar.Wibble'" );
+            ( conn, "create db aggregate func_nocollide for int external name 'foo.bar.Wibble'" );
         expectExecutionError
             ( conn, NAME_COLLISION,
               "create function func_collide( a int ) returns int language java parameter style java external name 'Foo.f'" );
@@ -200,9 +193,9 @@ public class UserDefinedAggregatesTest  extends GeneratedColumnsHelper
             ( conn, "create function func_nocollide( a int, b int ) returns int language java parameter style java external name 'Foo.f'" );
         
         goodStatement
-            ( conn, "create derby aggregate uda_schema3.func_collide for int external name 'foo.bar.Wibble'" );
+            ( conn, "create db aggregate uda_schema3.func_collide for int external name 'foo.bar.Wibble'" );
         goodStatement
-            ( conn, "create derby aggregate uda_schema3.func_nocollide for int external name 'foo.bar.Wibble'" );
+            ( conn, "create db aggregate uda_schema3.func_nocollide for int external name 'foo.bar.Wibble'" );
         expectExecutionError
             ( conn, NAME_COLLISION,
               "create function uda_schema3.func_collide( a int ) returns int language java parameter style java external name 'Foo.f'" );
@@ -214,13 +207,13 @@ public class UserDefinedAggregatesTest  extends GeneratedColumnsHelper
         expectExecutionError( conn, NON_EMPTY_SCHEMA, "drop schema uda_schema restrict" );
 
         // drop the aggregate, then drop the schema
-        goodStatement( conn, "drop derby aggregate uda_schema.mode_012 restrict" );
+        goodStatement( conn, "drop db aggregate uda_schema.mode_012 restrict" );
         goodStatement( conn, "drop schema uda_schema restrict" );
 
         // can't drop a non-existent aggregate
-        expectCompilationError( NONEXISTENT_OBJECT, "drop derby aggregate mode_01 restrict" );
-        expectCompilationError( NONEXISTENT_OBJECT, "drop derby aggregate mode_011 restrict" );
-        expectCompilationError( NONEXISTENT_OBJECT, "drop derby aggregate uda_schema2.mode_01 restrict" );
+        expectCompilationError( NONEXISTENT_OBJECT, "drop db aggregate mode_01 restrict" );
+        expectCompilationError( NONEXISTENT_OBJECT, "drop db aggregate mode_011 restrict" );
+        expectCompilationError( NONEXISTENT_OBJECT, "drop db aggregate uda_schema2.mode_01 restrict" );
     }
 
     /**
@@ -268,12 +261,12 @@ public class UserDefinedAggregatesTest  extends GeneratedColumnsHelper
         badAggregate( conn, ILLEGAL_AGGREGATE, "ucase" );
 
         // no conflict with 2 argument builtin functions
-        goodStatement( conn, "create derby aggregate locate for int external name 'foo.bar.Wibble'" );
-        goodStatement( conn, "drop derby aggregate locate restrict" );
+        goodStatement( conn, "create db aggregate locate for int external name 'foo.bar.Wibble'" );
+        goodStatement( conn, "drop db aggregate locate restrict" );
     }
     private void    badAggregate( Connection conn, String expectedSQLState, String name ) throws Exception
     {
-        String  ddl = "create derby aggregate " + name + " for int external name 'foo.bar.Wibble'";
+        String  ddl = "create db aggregate " + name + " for int external name 'foo.bar.Wibble'";
         
         expectCompilationError( expectedSQLState, ddl );
     }
@@ -349,10 +342,10 @@ public class UserDefinedAggregatesTest  extends GeneratedColumnsHelper
 
         goodStatement( conn, "create schema agg_schema\n" );
         goodStatement
-            ( conn, "create derby aggregate mode_05 for int\n" +
+            ( conn, "create db aggregate mode_05 for int\n" +
               "external name 'org.apache.derbyTesting.functionTests.tests.lang.ModeAggregate'" );
         goodStatement
-            ( conn, "create derby aggregate agg_schema.mode_052 for int\n" +
+            ( conn, "create db aggregate agg_schema.mode_052 for int\n" +
               "external name 'org.apache.derbyTesting.functionTests.tests.lang.ModeAggregate'" );
         goodStatement( conn, "create table mode_05_inputs( a int, b int )" );
         goodStatement( conn, "insert into mode_05_inputs( a, b ) values ( 1, 1 ), ( 1, 2 ), ( 1, 2 ), ( 1, 2 ), ( 2, 3 ), ( 2, 3 ), ( 2, 4 )" );
@@ -769,7 +762,7 @@ public class UserDefinedAggregatesTest  extends GeneratedColumnsHelper
         String  tableName = aggName + "_mode_inputs";
         
         goodStatement
-            ( conn, "create derby aggregate " + aggName + " for " + sqlType + "\n" +
+            ( conn, "create db aggregate " + aggName + " for " + sqlType + "\n" +
               "external name '" + externalName + "'" );
         goodStatement( conn, "create table " + tableName + "( a int, b " + sqlType + " )" );
         goodStatement( conn, "insert into " + tableName + "( a, b ) values " + values );
@@ -824,7 +817,7 @@ public class UserDefinedAggregatesTest  extends GeneratedColumnsHelper
 
         goodStatement
             ( conn,
-              "create derby aggregate mode_07 for int external name 'org.apache.derbyTesting.functionTests.tests.lang.ModeAggregate'" );
+              "create db aggregate mode_07 for int external name 'org.apache.derbyTesting.functionTests.tests.lang.ModeAggregate'" );
         goodStatement
             ( conn,
               "create table mode_inputs_07( a int, b int )" );
@@ -834,7 +827,7 @@ public class UserDefinedAggregatesTest  extends GeneratedColumnsHelper
             ( conn,
               "create view v_dbo_07( a, modeOfA ) as select a, mode_07( b ) from mode_inputs_07 group by a" );
         expectExecutionError
-            ( conn, VIEW_DEPENDENCY, "drop derby aggregate mode_07 restrict" );
+            ( conn, VIEW_DEPENDENCY, "drop db aggregate mode_07 restrict" );
         goodStatement
             ( conn,
               "drop view v_dbo_07" );
@@ -854,13 +847,13 @@ public class UserDefinedAggregatesTest  extends GeneratedColumnsHelper
               "insert into t_target_07( a ) select mode_07( b ) from mode_inputs_07\n"
               );
         expectExecutionError
-            ( conn, FORBIDDEN_DROP_TRIGGER, "drop derby aggregate mode_07 restrict" );
+            ( conn, FORBIDDEN_DROP_TRIGGER, "drop db aggregate mode_07 restrict" );
         goodStatement
             ( conn,
               "drop trigger t_insert_trigger_07" );
 
         // blocking objects dropped. aggregate is now droppable
-        goodStatement( conn, "drop derby aggregate mode_07 restrict" );
+        goodStatement( conn, "drop db aggregate mode_07 restrict" );
         
     }
     
@@ -886,7 +879,7 @@ public class UserDefinedAggregatesTest  extends GeneratedColumnsHelper
         goodStatement
             (
              conn,
-             "create derby aggregate fullNameMode for FullName\n" +
+             "create db aggregate fullNameMode for FullName\n" +
              "external name 'org.apache.derbyTesting.functionTests.tests.lang.GenericMode$FullNameMode'"
              );
         goodStatement
@@ -1046,7 +1039,7 @@ public class UserDefinedAggregatesTest  extends GeneratedColumnsHelper
         goodStatement
             (
              conn,
-             "create derby aggregate intMode_10 for int\n" +
+             "create db aggregate intMode_10 for int\n" +
              "external name 'org.apache.derbyTesting.functionTests.tests.lang.GenericMode$IntMode'\n"
              );
         goodStatement
@@ -1075,7 +1068,7 @@ public class UserDefinedAggregatesTest  extends GeneratedColumnsHelper
         goodStatement
             (
              conn,
-             "create derby aggregate priceMode_10 for Price_10\n" +
+             "create db aggregate priceMode_10 for Price_10\n" +
              "external name 'org.apache.derbyTesting.functionTests.tests.lang.GenericMode'\n"
              );
         expectCompilationError( INPUT_OUTSIDE_BOUNDS, "select priceMode_10( b ) from t_price_10" );
@@ -1092,7 +1085,7 @@ public class UserDefinedAggregatesTest  extends GeneratedColumnsHelper
         goodStatement
             (
              conn,
-             "create derby aggregate priceMode_10_1 for int returns Price_10\n" +
+             "create db aggregate priceMode_10_1 for int returns Price_10\n" +
              "external name 'org.apache.derbyTesting.functionTests.tests.lang.GenericMode'"
              );
         expectCompilationError( RETURN_OUTSIDE_BOUNDS, "select priceMode_10_1( b ) from t_price_10_1" );
@@ -1109,7 +1102,7 @@ public class UserDefinedAggregatesTest  extends GeneratedColumnsHelper
         goodStatement
             (
              conn,
-             "create derby aggregate intMode_missing_10 for int external name 'missing.Missing'"
+             "create db aggregate intMode_missing_10 for int external name 'missing.Missing'"
              );
         expectCompilationError( MISSING_CLASS, "select intMode_missing_10( columnnumber ) from sys.syscolumns" );
 
@@ -1803,7 +1796,7 @@ public class UserDefinedAggregatesTest  extends GeneratedColumnsHelper
         expectCompilationError
             (
              XML_TYPE,
-             "create derby aggregate xmlMode_11 for xml\n" +
+             "create db aggregate xmlMode_11 for xml\n" +
              "external name 'org.apache.derbyTesting.functionTests.tests.lang.LobMode'\n"
              );
     }
@@ -1855,7 +1848,7 @@ public class UserDefinedAggregatesTest  extends GeneratedColumnsHelper
         goodStatement
             (
              conn,
-             "create derby aggregate charMode_12 for char( 4 )\n" +
+             "create db aggregate charMode_12 for char( 4 )\n" +
              "external name 'org.apache.derbyTesting.functionTests.tests.lang.GenericMode$StringMode'\n"
              );
         goodStatement
@@ -1939,7 +1932,7 @@ public class UserDefinedAggregatesTest  extends GeneratedColumnsHelper
         goodStatement
             (
              conn,
-             "create derby aggregate bigintMode_12 for bigint\n" +
+             "create db aggregate bigintMode_12 for bigint\n" +
              "external name 'org.apache.derbyTesting.functionTests.tests.lang.GenericMode$BigintMode'\n"
              );
         goodStatement
@@ -2001,7 +1994,7 @@ public class UserDefinedAggregatesTest  extends GeneratedColumnsHelper
         goodStatement
             (
              conn,
-             "create derby aggregate intMode_12 for int\n" +
+             "create db aggregate intMode_12 for int\n" +
              "external name 'org.apache.derbyTesting.functionTests.tests.lang.GenericMode$IntMode'\n"
              );
         goodStatement
@@ -2044,13 +2037,13 @@ public class UserDefinedAggregatesTest  extends GeneratedColumnsHelper
         goodStatement
             (
              conn,
-             "create derby aggregate intMagnitude_13 for int returns bigint\n" +
+             "create db aggregate intMagnitude_13 for int returns bigint\n" +
              "external name 'org.apache.derbyTesting.functionTests.tests.lang.LongMagnitude'\n"
              );
         goodStatement
             (
              conn,
-             "create derby aggregate stringMagnitude_13 for int returns varchar( 10 )\n" +
+             "create db aggregate stringMagnitude_13 for int returns varchar( 10 )\n" +
              "external name 'org.apache.derbyTesting.functionTests.tests.lang.LongMagnitude'\n"
              );
         goodStatement
@@ -2103,7 +2096,7 @@ public class UserDefinedAggregatesTest  extends GeneratedColumnsHelper
         goodStatement
             (
              conn,
-             "create derby aggregate intMode_14 for int\n" +
+             "create db aggregate intMode_14 for int\n" +
              "external name 'org.apache.derbyTesting.functionTests.tests.lang.GenericMode$IntMode'\n"
              );
         goodStatement
@@ -2130,7 +2123,7 @@ public class UserDefinedAggregatesTest  extends GeneratedColumnsHelper
         goodStatement
             (
              conn,
-             "create derby aggregate varcharMode_15 for varchar( 4 )\n" +
+             "create db aggregate varcharMode_15 for varchar( 4 )\n" +
              "external name 'org.apache.derbyTesting.functionTests.tests.lang.GenericMode$StringMode'\n"
              );
         goodStatement
@@ -2151,13 +2144,13 @@ public class UserDefinedAggregatesTest  extends GeneratedColumnsHelper
         goodStatement
             (
              conn,
-             "create derby aggregate numericMode_15_bigger for numeric( 5, 3 )\n" +
+             "create db aggregate numericMode_15_bigger for numeric( 5, 3 )\n" +
              "external name 'org.apache.derbyTesting.functionTests.tests.lang.GenericMode$BigDecimalMode'\n"
              );
         goodStatement
             (
              conn,
-             "create derby aggregate numericMode_15 for numeric( 5, 1 )\n" +
+             "create db aggregate numericMode_15 for numeric( 5, 1 )\n" +
              "external name 'org.apache.derbyTesting.functionTests.tests.lang.GenericMode$BigDecimalMode'\n"
              );
         goodStatement
@@ -2229,7 +2222,7 @@ public class UserDefinedAggregatesTest  extends GeneratedColumnsHelper
         goodStatement
             (
              conn,
-             "create derby aggregate bigintMode_16 for bigint\n" +
+             "create db aggregate bigintMode_16 for bigint\n" +
              "external name 'org.apache.derbyTesting.functionTests.tests.lang.GenericMode$IntMode'\n"
              );
         goodStatement
@@ -2245,7 +2238,7 @@ public class UserDefinedAggregatesTest  extends GeneratedColumnsHelper
         goodStatement
             (
              conn,
-             "create derby aggregate intMode_16 for int returns varchar( 10 )\n" +
+             "create db aggregate intMode_16 for int returns varchar( 10 )\n" +
              "external name 'org.apache.derbyTesting.functionTests.tests.lang.GenericMode$IntMode'\n"
              );
         goodStatement
@@ -2281,7 +2274,7 @@ public class UserDefinedAggregatesTest  extends GeneratedColumnsHelper
         goodStatement
             (
              conn,
-             "create derby aggregate priceMode_17 for Price_17 returns Price_17_2\n" +
+             "create db aggregate priceMode_17 for Price_17 returns Price_17_2\n" +
              "external name 'org.apache.derbyTesting.functionTests.tests.lang.GenericMode'\n"
              );
 
@@ -2295,7 +2288,7 @@ public class UserDefinedAggregatesTest  extends GeneratedColumnsHelper
         goodStatement
             (
              conn,
-             "drop derby aggregate priceMode_17 restrict"
+             "drop db aggregate priceMode_17 restrict"
              );
         goodStatement
             (

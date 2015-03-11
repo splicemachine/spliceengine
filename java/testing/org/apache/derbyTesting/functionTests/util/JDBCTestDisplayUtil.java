@@ -22,29 +22,11 @@
 package org.apache.derbyTesting.functionTests.util;
 
 import java.io.PrintStream;
-import java.io.PrintWriter;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
 
-import java.sql.Connection;
-import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.sql.SQLWarning;
-import java.sql.Statement;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.Types;
-
-import java.util.Properties;
-import java.util.Enumeration;
-import java.util.Vector;
 
 
-import org.apache.derby.impl.tools.ij.ijException;
-
-import org.apache.derby.tools.JDBCDisplayUtil;
+import com.splicemachine.db.tools.JDBCDisplayUtil;
 
 /**
    Show common format for Network Server and Embedded Exceptions

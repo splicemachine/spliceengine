@@ -244,11 +244,11 @@ public class NetworkServerMBeanTest extends MBeanTest {
     
     public void testAttributeDrdaTraceDirectory() throws Exception {
         // assuming that the tracedirectory has not been set, meaning that it
-        // is the value of derby.system.home, or user.dir (of the Network 
+        // is the value of db.system.home, or user.dir (of the Network
         // Server) if this has not been set.
         //
         // Temporary: NetworkServerTestSetup seems volatile in this area at the
-        // moment (see derby-dev 2008-03-06); will defer value checking until
+        // moment (see db-dev 2008-03-06); will defer value checking until
         // later.
           //assertStringAttribute("SomeDirectoryPath here", 
           //      getNetworkServerMBeanObjectName(), 

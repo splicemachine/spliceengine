@@ -21,7 +21,6 @@
 
 package org.apache.derbyTesting.functionTests.tests.tools;
 
-import java.io.File;
 import java.io.IOException;
 import java.lang.Process;
 import java.lang.Runtime;
@@ -40,7 +39,7 @@ public class derbyrunjartest {
         // get location of run class.
         CodeSource cs = null;
         try {
-            cs = org.apache.derby.iapi.tools.run.class.getProtectionDomain().getCodeSource();
+            cs = com.splicemachine.db.iapi.tools.run.class.getProtectionDomain().getCodeSource();
         } catch (SecurityException se) {
             System.out.println("Security exception: " + se.getMessage());
         }
@@ -74,7 +73,7 @@ public class derbyrunjartest {
         System.out.println(concatenate(args) + ':');
 
         if (jvm == null) {
-            org.apache.derby.iapi.tools.run.main(args);
+            com.splicemachine.db.iapi.tools.run.main(args);
             return;
         }
 

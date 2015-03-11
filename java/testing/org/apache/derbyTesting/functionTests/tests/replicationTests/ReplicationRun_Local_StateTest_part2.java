@@ -34,12 +34,12 @@ import org.apache.derbyTesting.junit.SecurityManagerSetup;
  * Run a replication test on localhost
  * by using default values for master and slave hosts,
  * and master and slave ports.
- * 
+ *
  */
 
 public class ReplicationRun_Local_StateTest_part2 extends ReplicationRun
 {
-    
+
     /**
      * Creates a new instance of ReplicationRun_Local
      * @param testcaseName Identifying the test.
@@ -48,16 +48,16 @@ public class ReplicationRun_Local_StateTest_part2 extends ReplicationRun
     {
         super(testcaseName);
     }
-    
+
     public static Test suite()
     {
         TestSuite suite = new TestSuite("ReplicationRun_Local_StateTest_part2 Suite");
-        
+
         suite.addTestSuite( ReplicationRun_Local_StateTest_part2.class );
-        
+
         return SecurityManagerSetup.noSecurityManager(suite);
     }
-        
+
     /**
      * Verify that correct response to replication "commands":
      * startSlave, startMaster, stopSlave, stopMaster and failOver,
@@ -71,48 +71,48 @@ public class ReplicationRun_Local_StateTest_part2 extends ReplicationRun
      * @throws java.lang.Exception
      */
     public void testReplication_Local_StateTest_part2()
-    throws Exception
+            throws Exception
     {
         cleanAllTestHosts();
-        
+
         initEnvironment();
-        
+
         initMaster(masterServerHost,
                 replicatedDb);
-        
+
         startServer(masterJvmVersion, derbyMasterVersion,
                 masterServerHost,
                 ALL_INTERFACES,
                 masterServerPort,
                 masterDbSubPath);
-        
+
         startServer(slaveJvmVersion, derbySlaveVersion,
                 slaveServerHost,
                 ALL_INTERFACES,
                 slaveServerPort,
                 slaveDbSubPath);
-        
+
         startServerMonitor(slaveServerHost);
-        
+
         bootMasterDatabase(jvmVersion,
                 masterDatabasePath +FS+ masterDbSubPath,
                 replicatedDb,
                 masterServerHost,
                 masterServerPort,
                 null // bootLoad, // The "test" to start when booting db.
-                );
-        
+        );
+
         initSlave(slaveServerHost,
                 jvmVersion,
                 replicatedDb);
-        
+
         startSlave(jvmVersion, replicatedDb,
                 slaveServerHost,
                 slaveServerPort,
                 slaveServerHost,
                 slaveReplPort,
                 testClientHost);
-        
+
         startMaster(jvmVersion, replicatedDb,
                 masterServerHost,
                 masterServerPort,
@@ -120,78 +120,78 @@ public class ReplicationRun_Local_StateTest_part2 extends ReplicationRun
                 slaveServerPort,
                 slaveServerHost,
                 slaveReplPort);
-        
-        
+
+
         // Run a "load" on the master to make sure there
         // has been replication to slave.
         replicationTest = "org.apache.derbyTesting.functionTests.tests.replicationTests.ReplicationTestRun";
         util.DEBUG("replicationTest: " + replicationTest);
         replicationVerify = "org.apache.derbyTesting.functionTests.tests.replicationTests.ReplicationTestRun_Verify";
         util.DEBUG("replicationVerify: " + replicationVerify);
-        
+
         runTest(replicationTest, // Returns immediatly if replicationTest is null.
                 jvmVersion,
                 testClientHost,
                 masterServerHost, masterServerPort,
                 replicatedDb);
-        
+
         // Check that this is gone after failover!
-        Connection mConn = getConnection(masterServerHost, masterServerPort, 
-                    masterDatabasePath, masterDbSubPath, replicatedDb);
-        
+        Connection mConn = getConnection(masterServerHost, masterServerPort,
+                masterDatabasePath, masterDbSubPath, replicatedDb);
+
         failOver(jvmVersion,
                 masterDatabasePath, masterDbSubPath, replicatedDb,
                 masterServerHost,  // Where the master db is run.
                 masterServerPort,
                 testClientHost);
-        
+
         connectPing(slaveDatabasePath+FS+slaveDbSubPath+FS+replicatedDb,
                 slaveServerHost,slaveServerPort,
                 testClientHost);
-        
+
         verifySlave();
-        
+
         // We should verify the master as well, at least to see that we still can connect.
         verifyMaster();
-        
+
         _testPreStoppedSlave(mConn);
-        
+
         shutdownDb(jvmVersion,
-            slaveServerHost, slaveServerPort,
-            slaveDatabasePath+FS+slaveDbSubPath, replicatedDb,
-            testClientHost);
-        
+                slaveServerHost, slaveServerPort,
+                slaveDatabasePath+FS+slaveDbSubPath, replicatedDb,
+                testClientHost);
+
         _testPostStoppedSlave();
         // _testPreStoppedSlaveServer();
-        
+
         stopServer(jvmVersion, derbyVersion,
                 slaveServerHost, slaveServerPort);
-        
+
         _testPostStoppedSlaveServer();
         // _testPreStoppedMaster();
-        
+
         // NOTE:
         // If stopMaster is "connect 'jdbc:...:dbname;shutdown=true';", 
         // this method call will fail because failover has already shutdown 
         // the master database
-        
+
         shutdownDb(jvmVersion,
-            masterServerHost, masterServerPort,
-            masterDatabasePath+FS+masterDbSubPath, replicatedDb,
-            testClientHost);
-        
+                masterServerHost, masterServerPort,
+                masterDatabasePath+FS+masterDbSubPath, replicatedDb,
+                testClientHost);
+
         _testPostStoppedMaster();
         // _testPreStoppedMasterServer();
-        
+
         stopServer(jvmVersion, derbyVersion,
                 masterServerHost, masterServerPort);
-        
+
         _testPostStoppedServer();
-        
+
     }
 
     private void _testPreStoppedSlave(Connection mConn)
-        throws Exception
+            throws Exception
     {
         util.DEBUG("_testPreStoppedSlave");
         /*  
@@ -202,52 +202,52 @@ public class ReplicationRun_Local_StateTest_part2 extends ReplicationRun
          *   - (S) start old slave in master mode
          *
          */
-        
+
         // Tests against slave:
         assertException(
                 _startSlave(slaveServerHost,slaveServerPort,
-                    slaveDatabasePath, replicatedDb,
-                    slaveReplPort),
+                        slaveDatabasePath, replicatedDb,
+                        slaveReplPort),
                 "XRE09");
 
         assertException(
                 stopSlave(slaveServerHost,slaveServerPort,
-                          slaveDatabasePath, replicatedDb,
-                          true),
+                        slaveDatabasePath, replicatedDb,
+                        true),
                 "XRE40");
-        
+
         assertException(
                 _failOver(slaveServerHost,slaveServerPort,
-                    slaveDatabasePath, slaveDbSubPath, replicatedDb),
+                        slaveDatabasePath, slaveDbSubPath, replicatedDb),
                 "XRE07");
-        
+
         // Tests against master:
         assertException(
                 _startMaster(masterServerHost,masterServerPort,
-                    masterDatabasePath, replicatedDb,
-                    slaveServerHost,slaveReplPort),
+                        masterDatabasePath, replicatedDb,
+                        slaveServerHost,slaveReplPort),
                 "XRE04");
-        
+
         assertException(
                 _failOver(masterServerHost,masterServerPort,
-                    masterDatabasePath, masterDbSubPath, replicatedDb),
+                        masterDatabasePath, masterDbSubPath, replicatedDb),
                 "XRE07");
-        
+
         // connect / show tables
         assertException(
-                _executeQuery(mConn, "select count(*) from SYS.SYSTABLES"), 
+                _executeQuery(mConn, "select count(*) from SYS.SYSTABLES"),
                 "08006"); // Thats's just how it is...
-         assertException(
-                _executeQuery(mConn, "select count(*) from SYS.SYSTABLES"), 
+        assertException(
+                _executeQuery(mConn, "select count(*) from SYS.SYSTABLES"),
                 "08003"); // Thats's just how it is...
-        
+
         // Tests against slave:
-        Connection sConn = getConnection(slaveServerHost, slaveServerPort, 
-                    slaveDatabasePath, slaveDbSubPath, replicatedDb); // OK
-         assertException(
-                _executeQuery(sConn, "select count(*) from SYS.SYSTABLES"), 
+        Connection sConn = getConnection(slaveServerHost, slaveServerPort,
+                slaveDatabasePath, slaveDbSubPath, replicatedDb); // OK
+        assertException(
+                _executeQuery(sConn, "select count(*) from SYS.SYSTABLES"),
                 null); // null: Should be OK
-         sConn.close();
+        sConn.close();
     }
 
     private void _testPostStoppedSlave()
@@ -284,17 +284,17 @@ public class ReplicationRun_Local_StateTest_part2 extends ReplicationRun
         util.DEBUG("_testPostStoppedServer Not yet implemented."
                 + " No value-adding suggestions here.");
     }
-    
+
     SQLException _startSlave(String slaveServerHost, int slaveServerPort,
-            String slaveDatabasePath, String replicatedDb,
-            int slaveReplPort)
+                             String slaveDatabasePath, String replicatedDb,
+                             int slaveReplPort)
     {
         String db = slaveDatabasePath +FS+ReplicationRun.slaveDbSubPath +FS+ replicatedDb;
-        String connectionURL = "jdbc:derby:"  
+        String connectionURL = "jdbc:derby:"
                 + "//" + slaveServerHost + ":" + slaveServerPort + "/"
                 + db
                 + ";startSlave=true"
-                + ";slaveHost=" + slaveServerHost 
+                + ";slaveHost=" + slaveServerHost
                 + ";slavePort=" + slaveReplPort;
         util.DEBUG(connectionURL);
         try
@@ -310,11 +310,11 @@ public class ReplicationRun_Local_StateTest_part2 extends ReplicationRun
     }
 
 
-    SQLException _failOver(String serverHost, int serverPort, 
-            String databasePath, String dbSubPath, String replicatedDb)
+    SQLException _failOver(String serverHost, int serverPort,
+                           String databasePath, String dbSubPath, String replicatedDb)
     {
         String db = databasePath +FS+dbSubPath +FS+ replicatedDb;
-        String connectionURL = "jdbc:derby:"  
+        String connectionURL = "jdbc:derby:"
                 + "//" + serverHost + ":" + serverPort + "/"
                 + db
                 + ";failover=true";
@@ -330,18 +330,18 @@ public class ReplicationRun_Local_StateTest_part2 extends ReplicationRun
             return se;
         }
     }
-    
+
     SQLException _startMaster(String masterServerHost, int masterServerPort,
-            String databasePath, String replicatedDb,
-            String slaveServerHost,
-            int slaveReplPort)
+                              String databasePath, String replicatedDb,
+                              String slaveServerHost,
+                              int slaveReplPort)
     {
         String db = databasePath +FS+ReplicationRun.masterDbSubPath +FS+ replicatedDb;
-        String connectionURL = "jdbc:derby:"  
+        String connectionURL = "jdbc:derby:"
                 + "//" + masterServerHost + ":" + masterServerPort + "/"
                 + db
                 + ";startMaster=true"
-                + ";slaveHost=" + slaveServerHost 
+                + ";slaveHost=" + slaveServerHost
                 + ";slavePort=" + slaveReplPort;
         util.DEBUG(connectionURL);
         try
@@ -357,10 +357,10 @@ public class ReplicationRun_Local_StateTest_part2 extends ReplicationRun
     }
 
     SQLException connectTo(String serverHost, int serverPort,
-            String databasePath, String dbSubPath, String replicatedDb)
+                           String databasePath, String dbSubPath, String replicatedDb)
     {
         String db = databasePath +FS+dbSubPath +FS+ replicatedDb;
-        String connectionURL = "jdbc:derby:"  
+        String connectionURL = "jdbc:derby:"
                 + "//" + serverHost + ":" + serverPort + "/"
                 + db;
         util.DEBUG(connectionURL);
@@ -383,7 +383,7 @@ public class ReplicationRun_Local_StateTest_part2 extends ReplicationRun
         {
             Statement s = conn.createStatement();
             ResultSet rs = s.executeQuery(query);
-            return null;        
+            return null;
         }
         catch (SQLException se)
         {

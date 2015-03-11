@@ -38,996 +38,996 @@ import junit.framework.*;
 
 public	class	DerbyJUnitTest	extends	TestCase
 {
-	/////////////////////////////////////////////////////////////
-	//
-	//	CONSTANTS
-	//
-	/////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////
+    //
+    //	CONSTANTS
+    //
+    /////////////////////////////////////////////////////////////
 
-	/** If you set this startup property to true, you will get chatty output. */
-	public	static	final			String	DEBUG_FLAG = "drb.tests.debug";
-	
-	public	static	final			int		SUCCESS_EXIT = 0;
-	public	static	final			int		FAILURE_EXIT = 1;
+    /** If you set this startup property to true, you will get chatty output. */
+    public	static	final			String	DEBUG_FLAG = "drb.tests.debug";
 
-	public	static	final	String	DEFAULT_USER_NAME = "SPLICE";
-	public	static	final	String	DEFAULT_PASSWORD = "SPLICE";
-	public	static	final	String	DEFAULT_DATABASE_NAME = "wombat";
+    public	static	final			int		SUCCESS_EXIT = 0;
+    public	static	final			int		FAILURE_EXIT = 1;
 
-	// because java.sql.Types.BOOLEAN doesn't exist in jdbc 2.0
-	protected	static	final			int		JDBC_BOOLEAN = 16;
-	
-	//
-	// For dropping schema objects
-	//
-	private	static	final	String	TABLE = "table";
-	private	static	final	String	FUNCTION = "function";
-	private	static	final	String	PROCEDURE = "procedure";
-	private	static	final	String	TYPE = "type";
-	
-	//
-	// These are properties for the Derby connection URL.
-	//
-	private	static	final			String	CREATE_PROPERTY = "create=true";
+    public	static	final	String	DEFAULT_USER_NAME = "SPLICE";
+    public	static	final	String	DEFAULT_PASSWORD = "SPLICE";
+    public	static	final	String	DEFAULT_DATABASE_NAME = "wombat";
 
-	//
-	// Indexes into the array of client-specific strings. E.g.,
-	// DERBY_CLIENT, and EMBEDDED_CLIENT.
-	//
-	public	static	final			int		DATABASE_URL = 0;
-	public	static	final			int		DRIVER_NAME = DATABASE_URL + 1;
-	public	static	final			int		FRAMEWORK_NAME = DRIVER_NAME + 1;
+    // because java.sql.Types.BOOLEAN doesn't exist in jdbc 2.0
+    protected	static	final			int		JDBC_BOOLEAN = 16;
 
-	// indexed by DATABASE_URL and DRIVER_NAME
-	private	static	final	String[]	DERBY_CLIENT =
-	{
-		"jdbc:derby://localhost:1527/",
-		"org.apache.derby.jdbc.ClientDriver",
-		"DerbyNetClient"
-	};
-	private	static	final	String[]	EMBEDDED_CLIENT =
-	{
-		"jdbc:derby:",
-		"org.apache.derby.jdbc.EmbeddedDriver",
-		"embedded"
-	};
+    //
+    // For dropping schema objects
+    //
+    private	static	final	String	TABLE = "table";
+    private	static	final	String	FUNCTION = "function";
+    private	static	final	String	PROCEDURE = "procedure";
+    private	static	final	String	TYPE = "type";
 
-	public	static	final	String[][]	LEGAL_CLIENTS =
-	{
-		DERBY_CLIENT,
-		EMBEDDED_CLIENT
-	};
-	
-	/////////////////////////////////////////////////////////////
-	//
-	//	STATE
-	//
-	/////////////////////////////////////////////////////////////
+    //
+    // These are properties for the Derby connection URL.
+    //
+    private	static	final			String	CREATE_PROPERTY = "create=true";
 
-	private	static	boolean		_debug;					// if true, we print chatty diagnostics
-	
-	private	static	PrintStream	_outputStream = System.out;	// where to print debug output
+    //
+    // Indexes into the array of client-specific strings. E.g.,
+    // DERBY_CLIENT, and EMBEDDED_CLIENT.
+    //
+    public	static	final			int		DATABASE_URL = 0;
+    public	static	final			int		DRIVER_NAME = DATABASE_URL + 1;
+    public	static	final			int		FRAMEWORK_NAME = DRIVER_NAME + 1;
 
-	private	static	String		_databaseName;			// sandbox for tests
-	private	static	String[]	_defaultClientSettings;	// one of the clients in
-														// LEGAL_CLIENTS
+    // indexed by DATABASE_URL and DRIVER_NAME
+    private	static	final	String[]	DERBY_CLIENT =
+            {
+                    "jdbc:derby://localhost:1527/",
+                    "org.apache.derby.jdbc.ClientDriver",
+                    "DerbyNetClient"
+            };
+    private	static	final	String[]	EMBEDDED_CLIENT =
+            {
+                    "jdbc:derby:",
+                    "org.apache.derby.jdbc.EmbeddedDriver",
+                    "embedded"
+            };
 
-	/////////////////////////////////////////////////////////////
-	//
-	//	CONSTRUCTOR
-	//
-	/////////////////////////////////////////////////////////////
-	
-	/**
-	 * <p>
-	 * Vacuous constructor for JUnit machinery.
-	 * </p>
-	 */
-	public	DerbyJUnitTest() {}
+    public	static	final	String[][]	LEGAL_CLIENTS =
+            {
+                    DERBY_CLIENT,
+                    EMBEDDED_CLIENT
+            };
 
-	/////////////////////////////////////////////////////////////
-	//
-	//	PUBLIC BEHAVIOR
-	//
-	/////////////////////////////////////////////////////////////
+    /////////////////////////////////////////////////////////////
+    //
+    //	STATE
+    //
+    /////////////////////////////////////////////////////////////
 
-	/**
-	 * <p>
-	 * Return true if we're using the embedded driver.
-	 * </p>
-	 */
-	public	boolean	usingEmbeddedClient() { return ( _defaultClientSettings == EMBEDDED_CLIENT ); }
+    private	static	boolean		_debug;					// if true, we print chatty diagnostics
 
-	/**
-	 * <p>
-	 * Return true if we're using the derby client
-	 * </p>
-	 */
-	public	boolean	usingDerbyClient() { return ( _defaultClientSettings == DERBY_CLIENT ); }
+    private	static	PrintStream	_outputStream = System.out;	// where to print debug output
 
-	/**
-	 * <p>
-	 * Get the client we're using.
-	 * </p>
-	 */
-	public	static	String[]	getClientSettings() { return _defaultClientSettings; }
+    private	static	String		_databaseName;			// sandbox for tests
+    private	static	String[]	_defaultClientSettings;	// one of the clients in
+    // LEGAL_CLIENTS
 
-	/**
-	 * <p>
-	 * Set the client we're going to use.
-	 * </p>
-	 */
-	public	static	void		setClient( String[] client ) { _defaultClientSettings = client; }
+    /////////////////////////////////////////////////////////////
+    //
+    //	CONSTRUCTOR
+    //
+    /////////////////////////////////////////////////////////////
 
-	/**
-	 * <p>
-	 * Set the database name.
-	 * </p>
-	 */
-	public	static	void	setDatabaseName( String databaseName ) { _databaseName = databaseName; }
-	
-	/**
-	 * <p>
-	 * Force the debugging state. Useful for debugging under the test harness.
-	 * </p>
-	 */
-	public	static	void	setDebug( boolean value ) { _debug = value; }
+    /**
+     * <p>
+     * Vacuous constructor for JUnit machinery.
+     * </p>
+     */
+    public	DerbyJUnitTest() {}
 
-	/**
-	 * <p>
-	 * Look for the system property which tells us whether to run
-	 * chattily.
-	 * </p>
-	 */
-	public	static	boolean	parseDebug()
-	{
-		_debug = Boolean.getBoolean( DEBUG_FLAG );
-		
-		return true;
-	}
-		
-	/**
-	 * <p>
-	 * Debug code to print chatty informational messages.
-	 * </p>
-	 */
-	public	static	void	println( String text )
-	{
-		if ( _debug ) { alarm( text ); }
-	}
+    /////////////////////////////////////////////////////////////
+    //
+    //	PUBLIC BEHAVIOR
+    //
+    /////////////////////////////////////////////////////////////
 
-	/**
-	 * <p>
-	 * Print a message regardless of whether we are running in debug mode.
-	 * </p>
-	 */
-	public	static	void	alarm( String text )
-	{
-		_outputStream.println( text );
-		_outputStream.flush();
-	}
+    /**
+     * <p>
+     * Return true if we're using the embedded driver.
+     * </p>
+     */
+    public	boolean	usingEmbeddedClient() { return ( _defaultClientSettings == EMBEDDED_CLIENT ); }
 
-	/**
-	 * <p>
-	 * Print out a stack trace.
-	 * </p>
-	 */
-	public	static	void	printStackTrace( Throwable t )
-	{
-		while ( t != null )
-		{
-			t.printStackTrace( _outputStream );
+    /**
+     * <p>
+     * Return true if we're using the derby client
+     * </p>
+     */
+    public	boolean	usingDerbyClient() { return ( _defaultClientSettings == DERBY_CLIENT ); }
 
-			if ( t instanceof SQLException )	{ t = ((SQLException) t).getNextException(); }
-			else { break; }
-		}
-	}
+    /**
+     * <p>
+     * Get the client we're using.
+     * </p>
+     */
+    public	static	String[]	getClientSettings() { return _defaultClientSettings; }
 
-	/////////////////////////////////////////////////////////////
-	//
-	//	CONNECTION MANAGEMENT
-	//
-	/////////////////////////////////////////////////////////////
+    /**
+     * <p>
+     * Set the client we're going to use.
+     * </p>
+     */
+    public	static	void		setClient( String[] client ) { _defaultClientSettings = client; }
 
-	/**
-	 * <p>
-	 * Load a client driver, given its particulars.
-	 * </p>
-	 */
-	protected	static	boolean	faultInDriver( String[] clientSettings )
-	{
-		String	currentClientName = clientSettings[ DRIVER_NAME ];
-		
-		try {
-			Class.forName( currentClientName );
+    /**
+     * <p>
+     * Set the database name.
+     * </p>
+     */
+    public	static	void	setDatabaseName( String databaseName ) { _databaseName = databaseName; }
 
-			return true;
-		}
-		catch (Exception e)
-		{
-			println( "Could not find " + currentClientName );
-			return false;
-		}
-	}
+    /**
+     * <p>
+     * Force the debugging state. Useful for debugging under the test harness.
+     * </p>
+     */
+    public	static	void	setDebug( boolean value ) { _debug = value; }
 
-	/**
-	 * <p>
-	 * Get a connection to a database, using the default client.
-	 * </p>
-	 */
-	protected	static	Connection	getConnection()
-		throws Exception
-	{
-		return getConnection( _defaultClientSettings, _databaseName, new Properties() );
-	}
-	/**
-	 * <p>
-	 * Get a connection to a database, using the specified client.
-	 * </p>
-	 */
-	protected	static	Connection	getConnection
-	(
-	    String[]	clientSettings,
-		String		databaseName,
-		Properties	properties
-	)
-		throws Exception
-	{
-		faultInDriver( clientSettings );
+    /**
+     * <p>
+     * Look for the system property which tells us whether to run
+     * chattily.
+     * </p>
+     */
+    public	static	boolean	parseDebug()
+    {
+        _debug = Boolean.getBoolean( DEBUG_FLAG );
 
-		properties.put( "user", DEFAULT_USER_NAME );
-		properties.put( "password", DEFAULT_PASSWORD );
-		properties.put( "retreiveMessagesFromServerOnGetMessage", "true" );
+        return true;
+    }
 
-		Connection		conn = DriverManager.getConnection
-			( makeDatabaseURL( clientSettings, databaseName ), properties );
+    /**
+     * <p>
+     * Debug code to print chatty informational messages.
+     * </p>
+     */
+    public	static	void	println( String text )
+    {
+        if ( _debug ) { alarm( text ); }
+    }
 
-		println( "Connection is a " + conn.getClass().getName() );
-		
-		return conn;
-	}
+    /**
+     * <p>
+     * Print a message regardless of whether we are running in debug mode.
+     * </p>
+     */
+    public	static	void	alarm( String text )
+    {
+        _outputStream.println( text );
+        _outputStream.flush();
+    }
 
-	/**
-	 * <p>
-	 * Cobble together a connection URL.
-	 * </p>
-	 */
-	private	static	String	makeDatabaseURL( String[] clientSettings, String databaseName )
-	{
-		return clientSettings[ DATABASE_URL ] + databaseName;
-	}
+    /**
+     * <p>
+     * Print out a stack trace.
+     * </p>
+     */
+    public	static	void	printStackTrace( Throwable t )
+    {
+        while ( t != null )
+        {
+            t.printStackTrace( _outputStream );
 
-	/**
-	 * <p>
-	 * Create an empty database.
-	 * </p>
-	 */
-	protected	void	createDB( String databaseName )
-		throws Exception
-	{
-		String[]	clientSettings = getClientSettings();
-		String		dbURL = makeDatabaseURL( clientSettings, databaseName );
+            if ( t instanceof SQLException )	{ t = ((SQLException) t).getNextException(); }
+            else { break; }
+        }
+    }
 
-		dbURL = dbURL + ';' + CREATE_PROPERTY;
+    /////////////////////////////////////////////////////////////
+    //
+    //	CONNECTION MANAGEMENT
+    //
+    /////////////////////////////////////////////////////////////
 
-		Properties	properties = new Properties();
+    /**
+     * <p>
+     * Load a client driver, given its particulars.
+     * </p>
+     */
+    protected	static	boolean	faultInDriver( String[] clientSettings )
+    {
+        String	currentClientName = clientSettings[ DRIVER_NAME ];
 
-		properties.put( "user", DEFAULT_USER_NAME );
-		properties.put( "password", DEFAULT_PASSWORD );
+        try {
+            Class.forName( currentClientName );
 
-		faultInDriver( clientSettings );
+            return true;
+        }
+        catch (Exception e)
+        {
+            println( "Could not find " + currentClientName );
+            return false;
+        }
+    }
 
-		Connection		conn = DriverManager.getConnection( dbURL, properties );
+    /**
+     * <p>
+     * Get a connection to a database, using the default client.
+     * </p>
+     */
+    protected	static	Connection	getConnection()
+            throws Exception
+    {
+        return getConnection( _defaultClientSettings, _databaseName, new Properties() );
+    }
+    /**
+     * <p>
+     * Get a connection to a database, using the specified client.
+     * </p>
+     */
+    protected	static	Connection	getConnection
+    (
+            String[]	clientSettings,
+            String		databaseName,
+            Properties	properties
+    )
+            throws Exception
+    {
+        faultInDriver( clientSettings );
 
-		conn.close();
-	}
+        properties.put( "user", DEFAULT_USER_NAME );
+        properties.put( "password", DEFAULT_PASSWORD );
+        properties.put( "retreiveMessagesFromServerOnGetMessage", "true" );
 
-	///////////////
-	//
-	//	SQL MINIONS
-	//
-	///////////////
+        Connection		conn = DriverManager.getConnection
+                ( makeDatabaseURL( clientSettings, databaseName ), properties );
 
-	/**
-	 * <p>
-	 * Execute DDL statement.
-	 * </p>
-	 */
-	protected	static	void	executeDDL( Connection conn, String text )
-		throws SQLException
-	{
-		PreparedStatement	ps = null;
+        println( "Connection is a " + conn.getClass().getName() );
 
-		try {
-			ps = prepare( conn, text );
+        return conn;
+    }
 
-			ps.execute();
-		}
-		finally { close( ps ); }
-	}
-	
-	/**
-	 * <p>
-	 * Execute a SQL statement, given by the text argument. This thin
-	 * wrapper around the JDBC machinery logs the statement text when
-	 * running in debug mode.
-	 * </p>
-	 */
-	protected	static	void	execute( Connection conn, String text )
-		throws SQLException
-	{
-		PreparedStatement	ps = prepare( conn, text );
+    /**
+     * <p>
+     * Cobble together a connection URL.
+     * </p>
+     */
+    private	static	String	makeDatabaseURL( String[] clientSettings, String databaseName )
+    {
+        return clientSettings[ DATABASE_URL ] + databaseName;
+    }
 
-		ps.execute();
-		close( ps );
-	}
+    /**
+     * <p>
+     * Create an empty database.
+     * </p>
+     */
+    protected	void	createDB( String databaseName )
+            throws Exception
+    {
+        String[]	clientSettings = getClientSettings();
+        String		dbURL = makeDatabaseURL( clientSettings, databaseName );
 
-	/**
-	 * <p>
-	 * Prepare a SQL statement, given by the text argument. This thin
-	 * wrapper around the JDBC machinery logs the statement text when
-	 * running in debug mode.
-	 * </p>
-	 */
-	protected	static	PreparedStatement	prepare( Connection conn, String text )
-		throws SQLException
-	{
-		println( "Preparing: " + text );
+        dbURL = dbURL + ';' + CREATE_PROPERTY;
 
-		return conn.prepareStatement( text );
-	}
+        Properties	properties = new Properties();
 
-	/**
-	 * <p>
-	 * Prepare a SQL call statement, given by the text argument. This thin
-	 * wrapper around the JDBC machinery logs the statement text when
-	 * running in debug mode.
-	 * </p>
-	 */
-	protected	static	CallableStatement	prepareCall( Connection conn, String text )
-		throws SQLException
-	{
-		println( "Preparing procedure call: '" + text + "'" );
+        properties.put( "user", DEFAULT_USER_NAME );
+        properties.put( "password", DEFAULT_PASSWORD );
 
-		CallableStatement	cs = conn.prepareCall( text );
+        faultInDriver( clientSettings );
 
-		return cs;
-	}
+        Connection		conn = DriverManager.getConnection( dbURL, properties );
 
-	/**
-	 * <p>
-	 * Scour out all the rows from a table.
-	 * </p>
-	 */
-	protected	static	void	truncateTable( Connection conn, String name )
-		throws SQLException
-	{
-		PreparedStatement	ps = prepare( conn, "delete from " + name );
+        conn.close();
+    }
 
-		ps.execute();
-	}
+    ///////////////
+    //
+    //	SQL MINIONS
+    //
+    ///////////////
 
-	/**
-	 * <p>
-	 * Drop a table regardless of whether it exists. If the table does not
-	 * exist, don't log an error unless
-	 * running in debug mode. This method is to be used for reinitializing
-	 * a schema in case a previous test run failed to clean up after itself.
-	 * Do not use this method if you need to verify that the table really exists.
-	 * </p>
-	 */
-	protected	static	void	dropTable( Connection conn, String name )
-	{
-		dropSchemaObject( conn, TABLE, name, false );
-	}
+    /**
+     * <p>
+     * Execute DDL statement.
+     * </p>
+     */
+    protected	static	void	executeDDL( Connection conn, String text )
+            throws SQLException
+    {
+        PreparedStatement	ps = null;
 
-	/**
-	 * <p>
-	 * Drop a function regardless of whether it exists. If the function does not
-	 * exist, don't log an error unless
-	 * running in debug mode. This method is to be used for reinitializing
-	 * a schema in case a previous test run failed to clean up after itself.
-	 * Do not use this method if you need to verify that the function really exists.
-	 * </p>
-	 */
-	protected	static	void	dropFunction( Connection conn, String name )
-	{
-		dropSchemaObject( conn, FUNCTION, name, false );
-	}
+        try {
+            ps = prepare( conn, text );
 
-	/**
-	 * <p>
-	 * Drop a procedure regardless of whether it exists. If the procedure does
-	 * not exist, don't log an error unless
-	 * running in debug mode. This method is to be used for reinitializing
-	 * a schema in case a previous test run failed to clean up after itself.
-	 * Do not use this method if you need to verify that the procedure really exists.
-	 * </p>
-	 */
-	protected	static	void	dropProcedure( Connection conn, String name )
-	{
-		dropSchemaObject( conn, PROCEDURE, name, false );
-	}
+            ps.execute();
+        }
+        finally { close( ps ); }
+    }
 
-	/**
-	 * <p>
-	 * Drop a UDT regardless of whether it exists. If the UDT does
-	 * not exist, don't log an error unless
-	 * running in debug mode. This method is to be used for reinitializing
-	 * a schema in case a previous test run failed to clean up after itself.
-	 * Do not use this method if you need to verify that the UDT really exists.
-	 * </p>
-	 */
-	protected	static	void	dropUDT( Connection conn, String name )
-	{
-		dropSchemaObject( conn, TYPE, name, true );
-	}
+    /**
+     * <p>
+     * Execute a SQL statement, given by the text argument. This thin
+     * wrapper around the JDBC machinery logs the statement text when
+     * running in debug mode.
+     * </p>
+     */
+    protected	static	void	execute( Connection conn, String text )
+            throws SQLException
+    {
+        PreparedStatement	ps = prepare( conn, text );
 
-	/**
-	 * <p>
-	 * Drop a schema object regardless of whether it exists. If the object does
-	 * not exist, don't log an error unless
-	 * running in debug mode. This method is to be used for reinitializing
-	 * a schema in case a previous test run failed to clean up after itself.
-	 * Do not use this method if you need to verify that the object really exists.
-	 * </p>
-	 */
-	protected	static	void	dropSchemaObject( Connection conn, String genus, String objectName, boolean restrict )
-	{
-		PreparedStatement	ps = null;
-		
-		try {
+        ps.execute();
+        close( ps );
+    }
+
+    /**
+     * <p>
+     * Prepare a SQL statement, given by the text argument. This thin
+     * wrapper around the JDBC machinery logs the statement text when
+     * running in debug mode.
+     * </p>
+     */
+    protected	static	PreparedStatement	prepare( Connection conn, String text )
+            throws SQLException
+    {
+        println( "Preparing: " + text );
+
+        return conn.prepareStatement( text );
+    }
+
+    /**
+     * <p>
+     * Prepare a SQL call statement, given by the text argument. This thin
+     * wrapper around the JDBC machinery logs the statement text when
+     * running in debug mode.
+     * </p>
+     */
+    protected	static	CallableStatement	prepareCall( Connection conn, String text )
+            throws SQLException
+    {
+        println( "Preparing procedure call: '" + text + "'" );
+
+        CallableStatement	cs = conn.prepareCall( text );
+
+        return cs;
+    }
+
+    /**
+     * <p>
+     * Scour out all the rows from a table.
+     * </p>
+     */
+    protected	static	void	truncateTable( Connection conn, String name )
+            throws SQLException
+    {
+        PreparedStatement	ps = prepare( conn, "delete from " + name );
+
+        ps.execute();
+    }
+
+    /**
+     * <p>
+     * Drop a table regardless of whether it exists. If the table does not
+     * exist, don't log an error unless
+     * running in debug mode. This method is to be used for reinitializing
+     * a schema in case a previous test run failed to clean up after itself.
+     * Do not use this method if you need to verify that the table really exists.
+     * </p>
+     */
+    protected	static	void	dropTable( Connection conn, String name )
+    {
+        dropSchemaObject( conn, TABLE, name, false );
+    }
+
+    /**
+     * <p>
+     * Drop a function regardless of whether it exists. If the function does not
+     * exist, don't log an error unless
+     * running in debug mode. This method is to be used for reinitializing
+     * a schema in case a previous test run failed to clean up after itself.
+     * Do not use this method if you need to verify that the function really exists.
+     * </p>
+     */
+    protected	static	void	dropFunction( Connection conn, String name )
+    {
+        dropSchemaObject( conn, FUNCTION, name, false );
+    }
+
+    /**
+     * <p>
+     * Drop a procedure regardless of whether it exists. If the procedure does
+     * not exist, don't log an error unless
+     * running in debug mode. This method is to be used for reinitializing
+     * a schema in case a previous test run failed to clean up after itself.
+     * Do not use this method if you need to verify that the procedure really exists.
+     * </p>
+     */
+    protected	static	void	dropProcedure( Connection conn, String name )
+    {
+        dropSchemaObject( conn, PROCEDURE, name, false );
+    }
+
+    /**
+     * <p>
+     * Drop a UDT regardless of whether it exists. If the UDT does
+     * not exist, don't log an error unless
+     * running in debug mode. This method is to be used for reinitializing
+     * a schema in case a previous test run failed to clean up after itself.
+     * Do not use this method if you need to verify that the UDT really exists.
+     * </p>
+     */
+    protected	static	void	dropUDT( Connection conn, String name )
+    {
+        dropSchemaObject( conn, TYPE, name, true );
+    }
+
+    /**
+     * <p>
+     * Drop a schema object regardless of whether it exists. If the object does
+     * not exist, don't log an error unless
+     * running in debug mode. This method is to be used for reinitializing
+     * a schema in case a previous test run failed to clean up after itself.
+     * Do not use this method if you need to verify that the object really exists.
+     * </p>
+     */
+    protected	static	void	dropSchemaObject( Connection conn, String genus, String objectName, boolean restrict )
+    {
+        PreparedStatement	ps = null;
+
+        try {
             String text = "drop " + genus + " " + objectName;
             if ( restrict ) { text = text + " restrict"; }
-			ps = prepare( conn, text );
+            ps = prepare( conn, text );
 
-			ps.execute();
-		}
-		catch (SQLException e)
-		{
-			if ( _debug ) { printStackTrace( e ); }
-		}
+            ps.execute();
+        }
+        catch (SQLException e)
+        {
+            if ( _debug ) { printStackTrace( e ); }
+        }
 
-		close( ps );
-	}
+        close( ps );
+    }
 
-	/**
-	 * <p>
-	 * Close a ResultSet. This method factors out the check for whether
-	 * the ResultSet was created in the first place. This tidies up the
-	 * caller's cleanup logic. If an error occurs, print it. Because this
-	 * method swallows the exception after printing it, do not call this
-	 * method if you want your test to halt on error.
-	 * </p>
-	 */
-	protected	static	void	close( ResultSet rs )
-	{
-		try {
-			if ( rs != null ) { rs.close(); }
-		}
-		catch (SQLException e) { printStackTrace( e ); }
-	}	
+    /**
+     * <p>
+     * Close a ResultSet. This method factors out the check for whether
+     * the ResultSet was created in the first place. This tidies up the
+     * caller's cleanup logic. If an error occurs, print it. Because this
+     * method swallows the exception after printing it, do not call this
+     * method if you want your test to halt on error.
+     * </p>
+     */
+    protected	static	void	close( ResultSet rs )
+    {
+        try {
+            if ( rs != null ) { rs.close(); }
+        }
+        catch (SQLException e) { printStackTrace( e ); }
+    }
 
-	/**
-	 * <p>
-	 * Close a Statement. This method factors out the check for whether
-	 * the Statement was created in the first place. This tidies up the
-	 * caller's cleanup logic. If an error occurs, print it. Because this
-	 * method swallows the exception after printing it, do not call this
-	 * method if you want your test to halt on error.
-	 * </p>
-	 */
-	protected	static	void	close( Statement statement )
-	{
-		try {
-			if ( statement != null ) { statement.close(); }
-		}
-		catch (SQLException e) { printStackTrace( e ); }
-	}
+    /**
+     * <p>
+     * Close a Statement. This method factors out the check for whether
+     * the Statement was created in the first place. This tidies up the
+     * caller's cleanup logic. If an error occurs, print it. Because this
+     * method swallows the exception after printing it, do not call this
+     * method if you want your test to halt on error.
+     * </p>
+     */
+    protected	static	void	close( Statement statement )
+    {
+        try {
+            if ( statement != null ) { statement.close(); }
+        }
+        catch (SQLException e) { printStackTrace( e ); }
+    }
 
-	/**
-	 * <p>
-	 * Close a Connection. This method factors out the check for whether
-	 * the Connection was created in the first place. This tidies up the
-	 * caller's cleanup logic. If an error occurs, print it. Because this
-	 * method swallows the exception after printing it, do not call this
-	 * method if you want your test to halt on error.
-	 * </p>
-	 */
-	protected	static	void	close( Connection conn )
-	{
-		try {
-			if ( conn != null ) { conn.close(); }
-		}
-		catch (SQLException e) { printStackTrace( e ); }
-	}
+    /**
+     * <p>
+     * Close a Connection. This method factors out the check for whether
+     * the Connection was created in the first place. This tidies up the
+     * caller's cleanup logic. If an error occurs, print it. Because this
+     * method swallows the exception after printing it, do not call this
+     * method if you want your test to halt on error.
+     * </p>
+     */
+    protected	static	void	close( Connection conn )
+    {
+        try {
+            if ( conn != null ) { conn.close(); }
+        }
+        catch (SQLException e) { printStackTrace( e ); }
+    }
 
-	/**
-	 * <p>
-	 * Read a column from a ResultSet given its column name and expected jdbc
-	 * type. This method is useful if you are want to verify the getXXX() logic
-	 * most naturally fitting the declared SQL type.
-	 * </p>
-	 */
-	protected	Object	getColumn( ResultSet rs, String columnName, int jdbcType )
-		throws Exception
-	{
-		Object		retval = null;
+    /**
+     * <p>
+     * Read a column from a ResultSet given its column name and expected jdbc
+     * type. This method is useful if you are want to verify the getXXX() logic
+     * most naturally fitting the declared SQL type.
+     * </p>
+     */
+    protected	Object	getColumn( ResultSet rs, String columnName, int jdbcType )
+            throws Exception
+    {
+        Object		retval = null;
 
-		switch( jdbcType )
-		{
-		    case JDBC_BOOLEAN:
-				retval = new Boolean( rs.getBoolean( columnName ) );
-				break;
-				
-		    case Types.BIGINT:
-				retval = new Long( rs.getLong( columnName ) );
-				break;
-				
-		    case Types.BLOB:
-				retval = rs.getBlob( columnName );
-				break;
-				
-		    case Types.CHAR:
-		    case Types.LONGVARCHAR:
-		    case Types.VARCHAR:
-				retval = rs.getString( columnName );
-				break;
-				
-		    case Types.BINARY:
-		    case Types.LONGVARBINARY:
-		    case Types.VARBINARY:
-				retval = rs.getBytes( columnName );
-				break;
-				
-		    case Types.CLOB:
-				retval = rs.getClob( columnName );
-				break;
-				
-		    case Types.DATE:
-				retval = rs.getDate( columnName );
-				break;
-				
-		    case Types.DECIMAL:
-		    case Types.NUMERIC:
-				retval = rs.getBigDecimal( columnName );
-				break;
-				
-		    case Types.DOUBLE:
-				retval = new Double( rs.getDouble( columnName ) );
-				break;
-				
-		    case Types.REAL:
-				retval = new Float( rs.getFloat( columnName ) );
-				break;
-				
-		    case Types.INTEGER:
-				retval = new Integer( rs.getInt( columnName ) );
-				break;
-				
-		    case Types.SMALLINT:
-				retval = new Short( rs.getShort( columnName ) );
-				break;
-				
-		    case Types.TIME:
-				retval = rs.getTime( columnName );
-				break;
-				
-		    case Types.TIMESTAMP:
-				retval = rs.getTimestamp( columnName );
-				break;
-				
-		    default:
-				fail( "Unknown jdbc type " + jdbcType + " used to retrieve column: " + columnName );
-				break;
-		}
+        switch( jdbcType )
+        {
+            case JDBC_BOOLEAN:
+                retval = new Boolean( rs.getBoolean( columnName ) );
+                break;
 
-		if ( rs.wasNull() ) { retval = null; }
+            case Types.BIGINT:
+                retval = new Long( rs.getLong( columnName ) );
+                break;
 
-		return retval;
-	}
+            case Types.BLOB:
+                retval = rs.getBlob( columnName );
+                break;
 
-	/**
-	 * <p>
-	 * Read a column from a ResultSet given its column position
-	 * and an expected Java type. This method is useful when
-	 * comparing ResultSets against expected values.
-	 * </p>
-	 *
-	 * @param	rs		The ResultSet to read.
-	 * @param	param	The column number (1-based)
-	 * @param	value	An object whose type is what we expect the column to be.
-	 */
-	protected	Object	getColumn( ResultSet rs, int param, Object value )
-		throws Exception
-	{
-		Object		retval;
-		
-		if ( value == null )
-		{
-			retval = rs.getObject( param );
-		}
-		else if ( value instanceof Boolean ) { retval = new Boolean( rs.getBoolean( param ) ); }
-		else if ( value instanceof Byte ) { retval = new Byte( rs.getByte( param ) ); }
-		else if ( value instanceof Short ) { retval = new Short( rs.getShort( param ) ); }
-		else if ( value instanceof Integer ) { retval = new Integer( rs.getInt( param ) ); }
-		else if ( value instanceof Long ) { retval = new Long( rs.getLong( param ) ); }
-		else if ( value instanceof Float ) { retval = new Float( rs.getFloat( param ) ); }
-		else if ( value instanceof Double ) { retval = new Double( rs.getDouble( param ) ); }
-		else if ( value instanceof String ) { retval = rs.getString( param ); }
-		else if ( value instanceof BigDecimal ) { retval = rs.getBigDecimal( param ); }
-		else { retval = rs.getObject( param ); }
+            case Types.CHAR:
+            case Types.LONGVARCHAR:
+            case Types.VARCHAR:
+                retval = rs.getString( columnName );
+                break;
 
-		if ( rs.wasNull() ) { retval = null; }
+            case Types.BINARY:
+            case Types.LONGVARBINARY:
+            case Types.VARBINARY:
+                retval = rs.getBytes( columnName );
+                break;
 
-		return retval;
-	}
-	
-	/**
-	 * <p>
-	 * Read an output argument from a CallableStatement given its 1-based
-	 * argument position and expected jdbc type. This is useful for
-	 * exercising the getXXX() methods most natural to a declared SQL type.
-	 * </p>
-	 */
-	protected	Object	getOutArg( CallableStatement cs, int arg, int jdbcType )
-		throws Exception
-	{
-		Object		retval = null;
+            case Types.CLOB:
+                retval = rs.getClob( columnName );
+                break;
 
-		switch( jdbcType )
-		{
-		    case JDBC_BOOLEAN:
-				retval = new Boolean( cs.getBoolean( arg ) );
-				break;
-				
-		    case Types.BIGINT:
-				retval = new Long( cs.getLong( arg ) );
-				break;
-				
-		    case Types.BLOB:
-				retval = cs.getBlob( arg );
-				break;
-				
-		    case Types.CHAR:
-		    case Types.LONGVARCHAR:
-		    case Types.VARCHAR:
-				retval = cs.getString( arg );
-				break;
-				
-		    case Types.BINARY:
-		    case Types.LONGVARBINARY:
-		    case Types.VARBINARY:
-				retval = cs.getBytes( arg );
-				break;
-				
-		    case Types.CLOB:
-				retval = cs.getClob( arg );
-				break;
-				
-		    case Types.DATE:
-				retval = cs.getDate( arg );
-				break;
-				
-		    case Types.DECIMAL:
-		    case Types.NUMERIC:
-				retval = cs.getBigDecimal( arg );
-				break;
-				
-		    case Types.DOUBLE:
-				retval = new Double( cs.getDouble( arg ) );
-				break;
-				
-		    case Types.REAL:
-				retval = new Float( cs.getFloat( arg ) );
-				break;
-				
-		    case Types.INTEGER:
-				retval = new Integer( cs.getInt( arg ) );
-				break;
-				
-		    case Types.SMALLINT:
-				retval = new Short( cs.getShort( arg ) );
-				break;
-				
-		    case Types.TIME:
-				retval = cs.getTime( arg );
-				break;
-				
-		    case Types.TIMESTAMP:
-				retval = cs.getTimestamp( arg );
-				break;
-				
-		    default:
-				fail( "Unknown jdbc type " + jdbcType + " used to retrieve column: " + arg );
-				break;
-		}
+            case Types.DATE:
+                retval = rs.getDate( columnName );
+                break;
 
-		if ( cs.wasNull() ) { retval = null; }
+            case Types.DECIMAL:
+            case Types.NUMERIC:
+                retval = rs.getBigDecimal( columnName );
+                break;
 
-		return retval;
-	}
+            case Types.DOUBLE:
+                retval = new Double( rs.getDouble( columnName ) );
+                break;
 
-	/**
-	 * <p>
-	 * Stuff a PreparedStatement parameter given its 1-based parameter position
-	 * and expected jdbc type. This method is useful for testing the setXXX()
-	 * methods most natural for a declared SQL type.
-	 * </p>
-	 */
-	protected	void	setParameter( PreparedStatement ps, int param, int jdbcType, Object value )
-		throws Exception
-	{
-		if ( value == null )
-		{
-			ps.setNull( param, jdbcType );
+            case Types.REAL:
+                retval = new Float( rs.getFloat( columnName ) );
+                break;
 
-			return;
-		}
+            case Types.INTEGER:
+                retval = new Integer( rs.getInt( columnName ) );
+                break;
 
-		switch( jdbcType )
-		{
-		    case JDBC_BOOLEAN:
-				ps.setBoolean( param, ((Boolean) value ).booleanValue() );
-				break;
-				
-		    case Types.BIGINT:
-				ps.setLong( param, ((Long) value ).longValue() );
-				break;
-				
-		    case Types.BLOB:
-				ps.setBlob( param, ((Blob) value ) );
-				break;
-				
-		    case Types.CHAR:
-		    case Types.LONGVARCHAR:
-		    case Types.VARCHAR:
-				ps.setString( param, ((String) value ) );
-				break;
-				
-		    case Types.BINARY:
-		    case Types.LONGVARBINARY:
-		    case Types.VARBINARY:
-				ps.setBytes( param, (byte[]) value );
-				break;
-				
-		    case Types.CLOB:
-				ps.setClob( param, ((Clob) value ) );
-				break;
-				
-		    case Types.DATE:
-				ps.setDate( param, ((java.sql.Date) value ) );
-				break;
-				
-		    case Types.DECIMAL:
-		    case Types.NUMERIC:
-				ps.setBigDecimal( param, ((BigDecimal) value ) );
-				break;
-				
-		    case Types.DOUBLE:
-				ps.setDouble( param, ((Double) value ).doubleValue() );
-				break;
-				
-		    case Types.REAL:
-				ps.setFloat( param, ((Float) value ).floatValue() );
-				break;
-				
-		    case Types.INTEGER:
-				ps.setInt( param, ((Integer) value ).intValue() );
-				break;
-				
-		    case Types.SMALLINT:
-				ps.setShort( param, ((Short) value ).shortValue() );
-				break;
-				
-		    case Types.TIME:
-				ps.setTime( param, (Time) value );
-				break;
-				
-		    case Types.TIMESTAMP:
-				ps.setTimestamp( param, (Timestamp) value );
-				break;
-				
-		    default:
-				fail( "Unknown jdbc type: " + jdbcType );
-				break;
-		}
+            case Types.SMALLINT:
+                retval = new Short( rs.getShort( columnName ) );
+                break;
 
-	}
-	
-	/**
-	 * <p>
-	 * Stuff a PreparedStatement parameter given its 1-based parameter position.
-	 * The appropriate setXXX() method is determined by the Java type of the
-	 * value being stuffed. This method is useful for testing setXXX() methods
-	 * other than the most natural fit for the declared SQL type.
-	 * </p>
-	 */
-	protected	void	setParameter( PreparedStatement ps, int param, Object value )
-		throws Exception
-	{
-		if ( value == null )
-		{
-			ps.setObject( param, null );
+            case Types.TIME:
+                retval = rs.getTime( columnName );
+                break;
 
-			return;
-		}
+            case Types.TIMESTAMP:
+                retval = rs.getTimestamp( columnName );
+                break;
 
-		if ( value instanceof Boolean ) {  ps.setBoolean( param, ((Boolean) value).booleanValue() ); }
-		else if ( value instanceof Byte ) { ps.setByte( param, ((Byte) value).byteValue() ); }
-		else if ( value instanceof Short ) { ps.setShort( param, ((Short) value).shortValue() ); }
-		else if ( value instanceof Integer ) { ps.setInt( param, ((Integer) value).intValue() ); }
-		else if ( value instanceof Long ) { ps.setLong( param, ((Long) value).longValue() ); }
-		else if ( value instanceof Float ) { ps.setFloat( param, ((Float) value).floatValue() ); }
-		else if ( value instanceof Double ) { ps.setDouble( param, ((Double) value).doubleValue() ); }
-		else if ( value instanceof String ) { ps.setString( param, ((String) value) ); }
-		else { ps.setObject( param, value ); }
-	}
-	
+            default:
+                fail( "Unknown jdbc type " + jdbcType + " used to retrieve column: " + columnName );
+                break;
+        }
 
-	////////////////////
-	//
-	//	QUERY GENERATION
-	//
-	////////////////////
+        if ( rs.wasNull() ) { retval = null; }
 
-	/**
-	 * <p>
-	 * Single quote a string. This is a helper routine for use in generating
-	 * SQL text.
-	 * </p>
-	 */
-	protected	String	singleQuote( String text )
-	{
-		return "'" + text + "'";
-	}
+        return retval;
+    }
 
-	/////////////////////////////////////////////////////////////
-	//
-	//	EXTRA ASSERTIONS
-	//
-	/////////////////////////////////////////////////////////////
+    /**
+     * <p>
+     * Read a column from a ResultSet given its column position
+     * and an expected Java type. This method is useful when
+     * comparing ResultSets against expected values.
+     * </p>
+     *
+     * @param	rs		The ResultSet to read.
+     * @param	param	The column number (1-based)
+     * @param	value	An object whose type is what we expect the column to be.
+     */
+    protected	Object	getColumn( ResultSet rs, int param, Object value )
+            throws Exception
+    {
+        Object		retval;
 
-	/**
-	 * <p>
-	 * Assert the values of a whole row.
-	 * </p>
-	 */
-	public	void	assertRow
-		( ResultSet rs, Object[] expectedRow )
-		throws Exception
-	{
-		int		count = expectedRow.length;
+        if ( value == null )
+        {
+            retval = rs.getObject( param );
+        }
+        else if ( value instanceof Boolean ) { retval = new Boolean( rs.getBoolean( param ) ); }
+        else if ( value instanceof Byte ) { retval = new Byte( rs.getByte( param ) ); }
+        else if ( value instanceof Short ) { retval = new Short( rs.getShort( param ) ); }
+        else if ( value instanceof Integer ) { retval = new Integer( rs.getInt( param ) ); }
+        else if ( value instanceof Long ) { retval = new Long( rs.getLong( param ) ); }
+        else if ( value instanceof Float ) { retval = new Float( rs.getFloat( param ) ); }
+        else if ( value instanceof Double ) { retval = new Double( rs.getDouble( param ) ); }
+        else if ( value instanceof String ) { retval = rs.getString( param ); }
+        else if ( value instanceof BigDecimal ) { retval = rs.getBigDecimal( param ); }
+        else { retval = rs.getObject( param ); }
 
-		for ( int i = 0; i < count; i++ )
-		{
-			int			columnNumber = i + 1;
-			Object		expected = expectedRow[ i ];
-			Object		actual = getColumn( rs, columnNumber, expected );
+        if ( rs.wasNull() ) { retval = null; }
 
-			compareObjects( "Column number " + columnNumber, expected, actual );
-		}
-	}
+        return retval;
+    }
+
+    /**
+     * <p>
+     * Read an output argument from a CallableStatement given its 1-based
+     * argument position and expected jdbc type. This is useful for
+     * exercising the getXXX() methods most natural to a declared SQL type.
+     * </p>
+     */
+    protected	Object	getOutArg( CallableStatement cs, int arg, int jdbcType )
+            throws Exception
+    {
+        Object		retval = null;
+
+        switch( jdbcType )
+        {
+            case JDBC_BOOLEAN:
+                retval = new Boolean( cs.getBoolean( arg ) );
+                break;
+
+            case Types.BIGINT:
+                retval = new Long( cs.getLong( arg ) );
+                break;
+
+            case Types.BLOB:
+                retval = cs.getBlob( arg );
+                break;
+
+            case Types.CHAR:
+            case Types.LONGVARCHAR:
+            case Types.VARCHAR:
+                retval = cs.getString( arg );
+                break;
+
+            case Types.BINARY:
+            case Types.LONGVARBINARY:
+            case Types.VARBINARY:
+                retval = cs.getBytes( arg );
+                break;
+
+            case Types.CLOB:
+                retval = cs.getClob( arg );
+                break;
+
+            case Types.DATE:
+                retval = cs.getDate( arg );
+                break;
+
+            case Types.DECIMAL:
+            case Types.NUMERIC:
+                retval = cs.getBigDecimal( arg );
+                break;
+
+            case Types.DOUBLE:
+                retval = new Double( cs.getDouble( arg ) );
+                break;
+
+            case Types.REAL:
+                retval = new Float( cs.getFloat( arg ) );
+                break;
+
+            case Types.INTEGER:
+                retval = new Integer( cs.getInt( arg ) );
+                break;
+
+            case Types.SMALLINT:
+                retval = new Short( cs.getShort( arg ) );
+                break;
+
+            case Types.TIME:
+                retval = cs.getTime( arg );
+                break;
+
+            case Types.TIMESTAMP:
+                retval = cs.getTimestamp( arg );
+                break;
+
+            default:
+                fail( "Unknown jdbc type " + jdbcType + " used to retrieve column: " + arg );
+                break;
+        }
+
+        if ( cs.wasNull() ) { retval = null; }
+
+        return retval;
+    }
+
+    /**
+     * <p>
+     * Stuff a PreparedStatement parameter given its 1-based parameter position
+     * and expected jdbc type. This method is useful for testing the setXXX()
+     * methods most natural for a declared SQL type.
+     * </p>
+     */
+    protected	void	setParameter( PreparedStatement ps, int param, int jdbcType, Object value )
+            throws Exception
+    {
+        if ( value == null )
+        {
+            ps.setNull( param, jdbcType );
+
+            return;
+        }
+
+        switch( jdbcType )
+        {
+            case JDBC_BOOLEAN:
+                ps.setBoolean( param, ((Boolean) value ).booleanValue() );
+                break;
+
+            case Types.BIGINT:
+                ps.setLong( param, ((Long) value ).longValue() );
+                break;
+
+            case Types.BLOB:
+                ps.setBlob( param, ((Blob) value ) );
+                break;
+
+            case Types.CHAR:
+            case Types.LONGVARCHAR:
+            case Types.VARCHAR:
+                ps.setString( param, ((String) value ) );
+                break;
+
+            case Types.BINARY:
+            case Types.LONGVARBINARY:
+            case Types.VARBINARY:
+                ps.setBytes( param, (byte[]) value );
+                break;
+
+            case Types.CLOB:
+                ps.setClob( param, ((Clob) value ) );
+                break;
+
+            case Types.DATE:
+                ps.setDate( param, ((java.sql.Date) value ) );
+                break;
+
+            case Types.DECIMAL:
+            case Types.NUMERIC:
+                ps.setBigDecimal( param, ((BigDecimal) value ) );
+                break;
+
+            case Types.DOUBLE:
+                ps.setDouble( param, ((Double) value ).doubleValue() );
+                break;
+
+            case Types.REAL:
+                ps.setFloat( param, ((Float) value ).floatValue() );
+                break;
+
+            case Types.INTEGER:
+                ps.setInt( param, ((Integer) value ).intValue() );
+                break;
+
+            case Types.SMALLINT:
+                ps.setShort( param, ((Short) value ).shortValue() );
+                break;
+
+            case Types.TIME:
+                ps.setTime( param, (Time) value );
+                break;
+
+            case Types.TIMESTAMP:
+                ps.setTimestamp( param, (Timestamp) value );
+                break;
+
+            default:
+                fail( "Unknown jdbc type: " + jdbcType );
+                break;
+        }
+
+    }
+
+    /**
+     * <p>
+     * Stuff a PreparedStatement parameter given its 1-based parameter position.
+     * The appropriate setXXX() method is determined by the Java type of the
+     * value being stuffed. This method is useful for testing setXXX() methods
+     * other than the most natural fit for the declared SQL type.
+     * </p>
+     */
+    protected	void	setParameter( PreparedStatement ps, int param, Object value )
+            throws Exception
+    {
+        if ( value == null )
+        {
+            ps.setObject( param, null );
+
+            return;
+        }
+
+        if ( value instanceof Boolean ) {  ps.setBoolean( param, ((Boolean) value).booleanValue() ); }
+        else if ( value instanceof Byte ) { ps.setByte( param, ((Byte) value).byteValue() ); }
+        else if ( value instanceof Short ) { ps.setShort( param, ((Short) value).shortValue() ); }
+        else if ( value instanceof Integer ) { ps.setInt( param, ((Integer) value).intValue() ); }
+        else if ( value instanceof Long ) { ps.setLong( param, ((Long) value).longValue() ); }
+        else if ( value instanceof Float ) { ps.setFloat( param, ((Float) value).floatValue() ); }
+        else if ( value instanceof Double ) { ps.setDouble( param, ((Double) value).doubleValue() ); }
+        else if ( value instanceof String ) { ps.setString( param, ((String) value) ); }
+        else { ps.setObject( param, value ); }
+    }
 
 
-	/**
-	 * <p>
-	 * Assert a scalar result from a query.
-	 * </p>
-	 */
-	public	void	assertScalar
-		( Connection conn, String queryText, Object expectedResult )
-		throws Exception
-	{
-		PreparedStatement	ps = prepare( conn, queryText );
-		ResultSet			rs = ps.executeQuery();
+    ////////////////////
+    //
+    //	QUERY GENERATION
+    //
+    ////////////////////
 
-		rs.next();
+    /**
+     * <p>
+     * Single quote a string. This is a helper routine for use in generating
+     * SQL text.
+     * </p>
+     */
+    protected	String	singleQuote( String text )
+    {
+        return "'" + text + "'";
+    }
 
-		assertColumnEquals( queryText, rs, 1, expectedResult );
+    /////////////////////////////////////////////////////////////
+    //
+    //	EXTRA ASSERTIONS
+    //
+    /////////////////////////////////////////////////////////////
 
-		close( rs );
-		close( ps );
-	}
+    /**
+     * <p>
+     * Assert the values of a whole row.
+     * </p>
+     */
+    public	void	assertRow
+    ( ResultSet rs, Object[] expectedRow )
+            throws Exception
+    {
+        int		count = expectedRow.length;
 
-	/**
-	 * <p>
-	 * Assert the values in a ResultSet for a given column across all rows.
-	 * </p>
-	 */
-	public	void	assertColumnEquals
-		( ResultSet rs, int columnNumber, Object[] expectedValues )
-		throws Exception
-	{
-		int		count = expectedValues.length;
+        for ( int i = 0; i < count; i++ )
+        {
+            int			columnNumber = i + 1;
+            Object		expected = expectedRow[ i ];
+            Object		actual = getColumn( rs, columnNumber, expected );
 
-		for ( int i = 0; i < count; i++ )
-		{
-			rs.next();
-			assertColumnEquals( Integer.toString( i ), rs, columnNumber, expectedValues[ i ] );
-		}
-	}
+            compareObjects( "Column number " + columnNumber, expected, actual );
+        }
+    }
 
-	/**
-	 * <p>
-	 * Assert a column's value.
-	 * </p>
-	 */
-	public	void	assertColumnEquals
-		( String message, ResultSet rs, int columnNumber, Object expectedValue )
-		throws Exception
-	{
-		Object	actualValue = getColumn( rs, columnNumber, expectedValue );
 
-		compareObjects( message, expectedValue, actualValue );
-	}
+    /**
+     * <p>
+     * Assert a scalar result from a query.
+     * </p>
+     */
+    public	void	assertScalar
+    ( Connection conn, String queryText, Object expectedResult )
+            throws Exception
+    {
+        PreparedStatement	ps = prepare( conn, queryText );
+        ResultSet			rs = ps.executeQuery();
 
-	/**
-	 * <p>
-	 * Assert two objects are equal, allowing nulls to be equal.
-	 * </p>
-	 */
-	public	void	compareObjects( String message, Object left, Object right )
-		throws Exception
-	{
-		message = message + "\n\t expected = " + left + "\n\t actual = " + right;
-		
-		if ( left == null )
-		{
-			assertNull( message, right );
-		}
-		else
-		{
-			assertNotNull( message, right );
+        rs.next();
 
-			if ( left instanceof byte[] ) { compareBytes( message, left, right ); }
-			else if ( left instanceof java.util.Date ) { compareDates( message, left, right ); }
-			else { assertTrue( message, left.equals( right ) ); }
-		}
-	}
+        assertColumnEquals( queryText, rs, 1, expectedResult );
 
-	/**
-	 * <p>
-	 * Assert two byte arrays are equal, allowing nulls to be equal.
-	 * </p>
-	 */
-	public	void	compareBytes( String message, Object left, Object right )
-		throws Exception
-	{
-		if ( left == null )	{ assertNull( message, right ); }
-		else { assertNotNull( right ); }
+        close( rs );
+        close( ps );
+    }
 
-		if ( !(left instanceof byte[] ) ) { fail( message ); }
-		if ( !(right instanceof byte[] ) ) { fail( message ); }
+    /**
+     * <p>
+     * Assert the values in a ResultSet for a given column across all rows.
+     * </p>
+     */
+    public	void	assertColumnEquals
+    ( ResultSet rs, int columnNumber, Object[] expectedValues )
+            throws Exception
+    {
+        int		count = expectedValues.length;
 
-		byte[]	leftBytes = (byte[]) left;
-		byte[]	rightBytes = (byte[]) right;
-		int		count = leftBytes.length;
+        for ( int i = 0; i < count; i++ )
+        {
+            rs.next();
+            assertColumnEquals( Integer.toString( i ), rs, columnNumber, expectedValues[ i ] );
+        }
+    }
 
-		assertEquals( message, count, rightBytes.length );
-		
-		for ( int i = 0; i < count; i++ )
-		{
-			assertEquals( message + "[ " + i + " ]", leftBytes[ i ], rightBytes[ i ] );
-		}
-	}
+    /**
+     * <p>
+     * Assert a column's value.
+     * </p>
+     */
+    public	void	assertColumnEquals
+    ( String message, ResultSet rs, int columnNumber, Object expectedValue )
+            throws Exception
+    {
+        Object	actualValue = getColumn( rs, columnNumber, expectedValue );
 
-	/**
-	 * <p>
-	 * Assert two Dates are equal, allowing nulls to be equal.
-	 * </p>
-	 */
-	public	void	compareDates( String message, Object left, Object right )
-		throws Exception
-	{
-		if ( left == null )	{ assertNull( message, right ); }
-		else { assertNotNull( right ); }
+        compareObjects( message, expectedValue, actualValue );
+    }
 
-		if ( !(left instanceof java.util.Date ) ) { fail( message ); }
-		if ( !(right instanceof java.util.Date ) ) { fail( message ); }
+    /**
+     * <p>
+     * Assert two objects are equal, allowing nulls to be equal.
+     * </p>
+     */
+    public	void	compareObjects( String message, Object left, Object right )
+            throws Exception
+    {
+        message = message + "\n\t expected = " + left + "\n\t actual = " + right;
 
-		assertEquals( message, left.toString(), right.toString() );
-	}
-	
+        if ( left == null )
+        {
+            assertNull( message, right );
+        }
+        else
+        {
+            assertNotNull( message, right );
+
+            if ( left instanceof byte[] ) { compareBytes( message, left, right ); }
+            else if ( left instanceof java.util.Date ) { compareDates( message, left, right ); }
+            else { assertTrue( message, left.equals( right ) ); }
+        }
+    }
+
+    /**
+     * <p>
+     * Assert two byte arrays are equal, allowing nulls to be equal.
+     * </p>
+     */
+    public	void	compareBytes( String message, Object left, Object right )
+            throws Exception
+    {
+        if ( left == null )	{ assertNull( message, right ); }
+        else { assertNotNull( right ); }
+
+        if ( !(left instanceof byte[] ) ) { fail( message ); }
+        if ( !(right instanceof byte[] ) ) { fail( message ); }
+
+        byte[]	leftBytes = (byte[]) left;
+        byte[]	rightBytes = (byte[]) right;
+        int		count = leftBytes.length;
+
+        assertEquals( message, count, rightBytes.length );
+
+        for ( int i = 0; i < count; i++ )
+        {
+            assertEquals( message + "[ " + i + " ]", leftBytes[ i ], rightBytes[ i ] );
+        }
+    }
+
+    /**
+     * <p>
+     * Assert two Dates are equal, allowing nulls to be equal.
+     * </p>
+     */
+    public	void	compareDates( String message, Object left, Object right )
+            throws Exception
+    {
+        if ( left == null )	{ assertNull( message, right ); }
+        else { assertNotNull( right ); }
+
+        if ( !(left instanceof java.util.Date ) ) { fail( message ); }
+        if ( !(right instanceof java.util.Date ) ) { fail( message ); }
+
+        assertEquals( message, left.toString(), right.toString() );
+    }
+
 }
 

@@ -37,6 +37,6 @@ public class JDBCDriversEmbeddedTest extends JDBCDriversPropertyTest {
         // is autoloaded by jdbc.drivers
         System.setProperty("derby.drda.startNetworkServer", "true");
  
-        return getSuite("org.apache.derby.jdbc.EmbeddedDriver");
+        return getSuite("com.splicemachine.db.jdbc.EmbeddedDriver");
     }
 }

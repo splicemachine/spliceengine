@@ -176,7 +176,7 @@ public class MemoryLeakFixesTest extends BaseJDBCTestCase {
      */
     public void testRepeatedDatabaseCreationWithAutoStats()
             throws SQLException {
-        final String DB_NAME = "derby-memory-test";
+        final String DB_NAME = "db-memory-test";
         final File DB_DIR = new File("system", DB_NAME);
         DataSource ds = JDBCDataSource.getDataSource(DB_NAME);
     
@@ -214,7 +214,7 @@ public class MemoryLeakFixesTest extends BaseJDBCTestCase {
 
             // Insert enough data into the table to make a select from the
             // table trigger the daemon that updates index cardinality
-            // statistics. derby.storage.indexStats.debug.createThreshold is
+            // statistics. db.storage.indexStats.debug.createThreshold is
             // currently 100.
             PreparedStatement ins =
                     conn.prepareStatement("INSERT INTO TEST VALUES ?");
@@ -236,7 +236,7 @@ public class MemoryLeakFixesTest extends BaseJDBCTestCase {
             conn.rollback();
             conn.close();
             
-            // shutdown this database, but not entire derby engine
+            // shutdown this database, but not entire db engine
             JDBCDataSource.setBeanProperty(ds, "shutdownDatabase", "shutdown");
             try {
                 ds.getConnection();

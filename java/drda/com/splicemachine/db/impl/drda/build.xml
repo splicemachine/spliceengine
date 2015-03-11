@@ -1,0 +1,91 @@
+<?xml version="1.0"?>
+<project default="drda" basedir="../../../../../../..">
+
+<!-- Set Properties -->
+  <!-- User settings -->
+  <property file="${user.home}/ant.properties"/>
+  <!-- Set property lib dir -->
+  <property name="properties.dir" value="tools/ant/properties"/>
+  <!-- Significant dirs -->
+  <property file="${properties.dir}/dirs.properties"/>
+  <!-- Compiler settings -->
+  <property file="${properties.dir}/defaultcompiler.properties"/>
+  <property file="${properties.dir}/${build.compiler}.properties"/>
+  <!-- Compile-time classpath properties files -->
+  <property file="${properties.dir}/extrapath.properties"/>
+  <property file="${properties.dir}/compilepath.properties"/>
+
+<!-- Targets -->
+  <target name="drda" depends="compile"/>
+
+  <target name="compile">
+
+  <javac
+      source="1.6"
+      target="1.6"
+      bootclasspath="${empty}"
+      nowarn="on"
+      debug="${debug}"
+      depend="${depend}"
+      deprecation="${deprecation}"
+      optimize="${optimize}"
+      proceed="${proceed}"
+      verbose="${verbose}"
+      srcdir="${derby.drda.src.dir}"
+      destdir="${out.dir}">
+      <classpath>
+        <pathelement path="${java16compile.classpath}"/>
+      </classpath>
+      <include name="${splice.package}/impl/drda/DecryptionManager.java"/>
+    </javac>
+
+  <javac
+    source="1.6"
+    target="1.6"
+      bootclasspath="${empty}"
+      nowarn="on"
+      debug="${debug}"
+      depend="${depend}"
+      deprecation="${deprecation}"
+      optimize="${optimize}"
+      proceed="${proceed}"
+      verbose="${verbose}"
+      srcdir="${derby.drda.src.dir}"
+      destdir="${out.dir}">
+      <classpath>
+        <pathelement path="${java16compile.classpath}"/>
+      </classpath>
+      <include name="${splice.package}/impl/drda/DRDAXAProtocol.java"/>
+      <include name="${splice.package}/impl/drda/DRDAXid.java"/>
+      <include name="${splice.package}/impl/drda/XADatabase.java"/>
+    </javac>
+
+    <javac
+      source="1.6"
+      target="1.6"
+      bootclasspath="${empty}"
+      nowarn="on"
+      debug="${debug}"
+      depend="${depend}"
+      deprecation="${deprecation}"
+      optimize="${optimize}"
+      proceed="${proceed}"
+      verbose="${verbose}"
+      srcdir="${derby.drda.src.dir}"
+      destdir="${out.dir}">
+      <classpath>
+        <pathelement path="${java16compile.classpath}"/>
+      </classpath>
+      <include name="${splice.package}/impl/drda/*.java"/>
+      <exclude name="${splice.package}/impl/drda/DecryptionManager.java"/>
+      <exclude name="${splice.package}/impl/drda/DRDAXAProtocol.java"/>
+      <exclude name="${splice.package}/impl/drda/DRDAXid.java"/>
+      <exclude name="${splice.package}/impl/drda/XADatabase.java"/>
+    </javac>
+  </target>
+
+</project>
+
+
+
+

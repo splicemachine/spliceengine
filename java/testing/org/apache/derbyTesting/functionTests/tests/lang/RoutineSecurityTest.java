@@ -174,8 +174,8 @@ public class RoutineSecurityTest extends BaseJDBCTestCase {
     
     /**
      * Check that a user routine cannot resolve to a
-     * internal derby class, currently limited to not
-     * resolving to any class in the org.apache.derby namespace.
+     * internal db class, currently limited to not
+     * resolving to any class in the com.splicemachine.db namespace.
      */
     public void testInternalClass() throws SQLException
     {
@@ -184,19 +184,19 @@ public class RoutineSecurityTest extends BaseJDBCTestCase {
         s.executeUpdate(
                 "CREATE FUNCTION HACK_DERBY(PROPERTY_KEY VARCHAR(60)) " +
                 "RETURNS VARCHAR(60) " +
-                "EXTERNAL NAME 'org.apache.derby.catalog.SystemProcedures.SYSCS_GET_DATABASE_PROPERTY' " +
+                "EXTERNAL NAME 'com.splicemachine.db.catalog.SystemProcedures.SYSCS_GET_DATABASE_PROPERTY' " +
                 "LANGUAGE JAVA PARAMETER STYLE JAVA");
         
         s.executeUpdate(
                 "CREATE PROCEDURE HACK_DERBY_2() " +
-                "EXTERNAL NAME 'org.apache.derby.catalog.SystemProcedures.SYSCS_UNFREEZE_DATABASE' " +
+                "EXTERNAL NAME 'com.splicemachine.db.catalog.SystemProcedures.SYSCS_UNFREEZE_DATABASE' " +
                 "LANGUAGE JAVA PARAMETER STYLE JAVA");
         
         // Some random potential Derby class to ensure the checks
         // are not limited to the catalog class.
         s.executeUpdate(
                 "CREATE PROCEDURE HACK_DERBY_3() " +
-                "EXTERNAL NAME 'org.apache.derby.any.clazz.method' " +
+                "EXTERNAL NAME 'com.splicemachine.db.any.clazz.method' " +
                 "LANGUAGE JAVA PARAMETER STYLE JAVA");
 
 

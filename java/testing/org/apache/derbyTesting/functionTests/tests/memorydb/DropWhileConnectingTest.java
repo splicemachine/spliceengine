@@ -376,7 +376,7 @@ public class DropWhileConnectingTest
                     }
                 }
             } catch (Throwable t) {
-                if (t instanceof org.apache.derby.iapi.error.ShutdownException){
+                if (t instanceof com.splicemachine.db.iapi.error.ShutdownException){
                     // Not sure if this is a good thing yet.
                     System.out.println(
                             "Got ShutdownException (extends RuntimeException)");

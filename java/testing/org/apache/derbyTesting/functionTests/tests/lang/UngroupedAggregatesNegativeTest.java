@@ -115,7 +115,7 @@ public class UngroupedAggregatesNegativeTest extends BaseJDBCTestCase {
         Statement st = createStatement();
         st.execute
                     (
-                     "create derby aggregate bad_mode for int\n" +
+                     "create db aggregate bad_mode for int\n" +
                      "external name 'org.apache.derbyTesting.functionTests.tests.lang.ModeAggregate'"
                      );
                 

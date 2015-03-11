@@ -1,0 +1,82 @@
+/*
+
+   Derby - Class org.apache.derby.impl.sql.execute.SetTransactionIsolationConstantAction
+
+   Licensed to the Apache Software Foundation (ASF) under one or more
+   contributor license agreements.  See the NOTICE file distributed with
+   this work for additional information regarding copyright ownership.
+   The ASF licenses this file to you under the Apache License, Version 2.0
+   (the "License"); you may not use this file except in compliance with
+   the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ */
+
+package com.splicemachine.db.impl.sql.execute;
+
+import com.splicemachine.db.iapi.sql.execute.ConstantAction;
+
+import com.splicemachine.db.iapi.sql.Activation;
+
+import com.splicemachine.db.iapi.error.StandardException;
+
+
+/**
+ *	This class  describes actions that are ALWAYS performed for a
+ *	SET TRANSACTION ISOLATION Statement at Execution time.
+ *
+ */
+
+class SetTransactionIsolationConstantAction implements ConstantAction
+{
+
+	private final int isolationLevel;
+
+	// CONSTRUCTORS
+
+	/**
+	 *	Make the ConstantAction for a SET TRANSACTION ISOLATION statement.
+	 *
+	 *  @param isolationLevel	The new isolation level
+	 */
+	SetTransactionIsolationConstantAction(
+								int		isolationLevel)
+	{
+		this.isolationLevel = isolationLevel;
+	}
+
+	///////////////////////////////////////////////
+	//
+	// OBJECT SHADOWS
+	//
+	///////////////////////////////////////////////
+
+	public	String	toString()
+	{
+		// Do not put this under SanityManager.DEBUG - it is needed for
+		// error reporting.
+		return "SET TRANSACTION ISOLATION LEVEL = " + isolationLevel;
+	}
+
+	// INTERFACE METHODS
+	
+	/**
+	 *	This is the guts of the Execution-time logic for SET TRANSACTION ISOLATION.
+	 *
+	 *	@see ConstantAction#executeConstantAction
+	 *
+	 * @exception StandardException		Thrown on failure
+	 */
+	public void	executeConstantAction( Activation activation )
+						throws StandardException
+	{
+		activation.getLanguageConnectionContext().setIsolationLevel(isolationLevel);
+	}
+}

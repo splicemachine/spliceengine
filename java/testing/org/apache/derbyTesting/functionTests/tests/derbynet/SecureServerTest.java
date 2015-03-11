@@ -51,8 +51,8 @@ public class SecureServerTest extends BaseJDBCTestCase
     //
     ///////////////////////////////////////////////////////////////////////////////////
 
-    // basic properties file which tests that properties are picked up from derby.properties
-    private static  final   String  BASIC = "functionTests/tests/derbynet/SecureServerTest.derby.properties";
+    // basic properties file which tests that properties are picked up from db.properties
+    private static  final   String  BASIC = "functionTests/tests/derbynet/SecureServerTest.db.properties";
 
     private static  final   String  SST_USER_NAME="MARY";
     private static  final   String  SST_PASSWORD = "marypwd";
@@ -234,14 +234,14 @@ public class SecureServerTest extends BaseJDBCTestCase
         Test testSetup =
             SecurityManagerSetup.noSecurityManager(networkServerTestSetup);
 
-        // if using the custom derby.properties, copy the custom properties to a visible place
+        // if using the custom db.properties, copy the custom properties to a visible place
         if ( customDerbyProperties != null )
         {
             testSetup = new SupportFilesSetup
                 (
                  testSetup,
                  null,
-                 new String[] { "functionTests/tests/derbynet/SecureServerTest.derby.properties" },
+                 new String[] { "functionTests/tests/derbynet/SecureServerTest.db.properties" },
                  null,
                  new String[] { "derby.properties" }
                  );
@@ -396,7 +396,7 @@ public class SecureServerTest extends BaseJDBCTestCase
         println( "XXX in connectToServer(). url = " + url );
 
         // just try to get a connection
-        Class.forName( "org.apache.derby.jdbc.ClientDriver" );
+        Class.forName( "com.splicemachine.db.jdbc.ClientDriver" );
         
         Connection  conn = DriverManager.getConnection(  url );
 
@@ -465,7 +465,7 @@ public class SecureServerTest extends BaseJDBCTestCase
 
         ArrayList cmdList = new ArrayList();
         cmdList.add("-Demma.verbosity.level=silent");
-        cmdList.add("org.apache.derby.drda.NetworkServerControl");
+        cmdList.add("com.splicemachine.db.drda.NetworkServerControl");
         cmdList.add("-p");
         cmdList.add(portNumber);
         cmdList.addAll(Arrays.asList(commandSpecifics));

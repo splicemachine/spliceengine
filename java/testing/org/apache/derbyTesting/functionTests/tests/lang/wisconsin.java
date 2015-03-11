@@ -21,8 +21,6 @@ limitations under the License.
 package org.apache.derbyTesting.functionTests.tests.lang;
 
 import java.io.BufferedInputStream;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
@@ -33,8 +31,8 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import org.apache.derby.impl.tools.ij.utilMain;
-import org.apache.derby.tools.ij;
+import com.splicemachine.db.impl.tools.ij.utilMain;
+import com.splicemachine.db.tools.ij;
 
 
 public class wisconsin {

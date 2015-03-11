@@ -38,7 +38,7 @@ import org.apache.derbyTesting.functionTests.util.PrivilegedFileOpsForTests;
  * This particular repository is rather dumb - it is up to the user to keep the
  * repository content updated. The repository layout is based on the layout of
  * the SVN repository for releases at
- * {@code https://svn.apache.org/repos/asf/db/derby/jars}. This means there will
+ * {@code https://svn.apache.org/repos/asf/db/db/jars}. This means there will
  * be a directory for each release, where the directory name is the release
  * version. Inside this directory, all the distribution JARs can be found.
  * <p>

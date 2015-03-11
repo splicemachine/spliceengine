@@ -25,12 +25,12 @@ import java.sql.SQLException;
 import java.util.logging.Logger;
 import javax.sql.CommonDataSource;
 
-import org.apache.derby.jdbc.EmbeddedDataSource40;
-import org.apache.derby.jdbc.EmbeddedConnectionPoolDataSource40;
-import org.apache.derby.jdbc.EmbeddedXADataSource40;
-import org.apache.derby.jdbc.ClientDataSource40;
-import org.apache.derby.jdbc.ClientConnectionPoolDataSource40;
-import org.apache.derby.jdbc.ClientXADataSource40;
+import com.splicemachine.db.jdbc.EmbeddedDataSource40;
+import com.splicemachine.db.jdbc.EmbeddedConnectionPoolDataSource40;
+import com.splicemachine.db.jdbc.EmbeddedXADataSource40;
+import com.splicemachine.db.jdbc.ClientDataSource40;
+import com.splicemachine.db.jdbc.ClientConnectionPoolDataSource40;
+import com.splicemachine.db.jdbc.ClientXADataSource40;
 
 /**
  * A wrapper around the methods added by JDBC 4.1.

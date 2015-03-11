@@ -28,16 +28,14 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.util.HashMap;
 import java.util.Hashtable;
 import javax.sql.DataSource;
 
 import junit.framework.Test;
 import junit.framework.TestSuite;
 
-import org.apache.derby.jdbc.ClientDataSource;
-import org.apache.derby.jdbc.EmbeddedDataSource;
-import org.apache.derby.jdbc.EmbeddedSimpleDataSource;
+import com.splicemachine.db.jdbc.ClientDataSource;
+import com.splicemachine.db.jdbc.EmbeddedSimpleDataSource;
 import org.apache.derbyTesting.functionTests.util.SecurityCheck;
 import org.apache.derbyTesting.junit.BaseJDBCTestCase;
 import org.apache.derbyTesting.junit.CleanDatabaseTestSetup;
@@ -218,7 +216,7 @@ public class DataSourceTest extends BaseJDBCTestCase {
         }
     }            
     
-    // test jira-derby 95 - a NullPointerException was returned when passing
+    // test jira-db 95 - a NullPointerException was returned when passing
     // an incorrect database name, should now give error:
     // XCY00 - invalid valid for property ...  
     // with DataSource

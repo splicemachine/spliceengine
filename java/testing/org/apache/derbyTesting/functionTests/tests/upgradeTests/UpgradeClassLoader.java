@@ -42,7 +42,7 @@ import org.apache.derbyTesting.junit.BaseTestCase;
 public class UpgradeClassLoader
 {
     private static final String[] jarFiles = {
-            "derby.jar", 
+            "derby.jar",
             //"derbynet.jar",
             //"derbyclient.jar",
             //"derbytools.jar"

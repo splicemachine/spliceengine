@@ -25,7 +25,7 @@ import java.sql.Statement;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import org.apache.derby.tools.ij;
+import com.splicemachine.db.tools.ij;
 import org.apache.derbyTesting.functionTests.util.TestUtil;
 
 /*
@@ -211,7 +211,7 @@ public class OnlineBackupTest1 {
 	 */
 	static private void dumpSQLException(SQLException sqle) {
 		
-		org.apache.derby.tools.JDBCDisplayUtil.	ShowSQLException(System.out, sqle);
+		com.splicemachine.db.tools.JDBCDisplayUtil.	ShowSQLException(System.out, sqle);
 		sqle.printStackTrace(System.out);
 	}
 
@@ -269,7 +269,7 @@ public class OnlineBackupTest1 {
 						break;
 				}
 			} catch (SQLException sqle) {
-				org.apache.derby.tools.JDBCDisplayUtil.ShowSQLException(System.out, sqle);
+				com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(System.out, sqle);
 				sqle.printStackTrace(System.out);
 			} 
 		}

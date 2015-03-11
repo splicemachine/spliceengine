@@ -22,7 +22,7 @@ package org.apache.derbyTesting.functionTests.tests.replicationTests;
 
 
 import org.apache.derbyTesting.functionTests.util.PrivilegedFileOpsForTests;
-import org.apache.derby.drda.NetworkServerControl;
+import com.splicemachine.db.drda.NetworkServerControl;
 import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -31,7 +31,7 @@ import java.util.Properties;
 
 import java.sql.*;
 import java.io.*;
-import org.apache.derby.jdbc.ClientDataSource;
+import com.splicemachine.db.jdbc.ClientDataSource;
 
 import org.apache.derbyTesting.junit.BaseJDBCTestCase;
 import org.apache.derbyTesting.junit.BaseTestCase;
@@ -107,7 +107,7 @@ public class ReplicationRun extends BaseTestCase
                             // When ReplicationTestRunStress used as load...
     static String sqlLoadInit = "";
     
-    final static String networkServerControl = "org.apache.derby.drda.NetworkServerControl";
+    final static String networkServerControl = "com.splicemachine.db.drda.NetworkServerControl";
     static String specialTestingJar = null;
     // None null if using e.g. your own modified tests.
     static String jvmVersion = null;
@@ -127,7 +127,7 @@ public class ReplicationRun extends BaseTestCase
     
     static long sleepTime = 5000L; // millisecs.
     
-    static final String DRIVER_CLASS_NAME = "org.apache.derby.jdbc.ClientDriver";
+    static final String DRIVER_CLASS_NAME = "com.splicemachine.db.jdbc.ClientDriver";
     static final String DB_PROTOCOL="jdbc:derby";
     
     static final String ALL_INTERFACES = "0.0.0.0";
@@ -236,7 +236,7 @@ public class ReplicationRun extends BaseTestCase
 
     /**
      * Run the test. Extra logic in addition to BaseTestCase's similar logic,
-     * to save derby.log and database files for replication directories if a
+     * to save db.log and database files for replication directories if a
      * failure happens.
      */
     public void runBare() throws Throwable {
@@ -247,7 +247,7 @@ public class ReplicationRun extends BaseTestCase
 
         } catch (Throwable running) {
 
-            // Copy the master and slave's derby.log file and databases
+            // Copy the master and slave's db.log file and databases
             //
             PrintWriter stackOut = null;
 
@@ -263,7 +263,7 @@ public class ReplicationRun extends BaseTestCase
                                                   slaveDbSubPath};
 
                 for (int i=0; i < 2; i++) {
-                    // Copy the derby.log file.
+                    // Copy the db.log file.
                     //
                     File origLog = new File(replPaths[i], DERBY_LOG);
                     File newLog = new File(failPath,
@@ -281,7 +281,7 @@ public class ReplicationRun extends BaseTestCase
                 }
             } catch (IOException ioe) {
                 // We need to throw the original exception so if there
-                // is an exception saving the db or derby.log we will print it
+                // is an exception saving the db or db.log we will print it
                 // and additionally try to log it to file.
                 BaseTestCase.printStackTrace(ioe);
                 if (stackOut != null) {
@@ -570,7 +570,7 @@ public class ReplicationRun extends BaseTestCase
                 "-Dij.driver=" + DRIVER_CLASS_NAME,
                 "-Dij.connection.startTestClient=" + URL,
                 "-classpath", ijClassPath,
-                "org.apache.derby.tools.ij",
+                "com.splicemachine.db.tools.ij",
                 replicationTest
             };
         }
@@ -675,7 +675,7 @@ public class ReplicationRun extends BaseTestCase
                 "-Dij.driver=" + DRIVER_CLASS_NAME,
                 "-Dij.connection.startTestClient=" + URL,
                 "-classpath", ijClassPath,
-                "org.apache.derby.tools.ij",
+                "com.splicemachine.db.tools.ij",
                 replicationTest
             };
         }
@@ -771,7 +771,7 @@ public class ReplicationRun extends BaseTestCase
             command = clientJvm
                     + " -Dij.driver=" + DRIVER_CLASS_NAME
                     + " -Dij.connection.startTestClient=" + URL
-                    + " -classpath " + ijClassPath + " org.apache.derby.tools.ij"
+                    + " -classpath " + ijClassPath + " com.splicemachine.db.tools.ij"
                     + " " + load
                     ;
         }
@@ -844,7 +844,7 @@ public class ReplicationRun extends BaseTestCase
             command = clientJvm 
                     + " -Dij.driver=" + DRIVER_CLASS_NAME
                     + " -Dij.connection.startTestClient=" + URL
-                    + " -classpath " + ijClassPath + " org.apache.derby.tools.ij"
+                    + " -classpath " + ijClassPath + " com.splicemachine.db.tools.ij"
                     + " " + stateTest
                     ;
         }
@@ -965,7 +965,7 @@ public class ReplicationRun extends BaseTestCase
         String command = clientJvm
                 + " -Dij.driver=" + DRIVER_CLASS_NAME
                 + " -Dij.connection.startMaster=\"" + URL + "\""
-                + " -classpath " + ijClassPath + " org.apache.derby.tools.ij"
+                + " -classpath " + ijClassPath + " com.splicemachine.db.tools.ij"
                 + " " + userHome + FS + "ij_dummy_script.sql"
                 ;
         
@@ -1034,7 +1034,7 @@ public class ReplicationRun extends BaseTestCase
                         util.DEBUG("Not ready to startMaster. "
                                 +"Beware: Will also report "
                                 + "'... got a fatal error for database '...../<dbname>'"
-                                + " in master derby.log.");
+                                + " in master db.log.");
                         Thread.sleep(100L); // ms.
                     }
                     else
@@ -1151,7 +1151,7 @@ public class ReplicationRun extends BaseTestCase
         String command = clientJvm
                 + " -Dij.driver=" + DRIVER_CLASS_NAME
                 + " -Dij.connection.startSlave=\"" + URL + "\""
-                + " -classpath " + ijClassPath + " org.apache.derby.tools.ij"
+                + " -classpath " + ijClassPath + " com.splicemachine.db.tools.ij"
                 + " " + userHome + FS + "ij_dummy_script.sql"
                 ;
         
@@ -1256,7 +1256,7 @@ public class ReplicationRun extends BaseTestCase
         String command = clientJvm
                 + " -Dij.driver=" + DRIVER_CLASS_NAME
                 + " -Dij.connection.failover=\"" + URL + "\""
-                + " -classpath " + ijClassPath + " org.apache.derby.tools.ij"
+                + " -classpath " + ijClassPath + " com.splicemachine.db.tools.ij"
                 + " " + userHome + FS + "ij_dummy_script.sql"
                 ;
         
@@ -1898,7 +1898,7 @@ public class ReplicationRun extends BaseTestCase
         {            
             String command = "mkdir -p "+masterDatabasePath+FS+masterDbSubPath+";"
                 + " cd "+masterDatabasePath+FS+masterDbSubPath+";"
-                + " rm -rf " + dbName + " derby.log;"
+                + " rm -rf " + dbName + " db.log;"
                 + " rm -f Server*.trace;"
                 + " ls -al;"
                 ;
@@ -1949,7 +1949,7 @@ public class ReplicationRun extends BaseTestCase
         {
             // The slaveDb dir is cleaned by initMaster! NB NB SHOULD THIS BE SO?
             // util.cleanDir(slaveDb, true); // true: do delete the db directory itself.
-                                          // derby.log etc will be kept.
+                                          // db.log etc will be kept.
             // Copy (.../master/test) into (.../slave/).
             File slaveDb = new File(slaveHome, dbName);
             PrivilegedFileOpsForTests.copy(masterDb, slaveDb);
@@ -1960,7 +1960,7 @@ public class ReplicationRun extends BaseTestCase
         {
             String command = "mkdir -p " + slaveHome.getPath() + ";"
                 + " cd " + slaveHome.getPath() +";"
-                + " rm -rf " + dbName + " derby.log;"
+                + " rm -rf " + dbName + " db.log;"
                 + " rm -f Server*.trace;"
                 + " scp -r " + masterServerHost + ":" + masterDb.getPath() +"/ .;" // Copying the master DB.
                 + " ls -al" // DEBUG
@@ -2021,7 +2021,7 @@ public class ReplicationRun extends BaseTestCase
         ceArray.add( ReplicationRun.getMasterJavaExecutableName() );
         ceArray.add( "-Dderby.system.home=" + workingDirName );
         ceArray.add( "-Dderby.infolog.append=true" );
-        //ceArray.add( " -Dderby.language.logStatementText=true" ); // Goes into derby.log: Gets HUGE );
+        //ceArray.add( " -Dderby.language.logStatementText=true" ); // Goes into db.log: Gets HUGE );
         if ( db_uid != null )
         {
             ceArray.add( "-Dderby.authentication.provider=NATIVE:" + replicatedDb + ":LOCAL" );
@@ -2162,7 +2162,7 @@ public class ReplicationRun extends BaseTestCase
         Properties sp = server.getCurrentProperties();
         sp.setProperty("noSecurityManager", 
                 securityOption.equalsIgnoreCase("-noSecurityManager")?"true":"false");
-        // derby.log for both master and slave ends up in masters system!
+        // db.log for both master and slave ends up in masters system!
         // Both are run in the same VM! Not a good idea?
         return server;
     }
@@ -2490,7 +2490,7 @@ public class ReplicationRun extends BaseTestCase
                     + clientJvm // "java"
                     + " -Dij.driver=" + DRIVER_CLASS_NAME
                     + " -Dij.connection.create"+database+"=\"" + URL + "\""
-                    + " -classpath " + ijClassPath + " org.apache.derby.tools.ij"
+                    + " -classpath " + ijClassPath + " com.splicemachine.db.tools.ij"
                     + " " + sqlLoadInit // FIXME! Should be load specific!
                     ;
             String results =
@@ -3128,7 +3128,7 @@ test.postStoppedSlaveServer.return=true
     {
         String db = databasePath +FS+dbSubPath +FS+ replicatedDb;
         String connectionURL = serverURL( db, serverHost, serverPort );
-        //String connectionURL = "jdbc:derby:"  
+        //String connectionURL jdbc:derby:db:"
         //       + "//" + serverHost + ":" + serverPort + "/"
         //        + db;
         util.DEBUG(connectionURL);
@@ -3201,7 +3201,7 @@ test.postStoppedSlaveServer.return=true
         String dbPath = slaveDatabasePath + FS + subPath + FS + replicatedDb;
 
         String connectionURL = serverURL( dbPath, slaveServerHost, slaveServerPort ) + ";stopSlave=true";
-        //String connectionURL = "jdbc:derby:"
+        //String connectionUjdbc:derbydbc:db:"
         //    + "//" + slaveServerHost + ":" + slaveServerPort + "/"
         //    + dbPath
         //    + ";stopSlave=true"
@@ -3323,7 +3323,7 @@ test.postStoppedSlaveServer.return=true
          String     connectionAttributes
          )
     {
-        ClientDataSource ds = new org.apache.derby.jdbc.ClientDataSource();
+        ClientDataSource ds = new com.splicemachine.db.jdbc.ClientDataSource();
 
         ds.setDatabaseName( dbName );
         ds.setServerName( serverHost );

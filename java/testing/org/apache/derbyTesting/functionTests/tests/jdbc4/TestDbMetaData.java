@@ -150,55 +150,55 @@ public class TestDbMetaData extends BaseJDBCTestCase {
         { null, "SPLICE", "DUMMY4", "java.some.func", FUNCTION_NO_TABLE_VALUE, GENERIC_NAME },
         { null, "SPLICE", "DUMMY5", "java.some.func", FUNCTION_NO_TABLE_VALUE, GENERIC_NAME },
         { null, "SYSCS_UTIL", "SYSCS_CHECK_TABLE",
-          "org.apache.derby.catalog.SystemProcedures.SYSCS_CHECK_TABLE",
+          "com.splicemachine.db.catalog.SystemProcedures.SYSCS_CHECK_TABLE",
           FUNCTION_NO_TABLE_VALUE, GENERIC_NAME },
         { null, "SYSCS_UTIL", "SYSCS_GET_DATABASE_PROPERTY",
-          "org.apache.derby.catalog.SystemProcedures." +
+          "com.splicemachine.db.catalog.SystemProcedures." +
           "SYSCS_GET_DATABASE_PROPERTY", FUNCTION_NO_TABLE_VALUE, GENERIC_NAME },
         { null, "SYSCS_UTIL", "SYSCS_GET_RUNTIMESTATISTICS",
-          "org.apache.derby.catalog.SystemProcedures." +
+          "com.splicemachine.db.catalog.SystemProcedures." +
           "SYSCS_GET_RUNTIMESTATISTICS", FUNCTION_NO_TABLE_VALUE, GENERIC_NAME },
         { null, "SYSCS_UTIL", "SYSCS_GET_USER_ACCESS",
-          "org.apache.derby.catalog.SystemProcedures." +
+          "com.splicemachine.db.catalog.SystemProcedures." +
           "SYSCS_GET_USER_ACCESS", FUNCTION_NO_TABLE_VALUE, GENERIC_NAME },
         { null, "SYSCS_UTIL", "SYSCS_GET_XPLAIN_MODE",
-          "org.apache.derby.catalog.SystemProcedures." +
+          "com.splicemachine.db.catalog.SystemProcedures." +
           "SYSCS_GET_XPLAIN_MODE", FUNCTION_NO_TABLE_VALUE, GENERIC_NAME },
         { null, "SYSCS_UTIL", "SYSCS_GET_XPLAIN_SCHEMA",
-          "org.apache.derby.catalog.SystemProcedures." +
+          "com.splicemachine.db.catalog.SystemProcedures." +
           "SYSCS_GET_XPLAIN_SCHEMA", FUNCTION_NO_TABLE_VALUE, GENERIC_NAME },
         { null, "SYSCS_UTIL", "SYSCS_PEEK_AT_SEQUENCE",
-          "org.apache.derby.catalog.SystemProcedures." +
+          "com.splicemachine.db.catalog.SystemProcedures." +
           "SYSCS_PEEK_AT_SEQUENCE", FUNCTION_NO_TABLE_VALUE, GENERIC_NAME },
         { null, "SYSIBM", "BLOBCREATELOCATOR",
-          "org.apache.derby.impl.jdbc.LOBStoredProcedure." +
+          "com.splicemachine.db.impl.jdbc.LOBStoredProcedure." +
           "BLOBCREATELOCATOR", FUNCTION_NO_TABLE_VALUE, GENERIC_NAME },
         { null, "SYSIBM", "BLOBGETBYTES",
-          "org.apache.derby.impl.jdbc.LOBStoredProcedure." +
+          "com.splicemachine.db.impl.jdbc.LOBStoredProcedure." +
           "BLOBGETBYTES", FUNCTION_NO_TABLE_VALUE, GENERIC_NAME },
         { null, "SYSIBM", "BLOBGETLENGTH",
-          "org.apache.derby.impl.jdbc.LOBStoredProcedure." +
+          "com.splicemachine.db.impl.jdbc.LOBStoredProcedure." +
           "BLOBGETLENGTH", FUNCTION_NO_TABLE_VALUE, GENERIC_NAME },
         { null, "SYSIBM", "BLOBGETPOSITIONFROMBYTES",
-          "org.apache.derby.impl.jdbc.LOBStoredProcedure." +
+          "com.splicemachine.db.impl.jdbc.LOBStoredProcedure." +
           "BLOBGETPOSITIONFROMBYTES", FUNCTION_NO_TABLE_VALUE, GENERIC_NAME },
         { null, "SYSIBM", "BLOBGETPOSITIONFROMLOCATOR",
-          "org.apache.derby.impl.jdbc.LOBStoredProcedure." +
+          "com.splicemachine.db.impl.jdbc.LOBStoredProcedure." +
           "BLOBGETPOSITIONFROMLOCATOR", FUNCTION_NO_TABLE_VALUE, GENERIC_NAME },
         { null, "SYSIBM", "CLOBCREATELOCATOR",
-          "org.apache.derby.impl.jdbc.LOBStoredProcedure." +
+          "com.splicemachine.db.impl.jdbc.LOBStoredProcedure." +
           "CLOBCREATELOCATOR", FUNCTION_NO_TABLE_VALUE, GENERIC_NAME },
         { null, "SYSIBM", "CLOBGETLENGTH",
-          "org.apache.derby.impl.jdbc.LOBStoredProcedure." +
+          "com.splicemachine.db.impl.jdbc.LOBStoredProcedure." +
           "CLOBGETLENGTH", FUNCTION_NO_TABLE_VALUE, GENERIC_NAME },
         { null, "SYSIBM", "CLOBGETPOSITIONFROMLOCATOR",
-          "org.apache.derby.impl.jdbc.LOBStoredProcedure." +
+          "com.splicemachine.db.impl.jdbc.LOBStoredProcedure." +
           "CLOBGETPOSITIONFROMLOCATOR", FUNCTION_NO_TABLE_VALUE, GENERIC_NAME },
         { null, "SYSIBM", "CLOBGETPOSITIONFROMSTRING",
-          "org.apache.derby.impl.jdbc.LOBStoredProcedure." +
+          "com.splicemachine.db.impl.jdbc.LOBStoredProcedure." +
           "CLOBGETPOSITIONFROMSTRING", FUNCTION_NO_TABLE_VALUE, GENERIC_NAME },
         { null, "SYSIBM", "CLOBGETSUBSTRING",
-          "org.apache.derby.impl.jdbc.LOBStoredProcedure." +
+          "com.splicemachine.db.impl.jdbc.LOBStoredProcedure." +
           "CLOBGETSUBSTRING", FUNCTION_NO_TABLE_VALUE, GENERIC_NAME },
 
     };

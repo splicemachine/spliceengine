@@ -122,7 +122,7 @@ public abstract class HarnessJavaTest extends CanonTestCase {
                     
                     newValues.setProperty(
                         "ij.dataSource", 
-                        "org.apache.derby.jdbc.EmbeddedSimpleDataSource");
+                        "com.splicemachine.db.jdbc.EmbeddedSimpleDataSource");
                     
                     newValues.setProperty(
                         "ij.dataSource.databaseName",

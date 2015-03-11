@@ -80,7 +80,7 @@ public class LDAPAuthenticationTest extends BaseJDBCTestCase {
     public static Test suite() {
         if (JDBC.vmSupportsJSR169())
             return new TestSuite("cannt run with JSR169 - missing functionality" +
-                " for org.apache.derby.iapi.jdbc.AuthenticationService");
+                " for com.splicemachine.db.iapi.jdbc.AuthenticationService");
         ldapUser=getSystemProperty("derbyTesting.ldapUser");
         if (ldapUser == null || ldapUser.length() < 1)
             return new TestSuite("LDAPAuthenticationTest requires property " +

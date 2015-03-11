@@ -28,7 +28,7 @@ import java.util.Arrays;
 import junit.framework.Test;
 import junit.framework.TestSuite;
 
-import org.apache.derby.impl.io.vfmem.BlockedByteArray;
+import com.splicemachine.db.impl.io.vfmem.BlockedByteArray;
 import org.apache.derbyTesting.functionTests.util.streams.LoopingAlphabetStream;
 import org.apache.derbyTesting.junit.BaseTestCase;
 

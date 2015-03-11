@@ -1,18 +1,13 @@
 package org.apache.derbyTesting.functionTests.tests.store;
 
-import org.apache.derbyTesting.junit.BaseJDBCTestCase;
 import org.apache.derbyTesting.junit.CleanDatabaseTestSetup;
 import org.apache.derbyTesting.junit.DatabasePropertyTestSetup;
 import org.apache.derbyTesting.junit.JDBC;
-import org.apache.derbyTesting.junit.TestConfiguration;
-
-import org.apache.derby.shared.common.sanity.SanityManager;
 
 import junit.framework.Assert;
 import junit.framework.Test;
 import junit.framework.TestSuite;
 
-import java.sql.CallableStatement;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -265,7 +260,7 @@ public class Derby4577Test extends StoreBaseTest
         expRS = new String [][] {{"1"}};
         JDBC.assertFullResultSet(rs, expRS, true);
 
-        // DDL that caused a bug while trying to fix derby 4577, data is null
+        // DDL that caused a bug while trying to fix db 4577, data is null
 
         // create an index to test btree handling of short key.
         stmt.executeUpdate("CREATE INDEX idx3 on testSmallRow3(id)");

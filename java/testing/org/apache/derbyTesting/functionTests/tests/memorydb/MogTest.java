@@ -175,9 +175,9 @@ public class MogTest extends BaseJDBCTestCase {
         throws SQLException {
     try {
         if (usingDerbyNetClient()) {
-            Class.forName("org.apache.derby.jdbc.ClientDriver");
+            Class.forName("com.splicemachine.db.jdbc.ClientDriver");
         } else {
-            Class.forName("org.apache.derby.jdbc.EmbeddedDriver");
+            Class.forName("com.splicemachine.db.jdbc.EmbeddedDriver");
         }
     } catch (Exception e) {
         SQLException sqle =  new SQLException(e.getMessage());

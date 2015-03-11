@@ -25,9 +25,9 @@ import java.sql.Statement;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import org.apache.derby.tools.ij;
+
 import org.apache.derbyTesting.functionTests.util.TestUtil;
-import org.apache.derby.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 /*
  * This class tests crash/recovery scenarions during  (re) encryption of 
@@ -668,7 +668,7 @@ public class ReEncryptCrashRecovery
 	 */
 	private void dumpSQLException(SQLException sqle) {
 		
-		org.apache.derby.tools.JDBCDisplayUtil.	ShowSQLException(System.out, sqle);
+		com.splicemachine.db.tools.JDBCDisplayUtil.	ShowSQLException(System.out, sqle);
 		sqle.printStackTrace(System.out);
 	}
 
@@ -686,7 +686,7 @@ public class ReEncryptCrashRecovery
             test.runTest();
         }
         catch (SQLException sqle) {
-			org.apache.derby.tools.JDBCDisplayUtil.ShowSQLException(
+			com.splicemachine.db.tools.JDBCDisplayUtil.ShowSQLException(
                 System.out, sqle);
 			sqle.printStackTrace(System.out);
 		}

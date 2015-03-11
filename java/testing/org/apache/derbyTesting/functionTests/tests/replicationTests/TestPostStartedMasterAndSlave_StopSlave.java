@@ -39,29 +39,29 @@ import org.apache.derbyTesting.junit.TestConfiguration;
  */
 public class TestPostStartedMasterAndSlave_StopSlave extends ClientRunner
 {
-    
+
     private static ReplicationRun repRun = new ReplicationRun("TestPostStartedMasterAndSlave_StopSlave");
 
     public TestPostStartedMasterAndSlave_StopSlave(String testcaseName)
     {
         super(testcaseName);
     }
-    
+
     public static Test suite()
-        throws Exception
+            throws Exception
     {
         System.out.println("**** TestPostStartedMasterAndSlave_StopSlave.suite()");
-        
+
         initEnvironment();
-        
+
         // String masterHostName = System.getProperty("test.serverHost", "localhost");
         // int masterPortNo = Integer.parseInt(System.getProperty("test.serverPort", "1527"));
-        
+
         TestSuite suite = new TestSuite("TestPostStartedMasterAndSlave_StopSlave");
-                
+
         suite.addTest(TestPostStartedMasterAndSlave_StopSlave.suite(slaveServerHost, slaveServerPort)); // master?
         System.out.println("*** Done suite.addTest(TestPostStartedMasterAndSlave_StopSlave.suite())");
-        
+
         return (Test)suite;
     }
 
@@ -71,30 +71,30 @@ public class TestPostStartedMasterAndSlave_StopSlave extends ClientRunner
     public static Test suite(String serverHost, int serverPort)
     {
         System.out.println("*** TestPostStartedMasterAndSlave_StopSlave.suite(serverHost,serverPort)");
-     
+
         Test t = TestConfiguration.existingServerSuite(TestPostStartedMasterAndSlave_StopSlave.class,false,serverHost,serverPort);
         System.out.println("*** Done TestConfiguration.existingServerSuite(TestPostStartedMasterAndSlave_StopSlave.class,false,serverHost,serverPort)");
         return t;
-   }
-    
+    }
+
     /**
      *
      *
      * @throws SQLException, IOException, InterruptedException
      */
     public void testStopSlave()
-    throws SQLException, IOException, InterruptedException
+            throws SQLException, IOException, InterruptedException
     {
         System.out.println("**** TestPostStartedMasterAndSlave_StopSlave.testStopSlave "+
                 getTestConfiguration().getJDBCClient().getJDBCDriverName());
-        
+
         String db = null;
-        String connectionURL = null;  
+        String connectionURL = null;
         Connection conn = null;
-        
+
         // 1. stopSlave to slave with connection to master should fail.
         db = slaveDatabasePath +"/"+ReplicationRun.slaveDbSubPath +"/"+ replicatedDb;
-        connectionURL = "jdbc:derby:"  
+        connectionURL = "jdbc:derby:"
                 + "//" + slaveServerHost + ":" + slaveServerPort + "/"
                 + db
                 + ";stopSlave=true";
@@ -121,10 +121,10 @@ public class TestPostStartedMasterAndSlave_StopSlave extends ClientRunner
             assertSQLState(connectionURL +  " failed: ", "XRE41", se);
             System.out.println("1. Failed as expected: " + connectionURL +  " " + msg);
         }
-        
+
         // 2. stopSlave to a master server should fail:
         db = masterDatabasePath +"/"+ReplicationRun.masterDbSubPath +"/"+ replicatedDb;
-        connectionURL = "jdbc:derby:"  
+        connectionURL = "jdbc:derby:"
                 + "//" + masterServerHost + ":" + masterServerPort + "/"
                 + db
                 + ";stopSlave=true";
@@ -151,16 +151,16 @@ public class TestPostStartedMasterAndSlave_StopSlave extends ClientRunner
             assertSQLState(connectionURL +  " failed: ", "XRE40", se);
             System.out.println("2. Failed as expected: " + connectionURL +  " " + msg);
         }
-        
+
         // Replication should still be up.
-        
+
         // Take down master - slave connection:
         // By OS kill:
         repRun.killMaster(masterServerHost, masterServerPort);
-        
+
         // 3.  stopSlave on slave should now be allowed. Observe that the database shall be shutdown.
         db = slaveDatabasePath +"/"+ReplicationRun.slaveDbSubPath +"/"+ replicatedDb;
-        connectionURL = "jdbc:derby:"  
+        connectionURL = "jdbc:derby:"
                 + "//" + slaveServerHost + ":" + slaveServerPort + "/"
                 + db
                 + ";stopSlave=true";
@@ -189,14 +189,14 @@ public class TestPostStartedMasterAndSlave_StopSlave extends ClientRunner
             System.out.println("3. Failed as expected: " + connectionURL +  " " + msg);
             stopSlaveCorrect = true;
         }
-        
+
         if ( stopSlaveCorrect )
         {
             // 4. Try a normal connection:
             connectionURL = "jdbc:derby:"
                     + "//" + slaveServerHost + ":" + slaveServerPort + "/"
                     + db;
-           System.out.println("4. " + connectionURL);
+            System.out.println("4. " + connectionURL);
             try
             {
                 conn = DriverManager.getConnection(connectionURL); // From anywhere against slaveServerHost?
@@ -211,11 +211,11 @@ public class TestPostStartedMasterAndSlave_StopSlave extends ClientRunner
                 // DERBY-???: assertTrue("Unexpectedly failed to connect: " + connectionURL +  " " + msg, false);
             }
         }
-    
+
     }
-    
+
     public void verify()
-    throws SQLException, IOException, InterruptedException
+            throws SQLException, IOException, InterruptedException
     {
 
     }

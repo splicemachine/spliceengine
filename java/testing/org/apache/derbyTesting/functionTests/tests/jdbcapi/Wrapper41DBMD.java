@@ -23,8 +23,8 @@ package org.apache.derbyTesting.functionTests.tests.jdbcapi;
 
 import java.sql.SQLException;
 
-import org.apache.derby.impl.jdbc.EmbedDatabaseMetaData;
-import org.apache.derby.client.am.DatabaseMetaData;
+import com.splicemachine.db.impl.jdbc.EmbedDatabaseMetaData;
+import com.splicemachine.db.client.am.DatabaseMetaData;
 
 /**
  * A wrapper around the new DatabaseMetaData methods added by JDBC 4.1.

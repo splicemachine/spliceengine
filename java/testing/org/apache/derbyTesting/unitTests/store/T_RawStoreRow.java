@@ -21,14 +21,9 @@
 
 package org.apache.derbyTesting.unitTests.store;
 
-import org.apache.derby.iapi.store.raw.*;
+import com.splicemachine.db.iapi.types.SQLChar;
 
-import org.apache.derby.iapi.store.access.*;
-import org.apache.derby.iapi.types.SQLChar;
-
-import org.apache.derby.iapi.types.DataValueDescriptor;
-
-import java.io.*;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
 /* 
  * Implements a row of N columns of strings, or objects.

@@ -80,7 +80,7 @@ select
     conglomeratename, isindex, 
     numallocatedpages, numfreepages, pagesize, estimspacesaving
 from 
-    new org.apache.derby.diag.SpaceTable('DATA') t
+    new com.splicemachine.db.diag.SpaceTable('DATA') t
         order by conglomeratename; 
 commit;
 
@@ -99,7 +99,7 @@ select
     conglomeratename, isindex, 
     numallocatedpages, numfreepages, pagesize, estimspacesaving
 from 
-    new org.apache.derby.diag.SpaceTable('DATA') t
+    new com.splicemachine.db.diag.SpaceTable('DATA') t
         order by conglomeratename; 
 commit;
 
