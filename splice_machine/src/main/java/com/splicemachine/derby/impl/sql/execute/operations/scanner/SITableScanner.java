@@ -1,6 +1,8 @@
 package com.splicemachine.derby.impl.sql.execute.operations.scanner;
 
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueFactoryImpl;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
@@ -30,7 +32,6 @@ import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
-import com.splicemachine.si.impl.HTransactorFactory;
 import com.splicemachine.si.impl.PackedTxnFilter;
 import com.splicemachine.si.impl.TxnFilter;
 import com.splicemachine.storage.*;
@@ -76,6 +77,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>{
 		private final SIFilterFactory filterFactory;
 		private ExecRowAccumulator accumulator;
 		private final SDataLib dataLib;
+        private EntryDecoder entryDecoder;
 
 
 		protected SITableScanner(final SDataLib dataLib, MeasuredRegionScanner<Data> scanner,
@@ -177,6 +179,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>{
 									if (LOG.isTraceEnabled())
 										SpliceLogUtils.trace(LOG, "miss columns=%d",template.nColumns());
 								}
+                                currentKeyValue = keyValues.get(0);
 								setRowLocation(currentKeyValue);
 								return template;
 						}
@@ -285,13 +288,33 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>{
 	}
 
 		protected void setRowLocation(Data sampleKv) throws StandardException {
-				if(indexName!=null && template.nColumns() > 0 && template.getColumn(template.nColumns()).getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID){
+				if(indexName!=null && template.nColumns() > 0){
 					 /*
 						* If indexName !=null, then we are currently scanning an index,
 						* so our RowLocation should point to the main table, and not to the
 						* index (that we're actually scanning)
 						*/
-						currentRowLocation = (RowLocation) template.getColumn(template.nColumns());
+                    if (template.getColumn(template.nColumns()).getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID) {
+                        currentRowLocation = (RowLocation) template.getColumn(template.nColumns());
+                    } else {
+                        try {
+                            if (entryDecoder == null)
+                                entryDecoder = new EntryDecoder();
+                            entryDecoder.set(dataLib.getDataValueBuffer(sampleKv),
+                                    dataLib.getDataValueOffset(sampleKv),
+                                    dataLib.getDataValuelength(sampleKv));
+
+                            MultiFieldDecoder decoder = entryDecoder.getEntryDecoder();
+                            slice.set(decoder.decodeNextBytesUnsorted());
+                            if(currentRowLocation==null)
+                                currentRowLocation = new HBaseRowLocation(slice);
+                            else
+                                currentRowLocation.setValue(slice);
+                        }
+                        catch (IOException e) {
+                            throw StandardException.newException(e.getMessage());
+                        }
+                    }
 				} else {
 						slice.set(dataLib.getDataRowBuffer(sampleKv), dataLib.getDataRowOffset(sampleKv), 
 								dataLib.getDataRowlength(sampleKv));
