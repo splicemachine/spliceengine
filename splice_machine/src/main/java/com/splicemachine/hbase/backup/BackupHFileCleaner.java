@@ -39,7 +39,7 @@ public class BackupHFileCleaner extends BaseHFileCleanerDelegate {
 
     private boolean shouldRetainForBackup(String backupItem, String encodedRegionName, String fileName){
         Connection connection = null;
-        String sqlText = "select * from %s.%s where backup_item=? and region_name=? and file_name=? and include=?";
+        String sqlText = "select include from %s.%s where backup_item=? and region_name=? and file_name=?";
         try{
             connection = SpliceDriver.driver().getInternalConnection();
             PreparedStatement ps = connection.prepareStatement(
@@ -47,16 +47,22 @@ public class BackupHFileCleaner extends BaseHFileCleanerDelegate {
             ps.setString(1, backupItem);
             ps.setString(2, encodedRegionName);
             ps.setString(3, fileName);
-            ps.setBoolean(4, true);
 
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
+                boolean include = rs.getBoolean(1);
                 if (LOG.isTraceEnabled()) {
                     SpliceLogUtils.trace(LOG,
                             "File %s cannot be removed from archived directory " +
                             "because it is needed by incremental backup.", fileName);
                 }
-                return true;
+                if (include) {
+                    return true;
+                }
+                else {
+                    BackupUtils.deleteFileSet(backupItem, encodedRegionName, fileName, false);
+                    return false;
+                }
             }
         }
         catch (SQLException e) {

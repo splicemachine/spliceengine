@@ -68,7 +68,7 @@ public class Backup implements InternalTable {
 
     public static final String INSERT_START_BACKUP = "insert into %s.%s (transaction_id, begin_timestamp, status, filesystem, "
             + "scope, incremental_backup, incremental_parent_backup_id, backup_item) values (?,?,?,?,?,?,?,?)";
-    public static final String UPDATE_BACKUP_STATUS = "update %s.%s set status = ?, end_timestamp = ? where transaction_id = ?";
+    public static final String UPDATE_BACKUP_STATUS = "update %s.%s set status=?, end_timestamp=?, backup_item=? where transaction_id=?";
     public static final String RUNNING_CHECK = "select transaction_id from %s.%s where status = ?";
     public static final String QUERY_PARENT_BACKUP_DIRECTORY = "select filesystem from %s.%s where transaction_id = ?";
     public static final String QUERY_PARENT_BACKUP = "select * from %s.%s where transaction_id=?";
@@ -265,14 +265,15 @@ public class Backup implements InternalTable {
         }
     }
 
-    public void writeBackupStatusChange() throws SQLException {
+    public void writeBackupStatusChange(int count) throws SQLException {
         Connection connection = null;
         try {
             connection = SpliceAdmin.getDefaultConn();
             PreparedStatement preparedStatement = connection.prepareStatement(String.format(UPDATE_BACKUP_STATUS,DEFAULT_SCHEMA,DEFAULT_TABLE));
             preparedStatement.setString(1, getBackupStatus().toString());
             preparedStatement.setTimestamp(2, new Timestamp(System.currentTimeMillis()));
-            preparedStatement.setLong(3, backupTransaction.getTxnId());
+            preparedStatement.setInt(3, count);
+            preparedStatement.setLong(4, backupTransaction.getTxnId());
             preparedStatement.executeUpdate();
             return;
         } catch (SQLException e) {

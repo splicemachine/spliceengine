@@ -55,12 +55,12 @@ public class CreateIncrementalBackupTask extends ZkTask {
     public CreateIncrementalBackupTask(BackupItem backupItem,
                                        String jobId,
                                        String backupFileSystem,
-                                       String snapshotNameame,
+                                       String snapshotName,
                                        String lastSnapshotName) {
         super(jobId, OperationJob.operationTaskPriority);
         this.backupItem = backupItem;
         this.backupFileSystem = backupFileSystem;
-        this.snapshotName = snapshotNameame;
+        this.snapshotName = snapshotName;
         this.lastSnapshotName = lastSnapshotName;
         init();
     }
@@ -133,7 +133,6 @@ public class CreateIncrementalBackupTask extends ZkTask {
                     new Path(backupFileSystem), fs, SpliceConstants.config);
 
             if (paths != null && paths.size() > 0) {
-                LOG.error(region.getRegionNameAsString());
                 for (Path p : paths) {
                     String[] s = p.toString().split("/");
                     int n = s.length;
@@ -154,6 +153,9 @@ public class CreateIncrementalBackupTask extends ZkTask {
                 if (status.length == 0) {
                     fs.delete(path, true);
                 }
+            }
+            else {
+                BackupUtils.writeParentRegionInfo(backupFileSystem, tableName, encodedRegionName);
             }
         }
         catch (Exception e) {
@@ -202,11 +204,12 @@ public class CreateIncrementalBackupTask extends ZkTask {
             Configuration conf = SpliceConstants.config;
             FileSystem fs = FileSystem.get(URI.create(backupFileSystem), conf);
             rootDir = FSUtils.getRootDir(conf);
+            SnapshotUtils utils = SnapshotUtilsFactory.snapshotUtils;
             Path snapshotDir = SnapshotDescriptionUtils.getCompletedSnapshotDir(snapshotName, rootDir);
-            paths = SnapshotUtils.getSnapshotFilesForRegion(region ,conf, fs, snapshotDir);
+            paths = utils.getSnapshotFilesForRegion(region, conf, fs, snapshotDir);
             if (lastSnapshotName != null) {
                 Path lastSnapshotDir = SnapshotDescriptionUtils.getCompletedSnapshotDir(lastSnapshotName, rootDir);
-                lastPaths = SnapshotUtils.getSnapshotFilesForRegion(region, conf, fs, lastSnapshotDir);
+                lastPaths = utils.getSnapshotFilesForRegion(region, conf, fs, lastSnapshotDir);
             }
         } catch (IOException e) {
             throw new ExecutionException(e);

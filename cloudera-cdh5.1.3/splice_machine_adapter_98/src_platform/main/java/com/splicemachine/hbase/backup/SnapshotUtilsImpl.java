@@ -67,7 +67,8 @@ public class SnapshotUtilsImpl implements SnapshotUtils{
         	  boolean isReference = storeFile.hasReference();
 
               String regionName = regionInfo.getEncodedName();
-              if(isCurrentRegion(region, regionInfo) == false){
+              // If region is null, return files from all regions
+              if(region!= null && isCurrentRegion(region, regionInfo) == false){
             	  // If not current return
             	  return;
               }

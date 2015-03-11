@@ -66,13 +66,13 @@ public class BackupSystemProcedures {
                 throw StandardException.newException("Scheduled database backup is not supported.");
             }
             if (type.compareToIgnoreCase("FULL") == 0) {
-                fullBackup(directory);
+                backup(directory, -1);
             } else if (type.compareToIgnoreCase("INCREMENTAL") == 0) {
                 long parent_backup_id = BackupUtils.getLastBackupTime();
                 if (parent_backup_id == 0) {
                     throw StandardException.newException("Cannot find a full backup.");
                 }
-                incrementalBackup(directory, parent_backup_id);
+                backup(directory, parent_backup_id);
             } else {
                 throw StandardException.newException("Incorrect backup type.");
             }
@@ -92,10 +92,11 @@ public class BackupSystemProcedures {
         }
     }
 
-    private static void incrementalBackup(String backupDir, long parent_backup_id) throws SQLException, IOException{
+    private static void backup(String backupDir, long parent_backup_id) throws SQLException, IOException{
         HBaseAdmin admin = null;
         Backup backup = null;
         Set<String> newSnapshotNameSet = new HashSet<>();
+        int count = 0;
         try {
 
             // Check for ongoing backup...
@@ -113,14 +114,16 @@ public class BackupSystemProcedures {
             for (HBaseProtos.SnapshotDescription s : snapshots) {
                 snapshotNameSet.add(s.getName());
             }
-
             backup.createBackupItems(admin, snapshotNameSet, newSnapshotNameSet);
             backup.insertBackup();
             backup.createProperties();
             HashMap<String, BackupItem> backupItems = backup.getBackupItems();
+
             for (String key : backupItems.keySet()) {
                 BackupItem backupItem =  backupItems.get(key);
-                backupItem.doBackup();
+                boolean backedUp = backupItem.doBackup();
+                if (backedUp)
+                    count++;
             }
 
             // create metadata, including timestamp source's timestamp
@@ -131,62 +134,25 @@ public class BackupSystemProcedures {
                 backup.moveToBaseFolder();
             }
 
-            backup.markBackupSuccesful();
-            backup.writeBackupStatusChange();
-            for(String snaphotName : snapshotNameSet) {
-                admin.deleteSnapshot(snaphotName);
+            for(String snapshotName : snapshotNameSet) {
+                admin.deleteSnapshot(snapshotName);
             }
+            BackupUtils.deleteRegionSet();
+            backup.markBackupSuccesful();
+            backup.writeBackupStatusChange(count);
         } catch (Throwable e) {
             if (backup != null) {
                 backup.markBackupFailed();
-                backup.writeBackupStatusChange();
+                backup.writeBackupStatusChange(count);
             }
-            for(String snaphotName : newSnapshotNameSet) {
-                admin.deleteSnapshot(snaphotName);
+            for(String snapshotName : newSnapshotNameSet) {
+                admin.deleteSnapshot(snapshotName);
             }
             LOG.error("Couldn't backup database", e);
             throw new SQLException(Exceptions.parseException(e));
         }finally {
             Closeables.closeQuietly(admin);
         }
-    }
-
-    private static void fullBackup(String backupDir) throws StandardException {
-        // A faked full backup, only take snapshot for all tables
-        try {
-            HBaseAdmin admin = SpliceUtilities.getAdmin();
-            HTableDescriptor[] descriptorArray = admin.listTables();
-            Connection connection = SpliceAdmin.getDefaultConn();
-            PreparedStatement preparedStatement = null;
-            for (HTableDescriptor descriptor: descriptorArray) {
-                TableName tableName = descriptor.getTableName();
-                String snapshotName = tableName.getNameAsString() + "_1";
-                admin.snapshot(snapshotName.getBytes(), tableName.toBytes());
-                preparedStatement = connection.prepareStatement(String.format(BackupItem.INSERT_BACKUP_ITEM, BackupItem.DEFAULT_SCHEMA,BackupItem.DEFAULT_TABLE));
-                preparedStatement.setLong(1, 1);
-                preparedStatement.setString(2, tableName.getNameAsString());
-                preparedStatement.setTimestamp(3, new Timestamp(100));
-                preparedStatement.setString(4, snapshotName);
-                preparedStatement.execute();
-                preparedStatement.close();
-            }
-
-            preparedStatement = connection.prepareStatement(String.format(Backup.INSERT_START_BACKUP,Backup.DEFAULT_SCHEMA,Backup.DEFAULT_TABLE));
-            preparedStatement.setLong(1, 1);
-            preparedStatement.setTimestamp(2, new Timestamp(1));
-            preparedStatement.setString(3, "S");
-            preparedStatement.setString(4, backupDir);
-            preparedStatement.setString(5, "D");
-            preparedStatement.setBoolean(6, false);
-            preparedStatement.setLong(7, -1);
-            preparedStatement.setInt(8, descriptorArray.length);
-            preparedStatement.execute();
-            preparedStatement.close();
-        }
-        catch (Exception e) {
-            throw StandardException.newException(e.getMessage());
-        }
-
     }
 
     public static void SYSCS_RESTORE_DATABASE(long backupId, ResultSet[] resultSets) throws StandardException, SQLException {

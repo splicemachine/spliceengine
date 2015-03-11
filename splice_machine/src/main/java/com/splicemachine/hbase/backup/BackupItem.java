@@ -41,6 +41,8 @@ public class BackupItem implements InternalTable {
 	public static final String DEFAULT_TABLE = "BACKUP_ITEMS";
 	public static final String INSERT_BACKUP_ITEM = "insert into %s.%s (transaction_id, item, begin_timestamp, snapshot_name)"
 			+ " values (?,?,?, ?)";
+    public static final String DELETE_BACKUP_ITEM = "delete from %s.%s where transaction_id=? and item=?";
+
     public static final String UPDATE_BACKUP_ITEM_STATUS = "update %s.%s set end_timestamp = ? where transaction_id = ? and item = ?";
     public static final String QUERY_BACKUP_ITEM = "select item, begin_timestamp, end_timestamp from %s.%s where transaction_id=?";
 
@@ -153,6 +155,24 @@ public class BackupItem implements InternalTable {
             preparedStatement.setString(2, getBackupItem());
             preparedStatement.setTimestamp(3, getBackupItemBeginTimestamp());
             preparedStatement.setString(4, getSnapshotName());
+            preparedStatement.execute();
+            return;
+        } catch (SQLException e) {
+            throw e;
+        }
+        finally {
+            if (connection !=null)
+                connection.close();
+        }
+    }
+
+    public void deleteBackupItem() throws SQLException {
+        Connection connection = null;
+        try {
+            connection = SpliceAdmin.getDefaultConn();
+            PreparedStatement preparedStatement = connection.prepareStatement(String.format(DELETE_BACKUP_ITEM,DEFAULT_SCHEMA,DEFAULT_TABLE));
+            preparedStatement.setLong(1, getBackupTransaction().getTxnId());
+            preparedStatement.setString(2, getBackupItem());
             preparedStatement.execute();
             return;
         } catch (SQLException e) {
@@ -312,24 +332,9 @@ public class BackupItem implements InternalTable {
         return backupIdList;
     }
 
-    private void writeRegionSplitInfo() throws SQLException, IOException{
-        List<BackupUtils.RegionSplitTreeNode> regionToExclude =
-                BackupUtils.getRegionSplitTrees(getBackupItem());
-        if (regionToExclude.size() != 0) {
-            //List<BackupUtils.RegionSplitTreeNode> regionToInclude =
-            //        BackupUtils.getLeafNodes(regionToExclude);
-            FileSystem fileSystem = FileSystem.get(URI.create(getBackupItemFilesystem()), SpliceConstants.config);
-            FSDataOutputStream out = fileSystem.create(new Path(getBackupItemFilesystem() + "/.regionSplitInfo"));
-            for (BackupUtils.RegionSplitTreeNode node : regionToExclude) {
-                out.writeUTF(node.getRegionName());
-            }
-            out.close();
-            // TODO: delete them from BACKUP.BACKUP_REGIONSET
-        }
-    }
-
-    public void doBackup() throws StandardException {
+    public boolean doBackup() throws StandardException {
         JobInfo info = null;
+        boolean backedUp = false;
         try {
             setBackupItemBeginTimestamp(new Timestamp(System.currentTimeMillis()));
             insertBackupItem();
@@ -353,16 +358,24 @@ public class BackupItem implements InternalTable {
             FileSystem fileSystem = FileSystem.get(URI.create(getBackupItemFilesystem()),SpliceConstants.config);
             if (fileSystem.exists(new Path(getBackupItemFilesystem()))) {
                 writeDescriptorToFileSystem();
+                setBackupItemEndTimestamp(new Timestamp(System.currentTimeMillis()));
+                updateBackupItem();
+                backedUp = true;
+            }
+            else {
+                deleteBackupItem();
+                backedUp = false;
             }
             //writeRegionSplitInfo();
-            setBackupItemEndTimestamp(new Timestamp(System.currentTimeMillis()));
-            updateBackupItem();
+
         } catch (CancellationException ce) {
             throw Exceptions.parseException(ce);
         } catch (Exception e) {
             if (info != null) info.failJob();
             throw Exceptions.parseException(e);
         }
+
+        return backedUp;
     }
 
     public void createSnapshot(HBaseAdmin admin, long snapId, Set<String> snapshotNameSet) throws StandardException {
