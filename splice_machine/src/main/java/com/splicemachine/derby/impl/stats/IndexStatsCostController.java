@@ -70,7 +70,7 @@ public class IndexStatsCostController extends StatsStoreCostController {
         SpliceConglomerate conglomerate = (SpliceConglomerate)baseConglomerate.getConglomerate();
         //we know keys exist because we are an index
         int[] keyColumnEncodingOrder = conglomerate.getColumnOrdering();
-        boolean isCovering = false;
+        boolean isCovering;
         if(scanColumnList!=null) {
             FormatableBitSet missingColumns = (FormatableBitSet) scanColumnList.clone();
             for (int keyColumn : keyColumnEncodingOrder) {

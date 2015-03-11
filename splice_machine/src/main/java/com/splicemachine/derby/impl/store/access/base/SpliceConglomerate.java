@@ -48,7 +48,6 @@ public abstract class SpliceConglomerate extends GenericConglomerate implements 
             Properties              properties,
             int                     conglom_format_id,
             int                     tmpFlag) throws StandardException {
-        SpliceLogUtils.trace(LOG, "create segmentId %d, input_containerid %d", segmentId,input_containerid);
         if (properties != null) {
             String value = properties.getProperty(RawStoreFactory.MINIMUM_RECORD_SIZE_PARAMETER);
             int minimumRecordSize = (value == null) ? RawStoreFactory.MINIMUM_RECORD_SIZE_DEFAULT : Integer.parseInt(value);

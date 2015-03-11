@@ -345,12 +345,40 @@ public class StatisticsAdmin {
         return tableDescriptor;
     }
 
-    private static List<ColumnDescriptor> getCollectedColumns(TableDescriptor td) {
+    private static List<ColumnDescriptor> getCollectedColumns(TableDescriptor td) throws StandardException {
         ColumnDescriptorList columnDescriptorList = td.getColumnDescriptorList();
         List<ColumnDescriptor> toCollect = new ArrayList<>(columnDescriptorList.size());
+        /*
+         * Get all the enabled statistics columns
+         */
         for(ColumnDescriptor columnDescriptor:columnDescriptorList){
             if(columnDescriptor.collectStatistics())
                 toCollect.add(columnDescriptor);
+        }
+        /*
+         * Add in any disabled key columns.
+         *
+         * We want to collect for all key columns always, because they are very important when
+         * comparing index columns. By default, we turn them on when possible, but even if they are disabled
+         * for some reason, we should still collect them. Of course, we should also not be able to disable
+         * keyed columns, but that's a to-do for now.
+         */
+        IndexLister indexLister = td.getIndexLister();
+        if(indexLister!=null){
+            IndexRowGenerator[] distinctIndexRowGenerators = indexLister.getDistinctIndexRowGenerators();
+            for(IndexRowGenerator irg:distinctIndexRowGenerators){
+                int[] keyColumns = irg.getIndexDescriptor().baseColumnPositions();
+                for(int keyColumn:keyColumns){
+                   for(ColumnDescriptor cd:columnDescriptorList){
+                       if(cd.getPosition()==keyColumn){
+                           if(!toCollect.contains(cd)) {
+                               toCollect.add(cd);
+                           }
+                           break;
+                       }
+                   }
+                }
+            }
         }
         return toCollect;
     }

@@ -252,7 +252,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                         columnInfo[ix].autoincInc,
                         columnInfo[ix].autoinc_create_or_modify_Start_Increment
                 );
-            else
+            else {
                 columnDescriptor = new ColumnDescriptor(
                         columnInfo[ix].name,
                         index++,
@@ -264,6 +264,13 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                         columnInfo[ix].autoincStart,
                         columnInfo[ix].autoincInc
                 );
+            }
+            /*
+             * By default, we enable statistics collection on all keyed columns
+             */
+            if(pkColumnNames!=null && pkColumnNames.contains(columnDescriptor.getColumnName())){
+               columnDescriptor.setCollectStatistics(true);
+            }
 
             cdlArray[ix] = columnDescriptor;
         }
