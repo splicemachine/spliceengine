@@ -5,10 +5,10 @@ import com.google.common.cache.CacheBuilder;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.MessageId;
-import org.apache.derby.iapi.sql.compile.ASTVisitor;
-import org.apache.derby.iapi.sql.compile.Visitable;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.MessageId;
+import com.splicemachine.db.iapi.sql.compile.ASTVisitor;
+import com.splicemachine.db.iapi.sql.compile.Visitable;
 import org.apache.log4j.Logger;
 
 import java.lang.reflect.InvocationTargetException;

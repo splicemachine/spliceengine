@@ -1,29 +1,49 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.*;
+import com.splicemachine.derby.impl.spark.RDDUtils;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.*;
+import com.splicemachine.derby.utils.marshall.BareKeyHash;
+import com.splicemachine.derby.utils.marshall.DataHash;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.metrics.IOStats;
 import com.splicemachine.derby.utils.StandardIterators;
 import com.splicemachine.derby.utils.StandardPushBackIterator;
 import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.loader.GeneratedMethod;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import org.apache.hadoop.hbase.mapreduce.TableSplit;
+import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.log4j.Logger;
+import org.apache.spark.Partition;
+import org.apache.spark.Partitioner;
+import org.apache.spark.api.java.JavaNewHadoopRDD;
+import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.function.FlatMapFunction2;
+import org.apache.spark.rdd.NewHadoopPartition;
+import org.apache.spark.rdd.NewHadoopRDD;
+import scala.Function1;
+import scala.Function2;
+import scala.Tuple2;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
+
 /**
  * @author P Trolard
  *         Date: 18/11/2013
@@ -220,16 +240,187 @@ public class MergeJoinOperation extends JoinOperation {
     public boolean providesRDD() {
         // Only when this operation isn't above a Sink
         // TODO implement MergeJoin in Spark when it's above a sink
-        return leftResultSet.providesRDD() && rightResultSet.providesRDD() && pushedToServer();
+        return leftResultSet.providesRDD() && rightResultSet.providesRDD();
     }
 
     @Override
     public JavaRDD<ExecRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-        return leftResultSet.getRDD(spliceRuntimeContext, top);
+
+
+        JavaPairRDD<ExecRow, ExecRow> leftRDD = RDDUtils.getKeyedRDD(leftResultSet.getRDD(spliceRuntimeContext, leftResultSet), leftHashKeys);
+        // right is the one we are just reading, we have TableSplits for it.
+        JavaRDD<ExecRow> rightRDD = rightResultSet.getRDD(spliceRuntimeContext, rightResultSet);
+
+        Partition[] partitions = rightRDD.rdd().partitions();
+        List<byte[]> splits = new ArrayList<>();
+        for (Partition p : partitions) {
+            assert p instanceof NewHadoopPartition;
+            NewHadoopPartition nhp = (NewHadoopPartition) p;
+            InputSplit is = nhp.serializableHadoopSplit().value();
+            assert is instanceof TableSplit;
+            TableSplit ts = (TableSplit) is;
+            splits.add(ts.getEndRow());
+        }
+        Collections.sort(splits, BytesUtil.endComparator);
+
+        int[] formatIds = SpliceUtils.getFormatIds(RDDUtils.getKey(this.rightResultSet.getExecRowDefinition(), this.rightHashKeys).getRowArray());
+        Partitioner partitioner = new CustomPartitioner(splits, formatIds);
+
+        final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this, spliceRuntimeContext);
+        return leftRDD.partitionBy(partitioner).zipPartitions(rightRDD, new SparkJoiner(this, soi, true));
     }
 
     @Override
     public boolean pushedToServer() {
         return leftResultSet.pushedToServer() && rightResultSet.pushedToServer();
+    }
+
+    private static class CustomPartitioner extends Partitioner {
+        List<byte[]> splits;
+        int[] formatIds;
+        private transient ThreadLocal<DataHash> encoder = new ThreadLocal<DataHash>() {
+            @Override
+            protected DataHash initialValue() {
+                int[] rowColumns = IntArrays.count(formatIds.length);
+                DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(formatIds);
+                return BareKeyHash.encoder(rowColumns, null, serializers);
+            }
+        };
+
+        public CustomPartitioner(List<byte[]> splits, int[] formatIds) {
+            this.splits = splits;
+            this.formatIds = formatIds;
+        }
+
+        @Override
+        public int numPartitions() {
+            return splits.size();
+        }
+
+        @Override
+        public int getPartition(Object key) {
+            ExecRow row = (ExecRow) key;
+            DataHash enc = encoder.get();
+            enc.setRow(row);
+            byte[] result;
+            try {
+                result = enc.encode();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+            for (int i = 0; i<splits.size(); ++i) {
+                if (BytesUtil.endComparator.compare(result, splits.get(i)) < 0) {
+                    return i;
+                }
+            }
+            return 0;
+        }
+    }
+
+
+    private static final class SparkJoiner extends SparkFlatMap2Operation<MergeJoinOperation, Iterator<Tuple2<ExecRow, ExecRow>>, Iterator<ExecRow>, ExecRow> {
+        boolean outer;
+        private Joiner joiner;
+
+        public SparkJoiner() {
+        }
+
+        public SparkJoiner(MergeJoinOperation spliceOperation, SpliceObserverInstructions soi, boolean outer) {
+            super(spliceOperation, soi);
+            this.outer = outer;
+        }
+
+        private Joiner initJoiner(final Iterator<Tuple2<ExecRow, ExecRow>> left, Iterator<ExecRow> right) throws StandardException {
+            StandardIterator<ExecRow> leftIterator = new StandardIterator<ExecRow>() {
+                @Override
+                public void open() throws StandardException, IOException {
+                    // no-op
+                }
+
+                @Override
+                public ExecRow next(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+                    if (!left.hasNext())
+                        return null;
+                    return left.next()._2();
+                }
+
+                @Override
+                public void close() throws StandardException, IOException {
+                    // no-op
+                }
+            };
+            IJoinRowsIterator<ExecRow> mergedRowSource = new MergeJoinRows(leftIterator, StandardIterators.wrap(right), op.leftHashKeys, op.rightHashKeys);
+            StandardSupplier<ExecRow> emptyRowSupplier = new StandardSupplier<ExecRow>() {
+                @Override
+                public ExecRow get() throws StandardException {
+                    return op.getEmptyRow();
+                }
+            };
+
+            return new Joiner(mergedRowSource, op.getExecRowDefinition(), op.getRestriction(),
+                    op.isOuterJoin, op.wasRightOuterJoin, op.leftNumCols, op.rightNumCols,
+                    op.oneRowRightSide, op.notExistsRightSide, emptyRowSupplier, soi.getSpliceRuntimeContext());
+        }
+
+        @Override
+        public void writeExternal(ObjectOutput out) throws IOException {
+            super.writeExternal(out);
+            out.writeBoolean(outer);
+        }
+
+        @Override
+        public void readExternalInContext(ObjectInput in) throws IOException, ClassNotFoundException {
+            outer = in.readBoolean();
+        }
+
+        @Override
+        public Iterable<ExecRow> call(Iterator<Tuple2<ExecRow, ExecRow>> left, Iterator<ExecRow> right) throws Exception {
+            if (joiner == null) {
+                joiner = initJoiner(left, right);
+                joiner.open();
+            }
+            return new JoinerIterator();
+        }
+
+        private class JoinerIterator implements Iterator<ExecRow>, Iterable<ExecRow> {
+            ExecRow next = null;
+            boolean consumed = false;
+
+            @Override
+            public Iterator<ExecRow> iterator() {
+                return this;
+            }
+
+            @Override
+            public boolean hasNext() {
+                if (consumed) return false;
+                try {
+                    if (next == null) {
+                        next = joiner.nextRow(soi.getSpliceRuntimeContext());
+                    }
+                    if (next == null) {
+                        consumed = true;
+                        joiner.close();
+                    }
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
+                return next != null;
+            }
+
+            @Override
+            public ExecRow next() {
+                if (!hasNext())
+                    return null;
+                ExecRow result = next.getClone();
+                next = null;
+                return result;
+            }
+
+            @Override
+            public void remove() {
+                throw new UnsupportedOperationException("Can't remove elements from this iterator");
+            }
+        }
     }
 }

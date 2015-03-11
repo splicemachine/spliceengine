@@ -6,8 +6,8 @@ import com.esotericsoftware.kryo.io.Output;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.utils.kryo.KryoObjectInput;
 import com.splicemachine.utils.kryo.KryoObjectOutput;
-import org.apache.derby.iapi.types.SQLChar;
-import org.apache.derby.iapi.types.StringDataValue;
+import com.splicemachine.db.iapi.types.SQLChar;
+import com.splicemachine.db.iapi.types.StringDataValue;
 import org.junit.Assert;
 import org.junit.Test;
 

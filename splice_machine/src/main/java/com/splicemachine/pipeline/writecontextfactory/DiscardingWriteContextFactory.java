@@ -4,9 +4,11 @@ import com.splicemachine.pipeline.api.WriteContext;
 import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.pipeline.writehandler.IndexCallBufferFactory;
 import com.splicemachine.si.api.TxnView;
+import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptorList;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
 /**
@@ -70,8 +72,13 @@ class DiscardingWriteContextFactory<T> implements WriteContextFactory<T> {
     }
 
     @Override
-    public void addForeignKeyCheckWriteFactory(int[] backingIndexFormatIds) {
-        delegate.addForeignKeyCheckWriteFactory(backingIndexFormatIds);
+    public void addForeignKeyParentCheckWriteFactory(int[] backingIndexFormatIds) {
+        delegate.addForeignKeyParentCheckWriteFactory(backingIndexFormatIds);
+    }
+
+    @Override
+    public void addForeignKeyParentInterceptWriteFactory(String parentTableName, List<Long> backingIndexConglomIds) {
+        delegate.addForeignKeyParentInterceptWriteFactory(parentTableName, backingIndexConglomIds);
     }
 
     @Override

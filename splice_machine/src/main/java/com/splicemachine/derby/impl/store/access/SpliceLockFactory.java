@@ -5,16 +5,16 @@ import java.util.Dictionary;
 import java.util.Enumeration;
 import java.util.Properties;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.daemon.Serviceable;
-import org.apache.derby.iapi.services.locks.CompatibilitySpace;
-import org.apache.derby.iapi.services.locks.Limit;
-import org.apache.derby.iapi.services.locks.LockFactory;
-import org.apache.derby.iapi.services.locks.LockOwner;
-import org.apache.derby.iapi.services.locks.Lockable;
-import org.apache.derby.iapi.services.monitor.ModuleControl;
-import org.apache.derby.iapi.services.monitor.ModuleSupportable;
-import org.apache.derby.iapi.util.Matchable;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.daemon.Serviceable;
+import com.splicemachine.db.iapi.services.locks.CompatibilitySpace;
+import com.splicemachine.db.iapi.services.locks.Limit;
+import com.splicemachine.db.iapi.services.locks.LockFactory;
+import com.splicemachine.db.iapi.services.locks.LockOwner;
+import com.splicemachine.db.iapi.services.locks.Lockable;
+import com.splicemachine.db.iapi.services.monitor.ModuleControl;
+import com.splicemachine.db.iapi.services.monitor.ModuleSupportable;
+import com.splicemachine.db.iapi.util.Matchable;
 import org.apache.log4j.Logger;
 
 //FIXME: We may need to implement unlock and zeroDurationlockObject since they are called directly by DataDictionaryImpl

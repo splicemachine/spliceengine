@@ -5,6 +5,7 @@ import javax.security.auth.login.Configuration;
 import java.sql.*;
 import java.util.*;
 import java.util.concurrent.CancellationException;
+
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.ddl.DDLWatcher;
@@ -17,36 +18,37 @@ import com.google.common.io.Closeables;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.utils.SpliceUtilities;
-import org.apache.derby.iapi.error.ShutdownException;
+import com.splicemachine.db.iapi.error.ShutdownException;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.Property;
-import org.apache.derby.iapi.services.context.ContextManager;
-import org.apache.derby.iapi.services.context.ContextService;
-import org.apache.derby.iapi.services.monitor.Monitor;
-import org.apache.derby.iapi.services.property.PropertyFactory;
-import org.apache.derby.iapi.sql.ResultColumnDescriptor;
-import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.sql.execute.ExecutionFactory;
-import org.apache.derby.iapi.store.access.AccessFactory;
-import org.apache.derby.iapi.store.access.TransactionController;
-import org.apache.derby.iapi.types.DataTypeDescriptor;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.SQLVarchar;
-import org.apache.derby.impl.db.BasicDatabase;
-import org.apache.derby.impl.jdbc.EmbedConnection;
-import org.apache.derby.impl.jdbc.EmbedResultSet40;
-import org.apache.derby.impl.sql.GenericColumnDescriptor;
-import org.apache.derby.impl.sql.execute.IteratorNoPutResultSet;
-import org.apache.derby.impl.sql.execute.ValueRow;
-import org.apache.derby.shared.common.sanity.SanityManager;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.services.context.ContextService;
+import com.splicemachine.db.iapi.services.monitor.Monitor;
+import com.splicemachine.db.iapi.services.property.PropertyFactory;
+import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.store.access.AccessFactory;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLVarchar;
+import com.splicemachine.db.impl.db.BasicDatabase;
+import com.splicemachine.db.impl.jdbc.EmbedConnection;
+import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
+import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
+import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.db.shared.common.sanity.SanityManager;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.log4j.Logger;
+
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.ast.AssignRSNVisitor;
 import com.splicemachine.derby.impl.ast.FindHashJoinColumns;
@@ -138,7 +140,7 @@ public class SpliceDatabase extends BasicDatabase {
     @Override
     protected void bootValidation(boolean create, Properties startParams) throws StandardException {
         SpliceLogUtils.trace(LOG,"bootValidation create %s, startParams %s",create,startParams);
-        pf = (PropertyFactory) Monitor.bootServiceModule(create, this,org.apache.derby.iapi.reference.Module.PropertyFactory, startParams);
+        pf = (PropertyFactory) Monitor.bootServiceModule(create, this,com.splicemachine.db.iapi.reference.Module.PropertyFactory, startParams);
     }
 
     @Override
@@ -432,9 +434,36 @@ public class SpliceDatabase extends BasicDatabase {
 
     }
 
+    private static void createSnapshots(String snapId) throws StandardException {
+        
+    	try {
+            HBaseAdmin admin = SpliceUtilities.getAdmin();
+            HTableDescriptor[] descriptorArray = admin.listTables();
+            LOG.info("Snapshot database id="+snapId+
+            		" starts for "+ descriptorArray.length+" tables.");
+            long globalStart = System.currentTimeMillis();
+            for (HTableDescriptor descriptor: descriptorArray) {
+                String tableName = descriptor.getNameAsString();                
+                long start = System.currentTimeMillis();
+                String snapshotName = tableName + "_"+snapId;
+                admin.snapshot(snapshotName.getBytes(), tableName.getBytes());
+                LOG.info("Snapshot: "+tableName+" done in "+ (System.currentTimeMillis() - start)+"ms");
+            }
+            LOG.info("Snapshot database finished in +" +(System.currentTimeMillis() - globalStart)/1000+ " sec");
+        }
+        catch (Exception e) {
+            throw StandardException.newException(e.getMessage());
+        }
+    	
+    }
+    
+    // 
+    // This API call is only for full DB backup
+    // TODO: add backup for schema:table(s)
+    //
     @Override
     public void backup(String backupDir, boolean wait) throws SQLException {
-
+    	
         HBaseAdmin admin = null;
         Backup backup = null;
         try {
@@ -451,6 +480,9 @@ public class SpliceDatabase extends BasicDatabase {
             backup.createBackupItems(admin);
             backup.insertBackup();
             backup.createProperties();
+            // Create snapshots first for all tables in backup list
+            createSnapshots( Long.toString(backup.getBackupTimestamp()));
+            
             for (BackupItem backupItem: backup.getBackupItems()) {
                 backupItem.doBackup();
             }

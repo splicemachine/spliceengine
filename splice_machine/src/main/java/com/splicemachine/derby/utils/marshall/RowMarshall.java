@@ -3,9 +3,9 @@ package com.splicemachine.derby.utils.marshall;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.storage.EntryDecoder;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Put;
 
@@ -20,7 +20,7 @@ public interface RowMarshall {
      * @param row the row to encode
      * @param rowColumns the columns to parse
      * @param rowEncoder {@code null} if the row type does not use multi field encodings
-     * @throws org.apache.derby.iapi.error.StandardException
+     * @throws com.splicemachine.db.iapi.error.StandardException
      */
     public byte[] encodeRow(DataValueDescriptor[] row,
                           int[] rowColumns,

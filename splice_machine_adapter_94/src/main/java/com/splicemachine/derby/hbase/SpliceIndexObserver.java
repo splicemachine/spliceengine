@@ -4,12 +4,17 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Delete;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.InternalScanner;
+import org.apache.hadoop.hbase.regionserver.Store;
+import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import org.apache.hadoop.hbase.regionserver.wal.WALEdit;
 import org.apache.log4j.Logger;
 
@@ -64,4 +69,32 @@ public class SpliceIndexObserver extends AbstractSpliceIndexObserver {
         }
         super.preDelete(e, delete, edit, writeToWAL);
     }
+
+
+	@Override
+	public InternalScanner preCompact(
+			ObserverContext<RegionCoprocessorEnvironment> e, Store store,
+			InternalScanner scanner) throws IOException {
+		if (LOG.isTraceEnabled())
+			SpliceLogUtils.trace(LOG, "preCompact store=%s, scanner=%s",store, scanner);
+		preCompact();
+		return super.preCompact(e, store, scanner);
+	}
+
+	@Override
+	public InternalScanner preCompact(
+			ObserverContext<RegionCoprocessorEnvironment> e, Store store,
+			InternalScanner scanner, CompactionRequest request)
+			throws IOException {
+		if (LOG.isTraceEnabled())
+			SpliceLogUtils.trace(LOG, "preCompact store=%s, scanner=%s, request=%s",store, scanner, request);
+		preCompact();
+		return super.preCompact(e, store, scanner, request);
+	}
+
+	@Override
+	protected long getReadpoint(HRegion region) {
+		return Long.MAX_VALUE;
+	}
+	
 }

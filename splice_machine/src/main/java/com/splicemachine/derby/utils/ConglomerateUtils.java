@@ -15,8 +15,8 @@ import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.ZkUtils;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.store.access.conglomerate.Conglomerate;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.NotServingRegionException;
@@ -198,7 +198,7 @@ public class ConglomerateUtils extends SpliceConstants {
      *
      * @param conglomId the conglom id to store information under
      * @param conglomerate the conglomerate to store
-     * @throws org.apache.derby.iapi.error.StandardException if something goes wrong and the data can't be stored.
+     * @throws com.splicemachine.db.iapi.error.StandardException if something goes wrong and the data can't be stored.
      */
     public static void createConglomerate(long conglomId, Conglomerate conglomerate, Txn txn) throws StandardException {
         createConglomerate(Long.toString(conglomId), conglomId, DerbyBytesUtil.toBytes(conglomerate),txn);
@@ -208,7 +208,7 @@ public class ConglomerateUtils extends SpliceConstants {
      * Stores information about a new conglomerate, specified by {@code tableName}.
      *
      * @param tableName the name of the table
-     * @throws org.apache.derby.iapi.error.StandardException if something goes wrong and the data can't be stored.
+     * @throws com.splicemachine.db.iapi.error.StandardException if something goes wrong and the data can't be stored.
      */
     public static void createConglomerate(String tableName, long conglomId, byte[] conglomData, Txn txn) throws StandardException {
         SpliceLogUtils.debug(LOG, "creating Hbase table for conglom {%s} with data {%s}", tableName, conglomData);
@@ -243,7 +243,7 @@ public class ConglomerateUtils extends SpliceConstants {
      * Update a conglomerate.
      *
      * @param conglomerate the new conglomerate information to update
-     * @throws org.apache.derby.iapi.error.StandardException if something goes wrong and the data can't be stored.
+     * @throws com.splicemachine.db.iapi.error.StandardException if something goes wrong and the data can't be stored.
      */
     public static void updateConglomerate(Conglomerate conglomerate, Txn txn) throws StandardException {
         String tableName = Long.toString(conglomerate.getContainerid());

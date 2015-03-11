@@ -1,8 +1,8 @@
 package com.splicemachine.derby.impl.sql.compile;
 
 import java.util.Vector;
-import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.sql.compile.RowOrdering;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.RowOrdering;
 
 public class ColumnOrdering {
 

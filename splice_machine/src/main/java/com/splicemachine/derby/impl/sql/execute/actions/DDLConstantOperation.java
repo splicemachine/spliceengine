@@ -1,6 +1,28 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.db.catalog.AliasInfo;
+import com.splicemachine.db.catalog.DependableFinder;
+import com.splicemachine.db.catalog.TypeDescriptor;
+import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.catalog.types.AggregateAliasInfo;
+import com.splicemachine.db.catalog.types.RoutineAliasInfo;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.conn.Authorizer;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.depend.DependencyManager;
+import com.splicemachine.db.iapi.sql.depend.Dependent;
+import com.splicemachine.db.iapi.sql.depend.Provider;
+import com.splicemachine.db.iapi.sql.depend.ProviderInfo;
+import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.db.iapi.sql.execute.ConstantAction;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.impl.sql.execute.ColumnInfo;
+import com.splicemachine.db.shared.common.reference.SQLState;
+import com.splicemachine.db.shared.common.sanity.SanityManager;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.si.api.Txn;
@@ -8,28 +30,6 @@ import com.splicemachine.si.api.TxnView;
 import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.StreamException;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.derby.catalog.AliasInfo;
-import org.apache.derby.catalog.DependableFinder;
-import org.apache.derby.catalog.TypeDescriptor;
-import org.apache.derby.catalog.UUID;
-import org.apache.derby.catalog.types.AggregateAliasInfo;
-import org.apache.derby.catalog.types.RoutineAliasInfo;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.SQLState;
-import org.apache.derby.iapi.services.context.ContextManager;
-import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.conn.Authorizer;
-import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-import org.apache.derby.iapi.sql.depend.DependencyManager;
-import org.apache.derby.iapi.sql.depend.Dependent;
-import org.apache.derby.iapi.sql.depend.Provider;
-import org.apache.derby.iapi.sql.depend.ProviderInfo;
-import org.apache.derby.iapi.sql.dictionary.*;
-import org.apache.derby.iapi.sql.execute.ConstantAction;
-import org.apache.derby.iapi.store.access.TransactionController;
-import org.apache.derby.iapi.types.DataTypeDescriptor;
-import org.apache.derby.impl.sql.execute.ColumnInfo;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -577,7 +577,7 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
          LanguageConnectionContext  lcc,
          DataDictionary     dd,
          TableDescriptor    td,
-         ColumnInfo         ci
+         ColumnInfo ci
          )
         throws StandardException
     {
@@ -586,7 +586,7 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
         if ( providers != null )
         {
             DependencyManager   dm = dd.getDependencyManager();
-            ContextManager      cm = lcc.getContextManager();
+            ContextManager cm = lcc.getContextManager();
             int                         providerCount = providers.length;
             ColumnDescriptor    cd = td.getColumnDescriptor( ci.name );
             DefaultDescriptor   defDesc = cd.getDefaultDescriptor( dd );
@@ -594,9 +594,9 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
             for ( int px = 0; px < providerCount; px++ )
             {
                 ProviderInfo            pi = providers[ px ];
-                DependableFinder    finder = pi.getDependableFinder();
+                DependableFinder finder = pi.getDependableFinder();
                 UUID                        providerID = pi.getObjectId();
-                Provider                    provider = (Provider) finder.getDependable( dd, providerID );
+                Provider provider = (Provider) finder.getDependable( dd, providerID );
 
                 dm.addDependency( defDesc, provider, cm );
             }   // end loop through providers
@@ -762,8 +762,8 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
          )
         throws StandardException
     {
-        RoutineAliasInfo      routineInfo = null;
-        AggregateAliasInfo  aggInfo = null;
+        RoutineAliasInfo routineInfo = null;
+        AggregateAliasInfo aggInfo = null;
 
         // nothing to do if this is not a routine
         switch ( ad.getAliasType() )
@@ -784,12 +784,12 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
         HashMap               addUdtMap = new HashMap();
         HashMap               dropUdtMap = new HashMap();
         HashMap               udtMap = adding ? addUdtMap : dropUdtMap;
-        TypeDescriptor        rawReturnType = aggInfo!= null ? aggInfo.getReturnType() : routineInfo.getReturnType();
+        TypeDescriptor rawReturnType = aggInfo!= null ? aggInfo.getReturnType() : routineInfo.getReturnType();
 
         if ( rawReturnType != null )
         {
             AliasDescriptor       returnTypeAD = dd.getAliasDescriptorForUDT
-                ( tc, DataTypeDescriptor.getType( rawReturnType ) );
+                ( tc, DataTypeDescriptor.getType(rawReturnType) );
 
             if ( returnTypeAD != null ) { udtMap.put( returnTypeAD.getObjectID().toString(), returnTypeAD ); }
         }

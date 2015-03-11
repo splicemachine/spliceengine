@@ -1,7 +1,6 @@
 package com.splicemachine.si.impl;
 
 import com.splicemachine.utils.SpliceLogUtils;
-
 import org.apache.hadoop.hbase.filter.FilterBase;
 import org.apache.hadoop.io.Writable;
 import org.apache.log4j.Logger;
@@ -13,13 +12,14 @@ import java.io.IOException;
 /**
  * An HBase filter that applies SI logic when reading data values.
  */
-public abstract class BaseSIFilter<Data> extends FilterBase implements Writable{
+public abstract class BaseSIFilter<Data> extends FilterBase implements Writable {
     private static Logger LOG = Logger.getLogger(BaseSIFilter.class);
     private TxnFilter filterState = null;
 
-    public BaseSIFilter() {}
+    public BaseSIFilter() {
+    }
 
-    public BaseSIFilter(TxnFilter txnFilter){
+    public BaseSIFilter(TxnFilter txnFilter) {
         this.filterState = txnFilter;
     }
 
@@ -28,14 +28,10 @@ public abstract class BaseSIFilter<Data> extends FilterBase implements Writable{
             SpliceLogUtils.trace(LOG, "filterKeyValue %s", keyValue);
         }
         try {
-            initFilterStateIfNeeded();
-						return filterState.filterKeyValue(keyValue);
+            return filterState.filterKeyValue(keyValue);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-    }
-    
-    private void initFilterStateIfNeeded() throws IOException {
     }
 
     @Override
@@ -43,12 +39,15 @@ public abstract class BaseSIFilter<Data> extends FilterBase implements Writable{
         return filterState.getExcludeRow();
     }
 
-    @Override public boolean hasFilterRow() { return true; }
+    @Override
+    public boolean hasFilterRow() {
+        return true;
+    }
 
     @Override
     public void reset() {
         if (filterState != null) {
-						filterState.nextRow();
+            filterState.nextRow();
         }
     }
 

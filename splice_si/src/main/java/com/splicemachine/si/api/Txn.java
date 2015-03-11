@@ -3,8 +3,10 @@ package com.splicemachine.si.api;
 import com.google.common.collect.Iterators;
 import com.splicemachine.si.impl.ConflictType;
 import com.splicemachine.utils.ByteSlice;
+
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -15,7 +17,7 @@ import java.util.Iterator;
  * Date: 6/18/14
  */
 public interface Txn extends TxnView{
-		static final Logger TXN_LOGGER = Logger.getLogger(Txn.class);
+    static final Logger TXN_LOGGER = Logger.getLogger(Txn.class);
 
     static final Txn ROOT_TRANSACTION = new Txn() {
         @Override public String toString(){ return "ROOT"; }
@@ -256,7 +258,7 @@ public interface Txn extends TxnView{
         }
     }
 
-		/**
+    /**
 		 * Commit the transaction.
 		 *
 		 * @throws com.splicemachine.si.api.CannotCommitException if the transaction has already been rolled back
@@ -285,6 +287,4 @@ public interface Txn extends TxnView{
 		 * @throws IOException if something goes wrong during the elevation
 		 */
 		Txn elevateToWritable(byte[] writeTable) throws IOException;
-
-
 }

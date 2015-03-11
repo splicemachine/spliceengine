@@ -4,13 +4,13 @@ import java.util.Properties;
 
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.utils.ConglomerateUtils;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.store.access.ColumnOrdering;
-import org.apache.derby.iapi.store.access.conglomerate.Conglomerate;
-import org.apache.derby.iapi.store.access.conglomerate.ConglomerateFactory;
-import org.apache.derby.iapi.store.access.conglomerate.TransactionManager;
-import org.apache.derby.iapi.store.raw.ContainerKey;
-import org.apache.derby.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.store.access.ColumnOrdering;
+import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
+import com.splicemachine.db.iapi.store.access.conglomerate.ConglomerateFactory;
+import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
+import com.splicemachine.db.iapi.store.raw.ContainerKey;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerateFactory;

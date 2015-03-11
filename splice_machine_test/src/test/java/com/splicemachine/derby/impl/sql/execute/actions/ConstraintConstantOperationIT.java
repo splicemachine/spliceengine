@@ -7,13 +7,12 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import com.splicemachine.test.SerialTest;
+import com.splicemachine.test_dao.TableDAO;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -228,7 +227,7 @@ public class ConstraintConstantOperationIT {
         SpliceUnitTest.MyWatcher tableWatcher =
                 new SpliceUnitTest.MyWatcher(TABLE_NAME,CLASS_NAME,
                         "(id int not null, name varchar(128) not null, constraint uq_t1 unique(id))");
-        SpliceTableWatcher.executeDrop(CLASS_NAME, TABLE_NAME);
+        new TableDAO(methodWatcher.getOrCreateConnection()).drop(CLASS_NAME, TABLE_NAME);
         tableWatcher.create(Description.createSuiteDescription(CLASS_NAME, "testCreateTableUniqueConstraint"));
         Connection connection = methodWatcher.getOrCreateConnection();
         connection.setAutoCommit(false);

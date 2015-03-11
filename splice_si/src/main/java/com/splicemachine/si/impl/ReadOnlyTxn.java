@@ -4,15 +4,20 @@ import com.splicemachine.si.api.CannotCommitException;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.si.api.TxnView;
+import com.splicemachine.utils.SpliceLogUtils;
 
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicReference;
+
+import org.apache.log4j.Logger;
 
 /**
  * @author Scott Fines
  * Date: 6/18/14
  */
 public class ReadOnlyTxn extends AbstractTxn {
+
+		private static final Logger LOG = Logger.getLogger(ReadOnlyTxn.class);
 		private volatile TxnView parentTxn;
 		private AtomicReference<State> state = new AtomicReference<State>(State.ACTIVE);
 		private final TxnLifecycleManager tc;
@@ -98,6 +103,8 @@ public class ReadOnlyTxn extends AbstractTxn {
 
 		@Override
 		public void commit() throws IOException {
+				if(LOG.isTraceEnabled())
+					SpliceLogUtils.trace(LOG,"Before commit: txn=%s",this);
 				boolean shouldContinue;
 				do{
 						State currState = state.get();
@@ -110,10 +117,14 @@ public class ReadOnlyTxn extends AbstractTxn {
 										shouldContinue = !state.compareAndSet(currState,State.COMMITTED);
 						}
 				}while(shouldContinue);
+				if(LOG.isTraceEnabled())
+					SpliceLogUtils.trace(LOG,"After commit: txn=%s",this);
 		}
 
 		@Override
 		public void rollback() throws IOException {
+				if(LOG.isTraceEnabled())
+					SpliceLogUtils.trace(LOG,"Before rollback: txn=%s",this);
 				boolean shouldContinue;
 				do{
 						State currState = state.get();
@@ -125,29 +136,32 @@ public class ReadOnlyTxn extends AbstractTxn {
 										shouldContinue = state.compareAndSet(currState,State.ROLLEDBACK);
 						}
 				}while(shouldContinue);
+				if(LOG.isTraceEnabled())
+					SpliceLogUtils.trace(LOG,"After rollback: txn=%s",this);
 		}
 
 		@Override public boolean allowsWrites() { return false; }
 
 		@Override
 		public Txn elevateToWritable(byte[] writeTable) throws IOException {
+				if(LOG.isTraceEnabled())
+					SpliceLogUtils.trace(LOG,"Before elevateToWritable: txn=%s,writeTable=%s",this,writeTable);
 				assert state.get()==State.ACTIVE: "Cannot elevate an inactive transaction!";
+				Txn newTxn = null;
 				if((parentTxn!=null && !ROOT_TRANSACTION.equals(parentTxn))){
 						/*
 						 * We are a read-only child transaction of a parent. This means that we didn't actually
 						 * create a child transaction id or a begin timestamp of our own. Instead of elevating,
 						 * we actually create a writable child transaction.
 						 */
-						return tc.beginChildTransaction(parentTxn,isolationLevel,additive,writeTable);
+						newTxn = tc.beginChildTransaction(parentTxn,isolationLevel,additive,writeTable);
 				}else{
-						return tc.elevateTransaction(this, writeTable); //requires at least one network call
+						newTxn = tc.elevateTransaction(this, writeTable); //requires at least one network call
 				}
+				if(LOG.isTraceEnabled())
+					SpliceLogUtils.trace(LOG,"After elevateToWritable: newTxn=%s",newTxn);
+				return newTxn;
 		}
-
-    @Override
-    public String toString() {
-        return "ReadOnlyTxn("+txnId+","+getState()+")";
-    }
 
     public void parentWritable(TxnView newParentTxn){
         if(newParentTxn==parentTxn) return;

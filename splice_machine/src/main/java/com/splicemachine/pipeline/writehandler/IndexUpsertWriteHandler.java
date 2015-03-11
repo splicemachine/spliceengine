@@ -19,8 +19,8 @@ import com.splicemachine.storage.*;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.log4j.Logger;
@@ -97,13 +97,13 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "updateIndex with %s", mutation);
 
-        ensureBufferReader(mutation, ctx);
-
         if (mutation.getType() == KVPair.Type.DELETE) {
             if (LOG.isTraceEnabled())
                 SpliceLogUtils.trace(LOG, "updateIndex ignore delete %s", mutation);
             return true; //send upstream without acting on it
         }
+
+        ensureBufferReader(mutation, ctx);
 
         return upsert(mutation, ctx);
     }

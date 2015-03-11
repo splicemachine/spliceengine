@@ -5,7 +5,7 @@ import java.util.Arrays;
 import java.util.List;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.test.framework.*;
-import org.apache.derby.shared.common.reference.SQLState;
+import com.splicemachine.db.shared.common.reference.SQLState;
 import org.apache.log4j.Logger;
 import org.junit.*;
 import org.junit.rules.RuleChain;

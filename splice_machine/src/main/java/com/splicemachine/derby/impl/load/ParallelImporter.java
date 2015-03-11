@@ -14,7 +14,7 @@ import com.splicemachine.si.api.TxnView;
 import com.splicemachine.pipeline.api.WriteStats;
 import com.splicemachine.pipeline.impl.MergingWriteStats;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.derby.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;

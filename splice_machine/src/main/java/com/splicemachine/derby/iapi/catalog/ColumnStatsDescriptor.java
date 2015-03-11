@@ -1,13 +1,13 @@
 package com.splicemachine.derby.iapi.catalog;
 
+import com.splicemachine.db.iapi.sql.dictionary.TupleDescriptor;
 import com.splicemachine.stats.frequency.FrequentElements;
-import org.apache.derby.iapi.sql.dictionary.TupleDescriptor;
 
 /**
  * @author Scott Fines
  *         Date: 2/25/15
  */
-public class ColumnStatsDescriptor  extends TupleDescriptor{
+public class ColumnStatsDescriptor  extends TupleDescriptor {
     private long conglomerateId;
     private String partitionId;
     private long columnId;

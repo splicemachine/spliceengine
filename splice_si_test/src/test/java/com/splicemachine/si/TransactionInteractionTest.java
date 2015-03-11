@@ -4,7 +4,9 @@ import com.google.common.collect.Lists;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnLifecycleManager;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.ForwardingLifecycleManager;
+import com.splicemachine.si.impl.ReadOnlyTxn;
 import com.splicemachine.si.impl.WriteConflict;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -66,6 +68,42 @@ public class TransactionInteractionTest {
         for(Txn id:createdParentTxns){
             id.rollback();
         }
+    }
+
+    @Test
+    public void testCanElevateGrandchildCorrectly() throws Exception {
+        Txn user = control.beginTransaction();
+        Txn child = control.beginChildTransaction(user, null);
+        Txn grandchild = control.beginChildTransaction(child,null);
+
+        //now elevate in sequence, and verify that the hierarchy remains correct
+        user = user.elevateToWritable(DESTINATION_TABLE);
+        ((ReadOnlyTxn)child).parentWritable(user);
+        child = child.elevateToWritable(DESTINATION_TABLE);
+        Assert.assertEquals("Incorrect parent transaction for child!",user,child.getParentTxnView());
+        ((ReadOnlyTxn)grandchild).parentWritable(child);
+        grandchild = grandchild.elevateToWritable(DESTINATION_TABLE);
+        Assert.assertEquals("Incorrect parent transaction for grandchild!",child,grandchild.getParentTxnView());
+        Assert.assertEquals("Incorrect grandparent transaction for grandchild!", user, grandchild.getParentTxnView().getParentTxnView());
+        //now check that fetching the grandchild is still correct
+        TxnView userView = storeSetup.getTxnStore().getTransaction(user.getTxnId());
+        TxnView childView = storeSetup.getTxnStore().getTransaction(child.getTxnId());
+        Assert.assertEquals("Incorrect parent transaction for child!",userView,childView.getParentTxnView());
+        TxnView grandChildView = storeSetup.getTxnStore().getTransaction(grandchild.getTxnId());
+        Assert.assertEquals("Incorrect parent transaction for grandchild!", childView, grandChildView.getParentTxnView());
+        Assert.assertEquals("Incorrect grandparent transaction for grandchild!", userView, grandChildView.getParentTxnView().getParentTxnView());
+    }
+
+    @Test
+    public void testCanReadDataWithACommittedTransaction() throws Exception {
+        Txn userTxn = control.beginTransaction(DESTINATION_TABLE);
+        Txn svp0Txn = control.beginChildTransaction(userTxn, DESTINATION_TABLE);
+        Txn svp1Txn = control.beginChildTransaction(svp0Txn, DESTINATION_TABLE);
+        testUtility.insertAge(svp1Txn, "scott", 29);
+        svp1Txn.commit();
+        Txn selectTxn = control.beginChildTransaction(svp0Txn, null);
+        svp0Txn.commit();
+        Assert.assertEquals("Incorrect results", "scott age=29 job=null", testUtility.read(selectTxn, "scott"));
     }
 
     @Test
@@ -469,6 +507,88 @@ public class TransactionInteractionTest {
         }catch(RetriesExhaustedWithDetailsException re){
             throw re.getCauses().get(0);
         }
+    }
+
+    /**
+     * Transactional structure to test:
+     * 
+     * User Txn
+     *   CALL Txn
+     *     INSERT Txn
+     *     SELECT Txn
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testInsertThenScanWithinSameParentTransactionIsCorrect() throws Exception {
+    	Txn userTxn = control.beginTransaction(DESTINATION_TABLE);
+
+    	Txn callTxn = control.beginChildTransaction(userTxn,DESTINATION_TABLE); //create the CallStatement Txn
+    	Txn insertTxn = control.beginChildTransaction(callTxn,DESTINATION_TABLE); //create the insert txn
+    	testUtility.insertAge(insertTxn,"scott",29); //insert the row
+    	insertTxn.commit();
+
+    	Txn selectTxn = control.beginChildTransaction(callTxn,null); //create the select savepoint
+    	Assert.assertEquals("Incorrect results", "scott age=29 job=null",testUtility.read(selectTxn, "scott")); //validate it's visible
+
+    	callTxn.rollback();
+    }
+
+    /**
+     * Transactional structure to test:
+     * 
+     * User Txn
+     *   CALL, SELECT Txn
+     *     INSERT Txn
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testInsertWithChildTransactionThenScanWithParentTransactionIsCorrect() throws Exception {
+    	Txn userTxn = control.beginTransaction(DESTINATION_TABLE);
+
+    	Txn callTxn = control.beginChildTransaction(userTxn,DESTINATION_TABLE); //create the CallStatement Txn
+    	Txn insertTxn = control.beginChildTransaction(callTxn,DESTINATION_TABLE); //create the insert txn
+    	testUtility.insertAge(insertTxn,"scott",29); //insert the row
+    	insertTxn.commit();
+
+    	Assert.assertEquals("Incorrect results", "scott age=29 job=null",testUtility.read(callTxn, "scott")); //validate it's visible to the parent
+
+    	callTxn.rollback();
+    }
+
+    /**
+     * This is testing what has been observed happening within stored procedures (callable statements) in Splice/Derby
+     * that INSERT a row and then SELECT the row.  The SELECT statement was being wrapped with a SAVEPOINT that was
+     * inherited from the CALL statement since the CALL statement was attached to the UserTransaction by Splice, and Derby
+     * attempted to wrap the CALL statement with a SAVEPOINT also.  This caused an extra transaction (savepoint) to be
+     * created which was then associated with the SELECT statement.  The savepoint around the SELECT was released which
+     * was causing the ResultSet to fail scanning the new row since the state of the transaction (savepoint) was COMMITTED.
+     * Confusing, eh?
+     *
+     * Transactional structure to test:
+     * 
+     * ROOT Txn
+     *   CALL Txn (UserTransaction)
+     *     SELECT Txn (SAVEPT0)
+     *       INSERT Txn (SAVEPT1)
+     *
+     * @throws Exception
+     */
+    @Test
+    public void testInsertWithGrandchildTransactionThenScanWithParentTransactionIsCorrect() throws Exception {
+    	Txn rootTxn = control.beginTransaction(DESTINATION_TABLE);
+
+    	Txn callTxn = control.beginChildTransaction(rootTxn,DESTINATION_TABLE); //create the CallStatement Txn
+    	Txn selectTxn = control.beginChildTransaction(callTxn,DESTINATION_TABLE); //create the select savepoint
+    	Txn insertTxn = control.beginChildTransaction(selectTxn,DESTINATION_TABLE); //create the insert txn
+    	testUtility.insertAge(insertTxn,"scott",29); //insert the row
+    	insertTxn.commit();
+    	selectTxn.commit();
+
+    	Assert.assertEquals("Incorrect results", "scott age=29 job=null",testUtility.read(selectTxn, "scott")); //validate it's visible
+
+    	callTxn.rollback();
     }
 
     /************************************************************************************************************/

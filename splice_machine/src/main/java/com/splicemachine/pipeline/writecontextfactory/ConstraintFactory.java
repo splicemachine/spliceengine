@@ -13,8 +13,8 @@ class ConstraintFactory {
         this.localConstraint = localConstraint;
     }
 
-    public WriteHandler create() {
-        return new ConstraintWriteHandler(localConstraint);
+    public WriteHandler create(int expectedWrites) {
+        return new ConstraintWriteHandler(localConstraint, expectedWrites);
     }
 
     public BatchConstraintChecker getConstraintChecker() {

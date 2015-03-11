@@ -1,16 +1,16 @@
 package com.splicemachine.derby.impl.sql.catalog;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
+import com.splicemachine.db.iapi.sql.dictionary.CatalogRowFactory;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.SystemColumn;
+import com.splicemachine.db.iapi.sql.dictionary.TupleDescriptor;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.db.impl.sql.catalog.SystemColumnImpl;
 import com.splicemachine.derby.iapi.catalog.PhysicalStatsDescriptor;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.uuid.UUIDFactory;
-import org.apache.derby.iapi.sql.dictionary.CatalogRowFactory;
-import org.apache.derby.iapi.sql.dictionary.DataDictionary;
-import org.apache.derby.iapi.sql.dictionary.SystemColumn;
-import org.apache.derby.iapi.sql.dictionary.TupleDescriptor;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.sql.execute.ExecutionFactory;
-import org.apache.derby.iapi.types.*;
-import org.apache.derby.impl.sql.catalog.SystemColumnImpl;
 
 import java.sql.Types;
 
@@ -81,7 +81,7 @@ public class SYSPHYSICALSTATISTICSRowFactory extends CatalogRowFactory {
     @Override
     public SystemColumn[] buildColumnList() throws StandardException {
         return new SystemColumn[] {
-                SystemColumnImpl.getColumn("HOSTNAME", Types.VARCHAR,false),
+                SystemColumnImpl.getColumn("HOSTNAME", Types.VARCHAR, false),
                 SystemColumnImpl.getColumn("NUM_CPUS", Types.INTEGER,true),
                 SystemColumnImpl.getColumn("MAX_HEAP", Types.BIGINT,true),
                 SystemColumnImpl.getColumn("NETWORK_CONNS", Types.INTEGER,true)

@@ -1,6 +1,6 @@
 /*
 
-   Derby - Class org.apache.derby.impl.store.access.heap.HeapCostController
+   Derby - Class com.splicemachine.db.impl.store.access.heap.HeapCostController
 
    Licensed to the Apache Software Foundation (ASF) under one or more
    contributor license agreements.  See the NOTICE file distributed with
@@ -23,13 +23,13 @@ package com.splicemachine.derby.impl.store.access.btree;
 
 import java.util.Arrays;
 import java.util.SortedSet;
-import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.compile.CostEstimate;
-import org.apache.derby.iapi.store.access.StoreCostController;
-import org.apache.derby.iapi.store.access.StoreCostResult;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.compile.CostEstimate;
+import com.splicemachine.db.iapi.store.access.StoreCostController;
+import com.splicemachine.db.iapi.store.access.StoreCostResult;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.util.Pair;
@@ -123,7 +123,7 @@ public class IndexCostController extends SpliceGenericCostController implements 
      *
      * @exception  StandardException  Standard exception policy.
      *
-     * @see org.apache.derby.iapi.store.access.RowUtil
+	 * @see com.splicemachine.db.iapi.store.access.RowUtil
      **/
     @Override
     public void getFetchFromRowLocationCost(
@@ -269,7 +269,7 @@ public class IndexCostController extends SpliceGenericCostController implements 
      *
      * @exception  StandardException  Standard exception policy.
      *
-     * @see org.apache.derby.iapi.store.access.RowUtil
+	 * @see com.splicemachine.db.iapi.store.access.RowUtil
      **/
     @Override
     public void getScanCost(

@@ -1,16 +1,19 @@
 package com.splicemachine.pipeline.writehandler;
 
-import com.carrotsearch.hppc.ObjectOpenHashSet;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.WriteContext;
 import com.splicemachine.pipeline.api.WriteHandler;
 import com.splicemachine.pipeline.constraint.Constraint;
 import com.splicemachine.pipeline.impl.WriteResult;
+import com.splicemachine.utils.ByteSlice;
+import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.NotServingRegionException;
-import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * @author Scott Fines
@@ -22,10 +25,12 @@ public class ConstraintWriteHandler implements WriteHandler {
 
     private final Constraint localConstraint;
     private boolean failed;
-    private ObjectOpenHashSet<KVPair> visitedRows;
+    private Set<ByteSlice> visitedRows;
     private final WriteResult invalidResult;
+    private int expectedWrites;
 
-    public ConstraintWriteHandler(Constraint localConstraint) {
+    public ConstraintWriteHandler(Constraint localConstraint, int expectedWrites) {
+        this.expectedWrites = expectedWrites;
         this.localConstraint = localConstraint;
         this.invalidResult = new WriteResult(WriteResult.convertType(localConstraint.getType()), localConstraint.getConstraintContext());
     }
@@ -33,16 +38,19 @@ public class ConstraintWriteHandler implements WriteHandler {
     @Override
     public void next(KVPair mutation, WriteContext ctx) {
         if (visitedRows == null) {
-            visitedRows = new ObjectOpenHashSet<>();
+            int initialCapacity = (int) Math.ceil(2*expectedWrites/0.9f);
+//            visitedRows = new TreeSet<>();
+            visitedRows = new HashSet<>(initialCapacity,0.9f);
         }
         if (failed) {
             ctx.notRun(mutation);
         }
-        if (!HRegion.rowIsInRange(ctx.getRegion().getRegionInfo(), mutation.getRowKey())) {
+        if(!containsRow(ctx,mutation.rowKeySlice())){
             //we can't check the mutation, it'll explode
             ctx.failed(mutation, WriteResult.wrongRegion());
             return;
         }
+
         try {
             Constraint.Result validate = localConstraint.validate(mutation, ctx.getTxn(), ctx.getCoprocessorEnvironment(), visitedRows);
             switch (validate) {
@@ -55,7 +63,7 @@ public class ConstraintWriteHandler implements WriteHandler {
                 default:
                     ctx.sendUpstream(mutation);
             }
-            visitedRows.add(mutation);
+            visitedRows.add(mutation.rowKeySlice());
         } catch (NotServingRegionException nsre) {
             ctx.failed(mutation, WriteResult.notServingRegion());
             failed = true;
@@ -63,6 +71,11 @@ public class ConstraintWriteHandler implements WriteHandler {
             failed = true;
             ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName() + ":" + e.getMessage()));
         }
+    }
+
+    private boolean containsRow(WriteContext ctx,ByteSlice byteSlice) {
+        HRegionInfo info = ctx.getRegion().getRegionInfo();
+        return HRegionUtil.containsRow(info,byteSlice.array(),byteSlice.offset(),byteSlice.length());
     }
 
     @Override

@@ -6,10 +6,10 @@ import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.locks.CompatibilitySpace;
-import org.apache.derby.iapi.store.raw.log.LogInstant;
-import org.apache.derby.iapi.types.DataValueFactory;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.locks.CompatibilitySpace;
+import com.splicemachine.db.iapi.store.raw.log.LogInstant;
+import com.splicemachine.db.iapi.types.DataValueFactory;
 import org.apache.log4j.Logger;
 
 /**

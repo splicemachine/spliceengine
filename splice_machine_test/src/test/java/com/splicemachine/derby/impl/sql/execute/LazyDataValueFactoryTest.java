@@ -2,7 +2,7 @@ package com.splicemachine.derby.impl.sql.execute;
 
 import com.splicemachine.derby.impl.sql.execute.serial.DVDSerializer;
 import com.splicemachine.derby.impl.sql.execute.serial.StringDVDSerializer;
-import org.apache.derby.iapi.types.DataValueFactory;
+import com.splicemachine.db.iapi.types.DataValueFactory;
 import org.junit.Assert;
 import org.junit.Test;
 

@@ -19,11 +19,11 @@ import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.metrics.IOStats;
 import com.splicemachine.pipeline.exception.Exceptions;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.loader.GeneratedMethod;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.conn.StatementContext;
-import org.apache.derby.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.conn.StatementContext;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -236,8 +236,8 @@ public class AnyOperation extends SpliceBaseOperation {
     @Override
     public SpliceNoPutResultSet executeRDD(SpliceRuntimeContext runtimeContext) throws StandardException {
         JavaRDD<ExecRow> rdd = getRDD(runtimeContext, this);
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("RDD for operation " + this + " :\n " + rdd.toDebugString());
+        if (LOG.isInfoEnabled()) {
+            LOG.info("RDD for operation " + this + " :\n " + rdd.toDebugString());
         }
         return new SpliceNoPutResultSet(getActivation(), this,
                 new RDDRowProvider(rdd, runtimeContext) {

@@ -1,10 +1,10 @@
 package com.splicemachine.derby.impl.ast;
 
 import com.google.common.base.*;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.compile.OptimizablePredicate;
-import org.apache.derby.impl.sql.compile.*;
-import org.apache.derby.impl.sql.compile.Predicate;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.compile.OptimizablePredicate;
+import com.splicemachine.db.impl.sql.compile.*;
+import com.splicemachine.db.impl.sql.compile.Predicate;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;

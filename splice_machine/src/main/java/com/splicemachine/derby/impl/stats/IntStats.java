@@ -1,6 +1,9 @@
 package com.splicemachine.derby.impl.stats;
 
 import com.google.common.base.Function;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.IntColumnStatistics;
 import com.splicemachine.stats.estimate.Distribution;
@@ -9,9 +12,6 @@ import com.splicemachine.stats.frequency.FrequencyEstimate;
 import com.splicemachine.stats.frequency.FrequentElements;
 import com.splicemachine.stats.frequency.IntFrequencyEstimate;
 import com.splicemachine.stats.frequency.IntFrequentElements;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.SQLInteger;
 
 import java.io.IOException;
 import java.io.ObjectInput;

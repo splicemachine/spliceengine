@@ -2,16 +2,16 @@ package com.splicemachine.derby.impl.store.access;
 
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.context.ContextManager;
-import org.apache.derby.iapi.services.daemon.Serviceable;
-import org.apache.derby.iapi.services.locks.CompatibilitySpace;
-import org.apache.derby.iapi.services.property.PersistentSet;
-import org.apache.derby.iapi.store.access.FileResource;
-import org.apache.derby.iapi.store.access.RowSource;
-import org.apache.derby.iapi.store.raw.*;
-import org.apache.derby.iapi.store.raw.log.LogInstant;
-import org.apache.derby.iapi.types.DataValueFactory;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.services.daemon.Serviceable;
+import com.splicemachine.db.iapi.services.locks.CompatibilitySpace;
+import com.splicemachine.db.iapi.services.property.PersistentSet;
+import com.splicemachine.db.iapi.store.access.FileResource;
+import com.splicemachine.db.iapi.store.access.RowSource;
+import com.splicemachine.db.iapi.store.raw.*;
+import com.splicemachine.db.iapi.store.raw.log.LogInstant;
+import com.splicemachine.db.iapi.types.DataValueFactory;
 import org.apache.log4j.Logger;
 
 import java.util.Properties;

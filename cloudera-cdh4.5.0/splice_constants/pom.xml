@@ -1,40 +1,167 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<packaging>jar</packaging>
 	<artifactId>splice_constants-cloudera-cdh4.5.0</artifactId>
 	<name>${project.artifactId}</name>
 	<description>Splice Engine Constants</description>
-
 	<parent>
 		<artifactId>spliceengine-cloudera-cdh4.5.0</artifactId>
 		<groupId>com.splicemachine</groupId>
 		<version>1.1.1-SNAPSHOT</version>
 	</parent>
-
 	<dependencies>
-		<dependency> <groupId>org.apache.hadoop</groupId> <artifactId>hadoop-annotations</artifactId> <version>${hadoop.version}</version> </dependency>
-		<dependency> <groupId>org.apache.hadoop</groupId> <artifactId>hadoop-client</artifactId> <version>${hadoop.version}</version> </dependency>
-		<dependency> <groupId>org.apache.hadoop</groupId> <artifactId>hadoop-common</artifactId> <version>${hadoop.version}</version> <classifier>tests</classifier> <exclusions> <exclusion> <artifactId>junit</artifactId> <groupId>junit</groupId> </exclusion> </exclusions> </dependency>
-		<dependency> <groupId>org.apache.hadoop</groupId> <artifactId>hadoop-common</artifactId> <version>${hadoop.version}</version> <exclusions> <exclusion> <artifactId>junit</artifactId> <groupId>junit</groupId> </exclusion> </exclusions> </dependency>
-		<dependency> <groupId>org.apache.hadoop</groupId> <artifactId>hadoop-hdfs</artifactId> <version>${hadoop.version}</version> </dependency>
-		<dependency> <groupId>org.apache.hadoop</groupId> <artifactId>hadoop-hdfs</artifactId> <version>${hadoop.version}</version> <classifier>tests</classifier> </dependency>
-		<dependency> <groupId>org.apache.hadoop</groupId> <artifactId>hadoop-mapreduce-client-core</artifactId> <version>${hadoop.version}</version> </dependency>
-		<dependency> <groupId>org.apache.hbase</groupId> <artifactId>hbase</artifactId> <version>${hbase.version}</version> <classifier>tests</classifier> <exclusions> <exclusion> <artifactId>jsp-api-2.1</artifactId> <groupId>org.mortbay.jetty</groupId> </exclusion> <exclusion> <artifactId>jsp-2.1</artifactId> <groupId>org.mortbay.jetty</groupId> </exclusion> </exclusions> </dependency>
-		<dependency> <groupId>org.apache.hbase</groupId> <artifactId>hbase</artifactId> <version>${hbase.version}</version> <exclusions> <exclusion> <artifactId>jsp-api-2.1</artifactId> <groupId>org.mortbay.jetty</groupId> </exclusion> <exclusion> <artifactId>jsp-2.1</artifactId> <groupId>org.mortbay.jetty</groupId> </exclusion> </exclusions> </dependency>
-		<dependency> <groupId>org.apache.hive</groupId> <artifactId>hive-cli</artifactId> <version>${hive.version}</version> </dependency>
-		<dependency> <groupId>org.apache.hive</groupId> <artifactId>hive-common</artifactId> <version>${hive.version}</version> </dependency>
-		<dependency> <groupId>org.apache.hive</groupId> <artifactId>hive-contrib</artifactId> <version>${hive.version}</version> </dependency>
-		<dependency> <groupId>org.apache.hive</groupId> <artifactId>hive-exec</artifactId> <version>${hive.version}</version> </dependency>
-		<dependency> <groupId>org.apache.hive</groupId> <artifactId>hive-hbase-handler</artifactId> <version>${hive.version}</version> </dependency>
-		<dependency> <groupId>org.apache.hive</groupId> <artifactId>hive-hwi</artifactId> <version>${hive.version}</version> </dependency>
-		<dependency> <groupId>org.apache.hive</groupId> <artifactId>hive-jdbc</artifactId> <version>${hive.version}</version> </dependency>
-		<dependency> <groupId>org.apache.hive</groupId> <artifactId>hive-metastore</artifactId> <version>${hive.version}</version> <exclusions> <exclusion> <groupId>javax.jdo</groupId> <artifactId>jdo2-api</artifactId> </exclusion> </exclusions> </dependency>
-		<dependency> <groupId>org.apache.hive</groupId> <artifactId>hive-serde</artifactId> <version>${hive.version}</version> </dependency>
-		<dependency> <groupId>org.apache.hive</groupId> <artifactId>hive-service</artifactId> <version>${hive.version}</version> </dependency>
-		<dependency> <groupId>org.apache.zookeeper</groupId> <artifactId>zookeeper</artifactId> <version>${zookeeper.version}</version> </dependency>
-		<dependency> <groupId>org.apache.spark</groupId> <artifactId>spark-assembly-hadoop2.0.0-cdh4.5.0</artifactId> <version>1.2.0</version> </dependency>
+			<dependency>
+			<groupId>com.googlecode.concurrentlinkedhashmap</groupId>
+			<artifactId>concurrentlinkedhashmap-lru</artifactId>
+			<version>1.4.2</version>
+		</dependency>
+	
+		<dependency>
+			<groupId>org.apache.hadoop</groupId>
+			<artifactId>hadoop-annotations</artifactId>
+			<version>${hadoop.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.hadoop</groupId>
+			<artifactId>hadoop-client</artifactId>
+			<version>${hadoop.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.hadoop</groupId>
+			<artifactId>hadoop-common</artifactId>
+			<version>${hadoop.version}</version>
+			<classifier>tests</classifier>
+			<exclusions>
+				<exclusion>
+					<artifactId>junit</artifactId>
+					<groupId>junit</groupId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.hadoop</groupId>
+			<artifactId>hadoop-common</artifactId>
+			<version>${hadoop.version}</version>
+			<exclusions>
+				<exclusion>
+					<artifactId>junit</artifactId>
+					<groupId>junit</groupId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.hadoop</groupId>
+			<artifactId>hadoop-hdfs</artifactId>
+			<version>${hadoop.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.hadoop</groupId>
+			<artifactId>hadoop-hdfs</artifactId>
+			<version>${hadoop.version}</version>
+			<classifier>tests</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.hadoop</groupId>
+			<artifactId>hadoop-mapreduce-client-core</artifactId>
+			<version>${hadoop.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.hbase</groupId>
+			<artifactId>hbase</artifactId>
+			<version>${hbase.version}</version>
+			<classifier>tests</classifier>
+			<exclusions>
+				<exclusion>
+					<artifactId>jsp-api-2.1</artifactId>
+					<groupId>org.mortbay.jetty</groupId>
+				</exclusion>
+				<exclusion>
+					<artifactId>jsp-2.1</artifactId>
+					<groupId>org.mortbay.jetty</groupId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.hbase</groupId>
+			<artifactId>hbase</artifactId>
+			<version>${hbase.version}</version>
+			<exclusions>
+				<exclusion>
+					<artifactId>jsp-api-2.1</artifactId>
+					<groupId>org.mortbay.jetty</groupId>
+				</exclusion>
+				<exclusion>
+					<artifactId>jsp-2.1</artifactId>
+					<groupId>org.mortbay.jetty</groupId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.hive</groupId>
+			<artifactId>hive-cli</artifactId>
+			<version>${hive.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.hive</groupId>
+			<artifactId>hive-common</artifactId>
+			<version>${hive.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.hive</groupId>
+			<artifactId>hive-contrib</artifactId>
+			<version>${hive.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.hive</groupId>
+			<artifactId>hive-exec</artifactId>
+			<version>${hive.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.hive</groupId>
+			<artifactId>hive-hbase-handler</artifactId>
+			<version>${hive.version}</version>
+				<exclusions>
+				<exclusion>
+					<artifactId>hbase</artifactId>
+					<groupId>org.apache.hbase</groupId>
+				</exclusion>
+			</exclusions>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.hive</groupId>
+			<artifactId>hive-hwi</artifactId>
+			<version>${hive.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.hive</groupId>
+			<artifactId>hive-jdbc</artifactId>
+			<version>${hive.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.hive</groupId>
+			<artifactId>hive-metastore</artifactId>
+			<version>${hive.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.hive</groupId>
+			<artifactId>hive-serde</artifactId>
+			<version>${hive.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.hive</groupId>
+			<artifactId>hive-service</artifactId>
+			<version>${hive.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.zookeeper</groupId>
+			<artifactId>zookeeper</artifactId>
+			<version>${zookeeper.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.spark</groupId>
+			<artifactId>spark-assembly-hadoop2.0.0-cdh4.5.0</artifactId>
+			<version>1.2.0</version>
+		</dependency>
 	</dependencies>
-
 </project>

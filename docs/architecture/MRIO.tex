@@ -1,0 +1,35 @@
+\section{MapReduce InputFormat Integration with HBase Store Files} The merging
+of the store files and the memstore usually require access to HBase via a scanner.  However, if the access of that data is
+a large scan, it would be beneficial for the processing of that region's data to
+be performed off process from the transactional HBase system.
+
+\subsection{HBase Infrastructure to Support Client Side HBase
+Regions with Incremental Updates}  
+
+\subsubsection{HBase Off Heap Region}
+HBase already has a mechanism for creating a \emph{HRegion} without the normal
+assignment process.  A developer can simply open a region without supplying a
+Write Ahead Log or Region Server Services (movement, etc.).  The example code is
+illustrated below:
+
+		HRegion region = HRegion.openHRegion(conf, fs, rootDir, hri, htd, null,null,null);
+
+\subsubsection{Memstore Only HBase Scan}
+Memstore only scans in HBase already exist and the \emph{InternalScan} needed to
+be modified to allow direct creation inside a coprocessor.  The
+\emph{InternalScan} already allows for signaling to HBase that the scan should
+only interogate the memstore.
+
+			InternalScan iscan = new InternalScan(scan);
+			iscan.checkOnlyMemStore();
+
+\subsubsection{Applying Splice SI Filter Logic}
+
+
+\subsubsection{Concurrency Challenges}
+
+\subsection{Implementation Model to Handle Concurrency Challenges}  There are
+several challenges to attempting to perform
+
+
+%End MRIO chapter

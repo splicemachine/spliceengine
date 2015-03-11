@@ -4,19 +4,21 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.net.URI;
-import java.sql.SQLException;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.fs.FileUtil;
+import org.apache.hadoop.fs.Path;
 
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.hbase.DerbyFactory;
+import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.impl.job.ZkTask;
+import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.utils.SpliceZooKeeperManager;
 /**
  *
  * \begin{enumerate}
@@ -92,24 +94,61 @@ public class CreateBackupTask extends ZkTask {
     @Override
     public void doExecute() throws ExecutionException, InterruptedException {
         if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, String.format("executing %S backup on region %s",backupItem.getBackup().isIncrementalBackup()?"incremental":"full", region.toString()));
+            SpliceLogUtils.trace(LOG, 
+            		String.format("executing %S backup on region %s",
+            				backupItem.getBackup().isIncrementalBackup()?"incremental":"full", region.toString()));
         try {
-            FileSystem fs = FileSystem.get(URI.create(backupFileSystem), SpliceConstants.config);
-            BackupUtils.writeRegionToBackupDirectory(region, backupItem.getBackupItemFilesystem(), fs);
+
+            if(backupItem.getBackup().isIncrementalBackup()){
+            	doIncrementalBackup();
+            } else{
+            	doFullBackup();
+            }
+        	writeRegioninfoOnFilesystem();
+
         } catch (IOException e) {
             throw new ExecutionException(e);
         }
-        //try {
-        //	System.out.println("inserting Backup?");
-        //backupItem.insertBackupItem(); Not Working Yet
-/*	    		} catch (SQLException e) {
-	    			System.out.println("inserting Backup Exception?");
-	    			e.printStackTrace();
-					new ExecutionException(e);
-				}
-				*/
+        
+        // TODO: insert backup item
     }
 
+    private void writeRegioninfoOnFilesystem() throws IOException
+    {
+    	DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
+        FileSystem fs = FileSystem.get(URI.create(backupFileSystem), SpliceConstants.config);
+
+    	derbyFactory.writeRegioninfoOnFilesystem(region.getRegionInfo(), 
+        		new Path(backupItem.getBackupItemFilesystem()+"/"+derbyFactory.getRegionDir(region).getName()+
+        				"/"+BackupUtils.REGION_INFO), fs, SpliceConstants.config);
+    }
+    
+    private void doFullBackup() throws IOException
+    {
+    	SnapshotUtils utils = SnapshotUtilsFactory.snapshotUtils;
+    	List<Path> files = utils.getFilesForFullBackup(getSnapshotName(), region);
+    	String backupDirectory = backupItem.getBackupItemFilesystem();
+    	String name = region.getRegionNameAsString();
+    	FileSystem backupFs = FileSystem.get(URI.create(backupFileSystem), SpliceConstants.config);
+    	for(Path file: files){
+            FileSystem fs = region.getFilesystem();
+            // TODO dst path?
+	    	FileUtil.copy(fs, file, backupFs,  new Path(backupDirectory+"/"+name), false, SpliceConstants.config);
+    	}
+    }
+    
+
+    
+	private void doIncrementalBackup()
+    {
+    	// TODO
+    }
+    
+    private String getSnapshotName()
+    {
+    	return backupItem.getBackupItem() + "_"+ backupItem.getBackup().getBackupTimestamp();
+    }
+    
     @Override
     public int getPriority() {
         return SchedulerPriorities.INSTANCE.getBasePriority(CreateBackupTask.class);

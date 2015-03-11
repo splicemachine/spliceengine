@@ -1,6 +1,15 @@
 package com.splicemachine.derby.impl.store.access;
 
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.sql.compile.CostEstimate;
+import com.splicemachine.db.iapi.store.access.ScanController;
+import com.splicemachine.db.iapi.store.access.StoreCostController;
+import com.splicemachine.db.iapi.store.access.StoreCostResult;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.db.impl.store.access.conglomerate.GenericController;
 import com.splicemachine.derby.impl.stats.StatisticsStorage;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.pipeline.exception.Exceptions;
@@ -8,16 +17,6 @@ import com.splicemachine.si.api.TxnView;
 import com.splicemachine.stats.TableStatistics;
 import com.splicemachine.stats.estimate.Distribution;
 import com.splicemachine.utils.Pair;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
-import org.apache.derby.iapi.sql.compile.CostEstimate;
-import org.apache.derby.iapi.store.access.ScanController;
-import org.apache.derby.iapi.store.access.StoreCostController;
-import org.apache.derby.iapi.store.access.StoreCostResult;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.RowLocation;
-import org.apache.derby.impl.store.access.conglomerate.GenericController;
-
 import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
 
@@ -27,7 +26,7 @@ import java.util.concurrent.ExecutionException;
  * @author Scott Fines
  *         Date: 3/4/15
  */
-public class StatsStoreCostController extends GenericController implements StoreCostController{
+public class StatsStoreCostController extends GenericController implements StoreCostController {
     protected TableStatistics conglomerateStatistics;
     protected OpenSpliceConglomerate baseConglomerate;
 

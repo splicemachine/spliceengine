@@ -1,7 +1,7 @@
 package com.splicemachine.pipeline.exception;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.shared.common.reference.SQLState;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.shared.common.reference.SQLState;
 import org.junit.Test;
 
 import static org.junit.Assert.assertArrayEquals;

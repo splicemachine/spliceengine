@@ -1,19 +1,16 @@
 package com.splicemachine.derby.impl.sql.catalog;
 
+import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
+import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
+import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.db.impl.sql.catalog.SystemColumnImpl;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.catalog.ColumnStatsDescriptor;
 import com.splicemachine.stats.ColumnStatistics;
-import org.apache.derby.catalog.DefaultInfo;
-import org.apache.derby.catalog.UUID;
-import org.apache.derby.catalog.types.DefaultInfoImpl;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.uuid.UUIDFactory;
-import org.apache.derby.iapi.sql.dictionary.*;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.sql.execute.ExecutionFactory;
-import org.apache.derby.iapi.types.*;
-import org.apache.derby.impl.sql.catalog.SystemColumnImpl;
-import org.apache.derby.impl.sql.execute.ValueRow;
-
 import java.sql.Types;
 
 /**
@@ -77,7 +74,7 @@ public class SYSCOLUMNSTATISTICSRowFactory extends CatalogRowFactory {
     @Override
     public SystemColumn[] buildColumnList() throws StandardException {
         return new SystemColumn[]{
-                SystemColumnImpl.getColumn("CONGLOM_ID", Types.BIGINT,false),
+                SystemColumnImpl.getColumn("CONGLOM_ID", Types.BIGINT, false),
                 SystemColumnImpl.getColumn("PARTITION_ID",Types.VARCHAR,false),
                 SystemColumnImpl.getColumn("COLUMN_ID",Types.INTEGER,false),
                 SystemColumnImpl.getJavaColumn("DATA",

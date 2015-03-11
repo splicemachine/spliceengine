@@ -8,7 +8,7 @@ import java.util.Map;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import org.apache.derby.jdbc.EmbeddedDriver;
+import com.splicemachine.db.jdbc.EmbeddedDriver;
 import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -19,7 +19,8 @@ public class SpliceSpark {
     private static Logger LOG = Logger.getLogger(SpliceSpark.class);
     static JavaSparkContext ctx;
     static boolean initialized = false;
-    static boolean active = Boolean.parseBoolean(System.getProperty("splice.spark.enabled", "false"));;
+    static boolean active = Boolean.parseBoolean(System.getProperty("splice.spark.enabled", "false"));
+    ;
     static volatile JavaSparkContext localContext = null;
     static boolean spliceStaticComponentsSetup = false;
 
@@ -94,23 +95,33 @@ public class SpliceSpark {
         String failures = System.getProperty("splice.spark.failures", "4");
         String temp = System.getProperty("splice.spark.tmp", "/tmp");
         String extraOpts = System.getProperty("splice.spark.extra", "");
+        String extraLibraryPath = System.getProperty("splice.spark.extraLibraryPath", "");
+        String extraClassPath = System.getProperty("splice.spark.extraClassPath", "");
+
         LOG.warn("Initializing Spark with:\n master " + master + "\n home " + home + "\n jars " + jars + "\n environment " + environment);
         Map<String, String> properties = Splitter.on(';').omitEmptyStrings().withKeyValueSeparator(Splitter.on('=')).split(environment);
-        String [] files = getJarFiles(jars);
+        String[] files = getJarFiles(jars);
+
         SparkConf conf = new SparkConf();
         conf.setAppName("SpliceMachine");
         conf.setMaster(master);
         conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
         conf.set("spark.kryo.registrator", "com.splicemachine.derby.impl.spark.SpliceSparkKryoRegistrator");
-//        conf.set("spark.serializer", SparkCustomSerializer.class.getName());
+        // conf.set("spark.serializer", SparkCustomSerializer.class.getName());
         conf.set("spark.executor.memory", "8G");
-//				conf.set("spark.closure.serializer", "org.apache.spark.serializer.KryoSerializer");
-        conf.set("spark.io.compression.codec", "lz4"); // TODO implement custom codec using our Snappy version
+        // conf.set("spark.closure.serializer", "org.apache.spark.serializer.KryoSerializer");
+        conf.set("spark.io.compression.codec", "snappy"); // TODO implement custom codec using our Snappy version
         conf.set("spark.kryoserializer.buffer.mb", "8");
         conf.set("spark.kryoserializer.buffer.max.mb", "128");
         conf.set("spark.executor.extraJavaOptions", extraOpts);
+        conf.set("spark.executor.extraLibraryPath", extraLibraryPath);
+        conf.set("spark.executor.extraClassPath", extraClassPath);
         conf.set("spark.kryo.referenceTracking", "false");
-//        conf.set("spark.kryo.registrationRequired", "true");
+        conf.set("spark.storage.memoryFraction", "0.1"); // no caching at the moment
+        conf.set("spark.shuffle.memoryFraction", "0.7");
+        conf.set("spark.locality.wait", "60000"); // wait up to 60 seconds for a local execution
+        conf.set("spark.logConf", "true");
+        // conf.set("spark.kryo.registrationRequired", "true");
         if (master.startsWith("local[8]")) {
             conf.set("spark.cores.max", "8");
             if (localContext == null) {
@@ -118,10 +129,11 @@ public class SpliceSpark {
             }
             return localContext;
         } else {
-//            conf.setSparkHome(home);
-//            conf.setJars(files);
+            // conf.setSparkHome(home);
+            // conf.setJars(files);
             conf.set("spark.cores.max", cores);
             conf.set("spark.executor.memory", memory);
+            // conf.set("spark.driver.memory", memory); // Should this be set, what value should it be?
             conf.set("spark.task.maxFailures", failures);
             conf.set("spark.local.dir", temp);
             StringBuilder env = new StringBuilder();

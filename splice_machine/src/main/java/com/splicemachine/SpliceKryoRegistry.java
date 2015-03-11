@@ -1,100 +1,33 @@
 package com.splicemachine;
 
-import java.io.IOException;
-import java.math.BigDecimal;
-import java.sql.Date;
-import java.sql.Time;
-import java.sql.Timestamp;
-import java.util.*;
-
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.serializers.MapSerializer;
-import com.splicemachine.derby.ddl.*;
-import com.splicemachine.derby.impl.job.fk.CreateFkTask;
-import com.splicemachine.derby.impl.sql.catalog.Splice_DD_Version;
-import com.splicemachine.derby.impl.sql.execute.operations.*;
-import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.export.ExportParams;
-import com.splicemachine.derby.impl.sql.execute.operations.rowcount.RowCountOperation;
-import com.splicemachine.derby.impl.stats.*;
-import com.splicemachine.hbase.backup.Backup;
-import com.splicemachine.hbase.backup.BackupItem;
-import com.splicemachine.hbase.backup.CreateBackupTask;
-import com.splicemachine.hbase.backup.PurgeTransactionsTask;
-import com.splicemachine.hbase.backup.RestoreBackupTask;
-
-import com.splicemachine.si.api.TransactionOperations;
-import com.splicemachine.si.api.TxnView;
-import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
-
-import org.apache.derby.catalog.types.AggregateAliasInfo;
-import org.apache.derby.catalog.types.BaseTypeIdImpl;
-import org.apache.derby.catalog.types.DecimalTypeIdImpl;
-import org.apache.derby.catalog.types.DefaultInfoImpl;
-import org.apache.derby.catalog.types.IndexDescriptorImpl;
-import org.apache.derby.catalog.types.ReferencedColumnsDescriptorImpl;
-import org.apache.derby.catalog.types.RoutineAliasInfo;
-import org.apache.derby.catalog.types.RowMultiSetImpl;
-import org.apache.derby.catalog.types.SynonymAliasInfo;
-import org.apache.derby.catalog.types.TypeDescriptorImpl;
-import org.apache.derby.catalog.types.UserDefinedTypeIdImpl;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.FormatableArrayHolder;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
-import org.apache.derby.iapi.services.io.FormatableHashtable;
-import org.apache.derby.iapi.services.io.FormatableInstanceGetter;
-import org.apache.derby.iapi.services.io.FormatableIntHolder;
-import org.apache.derby.iapi.services.io.FormatableLongHolder;
-import org.apache.derby.iapi.sql.dictionary.IndexRowGenerator;
-import org.apache.derby.iapi.sql.dictionary.SchemaDescriptor;
-import org.apache.derby.iapi.store.raw.ContainerKey;
-import org.apache.derby.iapi.types.DataTypeDescriptor;
-import org.apache.derby.iapi.types.SQLBit;
-import org.apache.derby.iapi.types.SQLBlob;
-import org.apache.derby.iapi.types.SQLBoolean;
-import org.apache.derby.iapi.types.SQLChar;
-import org.apache.derby.iapi.types.SQLClob;
-import org.apache.derby.iapi.types.SQLDate;
-import org.apache.derby.iapi.types.SQLDecimal;
-import org.apache.derby.iapi.types.SQLDouble;
-import org.apache.derby.iapi.types.SQLInteger;
-import org.apache.derby.iapi.types.SQLLongVarbit;
-import org.apache.derby.iapi.types.SQLLongint;
-import org.apache.derby.iapi.types.SQLLongvarchar;
-import org.apache.derby.iapi.types.SQLReal;
-import org.apache.derby.iapi.types.SQLRef;
-import org.apache.derby.iapi.types.SQLRowId;
-import org.apache.derby.iapi.types.SQLSmallint;
-import org.apache.derby.iapi.types.SQLTime;
-import org.apache.derby.iapi.types.SQLTimestamp;
-import org.apache.derby.iapi.types.SQLTinyint;
-import org.apache.derby.iapi.types.SQLVarbit;
-import org.apache.derby.iapi.types.SQLVarchar;
-import org.apache.derby.iapi.types.UserType;
-import org.apache.derby.impl.services.uuid.BasicUUID;
-import org.apache.derby.impl.sql.CursorInfo;
-import org.apache.derby.impl.sql.CursorTableReference;
-import org.apache.derby.impl.sql.GenericColumnDescriptor;
-import org.apache.derby.impl.sql.GenericParameter;
-import org.apache.derby.impl.sql.GenericParameterValueSet;
-import org.apache.derby.impl.sql.GenericResultDescription;
-import org.apache.derby.impl.sql.GenericStorablePreparedStatement;
-import org.apache.derby.impl.sql.catalog.DDColumnDependableFinder;
-import org.apache.derby.impl.sql.catalog.DD_Version;
-import org.apache.derby.impl.sql.catalog.DDdependableFinder;
-import org.apache.derby.impl.sql.execute.*;
-import org.apache.derby.impl.store.access.PC_XenaVersion;
-
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.db.catalog.types.*;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.*;
+import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
+import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
+import com.splicemachine.db.iapi.store.raw.ContainerKey;
+import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.db.impl.services.uuid.BasicUUID;
+import com.splicemachine.db.impl.sql.*;
+import com.splicemachine.db.impl.sql.catalog.DDColumnDependableFinder;
+import com.splicemachine.db.impl.sql.catalog.DD_Version;
+import com.splicemachine.db.impl.sql.catalog.DDdependableFinder;
+import com.splicemachine.db.impl.sql.execute.*;
+import com.splicemachine.db.impl.store.access.PC_XenaVersion;
+import com.splicemachine.derby.ddl.*;
 import com.splicemachine.derby.hbase.ActivationSerializer;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.job.AlterTable.DropColumnTask;
 import com.splicemachine.derby.impl.job.AlterTable.LoadConglomerateTask;
 import com.splicemachine.derby.impl.job.coprocessor.SizedInterval;
+import com.splicemachine.derby.impl.job.fk.CreateFkTask;
 import com.splicemachine.derby.impl.job.index.CreateIndexTask;
 import com.splicemachine.derby.impl.job.index.PopulateIndexTask;
 import com.splicemachine.derby.impl.job.operation.SinkTask;
@@ -102,6 +35,7 @@ import com.splicemachine.derby.impl.load.ColumnContext;
 import com.splicemachine.derby.impl.load.FileImportReader;
 import com.splicemachine.derby.impl.load.ImportContext;
 import com.splicemachine.derby.impl.load.ImportTask;
+import com.splicemachine.derby.impl.sql.catalog.Splice_DD_Version;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.LazyNumberDataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.LazyStringDataValueDescriptor;
@@ -110,9 +44,14 @@ import com.splicemachine.derby.impl.sql.execute.actions.DeleteConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.actions.TransactionReadTask;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.*;
+import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.export.ExportParams;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.DerbyAggregateContext;
 import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.DerbyGroupedAggregateContext;
+import com.splicemachine.derby.impl.sql.execute.operations.rowcount.RowCountOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.window.DerbyWindowContext;
+import com.splicemachine.derby.impl.stats.*;
 import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseConglomerate;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
@@ -120,24 +59,30 @@ import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.kryo.DataValueDescriptorSerializer;
 import com.splicemachine.derby.utils.kryo.ValueRowSerializer;
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.hbase.backup.*;
 import com.splicemachine.job.ErrorTransport;
 import com.splicemachine.job.TaskStatus;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
 import com.splicemachine.pipeline.ddl.DDLChange;
-import com.splicemachine.pipeline.impl.BulkWrite;
-import com.splicemachine.pipeline.impl.BulkWriteResult;
-import com.splicemachine.pipeline.impl.BulkWrites;
-import com.splicemachine.pipeline.impl.BulkWritesResult;
-import com.splicemachine.pipeline.impl.WriteResult;
+import com.splicemachine.pipeline.impl.*;
+import com.splicemachine.si.api.TransactionOperations;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.ActiveWriteTxn;
-import com.splicemachine.si.impl.RootTransaction;
 import com.splicemachine.si.impl.WritableTxn;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.kryo.ExternalizableSerializer;
 import com.splicemachine.utils.kryo.KryoObjectInput;
 import com.splicemachine.utils.kryo.KryoObjectOutput;
 import com.splicemachine.utils.kryo.KryoPool;
+import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
 import org.apache.hadoop.hbase.util.Pair;
+
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.sql.Date;
+import java.sql.Time;
+import java.sql.Timestamp;
+import java.util.*;
 
 /**
  *
@@ -666,10 +611,10 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
 
         //instance.register(com.splicemachine.derby.impl.sql.execute.ValueRow.class,EXTERNALIZABLE_SERIALIZER,147);
         instance.register(com.splicemachine.derby.impl.sql.execute.IndexRow.class,EXTERNALIZABLE_SERIALIZER,148);
-        instance.register(org.apache.derby.impl.sql.execute.IndexRow.class,
-                new ValueRowSerializer<org.apache.derby.impl.sql.execute.IndexRow>(){
+        instance.register(com.splicemachine.db.impl.sql.execute.IndexRow.class,
+                new ValueRowSerializer<com.splicemachine.db.impl.sql.execute.IndexRow>(){
                     @Override
-                    public void write(Kryo kryo, Output output, org.apache.derby.impl.sql.execute.IndexRow object) {
+                    public void write(Kryo kryo, Output output, com.splicemachine.db.impl.sql.execute.IndexRow object) {
                         super.write(kryo, output, object);
                         boolean[] orderedNulls = object.getOrderedNulls();
                         output.writeInt(orderedNulls.length);
@@ -679,10 +624,10 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
                     }
 
                     @Override
-                    public org.apache.derby.impl.sql.execute.IndexRow read(Kryo kryo,
+                    public com.splicemachine.db.impl.sql.execute.IndexRow read(Kryo kryo,
                                                                            Input input,
-                                                                           Class<org.apache.derby.impl.sql.execute.IndexRow> type) {
-                        org.apache.derby.impl.sql.execute.IndexRow row = super.read(kryo, input, type);
+                                                                           Class<com.splicemachine.db.impl.sql.execute.IndexRow> type) {
+                        com.splicemachine.db.impl.sql.execute.IndexRow row = super.read(kryo, input, type);
                         boolean[] orderedNulls = new boolean[input.readInt()];
                         for(int i=0;i<orderedNulls.length;i++){
                             orderedNulls[i] = input.readBoolean();
@@ -692,8 +637,8 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
                     }
 
                     @Override
-                    protected org.apache.derby.impl.sql.execute.IndexRow newType(int size) {
-                        return org.apache.derby.impl.sql.execute.IndexRow.createRaw(size);
+                    protected com.splicemachine.db.impl.sql.execute.IndexRow newType(int size) {
+                        return com.splicemachine.db.impl.sql.execute.IndexRow.createRaw(size);
                     }
                 },149);
 
@@ -851,8 +796,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
             }
         }, 206);
         instance.register(ActiveWriteTxn.class, EXTERNALIZABLE_SERIALIZER,207);
-        instance.register(RootTransaction.class, EXTERNALIZABLE_SERIALIZER,208);        
-        instance.register(WriteResult.class, EXTERNALIZABLE_SERIALIZER,209);                
+        instance.register(WriteResult.class, EXTERNALIZABLE_SERIALIZER,209);
         instance.register(ConstraintContext.class, EXTERNALIZABLE_SERIALIZER,210);                
         instance.register(WritableTxn.class, EXTERNALIZABLE_SERIALIZER,211);  
         instance.register(SinkTask.class, EXTERNALIZABLE_SERIALIZER,212); 

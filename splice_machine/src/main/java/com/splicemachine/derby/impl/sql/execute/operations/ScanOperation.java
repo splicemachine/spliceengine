@@ -14,12 +14,12 @@ import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
-import org.apache.derby.iapi.services.loader.GeneratedMethod;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.store.access.Qualifier;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.store.access.Qualifier;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 import java.io.IOException;
@@ -398,6 +398,6 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 
     @Override
     public boolean pushedToServer() {
-        return true;
+        return false;
     }
 }

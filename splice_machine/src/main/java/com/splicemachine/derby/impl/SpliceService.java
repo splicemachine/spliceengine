@@ -6,11 +6,11 @@ import java.util.Enumeration;
 import java.util.List;
 import java.util.Properties;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.EngineType;
-import org.apache.derby.iapi.reference.Property;
-import org.apache.derby.iapi.services.monitor.PersistentService;
-import org.apache.derby.io.StorageFactory;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.EngineType;
+import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.iapi.services.monitor.PersistentService;
+import com.splicemachine.db.io.StorageFactory;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
@@ -55,7 +55,7 @@ public class SpliceService extends SpliceConstants implements PersistentService 
 		SpliceLogUtils.trace(LOG,"getServiceProperties serviceName: %s, defaultProperties %s",serviceName, defaultProperties);
 //		Properties service = new Properties(SpliceUtils.getAllProperties(defaultProperties));
 
-		service.setProperty(Property.SERVICE_PROTOCOL,"org.apache.derby.database.Database");
+		service.setProperty(Property.SERVICE_PROTOCOL,"com.splicemachine.db.database.Database");
 		service.setProperty(EngineType.PROPERTY,Integer.toString(getEngineType()));
 		//service.setProperty(DataDictionary.CORE_DATA_DICTIONARY_VERSION,"10.9");
 //		service.setProperty(Property.REQUIRE_AUTHENTICATION_PARAMETER, "true");

@@ -14,11 +14,11 @@ import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.OrPredicate;
 import com.splicemachine.storage.Predicate;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.io.FormatableBitSet;
-import org.apache.derby.iapi.store.access.Qualifier;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.DataValueFactory;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.store.access.Qualifier;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.DataValueFactory;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
@@ -108,10 +108,10 @@ public class Scans extends SpliceUtils {
 		 *
 		 * @param startKeyValue the start of the scan, or {@code null} if a full table scan is desired
 		 * @param startSearchOperator the operator for the start. Can be any of
-		 * {@link org.apache.derby.iapi.store.access.ScanController#GT}, {@link org.apache.derby.iapi.store.access.ScanController#GE}, {@link org.apache.derby.iapi.store.access.ScanController#NA}
+		 * {@link com.splicemachine.db.iapi.store.access.ScanController#GT}, {@link com.splicemachine.db.iapi.store.access.ScanController#GE}, {@link com.splicemachine.db.iapi.store.access.ScanController#NA}
 		 * @param stopKeyValue the stop of the scan, or {@code null} if a full table scan is desired.
 		 * @param stopSearchOperator the operator for the stop. Can be any of
-		 * {@link org.apache.derby.iapi.store.access.ScanController#GT}, {@link org.apache.derby.iapi.store.access.ScanController#GE}, {@link org.apache.derby.iapi.store.access.ScanController#NA}
+		 * {@link com.splicemachine.db.iapi.store.access.ScanController#GT}, {@link com.splicemachine.db.iapi.store.access.ScanController#GE}, {@link com.splicemachine.db.iapi.store.access.ScanController#NA}
 		 * @param qualifiers scan qualifiers to use. This is used to construct equality filters to reduce
 		 *                   the amount of data returned.
 		 * @param sortOrder a sort order to use in how data is to be searched, or {@code null} if the default sort is used.

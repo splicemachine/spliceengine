@@ -4,15 +4,15 @@ import java.util.Properties;
 
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.context.ContextManager;
-import org.apache.derby.iapi.services.locks.CompatibilitySpace;
-import org.apache.derby.iapi.services.locks.LockFactory;
-import org.apache.derby.iapi.services.monitor.ModuleControl;
-import org.apache.derby.iapi.services.monitor.ModuleSupportable;
-import org.apache.derby.iapi.store.access.TransactionController;
-import org.apache.derby.iapi.store.access.TransactionInfo;
-import org.apache.derby.iapi.store.raw.Transaction;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.services.locks.CompatibilitySpace;
+import com.splicemachine.db.iapi.services.locks.LockFactory;
+import com.splicemachine.db.iapi.services.monitor.ModuleControl;
+import com.splicemachine.db.iapi.services.monitor.ModuleSupportable;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.store.access.TransactionInfo;
+import com.splicemachine.db.iapi.store.raw.Transaction;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.utils.SpliceLogUtils;

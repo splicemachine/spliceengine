@@ -295,7 +295,8 @@ public class XPlainTreeNode {
         // A ProjectRestrict operation may contain a subquery
         if (operationType.compareToIgnoreCase("ProjectRestrict") == 0) {
             for(XPlainTreeNode n:children) {
-                if(n.getInfo().contains("Subquery:")) {
+                String info = n.getInfo();
+                if(info != null && info.contains("Subquery:")) {
                     return true;
                 }
             }
@@ -338,8 +339,10 @@ public class XPlainTreeNode {
             return;
         }
         for(XPlainTreeNode node:children) {
-            XPlainTreeNode otherChild = other.children.removeFirst();
-            node.aggregateTree(otherChild);
+            if (other.children.peek() != null) {
+                XPlainTreeNode otherChild = other.children.removeFirst();
+                node.aggregateTree(otherChild);
+            }
         }
     }
 

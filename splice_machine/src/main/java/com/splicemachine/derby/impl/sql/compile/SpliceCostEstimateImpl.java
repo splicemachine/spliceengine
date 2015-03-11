@@ -1,11 +1,11 @@
 package com.splicemachine.derby.impl.sql.compile;
 
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.sql.compile.CostEstimate;
-import org.apache.derby.iapi.sql.compile.RowOrdering;
-import org.apache.derby.impl.sql.compile.CostEstimateImpl;
-import org.apache.derby.impl.sql.compile.Level2CostEstimateImpl;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.CostEstimate;
+import com.splicemachine.db.iapi.sql.compile.RowOrdering;
+import com.splicemachine.db.impl.sql.compile.CostEstimateImpl;
+import com.splicemachine.db.impl.sql.compile.Level2CostEstimateImpl;
 import org.apache.log4j.Logger;
 
 public class SpliceCostEstimateImpl extends Level2CostEstimateImpl implements SortState {

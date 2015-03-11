@@ -139,6 +139,10 @@ public class JDBCTemplate {
         return null;
     }
 
+    public Connection getConnection() {
+        return connection;
+    }
+
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     // private
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

@@ -187,7 +187,7 @@ public abstract class BaseQueryRunner {
     }
 
     private static Connection getConnection(String connectString) throws Exception {
-        Class.forName("org.apache.derby.jdbc.ClientDriver");
+        Class.forName("com.splicemachine.db.jdbc.ClientDriver");
         return DriverManager.getConnection(connectString);
     }
 

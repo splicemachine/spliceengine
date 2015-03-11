@@ -29,7 +29,7 @@ public abstract class BaseAsyncScanner implements AsyncScanner,AutoCloseable{
 
     @Override
     public Stream<List<KeyValue>> stream() {
-        return new AbstractStream<List<KeyValue>>() {
+        return new AbstractStream<List<KeyValue>>(){
             @Override
             public void close() throws StreamException {
                 BaseAsyncScanner.this.close();

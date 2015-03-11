@@ -12,19 +12,19 @@ import com.splicemachine.stream.StreamException;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.pipeline.exception.Exceptions;
 
-import org.apache.derby.iapi.error.PublicAPI;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.ResultColumnDescriptor;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.types.DataTypeDescriptor;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.SQLLongint;
-import org.apache.derby.impl.jdbc.EmbedConnection;
-import org.apache.derby.impl.jdbc.EmbedResultSet40;
-import org.apache.derby.impl.sql.GenericColumnDescriptor;
-import org.apache.derby.impl.sql.execute.IteratorNoPutResultSet;
-import org.apache.derby.impl.sql.execute.ValueRow;
+import com.splicemachine.db.iapi.error.PublicAPI;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLLongint;
+import com.splicemachine.db.impl.jdbc.EmbedConnection;
+import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
+import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
+import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
@@ -44,13 +44,13 @@ public class TransactionAdmin {
 
     public static void killAllActiveTransactions(long maxTxnId) throws SQLException{
         ActiveTransactionReader reader = new ActiveTransactionReader(0l,maxTxnId,null);
-        try(Stream<TxnView> activeTxns = reader.getActiveTransactions()){
+        try(Stream<TxnView> activeTransactions = reader.getActiveTransactions()) {
             final TxnLifecycleManager tc = TransactionLifecycle.getLifecycleManager();
             TxnView next;
-            while((next = activeTxns.next())!=null){
+            while ((next = activeTransactions.next()) != null) {
                 tc.rollback(next.getTxnId());
             }
-        }catch (StreamException | IOException e) {
+        } catch (StreamException | IOException e) {
             throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
         }
     }
@@ -132,41 +132,41 @@ public class TransactionAdmin {
         try {
             ExecRow template = toRow(TRANSACTION_TABLE_COLUMNS);
             List<ExecRow> results = Lists.newArrayList();
-            try(Stream<TxnView> activeTxns = reader.getAllTransactions()){
+
+            try(Stream<TxnView> activeTxns = reader.getAllTransactions()) {
                 TxnView txn;
-                while((txn = activeTxns.next())!=null){
+                while ((txn = activeTxns.next()) != null) {
                     template.resetRowArray();
                     DataValueDescriptor[] dvds = template.getRowArray();
                     dvds[0].setValue(txn.getTxnId());
-                    if(txn.getParentTxnId()!=-1l)
+                    if (txn.getParentTxnId() != -1l)
                         dvds[1].setValue(txn.getParentTxnId());
                     else
                         dvds[1].setToNull();
                     Iterator<ByteSlice> destTables = txn.getDestinationTables();
-                    if(destTables!=null && destTables.hasNext()){
+                    if (destTables != null && destTables.hasNext()) {
                         StringBuilder tables = new StringBuilder();
-                        boolean isFirst=true;
-                        while(destTables.hasNext()){
+                        boolean isFirst = true;
+                        while (destTables.hasNext()) {
                             ByteSlice table = destTables.next();
-                            if(!isFirst) tables.append(",");
-                            else isFirst=false;
+                            if (!isFirst) tables.append(",");
+                            else isFirst = false;
                             tables.append(Bytes.toString(Encoding.decodeBytesUnsortd(table.array(), table.offset(), table.length())));
                         }
                         dvds[2].setValue(tables.toString());
-                    }else
+                    } else
                         dvds[2].setToNull();
 
                     dvds[3].setValue(txn.getState().toString());
                     dvds[4].setValue(txn.getIsolationLevel().toHumanFriendlyString());
                     dvds[5].setValue(txn.getBeginTimestamp());
                     setLong(dvds[6], txn.getCommitTimestamp());
-                    setLong(dvds[7],txn.getEffectiveCommitTimestamp());
+                    setLong(dvds[7], txn.getEffectiveCommitTimestamp());
                     dvds[8].setValue(txn.isAdditive());
-                    dvds[9].setValue(new Timestamp(txn.getLastKeepAliveTimestamp()),null);
+                    dvds[9].setValue(new Timestamp(txn.getLastKeepAliveTimestamp()), null);
                     results.add(template.getClone());
                 }
             }
-
             EmbedConnection defaultConn = (EmbedConnection) SpliceAdmin.getDefaultConn();
             Activation lastActivation = defaultConn.getLanguageConnection().getLastActivation();
             IteratorNoPutResultSet rs = new IteratorNoPutResultSet(results,TRANSACTION_TABLE_COLUMNS,lastActivation);

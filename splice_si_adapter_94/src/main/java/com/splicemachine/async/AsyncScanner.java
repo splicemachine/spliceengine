@@ -2,7 +2,7 @@ package com.splicemachine.async;
 
 import com.splicemachine.async.KeyValue;
 import com.splicemachine.hbase.MeasuredResultScanner;
-import com.splicemachine.stream.CloseableStream;
+import com.splicemachine.stream.Stream;
 
 import java.io.IOException;
 import java.util.List;
@@ -16,5 +16,5 @@ public interface AsyncScanner extends MeasuredResultScanner{
 
     public void open() throws IOException;
 
-    CloseableStream<List<KeyValue>> stream();
+    Stream<List<KeyValue>> stream();
 }

@@ -5,11 +5,11 @@ import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.compile.Optimizable;
-import org.apache.derby.iapi.sql.compile.Visitable;
-import org.apache.derby.impl.sql.compile.*;
-import org.apache.derby.impl.sql.compile.Predicate;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.compile.Optimizable;
+import com.splicemachine.db.iapi.sql.compile.Visitable;
+import com.splicemachine.db.impl.sql.compile.*;
+import com.splicemachine.db.impl.sql.compile.Predicate;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 

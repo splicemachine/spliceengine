@@ -2,11 +2,16 @@ package com.splicemachine.derby.utils;
 
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
+import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
+import java.sql.SQLSyntaxErrorException;
 import java.text.SimpleDateFormat;
 
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -48,6 +53,8 @@ public class SpliceDateFunctionsIT {
             "G", schemaWatcher.schemaName, "(col1 Timestamp, col2 varchar(10), col3 Timestamp)");
     private static final SpliceTableWatcher tableWatcherH = new SpliceTableWatcher(
             "H", schemaWatcher.schemaName, "(col1 Timestamp, col2 varchar(10), col3 varchar(10))");
+    private static final SpliceTableWatcher tableWatcherI = new SpliceTableWatcher(
+            "I", schemaWatcher.schemaName, "(t Time, d Date, ts Timestamp, pat varchar(30), datestr varchar(30))");
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(classWatcher)
             .around(schemaWatcher)
@@ -59,113 +66,172 @@ public class SpliceDateFunctionsIT {
             .around(tableWatcherF)
             .around(tableWatcherG)
             .around(tableWatcherH)
+            .around(tableWatcherI)
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
-                    try {
-                        // Each of the following inserted rows represents an individual test,
-                        // including expected result (column 'col3'), for less test code in the
-                        // test methods
-                        classWatcher.prepareStatement(
-                            "insert into " + tableWatcherA + " (col1, col2, col3) values (date('2014-01-15'), 1, date" +
-                                "('2014-02-15'))").execute();
-                        classWatcher.prepareStatement(
-                            "insert into " + tableWatcherA + " (col1, col2, col3) values (date('2014-01-16'), 0, date" +
-                                "('2014-01-16'))").execute();
-                        classWatcher.prepareStatement(
-                            "insert into " + tableWatcherA + " (col1, col2, col3) values (date('2014-01-17'), -1, " +
-                                "date('2013-12-17'))").execute();
-                        classWatcher.prepareStatement(
-                            "insert into " + tableWatcherB + " (col1, col2, col3) values ('01/27/2001', 'mm/dd/yyyy'," +
-                                " date('2001-01-27'))").execute();
-                        classWatcher.prepareStatement(
-                            "insert into " + tableWatcherB + " (col1, col2, col3) values ('2002/02/26', 'yyyy/mm/dd'," +
-                                " date('2002-02-26'))").execute();
-                        classWatcher.prepareStatement(
-                            "insert into " + tableWatcherC + " (col1, col2) values (date('2002-03-26'), date" +
-                                "('2002-03-31'))").execute();
-                        classWatcher.prepareStatement(
-                            "insert into " + tableWatcherC + " (col1, col2) values (date('2012-06-02'), date" +
-                                "('2012-06-30'))").execute();
-                        classWatcher.prepareStatement(
-                            "insert into " + tableWatcherD + " (col1, col2, col3) values (date('2002-03-26'), " +
-                                "'friday', date('2002-03-29'))").execute();
-                        classWatcher.prepareStatement(
-                            "insert into " + tableWatcherD + " (col1, col2, col3) values (date('2008-11-11'), " +
-                                "'thursday', date('2008-11-13'))").execute();
-                        classWatcher.prepareStatement(
-                            "insert into " + tableWatcherE + " (col1, col2, col3) values (date('1994-01-11'), date" +
-                                "('1995-01-11'), 12.0)").execute();
-                        classWatcher.prepareStatement(
-                            "insert into " + tableWatcherE + " (col1, col2, col3) values (date('2014-05-29'), date" +
-                                "('2014-04-29'), 1.0)").execute();
-                        classWatcher.prepareStatement(
-                            "insert into " + tableWatcherF + " (col1, col2, col3) values (date('2014-05-29'), " +
-                                "'mm/dd/yyyy', '05/29/2014')").execute();
-                        classWatcher.prepareStatement(
-                            "insert into " + tableWatcherF + " (col1, col2, col3) values (date('2012-12-31'), " +
-                                "'yyyy/mm/dd', '2012/12/31')").execute();
-                        classWatcher.prepareStatement(
-                            "insert into " + tableWatcherG + " (col1, col2, col3) values (Timestamp('2012-12-31 " +
-                                "20:38:40'), 'hour', Timestamp('2012-12-31 20:00:00'))").execute();
-                        classWatcher.prepareStatement(
-                            "insert into " + tableWatcherG + " (col1, col2, col3) values (Timestamp('2012-12-31 " +
-                                "20:38:40'), 'day', Timestamp('2012-12-31 00:00:00'))").execute();
-                        classWatcher.prepareStatement(
-                            "insert into " + tableWatcherG + " (col1, col2, col3) values (Timestamp('2012-12-31 " +
-                                "20:38:40'), 'week', Timestamp('2012-12-30 00:00:00'))").execute();
-                        classWatcher.prepareStatement(
-                            "insert into " + tableWatcherG + " (col1, col2, col3) values (Timestamp('2012-12-31 " +
-                                "20:38:40'), 'month', Timestamp('2012-12-01 00:00:00'))").execute();
-                        classWatcher.prepareStatement(
-                            "insert into " + tableWatcherG + " (col1, col2, col3) values (Timestamp('2012-12-31 " +
-                                "20:38:40'), 'quarter', Timestamp('2012-10-01 00:00:00'))").execute();
-                        classWatcher.prepareStatement(
-                            "insert into " + tableWatcherG + " (col1, col2, col3) values (Timestamp('2012-12-31 " +
-                                "20:38:40'), 'year', Timestamp('2012-01-01 00:00:00'))").execute();
-                        classWatcher.prepareStatement(
-                            "insert into " + tableWatcherG + " (col1, col2, col3) values (Timestamp('2012-01-29 " +
-                                "20:38:40'), 'year', Timestamp('2012-01-29 00:00:00'))").execute();
-                        classWatcher.prepareStatement(
-                            "insert into " + tableWatcherG + " (col1, col2, col3) values (Timestamp('2012-01-29 " +
-                                "20:38:40'), 'year', Timestamp('2011-01-29 00:00:00'))").execute();
-                        classWatcher.prepareStatement(
-                            "insert into " + tableWatcherH + " (col1, col2, col3) values (Timestamp('2012-12-31 " +
-                                "20:38:40'), 'YYYY', '2012')").execute();
-                        classWatcher.prepareStatement(
-                            "insert into " + tableWatcherH + " (col1, col2, col3) values (Timestamp('2012-12-31 " +
-                                "20:38:40'), 'MM', '12')").execute();
-                        classWatcher.prepareStatement(
-                            "insert into " + tableWatcherH + " (col1, col2, col3) values (Timestamp('2012-12-31 " +
-                                "20:38:40'), 'DD', '31')").execute();
-                        classWatcher.prepareStatement(
-                            "insert into " + tableWatcherH + " (col1, col2, col3) values (Timestamp('2012-12-31 " +
-                                "20:38:40'), 'YYYY-MM-DD', '2012-12-31')").execute();
-                    } catch (Exception e) {
-                        throw new RuntimeException(e);
-                    } finally {
-                        classWatcher.closeAll();
-                    }
+                try {
+                    // Each of the following inserted rows represents an individual test,
+                    // including expected result (column 'col3'), for less test code in the
+                    // test methods
+                    classWatcher.prepareStatement(
+                        "insert into " + tableWatcherA + " (col1, col2, col3) values (date('2014-01-15'), 1, date" +
+                            "('2014-02-15'))").execute();
+                    classWatcher.prepareStatement(
+                        "insert into " + tableWatcherA + " (col1, col2, col3) values (date('2014-01-16'), 0, date" +
+                            "('2014-01-16'))").execute();
+                    classWatcher.prepareStatement(
+                        "insert into " + tableWatcherA + " (col1, col2, col3) values (date('2014-01-17'), -1, " +
+                            "date('2013-12-17'))").execute();
+                    classWatcher.prepareStatement(
+                        "insert into " + tableWatcherB + " (col1, col2, col3) values ('01/27/2001', 'mm/dd/yyyy'," +
+                            " date('2001-01-27'))").execute();
+                    classWatcher.prepareStatement(
+                        "insert into " + tableWatcherB + " (col1, col2, col3) values ('2002/02/26', 'yyyy/MM/dd'," +
+                            " date('2002-02-26'))").execute();
+                    classWatcher.prepareStatement(
+                        "insert into " + tableWatcherC + " (col1, col2) values (date('2002-03-26'), date" +
+                            "('2002-03-31'))").execute();
+                    classWatcher.prepareStatement(
+                        "insert into " + tableWatcherC + " (col1, col2) values (date('2012-06-02'), date" +
+                            "('2012-06-30'))").execute();
+                    classWatcher.prepareStatement(
+                        "insert into " + tableWatcherD + " (col1, col2, col3) values (date('2002-03-26'), " +
+                            "'friday', date('2002-03-29'))").execute();
+                    classWatcher.prepareStatement(
+                        "insert into " + tableWatcherD + " (col1, col2, col3) values (date('2008-11-11'), " +
+                            "'thursday', date('2008-11-13'))").execute();
+                    classWatcher.prepareStatement(
+                        "insert into " + tableWatcherE + " (col1, col2, col3) values (date('1994-01-11'), date" +
+                            "('1995-01-11'), 12.0)").execute();
+                    classWatcher.prepareStatement(
+                        "insert into " + tableWatcherE + " (col1, col2, col3) values (date('2014-05-29'), date" +
+                            "('2014-04-29'), 1.0)").execute();
+                    classWatcher.prepareStatement(
+                        "insert into " + tableWatcherF + " (col1, col2, col3) values (date('2014-05-29'), " +
+                            "'mm/dd/yyyy', '05/29/2014')").execute();
+                    classWatcher.prepareStatement(
+                        "insert into " + tableWatcherF + " (col1, col2, col3) values (date('2012-12-31'), " +
+                            "'yyyy/mm/dd', '2012/12/31')").execute();
+                    classWatcher.prepareStatement(
+                        "insert into " + tableWatcherG + " (col1, col2, col3) values (Timestamp('2012-12-31 " +
+                            "20:38:40'), 'hour', Timestamp('2012-12-31 20:00:00'))").execute();
+                    classWatcher.prepareStatement(
+                        "insert into " + tableWatcherG + " (col1, col2, col3) values (Timestamp('2012-12-31 " +
+                            "20:38:40'), 'day', Timestamp('2012-12-31 00:00:00'))").execute();
+                    classWatcher.prepareStatement(
+                        "insert into " + tableWatcherG + " (col1, col2, col3) values (Timestamp('2012-12-31 " +
+                            "20:38:40'), 'week', Timestamp('2012-12-30 00:00:00'))").execute();
+                    classWatcher.prepareStatement(
+                        "insert into " + tableWatcherG + " (col1, col2, col3) values (Timestamp('2012-12-31 " +
+                            "20:38:40'), 'month', Timestamp('2012-12-01 00:00:00'))").execute();
+                    classWatcher.prepareStatement(
+                        "insert into " + tableWatcherG + " (col1, col2, col3) values (Timestamp('2012-12-31 " +
+                            "20:38:40'), 'quarter', Timestamp('2012-10-01 00:00:00'))").execute();
+                    classWatcher.prepareStatement(
+                        "insert into " + tableWatcherG + " (col1, col2, col3) values (Timestamp('2012-12-31 " +
+                            "20:38:40'), 'year', Timestamp('2012-01-01 00:00:00'))").execute();
+                    classWatcher.prepareStatement(
+                        "insert into " + tableWatcherG + " (col1, col2, col3) values (Timestamp('2012-01-29 " +
+                            "20:38:40'), 'year', Timestamp('2012-01-29 00:00:00'))").execute();
+                    classWatcher.prepareStatement(
+                        "insert into " + tableWatcherG + " (col1, col2, col3) values (Timestamp('2012-01-29 " +
+                            "20:38:40'), 'year', Timestamp('2011-01-29 00:00:00'))").execute();
+                    classWatcher.prepareStatement(
+                        "insert into " + tableWatcherH + " (col1, col2, col3) values (Timestamp('2012-12-31 " +
+                            "20:38:40'), 'YYYY', '2012')").execute();
+                    classWatcher.prepareStatement(
+                        "insert into " + tableWatcherH + " (col1, col2, col3) values (Timestamp('2012-12-31 " +
+                            "20:38:40'), 'MM', '12')").execute();
+                    classWatcher.prepareStatement(
+                        "insert into " + tableWatcherH + " (col1, col2, col3) values (Timestamp('2012-12-31 " +
+                            "20:38:40'), 'DD', '31')").execute();
+                    classWatcher.prepareStatement(
+                        "insert into " + tableWatcherH + " (col1, col2, col3) values (Timestamp('2012-12-31 " +
+                            "20:38:40'), 'YYYY-MM-DD', '2012-12-31')").execute();
+                    classWatcher.prepareStatement(
+                        "insert into " + tableWatcherI + " (t, d, ts, pat, datestr) values (Time('20:38:40'), " +
+                            "Date('2012-12-31'), Timestamp('2012-12-31 20:38:40'), 'YYYY-MM-DD HH:mm:ss', '2012-12-31 20:38:40')").execute();
+                    classWatcher.prepareStatement(
+                        "insert into " + tableWatcherI + " (t, d, ts, pat, datestr) values (Time('23:59:59'), " +
+                            "Date('2012-12-31'), Timestamp('2012-12-31 00:00:00.03'), 'YYYY-MM-DD HH:mm:ss.SSS', '2012-12-31 00:00:00.03')").execute();
+                    classWatcher.prepareStatement(
+                        "insert into " + tableWatcherI + " (t, d, ts, pat, datestr) values (Time('00:00:01'), " +
+                            "Date('2009-07-02'), Timestamp('2009-07-02 11:22:33.04'), 'YYYY-MM-DD HH:mm:ss.SSS', '2009-07-02 11:22:33.04')").execute();
+                    classWatcher.prepareStatement(
+                        "insert into " + tableWatcherI + " (t, d, ts, pat, datestr) values (Time('18:44:28'), " +
+                            "Date('2009-09-02'), Timestamp('2009-09-02 11:22:33.04'), 'YYYY-MM-DD HH:mm:ss.SSS', '2009-09-02 11:22:33.04')").execute();
+                    classWatcher.prepareStatement(
+                        "insert into " + tableWatcherI + " (t, d, ts, pat, datestr) values (Time('10:30:29'), " +
+                            "Date('2009-01-02'), Timestamp('2009-01-02 11:22:33.04'), 'YYYY-MM-DD HH:mm:ss.SSS', '2009-01-02 11:22:33.04')").execute();
+                    classWatcher.prepareStatement(
+                        "insert into " + tableWatcherI + " (t, d, ts, pat, datestr) values (Time('05:22:33'), " +
+                            "Date('2013-12-31'), Timestamp('2013-12-31 05:22:33.04'), 'YYYY-MM-DD HH:mm:ss.SSS', '2013-12-31 05:22:33.04')").execute();
+                    // FIXME JC: See @Ingored test testToTimestampFunction below...
+//                        classWatcher.prepareStatement(
+//                            "insert into " + tableWatcherI + " (ts, pat, datestr) values (Timestamp('2011-09-17 " +
+//                                "23:40:53'), 'yyyy-MM-dd''T''HH:mm:ssz', '2011-09-17T23:40:53GMT')").execute();
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                } finally {
+                    classWatcher.closeAll();
+                }
                 }
             });
    
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
-    
+
+    @Test @Ignore("DB-2937: database metadata not consistent")
+    public void testDBMetadataGetFunctions() throws Exception {
+        DatabaseMetaData dmd =  methodWatcher.getOrCreateConnection().getMetaData();
+        TestUtils.printResult("getProcedures", dmd.getProcedures(null, "%", "%"), System.out);
+        TestUtils.printResult("getFunctions", dmd.getFunctions(null, "%", "%"), System.out);
+
+        System.out.println("getStringFunctions: " + dmd.getStringFunctions());
+        System.out.println("getTimeDateFunctions: " + dmd.getTimeDateFunctions());
+
+        for (String fn : dmd.getTimeDateFunctions().split(",")) {
+            TestUtils.printResult(fn, dmd.getFunctions("%", "%", fn.trim()), System.out);
+        }
+    }
+
     @Test
     public void testToDateFunction() throws Exception{
-        String sqlText = "SELECT TO_DATE(col1, col2), col3 from " + tableWatcherB + " order by col3";
+        String sqlText = "SELECT col1 as datestr, col2 as pattern, TO_DATE(col1, col2) as todate, col3 as date from " + tableWatcherB + " order by col3";
         try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
 
             String expected =
-                "1     |   COL3    |\n" +
-                    "------------------------\n" +
-                    "2001-01-27 |2001-01-27 |\n" +
-                    "2002-02-26 |2002-02-26 |";
+                "DATESTR  |  PATTERN  |  TODATE   |   DATE    |\n" +
+                    "------------------------------------------------\n" +
+                    "01/27/2001 |mm/dd/yyyy |2001-01-27 |2001-01-27 |\n" +
+                    "2002/02/26 |yyyy/MM/dd |2002-02-26 |2002-02-26 |";
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
     }
-    
+
+    @Test @Ignore("Implemented in SpliceDateFunctions but not exposed in SpliceSystemProcedures due to timezone loss.")
+    public void testToTimestampFunction() throws Exception{
+        String sqlText = "SELECT ts, pat, datestr, TO_TIMESTAMP(datestr, pat) as totimestamp from " + tableWatcherI + " order by datestr";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+
+            String expected =
+                // FIXME JC: when we add the commnented row above, this test starts to fail because timezone
+                // information is lost in the totimestamp output of the first row below. We wind up with an
+                // answer that's 6 hours earlier (in STL - -6:00).  Not sure how to fix this.
+//            "TS           |          PAT           |        DATESTR        |      TOTIMESTAMP      |\n" +
+//                "-------------------------------------------------------------------------------------------------\n" +
+//                " 2011-09-17 23:40:53.0 |yyyy-MM-dd'T'HH:mm:ssz  |2011-09-17T23:40:53GMT | 2011-09-17 23:40:53.0 |\n" +
+//                "2012-12-31 00:00:00.03 |YYYY-MM-DD HH:mm:ss.SSS |2012-12-31 00:00:00.03 |2012-01-31 00:00:00.03 |\n" +
+//                " 2012-12-31 20:38:40.0 |  YYYY-MM-DD HH:mm:ss   |  2012-12-31 20:38:40  | 2012-01-31 20:38:40.0 |";
+            "TS           |          PAT           |        DATESTR        |      TOTIMESTAMP      |\n" +
+                "-------------------------------------------------------------------------------------------------\n" +
+                "2012-12-31 00:00:00.03 |YYYY-MM-DD HH:mm:ss.SSS |2012-12-31 00:00:00.03 |2012-01-31 00:00:00.03 |\n" +
+                " 2012-12-31 20:38:40.0 |  YYYY-MM-DD HH:mm:ss   |  2012-12-31 20:38:40  | 2012-01-31 20:38:40.0 |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
     @Test
     public void testMonthBetweenFunction() throws Exception{
         String sqlText = "SELECT MONTH_BETWEEN(col1, col2), col3 from " + tableWatcherE + " order by col3";
@@ -352,4 +418,699 @@ public class SpliceDateFunctionsIT {
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
     }
+
+    //====================================================================================================
+    // DB-2248, DB-2249: BI Tools and ODBC functions - Timestamp type
+    //====================================================================================================
+
+    @Test
+    public void testExtractYearTimestamp() throws Exception {
+        String sqlText = "select ts, EXTRACT(YEAR FROM ts) as \"YEAR\" from " + tableWatcherI + " order by ts";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            String expected =
+                "TS           |YEAR |\n" +
+                    "------------------------------\n" +
+                    "2009-01-02 11:22:33.04 |2009 |\n" +
+                    "2009-07-02 11:22:33.04 |2009 |\n" +
+                    "2009-09-02 11:22:33.04 |2009 |\n" +
+                    "2012-12-31 00:00:00.03 |2012 |\n" +
+                    " 2012-12-31 20:38:40.0 |2012 |\n" +
+                    "2013-12-31 05:22:33.04 |2013 |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testExtractQuarterTimestamp() throws Exception {
+        String sqlText = "select ts, EXTRACT(QUARTER FROM ts) as \"QUARTER\" from " + tableWatcherI + " order by ts";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            String expected =
+                "TS           | QUARTER |\n" +
+                    "----------------------------------\n" +
+                    "2009-01-02 11:22:33.04 |    1    |\n" +
+                    "2009-07-02 11:22:33.04 |    3    |\n" +
+                    "2009-09-02 11:22:33.04 |    3    |\n" +
+                    "2012-12-31 00:00:00.03 |    4    |\n" +
+                    " 2012-12-31 20:38:40.0 |    4    |\n" +
+                    "2013-12-31 05:22:33.04 |    4    |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testQuarterTimestamp() throws Exception {
+        String sqlText = "select ts, QUARTER(ts) as \"QUARTER\" from " + tableWatcherI + " order by ts";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            String expected =
+                "TS           | QUARTER |\n" +
+                    "----------------------------------\n" +
+                    "2009-01-02 11:22:33.04 |    1    |\n" +
+                    "2009-07-02 11:22:33.04 |    3    |\n" +
+                    "2009-09-02 11:22:33.04 |    3    |\n" +
+                    "2012-12-31 00:00:00.03 |    4    |\n" +
+                    " 2012-12-31 20:38:40.0 |    4    |\n" +
+                    "2013-12-31 05:22:33.04 |    4    |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testExtractMonthTimestamp() throws Exception {
+        String sqlText = "select ts, EXTRACT(MONTH FROM ts) as \"MONTH\" from " + tableWatcherI + " order by ts";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            String expected =
+                "TS           | MONTH |\n" +
+                    "--------------------------------\n" +
+                    "2009-01-02 11:22:33.04 |   1   |\n" +
+                    "2009-07-02 11:22:33.04 |   7   |\n" +
+                    "2009-09-02 11:22:33.04 |   9   |\n" +
+                    "2012-12-31 00:00:00.03 |  12   |\n" +
+                    " 2012-12-31 20:38:40.0 |  12   |\n" +
+                    "2013-12-31 05:22:33.04 |  12   |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testExtractMonthNameTimestamp() throws Exception {
+        String sqlText = "select ts, EXTRACT(MONTHNAME FROM ts) as \"MONTHNAME\" from " + tableWatcherI + " order by ts";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            String expected =
+                "TS           | MONTHNAME |\n" +
+                    "------------------------------------\n" +
+                    "2009-01-02 11:22:33.04 |  January  |\n" +
+                    "2009-07-02 11:22:33.04 |   July    |\n" +
+                    "2009-09-02 11:22:33.04 | September |\n" +
+                    "2012-12-31 00:00:00.03 | December  |\n" +
+                    " 2012-12-31 20:38:40.0 | December  |\n" +
+                    "2013-12-31 05:22:33.04 | December  |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testMonthNameTimestamp() throws Exception {
+        String sqlText = "select ts, MONTHNAME(ts) as \"MONTHNAME\" from " + tableWatcherI + " order by ts";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            String expected =
+                "TS           | MONTHNAME |\n" +
+                    "------------------------------------\n" +
+                    "2009-01-02 11:22:33.04 |  January  |\n" +
+                    "2009-07-02 11:22:33.04 |   July    |\n" +
+                    "2009-09-02 11:22:33.04 | September |\n" +
+                    "2012-12-31 00:00:00.03 | December  |\n" +
+                    " 2012-12-31 20:38:40.0 | December  |\n" +
+                    "2013-12-31 05:22:33.04 | December  |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testExtractWeekTimestamp() throws Exception {
+        String sqlText = "select ts, EXTRACT(WEEK FROM ts) as \"WEEK\" from " + tableWatcherI + " order by ts";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            String expected =
+                "TS           |WEEK |\n" +
+                    "------------------------------\n" +
+                    "2009-01-02 11:22:33.04 |  1  |\n" +
+                    "2009-07-02 11:22:33.04 | 27  |\n" +
+                    "2009-09-02 11:22:33.04 | 36  |\n" +
+                    "2012-12-31 00:00:00.03 |  1  |\n" +
+                    " 2012-12-31 20:38:40.0 |  1  |\n" +
+                    "2013-12-31 05:22:33.04 |  1  |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testWeekTimestamp() throws Exception {
+        // Note: Jodatime and Postgres get the same answer but SQL Sever gets week 53 for 12/31
+        String sqlText = "select ts, WEEK(ts) as \"WEEK\" from " + tableWatcherI + " order by ts";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            String expected =
+                "TS           |WEEK |\n" +
+                    "------------------------------\n" +
+                    "2009-01-02 11:22:33.04 |  1  |\n" +
+                    "2009-07-02 11:22:33.04 | 27  |\n" +
+                    "2009-09-02 11:22:33.04 | 36  |\n" +
+                    "2012-12-31 00:00:00.03 |  1  |\n" +
+                    " 2012-12-31 20:38:40.0 |  1  |\n" +
+                    "2013-12-31 05:22:33.04 |  1  |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testExtractWeekDayTimestamp() throws Exception {
+        // Note: Jodatime and Postgres get the same answer but SQL Sever gets n+1
+        String sqlText = "select ts, EXTRACT(WEEKDAY FROM ts) as \"WEEKDAY\" from " + tableWatcherI + " order by ts";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            String expected =
+                "TS           | WEEKDAY |\n" +
+                    "----------------------------------\n" +
+                    "2009-01-02 11:22:33.04 |    5    |\n" +
+                    "2009-07-02 11:22:33.04 |    4    |\n" +
+                    "2009-09-02 11:22:33.04 |    3    |\n" +
+                    "2012-12-31 00:00:00.03 |    1    |\n" +
+                    " 2012-12-31 20:38:40.0 |    1    |\n" +
+                    "2013-12-31 05:22:33.04 |    2    |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testExtractWeekDayNameTimestamp() throws Exception {
+        String sqlText = "select ts, EXTRACT(WEEKDAYNAME FROM ts) as \"WEEKDAYNAME\" from " + tableWatcherI + " order by ts";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            String expected =
+                "TS           | WEEKDAYNAME |\n" +
+                    "--------------------------------------\n" +
+                    "2009-01-02 11:22:33.04 |   Friday    |\n" +
+                    "2009-07-02 11:22:33.04 |  Thursday   |\n" +
+                    "2009-09-02 11:22:33.04 |  Wednesday  |\n" +
+                    "2012-12-31 00:00:00.03 |   Monday    |\n" +
+                    " 2012-12-31 20:38:40.0 |   Monday    |\n" +
+                    "2013-12-31 05:22:33.04 |   Tuesday   |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testExtractDayOfYearTimestamp() throws Exception {
+        String sqlText = "select ts, EXTRACT(DAYOFYEAR FROM ts) as \"DAYOFYEAR\" from " + tableWatcherI + " order by ts";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            String expected =
+                "TS           | DAYOFYEAR |\n" +
+                    "------------------------------------\n" +
+                    "2009-01-02 11:22:33.04 |     2     |\n" +
+                    "2009-07-02 11:22:33.04 |    183    |\n" +
+                    "2009-09-02 11:22:33.04 |    245    |\n" +
+                    "2012-12-31 00:00:00.03 |    366    |\n" +
+                    " 2012-12-31 20:38:40.0 |    366    |\n" +
+                    "2013-12-31 05:22:33.04 |    365    |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testExtractDayTimestamp() throws Exception {
+        String sqlText = "select ts, EXTRACT(DAY FROM ts) as \"DAY\" from " + tableWatcherI + " order by ts";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            String expected =
+                "TS           | DAY |\n" +
+                    "------------------------------\n" +
+                    "2009-01-02 11:22:33.04 |  2  |\n" +
+                    "2009-07-02 11:22:33.04 |  2  |\n" +
+                    "2009-09-02 11:22:33.04 |  2  |\n" +
+                    "2012-12-31 00:00:00.03 | 31  |\n" +
+                    " 2012-12-31 20:38:40.0 | 31  |\n" +
+                    "2013-12-31 05:22:33.04 | 31  |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testExtractHourTimestamp() throws Exception {
+        String sqlText = "select ts, EXTRACT(HOUR FROM ts) as \"HOUR\" from " + tableWatcherI + " order by ts";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            String expected =
+                "TS           |HOUR |\n" +
+                    "------------------------------\n" +
+                    "2009-01-02 11:22:33.04 | 11  |\n" +
+                    "2009-07-02 11:22:33.04 | 11  |\n" +
+                    "2009-09-02 11:22:33.04 | 11  |\n" +
+                    "2012-12-31 00:00:00.03 |  0  |\n" +
+                    " 2012-12-31 20:38:40.0 | 20  |\n" +
+                    "2013-12-31 05:22:33.04 |  5  |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testExtractMinuteTimestamp() throws Exception {
+        String sqlText = "select ts, EXTRACT(MINUTE FROM ts) as \"MINUTE\" from " + tableWatcherI + " order by ts";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            String expected =
+                "TS           |MINUTE |\n" +
+                    "--------------------------------\n" +
+                    "2009-01-02 11:22:33.04 |  22   |\n" +
+                    "2009-07-02 11:22:33.04 |  22   |\n" +
+                    "2009-09-02 11:22:33.04 |  22   |\n" +
+                    "2012-12-31 00:00:00.03 |   0   |\n" +
+                    " 2012-12-31 20:38:40.0 |  38   |\n" +
+                    "2013-12-31 05:22:33.04 |  22   |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testExtractSecondTimestamp() throws Exception {
+        // FIXME JC: should we have miliseconds in here?
+        String sqlText = "select ts, EXTRACT(SECOND FROM ts) as \"SECOND\" from " + tableWatcherI + " order by ts";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            String expected =
+                "TS           |SECOND |\n" +
+                    "--------------------------------\n" +
+                    "2009-01-02 11:22:33.04 | 33.04 |\n" +
+                    "2009-07-02 11:22:33.04 | 33.04 |\n" +
+                    "2009-09-02 11:22:33.04 | 33.04 |\n" +
+                    "2012-12-31 00:00:00.03 | 0.03  |\n" +
+                    " 2012-12-31 20:38:40.0 | 40.0  |\n" +
+                    "2013-12-31 05:22:33.04 | 33.04 |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    //====================================================================================================
+    // DB-2248, DB-2249: BI Tools and ODBC functions - Date type
+    //====================================================================================================
+
+    @Test
+    public void testExtractYearDate() throws Exception {
+        String sqlText = "select d, EXTRACT(YEAR FROM d) as \"YEAR\" from " + tableWatcherI + " order by d";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            String expected =
+                "D     |YEAR |\n" +
+                    "------------------\n" +
+                    "2009-01-02 |2009 |\n" +
+                    "2009-07-02 |2009 |\n" +
+                    "2009-09-02 |2009 |\n" +
+                    "2012-12-31 |2012 |\n" +
+                    "2012-12-31 |2012 |\n" +
+                    "2013-12-31 |2013 |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testExtractQuarterDate() throws Exception {
+        String sqlText = "select d, EXTRACT(QUARTER FROM d) as \"QUARTER\" from " + tableWatcherI + " order by d";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            String expected =
+                "D     | QUARTER |\n" +
+                    "----------------------\n" +
+                    "2009-01-02 |    1    |\n" +
+                    "2009-07-02 |    3    |\n" +
+                    "2009-09-02 |    3    |\n" +
+                    "2012-12-31 |    4    |\n" +
+                    "2012-12-31 |    4    |\n" +
+                    "2013-12-31 |    4    |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testQuarterDate() throws Exception {
+        String sqlText = "select d, QUARTER(d) as \"QUARTER\" from " + tableWatcherI + " order by d";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            String expected =
+                "D     | QUARTER |\n" +
+                    "----------------------\n" +
+                    "2009-01-02 |    1    |\n" +
+                    "2009-07-02 |    3    |\n" +
+                    "2009-09-02 |    3    |\n" +
+                    "2012-12-31 |    4    |\n" +
+                    "2012-12-31 |    4    |\n" +
+                    "2013-12-31 |    4    |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testExtractMonthDate() throws Exception {
+        String sqlText = "select d, EXTRACT(MONTH FROM d) as \"MONTH\" from " + tableWatcherI + " order by d";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            String expected =
+                "D     | MONTH |\n" +
+                    "--------------------\n" +
+                    "2009-01-02 |   1   |\n" +
+                    "2009-07-02 |   7   |\n" +
+                    "2009-09-02 |   9   |\n" +
+                    "2012-12-31 |  12   |\n" +
+                    "2012-12-31 |  12   |\n" +
+                    "2013-12-31 |  12   |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testExtractMonthNameDate() throws Exception {
+        String sqlText = "select d, EXTRACT(MONTHNAME FROM d) as \"MONTHNAME\" from " + tableWatcherI + " order by d";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            String expected =
+                "D     | MONTHNAME |\n" +
+                    "------------------------\n" +
+                    "2009-01-02 |  January  |\n" +
+                    "2009-07-02 |   July    |\n" +
+                    "2009-09-02 | September |\n" +
+                    "2012-12-31 | December  |\n" +
+                    "2012-12-31 | December  |\n" +
+                    "2013-12-31 | December  |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testMonthNameDate() throws Exception {
+        String sqlText = "select d, MONTHNAME(d) as \"MONTHNAME\" from " + tableWatcherI + " order by d";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            String expected =
+                "D     | MONTHNAME |\n" +
+                    "------------------------\n" +
+                    "2009-01-02 |  January  |\n" +
+                    "2009-07-02 |   July    |\n" +
+                    "2009-09-02 | September |\n" +
+                    "2012-12-31 | December  |\n" +
+                    "2012-12-31 | December  |\n" +
+                    "2013-12-31 | December  |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testExtractWeekDate() throws Exception {
+        String sqlText = "select d, EXTRACT(WEEK FROM d) as \"WEEK\" from " + tableWatcherI + " order by d";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            String expected =
+                "D     |WEEK |\n" +
+                    "------------------\n" +
+                    "2009-01-02 |  1  |\n" +
+                    "2009-07-02 | 27  |\n" +
+                    "2009-09-02 | 36  |\n" +
+                    "2012-12-31 |  1  |\n" +
+                    "2012-12-31 |  1  |\n" +
+                    "2013-12-31 |  1  |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testWeekDate() throws Exception {
+        // Note: Jodatime and Postgres get the same answer but SQL Sever gets week 53 for 12/31
+        String sqlText = "select d, WEEK(d) as \"WEEK\" from " + tableWatcherI + " order by d";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            String expected =
+                "D     |WEEK |\n" +
+                    "------------------\n" +
+                    "2009-01-02 |  1  |\n" +
+                    "2009-07-02 | 27  |\n" +
+                    "2009-09-02 | 36  |\n" +
+                    "2012-12-31 |  1  |\n" +
+                    "2012-12-31 |  1  |\n" +
+                    "2013-12-31 |  1  |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testExtractWeekDayDate() throws Exception {
+        // Note: Jodatime and Postgres get the same answer but SQL Sever gets n+1
+        String sqlText = "select d, EXTRACT(WEEKDAY FROM d) as \"WEEKDAY\" from " + tableWatcherI + " order by d";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            String expected =
+                "D     | WEEKDAY |\n" +
+                    "----------------------\n" +
+                    "2009-01-02 |    5    |\n" +
+                    "2009-07-02 |    4    |\n" +
+                    "2009-09-02 |    3    |\n" +
+                    "2012-12-31 |    1    |\n" +
+                    "2012-12-31 |    1    |\n" +
+                    "2013-12-31 |    2    |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testExtractWeekDayNameDate() throws Exception {
+        // FIXME JC: validate
+        String sqlText = "select d, EXTRACT(WEEKDAYNAME FROM d) as \"WEEKDAYNAME\" from " + tableWatcherI + " order by d";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            String expected =
+                "D     | WEEKDAYNAME |\n" +
+                    "--------------------------\n" +
+                    "2009-01-02 |   Friday    |\n" +
+                    "2009-07-02 |  Thursday   |\n" +
+                    "2009-09-02 |  Wednesday  |\n" +
+                    "2012-12-31 |   Monday    |\n" +
+                    "2012-12-31 |   Monday    |\n" +
+                    "2013-12-31 |   Tuesday   |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testExtractDayOfYearDate() throws Exception {
+        String sqlText = "select d, EXTRACT(DAYOFYEAR FROM d) as \"DAYOFYEAR\" from " + tableWatcherI + " order by d";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            String expected =
+                "D     | DAYOFYEAR |\n" +
+                    "------------------------\n" +
+                    "2009-01-02 |     2     |\n" +
+                    "2009-07-02 |    183    |\n" +
+                    "2009-09-02 |    245    |\n" +
+                    "2012-12-31 |    366    |\n" +
+                    "2012-12-31 |    366    |\n" +
+                    "2013-12-31 |    365    |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testExtractDayDate() throws Exception {
+        String sqlText = "select d, EXTRACT(DAY FROM d) as \"DAY\" from " + tableWatcherI + " order by d";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            String expected =
+                "D     | DAY |\n" +
+                    "------------------\n" +
+                    "2009-01-02 |  2  |\n" +
+                    "2009-07-02 |  2  |\n" +
+                    "2009-09-02 |  2  |\n" +
+                    "2012-12-31 | 31  |\n" +
+                    "2012-12-31 | 31  |\n" +
+                    "2013-12-31 | 31  |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testExtractHourDate() throws Exception {
+        String sqlText = "select d, EXTRACT(HOUR FROM d) as \"HOUR\" from " + tableWatcherI + " order by d";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            fail("Expected exception attempting to get HOUR from Date type.");
+        } catch (SQLSyntaxErrorException e) {
+            assertEquals("The 'EXTRACT HOUR' function is not allowed on the 'DATE' type.", e.getLocalizedMessage());
+        }
+    }
+
+    @Test
+    public void testExtractMinuteDate() throws Exception {
+        String sqlText = "select d, EXTRACT(MINUTE FROM d) as \"MINUTE\" from " + tableWatcherI + " order by d";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            fail("Expected exception attempting to get MINUTE from Date type.");
+        } catch (SQLSyntaxErrorException e) {
+            assertEquals("The 'EXTRACT MINUTE' function is not allowed on the 'DATE' type.", e.getLocalizedMessage());
+        }
+    }
+
+    @Test
+    public void testExtractSecondDate() throws Exception {
+        String sqlText = "select d, EXTRACT(SECOND FROM d) as \"SECOND\" from " + tableWatcherI + " order by d";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            fail("Expected exception attempting to get SECOND from Date type.");
+        } catch (SQLSyntaxErrorException e) {
+            assertEquals("The 'EXTRACT SECOND' function is not allowed on the 'DATE' type.", e.getLocalizedMessage());
+        }
+    }
+
+    //====================================================================================================
+    // DB-2248, DB-2249: BI Tools and ODBC functions - Time type
+    //====================================================================================================
+
+    @Test
+    public void testExtractYearTime() throws Exception {
+        String sqlText = "select t, EXTRACT(YEAR FROM t) as \"YEAR\" from " + tableWatcherI + " order by t";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            fail("Expected exception attempting to get YEAR from Time type.");
+        } catch (SQLSyntaxErrorException e) {
+            assertEquals("The 'EXTRACT YEAR' function is not allowed on the 'TIME' type.", e.getLocalizedMessage());
+        }
+    }
+
+    @Test
+    public void testExtractQuarterTime() throws Exception {
+        String sqlText = "select t, EXTRACT(QUARTER FROM t) as \"QUARTER\" from " + tableWatcherI + " order by t";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            fail("Expected exception attempting to get QUARTER from Time type.");
+        } catch (SQLSyntaxErrorException e) {
+            assertEquals("The 'EXTRACT QUARTER' function is not allowed on the 'TIME' type.", e.getLocalizedMessage());
+        }
+    }
+
+    @Test
+    public void testQuarterTime() throws Exception {
+        String sqlText = "select t, QUARTER(t) as \"QUARTER\" from " + tableWatcherI + " order by t";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            fail("Expected exception attempting to get QUARTER from Time type.");
+        } catch (SQLSyntaxErrorException e) {
+            assertEquals("The 'EXTRACT QUARTER' function is not allowed on the 'TIME' type.", e.getLocalizedMessage());
+        }
+    }
+
+    @Test
+    public void testExtractMonthTime() throws Exception {
+        String sqlText = "select t, EXTRACT(MONTH FROM t) as \"MONTH\" from " + tableWatcherI + " order by t";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            fail("Expected exception attempting to get MONTH from Time type.");
+        } catch (SQLSyntaxErrorException e) {
+            assertEquals("The 'EXTRACT MONTH' function is not allowed on the 'TIME' type.", e.getLocalizedMessage());
+        }
+    }
+
+    @Test
+    public void testExtractMonthNameTime() throws Exception {
+        String sqlText = "select t, EXTRACT(MONTHNAME FROM t) as \"MONTHNAME\" from " + tableWatcherI + " order by t";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            fail("Expected exception attempting to get MONTHNAME from Time type.");
+        } catch (SQLSyntaxErrorException e) {
+            assertEquals("The 'EXTRACT MONTHNAME' function is not allowed on the 'TIME' type.", e.getLocalizedMessage());
+        }
+    }
+
+    @Test
+    public void testMonthNameTime() throws Exception {
+        String sqlText = "select t, MONTHNAME(t) as \"MONTHNAME\" from " + tableWatcherI + " order by t";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            fail("Expected exception attempting to get MONTHNAME from Time type.");
+        } catch (SQLSyntaxErrorException e) {
+            assertEquals("The 'EXTRACT MONTHNAME' function is not allowed on the 'TIME' type.", e.getLocalizedMessage());
+        }
+    }
+
+    @Test
+    public void testExtractWeekTime() throws Exception {
+        String sqlText = "select t, EXTRACT(WEEK FROM t) as \"WEEK\" from " + tableWatcherI + " order by t";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            fail("Expected exception attempting to get WEEK from Time type.");
+        } catch (SQLSyntaxErrorException e) {
+            assertEquals("The 'EXTRACT WEEK' function is not allowed on the 'TIME' type.", e.getLocalizedMessage());
+        }
+    }
+
+    @Test
+    public void testWeekTime() throws Exception {
+        String sqlText = "select t, WEEK(t) as \"WEEK\" from " + tableWatcherI + " order by t";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            fail("Expected exception attempting to get WEEK from Time type.");
+        } catch (SQLSyntaxErrorException e) {
+            assertEquals("The 'EXTRACT WEEK' function is not allowed on the 'TIME' type.", e.getLocalizedMessage());
+        }
+    }
+
+    @Test
+    public void testExtractWeekDayTime() throws Exception {
+        String sqlText = "select t, EXTRACT(WEEKDAY FROM t) as \"WEEKDAY\" from " + tableWatcherI + " order by t";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            fail("Expected exception attempting to get WEEKDAY from Time type.");
+        } catch (SQLSyntaxErrorException e) {
+            assertEquals("The 'EXTRACT WEEKDAY' function is not allowed on the 'TIME' type.", e.getLocalizedMessage());
+        }
+    }
+
+    @Test
+    public void testExtractWeekDayNameTime() throws Exception {
+        String sqlText = "select t, EXTRACT(WEEKDAYNAME FROM t) as \"WEEKDAYNAME\" from " + tableWatcherI + " order by t";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            fail("Expected exception attempting to get WEEKDAYNAME from Time type.");
+        } catch (SQLSyntaxErrorException e) {
+            assertEquals("The 'EXTRACT WEEKDAYNAME' function is not allowed on the 'TIME' type.", e.getLocalizedMessage());
+        }
+    }
+
+    @Test
+    public void testExtractDayOfYearTime() throws Exception {
+        String sqlText = "select t, EXTRACT(DAYOFYEAR FROM t) as \"DAYOFYEAR\" from " + tableWatcherI + " order by t";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            fail("Expected exception attempting to get DAYOFYEAR from Time type.");
+        } catch (SQLSyntaxErrorException e) {
+            assertEquals("The 'EXTRACT DAYOFYEAR' function is not allowed on the 'TIME' type.", e.getLocalizedMessage());
+        }
+    }
+
+    @Test
+    public void testExtractDayTime() throws Exception {
+        String sqlText = "select t, EXTRACT(DAY FROM t) as \"DAY\" from " + tableWatcherI + " order by t";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            fail("Expected exception attempting to get DAY from Time type.");
+        } catch (SQLSyntaxErrorException e) {
+            assertEquals("The 'EXTRACT DAY' function is not allowed on the 'TIME' type.", e.getLocalizedMessage());
+        }
+    }
+
+    @Test
+    public void testExtractHourTime() throws Exception {
+        String sqlText = "select t, EXTRACT(HOUR FROM t) as \"HOUR\" from " + tableWatcherI + " order by t";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            String expected =
+                "T    |HOUR |\n" +
+                    "----------------\n" +
+                    "00:00:01 |  0  |\n" +
+                    "05:22:33 |  5  |\n" +
+                    "10:30:29 | 10  |\n" +
+                    "18:44:28 | 18  |\n" +
+                    "20:38:40 | 20  |\n" +
+                    "23:59:59 | 23  |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testExtractMinuteTime() throws Exception {
+        String sqlText = "select t, EXTRACT(MINUTE FROM t) as \"MINUTE\" from " + tableWatcherI + " order by t";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            String expected =
+                "T    |MINUTE |\n" +
+                    "------------------\n" +
+                    "00:00:01 |   0   |\n" +
+                    "05:22:33 |  22   |\n" +
+                    "10:30:29 |  30   |\n" +
+                    "18:44:28 |  44   |\n" +
+                    "20:38:40 |  38   |\n" +
+                    "23:59:59 |  59   |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testExtractSecondTime() throws Exception {
+        String sqlText = "select t, EXTRACT(SECOND FROM t) as \"SECOND\" from " + tableWatcherI + " order by t";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            String expected =
+                "T    |SECOND |\n" +
+                    "------------------\n" +
+                    "00:00:01 |   1   |\n" +
+                    "05:22:33 |  33   |\n" +
+                    "10:30:29 |  29   |\n" +
+                    "18:44:28 |  28   |\n" +
+                    "20:38:40 |  40   |\n" +
+                    "23:59:59 |  59   |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testNow() throws Exception {
+        String sqlText = "select t, NOW() from " + tableWatcherI + " order by T";
+        // NOW() is same as CURRENT_TIMESTAMP. Only way to test is to make sure no exception is thrown
+        int rows = 0;
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            while (rs.next()) {
+                rows++;
+            }
+        }
+        assertTrue("Expected some NOW() rows.", rows > 0);
+    }
+
+    //====================================================================================================
+    // DB-2248, DB-2249: BI Tools and ODBC functions - end
+    //====================================================================================================
 }

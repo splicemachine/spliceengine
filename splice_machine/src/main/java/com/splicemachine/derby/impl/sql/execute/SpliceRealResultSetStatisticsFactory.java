@@ -1,6 +1,6 @@
 /*
 
-   Derby - Class org.apache.derby.impl.sql.execute.RealResultSetStatisticsFactory
+   Derby - Class com.splicemachine.db.impl.sql.execute.RealResultSetStatisticsFactory
 
    Licensed to the Apache Software Foundation (ASF) under one or more
    contributor license agreements.  See the NOTICE file distributed with
@@ -21,47 +21,47 @@
 
 package com.splicemachine.derby.impl.sql.execute;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.reference.SQLState;
-import org.apache.derby.iapi.services.i18n.MessageService;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.PreparedStatement;
-import org.apache.derby.iapi.sql.ResultSet;
-import org.apache.derby.iapi.sql.execute.NoPutResultSet;
-import org.apache.derby.iapi.sql.execute.ResultSetStatistics;
-import org.apache.derby.iapi.sql.execute.ResultSetStatisticsFactory;
-import org.apache.derby.iapi.sql.execute.RunTimeStatistics;
-import org.apache.derby.iapi.store.access.TransactionController;
-import org.apache.derby.impl.sql.execute.rts.RealAnyResultSetStatistics;
-import org.apache.derby.impl.sql.execute.rts.RealDeleteCascadeResultSetStatistics;
-import org.apache.derby.impl.sql.execute.rts.RealDeleteResultSetStatistics;
-import org.apache.derby.impl.sql.execute.rts.RealDistinctScalarAggregateStatistics;
-import org.apache.derby.impl.sql.execute.rts.RealDistinctScanStatistics;
-import org.apache.derby.impl.sql.execute.rts.RealGroupedAggregateStatistics;
-import org.apache.derby.impl.sql.execute.rts.RealHashJoinStatistics;
-import org.apache.derby.impl.sql.execute.rts.RealHashLeftOuterJoinStatistics;
-import org.apache.derby.impl.sql.execute.rts.RealHashScanStatistics;
-import org.apache.derby.impl.sql.execute.rts.RealHashTableStatistics;
-import org.apache.derby.impl.sql.execute.rts.RealIndexRowToBaseRowStatistics;
-import org.apache.derby.impl.sql.execute.rts.RealInsertResultSetStatistics;
-import org.apache.derby.impl.sql.execute.rts.RealMergeSortJoinStatistics;
-import org.apache.derby.impl.sql.execute.rts.RealMergeSortLeftOuterJoinStatistics;
-import org.apache.derby.impl.sql.execute.rts.RealNestedLoopJoinStatistics;
-import org.apache.derby.impl.sql.execute.rts.RealNestedLoopLeftOuterJoinStatistics;
-import org.apache.derby.impl.sql.execute.rts.RealNormalizeResultSetStatistics;
-import org.apache.derby.impl.sql.execute.rts.RealOnceResultSetStatistics;
-import org.apache.derby.impl.sql.execute.rts.RealProjectRestrictStatistics;
-import org.apache.derby.impl.sql.execute.rts.RealRowCountStatistics;
-import org.apache.derby.impl.sql.execute.rts.RealRowResultSetStatistics;
-import org.apache.derby.impl.sql.execute.rts.RealScalarAggregateStatistics;
-import org.apache.derby.impl.sql.execute.rts.RealScrollInsensitiveResultSetStatistics;
-import org.apache.derby.impl.sql.execute.rts.RealSortStatistics;
-import org.apache.derby.impl.sql.execute.rts.RealTableScanStatistics;
-import org.apache.derby.impl.sql.execute.rts.RealUnionResultSetStatistics;
-import org.apache.derby.impl.sql.execute.rts.RealUpdateResultSetStatistics;
-import org.apache.derby.impl.sql.execute.rts.RealVTIStatistics;
-import org.apache.derby.impl.sql.execute.rts.RealWindowResultSetStatistics;
-import org.apache.derby.impl.sql.execute.rts.RunTimeStatisticsImpl;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.i18n.MessageService;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.PreparedStatement;
+import com.splicemachine.db.iapi.sql.ResultSet;
+import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
+import com.splicemachine.db.iapi.sql.execute.ResultSetStatistics;
+import com.splicemachine.db.iapi.sql.execute.ResultSetStatisticsFactory;
+import com.splicemachine.db.iapi.sql.execute.RunTimeStatistics;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.impl.sql.execute.rts.RealAnyResultSetStatistics;
+import com.splicemachine.db.impl.sql.execute.rts.RealDeleteCascadeResultSetStatistics;
+import com.splicemachine.db.impl.sql.execute.rts.RealDeleteResultSetStatistics;
+import com.splicemachine.db.impl.sql.execute.rts.RealDistinctScalarAggregateStatistics;
+import com.splicemachine.db.impl.sql.execute.rts.RealDistinctScanStatistics;
+import com.splicemachine.db.impl.sql.execute.rts.RealGroupedAggregateStatistics;
+import com.splicemachine.db.impl.sql.execute.rts.RealHashJoinStatistics;
+import com.splicemachine.db.impl.sql.execute.rts.RealHashLeftOuterJoinStatistics;
+import com.splicemachine.db.impl.sql.execute.rts.RealHashScanStatistics;
+import com.splicemachine.db.impl.sql.execute.rts.RealHashTableStatistics;
+import com.splicemachine.db.impl.sql.execute.rts.RealIndexRowToBaseRowStatistics;
+import com.splicemachine.db.impl.sql.execute.rts.RealInsertResultSetStatistics;
+import com.splicemachine.db.impl.sql.execute.rts.RealMergeSortJoinStatistics;
+import com.splicemachine.db.impl.sql.execute.rts.RealMergeSortLeftOuterJoinStatistics;
+import com.splicemachine.db.impl.sql.execute.rts.RealNestedLoopJoinStatistics;
+import com.splicemachine.db.impl.sql.execute.rts.RealNestedLoopLeftOuterJoinStatistics;
+import com.splicemachine.db.impl.sql.execute.rts.RealNormalizeResultSetStatistics;
+import com.splicemachine.db.impl.sql.execute.rts.RealOnceResultSetStatistics;
+import com.splicemachine.db.impl.sql.execute.rts.RealProjectRestrictStatistics;
+import com.splicemachine.db.impl.sql.execute.rts.RealRowCountStatistics;
+import com.splicemachine.db.impl.sql.execute.rts.RealRowResultSetStatistics;
+import com.splicemachine.db.impl.sql.execute.rts.RealScalarAggregateStatistics;
+import com.splicemachine.db.impl.sql.execute.rts.RealScrollInsensitiveResultSetStatistics;
+import com.splicemachine.db.impl.sql.execute.rts.RealSortStatistics;
+import com.splicemachine.db.impl.sql.execute.rts.RealTableScanStatistics;
+import com.splicemachine.db.impl.sql.execute.rts.RealUnionResultSetStatistics;
+import com.splicemachine.db.impl.sql.execute.rts.RealUpdateResultSetStatistics;
+import com.splicemachine.db.impl.sql.execute.rts.RealVTIStatistics;
+import com.splicemachine.db.impl.sql.execute.rts.RealWindowResultSetStatistics;
+import com.splicemachine.db.impl.sql.execute.rts.RunTimeStatisticsImpl;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;

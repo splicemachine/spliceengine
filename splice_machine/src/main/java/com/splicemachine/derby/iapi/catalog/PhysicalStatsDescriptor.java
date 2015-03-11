@@ -1,6 +1,7 @@
 package com.splicemachine.derby.iapi.catalog;
 
-import org.apache.derby.iapi.sql.dictionary.TupleDescriptor;
+
+import com.splicemachine.db.iapi.sql.dictionary.TupleDescriptor;
 
 /**
  * @author Scott Fines

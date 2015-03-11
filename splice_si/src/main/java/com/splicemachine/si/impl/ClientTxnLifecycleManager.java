@@ -79,8 +79,6 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager {
                                      Txn.IsolationLevel isolationLevel,
                                      boolean additive,
                                      byte[] destinationTable) throws IOException {
-        if(LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"Beginning child transaction: parent=%s,isolationLevel=%s,additive=%b,destinationTable=%s,isReadOnly=%b",parentTxn,isolationLevel,additive,destinationTable,destinationTable==null);
 				if(parentTxn==null)
 						parentTxn = Txn.ROOT_TRANSACTION;
 				if(destinationTable!=null && !parentTxn.allowsWrites())
@@ -182,9 +180,9 @@ public class ClientTxnLifecycleManager implements TxnLifecycleManager {
 				 * This uses 2 network calls--once to get a beginTimestamp, and then once to record the
 				 * transaction to the table.
 				 */
-				if(parentTxn!=null &&!Txn.ROOT_TRANSACTION.equals(parentTxn))
-						parentTxn = new LazyTxnView(parentTxn.getTxnId(),store,
-                    true,parentTxn.isAdditive(),parentTxn.getIsolationLevel()); //TODO -sf- should this be here?
+//				if(parentTxn!=null &&!Txn.ROOT_TRANSACTION.equals(parentTxn))
+//						parentTxn = new LazyTxnView(parentTxn.getTxnId(),store,
+//                    true,parentTxn.isAdditive(),parentTxn.getIsolationLevel()); //TODO -sf- should this be here?
 				WritableTxn newTxn = new WritableTxn(timestamp,
 								timestamp,isolationLevel,parentTxn,this, additive,destinationTable);
 				//record the transaction on the transaction table--network call

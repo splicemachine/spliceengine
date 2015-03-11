@@ -1,3 +1,14 @@
+package com.splicemachine.mrio.api;
+
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapreduce.Job;
+
+import com.splicemachine.mrio.MRConstants;
 /**
  * SpliceJob which controls submission of MapReduce Job
  * - Notice: You have to call commit() after SpliceJob finished successfully,
@@ -6,18 +17,8 @@
  * @author Yanan Jian
  * Created on: 08/14/14
  */
-
-package com.splicemachine.mrio.api;
-
-import java.io.IOException;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.mapreduce.Job;
-
 public class SpliceJob extends Job {
-	private static SQLUtil sqlUtil = null;
+	private static SMSQLUtil sqlUtil = null;
 	private static Connection conn = null;
 	private Configuration conf = null;
 
@@ -56,8 +57,8 @@ public class SpliceJob extends Job {
 	public void submit() throws IOException, InterruptedException,
 			ClassNotFoundException {
 		if (sqlUtil == null)
-			sqlUtil = SQLUtil.getInstance(super.getConfiguration().get(
-					SpliceMRConstants.SPLICE_JDBC_STR));
+			sqlUtil = SMSQLUtil.getInstance(super.getConfiguration().get(
+					MRConstants.SPLICE_JDBC_STR));
 
 		if (conn == null)
 			try {
@@ -68,11 +69,11 @@ public class SpliceJob extends Job {
 				
 				PreparedStatement ps = conn.prepareStatement("call SYSCS_UTIL.SYSCS_ELEVATE_TRANSACTION(?)");
 		
-				ps.setString(1,super.getConfiguration().get(SpliceMRConstants.SPLICE_INPUT_TABLE_NAME));
+				ps.setString(1,super.getConfiguration().get(MRConstants.SPLICE_INPUT_TABLE_NAME));
 				ps.executeUpdate();
 
 				super.getConfiguration().set(
-						SpliceMRConstants.SPLICE_TRANSACTION_ID,
+						MRConstants.SPLICE_TRANSACTION_ID,
 						String.valueOf(pTxsID));
 				
 			} catch (SQLException e1) {

@@ -26,12 +26,12 @@ import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.hash.HashFunctions;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.loader.GeneratedMethod;
-import org.apache.derby.iapi.sql.Activation;
-import org.apache.derby.iapi.sql.execute.ExecRow;
-import org.apache.derby.iapi.types.DataValueDescriptor;
-import org.apache.derby.iapi.types.SQLInteger;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLInteger;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 import org.apache.spark.Partitioner;
@@ -472,11 +472,11 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         JavaPairRDD<ExecRow, ExecRow> leftRDD = RDDUtils.getKeyedRDD(leftResultSet.getRDD(spliceLRuntimeContext, leftResultSet), leftHashKeys);
         JavaPairRDD<ExecRow, ExecRow> rightRDD = RDDUtils.getKeyedRDD(rightResultSet.getRDD(spliceRRuntimeContext, rightResultSet), rightHashKeys);
 
-        JavaPairRDD<ExecRow, ExecRow> sortedLeft = leftRDD.sortByKey(new RowComparator(new boolean[leftHashKeys.length]));
-        JavaPairRDD<ExecRow, ExecRow> sortedRight = rightRDD.repartitionAndSortWithinPartitions(sortedLeft.rdd().partitioner().get(), new RowComparator(new boolean[rightHashKeys.length]));
+//        JavaPairRDD<ExecRow, ExecRow> sortedRight = rightRDD.sortByKey(new RowComparator(new boolean[rightHashKeys.length]));
+//        JavaPairRDD<ExecRow, ExecRow> sortedLeft = leftRDD.repartitionAndSortWithinPartitions(rightRDD.rdd().partitioner().get(), new RowComparator(new boolean[leftHashKeys.length]));
 
         final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this, runtimeContext);
-        return joinRDDs(sortedLeft, sortedRight, soi)
+        return joinRDDs(leftRDD, rightRDD, soi)
                 .values().map(new SetupActivation(this, soi));
     }
 

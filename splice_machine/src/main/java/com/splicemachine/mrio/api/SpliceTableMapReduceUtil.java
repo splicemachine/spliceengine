@@ -20,6 +20,7 @@ import java.sql.SQLException;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Set;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -46,6 +47,7 @@ import org.apache.hadoop.util.StringUtils;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.splicemachine.derby.hbase.DerbyFactory;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
+import com.splicemachine.mrio.MRConstants;
 
 /**
  * Utility for {@link TableMapper} and {@link TableReducer}
@@ -54,7 +56,7 @@ import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 public class SpliceTableMapReduceUtil {
 	  protected static DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
   static Log LOG = LogFactory.getLog(SpliceTableMapReduceUtil.class);
-  private static SQLUtil sqlUtil = null;
+  private static SMSQLUtil sqlUtil = null;
   /**
    * Use this before submitting a TableMap job. It will appropriately set up
    * the job.
@@ -125,7 +127,7 @@ public class SpliceTableMapReduceUtil {
     if (outputValueClass != null) job.setMapOutputValueClass(outputValueClass);
     if (outputKeyClass != null) job.setMapOutputKeyClass(outputKeyClass);
     if (mapper != null) job.setMapperClass(mapper);
-    job.getConfiguration().set(SpliceMRConstants.SPLICE_INPUT_TABLE_NAME, table);
+    job.getConfiguration().set(MRConstants.SPLICE_INPUT_TABLE_NAME, table);
     job.getConfiguration().set(TableInputFormat.SCAN, convertScanToString(scan));
     if (addDependencyJars) {
       addDependencyJars(job);
@@ -217,7 +219,6 @@ public class SpliceTableMapReduceUtil {
    * @throws IOException When writing the scan fails.
    */
   public static String convertScanToString(Scan scan) throws IOException {
-	  System.out.println("Scan to convert? " + scan);
 	  ObjectOutput dos = null;
 	  try {
 	    ByteArrayOutputStream out = new ByteArrayOutputStream();
@@ -225,8 +226,6 @@ public class SpliceTableMapReduceUtil {
 	    derbyFactory.writeScanExternal(dos, scan);
 	    dos.flush();
 	    String stringy = Base64.encodeBytes(out.toByteArray());
-		  System.out.println("Scan to convert? " + stringy);
-		  System.out.println("Scan to convert? " + stringy.length());
 		  return stringy;
 	  } finally {
     	if (dos!=null)
@@ -353,9 +352,9 @@ public class SpliceTableMapReduceUtil {
 	Configuration conf = job.getConfiguration();    
     job.setOutputFormatClass(outputformatClass);
     if (reducer != null) job.setReducerClass(reducer);
-    conf.set(SpliceMRConstants.SPLICE_OUTPUT_TABLE_NAME, table);
+    conf.set(MRConstants.SPLICE_OUTPUT_TABLE_NAME, table);
     if(sqlUtil == null)
-    	sqlUtil = SQLUtil.getInstance(conf.get(SpliceMRConstants.SPLICE_JDBC_STR));
+    	sqlUtil = SMSQLUtil.getInstance(conf.get(MRConstants.SPLICE_JDBC_STR));
     // If passed a quorum/ensemble address, pass it on to TableOutputFormat.
     String hbaseTableID = null;
 	try {
@@ -365,7 +364,7 @@ public class SpliceTableMapReduceUtil {
 		e.printStackTrace();
 		throw new IOException(e);
 	}
-    conf.set(SpliceMRConstants.HBASE_OUTPUT_TABLE_NAME, hbaseTableID);
+    conf.set(MRConstants.HBASE_OUTPUT_TABLE_NAME, hbaseTableID);
    
     if (quorumAddress != null) {
       // Calling this will validate the format
@@ -410,7 +409,7 @@ public class SpliceTableMapReduceUtil {
   throws IOException, SQLException {
 	Configuration conf = job.getConfiguration(); 
 	  if(sqlUtil == null)
-	    	sqlUtil = SQLUtil.getInstance(conf.get(SpliceMRConstants.SPLICE_JDBC_STR));
+	    	sqlUtil = SMSQLUtil.getInstance(conf.get(MRConstants.SPLICE_JDBC_STR));
 	    // If passed a quorum/ensemble address, pass it on to TableOutputFormat.
 	String hbaseTableID = sqlUtil.getConglomID(table);
 	int regions = derbyFactory.getReduceNumberOfRegions(hbaseTableID,job.getConfiguration());
@@ -431,7 +430,7 @@ public class SpliceTableMapReduceUtil {
   throws IOException, SQLException {
 	Configuration conf = job.getConfiguration(); 
 	if(sqlUtil == null)
-	    sqlUtil = SQLUtil.getInstance(conf.get(SpliceMRConstants.SPLICE_JDBC_STR));
+	    sqlUtil = SMSQLUtil.getInstance(conf.get(MRConstants.SPLICE_JDBC_STR));
 	    // If passed a quorum/ensemble address, pass it on to TableOutputFormat.
 	String hbaseTableID = sqlUtil.getConglomID(table);
     int regions = derbyFactory.getReduceNumberOfRegions(hbaseTableID,conf);

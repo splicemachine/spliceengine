@@ -7,7 +7,6 @@ import com.splicemachine.concurrent.ResettableCountDownLatch;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.DerbyFactory;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.Code;
 import com.splicemachine.pipeline.api.WriteContext;
@@ -17,7 +16,6 @@ import com.splicemachine.pipeline.impl.WriteResult;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.yammer.metrics.core.*;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.RegionTooBusyException;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
@@ -26,7 +24,6 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 /**
  * @author Scott Fines
@@ -93,7 +90,7 @@ public class RegionWriteHandler implements WriteHandler {
         Collection<KVPair> filteredMutations = Collections2.filter(mutations, new Predicate<KVPair>() {
             @Override
             public boolean apply(KVPair input) {
-                return ctx.canRun(input) && input.getType() != KVPair.Type.FOREIGN_KEY_CHECK;
+                return ctx.canRun(input) && !input.getType().isForeignKeyExistenceCheck();
             }
         });
         try {

@@ -10,8 +10,8 @@ import com.splicemachine.hbase.ScanDivider;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.pipeline.exception.Exceptions;
 
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 

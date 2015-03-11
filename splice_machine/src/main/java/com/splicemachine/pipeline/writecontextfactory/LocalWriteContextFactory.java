@@ -6,6 +6,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
+import com.splicemachine.derby.utils.DataDictionaryUtils;
 import com.splicemachine.pipeline.api.WriteContext;
 import com.splicemachine.pipeline.constraint.*;
 import com.splicemachine.pipeline.ddl.DDLChange;
@@ -17,13 +18,12 @@ import com.splicemachine.pipeline.writehandler.RegionWriteHandler;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
-
-import org.apache.derby.catalog.IndexDescriptor;
-import org.apache.derby.catalog.UUID;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.services.context.ContextManager;
-import org.apache.derby.iapi.services.context.ContextService;
-import org.apache.derby.iapi.sql.dictionary.*;
+import com.splicemachine.db.catalog.IndexDescriptor;
+import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.services.context.ContextService;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -41,8 +41,8 @@ import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * One instance of this class will exist per conglomerateId per JVM.  Holds state about whether its conglomerate
- * has indexes and constraints, has columns that have been dropped, ect-- necessary information for performing writes
- * on the represented table.
+ * has indexes and constraints, has columns that have been dropped, etc-- necessary information for performing writes
+ * on the represented table/index.
  *
  * @author Scott Fines
  *         Created on: 4/30/13
@@ -57,9 +57,10 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
     private final Set<ConstraintFactory> constraintFactories = new CopyOnWriteArraySet<>();
     private final Set<DropColumnFactory> dropColumnFactories = new CopyOnWriteArraySet<>();
 
-    private final List<ForeignKeyInterceptWriteFactory> foreignKeyInterceptWriteFactories = new CopyOnWriteArrayList<>();
-    /* We always *check* FK existence only once per conglom, on a primary key, or a on unique index conglom */
-    private ForeignKeyCheckWriteFactory foreignKeyCheckWriteFactory;
+    private ForeignKeyChildInterceptWriteFactory foreignKeyChildInterceptWriteFactory;
+    private ForeignKeyChildCheckWriteFactory foreignKeyChildCheckWriteFactory;
+    private ForeignKeyParentInterceptWriteFactory foreignKeyParentInterceptWriteFactory;
+    private ForeignKeyParentCheckWriteFactory foreignKeyParentCheckWriteFactory;
 
     private final ReentrantLock initializationLock = new ReentrantLock();
 
@@ -111,8 +112,8 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
         return new ChainConstraintChecker(checkers);
     }
 
-	private void isInitialized(TxnView txn) throws IOException, InterruptedException {
-		switch (state.get()) {
+    private void isInitialized(TxnView txn) throws IOException, InterruptedException {
+        switch (state.get()) {
             case READY_TO_START:
                 SpliceLogUtils.trace(LOG, "Index management for conglomerate %d has not completed, attempting to start now", conglomId);
                 start(txn);
@@ -127,7 +128,7 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
             case SHUTDOWN:
                 throw new IOException("management for conglomerate " + conglomId + " is shutdown");
         }
-	}
+    }
 
     private void addIndexAndForeignKeyWriteHandlers(int expectedWrites, PipelineWriteContext context) throws IOException, InterruptedException {
         isInitialized(context.getTxn());
@@ -136,7 +137,7 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
             //add Constraint checks before anything else
             if (SpliceConstants.constraintsEnabled) {
                 for (ConstraintFactory constraintFactory : constraintFactories) {
-                    context.addLast(constraintFactory.create());
+                    context.addLast(constraintFactory.create(expectedWrites));
                 }
             }
 
@@ -149,15 +150,26 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
                 dropColumnFactory.addTo(context, true, expectedWrites);
             }
 
-            // FK intercept
-            for (LocalWriteFactory fkFactory : foreignKeyInterceptWriteFactories) {
-                fkFactory.addTo(context, false, expectedWrites);
+            // FK - child intercept (of inserts/updates)
+            if (foreignKeyChildInterceptWriteFactory != null) {
+                foreignKeyChildInterceptWriteFactory.addTo(context, false, expectedWrites);
             }
 
-            // FK check
-            if (foreignKeyCheckWriteFactory != null) {
-                foreignKeyCheckWriteFactory.addTo(context, false, expectedWrites);
+            // FK - child existence check (upon parent update/delete)
+            if (foreignKeyChildCheckWriteFactory != null) {
+                foreignKeyChildCheckWriteFactory.addTo(context, false, expectedWrites);
             }
+
+            // FK - parent intercept (of deletes/updates)
+            if (foreignKeyParentInterceptWriteFactory != null) {
+                foreignKeyParentInterceptWriteFactory.addTo(context, false, expectedWrites);
+            }
+
+            // FK - parent existence check (upon child insert/update)
+            if (foreignKeyParentCheckWriteFactory != null) {
+                foreignKeyParentCheckWriteFactory.addTo(context, false, expectedWrites);
+            }
+
         }
     }
 
@@ -231,9 +243,17 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
     }
 
     @Override
-    public void addForeignKeyCheckWriteFactory(int[] backingIndexFormatIds) {
+    public void addForeignKeyParentCheckWriteFactory(int[] backingIndexFormatIds) {
         /* One instance handles all FKs that reference this primary key or unique index */
-        this.foreignKeyCheckWriteFactory = new ForeignKeyCheckWriteFactory(backingIndexFormatIds);
+        this.foreignKeyParentCheckWriteFactory = new ForeignKeyParentCheckWriteFactory(backingIndexFormatIds);
+    }
+
+    @Override
+    public synchronized void addForeignKeyParentInterceptWriteFactory(String parentTableName, List<Long> backingIndexConglomIds) {
+        /* One instance handles all FKs that reference this primary key or unique index */
+        if (this.foreignKeyParentInterceptWriteFactory == null) {
+            this.foreignKeyParentInterceptWriteFactory = new ForeignKeyParentInterceptWriteFactory(parentTableName, backingIndexConglomIds);
+        }
     }
 
     @Override
@@ -346,18 +366,11 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
         //get primary key constraint
         //-sf- Hbase scan
         int[] columnOrdering = null;
-        int[] formatIds;
-        ColumnDescriptorList cdList = td.getColumnDescriptorList();
-        int size = cdList.size();
-        formatIds = new int[size];
-        for (int j = 0; j < cdList.size(); ++j) {
-            ColumnDescriptor columnDescriptor = cdList.elementAt(j);
-            formatIds[j] = columnDescriptor.getType().getNull().getTypeFormatId();
-        }
+        int[] formatIds = DataDictionaryUtils.getFormatIds(td.getColumnDescriptorList());
         ConstraintDescriptorList constraintDescriptors = dataDictionary.getConstraintDescriptors(td);
         for (int i = 0; i < constraintDescriptors.size(); i++) {
             ConstraintDescriptor cDescriptor = constraintDescriptors.elementAt(i);
-            org.apache.derby.catalog.UUID conglomerateId = cDescriptor.getConglomerateId();
+            com.splicemachine.db.catalog.UUID conglomerateId = cDescriptor.getConglomerateId();
             if (conglomerateId != null && td.getConglomerateDescriptor(conglomerateId).getConglomerateNumber() != conglomId)
                 continue;
 
@@ -376,7 +389,7 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
                     break;
                 case DataDictionary.UNIQUE_CONSTRAINT:
                     buildUniqueConstraint(cDescriptor);
-                    buildForeignKeyCheckWriteFactory( (ReferencedKeyConstraintDescriptor)cDescriptor);
+                    buildForeignKeyCheckWriteFactory((ReferencedKeyConstraintDescriptor) cDescriptor);
                     break;
                 case DataDictionary.FOREIGNKEY_CONSTRAINT:
                     ForeignKeyConstraintDescriptor fkConstraintDescriptor = (ForeignKeyConstraintDescriptor) cDescriptor;
@@ -455,25 +468,24 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
         else {
             keyConglomerateId = referencedConstraint.getTableDescriptor().getHeapConglomerateId();
         }
-        ConstraintContext constraintContext = ConstraintContext.foreignKey(fkConstraintDesc);
         byte[] hbaseTableNameBytes = Bytes.toBytes(String.valueOf(keyConglomerateId));
-        ForeignKeyInterceptWriteFactory factory = new ForeignKeyInterceptWriteFactory(hbaseTableNameBytes, constraintContext);
-        foreignKeyInterceptWriteFactories.add(factory);
+        foreignKeyChildInterceptWriteFactory = new ForeignKeyChildInterceptWriteFactory(hbaseTableNameBytes, fkConstraintDesc);
+        foreignKeyChildCheckWriteFactory = new ForeignKeyChildCheckWriteFactory(fkConstraintDesc);
     }
 
     /* Add factories for *checking* existence of FK referenced primary-key or unique-index rows. */
     private void buildForeignKeyCheckWriteFactory(ReferencedKeyConstraintDescriptor cDescriptor) throws StandardException {
         ConstraintDescriptorList fks = cDescriptor.getForeignKeyConstraints(ConstraintDescriptor.ENABLED);
-        if(fks.isEmpty()) {
+        if (fks.isEmpty()) {
             return;
         }
         ColumnDescriptorList backingIndexColDescriptors = cDescriptor.getColumnDescriptors();
-        int backingIndexFormatIds[] = new int[backingIndexColDescriptors.size()];
-        int col = 0;
-        for(ColumnDescriptor columnDescriptor : backingIndexColDescriptors) {
-            backingIndexFormatIds[col++] = columnDescriptor.getType().getNull().getTypeFormatId();
-        }
-        addForeignKeyCheckWriteFactory(backingIndexFormatIds);
+        int backingIndexFormatIds[] = DataDictionaryUtils.getFormatIds(backingIndexColDescriptors);
+
+        addForeignKeyParentCheckWriteFactory(backingIndexFormatIds);
+        String parentTableName = cDescriptor.getTableDescriptor().getName();
+        List<Long> backingIndexConglomIds = DataDictionaryUtils.getBackingIndexConglomerateIdsForForeignKeys(fks);
+        addForeignKeyParentInterceptWriteFactory(parentTableName, backingIndexConglomIds);
     }
 
     private void buildUniqueConstraint(ConstraintDescriptor cd) throws StandardException {
@@ -527,7 +539,7 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
 
     @Override
     public boolean hasDependentWrite(TxnView txn) throws IOException, InterruptedException {
-    	isInitialized(txn);
+        isInitialized(txn);
         return !indexFactories.isEmpty();
     }
 

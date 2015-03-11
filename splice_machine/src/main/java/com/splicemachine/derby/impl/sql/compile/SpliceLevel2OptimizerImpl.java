@@ -3,34 +3,34 @@ package com.splicemachine.derby.impl.sql.compile;
 import java.util.Arrays;
 import java.util.HashMap;
 
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.compile.AccessPath;
+import com.splicemachine.db.iapi.sql.compile.JoinStrategy;
+import com.splicemachine.db.iapi.sql.compile.Optimizable;
+import com.splicemachine.db.iapi.sql.compile.OptimizableList;
+import com.splicemachine.db.iapi.sql.compile.OptimizablePredicate;
+import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
+import com.splicemachine.db.iapi.sql.compile.Optimizer;
+import com.splicemachine.db.iapi.sql.compile.CostEstimate;
+import com.splicemachine.db.iapi.sql.compile.RequiredRowOrdering;
+import com.splicemachine.db.iapi.sql.compile.RowOrdering;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.impl.sql.compile.BaseTableNumbersVisitor;
+import com.splicemachine.db.impl.sql.compile.FromTable;
+import com.splicemachine.db.impl.sql.compile.CostEstimateImpl;
+import com.splicemachine.db.impl.sql.compile.Predicate;
+import com.splicemachine.db.impl.sql.compile.PredicateList;
 import com.splicemachine.derby.impl.stats.StatisticsStorage;
-import org.apache.derby.iapi.reference.SQLState;
-import org.apache.derby.iapi.services.sanity.SanityManager;
-import org.apache.derby.iapi.error.StandardException;
-import org.apache.derby.iapi.sql.compile.AccessPath;
-import org.apache.derby.iapi.sql.compile.JoinStrategy;
-import org.apache.derby.iapi.sql.compile.Optimizable;
-import org.apache.derby.iapi.sql.compile.OptimizableList;
-import org.apache.derby.iapi.sql.compile.OptimizablePredicate;
-import org.apache.derby.iapi.sql.compile.OptimizablePredicateList;
-import org.apache.derby.iapi.sql.compile.Optimizer;
-import org.apache.derby.iapi.sql.compile.CostEstimate;
-import org.apache.derby.iapi.sql.compile.RequiredRowOrdering;
-import org.apache.derby.iapi.sql.compile.RowOrdering;
-import org.apache.derby.iapi.sql.conn.LanguageConnectionContext;
-import org.apache.derby.iapi.sql.dictionary.ConglomerateDescriptor;
-import org.apache.derby.iapi.sql.dictionary.DataDictionary;
-import org.apache.derby.iapi.sql.dictionary.IndexRowGenerator;
-import org.apache.derby.iapi.sql.dictionary.TableDescriptor;
-import org.apache.derby.impl.sql.compile.BaseTableNumbersVisitor;
-import org.apache.derby.impl.sql.compile.FromTable;
-import org.apache.derby.impl.sql.compile.CostEstimateImpl;
-import org.apache.derby.impl.sql.compile.Predicate;
-import org.apache.derby.impl.sql.compile.PredicateList;
 import org.apache.log4j.Logger;
-import org.apache.derby.iapi.util.JBitSet;
-import org.apache.derby.iapi.util.LogUtils;
-import org.apache.derby.iapi.util.StringUtil;
+import com.splicemachine.db.iapi.util.JBitSet;
+import com.splicemachine.db.iapi.util.LogUtils;
+import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.si.impl.Tracer;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -2329,13 +2329,13 @@ public class SpliceLevel2OptimizerImpl implements Optimizer {
         }
     }
 
-    /**
-     * @see org.apache.derby.iapi.sql.compile.Optimizer#costPermutation
-     *
-     * @exception StandardException		Thrown on error
-     */
-    public void costPermutation() throws StandardException
-    {
+	/**
+	 * @see com.splicemachine.db.iapi.sql.compile.Optimizer#costPermutation
+	 *
+	 * @exception StandardException		Thrown on error
+	 */
+	public void costPermutation() throws StandardException
+	{
 		/*
 		** Get the cost of the outer plan so far.  This gives us the current
 		** estimated rows, ordering, etc.
@@ -2389,18 +2389,18 @@ public class SpliceLevel2OptimizerImpl implements Optimizer {
                 currentRowOrdering);
     }
 
-    /**
-     * @see org.apache.derby.iapi.sql.compile.Optimizer#costOptimizable
-     *
-     * @exception StandardException		Thrown on error
-     */
-    public void	costOptimizable(Optimizable optimizable,
-                                 TableDescriptor td,
-                                 ConglomerateDescriptor cd,
-                                 OptimizablePredicateList predList,
-                                 CostEstimate outerCost)
-            throws StandardException
-    {
+	/**
+	 * @see com.splicemachine.db.iapi.sql.compile.Optimizer#costOptimizable
+	 *
+	 * @exception StandardException		Thrown on error
+	 */
+	public void	costOptimizable(Optimizable optimizable,
+								TableDescriptor td, 
+								ConglomerateDescriptor cd,
+								OptimizablePredicateList predList,
+								CostEstimate outerCost)
+			throws StandardException
+	{
 		/*
 		** Don't consider non-feasible join strategies.
 		*/
@@ -2854,9 +2854,9 @@ public class SpliceLevel2OptimizerImpl implements Optimizer {
         }
     }
 
-    /**
-     * @see org.apache.derby.iapi.sql.compile.Optimizer#getDataDictionary
-     */
+	/**
+	 * @see com.splicemachine.db.iapi.sql.compile.Optimizer#getDataDictionary
+	 */
 
     public DataDictionary getDataDictionary()
     {
