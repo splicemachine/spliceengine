@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.stats;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.store.access.StoreCostResult;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
@@ -11,6 +12,7 @@ import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.TxnView;
+import com.splicemachine.stats.PartitionStatistics;
 import com.splicemachine.stats.TableStatistics;
 import java.util.concurrent.ExecutionException;
 
@@ -96,17 +98,15 @@ public class IndexStatsCostController extends StatsStoreCostController {
              */
             isCovering = indexFormatIds.length-1==heapFormatIds.length;
         }
-        long numRows = super.getRowsInKeyRange(baseTableStatistics,
+        super.estimateCost(baseTableStatistics,
                 startKeyValue, startSearchOperator,
-                stopKeyValue, stopSearchOperator,indexColToHeapColMap);
-        double additionalCost = numRows*conglomerateStatistics.localReadLatency();
-        if(!isCovering){
-            /*
-             * we are a non-covering index, so the cost is numRows*localScanLatency*remoteScanLatency
-             */
-            additionalCost *= conglomerateStatistics.remoteReadLatency();
-        }
-        cost_result.setEstimatedRowCount(numRows);
-        cost_result.setEstimatedCost(additionalCost);
+                stopKeyValue, stopSearchOperator,
+                indexColToHeapColMap,
+                (CostEstimate) cost_result,!isCovering);
+    }
+
+    @Override
+    protected double costScaleFactor(PartitionStatistics partStats) {
+        return conglomerateStatistics.remoteReadLatency()/conglomerateStatistics.localReadLatency();
     }
 }
