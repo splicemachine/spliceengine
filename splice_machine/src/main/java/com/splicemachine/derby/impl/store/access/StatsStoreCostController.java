@@ -109,7 +109,7 @@ public class StatsStoreCostController extends GenericController implements Store
         */
         long numRows = getRowsInKeyRange(conglomerateStatistics,
                 startKeyValue, startSearchOperator,
-                stopKeyValue, stopSearchOperator);
+                stopKeyValue, stopSearchOperator,baseConglomerate.getColumnOrdering());
         /*
          * numRows contains how many rows we are going to touch, so now just set a cost as
          * remoteReadLatency()*numRows
@@ -133,7 +133,8 @@ public class StatsStoreCostController extends GenericController implements Store
                                      DataValueDescriptor[] startKeyValue,
                                      int startSearchOperator,
                                      DataValueDescriptor[] stopKeyValue,
-                                     int stopSearchOperator) {
+                                     int stopSearchOperator,
+                                     int[] keyMap) {
         if(startKeyValue==null && stopKeyValue==null){
             /*
              * There are no keys to scan, so we are doing a full table scan. We estimate
@@ -144,7 +145,6 @@ public class StatsStoreCostController extends GenericController implements Store
              */
             return conglomerateStatistics.rowCount();
         }
-        int[] keyOrdering = baseConglomerate.getColumnOrdering();
 
         Pair<DataValueDescriptor,DataValueDescriptor>[] columnRanges;
         boolean[] startInclusion;
@@ -176,20 +176,22 @@ public class StatsStoreCostController extends GenericController implements Store
             }
         }else{
             boolean includeStop = stopSearchOperator==ScanController.GT;
-            Arrays.fill(stopInclusion, includeStop);
+            for(int i=0;i<stopKeyValue.length;i++){
+                columnRanges[i].setSecond(stopKeyValue[i]);
+                stopInclusion[i] = includeStop;
+            }
         }
 
         long numRows = conglomerateStatistics.rowCount();
-        for(int i=0;i<columnRanges.length;i++){
+        for (int i = 0; i < columnRanges.length; i++) {
             DataValueDescriptor start = columnRanges[i].getFirst();
             DataValueDescriptor stop = columnRanges[i].getSecond();
             boolean includeStart = startInclusion[i];
             boolean includeStop = stopInclusion[i];
 
-            Distribution<DataValueDescriptor> columnDistribution =
-                    stats.columnDistribution(keyOrdering[i]);
-            long nR = columnDistribution.rangeSelectivity(start,stop,includeStart,includeStop);
-            numRows = Math.min(numRows,nR);
+            Distribution<DataValueDescriptor> columnDistribution = stats.columnDistribution(keyMap[i]);
+            long nR = columnDistribution.rangeSelectivity(start, stop, includeStart, includeStop);
+            numRows = Math.min(numRows, nR);
         }
         return numRows;
     }

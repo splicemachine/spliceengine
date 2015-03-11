@@ -20,7 +20,9 @@ import java.util.concurrent.ExecutionException;
  */
 public class IndexStatsCostController extends StatsStoreCostController {
     private TableStatistics baseTableStatistics;
-    public IndexStatsCostController(OpenSpliceConglomerate baseConglomerate) throws StandardException {
+    private int[] indexColToHeapColMap;
+
+    public IndexStatsCostController(int[] indexColToHeapColMap,OpenSpliceConglomerate baseConglomerate) throws StandardException {
         /*
          * This looks a bit weird, because baseConglomerate is actually the index conglomerate,
          * so our super class is actually looking at the cost to just scan in the index. We
@@ -33,6 +35,10 @@ public class IndexStatsCostController extends StatsStoreCostController {
         BaseSpliceTransaction bst = (BaseSpliceTransaction)baseConglomerate.getTransaction();
         TxnView txn = bst.getActiveStateTxn();
         long conglomId = baseConglomerate.getIndexConglomerate();
+        this.indexColToHeapColMap = new int[indexColToHeapColMap.length];
+        for(int i=0;i<indexColToHeapColMap.length;i++){
+            this.indexColToHeapColMap[i] = indexColToHeapColMap[i]-1;
+        }
 
         try {
             this.baseTableStatistics = StatisticsStorage.getPartitionStore().getStatistics(txn, conglomId);
@@ -80,7 +86,8 @@ public class IndexStatsCostController extends StatsStoreCostController {
              * index has all of the columns or not.
              */
             long heapConglomerate = baseConglomerate.getIndexConglomerate();
-            SpliceConglomerate heapConglom = (SpliceConglomerate)((SpliceTransactionManager) baseConglomerate.getTransactionManager()).findConglomerate(heapConglomerate);
+            SpliceConglomerate heapConglom =
+                    (SpliceConglomerate)((SpliceTransactionManager) baseConglomerate.getTransactionManager()).findConglomerate(heapConglomerate);
             int[] heapFormatIds = heapConglom.getFormat_ids();
             int[] indexFormatIds = conglomerate.getFormat_ids();
             /*
@@ -91,7 +98,7 @@ public class IndexStatsCostController extends StatsStoreCostController {
         }
         long numRows = super.getRowsInKeyRange(baseTableStatistics,
                 startKeyValue, startSearchOperator,
-                stopKeyValue, stopSearchOperator);
+                stopKeyValue, stopSearchOperator,indexColToHeapColMap);
         double additionalCost = numRows*conglomerateStatistics.localReadLatency();
         if(!isCovering){
             /*

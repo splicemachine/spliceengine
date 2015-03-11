@@ -1,6 +1,7 @@
 
 package com.splicemachine.derby.impl.store.access.btree;
 
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.derby.impl.stats.IndexStatsCostController;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
@@ -366,17 +367,16 @@ public class IndexConglomerate extends SpliceConglomerate {
      *
      * @see StoreCostController
      **/
-    public StoreCostController openStoreCost(
-            TransactionManager  xact_manager,
-            Transaction         rawtran)
-            throws StandardException {
-        SpliceLogUtils.trace(LOG, "openStoreCost: %s", id);
+    @Override
+    public StoreCostController openStoreCost(ConglomerateDescriptor cd,
+                                             TransactionManager xact_manager,
+                                             Transaction rawtran) throws StandardException {
         OpenSpliceConglomerate open_conglom = new OpenSpliceConglomerate(xact_manager,
                 rawtran,
                 false,
                 ContainerHandle.MODE_READONLY,
                 TransactionController.MODE_TABLE, null, null, null, this);
-        return new IndexStatsCostController(open_conglom);
+        return new IndexStatsCostController(cd.getIndexDescriptor().baseColumnPositions(),open_conglom);
     }
 
 
