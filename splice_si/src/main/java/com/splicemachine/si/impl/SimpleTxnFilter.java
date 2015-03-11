@@ -69,7 +69,7 @@ public class SimpleTxnFilter<RowLock,Data> implements TxnFilter<Data> {
 				}
 
 				readResolve(element);
-				switch(dataStore.getKeyValueType(element)){
+				switch(type){
 						case TOMBSTONE:
 								addToTombstoneCache(element);
 								return Filter.ReturnCode.SKIP;
@@ -80,7 +80,7 @@ public class SimpleTxnFilter<RowLock,Data> implements TxnFilter<Data> {
 								return checkVisibility(element);
 						default:
 								//TODO -sf- do better with this?
-								throw new AssertionError("Unexpected Data type: "+ dataStore.getKeyValueType(element));
+								throw new AssertionError("Unexpected Data type: "+ type);
 				}
 		}
 
