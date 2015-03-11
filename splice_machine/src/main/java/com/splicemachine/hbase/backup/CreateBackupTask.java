@@ -98,29 +98,21 @@ public class CreateBackupTask extends ZkTask {
     public void doExecute() throws ExecutionException, InterruptedException {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, String.format("executing %S backup on region %s",backupItem.getBackup().isIncrementalBackup()?"incremental":"full", region.toString()));
-        if (backupItem.getLastBackupTimestamp() == 0)
-            fullBackup();
-        else
-            incrementalBackup();
-        //try {
-        //	System.out.println("inserting Backup?");
-        //backupItem.insertBackupItem(); Not Working Yet
-/*	    		} catch (SQLException e) {
-	    			System.out.println("inserting Backup Exception?");
-	    			e.printStackTrace();
-					new ExecutionException(e);
-				}
-				*/
+        try {
+            writeRegionInfoOnFilesystem();
+            doFullBackup();
+        } catch (IOException e) {
+            throw new ExecutionException(e);
+        }
     }
 
-    private void writeRegioninfoOnFilesystem() throws IOException
+    private void writeRegionInfoOnFilesystem() throws IOException
     {
     	DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
         FileSystem fs = FileSystem.get(URI.create(backupFileSystem), SpliceConstants.config);
 
-    	derbyFactory.writeRegioninfoOnFilesystem(region.getRegionInfo(), 
-        		new Path(backupItem.getBackupItemFilesystem()+"/"+derbyFactory.getRegionDir(region).getName()+
-        				"/"+BackupUtils.REGION_INFO), fs, SpliceConstants.config);
+        BackupUtils.derbyFactory.writeRegioninfoOnFilesystem(region.getRegionInfo(),
+                new Path(backupFileSystem), fs, SpliceConstants.config);
     }
     
     private void doFullBackup() throws IOException
@@ -137,8 +129,16 @@ public class CreateBackupTask extends ZkTask {
     	FileSystem backupFs = FileSystem.get(URI.create(backupFileSystem), SpliceConstants.config);
     	for(Object file: files){
             FileSystem fs = region.getFilesystem();
+            String[] s = file.toString().split("/");
+            int n = s.length;
+            String fileName = s[n - 1];
+            String familyName = s[n - 2];
+            String regionName = s[n - 3];
+            Path destPath = new Path(backupFileSystem + "/" + regionName + "/" + familyName + "/" + fileName);
+            copyFile(fs, file, backupFs,  destPath, false, SpliceConstants.config);
+            //FileUtil.copy(fs, file, backupFs, destPath, false, SpliceConstants.config);
             // TODO dst path?
-	    	copyFile(fs, file, backupFs,  new Path(backupDirectory+"/"+name), false, SpliceConstants.config);
+	    	//copyFile(fs, file, backupFs,  new Path(backupDirectory+"/"+name), false, SpliceConstants.config);
 	    	if(isTempFile(file)){
 	    		deleteFile(fs, file, false);
 	    	}
@@ -172,11 +172,6 @@ public class CreateBackupTask extends ZkTask {
 		
 		return file instanceof Path;
 	}
-
-	private void doIncrementalBackup()
-    {
-    	// TODO
-    }
     
     private String getSnapshotName()
     {
@@ -188,26 +183,5 @@ public class CreateBackupTask extends ZkTask {
         return SchedulerPriorities.INSTANCE.getBasePriority(CreateBackupTask.class);
     }
 
-    private void fullBackup() throws ExecutionException, InterruptedException {
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, String.format("executing %S backup on region %s",backupItem.getBackup().isIncrementalBackup()?"incremental":"full", region.toString()));
-        try {
-            FileSystem fs = FileSystem.get(URI.create(backupFileSystem), SpliceConstants.config);
-            BackupUtils.fullBackupRegion(region, backupItem, fs);
-        } catch (IOException e) {
-            throw new ExecutionException(e);
-        }
-    }
-
-    private void incrementalBackup() throws ExecutionException, InterruptedException {
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, String.format("executing %S backup on region %s",backupItem.getBackup().isIncrementalBackup()?"incremental":"full", region.toString()));
-        try {
-            FileSystem fs = FileSystem.get(URI.create(backupFileSystem), SpliceConstants.config);
-            BackupUtils.incrementalBackupRegion(region, backupItem, fs);
-        } catch (IOException e) {
-            throw new ExecutionException(e);
-        }
-    }
 }
 
