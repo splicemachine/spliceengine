@@ -59,7 +59,7 @@ public class IntStats extends BaseDvdStatistics {
 
     @Override
     protected Distribution<DataValueDescriptor> newDistribution(ColumnStatistics baseStats) {
-        return new IntDist(intStats);
+        return new IntDist((IntColumnStatistics)baseStats);
     }
 
     /* ****************************************************************************************************************/
