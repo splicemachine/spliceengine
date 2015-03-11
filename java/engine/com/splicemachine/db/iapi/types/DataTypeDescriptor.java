@@ -39,7 +39,6 @@ import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.services.loader.ClassInspector;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
-import org.apache.derbyTesting.system.oe.direct.Standard;
 
 /** 
  * DataTypeDescriptor describes a runtime SQL type.
