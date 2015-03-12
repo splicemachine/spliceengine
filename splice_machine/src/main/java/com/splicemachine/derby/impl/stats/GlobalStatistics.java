@@ -126,6 +126,11 @@ public class GlobalStatistics implements TableStatistics {
     }
 
     @Override
+    public <T> ColumnStatistics<T> columnStatistics(int columnId){
+        throw new UnsupportedOperationException("IMPLEMENT");
+    }
+
+    @Override
     public <T> Distribution<T> columnDistribution(int columnId) {
         return new GlobalDistribution<>(this,columnId);
     }

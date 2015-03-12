@@ -196,6 +196,11 @@ public class SpliceCostEstimateImpl extends Level2CostEstimateImpl implements So
     }
 
     @Override
+    public void setNumPartitions(int numPartitions){
+        numberOfRegions = numPartitions;
+    }
+
+    @Override
     public void setSingleScanRowCount(double singleScanRowCount) {
         SpliceLogUtils.trace(LOG, "setSingleScanRowCount singleScanRowCount=%f",singleScanRowCount);
         super.setSingleScanRowCount(singleScanRowCount);

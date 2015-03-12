@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 
+import com.google.common.collect.Lists;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -60,10 +61,7 @@ public class ExplainOperation extends SpliceBaseOperation {
         activation.setTraced(false);
         currentTemplate = new ValueRow(1);
         currentTemplate.setRowArray(new DataValueDescriptor[]{new SQLVarchar()});
-        HashMap<String, String[]> m = PlanPrinter.planMap.get();
-        String sql = activation.getPreparedStatement().getSource();
-        plan = m.get(sql);
-
+        getPlanInformation();
     }
 
     @Override
@@ -79,7 +77,7 @@ public class ExplainOperation extends SpliceBaseOperation {
     public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 
         if (plan == null || pos >= plan.length) {
-            HashMap<String, String[]> m = PlanPrinter.planMap.get();
+            Map<String, Map<Integer, String>> m=PlanPrinter.planMap.get();
             String sql = activation.getPreparedStatement().getSource();
             m.remove(sql);
             return null;
@@ -87,7 +85,8 @@ public class ExplainOperation extends SpliceBaseOperation {
 
         currentTemplate.resetRowArray();
         DataValueDescriptor[] dvds = currentTemplate.getRowArray();
-        dvds[0].setValue(plan[pos++]);
+        String next=com.google.common.base.Strings.repeat(" ",pos)+plan[pos++];
+        dvds[0].setValue(next);
         return currentTemplate;
     }
 
@@ -137,7 +136,46 @@ public class ExplainOperation extends SpliceBaseOperation {
         return currentTemplate;
     }
 
-    @Override
-    public void close() throws StandardException,IOException {
+    @Override public void close() throws StandardException,IOException { }
+
+    private void getPlanInformation(){
+        Map<String,Map<Integer,String>> m = PlanPrinter.planMap.get();
+        String sql = activation.getPreparedStatement().getSource();
+        Map<Integer,String> opPlanMap = m.get(sql);
+        List<String> printedTree = printOperationTree(opPlanMap);
+        plan = new String[printedTree.size()];
+        printedTree.toArray(plan);
     }
+
+    private List<String> printOperationTree(Map<Integer, String> baseMap){
+        List<String> destination = new LinkedList<>();
+        addTo(destination,baseMap,source,0);
+        return destination;
+    }
+
+    private void addTo(List<String> destination,Map<Integer,String> sourceMap,SpliceOperation source,int level){
+        String s=prettyFormat(source,sourceMap.get(source.resultSetNumber()));
+
+        String opString = com.google.common.base.Strings.repeat(" ",level)+s;
+        destination.add(opString);
+        List<SpliceOperation> subOps = Lists.reverse(source.getSubOperations());
+        boolean isFirst = true;
+        for(SpliceOperation op:subOps){
+            if(isFirst) isFirst = false;
+            else{ //add a ---- line to separate different sides of join and union entries
+                destination.add("--------");
+            }
+            addTo(destination,sourceMap,op,level+1);
+        }
+    }
+
+    private String prettyFormat(SpliceOperation source,String baseString){
+        /*
+         * This method replaces the Query optimizer-based name (e.g. FromBaseTable, IndexToBaseRowNode, etc)
+         * with a more elegant name like "TableScan","IndexLookup","NestedLoopJoin", etc.
+         */
+        int nameEndIndex = baseString.indexOf("(");
+        return baseString.replaceFirst(baseString.substring(0,nameEndIndex),source.getName());
+    }
+
 }
