@@ -76,7 +76,7 @@ public class TableScanOperation extends ScanOperation {
 
 		private SITableScanner tableScanner;
 		
-	    protected static final String NAME = TableScanOperation.class.getSimpleName().replaceAll("Operation","");
+	    protected static final String NAME = "TableScan";
 
 		@Override
 		public String getName() {

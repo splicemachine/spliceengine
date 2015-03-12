@@ -93,7 +93,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 		private IndexRowReader reader;
 		private String mainTableVersion;
 
-	    protected static final String NAME = IndexRowToBaseRowOperation.class.getSimpleName().replaceAll("Operation","");
+	    protected static final String NAME = "IndexLookup";
 
 		@Override
 		public String getName() {

@@ -439,8 +439,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
         try{
             StaticCompiledOpenConglomInfo scoci = (StaticCompiledOpenConglomInfo)(activation.getPreparedStatement().
                     getSavedObject(scociItem));
-            SpliceOperation op =  new BulkTableScanOperation(
-                    conglomId,
+            SpliceOperation op = new TableScanOperation(conglomId,
                     scoci,
                     activation,
                     resultRowAllocator,
@@ -462,10 +461,36 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                     tableLocked,
                     isolationLevel,
                     rowsPerRead,
-                    disableForHoldable,
                     oneRowScan,
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost);
+//            SpliceOperation op =  new TableScanOperation(
+//                    conglomId,
+//                    scoci,
+//                    activation,
+//                    resultRowAllocator,
+//                    resultSetNumber,
+//                    startKeyGetter,
+//                    startSearchOperator,
+//                    stopKeyGetter,
+//                    stopSearchOperator,
+//                    sameStartStopPosition,
+//                    qualifiersField,
+//                    tableName,
+//                    userSuppliedOptimizerOverrides,
+//                    indexName,
+//                    isConstraint,
+//                    forUpdate,
+//                    colRefItem,
+//                    indexColItem,
+//                    lockMode,
+//                    tableLocked,
+//                    isolationLevel,
+//                    rowsPerRead,
+//                    disableForHoldable,
+//                    oneRowScan,
+//                    optimizerEstimatedRowCount,
+//                    optimizerEstimatedCost);
 
             return new OperationResultSet(activation,op);
         }catch(Exception e){

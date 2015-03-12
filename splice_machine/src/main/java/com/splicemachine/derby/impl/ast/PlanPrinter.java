@@ -38,7 +38,12 @@ public class PlanPrinter extends AbstractSpliceVisitor {
 
     public static final String spaces = "  ";
     private boolean explain = false;
-    public static ThreadLocal<HashMap<String, String[]>> planMap = new ThreadLocal<HashMap<String, String[]>>();
+    public static ThreadLocal<Map<String,Map<Integer, String>>> planMap = new ThreadLocal<Map<String,Map<Integer,String>>>(){
+        @Override
+        protected Map<String,Map<Integer,String>> initialValue(){
+            return new HashMap<>();
+        }
+    };
 
     // Only visit root node
 
@@ -64,17 +69,14 @@ public class PlanPrinter extends AbstractSpliceVisitor {
                 node instanceof DMLStatementNode &&
                 (rsn = ((DMLStatementNode) node).getResultSetNode()) != null) {
 
-            String plan = treeToString(rsn);
-            HashMap<String, String[]> m = planMap.get();
-            if (m == null) {
-                m = new HashMap<>();
-                planMap.set(m);
-            }
-            m.put(query, plan.split("\n"));
+            Map<Integer,String> plan = planToString(rsn);
+            Map<String, Map<Integer, String>> m=planMap.get();
+            m.put(query, plan);
 
             if (LOG.isInfoEnabled()){
+                String treeToString = treeToString(rsn);
                 LOG.info(String.format("Plan nodes for query <<\n\t%s\n>>\n%s",
-                        query, plan));
+                        query, treeToString));
             }
             if (PLAN_LOG.isTraceEnabled()){
                 Gson gson = new GsonBuilder().setPrettyPrinting().create();
@@ -84,6 +86,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         explain = false;
         return node;
     }
+
 
     public static Map without(Map m, Object... keys){
         for (Object k: keys){
@@ -106,17 +109,21 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         return m;
     }
 
-    public static String infoToString(Map<String,Object> info)
-            throws StandardException {
+    public static String infoToString(Map<String,Object> info,boolean addSpaces) throws StandardException {
         Map<String,Object> copy = new HashMap<>(info);
         Object clazz = copy.get("class");
         Object results = copy.get("results");
         int level = (Integer)copy.get("level");
-        return String.format("%s%s (%s) %s",
-                Strings.repeat(spaces, level),
-                clazz,
-                prune(without(copy, "class", "results", "level", "subqueries", "children")),
-                results != null ? printResults(level+2, (List<Map<String, Object>>) results) : "");
+        String space;
+        if(addSpaces)
+           space = Strings.repeat(spaces,level);
+        else
+            space = "";
+            return String.format("%s%s (%s) %s",
+                    space,
+                    clazz,
+                    prune(without(copy, "class", "results", "level", "subqueries", "children")),
+                    results != null ? printResults(level+2, (List<Map<String, Object>>) results) : "");
     }
 
     private static String printResults(int nTimes, List<Map<String, Object>> results)  {
@@ -148,7 +155,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         info.put("cost", String.format("%.3f",co.getEstimatedCost()));
         info.put("estRowCount", co.getEstimatedRowCount());
         info.put("estSingleScanCount", String.format("%.3f",co.singleScanRowCount()));
-        info.put("regions", ((SortState) co).getNumberOfRegions());
+        info.put("partitions",co.partitionCount());
         if (Level.TRACE.equals(LOG.getLevel())) {
 //        if(LOG.isTraceEnabled()){
           // FIXME: FIND OUT WHY LOG.isTraceEnabled() always returns false
@@ -189,20 +196,20 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         if (rsn instanceof JoinNode){
             JoinNode j = (JoinNode) rsn;
             info.put("exe", RSUtils.ap(j).getJoinStrategy().getName());
-            info.put("preds", Lists.transform(PredicateUtils.PLtoList(j.joinPredicates),
-                                                PredicateUtils.predToString));
+            info.put("preds", Lists.transform(PredicateUtils.PLtoList(j.joinPredicates), PredicateUtils.predToString));
         }
         if (rsn instanceof FromBaseTable){
             FromBaseTable fbt = (FromBaseTable) rsn;
             ConglomerateDescriptor cd = fbt.getTrulyTheBestAccessPath().getConglomerateDescriptor();
-            info.put("table", String.format("%s,%s",
-                                fbt.getTableDescriptor().getName(),
-                                fbt.getTableDescriptor().getHeapConglomerateId()));
+            info.put("table", String.format("%s(%s)",
+                    fbt.getTableDescriptor().getName(),
+                    fbt.getTableDescriptor().getHeapConglomerateId()));
             info.put("quals", Lists.transform(preds(rsn),
                                                 PredicateUtils.predToString));
             if (cd.isIndex()) {
-                info.put("using-index", String.format("%s,%s", cd.getConglomerateName(),
-                                                                cd.getConglomerateNumber()));
+                info.put("using-index", String.format("%s(%s)",
+                        cd.getConglomerateName(),
+                        cd.getConglomerateNumber()));
             }
 
         }
@@ -274,9 +281,8 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         return nodes;
     }
 
-    public static String treeToString(Map<String,Object> nodeInfo)
-            throws StandardException {
-        List<Pair<Integer,Map>> subs = new LinkedList<Pair<Integer, Map>>();
+    public static String treeToString(Map<String,Object> nodeInfo) throws StandardException {
+        List<Pair<Integer,Map>> subs = new LinkedList<>();
         StringBuilder sb = new StringBuilder();
         List<Map<String,Object>> nodes = linearizeNodeInfoTree(nodeInfo);
         for (Map<String,Object> node: nodes){
@@ -286,7 +292,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
                     subs.add(new Pair<>((Integer)node.get("n"), subInfo));
                 }
             }
-            sb.append(infoToString(node));
+            sb.append(infoToString(node,true));
             sb.append("\n");
         }
         for (Pair<Integer,Map> sub: subs){
@@ -322,5 +328,23 @@ public class PlanPrinter extends AbstractSpliceVisitor {
             throw new IllegalArgumentException("Programmer error: Unable to determine class with predicates:"+t.getClass());
 
         return PredicateUtils.PLtoList(pl);
+    }
+
+    private static Map<Integer, String> planToString(ResultSetNode rsn) throws StandardException{
+        Map<String, Object> nodeInfo=nodeInfo(rsn,0);
+        Map<Integer,String> planMap = new HashMap<>();
+        pushPlanInfo(nodeInfo,planMap);
+        return planMap;
+    }
+
+    private static void pushPlanInfo(Map<String, Object> nodeInfo,Map<Integer, String> planMap) throws StandardException{
+        Integer rsn = (Integer)nodeInfo.get("n");
+
+        @SuppressWarnings("unchecked") List<Map<String,Object>> children = (List<Map<String,Object>>)nodeInfo.get("children");
+        String thisNodeInfo = infoToString(nodeInfo,false);
+        planMap.put(rsn,thisNodeInfo);
+        for(Map<String,Object> child:children){
+            pushPlanInfo(child,planMap);
+        }
     }
 }

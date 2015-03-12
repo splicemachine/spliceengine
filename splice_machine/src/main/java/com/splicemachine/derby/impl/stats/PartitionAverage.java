@@ -121,6 +121,14 @@ public class PartitionAverage implements PartitionStatistics {
     }
 
     @Override
+    public <T> ColumnStatistics<T> columnStatistics(int columnId){
+        for(ColumnStatistics stats:columnStats){
+            if(stats.columnId()==columnId) return stats;
+        }
+        return null;
+    }
+
+    @Override
     public PartitionStatistics merge(PartitionStatistics other) {
         totalRowCount+=other.rowCount();
         totalSize+=other.totalSize();
