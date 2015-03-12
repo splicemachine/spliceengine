@@ -91,8 +91,11 @@ public class DataDictionaryUtils {
         DataDictionary dd = lcc.getDataDictionary();
         TableDescriptor td = dd.getTableDescriptor(tableId);
 
-        ColumnDescriptorList cdList = td.getColumnDescriptorList();
-        return getFormatIds(cdList);
+        if (td != null) {
+            return getFormatIds(td.getColumnDescriptorList());
+        } else {
+            return new int[0];
+        }
     }
 
     public static int[] getFormatIds(ColumnDescriptorList cdList) throws StandardException {

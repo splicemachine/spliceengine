@@ -101,15 +101,15 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
         DependencyManager dm = dd.getDependencyManager();
-		    /*
-				** Inform the data dictionary that we are about to write to it.
-				** There are several calls to data dictionary "get" methods here
-				** that might be done in "read" mode in the data dictionary, but
-				** it seemed safer to do this whole operation in "write" mode.
-				**
-				** We tell the data dictionary we're done writing at the end of
-				** the transaction.
-				*/
+        /*
+        ** Inform the data dictionary that we are about to write to it.
+        ** There are several calls to data dictionary "get" methods here
+        ** that might be done in "read" mode in the data dictionary, but
+        ** it seemed safer to do this whole operation in "write" mode.
+        **
+        ** We tell the data dictionary we're done writing at the end of
+        ** the transaction.
+        */
         dd.startWriting(lcc);
 
         // now do the real work
@@ -127,20 +127,20 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         // Save the TableDescriptor off in the Activation
         activation.setDDLTableDescriptor(td);
 
-		   /*
-		    ** If the schema descriptor is null, then we must have just read
+		/*
+		** If the schema descriptor is null, then we must have just read
         ** ourselves in.  So we will get the corresponding schema descriptor
         ** from the data dictionary.
-		    */
+        */
         if (sd == null) {
             sd = getAndCheckSchemaDescriptor(dd, schemaId, "ALTER TABLE");
         }
 
-		    /* Prepare all dependents to invalidate.  (This is their chance
-		     * to say that they can't be invalidated.  For example, an open
-		     * cursor referencing a table/view that the user is attempting to
-		     * alter.) If no one objects, then invalidate any dependent objects.
-		     */
+        /* Prepare all dependents to invalidate.  (This is their chance
+         * to say that they can't be invalidated.  For example, an open
+         * cursor referencing a table/view that the user is attempting to
+         * alter.) If no one objects, then invalidate any dependent objects.
+         */
         //TODO -sf- do we need to invalidate twice?
         dm.invalidateFor(td, DependencyManager.ALTER_TABLE, lcc);
 
@@ -160,20 +160,20 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         boolean tableScanned = false;
         int numRows = -1;
 
-				/* NOTE: We only allow a single column to be added within
-				 * each ALTER TABLE command at the language level.  However,
-				 * this may change some day, so we will try to plan for it.
-				 *
-				 * for each new column, see if the user is adding a non-nullable
-				 * column.  This is only allowed on an empty table.
-				 */
+        /* NOTE: We only allow a single column to be added within
+         * each ALTER TABLE command at the language level.  However,
+         * this may change some day, so we will try to plan for it.
+         *
+         * for each new column, see if the user is adding a non-nullable
+         * column.  This is only allowed on an empty table.
+         */
         for (ColumnInfo aColumnInfo : columnInfo) {
             /* Is this new column non-nullable?
-						 * If so, it can only be added to an
-						 * empty table if it does not have a default value.
-						 * We need to scan the table to find out how many rows
-						 * there are.
-						 */
+             * If so, it can only be added to an
+             * empty table if it does not have a default value.
+             * We need to scan the table to find out how many rows
+             * there are.
+             */
             if ((aColumnInfo.action == ColumnInfo.CREATE) && !(aColumnInfo.dataType.isNullable()) &&
                     (aColumnInfo.defaultInfo == null) && (aColumnInfo.autoincInc == 0)) {
                 tableNeedsScanning = true;
@@ -220,14 +220,14 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                     colNames[0]        = columnInfo[ix].name;
                     boolean nullCols[] = new boolean[1];
 
-									      /* note validateNotNullConstraint returns true if the
-									      * column is nullable
-									      */
+                    /* note validateNotNullConstraint returns true if the
+                     * column is nullable
+                     */
                     if (validateNotNullConstraint(colNames, nullCols, numRows, lcc, td,SQLState.LANG_NULL_DATA_IN_NON_NULL_COLUMN)) {
-										        /* nullable column - modify it to be not null
-										         * This is O.K. at this point since we would have
-										         * thrown an exception if any data was null
-										         */
+                        /* nullable column - modify it to be not null
+                         * This is O.K. at this point since we would have
+                         * thrown an exception if any data was null
+                         */
                         modifyColumnConstraint(activation,td,columnInfo[ix].name, false);
                     }
                     break;
@@ -407,9 +407,9 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         if ( defaultInfo.isGeneratedColumn() ) { defaultText = "default"; }
         else { defaultText = columnDescriptor.getDefaultInfo().getDefaultText(); }
 
-		    /* Need to use delimited identifiers for all object names
-		     * to ensure correctness.
-		     */
+        /* Need to use delimited identifiers for all object names
+         * to ensure correctness.
+         */
         String updateStmt = "UPDATE " +
                 IdUtil.mkQualifiedName(td.getSchemaName(), td.getName()) +
                 " SET " + IdUtil.normalToDelimited(columnName) + "=" +
@@ -440,14 +440,14 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
 
         UUID defaultUUID = colInfo.newDefaultUUID;
 
-		    /* Generate a UUID for the default, if one exists
-		     * and there is no default id yet.
-		     */
+        /* Generate a UUID for the default, if one exists
+         * and there is no default id yet.
+         */
         if (colInfo.defaultInfo != null && defaultUUID == null) {
             defaultUUID = dd.getUUIDFactory().createUUID();
         }
 
-		    /* Get a ColumnDescriptor reflecting the new default */
+        /* Get a ColumnDescriptor reflecting the new default */
         columnDescriptor = new ColumnDescriptor(
                 colInfo.name,
                 columnPosition,
@@ -694,7 +694,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         // drop any generated columns which reference this column
         ColumnDescriptorList generatedColumnList = td.getGeneratedColumns();
         int generatedColumnCount = generatedColumnList.size();
-        List<String> cascadedDroppedColumns = new ArrayList<String>(generatedColumnCount);
+        List<String> cascadedDroppedColumns = new ArrayList<>(generatedColumnCount);
         for ( int i = 0; i < generatedColumnCount; i++ ) {
             ColumnDescriptor generatedColumn = generatedColumnList.elementAt( i );
             String[] referencedColumnNames = generatedColumn.getDefaultInfo().getReferencedColumnNames();
@@ -770,219 +770,22 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         //Now go through each trigger on this table and see if the column
         //being dropped is part of it's trigger columns or trigger action
         //columns which are used through REFERENCING clause
-        GenericDescriptorList tdl = dd.getTriggerDescriptors(td);
-        for (Object aTdl : tdl) {
-            TriggerDescriptor trd = (TriggerDescriptor) aTdl;
-            //If we find that the trigger is dependent on the column being
-            //dropped because column is part of trigger columns list, then
-            //we will give a warning or drop the trigger based on whether
-            //ALTER TABLE DROP COLUMN is RESTRICT or CASCADE. In such a
-            //case, no need to check if the trigger action columns referenced
-            //through REFERENCING clause also used the column being dropped.
-            boolean triggerDroppedAlready = false;
+        handleTriggers(activation, td, columnName, droppedColumnPosition, lcc, dd,
+                       dm.getActionString(DependencyManager.DROP_COLUMN), cascade, tc);
 
-            int[] referencedCols = trd.getReferencedCols();
-            if (referencedCols != null) {
-                int refColLen = referencedCols.length, j;
-                boolean changed = false;
-                for (j = 0; j < refColLen; j++) {
-                    if (referencedCols[j] > droppedColumnPosition) {
-                        //Trigger is not defined on the column being dropped
-                        //but the column position of trigger column is changing
-                        //because the position of the column being dropped is
-                        //before the the trigger column
-                        changed = true;
-                    } else if (referencedCols[j] == droppedColumnPosition) {
-                        //the trigger is defined on the column being dropped
-                        if (cascade) {
-                            trd.drop(lcc);
-                            triggerDroppedAlready = true;
-                            activation.addWarning(
-                                    StandardException.newWarning(
-                                            SQLState.LANG_TRIGGER_DROPPED,
-                                            trd.getName(), td.getName()));
-                        } else {  // we'd better give an error if don't drop it,
-                            // otherwsie there would be unexpected behaviors
-                            throw ErrorState.LANG_PROVIDER_HAS_DEPENDENT_OBJECT.newException(
-                                    SQLState.LANG_PROVIDER_HAS_DEPENDENT_OBJECT,
-                                    dm.getActionString(DependencyManager.DROP_COLUMN),
-                                    columnName, "TRIGGER",
-                                    trd.getName());
-                        }
-                        break;
-                    }
-                }
+        // Now handle constraints
+        List<ConstantAction> newCongloms = handleConstraints(activation, td, columnName, lcc, dd, dm, cascade, tc,
+                                                             droppedColumnPosition);
 
-                // The following if condition will be true if the column
-                // getting dropped is not a trigger column, but one or more
-                // of the trigge column's position has changed because of
-                // drop column.
-                if (j == refColLen && changed) {
-                    dd.dropTriggerDescriptor(trd, tc);
-                    for (j = 0; j < refColLen; j++) {
-                        if (referencedCols[j] > droppedColumnPosition)
-                            referencedCols[j]--;
-                    }
-                    dd.addDescriptor(trd, sd,
-                            DataDictionary.SYSTRIGGERS_CATALOG_NUM,
-                            false, tc);
-                }
-            }
-
-            // If the trigger under consideration got dropped through the
-            // loop above, then move to next trigger
-            if (triggerDroppedAlready) continue;
-
-            // Column being dropped is not one of trigger columns. Check if
-            // that column is getting used inside the trigger action through
-            // REFERENCING clause. This can be tracked only for triggers
-            // created in 10.7 and higher releases. Derby releases prior to
-            // that did not keep track of trigger action columns used
-            // through the REFERENCING clause.
-            int[] referencedColsInTriggerAction = trd.getReferencedColsInTriggerAction();
-            if (referencedColsInTriggerAction != null) {
-                int refColInTriggerActionLen = referencedColsInTriggerAction.length, j;
-                boolean changedColPositionInTriggerAction = false;
-                for (j = 0; j < refColInTriggerActionLen; j++) {
-                    if (referencedColsInTriggerAction[j] > droppedColumnPosition) {
-                        changedColPositionInTriggerAction = true;
-                    } else if (referencedColsInTriggerAction[j] == droppedColumnPosition) {
-                        if (cascade) {
-                            trd.drop(lcc);
-                            activation.addWarning(
-                                    StandardException.newWarning(
-                                            SQLState.LANG_TRIGGER_DROPPED,
-                                            trd.getName(), td.getName()));
-                        } else {  // we'd better give an error if don't drop it,
-                            throw StandardException.newException(
-                                    SQLState.LANG_PROVIDER_HAS_DEPENDENT_OBJECT,
-                                    dm.getActionString(DependencyManager.DROP_COLUMN),
-                                    columnName, "TRIGGER",
-                                    trd.getName());
-                        }
-                        break;
-                    }
-                }
-
-                // change trigger to refer to columns in new positions
-                // The following if condition will be true if the column
-                // getting dropped is not getting used in the trigger action
-                // sql through the REFERENCING clause but one or more of those
-                // column's position has changed because of drop column.
-                // This applies only to triggers created with 10.7 and higher.
-                // Prior to that, Derby did not keep track of the trigger
-                // action column used through the REFERENCING clause. Such
-                // triggers will be caught later on in this method after the
-                // column has been actually dropped from the table descriptor.
-                if (j == refColInTriggerActionLen && changedColPositionInTriggerAction) {
-                    dd.dropTriggerDescriptor(trd, tc);
-                    for (j = 0; j < refColInTriggerActionLen; j++) {
-                        if (referencedColsInTriggerAction[j] > droppedColumnPosition)
-                            referencedColsInTriggerAction[j]--;
-                    }
-                    dd.addDescriptor(trd, sd,
-                            DataDictionary.SYSTRIGGERS_CATALOG_NUM,
-                            false, tc);
-                }
-            }
-        }
-
-        ConstraintDescriptorList csdl = dd.getConstraintDescriptors(td);
-        int csdl_size = csdl.size();
-
-        ArrayList newCongloms = new ArrayList();
-
-        // we want to remove referenced primary/unique keys in the second
-        // round.  This will ensure that self-referential constraints will
-        // work OK.
-        int tbr_size = 0;
-        ConstraintDescriptor[] toBeRemoved = new ConstraintDescriptor[csdl_size];
-
-        // let's go downwards, don't want to get messed up while removing
-        for (int i = csdl_size - 1; i >= 0; i--) {
-            ConstraintDescriptor cd = csdl.elementAt(i);
-            int[] referencedColumns = cd.getReferencedColumns();
-            int numRefCols = referencedColumns.length, j;
-            boolean changed = false;
-            for (j = 0; j < numRefCols; j++) {
-                if (referencedColumns[j] > droppedColumnPosition)
-                    changed = true;
-                if (referencedColumns[j] == droppedColumnPosition)
-                    break;
-            }
-            if (j == numRefCols) {// column not referenced
-                if ((cd instanceof CheckConstraintDescriptor) && changed) {
-                    dd.dropConstraintDescriptor(cd, tc);
-                    for (j = 0; j < numRefCols; j++) {
-                        if (referencedColumns[j] > droppedColumnPosition)
-                            referencedColumns[j]--;
-                    }
-                    ((CheckConstraintDescriptor) cd).setReferencedColumnsDescriptor(new ReferencedColumnsDescriptorImpl(referencedColumns));
-                    dd.addConstraintDescriptor(cd, tc);
-                }
-                continue;
-            }
-
-            if (! cascade) {
-                // Reject the DROP COLUMN, because there exists a constraint
-                // which references this column.
-                //
-                throw ErrorState.LANG_PROVIDER_HAS_DEPENDENT_OBJECT.newException(
-                        SQLState.LANG_PROVIDER_HAS_DEPENDENT_OBJECT,
-                        dm.getActionString(DependencyManager.DROP_COLUMN),
-                        columnName, "CONSTRAINT",
-                        cd.getConstraintName() );
-            }
-
-            if (cd instanceof ReferencedKeyConstraintDescriptor) {
-                // restrict will raise an error in invalidate if referenced
-                toBeRemoved[tbr_size++] = cd;
-                continue;
-            }
-
-            // drop now in all other cases
-            dm.invalidateFor(cd, DependencyManager.DROP_CONSTRAINT, lcc);
-
-            dropConstraint(cd, td, newCongloms, activation, lcc, true);
-            activation.addWarning( StandardException.newWarning(SQLState.LANG_CONSTRAINT_DROPPED,
-                            cd.getConstraintName(), td.getName()));
-        }
-
-        for (int i = tbr_size - 1; i >= 0; i--) {
-            ConstraintDescriptor cd = toBeRemoved[i];
-            dropConstraint(cd, td, newCongloms, activation, lcc, false);
-
-            activation.addWarning( StandardException.newWarning(SQLState.LANG_CONSTRAINT_DROPPED,
-                            cd.getConstraintName(), td.getName()));
-
-            if (cascade) {
-                ConstraintDescriptorList fkcdl = dd.getForeignKeys(cd.getUUID());
-                for (int j = 0; j < fkcdl.size(); j++) {
-                    ConstraintDescriptor fkcd = fkcdl.elementAt(j);
-                    dm.invalidateFor(fkcd, DependencyManager.DROP_CONSTRAINT, lcc);
-
-                    dropConstraint(fkcd, td, newCongloms, activation, lcc, true);
-
-                    activation.addWarning( StandardException.newWarning(
-                                    SQLState.LANG_CONSTRAINT_DROPPED,
-                                    fkcd.getConstraintName(),
-                                    fkcd.getTableDescriptor().getName()));
-                }
-            }
-
-            dm.invalidateFor(cd, DependencyManager.DROP_CONSTRAINT, lcc);
-            dm.clearDependencies(lcc, cd);
-        }
-
-		    /* If there are new backing conglomerates which must be
-		     * created to replace a dropped shared conglomerate
-		     * (where the shared conglomerate was dropped as part
-		     * of a "drop constraint" call above), then create them
-		     * now.  We do this *after* dropping all dependent
-		     * constraints because we don't want to waste time
-		     * creating a new conglomerate if it's just going to be
-		     * dropped again as part of another "drop constraint".
-		     */
+        /* If there are new backing conglomerates which must be
+         * created to replace a dropped shared conglomerate
+         * (where the shared conglomerate was dropped as part
+         * of a "drop constraint" call above), then create them
+         * now.  We do this *after* dropping all dependent
+         * constraints because we don't want to waste time
+         * creating a new conglomerate if it's just going to be
+         * dropped again as part of another "drop constraint".
+         */
         createNewBackingCongloms(activation,td,newCongloms, null);
 
         /*
@@ -1105,6 +908,246 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         // list in case we were called recursively in order to cascade-drop a
         // dependent generated column.
         tab_cdl.remove( td.getColumnDescriptor( columnName ) );
+    }
+
+    private List<ConstantAction> handleConstraints(Activation activation,
+                                                   TableDescriptor td,
+                                                   String columnName,
+                                                   LanguageConnectionContext lcc,
+                                                   DataDictionary dd,
+                                                   DependencyManager dm,
+                                                   boolean cascade,
+                                                   TransactionController tc,
+                                                   int droppedColumnPosition) throws StandardException {
+        ConstraintDescriptorList csdl = dd.getConstraintDescriptors(td);
+        int csdl_size = csdl.size();
+
+        List<ConstantAction> newCongloms = new ArrayList<>();
+
+        // we want to remove referenced primary/unique keys in the second
+        // round.  This will ensure that self-referential constraints will
+        // work OK.
+        int tbr_size = 0;
+        ConstraintDescriptor[] toBeRemoved = new ConstraintDescriptor[csdl_size];
+
+        // let's go downwards, don't want to get messed up while removing
+        for (int i = csdl_size - 1; i >= 0; i--) {
+            ConstraintDescriptor cd = csdl.elementAt(i);
+            int[] referencedColumns = cd.getReferencedColumns();
+            int numRefCols = referencedColumns.length, j;
+            boolean changed = false;
+            for (j = 0; j < numRefCols; j++) {
+                if (referencedColumns[j] > droppedColumnPosition)
+                    changed = true;
+                if (referencedColumns[j] == droppedColumnPosition)
+                    break;
+            }
+            if (j == numRefCols) {// column not referenced
+                if ((cd instanceof CheckConstraintDescriptor) && changed) {
+                    dd.dropConstraintDescriptor(cd, tc);
+                    for (j = 0; j < numRefCols; j++) {
+                        if (referencedColumns[j] > droppedColumnPosition)
+                            referencedColumns[j]--;
+                    }
+                    ((CheckConstraintDescriptor) cd).setReferencedColumnsDescriptor(new ReferencedColumnsDescriptorImpl(referencedColumns));
+                    dd.addConstraintDescriptor(cd, tc);
+                }
+                continue;
+            }
+
+            if (! cascade) {
+                // Reject the DROP COLUMN, because there exists a constraint
+                // which references this column.
+                //
+                throw ErrorState.LANG_PROVIDER_HAS_DEPENDENT_OBJECT.newException(
+                        SQLState.LANG_PROVIDER_HAS_DEPENDENT_OBJECT,
+                        dm.getActionString(DependencyManager.DROP_COLUMN),
+                        columnName, "CONSTRAINT",
+                        cd.getConstraintName() );
+            }
+
+            if (cd instanceof ReferencedKeyConstraintDescriptor) {
+                // restrict will raise an error in invalidate if referenced
+                toBeRemoved[tbr_size++] = cd;
+                continue;
+            }
+
+            // drop now in all other cases
+            dm.invalidateFor(cd, DependencyManager.DROP_CONSTRAINT, lcc);
+
+            dropConstraint(cd, td, newCongloms, activation, lcc, true);
+            activation.addWarning( StandardException.newWarning(SQLState.LANG_CONSTRAINT_DROPPED,
+                            cd.getConstraintName(), td.getName()));
+        }
+
+        for (int i = tbr_size - 1; i >= 0; i--) {
+            ConstraintDescriptor cd = toBeRemoved[i];
+            dropConstraint(cd, td, newCongloms, activation, lcc, false);
+
+            activation.addWarning( StandardException.newWarning(SQLState.LANG_CONSTRAINT_DROPPED,
+                            cd.getConstraintName(), td.getName()));
+
+            if (cascade) {
+                ConstraintDescriptorList fkcdl = dd.getForeignKeys(cd.getUUID());
+                for (int j = 0; j < fkcdl.size(); j++) {
+                    ConstraintDescriptor fkcd = fkcdl.elementAt(j);
+                    dm.invalidateFor(fkcd, DependencyManager.DROP_CONSTRAINT, lcc);
+
+                    dropConstraint(fkcd, td, newCongloms, activation, lcc, true);
+
+                    activation.addWarning( StandardException.newWarning(
+                                    SQLState.LANG_CONSTRAINT_DROPPED,
+                                    fkcd.getConstraintName(),
+                                    fkcd.getTableDescriptor().getName()));
+                }
+            }
+
+            dm.invalidateFor(cd, DependencyManager.DROP_CONSTRAINT, lcc);
+            dm.clearDependencies(lcc, cd);
+        }
+        return newCongloms;
+    }
+
+    /**
+     * Handle triggers on the table.  It may be that a trigger is on the column being dropped, in
+     * which case we can drop the trigger too, or it the trigger could be on an adjacent column,
+     * in which case we have to move the adjacent column and its trigger too.
+     * @param activation the activation in case we need to set some warnings.
+     * @param td descriptor of the table we're altering.
+     * @param columnName the name of the column we're working on
+     * @param droppedColumnPosition the zero-based position of the column in the table
+     * @param lcc required for trigger drop
+     * @param dd required for trigger drop
+     * @param dropColumnActionString string used in exception msgs
+     * @param cascade drop dependencies too?
+     * @param tc used to assure triggers are dropped transitionally
+     * @throws StandardException
+     */
+    private void handleTriggers(Activation activation,
+                                TableDescriptor td,
+                                String columnName,
+                                int droppedColumnPosition,
+                                LanguageConnectionContext lcc,
+                                DataDictionary dd,
+                                String dropColumnActionString,
+                                boolean cascade,
+                                TransactionController tc) throws StandardException {
+        GenericDescriptorList tdl = dd.getTriggerDescriptors(td);
+        for (Object aTdl : tdl) {
+            TriggerDescriptor trd = (TriggerDescriptor) aTdl;
+            //If we find that the trigger is dependent on the column being
+            //dropped because column is part of trigger columns list, then
+            //we will give a warning or drop the trigger based on whether
+            //ALTER TABLE DROP COLUMN is RESTRICT or CASCADE. In such a
+            //case, no need to check if the trigger action columns referenced
+            //through REFERENCING clause also used the column being dropped.
+            boolean triggerDroppedAlready = false;
+
+            int[] referencedCols = trd.getReferencedCols();
+            if (referencedCols != null) {
+                int refColLen = referencedCols.length, j;
+                boolean changed = false;
+                for (j = 0; j < refColLen; j++) {
+                    if (referencedCols[j] > droppedColumnPosition) {
+                        //Trigger is not defined on the column being dropped
+                        //but the column position of trigger column is changing
+                        //because the position of the column being dropped is
+                        //before the the trigger column
+                        changed = true;
+                    } else if (referencedCols[j] == droppedColumnPosition) {
+                        //the trigger is defined on the column being dropped
+                        if (cascade) {
+                            trd.drop(lcc);
+                            triggerDroppedAlready = true;
+                            activation.addWarning(
+                                    StandardException.newWarning(
+                                            SQLState.LANG_TRIGGER_DROPPED,
+                                            trd.getName(), td.getName()));
+                        } else {  // we'd better give an error if don't drop it,
+                            // otherwsie there would be unexpected behaviors
+                            throw ErrorState.LANG_PROVIDER_HAS_DEPENDENT_OBJECT.newException(
+                                    SQLState.LANG_PROVIDER_HAS_DEPENDENT_OBJECT,
+                                    dropColumnActionString,
+                                    columnName, "TRIGGER",
+                                    trd.getName());
+                        }
+                        break;
+                    }
+                }
+
+                // The following if condition will be true if the column
+                // getting dropped is not a trigger column, but one or more
+                // of the trigger column's position has changed because of
+                // drop column.
+                if (j == refColLen && changed) {
+                    dd.dropTriggerDescriptor(trd, tc);
+                    for (j = 0; j < refColLen; j++) {
+                        if (referencedCols[j] > droppedColumnPosition)
+                            referencedCols[j]--;
+                    }
+                    dd.addDescriptor(trd, sd,
+                            DataDictionary.SYSTRIGGERS_CATALOG_NUM,
+                            false, tc);
+                }
+            }
+
+            // If the trigger under consideration got dropped through the
+            // loop above, then move to next trigger
+            if (triggerDroppedAlready) continue;
+
+            // Column being dropped is not one of trigger columns. Check if
+            // that column is getting used inside the trigger action through
+            // REFERENCING clause. This can be tracked only for triggers
+            // created in 10.7 and higher releases. Derby releases prior to
+            // that did not keep track of trigger action columns used
+            // through the REFERENCING clause.
+            int[] referencedColsInTriggerAction = trd.getReferencedColsInTriggerAction();
+            if (referencedColsInTriggerAction != null) {
+                int refColInTriggerActionLen = referencedColsInTriggerAction.length, j;
+                boolean changedColPositionInTriggerAction = false;
+                for (j = 0; j < refColInTriggerActionLen; j++) {
+                    if (referencedColsInTriggerAction[j] > droppedColumnPosition) {
+                        changedColPositionInTriggerAction = true;
+                    } else if (referencedColsInTriggerAction[j] == droppedColumnPosition) {
+                        if (cascade) {
+                            trd.drop(lcc);
+                            activation.addWarning(
+                                    StandardException.newWarning(
+                                            SQLState.LANG_TRIGGER_DROPPED,
+                                            trd.getName(), td.getName()));
+                        } else {  // we'd better give an error if don't drop it,
+                            throw StandardException.newException(
+                                    SQLState.LANG_PROVIDER_HAS_DEPENDENT_OBJECT,
+                                    dropColumnActionString,
+                                    columnName, "TRIGGER",
+                                    trd.getName());
+                        }
+                        break;
+                    }
+                }
+
+                // change trigger to refer to columns in new positions
+                // The following if condition will be true if the column
+                // getting dropped is not getting used in the trigger action
+                // sql through the REFERENCING clause but one or more of those
+                // column's position has changed because of drop column.
+                // This applies only to triggers created with 10.7 and higher.
+                // Prior to that, Derby did not keep track of the trigger
+                // action column used through the REFERENCING clause. Such
+                // triggers will be caught later on in this method after the
+                // column has been actually dropped from the table descriptor.
+                if (j == refColInTriggerActionLen && changedColPositionInTriggerAction) {
+                    dd.dropTriggerDescriptor(trd, tc);
+                    for (j = 0; j < refColInTriggerActionLen; j++) {
+                        if (referencedColsInTriggerAction[j] > droppedColumnPosition)
+                            referencedColsInTriggerAction[j]--;
+                    }
+                    dd.addDescriptor(trd, sd,
+                            DataDictionary.SYSTRIGGERS_CATALOG_NUM,
+                            false, tc);
+                }
+            }
+        }
     }
 
     private void columnDroppedAndTriggerDependencies(TriggerDescriptor trd,
@@ -1278,6 +1321,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         */
         dd.addDescriptor(trd, sd, DataDictionary.SYSTRIGGERS_CATALOG_NUM, false, tc);
     }
+
     /**
      * Iterate through the received list of CreateIndexConstantActions and
      * execute each one, It's possible that one or more of the constant
@@ -1293,24 +1337,27 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
      *   be updated to have the conglomerate number of the newly-created
      *   physical conglomerate.
      */
-    private void createNewBackingCongloms(Activation activation, TableDescriptor td,ArrayList newConglomActions, long [] ixCongNums) throws StandardException {
+    private void createNewBackingCongloms(Activation activation,
+                                          TableDescriptor td,
+                                          List<ConstantAction> newConglomActions,
+                                          long [] ixCongNums) throws StandardException {
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
-        for (Object newConglomAction : newConglomActions) {
+        for (ConstantAction newConglomAction : newConglomActions) {
             CreateIndexConstantOperation ca = (CreateIndexConstantOperation) newConglomAction;
 
             if (dd.getConglomerateDescriptor(ca.getCreatedUUID()) == null) {
-				        /* Conglomerate descriptor was dropped after
-								 * being selected as the source for a new
-								 * conglomerate, so don't create the new
-								 * conglomerate after all.  Either we found
-								 * another conglomerate descriptor that can
-								 * serve as the source for the new conglom,
-								 * or else we don't need a new conglomerate
-								 * at all because all constraints/indexes
-								 * which shared it had a dependency on the
-								 * dropped column and no longer exist.
-								 */
+                /* Conglomerate descriptor was dropped after
+                 * being selected as the source for a new
+                 * conglomerate, so don't create the new
+                 * conglomerate after all.  Either we found
+                 * another conglomerate descriptor that can
+                 * serve as the source for the new conglom,
+                 * or else we don't need a new conglomerate
+                 * at all because all constraints/indexes
+                 * which shared it had a dependency on the
+                 * dropped column and no longer exist.
+                 */
                 continue;
             }
 
@@ -1318,36 +1365,36 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
             long oldCongNum = ca.getReplacedConglomNumber();
             long newCongNum = ca.getCreatedConglomNumber();
 
-						/* The preceding call to executeConglomReplacement updated all
-						 * relevant ConglomerateDescriptors with the new conglomerate
-						 * number *WITHIN THE DATA DICTIONARY*.  But the table
-						 * descriptor that we have will not have been updated.
-						 * There are two approaches to syncing the table descriptor
-						 * with the dictionary: 1) refetch the table descriptor from
-						 * the dictionary, or 2) update the table descriptor directly.
-						 * We choose option #2 because the caller of this method (esp.
-						 * getAffectedIndexes()) has pointers to objects from the
-						 * table descriptor as it was before we entered this method.
-						 * It then changes data within those objects, with the
-						 * expectation that, later, those objects can be used to
-						 * persist the changes to disk.  If we change the table
-						 * descriptor here the objects that will get persisted to
-						 * disk (from the table descriptor) will *not* be the same
-						 * as the objects that were updated--so we'll lose the updates
-						 * and that will in turn cause other problems.  So we go with
-						 * option #2 and just change the existing TableDescriptor to
-						 * reflect the fact that the conglomerate number has changed.
-						 */
+            /* The preceding call to executeConglomReplacement updated all
+             * relevant ConglomerateDescriptors with the new conglomerate
+             * number *WITHIN THE DATA DICTIONARY*.  But the table
+             * descriptor that we have will not have been updated.
+             * There are two approaches to syncing the table descriptor
+             * with the dictionary: 1) refetch the table descriptor from
+             * the dictionary, or 2) update the table descriptor directly.
+             * We choose option #2 because the caller of this method (esp.
+             * getAffectedIndexes()) has pointers to objects from the
+             * table descriptor as it was before we entered this method.
+             * It then changes data within those objects, with the
+             * expectation that, later, those objects can be used to
+             * persist the changes to disk.  If we change the table
+             * descriptor here, the objects that will get persisted to
+             * disk (from the table descriptor) will *not* be the same
+             * as the objects that were updated--so we'll lose the updates
+             * and that will in turn cause other problems.  So we go with
+             * option #2 and just change the existing TableDescriptor to
+             * reflect the fact that the conglomerate number has changed.
+             */
             ConglomerateDescriptor[] tdCDs = td.getConglomerateDescriptors(oldCongNum);
 
             for (ConglomerateDescriptor tdCD : tdCDs)
                 tdCD.setConglomerateNumber(newCongNum);
 
-						/* If we received a list of index conglomerate numbers
-						 * then they are the "old" numbers; see if any of those
-						 * numbers should now be updated to reflect the new
-						 * conglomerate, and if so, update them.
-						 */
+            /* If we received a list of index conglomerate numbers
+             * then they are the "old" numbers; see if any of those
+             * numbers should now be updated to reflect the new
+             * conglomerate, and if so, update them.
+             */
             if (ixCongNums != null) {
                 for (int j = 0; j < ixCongNums.length; j++) {
                     if (ixCongNums[j] == oldCongNum)
