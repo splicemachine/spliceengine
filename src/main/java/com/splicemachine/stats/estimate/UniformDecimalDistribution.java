@@ -43,6 +43,8 @@ public class UniformDecimalDistribution extends BaseDistribution<BigDecimal> {
         if(includeStop)
             baseEstimate+=rowsPerEntry;
 
+        //if we are the min value, don't include the start key in frequent elements
+        includeStart = includeStart &&!isMin;
         //now adjust for the frequent elements in the set
         Set<? extends FrequencyEstimate<BigDecimal>> fe = columnStats.topK().frequentElementsBetween(start,stop,includeStart,includeStop);
         baseEstimate-= fe.size()*rowsPerEntry;

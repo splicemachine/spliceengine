@@ -94,6 +94,8 @@ public class UniformShortDistribution extends BaseDistribution<Short> implements
 
         //adjust using Frequent Elements
         ShortFrequentElements sfe = (ShortFrequentElements)columnStats.topK();
+        //if we are the min value, don't include the start key in frequent elements
+        includeStart = includeStart &&!isMin;
         Set<ShortFrequencyEstimate> shortFrequencyEstimates = sfe.frequentBetween(start, stop, includeStart, includeStop);
         baseEstimate-=shortFrequencyEstimates.size()*perRowCount;
         for(ShortFrequencyEstimate est:shortFrequencyEstimates){

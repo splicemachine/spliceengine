@@ -86,6 +86,8 @@ public class UniformStringDistribution extends BaseDistribution<String> {
             baseEstimate+=countPerEntry;
 
         FrequentElements<String> fe = columnStats.topK();
+        //if we are the min value, don't include the start key in frequent elements
+        includeStart = includeStart &&!isMin;
         Set<? extends FrequencyEstimate<String>> estimates = fe.frequentElementsBetween(start, stop, includeStart, includeStop);
         baseEstimate-=countPerEntry*estimates.size();
         for(FrequencyEstimate<String> est:estimates){

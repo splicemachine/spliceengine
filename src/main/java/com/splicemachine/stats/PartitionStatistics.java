@@ -84,5 +84,13 @@ public interface PartitionStatistics extends Mergeable<PartitionStatistics> {
      */
     List<ColumnStatistics> columnStatistics();
 
+    /**
+     * @param columnId the identifier of the column to fetch(indexed from 0)
+     * @param <T> the expected type of statistics to return
+     * @return statistics for the column, if such statistics exist, or {@code null} if
+     * no statistics are available for that column.
+     */
+    <T> ColumnStatistics<T> columnStatistics(int columnId);
+
     <T> Distribution<T> columnDistribution(int columnId);
 }

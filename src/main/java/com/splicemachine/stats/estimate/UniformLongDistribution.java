@@ -95,6 +95,8 @@ public class UniformLongDistribution extends BaseDistribution<Long> implements L
 
         //adjust using Frequent Elements
         LongFrequentElements sfe = (LongFrequentElements)columnStats.topK();
+        //if we are the min value, don't include the start key in frequent elements
+        includeStart = includeStart &&!isMin;
         Set<LongFrequencyEstimate> longFrequencyEstimates = sfe.frequentBetween(start, stop, includeStart, includeStop);
         baseEstimate-=longFrequencyEstimates.size()*perRowCount;
         for(LongFrequencyEstimate est:longFrequencyEstimates){

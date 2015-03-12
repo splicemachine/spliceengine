@@ -93,6 +93,8 @@ public class UniformFloatDistribution extends BaseDistribution<Float> implements
             baseEstimate+=perEntryCount;
 
         FloatFrequentElements ife = (FloatFrequentElements)columnStats.topK();
+        //if we are the min value, don't include the start key in frequent elements
+        includeStart = includeStart &&!isMin;
         Set<FloatFrequencyEstimate> ffe = ife.frequentBetween(start, stop, includeStart, includeStop);
         baseEstimate-=perEntryCount*ffe.size();
         for(FloatFrequencyEstimate est:ffe){

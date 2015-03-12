@@ -94,6 +94,8 @@ public class UniformDoubleDistribution extends BaseDistribution<Double> implemen
             baseEstimate+=perEntryCount;
 
         DoubleFrequentElements ife = (DoubleFrequentElements)columnStats.topK();
+        //if we are the min value, don't include the start key in frequent elements
+        includeStart = includeStart &&!isMin;
         Set<DoubleFrequencyEstimate> ffe = ife.frequentBetween(start, stop, includeStart, includeStop);
         baseEstimate-=perEntryCount*ffe.size();
         for(DoubleFrequencyEstimate est:ffe){

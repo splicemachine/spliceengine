@@ -134,6 +134,8 @@ public class UniformByteDistribution extends BaseDistribution<Byte> implements B
          * Now adjust using Frequent Elements
          */
         ByteFrequentElements bfe = (ByteFrequentElements)columnStats.topK();
+        //if we are the min value, don't include the start key in frequent elements
+        includeStart = includeStart &&!isMin;
         Set<ByteFrequencyEstimate> frequencyEstimates = bfe.frequentBetween(start, stop, includeStart, includeStop);
         baseEst-=frequencyEstimates.size()*perRowCount;
         for(ByteFrequencyEstimate est:frequencyEstimates){

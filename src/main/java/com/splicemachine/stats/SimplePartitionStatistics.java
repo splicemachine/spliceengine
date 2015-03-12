@@ -58,6 +58,16 @@ public class SimplePartitionStatistics implements PartitionStatistics {
     @Override public long queryCount() { return queryCount; }
     @Override public long collectionTime() { return totalLocalReadTime; }
     @Override public List<ColumnStatistics> columnStatistics() { return columnStatistics; }
+
+    @Override
+    @SuppressWarnings("unchecked")
+    public <T> ColumnStatistics<T> columnStatistics(int columnId){
+        for(ColumnStatistics stats:columnStatistics){
+            if(stats.columnId()==columnId) return (ColumnStatistics<T>)stats;
+        }
+        return null;
+    }
+
     @Override public long localReadTime() { return totalLocalReadTime; }
     @Override public long remoteReadTime() { return totalRemoteReadLatency; }
 

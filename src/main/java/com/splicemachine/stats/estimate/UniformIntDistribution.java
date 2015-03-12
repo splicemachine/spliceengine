@@ -92,6 +92,8 @@ public class UniformIntDistribution extends BaseDistribution<Integer> implements
 
         //adjust using Frequent Elements
         IntFrequentElements ife = (IntFrequentElements)columnStats.topK();
+        //if we are the min value, don't include the start key in frequent elements
+        includeStart = includeStart &&!isMin;
         Set<IntFrequencyEstimate> intFrequencyEstimates = ife.frequentBetween(start, stop, includeStart, includeStop);
         baseEstimate-=perRowCount*intFrequencyEstimates.size();
         for(IntFrequencyEstimate estimate: intFrequencyEstimates){
