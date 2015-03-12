@@ -32,90 +32,99 @@ import com.splicemachine.db.iapi.store.access.StoreCostResult;
 
 public interface CostEstimate extends StoreCostResult
 {
-	/**
-	 * Set the cost for this cost estimate.
-	 */
-	void setCost(double cost, double rowCount, double singleScanRowCount);
+    /**
+     * Set the cost for this cost estimate.
+     */
+    void setCost(double cost, double rowCount, double singleScanRowCount);
 
-	/**
-	 * Copy the values from the given cost estimate into this one.
-	 */
-	void setCost(CostEstimate other);
+    void setCost(double cost, double rowCount, double singleScanRowCount,int numPartitions);
 
-	/**
-	 * Set the single scan row count.
-	 */
-	void setSingleScanRowCount(double singleRowScanCount);
+    /**
+     * Copy the values from the given cost estimate into this one.
+     */
+    void setCost(CostEstimate other);
 
-	/**
-	 * Compare this cost estimate with the given cost estimate.
-	 *
-	 * @param other		The cost estimate to compare this one with
-	 *
-	 * @return	< 0 if this < other, 0 if this == other, > 0 if this > other
-	 */
-	double compare(CostEstimate other);
+    /**
+     * Set the single scan row count.
+     */
+    void setSingleScanRowCount(double singleRowScanCount);
 
-	/**
-	 * Add this cost estimate to another one.  This presumes that any row
-	 * ordering is destroyed.
-	 *
-	 * @param addend	This cost estimate to add this one to.
-	 * @param retval	If non-null, put the result here.
-	 * 
-	 * @return  this + other.
-	 */
-	CostEstimate add(CostEstimate addend, CostEstimate retval);
+    void setNumPartitions(int numPartitions);
 
-	/**
-	 * Multiply this cost estimate by a scalar, non-dimensional number.  This
-	 * presumes that any row ordering is destroyed.
-	 *
-	 * @param multiplicand	The value to multiply this CostEstimate by.
-	 * @param retval	If non-null, put the result here.
-	 * 
-	 * @return	this * multiplicand
-	 */
-	CostEstimate multiply(double multiplicand, CostEstimate retval);
+    /**
+     * Compare this cost estimate with the given cost estimate.
+     *
+     * @param other		The cost estimate to compare this one with
+     *
+     * @return	< 0 if this < other, 0 if this == other, > 0 if this > other
+     */
+    double compare(CostEstimate other);
 
-	/**
-	 * Divide this cost estimate by a scalar, non-dimensional number.
-	 *
-	 * @param divisor	The value to divide this CostEstimate by.
-	 * @param retval	If non-null, put the result here.
-	 *
-	 * @return	this / divisor
-	 */
-	CostEstimate divide(double divisor, CostEstimate retval);
+    /**
+     * Add this cost estimate to another one.  This presumes that any row
+     * ordering is destroyed.
+     *
+     * @param addend	This cost estimate to add this one to.
+     * @param retval	If non-null, put the result here.
+     *
+     * @return  this + other.
+     */
+    CostEstimate add(CostEstimate addend, CostEstimate retval);
 
-	/**
-	 * Get the estimated number of rows returned by the ResultSet that this
-	 * CostEstimate models.
-	 */
-	double rowCount();
+    /**
+     * Multiply this cost estimate by a scalar, non-dimensional number.  This
+     * presumes that any row ordering is destroyed.
+     *
+     * @param multiplicand	The value to multiply this CostEstimate by.
+     * @param retval	If non-null, put the result here.
+     *
+     * @return	this * multiplicand
+     */
+    CostEstimate multiply(double multiplicand, CostEstimate retval);
 
-	/**
-	 * Get the estimated number of rows returned by a single scan of
-	 * the ResultSet that this CostEstimate models.
-	 */
-	double singleScanRowCount();
+    /**
+     * Divide this cost estimate by a scalar, non-dimensional number.
+     *
+     * @param divisor	The value to divide this CostEstimate by.
+     * @param retval	If non-null, put the result here.
+     *
+     * @return	this / divisor
+     */
+    CostEstimate divide(double divisor, CostEstimate retval);
 
-	/** Get a copy of this CostEstimate */
-	CostEstimate cloneMe();
+    /**
+     * Get the estimated number of rows returned by the ResultSet that this
+     * CostEstimate models.
+     */
+    double rowCount();
 
-	/**
-	 * Return whether or not this CostEstimate is uninitialized.
-	 *
-	 * @return Whether or not this CostEstimate is uninitialized.
-	 */
-	public boolean isUninitialized();
-	
-	public RowOrdering getRowOrdering();
-	
-	public void setRowOrdering(RowOrdering rowOrdering);
-	
-	public CostEstimate getBase();
+    /**
+     * Get the estimated number of rows returned by a single scan of
+     * the ResultSet that this CostEstimate models.
+     */
+    double singleScanRowCount();
 
-	public void setBase(CostEstimate baseCost);
+    /**
+     * @return the number of partitions which must be visited.
+     */
+    int partitionCount();
+
+    /** Get a copy of this CostEstimate */
+    CostEstimate cloneMe();
+
+    /**
+     * Return whether or not this CostEstimate is uninitialized.
+     *
+     * @return Whether or not this CostEstimate is uninitialized.
+     */
+    public boolean isUninitialized();
+
+    public RowOrdering getRowOrdering();
+
+    public void setRowOrdering(RowOrdering rowOrdering);
+
+    public CostEstimate getBase();
+
+    public void setBase(CostEstimate baseCost);
 
 }

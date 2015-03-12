@@ -154,14 +154,13 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import com.splicemachine.db.impl.sql.execute.JarUtil;
-import org.apache.log4j.Logger;
 
 /** g
  * Standard database implementation of the data dictionary
  * that stores the information in the system catlogs.
  */
 public class DataDictionaryImpl extends BaseDataDictionary {
-    private static final Logger LOG = Logger.getLogger(DataDictionaryImpl.class);
+//    private static final Logger LOG = Logger.getLogger(DataDictionaryImpl.class);
 
 	/**
 	 * Runtime definition of the functions from SYSFUN_FUNCTIONS.
@@ -4460,12 +4459,10 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 	 */
 	public void recompileInvalidSPSPlans(LanguageConnectionContext lcc) throws StandardException
 	{
-		for (java.util.Iterator li = getAllSPSDescriptors().iterator(); li.hasNext(); )
-		{
-			SPSDescriptor spsd = (SPSDescriptor) li.next();
-			if (LOG.isTraceEnabled()) LOG.trace(String.format("Compiling SPS: %s.%s", spsd.getSchemaDescriptor().getSchemaName(), spsd.getDescriptorName()));
-			spsd.getPreparedStatement(true);
-		}
+        for(Object o : getAllSPSDescriptors()){
+            SPSDescriptor spsd=(SPSDescriptor)o;
+            spsd.getPreparedStatement(true);
+        }
 	}
 
 	/**
@@ -4487,11 +4484,10 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 	{
 		startWriting(lcc);
 
-		for (java.util.Iterator li = getAllSPSDescriptors().iterator(); li.hasNext(); )
-		{ 
-			SPSDescriptor spsd = (SPSDescriptor) li.next();
-			spsd.makeInvalid(DependencyManager.USER_RECOMPILE_REQUEST, lcc);
-		} 
+        for(Object o : getAllSPSDescriptors()){
+            SPSDescriptor spsd=(SPSDescriptor)o;
+            spsd.makeInvalid(DependencyManager.USER_RECOMPILE_REQUEST,lcc);
+        }
 	}
 
 
@@ -10612,7 +10608,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 												   !nocompile,		// it is valid, unless nocompile
 												   spsText, //sps text
 												   !nocompile );
-			if (LOG.isTraceEnabled()) LOG.trace(String.format("Creating metadata SPS: %s.%s", spsd.getSchemaDescriptor().getSchemaName(), spsd.getDescriptorName()));
+//			if (LOG.isTraceEnabled()) LOG.trace(String.format("Creating metadata SPS: %s.%s", spsd.getSchemaDescriptor().getSchemaName(), spsd.getDescriptorName()));
 			addSPSDescriptor(spsd, tc);
 		}
 	}
@@ -13933,7 +13929,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 				continue;
 			}
 
-			if (LOG.isTraceEnabled()) LOG.trace(String.format("Dropping metadata SPS: %s.%s", spsd.getSchemaDescriptor().getSchemaName(), spsd.getDescriptorName()));
+//			if (LOG.isTraceEnabled()) LOG.trace(String.format("Dropping metadata SPS: %s.%s", spsd.getSchemaDescriptor().getSchemaName(), spsd.getDescriptorName()));
 			dropSPSDescriptor(spsd, tc);
 			dropDependentsStoredDependencies(spsd.getUUID(),                                                                                                              tc);
 
@@ -13948,9 +13944,9 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 	 * @throws StandardException
 	 */
 	public void updateMetadataSPSes(TransactionController tc) throws StandardException {
-		if (LOG.isInfoEnabled()) LOG.info("Dropping metadata stored prepared statements.");
+//		if (LOG.isInfoEnabled()) LOG.info("Dropping metadata stored prepared statements.");
 		dropJDBCMetadataSPSes(tc);
-		if (LOG.isInfoEnabled()) LOG.info("Creating metadata stored prepared statements.");
+//		if (LOG.isInfoEnabled()) LOG.info("Creating metadata stored prepared statements.");
 		createSystemSps(tc);		
 	}
 

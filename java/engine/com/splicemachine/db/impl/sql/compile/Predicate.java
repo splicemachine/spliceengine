@@ -247,10 +247,8 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 		return retval;
 	}
 
-	/** @see OptimizablePredicate#selectivity */
-	public double selectivity(Optimizable optTable)
-	throws StandardException
-	{
+    @Override
+	public double selectivity(Optimizable optTable) throws StandardException {
 		return andNode.getLeftOperand().selectivity(optTable);
 	}
 

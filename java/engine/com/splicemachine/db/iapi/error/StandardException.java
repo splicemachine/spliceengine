@@ -299,7 +299,7 @@ public class StandardException extends Exception
 		return new StandardException(messageID);
 	}
 	public static StandardException newException(String messageID, Throwable t) {
-		return new StandardException(messageID, t, (Object[]) null);
+		return new StandardException(messageID, t,null);
 	}
 
 	/* 1 argument */

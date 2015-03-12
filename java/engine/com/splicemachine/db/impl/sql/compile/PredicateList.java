@@ -38,6 +38,7 @@ import com.splicemachine.db.iapi.util.JBitSet;
 
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 /**

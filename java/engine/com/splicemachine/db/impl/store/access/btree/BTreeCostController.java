@@ -638,6 +638,14 @@ public class BTreeCostController extends OpenBTree
         return;
     }
 
+//    @Override
+    public double getSelectivity(int columnNumber,DataValueDescriptor start,boolean includeStart,DataValueDescriptor stop,boolean includeStop){
+        return 1.0d;
+    }
+
+//    @Override
+    public double nullSelectivity(int columnNumber){ return 1.0d; }
+
     /**
      * Return an "empty" row location object of the correct type.
      * <p>

@@ -21,7 +21,6 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import org.apache.commons.lang.builder.HashCodeBuilder;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
@@ -166,14 +165,10 @@ public final class BooleanConstantNode extends ConstantNode
 	 * The default selectivity for value nodes is 50%.  This is overridden
 	 * in specific cases, such as the RelationalOperators.
 	 */
-	public double selectivity(Optimizable optTable)
-	{
-		if (isBooleanTrue())
-		{
+	public double selectivity(Optimizable optTable) {
+		if (isBooleanTrue()) {
 			return 1.0;
-		}
-		else
-		{
+		} else {
 			return 0.0;
 		}
 	}
@@ -222,24 +217,25 @@ public final class BooleanConstantNode extends ConstantNode
 	/**
 	 * Set the value in this ConstantNode.
 	 */
-	public void setValue(DataValueDescriptor value)
-	{
+    @Override
+	public void setValue(DataValueDescriptor value) {
 		super.setValue( value);
         unknownValue = true;
-        try
-        {
-            if( value != null && value.isNotNull().getBoolean())
-            {
+        try {
+            if( value != null && value.isNotNull().getBoolean()){
                 booleanValue = value.getBoolean();
                 unknownValue = false;
             }
         }
-        catch( StandardException se){}
+        catch( StandardException ignored){}
 	} // end of setValue
 	
 	public int hashCode(){
-		HashCodeBuilder hcBuilder = new HashCodeBuilder(9, 11);
-		hcBuilder.append(value);
-		return hcBuilder.toHashCode();
+        int hc = 17;
+        hc = hc*31+value.hashCode();
+        return hc;
+//		HashCodeBuilder hcBuilder = new HashCodeBuilder(9, 11);
+//		hcBuilder.append(value);
+//		return hcBuilder.toHashCode();
 	}
 }

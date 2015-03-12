@@ -27,6 +27,7 @@ import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 
 import com.splicemachine.db.iapi.store.raw.Transaction;
 
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.store.access.btree.BTreeCostController;
 
 
@@ -60,7 +61,7 @@ public class B2ICostController extends BTreeCostController
 		super();
 	}
 
-	void init(
+    void init(
     TransactionManager  xact_manager,
     B2I                 conglomerate,
     Transaction         rawtran) 

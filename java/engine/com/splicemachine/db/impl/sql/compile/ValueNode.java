@@ -1008,16 +1008,11 @@ public abstract class ValueNode extends QueryTreeNode
 	 * The default selectivity for value nodes is 50%.  This is overridden
 	 * in specific cases, such as the RelationalOperators.
 	 */
-	public double selectivity(Optimizable optTable)
-	throws StandardException
-	{
+	public double selectivity(Optimizable optTable) throws StandardException {
 		// Return 1 if additional predicates have been generated from this one.
-		if (transformed)
-		{
+		if (transformed) {
 			return 1.0;
-		}
-		else
-		{
+		} else {
 			return 0.5d;
 		}
 	}

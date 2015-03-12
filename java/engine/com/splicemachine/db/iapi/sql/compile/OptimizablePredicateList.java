@@ -34,8 +34,7 @@ import com.splicemachine.db.iapi.util.JBitSet;
  * RESOLVE - the methods for this interface need to get defined.
  */
 
-public interface OptimizablePredicateList 
-{
+public interface OptimizablePredicateList {
 	/**
 	 *  Return the number of OptimizablePredicates in the list.
 	 *

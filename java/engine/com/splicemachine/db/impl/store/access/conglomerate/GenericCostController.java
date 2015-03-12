@@ -26,6 +26,7 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
 /**
 
@@ -124,5 +125,15 @@ public abstract class GenericCostController extends GenericController implements
     public void extraQualifierSelectivity(CostEstimate costEstimate) throws StandardException {
         // Not Implemented...
         throw StandardException.newException( SQLState.HEAP_UNIMPLEMENTED_FEATURE);
+    }
+
+//    @Override
+    public double getSelectivity(int columnNumber,DataValueDescriptor start,boolean includeStart,DataValueDescriptor stop,boolean includeStop){
+        return 1.0d;
+    }
+
+//    @Override
+    public double nullSelectivity(int columnNumber){
+        return 1.0d;
     }
 }

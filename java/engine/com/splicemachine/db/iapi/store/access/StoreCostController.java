@@ -391,4 +391,29 @@ public interface StoreCostController extends RowCountable
 	RowLocation newRowLocationTemplate() throws StandardException;
 	
 	public void extraQualifierSelectivity(CostEstimate costEstimate) throws StandardException;
+
+    /**
+     * Get the selectivity fraction for the specified range and the specified column.
+     *
+     * The <em>selectivity fraction</em> is a number in the range {@code [0,1]} that indicates
+     * the percentage of rows in the data set which <em>matches</em> the range of data.
+     *
+     * If no statistics exist, then this should be 1.0d
+     *
+     * @param columnNumber the id of the column to perform estimate for (indexed from 1)
+     * @param start the value for the start of the range, or {@code null} if no stop is estimated
+     * @param includeStart whether to include the start value in the estimate
+     * @param stop the value for the stop of the range, or {@code null} if no stop is estimated
+     * @param includeStop whether to include the stop value in the estimate
+     * @return an estimate of the selectivity fraction
+     */
+    double getSelectivity(int columnNumber,DataValueDescriptor start,boolean includeStart,DataValueDescriptor stop,boolean includeStop);
+
+    /**
+     * Get the selectivity fraction for {@code null} entries for the specified column.
+     *
+     * @param columnNumber the id of the column to estimate (indexed from 1)
+     * @return an estimate of the percentage of rows in the data set which are null.
+     */
+    double nullSelectivity(int columnNumber);
 }
