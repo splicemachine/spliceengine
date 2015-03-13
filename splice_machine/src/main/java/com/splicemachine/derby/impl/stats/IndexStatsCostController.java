@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.stats;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.StoreCostResult;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
@@ -20,10 +21,11 @@ import java.util.concurrent.ExecutionException;
  *         Date: 3/10/15
  */
 public class IndexStatsCostController extends StatsStoreCostController {
+    private final int totalColumns;
     private TableStatistics baseTableStatistics;
     private int[] indexColToHeapColMap;
 
-    public IndexStatsCostController(int[] indexColToHeapColMap,OpenSpliceConglomerate baseConglomerate) throws StandardException {
+    public IndexStatsCostController(ConglomerateDescriptor cd,OpenSpliceConglomerate baseConglomerate) throws StandardException {
         /*
          * This looks a bit weird, because baseConglomerate is actually the index conglomerate,
          * so our super class is actually looking at the cost to just scan in the index. We
@@ -36,9 +38,10 @@ public class IndexStatsCostController extends StatsStoreCostController {
         BaseSpliceTransaction bst = (BaseSpliceTransaction)baseConglomerate.getTransaction();
         TxnView txn = bst.getActiveStateTxn();
         long conglomId = baseConglomerate.getIndexConglomerate();
-        this.indexColToHeapColMap = new int[indexColToHeapColMap.length];
+        int[] baseColumnPositions = cd.getIndexDescriptor().baseColumnPositions();
+        this.indexColToHeapColMap = new int[baseColumnPositions.length];
         for(int i=0;i<indexColToHeapColMap.length;i++){
-            this.indexColToHeapColMap[i] = indexColToHeapColMap[i]-1;
+            this.indexColToHeapColMap[i] = baseColumnPositions[i]-1;
         }
 
         try {
@@ -46,6 +49,20 @@ public class IndexStatsCostController extends StatsStoreCostController {
         } catch (ExecutionException e) {
             throw Exceptions.parseException(e);
         }
+        totalColumns = cd.getColumnNames().length;
+    }
+
+    @Override
+    public void getFetchFromRowLocationCost(FormatableBitSet validColumns,int access_type,CostEstimate cost) throws StandardException{
+        //use the column size from the base table
+        double columnSizeFactor = columnSizeFactor(baseTableStatistics,
+                totalColumns,
+                indexColToHeapColMap,
+                validColumns);
+
+        //but the read latency from the index table
+        double scale = conglomerateStatistics.remoteReadLatency()*columnSizeFactor;
+        cost.setRemoteCost((1+columnSizeFactor)*cost.remoteCost()+cost.rowCount()*scale);
     }
 
     @Override
@@ -75,7 +92,7 @@ public class IndexStatsCostController extends StatsStoreCostController {
                             int access_type,
                             StoreCostResult cost_result) throws StandardException {
         super.estimateCost(baseTableStatistics,
-                ((SpliceConglomerate)baseConglomerate.getConglomerate()).getFormat_ids().length,
+                totalColumns,
                 scanColumnList,
                 startKeyValue, startSearchOperator,
                 stopKeyValue, stopSearchOperator,

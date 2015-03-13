@@ -4,6 +4,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.store.access.StoreCostResult;
@@ -64,10 +65,7 @@ public class StatsStoreCostController extends GenericController implements Store
 
     }
 
-    @Override
-    public void close() throws StandardException {
-
-    }
+    @Override public void close() throws StandardException {  }
 
     @Override
     public long getEstimatedRowCount() throws StandardException {
@@ -75,14 +73,21 @@ public class StatsStoreCostController extends GenericController implements Store
     }
 
     @Override
-    public void getFetchFromRowLocationCost(FormatableBitSet validColumns, int access_type, CostEstimate cost) throws StandardException {
+    public void getFetchFromRowLocationCost(FormatableBitSet validColumns,
+                                            int access_type,
+                                            CostEstimate cost) throws StandardException {
         /*
          * This is useful when estimating the cost of an index lookup. We approximate it by using
          * Remote Latency
          */
-        double scale = conglomerateStatistics.remoteReadLatency();
-        cost.setEstimatedCost(cost.getEstimatedCost()+ scale*cost.rowCount());
+        double columnSizeFactor = columnSizeFactor(conglomerateStatistics,
+                ((SpliceConglomerate)baseConglomerate.getConglomerate()).getFormat_ids().length,
+                baseConglomerate.getColumnOrdering(),
+                validColumns);
+        double scale = conglomerateStatistics.remoteReadLatency()*columnSizeFactor;
+        cost.setRemoteCost(cost.remoteCost()+cost.rowCount()*scale);
     }
+
 
     @Override
     public void getFetchFromFullKeyCost(FormatableBitSet validColumns, int access_type, CostEstimate cost) throws StandardException {
@@ -99,9 +104,9 @@ public class StatsStoreCostController extends GenericController implements Store
          * The first scenario uses this method, but the second scenario actually uses getScanCost(), so we're safe
          * assuming just a single row here
          */
-        cost.setEstimatedCost(cost.getEstimatedCost() + conglomerateStatistics.localReadLatency());
+        cost.setLocalCost(cost.localCost()+conglomerateStatistics.localReadLatency());
         cost.setEstimatedRowCount(cost.getEstimatedRowCount()+1l);
-        cost.setNumPartitions(1);
+        cost.setNumPartitions(cost.partitionCount()+1);
     }
 
     @Override
@@ -259,7 +264,8 @@ public class StatsStoreCostController extends GenericController implements Store
         boolean includeStop = stopSearchOperator == ScanController.GT;
         boolean includeStart = startSearchOperator != ScanController.GT;
         long numRows = 0l;
-        double cost = 0d;
+        double localCost = 0d;
+        double remoteCost = 0d;
         int numPartitions = 0;
         for(PartitionStatistics pStats:partitionStatistics){
             long partRc=partitionColumnSelectivity(pStats,startKeyValue,includeStart,stopKeyValue,includeStop,keyMap);
@@ -267,16 +273,15 @@ public class StatsStoreCostController extends GenericController implements Store
                 numPartitions++;
                 numRows+=partRc;
 
+                localCost+=pStats.localReadLatency()*partRc;
                 double colSizeAdjustment=columnSizeFactor(totalColumns,scanColumnList,pStats,keyMap);
-                double remoteScanCost=pStats.remoteReadLatency()*partRc*colSizeAdjustment;
-                double localScanCost=pStats.localReadLatency()*partRc;
-                cost +=localScanCost+remoteScanCost;
+                remoteCost+=pStats.remoteReadLatency()*partRc*colSizeAdjustment;
             }
         }
 
-
         costEstimate.setEstimatedRowCount(numRows);
-        costEstimate.setEstimatedCost(cost);
+        costEstimate.setLocalCost(localCost);
+        costEstimate.setRemoteCost(remoteCost);
         costEstimate.setNumPartitions(numPartitions);
     }
 
@@ -297,6 +302,18 @@ public class StatsStoreCostController extends GenericController implements Store
             }
             return (long)Math.ceil(selectivity*pStats.rowCount());
         }
+    }
+
+    protected double columnSizeFactor(TableStatistics tableStats,int totalColumns,int[] keyMap,FormatableBitSet validColumns){
+        //get the average columnSize factor across all regions
+        double colFactorSum = 0d;
+        List<PartitionStatistics> partStats=tableStats.partitionStatistics();
+        if(partStats.size()<=0) return 0d; //no partitions present? huh?
+
+        for(PartitionStatistics pStats: partStats){
+            colFactorSum+=columnSizeFactor(totalColumns,validColumns,pStats,keyMap);
+        }
+        return colFactorSum/partStats.size();
     }
 
     private double columnSizeFactor(int totalColumns,FormatableBitSet scanColumnList,PartitionStatistics partStats,int[] keyMap){

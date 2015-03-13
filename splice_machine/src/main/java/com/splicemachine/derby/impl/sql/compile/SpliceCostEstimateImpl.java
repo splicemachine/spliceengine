@@ -69,21 +69,15 @@ public class SpliceCostEstimateImpl extends Level2CostEstimateImpl implements So
     @Override
     public CostEstimate add(CostEstimate other, CostEstimate retval) {
         SpliceLogUtils.trace(LOG, "add other=%s, retval=%s",other,retval);
-        if (SanityManager.DEBUG) {
-            SanityManager.ASSERT(other instanceof CostEstimateImpl);
-            SanityManager.ASSERT(retval == null ||
-                    retval instanceof CostEstimateImpl);
-        }
+        assert other instanceof CostEstimateImpl;
+        assert (retval == null || retval instanceof CostEstimateImpl);
 
-        CostEstimateImpl	addend = (CostEstimateImpl) other;
+        CostEstimateImpl addend = (CostEstimateImpl) other;
 
         double sumCost = this.cost + addend.cost;
         double sumRowCount = this.rowCount + addend.rowCount;
-        if (SanityManager.DEBUG)
-        {
-            if (sumCost < 0.0 ||
-                    sumRowCount < 0.0)
-            {
+        if (SanityManager.DEBUG) {
+            if (sumCost < 0.0 || sumRowCount < 0.0) {
                 SanityManager.THROWASSERT(
                         "All sums expected to be < 0.0, " +
                                 "\n\tthis.cost = " + this.cost +
@@ -97,28 +91,20 @@ public class SpliceCostEstimateImpl extends Level2CostEstimateImpl implements So
         }
 
 		/* Presume that ordering is not maintained */
-        return setState(sumCost,
-                sumRowCount,
-                (CostEstimateImpl) retval);
+        return setState(sumCost, sumRowCount, (CostEstimateImpl) retval);
     }
 
     @Override
     public CostEstimate multiply(double multiplicand, CostEstimate retval) {
         SpliceLogUtils.trace(LOG, "multiply multiplicand=%f, retval=%s",multiplicand,retval);
 
-        if (SanityManager.DEBUG) {
-            SanityManager.ASSERT(retval == null ||
-                    retval instanceof CostEstimateImpl);
-        }
+        assert (retval == null || retval instanceof CostEstimateImpl);
 
         double multCost = this.cost * multiplicand;
         double multRowCount = this.rowCount * multiplicand;
 
-        if (SanityManager.DEBUG)
-        {
-            if (multCost < 0.0 ||
-                    multRowCount < 0.0)
-            {
+        if (SanityManager.DEBUG) {
+            if (multCost < 0.0 || multRowCount < 0.0) {
                 SanityManager.THROWASSERT(
                         "All products expected to be < 0.0, " +
                                 "\n\tthis.cost = " + this.cost +
@@ -147,11 +133,8 @@ public class SpliceCostEstimateImpl extends Level2CostEstimateImpl implements So
         double divCost = this.cost / divisor;
         double divRowCount = this.rowCount / divisor;
 
-        if (SanityManager.DEBUG)
-        {
-            if (divCost < 0.0 ||
-                    divRowCount < 0.0)
-            {
+        if (SanityManager.DEBUG) {
+            if (divCost < 0.0 || divRowCount < 0.0) {
                 SanityManager.THROWASSERT(
                         "All products expected to be < 0.0, " +
                                 "\n\tthis.cost = " + this.cost +
@@ -164,9 +147,7 @@ public class SpliceCostEstimateImpl extends Level2CostEstimateImpl implements So
         }
 
 		/* Presume that ordering is not maintained */
-        return setState(divCost,
-                divRowCount,
-                (CostEstimateImpl) retval);
+        return setState(divCost, divRowCount, (CostEstimateImpl) retval);
     }
 
     @Override
