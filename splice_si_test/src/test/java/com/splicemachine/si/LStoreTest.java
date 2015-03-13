@@ -3,9 +3,9 @@ package com.splicemachine.si;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.light.*;
 
+import com.splicemachine.si.testsetup.RelationHelper;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.Assert;
 import org.junit.Test;

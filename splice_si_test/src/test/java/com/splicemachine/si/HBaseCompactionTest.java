@@ -1,42 +1,32 @@
 package com.splicemachine.si;
 
+import com.splicemachine.si.testsetup.SharedStoreHolder;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 
 /**
  * @author Scott Fines
- * Date: 2/18/14
+ *         Date: 2/18/14
  */
 public abstract class HBaseCompactionTest extends CompactionTest {
-		protected static String CLASS_NAME = HBaseAsyncRollForwardTest.class.getSimpleName();
-		public HBaseCompactionTest() {
-				useSimple=false;
-		}
 
-		@Override
-		@Before
-		public void setUp() throws Exception {
-				this.storeSetup = HBaseSuite.classStoreSetup;
-				this.transactorSetup = HBaseSuite.classTransactorSetup;
-				baseSetUp();
-		}
+    protected static String CLASS_NAME = HBaseAsyncRollForwardTest.class.getSimpleName();
 
-		private static boolean selfManaged = false;
-		@BeforeClass
-		public static void setUpClass() throws Exception {
-				if(HBaseSuite.classStoreSetup==null){
-						System.out.printf("[%s]Not running in Suite, Setting up HBase myself%n", CLASS_NAME);
-						HBaseSuite.setUp();
-						selfManaged = true;
-				}
-		}
+    public HBaseCompactionTest() {
+        useSimple = false;
+    }
 
-		@AfterClass
-		public static void tearDownClass() throws Exception {
-				if(selfManaged){
-						System.out.printf("[%s]Tearing down HBase%n",CLASS_NAME);
-						HBaseSuite.tearDownClass();
-				}
-		}
+    @Override
+    @Before
+    public void setUp() throws Exception {
+        this.storeSetup = SharedStoreHolder.getHstoreSetup();
+        this.transactorSetup = SharedStoreHolder.getTestTransactionSetup();
+        baseSetUp();
+    }
+
+    @BeforeClass
+    public static void setUpClass() throws Exception {
+    }
+
 }

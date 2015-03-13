@@ -1,9 +1,8 @@
-package com.splicemachine.si;
+package com.splicemachine.si.testsetup;
 
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.si.api.Clock;
 import com.splicemachine.si.api.TimestampSource;
-import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.si.api.TxnStore;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
@@ -15,22 +14,23 @@ import com.splicemachine.si.impl.InMemoryTxnStore;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 
 public class LStoreSetup implements StoreSetup {
-    LStore store;
-    SDataLib dataLib;
-    STableReader reader;
-    STableWriter writer;
-		Clock clock;
-		TimestampSource source;
+
+    private LStore store;
+    private SDataLib dataLib;
+    private STableReader reader;
+    private STableWriter writer;
+    private Clock clock;
+    private TimestampSource source;
     private TxnStore txnStore;
 
     public LStoreSetup() {
-        dataLib = new LDataLib();
-        clock = new IncrementingClock(1000);
-        store = new LStore(clock);
-        reader = store;
-        writer = store;
-				this.source = new SimpleTimestampSource();
-        this.txnStore = new InMemoryTxnStore(source,SIConstants.transactionTimeout);
+        this.dataLib = new LDataLib();
+        this.clock = new IncrementingClock(1_000);
+        this.store = new LStore(clock);
+        this.reader = store;
+        this.writer = store;
+        this.source = new SimpleTimestampSource();
+        this.txnStore = new InMemoryTxnStore(source, SIConstants.transactionTimeout);
     }
 
     @Override
@@ -48,7 +48,7 @@ public class LStoreSetup implements StoreSetup {
         return writer;
     }
 
-		@Override
+    @Override
     public HBaseTestingUtility getTestCluster() {
         return null;
     }
@@ -58,20 +58,23 @@ public class LStoreSetup implements StoreSetup {
         return store;
     }
 
-    @Override public String getPersonTableName() { return "person"; }
+    @Override
+    public String getPersonTableName() {
+        return "person";
+    }
 
-		@Override
+    @Override
     public Clock getClock() {
         return clock;
     }
 
-		@Override
-		public TxnStore getTxnStore() {
+    @Override
+    public TxnStore getTxnStore() {
         return txnStore;
-		}
+    }
 
-		@Override
-		public TimestampSource getTimestampSource() {
-				return source;
-		}
+    @Override
+    public TimestampSource getTimestampSource() {
+        return source;
+    }
 }

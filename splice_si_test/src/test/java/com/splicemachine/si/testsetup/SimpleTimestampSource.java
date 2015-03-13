@@ -1,4 +1,4 @@
-package com.splicemachine.si;
+package com.splicemachine.si.testsetup;
 
 import com.splicemachine.si.api.TimestampSource;
 
