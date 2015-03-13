@@ -1,6 +1,7 @@
 package com.splicemachine.derby.hbase;
 
 import com.splicemachine.concurrent.MoreExecutors;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.pipeline.exception.SpliceDoNotRetryIOException;
@@ -10,6 +11,7 @@ import com.splicemachine.utils.SpliceUtilities;
 import com.splicemachine.utils.ZkUtils;
 
 import org.apache.hadoop.hbase.DoNotRetryIOException;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.PleaseHoldException;
 import org.apache.log4j.Logger;
 
@@ -28,7 +30,6 @@ class SpliceMasterObserverInitAction {
 
     private static final Logger LOG = Logger.getLogger(SpliceMasterObserver.class);
     private static final AtomicReference<State> state = new AtomicReference<State>();
-
     private volatile Future<Void> createFuture;
     private ExecutorService executor;
 
@@ -126,7 +127,7 @@ class SpliceMasterObserverInitAction {
 	private Connection bootSplice() throws IOException, SQLException {
 		new SpliceAccessManager(); //make sure splice access manager gets loaded
 		//make sure that we have a Snowflake loaded
-		SpliceDriver.driver().loadUUIDGenerator();
+		SpliceDriver.driver().loadUUIDGenerator(SpliceConstants.config.getInt(HConstants.MASTER_PORT, 60010));
 		EmbedConnectionMaker maker = new EmbedConnectionMaker();
 		return maker.createFirstNew();
 	}
