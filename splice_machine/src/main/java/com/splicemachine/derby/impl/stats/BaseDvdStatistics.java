@@ -27,7 +27,7 @@ public abstract class BaseDvdStatistics implements ColumnStatistics<DataValueDes
     @Override public long cardinality() { return baseStats.cardinality(); }
     @Override public float nullFraction() { return baseStats.nullFraction(); }
     @Override public long nullCount() { return baseStats.nullCount(); }
-    @Override public long avgColumnWidth() { return baseStats.avgColumnWidth(); }
+    @Override public int avgColumnWidth() { return baseStats.avgColumnWidth(); }
     @Override public long nonNullCount() { return baseStats.nonNullCount(); }
     @Override public long minCount() { return baseStats.minCount(); }
     @Override public int columnId() { return baseStats.columnId(); }

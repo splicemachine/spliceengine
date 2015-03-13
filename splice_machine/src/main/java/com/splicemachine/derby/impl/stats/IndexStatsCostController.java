@@ -8,6 +8,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.StatsStoreCostController;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
+import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.stats.TableStatistics;
@@ -74,6 +75,8 @@ public class IndexStatsCostController extends StatsStoreCostController {
                             int access_type,
                             StoreCostResult cost_result) throws StandardException {
         super.estimateCost(baseTableStatistics,
+                ((SpliceConglomerate)baseConglomerate.getConglomerate()).getFormat_ids().length,
+                scanColumnList,
                 startKeyValue, startSearchOperator,
                 stopKeyValue, stopSearchOperator,
                 indexColToHeapColMap,
