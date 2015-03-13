@@ -12,12 +12,12 @@ import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.store.access.conglomerate.GenericController;
 import com.splicemachine.derby.impl.stats.StatisticsStorage;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
+import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.PartitionStatistics;
 import com.splicemachine.stats.TableStatistics;
-import com.splicemachine.stats.estimate.Distribution;
 
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -29,6 +29,24 @@ import java.util.concurrent.ExecutionException;
  *         Date: 3/4/15
  */
 public class StatsStoreCostController extends GenericController implements StoreCostController {
+    /*
+     * We measure the size of rows in total bytes INCLUDING all the SI
+     * data columns. For tables with a large number of columns, this metadata size
+     * is unlikely to be significant, but for tables with a small number of columns,
+     * the metadata might well dominate the overall row size.
+     *
+     * Thankfully, the SI metadata is easy to compute in advance--we assume
+     * that there are no tombstone or anti-tombstone fields, and that the Commit timestamp
+     * is always present. In that case, we encode the commit timestamp using 1 byte for the
+     * qualifier, 8 bytes for the timestamp, 8 bytes for the value, and then the row key.
+     *
+     * We can't measure the row key component precisely--we can take non-keyed tables into
+     * account by adding the length of a uuid to that number, but non-keyed tables are harder--
+     * we'll need to get the avg column width for all the keyed columns and add that in.
+     *
+     * This constant value is the *non-key* component of the SI commit timestamp size.
+     */
+    private static final int METADATA_ROW_SIZE_ADJUSTMENT=10;
     protected TableStatistics conglomerateStatistics;
     protected OpenSpliceConglomerate baseConglomerate;
 
@@ -43,6 +61,7 @@ public class StatsStoreCostController extends GenericController implements Store
         } catch (ExecutionException e) {
             throw Exceptions.parseException(e);
         }
+
     }
 
     @Override
@@ -112,6 +131,8 @@ public class StatsStoreCostController extends GenericController implements Store
         * id for the keys is located in the conglomerate.
         */
         estimateCost(conglomerateStatistics,
+                ((SpliceConglomerate)baseConglomerate.getConglomerate()).getFormat_ids().length,
+                scanColumnList,
                 startKeyValue,startSearchOperator,
                 stopKeyValue,stopSearchOperator,baseConglomerate.getColumnOrdering(),(CostEstimate)cost_result);
     }
@@ -208,6 +229,8 @@ public class StatsStoreCostController extends GenericController implements Store
 
     @SuppressWarnings("unchecked")
     protected void estimateCost(TableStatistics stats,
+                                int totalColumns, //the total number of columns in the store
+                                FormatableBitSet scanColumnList, //a list of the output columns, or null if fetch all
                                 DataValueDescriptor[] startKeyValue,
                                 int startSearchOperator,
                                 DataValueDescriptor[] stopKeyValue,
@@ -238,89 +261,122 @@ public class StatsStoreCostController extends GenericController implements Store
         long numRows = 0l;
         double cost = 0d;
         int numPartitions = 0;
-        if(startKeyValue==null && stopKeyValue==null){
-            /*
-             * We have no start and stop keys, so the cost is
-             * the cost of a full table scan
-             */
-            for(PartitionStatistics partStats:partitionStatistics){
-                long rc = partStats.rowCount();
-                if(rc>0){
-                    numPartitions++;
-                    cost +=partStats.localReadLatency()*rc;
-                    numRows+=rc;
-                }
-            }
-        }else{
-            /*
-             * We have either a start or a stop key, so we can compute a range
-             */
-            for(PartitionStatistics pStats:partitionStatistics){
-                double selectivity = 1.0d;
-                int size = startKeyValue!=null?startKeyValue.length :stopKeyValue.length;
-                for(int i=0;i<size;i++){
-                    DataValueDescriptor start = startKeyValue!=null?startKeyValue[i]:null;
-                    DataValueDescriptor stop = stopKeyValue!=null?stopKeyValue[i]:null;
-                    ColumnStatistics<DataValueDescriptor> cStats = pStats.columnStatistics(keyMap[i]);
-                    if(cStats!=null){
-                        double rc = cStats.getDistribution().rangeSelectivity(start,stop,includeStart,includeStop);
-                        selectivity*=rc/cStats.nonNullCount();
-                    }
-                }
-                long partRc = (long)Math.ceil(selectivity*pStats.rowCount());
-                if(partRc>0){
-                    numPartitions++;
-                    numRows+=partRc;
-                    cost+=pStats.localReadLatency()*partRc;
-                }
+        for(PartitionStatistics pStats:partitionStatistics){
+            long partRc=partitionColumnSelectivity(pStats,startKeyValue,includeStart,stopKeyValue,includeStop,keyMap);
+            if(partRc>0){
+                numPartitions++;
+                numRows+=partRc;
+
+                double colSizeAdjustment=columnSizeFactor(totalColumns,scanColumnList,pStats,keyMap);
+                double remoteScanCost=pStats.remoteReadLatency()*partRc*colSizeAdjustment;
+                double localScanCost=pStats.localReadLatency()*partRc;
+                cost +=localScanCost+remoteScanCost;
             }
         }
-//        for (PartitionStatistics partStats : partitionStatistics){
-//            long count=count(partStats,
-//                    startKeyValue,includeStart,
-//                    stopKeyValue,includeStop,
-//                    0,partStats.rowCount(),keyMap);
-//            numRows+=count;
-//            if(count>0){
-//                numPartitions+=1;
-//                cost+=count*partStats.localReadLatency();
-//            }
-//        }
+
 
         costEstimate.setEstimatedRowCount(numRows);
         costEstimate.setEstimatedCost(cost);
         costEstimate.setNumPartitions(numPartitions);
     }
 
-    /* ****************************************************************************************************************/
-    /*private helper methods*/
-    private long count(PartitionStatistics partStats,
-                       DataValueDescriptor[] startKeyValue,
-                       boolean includeStart,
-                       DataValueDescriptor[] stopKeyValue,
-                       boolean includeStop,
-                       int keyPosition,
-                       long currentCount,
-                       int[] keyMap) {
-        if(startKeyValue==null){
-            if(stopKeyValue==null) return currentCount;
-            else if(keyPosition>=stopKeyValue.length) return currentCount;
-        }else if(keyPosition>=startKeyValue.length) return currentCount;
-        DataValueDescriptor start = startKeyValue==null? null: startKeyValue[keyPosition];
-        DataValueDescriptor stop = stopKeyValue==null?null: stopKeyValue[keyPosition];
-
-        int columnId = keyMap[keyPosition];
-        Distribution<DataValueDescriptor> dist = partStats.columnDistribution(columnId);
-        long c = dist.rangeSelectivity(start, stop, includeStart, includeStop);
-        if(c>0){
-            double size = partStats.rowCount();
-            double estCount;
-            if(keyPosition==0)
-                estCount = c;
-            else
-                estCount = c*currentCount/size;
-            return count(partStats,startKeyValue,includeStart,stopKeyValue,includeStop,keyPosition+1,(long)estCount,keyMap);
-        }else
-            return 0l;
+    private long partitionColumnSelectivity(PartitionStatistics pStats,DataValueDescriptor[] startKeyValue,boolean includeStart,DataValueDescriptor[] stopKeyValue,boolean includeStop,int[] keyMap){
+        double selectivity = 1.0d;
+        if(startKeyValue==null && stopKeyValue==null){
+           return pStats.rowCount();
+        }else{
+            int size=startKeyValue!=null?startKeyValue.length:stopKeyValue.length;
+            for(int i=0;i<size;i++){
+                DataValueDescriptor start=startKeyValue!=null?startKeyValue[i]:null;
+                DataValueDescriptor stop=stopKeyValue!=null?stopKeyValue[i]:null;
+                ColumnStatistics<DataValueDescriptor> cStats=pStats.columnStatistics(keyMap[i]);
+                if(cStats!=null){
+                    double rc=cStats.getDistribution().rangeSelectivity(start,stop,includeStart,includeStop);
+                    selectivity*=rc/cStats.nonNullCount();
+                }
+            }
+            return (long)Math.ceil(selectivity*pStats.rowCount());
+        }
     }
+
+    private double columnSizeFactor(int totalColumns,FormatableBitSet scanColumnList,PartitionStatistics partStats,int[] keyMap){
+        /*
+         * Now that we have a base cost, we want to scale that cost down if we
+         * are returning fewer columns than the total. To do this, we first
+         * compute the average column size for each of the columns that we are interested
+         * in (the scanColumnList), and divide it by the average row width. If
+         * scanColumnList==null, we assume all columns are interesting, and so we
+         * do not scale it.
+         *
+         * We do have to deal with a situation where there are no statistics for the given
+         * column of interest. In this case, we make a guess, where we take the "adjustedRowWidth"(
+         * the width of the row - sum(width(column)| all measured columns),and divide it by the
+         * number of missing columns to generate a rough estimate.
+         */
+        int totAvgColWidth = 0;
+        int adjAvgRowWidth = getAdjustedRowKeySize(partStats,keyMap);
+        if(scanColumnList!=null && scanColumnList.getNumBitsSet()!=totalColumns){
+            for(int i=scanColumnList.anySetBit();i>=0;i=scanColumnList.anySetBit(i)){
+                totAvgColWidth +=getColumnSize(partStats,totalColumns,i-1,adjAvgRowWidth);
+            }
+        }else {
+            totAvgColWidth = adjAvgRowWidth;
+        }
+        return ((double)totAvgColWidth)/partStats.avgRowWidth();
+    }
+
+    private int getColumnSize(PartitionStatistics pStats,int totalColumnCount,int columnId,int adjustedRowSize){
+        ColumnStatistics<DataValueDescriptor> cStats = pStats.columnStatistics(columnId);
+        int colWidth;
+        if(cStats!=null){
+            colWidth = cStats.avgColumnWidth();
+        }else{
+            /*
+             * We don't have statistics for this column, so fill it in with an "unknownRowWidth".
+             */
+            colWidth = (int)getUnknownRowWidth(pStats,totalColumnCount,adjustedRowSize);
+        }
+        return colWidth;
+    }
+
+    private double getUnknownRowWidth(PartitionStatistics pStats,int totalColumnCount,int adjustedRowSize){
+        List<ColumnStatistics> columnStats=pStats.columnStatistics();
+        int avgRowWidth = adjustedRowSize;
+        for(ColumnStatistics cStats:columnStats){
+            avgRowWidth-=cStats.avgColumnWidth();
+            totalColumnCount--;
+        }
+        return ((double)avgRowWidth)/totalColumnCount;
+    }
+
+    private int getAdjustedRowKeySize(PartitionStatistics pStats,int[] keyMap){
+        int rowSizeAdjustment = 0;
+        if(keyMap!=null && keyMap.length>0){
+            /*
+             * We have a keyed table, so we'll need to get the length of the key from our stored
+             * statistics
+             */
+            for(int columnId:keyMap){
+                ColumnStatistics cStats = pStats.columnStatistics(columnId);
+                rowSizeAdjustment+=cStats.avgColumnWidth();
+            }
+        }else{
+            /*
+             * This table has no primary key, add in the length of the UUID.
+             *
+             * Most of the time, we will use Snowflake to generate row keys, so we'll use the
+             * size of a snowflake UUID, which is 8 bytes.
+             */
+            rowSizeAdjustment+=8;
+        }
+        /*
+         * Because row keys are stored for both the SI and data columns, we double the
+         * computed rowSizeAdjustment and add the base METADATA cost to it
+         */
+        int metadataSize = METADATA_ROW_SIZE_ADJUSTMENT+2*rowSizeAdjustment;
+
+        return pStats.avgRowWidth()-metadataSize;
+    }
+
+
 }

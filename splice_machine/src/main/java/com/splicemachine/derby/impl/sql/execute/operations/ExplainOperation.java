@@ -142,9 +142,12 @@ public class ExplainOperation extends SpliceBaseOperation {
         Map<String,Map<Integer,String>> m = PlanPrinter.planMap.get();
         String sql = activation.getPreparedStatement().getSource();
         Map<Integer,String> opPlanMap = m.get(sql);
-        List<String> printedTree = printOperationTree(opPlanMap);
-        plan = new String[printedTree.size()];
-        printedTree.toArray(plan);
+        if(opPlanMap!=null){
+            List<String> printedTree=printOperationTree(opPlanMap);
+            plan=new String[printedTree.size()];
+            printedTree.toArray(plan);
+        }else
+            plan = new String[]{};
     }
 
     private List<String> printOperationTree(Map<Integer, String> baseMap){
@@ -174,6 +177,7 @@ public class ExplainOperation extends SpliceBaseOperation {
          * This method replaces the Query optimizer-based name (e.g. FromBaseTable, IndexToBaseRowNode, etc)
          * with a more elegant name like "TableScan","IndexLookup","NestedLoopJoin", etc.
          */
+        if(baseString==null) return "";
         int nameEndIndex = baseString.indexOf("(");
         return baseString.replaceFirst(baseString.substring(0,nameEndIndex),source.getName());
     }
