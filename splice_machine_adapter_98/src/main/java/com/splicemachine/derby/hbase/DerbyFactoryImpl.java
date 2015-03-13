@@ -66,6 +66,7 @@ import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
@@ -563,13 +564,18 @@ public class DerbyFactoryImpl implements DerbyFactory<TxnMessage.TxnInfo> {
                 for (InputSplit split : splits) {
                     final TableSplit tableSplit = (TableSplit) split;
                     try {
-                        Map<byte[], List<TableSplit>> splitResults = table.coprocessorService(SpliceMessage.SpliceDerbyCoprocessorService.class, tableSplit.getStartRow(), tableSplit.getEndRow(),
-                                new BoundCall<SpliceMessage.SpliceDerbyCoprocessorService, List<TableSplit>>() {
-                                    @Override
-                                    public List<TableSplit> call(byte[] startKey, byte[] stopKey, SpliceMessage.SpliceDerbyCoprocessorService instance) throws IOException {
-                                        return call(instance);
-                                    }
+                        byte[] probe;
+                        byte[] start = tableSplit.getStartRow();
+                        if (start.length == 0) {
+                            // first region, pick smallest rowkey possible
+                            probe = new byte[] { 0 };
+                        } else  {
+                            // any other region, pick start row
+                            probe = start;
+                        }
 
+                        Map<byte[], List<TableSplit>> splitResults = table.coprocessorService(SpliceMessage.SpliceDerbyCoprocessorService.class, probe, probe,
+                                new Batch.Call<SpliceMessage.SpliceDerbyCoprocessorService, List<TableSplit>>() {
                                     @Override
                                     public List<TableSplit> call(SpliceMessage.SpliceDerbyCoprocessorService instance) throws IOException {
                                         SpliceRpcController controller = new SpliceRpcController();
