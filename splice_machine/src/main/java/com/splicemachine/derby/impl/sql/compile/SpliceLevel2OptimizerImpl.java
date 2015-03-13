@@ -75,10 +75,10 @@ public class SpliceLevel2OptimizerImpl implements Optimizer {
 
     protected boolean			 ruleBasedOptimization;
 
-    public CostEstimateImpl outermostCostEstimate;
-    protected CostEstimateImpl currentCost;
-    protected CostEstimateImpl currentSortAvoidanceCost;
-    protected CostEstimateImpl bestCost;
+    public CostEstimate outermostCostEstimate;
+    protected CostEstimate currentCost;
+    protected CostEstimate currentSortAvoidanceCost;
+    protected CostEstimate bestCost;
 
     protected long			 timeOptimizationStarted;
     protected long			 currentTime;
@@ -252,11 +252,11 @@ public class SpliceLevel2OptimizerImpl implements Optimizer {
     /** @see Optimizer#newCostEstimate */
     @Override
     public CostEstimate newCostEstimate() {
-        return new SpliceCostEstimateImpl();
+        return new SimpleCostEstimate();
     }
 
-    public CostEstimateImpl getNewCostEstimate(double theCost,double theRowCount,double theSingleScanRowCount) {
-        return new SpliceCostEstimateImpl(theCost, theRowCount, theSingleScanRowCount);
+    public CostEstimate getNewCostEstimate(double theCost,double theRowCount,double theSingleScanRowCount) {
+        return new SimpleCostEstimate(theCost, theRowCount, theSingleScanRowCount);
     }
 
     @Override

@@ -376,7 +376,7 @@ public class IndexConglomerate extends SpliceConglomerate {
                 false,
                 ContainerHandle.MODE_READONLY,
                 TransactionController.MODE_TABLE, null, null, null, this);
-        return new IndexStatsCostController(cd.getIndexDescriptor().baseColumnPositions(),open_conglom);
+        return new IndexStatsCostController(cd,open_conglom);
     }
 
 
