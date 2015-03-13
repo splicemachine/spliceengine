@@ -39,6 +39,10 @@ public interface CostEstimate extends StoreCostResult
 
     void setCost(double cost, double rowCount, double singleScanRowCount,int numPartitions);
 
+    void setRemoteCost(double remoteCost);
+
+    void setLocalCost(double remoteCost);
+
     /**
      * Copy the values from the given cost estimate into this one.
      */
@@ -108,6 +112,10 @@ public interface CostEstimate extends StoreCostResult
      * @return the number of partitions which must be visited.
      */
     int partitionCount();
+
+    double remoteCost();
+
+    double localCost();
 
     /** Get a copy of this CostEstimate */
     CostEstimate cloneMe();

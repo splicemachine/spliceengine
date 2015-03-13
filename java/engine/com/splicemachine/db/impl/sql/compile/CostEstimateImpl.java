@@ -82,6 +82,14 @@ public class CostEstimateImpl implements CostEstimate {
         this.singleScanRowCount = singleScanRowCount;
     }
 
+    @Override public void setRemoteCost(double remoteCost){  }
+
+    @Override public void setLocalCost(double remoteCost){ this.cost = remoteCost; }
+
+    @Override public double remoteCost(){ return 0d; }
+
+    @Override public double localCost(){ return cost; }
+
     //no-op
     @Override public void setNumPartitions(int numPartitions) {  }
 
@@ -90,7 +98,7 @@ public class CostEstimateImpl implements CostEstimate {
 
     /** @see CostEstimate#setCost */
     public void setCost(CostEstimate other) {
-        cost = other.getEstimatedCost();
+        cost = other.localCost();
         rowCount = other.rowCount();
         singleScanRowCount = other.singleScanRowCount();
     }
@@ -298,7 +306,7 @@ public class CostEstimateImpl implements CostEstimate {
 
     /** @see StoreCostResult#getEstimatedCost */
     public double getEstimatedCost() {
-        return cost;
+        return cost+remoteCost();
     }
 
     /** @see StoreCostResult#setEstimatedCost */

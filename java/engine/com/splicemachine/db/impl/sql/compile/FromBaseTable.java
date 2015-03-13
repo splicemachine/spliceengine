@@ -1213,7 +1213,15 @@ public class FromBaseTable extends FromTable{
 			 ** beetle 4787.
 			 */
             if(cd.isIndex() && (!isCoveringIndex(cd))){
-                getBaseCostController().getFetchFromRowLocationCost(null,0,costEstimate);
+                FormatableBitSet heapCols = null;
+                if(scanColumnList!=null){
+                    heapCols=new FormatableBitSet(scanColumnList);
+                    int[] indexColumns=cd.getIndexDescriptor().baseColumnPositions();
+                    for(int i=0;i<indexColumns.length;i++){
+                        heapCols.clear(indexColumns[i]);
+                    }
+                }
+                scc.getFetchFromRowLocationCost(heapCols,0,costEstimate);
                 optimizer.trace(Optimizer.COST_OF_NONCOVERING_INDEX,tableNumber,0,0.0,costEstimate);
             }
 
