@@ -42,8 +42,10 @@ import com.splicemachine.db.drda.NetworkServerControl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
+
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.HColumnDescriptor;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.PleaseHoldException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
@@ -54,6 +56,7 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import javax.management.*;
+
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
@@ -373,7 +376,7 @@ public class SpliceDriver {
                 new SpliceAccessManager();
                 // Since SPLICE_SEQUENCES table is set up, initialize the UUID generator, so the new Derby connection below
                 // can execute an upgrade process if requested and create and store new system objects in the data dictionary tables.
-                loadUUIDGenerator();
+                loadUUIDGenerator(SpliceConstants.config.getInt(HConstants.REGIONSERVER_PORT, 60020));
 
                 // Create an embedded connection to Derby.  This essentially boots up Derby by creating an internal connection to it.
                 // External connections to Derby are created later when the Derby network server is started.
@@ -501,8 +504,8 @@ public class SpliceDriver {
         return snowflake;
     }
 
-    public void loadUUIDGenerator() throws IOException {
-        snowflake = snowLoader.load();
+    public void loadUUIDGenerator(int port) throws IOException {
+        snowflake = snowLoader.load(port);
     }
 
     public MetricsRegistry getRegistry() {

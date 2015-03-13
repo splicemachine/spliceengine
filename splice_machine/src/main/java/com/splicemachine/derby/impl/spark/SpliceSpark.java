@@ -6,9 +6,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.db.jdbc.EmbeddedDriver;
+
 import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -71,7 +73,7 @@ public class SpliceSpark {
                     driver.start(null); // TODO might cause NPEs....
                 }
                 if (driver.getUUIDGenerator() == null) {
-                    driver.loadUUIDGenerator();
+                    driver.loadUUIDGenerator(1); // Need to get Spark Port? TODO JL
                 }
                 spliceStaticComponentsSetup = true;
             }
