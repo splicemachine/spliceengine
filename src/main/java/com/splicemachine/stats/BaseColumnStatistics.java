@@ -25,9 +25,9 @@ public abstract class BaseColumnStatistics<T extends Comparable<T>> implements C
     @Override public int columnId() { return columnId; }
 
     @Override
-    public long avgColumnWidth() {
-        if(totalCount<=0||totalCount==nullCount) return 0l;
-        return totalBytes/totalCount;
+    public int avgColumnWidth() {
+        if(totalCount<=0||totalCount==nullCount) return 0;
+        return (int)(totalBytes/totalCount);
     }
 
     @Override public long nonNullCount() { return totalCount-nullCount; }

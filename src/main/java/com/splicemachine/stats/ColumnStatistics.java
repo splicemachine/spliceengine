@@ -54,9 +54,10 @@ public interface ColumnStatistics<T> extends Mergeable<ColumnStatistics<T>> {
     T maxValue();
 
     /**
-     * @return the width of the column (in bytes)
+     * @return the width of the column (in bytes). In most cases, columns will be stored in byte arrays,
+     * which in java require an integer index. Therefore, this column which is usually safe to store in an int.
      */
-    long avgColumnWidth();
+    int avgColumnWidth();
 
     /**
      * Make a copy of this Statistics object, for same thread management, etc.
