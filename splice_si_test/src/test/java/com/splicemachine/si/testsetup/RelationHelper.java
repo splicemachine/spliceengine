@@ -1,4 +1,4 @@
-package com.splicemachine.si;
+package com.splicemachine.si.testsetup;
 
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.STableReader;
@@ -8,6 +8,7 @@ import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import java.io.IOException;
 
 public class RelationHelper {
+
     private Object table;
     private final SDataLib dataLib;
     private final STableReader reader;
@@ -26,7 +27,7 @@ public class RelationHelper {
     public void write(Object[] keyParts, String family, Object qualifier, Object value, Long timestamp) throws IOException {
         final byte[] newKey = dataLib.newRowKey(keyParts);
         Object put = dataLib.newPut(newKey);
-        dataLib.addKeyValueToPut((OperationWithAttributes)put, dataLib.encode(family), dataLib.encode(qualifier),
+        dataLib.addKeyValueToPut((OperationWithAttributes) put, dataLib.encode(family), dataLib.encode(qualifier),
                 timestamp, dataLib.encode(value));
         writer.write(table, put);
     }

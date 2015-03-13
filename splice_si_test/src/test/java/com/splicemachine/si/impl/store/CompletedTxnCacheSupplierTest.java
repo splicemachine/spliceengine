@@ -1,6 +1,6 @@
 package com.splicemachine.si.impl.store;
 
-import com.splicemachine.si.SimpleTimestampSource;
+import com.splicemachine.si.testsetup.SimpleTimestampSource;
 import com.splicemachine.si.api.*;
 import com.splicemachine.si.impl.InMemoryTxnStore;
 import com.splicemachine.si.impl.WritableTxn;

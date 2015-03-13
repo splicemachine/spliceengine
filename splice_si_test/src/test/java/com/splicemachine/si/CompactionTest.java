@@ -7,6 +7,10 @@ import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.light.LStore;
 import com.splicemachine.si.impl.Tracer;
+import com.splicemachine.si.testsetup.LStoreSetup;
+import com.splicemachine.si.testsetup.StoreSetup;
+import com.splicemachine.si.testsetup.TestTransactionSetup;
+import com.splicemachine.si.testsetup.TransactorTestUtility;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
@@ -50,7 +54,7 @@ public class CompactionTest {
 //												return true;
 //										}
 //								}, 10, 100, 1000, "test");
-				testUtility = new TransactorTestUtility(useSimple,storeSetup,transactorSetup,transactor,control);
+				testUtility = new TransactorTestUtility(useSimple,storeSetup,transactorSetup);
 		}
 
 		@Before

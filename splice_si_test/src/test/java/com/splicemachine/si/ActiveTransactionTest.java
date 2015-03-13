@@ -4,6 +4,9 @@ import com.carrotsearch.hppc.LongArrayList;
 import com.google.common.collect.Lists;
 import com.splicemachine.si.api.*;
 import com.splicemachine.si.impl.ForwardingLifecycleManager;
+import com.splicemachine.si.testsetup.LStoreSetup;
+import com.splicemachine.si.testsetup.StoreSetup;
+import com.splicemachine.si.testsetup.TestTransactionSetup;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.*;
 
