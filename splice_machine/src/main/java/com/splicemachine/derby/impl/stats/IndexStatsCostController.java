@@ -54,15 +54,32 @@ public class IndexStatsCostController extends StatsStoreCostController {
 
     @Override
     public void getFetchFromRowLocationCost(FormatableBitSet validColumns,int access_type,CostEstimate cost) throws StandardException{
-        //use the column size from the base table
-        double columnSizeFactor = columnSizeFactor(baseTableStatistics,
+        //start with the remote read latency
+        double scale = conglomerateStatistics.remoteReadLatency();
+
+        //scale by the column size factor of the heap columns
+        scale *=columnSizeFactor(baseTableStatistics,
                 totalColumns,
-                indexColToHeapColMap,
+                baseConglomerate.getColumnOrdering(),
                 validColumns);
 
+        /*
+         * scale is the cost to read the heap rows over the network, but we have
+         * to read them over the network twice (once to the region, then once more to the control
+         * side). Thus, we multiple the base scale by 2 before multiplying the row count.
+         *
+         * TODO -sf- when we include control side, consider the possibility that we are doing
+         * a control-side access, in which case we don't scale by 2 here.
+         */
+        double heapRemoteCost = scale*cost.rowCount();
+
+        /*
+         * we've already accounted for the remote cost of reading the index columns,
+         * we just need to add in the heap remote costing as well
+         */
+
         //but the read latency from the index table
-        double scale = conglomerateStatistics.remoteReadLatency()*columnSizeFactor;
-        cost.setRemoteCost((1+columnSizeFactor)*cost.remoteCost()+cost.rowCount()*scale);
+        cost.setRemoteCost(cost.remoteCost()+heapRemoteCost);
     }
 
     @Override

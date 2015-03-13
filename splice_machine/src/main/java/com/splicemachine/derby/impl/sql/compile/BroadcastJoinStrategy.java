@@ -115,20 +115,20 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
 
     @Override
     public void rightResultSetCostEstimate(OptimizablePredicateList predList, CostEstimate outerCost, CostEstimate innerCost) {
-        SpliceLogUtils.trace(LOG, "rightResultSetCostEstimate outerCost=%s, innerFullKeyCost=%s", outerCost, innerCost);
-
-        SpliceCostEstimateImpl inner = (SpliceCostEstimateImpl) innerCost;
-        SpliceCostEstimateImpl outer = (SpliceCostEstimateImpl) outerCost;
-
-        inner.setBase(innerCost.cloneMe());
-
-        double cost = inner.getEstimatedRowCount() * (SpliceConstants.remoteRead + SpliceConstants.optimizerHashCost) + inner.cost + outer.cost;
-        double rowCount = Math.max(innerCost.rowCount(),outerCost.rowCount());
-        inner.setCost(cost, rowCount, rowCount);
-        inner.setNumberOfRegions(outer.numberOfRegions);
-        inner.setRowOrdering(outer.rowOrdering);
-
-        SpliceLogUtils.trace(LOG, "rightResultSetCostEstimate computed cost innerCost=%s", innerCost);
+//        SpliceLogUtils.trace(LOG, "rightResultSetCostEstimate outerCost=%s, innerFullKeyCost=%s", outerCost, innerCost);
+//
+//        SpliceCostEstimateImpl inner = (SpliceCostEstimateImpl) innerCost;
+//        SpliceCostEstimateImpl outer = (SpliceCostEstimateImpl) outerCost;
+//
+//        inner.setBase(innerCost.cloneMe());
+//
+//        double cost = inner.getEstimatedRowCount() * (SpliceConstants.remoteRead + SpliceConstants.optimizerHashCost) + inner.cost + outer.cost;
+//        double rowCount = Math.max(innerCost.rowCount(),outerCost.rowCount());
+//        inner.setCost(cost, rowCount, rowCount);
+//        inner.setNumberOfRegions(outer.numberOfRegions);
+//        inner.setRowOrdering(outer.rowOrdering);
+//
+//        SpliceLogUtils.trace(LOG, "rightResultSetCostEstimate computed cost innerCost=%s", innerCost);
     }
 }
 

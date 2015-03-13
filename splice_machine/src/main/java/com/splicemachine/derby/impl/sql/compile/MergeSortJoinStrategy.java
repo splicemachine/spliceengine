@@ -91,25 +91,25 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
 	 */
 	@Override
 	public void rightResultSetCostEstimate(OptimizablePredicateList predList, CostEstimate outerCost, CostEstimate innerCost) {		
-		SpliceLogUtils.trace(LOG, "rightResultSetCostEstimate outerCost=%s, innerFullKeyCost=%s",outerCost, innerCost);
-		// InnerCost does not change
-		SpliceCostEstimateImpl inner = (SpliceCostEstimateImpl) innerCost;
-		inner.setBase(innerCost.cloneMe());
-		SpliceCostEstimateImpl outer = (SpliceCostEstimateImpl) outerCost;
-        long rowCount = Math.max(inner.getEstimatedRowCount(), outer.getEstimatedRowCount());
-		
-        long rows = CostUtils.add(inner.getEstimatedRowCount(), outer.getEstimatedRowCount());
-        int regions = inner.numberOfRegions + outer.numberOfRegions;
-        Preconditions.checkState(regions > 0);
-        double joinCost = ((rows * SpliceConstants.optimizerWriteCost) / regions);
-        // Prefer larger table on the left
-        double waggle = 0.0;
-        if (outer.singleScanRowCount<inner.singleScanRowCount)
-        	waggle = 0.5;
-		inner.setCost(joinCost+inner.cost+outer.cost+waggle, rowCount, rowCount);
-		inner.setNumberOfRegions(16);
-		inner.setRowOrdering(null);
-		SpliceLogUtils.trace(LOG, "rightResultSetCostEstimate computed cost innerCost=%s",innerCost);
+//		SpliceLogUtils.trace(LOG, "rightResultSetCostEstimate outerCost=%s, innerFullKeyCost=%s",outerCost, innerCost);
+//		// InnerCost does not change
+//		SpliceCostEstimateImpl inner = (SpliceCostEstimateImpl) innerCost;
+//		inner.setBase(innerCost.cloneMe());
+//		SpliceCostEstimateImpl outer = (SpliceCostEstimateImpl) outerCost;
+//        long rowCount = Math.max(inner.getEstimatedRowCount(), outer.getEstimatedRowCount());
+//
+//        long rows = CostUtils.add(inner.getEstimatedRowCount(), outer.getEstimatedRowCount());
+//        int regions = inner.numberOfRegions + outer.numberOfRegions;
+//        Preconditions.checkState(regions > 0);
+//        double joinCost = ((rows * SpliceConstants.optimizerWriteCost) / regions);
+//        // Prefer larger table on the left
+//        double waggle = 0.0;
+//        if (outer.singleScanRowCount<inner.singleScanRowCount)
+//        	waggle = 0.5;
+//		inner.setCost(joinCost+inner.cost+outer.cost+waggle, rowCount, rowCount);
+//		inner.setNumberOfRegions(16);
+//		inner.setRowOrdering(null);
+//		SpliceLogUtils.trace(LOG, "rightResultSetCostEstimate computed cost innerCost=%s",innerCost);
 	};
     
 }
