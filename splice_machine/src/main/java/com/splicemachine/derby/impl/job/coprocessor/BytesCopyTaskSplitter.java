@@ -34,7 +34,7 @@ public class BytesCopyTaskSplitter implements TaskSplitter {
 				return intervals;
 		}
 		
-		private List<byte[]> getCutPoints(HRegion region, byte[] start, byte[] end) throws IOException {
+		public static List<byte[]> getCutPoints(HRegion region, byte[] start, byte[] end) throws IOException {
 			Store store = null;
 			try {
 				store = region.getStore(SpliceConstants.DEFAULT_FAMILY_BYTES);
