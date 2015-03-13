@@ -94,7 +94,7 @@ return getOptimizerImpl(optimizableList,
 	 * @exception StandardException		Thrown on error
 	 */
 	public CostEstimate getCostEstimate() throws StandardException {
-		return new SpliceCostEstimateImpl();
+		return new SimpleCostEstimate();
 	}
 }
 

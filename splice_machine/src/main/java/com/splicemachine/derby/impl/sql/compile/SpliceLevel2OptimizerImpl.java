@@ -3072,16 +3072,9 @@ public class SpliceLevel2OptimizerImpl implements Optimizer {
     private CostEstimate estimateTotalCost(OptimizablePredicateList predList,
                                            ConglomerateDescriptor cd,
                                            CostEstimate outerCost,
-                                           Optimizable optimizable)
-            throws StandardException
-    {
+                                           Optimizable optimizable) throws StandardException {
 		/* Get the cost of a single scan */
-        CostEstimate resultCost =
-                optimizable.estimateCost(predList,
-                        cd,
-                        outerCost,
-                        this,
-                        currentRowOrdering);
+        CostEstimate resultCost = optimizable.estimateCost(predList, cd, outerCost, this, currentRowOrdering);
 
         return resultCost;
     }

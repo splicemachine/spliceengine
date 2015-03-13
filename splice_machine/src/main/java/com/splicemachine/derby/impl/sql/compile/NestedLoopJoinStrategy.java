@@ -335,19 +335,22 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy {
         SpliceLogUtils.trace(LOG, "rightResultSetCostEstimate outerCost=%s, innerFullKeyCost=%s",outerCost, innerCost);
         if (outerCost.getEstimatedCost() == 0.0 && outerCost.getEstimatedRowCount() == 1) // I am not really a NLJ but a table scan, do not add network costs...
             return;
-        SpliceCostEstimateImpl inner = (SpliceCostEstimateImpl) innerCost;
-        inner.setBase(innerCost.cloneMe());
-        SpliceCostEstimateImpl outer = (SpliceCostEstimateImpl) outerCost;
-        checkState(outer.numberOfRegions > 0);
-        double rightSideCost = (innerCost.getEstimatedCost()* (double) outer.getEstimatedRowCount()*(double) outer.getEstimatedRowCount()* SpliceConstants.optimizerNetworkCost)/outer.numberOfRegions;
-        inner.baseCost.setEstimatedRowCount((long)(innerCost.rowCount() * outer.rowCount()));
-        inner.baseCost.setSingleScanRowCount(innerCost.rowCount());
-        inner.baseCost.cost = rightSideCost;
-        double cost = rightSideCost + outer.getEstimatedCost();
-        innerCost.setCost(cost, innerCost.rowCount() * outer.rowCount(), innerCost.rowCount() * outer.rowCount());
-        inner.setNumberOfRegions(outer.numberOfRegions);
-        inner.setRowOrdering(outer.rowOrdering);
-        SpliceLogUtils.trace(LOG, "rightResultSetCostEstimate computed cost innerCost=%s",innerCost);
+        innerCost.setBase(innerCost.cloneMe());
+        outerCost.setBase(outerCost.cloneMe());
+//        SpliceCostEstimateImpl inner = (SpliceCostEstimateImpl) innerCost;
+//        inner.setBase(innerCost.cloneMe());
+//        SpliceCostEstimateImpl outer = (SpliceCostEstimateImpl) outerCost;
+//        checkState(outerCost.partitionCount() > 0);
+
+//        double rightSideCost = (innerCost.getEstimatedCost()* (double) outer.getEstimatedRowCount()*(double) outer.getEstimatedRowCount()* SpliceConstants.optimizerNetworkCost)/outer.numberOfRegions;
+//        inner.baseCost.setEstimatedRowCount((long)(innerCost.rowCount() * outer.rowCount()));
+//        inner.baseCost.setSingleScanRowCount(innerCost.rowCount());
+//        inner.baseCost.cost = rightSideCost;
+//        double cost = rightSideCost + outer.getEstimatedCost();
+//        innerCost.setCost(cost, innerCost.rowCount() * outer.rowCount(), innerCost.rowCount() * outer.rowCount());
+//        inner.setNumberOfRegions(outer.numberOfRegions);
+//        inner.setRowOrdering(outer.rowOrdering);
+//        SpliceLogUtils.trace(LOG, "rightResultSetCostEstimate computed cost innerCost=%s",innerCost);
     };
 
 }
