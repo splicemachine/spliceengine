@@ -101,8 +101,8 @@ public class SMInputFormatIT extends BaseMRIOTest {
         int i = 0;
         for (Tuple2<RowLocation, ExecRow> tuple: data) {
         	i++;
-        	Assert.assertNotNull(tuple._1);
-        	Assert.assertNotNull(tuple._2);        	
+        	Assert.assertNotNull(tuple._1());
+        	Assert.assertNotNull(tuple._2());
         }
         Assert.assertEquals("Incorrect Results Returned", 2,i);   	
     }
@@ -116,8 +116,8 @@ public class SMInputFormatIT extends BaseMRIOTest {
         int i = 0;
         for (Tuple2<RowLocation, ExecRow> tuple: data) {
         	i++;
-        	Assert.assertNotNull(tuple._1);
-        	Assert.assertNotNull(tuple._2);        	
+        	Assert.assertNotNull(tuple._1());
+        	Assert.assertNotNull(tuple._2());
         }
         Assert.assertEquals("Incorrect Results Returned", 10000,i);
     }

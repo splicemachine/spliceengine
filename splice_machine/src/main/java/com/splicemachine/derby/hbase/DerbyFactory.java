@@ -18,6 +18,7 @@ import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 
+import com.splicemachine.derby.impl.job.scheduler.SubregionSplitter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -82,6 +83,7 @@ public interface DerbyFactory<Transaction> {
 		ExceptionTranslator getExceptionHandler();
         SparkUtils getSparkUtils();
         SpliceRegionScanner getSplitRegionScanner(Scan scan, HTable htable) throws IOException;
-        KeyValueScanner getMemstoreFlushAwareScanner(HRegion region, Store store, ScanInfo scanInfo, Scan scan, 
+        KeyValueScanner getMemstoreFlushAwareScanner(HRegion region, Store store, ScanInfo scanInfo, Scan scan,
 				final NavigableSet<byte[]> columns, long readPt, AtomicReference<MemstoreAware> memstoreAware, MemstoreAware initialValue) throws IOException;
+        SubregionSplitter getSubregionSplitter();
 }
