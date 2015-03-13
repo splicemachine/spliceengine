@@ -7,15 +7,10 @@ import java.lang.Override;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.NavigableSet;
-import java.util.SortedSet;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.splicemachine.derby.impl.job.scheduler.SubregionSplitter;
 import com.splicemachine.derby.impl.sql.execute.operations.SparkUtilsImpl;
 
 import javax.management.MBeanServerConnection;
@@ -572,5 +567,10 @@ public class DerbyFactoryImpl implements DerbyFactory<SparseTxn> {
 				MemstoreAware initialValue) throws IOException {
 			return new MemStoreFlushAwareScanner(region,store,scanInfo,scan,columns,readPt,memstoreAware,initialValue);
 		}
+
+    @Override
+    public SubregionSplitter getSubregionSplitter() {
+        throw new UnsupportedOperationException();
+    }
 
 }
