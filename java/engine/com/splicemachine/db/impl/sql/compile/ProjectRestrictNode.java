@@ -1243,10 +1243,8 @@ public class ProjectRestrictNode extends SingleChildResultSetNode
 	 */
 
 	public ResultSetNode optimize(DataDictionary dataDictionary,
-								  PredicateList predicates,
-								  double outerRows) 
-					throws StandardException
-	{
+                                  PredicateList predicates,
+                                  double outerRows)  throws StandardException {
 		/* We need to implement this method since a PRN can appear above a
 		 * SelectNode in a query tree.
 		 */
@@ -1262,7 +1260,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode
 									getContextManager()),
 								predicates,
 								dataDictionary,
-								(RequiredRowOrdering) null);
+                null);
 
 		// RESOLVE: SHOULD FACTOR IN THE NON-OPTIMIZABLE PREDICATES THAT
 		// WERE NOT PUSHED DOWN

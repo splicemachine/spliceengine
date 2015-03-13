@@ -249,22 +249,22 @@ public class FromBaseTable extends FromTable{
                 0.0,
                 getExposedName());
 
-		    /*
-		     ** Remove the ordering of the current conglomerate descriptor,
-		     ** if any.
-		     */
+		/*
+		 ** Remove the ordering of the current conglomerate descriptor,
+		 ** if any.
+		 */
         rowOrdering.removeOptimizable(getTableNumber());
 
         // RESOLVE: This will have to be modified to step through the
         // join strategies as well as the conglomerates.
 
         if(userSpecifiedIndexName!=null){
-			      /*
-			       ** User specified an index name, so we should look at only one
-			       ** index.  If there is a current conglomerate descriptor, and there
-			       ** are no more join strategies, we've already looked at the index,
-			       ** so go back to null.
-			       */
+			/*
+			 ** User specified an index name, so we should look at only one
+			 ** index.  If there is a current conglomerate descriptor, and there
+			 ** are no more join strategies, we've already looked at the index,
+			 ** so go back to null.
+			 */
             if(currentConglomerateDescriptor!=null){
                 if(!super.nextAccessPath(optimizer,predList,rowOrdering)){
                     currentConglomerateDescriptor=null;
@@ -273,11 +273,11 @@ public class FromBaseTable extends FromTable{
                 optimizer.trace(Optimizer.LOOKING_FOR_SPECIFIED_INDEX,tableNumber,0,0.0,userSpecifiedIndexName);
 
                 if(StringUtil.SQLToUpperCase(userSpecifiedIndexName).equals("NULL")){
-					          /* Special case - user-specified table scan */
+					/* Special case - user-specified table scan */
                     currentConglomerateDescriptor=tableDescriptor.getConglomerateDescriptor(
                             tableDescriptor.getHeapConglomerateId());
                 }else{
-					          /* User-specified index name */
+					/* User-specified index name */
                     getConglomDescs();
 
                     for(ConglomerateDescriptor conglomDesc : conglomDescs){
@@ -291,7 +291,7 @@ public class FromBaseTable extends FromTable{
                         }
                     }
 
-					          /* We should always find a match */
+					/* We should always find a match */
                     if(SanityManager.DEBUG){
                         SanityManager.ASSERT(currentConglomerateDescriptor!=null,
                                 "Expected to find match for forced index "+userSpecifiedIndexName);
@@ -306,21 +306,21 @@ public class FromBaseTable extends FromTable{
             }
         }else{
             if(currentConglomerateDescriptor!=null){
-				        /*
-				         ** Once we have a conglomerate descriptor, cycle through
-				         ** the join strategies (done in parent).
-				         */
+				/*
+				 ** Once we have a conglomerate descriptor, cycle through
+				 ** the join strategies (done in parent).
+				 */
                 if(!super.nextAccessPath(optimizer,predList,rowOrdering)){
-					          /*
-					           ** When we're out of join strategies, go to the next
-					           ** conglomerate descriptor.
-					           */
+				    /*
+				     ** When we're out of join strategies, go to the next
+				     ** conglomerate descriptor.
+				     */
                     currentConglomerateDescriptor=getNextConglom(currentConglomerateDescriptor);
 
-					          /*
-					           ** New conglomerate, so step through join strategies
-					           ** again.
-					           */
+				    /*
+				     ** New conglomerate, so step through join strategies
+				     ** again.
+				     */
                     resetJoinStrategies(optimizer);
 
                     if(!super.nextAccessPath(optimizer,predList,rowOrdering)){
@@ -330,7 +330,7 @@ public class FromBaseTable extends FromTable{
                     }
                 }
             }else{
-				        /* Get the first conglomerate descriptor */
+				/* Get the first conglomerate descriptor */
                 currentConglomerateDescriptor=getFirstConglom();
 
                 if(!super.nextAccessPath(optimizer,predList,rowOrdering)){
@@ -555,7 +555,6 @@ public class FromBaseTable extends FromTable{
                     throw StandardException.newException(SQLState.LANG_BOTH_FORCE_INDEX_AND_CONSTRAINT_SPECIFIED,
                             getBaseTableName());
                 }
-                indexSpecified=true;
 
 				            /* Validate index name - NULL means table scan */
                 if(!StringUtil.SQLToUpperCase(value).equals("NULL")){
@@ -833,12 +832,7 @@ public class FromBaseTable extends FromTable{
             double extraNonQualifierSelectivity=1.0d;
             double statCompositeSelectivity=1.0d;
 
-            int numExtraFirstColumnPreds=0;
-            int numExtraStartStopPreds=0;
-            int numExtraQualifiers=0;
-            int numExtraNonQualifiers=0;
-
-			/*
+            /*
 			** It is possible for something to be a start or stop predicate
 			** without it being possible to use it as a key for cost estimation.
 			** For example, with an index on (c1, c2), and the predicate
@@ -851,18 +845,7 @@ public class FromBaseTable extends FromTable{
 			*/
             boolean startGap=false;
             boolean stopGap=false;
-            boolean seenFirstColumn=false;
 
-			/*
-			** We need to figure out the number of rows touched to decide
-			** whether to use row locking or table locking.  If the start/stop
-			** conditions are constant (i.e. no joins), the number of rows
-			** touched is the number of rows per scan.  But if the start/stop
-			** conditions contain a join, the number of rows touched must
-			** take the number of outer rows into account.
-			*/
-            boolean constantStartStop=true;
-            boolean startStopFound=false;
 
 			/* Count the number of start and stop keys */
             int startKeyNum=0;
@@ -875,17 +858,11 @@ public class FromBaseTable extends FromTable{
             else
                 predListSize=0;
 
-            ColumnReference firstColumn=null;
             for(int i=0;i<predListSize;i++){
                 pred=baseTableRestrictionList.getOptPredicate(i);
                 boolean startKey=pred.isStartKey();
                 boolean stopKey=pred.isStopKey();
                 if(startKey || stopKey){
-                    startStopFound=true;
-
-                    if(!pred.getReferencedMap().hasSingleBitSet()){
-                        constantStartStop=false;
-                    }
 
                     boolean knownConstant=pred.compareWithKnownConstant(this,true);
                     if(startKey){
@@ -917,7 +894,7 @@ public class FromBaseTable extends FromTable{
                         if(baseTableRestrictionList.isRedundantPredicate(i))
                             continue;
 
-                        if(pred.isQualifier()){
+                        if(knownConstant && pred.isQualifier()){
                             /*
                              * this predicate is not useful for the start and stop key,
                              * but it is still a qualifier, and hence we can use statistics
@@ -927,18 +904,6 @@ public class FromBaseTable extends FromTable{
                         }else{
                             nonQualifierSelectivity*=pred.selectivity(this);
                         }
-//                        if(pred.getIndexPosition()==0){
-//                            extraFirstColumnSelectivity*=pred.selectivity(this);
-//                            if(!seenFirstColumn){
-//                                ValueNode relNode=((Predicate)pred).getAndNode().getLeftOperand();
-//                                if(relNode instanceof BinaryRelationalOperatorNode)
-//                                    firstColumn=((BinaryRelationalOperatorNode)relNode).getColumnOperand(this);
-//                                seenFirstColumn=true;
-//                            }
-//                        }else{
-//                            extraStartStopSelectivity*=pred.selectivity(this);
-//                            numExtraStartStopPreds++;
-//                        }
                     }
                 }else{
                     /* We have a non-key predicate.  */
@@ -946,26 +911,6 @@ public class FromBaseTable extends FromTable{
                     if(baseTableRestrictionList.isRedundantPredicate(i)){
                         continue;
                     }
-
-//                    if(pred instanceof Predicate){
-//					    /* If we have "like" predicate on the first index column, it is more likely
-//					     * to have a smaller range than "between", so we apply extra selectivity 0.2
-//					     * here.  beetle 4387, 4787.
-//					     */
-//                        ValueNode leftOpnd=((Predicate)pred).getAndNode().getLeftOperand();
-//                        if(firstColumn!=null && leftOpnd instanceof LikeEscapeOperatorNode){
-//                            LikeEscapeOperatorNode likeNode=(LikeEscapeOperatorNode)leftOpnd;
-//                            if(likeNode.getLeftOperand().requiresTypeFromContext()){
-//                                ValueNode receiver=likeNode.getReceiver();
-//                                if(receiver instanceof ColumnReference){
-//                                    ColumnReference cr=(ColumnReference)receiver;
-//                                    if(cr.getTableNumber()==firstColumn.getTableNumber() &&
-//                                            cr.getColumnNumber()==firstColumn.getColumnNumber())
-//                                        extraFirstColumnSelectivity*=0.2;
-//                                }
-//                            }
-//                        }
-//                    }
 
                     boolean knownConstant = pred.compareWithKnownConstant(this,true);
                     if(knownConstant && pred.isQualifier()){
@@ -984,19 +929,6 @@ public class FromBaseTable extends FromTable{
                     stopGap=true;
                 }
             }
-
-//            if(unknownPredicateList!=null){
-//                statCompositeSelectivity=unknownPredicateList.selectivity(this);
-//                if(statCompositeSelectivity==-1.0d)
-//                    statCompositeSelectivity=1.0d;
-//            }
-
-			      /*
-			       ** Factor the non-base-table predicates into the extra
-			       ** non-qualifier selectivity, since these will restrict the
-			       ** number of rows, but not the cost.
-			       */
-//            extraNonQualifierSelectivity*=currentJoinStrategy.nonBasePredicateSelectivity(this,predList);
 
 			/* Create the start and stop key arrays, and fill them in */
             DataValueDescriptor[] startKeys;
@@ -1119,12 +1051,22 @@ public class FromBaseTable extends FromTable{
              * this and multiply it by the qualifier and non-qualifier selectivity
              * to generate our estimate
              */
+            FormatableBitSet scanColumnList = null;
+            ResultColumnList rcl = templateColumns;
+            if(rcl!=null&&rcl.size()>0){
+                scanColumnList = new FormatableBitSet(rcl.size());
+                for(ResultColumn rc:rcl){
+                    int columnPosition=rc.getColumnPosition();
+                    scanColumnList.grow(columnPosition+1);
+                    scanColumnList.set(columnPosition);
+                }
+            }
             scc.getScanCost(
                     currentJoinStrategy.scanCostType(),
                     baseRC,
                     1,
                     forUpdate(),
-                    null,
+                    scanColumnList,
                     rowTemplate,
                     startKeys,
                     startOperator,
@@ -1161,7 +1103,7 @@ public class FromBaseTable extends FromTable{
                     case RelationalOperator.GREATER_EQUALS_RELOP:
                     case RelationalOperator.GREATER_THAN_RELOP:
                         //see if there's an equivalent operator already found. If so, add to start in that position
-                        int equivalentPredicatePos = findOpposingPredicate(columnNumber,relationalOperator,rangeStopPredicates);
+                        int equivalentPredicatePos = findOpposingPredicate(columnNumber,rangeStopPredicates);
                         if(equivalentPredicatePos<0)
                             rangeStartPredicates.add(p);
                         else
@@ -1170,7 +1112,7 @@ public class FromBaseTable extends FromTable{
                     case RelationalOperator.LESS_EQUALS_RELOP:
                     case RelationalOperator.LESS_THAN_RELOP:
                         //see if there's an equivalent operator already found. If so, add to start in that position
-                        equivalentPredicatePos = findOpposingPredicate(columnNumber,relationalOperator,rangeStartPredicates);
+                        equivalentPredicatePos = findOpposingPredicate(columnNumber,rangeStartPredicates);
                         if(equivalentPredicatePos<0)
                             rangeStopPredicates.add(p);
                         else
@@ -1213,15 +1155,6 @@ public class FromBaseTable extends FromTable{
 
             optimizer.trace(Optimizer.COST_OF_CONGLOMERATE_SCAN1,tableNumber,0,0.0,cd);
             optimizer.trace(Optimizer.COST_OF_CONGLOMERATE_SCAN2,tableNumber,0,0.0,costEstimate);
-//            optimizer.trace(Optimizer.COST_OF_CONGLOMERATE_SCAN3,numExtraFirstColumnPreds,0,
-//                    extraFirstColumnSelectivity,null);
-//            optimizer.trace(Optimizer.COST_OF_CONGLOMERATE_SCAN4,numExtraStartStopPreds,0,
-//                    extraStartStopSelectivity,null);
-//            optimizer.trace(Optimizer.COST_OF_CONGLOMERATE_SCAN5,numExtraQualifiers,0,
-//                    extraQualifierSelectivity,null);
-//            optimizer.trace(Optimizer.COST_OF_CONGLOMERATE_SCAN6,numExtraNonQualifiers,0,
-//                    extraNonQualifierSelectivity,null);
-
 			/*
 			 * initial row count is the row count without applying
 			 * any predicates-- we use this at the end of the routine
@@ -1269,15 +1202,6 @@ public class FromBaseTable extends FromTable{
 //                double rc = costEstimate.rowCount() * listSize;
 //                double ssrc = costEstimate.singleScanRowCount() * listSize;
 
-				/* If multiplication by listSize returns more rows than are
-				 * in the scan then just use the number of rows in the scan.
-				 */
-/*				costEstimate.setCost(
-					costEstimate.getEstimatedCost() * listSize,
-					rc > initialRowCount ? initialRowCount : rc,
-					ssrc > initialRowCount ? initialRowCount : ssrc);
-*/
-//            }
 
 			/*
 			 ** If the index isn't covering, add the cost of getting the
@@ -1293,16 +1217,6 @@ public class FromBaseTable extends FromTable{
                 optimizer.trace(Optimizer.COST_OF_NONCOVERING_INDEX,tableNumber,0,0.0,costEstimate);
             }
 
-            /* Factor in the extra qualifier selectivity (see comment above).
-             * NOTE: In this case we want to apply the selectivity to both
-             * the row count and singleScanRowCount.
-             */
-//            if(extraQualifierSelectivity!=1.0d){
-//                scc.extraQualifierSelectivity(costEstimate); // Apply Extra Qualifier Estimates Splice
-//
-//                optimizer.trace(Optimizer.COST_INCLUDING_EXTRA_QUALIFIER_SELECTIVITY,tableNumber,0,0.0,costEstimate);
-//            }
-
             singleScanRowCount=costEstimate.singleScanRowCount();
 
 	        /*
@@ -1315,32 +1229,6 @@ public class FromBaseTable extends FromTable{
 	         ** loop.  (eg, we will find at most 1 match when probing
 	         ** the hash table.)
 	         */
-            double newCost=costEstimate.getEstimatedCost();
-            double rowCount=costEstimate.rowCount();
-
-			/*
-			 ** RESOLVE - If there is a unique index on the joining
-			 ** columns, the number of matching rows will equal the
-			 ** number of outer rows, even if we're not considering the
-			 ** unique index for this access path. To figure that out,
-			 ** however, would require an analysis phase at the beginning
-			 ** of optimization. So, we'll always multiply the number
-			 ** of outer rows by the number of rows per scan. This will
-			 ** give us a higher than actual row count when there is
-			 ** such a unique index, which will bias the optimizer toward
-			 ** using the unique index. This is probably OK most of the
-			 ** time, since the optimizer would probably choose the
-			 ** unique index, anyway. But it would be better if the
-			 ** optimizer set the row count properly in this case.
-			 */
-/*			if (currentJoinStrategy.multiplyBaseCostByOuterRows())
-			{
-				newCost *= outerCost.rowCount();
-			}
-
-			rowCount *= outerCost.rowCount();
-			initialRowCount *= outerCost.rowCount();
-*/			
 
 		    /*
 		     ** If this table can generate at most one row per scan,
@@ -1349,11 +1237,10 @@ public class FromBaseTable extends FromTable{
 		     ** in the above comment, since it will only notice
 		     ** one-row result sets for the current join order.
 		     */
-            if(oneRowResultSetForSomeConglom){
-                if(outerCost.rowCount()<rowCount){
-                    rowCount=outerCost.rowCount();
-                }
-            }
+//            if(oneRowResultSetForSomeConglom){
+//                if(outerCost.rowCount()<rowCount){
+//                }
+//            }
 
 			/*
              ** The estimated cost may be too high for indexes, if the
@@ -1363,52 +1250,50 @@ public class FromBaseTable extends FromTable{
 			 ** of the index) - the reason being that this is when the
 			 ** cost may be inaccurate.
 			 */
-            if(cd.isIndex() && startStopFound && (!constantStartStop)){
-                /*
-			     ** Does any table outer to this one have a unique key on
-			     ** a subset of the joining columns? If so, the maximum number
-		         ** of rows that this table can return is the number of rows
-		         ** in this table times the number of times the maximum number
-		         ** of times each key can be repeated.
-        		 */
-                double scanUniquenessFactor=
-                        optimizer.uniqueJoinWithOuterTable(baseTableRestrictionList);
-                if(scanUniquenessFactor>0.0){
-					/*
-					** A positive uniqueness factor means there is a unique
-					** outer join key. The value is the reciprocal of the
-					** maximum number of duplicates for each unique key
-					** (the duplicates can be caused by other joining tables).
-					*/
-                    double maxRows=((double)baseRowCount())/scanUniquenessFactor;
-                    if(rowCount>maxRows){
-						/*
-						** The estimated row count is too high. Adjust the
-						** estimated cost downwards proportionately to
-						** match the maximum number of rows.
-						*/
-                        newCost*=(maxRows/rowCount);
-                    }
-                }
-            }
-
-			/* The estimated total row count may be too high */
-            if(tableUniquenessFactor>0.0){
-				/*
-				** A positive uniqueness factor means there is a unique outer
-				** join key. The value is the reciprocal of the maximum number
-				** of duplicates for each unique key (the duplicates can be
-				** caused by other joining tables).
-				*/
-                double maxRows= ((double)baseRowCount())/tableUniquenessFactor;
-                if(rowCount>maxRows){
-					/*
-					** The estimated row count is too high. Set it to the
-					** maximum row count.
-					*/
-                    rowCount=maxRows;
-                }
-            }
+//            if(cd.isIndex() && startStopFound && (!constantStartStop)){
+//                /*
+//			     ** Does any table outer to this one have a unique key on
+//			     ** a subset of the joining columns? If so, the maximum number
+//		         ** of rows that this table can return is the number of rows
+//		         ** in this table times the number of times the maximum number
+//		         ** of times each key can be repeated.
+//        		 */
+//                double scanUniquenessFactor=
+//                        optimizer.uniqueJoinWithOuterTable(baseTableRestrictionList);
+//                if(scanUniquenessFactor>0.0){
+//					/*
+//					** A positive uniqueness factor means there is a unique
+//					** outer join key. The value is the reciprocal of the
+//					** maximum number of duplicates for each unique key
+//					** (the duplicates can be caused by other joining tables).
+//					*/
+//                    double maxRows=((double)baseRowCount())/scanUniquenessFactor;
+//                    if(rowCount>maxRows){
+//						/*
+//						** The estimated row count is too high. Adjust the
+//						** estimated cost downwards proportionately to
+//						** match the maximum number of rows.
+//						*/
+//                    }
+//                }
+//            }
+//
+//			/* The estimated total row count may be too high */
+//            if(tableUniquenessFactor>0.0){
+//				/*
+//				** A positive uniqueness factor means there is a unique outer
+//				** join key. The value is the reciprocal of the maximum number
+//				** of duplicates for each unique key (the duplicates can be
+//				** caused by other joining tables).
+//				*/
+//                double maxRows= ((double)baseRowCount())/tableUniquenessFactor;
+//                if(rowCount>maxRows){
+//					/*
+//					** The estimated row count is too high. Set it to the
+//					** maximum row count.
+//					*/
+//                }
+//            }
 /*
 			costEstimate.setCost(
 				newCost,
@@ -1422,16 +1307,15 @@ public class FromBaseTable extends FromTable{
 			** Now figure in the cost of the non-qualifier predicates.
 			** existsBaseTables have a row count of 1
 			*/
-            double rc=-1, src=-1;
+            double rc=-1;
             if(existsBaseTable)
-                rc=src=1;
+                rc=1;
                 // don't factor in extraNonQualifierSelectivity in case of oneRowResultSetForSomeConglom
                 // because "1" is the final result and the effect of other predicates already considered
                 // beetle 4787
             else if(extraNonQualifierSelectivity!=1.0d){
                 rc=oneRowResultSetForSomeConglom?costEstimate.rowCount():
                         costEstimate.rowCount()*extraNonQualifierSelectivity;
-                src=costEstimate.singleScanRowCount()*extraNonQualifierSelectivity;
             }
             if(rc!=-1) {// changed
                 // costEstimate.setCost(costEstimate.getEstimatedCost(), rc, src);
@@ -1482,7 +1366,7 @@ public class FromBaseTable extends FromTable{
         return costEstimate;
     }
 
-    private int findOpposingPredicate(int columnNumber,int relationalOperator,List<Predicate> predicates){
+    private int findOpposingPredicate(int columnNumber,List<Predicate> predicates){
         /*
          * Find a predicate in the list which occurs against the same column number
          */
@@ -1492,38 +1376,6 @@ public class FromBaseTable extends FromTable{
             i++;
         }
         return -1;
-    }
-
-    private double scanCostAfterSelectivity(double originalScanCost,
-                                            double initialPositionCost,
-                                            double selectivity,
-                                            boolean anotherIndexUnique) throws StandardException{
-		/* If there's another paln using unique index, its selectivity is 1/r
-		 * because we use row count 1.  This plan is not unique index, so we make
-		 * selectivity at least 2/r, which is more fair, because for unique index
-		 * we don't use our selectivity estimates.  Unique index also more likely
-		 * locks less rows, hence better concurrency.  beetle 4787.
-		 */
-        if(anotherIndexUnique){
-            double r=baseRowCount();
-            if(r>0.0){
-                double minSelectivity=2.0/r;
-                if(minSelectivity>selectivity)
-                    selectivity=minSelectivity;
-            }
-        }
-		
-		/* initialPositionCost is the first part of the index scan cost we get above.
-		 * It's the cost of initial positioning/fetch of key.  So it's unrelated to
-		 * row count of how many rows we fetch from index.  We extract it here so that
-		 * we only multiply selectivity to the other part of index scan cost, which is
-		 * nearly linear, to make cost calculation more accurate and fair, especially
-		 * compared to the plan of "one row result set" (unique index). beetle 4787.
-		 */
-        double afterInitialCost=(originalScanCost-initialPositionCost)*selectivity;
-        if(afterInitialCost<0)
-            afterInitialCost=0;
-        return initialPositionCost+afterInitialCost;
     }
 
     @Override
