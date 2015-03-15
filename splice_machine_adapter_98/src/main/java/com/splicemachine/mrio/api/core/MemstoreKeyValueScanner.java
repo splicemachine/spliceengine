@@ -1,4 +1,4 @@
-package com.splicemachine.mrio.api;
+package com.splicemachine.mrio.api.core;
 
 import java.io.IOException;
 import java.util.List;
@@ -7,6 +7,7 @@ import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.ResultScanner;
 
+import com.splicemachine.mrio.api.core.BaseMemstoreKeyValueScanner;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public class MemstoreKeyValueScanner extends BaseMemstoreKeyValueScanner<Cell> {
