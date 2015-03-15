@@ -20,7 +20,6 @@ import java.sql.SQLException;
 import java.util.Enumeration;
 import java.util.HashSet;
 import java.util.Set;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hadoop.conf.Configuration;
@@ -32,7 +31,6 @@ import org.apache.hadoop.hbase.mapreduce.HRegionPartitioner;
 import org.apache.hadoop.hbase.mapreduce.TableInputFormat;
 import org.apache.hadoop.hbase.mapreduce.TableOutputFormat;
 import org.apache.hadoop.hbase.mapreduce.TableReducer;
-import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
 import org.apache.hadoop.hbase.util.Base64;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.ZKUtil;
@@ -43,11 +41,10 @@ import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.Reducer;
 import org.apache.hadoop.util.StringUtils;
-
-import com.google.protobuf.InvalidProtocolBufferException;
 import com.splicemachine.derby.hbase.DerbyFactory;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.mrio.MRConstants;
+import com.splicemachine.mrio.api.core.SMSQLUtil;
 
 /**
  * Utility for {@link TableMapper} and {@link TableReducer}
@@ -127,7 +124,7 @@ public class SpliceTableMapReduceUtil {
     if (outputValueClass != null) job.setMapOutputValueClass(outputValueClass);
     if (outputKeyClass != null) job.setMapOutputKeyClass(outputKeyClass);
     if (mapper != null) job.setMapperClass(mapper);
-    job.getConfiguration().set(MRConstants.SPLICE_INPUT_TABLE_NAME, table);
+    job.getConfiguration().set(MRConstants.SPLICE_TABLE_NAME, table);
     job.getConfiguration().set(TableInputFormat.SCAN, convertScanToString(scan));
     if (addDependencyJars) {
       addDependencyJars(job);
@@ -352,7 +349,7 @@ public class SpliceTableMapReduceUtil {
 	Configuration conf = job.getConfiguration();    
     job.setOutputFormatClass(outputformatClass);
     if (reducer != null) job.setReducerClass(reducer);
-    conf.set(MRConstants.SPLICE_OUTPUT_TABLE_NAME, table);
+    conf.set(MRConstants.SPLICE_TABLE_NAME, table);
     if(sqlUtil == null)
     	sqlUtil = SMSQLUtil.getInstance(conf.get(MRConstants.SPLICE_JDBC_STR));
     // If passed a quorum/ensemble address, pass it on to TableOutputFormat.

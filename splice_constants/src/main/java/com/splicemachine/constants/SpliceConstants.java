@@ -336,6 +336,10 @@ public class SpliceConstants {
 		@DefaultValue(IMPORT_SPLIT_FACTOR) public static final int DEFAULT_IMPORT_SPLIT_FACTOR=2;
 		public static int importSplitFactor;
 
+		@Parameter public static final String SPLIT_BLOCK_SIZE = "splice.splitBlockSize";
+		@DefaultValue(IMPORT_SPLIT_FACTOR) public static final long DEFAULT_SPLIT_BLOCK_SIZE=128*1024*1024;
+		public static long splitBlockSize;
+
 		/**
 		 * The number of threads which will be used to process rows from import files. Increasing this
 		 * number will result in a higher number of concurrent table writes, but setting it too high
@@ -1108,6 +1112,7 @@ public class SpliceConstants {
 				zkSpliceQueryNodePath = config.get(CONGLOMERATE_SCHEMA_PATH,DEFAULT_CONGLOMERATE_SCHEMA_PATH);
 				zkLeaderElection = config.get(LEADER_ELECTION,DEFAULT_LEADER_ELECTION);
 				sleepSplitInterval = config.getLong(SPLIT_WAIT_INTERVAL, DEFAULT_SPLIT_WAIT_INTERVAL);
+				splitBlockSize = config.getLong(SPLIT_BLOCK_SIZE,DEFAULT_SPLIT_BLOCK_SIZE);
 				zkSpliceStartupPath = config.get(STARTUP_PATH,DEFAULT_STARTUP_PATH);
 				derbyBindAddress = config.get(DERBY_BIND_ADDRESS, DEFAULT_DERBY_BIND_ADDRESS);
 				derbyBindPort = config.getInt(DERBY_BIND_PORT, DEFAULT_DERBY_BIND_PORT);

@@ -7,7 +7,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.temp.TempTable;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.mrio.MRConstants;
-import com.splicemachine.mrio.api.MemstoreAware;
+import com.splicemachine.mrio.api.core.MemstoreAware;
 import com.splicemachine.pipeline.api.WriteContext;
 import com.splicemachine.pipeline.writecontextfactory.WriteContextFactory;
 import com.splicemachine.pipeline.constraint.Constraint;
@@ -286,7 +286,7 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
 
     protected abstract long getReadpoint(HRegion region);
     
-	public void postFlush() {
+	public void preFlush() {
 		while (true) {
 			MemstoreAware latest = memstoreAware.get();
 			if(memstoreAware.compareAndSet(latest, MemstoreAware.incrementFlushCount(latest)));
@@ -348,6 +348,7 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
 			ObserverContext<RegionCoprocessorEnvironment> e, Store store,
 			InternalScanner scanner) throws IOException {
 		SpliceLogUtils.trace(LOG, "preFlush called on store %s",store);
+		preFlush();
 		return super.preFlush(e, store, scanner);
 	}
 	
@@ -364,7 +365,6 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
 	public void postFlush(ObserverContext<RegionCoprocessorEnvironment> e,
 			Store store, StoreFile resultFile) throws IOException {
 		SpliceLogUtils.trace(LOG, "postFlush called on store %s with file=%s",store, resultFile);
-		postFlush();
 		super.postFlush(e, store, resultFile);
 	}
 	

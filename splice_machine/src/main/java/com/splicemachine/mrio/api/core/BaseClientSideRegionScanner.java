@@ -1,16 +1,13 @@
-package com.splicemachine.mrio.api;
+package com.splicemachine.mrio.api.core;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HTableDescriptor;
-import org.apache.hadoop.hbase.client.HConnection;
-import org.apache.hadoop.hbase.client.HConnectionManager;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.IsolationLevel;
 import org.apache.hadoop.hbase.client.Scan;
@@ -72,6 +69,7 @@ public abstract class BaseClientSideRegionScanner<T> implements RegionScanner {
 		if (table != null)
 			table.close();
 		memScannerList.get(0).close();		
+		region.close();
 	}
 
 	public HRegionInfo getRegionInfo() {
@@ -139,7 +137,7 @@ public abstract class BaseClientSideRegionScanner<T> implements RegionScanner {
 			SpliceLogUtils.debug(LOG, "updateScanner with hregionInfo=%s, tableName=%s, rootDir=%s, scan=%s",hri,htd.getNameAsString(), rootDir, scan);	
 		if (!flushed)
 			memScannerList.add(getMemStoreScanner());
-		this.region = openHRegion();
+		this.region = openHRegion();		
 		if (flushed) {
 			if (LOG.isTraceEnabled())
 				SpliceLogUtils.trace(LOG, "I am flushed");				

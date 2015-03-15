@@ -1,10 +1,11 @@
-package com.splicemachine.mrio.api;
+package com.splicemachine.mrio.api.core;
 
 import java.io.IOException;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Scan;
@@ -23,6 +24,7 @@ import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.hbase.SimpleMeasuredRegionScanner;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.mrio.MRConstants;
+import com.splicemachine.mrio.api.serde.SpliceSplit;
 import com.splicemachine.si.impl.HTransactorFactory;
 import com.splicemachine.si.impl.TransactionStorage;
 import com.splicemachine.si.impl.TxnDataStore;
@@ -67,7 +69,7 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 			builder = TableScannerBuilder.getTableScannerBuilderFromBase64String(tableScannerAsString);
 			if (LOG.isTraceEnabled())
 				SpliceLogUtils.trace(LOG, "config loaded builder=%s",builder);
-			TableSplit tSplit = (TableSplit)split;
+			TableSplit tSplit = ((SpliceSplit)split).getSplit();
 			Scan scan = builder.getScan();
 			scan.setStartRow(tSplit.getStartRow());
 			scan.setStopRow(tSplit.getEndRow());
@@ -80,8 +82,12 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 
 	@Override
 	public boolean nextKeyValue() throws IOException, InterruptedException {
+		if (LOG.isTraceEnabled())
+			SpliceLogUtils.trace(LOG, "nextKeyValue");
 		try {
+			SpliceLogUtils.trace(LOG, "nextKeyValue with tableScanner=%s",siTableScanner);
 			ExecRow nextRow = siTableScanner.next(null);
+			SpliceLogUtils.trace(LOG, "nextKeyValue nextRow=%s",nextRow);
 			RowLocation nextLocation = siTableScanner.getCurrentRowLocation();
 			if (nextRow != null) {
 				currentRow = nextRow.getClone(); 
@@ -150,10 +156,14 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 			builder.tableVersion("2.0").region(localRegion).template(template).scanner(mrs).scan(scan).metricFactory(Metrics.noOpMetricFactory());		
 			if (LOG.isTraceEnabled())
 				SpliceLogUtils.trace(LOG, "restart with builder=%s",builder);
-			siTableScanner = builder.build();
+			siTableScanner = builder.build(); 
 		} else {
 			throw new IOException("htable not set");
 		}
+	}
+	
+	public int[] getExecRowTypeFormatIds() {
+		return builder.getExecRowTypeFormatIds();
 	}
 	
 }

@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.spark;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.Exception;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -112,7 +113,7 @@ public class SpliceSpark {
         // conf.set("spark.serializer", SparkCustomSerializer.class.getName());
         conf.set("spark.executor.memory", "8G");
         // conf.set("spark.closure.serializer", "org.apache.spark.serializer.KryoSerializer");
-        conf.set("spark.io.compression.codec", "snappy"); // TODO implement custom codec using our Snappy version
+        conf.set("spark.io.compression.codec", SpliceConstants.config.get("spark.io.compression.codec","lz4"));
         conf.set("spark.kryoserializer.buffer.mb", "8");
         conf.set("spark.kryoserializer.buffer.max.mb", "128");
         conf.set("spark.executor.extraJavaOptions", extraOpts);

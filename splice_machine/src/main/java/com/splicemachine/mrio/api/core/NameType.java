@@ -1,4 +1,4 @@
-package com.splicemachine.mrio.api;
+package com.splicemachine.mrio.api.core;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.TypeId;
@@ -39,7 +39,7 @@ public class NameType {
 
 	@Override
 	public String toString() {
-		return String.format("nameType={name=%s, type=%s",name,type);
+		return String.format("nameType={name=%s, type=%s}",name,type);
 	}
 	
 }
