@@ -181,10 +181,18 @@ public class HRegionUtil extends BaseHRegionUtil {
 	    	  if (file != null) {
 	    		  fileReader = file.createReader().getHFileReader().getDataBlockIndexReader();
 	    		  int size = fileReader.getRootBlockCount();
+                  int blockCounter = 0;
+	    		  long lastOffset = 0;
 	    		  for (int i =0; i<size;i++) {
+                      blockCounter += fileReader.getRootBlockOffset(i) - lastOffset;                
 	    			  byte[] possibleCutpoint = KeyValue.createKeyValueFromKey(fileReader.getRootBlockKey(i)).getRow();
-	    			  if ((start.length == 0 || Bytes.compareTo(start, possibleCutpoint) < 0) && (end.length ==0 || Bytes.compareTo(end, possibleCutpoint) > 0)) // Do not include cutpoints out of bounds
-	    				  cutPoints.add(possibleCutpoint); // Will have to create rowKey anyway for scan...
+	    			  if ((start.length == 0 || Bytes.compareTo(start, possibleCutpoint) < 0) && (end.length ==0 || Bytes.compareTo(end, possibleCutpoint) > 0)) { // Do not include cutpoints out of bounds
+                          if (blockCounter >= SIConstants.splitBlockSize) {
+                        	  lastOffset = fileReader.getRootBlockOffset(i);
+                              blockCounter = 0;
+                              cutPoints.add(possibleCutpoint); // Will have to create rowKey anyway for scan...
+                          }
+                      }
 	    		  }
 	    	  }  
 	      }
