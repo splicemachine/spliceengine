@@ -158,7 +158,7 @@ public class ImportUtils {
         }
     }
 
-		private static Map<String,ColumnContext.Builder> getColumns(String schemaName, String tableName,
+		public static Map<String,ColumnContext.Builder> getColumns(String schemaName, String tableName,
 																																String insertColumnList, DatabaseMetaData dmd) throws SQLException{
 				ResultSet rs = null;
 				Map<String,ColumnContext.Builder> columnMap = Maps.newHashMap();
@@ -193,7 +193,7 @@ public class ImportUtils {
 
 		}
 
-		private static ColumnContext.Builder buildColumn(ResultSet rs) throws SQLException {
+		public static ColumnContext.Builder buildColumn(ResultSet rs) throws SQLException {
 				ColumnContext.Builder colBuilder = new ColumnContext.Builder();
 				String colName = rs.getString(COLNAME_POSITION);
 				colBuilder.columnName(colName);

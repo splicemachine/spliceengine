@@ -31,11 +31,6 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.master.MasterServices;
-import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.regionserver.InternalScanner;
-import org.apache.hadoop.hbase.regionserver.KeyValueScanner;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
-import org.apache.hadoop.hbase.regionserver.RegionServerServices;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.Store.*;
 import org.apache.hadoop.hbase.util.Pair;
@@ -48,8 +43,8 @@ import com.splicemachine.pipeline.api.BulkWritesInvoker;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceZooKeeperManager;
-import com.splicemachine.mrio.api.MemstoreAware;
-import com.splicemachine.mrio.api.SpliceRegionScanner;
+import com.splicemachine.mrio.api.core.MemstoreAware;
+import com.splicemachine.mrio.api.core.SpliceRegionScanner;
 
 public interface DerbyFactory<Transaction> {
 		Filter getAllocatedFilter(byte[] localAddress);

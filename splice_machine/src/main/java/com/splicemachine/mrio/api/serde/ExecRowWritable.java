@@ -1,23 +1,17 @@
-package com.splicemachine.mrio.api;
+package com.splicemachine.mrio.api.serde;
 
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
-import java.util.List;
+
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.SQLBlob;
-import com.splicemachine.db.iapi.types.SQLBoolean;
-import com.splicemachine.db.iapi.types.SQLDouble;
-import com.splicemachine.db.iapi.types.SQLInteger;
-import com.splicemachine.db.iapi.types.SQLLongint;
-import com.splicemachine.db.iapi.types.SQLReal;
-import com.splicemachine.db.iapi.types.SQLSmallint;
-import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+
 import org.apache.hadoop.io.Writable;
+
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldDecoder;
@@ -32,9 +26,9 @@ public class ExecRowWritable implements Writable{
 	ExecRow value = null;
 	byte[] bytes = null;
 	int length = 0;
-	private List<Integer> colTypes;
+	private int[] colTypes;
 	
-	public ExecRowWritable(List<Integer> colTypes)
+	public ExecRowWritable(int[] colTypes)
 	{
 		this.colTypes = colTypes;
 	}
@@ -64,7 +58,7 @@ public class ExecRowWritable implements Writable{
 	
 	private ExecRow constructEmptyExecRow() throws StandardException
 	{
-		ExecRow row = new ValueRow(colTypes.size());
+		ExecRow row = new ValueRow(colTypes.length);
 		DataValueDescriptor[] data = createDVD();
 		row.setRowArray(data);
 		return row;
@@ -154,9 +148,7 @@ public class ExecRowWritable implements Writable{
 	}
 	
 	@Override
-	public void write(DataOutput out) throws IOException {
-		// TODO Auto-generated method stub
-		
+	public void write(DataOutput out) throws IOException {		
 		if(value == null)
 			out.writeInt(0);
 		else
@@ -166,14 +158,18 @@ public class ExecRowWritable implements Writable{
 		}
 	}
 
-	private DataValueDescriptor[] createDVD() throws StandardException
-	{
-		DataValueDescriptor dvds[] = new DataValueDescriptor[colTypes.size()];
-		for(int pos = 0; pos < colTypes.size(); pos++)
+	private DataValueDescriptor[] createDVD() throws StandardException {
+		DataValueDescriptor dvds[] = new DataValueDescriptor[colTypes.length];
+		for(int pos = 0; pos < colTypes.length; pos++)
 		{
-			dvds[pos] = DataTypeDescriptor.getBuiltInDataTypeDescriptor(colTypes.get(pos)).getNull();
+			dvds[pos] = DataTypeDescriptor.getBuiltInDataTypeDescriptor(colTypes[pos]).getNull();
 		}
 		return dvds;
+	}
+
+	@Override
+	public String toString() {
+		return value==null?"NULL":value.toString();
 	}
 	
 }

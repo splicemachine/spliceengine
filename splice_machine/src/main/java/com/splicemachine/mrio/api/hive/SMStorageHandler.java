@@ -1,4 +1,4 @@
-package com.splicemachine.mrio.api;
+package com.splicemachine.mrio.api.hive;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
@@ -16,14 +16,18 @@ import org.apache.hadoop.mapred.InputFormat;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.OutputFormat;
 import org.apache.log4j.Logger;
+
 import com.splicemachine.mrio.MRConstants;
+import com.splicemachine.mrio.api.core.SMOutputFormatold;
+import com.splicemachine.mrio.api.core.SMSQLUtil;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.Map;
 import java.util.Properties;
 
-public class SpliceStorageHandler extends DefaultStorageHandler
+public class SMStorageHandler extends DefaultStorageHandler
         implements HiveMetaHook, HiveStoragePredicateHandler {
 
     private Configuration spliceConf;
@@ -31,7 +35,7 @@ public class SpliceStorageHandler extends DefaultStorageHandler
     private static SMSQLUtil sqlUtil = null;
     private static String parentTxnId = null;
     private static Connection parentConn = null;
-    private static Logger Log = Logger.getLogger(SpliceStorageHandler.class.getName());
+    private static Logger Log = Logger.getLogger(SMStorageHandler.class.getName());
 
     public void configureTableJobProperties(TableDesc tableDesc,
                                             Map<String, String> jobProperties, boolean isInputJob) throws Exception {
@@ -43,13 +47,13 @@ public class SpliceStorageHandler extends DefaultStorageHandler
         if (sqlUtil == null)
             sqlUtil = SMSQLUtil.getInstance(connStr);
         if (isInputJob) {
-            tableName = tableProperties.getProperty(MRConstants.SPLICE_INPUT_TABLE_NAME);
+            tableName = tableProperties.getProperty(MRConstants.SPLICE_TABLE_NAME);
             if (tableName == null)
-                throw new Exception("Error: wrong param. Did you mean '" + MRConstants.SPLICE_INPUT_TABLE_NAME + "'?");
+                throw new Exception("Error: wrong param. Did you mean '" + MRConstants.SPLICE_TABLE_NAME + "'?");
         } else {
-            tableName = tableProperties.getProperty(MRConstants.SPLICE_OUTPUT_TABLE_NAME);
+            tableName = tableProperties.getProperty(MRConstants.SPLICE_TABLE_NAME);
             if (tableName == null)
-                throw new Exception("Error: wrong param. Did you mean '" + MRConstants.SPLICE_OUTPUT_TABLE_NAME + "'?");
+                throw new Exception("Error: wrong param. Did you mean '" + MRConstants.SPLICE_TABLE_NAME + "'?");
         }
 
         tableName = tableName.trim();
@@ -57,14 +61,9 @@ public class SpliceStorageHandler extends DefaultStorageHandler
         if (parentConn == null) {
             parentTxnId = startWriteJobParentTxn(connStr, tableName);
         }
-
         jobProperties.put(MRConstants.SPLICE_TRANSACTION_ID, parentTxnId);
-        if (isInputJob)
-            jobProperties.put(MRConstants.SPLICE_INPUT_TABLE_NAME, tableName);
-        else
-            jobProperties.put(MRConstants.SPLICE_OUTPUT_TABLE_NAME, tableName);
+        jobProperties.put(MRConstants.SPLICE_TABLE_NAME, tableName);
         jobProperties.put(MRConstants.SPLICE_JDBC_STR, connStr);
-
     }
 
     public String startWriteJobParentTxn(String connStr, String tableName) {
@@ -149,12 +148,10 @@ public class SpliceStorageHandler extends DefaultStorageHandler
             Log.info("Creating External table for Splice...");
         }
 
-        String inputTableName = tbl.getParameters().get(MRConstants.SPLICE_INPUT_TABLE_NAME);
-        String outputTableName = tbl.getParameters().get(MRConstants.SPLICE_OUTPUT_TABLE_NAME);
-        if (inputTableName == null && outputTableName == null)
-            throw new MetaException("Wrong param, did you mean " +
-            		MRConstants.SPLICE_INPUT_TABLE_NAME +
-                    " or " + MRConstants.SPLICE_OUTPUT_TABLE_NAME + " ? ");
+        String inputTableName = tbl.getParameters().get(MRConstants.SPLICE_TABLE_NAME);
+        if (inputTableName == null)
+            throw new MetaException("Wrong param, you are missing " +
+            		MRConstants.SPLICE_TABLE_NAME + " ? ");
 
         // We can choose to support user define column mapping.
         // But currently I don't think it is necessary
@@ -168,10 +165,6 @@ public class SpliceStorageHandler extends DefaultStorageHandler
         if (inputTableName != null) {
             inputTableName = inputTableName.trim();
             checkTableExists(inputTableName);
-        }
-        if (outputTableName != null) {
-            outputTableName = outputTableName.trim();
-            checkTableExists(outputTableName);
         }
     }
 
@@ -205,23 +198,12 @@ public class SpliceStorageHandler extends DefaultStorageHandler
 
     @Override
     public Class<? extends SerDe> getSerDeClass() {
-        return SpliceSerDe.class;
+        return SMSerDe.class;
     }
 
     @Override
     public HiveMetaHook getMetaHook() {
         return this;
-    }
-
-    @Override
-    public Class<? extends InputFormat> getInputFormatClass() {
-        return null;// HiveSpliceTableInputFormat.class;
-    }
-
-    @Override
-    public Class<? extends OutputFormat> getOutputFormatClass() {
-
-        return null; //HiveSpliceTableOutputFormat.class;
     }
 
     public static void commitParentTxn() throws SQLException {
@@ -260,5 +242,17 @@ public class SpliceStorageHandler extends DefaultStorageHandler
                     + e);
         }
     }
+
+	@Override
+	public Class<? extends InputFormat> getInputFormatClass() {
+		return SMHiveInputFormat.class;
+	}
+
+	@Override
+	public Class<? extends OutputFormat> getOutputFormatClass() {
+		return SMOutputFormatold.class;
+	}
+    
+    
 }
 

@@ -3,7 +3,7 @@
  * @author Yanan Jian
  * Created on: 08/14/14
  */
-package com.splicemachine.mrio.api;
+package com.splicemachine.mrio.api.core;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -13,20 +13,25 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hbase.io.ImmutableBytesWritable;
 import org.apache.hadoop.hbase.mapreduce.TableOutputCommitter;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapreduce.JobContext;
 import org.apache.hadoop.mapreduce.OutputCommitter;
 import org.apache.hadoop.mapreduce.OutputFormat;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
+import org.apache.hadoop.util.Progressable;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.utils.marshall.*;
@@ -41,7 +46,8 @@ import com.splicemachine.si.impl.ActiveWriteTxn;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.uuid.Snowflake;
 
-public class SMOutputFormat extends OutputFormat implements Configurable{
+public class SMOutputFormatold extends OutputFormat implements Configurable, 
+org.apache.hadoop.mapred.OutputFormat {
 
 	private static SMSQLUtil sqlUtil = null;
 	private static Configuration conf = null;
@@ -144,7 +150,7 @@ public class SMOutputFormat extends OutputFormat implements Configurable{
 				this.keyEncoder =  getKeyEncoder(null);
 				this.rowHash = getRowHash(null);	
 				if(conf.get(MRConstants.HBASE_OUTPUT_TABLE_NAME) == null)
-					tableID = sqlUtil.getConglomID(conf.get(MRConstants.SPLICE_OUTPUT_TABLE_NAME));
+					tableID = sqlUtil.getConglomID(conf.get(MRConstants.SPLICE_TABLE_NAME));
 				else
 					tableID = conf.get(MRConstants.HBASE_OUTPUT_TABLE_NAME);
 				
@@ -263,7 +269,7 @@ public class SMOutputFormat extends OutputFormat implements Configurable{
 
 					childTxsID = sqlUtil.getChildTransactionID(conn,
 									parentTxnID, 
-									conf.get(MRConstants.SPLICE_OUTPUT_TABLE_NAME));
+									conf.get(MRConstants.SPLICE_TABLE_NAME));
 
 					String strSize = conf.get(MRConstants.SPLICE_WRITE_BUFFER_SIZE);
 
@@ -293,5 +299,17 @@ public class SMOutputFormat extends OutputFormat implements Configurable{
 				throw new IOException(e);
 			} 
 		}
+	}
+
+	@Override
+	public org.apache.hadoop.mapred.RecordWriter getRecordWriter(
+			FileSystem ignored, JobConf job, String name, Progressable progress)
+			throws IOException {
+		return null;
+	}
+	@Override
+	public void checkOutputSpecs(FileSystem ignored, JobConf job)
+			throws IOException {
+		// Ignore?
 	}
 }

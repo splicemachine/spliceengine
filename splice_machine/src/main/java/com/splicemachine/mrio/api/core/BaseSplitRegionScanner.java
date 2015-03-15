@@ -1,4 +1,4 @@
-package com.splicemachine.mrio.api;
+package com.splicemachine.mrio.api.core;
 
 import java.io.IOException;
 import java.util.ArrayList;

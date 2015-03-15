@@ -1,17 +1,16 @@
-package com.splicemachine.mrio.api;
+package com.splicemachine.mrio.api.hive;
 
-import org.apache.commons.lang.SerializationUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.*;
-import com.splicemachine.db.impl.sql.execute.ValueRow;
+import org.apache.commons.lang.SerializationUtils;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hive.serde.Constants;
 import org.apache.hadoop.hive.serde2.SerDe;
 import org.apache.hadoop.hive.serde2.SerDeException;
 import org.apache.hadoop.hive.serde2.SerDeStats;
 import org.apache.hadoop.hive.serde2.lazy.LazySimpleSerDe;
-import org.apache.hadoop.hive.serde2.lazy.LazyUtils;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.PrimitiveObjectInspector.PrimitiveCategory;
@@ -25,22 +24,27 @@ import org.apache.hadoop.io.Writable;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.mrio.MRConstants;
+import com.splicemachine.mrio.api.core.NameType;
+import com.splicemachine.mrio.api.core.SMSQLUtil;
+import com.splicemachine.mrio.api.serde.ExecRowWritable;
+import com.splicemachine.utils.SpliceLogUtils;
 
+import java.io.IOException;
 import java.io.Serializable;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.*;
 
-public class SpliceSerDe implements SerDe {
+public class SMSerDe implements SerDe {
 	protected StructTypeInfo rowTypeInfo;
     protected ObjectInspector rowOI;
-    protected List<Object> row = new ArrayList<Object>();
     protected SMSQLUtil sqlUtil = null;
     protected LazySimpleSerDe.SerDeParameters serdeParams;
-    protected List<String> colNames;
-    protected List<TypeInfo> colTypes;
-    protected static Logger Log = Logger.getLogger(SpliceSerDe.class.getName());
-
+    protected List<String> colNames = new ArrayList<String>(); // hive names
+    protected List<TypeInfo> colTypes; // hive types, not Splice Types
+    protected static Logger Log = Logger.getLogger(SMSerDe.class.getName());
+    protected List<Object> objectCache;
+    
     /**
      * An initialization function used to gather information about the table.
      * Typically, a SerDe implementation will be interested in the list of
@@ -48,77 +52,48 @@ public class SpliceSerDe implements SerDe {
      * perform actual serialization and deserialization of data.
      */
     //@Override
-    public void initialize(Configuration conf, Properties tbl)
-            throws SerDeException {
+    public void initialize(Configuration conf, Properties tbl) throws SerDeException {
+    	if (Log.isDebugEnabled())
+    		SpliceLogUtils.debug(Log, "initialize with conf=%s, tbl=%s",conf,tbl);
         // Get a list of the table's column names.
-        String spliceInputTableName = tbl.getProperty(MRConstants.SPLICE_INPUT_TABLE_NAME);
-        String spliceOutputTableName = tbl.getProperty(MRConstants.SPLICE_OUTPUT_TABLE_NAME);
+        String spliceInputTableName = tbl.getProperty(MRConstants.SPLICE_TABLE_NAME);
+        conf.set(MRConstants.SPLICE_TABLE_NAME, spliceInputTableName);
+        conf.set(MRConstants.SPLICE_JDBC_STR, tbl.getProperty(MRConstants.SPLICE_JDBC_STR));
+        String hbaseDir = conf.get(HConstants.HBASE_DIR);
+        if (hbaseDir == null)
+        	hbaseDir = System.getProperty(HConstants.HBASE_DIR);
+        if (hbaseDir == null)
+        	throw new SerDeException("hbase root directory not set, please include hbase.rootdir in config or via -D system property ...");
+        conf.set(HConstants.HBASE_DIR, hbaseDir);
+        
         if (sqlUtil == null)
             sqlUtil = SMSQLUtil.getInstance(tbl.getProperty(MRConstants.SPLICE_JDBC_STR));
-
         String colNamesStr = tbl.getProperty(Constants.LIST_COLUMNS);
-        colNames = Arrays.asList(colNamesStr.split(","));
-
-        // Get a list of TypeInfos for the columns. This list lines up with the list of column names.
+        colNames.clear();
+        for (String split: colNamesStr.split(","))
+        	colNames.add(split.toUpperCase());
         String colTypesStr = tbl.getProperty(Constants.LIST_COLUMN_TYPES);
         colTypes = TypeInfoUtils.getTypeInfosFromTypeString(colTypesStr);
-        
+        objectCache = new ArrayList<Object>(colTypes.size());
         if (spliceInputTableName != null) {
             spliceInputTableName = spliceInputTableName.trim().toUpperCase();
             try {
-				sqlUtil.getTableScannerBuilder(spliceInputTableName, colNames);
-			} catch (SQLException e) {
+                if (!sqlUtil.checkTableExists(spliceInputTableName))
+                	throw new SerDeException(String.format("table %s does not exist...",spliceInputTableName));
+            	conf.set(MRConstants.SPLICE_SCAN_INFO, sqlUtil.getTableScannerBuilder(spliceInputTableName, colNames).getTableScannerBuilderBase64String());
+			} catch (Exception e) {
 				throw new SerDeException(e);
 			}
-        } else if (spliceOutputTableName != null) {
-            spliceOutputTableName = spliceOutputTableName.trim().toUpperCase();
-        }
-                
+        } 
+         
+    	if (Log.isDebugEnabled())
+    		SpliceLogUtils.debug(Log, "generating hive info colNames=%s, colTypes=%s",colNames,colTypes);
+
+        
         rowTypeInfo = (StructTypeInfo) TypeInfoFactory.getStructTypeInfo(colNames, colTypes);
         rowOI = TypeInfoUtils.getStandardJavaObjectInspectorFromTypeInfo(rowTypeInfo);
         serdeParams = LazySimpleSerDe.initSerdeParams(conf, tbl, getClass().getName());
         Log.info("--------Finished initialize");
-    }
-
-    private void fillRow(DataValueDescriptor[] dvds) throws StandardException {
-    	
-    	/*
-        for (int pos = 0; pos < colTypes.size(); pos++) {
-        	colTypes.get(0).
-        	
-        	
-            switch (colTypes.get(pos)) {
-                case java.sql.Types.INTEGER:
-                    row.add(dvds[pos].getInt());
-                    break;
-                case java.sql.Types.BIGINT:
-                    row.add(dvds[pos].getLong());
-                    break;
-                case java.sql.Types.SMALLINT:
-                    row.add(dvds[pos].getShort());
-                    break;
-                case java.sql.Types.BOOLEAN:
-                    row.add(dvds[pos].getBoolean());
-                    break;
-                case java.sql.Types.DOUBLE:
-                    row.add(dvds[pos].getDouble());
-                    break;
-                case java.sql.Types.FLOAT:
-                    row.add(dvds[pos].getFloat());
-                    break;
-                case java.sql.Types.CHAR:
-
-                case java.sql.Types.VARCHAR:
-                    row.add(dvds[pos].getString());
-
-                    break;
-                case java.sql.Types.BINARY:
-
-                default:
-                    row.add(dvds[pos].getBytes());
-            }
-        }
-            */
     }
 
     /**
@@ -127,23 +102,20 @@ public class SpliceSerDe implements SerDe {
      */
     //@Override
     public Object deserialize(Writable blob) throws SerDeException {
-        row.clear();
-        Log.debug("*******" + Thread.currentThread().getStackTrace()[1].getMethodName());
+    	if (Log.isTraceEnabled())
+    		SpliceLogUtils.trace(Log, "deserialize " + blob);
         ExecRowWritable rowWritable = (ExecRowWritable) blob;
-
-        try {
+        objectCache.clear();
             ExecRow val = rowWritable.get();
             if (val == null)
                 return null;
-            DataValueDescriptor dvd[] = val.getRowArray();
+            DataValueDescriptor[] dvd = val.getRowArray();
             if (dvd == null || dvd.length == 0)
-                return row;
-            fillRow(dvd);
-        } catch (StandardException e) {
-            // TODO Auto-generated catch block
-            throw new SerDeException("deserialization error, " + e.getCause());
-        }
-        return row;
+                return objectCache;
+            for (int i = 0; i< dvd.length; i++) {
+            	objectCache.add(hiveTypeToObject(colTypes.get(i).getTypeName(),dvd[i]));            	
+            }
+        return objectCache;
     }
 
     /**
@@ -151,7 +123,8 @@ public class SpliceSerDe implements SerDe {
      */
     //@Override
     public ObjectInspector getObjectInspector() throws SerDeException {
-        Log.debug("******" + Thread.currentThread().getStackTrace()[1].getMethodName());
+    	if (Log.isDebugEnabled())
+    		SpliceLogUtils.trace(Log, "getObjectInspector");
         return rowOI;
     }
 
@@ -160,7 +133,8 @@ public class SpliceSerDe implements SerDe {
      */
     //@Override
     public SerDeStats getSerDeStats() {
-        Log.debug("*******" + Thread.currentThread().getStackTrace()[1].getMethodName());
+    	if (Log.isDebugEnabled())
+    		SpliceLogUtils.trace(Log, "serdeStats");
         return null;
     }
 
@@ -181,13 +155,25 @@ public class SpliceSerDe implements SerDe {
     //@Override
     public Writable serialize(Object obj, ObjectInspector oi)
             throws SerDeException {
-        // Take the object and transform it into a serialized representation
-        DataValueDescriptor dvds[] = new DataValueDescriptor[colTypes.size()];
+    	ExecRow row = null;
+    	int[] execRowFormatIds = null;
+        try {
+			List<NameType> nameTypes = sqlUtil.getTableStructure(null);
+			execRowFormatIds = sqlUtil.getExecRowFormatIds(colNames, nameTypes);
+			row = sqlUtil.getExecRow(execRowFormatIds);
+			if (row == null)
+				throw new SerDeException("ExecRow Cannot be Null");
+		} catch (SQLException | StandardException | IOException e1) {
+			throw new SerDeException(e1);
+		}    	
+    	if (Log.isTraceEnabled())
+    		SpliceLogUtils.trace(Log, "serialize with obj=%s, oi=%s",obj,oi);
         if (oi.getCategory() != ObjectInspector.Category.STRUCT) {
             throw new SerDeException(getClass().toString()
                     + " can only serialize struct types, but we got: "
                     + oi.getTypeName());
         }
+
         StructObjectInspector soi = (StructObjectInspector) oi;
         List<? extends StructField> fields = soi.getAllStructFieldRefs();
         List<Object> list = soi.getStructFieldsDataAsList(obj);
@@ -199,52 +185,83 @@ public class SpliceSerDe implements SerDe {
                         : null;
         try {
 
+        	DataValueDescriptor dvd;
             for (int i = 0; i < fields.size(); i++) {
                 StructField field = fields.get(i);
+                dvd = row.getColumn(i+1);
                 ObjectInspector fieldOI = field.getFieldObjectInspector();
                 Object fieldObj = soi.getStructFieldData(obj, field);
-
                 PrimitiveObjectInspector primOI = (PrimitiveObjectInspector) fieldOI;
                 Object data = primOI.getPrimitiveJavaObject(fieldObj);
-                if (i >= dvds.length)
-                    break;
-
+                
                 if (primOI.getPrimitiveCategory() == PrimitiveCategory.INT)
-                    dvds[i] = new SQLInteger((Integer) data);
+                    dvd.setValue((Integer) data);
                 else if (primOI.getPrimitiveCategory() == PrimitiveCategory.STRING)
-                    dvds[i] = new SQLVarchar((String) data);
+                	dvd.setValue((String) data);
                 else if (primOI.getPrimitiveCategory() == PrimitiveCategory.BINARY)
-                    dvds[i] = new SQLBlob(SerializationUtils.serialize((Serializable) data));
+                	dvd.setValue((SerializationUtils.serialize((Serializable) data))); // is this right?  Should just be a byte[]
                 else if (primOI.getPrimitiveCategory() == PrimitiveCategory.BOOLEAN)
-                    dvds[i] = new SQLBoolean((Boolean) data);
+                    dvd.setValue((Boolean) data);
                 else if (primOI.getPrimitiveCategory() == PrimitiveCategory.DECIMAL)
-                    dvds[i] = new com.splicemachine.db.iapi.types.SQLDecimal((String) data);
+                    dvd.setValue((String) data);
                 else if (primOI.getPrimitiveCategory() == PrimitiveCategory.DOUBLE)
-                    dvds[i] = new SQLDouble((Double) data);
+                    dvd.setValue((Double) data);
                 else if (primOI.getPrimitiveCategory() == PrimitiveCategory.FLOAT)
-                    // Is it the correct way? Treat Float as SQLReal?
-                    dvds[i] = new SQLReal((Float) data);
+                    dvd.setValue((Float) data);
                 else if (primOI.getPrimitiveCategory() == PrimitiveCategory.LONG)
-                    dvds[i] = new SQLLongint((Long) data);
+                	dvd.setValue((Long) data);
                 else if (primOI.getPrimitiveCategory() == PrimitiveCategory.SHORT)
-                    dvds[i] = new SQLSmallint((Short) data);
+                	dvd.setValue((Short) data);
                 else if (primOI.getPrimitiveCategory() == PrimitiveCategory.TIMESTAMP)
-                    dvds[i] = new SQLTimestamp((Timestamp) data);
-                // how to deal with PrimitiveCategory.VOID?
+                	dvd.setValue((Timestamp) data);
+                else {
+                	throw new SerDeException(String.format("Hive Type %s Not Supported Yet",primOI.getPrimitiveCategory()));
+                }
             }
-
 
         } catch (StandardException e) {
             // TODO Auto-generated catch block
             throw new RuntimeException("Serialized Object To Java Type Error");
         }
-
-        ExecRow row = new ValueRow(dvds.length);
-        row.setRowArray(dvds);
-        ExecRowWritable rowWritable = null;//new ExecRowWritable(colTypes); NPE
+        ExecRowWritable rowWritable = new ExecRowWritable(execRowFormatIds);
         rowWritable.set(row);
         return rowWritable;
-
     }
-}
+    
+    /**
+     * Replace with Lazy eventually
+     * 
+     */
+    private static Object hiveTypeToObject(String hiveType, DataValueDescriptor dvd) throws SerDeException {
+        final String lctype = hiveType.toLowerCase();
+        try {
+	        switch(lctype) {
+		        case "string":
+		        	return dvd.getString();
+		        case "float":
+		            return dvd.getFloat();
+		        case "double": 
+		            return dvd.getDouble();
+		        case "booolean":
+		        	return dvd.getBoolean();
+		        case "tinyint":
+		        case "int":
+		        	return dvd.getInt();
+		        case "smallint":
+		        	return dvd.getShort();
+		        case "bigint":
+		        	return dvd.getLong();
+		        case "timestamp":
+		        	return dvd.getLong();
+		        case "binary":
+		        	return dvd.getBytes();
+		        default:
+		        	throw new SerDeException("Unrecognized column type: " + hiveType);
+	        }        
+        } catch (StandardException se) {
+        	throw new SerDeException(se);
+        }
+    
+    }
 
+}

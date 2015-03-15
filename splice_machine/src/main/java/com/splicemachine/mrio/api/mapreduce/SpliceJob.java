@@ -1,4 +1,4 @@
-package com.splicemachine.mrio.api;
+package com.splicemachine.mrio.api.mapreduce;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -9,6 +9,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.Job;
 
 import com.splicemachine.mrio.MRConstants;
+import com.splicemachine.mrio.api.core.SMSQLUtil;
 /**
  * SpliceJob which controls submission of MapReduce Job
  * - Notice: You have to call commit() after SpliceJob finished successfully,
@@ -69,7 +70,7 @@ public class SpliceJob extends Job {
 				
 				PreparedStatement ps = conn.prepareStatement("call SYSCS_UTIL.SYSCS_ELEVATE_TRANSACTION(?)");
 		
-				ps.setString(1,super.getConfiguration().get(MRConstants.SPLICE_INPUT_TABLE_NAME));
+				ps.setString(1,super.getConfiguration().get(MRConstants.SPLICE_TABLE_NAME));
 				ps.executeUpdate();
 
 				super.getConfiguration().set(

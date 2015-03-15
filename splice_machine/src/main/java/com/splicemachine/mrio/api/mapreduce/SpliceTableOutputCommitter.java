@@ -1,4 +1,4 @@
-package com.splicemachine.mrio.api;
+package com.splicemachine.mrio.api.mapreduce;
 
 import java.io.IOException;
 

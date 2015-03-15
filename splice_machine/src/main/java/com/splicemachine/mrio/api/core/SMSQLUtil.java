@@ -1,6 +1,8 @@
-package com.splicemachine.mrio.api;
+package com.splicemachine.mrio.api.core;
 
 import com.splicemachine.constants.SIConstants;
+import com.splicemachine.derby.impl.load.ColumnContext;
+import com.splicemachine.derby.impl.load.ImportUtils;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.utils.SpliceAdmin;
@@ -9,7 +11,6 @@ import com.splicemachine.si.api.Txn.IsolationLevel;
 import com.splicemachine.si.impl.ReadOnlyTxn;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -20,11 +21,13 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 
@@ -273,7 +276,11 @@ public class SMSQLUtil extends SIConstants {
 	  }
 	  
 	  public int[] getRowDecodingMap(List<NameType> nameTypes, List<String> primaryKeys, List<String> columnNames) {
-		  	int []rowDecodingMap = IntArrays.count(nameTypes.size());
+		  if (LOG.isTraceEnabled())
+			  SpliceLogUtils.trace(LOG, "getRowDecodingMap nameTypes=%s, primaryKeys=%s, columnNames=%s",nameTypes,
+				  primaryKeys,columnNames);
+		  
+		  int []rowDecodingMap = IntArrays.count(nameTypes.size());
 			for (int i = 0; i< nameTypes.size(); i++) {
 				NameType nameType = nameTypes.get(i);
 				if (!primaryKeys.contains(nameType.getName()) && (columnNames.contains(nameType.getName())))
@@ -420,6 +427,20 @@ public class SMSQLUtil extends SIConstants {
 	    	scan.setMaxVersions();
 	    	scan.setCaching(SIConstants.DEFAULT_CACHE_SIZE);
 	    	return scan;
+	  }
+	  
+	  public Map<String,ColumnContext.Builder> getColumns(String tableName) throws SQLException {
+		  if (LOG.isTraceEnabled())
+			  SpliceLogUtils.trace(LOG, "getColumns tableName=%s", tableName);
+		  ResultSet result = null;
+		  try{
+		      String[] schemaTableName = parseTableName(tableName);			  
+			  DatabaseMetaData databaseMetaData = connect.getMetaData(); 
+			  return ImportUtils.getColumns(schemaTableName[0], schemaTableName[1], null, databaseMetaData);
+		  } finally {
+			  if (result != null)
+			  	result.close();
+		  }		  
 	  }
 	  
 }

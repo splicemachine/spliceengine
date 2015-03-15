@@ -1,9 +1,8 @@
-package com.splicemachine.mrio.api;
+package com.splicemachine.mrio.api.core;
 
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
@@ -12,6 +11,7 @@ import com.splicemachine.derby.impl.job.scheduler.SubregionSplitter;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.mapreduce.TableInputFormat;
@@ -22,7 +22,6 @@ import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -43,10 +42,18 @@ public class SMInputFormat extends InputFormat<RowLocation, ExecRow> implements 
 
 	@Override
 	public void setConf(Configuration conf) {
-		    String tableName = conf.get(MRConstants.SPLICE_INPUT_TABLE_NAME);
-		    String conglomerate = conf.get(MRConstants.SPLICE_INPUT_CONGLOMERATE);
+			if (LOG.isTraceEnabled())
+				SpliceLogUtils.trace(LOG, "setConf conf=%s",conf);
+		    String tableName = conf.get(MRConstants.SPLICE_TABLE_NAME);
+		    String conglomerate = conf.get(MRConstants.SPLICE_CONGLOMERATE);
 			String tableScannerAsString = conf.get(MRConstants.SPLICE_SCAN_INFO);
 			String jdbcString = conf.get(MRConstants.SPLICE_JDBC_STR);
+			String rootDir = conf.get(HConstants.HBASE_DIR);
+			if (LOG.isTraceEnabled())
+				SpliceLogUtils.trace(LOG, "setConf tableName=%s, conglomerate=%s, tableScannerAsString=%s"
+						+ "jdbcString=%s, rootDir=%s",tableName,conglomerate,tableScannerAsString,jdbcString, rootDir);
+
+			
 			if (tableName == null && conglomerate == null) {
 			    LOG.error("Table Name Supplied is null");
 		    	throw new RuntimeException("Table Name Supplied is Null");
@@ -60,7 +67,7 @@ public class SMInputFormat extends InputFormat<RowLocation, ExecRow> implements 
 				}
 				try {
 				conglomerate = util.getConglomID(tableName);
-				conf.set(MRConstants.SPLICE_INPUT_CONGLOMERATE, conglomerate);
+				conf.set(MRConstants.SPLICE_CONGLOMERATE, conglomerate);
 				} catch (SQLException e) {
 					LOG.error(StringUtils.stringifyException(e));
 					throw new RuntimeException(e);
@@ -83,6 +90,8 @@ public class SMInputFormat extends InputFormat<RowLocation, ExecRow> implements 
 					throw new RuntimeException(e);
 				}
 			}		    
+			if (LOG.isTraceEnabled())
+				SpliceLogUtils.trace(LOG, "finishingSetConf");
 		    this.conf = conf;
 		  }
 
@@ -90,23 +99,24 @@ public class SMInputFormat extends InputFormat<RowLocation, ExecRow> implements 
 	public Configuration getConf() {
 		return conf;
 	}
-
+	
 	@Override
 	public List<InputSplit> getSplits(JobContext context) throws IOException,
 			InterruptedException {
 		if (LOG.isDebugEnabled())
-			SpliceLogUtils.debug(LOG, "getSplits");
+			SpliceLogUtils.debug(LOG, "getSplits with context=%s",context);
 		TableInputFormat tableInputFormat = new TableInputFormat();
-		conf.set(TableInputFormat.INPUT_TABLE,conf.get(MRConstants.SPLICE_INPUT_CONGLOMERATE));		
+		conf.set(TableInputFormat.INPUT_TABLE,conf.get(MRConstants.SPLICE_CONGLOMERATE));		
 		tableInputFormat.setConf(conf);
 		try {
 			tableInputFormat.setScan(TableScannerBuilder.getTableScannerBuilderFromBase64String(conf.get(MRConstants.SPLICE_SCAN_INFO)).getScan());
-		} catch (StandardException e) {			
+		} catch (StandardException e) {
+			SpliceLogUtils.error(LOG, e);
 			throw new IOException(e);
 		}
 		List<InputSplit> splits = tableInputFormat.getSplits(context);
-		if (LOG.isTraceEnabled()) {
-			SpliceLogUtils.debug(LOG, "getSplits");
+		if (LOG.isDebugEnabled()) {
+			SpliceLogUtils.debug(LOG, "getSplits " + splits);
 			for (InputSplit split: splits) {
 				SpliceLogUtils.debug(LOG, "split -> " + split);				
 			}
@@ -116,18 +126,27 @@ public class SMInputFormat extends InputFormat<RowLocation, ExecRow> implements 
 		return results;
 	}
 
+	public SMRecordReaderImpl getRecordReader(InputSplit split, Configuration config) throws IOException,
+	InterruptedException {
+		if (LOG.isDebugEnabled())
+			SpliceLogUtils.debug(LOG, "getRecorderReader with table=%s, conglomerate",table,config.get(MRConstants.SPLICE_CONGLOMERATE));		
+		SMRecordReaderImpl recordReader = new SMRecordReaderImpl(config);
+		if(table == null)
+			table = new HTable(HBaseConfiguration.create(config), config.get(MRConstants.SPLICE_CONGLOMERATE));
+		recordReader.setHTable(table);
+		//recordReader.init(config, split); cannot initilize record reader two places...
+		if (LOG.isDebugEnabled())
+			SpliceLogUtils.debug(LOG, "returning record reader");		
+		return recordReader;
+	}
+	
 	@Override
 	public RecordReader<RowLocation, ExecRow> createRecordReader(
 			InputSplit split, TaskAttemptContext context) throws IOException,
 			InterruptedException {
 		if (LOG.isDebugEnabled())
 			SpliceLogUtils.debug(LOG, "createRecordReader for split=%s, context %s",split,context);
-		SMRecordReaderImpl recordReader = new SMRecordReaderImpl(context.getConfiguration());
-		if(table == null)
-			table = new HTable(HBaseConfiguration.create(conf), conf.get(MRConstants.SPLICE_INPUT_CONGLOMERATE));
-		recordReader.setHTable(table);
-//		recordReader.initialize((TableSplit) split, context);
-		return recordReader;
+		return getRecordReader(split,context.getConfiguration());
 	}
 	
 	  /**
@@ -145,5 +164,6 @@ public class SMInputFormat extends InputFormat<RowLocation, ExecRow> implements 
 	  protected void setHTable(HTable table) {
 	    this.table = table;
 	  }
+
 	  
 }

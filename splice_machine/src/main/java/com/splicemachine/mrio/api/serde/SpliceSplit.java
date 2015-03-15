@@ -1,4 +1,4 @@
-package com.splicemachine.mrio.api;
+package com.splicemachine.mrio.api.serde;
 
 
 import java.io.DataInput;
@@ -21,8 +21,13 @@ public class SpliceSplit extends FileSplit implements InputSplit {
     split = new TableSplit();
   }
 
+  public SpliceSplit(TableSplit split) {
+    super((Path) null, 0, 0, (String[]) null);
+    this.split = split;
+  }
+
+
   public SpliceSplit(TableSplit split, Path dummyPath) {
-    super(dummyPath, 0, 0, (String[]) null);
     this.split = split;
   }
 
@@ -32,7 +37,6 @@ public class SpliceSplit extends FileSplit implements InputSplit {
 
   @Override
   public void readFields(DataInput in) throws IOException {
-    super.readFields(in);
     split.readFields(in);
   }
 
@@ -43,7 +47,6 @@ public class SpliceSplit extends FileSplit implements InputSplit {
 
   @Override
   public void write(DataOutput out) throws IOException {
-    super.write(out);
     split.write(out);
   }
 
