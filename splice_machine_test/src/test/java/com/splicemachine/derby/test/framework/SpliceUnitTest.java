@@ -68,7 +68,10 @@ public class SpliceUnitTest {
     public static String getHBaseDirectory() {
 		return getBaseDirectory()+"/target/hbase";
 	}
-
+    
+    public static String getHiveWarehouseDirectory() {
+		return getBaseDirectory()+"/user/hive/warehouse";
+	}
 
     public static class MyWatcher extends SpliceTableWatcher {
 

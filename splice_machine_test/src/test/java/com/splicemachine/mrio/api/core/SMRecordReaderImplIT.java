@@ -1,8 +1,9 @@
-package com.splicemachine.mrio.api;
+package com.splicemachine.mrio.api.core;
 
 import java.sql.PreparedStatement;
 import java.util.ArrayList;
 import java.util.List;
+
 import org.junit.*;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Scan;
@@ -15,11 +16,14 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
+
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.mrio.MRConstants;
+import com.splicemachine.mrio.api.core.SMRecordReaderImpl;
+import com.splicemachine.mrio.api.serde.SpliceSplit;
 
 public class SMRecordReaderImplIT extends BaseMRIOTest {
     private static final Logger LOG = Logger.getLogger(SMRecordReaderImplIT.class);
@@ -111,7 +115,7 @@ public class SMRecordReaderImplIT extends BaseMRIOTest {
     	Scan scan = new Scan();
     	rr.setHTable(htable);
     	rr.setScan(scan);
-    	TableSplit tableSplit = new TableSplit(Bytes.toBytes(tableName), scan.getStartRow(),scan.getStopRow(),"sdfsdf");
+    	SpliceSplit tableSplit = new SpliceSplit(new TableSplit(Bytes.toBytes(tableName), scan.getStartRow(),scan.getStopRow(),"sdfsdf"));
     	rr.initialize(tableSplit, null);
        	int i = 0;
     	while (rr.nextKeyValue()) {
@@ -135,7 +139,7 @@ public class SMRecordReaderImplIT extends BaseMRIOTest {
     	Scan scan = new Scan();
     	rr.setHTable(htable);
     	rr.setScan(scan);
-    	TableSplit tableSplit = new TableSplit(Bytes.toBytes(tableName), scan.getStartRow(),scan.getStopRow(),"sdfsdf");
+    	SpliceSplit tableSplit = new SpliceSplit(new TableSplit(Bytes.toBytes(tableName), scan.getStartRow(),scan.getStopRow(),"sdfsdf"));
     	rr.initialize(tableSplit, null);
        	int i = 0;
     	while (rr.nextKeyValue()) {
@@ -159,7 +163,7 @@ public class SMRecordReaderImplIT extends BaseMRIOTest {
     	Scan scan = new Scan();
     	rr.setHTable(htable);
     	rr.setScan(scan);
-    	TableSplit tableSplit = new TableSplit(Bytes.toBytes(tableName), scan.getStartRow(),scan.getStopRow(),"sdfsdf");
+    	SpliceSplit tableSplit = new SpliceSplit(new TableSplit(Bytes.toBytes(tableName), scan.getStartRow(),scan.getStopRow(),"sdfsdf"));
     	rr.initialize(tableSplit, null);
        	int i = 0;
     	while (rr.nextKeyValue()) {
@@ -183,7 +187,7 @@ public class SMRecordReaderImplIT extends BaseMRIOTest {
     	Scan scan = new Scan();
     	rr.setHTable(htable);
     	rr.setScan(scan);
-    	TableSplit tableSplit = new TableSplit(Bytes.toBytes(tableName), scan.getStartRow(),scan.getStopRow(),"sdfsdf");
+    	SpliceSplit tableSplit = new SpliceSplit(new TableSplit(Bytes.toBytes(tableName), scan.getStartRow(),scan.getStopRow(),"sdfsdf"));
     	rr.initialize(tableSplit, null);
        	int i = 0;
     	while (rr.nextKeyValue()) {
@@ -207,7 +211,7 @@ public class SMRecordReaderImplIT extends BaseMRIOTest {
     	Scan scan = new Scan();
     	rr.setHTable(htable);
     	rr.setScan(scan);
-    	TableSplit tableSplit = new TableSplit(Bytes.toBytes(tableName), scan.getStartRow(),scan.getStopRow(),"sdfsdf");
+    	SpliceSplit tableSplit = new SpliceSplit(new TableSplit(Bytes.toBytes(tableName), scan.getStartRow(),scan.getStopRow(),"sdfsdf"));
     	rr.initialize(tableSplit, null);
        	int i = 0;
     	while (rr.nextKeyValue()) {
