@@ -23,10 +23,11 @@ import com.splicemachine.hbase.debug.HBaseEntryPredicateFilter;
 import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.hbase.table.BoundCall;
 import com.splicemachine.hbase.table.SpliceRpcController;
-import com.splicemachine.mrio.api.MemStoreFlushAwareScanner;
-import com.splicemachine.mrio.api.MemstoreAware;
-import com.splicemachine.mrio.api.SpliceRegionScanner;
-import com.splicemachine.mrio.api.SplitRegionScanner;
+import com.splicemachine.mrio.api.core.MemStoreFlushAwareScanner;
+import com.splicemachine.mrio.api.core.MemstoreAware;
+import com.splicemachine.mrio.api.core.SpliceRegionScanner;
+import com.splicemachine.mrio.api.core.SplitRegionScanner;
+import com.splicemachine.mrio.api.serde.SpliceSplit;
 import com.splicemachine.pipeline.api.BulkWritesInvoker.Factory;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.pipeline.impl.BulkWritesRPCInvoker;
@@ -574,10 +575,10 @@ public class DerbyFactoryImpl implements DerbyFactory<TxnMessage.TxnInfo> {
                             probe = start;
                         }
 
-                        Map<byte[], List<TableSplit>> splitResults = table.coprocessorService(SpliceMessage.SpliceDerbyCoprocessorService.class, probe, probe,
-                                new Batch.Call<SpliceMessage.SpliceDerbyCoprocessorService, List<TableSplit>>() {
+                        Map<byte[], List<InputSplit>> splitResults = table.coprocessorService(SpliceMessage.SpliceDerbyCoprocessorService.class, probe, probe,
+                                new Batch.Call<SpliceMessage.SpliceDerbyCoprocessorService, List<InputSplit>>() {
                                     @Override
-                                    public List<TableSplit> call(SpliceMessage.SpliceDerbyCoprocessorService instance) throws IOException {
+                                    public List<InputSplit> call(SpliceMessage.SpliceDerbyCoprocessorService instance) throws IOException {
                                         SpliceRpcController controller = new SpliceRpcController();
                                         byte[] startKey = tableSplit.getStartRow();
                                         byte[] stopKey = tableSplit.getEndRow();
@@ -587,18 +588,18 @@ public class DerbyFactoryImpl implements DerbyFactory<TxnMessage.TxnInfo> {
                                         BlockingRpcCallback<SpliceMessage.SpliceSplitServiceResponse> rpcCallback = new BlockingRpcCallback();
                                         instance.computeSplits(controller, message, rpcCallback);
                                         SpliceMessage.SpliceSplitServiceResponse response = rpcCallback.get();
-                                        List<TableSplit> result = new ArrayList<TableSplit>();
+                                        List<InputSplit> result = new ArrayList<InputSplit>();
                                         byte[] first = startKey;
                                         for (ByteString cutpoint : response.getCutPointList()) {
                                             byte[] end = cutpoint.toByteArray();
-                                            result.add(new TableSplit(tableSplit.getTable(), first, end, tableSplit.getRegionLocation()));
+                                            result.add(new SpliceSplit(new TableSplit(tableSplit.getTable(), first, end, tableSplit.getRegionLocation())));
                                             first = end;
                                         }
-                                        result.add(new TableSplit(tableSplit.getTable(), first, stopKey, tableSplit.getRegionLocation()));
+                                        result.add(new SpliceSplit(new TableSplit(tableSplit.getTable(), first, stopKey, tableSplit.getRegionLocation())));
                                         return result;
                                     }
                                 });
-                        for (List<TableSplit> value : splitResults.values()) {
+                        for (List<InputSplit> value : splitResults.values()) {
                             results.addAll(value);
                         }
                     } catch (Throwable throwable) {

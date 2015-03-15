@@ -1,4 +1,4 @@
-package com.splicemachine.mrio.api;
+package com.splicemachine.mrio.api.core;
 
 import java.io.IOException;
 import java.util.List;
@@ -10,6 +10,7 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.log4j.Logger;
 
+import com.splicemachine.mrio.api.core.BaseSplitRegionScanner;
 import com.splicemachine.utils.SpliceLogUtils;
 /*
  * 
@@ -45,14 +46,13 @@ public class SplitRegionScanner extends BaseSplitRegionScanner<Cell> {
 	
 	void createAndRegisterClientSideRegionScanner(HTable table, Scan newScan) throws IOException {
 		if (LOG.isDebugEnabled())
-			SpliceLogUtils.debug(LOG, "createAndRegisterClientSideRegionScanner");
-	  ClientSideRegionScanner clientSideRegionScanner = 
+			SpliceLogUtils.debug(LOG, "createAndRegisterClientSideRegionScanner with table=%s, scan=%s, tableConfiguration=%s",table,newScan, table.getConfiguration());
+		ClientSideRegionScanner clientSideRegionScanner =
 				  new ClientSideRegionScanner(table, table.getConfiguration(),FSUtils.getCurrentFileSystem(table.getConfiguration()), FSUtils.getRootDir(table.getConfiguration()),
 					table.getTableDescriptor(),table.getRegionLocation(newScan.getStartRow()).getRegionInfo(),
 					newScan,null);
-				this.region = clientSideRegionScanner.region;
-				registerRegionScanner(clientSideRegionScanner);			    			  
-
+	  			this.region = clientSideRegionScanner.region;
+	  			registerRegionScanner(clientSideRegionScanner);
 	}
 
 	@Override
