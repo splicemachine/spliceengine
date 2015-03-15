@@ -1,12 +1,10 @@
-package com.splicemachine.mrio.api;
+package com.splicemachine.mrio.api.core;
 
 import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.util.List;
-
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
-
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.junit.Assert;
@@ -17,9 +15,7 @@ import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
-
 import scala.Tuple2;
-
 import com.splicemachine.derby.test.framework.SpliceSparkWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
@@ -94,7 +90,7 @@ public class SMInputFormatIT extends BaseMRIOTest {
     
     @Test
     public void testSparkIntegrationWithInputFormat() throws IOException {
-    	config.set(MRConstants.SPLICE_INPUT_TABLE_NAME, tableWatcherA.toString());
+    	config.set(MRConstants.SPLICE_TABLE_NAME, tableWatcherA.toString());
     	Job job = new Job(config, "Test Scan");	
         JavaPairRDD<RowLocation, ExecRow> table = sparkWatcher.jsc.newAPIHadoopRDD(job.getConfiguration(), SMInputFormat.class, RowLocation.class, ExecRow.class);
         List<Tuple2<RowLocation, ExecRow>> data = table.collect();
@@ -109,7 +105,7 @@ public class SMInputFormatIT extends BaseMRIOTest {
     
     @Test
     public void testCountOverMultipleRegionsInSpark() throws IOException {
-    	config.set(MRConstants.SPLICE_INPUT_TABLE_NAME, tableWatcherB.toString());
+    	config.set(MRConstants.SPLICE_TABLE_NAME, tableWatcherB.toString());
     	Job job = new Job(config, "Test Scan");	
         JavaPairRDD<RowLocation, ExecRow> table = sparkWatcher.jsc.newAPIHadoopRDD(job.getConfiguration(), SMInputFormat.class, RowLocation.class, ExecRow.class);
         List<Tuple2<RowLocation, ExecRow>> data = table.collect();

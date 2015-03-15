@@ -1,4 +1,4 @@
-package com.splicemachine.mrio.api;
+package com.splicemachine.mrio.api.core;
 
 import org.junit.ClassRule;
 import org.junit.Rule;
