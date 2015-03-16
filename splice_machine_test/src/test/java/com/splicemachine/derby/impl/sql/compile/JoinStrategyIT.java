@@ -43,7 +43,7 @@ public class JoinStrategyIT {
 		}
 
 		public CostEstimate cost(CostEstimate outer, CostEstimate inner) {
-			joinStrategy.rightResultSetCostEstimate(null,outer,inner);
+			joinStrategy.estimateCost(null,outer,inner);
 			return inner;
 		}
 

@@ -133,18 +133,13 @@ public class MergeJoinStrategy extends HashableJoinStrategy {
 		return hashFeasible;
 	}
 
-	@Override
-	public void oneRowRightResultSetCostEstimate(OptimizablePredicateList predList, CostEstimate outerCost, CostEstimate innerFullKeyCost) {
-		rightResultSetCostEstimate(predList,outerCost,innerFullKeyCost);
-	};
-
 	/**
 	 *
 	 * Right Side Cost + NetworkCost
 	 *
 	 */
 	@Override
-	public void rightResultSetCostEstimate(OptimizablePredicateList predList, CostEstimate outerCost, CostEstimate innerCost) {
+	public void estimateCost(OptimizablePredicateList predList,CostEstimate outerCost,CostEstimate innerCost) {
 		SpliceLogUtils.trace(LOG, "rightResultSetCostEstimate outerCost=%s, innerFullKeyCost=%s",outerCost, innerCost);
 		// InnerCost does not change
 		SpliceCostEstimateImpl inner = (SpliceCostEstimateImpl) innerCost;
