@@ -42,6 +42,7 @@ import scala.Function1;
 import scala.Function2;
 import scala.Tuple2;
 
+import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -276,7 +277,7 @@ public class MergeJoinOperation extends JoinOperation {
         return leftResultSet.pushedToServer() && rightResultSet.pushedToServer();
     }
 
-    private static class CustomPartitioner extends Partitioner {
+    private static class CustomPartitioner extends Partitioner implements Externalizable {
         List<byte[]> splits;
         int[] formatIds;
         private transient ThreadLocal<DataHash> encoder = new ThreadLocal<DataHash>() {
@@ -287,6 +288,10 @@ public class MergeJoinOperation extends JoinOperation {
                 return BareKeyHash.encoder(rowColumns, null, serializers);
             }
         };
+
+        public CustomPartitioner() {
+
+        }
 
         public CustomPartitioner(List<byte[]> splits, int[] formatIds) {
             this.splits = splits;
@@ -315,6 +320,26 @@ public class MergeJoinOperation extends JoinOperation {
                 }
             }
             return 0;
+        }
+
+        @Override
+        public void writeExternal(ObjectOutput out) throws IOException {
+            out.writeObject(splits);
+            out.writeObject(formatIds);
+        }
+
+        @Override
+        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+            splits = (List<byte[]>) in.readObject();
+            formatIds = (int[]) in.readObject();
+            encoder = new ThreadLocal<DataHash>() {
+                @Override
+                protected DataHash initialValue() {
+                    int[] rowColumns = IntArrays.count(formatIds.length);
+                    DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(formatIds);
+                    return BareKeyHash.encoder(rowColumns, null, serializers);
+                }
+            };
         }
     }
 
