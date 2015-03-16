@@ -4,6 +4,7 @@ package com.splicemachine.derby.impl.store.access.btree;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.derby.impl.stats.IndexStatsCostController;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceScan;
@@ -376,7 +377,12 @@ public class IndexConglomerate extends SpliceConglomerate {
                 false,
                 ContainerHandle.MODE_READONLY,
                 TransactionController.MODE_TABLE, null, null, null, this);
-        return new IndexStatsCostController(cd,open_conglom);
+        //get the heap conglomerate also
+
+        Conglomerate baseTableConglomerate=((SpliceTransactionManager)xact_manager)
+                                                    .findConglomerate(open_conglom.getIndexConglomerate());
+
+        return new IndexStatsCostController(cd,open_conglom,baseTableConglomerate);
     }
 
 

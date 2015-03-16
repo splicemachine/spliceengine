@@ -307,7 +307,7 @@ public class StatisticsTask extends ZkTask{
             for (ColumnStatistics stats : collected) {
                 keyEncoder.reset();
                 int colPos = columnPositionMap[i];
-                byte[] key = keyEncoder.encodeNext(colPos+1).build();
+                byte[] key = keyEncoder.encodeNext(colPos).build();
 
                 output.clear();
                 byteOutput.writeObject(stats); //can just write the object since our implementations are Externalizable

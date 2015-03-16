@@ -241,8 +241,7 @@ public class SpliceTransactionManager implements XATransactionController,
         return (ret_lock_level);
     }
 
-    private Conglomerate findExistingConglomerate(long conglomId)
-            throws StandardException {
+    private Conglomerate findExistingConglomerate(long conglomId) throws StandardException {
         if (LOG.isTraceEnabled())
             LOG.trace("findExistingConglomerate " + conglomId);
         Conglomerate conglom = null;

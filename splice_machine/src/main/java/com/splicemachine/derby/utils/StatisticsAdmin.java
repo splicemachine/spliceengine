@@ -308,7 +308,7 @@ public class StatisticsAdmin {
         for(ColumnDescriptor descriptor:colsToCollect){
             accessedColumns.set(descriptor.getPosition()-1);
             row.setColumn(outputCol+1,descriptor.getType().getNull());
-            columnPositionMap[outputCol] = descriptor.getPosition()-1;
+            columnPositionMap[outputCol] = descriptor.getPosition();
             outputCol++;
             allColumnLengths[descriptor.getPosition()-1] = descriptor.getType().getMaximumWidth();
         }

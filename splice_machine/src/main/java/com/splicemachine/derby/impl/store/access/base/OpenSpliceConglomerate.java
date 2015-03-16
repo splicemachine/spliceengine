@@ -36,8 +36,15 @@ public class OpenSpliceConglomerate  {
 	protected boolean hold;	
 	protected DataValueDescriptor[] rowTemplate = null;
 	
-	public OpenSpliceConglomerate(TransactionManager transactionManager, Transaction transaction, boolean hold, int openMode, int lockLevel, LockingPolicy lockingPolicy, StaticCompiledOpenConglomInfo staticCompiledOpenConglomInfo,
-			DynamicCompiledOpenConglomInfo dynamicCompiledOpenConglomInfo, SpliceConglomerate conglomerate) {
+	public OpenSpliceConglomerate(TransactionManager transactionManager,
+                                  Transaction transaction,
+                                  boolean hold,
+                                  int openMode,
+                                  int lockLevel,
+                                  LockingPolicy lockingPolicy,
+                                  StaticCompiledOpenConglomInfo staticCompiledOpenConglomInfo,
+                                  DynamicCompiledOpenConglomInfo dynamicCompiledOpenConglomInfo,
+                                  SpliceConglomerate conglomerate) {
 		this.transactionManager = transactionManager;
 		this.transaction = transaction;
 		try {
