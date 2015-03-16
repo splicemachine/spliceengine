@@ -1,11 +1,9 @@
 package com.splicemachine.mrio.api.core;
 
 import java.io.IOException;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Scan;
@@ -15,7 +13,6 @@ import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
@@ -82,12 +79,8 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 
 	@Override
 	public boolean nextKeyValue() throws IOException, InterruptedException {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "nextKeyValue");
 		try {
-			SpliceLogUtils.trace(LOG, "nextKeyValue with tableScanner=%s",siTableScanner);
 			ExecRow nextRow = siTableScanner.next(null);
-			SpliceLogUtils.trace(LOG, "nextKeyValue nextRow=%s",nextRow);
 			RowLocation nextLocation = siTableScanner.getCurrentRowLocation();
 			if (nextRow != null) {
 				currentRow = nextRow.getClone(); 
@@ -95,10 +88,7 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 			} else {
 				currentRow = null;
 				rowLocation = null;
-			}
-			
-			if (LOG.isTraceEnabled())
-				SpliceLogUtils.trace(LOG, "nextKeyValue execRow=%s",currentRow);
+			}			
 			return currentRow != null;
 		} catch (StandardException e) {
 			throw new IOException(e);
