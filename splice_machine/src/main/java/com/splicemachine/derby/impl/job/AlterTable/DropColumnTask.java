@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.job.AlterTable;
+package com.splicemachine.derby.impl.job.altertable;
 
 import com.google.common.base.Throwables;
 import com.splicemachine.derby.ddl.TentativeDropColumnDesc;
