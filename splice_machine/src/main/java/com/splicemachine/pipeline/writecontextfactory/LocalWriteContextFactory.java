@@ -429,6 +429,7 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
             if (txn.getEffectiveState().isFinal()) {
                 DDLCoordinationFactory.getController().finishMetadataChange(ddlChange.getChangeId());
             } else {
+                assert ddlDesc != null : "Cannot have a null ddl descriptor!";
                 switch (ddlChange.getChangeType()) {
                     case CHANGE_PK:
                     case ADD_CHECK:
@@ -438,16 +439,13 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
                     case DROP_TABLE:
                         break; //TODO -sf- implement
                     case CREATE_INDEX:
-                        assert ddlDesc != null : "Cannot have a null ddl descriptor!";
                         if (ddlDesc.getBaseConglomerateNumber() == conglomId)
                             replace(IndexFactory.create(ddlChange, columnOrdering, formatIds));
                         break;
                     case DROP_COLUMN:
-                        assert ddlDesc != null : "Cannot have a null ddl descriptor!";
                         if (ddlDesc.getBaseConglomerateNumber() == conglomId)
                             dropColumnFactories.add(DropColumnFactory.create(ddlChange));
                     case DROP_INDEX:
-                        assert ddlDesc != null : "Cannot have a null ddl descriptor!";
                         if (ddlDesc.getBaseConglomerateNumber() == conglomId)
                             dropIndex(ddlDesc.getConglomerateNumber(), txn);
 

@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.job.AlterTable;
+package com.splicemachine.derby.impl.job.altertable;
 
 
 import com.google.common.io.Closeables;
@@ -8,11 +8,10 @@ import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
-import com.splicemachine.derby.impl.sql.execute.AlterTable.ConglomerateLoader;
-import com.splicemachine.derby.impl.sql.execute.AlterTable.ConglomerateScanner;
-import com.splicemachine.derby.impl.sql.execute.AlterTable.RowTransformer;
+import com.splicemachine.derby.impl.sql.execute.altertable.ConglomerateLoader;
+import com.splicemachine.derby.impl.sql.execute.altertable.ConglomerateScanner;
+import com.splicemachine.derby.impl.sql.execute.altertable.RowTransformer;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
-import com.splicemachine.derby.impl.storage.KeyValueUtils;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.hbase.KVPair;
@@ -27,7 +26,7 @@ import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import org.apache.hadoop.hbase.KeyValue;
+
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.catalog.UUID;

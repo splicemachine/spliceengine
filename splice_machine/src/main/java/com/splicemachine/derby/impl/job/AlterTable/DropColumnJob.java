@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.job.AlterTable;
+package com.splicemachine.derby.impl.job.altertable;
 
 /**
  * Created with IntelliJ IDEA.

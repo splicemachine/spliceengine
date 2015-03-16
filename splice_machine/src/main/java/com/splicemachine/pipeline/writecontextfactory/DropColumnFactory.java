@@ -22,7 +22,7 @@ class DropColumnFactory implements LocalWriteFactory {
     private int droppedColumnPosition;
     private DDLChange ddlChange;
 
-    public DropColumnFactory(UUID tableId,
+    private DropColumnFactory(UUID tableId,
                              TxnView txn,
                              long newConglomId,
                              ColumnInfo[] columnInfos,

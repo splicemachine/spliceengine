@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.sql.execute.AlterTable;
+package com.splicemachine.derby.impl.sql.execute.altertable;
 
 import com.google.common.io.Closeables;
 import com.splicemachine.derby.hbase.SpliceDriver;
