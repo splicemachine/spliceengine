@@ -27,8 +27,7 @@ import static com.google.common.base.Preconditions.checkState;
 
 public class NestedLoopJoinStrategy extends BaseJoinStrategy {
     private static final Logger LOG = Logger.getLogger(NestedLoopJoinStrategy.class);
-    public NestedLoopJoinStrategy() {
-    }
+    public NestedLoopJoinStrategy() { }
 
 
     /**
@@ -38,11 +37,8 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy {
      */
     public boolean feasible(Optimizable innerTable,
                             OptimizablePredicateList predList,
-                            Optimizer optimizer
-    )
-            throws StandardException
-    {
-		/* Nested loop is feasible, except in the corner case
+                            Optimizer optimizer ) throws StandardException{
+        /* Nested loop is feasible, except in the corner case
 		 * where innerTable is a VTI that cannot be materialized
 		 * (because it has a join column as a parameter) and
 		 * it cannot be instantiated multiple times.
@@ -55,15 +51,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy {
 		 * "instantiated" multiple times because that only has
 		 * meaning for VTIs.
 		 */
-        if (innerTable.isMaterializable())
-        {
-            return true;
-        }
-        if (innerTable.supportsMultipleInstantiations())
-        {
-            return true;
-        }
-        return false;
+        return innerTable.isMaterializable() || innerTable.supportsMultipleInstantiations();
     }
 
     /** @see JoinStrategy#multiplyBaseCostByOuterRows */
@@ -76,30 +64,21 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy {
      *
      * @exception StandardException		Thrown on error
      */
-    public OptimizablePredicateList getBasePredicates(
-            OptimizablePredicateList predList,
-            OptimizablePredicateList basePredicates,
-            Optimizable innerTable)
-            throws StandardException {
-        if (SanityManager.DEBUG) {
-            SanityManager.ASSERT(basePredicates == null ||
-                            basePredicates.size() == 0,
-                    "The base predicate list should be empty.");
-        }
+    public OptimizablePredicateList getBasePredicates(OptimizablePredicateList predList,
+                                                      OptimizablePredicateList basePredicates,
+                                                      Optimizable innerTable) throws StandardException {
+        assert (basePredicates == null || basePredicates.size() == 0): "The base predicate list should be empty.";
 
-        if (predList != null) {
+        if (predList != null&&basePredicates!=null) {
             predList.transferAllPredicates(basePredicates);
-            basePredicates.classify(innerTable,
-                    innerTable.getCurrentAccessPath().getConglomerateDescriptor());
+            basePredicates.classify(innerTable,innerTable.getCurrentAccessPath().getConglomerateDescriptor());
         }
 
         return basePredicates;
     }
 
     /** @see JoinStrategy#nonBasePredicateSelectivity */
-    public double nonBasePredicateSelectivity(
-            Optimizable innerTable,
-            OptimizablePredicateList predList) {
+    public double nonBasePredicateSelectivity( Optimizable innerTable, OptimizablePredicateList predList) {
 		/*
 		** For nested loop, all predicates are base predicates, so there
 		** is no extra selectivity.
@@ -112,9 +91,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy {
      *
      * @exception StandardException		Thrown on error
      */
-    public void putBasePredicates(OptimizablePredicateList predList,
-                                  OptimizablePredicateList basePredicates)
-            throws StandardException {
+    public void putBasePredicates(OptimizablePredicateList predList, OptimizablePredicateList basePredicates) throws StandardException {
         for (int i = basePredicates.size() - 1; i >= 0; i--) {
             OptimizablePredicate pred = basePredicates.getOptPredicate(i);
 
@@ -137,21 +114,15 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy {
     }
 
     /** @see JoinStrategy#maxCapacity */
-    public int maxCapacity( int userSpecifiedCapacity,
-                            int maxMemoryPerTable,
-                            double perRowUsage) {
+    public int maxCapacity(int userSpecifiedCapacity, int maxMemoryPerTable, double perRowUsage) {
         return Integer.MAX_VALUE;
     }
 
     /** @see JoinStrategy#getName */
-    public String getName() {
-        return "NESTEDLOOP";
-    }
+    public String getName() { return "NESTEDLOOP"; }
 
     /** @see JoinStrategy#scanCostType */
-    public int scanCostType() {
-        return StoreCostController.STORECOST_SCAN_NORMAL;
-    }
+    public int scanCostType() { return StoreCostController.STORECOST_SCAN_NORMAL; }
 
     /** @see JoinStrategy#resultSetMethodName */
     public String resultSetMethodName(boolean bulkFetch, boolean multiprobe) {
@@ -193,9 +164,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy {
             boolean tableLocked,
             int isolationLevel,
             int maxMemoryPerTable,
-            boolean genInListVals
-    )
-            throws StandardException {
+            boolean genInListVals) throws StandardException {
         ExpressionClassBuilder acb = (ExpressionClassBuilder) acbi;
         int numArgs;
 
@@ -215,20 +184,15 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy {
 		 * a boolean indicating whether or not the IN-list values are already
 		 * sorted.
 		 */
-        if (genInListVals)
-        {
+        if (genInListVals) {
             numArgs = 26;
-        }
-        else if (bulkFetch > 1)
-        {
+        } else if (bulkFetch > 1) {
             // Bulk-fetch uses TableScanResultSet arguments plus two
             // additional arguments: 1) bulk fetch size, and 2) whether the
             // table contains LOB columns (used at runtime to decide if
             // bulk fetch is safe DERBY-1511).
             numArgs = 26;
-        }
-        else
-        {
+        } else {
             numArgs = 24 ;
         }
 
@@ -241,20 +205,16 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy {
         if (genInListVals)
             ((PredicateList)storeRestrictionList).generateInListValues(acb, mb);
 
-        if (SanityManager.DEBUG)
-        {
+        if (SanityManager.DEBUG) {
 			/* If we're not generating IN-list values with which to probe
 			 * the table then storeRestrictionList should not have any
 			 * IN-list probing predicates.  Make sure that's the case.
 			 */
-            if (!genInListVals)
-            {
-                Predicate pred = null;
-                for (int i = storeRestrictionList.size() - 1; i >= 0; i--)
-                {
+            if (!genInListVals) {
+                Predicate pred;
+                for (int i = storeRestrictionList.size() - 1; i >= 0; i--) {
                     pred = (Predicate)storeRestrictionList.getOptPredicate(i);
-                    if (pred.isInListProbePredicate())
-                    {
+                    if (pred.isInListProbePredicate()) {
                         SanityManager.THROWASSERT("Found IN-list probing " +
                                 "predicate (" + pred.binaryRelOpColRefsToString() +
                                 ") when no such predicates were expected.");
@@ -286,9 +246,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy {
             OptimizablePredicateList storeRestrictionList,
             OptimizablePredicateList nonStoreRestrictionList,
             OptimizablePredicateList requalificationRestrictionList,
-            DataDictionary			 dd
-    ) throws StandardException
-    {
+            DataDictionary			 dd ) throws StandardException {
 		/*
 		** All predicates are store predicates.  No requalification is
 		** necessary for non-covering index scans.
@@ -299,8 +257,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy {
     /**
      * @see JoinStrategy#doesMaterialization
      */
-    public boolean doesMaterialization()
-    {
+    public boolean doesMaterialization() {
         return false;
     }
 
@@ -319,24 +276,50 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy {
         return true;
     }
 
-    @Override
-    public void oneRowRightResultSetCostEstimate(OptimizablePredicateList predList, CostEstimate outerCost, CostEstimate innerFullKeyCost) {
-        SpliceLogUtils.trace(LOG, "oneRowRightResultSetCostEstimate");
-        rightResultSetCostEstimate(predList, outerCost, innerFullKeyCost);
-    };
     /**
      *
      * (Network Cost + Right Side Cost)* Left Side Number of Rows
      *
      */
     @Override
-    public void rightResultSetCostEstimate(OptimizablePredicateList predList, CostEstimate outerCost, CostEstimate innerCost) {
+    public void estimateCost(OptimizablePredicateList predList, CostEstimate outerCost, CostEstimate innerCost) {
 
         SpliceLogUtils.trace(LOG, "rightResultSetCostEstimate outerCost=%s, innerFullKeyCost=%s",outerCost, innerCost);
-        if (outerCost.getEstimatedCost() == 0.0 && outerCost.getEstimatedRowCount() == 1) // I am not really a NLJ but a table scan, do not add network costs...
+        if(outerCost.localCost()==0d && outerCost.getEstimatedRowCount()==1.0){
+            /*
+             * Derby calls this method at the end of each table scan, even if it's not a join (or if it's
+             * the left side of the join). When this happens, the outer cost is still unitialized, so there's
+             * nothing to do in this method;
+             */
             return;
+        }
+        //set the base costs for the join
         innerCost.setBase(innerCost.cloneMe());
         outerCost.setBase(outerCost.cloneMe());
+
+        /*
+         * For each outer row, NLJ will do the following:
+         *
+         * 1. read 1 row locally from outer table
+         * 2. read N rows remotely from the inner table.
+         * 3. read the final # of rows across the network.
+         *
+         * Since we already include the remote scanning costs in the outer and inner costs,
+         * we just need to add 2*cost(inner remote read) to the remote cost of the outer row, leaving
+         * the inner remote cost alone
+         */
+        double innerScanCost = (innerCost.localCost()+innerCost.remoteCost())*outerCost.getEstimatedRowCount();
+        innerCost.setLocalCost(outerCost.localCost());
+        innerCost.setRemoteCost(outerCost.remoteCost()+innerScanCost);
+        innerCost.setNumPartitions(outerCost.partitionCount());
+        innerCost.setEstimatedRowCount((long)outerCost.rowCount());
+        innerCost.setRowOrdering(outerCost.getRowOrdering());
+
+//        double rightSideLocalCost = innerCost.localCost()*outerCost.getEstimatedRowCount();
+//        double rightSideRemoteCost = innerCost.remoteCost()*outerCost.getEstimatedRowCount();
+//        innerCost.setLocalCost(innerCost.localCost()*rightSideLocalCost);
+//        innerCost.setRemoteCost(innerCost.remoteCost()*rightSideRemoteCost);
+        //TODO -sf- remove rows based on join selectivity
 //        SpliceCostEstimateImpl inner = (SpliceCostEstimateImpl) innerCost;
 //        inner.setBase(innerCost.cloneMe());
 //        SpliceCostEstimateImpl outer = (SpliceCostEstimateImpl) outerCost;

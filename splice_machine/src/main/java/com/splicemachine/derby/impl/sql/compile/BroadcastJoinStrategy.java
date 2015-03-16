@@ -108,13 +108,27 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
 		return false;
 	}
 
-	@Override
-	public void oneRowRightResultSetCostEstimate(OptimizablePredicateList predList, CostEstimate outerCost, CostEstimate innerFullKeyCost) {
-		rightResultSetCostEstimate(predList,outerCost,innerFullKeyCost);
-	};
-
     @Override
-    public void rightResultSetCostEstimate(OptimizablePredicateList predList, CostEstimate outerCost, CostEstimate innerCost) {
+    public void estimateCost(OptimizablePredicateList predList,CostEstimate outerCost,CostEstimate innerCost) {
+        /*
+         * The algorithm for Broadcast is as follows:
+         *
+         * 1. Read the entirety of the inner table into memory (locally)
+         * 2. For each left hand row, probe memory for the join condition
+         *
+         * In this case, the overall cost is
+         *
+         * inner.local + inner.remote + outer.local+outer.remote
+         */
+        if(outerCost.localCost()==0d && outerCost.getEstimatedRowCount()==1.0d){
+            return; //actually a scan, don't do anything
+        }
+        innerCost.setBase(innerCost.cloneMe());
+        innerCost.setNumPartitions(outerCost.partitionCount());
+        innerCost.setLocalCost(innerCost.localCost()+outerCost.localCost());
+        innerCost.setRemoteCost(innerCost.remoteCost()+outerCost.remoteCost());
+        innerCost.setRowOrdering(outerCost.getRowOrdering());
+        innerCost.setEstimatedRowCount((long)outerCost.rowCount());
 //        SpliceLogUtils.trace(LOG, "rightResultSetCostEstimate outerCost=%s, innerFullKeyCost=%s", outerCost, innerCost);
 //
 //        SpliceCostEstimateImpl inner = (SpliceCostEstimateImpl) innerCost;

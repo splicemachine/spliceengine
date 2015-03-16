@@ -109,13 +109,9 @@ public class HashNestedLoopJoinStrategy extends HashableJoinStrategy {
     	return hashableFeasible && isOneRowResultSet;   
     	*/
     }
-    
 
-    
-	@Override
-	public void oneRowRightResultSetCostEstimate(OptimizablePredicateList predList, CostEstimate outerCost, CostEstimate innerFullKeyCost) {
-		rightResultSetCostEstimate(predList, outerCost,innerFullKeyCost);
-	};
+
+    ;
 
 	/**
 	 * 
@@ -123,7 +119,7 @@ public class HashNestedLoopJoinStrategy extends HashableJoinStrategy {
 	 * 
 	 */
 	@Override
-	public void rightResultSetCostEstimate(OptimizablePredicateList predList, CostEstimate outerCost, CostEstimate innerCost) {
+	public void estimateCost(OptimizablePredicateList predList,CostEstimate outerCost,CostEstimate innerCost) {
 		SpliceLogUtils.trace(LOG, "rightResultSetCostEstimate outerCost=%s, innerFullKeyCost=%s",outerCost, innerCost);
 		double cost;
 //		if (outerCost.getEstimatedRowCount() > 10000)
