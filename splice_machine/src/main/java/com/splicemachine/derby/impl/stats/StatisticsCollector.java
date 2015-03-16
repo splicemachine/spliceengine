@@ -6,15 +6,22 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.TimeView;
+import com.splicemachine.metrics.Timer;
+import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.PartitionStatistics;
 import com.splicemachine.stats.SimplePartitionStatistics;
 import com.splicemachine.stats.collector.ColumnStatsCollector;
+import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Result;
+import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
 
 import java.io.IOException;
@@ -53,6 +60,7 @@ public class StatisticsCollector {
      * This is primarily useful for string fields. Most other types will have no maximum length
      */
     private final int[] lengths;
+    private final long tableConglomerateId;
 
     public StatisticsCollector(TxnView txn,
                                ExecRow template,
@@ -83,6 +91,7 @@ public class StatisticsCollector {
         this.scanner = scanner;
         this.columnPositionMap = columnPositionMap;
         this.lengths = lengths;
+        this.tableConglomerateId=Long.parseLong(txnRegion.getTableName());
     }
 
     @SuppressWarnings("unchecked")
@@ -139,8 +148,44 @@ public class StatisticsCollector {
         }
     }
 
-    protected long getRemoteReadTime(long rowCount) {
-        return -1;
+    protected long getRemoteReadTime(long rowCount) throws ExecutionException{
+        /*
+         * for base table scans, we want to do something akin to a self-join here. Really what we
+         * need to do is read a sample of rows remotely, and measure their overall latency. That way,
+         * we will know (roughly) the cost of reading this table.
+         *
+         * However, we don't want to measure the latency of reading from this region, since it would
+         * be much more efficient than we normally would want. Instead, we try and pick regions
+         * which do not contain the partitionScan. Of course, if the region contains everything,
+         * then who cares.
+         *
+         * Once a region is selected, we read in some rows using a scanner, measure the average latency,
+         * and then use that to estimate how long it would take to read us remotely
+         */
+        //TODO -sf- randomize this a bit so we don't hotspot a region
+        try(HTableInterface table =SpliceAccessManager.getHTable(tableConglomerateId)){
+            Scan scan =TransactionOperations.getOperationFactory().newScan(txn);
+            scan.setStartRow(HConstants.EMPTY_START_ROW);
+            scan.setStopRow(HConstants.EMPTY_END_ROW);
+            int fetchSampleSize=StatsConstants.fetchSampleSize;
+            scan.setCaching(fetchSampleSize);
+            scan.setBatch(fetchSampleSize);
+            Timer remoteReadTimer = Metrics.newWallTimer();
+            try(ResultScanner scanner = table.getScanner(scan)){
+                int pos = 0;
+                remoteReadTimer.startTiming();
+                Result result;
+                while(pos<fetchSampleSize && (result = scanner.next())!=null){
+                    pos++;
+                }
+                remoteReadTimer.tick(pos);
+            }
+
+            double latency = ((double)remoteReadTimer.getTime().getWallClockTime())/remoteReadTimer.getNumEvents();
+            return Math.round(latency*rowCount);
+        }catch(IOException e){
+            throw new ExecutionException(e);
+        }
     }
 
     protected List<ColumnStatistics> getFinalColumnStats(ColumnStatsCollector<DataValueDescriptor>[] dvdCollectors) {

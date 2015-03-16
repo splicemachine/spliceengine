@@ -135,8 +135,8 @@ public class IndexStatisticsCollector extends StatisticsCollector {
             return true;
         }
 
-        long pos = (long)randomGenerator.nextDouble()*(numStarts+1);
         numStarts++;
+        long pos = (long)randomGenerator.nextDouble()*numStarts;
         return pos < sampleSize;
     }
 }
