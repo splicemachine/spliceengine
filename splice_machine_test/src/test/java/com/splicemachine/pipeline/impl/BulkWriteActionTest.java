@@ -7,6 +7,7 @@ import java.util.concurrent.ExecutionException;
 
 import org.apache.hadoop.hbase.ipc.CallerDisconnectedException;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.splicemachine.pipeline.api.WriteResponse;
@@ -21,6 +22,7 @@ public class BulkWriteActionTest {
 
 	
 	@Test
+	@Ignore
 	public void testCallerDisconnectedException() throws ExecutionException {
 		DefaultWriteConfiguration configuration = new DefaultWriteConfiguration(null);
 		Assert.assertEquals(WriteResponse.THROW_ERROR,configuration.globalError(new CallerDisconnectedException("Disconnected")));
