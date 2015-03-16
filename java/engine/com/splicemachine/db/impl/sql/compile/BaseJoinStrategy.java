@@ -208,13 +208,9 @@ public abstract class BaseJoinStrategy implements JoinStrategy {
 	{
 		return false;
 	}
-		
-	public void oneRowRightResultSetCostEstimate(OptimizablePredicateList predicateList, CostEstimate outerCost, CostEstimate innerFullKeyCost) {
-		throw new RuntimeException("oneRowRightResultSetCostEstimate is not implemented");	
-	}
-	
-	public void rightResultSetCostEstimate(OptimizablePredicateList predicateList, CostEstimate outerCost, CostEstimate innerFullKeyCost) {
-		throw new RuntimeException("rightResultSetCostEstimate is not implemented");		
+
+    public void estimateCost(OptimizablePredicateList predicateList,CostEstimate outerCost,CostEstimate innerCost) {
+		throw new UnsupportedOperationException("rightResultSetCostEstimate is not implemented");
 	}
 	public boolean singleRowOnly() {
 		return false;
