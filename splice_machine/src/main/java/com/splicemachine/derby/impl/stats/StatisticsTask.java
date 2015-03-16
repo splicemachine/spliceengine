@@ -148,7 +148,9 @@ public class StatisticsTask extends ZkTask{
         try(TransactionalRegion txnRegion = TransactionalRegions.get(region)) {
             StatisticsCollector collector;
             if(baseTableConglomerateId<0) {
-                collector = new StatisticsCollector(txn, colsToCollect, partitionScan,
+                collector = new StatisticsCollector(txn,
+                        colsToCollect,
+                        partitionScan,
                         rowDecodingMap,
                         keyColumnEncodingOrder,
                         keyColumnSortOrder,
@@ -203,9 +205,10 @@ public class StatisticsTask extends ZkTask{
 
     @Override
     public RegionTask getClone() {
-        return new StatisticsTask(getJobId(),colsToCollect.getClone(),
-                rowDecodingMap,
+        return new StatisticsTask(getJobId(),
+                colsToCollect.getClone(),
                 columnPositionMap,
+                rowDecodingMap,
                 keyDecodingMap,
                 keyColumnEncodingOrder,
                 keyColumnSortOrder,
@@ -226,6 +229,8 @@ public class StatisticsTask extends ZkTask{
         super.readExternal(in);
         colsToCollect = (ExecRow)in.readObject();
         rowDecodingMap = ArrayUtil.readIntArray(in);
+        if(rowDecodingMap==null)
+            rowDecodingMap = new int[0];
         columnPositionMap = ArrayUtil.readIntArray(in);
         keyDecodingMap = ArrayUtil.readIntArray(in);
         keyColumnEncodingOrder = ArrayUtil.readIntArray(in);
