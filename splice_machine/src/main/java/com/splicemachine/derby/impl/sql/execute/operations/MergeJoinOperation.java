@@ -17,6 +17,7 @@ import com.splicemachine.mrio.api.serde.SpliceSplit;
 import com.splicemachine.derby.utils.StandardIterators;
 import com.splicemachine.derby.utils.StandardPushBackIterator;
 import com.splicemachine.derby.utils.StandardSupplier;
+import com.splicemachine.mrio.api.serde.SpliceSplit;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -240,8 +241,6 @@ public class MergeJoinOperation extends JoinOperation {
 
     @Override
     public boolean providesRDD() {
-        // Only when this operation isn't above a Sink
-        // TODO implement MergeJoin in Spark when it's above a sink
         return leftResultSet.providesRDD() && rightResultSet.providesRDD();
     }
 
@@ -260,8 +259,8 @@ public class MergeJoinOperation extends JoinOperation {
             NewHadoopPartition nhp = (NewHadoopPartition) p;
             InputSplit is = nhp.serializableHadoopSplit().value();
             assert is instanceof SpliceSplit;
-            SpliceSplit ts = ((SpliceSplit) is);
-            splits.add(ts.getSplit().getEndRow());
+            SpliceSplit ss = (SpliceSplit) is;
+            splits.add(ss.getSplit().getEndRow());
         }
         Collections.sort(splits, BytesUtil.endComparator);
 
