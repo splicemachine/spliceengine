@@ -13,17 +13,18 @@ import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.metrics.IOStats;
+import com.splicemachine.mrio.api.serde.SpliceSplit;
 import com.splicemachine.derby.utils.StandardIterators;
 import com.splicemachine.derby.utils.StandardPushBackIterator;
 import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+
 import org.apache.hadoop.hbase.mapreduce.TableSplit;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.log4j.Logger;
@@ -35,6 +36,7 @@ import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.FlatMapFunction2;
 import org.apache.spark.rdd.NewHadoopPartition;
 import org.apache.spark.rdd.NewHadoopRDD;
+
 import scala.Function1;
 import scala.Function2;
 import scala.Tuple2;
@@ -257,9 +259,9 @@ public class MergeJoinOperation extends JoinOperation {
             assert p instanceof NewHadoopPartition;
             NewHadoopPartition nhp = (NewHadoopPartition) p;
             InputSplit is = nhp.serializableHadoopSplit().value();
-            assert is instanceof TableSplit;
-            TableSplit ts = (TableSplit) is;
-            splits.add(ts.getEndRow());
+            assert is instanceof SpliceSplit;
+            SpliceSplit ts = ((SpliceSplit) is);
+            splits.add(ts.getSplit().getEndRow());
         }
         Collections.sort(splits, BytesUtil.endComparator);
 
