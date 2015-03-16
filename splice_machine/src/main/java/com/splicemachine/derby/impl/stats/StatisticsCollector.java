@@ -144,8 +144,7 @@ public class StatisticsCollector {
     }
 
     protected List<ColumnStatistics> getFinalColumnStats(ColumnStatsCollector<DataValueDescriptor>[] dvdCollectors) {
-        List<ColumnStatistics> columnStats;
-        columnStats = new ArrayList<>(dvdCollectors.length);
+        List<ColumnStatistics> columnStats = new ArrayList<>(dvdCollectors.length);
         for (int i = 0; i < dvdCollectors.length; i++) {
             columnStats.add(dvdCollectors[i].build());
         }

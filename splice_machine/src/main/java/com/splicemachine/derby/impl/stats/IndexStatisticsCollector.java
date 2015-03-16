@@ -22,7 +22,7 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
@@ -74,24 +74,12 @@ public class IndexStatisticsCollector extends StatisticsCollector {
         baseTable = SpliceAccessManager.getHTable(Long.toString(baseConglomerateId).getBytes());
     }
 
-
-    @Override
-    protected List<ColumnStatistics> getFinalColumnStats(ColumnStatsCollector<DataValueDescriptor>[] dvdCollectors) {
-        return Collections.emptyList();
-    }
-
-    @Override
-    protected void populateCollectors(DataValueDescriptor[] dvds, ColumnStatsCollector<DataValueDescriptor>[] collectors) {
-        for(int i=0;i<collectors.length;i++){
-            collectors[i] = NoopColumnStatsCollector.collector();
-        }
-    }
-
     @Override
     protected void updateRow(SITableScanner scanner,
                              ColumnStatsCollector<DataValueDescriptor>[] dvdCollectors,
                              int[] fieldLengths,
                              ExecRow row) throws StandardException, IOException {
+        super.updateRow(scanner,dvdCollectors,fieldLengths,row);
         if(!isSampled()) return;
 
         RowLocation rl = (RowLocation)row.getColumn(row.nColumns());
@@ -104,11 +92,27 @@ public class IndexStatisticsCollector extends StatisticsCollector {
 
     @Override
     protected void closeResources(){
+        super.closeResources();
         try {
             baseTable.close();
         } catch (IOException e) {
             LOG.error("Encountered error closing base htable",e);
         }
+    }
+
+    @Override
+    protected List<ColumnStatistics> getFinalColumnStats(ColumnStatsCollector<DataValueDescriptor>[] dvdCollectors){
+        /*
+         * The last column in the row is the HBaseRowLocation of the base table, which we do not include statistics
+         * for. Hence, we ignore it (for now)
+         *
+         * TODO -sf- should we collect the avg column width to improve our costing model?
+         */
+        List<ColumnStatistics> columnStats = new ArrayList<>(dvdCollectors.length-1);
+        for (int i = 0; i < dvdCollectors.length-1; i++) {
+            columnStats.add(dvdCollectors[i].build());
+        }
+        return columnStats;
     }
 
     @Override

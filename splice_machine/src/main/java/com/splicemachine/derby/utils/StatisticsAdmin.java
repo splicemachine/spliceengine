@@ -33,6 +33,7 @@ import com.splicemachine.job.JobScheduler;
 import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.TxnView;
+import com.splicemachine.utils.IntArrays;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.client.HTableInterface;
@@ -49,6 +50,7 @@ import java.util.concurrent.ExecutionException;
 public class StatisticsAdmin {
 
 
+    @SuppressWarnings("UnusedDeclaration")
     public static void DISABLE_COLUMN_STATISTICS(String schema,
                                                 String table,
                                                 String columnName) throws SQLException{
@@ -77,6 +79,7 @@ public class StatisticsAdmin {
         }
     }
 
+    @SuppressWarnings("UnusedDeclaration")
     public static void ENABLE_COLUMN_STATISTICS(String schema,
                                                 String table,
                                                 String columnName) throws SQLException{
@@ -114,6 +117,7 @@ public class StatisticsAdmin {
             new GenericColumnDescriptor("tasksExecuted",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
             new GenericColumnDescriptor("rowsCollected",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT))
     };
+    @SuppressWarnings("UnusedDeclaration")
     public static void COLLECT_TABLE_STATISTICS(String schema,
                                                 String table,
                                                 boolean staleOnly,
@@ -172,7 +176,8 @@ public class StatisticsAdmin {
                     IndexRowGenerator irg = indexGenerators[i];
                     long indexConglomId = indexConglomIds[i];
                     Collection<HRegionInfo> indexRegions = getCollectedRegions(conn, indexConglomId, staleOnly);
-                    StatisticsJob indexJob = getIndexJob(irg, indexConglomId, heapConglomerateId, tableDesc, indexRegions, txn);
+                    StatisticsJob indexJob = getIndexJob(irg, indexConglomId,
+                            heapConglomerateId, tableDesc, indexRegions,colsToCollect,txn);
                     JobFuture future = jobScheduler.submit(indexJob);
                     outputRow.getColumn(2).setValue(distinctIndexNames[i]);
                     collectionFutures.add(new Pair<>(outputRow.getClone(),future));
@@ -227,23 +232,55 @@ public class StatisticsAdmin {
                                              long heapConglomerateId,
                                              TableDescriptor tableDesc,
                                              Collection<HRegionInfo> indexRegions,
-                                             TxnView baseTxn) {
-        ExecRow indexRow = new ValueRow(1);
-        indexRow.getRowArray()[0] = new HBaseRowLocation();
-        int[] rowDecodingMap = new int[irg.numberOfOrderedColumns()+1];
-        Arrays.fill(rowDecodingMap,-1); //just to be safe
-        rowDecodingMap[rowDecodingMap.length-1] = 0;
+                                             List<ColumnDescriptor> columnsToCollect,
+                                             TxnView baseTxn) throws StandardException{
+        ExecRow indexRow = irg.getIndexRowTemplate();
+        int[] baseColumnPositions = irg.baseColumnPositions();
+        int[] keyTypes = new int[indexRow.nColumns()];
+        int[] keyEncodingOrder = new int[indexRow.nColumns()];
+        boolean[] keySortOrder = new boolean[indexRow.nColumns()];irg.isAscending();
+        System.arraycopy(irg.isAscending(),0,keySortOrder,0,irg.isAscending().length);
+        keySortOrder[indexRow.nColumns()-1] = true;
+        int[] keyDecodingMap =IntArrays.count(indexRow.nColumns());
+        int[] keyBasePositionMap = new int[indexRow.nColumns()];
+        int[] fieldLengths = new int[indexRow.nColumns()];
+        int nextColPos = 1;
+        for(ColumnDescriptor cd:columnsToCollect){
+            int colPos = cd.getPosition();
+            for(int keyColumn:baseColumnPositions){
+                if(keyColumn==colPos){
+                    //we have an index column! hooray! put it in the next position in the row
+                    DataTypeDescriptor type=cd.getType();
+                    DataValueDescriptor val=type.getNull();
+                    indexRow.setColumn(nextColPos,val);
+                    keyTypes[nextColPos-1] = val.getTypeFormatId();
+                    keyEncodingOrder[nextColPos] = colPos-1;
+                    keyBasePositionMap[nextColPos-1] = colPos;
+                    fieldLengths[nextColPos] = type.getMaximumWidth();
+                    nextColPos++;
+                }
+            }
+        }
+        HBaseRowLocation value=new HBaseRowLocation();
+        indexRow.setColumn(indexRow.nColumns(),value);
+        keyTypes[indexRow.nColumns()-1] = value.getTypeFormatId();
+        int[] rowDecodingMap = new int[0];
+        FormatableBitSet collectedKeyColumns = new FormatableBitSet(baseColumnPositions.length);
+        for(int i=0;i<keyEncodingOrder.length;i++){
+            collectedKeyColumns.grow(i+1);
+            collectedKeyColumns.set(i);
+        }
 
         String jobId = "Statistics-"+SpliceDriver.driver().getUUIDGenerator().nextUUID();
         StatisticsTask baseTask = new StatisticsTask(jobId,indexRow,
+                keyBasePositionMap,
                 rowDecodingMap,
-                rowDecodingMap,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
+                keyDecodingMap,
+                keyEncodingOrder,
+                keySortOrder,
+                keyTypes,
+                fieldLengths,
+                collectedKeyColumns,
                 heapConglomerateId,
                 tableDesc.getVersion());
 
@@ -312,8 +349,8 @@ public class StatisticsAdmin {
         String jobId = "Statistics-"+SpliceDriver.driver().getUUIDGenerator().nextUUID();
         String tableVersion = tableDesc.getVersion();
         StatisticsTask baseTask = new StatisticsTask(jobId,row,
-                rowDecodingMap,
                 columnPositionMap,
+                rowDecodingMap,
                 keyDecodingMap,
                 keyColumnEncodingOrder,
                 keyColumnSortOrder,

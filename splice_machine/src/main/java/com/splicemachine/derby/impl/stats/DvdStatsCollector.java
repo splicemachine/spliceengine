@@ -104,6 +104,8 @@ public abstract class DvdStatsCollector implements ColumnStatsCollector<DataValu
                         cardPrecision,
                         topKSize,
                         stringDistributionFactory(columnLen)),columnLen);
+            case StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID:
+                return NoopColumnStatsCollector.collector();
             default:
                 throw new UnsupportedOperationException("Programmer error: Cannot collect statistics for format id "+ typeFormatId);
         }
