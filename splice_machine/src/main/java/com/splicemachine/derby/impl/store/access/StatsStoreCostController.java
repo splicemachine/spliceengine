@@ -29,24 +29,6 @@ import java.util.concurrent.ExecutionException;
  *         Date: 3/4/15
  */
 public class StatsStoreCostController extends GenericController implements StoreCostController {
-    /*
-     * We measure the size of rows in total bytes INCLUDING all the SI
-     * data columns. For tables with a large number of columns, this metadata size
-     * is unlikely to be significant, but for tables with a small number of columns,
-     * the metadata might well dominate the overall row size.
-     *
-     * Thankfully, the SI metadata is easy to compute in advance--we assume
-     * that there are no tombstone or anti-tombstone fields, and that the Commit timestamp
-     * is always present. In that case, we encode the commit timestamp using 1 byte for the
-     * qualifier, 8 bytes for the timestamp, 8 bytes for the value, and then the row key.
-     *
-     * We can't measure the row key component precisely--we can take non-keyed tables into
-     * account by adding the length of a uuid to that number, but non-keyed tables are harder--
-     * we'll need to get the avg column width for all the keyed columns and add that in.
-     *
-     * This constant value is the *non-key* component of the SI commit timestamp size.
-     */
-    protected static final int METADATA_ROW_SIZE_ADJUSTMENT=10;
     protected TableStatistics conglomerateStatistics;
     protected OpenSpliceConglomerate baseConglomerate;
 
@@ -366,24 +348,6 @@ public class StatsStoreCostController extends GenericController implements Store
     }
 
     private int getAdjustedRowSize(PartitionStatistics pStats,int[] keyMap){
-        int rowKeyWidth=getRowKeyWidth(pStats,keyMap);
-        if(keyMap==null || keyMap.length<=0)
-            rowKeyWidth*=2; //the row key is not useful information, so remove it from adjustment
-        return pStats.avgRowWidth()-(rowKeyWidth+METADATA_ROW_SIZE_ADJUSTMENT);
+        return pStats.avgRowWidth();
     }
-
-    protected int getRowKeyWidth(PartitionStatistics pStats,int[] keyMap){
-        int rowKeyWidth = 0;
-        if(keyMap!=null && keyMap.length>0){
-            for(int columnId : keyMap){
-                ColumnStatistics cStats=pStats.columnStatistics(columnId);
-                rowKeyWidth+=cStats.avgColumnWidth();
-            }
-        }else
-            rowKeyWidth=8;
-
-        return rowKeyWidth;
-    }
-
-
 }

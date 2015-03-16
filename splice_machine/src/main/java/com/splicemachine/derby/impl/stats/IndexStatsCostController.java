@@ -13,8 +13,6 @@ import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.TxnView;
-import com.splicemachine.stats.ColumnStatistics;
-import com.splicemachine.stats.PartitionStatistics;
 import com.splicemachine.stats.TableStatistics;
 
 import java.util.concurrent.ExecutionException;
@@ -28,6 +26,7 @@ public class IndexStatsCostController extends StatsStoreCostController {
     private TableStatistics baseTableStatistics;
     private int[] indexColToHeapColMap;
     private int[] baseTableKeyColumns;
+    private boolean isUnique;
 
     public IndexStatsCostController(ConglomerateDescriptor cd,
                                     OpenSpliceConglomerate indexConglomerate,
@@ -43,14 +42,15 @@ public class IndexStatsCostController extends StatsStoreCostController {
         super(indexConglomerate);
         BaseSpliceTransaction bst = (BaseSpliceTransaction)indexConglomerate.getTransaction();
         TxnView txn = bst.getActiveStateTxn();
-        long conglomId = indexConglomerate.getIndexConglomerate();
+        long heapConglomerateId = indexConglomerate.getIndexConglomerate();
         int[] baseColumnPositions = cd.getIndexDescriptor().baseColumnPositions();
         this.indexColToHeapColMap = new int[baseColumnPositions.length];
         for(int i=0;i<indexColToHeapColMap.length;i++){
             this.indexColToHeapColMap[i] = baseColumnPositions[i];
         }
+        this.isUnique = cd.getIndexDescriptor().isUnique();
         try {
-            this.baseTableStatistics = StatisticsStorage.getPartitionStore().getStatistics(txn, conglomId);
+            this.baseTableStatistics = StatisticsStorage.getPartitionStore().getStatistics(txn, heapConglomerateId);
         } catch (ExecutionException e) {
             throw Exceptions.parseException(e);
         }
@@ -107,7 +107,9 @@ public class IndexStatsCostController extends StatsStoreCostController {
         if(scanColumnList!=null){
             indexColumns=new FormatableBitSet(scanColumnList.size());
             for(int keyColumn:indexColToHeapColMap){
-                if(scanColumnList.get(keyColumn)){
+                indexColumns.grow(keyColumn+1);
+                scanColumnList.grow(keyColumn+1);
+                if(keyColumn<scanColumnList.getLength() && scanColumnList.get(keyColumn)){
                     indexColumns.set(keyColumn);
                 }
             }
@@ -121,25 +123,4 @@ public class IndexStatsCostController extends StatsStoreCostController {
                 (CostEstimate) cost_result);
     }
 
-    @Override
-    protected int getRowKeyWidth(PartitionStatistics pStats,int[] keyMap){
-        int rowKeyWidth = 0;
-        for(int columnId:keyMap){
-            ColumnStatistics cStats = pStats.columnStatistics(columnId);
-            rowKeyWidth+=cStats.avgColumnWidth();
-        }
-
-        int baseRowKeyWidth = 0;
-        if(baseTableKeyColumns!=null && baseTableKeyColumns.length>0){
-            for(int baseTableColumn:baseTableKeyColumns){
-                baseRowKeyWidth+=baseTableStatistics.columnStatistics(baseTableColumn).avgColumnWidth();
-            }
-        }else{
-            baseRowKeyWidth = 8;
-        }
-
-        rowKeyWidth+=baseRowKeyWidth;
-
-        return rowKeyWidth;
-    }
 }
