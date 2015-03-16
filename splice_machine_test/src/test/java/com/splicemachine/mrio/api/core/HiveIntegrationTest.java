@@ -14,6 +14,7 @@ import java.sql.Timestamp;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -25,7 +26,7 @@ import com.splicemachine.derby.test.framework.SpliceNetConnection;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-
+@Ignore
 public class HiveIntegrationTest extends BaseMRIOTest {
 	    private static final Logger LOG = Logger.getLogger(HiveIntegrationTest.class);
 		private static String driverName = "org.apache.hadoop.hive.jdbc.HiveDriver";
