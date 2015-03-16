@@ -171,12 +171,13 @@ public class ExecRowAccumulator extends ByteEntryAccumulator {
 
         @Override
         protected void decode(int position, byte[] data, int offset, int length) {
-            DataValueDescriptor dvd = dvds[columnMap[position]];
+            int colPos=columnMap[position];
+            DataValueDescriptor dvd = dvds[colPos];
             DescriptorSerializer serializer = serializers[columnMap[position]];
             try {
                 serializer.decodeDirect(dvd, data, offset, length, !columnSortOrder[position]);
+                columnLengths[colPos] = length;
             } catch (StandardException e) {
-                //TODO -sf- handle this?
                 throw new RuntimeException(e);
             }
         }

@@ -6,6 +6,8 @@ import com.splicemachine.stats.TableStatistics;
 import com.splicemachine.stats.estimate.Distribution;
 import com.splicemachine.stats.estimate.GlobalDistribution;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -15,6 +17,8 @@ import java.util.List;
 public class GlobalStatistics implements TableStatistics {
     private final String tableId;
     private final List<PartitionStatistics> partitionStatistics;
+
+    private transient List<ColumnStatistics> combinedColumnStatistics;
 
     public GlobalStatistics(String tableId,List<PartitionStatistics> partitionStatistics) {
         this.partitionStatistics = partitionStatistics;
@@ -122,12 +126,20 @@ public class GlobalStatistics implements TableStatistics {
 
     @Override
     public List<ColumnStatistics> columnStatistics() {
-        throw new UnsupportedOperationException("IMPLEMENT");
+        if(combinedColumnStatistics==null){
+            combinedColumnStatistics = mergeColumnStats(partitionStatistics);
+        }
+        return combinedColumnStatistics;
     }
 
     @Override
+    @SuppressWarnings("unchecked")
     public <T> ColumnStatistics<T> columnStatistics(int columnId){
-        throw new UnsupportedOperationException("IMPLEMENT");
+        List<ColumnStatistics> colStats = columnStatistics();
+        for(ColumnStatistics cStats:colStats){
+            if(cStats.columnId()==columnId) return (ColumnStatistics<T>)cStats;
+        }
+        return null;
     }
 
     @Override
@@ -143,5 +155,34 @@ public class GlobalStatistics implements TableStatistics {
     @Override
     public PartitionStatistics merge(PartitionStatistics other) {
         throw new UnsupportedOperationException("Cannot merge Global statistics!");
+    }
+
+    /* ***************************************************************************************************************/
+    /*private helper methods*/
+    private List<ColumnStatistics> mergeColumnStats(List<PartitionStatistics> partitionStatistics){
+        if(partitionStatistics.size()<=0) return Collections.emptyList();
+        List<ColumnStatistics> stats = null;
+        for(PartitionStatistics partStats:partitionStatistics){
+            List<ColumnStatistics> colStats=partStats.columnStatistics();
+            if(colStats.size()<=0) continue;
+            if(stats==null)
+                stats = new ArrayList<>(colStats.size());
+            for(ColumnStatistics cStats:colStats){
+                boolean found = false;
+                for(ColumnStatistics existing:stats){
+                    if(existing.columnId()==cStats.columnId()){
+                        //noinspection unchecked
+                        existing.merge(cStats);
+                        found=true;
+                        break;
+                    }
+                }
+                if(!found){
+                    ColumnStatistics cAvg = ColumnAverage.fromExisting(cStats);
+                    stats.add(cAvg);
+                }
+            }
+        }
+        return stats;
     }
 }

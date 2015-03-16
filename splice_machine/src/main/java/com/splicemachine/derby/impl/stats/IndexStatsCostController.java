@@ -5,6 +5,7 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.StoreCostResult;
+import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.StatsStoreCostController;
@@ -12,6 +13,8 @@ import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.TxnView;
+import com.splicemachine.stats.ColumnStatistics;
+import com.splicemachine.stats.PartitionStatistics;
 import com.splicemachine.stats.TableStatistics;
 
 import java.util.concurrent.ExecutionException;
@@ -24,44 +27,47 @@ public class IndexStatsCostController extends StatsStoreCostController {
     private final int totalColumns;
     private TableStatistics baseTableStatistics;
     private int[] indexColToHeapColMap;
+    private int[] baseTableKeyColumns;
 
-    public IndexStatsCostController(ConglomerateDescriptor cd,OpenSpliceConglomerate baseConglomerate) throws StandardException {
+    public IndexStatsCostController(ConglomerateDescriptor cd,
+                                    OpenSpliceConglomerate indexConglomerate,
+                                    Conglomerate heapConglomerate) throws StandardException {
         /*
-         * This looks a bit weird, because baseConglomerate is actually the index conglomerate,
+         * This looks a bit weird, because indexConglomerate is actually the index conglomerate,
          * so our super class is actually looking at the cost to just scan in the index. We
          * need to use the base table statistics in order to get the proper column
          * selectivity, so we lookup the base table statistics here, but we use the index
          * statistics when estimating the fetch cost.
          *
          */
-        super(baseConglomerate);
-        BaseSpliceTransaction bst = (BaseSpliceTransaction)baseConglomerate.getTransaction();
+        super(indexConglomerate);
+        BaseSpliceTransaction bst = (BaseSpliceTransaction)indexConglomerate.getTransaction();
         TxnView txn = bst.getActiveStateTxn();
-        long conglomId = baseConglomerate.getIndexConglomerate();
+        long conglomId = indexConglomerate.getIndexConglomerate();
         int[] baseColumnPositions = cd.getIndexDescriptor().baseColumnPositions();
         this.indexColToHeapColMap = new int[baseColumnPositions.length];
         for(int i=0;i<indexColToHeapColMap.length;i++){
-            this.indexColToHeapColMap[i] = baseColumnPositions[i]-1;
+            this.indexColToHeapColMap[i] = baseColumnPositions[i];
         }
-
         try {
             this.baseTableStatistics = StatisticsStorage.getPartitionStore().getStatistics(txn, conglomId);
         } catch (ExecutionException e) {
             throw Exceptions.parseException(e);
         }
         totalColumns = cd.getColumnNames().length;
+        this.baseTableKeyColumns = ((SpliceConglomerate)heapConglomerate).getColumnOrdering();
     }
 
     @Override
-    public void getFetchFromRowLocationCost(FormatableBitSet validColumns,int access_type,CostEstimate cost) throws StandardException{
+    public void getFetchFromRowLocationCost(FormatableBitSet heapColumns,int access_type,CostEstimate cost) throws StandardException{
         //start with the remote read latency
         double scale = conglomerateStatistics.remoteReadLatency();
 
         //scale by the column size factor of the heap columns
-        scale *=columnSizeFactor(baseTableStatistics,
+        scale *=super.columnSizeFactor(baseTableStatistics,
                 totalColumns,
-                baseConglomerate.getColumnOrdering(),
-                validColumns);
+                baseTableKeyColumns,
+                heapColumns);
 
         /*
          * scale is the cost to read the heap rows over the network, but we have
@@ -71,7 +77,7 @@ public class IndexStatsCostController extends StatsStoreCostController {
          * TODO -sf- when we include control side, consider the possibility that we are doing
          * a control-side access, in which case we don't scale by 2 here.
          */
-        double heapRemoteCost = scale*cost.rowCount();
+        double heapRemoteCost = 2*scale*cost.rowCount();
 
         /*
          * we've already accounted for the remote cost of reading the index columns,
@@ -80,18 +86,6 @@ public class IndexStatsCostController extends StatsStoreCostController {
 
         //but the read latency from the index table
         cost.setRemoteCost(cost.remoteCost()+heapRemoteCost);
-    }
-
-    @Override
-    public double nullSelectivity(int columnNumber){
-        return super.nullSelectivityFraction(baseTableStatistics,columnNumber);
-    }
-
-    @Override
-    public double getSelectivity(int columnNumber,
-                                 DataValueDescriptor start,boolean includeStart,
-                                 DataValueDescriptor stop,boolean includeStop){
-        return super.selectivityFraction(baseTableStatistics,columnNumber,start,includeStart,stop,includeStop);
     }
 
     @Override
@@ -108,13 +102,44 @@ public class IndexStatsCostController extends StatsStoreCostController {
                             boolean reopen_scan,
                             int access_type,
                             StoreCostResult cost_result) throws StandardException {
-        super.estimateCost(baseTableStatistics,
+
+        FormatableBitSet indexColumns = null;
+        if(scanColumnList!=null){
+            indexColumns=new FormatableBitSet(scanColumnList.size());
+            for(int keyColumn:indexColToHeapColMap){
+                if(scanColumnList.get(keyColumn)){
+                    indexColumns.set(keyColumn);
+                }
+            }
+        }
+        super.estimateCost(conglomerateStatistics,
                 totalColumns,
-                scanColumnList,
+                indexColumns,
                 startKeyValue, startSearchOperator,
                 stopKeyValue, stopSearchOperator,
                 indexColToHeapColMap,
                 (CostEstimate) cost_result);
     }
 
+    @Override
+    protected int getRowKeyWidth(PartitionStatistics pStats,int[] keyMap){
+        int rowKeyWidth = 0;
+        for(int columnId:keyMap){
+            ColumnStatistics cStats = pStats.columnStatistics(columnId);
+            rowKeyWidth+=cStats.avgColumnWidth();
+        }
+
+        int baseRowKeyWidth = 0;
+        if(baseTableKeyColumns!=null && baseTableKeyColumns.length>0){
+            for(int baseTableColumn:baseTableKeyColumns){
+                baseRowKeyWidth+=baseTableStatistics.columnStatistics(baseTableColumn).avgColumnWidth();
+            }
+        }else{
+            baseRowKeyWidth = 8;
+        }
+
+        rowKeyWidth+=baseRowKeyWidth;
+
+        return rowKeyWidth;
+    }
 }

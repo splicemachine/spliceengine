@@ -46,7 +46,7 @@ public class StatsStoreCostController extends GenericController implements Store
      *
      * This constant value is the *non-key* component of the SI commit timestamp size.
      */
-    private static final int METADATA_ROW_SIZE_ADJUSTMENT=10;
+    protected static final int METADATA_ROW_SIZE_ADJUSTMENT=10;
     protected TableStatistics conglomerateStatistics;
     protected OpenSpliceConglomerate baseConglomerate;
 
@@ -329,16 +329,16 @@ public class StatsStoreCostController extends GenericController implements Store
          * the width of the row - sum(width(column)| all measured columns),and divide it by the
          * number of missing columns to generate a rough estimate.
          */
-        int totAvgColWidth = 0;
-        int adjAvgRowWidth = getAdjustedRowKeySize(partStats,keyMap);
+        int columnSize = 0;
+        int adjAvgRowWidth = getAdjustedRowSize(partStats,keyMap);
         if(scanColumnList!=null && scanColumnList.getNumBitsSet()!=totalColumns){
             for(int i=scanColumnList.anySetBit();i>=0;i=scanColumnList.anySetBit(i)){
-                totAvgColWidth +=getColumnSize(partStats,totalColumns,i-1,adjAvgRowWidth);
+                columnSize +=getColumnSize(partStats,totalColumns,i,adjAvgRowWidth);
             }
         }else {
-            totAvgColWidth = adjAvgRowWidth;
+            columnSize = adjAvgRowWidth; //we are fetching everything, so this ratio is 1:1
         }
-        return ((double)totAvgColWidth)/partStats.avgRowWidth();
+        return ((double)columnSize)/adjAvgRowWidth;
     }
 
     private int getColumnSize(PartitionStatistics pStats,int totalColumnCount,int columnId,int adjustedRowSize){
@@ -365,33 +365,24 @@ public class StatsStoreCostController extends GenericController implements Store
         return ((double)avgRowWidth)/totalColumnCount;
     }
 
-    private int getAdjustedRowKeySize(PartitionStatistics pStats,int[] keyMap){
-        int rowSizeAdjustment = 0;
-        if(keyMap!=null && keyMap.length>0){
-            /*
-             * We have a keyed table, so we'll need to get the length of the key from our stored
-             * statistics
-             */
-            for(int columnId:keyMap){
-                ColumnStatistics cStats = pStats.columnStatistics(columnId);
-                rowSizeAdjustment+=cStats.avgColumnWidth();
-            }
-        }else{
-            /*
-             * This table has no primary key, add in the length of the UUID.
-             *
-             * Most of the time, we will use Snowflake to generate row keys, so we'll use the
-             * size of a snowflake UUID, which is 8 bytes.
-             */
-            rowSizeAdjustment+=8;
-        }
-        /*
-         * Because row keys are stored for both the SI and data columns, we double the
-         * computed rowSizeAdjustment and add the base METADATA cost to it
-         */
-        int metadataSize = METADATA_ROW_SIZE_ADJUSTMENT+2*rowSizeAdjustment;
+    private int getAdjustedRowSize(PartitionStatistics pStats,int[] keyMap){
+        int rowKeyWidth=getRowKeyWidth(pStats,keyMap);
+        if(keyMap==null || keyMap.length<=0)
+            rowKeyWidth*=2; //the row key is not useful information, so remove it from adjustment
+        return pStats.avgRowWidth()-(rowKeyWidth+METADATA_ROW_SIZE_ADJUSTMENT);
+    }
 
-        return pStats.avgRowWidth()-metadataSize;
+    protected int getRowKeyWidth(PartitionStatistics pStats,int[] keyMap){
+        int rowKeyWidth = 0;
+        if(keyMap!=null && keyMap.length>0){
+            for(int columnId : keyMap){
+                ColumnStatistics cStats=pStats.columnStatistics(columnId);
+                rowKeyWidth+=cStats.avgColumnWidth();
+            }
+        }else
+            rowKeyWidth=8;
+
+        return rowKeyWidth;
     }
 
 

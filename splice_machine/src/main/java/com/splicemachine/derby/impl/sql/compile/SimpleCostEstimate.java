@@ -116,18 +116,13 @@ public class SimpleCostEstimate implements CostEstimate{
     public double compare(CostEstimate other){
         assert other!=null: "Cannot compare with a null CostEstimate";
 
-        if((this.localCost!=Double.POSITIVE_INFINITY) ||
-                (other.localCost() != Double.POSITIVE_INFINITY)){
-            return this.localCost - other.localCost();
+        double thisCost=this.getEstimatedCost();
+        double otherCost=other.getEstimatedCost();
+        if((thisCost!=Double.POSITIVE_INFINITY) || (otherCost!= Double.POSITIVE_INFINITY)){
+            return thisCost-otherCost;
         }
 
-        if((this.remoteCost!=Double.POSITIVE_INFINITY) ||
-                (other.remoteCost() != Double.POSITIVE_INFINITY)){
-            return this.remoteCost - other.remoteCost();
-        }
-
-        if((this.numRows !=Double.POSITIVE_INFINITY)||
-                (other.rowCount()!=Double.POSITIVE_INFINITY)){
+        if((this.numRows !=Double.POSITIVE_INFINITY)|| (other.rowCount()!=Double.POSITIVE_INFINITY)){
             return this.numRows-other.rowCount();
         }
 
