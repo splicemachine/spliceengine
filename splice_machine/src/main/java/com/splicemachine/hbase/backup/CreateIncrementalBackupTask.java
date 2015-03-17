@@ -146,16 +146,15 @@ public class CreateIncrementalBackupTask extends ZkTask {
             }
 
             count += copyArchivedHFiles();
-            if (count == 0) {
+            if (count == 0 && lastSnapshotName != null) {
+                // The directory becomes empty if there the table has no incremental changes, and the table is not
+                // a new empty table, and there were no region split for the table
                 fs.delete(new Path(backupFileSystem + "/" + encodedRegionName), true);
                 Path path = new Path(backupFileSystem);
                 FileStatus[] status = fs.listStatus(path);
                 if (status.length == 0) {
                     fs.delete(path, true);
                 }
-            }
-            else {
-                BackupUtils.writeParentRegionInfo(backupFileSystem, tableName, encodedRegionName);
             }
         }
         catch (Exception e) {

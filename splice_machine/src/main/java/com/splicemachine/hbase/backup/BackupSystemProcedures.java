@@ -35,12 +35,12 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.sql.*;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
 
-import org.apache.hadoop.hbase.TableName;
 /**
  * Created by jyuan on 2/12/15.
  */
@@ -137,7 +137,6 @@ public class BackupSystemProcedures {
             for(String snapshotName : snapshotNameSet) {
                 admin.deleteSnapshot(snapshotName);
             }
-            BackupUtils.deleteRegionSet();
             backup.markBackupSuccesful();
             backup.writeBackupStatusChange(count);
         } catch (Throwable e) {
@@ -173,12 +172,9 @@ public class BackupSystemProcedures {
             if ( (backupResponse = BackupUtils.isBackupRunning()) != null)
                 throw new SQLException(backupResponse); // TODO i18n
 
-            List<Long> parentBackupIds = BackupUtils.getParentBackupIds(backupId);
-            restoreDir = BackupUtils.getBackupDirectory(backupId);
-            Backup backup = Backup.readBackup(restoreDir, parentBackupIds, Backup.BackupScope.D);
-
+            Restore restore = Restore.createRestore(backupId);
             // enter restore mode
-            DDLChange change = new DDLChange(backup.getBackupTransaction(), DDLChangeType.ENTER_RESTORE_MODE);
+            DDLChange change = new DDLChange(restore.getRestoreTransaction(), DDLChangeType.ENTER_RESTORE_MODE);
             changeId = DDLCoordinationFactory.getController().notifyMetadataChange(change);
 
             // recreate tables
@@ -188,7 +184,7 @@ public class BackupSystemProcedures {
                 admin.deleteTable(table.getName());
             }
 
-            HashMap<String, BackupItem> backUpItems = backup.getBackupItems();
+            Map<String, BackupItem> backUpItems = restore.getBackupItems();
             for (String key : backUpItems.keySet()) {
                 BackupItem backupItem = backUpItems.get(key);
                 backupItem.recreateItem(admin);
@@ -197,13 +193,13 @@ public class BackupSystemProcedures {
             JobFuture future = null;
             JobInfo info = null;
             long start = System.currentTimeMillis();
-            int totalItems = backup.getBackupItems().size();
+            int totalItems = backUpItems.size();
             int completedItems = 0;
             // bulk import the regions
             for (String key : backUpItems.keySet()) {
                 BackupItem backupItem = backUpItems.get(key);
                 HTableInterface table = SpliceAccessManager.getHTable(backupItem.getBackupItemBytes());
-                RestoreBackupJob job = new RestoreBackupJob(backupItem,table,parentBackupIds);
+                RestoreBackupJob job = new RestoreBackupJob(backupItem, table);
                 future = SpliceDriver.driver().getJobScheduler().submit(job);
                 info = new JobInfo(job.getJobId(),future.getNumTasks(), start);
                 info.setJobFuture(future);
@@ -220,8 +216,9 @@ public class BackupSystemProcedures {
             }
 
             // purge transactions
-            PurgeTransactionsJob job = new PurgeTransactionsJob(backup.getBackupTransaction(),
-                    backup.getBackupTimestamp(),
+            Backup lastBackup = restore.getLastBackup();
+            PurgeTransactionsJob job = new PurgeTransactionsJob(restore.getRestoreTransaction(),
+                    lastBackup.getBackupTimestamp(),
                     SpliceAccessManager.getHTable(SpliceConstants.TRANSACTION_TABLE_BYTES) );
             future = SpliceDriver.driver().getJobScheduler().submit(job);
             info = new JobInfo(job.getJobId(),future.getNumTasks(), start);

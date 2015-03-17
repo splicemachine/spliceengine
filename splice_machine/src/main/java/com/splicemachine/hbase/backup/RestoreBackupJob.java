@@ -16,17 +16,15 @@ import java.util.Map;
 public class RestoreBackupJob implements CoprocessorJob {
 	    private final BackupItem backupItem;
 	    private final HTableInterface table;
-        private final List<Long> parentBackupIds;
 
-	    public RestoreBackupJob(BackupItem backupItem, HTableInterface table, List<Long> parentBackupIds) {
+	    public RestoreBackupJob(BackupItem backupItem, HTableInterface table) {
 	        this.table = table;
 	        this.backupItem = backupItem;
-            this.parentBackupIds = parentBackupIds;
 	    }
 
 	    @Override
 	    public Map<? extends RegionTask, Pair<byte[], byte[]>> getTasks() throws Exception {
-	    	RestoreBackupTask task = new RestoreBackupTask(backupItem,parentBackupIds,getJobId());
+	    	RestoreBackupTask task = new RestoreBackupTask(backupItem,getJobId());
 	        return Collections.singletonMap(task,Pair.newPair(HConstants.EMPTY_START_ROW,HConstants.EMPTY_END_ROW));
 	    }
 

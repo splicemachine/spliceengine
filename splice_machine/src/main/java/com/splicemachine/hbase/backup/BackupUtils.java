@@ -37,10 +37,6 @@ public class BackupUtils {
 
     public static final String QUERY_LAST_BACKUP = "select max(transaction_id) from %s.%s";
     public static final String BACKUP_FILESET_TABLE = "BACKUP_FILESET";
-    public static final String BACKUP_REGIONSET_TABLE = "BACKUP_REGIONSET";
-    public static final String INSERT_BACKUP_REGIONSET =
-            "insert into %s.%s(backup_item,region_name,parent_region_name) values (?,?,?)" ;
-
     public static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
 
     public static String isBackupRunning() throws SQLException {
@@ -108,72 +104,6 @@ public class BackupUtils {
             SpliceLogUtils.warn(LOG, "cannot query last backup");
         }
         return backupTransactionId;
-    }
-
-    public static void recordRegionSplit(ObserverContext<RegionCoprocessorEnvironment> e, HRegion l, HRegion r) throws SQLException{
-
-        HRegion parentRegion = e.getEnvironment().getRegion();
-        String tableName = parentRegion.getRegionInfo().getTable().getNameAsString();
-        String parentRegionName = parentRegion.getRegionInfo().getEncodedName();
-        String lRegionName = l.getRegionInfo().getEncodedName();
-        String rRegionName = r.getRegionInfo().getEncodedName();
-
-        recordRegion(tableName, lRegionName, parentRegionName);
-        recordRegion(tableName, rRegionName, parentRegionName);
-    }
-
-    public static void recordRegion(String backupItem, String regionName, String parentRegionName) throws SQLException{
-
-        Connection connection = SpliceDriver.driver().getInternalConnection();
-        PreparedStatement ps = connection.prepareStatement(
-                String.format(BackupUtils.INSERT_BACKUP_REGIONSET, Backup.DEFAULT_SCHEMA, BACKUP_REGIONSET_TABLE));
-        ps.setString(1, backupItem);
-        ps.setString(2, regionName);
-        ps.setString(3, parentRegionName);
-        ps.execute();
-    }
-
-    /* Write root parent region into backup file system */
-    public static void writeParentRegionInfo(String backupDir, String tableName, String encodedRegionName) throws ExecutionException{
-        try {
-            String parentRegion = null;
-            String p = getParentRegion(tableName, encodedRegionName);
-
-            while (p != null) {
-                parentRegion = p;
-                p = getParentRegion(tableName, p);
-            }
-
-            if (parentRegion != null) {
-                FileSystem fileSystem = FileSystem.get(URI.create(backupDir), SpliceConstants.config);
-                FSDataOutputStream out = fileSystem.create(
-                        new Path(backupDir + "/" + encodedRegionName + "/" + "/.parentRegion"));
-                out.writeUTF(parentRegion);
-                out.close();
-            }
-        }
-        catch (Exception e) {
-            throw new ExecutionException(e);
-        }
-    }
-
-    private static String getParentRegion(String tableName, String encodedRegionName) {
-        String parentRegionName = null;
-        Connection connection = null;
-        String sqlText = "select parent_region_name from %s.%s where region_name=?";
-        try {
-            connection = SpliceDriver.driver().getInternalConnection();
-            PreparedStatement ps = connection.prepareStatement(
-                    String.format(sqlText, Backup.DEFAULT_SCHEMA, BACKUP_REGIONSET_TABLE));
-            ps.setString(1, encodedRegionName);
-            ResultSet rs = ps.executeQuery();
-            if(rs.next()) {
-                parentRegionName = rs.getString(1);
-            }
-        } catch (Exception e) {
-            SpliceLogUtils.warn(LOG, "cannot query backup.backup_regionset");
-        }
-        return parentRegionName;
     }
 
     public static boolean existBackupWithStatus(String status) {
@@ -387,56 +317,6 @@ public class BackupUtils {
             SpliceLogUtils.warn(LOG, "getFileSet: cannot query backup.fileset");
         }
         return null;
-    }
-
-    // Get a list of parent backup ids
-    public static List<Long> getParentBackupIds(long backupId) throws SQLException, StandardException{
-        List<Long> parentBackupIdList = new ArrayList<>();
-        String sqltext = "select transaction_id, incremental_parent_backup_id from %s.%s where transaction_id<=? order by transaction_id desc";
-
-        Connection connection = null;
-        try {
-            connection = SpliceAdmin.getDefaultConn();
-            PreparedStatement preparedStatement = connection.prepareStatement(
-                    String.format(sqltext, Backup.DEFAULT_SCHEMA, Backup.DEFAULT_TABLE));
-            preparedStatement.setLong(1, backupId);
-            ResultSet rs = preparedStatement.executeQuery();
-
-            long prev = 0;
-            while (rs.next()) {
-                long id = rs.getLong(1);
-                long parentId = rs.getLong(2);
-                if (prev == 0) {
-                    if (id != backupId) {
-                        throw StandardException.newException("Backup " + backupId + " does not exist");
-                    }
-                    parentBackupIdList.add(id);
-                    prev = parentId;
-                }
-                else if (id == prev) {
-                    parentBackupIdList.add(id);
-                    prev = parentId;
-                    if (parentId == -1) break;
-                }
-            }
-        } finally {
-            if (connection != null)
-                connection.close();
-        }
-        return parentBackupIdList;
-    }
-
-    public static void deleteRegionSet() {
-        Connection connection = null;
-        String sqlText = "delete from %s.%s";
-        try {
-            connection = SpliceAdmin.getDefaultConn();
-            PreparedStatement ps = connection.prepareStatement(
-                    String.format(sqlText, BackupItem.DEFAULT_SCHEMA, BACKUP_REGIONSET_TABLE));
-            ps.execute();
-        } catch (Exception e) {
-            SpliceLogUtils.warn(LOG, "deleteRegionSet: cannot delete backup.backup_regionset");
-        }
     }
 
     public static class FileSet {

@@ -80,16 +80,12 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
     private volatile TabInfoImpl operationHistoryTable = null;
     private volatile TabInfoImpl backupTable = null;
     private volatile TabInfoImpl backupItemsTable = null;
-    private volatile TabInfoImpl backupRegionsTable = null;
     private volatile TabInfoImpl backupStatesTable = null;
     private volatile TabInfoImpl taskHistoryTable = null;
-    private volatile TabInfoImpl backupRegionSetTable = null;
     private Splice_DD_Version spliceSoftwareVersion;
     private HTableInterface spliceSequencesTable;
     private SchemaDescriptor backupSchemaDesc;
     private static final String BACKUP_SCHEMA_UUID =  "2d832584-cb7c-48cb-a8c6-6e1a397bb089";
-    public static final int BACKUPSCHEMAS_CATALOG_NUM = 23;
-
 
     public static final String SPLICE_DATA_DICTIONARY_VERSION = "SpliceDataDictionaryVersion";
 
@@ -294,14 +290,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
         return backupStatesTable;
     }
 
-    private TabInfoImpl getBackupRegionSetTable() throws StandardException {
-        if (backupRegionSetTable == null) {
-            backupRegionSetTable = new TabInfoImpl(new BACKUPREGIONSETRowFactory(uuidFactory,exFactory,dvf));
-        }
-        initSystemIndexVariables(backupRegionSetTable);
-        return backupRegionSetTable;
-    }
-
     private void addUserTableToDictionary(TabInfoImpl ti,
     SchemaDescriptor sd,
     TransactionController tc,
@@ -428,15 +416,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
             createUserTable(backupStatesTabInfo, backupSchemaDesc, tc);
         } else {
             if (LOG.isTraceEnabled()) LOG.trace(String.format("Skipping table creation since system table %s.%s already exists.", backupSchemaDesc.getSchemaName(), backupStatesTabInfo.getTableName()));
-        }
-
-        // Create BACKUPREGIONSET
-        TabInfoImpl backupRegionSetTabInfo = getBackupRegionSetTable();
-        if (getTableDescriptor(backupRegionSetTabInfo.getTableName(), backupSchemaDesc, tc) == null ) {
-            if (LOG.isTraceEnabled()) LOG.trace(String.format("Creating system table %s.%s", backupSchemaDesc.getSchemaName(), backupRegionSetTabInfo.getTableName()));
-            createUserTable(backupRegionSetTabInfo, backupSchemaDesc, tc);
-        } else {
-            if (LOG.isTraceEnabled()) LOG.trace(String.format("Skipping table creation since system table %s.%s already exists.", backupSchemaDesc.getSchemaName(), backupRegionSetTabInfo.getTableName()));
         }
     }
 

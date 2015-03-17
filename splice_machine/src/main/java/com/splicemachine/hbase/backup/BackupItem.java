@@ -62,7 +62,6 @@ public class BackupItem implements InternalTable {
 	private Timestamp backupItemBeginTimestamp;
 	private Timestamp backupItemEndTimestamp;
     private long lastBackupTimestamp;
-    private List<Long> backupIdList;
     private String snapshotName;
     private String lastSnapshotName;
 
@@ -115,14 +114,6 @@ public class BackupItem implements InternalTable {
 		return backup.getTableBackupFilesystemAsPath()+"/"+getBackupItem();
 	}
 
-    public String getRestoreItemFilesystem(List<Long> parentBackupIds) {
-        return backup.getTableRestoreFilesystemAsPath(parentBackupIds)+"/"+getBackupItem();
-    }
-
-	public void createBackupItemFilesystem() throws IOException {
-		FileSystem fileSystem = FileSystem.get(URI.create(getBackupItemFilesystem()),SpliceConstants.config);
-		fileSystem.mkdirs(new Path(getBackupItemFilesystem()));		
-	}
     public Txn getBackupTransaction(){
         return backup.getBackupTransaction();
     }
@@ -231,63 +222,51 @@ public class BackupItem implements InternalTable {
 		out.close();
 	}
 
-    public void readDescriptorFromFileSystem(List<Long> parentBackupIds) throws IOException {
+    public void readDescriptorFromFileSystem() throws IOException {
         FileSystem fs = FileSystem.get(URI.create(getBackupItemFilesystem()),SpliceConstants.config);
-        FSDataInputStream in = fs.open(new Path(getRestoreItemFilesystem(parentBackupIds) + "/.tableinfo"));
+        FSDataInputStream in = fs.open(new Path(getBackupItemFilesystem() + "/.tableinfo"));
         tableDescriptor = new HTableDescriptor();
         tableDescriptor.readFields(in);
         in.close();
-        readRegionsFromFileSystem(fs, parentBackupIds);
+        readRegionsFromFileSystem(fs);
     }
 
-    private void readRegionsFromFileSystem(FileSystem fs, List<Long> parentBackupIds) throws IOException {
-        FileStatus[] status = fs.listStatus(new Path(getRestoreItemFilesystem(parentBackupIds)));
+    private void readRegionsFromFileSystem(FileSystem fs) throws IOException {
+        FileStatus[] status = fs.listStatus(new Path(getBackupItemFilesystem()));
+        String parentRegionName = null;
+
         for (FileStatus stat : status) {
             if (!stat.isDir()) {
                 continue; // ignore non directories
             }
             HRegionInfo regionInfo = derbyFactory.loadRegionInfoFileContent(fs, stat.getPath());
-            addRegionInfo(new RegionInfo(regionInfo, getFamilyPaths(fs, regionInfo, backup.getBackupFilesystem())));
+            Path p = new Path(stat.getPath().toString() + "/.parentRegion");
+            if (fs.exists(p)) {
+                FSDataInputStream in = fs.open(p);
+                parentRegionName = in.readUTF();
+                in.close();
+            }
+            addRegionInfo(new RegionInfo(regionInfo, getFamilyPaths(fs, stat.getPath()), parentRegionName));
         };
     }
 
-    private String getBackupDirectory(int index, String backupFilesystem) {
-        String dir = backupFilesystem + "/BACKUP";
-        if (index < backupIdList.size() - 1) {
-            dir += "$" + backupIdList.get(index+1) + "_" + backupIdList.get(index);
-        }
-        else {
-            dir += "_" + backupIdList.get(index);
-        }
-
-        return dir;
-    }
-
-    private List<Pair<byte[],String>> getFamilyPaths(FileSystem fs, HRegionInfo regionInfo, String backupFilesystem) throws IOException {
+    private List<Pair<byte[],String>> getFamilyPaths(FileSystem fs, Path root) throws IOException {
         List<Pair<byte[], String>> famPaths = new ArrayList<Pair<byte[], String>>();
-        int index = 0;
-        for (int i = 0; i < backupIdList.size(); ++i) {
-            String dir = getBackupDirectory(i, backupFilesystem);
-            dir += "/tables/" + regionInfo.getTable().getNameAsString() + "/" + regionInfo.getEncodedName();
-            Path path = new Path(dir);
-            if (fs.exists(path)) {
-                FileStatus[] status = fs.listStatus(path);
-                for (FileStatus stat : status) {
-                    String name = stat.getPath().getName();
-                    // We only care about Splice families, "V" and "P"
-                    if (name.equals(SpliceConstants.DEFAULT_FAMILY_BYTES)
-                            || name.equals(SpliceConstants.SI_PERMISSION_FAMILY)) {
-                        // we have a family directory, the hfile is inside it
-                        byte[] family = Bytes.toBytes(stat.getPath().getName());
+        FileStatus[] status = fs.listStatus(root);
+        for (FileStatus stat : status) {
+            String name = stat.getPath().getName();
+            // We only care about Splice families, "V" and "P"
+            if (name.equals(Bytes.toString(SpliceConstants.DEFAULT_FAMILY_BYTES))
+                    || name.equals(SpliceConstants.SI_PERMISSION_FAMILY)) {
+                // we have a family directory, the hfile is inside it
+                byte[] family = Bytes.toBytes(stat.getPath().getName());
 
-                        FileStatus[] familyStatus = fs.listStatus(stat.getPath());
-                        for (FileStatus familyStat : familyStatus) {
-                            if (familyStat.getPath().getName().startsWith(".")) {
-                                continue; // ignore CRCs
-                            }
-                            famPaths.add(new Pair<byte[], String>(family, familyStat.getPath().toString()));
-                        }
+                FileStatus[] familyStatus = fs.listStatus(stat.getPath());
+                for (FileStatus familyStat : familyStatus) {
+                    if (familyStat.getPath().getName().startsWith(".")) {
+                        continue; // ignore CRCs
                     }
+                    famPaths.add(new Pair<byte[], String>(family, familyStat.getPath().toString()));
                 }
             }
         }
@@ -320,29 +299,17 @@ public class BackupItem implements InternalTable {
         }
     }
 
-    public long getLastBackupTimestamp() {
-        return lastBackupTimestamp;
-    }
-
-    public void setBackupIdList(List<Long> backupIdList) {
-        this.backupIdList = backupIdList;
-    }
-
-    public List<Long> getBackupIdList() {
-        return backupIdList;
-    }
-
     public boolean doBackup() throws StandardException {
         JobInfo info = null;
         boolean backedUp = false;
         try {
             setBackupItemBeginTimestamp(new Timestamp(System.currentTimeMillis()));
             insertBackupItem();
-            //createBackupItemFilesystem();
-            //writeDescriptorToFileSystem();
             HTableInterface table = SpliceAccessManager.getHTable(getBackupItemBytes());
             if (backup.getIncrementalParentBackupID() > 0) {
-                CreateIncrementalBackupJob job = new CreateIncrementalBackupJob(this, table, getBackupItemFilesystem(), snapshotName, lastSnapshotName);
+                CreateIncrementalBackupJob job =
+                        new CreateIncrementalBackupJob(this, table, getBackupItemFilesystem(),
+                                snapshotName, lastSnapshotName);
                 JobFuture future = SpliceDriver.driver().getJobScheduler().submit(job);
                 info = new JobInfo(job.getJobId(), future.getNumTasks(), System.currentTimeMillis());
                 info.setJobFuture(future);
@@ -366,8 +333,6 @@ public class BackupItem implements InternalTable {
                 deleteBackupItem();
                 backedUp = false;
             }
-            //writeRegionSplitInfo();
-
         } catch (CancellationException ce) {
             throw Exceptions.parseException(ce);
         } catch (Exception e) {
@@ -399,7 +364,7 @@ public class BackupItem implements InternalTable {
         public RegionInfo() {
         }
 
-        public RegionInfo(HRegionInfo hRegionInfo, List<Pair<byte[], String>> famPaths) {
+        public RegionInfo(HRegionInfo hRegionInfo, List<Pair<byte[], String>> famPaths, String parentRegionName) {
             this.hRegionInfo = hRegionInfo;
             this.famPaths = famPaths;
         }
