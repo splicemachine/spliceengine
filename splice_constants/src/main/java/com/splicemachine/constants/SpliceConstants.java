@@ -4,12 +4,15 @@ import com.google.common.collect.Lists;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.log4j.Logger;
 
+import java.io.IOException;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.util.List;
@@ -992,6 +995,7 @@ public class SpliceConstants {
 		 */
 		public static long cacheUpdatePeriod;
 
+		public static Path HBASE_ROOT_DIR ;
 
 		// Splice Internal Tables
 		public static final String TEMP_TABLE = "SPLICE_TEMP";
@@ -1004,7 +1008,6 @@ public class SpliceConstants {
 		public static final String SYSSCHEMAS_CACHE = "SYSSCHEMAS_CACHE";
 		public static final String SYSSCHEMAS_INDEX1_ID_CACHE = "SYSSCHEMAS_INDEX1_ID_CACHE";
 		public static final String[] SYSSCHEMAS_CACHES = {SYSSCHEMAS_CACHE,SYSSCHEMAS_INDEX1_ID_CACHE};
-
 		public static byte[] TEMP_TABLE_BYTES = Bytes.toBytes(TEMP_TABLE);
 		public static final byte[] TRANSACTION_TABLE_BYTES = Bytes.toBytes(TRANSACTION_TABLE);
 		public static final byte[] TENTATIVE_TABLE_BYTES = Bytes.toBytes(TENTATIVE_TABLE);
@@ -1131,6 +1134,7 @@ public class SpliceConstants {
 				maxConcurrentWrites = config.getInt(MAX_CONCURRENT_WRITES, DEFAULT_MAX_CONCURRENT_WRITES);
 				maxBufferEntries = config.getInt(BUFFER_ENTRIES, DEFAULT_MAX_BUFFER_ENTRIES);
 				maxThreads = config.getInt(WRITE_THREADS_MAX,DEFAULT_WRITE_THREADS_MAX);
+				try { HBASE_ROOT_DIR = FSUtils.getRootDir(config); } catch (IOException e) {}
 				remoteRead = config.getDouble(OPTIMIZER_REMOTE_READ, DEFAULT_OPTIMIZER_REMOTE_READ);
 				maxTreeThreads = config.getInt(MAX_CONCURRENT_OPERATIONS,DEFAULT_MAX_CONCURRENT_OPERATIONS);
 				siDelayRollForwardMaxSize = config.getInt(SI_DELAY_ROLL_FORWARD_MAX_SIZE, DEFAULT_SI_DELAY_ROLL_FORWARD_MAX_SIZE);
