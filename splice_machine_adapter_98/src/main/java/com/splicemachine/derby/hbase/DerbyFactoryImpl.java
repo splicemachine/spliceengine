@@ -25,9 +25,9 @@ import com.splicemachine.hbase.table.BoundCall;
 import com.splicemachine.hbase.table.SpliceRpcController;
 import com.splicemachine.mrio.api.core.MemStoreFlushAwareScanner;
 import com.splicemachine.mrio.api.core.MemstoreAware;
+import com.splicemachine.mrio.api.core.SMSplit;
 import com.splicemachine.mrio.api.core.SpliceRegionScanner;
 import com.splicemachine.mrio.api.core.SplitRegionScanner;
-import com.splicemachine.mrio.api.serde.SpliceSplit;
 import com.splicemachine.pipeline.api.BulkWritesInvoker.Factory;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.pipeline.impl.BulkWritesRPCInvoker;
@@ -592,10 +592,10 @@ public class DerbyFactoryImpl implements DerbyFactory<TxnMessage.TxnInfo> {
                                         byte[] first = startKey;
                                         for (ByteString cutpoint : response.getCutPointList()) {
                                             byte[] end = cutpoint.toByteArray();
-                                            result.add(new SpliceSplit(new TableSplit(tableSplit.getTable(), first, end, tableSplit.getRegionLocation())));
+                                            result.add(new SMSplit(new TableSplit(tableSplit.getTable(), first, end, tableSplit.getRegionLocation())));
                                             first = end;
                                         }
-                                        result.add(new SpliceSplit(new TableSplit(tableSplit.getTable(), first, stopKey, tableSplit.getRegionLocation())));
+                                        result.add(new SMSplit(new TableSplit(tableSplit.getTable(), first, stopKey, tableSplit.getRegionLocation())));
                                         return result;
                                     }
                                 });
