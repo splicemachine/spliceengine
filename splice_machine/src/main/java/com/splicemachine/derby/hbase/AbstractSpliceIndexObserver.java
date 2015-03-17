@@ -223,9 +223,6 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
 
             updateFileSet(tableName, encodedRegionName, pathSet, lStoreFileInfoMap, l);
             updateFileSet(tableName, encodedRegionName, pathSet, rStoreFileInfoMap, r);
-            //BackupUtils.deleteFileSetForRegion(tableName, encodedRegionName);
-            BackupUtils.recordRegionSplit(e, l, r);
-
         }catch (Exception ex) {
             SpliceLogUtils.warn(LOG, "Error in recordRegionSplitForBackup");
         }
