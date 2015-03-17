@@ -13,11 +13,10 @@ import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.metrics.IOStats;
-import com.splicemachine.mrio.api.serde.SpliceSplit;
+import com.splicemachine.mrio.api.core.SMSplit;
 import com.splicemachine.derby.utils.StandardIterators;
 import com.splicemachine.derby.utils.StandardPushBackIterator;
 import com.splicemachine.derby.utils.StandardSupplier;
-import com.splicemachine.mrio.api.serde.SpliceSplit;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -259,8 +258,8 @@ public class MergeJoinOperation extends JoinOperation {
             assert p instanceof NewHadoopPartition;
             NewHadoopPartition nhp = (NewHadoopPartition) p;
             InputSplit is = nhp.serializableHadoopSplit().value();
-            assert is instanceof SpliceSplit;
-            SpliceSplit ss = (SpliceSplit) is;
+            assert is instanceof SMSplit;
+            SMSplit ss = (SMSplit) is;
             splits.add(ss.getSplit().getEndRow());
         }
         Collections.sort(splits, BytesUtil.endComparator);
