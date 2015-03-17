@@ -11,9 +11,9 @@ import org.apache.hadoop.mapred.InputSplit;
 import org.apache.hadoop.mapred.JobConf;
 import org.apache.hadoop.mapred.RecordReader;
 import org.apache.hadoop.mapred.Reporter;
+import com.splicemachine.mrio.api.core.SMSplit;
 import com.splicemachine.mrio.api.serde.ExecRowWritable;
 import com.splicemachine.mrio.api.serde.RowLocationWritable;
-import com.splicemachine.mrio.api.serde.SpliceSplit;
 /**
  * MR2 Input Format wrapping underling core SpliceInputFormat class.
  * 
@@ -41,7 +41,7 @@ public class SMHiveInputFormat implements InputFormat<RowLocationWritable, ExecR
 			List<org.apache.hadoop.mapreduce.InputSplit> splits = inputFormat.getSplits(new SMHIveContextWrapper(job));
 			InputSplit[] returnSplits = new InputSplit[splits.size()];
 			for (int i = 0; i< splits.size(); i++ ) {
-				returnSplits[i] = new SpliceSplit((TableSplit)splits.get(i), new Path("dummy"));
+				returnSplits[i] = new SMHiveSplit((SMSplit)splits.get(i), new Path("dummy"));
 			}
 			return returnSplits;
 		} catch (InterruptedException e) {
@@ -54,7 +54,7 @@ public class SMHiveInputFormat implements InputFormat<RowLocationWritable, ExecR
 			InputSplit split, JobConf job, Reporter reporter)
 			throws IOException {
 		try {
-			return new SMHiveRecordReader(inputFormat.getRecordReader(((SpliceSplit)split).getSplit(), job));
+			return new SMHiveRecordReader(inputFormat.getRecordReader( ((SMHiveSplit)split).getSMSplit(), job));
 		} catch (InterruptedException e) {
 			throw new IOException(e);
 		}

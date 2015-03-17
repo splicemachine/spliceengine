@@ -21,7 +21,6 @@ import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.hbase.SimpleMeasuredRegionScanner;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.mrio.MRConstants;
-import com.splicemachine.mrio.api.serde.SpliceSplit;
 import com.splicemachine.si.impl.HTransactorFactory;
 import com.splicemachine.si.impl.TransactionStorage;
 import com.splicemachine.si.impl.TxnDataStore;
@@ -66,7 +65,7 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 			builder = TableScannerBuilder.getTableScannerBuilderFromBase64String(tableScannerAsString);
 			if (LOG.isTraceEnabled())
 				SpliceLogUtils.trace(LOG, "config loaded builder=%s",builder);
-			TableSplit tSplit = ((SpliceSplit)split).getSplit();
+			TableSplit tSplit = ((SMSplit)split).getSplit();
 			Scan scan = builder.getScan();
 			scan.setStartRow(tSplit.getStartRow());
 			scan.setStopRow(tSplit.getEndRow());
@@ -112,6 +111,7 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 
 	@Override
 	public void close() throws IOException {
+		System.out.println("close");
 		if (LOG.isDebugEnabled())
 			SpliceLogUtils.debug(LOG, "close");
 		try {
@@ -153,6 +153,18 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 	}
 	
 	public int[] getExecRowTypeFormatIds() {
+		if (builder == null) {
+			String tableScannerAsString = config.get(MRConstants.SPLICE_SCAN_INFO);
+			if (tableScannerAsString == null)
+				throw new RuntimeException("splice scan info was not serialized to task, failing");
+			try {
+				builder = TableScannerBuilder.getTableScannerBuilderFromBase64String(tableScannerAsString);
+			} catch (IOException | StandardException  e) {
+				throw new RuntimeException(e);
+			}
+			if (LOG.isTraceEnabled())
+				SpliceLogUtils.trace(LOG, "config loaded builder=%s",builder);
+		}
 		return builder.getExecRowTypeFormatIds();
 	}
 	
