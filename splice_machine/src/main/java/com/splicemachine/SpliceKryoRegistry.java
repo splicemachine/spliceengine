@@ -52,6 +52,7 @@ import com.splicemachine.derby.ddl.*;
 import com.splicemachine.derby.hbase.ActivationSerializer;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.impl.job.altertable.AddColumnTask;
 import com.splicemachine.derby.impl.job.altertable.DropColumnTask;
 import com.splicemachine.derby.impl.job.altertable.LoadConglomerateTask;
 import com.splicemachine.derby.impl.job.coprocessor.SizedInterval;
@@ -845,5 +846,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(Pair.class, 228);
         instance.register(CreateFkTask.class, EXTERNALIZABLE_SERIALIZER,229);
         instance.register(CreateIncrementalBackupTask.class, EXTERNALIZABLE_SERIALIZER,230);
+        instance.register(AddColumnTask.class, EXTERNALIZABLE_SERIALIZER,231);
+        instance.register(TentativeDropColumnDesc.class,EXTERNALIZABLE_SERIALIZER,232);
     }
 }
