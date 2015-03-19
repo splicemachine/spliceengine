@@ -7,10 +7,8 @@ import com.splicemachine.db.iapi.types.RowLocation;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.io.compress.Compression;
 import org.apache.hadoop.hbase.mapreduce.TableSplit;
 import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.io.compress.Compressor;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.hadoop.mapreduce.RecordReader;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
@@ -54,21 +52,10 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 			throws IOException, InterruptedException {	
 		if (LOG.isDebugEnabled())
 			SpliceLogUtils.debug(LOG, "initialize with split=%s", split);
-        try {
-            init(config == null ? context.getConfiguration() : config, split);
-        } catch (IOException ioe) {
-            checkCompression();
-            throw ioe;
-        }
+		init(config==null?context.getConfiguration():config,split);
 	}
-
-    private void checkCompression() {
-        Compression.Algorithm algo = Compression.Algorithm.valueOf("SNAPPY");
-        Compressor compressor = algo.getCompressor();
-        algo.returnCompressor(compressor);
-    }
-
-    public void init(Configuration config, InputSplit split) throws IOException, InterruptedException {	
+	
+	public void init(Configuration config, InputSplit split) throws IOException, InterruptedException {	
 		if (LOG.isDebugEnabled())
 			SpliceLogUtils.debug(LOG, "init");
 		String tableScannerAsString = config.get(MRConstants.SPLICE_SCAN_INFO);
