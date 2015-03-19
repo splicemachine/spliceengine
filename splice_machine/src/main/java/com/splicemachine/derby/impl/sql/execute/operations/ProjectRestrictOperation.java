@@ -450,7 +450,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
             if (op.projection != null) {
                 result = (ExecRow) op.projection.invoke();
             } else {
-                result = op.mappedResultRow.getClone();
+                result = op.mappedResultRow;
             }
             // Copy any mapped columns from the source
             for (int index = 0; index < op.projectMapping.length; index++) {
