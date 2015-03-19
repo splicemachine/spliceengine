@@ -128,16 +128,11 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                                 .build();
                         procedures.add(getAutoIncLocs);
                     }else if(XPLAIN_SCHEMA_NAME.equalsIgnoreCase(sysProc.getName())){
-                        /*Procedure newXplain = Procedure.newBuilder().name("SYSCS_SET_XPLAIN_SCHEMA")
-                                .numOutputParams(0).numResultSets(0)
-                                .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
-                                .ownerClass(SpliceXplainUtils.class.getCanonicalName())
-                                .catalog("schemaName")
-                                .build();
-                        procedures.set(i,newXplain);*/
+                        //Remove set_xplain_schema procedure
                     } else if(RESTORE_DATABASE_NAME.equals(sysProc.getName())) {
                         Procedure restore = Procedure.newBuilder().name(RESTORE_DATABASE_NAME)
                                 .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                                .varchar("directory", 32672)
                                 .bigint("backupId")
                                 .build();
                         procedures.set(i, restore);

@@ -57,6 +57,7 @@ import org.apache.hadoop.hbase.master.MasterServices;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.Store.*;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
@@ -566,4 +567,10 @@ public class DerbyFactoryImpl implements DerbyFactory<SparseTxn> {
         throw new UnsupportedOperationException();
     }
 
+    @Override
+    public Path getTableDir(HRegion region) throws IOException {
+        Path rootDir = FSUtils.getRootDir(SpliceConstants.config);
+        Path tableDir = HTableDescriptor.getTableDir(rootDir, region.getTableDesc().getName());
+        return tableDir;
+    }
 }

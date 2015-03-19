@@ -5,7 +5,6 @@ import com.splicemachine.async.Bytes;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.temp.TempTable;
-import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.backup.Backup;
 import com.splicemachine.hbase.backup.SnapshotUtils;
@@ -46,7 +45,6 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
-import java.sql.ResultSet;
 
 /**
  * Region Observer for managing indices.
@@ -159,13 +157,13 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
     /*private helper methods*/
 
     private void updateFileSet(String tableName, String parentRegionName, Set<String> pathSet,
-                               HashMap<String, Collection<StoreFileInfo>> storeFileInfoMap, HRegion r) {
+                               HashMap<byte[], Collection<StoreFile>> storeFileInfoMap, HRegion r) {
         if (LOG.isTraceEnabled()) {
             SpliceLogUtils.info(LOG, "updateFileSet: region = " + r.getRegionInfo().getEncodedName());
         }
         String childRegionName = r.getRegionInfo().getEncodedName();
-        for(Collection<StoreFileInfo> storeFiles : storeFileInfoMap.values()) {
-            for (StoreFileInfo storeFile : storeFiles) {
+        for(Collection<StoreFile> storeFiles : storeFileInfoMap.values()) {
+            for (StoreFile storeFile : storeFiles) {
                 String referenceFileName = storeFile.getPath().getName();
                 String[] s = referenceFileName.split("\\.");
                 if (LOG.isTraceEnabled()) {
@@ -218,8 +216,8 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
                 pathSet.add(name);
             }
 
-            HashMap<String, Collection<StoreFileInfo>> lStoreFileInfoMap = BackupUtils.getStoreFileInfo(l);
-            HashMap<String, Collection<StoreFileInfo>> rStoreFileInfoMap = BackupUtils.getStoreFileInfo(r);
+            HashMap<byte[], Collection<StoreFile>> lStoreFileInfoMap = BackupUtils.getStoreFiles(l);
+            HashMap<byte[], Collection<StoreFile>> rStoreFileInfoMap = BackupUtils.getStoreFiles(r);
 
             updateFileSet(tableName, encodedRegionName, pathSet, lStoreFileInfoMap, l);
             updateFileSet(tableName, encodedRegionName, pathSet, rStoreFileInfoMap, r);
