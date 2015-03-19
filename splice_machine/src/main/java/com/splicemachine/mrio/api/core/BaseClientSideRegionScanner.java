@@ -98,8 +98,6 @@ public abstract class BaseClientSideRegionScanner<T> implements RegionScanner {
 	}
 	
 	public boolean nextInternalRaw(List<T> result) throws IOException {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "nextRaw");
 		boolean res = dataLib.regionScannerNextRaw(scanner, result);
 		if (matchingFamily(result,MRConstants.HOLD)) {
 			result.clear();
@@ -109,13 +107,8 @@ public abstract class BaseClientSideRegionScanner<T> implements RegionScanner {
 	}
 
 	private boolean updateTopCell(boolean response, List<T> results) throws IOException {
-		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "updateTopCell from results%s",results);
 		if (!results.isEmpty() &&
-				(dataLib.singleMatchingFamily(results.get(0), MRConstants.FLUSH))
-				) {
-			if (LOG.isTraceEnabled())
-				SpliceLogUtils.trace(LOG, "flush handling inititated");
+				(dataLib.singleMatchingFamily(results.get(0), MRConstants.FLUSH))) {
 			flushed = true;
 			updateScanner();
 			results.clear();

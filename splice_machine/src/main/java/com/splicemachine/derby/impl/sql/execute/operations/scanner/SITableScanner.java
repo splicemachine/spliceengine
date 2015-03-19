@@ -1,8 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations.scanner;
 
-import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.DataValueFactoryImpl;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
@@ -147,8 +145,6 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>{
 
 		@Override
 		public ExecRow next(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-				if (LOG.isTraceEnabled())
-					SpliceLogUtils.trace(LOG, "next");
 				SIFilter filter = getSIFilter();
 				if(keyValues==null)
 						keyValues = Lists.newArrayListWithExpectedSize(2);
@@ -157,8 +153,6 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>{
 						keyValues.clear();
 						template.resetRowArray(); //necessary to deal with null entries--maybe make the underlying call faster?
 						hasRow = dataLib.regionScannerNext(regionScanner, keyValues);
-						if (LOG.isTraceEnabled())
-							SpliceLogUtils.trace(LOG, "next with keyValues=%s",keyValues);
 						if(keyValues.size()<=0){
 								currentRowLocation = null;
 								return null;
@@ -184,7 +178,6 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>{
 								return template;
 						}
 				}while(hasRow);
-
 				currentRowLocation = null;
 				return null;
 		}
@@ -326,15 +319,11 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>{
 		}
 
 		private boolean filterRow(SIFilter filter) throws IOException {
-			if (LOG.isTraceEnabled())
-				SpliceLogUtils.trace(LOG, "filterRow filter=%s",filter);
 				filter.nextRow();
 				Iterator<Data> kvIter = keyValues.iterator();
 				while(kvIter.hasNext()){
 						Data kv = kvIter.next();
 						Filter.ReturnCode returnCode = filter.filterKeyValue(kv);
-						if (LOG.isTraceEnabled())
-							SpliceLogUtils.trace(LOG, "filterKeyValue returnCode=%s",returnCode);
 						switch(returnCode){
 								case NEXT_COL:
 								case NEXT_ROW:
@@ -350,19 +339,13 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>{
 		}
 
 		private boolean filterRowKey(Data data) throws IOException {
-			if (LOG.isTraceEnabled())
-				SpliceLogUtils.trace(LOG, "filterRowKey data=%s",data);
 				if(!isKeyed) return true;
-				if (LOG.isTraceEnabled())
-					SpliceLogUtils.trace(LOG, "filterRowKey decoding key");
 				keyDecoder.set(dataLib.getDataRowBuffer(data), dataLib.getDataRowOffset(data), dataLib.getDataRowlength(data));
 				if(keyAccumulator==null)
 						keyAccumulator = ExecRowAccumulator.newAccumulator(predicateFilter,false,template,
 																keyDecodingMap, keyColumnSortOrder, accessedKeys, tableVersion);
-
 				keyAccumulator.reset();
 				primaryKeyIndex.reset();
-
 				return predicateFilter.match(primaryKeyIndex, keyDecoderProvider, keyAccumulator);
 		}
 
