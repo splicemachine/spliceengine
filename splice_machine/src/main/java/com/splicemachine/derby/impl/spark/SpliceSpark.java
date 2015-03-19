@@ -100,6 +100,7 @@ public class SpliceSpark {
         String extraOpts = System.getProperty("splice.spark.extra", "");
         String extraLibraryPath = System.getProperty("splice.spark.extraLibraryPath", "");
         String extraClassPath = System.getProperty("splice.spark.extraClassPath", "");
+        String shuffleMemory = System.getProperty("splice.spark.shuffleMemory", "0.5");
 
         LOG.warn("Initializing Spark with:\n master " + master + "\n home " + home + "\n jars " + jars + "\n environment " + environment);
         Map<String, String> properties = Splitter.on(';').omitEmptyStrings().withKeyValueSeparator(Splitter.on('=')).split(environment);
@@ -121,7 +122,7 @@ public class SpliceSpark {
         conf.set("spark.executor.extraClassPath", extraClassPath);
         conf.set("spark.kryo.referenceTracking", "false");
         conf.set("spark.storage.memoryFraction", "0.1"); // no caching at the moment
-        conf.set("spark.shuffle.memoryFraction", "0.7");
+        conf.set("spark.shuffle.memoryFraction", shuffleMemory);
         conf.set("spark.locality.wait", "60000"); // wait up to 60 seconds for a local execution
         conf.set("spark.logConf", "true");
         // conf.set("spark.kryo.registrationRequired", "true");
