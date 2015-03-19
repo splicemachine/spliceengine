@@ -7,6 +7,7 @@ import java.util.concurrent.ExecutionException;
 
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.ipc.CallerDisconnectedException;
+import org.apache.hadoop.hbase.ipc.HBaseClient;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -34,6 +35,12 @@ public class DefaultWriteConfigurationTest {
 		DefaultWriteConfiguration configuration = new DefaultWriteConfiguration(null);
 		Assert.assertEquals(WriteResponse.THROW_ERROR, configuration.globalError(new DoNotRetryIOException("Some I/O exception occurred")));
 	}
+
+    @Test
+    public void testHBaseClientFailedServerException() throws ExecutionException {
+            DefaultWriteConfiguration configuration = new DefaultWriteConfiguration(null);
+            Assert.assertEquals(WriteResponse.THROW_ERROR, configuration.globalError(new HBaseClient.FailedServerException("A server has failed")));
+    }
 
 	@Test
 	public void testNotServingRegionException() throws ExecutionException {
