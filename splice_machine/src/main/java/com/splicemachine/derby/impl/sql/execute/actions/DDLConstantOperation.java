@@ -2,8 +2,11 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
+import com.splicemachine.pipeline.exception.ErrorState;
+import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.StreamException;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -29,6 +32,8 @@ import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
+
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.util.*;
@@ -859,6 +864,57 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
 	 */
     protected List<String> getBlockedTables() {
         return Collections.emptyList();
+    }
+
+    /**
+     * Get a txn chained to the paren txn for a DDL operation, waiting if need be.
+     *
+     * @param parentTransaction txn to chain to
+     * @param tentativeTransaction the tentative user txn to chain to the parent
+     * @param tableConglomId the table on which to enforce the txn
+     * @return the chained txn
+     * @throws StandardException
+     */
+    public Txn getChainedTransaction(TxnView parentTransaction,
+                                     Txn tentativeTransaction,
+                                     long tableConglomId) throws StandardException {
+        Txn waitTxn;
+        try {
+            waitTxn = TransactionLifecycle.getLifecycleManager().chainTransaction(
+                parentTransaction,
+                Txn.IsolationLevel.SNAPSHOT_ISOLATION,
+                false, Bytes.toBytes(Long.toString(tableConglomId)),tentativeTransaction);
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
+
+        // Wait for past transactions to die
+        TxnView uTxn = parentTransaction;
+        TxnView n = parentTransaction.getParentTxnView();
+        while(n.getTxnId()>=0){
+            uTxn = n;
+            n = n.getParentTxnView();
+        }
+        long activeTxnId;
+        try {
+            activeTxnId = waitForConcurrentTransactions(waitTxn, uTxn,tableConglomId);
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
+        if (activeTxnId>=0) {
+            throw ErrorState.DDL_ACTIVE_TRANSACTIONS.newException("DropColumn",activeTxnId);
+        }
+        Txn chainedTransaction;
+        try {
+            chainedTransaction = TransactionLifecycle.getLifecycleManager().chainTransaction(
+                parentTransaction,
+                Txn.IsolationLevel.SNAPSHOT_ISOLATION,
+                false, Bytes.toBytes(Long.toString(tableConglomId)),waitTxn);
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
+
+        return chainedTransaction;
     }
 
     /**

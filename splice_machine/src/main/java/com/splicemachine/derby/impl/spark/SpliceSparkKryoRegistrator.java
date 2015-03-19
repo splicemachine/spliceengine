@@ -10,11 +10,13 @@ import com.esotericsoftware.kryo.serializers.FieldSerializer;
 import com.esotericsoftware.kryo.serializers.MapSerializer;
 
 import com.splicemachine.derby.ddl.DDLChangeType;
+import com.splicemachine.derby.ddl.TentativeAddColumnDesc;
 import com.splicemachine.derby.ddl.TentativeDropColumnDesc;
 import com.splicemachine.derby.ddl.TentativeIndexDesc;
 import com.splicemachine.derby.hbase.ActivationSerializer;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.impl.job.altertable.AddColumnTask;
 import com.splicemachine.derby.impl.job.altertable.DropColumnTask;
 import com.splicemachine.derby.impl.job.altertable.LoadConglomerateTask;
 import com.splicemachine.derby.impl.job.ZkTask;
@@ -530,6 +532,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator {
 				instance.register(FileImportReader.class,EXTERNALIZABLE_SERIALIZER);
 				instance.register(TentativeIndexDesc.class,new FieldSerializer(instance,TentativeIndexDesc.class));
 				instance.register(TentativeDropColumnDesc.class,new FieldSerializer(instance,TentativeDropColumnDesc.class));
+				instance.register(TentativeAddColumnDesc.class,new FieldSerializer(instance,TentativeAddColumnDesc.class));
 				instance.register(BitSet.class,new Serializer<BitSet>() {
 						@Override
 						public void write(Kryo kryo, Output output, BitSet object) {
@@ -552,6 +555,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator {
 				});
 				instance.register(DDLChangeType.class,new DefaultSerializers.EnumSerializer(DDLChangeType.class));
 				instance.register(DropColumnTask.class,EXTERNALIZABLE_SERIALIZER);
+				instance.register(AddColumnTask.class,EXTERNALIZABLE_SERIALIZER);
 				instance.register(ColumnInfo.class,EXTERNALIZABLE_SERIALIZER);
 				instance.register(ColumnInfo[].class);
 				instance.register(LoadConglomerateTask.class,EXTERNALIZABLE_SERIALIZER);

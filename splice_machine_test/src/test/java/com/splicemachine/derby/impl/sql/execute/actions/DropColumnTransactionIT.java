@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.test.SerialTest;
 
@@ -27,6 +28,7 @@ public class DropColumnTransactionIT {
     public static final SpliceTableWatcher commitTable = new SpliceTableWatcher("B",schemaWatcher.schemaName,"(a int, b int)");
     public static final SpliceTableWatcher beforeTable = new SpliceTableWatcher("C",schemaWatcher.schemaName,"(a int, b int)");
     public static final SpliceTableWatcher afterTable = new SpliceTableWatcher("D",schemaWatcher.schemaName,"(a int, b int)");
+    public static final SpliceTableWatcher afterTable2 = new SpliceTableWatcher("E",schemaWatcher.schemaName,"(a int, b int, c int)");
 
     public static final SpliceWatcher classWatcher = new SpliceWatcher();
 
@@ -38,6 +40,7 @@ public class DropColumnTransactionIT {
             .around(commitTable)
             .around(beforeTable)
             .around(afterTable)
+            .around(afterTable2)
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
@@ -97,7 +100,7 @@ public class DropColumnTransactionIT {
 
     @Test
     public void testDropColumnWorksWithOneConnection() throws Exception {
-        conn1.createStatement().execute("alter table "+commitTable+" drop column b");
+        conn1.createStatement().execute("alter table " + commitTable + " drop column b");
         conn1.commit();
 
         ResultSet rs = conn1.query("select * from "+ commitTable);
@@ -113,7 +116,7 @@ public class DropColumnTransactionIT {
 
     @Test
     public void testDropColumnWorksWithinSingleTransaction() throws Exception {
-        conn1.createStatement().execute("alter table "+ table+" drop column b");
+        conn1.createStatement().execute("alter table " + table + " drop column b");
 
         ResultSet rs = conn1.query("select * from "+ table);
         Assert.assertEquals("Metadata returning incorrect column count!", 1, rs.getMetaData().getColumnCount());
@@ -175,10 +178,58 @@ public class DropColumnTransactionIT {
         b.createStatement().execute("insert into "+ afterTable+" (a,b) values ("+aInt+","+bInt+")");
         b.commit();
 
-        a.createStatement().execute("alter table "+afterTable+" drop column b");
+        a.createStatement().execute("alter table " + afterTable + " drop column b");
         a.commit();
 
         long count = conn1.count("select * from "+ afterTable+ " where a="+aInt);
+        Assert.assertEquals("Data was not picked up!",1,count);
+    }
+
+    @Test
+    public void testDropColumnAfterInsertion2Works() throws Exception {
+         /*
+         * This is a test to ensure that the following sequence holds:
+         *
+         * 0. let transaction A be the transaction with the lowest begin timestamp, and B be the other transaction
+         * 1. (with txn B) insert into <table> (a,b) values (..); commit;
+         * 2. (with txn A) alter table <table> drop column b; commit;
+         * 3. (with new txn) select * from <table>
+         * 4. Ensure that there are no nulls
+         */
+        TestConnection a;
+        TestConnection b;
+        if(conn1Txn>conn2Txn){
+            a = conn2;
+            b = conn1;
+        }else{
+            a = conn1;
+            b = conn2;
+        }
+
+        int aInt = 1;
+        int bInt = 2;
+        int cInt = 3;
+        b.createStatement().execute("insert into "+ afterTable2+" (a,b,c) values ("+aInt+","+bInt+","+cInt+")");
+        b.commit();
+        b.createStatement().execute("alter table "+ afterTable2+" add column d double not null default 2.0");
+        b.commit();
+        b.createStatement().execute("alter table "+ afterTable2+" add column e double not null default 3.0");
+        b.commit();
+
+        TestConnection conn3 = classWatcher.createConnection();
+        String query = "select * from "+ afterTable2;
+        ResultSet rs = conn3.createStatement().executeQuery(query);
+        conn3.commit();
+        TestUtils.printResult(query, rs, System.out);
+
+        a.createStatement().execute("alter table "+afterTable2+" drop column b");
+        a.commit();
+
+        rs = conn3.createStatement().executeQuery(query);
+        conn3.commit();
+        TestUtils.printResult(query, rs, System.out);
+
+        long count = conn3.count("select * from "+ afterTable2+ " where a="+aInt);
         Assert.assertEquals("Data was not picked up!",1,count);
     }
 
