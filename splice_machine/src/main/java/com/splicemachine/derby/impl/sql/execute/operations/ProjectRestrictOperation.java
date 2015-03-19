@@ -275,6 +275,9 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 														SpliceLogUtils.trace(LOG, ">>>   ProjectRestrictOp[%d]: Candidate Filtered: %s",Bytes.toLong(uniqueSequenceID), candidateRow);
 												rowsFiltered++;
 										}
+                                        if(candidateRow != null && !restrict && activation.isTraced()) {
+                                            removeFromOperationChain();
+                                        }
 								}
 						}
 				} while ( (candidateRow != null) && (!restrict) );
