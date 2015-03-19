@@ -1198,10 +1198,4 @@ public class SpliceAdmin extends BaseAdminProcedures {
         lcc.setRunTimeStatisticsMode(enable != 0 ? true : false);
         lcc.setStatisticsTiming(enable != 0 ? true : false);
     }
-
-    public static void SYSCS_INCREMENTAL_BACKUP_DATABASE(long parent_backup_id) throws SQLException, StandardException {
-
-        String backupDir = BackupUtils.getBackupDirectory(parent_backup_id);
-        Factory.getDatabaseOfConnection().backup(backupDir, parent_backup_id, true);
-    }
 }

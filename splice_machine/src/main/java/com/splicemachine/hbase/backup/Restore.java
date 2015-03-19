@@ -22,6 +22,7 @@ import com.splicemachine.hbase.backup.BackupItem.RegionInfo;
 import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 
@@ -45,7 +46,7 @@ public class Restore {
         return backupItems;
     }
 
-    public static Restore createRestore(long backupId) throws SQLException, StandardException{
+    public static Restore createRestore(String directory, long backupId) throws SQLException, StandardException{
 
         Restore restore = null;
         try {
@@ -54,7 +55,7 @@ public class Restore {
 
             restore = new Restore();
             restore.setRestoreTransaction(restoreTxn);
-            restore.readBackup(backupId);
+            restore.readBackup(directory, backupId);
             Backup lastBackup = restore.getLastBackup();
             lastBackup.restoreProperties();
             lastBackup.restoreMetadata();
@@ -169,9 +170,9 @@ public class Restore {
         backupItems = backup.getBackupItems();
     }
 
-    private void readBackup(long backupId) throws StandardException{
+    private void readBackup(String directory, long backupId) throws StandardException{
         try {
-            createBackups(backupId);
+            createBackups(directory, backupId);
             for (Backup backup : backups) {
                 backup.readBackupItems();
             }
@@ -181,50 +182,43 @@ public class Restore {
         }
     }
 
-    private void createBackups(long backupId) throws StandardException, SQLException {
-        String sqlText = "select transaction_id, incremental_parent_backup_id, filesystem from %s.%s where " +
-                         "transaction_id<=? order by transaction_id desc";
+    private void createBackups(String directory, long backupId) throws StandardException {
 
-        Connection connection = null;
         LinkedList<Backup> backupList = new LinkedList<>();
 
         try {
-            connection = SpliceAdmin.getDefaultConn();
-            PreparedStatement preparedStatement = connection.prepareStatement(
-                    String.format(sqlText, Backup.DEFAULT_SCHEMA, Backup.DEFAULT_TABLE));
-            preparedStatement.setLong(1, backupId);
-            ResultSet rs = preparedStatement.executeQuery();
+            while (directory != null) {
+                FileSystem fileSystem = FileSystem.get(URI.create(directory), SpliceConstants.config);
+                Path path = new Path(directory + "/BACKUP$" + backupId + "/"+ Backup.BACKUP_META_FOLDER, Backup.PARENT_BACKUP_FILE);
+                if (!fileSystem.exists(path)) {
+                    directory = null;
+                    continue;
+                }
 
-            long prev = 0;
-            long parentId = 0;
-            while (rs.next()) {
-                long id = rs.getLong(1);
-                parentId = rs.getLong(2);
-                String fileSystem = rs.getString(3);
-                if (prev == 0 || id == prev) {
-                    if (prev == 0 && id != backupId) {
-                        throw StandardException.newException("Backup " + backupId + " does not exist");
-                    }
-                    Backup backup = new Backup();
-                    backup.setBackupTransaction(restoreTransaction);
-                    backup.setBackupId(id);
-                    backup.setBackupScope(Backup.BackupScope.D);
-                    backup.setBackupStatus(Backup.BackupStatus.I);
-                    backup.setBackupFilesystem(fileSystem);
-                    backupList.add(backup);
-                    prev = parentId;
-                    if (parentId == -1) break;
+                FSDataInputStream in = fileSystem.open(path);
+                backupId = in.readLong();
+                long parentBackupId = in.readLong();
+
+                Backup backup = new Backup();
+                backup.setBackupTransaction(restoreTransaction);
+                backup.setBackupId(backupId);
+                backup.setIncrementalParentBackupID(parentBackupId);
+                backup.setBackupScope(Backup.BackupScope.D);
+                backup.setBackupStatus(Backup.BackupStatus.I);
+                backup.setBackupFilesystem(directory);
+                backupList.add(backup);
+
+                if (parentBackupId > 0) {
+                    directory = in.readUTF();
+                    backupId = parentBackupId;
+                } else {
+                    directory = null;
                 }
             }
-            if (parentId != -1) {
-                throw StandardException.newException("Can not find a full Backup.");
-            }
             backups = backupList;
-        } catch (Exception e) {
+        }
+        catch (Exception e) {
             throw StandardException.newException(e.getMessage());
-        } finally {
-            if (connection != null)
-                connection.close();
         }
     }
 }

@@ -2,12 +2,16 @@ package com.splicemachine.hbase.backup;
 
 import com.google.common.base.Throwables;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.hbase.DerbyFactory;
+import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.utils.SpliceLogUtils;
-
+import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.regionserver.Store;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
@@ -31,6 +35,7 @@ import java.util.HashMap;
 import java.util.Collection;
 import java.util.Set;
 import java.util.HashSet;
+import java.util.Map;
 
 /**
  * Created by jyuan on 3/4/15.
@@ -164,27 +169,31 @@ public class CreateIncrementalBackupTask extends ZkTask {
 
     private int copyArchivedHFiles() throws IOException{
 
-        int count = 0;
-        FileSystem fileSystem = region.getFilesystem();
-        Path regionArchivedDir = HFileArchiveUtil.getRegionArchiveDir(rootDir,
-                region.getTableDesc().getTableName(), encodedRegionName);
-        if (!fileSystem.exists(regionArchivedDir) || includeFileSet.size() == 0) {
+        if (includeFileSet.size() == 0) {
             return 0;
         }
-        FileStatus[] status = fileSystem.listStatus(regionArchivedDir);
-        for (FileStatus stat : status) {
-            //For each column family
-            if (!stat.isDirectory()) {
-                continue;
+
+        int count = 0;
+        FileSystem fileSystem = region.getFilesystem();
+        Map<byte[], Store> stores = region.getStores();
+        Configuration conf = SpliceConstants.config;
+
+        for (byte[] family : stores.keySet()) {
+            HRegionInfo regionInfo = region.getRegionInfo();
+            DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
+            Path tableDir = derbyFactory.getTableDir(region);
+            Path storeArchiveDir = HFileArchiveUtil.getStoreArchivePath(conf, regionInfo, tableDir, family);
+            if (!fileSystem.exists(storeArchiveDir)) {
+                return 0;
             }
-            String family = stat.getPath().getName();
-            FileStatus[] fileStatuses = fileSystem.listStatus(stat.getPath());
-            for (FileStatus fs : fileStatuses) {
-                Path srcPath = fs.getPath();
+            String familyName = storeArchiveDir.getName();
+            FileStatus[] status = fileSystem.listStatus(storeArchiveDir);
+            for (FileStatus stat : status) {
+                Path srcPath = stat.getPath();
                 String fileName = srcPath.getName();
-                Path destPath = new Path(backupFileSystem + "/" + encodedRegionName + "/" + family + "/" + fileName);
+                Path destPath = new Path(backupFileSystem + "/" + encodedRegionName + "/" + familyName + "/" + fileName);
                 if(includeFileSet.contains(fileName)) {
-                    FileUtil.copy(fileSystem, srcPath, fileSystem, destPath, false, SpliceConstants.config);
+                    FileUtil.copy(fileSystem, srcPath, fileSystem, destPath, false, conf);
                     ++count;
                 }
             }

@@ -16,7 +16,6 @@ import com.splicemachine.job.JobFuture;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.utils.SpliceUtilities;
 import org.apache.hadoop.fs.*;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HTableDescriptor;
@@ -29,7 +28,6 @@ import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import org.apache.hadoop.hbase.util.Pair;
 
-import org.apache.hadoop.hbase.TableName;
 import org.apache.log4j.Logger;
 
 public class BackupItem implements InternalTable {
@@ -345,12 +343,11 @@ public class BackupItem implements InternalTable {
 
     public void createSnapshot(HBaseAdmin admin, long snapId, Set<String> snapshotNameSet) throws StandardException {
         try {
-            TableName tableName = tableDescriptor.getTableName();
             long start = System.currentTimeMillis();
-            snapshotName = tableName.getNameAsString() + "_" + snapId;
-            admin.snapshot(snapshotName.getBytes(), tableName.toBytes());
+            snapshotName = tableDescriptor.getNameAsString() + "_" + snapId;
+            admin.snapshot(snapshotName.getBytes(), tableDescriptor.getName());
             snapshotNameSet.add(snapshotName);
-            LOG.info("Snapshot: " + tableName + " done in " + (System.currentTimeMillis() - start) + "ms");
+            LOG.info("Snapshot: " + tableDescriptor.getNameAsString() + " done in " + (System.currentTimeMillis() - start) + "ms");
         }
         catch (Exception e) {
             throw StandardException.newException(e.getMessage());

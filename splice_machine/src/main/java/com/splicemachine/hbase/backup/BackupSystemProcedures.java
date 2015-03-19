@@ -92,7 +92,7 @@ public class BackupSystemProcedures {
         }
     }
 
-    private static void backup(String backupDir, long parent_backup_id) throws SQLException, IOException{
+    private static void backup(String backupDir, long parentBackupId) throws SQLException, IOException{
         HBaseAdmin admin = null;
         Backup backup = null;
         Set<String> newSnapshotNameSet = new HashSet<>();
@@ -105,7 +105,7 @@ public class BackupSystemProcedures {
             if ( (backupResponse = BackupUtils.isBackupRunning()) != null)
                 throw new SQLException(backupResponse); // TODO i18n
 
-            backup = Backup.createBackup(backupDir, Backup.BackupScope.D, parent_backup_id);
+            backup = Backup.createBackup(backupDir, Backup.BackupScope.D, parentBackupId);
             backup.createBaseBackupDirectory();
             admin = SpliceUtilities.getAdmin();
             List<HBaseProtos.SnapshotDescription> snapshots = admin.listSnapshots();
@@ -128,7 +128,7 @@ public class BackupSystemProcedures {
 
             // create metadata, including timestamp source's timestamp
             // this has to be called after all tables have been dumped.
-            backup.createMetadata();
+            backup.createMetadata(parentBackupId);
 
             if (backup.isTemporaryBaseFolder()) {
                 backup.moveToBaseFolder();
@@ -154,13 +154,13 @@ public class BackupSystemProcedures {
         }
     }
 
-    public static void SYSCS_RESTORE_DATABASE(long backupId, ResultSet[] resultSets) throws StandardException, SQLException {
+    public static void SYSCS_RESTORE_DATABASE(String directory, long backupId, ResultSet[] resultSets) throws StandardException, SQLException {
         HBaseAdmin admin = null;
         String changeId = null;
         LanguageConnectionContext lcc = null;
         Connection conn = null;
         IteratorNoPutResultSet inprs = null;
-        String restoreDir = null;
+
         try {
             admin = SpliceUtilities.getAdmin();
 
@@ -172,7 +172,7 @@ public class BackupSystemProcedures {
             if ( (backupResponse = BackupUtils.isBackupRunning()) != null)
                 throw new SQLException(backupResponse); // TODO i18n
 
-            Restore restore = Restore.createRestore(backupId);
+            Restore restore = Restore.createRestore(directory, backupId);
             // enter restore mode
             DDLChange change = new DDLChange(restore.getRestoreTransaction(), DDLChangeType.ENTER_RESTORE_MODE);
             changeId = DDLCoordinationFactory.getController().notifyMetadataChange(change);

@@ -1,7 +1,6 @@
 package com.splicemachine.hbase.backup;
 
 import java.io.IOException;
-import java.net.URI;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -16,11 +15,8 @@ import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.utils.SpliceUtilities;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.coprocessor.ObserverContext;
-import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.*;
 
 import com.splicemachine.derby.hbase.DerbyFactory;
@@ -43,24 +39,23 @@ public class BackupUtils {
         return Backup.isBackupRunning();
     }
 
-    public static HashMap<String, Collection<StoreFileInfo>> getStoreFileInfo(HRegion region) throws ExecutionException {
+    public static HashMap<byte[], Collection<StoreFile>> getStoreFiles(HRegion region) throws ExecutionException {
         try {
-            HashMap<String, Collection<StoreFileInfo>> storeFileInfo = new HashMap<>();
-            HRegionFileSystem hRegionFileSystem = region.getRegionFileSystem();
-            Collection<String> families = hRegionFileSystem.getFamilies();
-            for (String family : families) {
-                Collection<StoreFileInfo> info = hRegionFileSystem.getStoreFiles(family);
-                if (info != null) {
-                    storeFileInfo.put(family, info);
-                }
+            HashMap<byte[], Collection<StoreFile>> storeFiles = new HashMap<>();
+            Map<byte[],Store> stores = region.getStores();
+
+            for (byte[] family : stores.keySet()) {
+                Store store = stores.get(family);
+                Collection<StoreFile> storeFileList = store.getStorefiles();
+                storeFiles.put(family, storeFileList);
             }
-            return storeFileInfo;
+            return storeFiles;
         } catch (Exception e) {
             throw new ExecutionException(e);
         }
     }
 
-    public static String getBackupDirectory(long parent_backup_id) throws StandardException, SQLException {
+    public static String getBackupDirectory(long parent_backup_id) throws StandardException {
 
         if (parent_backup_id == -1) {
             return null;
@@ -79,16 +74,13 @@ public class BackupUtils {
             } else
                 throw StandardException.newException("Parent backup does not exist");
         } catch (Exception e) {
-            throw e;
-        } finally {
-            if (connection != null)
-                connection.close();
+            throw StandardException.newException(e.getMessage());
         }
 
         return dir;
     }
 
-    public static long getLastBackupTime() throws SQLException {
+    public static long  getLastBackupTime() throws SQLException {
 
         long backupTransactionId = -1;
         Connection connection = null;
@@ -123,18 +115,17 @@ public class BackupUtils {
         return exists;
     }
 
+    public static String getSnapshotName(String tableName, long backupId) {
+        return tableName + "_" + backupId;
+    }
+
     public static String getLastSnapshotName(String tableName) {
 
         String snapshotName = null;
-        Connection connection = null;
         try {
-            connection = SpliceDriver.driver().getInternalConnection();
-            PreparedStatement ps = connection.prepareStatement(
-                    String.format(BackupItem.QUERY_LAST_SNAPSHOTNAME, BackupItem.DEFAULT_SCHEMA, BackupItem.DEFAULT_TABLE));
-            ps.setString(1, tableName);
-            ResultSet rs = ps.executeQuery();
-            if(rs.next()) {
-                snapshotName = rs.getString(1);
+            long backupId = BackupUtils.getLastBackupTime();
+            if (backupId > 0) {
+                snapshotName = getSnapshotName(tableName, backupId);
             }
         } catch (Exception e) {
             SpliceLogUtils.warn(LOG, "cannot query last snapshot name");

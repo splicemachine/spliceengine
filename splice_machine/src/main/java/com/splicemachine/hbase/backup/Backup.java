@@ -77,10 +77,10 @@ public class Backup implements InternalTable {
     public static final String BACKUP_TIMESTAMP_FILE = "backupTimestamp";
     public static final String TIMESTAMP_SOURCE_FILE = "timestampSource";
     public static final String CONGLOMERATE_SEQUENCE_FILE = "conglomerateSequence";
+    public static final String PARENT_BACKUP_FILE = "parentBackup";
 
     private Txn backupTransaction;
     private Timestamp beginBackupTimestamp;
-    private Timestamp endBackupTimestamp;
     private BackupStatus backupStatus;
     private String backupFilesystem;
     private String baseFolder;
@@ -98,10 +98,6 @@ public class Backup implements InternalTable {
 
     public void setBackupId(long backupId) {
         this.backupId = backupId;
-    }
-
-    public String getBackupVersion() {
-        return backupVersion;
     }
 
     public void setBackupVersion(String backupVersion) {
@@ -122,12 +118,7 @@ public class Backup implements InternalTable {
         return backupItems;
     }
 
-    public void setBackupItems(HashMap<String, BackupItem> backupItems) {
-        this.backupItems = backupItems;
-    }
-
     public Backup () {
-
     }
 
     public Txn getBackupTransaction() {
@@ -148,14 +139,6 @@ public class Backup implements InternalTable {
         this.beginBackupTimestamp = beginBackupTimestamp;
     }
 
-    public Timestamp getEndBackupTimestamp() {
-        return endBackupTimestamp;
-    }
-
-    public void setEndBackupTimestamp(Timestamp endBackupTimestamp) {
-        this.endBackupTimestamp = endBackupTimestamp;
-    }
-
     public BackupStatus getBackupStatus() {
         return backupStatus;
     }
@@ -168,17 +151,6 @@ public class Backup implements InternalTable {
         return backupFilesystem;
     }
 
-    public String getRestoreFilesystem(List<Long> parentBackupIds) {
-        String path = backupFilesystem + "/" + BACKUP_BASE_FOLDER;
-        if (parentBackupIds.size() > 1) {
-            path += "$" + parentBackupIds.get(1) + "_" + parentBackupIds.get(0);
-        }
-        else {
-            path += "_" + parentBackupIds.get(0);
-        }
-        return path;
-    }
-
     public Path getBaseBackupFilesystemAsPath() {
         return new Path(baseFolder);
     }
@@ -187,26 +159,12 @@ public class Backup implements InternalTable {
         return new Path(baseFolder+"/"+BACKUP_TABLE_FOLDER);
     }
 
-    public Path getTableRestoreFilesystemAsPath(List<Long> parentBackupIds) {
-        String path = getRestoreFilesystem(parentBackupIds);
-        return new Path(path + "/"+BACKUP_TABLE_FOLDER);
-    }
-
     public Path getMetaBackupFilesystemAsPath() {
         return new Path(baseFolder+"/"+BACKUP_META_FOLDER);
     }
 
-    public Path getMetaRestoreFilesystemAsPath(List<Long> parentBackupIds) {
-
-        return new Path(getRestoreFilesystem(parentBackupIds)+"/"+BACKUP_META_FOLDER);
-    }
-
     public Path getPropertiesBackupFilesystemAsPath() {
         return new Path(baseFolder+"/"+BACKUP_PROPERTIES_FOLDER);
-    }
-
-    public Path getPropertiesRestoreFilesystemAsPath(List<Long> parentBackupIds) {
-        return new Path(getRestoreFilesystem(parentBackupIds)+"/"+BACKUP_PROPERTIES_FOLDER);
     }
 
     public void setBackupFilesystem(String backupFilesystem) {
@@ -408,7 +366,7 @@ public class Backup implements InternalTable {
     }
 
     public boolean createBaseBackupDirectory() throws IOException, URISyntaxException {
-        FileSystem fileSystem = FileSystem.get(URI.create(getBackupFilesystem()),SpliceConstants.config);
+        FileSystem fileSystem = FileSystem.get(URI.create(getBackupFilesystem()), SpliceConstants.config);
         if (!fileSystem.exists(getBaseBackupFilesystemAsPath())) {
             fileSystem.mkdirs(getBaseBackupFilesystemAsPath());
         } else {
@@ -456,22 +414,6 @@ public class Backup implements InternalTable {
         }
     }
 
-    public static Backup readBackup(String backupFileSystem, List<Long> parentBackupIds, BackupScope backupScope)
-            throws SQLException, IOException, StandardException {
-
-        Txn backupTxn = TransactionLifecycle.getLifecycleManager().beginTransaction().elevateToWritable("recovery".getBytes());
-        Backup backup = new Backup();
-        backup.setBeginBackupTimestamp(new Timestamp(System.currentTimeMillis()));
-        backup.setBackupScope(backupScope);
-        backup.setBackupTransaction(backupTxn);
-        backup.setBackupStatus(BackupStatus.I);
-        backup.setBackupFilesystem(backupFileSystem);
-        backup.readBackupItems();
-        backup.restoreProperties();
-        backup.restoreMetadata();
-        return backup;
-    }
-
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 //  FIXME reenable throw     if(true)
@@ -513,7 +455,7 @@ public class Backup implements InternalTable {
 
     // Write metadata, including timestamp source's last timestamp
     // this has to be called after all tables have been dumped.
-    public void createMetadata() throws StandardException, IOException {
+    public void createMetadata(long parentBackupId) throws StandardException, IOException {
         FileSystem fileSystem = FileSystem.get(URI.create(getBackupFilesystem()),SpliceConstants.config);
         byte[] version = Bytes.toBytes(backupVersion);
 
@@ -540,6 +482,16 @@ public class Backup implements InternalTable {
         out = fileSystem.create(new Path(getMetaBackupFilesystemAsPath(), CONGLOMERATE_SEQUENCE_FILE));
         out.writeInt(value.length);
         out.write(value);
+        out.close();
+
+        out = fileSystem.create(new Path(getMetaBackupFilesystemAsPath(), PARENT_BACKUP_FILE));
+        out.writeLong(getBackupId());
+        out.writeLong(parentBackupId);
+
+        if (parentBackupId > 0) {
+            String parentBackupDir = BackupUtils.getBackupDirectory(parentBackupId);
+            out.writeUTF(parentBackupDir);
+        }
         out.close();
     }
 
@@ -622,9 +574,5 @@ public class Backup implements InternalTable {
 
     public boolean isTemporaryBaseFolder() {
         return temporaryBaseFolder;
-    }
-
-    public void setTemporaryBaseFolder(boolean temporaryBaseFolder) {
-        this.temporaryBaseFolder = temporaryBaseFolder;
     }
 }
