@@ -1,10 +1,12 @@
 package com.splicemachine.derby.hbase;
 
+import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.PleaseHoldException;
 import org.apache.hadoop.hbase.RegionTooBusyException;
 import org.apache.hadoop.hbase.ipc.HBaseClient;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
+
 import com.splicemachine.pipeline.exception.IndexNotSetUpException;
 
 import java.net.ConnectException;
@@ -67,4 +69,9 @@ public class Hbase94ExceptionTranslator extends SkeletonExceptionTranslator{
     public boolean isFailedServerException(Throwable t) {
         return t instanceof HBaseClient.FailedServerException;
     }
+
+	@Override
+	public boolean isDoNotRetryIOException(Throwable t) {
+        return t instanceof DoNotRetryIOException;
+	}
 }
