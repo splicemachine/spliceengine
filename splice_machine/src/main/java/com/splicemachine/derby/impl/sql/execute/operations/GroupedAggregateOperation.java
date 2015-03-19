@@ -643,7 +643,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                 op.initializeVectorAggregation(t1);
             }
             aggregate(t2, (ExecIndexRow) t1);
-            return t1.getClone();
+            return t1;
         }
 
         private void aggregate(ExecRow next, ExecIndexRow agg) throws StandardException {
@@ -656,7 +656,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                 }
             } else {
                 op.sourceExecIndexRow.execRowToExecIndexRow(next);
-                next = op.sourceExecIndexRow.getClone();
+                next = op.sourceExecIndexRow;
                 if (RDDUtils.LOG.isDebugEnabled()) {
                     RDDUtils.LOG.debug(String.format("Aggregating %s to %s", next, agg));
                 }
