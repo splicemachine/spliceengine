@@ -8,6 +8,7 @@ import java.util.concurrent.ExecutionException;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.ipc.CallerDisconnectedException;
 import org.apache.hadoop.hbase.ipc.RemoteWithExtrasException;
+import org.apache.hadoop.hbase.ipc.RpcClient;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -40,6 +41,12 @@ public class DefaultWriteConfigurationTest {
 	public void testRemoteWithExtrasExceptionWithDoNotRetryIOException() throws ExecutionException {
 		DefaultWriteConfiguration configuration = new DefaultWriteConfiguration(null);
 		Assert.assertEquals(WriteResponse.THROW_ERROR, configuration.globalError(new RemoteWithExtrasException(DoNotRetryIOException.class.getCanonicalName(), "Some remote I/O exception occurred", true)));
+	}
+
+	@Test
+	public void testRpcClientFailedServerException() throws ExecutionException {
+		DefaultWriteConfiguration configuration = new DefaultWriteConfiguration(null);
+		Assert.assertEquals(WriteResponse.THROW_ERROR, configuration.globalError(new RpcClient.FailedServerException("A server has failed")));
 	}
 
 	@Test

@@ -29,6 +29,8 @@ public abstract class SkeletonExceptionTranslator implements ExceptionTranslator
         if(t instanceof RecoverableException) return true;
         // DB-2522: Don't retry since the caller is gone and the task needs to be failed and retried by the task execution framework.
         if(t instanceof CallerDisconnectedException) return true;
+        // DB-2522: Don't retry since the server is gone and the task needs to be failed and retried by the task execution framework.
+        if(isFailedServerException(t)) return true;
         return false;
     }
 
