@@ -5,8 +5,6 @@ import java.io.IOException;
 import java.sql.SQLException;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import org.apache.hadoop.hbase.KeyValue;
-
 import com.splicemachine.hbase.KVPair;
 /**
  * Transformer interface for taking a base row and transforming it to another representation.
@@ -14,5 +12,5 @@ import com.splicemachine.hbase.KVPair;
  *
  */
 public interface RowTransformer extends Closeable  {
-	public KVPair transform(KeyValue kv) throws StandardException, SQLException, IOException;
+	public KVPair transform(KVPair kv) throws StandardException, SQLException, IOException;
 }

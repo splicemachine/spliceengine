@@ -38,8 +38,8 @@ public class AddColumnTask extends ZkTask {
     protected void doExecute() throws ExecutionException, InterruptedException {
         try {
             TentativeDDLDesc tentativeAddColumnDesc = ddlChange.getTentativeDDLDesc();
-            WriteContextFactory contextFactory = WriteContextFactoryManager.getWriteContext(tentativeAddColumnDesc
-                                                                                                .getBaseConglomerateNumber());
+            WriteContextFactory contextFactory =
+                WriteContextFactoryManager.getWriteContext(tentativeAddColumnDesc.getBaseConglomerateNumber());
             try {
                 contextFactory.addDDLChange(ddlChange);
             } finally {
@@ -53,7 +53,7 @@ public class AddColumnTask extends ZkTask {
 
     @Override
     protected String getTaskType() {
-        return "AddColumnTask";
+        return getClass().getSimpleName();
     }
 
     @Override

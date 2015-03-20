@@ -27,7 +27,7 @@ import java.sql.SQLException;
  * User: jyuan
  * Date: 2/7/14
  */
-public class RowTransformer<Data> implements Closeable {
+public class DropColumnRowTransformer<Data> implements Closeable {
 	private static SDataLib dataLib = SIFactoryDriver.siFactory.getDataLib();
     private UUID tableId;
     private TxnView txn;
@@ -44,10 +44,10 @@ public class RowTransformer<Data> implements Closeable {
     int[] formatIds;
     DataValueDescriptor[] kdvds;
 
-    public RowTransformer(UUID tableId,
-                          TxnView txn,
-                          ColumnInfo[] columnInfos,
-                          int droppedColumnPosition) {
+    public DropColumnRowTransformer(UUID tableId,
+                                    TxnView txn,
+                                    ColumnInfo[] columnInfos,
+                                    int droppedColumnPosition) {
         this.tableId = tableId;
         this.txn = txn;
         this.columnInfos = columnInfos;

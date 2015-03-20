@@ -8,6 +8,7 @@ import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Pair;
 
+import com.splicemachine.derby.ddl.TentativeAddColumnDesc;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
@@ -48,7 +49,7 @@ public class AddColumnJob implements CoprocessorJob {
 
     @Override
     public String getJobId() {
-        return "addColumnJob-"+ddlChange.getTxn().getTxnId();
+        return getClass().getSimpleName()+"-"+ddlChange.getTxn().getTxnId();
     }
 
     @Override

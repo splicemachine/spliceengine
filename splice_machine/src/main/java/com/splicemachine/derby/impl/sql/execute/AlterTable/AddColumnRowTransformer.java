@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.sql.execute.altertable;
 
-import java.io.Closeable;
 import java.io.IOException;
 
 import com.google.common.io.Closeables;
@@ -8,33 +7,45 @@ import com.google.common.io.Closeables;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.impl.sql.execute.ColumnInfo;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.utils.marshall.BareKeyHash;
+import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.derby.utils.marshall.EntryDataDecoder;
+import com.splicemachine.derby.utils.marshall.EntryDataHash;
+import com.splicemachine.derby.utils.marshall.KeyEncoder;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
+import com.splicemachine.derby.utils.marshall.NoOpDataHash;
+import com.splicemachine.derby.utils.marshall.NoOpPostfix;
+import com.splicemachine.derby.utils.marshall.NoOpPrefix;
 import com.splicemachine.derby.utils.marshall.PairEncoder;
+import com.splicemachine.derby.utils.marshall.SaltedPrefix;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.si.data.api.SDataLib;
-import com.splicemachine.si.impl.SIFactoryDriver;
-import com.splicemachine.utils.Pair;
+import com.splicemachine.pipeline.api.RowTransformer;
+import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.pipeline.exception.SpliceDoNotRetryIOException;
+import com.splicemachine.utils.IntArrays;
+import com.splicemachine.uuid.UUIDGenerator;
 
 /**
  * Used by add column write interceptor to map rows written to old table to new table with default
  * values for new column.
  */
-public class AddColumnRowTransformer<Data> implements Closeable {
-    private static SDataLib dataLib = SIFactoryDriver.siFactory.getDataLib();
+public class AddColumnRowTransformer implements RowTransformer {
 
-    private final ExecRow oldRow;
     private final ExecRow newRow;
     private final EntryDataDecoder rowDecoder;
     private final KeyHashDecoder keyDecoder;
     private final PairEncoder entryEncoder;
 
-    public AddColumnRowTransformer(Pair<ExecRow,ExecRow> oldNew,
+    private AddColumnRowTransformer(ExecRow newRow,
                                    KeyHashDecoder keyDecoder,
                                    EntryDataDecoder rowDecoder,
                                    PairEncoder entryEncoder) {
-        this.oldRow = oldNew.getFirst();
-        this.newRow = oldNew.getSecond();
+        this.newRow = newRow;
         this.rowDecoder = rowDecoder;
         this.keyDecoder = keyDecoder;
         this.entryEncoder = entryEncoder;
@@ -42,41 +53,20 @@ public class AddColumnRowTransformer<Data> implements Closeable {
 
     public KVPair transform(KVPair kvPair) throws StandardException, IOException {
         // Decode a row
-        oldRow.resetRowArray();
-        DataValueDescriptor[] oldFields = oldRow.getRowArray();
-        if (oldFields.length != 0) {
+        newRow.resetRowArray();
+        if (newRow.nColumns() > 0) {
             keyDecoder.set(kvPair.getRowKey(), 0, kvPair.getRowKey().length);
-            keyDecoder.decode(oldRow);
+            keyDecoder.decode(newRow);
 
             rowDecoder.set(kvPair.getValue(), 0, kvPair.getValue().length);
-            rowDecoder.decode(oldRow);
+            rowDecoder.decode(newRow);
         }
 
         // encode the result
         KVPair newPair = entryEncoder.encode(newRow);
 
-        // preserve the old row key
+        // preserve the same row key
         newPair.setKey(kvPair.getRowKey());
-        return newPair;
-    }
-
-    public KVPair transform(Data kv) throws StandardException, IOException {
-        // Decode a row
-        oldRow.resetRowArray();
-        DataValueDescriptor[] oldFields = oldRow.getRowArray();
-        if (oldFields.length != 0) {
-            keyDecoder.set(dataLib.getDataRowBuffer(kv), dataLib.getDataRowOffset(kv), dataLib.getDataRowlength(kv));
-            keyDecoder.decode(oldRow);
-
-            rowDecoder.set(dataLib.getDataValueBuffer(kv), dataLib.getDataValueOffset(kv), dataLib.getDataValuelength(kv));
-            rowDecoder.decode(oldRow);
-        }
-
-        // encode the result
-        KVPair newPair = entryEncoder.encode(newRow);
-
-        // preserve the old row key
-        newPair.setKey(dataLib.getDataRow(kv));
         return newPair;
     }
 
@@ -87,4 +77,66 @@ public class AddColumnRowTransformer<Data> implements Closeable {
         Closeables.closeQuietly(entryEncoder);
     }
 
+    public static AddColumnRowTransformer create(String tableVersion, int[] columnOrdering, ColumnInfo[] columnInfos)
+        throws SpliceDoNotRetryIOException {
+        // template rows
+        ExecRow oldRow = new ValueRow(columnInfos.length-1);
+        ExecRow newRow = new ValueRow(columnInfos.length);
+
+        try {
+            for (int i=0; i<columnInfos.length-1; i++) {
+                DataValueDescriptor dvd = columnInfos[i].dataType.getNull();
+                oldRow.setColumn(i+1,dvd);
+                newRow.setColumn(i+1,dvd);
+            }
+            // set default value if given
+            // FIXME: JC - defaultValue always null, even when there is one - defaultInfo is not null.
+            DataValueDescriptor newColDVD = columnInfos[columnInfos.length-1].defaultValue;
+            newRow.setColumn(columnInfos.length,
+                             (newColDVD != null ? newColDVD : columnInfos[columnInfos.length-1].dataType.getNull()));
+        } catch (StandardException e) {
+            throw Exceptions.getIOException(e);
+        }
+
+        // key decoder
+        KeyHashDecoder keyDecoder;
+        if(columnOrdering!=null && columnOrdering.length>0){
+            DescriptorSerializer[] oldDenseSerializers =
+                VersionedSerializers.forVersion(tableVersion, false).getSerializers(oldRow);
+            keyDecoder = BareKeyHash.decoder(columnOrdering, null, oldDenseSerializers);
+        }else{
+            keyDecoder = NoOpDataHash.instance().getDecoder();
+        }
+
+        // row decoder
+        DescriptorSerializer[] oldSerializers =
+            VersionedSerializers.forVersion(tableVersion, true).getSerializers(oldRow);
+        EntryDataDecoder rowDecoder = new EntryDataDecoder(IntArrays.count(oldRow.nColumns()),null,oldSerializers);
+
+        // Row encoder
+        KeyEncoder encoder;
+        DescriptorSerializer[] newSerializers =
+            VersionedSerializers.forVersion(tableVersion, true).getSerializers(newRow);
+        if(columnOrdering !=null&& columnOrdering.length>0){
+            //must use dense encodings in the key
+            DescriptorSerializer[] denseSerializers =
+                VersionedSerializers.forVersion(tableVersion, false).getSerializers(newRow);
+            encoder = new KeyEncoder(NoOpPrefix.INSTANCE, BareKeyHash.encoder(columnOrdering, null,
+                                                                              denseSerializers), NoOpPostfix.INSTANCE);
+        } else {
+            UUIDGenerator uuidGenerator = SpliceDriver.driver().getUUIDGenerator().newGenerator(100);
+            encoder = new KeyEncoder(new SaltedPrefix(uuidGenerator), NoOpDataHash.INSTANCE,NoOpPostfix.INSTANCE);
+        }
+        int[] columns = IntArrays.count(newRow.nColumns());
+
+        if (columnOrdering != null && columnOrdering.length > 0) {
+            for (int col: columnOrdering) {
+                columns[col] = -1;
+            }
+        }
+        DataHash rowHash = new EntryDataHash(columns, null,newSerializers);
+        PairEncoder rowEncoder = new PairEncoder(encoder,rowHash, KVPair.Type.INSERT);
+
+        return new AddColumnRowTransformer(newRow, keyDecoder, rowDecoder, rowEncoder);
+    }
 }

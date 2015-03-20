@@ -56,7 +56,8 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
     private final List<LocalWriteFactory> indexFactories = new CopyOnWriteArrayList<>();
     private final Set<ConstraintFactory> constraintFactories = new CopyOnWriteArraySet<>();
     private final Set<DropColumnFactory> dropColumnFactories = new CopyOnWriteArraySet<>();
-    private final Set<AddColumnWriteFactory> addColumnWriteFactories = new CopyOnWriteArraySet<>();
+
+    private AddColumnWriteFactory addColumnWriteFactory;
 
     private ForeignKeyChildInterceptWriteFactory foreignKeyChildInterceptWriteFactory;
     private ForeignKeyChildCheckWriteFactory foreignKeyChildCheckWriteFactory;
@@ -147,12 +148,12 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
                 indexFactory.addTo(context, true, expectedWrites);
             }
 
-            for (AddColumnWriteFactory addColumnWriteFactory : addColumnWriteFactories) {
-                addColumnWriteFactory.addTo(context, true, expectedWrites);
-            }
-
             for (DropColumnFactory dropColumnFactory : dropColumnFactories) {
                 dropColumnFactory.addTo(context, true, expectedWrites);
+            }
+
+            if (addColumnWriteFactory != null) {
+                addColumnWriteFactory.addTo(context, true, expectedWrites);
             }
 
             // FK - child intercept (of inserts/updates)
@@ -270,7 +271,7 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
             try {
                 switch (ddlChangeType) {
                     case ADD_COLUMN:
-                        addColumnWriteFactories.add(AddColumnWriteFactory.create(ddlChange));
+                        addColumnWriteFactory = AddColumnWriteFactory.create(ddlChange);
                         break;
                     case DROP_COLUMN:
                         dropColumnFactories.add(DropColumnFactory.create(ddlChange));
@@ -451,7 +452,7 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
                         break;
                     case ADD_COLUMN:
                         if (ddlDesc.getBaseConglomerateNumber() == conglomId)
-                            addColumnWriteFactories.add(AddColumnWriteFactory.create(ddlChange));
+                            addColumnWriteFactory = AddColumnWriteFactory.create(ddlChange);
                     case DROP_COLUMN:
                         if (ddlDesc.getBaseConglomerateNumber() == conglomId)
                             dropColumnFactories.add(DropColumnFactory.create(ddlChange));

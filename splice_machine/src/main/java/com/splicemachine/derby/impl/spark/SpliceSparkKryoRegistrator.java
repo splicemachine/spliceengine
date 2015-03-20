@@ -20,6 +20,7 @@ import com.splicemachine.derby.impl.job.altertable.AddColumnTask;
 import com.splicemachine.derby.impl.job.altertable.DropColumnTask;
 import com.splicemachine.derby.impl.job.altertable.LoadConglomerateTask;
 import com.splicemachine.derby.impl.job.ZkTask;
+import com.splicemachine.derby.impl.job.altertable.PopulateConglomerateTask;
 import com.splicemachine.derby.impl.job.index.CreateIndexTask;
 import com.splicemachine.derby.impl.job.index.PopulateIndexTask;
 import com.splicemachine.derby.impl.job.operation.SinkTask;
@@ -556,6 +557,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator {
 				instance.register(DDLChangeType.class,new DefaultSerializers.EnumSerializer(DDLChangeType.class));
 				instance.register(DropColumnTask.class,EXTERNALIZABLE_SERIALIZER);
 				instance.register(AddColumnTask.class,EXTERNALIZABLE_SERIALIZER);
+				instance.register(PopulateConglomerateTask.class,EXTERNALIZABLE_SERIALIZER);
 				instance.register(ColumnInfo.class,EXTERNALIZABLE_SERIALIZER);
 				instance.register(ColumnInfo[].class);
 				instance.register(LoadConglomerateTask.class,EXTERNALIZABLE_SERIALIZER);

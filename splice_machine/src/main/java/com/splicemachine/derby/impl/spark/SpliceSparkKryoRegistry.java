@@ -21,6 +21,7 @@ import com.splicemachine.derby.impl.job.altertable.AddColumnTask;
 import com.splicemachine.derby.impl.job.altertable.DropColumnTask;
 import com.splicemachine.derby.impl.job.altertable.LoadConglomerateTask;
 import com.splicemachine.derby.impl.job.ZkTask;
+import com.splicemachine.derby.impl.job.altertable.PopulateConglomerateTask;
 import com.splicemachine.derby.impl.job.index.CreateIndexTask;
 import com.splicemachine.derby.impl.job.index.PopulateIndexTask;
 import com.splicemachine.derby.impl.job.operation.SinkTask;
@@ -539,7 +540,6 @@ public class SpliceSparkKryoRegistry implements KryoPool.KryoRegistry{
 				instance.register(FileImportReader.class,EXTERNALIZABLE_SERIALIZER,164);
 				instance.register(TentativeIndexDesc.class,new FieldSerializer(instance,TentativeIndexDesc.class),166);
 				instance.register(TentativeDropColumnDesc.class,new FieldSerializer(instance,TentativeDropColumnDesc.class),167);
-				instance.register(TentativeAddColumnDesc.class,new FieldSerializer(instance,TentativeAddColumnDesc.class),167);
 				instance.register(BitSet.class,new Serializer<BitSet>() {
 						@Override
 						public void write(Kryo kryo, Output output, BitSet object) {
@@ -562,7 +562,6 @@ public class SpliceSparkKryoRegistry implements KryoPool.KryoRegistry{
 				},168);
 				instance.register(DDLChangeType.class,new DefaultSerializers.EnumSerializer(DDLChangeType.class),169);
 				instance.register(DropColumnTask.class,EXTERNALIZABLE_SERIALIZER,170);
-				instance.register(AddColumnTask.class,EXTERNALIZABLE_SERIALIZER,170);
 				instance.register(ColumnInfo.class,EXTERNALIZABLE_SERIALIZER,171);
 				instance.register(ColumnInfo[].class,172);
 				instance.register(LoadConglomerateTask.class,EXTERNALIZABLE_SERIALIZER,173);
@@ -657,5 +656,8 @@ public class SpliceSparkKryoRegistry implements KryoPool.KryoRegistry{
 //        instance.register(WrappedArray.ofUnit.class, 194);
         instance.register(Object[].class,189);
         instance.register(CompressedMapStatus.class,190);
+        instance.register(AddColumnTask.class,EXTERNALIZABLE_SERIALIZER,191);
+        instance.register(PopulateConglomerateTask.class,EXTERNALIZABLE_SERIALIZER,192);
+        instance.register(TentativeAddColumnDesc.class,new FieldSerializer(instance,TentativeAddColumnDesc.class),193);
     }
 }

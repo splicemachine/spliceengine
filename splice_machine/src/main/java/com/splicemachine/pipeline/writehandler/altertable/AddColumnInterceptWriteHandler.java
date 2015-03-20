@@ -3,15 +3,12 @@ package com.splicemachine.pipeline.writehandler.altertable;
 import java.io.IOException;
 import java.util.List;
 
-import org.apache.hadoop.hbase.KeyValue;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.constants.SIConstants;
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.impl.sql.execute.altertable.AddColumnRowTransformer;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.RecordingCallBuffer;
+import com.splicemachine.pipeline.api.RowTransformer;
 import com.splicemachine.pipeline.api.WriteContext;
 import com.splicemachine.pipeline.api.WriteHandler;
 import com.splicemachine.pipeline.impl.WriteCoordinator;
@@ -26,12 +23,12 @@ public class AddColumnInterceptWriteHandler implements WriteHandler {
     private static final Logger LOG = Logger.getLogger(AddColumnInterceptWriteHandler.class);
 
     private final WriteCoordinator writeCoordinator;
-    private final AddColumnRowTransformer rowTransformer;
+    private final RowTransformer rowTransformer;
     private final byte[] newTableName;
 
     private RecordingCallBuffer<KVPair> recordingCallBuffer;
 
-    public AddColumnInterceptWriteHandler(AddColumnRowTransformer rowTransformer, byte[] newTableName) {
+    public AddColumnInterceptWriteHandler(RowTransformer rowTransformer, byte[] newTableName) {
         this.writeCoordinator = SpliceDriver.driver().getTableWriter();
         this.rowTransformer = rowTransformer;
         this.newTableName = newTableName;
@@ -44,8 +41,8 @@ public class AddColumnInterceptWriteHandler implements WriteHandler {
             if (shouldIntercept(mutation.getType())) {
                 newPair = mutation;
             } else {
-                KeyValue kv = new KeyValue(mutation.getRowKey(), SpliceConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES,mutation.getValue());
-                newPair = rowTransformer.transform(kv);
+                KVPair kvPair = new KVPair(mutation.getRowKey(), mutation.getValue());
+                newPair = rowTransformer.transform(kvPair);
             }
             initTargetCallBuffer(ctx).add(newPair);
             ctx.success(mutation);

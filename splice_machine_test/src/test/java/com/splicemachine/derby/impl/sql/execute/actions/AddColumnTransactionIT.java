@@ -205,7 +205,7 @@ public class AddColumnTransactionIT {
         ps.setInt(1,aInt);ps.setInt(2,bInt); ps.execute();
 
         try{
-            a.createStatement().execute("alter table "+ addedTable3+" add column f int with default 2");
+            a.createStatement().execute("alter table "+ addedTable3+" add column c int with default 2");
             Assert.fail("Did not catch an exception!");
         }catch(SQLException se){
             System.out.printf("%s:%s%n",se.getSQLState(),se.getMessage());
