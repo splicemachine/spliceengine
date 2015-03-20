@@ -1,25 +1,15 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Properties;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+
 import com.google.common.io.Closeables;
-import com.splicemachine.derby.ddl.DDLChangeType;
-import com.splicemachine.derby.ddl.TentativeDropColumnDesc;
-import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.impl.job.altertable.DropColumnJob;
-import com.splicemachine.derby.impl.job.altertable.LoadConglomerateJob;
-import com.splicemachine.derby.impl.job.JobInfo;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.derby.management.OperationInfo;
-import com.splicemachine.derby.management.StatementInfo;
-import com.splicemachine.derby.utils.DataDictionaryUtils;
-import com.splicemachine.job.JobFuture;
-import com.splicemachine.pipeline.ddl.DDLChange;
-import com.splicemachine.pipeline.exception.ErrorState;
-import com.splicemachine.pipeline.exception.Exceptions;
-import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.TxnView;
-import com.splicemachine.si.impl.TransactionLifecycle;
-import com.splicemachine.uuid.Snowflake;
+import org.apache.hadoop.hbase.client.HTableInterface;
 
 import com.splicemachine.db.catalog.DefaultInfo;
 import com.splicemachine.db.catalog.Dependable;
@@ -38,7 +28,21 @@ import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.Parser;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
-import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.db.iapi.sql.dictionary.CheckConstraintDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptorList;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptorList;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.DefaultDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.DependencyDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.GenericDescriptorList;
+import com.splicemachine.db.iapi.sql.dictionary.ReferencedKeyConstraintDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.ConglomerateController;
@@ -53,15 +57,29 @@ import com.splicemachine.db.impl.sql.compile.ColumnReference;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
-import org.apache.hadoop.hbase.client.HTableInterface;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Properties;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ExecutionException;
+import com.splicemachine.derby.ddl.DDLChangeType;
+import com.splicemachine.derby.ddl.TentativeAddColumnDesc;
+import com.splicemachine.derby.ddl.TentativeDropColumnDesc;
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.impl.job.JobInfo;
+import com.splicemachine.derby.impl.job.altertable.AddColumnJob;
+import com.splicemachine.derby.impl.job.altertable.DropColumnJob;
+import com.splicemachine.derby.impl.job.altertable.LoadConglomerateJob;
+import com.splicemachine.derby.impl.job.altertable.PopulateConglomerateJob;
+import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.management.OperationInfo;
+import com.splicemachine.derby.management.StatementInfo;
+import com.splicemachine.derby.utils.DataDictionaryUtils;
+import com.splicemachine.job.JobFuture;
+import com.splicemachine.pipeline.ddl.DDLChange;
+import com.splicemachine.pipeline.exception.ErrorState;
+import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.impl.TransactionLifecycle;
+import com.splicemachine.uuid.Snowflake;
 
 /**
  * @author Scott Fines
@@ -291,14 +309,9 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                         colInfo.autoincInc
                 );
 
-        dd.addDescriptor(columnDescriptor, td,DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
+        dd.addDescriptor(columnDescriptor, td, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
 
-        DDLChange change = new DDLChange(((SpliceTransactionManager)tc).getActiveStateTxn(), DDLChangeType.ADD_COLUMN);
-
-        //notify other servers of the change
-        notifyMetadataChangeAndWait(change);
-
-        // TODO: JC - create tentitive & chained txns, job, copy table
+        DDLChange ddlChange = new DDLChange(((SpliceTransactionManager)tc).getActiveStateTxn(), DDLChangeType.ADD_COLUMN);
 
         // now add the column to the tables column descriptor list.
         //noinspection unchecked
@@ -328,6 +341,97 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         // granted on that new column.
         //
         dd.updateSYSCOLPERMSforAddColumnToUserTable(td.getUUID(), tc);
+
+        // Initiate the copy from old table to new table and the interception
+        // from old schema writes to new table with new column appended
+        startInterceptCopy(activation, td, ddlChange, tc);
+
+        //notify other servers of the change
+        notifyMetadataChangeAndWait(ddlChange);
+    }
+
+    private void startInterceptCopy(Activation activation,
+                                    TableDescriptor td,
+                                    DDLChange ddlChange,
+                                    TransactionController parentTc) throws StandardException {
+
+        ExecRow emptyHeapRow  = td.getEmptyExecRow();
+        int[]   collation_ids = td.getColumnCollationIds();
+        final long tableConglomId = td.getHeapConglomerateId();
+
+        ConglomerateController compressHeapCC =
+            parentTc.openConglomerate(
+                tableConglomId,
+                false,
+                TransactionController.OPENMODE_FORUPDATE,
+                TransactionController.MODE_TABLE,
+                TransactionController.ISOLATION_SERIALIZABLE);
+
+        // Get the properties on the old heap
+        Properties properties = new Properties();
+        compressHeapCC.getInternalTablePropertySet(properties);
+        compressHeapCC.close();
+
+        // calculate column order for new table
+        TxnView parentTxn = ((SpliceTransactionManager)parentTc).getActiveStateTxn();
+        int[] oldColumnOrder = DataDictionaryUtils.getColumnOrdering(parentTxn, tableId);
+        IndexColumnOrder[] columnOrdering = null;
+        if (oldColumnOrder != null && oldColumnOrder.length > 0) {
+            columnOrdering = new IndexColumnOrder[oldColumnOrder.length +1];
+            for (int i = 0; i < oldColumnOrder.length; ++i) {
+                columnOrdering[i] = new IndexColumnOrder(oldColumnOrder[i]);
+            }
+        }
+
+        // Create a new table -- use createConglomerate() to avoid confusing calls to createAndLoad()
+        long newHeapConglomId = parentTc.createConglomerate("heap", emptyHeapRow.getRowArray(),
+                                                          columnOrdering, collation_ids,
+                                                          properties, TransactionController.IS_DEFAULT);
+
+        // Start a tentative txn to demarcate the whole DDL change
+        Txn tentativeTransaction;
+        try {
+            tentativeTransaction =
+                TransactionLifecycle.getLifecycleManager().beginChildTransaction(parentTxn,
+                                                                                 Long.toString(tableConglomId).getBytes());
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
+
+        ColumnInfo[] allColumnInfo = DataDictionaryUtils.getColumnInfo(td);
+        TentativeAddColumnDesc interceptColumnDesc = new TentativeAddColumnDesc(tableId,
+                                                                           newHeapConglomId,
+                                                                           tableConglomId,
+                                                                           allColumnInfo);
+
+        // set intercept descriptor on the ddl change
+        ddlChange.setTentativeDDLDesc(interceptColumnDesc);
+
+        try {
+            HTableInterface hTable = SpliceAccessManager.getHTable(Long.toString(tableConglomId).getBytes());
+
+            //Add a handler to intercept writes to old schema on all regions and forward them to new
+            startAddColumnJob(activation, td, new AddColumnJob(hTable, ddlChange), ddlChange.getTxn());
+
+            //wait for all past txns to complete
+            Txn populateTxn = getChainedTransaction(parentTxn, tentativeTransaction, tableConglomId);
+
+            String tableVersion = DataDictionaryUtils.getTableVersion(ddlChange.getTxn(),  tableId);
+            int[] columOrdering = DataDictionaryUtils.getColumnOrdering(ddlChange.getTxn(), tableId);
+            // Populate new table with additional column with data from old table
+            CoprocessorJob populateJob = new PopulateConglomerateJob(hTable,
+                                                                     populateTxn,
+                                                                     tableVersion,
+                                                                     newHeapConglomId,
+                                                                     tableConglomId,
+                                                                     allColumnInfo,
+                                                                     columOrdering,
+                                                                     tentativeTransaction.getCommitTimestamp());
+            startAddColumnJob(activation, td, populateJob, ddlChange.getTxn());
+            populateTxn.commit();
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
     }
 
     private void updateNewAutoincrementColumn(LanguageConnectionContext lcc, TableDescriptor td,ColumnInfo colInfo) throws StandardException {
@@ -1429,16 +1533,11 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         compressHeapCC.close();
 
         // Create an array to put base row template
-//        ExecRow baseRow = new ExecRow[bulkFetchSize];
-//        DataValueDescriptor[][] baseRowArray = new DataValueDescriptor[bulkFetchSize][];
-//        boolean[] validRow = new boolean[bulkFetchSize];
 
         /* Set up index info */
-        getAffectedIndexes(td);
+        getAffectedIndexes(td); // FIXME: JC - this does nothing. what was the intent?
 
         // Get an array of RowLocation template
-//        RowLocation compressRL = new RowLocation[bulkFetchSize];
-//        ExecIndexRow indexRows  = new ExecIndexRow[numIndexes];
         // must be a drop column, thus the number of columns in the
         // new template row and the collation template is one less.
         ExecRow newRow = activation.getExecutionFactory().getValueRow(emptyHeapRow.nColumns() - 1);
@@ -1503,31 +1602,13 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
             Txn dropColumnTransaction = getChainedTransaction(parentTxn, tentativeTransaction, tableConglomId);
 
             // Copy data from old table to the new table
-            //copyToConglomerate(newHeapConglom, tentativeTransaction.getTransactionIdString(), co);
-            copyToConglomerate(activation,td,droppedColumnPosition,newHeapConglom, parentTxn,tentativeTransaction.getCommitTimestamp());
+            dropCopyToConglomerate(activation, td, droppedColumnPosition, newHeapConglom, parentTxn,
+                                   tentativeTransaction.getCommitTimestamp());
             dropColumnTransaction.commit();
         }
         catch (IOException e) {
             throw Exceptions.parseException(e);
         }
-
-        // Set the "estimated" row count
-//        ScanController compressHeapSC = tc.openScan(
-//                newHeapConglom,
-//                false,
-//                TransactionController.OPENMODE_FORUPDATE,
-//                TransactionController.MODE_TABLE,
-//                TransactionController.ISOLATION_SERIALIZABLE,
-//                null,
-//                null,
-//                0,
-//                null,
-//                null,
-//                0);
-//
-//        compressHeapSC.setEstimatedRowCount(rowCount);
-//
-//        compressHeapSC.close();
 
         /*
         ** Inform the data dictionary that we are about to write to it.
@@ -1564,12 +1645,69 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         cleanUp();
     }
 
-    private void copyToConglomerate(Activation activation,
+    private void startAddColumnJob(Activation activation,
                                     TableDescriptor td,
-                                    int droppedColumnPosition,
-                                    long toConglomId,
-                                    TxnView dropColumnTxn,
-                                    long demarcationPoint) throws StandardException {
+                                    CoprocessorJob job,
+                                    TxnView txn) throws StandardException {
+
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        String user = lcc.getSessionUserId();
+        Snowflake snowflake = SpliceDriver.driver().getUUIDGenerator();
+        long sId = snowflake.nextUUID();
+        if (activation.isTraced()) {
+            activation.getLanguageConnectionContext().setXplainStatementId(sId);
+        }
+        StatementInfo statementInfo =  new StatementInfo(String.format("alter table %s.%s add %s",
+                                                                       td.getSchemaName(),
+                                                                       td.getName(),
+                                                                       columnInfo[0].name),
+                                                         user,txn, 1, sId);
+        OperationInfo opInfo = new OperationInfo(SpliceDriver.driver().getUUIDGenerator().nextUUID(),
+                                                 statementInfo.getStatementUuid(),
+                                                 "Alter Table Add Column", null, false, -1l);
+        statementInfo.setOperationInfo(Arrays.asList(opInfo));
+        SpliceDriver.driver().getStatementManager().addStatementInfo(statementInfo);
+
+        JobFuture future = null;
+        JobInfo info;
+        try{
+            long start = System.currentTimeMillis();
+            future = SpliceDriver.driver().getJobScheduler().submit(job);
+            info = new JobInfo(job.getJobId(),future.getNumTasks(),start);
+            info.setJobFuture(future);
+            statementInfo.addRunningJob(opInfo.getOperationUuid(),info);
+            try{
+                future.completeAll(info);
+            }catch(ExecutionException e){
+                info.failJob();
+                throw e;
+            }catch(CancellationException ce){
+                throw Exceptions.parseException(ce);
+            }
+            statementInfo.completeJob(info);
+
+        } catch (ExecutionException e) {
+            throw Exceptions.parseException(e.getCause());
+        } catch (InterruptedException e) {
+            throw Exceptions.parseException(e);
+        }finally {
+            cleanupFuture(future);
+            try {
+                SpliceDriver.driver().getStatementManager().completedStatement(statementInfo, activation.isTraced(),txn);
+            } catch (IOException e) {
+                throw Exceptions.parseException(e);
+            }
+
+        }
+
+    }
+
+    private void dropCopyToConglomerate(Activation activation,
+                                        TableDescriptor td,
+                                        int droppedColumnPosition,
+                                        long toConglomId,
+                                        TxnView txn,
+                                        long demarcationPoint) throws StandardException {
 
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         String user = lcc.getSessionUserId();
@@ -1580,7 +1718,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         }
         StatementInfo statementInfo =
                 new StatementInfo(String.format("alter table %s.%s drop %s", td.getSchemaName(), td.getName(), columnInfo[0].name),
-                        user,dropColumnTxn, 1, sId);
+                        user,txn, 1, sId);
         OperationInfo opInfo = new OperationInfo(
                 SpliceDriver.driver().getUUIDGenerator().nextUUID(), statementInfo.getStatementUuid(),"Alter Table Drop Column", null, false, -1l);
         statementInfo.setOperationInfo(Arrays.asList(opInfo));
@@ -1594,7 +1732,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
 
             ColumnInfo[] allColumnInfo = DataDictionaryUtils.getColumnInfo(td);
             LoadConglomerateJob job = new LoadConglomerateJob(table,
-                    tableId, fromConglomId, toConglomId, allColumnInfo, droppedColumnPosition, dropColumnTxn,
+                    tableId, fromConglomId, toConglomId, allColumnInfo, droppedColumnPosition, txn,
                     statementInfo.getStatementUuid(), opInfo.getOperationUuid(), activation.isTraced(),demarcationPoint);
             long start = System.currentTimeMillis();
             future = SpliceDriver.driver().getJobScheduler().submit(job);
@@ -1618,7 +1756,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         }finally {
             cleanupFuture(future);
             try {
-                SpliceDriver.driver().getStatementManager().completedStatement(statementInfo, activation.isTraced(),dropColumnTxn);
+                SpliceDriver.driver().getStatementManager().completedStatement(statementInfo, activation.isTraced(),txn);
             } catch (IOException e) {
                 throw Exceptions.parseException(e);
             }

@@ -116,7 +116,17 @@ public class DataDictionaryUtils {
         for (int i = 0; i < len; ++i) {
             ColumnDescriptor desc = cdl.get(i);
             columnInfo[i] =
-                    new ColumnInfo(desc.getColumnName(), desc.getType(), null, null, null, null, null, 0, 0, 0, 0);
+                    new ColumnInfo(desc.getColumnName(),
+                                   desc.getType(),
+                                   desc.getDefaultValue(),
+                                   desc.getDefaultInfo(),
+                                   null,
+                                   null,
+                                   null,
+                                   0,
+                                   0,
+                                   0,
+                                   0);
         }
         return columnInfo;
     }

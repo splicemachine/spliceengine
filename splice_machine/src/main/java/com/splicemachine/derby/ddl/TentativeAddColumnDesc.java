@@ -28,7 +28,6 @@ public class TentativeAddColumnDesc implements TentativeDDLDesc, Externalizable{
         this.newConglomId = newConglomId;
         this.oldConglomId = oldConglomId;
         this.columnInfos = columnInfos;
-
     }
 
     @Override
@@ -54,8 +53,7 @@ public class TentativeAddColumnDesc implements TentativeDDLDesc, Externalizable{
         out.writeObject(tableId);
         out.writeLong(newConglomId);
         out.writeLong(oldConglomId);
-        int size = columnInfos.length;
-        out.writeInt(size);
+        out.writeInt(columnInfos.length);
         for (ColumnInfo col:columnInfos) {
             out.writeObject(col);
         }

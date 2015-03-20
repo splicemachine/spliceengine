@@ -4,7 +4,7 @@ import com.google.common.io.Closeables;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.sql.execute.altertable.ConglomerateLoader;
-import com.splicemachine.derby.impl.sql.execute.altertable.RowTransformer;
+import com.splicemachine.derby.impl.sql.execute.altertable.DropColumnRowTransformer;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.WriteContext;
 import com.splicemachine.pipeline.api.WriteHandler;
@@ -23,7 +23,7 @@ import java.util.List;
  */
 public class DropColumnHandler implements WriteHandler {
 
-    private RowTransformer rowTransformer;
+    private DropColumnRowTransformer dropColumnRowTransformer;
     private ConglomerateLoader loader;
     private boolean failed;
 
@@ -32,7 +32,7 @@ public class DropColumnHandler implements WriteHandler {
                              TxnView txn,
                              ColumnInfo[] columnInfos,
                              int droppedColumnPosition) {
-        rowTransformer = new RowTransformer(tableId, txn, columnInfos, droppedColumnPosition);
+        dropColumnRowTransformer = new DropColumnRowTransformer(tableId, txn, columnInfos, droppedColumnPosition);
         loader = new ConglomerateLoader(toConglomId, txn, false);
     }
 
@@ -46,7 +46,7 @@ public class DropColumnHandler implements WriteHandler {
             } else {
                 // create a KeyValue for the mutation
                 KeyValue kv = new KeyValue(mutation.getRowKey(), SpliceConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES,mutation.getValue());
-                newPair = rowTransformer.transform(kv);
+                newPair = dropColumnRowTransformer.transform(kv);
             }
             loader.add(newPair);
         } catch (Exception e) {
@@ -72,7 +72,7 @@ public class DropColumnHandler implements WriteHandler {
         } catch (Exception e) {
             throw new IOException(e);
         } finally {
-            Closeables.closeQuietly(rowTransformer);
+            Closeables.closeQuietly(dropColumnRowTransformer);
         }
     }
 

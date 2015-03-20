@@ -10,7 +10,7 @@ import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.derby.impl.sql.execute.altertable.ConglomerateLoader;
 import com.splicemachine.derby.impl.sql.execute.altertable.ConglomerateScanner;
-import com.splicemachine.derby.impl.sql.execute.altertable.RowTransformer;
+import com.splicemachine.derby.impl.sql.execute.altertable.DropColumnRowTransformer;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
@@ -58,7 +58,7 @@ public class LoadConglomerateTask extends ZkTask {
     private long operationId;
     private ConglomerateLoader loader;
     private ConglomerateScanner scanner;
-    private RowTransformer transformer;
+    private DropColumnRowTransformer transformer;
     private KVPair newPair;
     private boolean initialized = false;
     private Timer writeTimer;
@@ -112,7 +112,7 @@ public class LoadConglomerateTask extends ZkTask {
 		private void initialize() throws StandardException{
         Txn txn = getTxn();
         scanner = new ConglomerateScanner(region, txn,demarcationPoint, isTraced,scanStart,scanStop);
-        transformer = new RowTransformer(tableId, txn, columnInfo, droppedColumnPosition);
+        transformer = new DropColumnRowTransformer(tableId, txn, columnInfo, droppedColumnPosition);
         loader = new ConglomerateLoader(toConglomId, txn, isTraced);
         initialized = true;
     }
