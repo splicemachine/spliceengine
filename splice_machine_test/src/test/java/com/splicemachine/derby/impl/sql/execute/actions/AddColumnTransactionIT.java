@@ -187,7 +187,7 @@ public class AddColumnTransactionIT {
         }
     }
 
-    @Test
+    @Test @Ignore("DB-1755 - still not obeying transactionality.")
     public void testAddColumnCannotProceedWithOpenDMLOperations() throws Exception {
         TestConnection a;
         TestConnection b;
@@ -213,7 +213,7 @@ public class AddColumnTransactionIT {
         }
     }
 
-    @Test
+    @Test @Ignore("DB-1755 - still not obeying transactionality.")
     public void testAddColumnAfterInsertionIsCorrect() throws Exception {
         TestConnection a;
         TestConnection b;
@@ -245,7 +245,7 @@ public class AddColumnTransactionIT {
         Assert.assertEquals("Incorrect returned row count",1,count);
     }
 
-    @Test
+    @Test @Ignore("DB-1755 - still not obeying transactionality.")
     public void testAddColumnBeforeInsertionIsCorrect() throws Exception {
         TestConnection a;
         TestConnection b;

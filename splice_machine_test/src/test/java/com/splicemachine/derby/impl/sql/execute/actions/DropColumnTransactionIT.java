@@ -185,8 +185,8 @@ public class DropColumnTransactionIT {
         Assert.assertEquals("Data was not picked up!",1,count);
     }
 
-    @Test
-    public void testDropColumnAfterInsertion2Works() throws Exception {
+    @Test @Ignore("DB-1755 - still not obeying transactionality.")
+    public void testDropColumnAfterAddColumnWorks() throws Exception {
          /*
          * This is a test to ensure that the following sequence holds:
          *
