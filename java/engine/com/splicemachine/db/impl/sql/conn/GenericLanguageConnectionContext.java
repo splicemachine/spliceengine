@@ -1313,11 +1313,9 @@ public class GenericLanguageConnectionContext
      * @return the prepared statement for the given string, null
      *  if none was found.
      */
-    public PreparedStatement lookupStatement(GenericStatement statement)
-        throws StandardException {
+    public PreparedStatement lookupStatement(GenericStatement statement) throws StandardException {
 
-        CacheManager statementCache =
-            getLanguageConnectionFactory().getStatementCache();
+        CacheManager statementCache = getLanguageConnectionFactory().getStatementCache();
             
         if (statementCache == null)
             return null;
@@ -1335,7 +1333,6 @@ public class GenericLanguageConnectionContext
 
         CachedStatement cs = (CachedStatement) cachedItem;
 
-
         GenericStorablePreparedStatement ps = cs.getPreparedStatement();
 
         synchronized (ps) {
@@ -1344,8 +1341,7 @@ public class GenericLanguageConnectionContext
 
                 // Check to see if the statement was prepared before some change
                 // in the class loading set. If this is the case then force it to be invalid
-                int currentClasses =
-                        getLanguageConnectionFactory().getClassFactory().getClassLoaderVersion();
+                int currentClasses = getLanguageConnectionFactory().getClassFactory().getClassLoaderVersion();
 
                 if (ac.getClassLoaderVersion() != currentClasses) {
                     ps.makeInvalid(DependencyManager.INTERNAL_RECOMPILE_REQUEST, this);
@@ -1357,7 +1353,7 @@ public class GenericLanguageConnectionContext
                 // a PreparedStatement (through its activation) and the user can allow
                 // this object to be garbage collected. Pushing a context stack is impossible
                 // in garbage collection as it may deadlock with the open connection and
-                // the context manager assumes a singel current thread per context stack
+                // the context manager assumes a single current thread per context stack
             }
         }
 

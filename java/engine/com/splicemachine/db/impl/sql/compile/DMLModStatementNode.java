@@ -297,17 +297,6 @@ abstract class DMLModStatementNode extends DMLStatementNode
 	}
 
 	/**
-	 *
-	 * INSERT/UPDATE/DELETE are always atomic.
-	 *
-	 * @return true 
-	 */	
-	public boolean isAtomic()
-	{
-		return true;
-	}
-
-	/**
 	* Get a schema descriptor for the given table.
 	* Uses this.targetTableName.
 	*

@@ -137,11 +137,8 @@ public class ExecSPSNode extends StatementNode
 	 *
 	 * @return true if the statement is atomic
 	 */	
-	public boolean isAtomic()
-	{
-
-		if (SanityManager.DEBUG)
-		{
+	public boolean isAtomic() {
+		if (SanityManager.DEBUG) {
 			SanityManager.ASSERT(ps != null, 
 				"statement expected to be bound before calling isAtomic()");
 		}

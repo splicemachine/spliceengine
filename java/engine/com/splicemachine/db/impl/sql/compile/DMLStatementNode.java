@@ -416,8 +416,7 @@ public abstract class DMLStatementNode extends StatementNode
 	 *
 	 * @exception StandardException on error
 	 */	
-	public boolean isAtomic() throws StandardException
-	{
+	public boolean isAtomic() throws StandardException {
 		/*
 		** If we have a FromBaseTable then we have
 		** a SELECT, so we want to consider ourselves
@@ -428,13 +427,8 @@ public abstract class DMLStatementNode extends StatementNode
 		HasNodeVisitor visitor = new HasNodeVisitor(FromBaseTable.class, StaticMethodCallNode.class);
 													
 		this.accept(visitor);
-		if (visitor.hasNode())
-		{
-			return true;
-		}
-
-		return false;
-	}
+        return visitor.hasNode();
+    }
 
 	/**
 	 * Accept the visitor for all visitable children of this node.

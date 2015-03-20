@@ -170,8 +170,7 @@ public class SetRoleNode extends MiscellaneousStatementNode
 	 *
 	 * @return false
 	 */
-	public boolean isAtomic()
-	{
+	public boolean isAtomic() {
 		return false;
 	}
 

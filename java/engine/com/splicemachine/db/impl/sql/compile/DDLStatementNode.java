@@ -113,16 +113,6 @@ abstract class DDLStatementNode extends StatementNode
 	}
 
 	/**
-	 * A DDL statement is always atomic
-	 *
-	 * @return true 
-	 */	
-	public boolean isAtomic()
-	{
-		return true;
-	}
-
-	/**
 	 * Return the name of the table being dropped.
 	 * This is the unqualified table name.
 	 *

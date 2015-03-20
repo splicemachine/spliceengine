@@ -846,18 +846,14 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public int startReading(LanguageConnectionContext lcc)
-		throws StandardException
-	{
+	public int startReading(LanguageConnectionContext lcc) throws StandardException {
 		int     bindCount = lcc.incrementBindCount();
 		int     localCacheMode;
 
         boolean needRetry = false;
 
-        do
-        {
-            if (needRetry)
-            {
+        do {
+            if (needRetry) {
                 // could not get lock while holding the synchronized(this),
                 // so now wait until we can get the lock.  Once we get the
                 // lock it is automatically released, hopefully when we 
@@ -865,18 +861,14 @@ public class DataDictionaryImpl extends BaseDataDictionary {
                 // get the lock, while holding the synchronized(this)
                 // monitor now.
 
-                try
-                {
+                try {
                     lockFactory.zeroDurationlockObject(
                         lcc.getTransactionExecute().getLockSpace(),
                         cacheCoordinator,
                         ShExQual.SH,
                         C_LockFactory.WAIT_FOREVER);
-                }
-                catch (StandardException e)
-                {
+                } catch (StandardException e) {
                     // DEADLOCK, timeout will not happen with WAIT_FOREVER
-
                     lcc.decrementBindCount();
                     throw e;
                 }
@@ -886,8 +878,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
             // "this" is used to synchronize between startReading,doneReading, 
             //  and startWriting.
 
-            synchronized(this)
-            {
+            synchronized(this) {
                 localCacheMode = getCacheMode();
 
                 /*
@@ -900,12 +891,9 @@ public class DataDictionaryImpl extends BaseDataDictionary {
                 ** If nested binding is happening, we only want to lock the
                 ** DataDictionary on the outermost nesting level.
                 */
-                if (bindCount == 1)
-                {
-                    if (localCacheMode == DataDictionary.COMPILE_ONLY_MODE)
-                    {
-                        if (SanityManager.DEBUG)
-                        {
+                if (bindCount == 1) {
+                    if (localCacheMode == DataDictionary.COMPILE_ONLY_MODE) {
+                        if (SanityManager.DEBUG) {
                             SanityManager.ASSERT(ddlUsers == 0,
                                 "Cache mode is COMPILE_ONLY and there are DDL users.");
                         }
@@ -917,8 +905,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
                         */
                         boolean lockGranted = false;
 
-                        try
-                        {
+                        try {
                             // When the C_LockFactory.NO_WAIT is used this 
                             // routine will not throw timeout or deadlock 
                             // exceptions.  The boolean returned will indicate 
@@ -939,9 +926,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
                                     cacheCoordinator,
                                     ShExQual.SH,
                                     C_LockFactory.NO_WAIT);
-                        } 
-                        catch (StandardException e)
-                        {
+                        }  catch (StandardException e) {
                             // neither TIMEOUT or DEADLOCK can happen with 
                             // NO_WAIT flag.  This must be some other exception.
 
@@ -951,9 +936,7 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 
                         if (!lockGranted)
                             needRetry = true;
-                    }
-                    else
-                    {
+                    } else {
                         readersInDDLMode++;
                     }
                 }
