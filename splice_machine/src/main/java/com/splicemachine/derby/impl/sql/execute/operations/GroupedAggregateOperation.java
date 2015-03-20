@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.db.impl.sql.execute.IndexValueRow;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
@@ -609,7 +610,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         public ExecRow call(ExecRow row) throws Exception {
             if (!(row instanceof ExecIndexRow)) {
                 op.sourceExecIndexRow.execRowToExecIndexRow(row);
-                row = (ExecIndexRow) op.sourceExecIndexRow.getClone();
+                row = new IndexValueRow(row);
             }
             if (!op.isInitialized(row)) {
                 op.initializeVectorAggregation(row);
@@ -636,8 +637,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                 RDDUtils.LOG.debug(String.format("Reducing %s and %s", t1, t2));
             }
             if (!(t1 instanceof ExecIndexRow)) {
-                op.sourceExecIndexRow.execRowToExecIndexRow(t1);
-                t1 = (ExecIndexRow) op.sourceExecIndexRow.getClone();
+                t1 = new IndexValueRow(t1);
             }
             if (!op.isInitialized(t1)) {
                 op.initializeVectorAggregation(t1);
@@ -655,8 +655,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                     aggregate.merge(next, agg);
                 }
             } else {
-                op.sourceExecIndexRow.execRowToExecIndexRow(next);
-                next = op.sourceExecIndexRow;
+                next = new IndexValueRow(next);
                 if (RDDUtils.LOG.isDebugEnabled()) {
                     RDDUtils.LOG.debug(String.format("Aggregating %s to %s", next, agg));
                 }

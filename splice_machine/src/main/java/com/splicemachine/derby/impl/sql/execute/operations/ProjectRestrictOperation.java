@@ -56,6 +56,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		private boolean alwaysFalse;
 		protected SpliceMethod<DataValueDescriptor> restriction;
 		protected SpliceMethod<ExecRow> projection;
+        private ExecRow projectionResult;
 
 		static {
 				nodeTypes = Collections.singletonList(NodeType.MAP);
@@ -448,9 +449,15 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
             }
             op.source.setCurrentRow(sourceRow);
             if (op.projection != null) {
-                result = (ExecRow) op.projection.invoke();
+                ExecRow tmp = (ExecRow) op.projection.invoke();
+                if (op.projectionResult == null || tmp == op.projectionResult) {
+                    result = tmp.getClone();
+                } else {
+                    result = tmp;
+                }
+                op.projectionResult = tmp;
             } else {
-                result = op.mappedResultRow;
+                result = op.mappedResultRow.getNewNullRow();
             }
             // Copy any mapped columns from the source
             for (int index = 0; index < op.projectMapping.length; index++) {
@@ -468,7 +475,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
             if (RDDUtils.LOG.isDebugEnabled()) {
                 RDDUtils.LOG.debug("Projected " + sourceRow + " into " + result);
             }
-            return result.getClone();
+            return result;
         }
     }
 
