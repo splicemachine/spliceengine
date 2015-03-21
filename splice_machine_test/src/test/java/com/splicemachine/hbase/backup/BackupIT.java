@@ -2,12 +2,9 @@ package com.splicemachine.hbase.backup;
 
 import java.io.File;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -49,7 +46,8 @@ public class BackupIT extends SpliceUnitTest {
     {
     	backupDir.deleteOnExit();
     }
-        
+
+    @Ignore
 	@Test
 	public void testBackup() throws Exception{
 		loadData(spliceSchemaWatcher.schemaName,TABLE,getResourceDirectory()+"importTest.in","NAME,TITLE,AGE");
@@ -65,7 +63,7 @@ public class BackupIT extends SpliceUnitTest {
     private void backup() throws Exception
     {
     	System.out.println("Start backup ...");
-    	PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_BACKUP_DATABASE('%s')", backupDir.getAbsolutePath()));
+    	PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_BACKUP_DATABASE('%s', 'full')", backupDir.getAbsolutePath()));
         ps.execute();
     	System.out.println("Backup completed.");
 
@@ -74,7 +72,11 @@ public class BackupIT extends SpliceUnitTest {
     private void restore() throws Exception
     {
     	System.out.println("Start restore ...");
-    	PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_RESTORE_DATABASE('%s')", backupDir.getAbsolutePath()));
+        PreparedStatement ps = methodWatcher.prepareStatement(format("select transaction_id from backup.backup"));
+        ResultSet rs = ps.executeQuery();
+        Assert.assertTrue(rs.next());
+        long transactionId = rs.getLong(1);
+        ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_RESTORE_DATABASE('%s', %d)", backupDir.getAbsolutePath(), transactionId));
         ps.execute();
     	System.out.println("Restore completed.");
     }

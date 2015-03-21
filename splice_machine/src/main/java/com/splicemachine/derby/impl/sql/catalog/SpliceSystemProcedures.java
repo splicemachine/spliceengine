@@ -141,7 +141,6 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                                 .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
                                 .varchar("directory", 32672)
                                 .varchar("type", 32672)
-                                .integer("frequency")
                                 .build();
                         procedures.set(i, backup);
                     }
@@ -636,16 +635,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .numResultSets(1)
                             .ownerClass(TimestampAdmin.class.getCanonicalName())
                             .build());
-
-                    /*
-                     * Procedure to incremental back up a database
-                     */
-                    procedures.add(Procedure.newBuilder().name("SYSCS_INCREMENTAL_BACKUP_DATABASE")
-                            .numOutputParams(0)
-                            .numResultSets(0)
-                            .bigint("parent_backup_id")
-                            .ownerClass(SpliceAdmin.class.getCanonicalName())
-                            .build());
+                    
                 }
 
             } // End iteration through map keys (schema UUIDs)

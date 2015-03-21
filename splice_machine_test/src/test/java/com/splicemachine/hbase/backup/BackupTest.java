@@ -39,7 +39,7 @@ public class BackupTest {
 	public void testMarkBackupSuccesful() throws SQLException, IOException {
         String path = File.createTempFile("splice", "backup").getPath();
 		Backup backupNoParent = Backup.createBackup(path, BackupScope.D, -1L);
-		backupNoParent.markBackupSuccesful();
+		backupNoParent.markBackupSuccessful();
 		Assert.assertTrue("backupSuccessfulNotMarked",backupNoParent.getBackupStatus().S.ordinal() == BackupStatus.S.ordinal());		
 	}
 }

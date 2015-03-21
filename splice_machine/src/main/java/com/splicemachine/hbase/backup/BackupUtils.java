@@ -17,6 +17,7 @@ import com.splicemachine.utils.SpliceUtilities;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.io.HFileLink;
 import org.apache.hadoop.hbase.regionserver.*;
 
 import com.splicemachine.derby.hbase.DerbyFactory;
@@ -39,6 +40,12 @@ public class BackupUtils {
         return Backup.isBackupRunning();
     }
 
+    /**
+     *
+     * @param region HBase region
+     * @return store files for each column family
+     * @throws ExecutionException
+     */
     public static HashMap<byte[], Collection<StoreFile>> getStoreFiles(HRegion region) throws ExecutionException {
         try {
             HashMap<byte[], Collection<StoreFile>> storeFiles = new HashMap<>();
@@ -55,6 +62,12 @@ public class BackupUtils {
         }
     }
 
+    /**
+     * Get directory of the specified backup
+     * @param parent_backup_id
+     * @return
+     * @throws StandardException
+     */
     public static String getBackupDirectory(long parent_backup_id) throws StandardException {
 
         if (parent_backup_id == -1) {
@@ -80,6 +93,11 @@ public class BackupUtils {
         return dir;
     }
 
+    /**
+     * Get backup Id for the latest backup
+     * @return backup Id
+     * @throws SQLException
+     */
     public static long  getLastBackupTime() throws SQLException {
 
         long backupTransactionId = -1;
@@ -93,11 +111,16 @@ public class BackupUtils {
                 backupTransactionId = rs.getLong(1);
             }
         } catch (Exception e) {
-            SpliceLogUtils.warn(LOG, "cannot query last backup");
+            SpliceLogUtils.warn(LOG, e.getMessage());
         }
         return backupTransactionId;
     }
 
+    /**
+     * Query BACKUP.BACKUP table, return true if there exists an entry with the specified status
+     * @param status Back up status, "S", "I", or "F"
+     * @return true if there exists an entry with the specified status
+     */
     public static boolean existBackupWithStatus(String status) {
         boolean exists = false;
         Connection connection = null;
@@ -109,7 +132,7 @@ public class BackupUtils {
             ResultSet rs = ps.executeQuery();
             exists = rs.next();
         } catch (Exception e) {
-            SpliceLogUtils.warn(LOG, "cannot query last backup");
+            SpliceLogUtils.warn(LOG, e.getMessage());
         }
 
         return exists;
@@ -119,6 +142,11 @@ public class BackupUtils {
         return tableName + "_" + backupId;
     }
 
+    /**
+     * Get last snapshot name.
+     * @param tableName
+     * @return last snapshot name
+     */
     public static String getLastSnapshotName(String tableName) {
 
         String snapshotName = null;
@@ -128,43 +156,57 @@ public class BackupUtils {
                 snapshotName = getSnapshotName(tableName, backupId);
             }
         } catch (Exception e) {
-            SpliceLogUtils.warn(LOG, "cannot query last snapshot name");
+            SpliceLogUtils.warn(LOG, e.getMessage());
         }
 
         return snapshotName;
     }
 
-    public static boolean shouldExcludeReferencedFile(String tableName, String fileName, FileSystem fs) throws IOException{
-        String[] s = fileName.split("\\.");
+    /**
+     * A reference file should be excluded for next incremental backup if
+     * 1) it appears in the last snapshot, or
+     * 2) it references
+     * @param tableName name of HBase table
+     * @param referenceFileName name of reference file
+     * @param fs file system
+     * @return true, if the file is a reference file, and should not be included in next incremental backup
+     * @throws IOException
+     */
+    public static boolean shouldExcludeReferencedFile(String tableName,
+                                                      String referenceFileName,
+                                                      FileSystem fs) throws IOException{
+        String[] s = referenceFileName.split("\\.");
         int n = s.length;
-        if (n == 1)
+        if (n == 1) {
+            // This is not a reference file
             return false;
-        HBaseAdmin admin = SpliceUtilities.getAdmin();
-        String encodedRegionName = s[n-1];
-        List<HRegionInfo> regionInfoList = admin.getTableRegions(tableName.getBytes());
+        }
+        String fileName = s[0];
+        String encodedRegionName = s[1];
 
-        SnapshotUtils utils = SnapshotUtilsFactory.snapshotUtils;
+        // Get last snapshot for this table
+        SnapshotUtils snapshotUtils = SnapshotUtilsFactory.snapshotUtils;
         Configuration conf = SpliceConstants.config;
         String snapshotName = BackupUtils.getLastSnapshotName(tableName);
         Set<String> pathSet = new HashSet<>();
-        List<Path> pathList = new ArrayList<>();
         if (snapshotName != null) {
-            Path rootDir = FSUtils.getRootDir(conf);
-            Path snapshotDir = SnapshotDescriptionUtils.getCompletedSnapshotDir(snapshotName, rootDir);
-            pathList = utils.getSnapshotFilesForRegion(null, conf, fs, snapshotDir);
+            List<Path> pathList = getSnapshotHFileLinksForRegion(snapshotUtils, null, conf, fs, snapshotName);
+            for (Path path : pathList) {
+                pathSet.add(path.getName());
+            }
         }
 
-        for (Path path : pathList) {
-            pathSet.add(path.getName());
-        }
-        if(pathSet.contains(s[0])) {
+        if(pathSet.contains(fileName)) {
+            // If the referenced file appears in last snapshot, this file should be excluded for next incremental
+            // backup
             if (LOG.isTraceEnabled()) {
                 SpliceLogUtils.info(LOG, "snapshot contains file " + s[0]);
             }
             return true;
         }
 
-        if (shouldExclude(tableName, s[1], s[0])) {
+        if (shouldExclude(tableName, encodedRegionName, fileName)) {
+            // Check BACKUP.BACKUP_FILESET whether this file should be excluded
             if (LOG.isTraceEnabled()) {
                 SpliceLogUtils.info(LOG, "Find an entry in Backup.Backup_fileset for table = " + tableName +
                         " region = " + s[1] + " file = " + s[0]);
@@ -174,11 +216,20 @@ public class BackupUtils {
 
         return false;
     }
+
+    /**
+     *
+     * @param tableName name of table
+     * @param encodedRegionName encoded region name
+     * @param fileName name of HFile
+     * @return true, if the HFile should not be included in the next incremental backup
+     */
     public static boolean shouldExclude(String tableName, String encodedRegionName, String fileName) {
 
         boolean exclude = false;
         Connection connection = null;
-        String sqlText = "select count(*) from %s.%s where backup_item=? and region_name=? and file_name=? and include=false";
+        String sqlText =
+                "select count(*) from %s.%s where backup_item=? and region_name=? and file_name=? and include=false";
 
         try {
             connection = SpliceDriver.driver().getInternalConnection();
@@ -192,11 +243,18 @@ public class BackupUtils {
                  exclude = (rs.getInt(1) > 0);
             }
         } catch (Exception e) {
-            SpliceLogUtils.warn(LOG, "ShouldExcluded: cannot query backup.fileset");
+            SpliceLogUtils.warn(LOG, e.getMessage());
         }
         return exclude;
     }
 
+    /**
+     * Insert an entry to BACKUP.BACKUP_FILESET
+     * @param tableName name of name of HBase table
+     * @param encodedRegionName encoded region name
+     * @param fileName name of HFile
+     * @param include whether this file should be included in next incremental backup
+     */
     public static void insertFileSet(String tableName, String encodedRegionName, String fileName, boolean include) {
         Connection connection = null;
         String sqlText = String.format("insert into %s.%s (backup_item,region_name,file_name,include) values(?,?,?,?)",
@@ -217,10 +275,17 @@ public class BackupUtils {
             ps.execute();
             ps.close();
         } catch (Exception e) {
-            SpliceLogUtils.warn(LOG, "insertFileSet: cannot insert into backup.fileset");
+            SpliceLogUtils.warn(LOG, e.getMessage());
         }
     }
 
+    /**
+     * Query BACKUP.BACKUP_FILESET
+     * @param tableName name of HBase table
+     * @param encodedRegionName encoded region name
+     * @param include whether this file should be included in next incremental backup
+     * @return
+     */
     public static ResultSet queryFileSet(String tableName, String encodedRegionName, boolean include) {
 
         Connection connection = null;
@@ -236,11 +301,18 @@ public class BackupUtils {
             rs = ps.executeQuery();
 
         } catch (Exception e) {
-            SpliceLogUtils.warn(LOG, "queryFileSet: cannot query backup.fileset");
+            SpliceLogUtils.warn(LOG, e.getMessage());
         }
         return rs;
     }
 
+    /**
+     * Delete entries from BACKUP.BACKUP_FILESET
+     * @param tableName name of HBase table
+     * @param encodedRegionName encoded region name
+     * @param fileName name of HFile
+     * @param include whether this file should be included in next incremental backup
+     */
     public static void deleteFileSet(String tableName, String encodedRegionName, String fileName, boolean include) {
 
         Connection connection = null;
@@ -262,31 +334,17 @@ public class BackupUtils {
             ps.execute();
             ps.close();
         } catch (Exception e) {
-            SpliceLogUtils.warn(LOG, "deleteFileSet: cannot delete backup.fileset");
+            SpliceLogUtils.warn(LOG, e.getMessage());
         }
     }
 
-    public static void deleteFileSetForRegion(String tableName, String encodedRegionName) {
-
-        Connection connection = null;
-        String sqlText = String.format("delete from %s.%s where backup_item=? and region_name=?",
-                BackupItem.DEFAULT_SCHEMA, BACKUP_FILESET_TABLE);
-        try {
-            if (LOG.isTraceEnabled()) {
-                String entry = "(" + tableName + "," + encodedRegionName + ")";
-                SpliceLogUtils.info(LOG, "deleteFileSetForRegion: delete " + entry + "from backup.backup_fileset");
-            }
-            connection = SpliceDriver.driver().getInternalConnection();
-            PreparedStatement ps = connection.prepareStatement(sqlText);
-            ps.setString(1, tableName);
-            ps.setString(2, encodedRegionName);
-            ps.execute();
-            ps.close();
-        } catch (Exception e) {
-            SpliceLogUtils.warn(LOG, "deleteFileSetForRegion: cannot delete from backup.fileset");
-        }
-    }
-
+    /**
+     * Look for an entry for an HFile in BACKUP.BACKUP_FILESET
+     * @param tableName name of HBase table
+     * @param encodedRegionName encoded region name
+     * @param fileName name of HFile
+     * @return
+     */
     public static FileSet getFileSet(String tableName, String encodedRegionName, String fileName) {
         Connection connection = null;
         ResultSet rs = null;
@@ -305,9 +363,24 @@ public class BackupUtils {
             }
 
         } catch (Exception e) {
-            SpliceLogUtils.warn(LOG, "getFileSet: cannot query backup.fileset");
+            SpliceLogUtils.warn(LOG, e.getMessage());
         }
         return null;
+    }
+
+    public static List<Path> getSnapshotHFileLinksForRegion(final SnapshotUtils utils,
+                                                    final HRegion region,
+                                                    final Configuration conf,
+                                                    final FileSystem fs,
+                                                    final String snapshotName) throws IOException {
+        List<Path> path = new ArrayList<>();
+        List<Object> files = utils.getSnapshotFilesForRegion(region, conf, fs, snapshotName);
+        for(Object f : files) {
+            if (f instanceof HFileLink) {
+                path.add(((HFileLink) f).getAvailablePath(fs));
+            }
+        }
+        return path;
     }
 
     public static class FileSet {

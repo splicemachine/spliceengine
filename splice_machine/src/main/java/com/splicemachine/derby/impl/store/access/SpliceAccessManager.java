@@ -771,11 +771,10 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
 
 		public void backup(
 						String  backupDir,
-                        long parent_backup_id,
 						boolean wait)
 						throws StandardException
 		{
-				rawstore.backup(backupDir, parent_backup_id, wait);
+				rawstore.backup(backupDir, wait);
 		}
 
 

@@ -44,8 +44,7 @@ public class BackupItem implements InternalTable {
     public static final String UPDATE_BACKUP_ITEM_STATUS = "update %s.%s set end_timestamp = ? where transaction_id = ? and item = ?";
     public static final String QUERY_BACKUP_ITEM = "select item, begin_timestamp, end_timestamp from %s.%s where transaction_id=?";
 
-    public static final String QUERY_LAST_SNAPSHOTNAME = "select snapshot_name from %s.%s where item=? order by transaction_id desc";
-	public BackupItem () {
+    public BackupItem () {
 		
 	}
 	
@@ -59,7 +58,6 @@ public class BackupItem implements InternalTable {
 	private String backupItem;
 	private Timestamp backupItemBeginTimestamp;
 	private Timestamp backupItemEndTimestamp;
-    private long lastBackupTimestamp;
     private String snapshotName;
     private String lastSnapshotName;
 
@@ -91,7 +89,6 @@ public class BackupItem implements InternalTable {
 		this.backupItem = backupItem;
 	}
 	
-	
 	public Timestamp getBackupItemBeginTimestamp() {
 		return backupItemBeginTimestamp;
 	}
@@ -120,7 +117,6 @@ public class BackupItem implements InternalTable {
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeObject(backup); // TODO Needs to be replaced with protobuf
         out.writeUTF(backupItem);
-        out.writeLong(lastBackupTimestamp);
         out.writeObject(regionInfoList);
     }
 
@@ -128,7 +124,6 @@ public class BackupItem implements InternalTable {
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         backup = (Backup) in.readObject(); // TODO Needs to be replaced with protobuf
         backupItem = in.readUTF();
-        lastBackupTimestamp = in.readLong();
         regionInfoList = (List<RegionInfo>) in.readObject();
     }
 
@@ -276,23 +271,15 @@ public class BackupItem implements InternalTable {
     }
 
     public void setLastSnapshotName(Set<String> snapshotNameSet) throws StandardException {
-        Backup parentBackup = backup.getIncrementalParentBackup();
-        if (parentBackup != null) {
-            long backupTxnId = parentBackup.getBackupId();
-            String name = backupItem + "_" + backupTxnId;
+
+        if (snapshotNameSet.size() == 0)
+            return;
+
+        long parentBackupId = backup.getParentBackupId();
+        if (parentBackupId > 0) {
+            String name = backupItem + "_" + parentBackupId;
             if (snapshotNameSet.contains(name)) {
                 lastSnapshotName = name;
-            }
-        }
-    }
-
-    public void setLastBackupTimestamp() throws StandardException{
-        Backup parentBackup = backup.getIncrementalParentBackup();
-        if (parentBackup != null) {
-            HashMap<String, BackupItem> backupItems = parentBackup.getBackupItems();
-            BackupItem item = backupItems.get(backupItem);
-            if (item != null) {
-                lastBackupTimestamp = parentBackup.getBackupId();
             }
         }
     }
@@ -304,7 +291,8 @@ public class BackupItem implements InternalTable {
             setBackupItemBeginTimestamp(new Timestamp(System.currentTimeMillis()));
             insertBackupItem();
             HTableInterface table = SpliceAccessManager.getHTable(getBackupItemBytes());
-            if (backup.getIncrementalParentBackupID() > 0) {
+
+            if (backup.getParentBackupId() > 0) {
                 CreateIncrementalBackupJob job =
                         new CreateIncrementalBackupJob(this, table, getBackupItemFilesystem(),
                                 snapshotName, lastSnapshotName);
@@ -320,16 +308,22 @@ public class BackupItem implements InternalTable {
                 info.setJobFuture(future);
                 future.completeAll(info);
             }
+
+            // Check backup directory for this item. If it does not exists, nothing was backed up incrementally.
+            // Remove the entry for this item in backup.backup_items table
             FileSystem fileSystem = FileSystem.get(URI.create(getBackupItemFilesystem()),SpliceConstants.config);
-            if (fileSystem.exists(new Path(getBackupItemFilesystem()))) {
+            Path path = new Path(getBackupItemFilesystem());
+            FileStatus[] status = fileSystem.listStatus(path);
+            if (status.length == 0) {
+                fileSystem.delete(path, true);
+                deleteBackupItem();
+                backedUp = false;
+            }
+            else {
                 writeDescriptorToFileSystem();
                 setBackupItemEndTimestamp(new Timestamp(System.currentTimeMillis()));
                 updateBackupItem();
                 backedUp = true;
-            }
-            else {
-                deleteBackupItem();
-                backedUp = false;
             }
         } catch (CancellationException ce) {
             throw Exceptions.parseException(ce);

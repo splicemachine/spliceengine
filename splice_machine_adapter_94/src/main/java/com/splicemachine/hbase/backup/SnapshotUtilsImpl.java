@@ -223,12 +223,21 @@ public class SnapshotUtilsImpl implements SnapshotUtils {
     	// should not be here
     	return null;    
     }
-    
 
+    @Override
+    public List<Object> getSnapshotFilesForRegion(final HRegion region, final Configuration conf,
+                                                  final FileSystem fs, final String snapshotName) throws IOException {
+        Path rootDir = FSUtils.getRootDir(conf);
+
+        Path snapshotDir = SnapshotDescriptionUtils.getCompletedSnapshotDir(snapshotName, rootDir);
+        List<Object> paths = getSnapshotFilesForRegion(region, conf, fs, snapshotDir);
+
+        return paths;
+    }
 	
     /**
      * Returns column family name from store file path
-     * @param path
+     * @param link
      * @return column family name (as byte array)
      */
     public byte[] getColumnFamily(HFileLink link)

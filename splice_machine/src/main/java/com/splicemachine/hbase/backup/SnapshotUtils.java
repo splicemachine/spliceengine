@@ -21,12 +21,15 @@ public interface SnapshotUtils {
 	  * Extract the list of files (HFiles/HLogs) to copy using Map-Reduce.
 	  * @return list of files referenced by the snapshot (pair of path and size)
 	 */
-	 public List<Object> getSnapshotFilesForRegion(final HRegion region, final Configuration conf,
+	public List<Object> getSnapshotFilesForRegion(final HRegion region, final Configuration conf,
 	        final FileSystem fs, final Path snapshotDir) throws IOException ;
-	 
+
+    public List<Object> getSnapshotFilesForRegion(final HRegion region, final Configuration conf,
+                                                  final FileSystem fs, final String snapshotName) throws IOException ;
 	 /**
 	  * Materializes snapshot reference file - creates real hfile in a local tmp directory.  
 	  */
-	 public Path materializeRefFile(Configuration conf, FileSystem fs, HFileLink refFilePath, HRegion region )
+	public Path materializeRefFile(Configuration conf, FileSystem fs, HFileLink refFilePath, HRegion region )
 	 	throws IOException;
+
 }

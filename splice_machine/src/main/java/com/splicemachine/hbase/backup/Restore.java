@@ -46,6 +46,14 @@ public class Restore {
         return backupItems;
     }
 
+    /**
+     * Create a Restore object
+     * @param directory backup directory
+     * @param backupId backup ID
+     * @return A Restore Object
+     * @throws SQLException
+     * @throws StandardException
+     */
     public static Restore createRestore(String directory, long backupId) throws SQLException, StandardException{
 
         Restore restore = null;
@@ -66,19 +74,30 @@ public class Restore {
         return restore;
     }
 
+    /**
+     * Returns the last incremental or full backup.
+     * @return
+     */
     public Backup getLastBackup() {
         return backups.get(0);
     }
 
-    private void combineBackups(Backup b1, Backup b2) {
+    /**
+     * This method mergess two backups b1 and b2 by adding HFile path from b1 to b2
+     * @param b1
+     * @param b2
+     */
+    private void mergeBackups(Backup b1, Backup b2) {
         Map<String, BackupItem> backupItems1 = b1.getBackupItems();
         Map<String, BackupItem> backupItems2 = b2.getBackupItems();
 
         for(String item : backupItems1.keySet()) {
             if (!backupItems2.containsKey(item)) {
+                // If b2 does not contain this item, add this item to b2
                 backupItems2.put(item, backupItems1.get(item));
             }
             else {
+                // If b2 contain this backup item, add each HFile from b1 to the appropriate region of b2
                 BackupItem item1 = backupItems1.get(item);
                 BackupItem item2 = backupItems2.get(item);
                 List<BackupItem.RegionInfo> regionInfoList1 = item1.getRegionInfoList();
@@ -88,6 +107,7 @@ public class Restore {
                     boolean fallsInto = false;
                     for (BackupItem.RegionInfo regionInfo2 : regionInfoList2) {
                         if (regionFallsInto(regionInfo1, regionInfo2)) {
+                            // if region2 contains region1, add HFiles from region1 to region 2
                             List<Pair<byte[], String>> famPathList = regionInfo2.getFamPaths();
                             for(Pair<byte[], String> p : regionInfo1.getFamPaths()) {
                                 famPathList.add(p);
@@ -104,51 +124,77 @@ public class Restore {
         }
     }
 
+    /**
+     * compare two start keys
+     * @param k1 start key
+     * @param k2 start key
+     * @return 0 if equal; 1 if greater, -1 if less than
+     */
     private int compareStartKey(byte[] k1, byte[] k2) {
         int result = 0;
         Bytes.ByteArrayComparator comparator = new Bytes.ByteArrayComparator();
+
         if (k1 == null && k2 == null ||
             k1.length == 0 && k2.length == 0) {
+            //Both are null keys
             result = 0;
         }
         else if (k1== null && k2 != null ||
                  k1.length == 0 && k2.length != 0) {
+            //key1 is null, key2 non-null, then key1 < key2
             result = -1;
         }
         else if (k1!= null && k2 == null ||
                  k1.length != 0 && k2.length == 0) {
+            //key1 is non-null, key2 is null, then key1 > key2
             result = 1;
         }
         else {
+            //compare two non-null byte arrays
             result = comparator.compare(k1, k2);
         }
 
         return result;
     }
 
+    /**
+     * Compares two end keys
+     * @param k1 end key
+     * @param k2 end key
+     * @return 0 if equal; 1 if greater, -1 if less than
+     */
     private int compareEndKey(byte[] k1, byte[] k2) {
         int result = 0;
         Bytes.ByteArrayComparator comparator = new Bytes.ByteArrayComparator();
         if (k1 == null && k2 == null ||
-                k1.length == 0 && k2.length == 0) {
+            k1.length == 0 && k2.length == 0) {
+            //both are null key
             result = 0;
         }
         else if (k1 == null && k2 != null ||
-                k1.length == 0 && k2.length != 0) {
+                 k1.length == 0 && k2.length != 0) {
+            //k1 is null, k2 is non-null, k1 > k2
             result = 1;
         }
         else if (k1 != null && k2 == null ||
-                k1.length != 0 && k2.length == 0) {
+                 k1.length != 0 && k2.length == 0) {
+            //k1 is null, k2 is non-null, k1 < k2
             result = -1;
         }
         else {
+            //compare two non-null byte arrays
             result = comparator.compare(k1, k2);
         }
 
         return result;
     }
 
-
+    /**
+     * Whether region2 contains region1
+     * @param regionInfo1
+     * @param regionInfo2
+     * @return true if region2 contains region1
+     */
     private boolean regionFallsInto(BackupItem.RegionInfo regionInfo1, BackupItem.RegionInfo regionInfo2) {
         byte[] startKey1 = regionInfo1.getHRegionInfo().getStartKey();
         byte[] endKey1 = regionInfo1.getHRegionInfo().getEndKey();
@@ -164,7 +210,7 @@ public class Restore {
         Backup backup = itr.next();
         while(itr.hasNext()) {
             Backup b = itr.next();
-            combineBackups(backup, b);
+            mergeBackups(backup, b);
             backup = b;
         }
         backupItems = backup.getBackupItems();
@@ -182,6 +228,12 @@ public class Restore {
         }
     }
 
+    /**
+     * Create Backup records for each incremental and full backups
+     * @param directory
+     * @param backupId
+     * @throws StandardException
+     */
     private void createBackups(String directory, long backupId) throws StandardException {
 
         LinkedList<Backup> backupList = new LinkedList<>();
@@ -202,7 +254,7 @@ public class Restore {
                 Backup backup = new Backup();
                 backup.setBackupTransaction(restoreTransaction);
                 backup.setBackupId(backupId);
-                backup.setIncrementalParentBackupID(parentBackupId);
+                backup.setParentBackupID(parentBackupId);
                 backup.setBackupScope(Backup.BackupScope.D);
                 backup.setBackupStatus(Backup.BackupStatus.I);
                 backup.setBackupFilesystem(directory);

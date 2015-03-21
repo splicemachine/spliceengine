@@ -48,26 +48,37 @@ public class BackupSystemProcedures {
 
     private static Logger LOG = Logger.getLogger(BackupSystemProcedures.class);
 
-    public static void SYSCS_BACKUP_DATABASE(String directory, String type, int frequency, ResultSet[] resultSets)
+    /**
+     * Entry point for system procedure SYSCS_UTIL.SYSCS_BACKUP_DATABASE
+     *
+     * @param directory The directory to store a database backup
+     * @param type type of backup, either 'FULL' or 'INCREMENTAL'
+     * @return
+     * @throws SQLException, StandardException
+     */
+    public static void SYSCS_BACKUP_DATABASE(String directory, String type, ResultSet[] resultSets)
             throws StandardException, SQLException {
 
         IteratorNoPutResultSet inprs = null;
         LanguageConnectionContext lcc = null;
         Connection conn = null;
+
         try {
             conn = SpliceAdmin.getDefaultConn();
             lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
 
+            // Check directory
             if (directory == null || directory.length() == 0) {
                 throw StandardException.newException("Invalid backup directory.");
             }
 
-            if (frequency != -1) {
-                throw StandardException.newException("Scheduled database backup is not supported.");
-            }
+            // Check backup type
             if (type.compareToIgnoreCase("FULL") == 0) {
+
                 backup(directory, -1);
+
             } else if (type.compareToIgnoreCase("INCREMENTAL") == 0) {
+                // Find the most recent backup (full or incremental). The next incremental backup will be based on it.
                 long parent_backup_id = BackupUtils.getLastBackupTime();
                 if (parent_backup_id == 0) {
                     throw StandardException.newException("Cannot find a full backup.");
@@ -77,18 +88,20 @@ public class BackupSystemProcedures {
                 throw StandardException.newException("Incorrect backup type.");
             }
         } catch (Throwable t) {
-            ResultColumnDescriptor[] rcds = new ResultColumnDescriptor[]{
-                    new GenericColumnDescriptor("Error", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, t.getMessage().length()))};
+
+            DataTypeDescriptor dtd =
+                    DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, t.getMessage().length());
+            ResultColumnDescriptor[] rcds = new ResultColumnDescriptor[]{new GenericColumnDescriptor("Error", dtd)};
             ExecRow template = new ValueRow(1);
             template.setRowArray(new DataValueDescriptor[]{new SQLVarchar()});
             List<ExecRow> rows = Lists.newArrayList();
             template.getColumn(1).setValue(t.getMessage());
 
             rows.add(template.getClone());
-            inprs = new IteratorNoPutResultSet(rows,rcds,lcc.getLastActivation());
+            inprs = new IteratorNoPutResultSet(rows, rcds, lcc.getLastActivation());
             inprs.openCore();
             SpliceLogUtils.error(LOG, "Database backup error", t);
-            resultSets[0] = new EmbedResultSet40(conn.unwrap(EmbedConnection.class),inprs,false,null,true);
+            resultSets[0] = new EmbedResultSet40(conn.unwrap(EmbedConnection.class), inprs, false, null, true);
         }
     }
 
@@ -107,13 +120,15 @@ public class BackupSystemProcedures {
 
             backup = Backup.createBackup(backupDir, Backup.BackupScope.D, parentBackupId);
             backup.createBaseBackupDirectory();
+
+            // Get existing snapshot
             admin = SpliceUtilities.getAdmin();
             List<HBaseProtos.SnapshotDescription> snapshots = admin.listSnapshots();
-
             Set<String> snapshotNameSet = new HashSet<>();
             for (HBaseProtos.SnapshotDescription s : snapshots) {
                 snapshotNameSet.add(s.getName());
             }
+
             backup.createBackupItems(admin, snapshotNameSet, newSnapshotNameSet);
             backup.insertBackup();
             backup.createProperties();
@@ -137,13 +152,16 @@ public class BackupSystemProcedures {
             for(String snapshotName : snapshotNameSet) {
                 admin.deleteSnapshot(snapshotName);
             }
-            backup.markBackupSuccesful();
+            backup.markBackupSuccessful();
             backup.writeBackupStatusChange(count);
+
         } catch (Throwable e) {
+
             if (backup != null) {
                 backup.markBackupFailed();
                 backup.writeBackupStatusChange(count);
             }
+            // Delete previous snapshots
             for(String snapshotName : newSnapshotNameSet) {
                 admin.deleteSnapshot(snapshotName);
             }
@@ -154,6 +172,14 @@ public class BackupSystemProcedures {
         }
     }
 
+    /**
+     * Entry point for system procedure SYSCS_UTIL.SYSCS_RESTORE_DATABASE
+     * @param directory A directory in file system where backup data are stored
+     * @param backupId backup ID
+     * @param resultSets
+     * @throws StandardException
+     * @throws SQLException
+     */
     public static void SYSCS_RESTORE_DATABASE(String directory, long backupId, ResultSet[] resultSets) throws StandardException, SQLException {
         HBaseAdmin admin = null;
         String changeId = null;

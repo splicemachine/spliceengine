@@ -10,14 +10,12 @@ import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.regionserver.Store;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.snapshot.SnapshotDescriptionUtils;
 import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.hadoop.hbase.util.HFileArchiveUtil;
 import org.apache.log4j.Logger;
@@ -54,6 +52,7 @@ public class CreateIncrementalBackupTask extends ZkTask {
     private String tableName;
     private String encodedRegionName;
     private Path rootDir;
+    SnapshotUtils snapshotUtils = SnapshotUtilsFactory.snapshotUtils;
 
     public CreateIncrementalBackupTask() { init();}
 
@@ -121,6 +120,15 @@ public class CreateIncrementalBackupTask extends ZkTask {
         return SchedulerPriorities.INSTANCE.getBasePriority(CreateBackupTask.class);
     }
 
+    /**
+     * This method copies incremental changes of a region. Incremental changes includes the following
+     * 1) HFiles that are in the latest snapshot, but not in previous snapshot, or in BACKUP.BACKUP_FILESET with
+     *    include=false
+     * 2) HFiles that only contains incremental changes but not in the latest snapshot. These HFiles are moved to
+     *    HBase archived directory after compaction. BACKUP.BACKUP_FILESET records each HFile with include=true.
+     * If there are no incremental changes for this region, do not write anything(region directory,
+     * region information, etc) to file system.
+     */
     private void incrementalBackup() throws ExecutionException, InterruptedException {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, String.format("executing incremental backup on region %s", region.toString()));
@@ -134,9 +142,11 @@ public class CreateIncrementalBackupTask extends ZkTask {
             List<Path> paths = getIncrementalChanges();
             FileSystem fs = region.getFilesystem();
 
+            // Write region information
             BackupUtils.derbyFactory.writeRegioninfoOnFilesystem(region.getRegionInfo(),
                     new Path(backupFileSystem), fs, SpliceConstants.config);
 
+            // Copy HFiles that only in the latest snapshot and not in BACKUP.BACKUP_FILESET with include=false
             if (paths != null && paths.size() > 0) {
                 for (Path p : paths) {
                     String[] s = p.toString().split("/");
@@ -152,14 +162,10 @@ public class CreateIncrementalBackupTask extends ZkTask {
 
             count += copyArchivedHFiles();
             if (count == 0 && lastSnapshotName != null) {
-                // The directory becomes empty if there the table has no incremental changes, and the table is not
-                // a new empty table, and there were no region split for the table
+                // The directory becomes empty if the table has no incremental changes, and the table is not
+                // a new empty table, and there were no region split for the table. No need to keep the directory
+                // in this case.
                 fs.delete(new Path(backupFileSystem + "/" + encodedRegionName), true);
-                Path path = new Path(backupFileSystem);
-                FileStatus[] status = fs.listStatus(path);
-                if (status.length == 0) {
-                    fs.delete(path, true);
-                }
             }
         }
         catch (Exception e) {
@@ -167,6 +173,11 @@ public class CreateIncrementalBackupTask extends ZkTask {
         }
     }
 
+    /**
+     * For each HFile in archived directory, check whether it should be included in incremental backup.
+     * Delete all entries for this region in BACKUP.BACKUP_FILESET. BACKUP.BACKUP_FILESET should only keeps track of
+     * HFile changes between two consecutive incremental backups.
+     */
     private int copyArchivedHFiles() throws IOException{
 
         if (includeFileSet.size() == 0) {
@@ -202,6 +213,10 @@ public class CreateIncrementalBackupTask extends ZkTask {
         return count;
     }
 
+    /*
+     * This method compares the latest snapshot and a previous snapshot, returns files that are only in the latest
+     * snapshot AND not in BACKUP.BACKUP_FILESET with include column being false
+     */
     private List<Path> getIncrementalChanges() throws ExecutionException{
 
         List<Path> hFiles = null;
@@ -210,23 +225,25 @@ public class CreateIncrementalBackupTask extends ZkTask {
 
         try {
             Configuration conf = SpliceConstants.config;
+
             FileSystem fs = FileSystem.get(URI.create(backupFileSystem), conf);
             rootDir = FSUtils.getRootDir(conf);
-            SnapshotUtils utils = SnapshotUtilsFactory.snapshotUtils;
-            Path snapshotDir = SnapshotDescriptionUtils.getCompletedSnapshotDir(snapshotName, rootDir);
-            paths = utils.getSnapshotFilesForRegion(region, conf, fs, snapshotDir);
+
+            // Get files that are in the latest snapshot
+            paths = BackupUtils.getSnapshotHFileLinksForRegion(snapshotUtils, region, conf, fs, snapshotName);
             if (lastSnapshotName != null) {
-                Path lastSnapshotDir = SnapshotDescriptionUtils.getCompletedSnapshotDir(lastSnapshotName, rootDir);
-                lastPaths = utils.getSnapshotFilesForRegion(region, conf, fs, lastSnapshotDir);
+                // Get files that are in a previous snapshot
+                lastPaths = BackupUtils.getSnapshotHFileLinksForRegion(snapshotUtils, region, conf, fs, lastSnapshotName);
             }
         } catch (IOException e) {
             throw new ExecutionException(e);
         }
 
-        if (lastPaths == null)
+        if (lastPaths == null || lastPaths.size() == 0)
+            // If no files in the previous snapshot, or there was no previous snapshot, then return all files in the
+            // latest snapshot
             return paths;
         else {
-
             // Hash files from the latest snapshot, ignore files that should be excluded
             HashMap<String, Path> pathMap = new HashMap<>();
             for(Path p : paths) {
@@ -250,6 +267,9 @@ public class CreateIncrementalBackupTask extends ZkTask {
         return hFiles;
     }
 
+    /*
+     * Query from BACKUP.BACKUP_FILESET the HFiles that should not be included for incremental backup
+     */
     private void populateExcludeFileSet() throws SQLException{
         ResultSet rs = BackupUtils.queryFileSet(tableName, encodedRegionName, false);
         if (rs != null) {
@@ -257,8 +277,12 @@ public class CreateIncrementalBackupTask extends ZkTask {
                 excludeFileSet.add(rs.getString(1));
             }
         }
+        rs.close();
     }
 
+    /*
+     * Query from BACKUP.BACKUP_FILESET the HFiles that should be included for incremental backup
+     */
     private void populateIncludeFileSet() throws SQLException{
         ResultSet rs = BackupUtils.queryFileSet(tableName, encodedRegionName, true);
         if (rs != null) {
@@ -266,5 +290,6 @@ public class CreateIncrementalBackupTask extends ZkTask {
                 includeFileSet.add(rs.getString(1));
             }
         }
+        rs.close();
     }
 }

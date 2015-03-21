@@ -43,6 +43,8 @@ public class Backup implements InternalTable {
     public static final String BACKUP_TABLE_FOLDER = "tables";
     public static final String BACKUP_META_FOLDER = "meta";
     public static final String BACKUP_PROPERTIES_FOLDER = "properties";
+    public static final String BACKUP_VERSION = "1";
+
     private long timestampSource;
 
     private boolean temporaryBaseFolder; // true if not using default base folder
@@ -71,7 +73,6 @@ public class Backup implements InternalTable {
     public static final String UPDATE_BACKUP_STATUS = "update %s.%s set status=?, end_timestamp=?, backup_item=? where transaction_id=?";
     public static final String RUNNING_CHECK = "select transaction_id from %s.%s where status = ?";
     public static final String QUERY_PARENT_BACKUP_DIRECTORY = "select filesystem from %s.%s where transaction_id = ?";
-    public static final String QUERY_PARENT_BACKUP = "select * from %s.%s where transaction_id=?";
 
     public static final String VERSION_FILE = "version";
     public static final String BACKUP_TIMESTAMP_FILE = "backupTimestamp";
@@ -86,8 +87,7 @@ public class Backup implements InternalTable {
     private String baseFolder;
     private BackupScope backupScope;
     private boolean incrementalBackup;
-    private long incrementalParentBackupID;
-    private Backup incrementalParentBackup;
+    private long parentBackupId;
     private long backupId;
     private HashMap<String, BackupItem> backupItems;
     private long backupTimestamp;
@@ -189,12 +189,12 @@ public class Backup implements InternalTable {
         this.incrementalBackup = incrementalBackup;
     }
 
-    public Long getIncrementalParentBackupID() {
-        return incrementalParentBackupID;
+    public Long getParentBackupId() {
+        return parentBackupId;
     }
 
-    public void setIncrementalParentBackupID(Long incrementalParentBackupID) {
-        this.incrementalParentBackupID = incrementalParentBackupID;
+    public void setParentBackupID(Long parentBackupId) {
+        this.parentBackupId = parentBackupId;
     }
 
     /** Begin Helper Methods
@@ -204,14 +204,15 @@ public class Backup implements InternalTable {
         Connection connection = null;
         try {
             connection = SpliceAdmin.getDefaultConn();
-            PreparedStatement preparedStatement = connection.prepareStatement(String.format(INSERT_START_BACKUP,DEFAULT_SCHEMA,DEFAULT_TABLE));
+            PreparedStatement preparedStatement = connection.prepareStatement(
+                    String.format(INSERT_START_BACKUP,DEFAULT_SCHEMA,DEFAULT_TABLE));
             preparedStatement.setLong(1, backupTransaction.getTxnId());
             preparedStatement.setTimestamp(2, getBeginBackupTimestamp());
             preparedStatement.setString(3, getBackupStatus().toString());
             preparedStatement.setString(4, getBackupFilesystem());
             preparedStatement.setString(5, getBackupScope().toString());
             preparedStatement.setBoolean(6, isIncrementalBackup());
-            preparedStatement.setLong(7, getIncrementalParentBackupID());
+            preparedStatement.setLong(7, getParentBackupId());
             preparedStatement.setInt(8, backupItems.size());
             preparedStatement.execute();
             return;
@@ -244,85 +245,38 @@ public class Backup implements InternalTable {
         }
     }
 
-    private void initIncrementalParentBackup(long incrementalParentBackupID) throws SQLException {
-
-        if (incrementalParentBackupID <= 0) {
-            // no-op for the top level full backup
-            return;
-        }
-
-        Connection connection = null;
-        try {
-            connection = SpliceAdmin.getDefaultConn();
-            PreparedStatement preparedStatement = connection.prepareStatement(String.format(QUERY_PARENT_BACKUP,DEFAULT_SCHEMA,DEFAULT_TABLE));
-            preparedStatement.setLong(1, incrementalParentBackupID);
-            ResultSet rs = preparedStatement.executeQuery();
-            if (!rs.next()) {
-                // Return if there is no such parent backup
-                SpliceLogUtils.warn(LOG, "Cannot find parent backup with ID %d", incrementalParentBackupID);
-                return;
-            }
-            incrementalParentBackup = new Backup();
-            incrementalParentBackup.setBackupId(incrementalParentBackupID);
-            rs.close();
-
-            preparedStatement = connection.prepareStatement(
-                    String.format(BackupItem.QUERY_BACKUP_ITEM,BackupItem.DEFAULT_SCHEMA,BackupItem.DEFAULT_TABLE));
-            preparedStatement.setLong(1, incrementalParentBackupID);
-            rs = preparedStatement.executeQuery();
-            while(rs.next()) {
-                BackupItem backupItem = new BackupItem();
-                backupItem.setBackup(incrementalParentBackup);
-                backupItem.setBackupItem(rs.getString(1));
-                backupItem.setBackupItemBeginTimestamp(rs.getTimestamp(2));
-                backupItem.setBackupItemEndTimestamp(rs.getTimestamp(3));
-                incrementalParentBackup.addBackupItem(backupItem);
-            }
-
-        } catch (SQLException e) {
-            throw e;
-        }
-        finally {
-            if (connection !=null)
-                connection.close();
-        }
-    }
-
-    public Backup getIncrementalParentBackup() {
-        return incrementalParentBackup;
-    }
-
     /**
      *
-     * Create the initial backup object with a new timestamp cutpoint.  Validates the parent timestamp is before the timestamp obtained from the system.
-     *
+     * Create the initial backup object with a new timestamp cut point.
+     * Validates the parent timestamp is before the timestamp obtained from the system.
      * @param backupFileSystem Supported File Systems ?
      * @param backupScope BackupScope
-     * @param incrementalParentBackupID Last Incremental Backup
+     * @param parentBackupID Last Incremental Backup
      * @return
      * @throws SQLException
      */
-    public static Backup createBackup(String backupFileSystem, BackupScope backupScope, long incrementalParentBackupID) throws SQLException {
+    public static Backup createBackup(String backupFileSystem,
+                                      BackupScope backupScope,
+                                      long parentBackupID) throws SQLException {
         try {
-//          TransactionId transactionId = HTransactorFactory.getTransactionManager().beginTransaction(true);
             Txn backupTxn = TransactionLifecycle.getLifecycleManager().beginTransaction();
 
-            if (incrementalParentBackupID > 0 && incrementalParentBackupID >= backupTxn.getTxnId())
+            if (parentBackupID > 0 && parentBackupID >= backupTxn.getTxnId())
                 throw new SQLException(String.format("createBackup attempted to create a backup with an incremental " +
-                        "parent id timestamp larger than the current timestamp {incrementalParentBackupID=%d,transactionID=%d",incrementalParentBackupID,backupTxn.getTxnId()));
+                        "parent id timestamp larger than the current timestamp " +
+                        "{incrementalParentBackupID=%d,transactionID=%d",parentBackupID,backupTxn.getTxnId()));
             backupTxn.elevateToWritable("recovery".getBytes());
 
             Backup backup = new Backup();
             backup.setBackupTransaction(backupTxn);
             backup.setBeginBackupTimestamp(new Timestamp(System.currentTimeMillis()));
             backup.setBackupScope(backupScope);
-            backup.setIncrementalBackup(incrementalParentBackupID >= 0);
-            backup.setIncrementalParentBackupID(incrementalParentBackupID);
+            backup.setIncrementalBackup(parentBackupID >= 0);
+            backup.setParentBackupID(parentBackupID);
             backup.setBackupStatus(BackupStatus.I);
             backup.setBackupFilesystem(backupFileSystem);
             backup.setBackupTimestamp(backupTxn.getBeginTimestamp());
-            backup.setBackupVersion("1");
-            backup.initIncrementalParentBackup(incrementalParentBackupID);
+            backup.setBackupVersion(BACKUP_VERSION);
             return backup;
         }
         catch (IOException ioe) {
@@ -339,7 +293,7 @@ public class Backup implements InternalTable {
     /**
      * Mark the backup status as S
      */
-    public void markBackupSuccesful() {
+    public void markBackupSuccessful() {
         this.setBackupStatus(BackupStatus.S);
     }
 
@@ -384,8 +338,9 @@ public class Backup implements InternalTable {
     }
 
     public void addBackupItem(BackupItem backupItem) {
-        if (backupItems == null)
-            backupItems = new HashMap<String, BackupItem>();
+        if (backupItems == null) {
+            backupItems = new HashMap<>();
+        }
         backupItems.put(backupItem.getBackupItem(), backupItem);
     }
 
@@ -408,7 +363,6 @@ public class Backup implements InternalTable {
         for (HTableDescriptor descriptor: descriptorArray) {
             BackupItem item = new BackupItem(descriptor,this);
             item.createSnapshot(admin, backupTransaction.getBeginTimestamp(), newSnapshotNameSet);
-            item.setLastBackupTimestamp();
             item.setLastSnapshotName(snapshotNameSet);
             addBackupItem(item);
         }
@@ -423,7 +377,7 @@ public class Backup implements InternalTable {
         baseFolder = in.readUTF();
         backupScope = BackupScope.valueOf(in.readUTF());
         incrementalBackup = in.readBoolean();
-        incrementalParentBackupID = in.readLong();
+        parentBackupId = in.readLong();
         backupTimestamp = in.readLong();
     }
 
@@ -436,7 +390,7 @@ public class Backup implements InternalTable {
         out.writeUTF(baseFolder);
         out.writeUTF(backupScope.toString());
         out.writeBoolean(incrementalBackup);
-        out.writeLong(incrementalParentBackupID);
+        out.writeLong(parentBackupId);
         out.writeLong(backupTimestamp);
     }
 
