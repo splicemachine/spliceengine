@@ -648,8 +648,11 @@ public class ColumnDefinitionNode extends TableElementNode
 					defaultTypeId.getSQLTypeName() );
 			}
 
-			// Save off the default text
 			// RESOLVEDEFAULT - Convert to constant if possible
+            if (defaultValue == null && defaultTree instanceof ConstantNode) {
+                defaultValue = ((ConstantNode)defaultTree).getValue();
+            }
+            // Save off the default text and value
 			defaultInfo = new DefaultInfoImpl(false,
 							  defaultNode.getDefaultText(), 
 							  defaultValue);
