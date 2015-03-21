@@ -25,6 +25,7 @@ import org.apache.hadoop.hbase.regionserver.StoreFile;
 import org.apache.hadoop.hbase.regionserver.StoreFileScanner;
 import org.apache.hadoop.hbase.snapshot.SnapshotDescriptionUtils;
 import org.apache.hadoop.hbase.snapshot.SnapshotReferenceUtil;
+import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.constants.SpliceConstants;
@@ -84,7 +85,16 @@ public class SnapshotUtilsImpl implements SnapshotUtils {
 
       return files;
     }
-    
+    @Override
+    public List<Object> getSnapshotFilesForRegion(final HRegion region, final Configuration conf,
+                                                  final FileSystem fs, final String snapshotName) throws IOException {
+        Path rootDir = FSUtils.getRootDir(conf);
+
+        Path snapshotDir = SnapshotDescriptionUtils.getCompletedSnapshotDir(snapshotName, rootDir);
+        List<Object> paths = getSnapshotFilesForRegion(region, conf, fs, snapshotDir);
+
+        return paths;
+    }
     private boolean isRegionTheSame(String fullName, String shortId)
     {
     	return fullName.indexOf(shortId) >=0;
@@ -202,7 +212,7 @@ public class SnapshotUtilsImpl implements SnapshotUtils {
 	
     /**
      * Returns column family name from store file path
-     * @param path
+     * @param link
      * @return column family name (as byte array)
      */
     public byte[] getColumnFamily(HFileLink link)

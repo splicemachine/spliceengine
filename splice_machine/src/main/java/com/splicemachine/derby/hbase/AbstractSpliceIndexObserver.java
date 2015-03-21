@@ -166,16 +166,17 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
             for (StoreFile storeFile : storeFiles) {
                 String referenceFileName = storeFile.getPath().getName();
                 String[] s = referenceFileName.split("\\.");
+                String fileName = s[0];
                 if (LOG.isTraceEnabled()) {
                     SpliceLogUtils.info(LOG, "updateFileSet: referenceFileName = " + referenceFileName);
-                    SpliceLogUtils.info(LOG, "updateFileSet: referenced file = " + s[0]);
+                    SpliceLogUtils.info(LOG, "updateFileSet: referenced file = " + fileName);
                 }
-                if (pathSet.contains(s[0])) {
+                if (pathSet.contains(fileName)) {
                     // If referenced file appears in the last snapshot, then reference file in child region
                     // should not be included in next incremental backup
                     BackupUtils.insertFileSet(tableName, childRegionName, referenceFileName, false);
                 }
-                BackupUtils.FileSet fileSet = BackupUtils.getFileSet(tableName, parentRegionName, s[0]);
+                BackupUtils.FileSet fileSet = BackupUtils.getFileSet(tableName, parentRegionName, fileName);
                 if (fileSet != null) {
                     // If there is an entry in Backup.FileSet for the referenceD file in parent region, an entry should
                     // be created for reference file in child region
@@ -193,23 +194,26 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
             boolean exists = BackupUtils.existBackupWithStatus(Backup.BackupStatus.S.toString());
             if (!exists)
                 return;
+
             if (LOG.isTraceEnabled()) {
-                SpliceLogUtils.info(LOG, "postSplit: parent region " + e.getEnvironment().getRegion().getRegionInfo().getEncodedName());
+                SpliceLogUtils.info(LOG, "postSplit: parent region " +
+                        e.getEnvironment().getRegion().getRegionInfo().getEncodedName());
                 SpliceLogUtils.info(LOG, "postSplit: l region " + l.getRegionInfo().getEncodedName());
                 SpliceLogUtils.info(LOG, "postSplit: r region " + r.getRegionInfo().getEncodedName());
             }
 
+            Configuration conf = SpliceConstants.config;
+            SnapshotUtils snapshotUtils = SnapshotUtilsFactory.snapshotUtils;
+            HRegion region = e.getEnvironment().getRegion();
+            FileSystem fs = region.getFilesystem();
+
             String tableName = e.getEnvironment().getRegion().getTableDesc().getNameAsString();
             String encodedRegionName = e.getEnvironment().getRegion().getRegionInfo().getEncodedName();
 
+            // Get HFiles from last snapshot
             String snapshotName = BackupUtils.getLastSnapshotName(tableName);
-            Configuration conf = SpliceConstants.config;
-            HRegion region = e.getEnvironment().getRegion();
-            FileSystem fs = region.getFilesystem();
-            Path rootDir = FSUtils.getRootDir(conf);
-            SnapshotUtils utils = SnapshotUtilsFactory.snapshotUtils;
-            Path snapshotDir = SnapshotDescriptionUtils.getCompletedSnapshotDir(snapshotName, rootDir);
-            List<Path> pathList = utils.getSnapshotFilesForRegion(region, conf, fs, snapshotDir);
+            List<Path> pathList = BackupUtils.getSnapshotHFileLinksForRegion(snapshotUtils,
+                    region, conf, fs, snapshotName);
             Set<String> pathSet = new HashSet<>();
             for (Path p : pathList) {
                 String name = p.getName();
@@ -222,7 +226,7 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
             updateFileSet(tableName, encodedRegionName, pathSet, lStoreFileInfoMap, l);
             updateFileSet(tableName, encodedRegionName, pathSet, rStoreFileInfoMap, r);
         }catch (Exception ex) {
-            SpliceLogUtils.warn(LOG, "Error in recordRegionSplitForBackup");
+            SpliceLogUtils.warn(LOG, "%s", ex.getMessage());
         }
     }
 
@@ -250,23 +254,26 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
             if (!exists)
                 return;
 
-            String tableName = e.getEnvironment().getRegion().getTableDesc().getNameAsString();
-            String snapshotName = BackupUtils.getLastSnapshotName(tableName);
-            Set<String> pathSet = new HashSet<>();
-            String encodedRegionName = e.getEnvironment().getRegion().getRegionInfo().getEncodedName();
-            SnapshotUtils utils = SnapshotUtilsFactory.snapshotUtils;
             HRegion region = e.getEnvironment().getRegion();
             FileSystem fs = region.getFilesystem();
+            String encodedRegionName = e.getEnvironment().getRegion().getRegionInfo().getEncodedName();
+            Set<String> pathSet = new HashSet<>();
+            SnapshotUtils snapshotUtils = SnapshotUtilsFactory.snapshotUtils;
+
+            // Get HFiles from last snapshot
+            String tableName = e.getEnvironment().getRegion().getTableDesc().getNameAsString();
+            String snapshotName = BackupUtils.getLastSnapshotName(tableName);
             if (snapshotName != null) {
                 Configuration conf = SpliceConstants.config;
-                Path rootDir = FSUtils.getRootDir(conf);
-                Path snapshotDir = SnapshotDescriptionUtils.getCompletedSnapshotDir(snapshotName, rootDir);
-                List<Path> pathList = utils.getSnapshotFilesForRegion(region, conf, fs, snapshotDir);
+                List<Path> pathList = BackupUtils.getSnapshotHFileLinksForRegion(snapshotUtils,
+                        region, conf, fs, snapshotName);
 
                 for (Path path : pathList) {
                     pathSet.add(path.getName());
                 }
             }
+
+            // Classify HFiles in compact request into old HFile and new HFile
             List<StoreFile> oldHFile = new ArrayList<>();
             List<StoreFile> newHFile = new ArrayList<>();
             Collection<StoreFile> storeFiles = request.getFiles();
@@ -274,10 +281,12 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
                 Path p = storeFile.getPath();
                 String name = p.getName();
                 if(pathSet.contains(name)) {
+                    // This HFile appears in the last snapshot, so it was copied to a backup file system
                     oldHFile.add(storeFile);
                 }
-                else if (BackupUtils.shouldExclude(tableName, encodedRegionName, p.getName()) ||
-                         BackupUtils.shouldExcludeReferencedFile(tableName, p.getName(), fs)) {
+                else if (BackupUtils.shouldExclude(tableName, encodedRegionName, name) ||
+                         BackupUtils.shouldExcludeReferencedFile(tableName, name, fs)) {
+                    // This file appears in BACKUP.BACKUP_FILESET with include=false.
                     oldHFile.add(storeFile);
                 }
                 else {
@@ -304,7 +313,7 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
             }
         }
         catch (Exception ex) {
-            SpliceLogUtils.warn(LOG, "postCompact: cannot query last backup");
+            SpliceLogUtils.warn(LOG, "%s", ex.getMessage());
         }
     }
 
