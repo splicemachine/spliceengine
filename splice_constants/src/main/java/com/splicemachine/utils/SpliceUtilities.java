@@ -177,15 +177,14 @@ public class SpliceUtilities extends SIConstants {
 	public static HColumnDescriptor createTempDataFamily() {
 		HColumnDescriptor snapshot = new HColumnDescriptor(
 				SpliceConstants.DEFAULT_FAMILY_BYTES);
-		snapshot.setMaxVersions(Integer.MAX_VALUE);
+		// splice_temp does not require any versioning so give max of 1. Avoids some overhead.
+		snapshot.setMaxVersions(1);
 		snapshot.setCompressionType(Compression.Algorithm.valueOf(compression
 				.toUpperCase()));
 		snapshot.setInMemory(DEFAULT_IN_MEMORY);
 		snapshot.setBlockCacheEnabled(DEFAULT_BLOCKCACHE);
-		// snapshot.setBloomFilterType(BloomType.ROW); No Temp Bloom Filter,
-		// write as quickly as possible
-		// TODO XXX JLEACH make sure this actually saves us time on the scan
-		// side
+		// splice_temp does not benefit from bloom filter. Disable it to avoid performance overhead.
+		snapshot.setBloomFilterType(BloomType.NONE);
 		snapshot.setTimeToLive(DEFAULT_TTL);
 		return snapshot;
 	}
