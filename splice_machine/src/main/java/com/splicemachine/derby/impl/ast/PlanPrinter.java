@@ -38,9 +38,9 @@ public class PlanPrinter extends AbstractSpliceVisitor {
 
     public static final String spaces = "  ";
     private boolean explain = false;
-    public static ThreadLocal<Map<String,Map<Integer, String>>> planMap = new ThreadLocal<Map<String,Map<Integer,String>>>(){
+    public static ThreadLocal<Map<String,List<Pair<String,Integer>>>> planMap = new ThreadLocal<Map<String,List<Pair<String,Integer>>>>(){
         @Override
-        protected Map<String,Map<Integer,String>> initialValue(){
+        protected Map<String,List<Pair<String,Integer>>> initialValue(){
             return new HashMap<>();
         }
     };
@@ -71,8 +71,8 @@ public class PlanPrinter extends AbstractSpliceVisitor {
                 node instanceof DMLStatementNode &&
                 (rsn = ((DMLStatementNode) node).getResultSetNode()) != null) {
 
-            Map<Integer,String> plan = planToString(rsn);
-            Map<String, Map<Integer, String>> m=planMap.get();
+            List<Pair<String,Integer>> plan = planToString(rsn);
+            Map<String, List<Pair<String,Integer>>> m=planMap.get();
             m.put(query, plan);
 
             if (LOG.isInfoEnabled()){
@@ -170,7 +170,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
             info.put("results", getResultColumnInfo(rsn));
         }
         List<ResultSetNode> children = RSUtils.getChildren(rsn);
-        info.put("children", Lists.transform(children, new Function<ResultSetNode, Map<String,Object>>() {
+        info.put("children", Lists.reverse(Lists.transform(children, new Function<ResultSetNode, Map<String,Object>>() {
             @Override
             public Map<String,Object> apply(ResultSetNode child) {
                 try {
@@ -179,7 +179,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
                     throw new RuntimeException(e);
                 }
             }
-        }));
+        })));
         List<SubqueryNode> subs = RSUtils.collectExpressionNodes(rsn, SubqueryNode.class);
         info.put("subqueries", Lists.transform(subs, new Function<SubqueryNode, Map>() {
             @Override
@@ -333,19 +333,19 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         return PredicateUtils.PLtoList(pl);
     }
 
-    private static Map<Integer, String> planToString(ResultSetNode rsn) throws StandardException{
+    private static List<Pair<String,Integer>> planToString(ResultSetNode rsn) throws StandardException{
         Map<String, Object> nodeInfo=nodeInfo(rsn,0);
-        Map<Integer,String> planMap = new HashMap<>();
-        pushPlanInfo(nodeInfo,planMap);
-        return planMap;
+        List<Pair<String,Integer>> flattenedPlanMap = new LinkedList<>();
+//        Map<Integer,String> planMap = new HashMap<>();
+        pushPlanInfo(nodeInfo,flattenedPlanMap);
+        return flattenedPlanMap;
     }
 
-    private static void pushPlanInfo(Map<String, Object> nodeInfo,Map<Integer, String> planMap) throws StandardException{
-        Integer rsn = (Integer)nodeInfo.get("n");
-
+    private static void pushPlanInfo(Map<String, Object> nodeInfo,List<Pair<String,Integer>> planMap) throws StandardException{
         @SuppressWarnings("unchecked") List<Map<String,Object>> children = (List<Map<String,Object>>)nodeInfo.get("children");
         String thisNodeInfo = infoToString(nodeInfo,false);
-        planMap.put(rsn,thisNodeInfo);
+        Integer level = (Integer)nodeInfo.get("level");
+        planMap.add(new Pair<>(thisNodeInfo,level));
         for(Map<String,Object> child:children){
             pushPlanInfo(child,planMap);
         }
