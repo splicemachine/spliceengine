@@ -50,6 +50,7 @@ import com.splicemachine.db.impl.services.daemon.IndexStatisticsDaemonImpl;
 import com.splicemachine.db.impl.sql.catalog.SYSUSERSRowFactory;
 
 import java.lang.reflect.Modifier;
+import java.sql.SQLWarning;
 import java.util.*;
 
 // Temporary until user override for disposable stats has been removed.
@@ -88,7 +89,7 @@ public class FromBaseTable extends FromTable{
      * Whether or not we have checked the index statistics for staleness.
      * Used to avoid performing the check multiple times per compilation.
      */
-    private boolean hasCheckedIndexStats;
+//    private boolean hasCheckedIndexStats;
 
     TableName tableName;
     TableDescriptor tableDescriptor;
@@ -243,11 +244,7 @@ public class FromBaseTable extends FromTable{
         AccessPath ap=getCurrentAccessPath();
         ConglomerateDescriptor currentConglomerateDescriptor=ap.getConglomerateDescriptor();
 
-        optimizer.trace(Optimizer.CALLING_NEXT_ACCESS_PATH,
-                ((predList==null)?0:predList.size()),
-                0,
-                0.0,
-                getExposedName());
+        optimizer.trace(Optimizer.CALLING_NEXT_ACCESS_PATH, ((predList==null)?0:predList.size()),0,0.0,getExposedName());
 
 		/*
 		 ** Remove the ordering of the current conglomerate descriptor,
@@ -369,16 +366,14 @@ public class FromBaseTable extends FromTable{
                 }
             }
             if(irg==null){ // We are scanning a table without a primary key
-				        /* If we are scanning the heap, but there
-				         * is a full match on a unique key, then
-				         * we can say that the table IS NOT unordered.
-				         * (We can't currently say what the ordering is
-				         * though.)
-				         */
+	            /* If we are scanning the heap, but there
+	             * is a full match on a unique key, then
+	             * we can say that the table IS NOT unordered.
+	             * (We can't currently say what the ordering is
+	             * though.)
+	             */
                 if(!isOneRowResultSet(predList)){
-                    optimizer.trace(Optimizer.ADDING_UNORDERED_OPTIMIZABLE,
-                            ((predList==null)?0:predList.size()),
-                            0,0.0,null);
+                    optimizer.trace(Optimizer.ADDING_UNORDERED_OPTIMIZABLE,((predList==null)?0:predList.size()),0,0.0,null);
 
                     rowOrdering.addUnorderedOptimizable(this);
                 }else{
@@ -452,14 +447,10 @@ public class FromBaseTable extends FromTable{
     }
 
     @Override
-    @SuppressWarnings("ConstantConditions")
     public boolean pushOptPredicate(OptimizablePredicate optimizablePredicate) throws StandardException{
-        if(SanityManager.DEBUG){
-            SanityManager.ASSERT(optimizablePredicate instanceof Predicate,
-                    "optimizablePredicate expected to be instanceof Predicate");
-        }
+        assert optimizablePredicate instanceof Predicate: "optimizablePredicate expected to be instanceof Predicate";
 
-		    /* Add the matching predicate to the restrictionList */
+		/* Add the matching predicate to the restrictionList */
         restrictionList.addPredicate((Predicate)optimizablePredicate);
 
         return true;
@@ -479,7 +470,6 @@ public class FromBaseTable extends FromTable{
         if(!cd.isIndex())
             return false;
 
-
         IndexRowGenerator irg=cd.getIndexDescriptor();
         int[] baseCols=irg.baseColumnPositions();
 
@@ -489,15 +479,15 @@ public class FromBaseTable extends FromTable{
         for(int index=0;index<rclSize;index++){
             ResultColumn rc=resultColumns.elementAt(index);
 
-			      /* Ignore unreferenced columns */
+		    /* Ignore unreferenced columns */
             if(!rc.isReferenced()){
                 continue;
             }
 
-			      /* Ignore constants - this can happen if all of the columns
-			       * were projected out and we ended up just generating
-			       * a "1" in RCL.doProject().
-			       */
+			/* Ignore constants - this can happen if all of the columns
+			 * were projected out and we ended up just generating
+			 * a "1" in RCL.doProject().
+			 */
             if(rc.getExpression() instanceof ConstantNode){
                 continue;
             }
@@ -506,7 +496,7 @@ public class FromBaseTable extends FromTable{
 
             colPos=rc.getColumnPosition();
 
-			      /* Is this column in the index? */
+			/* Is this column in the index? */
             for(int baseCol : baseCols){
                 if(colPos==baseCol){
                     coveringIndex=true;
@@ -514,7 +504,7 @@ public class FromBaseTable extends FromTable{
                 }
             }
 
-			      /* No need to continue if the column was not in the index */
+			/* No need to continue if the column was not in the index */
             if(!coveringIndex){
                 break;
             }
@@ -527,16 +517,16 @@ public class FromBaseTable extends FromTable{
         if(tableProperties==null){
             return;
         }
-		    /* Check here for:
-		     *		invalid properties key
-		     *		index and constraint properties
-		     *		non-existent index
-		     *		non-existent constraint
-		     *		invalid joinStrategy
-		     *		invalid value for hashInitialCapacity
-		     *		invalid value for hashLoadFactor
-		     *		invalid value for hashMaxCapacity
-		     */
+        /* Check here for:
+         *		invalid properties key
+         *		index and constraint properties
+         *		non-existent index
+         *		non-existent constraint
+         *		invalid joinStrategy
+         *		invalid value for hashInitialCapacity
+         *		invalid value for hashLoadFactor
+         *		invalid value for hashMaxCapacity
+         */
         boolean indexSpecified=false;
         boolean constraintSpecified=false;
         ConstraintDescriptor consDesc=null;
@@ -556,7 +546,7 @@ public class FromBaseTable extends FromTable{
                             getBaseTableName());
                 }
 
-				            /* Validate index name - NULL means table scan */
+		        /* Validate index name - NULL means table scan */
                 if(!StringUtil.SQLToUpperCase(value).equals("NULL")){
                     ConglomerateDescriptor[] cds=tableDescriptor.getConglomerateDescriptors();
 
@@ -593,14 +583,14 @@ public class FromBaseTable extends FromTable{
                 if(!StringUtil.SQLToUpperCase(value).equals("NULL")){
                     consDesc=dDictionary.getConstraintDescriptorByName(tableDescriptor,null,value,false);
 
-					              /* Throw exception if user specified constraint not found
-					               * or if it does not have a backing index.
-					               */
+		            /* Throw exception if user specified constraint not found
+		             * or if it does not have a backing index.
+		             */
                     if((consDesc==null) || !consDesc.hasBackingIndex()){
                         throw StandardException.newException(SQLState.LANG_INVALID_FORCED_INDEX2,value,getBaseTableName());
                     }
 
-					              /* Query is dependent on the ConstraintDescriptor */
+		            /* Query is dependent on the ConstraintDescriptor */
                     getCompilerContext().createDependency(consDesc);
                 }
             }else if(key.equals("joinStrategy")){
@@ -705,19 +695,19 @@ public class FromBaseTable extends FromTable{
         bestAp.setLockMode(0);
         bestSortAp.setLockMode(0);
 
-		    /*
-		     ** Only need to do this for current access path, because the
-		     ** costEstimate will be copied to the best access paths as
-		     ** necessary.
-		     */
+		/*
+		 ** Only need to do this for current access path, because the
+		 ** costEstimate will be copied to the best access paths as
+		 ** necessary.
+		 */
         CostEstimate costEstimate=getCostEstimate(optimizer);
         ap.setCostEstimate(costEstimate);
 
-		    /*
-		     ** This is the initial cost of this optimizable.  Initialize it
-		     ** to the maximum cost so that the optimizer will think that
-		     ** any access path is better than none.
-		     */
+		/*
+		 ** This is the initial cost of this optimizable.  Initialize it
+		 ** to the maximum cost so that the optimizer will think that
+		 ** any access path is better than none.
+		 */
         costEstimate.setCost(Double.MAX_VALUE,Double.MAX_VALUE,Double.MAX_VALUE);
 
         super.startOptimizing(optimizer,rowOrdering);
@@ -743,8 +733,8 @@ public class FromBaseTable extends FromTable{
         JoinStrategy currentJoinStrategy=currentAccessPath.getJoinStrategy();
         optimizer.trace(Optimizer.ESTIMATING_COST_OF_CONGLOMERATE,tableNumber,0,0.0,cd);
 		/* Get the uniqueness factory for later use (see below) */
-        double tableUniquenessFactor=optimizer.uniqueJoinWithOuterTable(predList);
-        boolean oneRowResultSetForSomeConglom=isOneRowResultSet(predList);
+//        double tableUniquenessFactor=optimizer.uniqueJoinWithOuterTable(predList);
+//        boolean oneRowResultSetForSomeConglom=isOneRowResultSet(predList);
 		/* Get the predicates that can be used for scanning the base table */
         baseTableRestrictionList.removeAllElements();
 
@@ -783,14 +773,6 @@ public class FromBaseTable extends FromTable{
 			/* Yes, the cost is to fetch exactly one row */
             //TODO -sf- add in the specific columns
             scc.getFetchFromFullKeyCost(null,0,costEstimate);
-//            optimizer.trace(Optimizer.MATCH_SINGLE_ROW_COST,tableNumber,0,costEstimate.getEstimatedCost(),null);
-//            currentJoinStrategy.oneRowRightResultSetCostEstimate(baseTableRestrictionList,outerCost,costEstimate);
-//            optimizer.trace(Optimizer.COST_OF_N_SCANS,tableNumber,0,outerCost.rowCount(),costEstimate);
-//			      /* Add in cost of fetching base row for non-covering index */
-//            if(cd.isIndex() && (!isCoveringIndex(cd))){
-//                getBaseCostController().getFetchFromRowLocationCost(null,0,costEstimate);
-//                optimizer.trace(Optimizer.NON_COVERING_INDEX_COST,tableNumber,0,costEstimate.getEstimatedCost(),null);
-//            }
         }else{
 			/* Conglomerate might match more than one row */
 
@@ -974,7 +956,7 @@ public class FromBaseTable extends FromTable{
                     boolean knownConstant=pred.compareWithKnownConstant(this,true);
 
                     if(startKey){
-                        if(knownConstant && (!startGap)){
+                        if(knownConstant && !startGap){
                             startKeys[startKeyNum]=pred.getCompareValue(this);
                             startKeyNum++;
                         }else{
@@ -983,7 +965,7 @@ public class FromBaseTable extends FromTable{
                     }
 
                     if(stopKey){
-                        if(knownConstant && (!stopGap)){
+                        if(knownConstant && !stopGap){
                             stopKeys[stopKeyNum]=pred.getCompareValue(this);
                             stopKeyNum++;
                         }else{
@@ -1211,6 +1193,17 @@ public class FromBaseTable extends FromTable{
 
 		/* Put the base predicates back in the predicate list */
         currentJoinStrategy.putBasePredicates(predList, baseTableRestrictionList);
+
+        /*
+         * If the returned cost estimate is fake, add a compile-time warning so that users
+         * know bad things are going to happen
+         */
+        if(!costEstimate.isRealCost()){
+
+            CompilerContext compilerContext=getCompilerContext();
+            compilerContext.addWarning(StandardException.newWarning(SQLState.STATISTICS_UNAVAILABLE,
+                    cd.getConglomerateName()));
+        }
         return costEstimate;
     }
 

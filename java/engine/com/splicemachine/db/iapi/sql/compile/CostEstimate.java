@@ -135,4 +135,12 @@ public interface CostEstimate extends StoreCostResult
 
     public void setBase(CostEstimate baseCost);
 
+    /**
+     * @return true if this is a "real" cost--that is, a cost which was generated
+     * using real statistics, rather than from arbitrary scaling factors
+     */
+    public boolean isRealCost();
+
+    public void setIsRealCost(boolean isRealCost);
+
 }

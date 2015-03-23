@@ -224,6 +224,12 @@ Guide.
                 <arg>databaseName</arg>
             </msg>
 
+            <msg>
+                <name>01J17</name>
+                <text>Statistics for table '{0}' are out of date or unavailable. Please update statistics to ensure correct query planning.</text>
+                <arg>tableName</arg>
+            </msg>
+
         </family>
 
         <family>

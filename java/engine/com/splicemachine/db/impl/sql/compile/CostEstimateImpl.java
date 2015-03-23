@@ -358,4 +358,14 @@ public class CostEstimateImpl implements CostEstimate {
         throw new RuntimeException("Not Supported");
     }
 
+    @Override
+    public boolean isRealCost(){
+        return true;
+    }
+
+    @Override
+    public void setIsRealCost(boolean isRealCost){
+        //no-op
+    }
+
 }
