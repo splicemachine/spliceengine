@@ -21,11 +21,7 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import java.util.Iterator;
-import java.util.Vector;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.Collections;
+import java.util.*;
 
 import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -84,7 +80,7 @@ public class GroupByNode extends SingleChildResultSetNode
 	 * The list of all aggregates in the query block
 	 * that contains this group by.
 	 */
-	Vector	aggregateVector;
+	List<AggregateNode> aggregateVector;
 
 	/**
 	 * Information that is used at execution time to
@@ -169,7 +165,7 @@ public class GroupByNode extends SingleChildResultSetNode
 
 		ResultColumnList newBottomRCL;
 		this.groupingList = (GroupByList) groupingList;
-		this.aggregateVector = (Vector) aggregateVector;
+		this.aggregateVector = (List<AggregateNode>) aggregateVector;
 		this.parent = this;
 
 		/*
@@ -224,7 +220,7 @@ public class GroupByNode extends SingleChildResultSetNode
 				
 			}
 			if (index == glSize) {
-				isInSortedOrder = childResult.isOrderedOn(crs, true, (Vector)null);
+				isInSortedOrder = childResult.isOrderedOn(crs, true,null);
 			}
 		}
 	}
@@ -245,9 +241,7 @@ public class GroupByNode extends SingleChildResultSetNode
 	 * 
 	 * @exception StandardException
 	 */
-	private void addAggregates()
-		throws StandardException
-	{
+	private void addAggregates() throws StandardException {
 		addNewPRNode();
 		addNewColumnsForAggregation();
 		addDistinctAggregatesToOrderBy();

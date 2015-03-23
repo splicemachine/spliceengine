@@ -1107,7 +1107,9 @@ public class FromBaseTable extends FromTable{
             }
 
             double adjustedRowCount=costEstimate.getEstimatedRowCount()*nonQualifierSelectivity*extraQualifierSelectivity;
+            double adjustedHeapSize = costEstimate.getEstimatedHeapSize()*nonQualifierSelectivity*extraQualifierSelectivity;
             costEstimate.setEstimatedRowCount((long)adjustedRowCount);
+            costEstimate.setEstimatedHeapSize((long)adjustedHeapSize);
             costEstimate.setSingleScanRowCount(costEstimate.singleScanRowCount()*extraQualifierSelectivity); //apply selectivity to single-scan row count also
 
 		    /*
@@ -1127,6 +1129,8 @@ public class FromBaseTable extends FromTable{
             if(extraStartStopSelectivity!=1.0d){
                 optimizer.trace(Optimizer.COST_INCLUDING_EXTRA_START_STOP,tableNumber,0,0.0,costEstimate);
             }
+
+            singleScanRowCount=costEstimate.singleScanRowCount();
         }
 
 //        currentJoinStrategy.rightResultSetCostEstimate(baseTableRestrictionList,outerCost,costEstimate);
@@ -1181,8 +1185,7 @@ public class FromBaseTable extends FromTable{
             scc.getFetchFromRowLocationCost(heapCols,0,costEstimate);
             optimizer.trace(Optimizer.COST_OF_NONCOVERING_INDEX,tableNumber,0,0.0,costEstimate);
         }
-
-        singleScanRowCount=costEstimate.singleScanRowCount();
+        costEstimate.setSingleScanRowCount(singleScanRowCount);
 
         optimizer.trace(Optimizer.COST_OF_N_SCANS, tableNumber,0,outerCost.rowCount(),costEstimate);
 

@@ -1455,10 +1455,7 @@ public class TableDescriptor extends TupleDescriptor
 	 * cardinality is desired.
 
 	 */
-	public double selectivityForConglomerate(ConglomerateDescriptor cd,
-											 int numKeys) 
-		throws StandardException
-	{
+	public double selectivityForConglomerate(ConglomerateDescriptor cd, int numKeys)  throws StandardException {
 		UUID referenceUUID = cd.getUUID();
 
 		List sdl = getStatistics();

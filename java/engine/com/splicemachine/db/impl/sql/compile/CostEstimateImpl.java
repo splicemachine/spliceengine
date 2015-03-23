@@ -90,6 +90,9 @@ public class CostEstimateImpl implements CostEstimate {
 
     @Override public double localCost(){ return cost; }
 
+    @Override public void setEstimatedHeapSize(long estHeapBytes){ throw new UnsupportedOperationException(); }
+    @Override public long getEstimatedHeapSize(){ throw new UnsupportedOperationException(); }
+
     //no-op
     @Override public void setNumPartitions(int numPartitions) {  }
 
@@ -104,16 +107,10 @@ public class CostEstimateImpl implements CostEstimate {
     }
 
     /** @see CostEstimate#setSingleScanRowCount */
-    public void setSingleScanRowCount(double singleScanRowCount)
-    {
-        if (SanityManager.DEBUG)
-        {
-            if (singleScanRowCount < 0.0)
-            {
-                SanityManager.THROWASSERT(
-                        "All parameters expected to be < 0.0, " +
-                                "\n\tsingleScanRowCount = " + singleScanRowCount
-                );
+    public void setSingleScanRowCount(double singleScanRowCount) {
+        if (SanityManager.DEBUG) {
+            if (singleScanRowCount < 0.0) {
+                SanityManager.THROWASSERT("All parameters expected to be < 0.0, \n\tsingleScanRowCount = " + singleScanRowCount);
             }
         }
         this.singleScanRowCount = singleScanRowCount;

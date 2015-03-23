@@ -117,6 +117,10 @@ public interface CostEstimate extends StoreCostResult
 
     double localCost();
 
+    void setEstimatedHeapSize(long estHeapBytes);
+
+    long getEstimatedHeapSize();
+
     /** Get a copy of this CostEstimate */
     CostEstimate cloneMe();
 
@@ -142,5 +146,4 @@ public interface CostEstimate extends StoreCostResult
     public boolean isRealCost();
 
     public void setIsRealCost(boolean isRealCost);
-
 }
