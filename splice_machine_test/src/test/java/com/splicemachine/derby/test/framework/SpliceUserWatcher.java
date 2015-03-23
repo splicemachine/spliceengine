@@ -5,6 +5,7 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 
+import com.splicemachine.derby.impl.db.AuthenticationConstants;
 import org.apache.commons.dbutils.DbUtils;
 import org.apache.log4j.Logger;
 import org.junit.rules.TestWatcher;
@@ -42,7 +43,7 @@ public class SpliceUserWatcher extends TestWatcher {
 	}
 	
 	public void createUser(String userName, String password) {
-	  if (!SpliceConstants.authentication.toUpperCase().equals("LDAP")) {
+	  if (!AuthenticationConstants.authentication.toUpperCase().equals("LDAP")) {
 		Connection connection = null;
 		PreparedStatement statement = null;
 		try {
@@ -63,7 +64,7 @@ public class SpliceUserWatcher extends TestWatcher {
 	}
 	
 	public void dropUser(String userName) {
-	  if (SpliceConstants.authentication.toUpperCase().equals("LDAP")) {
+	  if (AuthenticationConstants.authentication.toUpperCase().equals("LDAP")) {
 		Connection connection = null;
 		PreparedStatement statement = null;
 		try {

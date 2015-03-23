@@ -10,6 +10,7 @@ import com.splicemachine.db.iapi.store.access.StoreCostResult;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.store.access.conglomerate.GenericController;
+import com.splicemachine.derby.impl.stats.FakedPartitionStatistics;
 import com.splicemachine.derby.impl.stats.StatisticsStorage;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
@@ -121,6 +122,10 @@ public class StatsStoreCostController extends GenericController implements Store
                 scanColumnList,
                 startKeyValue,startSearchOperator,
                 stopKeyValue,stopSearchOperator,baseConglomerate.getColumnOrdering(),(CostEstimate)cost_result);
+        List<PartitionStatistics> partStats=conglomerateStatistics.partitionStatistics();
+        if(partStats==null||partStats.size()<=0 ||partStats.get(0) instanceof FakedPartitionStatistics){
+            ((CostEstimate)cost_result).setIsRealCost(false);
+        }
     }
 
     @Override
@@ -312,7 +317,7 @@ public class StatsStoreCostController extends GenericController implements Store
          * number of missing columns to generate a rough estimate.
          */
         int columnSize = 0;
-        int adjAvgRowWidth = getAdjustedRowSize(partStats,keyMap);
+        int adjAvgRowWidth = getAdjustedRowSize(partStats);
         if(scanColumnList!=null && scanColumnList.getNumBitsSet()!=totalColumns){
             for(int i=scanColumnList.anySetBit();i>=0;i=scanColumnList.anySetBit(i)){
                 columnSize +=getColumnSize(partStats,totalColumns,i,adjAvgRowWidth);
@@ -347,7 +352,7 @@ public class StatsStoreCostController extends GenericController implements Store
         return ((double)avgRowWidth)/totalColumnCount;
     }
 
-    private int getAdjustedRowSize(PartitionStatistics pStats,int[] keyMap){
+    private int getAdjustedRowSize(PartitionStatistics pStats){
         return pStats.avgRowWidth();
     }
 }

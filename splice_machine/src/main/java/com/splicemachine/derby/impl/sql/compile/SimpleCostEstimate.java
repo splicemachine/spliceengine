@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.compile;
 
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.compile.RowOrdering;
+import com.splicemachine.db.impl.sql.compile.RowOrderingImpl;
 
 /**
  * @author Scott Fines
@@ -16,6 +17,7 @@ public class SimpleCostEstimate implements CostEstimate{
     private RowOrdering rowOrdering;
 
     private CostEstimate baseCost;
+    private boolean isRealCost;
 
     public SimpleCostEstimate(){ }
 
@@ -97,7 +99,7 @@ public class SimpleCostEstimate implements CostEstimate{
 
     @Override
     public CostEstimate cloneMe(){
-        RowOrdering roClone = new SpliceRowOrderingImpl();
+        RowOrdering roClone = new RowOrderingImpl();
         if(this.rowOrdering!=null)
            this.rowOrdering.copy(roClone);
         SimpleCostEstimate clone=new SimpleCostEstimate(localCost,remoteCost,numRows,singleScanRowCount,numPartitions);
@@ -147,6 +149,16 @@ public class SimpleCostEstimate implements CostEstimate{
         retval.setRemoteCost(sumRemoteCost);
         retval.setCost(sumLocalCost,rowCount,singleScanRowCount,numPartitions);
         return retval;
+    }
+
+    @Override
+    public boolean isRealCost(){
+        return isRealCost;
+    }
+
+    @Override
+    public void setIsRealCost(boolean isRealCost){
+        this.isRealCost = isRealCost;
     }
 
     @Override

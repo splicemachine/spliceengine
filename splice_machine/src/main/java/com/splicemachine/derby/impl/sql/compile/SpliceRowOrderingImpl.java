@@ -48,7 +48,7 @@ public class SpliceRowOrderingImpl implements RowOrdering {
 	public boolean isColumnAlwaysOrdered(int tableNumber, int columnNumber) {
 		boolean ordered = columnsAlwaysOrdered.contains(tableNumber, columnNumber);
 		SpliceLogUtils.trace(LOG, "isColumnAlwaysOrdered tableNumber=%d, columnNumber=%d, returns=%s",tableNumber,columnNumber,ordered);
-		return (columnsAlwaysOrdered.contains(tableNumber, columnNumber)); 
+		return ordered;
 	}
 
 	/**

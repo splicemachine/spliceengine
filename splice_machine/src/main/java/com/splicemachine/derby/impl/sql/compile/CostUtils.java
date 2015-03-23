@@ -6,12 +6,6 @@ import static com.google.common.base.Preconditions.checkArgument;
 
 public class CostUtils {
 
-    public static boolean isThisBaseTable(Optimizer optimizer) {
-        SpliceLevel2OptimizerImpl opt = (SpliceLevel2OptimizerImpl) optimizer;
-        boolean outermostCostEstimateZero = (Math.abs(opt.outermostCostEstimate.getEstimatedCost() - 0d) < 1e-5);
-        return (opt.joinPosition == 0 && outermostCostEstimateZero && opt.outermostCostEstimate.getEstimatedRowCount() == 1);
-    }
-
     /**
      * In cost calculations we don't want to overflow and a have large positive row count turn into a negative count.
      * This method assumes that for our purposes any count greater than Long.MAX_VALUE can be approximated as
