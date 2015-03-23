@@ -21,11 +21,13 @@ import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
 import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.iapi.util.InterruptStatus;
+import com.splicemachine.db.impl.sql.compile.ExplainNode;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
 import com.splicemachine.db.impl.sql.conn.GenericLanguageConnectionContext;
 
 import java.sql.Timestamp;
 
+@SuppressWarnings("SynchronizeOnNonFinalField")
 public class GenericStatement implements Statement{
 
     // these fields define the identity of the statement
@@ -196,7 +198,7 @@ public class GenericStatement implements Statement{
     private boolean isExplainStatement(){
 
         String s=statementText.trim().toUpperCase();
-        if(s.indexOf("EXPLAIN")==-1){
+        if(!s.contains("EXPLAIN")){
             // If the statement does not contain keyword explain, this is not an explain statement
             return false;
         }
@@ -213,21 +215,23 @@ public class GenericStatement implements Statement{
         return s.startsWith("EXPLAIN");
     }
 
-	/*
-	** Identity
-	*/
+    private PreparedStatement prepMinion(LanguageConnectionContext lcc,
+                                         boolean cacheMe,
+                                         Object[] paramDefaults,
+                                         SchemaDescriptor spsSchema,
+                                         boolean internalSQL) throws StandardException{
 
-    private PreparedStatement prepMinion(LanguageConnectionContext lcc,boolean cacheMe,Object[] paramDefaults,
-                                         SchemaDescriptor spsSchema,boolean internalSQL)
-            throws StandardException{
-
-        long beginTime=0;
-        long parseTime=0;
-        long bindTime=0;
-        long optimizeTime=0;
-        long generateTime=0;
+        /*
+         * An array holding timestamps for various points in time. The order is
+         *
+         * 0:   beginTime
+         * 1:   parseTime
+         * 2:   bindTime
+         * 3:   optimizeTime
+         * 4:   generateTime
+         */
+        long[] timestamps = new long[5];
         Timestamp beginTimestamp=null;
-        Timestamp endTimestamp=null;
         StatementContext statementContext=null;
 
         // verify it isn't already prepared...
@@ -242,12 +246,12 @@ public class GenericStatement implements Statement{
         if(lcc.getOptimizerTrace())
             lcc.setOptimizerTraceOutput(getSource()+"\n");
 
-        beginTime=getCurrentTimeMillis(lcc);
+        timestamps[0]=getCurrentTimeMillis(lcc);
 		/* beginTimestamp only meaningful if beginTime is meaningful.
 		 * beginTime is meaningful if STATISTICS TIMING is ON.
 		 */
-        if(beginTime!=0){
-            beginTimestamp=new Timestamp(beginTime);
+        if(timestamps[0]!=0){
+            beginTimestamp=new Timestamp(timestamps[0]);
         }
 
         /** set the prepare Isolaton from the LanguageConnectionContext now as
@@ -273,9 +277,9 @@ public class GenericStatement implements Statement{
 		 * relevant Derby property) then the value of cacheMe is irrelevant.
 		 */
         boolean foundInCache=false;
-        boolean isExplain=isExplainStatement();
+//        boolean isExplain=isExplainStatement();
         if(preparedStmt==null){
-            if(cacheMe && !isExplain)
+            if(cacheMe)
                 preparedStmt=(GenericStorablePreparedStatement)((GenericLanguageConnectionContext)lcc).lookupStatement(this);
 
             if(preparedStmt==null){
@@ -292,9 +296,7 @@ public class GenericStatement implements Statement{
         // this is a no-op if and until there is a central
         // cache of prepared statement objects...
         synchronized(preparedStmt){
-
             for(;;){
-
                 if(foundInCache){
                     if(preparedStmt.referencesSessionSchema()){
                         // cannot use this state since it is private to a connection.
@@ -326,9 +328,6 @@ public class GenericStatement implements Statement{
         }
 
         try{
-
-            HeaderPrintWriter istream=lcc.getLogStatementText()?Monitor.getStream():null;
-
 			/*
 			** For stored prepared statements, we want all
 			** errors, etc in the context of the underlying
@@ -340,11 +339,8 @@ public class GenericStatement implements Statement{
             if(!preparedStmt.isStorable() || lcc.getStatementDepth()==0){
                 // since this is for compilation only, set atomic
                 // param to true and timeout param to 0
-                statementContext=lcc.pushStatementContext(true,isForReadOnly,getSource(),
-                        null,false,0L);
+                statementContext=lcc.pushStatementContext(true,isForReadOnly,getSource(), null,false,0L);
             }
-
-
 
 			/*
 			** RESOLVE: we may ultimately wish to pass in
@@ -358,300 +354,15 @@ public class GenericStatement implements Statement{
                 cc.setScanIsolationLevel(prepareIsolationLevel);
             }
 
-
             // Look for stored statements that are in a system schema
             // and with a match compilation schema. If so, allow them
             // to compile using internal SQL constructs.
-
             if(internalSQL ||
                     (spsSchema!=null) && (spsSchema.isSystemSchema()) && (spsSchema.equals(compilationSchema))){
                 cc.setReliability(CompilerContext.INTERNAL_SQL_LEGAL);
             }
 
-            try{
-                // Statement logging if lcc.getLogStatementText() is true
-                if(istream!=null){
-                    String xactId=lcc.getTransactionExecute().getActiveStateTxIdString();
-                    istream.printlnWithHeader(LanguageConnectionContext.xidStr+
-                            xactId+
-                            "), "+
-                            LanguageConnectionContext.lccStr+
-                            lcc.getInstanceNumber()+
-                            "), "+
-                            LanguageConnectionContext.dbnameStr+
-                            lcc.getDbname()+
-                            "), "+
-                            LanguageConnectionContext.drdaStr+
-                            lcc.getDrdaID()+
-                            "), Begin compiling prepared statement: "+
-                            getSource()+
-                            " :End prepared statement");
-                }
-
-                Parser p=cc.getParser();
-
-                cc.setCurrentDependent(preparedStmt);
-
-                //Only top level statements go through here, nested statement
-                //will invoke this method from other places
-                StatementNode qt=(StatementNode)p.parseStatement(statementText,paramDefaults);
-
-                parseTime=getCurrentTimeMillis(lcc);
-
-                // Call user-written tree-printer if it exists
-                walkAST(lcc,qt,ASTVisitor.AFTER_PARSE);
-
-                if(SanityManager.DEBUG){
-                    if(SanityManager.DEBUG_ON("DumpParseTree")){
-                        SanityManager.GET_DEBUG_STREAM().print(
-                                "\n\n============PARSE===========\n\n");
-                        qt.treePrint();
-                        lcc.getPrintedObjectsMap().clear();
-                    }
-
-                    if(SanityManager.DEBUG_ON("StopAfterParsing")){
-                        lcc.setLastQueryTree(qt);
-
-                        throw StandardException.newException(SQLState.LANG_STOP_AFTER_PARSING);
-                    }
-                }
-
-				/*
-				** Tell the data dictionary that we are about to do
-				** a bunch of "get" operations that must be consistent with
-				** each other.
-				*/
-
-                DataDictionary dataDictionary=lcc.getDataDictionary();
-
-                int ddMode=dataDictionary==null?0:dataDictionary.startReading(lcc);
-
-                try{
-                    // start a nested transaction -- all locks acquired by bind
-                    // and optimize will be released when we end the nested
-                    // transaction.
-                    lcc.beginNestedTransaction(true);
-                    if(SanityManager.DEBUG){
-                        if(SanityManager.DEBUG_ON("DumpParseTree")){
-                            SanityManager.GET_DEBUG_STREAM().print(
-                                    "\n\n============PARSE===========\n\n");
-                            qt.treePrint();
-                            SanityManager.GET_DEBUG_STREAM().print(
-                                    "\n\n============END PARSE===========\n\n");
-                            lcc.getPrintedObjectsMap().clear();
-                        }
-                    }
-
-                    qt.bindStatement();
-                    bindTime=getCurrentTimeMillis(lcc);
-
-                    // Call user-written tree-printer if it exists
-                    walkAST(lcc,qt,ASTVisitor.AFTER_BIND);
-
-                    if(SanityManager.DEBUG){
-                        if(SanityManager.DEBUG_ON("DumpBindTree")){
-                            SanityManager.GET_DEBUG_STREAM().print(
-                                    "\n\n============BIND===========\n\n");
-                            qt.treePrint();
-                            SanityManager.GET_DEBUG_STREAM().print(
-                                    "\n\n============END BIND===========\n\n");
-                            lcc.getPrintedObjectsMap().clear();
-                        }
-
-                        if(SanityManager.DEBUG_ON("StopAfterBinding")){
-                            throw StandardException.newException(SQLState.LANG_STOP_AFTER_BINDING);
-                        }
-                    }
-
-                    //Derby424 - In order to avoid caching select statements referencing
-                    // any SESSION schema objects (including statements referencing views
-                    // in SESSION schema), we need to do the SESSION schema object check
-                    // here.
-                    //a specific eg for statement referencing a view in SESSION schema
-                    //CREATE TABLE t28A (c28 int)
-                    //INSERT INTO t28A VALUES (280),(281)
-                    //CREATE VIEW SESSION.t28v1 as select * from t28A
-                    //SELECT * from SESSION.t28v1 should show contents of view and we
-                    // should not cache this statement because a user can later define
-                    // a global temporary table with the same name as the view name.
-                    //Following demonstrates that
-                    //DECLARE GLOBAL TEMPORARY TABLE SESSION.t28v1(c21 int, c22 int) not
-                    //     logged
-                    //INSERT INTO SESSION.t28v1 VALUES (280,1),(281,2)
-                    //SELECT * from SESSION.t28v1 should show contents of global temporary
-                    //table and not the view.  Since this select statement was not cached
-                    // earlier, it will be compiled again and will go to global temporary
-                    // table to fetch data. This plan will not be cached either because
-                    // select statement is using SESSION schema object.
-                    //
-                    //Following if statement makes sure that if the statement is
-                    // referencing SESSION schema objects, then we do not want to cache it.
-                    // We will remove the entry that was made into the cache for
-                    //this statement at the beginning of the compile phase.
-                    //The reason we do this check here rather than later in the compile
-                    // phase is because for a view, later on, we loose the information that
-                    // it was referencing SESSION schema because the reference
-                    //view gets replaced with the actual view definition. Right after
-                    // binding, we still have the information on the view and that is why
-                    // we do the check here.
-                    if(preparedStmt.referencesSessionSchema(qt)){
-                        if(foundInCache)
-                            ((GenericLanguageConnectionContext)lcc).removeStatement(this);
-                    }
-                    qt.optimizeStatement();
-                    if(SanityManager.DEBUG && SanityManager.DEBUG_ON("DumpOptimizedTree")){
-                        SanityManager.GET_DEBUG_STREAM().print(
-                                "\n\n============OPTIMIZED===========\n\n");
-                        qt.treePrint();
-                        SanityManager.GET_DEBUG_STREAM().print(
-                                "\n\n============END OPTIMIZED===========\n\n");
-                        lcc.getPrintedObjectsMap().clear();
-                    }
-                    optimizeTime=getCurrentTimeMillis(lcc);
-
-                    // Call user-written tree-printer if it exists
-                    walkAST(lcc,qt,ASTVisitor.AFTER_OPTIMIZE);
-
-                    // Statement logging if lcc.getLogStatementText() is true
-                    if(istream!=null){
-                        String xactId=lcc.getTransactionExecute().getActiveStateTxIdString();
-                        istream.printlnWithHeader(LanguageConnectionContext.xidStr+
-                                xactId+
-                                "), "+
-                                LanguageConnectionContext.lccStr+
-                                lcc.getInstanceNumber()+
-                                "), "+
-                                LanguageConnectionContext.dbnameStr+
-                                lcc.getDbname()+
-                                "), "+
-                                LanguageConnectionContext.drdaStr+
-                                lcc.getDrdaID()+
-                                "), End compiling prepared statement: "+
-                                getSource()+
-                                " :End prepared statement");
-                    }
-                }catch(StandardException se){
-                    lcc.commitNestedTransaction();
-
-                    // Statement logging if lcc.getLogStatementText() is true
-                    if(istream!=null){
-                        String xactId=lcc.getTransactionExecute().getActiveStateTxIdString();
-                        istream.printlnWithHeader(LanguageConnectionContext.xidStr+
-                                xactId+
-                                "), "+
-                                LanguageConnectionContext.lccStr+
-                                lcc.getInstanceNumber()+
-                                "), "+
-                                LanguageConnectionContext.dbnameStr+
-                                lcc.getDbname()+
-                                "), "+
-                                LanguageConnectionContext.drdaStr+
-                                lcc.getDrdaID()+
-                                "), Error compiling prepared statement: "+
-                                getSource()+
-                                " :End prepared statement");
-                    }
-                    throw se;
-                }finally{
-					/* Tell the data dictionary that we are done reading */
-                    if(dataDictionary!=null)
-                        dataDictionary.doneReading(ddMode,lcc);
-                }
-
-				/* we need to move the commit of nested sub-transaction
-				 * after we mark PS valid, during compilation, we might need
-				 * to get some lock to synchronize with another thread's DDL
-				 * execution, in particular, the compilation of insert/update/
-				 * delete vs. create index/constraint (see Beetle 3976).  We
-				 * can't release such lock until after we mark the PS valid.
-				 * Otherwise we would just erase the DDL's invalidation when
-				 * we mark it valid.
-				 */
-                try{        // put in try block, commit sub-transaction if bad
-                    if(SanityManager.DEBUG){
-                        if(SanityManager.DEBUG_ON("DumpOptimizedTree")){
-                            SanityManager.GET_DEBUG_STREAM().print(
-                                    "\n\n============OPT===========\n\n");
-                            qt.treePrint();
-                            lcc.getPrintedObjectsMap().clear();
-                        }
-
-                        if(SanityManager.DEBUG_ON("StopAfterOptimizing")){
-                            throw StandardException.newException(SQLState.LANG_STOP_AFTER_OPTIMIZING);
-                        }
-                    }
-
-                    ByteArray array=preparedStmt.getByteCodeSaver();
-                    GeneratedClass ac=qt.generate(array);
-
-                    generateTime=getCurrentTimeMillis(lcc);
-					/* endTimestamp only meaningful if generateTime is meaningful.
-					 * generateTime is meaningful if STATISTICS TIMING is ON.
-					 */
-                    if(generateTime!=0){
-                        endTimestamp=new Timestamp(generateTime);
-                    }
-
-                    if(SanityManager.DEBUG){
-                        if(SanityManager.DEBUG_ON("StopAfterGenerating")){
-                            throw StandardException.newException(SQLState.LANG_STOP_AFTER_GENERATING);
-                        }
-                    }
-
-					/*
-						copy over the compile-time created objects
-						to the prepared statement.  This always happens
-						at the end of a compile, so there is no need
-						to erase the previous entries on a re-compile --
-						this erases as it replaces.  Set the activation
-						class in case it came from a StorablePreparedStatement
-					*/
-                    preparedStmt.setConstantAction(qt.makeConstantAction());
-                    preparedStmt.setSavedObjects(cc.getSavedObjects());
-                    preparedStmt.setRequiredPermissionsList(cc.getRequiredPermissionsList());
-                    preparedStmt.incrementVersionCounter();
-                    preparedStmt.setActivationClass(ac);
-                    preparedStmt.setNeedsSavepoint(qt.needsSavepoint());
-                    preparedStmt.setCursorInfo((CursorInfo)cc.getCursorInfo());
-                    preparedStmt.setIsAtomic(qt.isAtomic());
-                    preparedStmt.setExecuteStatementNameAndSchema(qt.executeStatementName(), qt.executeSchemaName());
-                    preparedStmt.setSPSName(qt.getSPSName());
-                    preparedStmt.completeCompile(qt);
-                    preparedStmt.setCompileTimeWarnings(cc.getWarnings());
-
-                    // Schedule updates of any stale index statistics we may
-                    // have detected when creating the plan.
-                    TableDescriptor[] tds=qt.updateIndexStatisticsFor();
-                    if(tds.length>0){
-                        IndexStatisticsDaemon isd=lcc.getDataDictionary().
-                                getIndexStatsRefresher(true);
-                        if(isd!=null){
-                            for(int i=0;i<tds.length;i++){
-                                isd.schedule(tds[i]);
-                            }
-                        }
-                    }
-                }catch(StandardException e)    // hold it, throw it
-                {
-                    lcc.commitNestedTransaction();
-                    throw e;
-                }
-
-                if(lcc.getRunTimeStatisticsMode()){
-                    preparedStmt.setCompileTimeMillis(
-                            parseTime-beginTime, //parse time
-                            bindTime-parseTime, //bind time
-                            optimizeTime-bindTime, //optimize time
-                            generateTime-optimizeTime, //generate time
-                            generateTime-beginTime, //total compile time
-                            beginTimestamp,
-                            endTimestamp);
-                }
-
-            }finally // for block introduced by pushCompilerContext()
-            {
-                lcc.popCompilerContext(cc);
-            }
+            fourPhasePrepare(lcc,paramDefaults,timestamps,beginTimestamp,foundInCache,cc);
         }catch(StandardException se){
             if(foundInCache)
                 ((GenericLanguageConnectionContext)lcc).removeStatement(this);
@@ -670,6 +381,308 @@ public class GenericStatement implements Statement{
             lcc.popStatementContext(statementContext,null);
 
         return preparedStmt;
+    }
+
+    /*
+     * Performs the 4-phase preparation of the statement. The four
+     * phases are:
+     *
+     * 1. parse: Convert the Sql text into an abstract syntax tree (AST)
+     * 2. bind: Bind tables and variables. Also performs some error detection (missing tables/columns,etc)
+     * 3. optimize: Perform cost-based optimization
+     * 4. generate: Generate the actual byte code to be executed
+     */
+    private void fourPhasePrepare(LanguageConnectionContext lcc,
+                                  Object[] paramDefaults,
+                                  long[] timestamps,
+                                  Timestamp beginTimestamp,
+                                  boolean foundInCache,
+                                  CompilerContext cc) throws StandardException{
+        HeaderPrintWriter istream=lcc.getLogStatementText()?Monitor.getStream():null;
+        try{
+            // Statement logging if lcc.getLogStatementText() is true
+            if(istream!=null){
+                String statement = "Begin compiling prepared statement: ";
+                printStatementLine(lcc,istream,statement);
+            }
+
+            StatementNode qt=parse(lcc,paramDefaults,timestamps,cc);
+
+            /*
+            ** Tell the data dictionary that we are about to do
+            ** a bunch of "get" operations that must be consistent with
+            ** each other.
+            */
+
+            DataDictionary dataDictionary=lcc.getDataDictionary();
+
+            bindAndOptimize(lcc,timestamps,foundInCache,istream,qt,dataDictionary);
+
+            /* we need to move the commit of nested sub-transaction
+             * after we mark PS valid, during compilation, we might need
+             * to get some lock to synchronize with another thread's DDL
+             * execution, in particular, the compilation of insert/update/
+             * delete vs. create index/constraint (see Beetle 3976).  We
+             * can't release such lock until after we mark the PS valid.
+             * Otherwise we would just erase the DDL's invalidation when
+             * we mark it valid.
+             */
+            Timestamp endTimestamp=generate(lcc,timestamps,cc,qt);
+
+            if(lcc.getRunTimeStatisticsMode()){
+                preparedStmt.setCompileTimeMillis(
+                        timestamps[1]-timestamps[0], //parse time
+                        timestamps[2]-timestamps[1], //bind time
+                        timestamps[3]-timestamps[2], //optimize time
+                        timestamps[4]-timestamps[3], //generate time
+                        timestamps[4]-timestamps[0], //total compile time
+                        beginTimestamp,
+                        endTimestamp);
+            }
+        }finally{ // for block introduced by pushCompilerContext()
+            lcc.popCompilerContext(cc);
+        }
+    }
+
+    private StatementNode parse(LanguageConnectionContext lcc,
+                                Object[] paramDefaults,
+                                long[] timestamps,
+                                CompilerContext cc) throws StandardException{
+        Parser p=cc.getParser();
+
+        cc.setCurrentDependent(preparedStmt);
+
+        //Only top level statements go through here, nested statement
+        //will invoke this method from other places
+        StatementNode qt=(StatementNode)p.parseStatement(statementText,paramDefaults);
+
+        timestamps[1]=getCurrentTimeMillis(lcc);
+
+        // Call user-written tree-printer if it exists
+        walkAST(lcc,qt,ASTVisitor.AFTER_PARSE);
+
+        dumpParseTree(lcc,qt,true);
+        return qt;
+    }
+
+    private void bindAndOptimize(LanguageConnectionContext lcc,
+                                 long[] timestamps,
+                                 boolean foundInCache,
+                                 HeaderPrintWriter istream,
+                                 StatementNode qt,
+                                 DataDictionary dataDictionary) throws StandardException{
+        int ddMode=dataDictionary==null?0:dataDictionary.startReading(lcc);
+        try{
+            // start a nested transaction -- all locks acquired by bind
+            // and optimize will be released when we end the nested
+            // transaction.
+            lcc.beginNestedTransaction(true);
+            dumpParseTree(lcc,qt,false);
+
+            qt.bindStatement();
+            timestamps[2]=getCurrentTimeMillis(lcc);
+
+            // Call user-written tree-printer if it exists
+            walkAST(lcc,qt,ASTVisitor.AFTER_BIND);
+
+            dumpBoundTree(lcc,qt);
+
+            //Derby424 - In order to avoid caching select statements referencing
+            // any SESSION schema objects (including statements referencing views
+            // in SESSION schema), we need to do the SESSION schema object check
+            // here.
+            //a specific eg for statement referencing a view in SESSION schema
+            //CREATE TABLE t28A (c28 int)
+            //INSERT INTO t28A VALUES (280),(281)
+            //CREATE VIEW SESSION.t28v1 as select * from t28A
+            //SELECT * from SESSION.t28v1 should show contents of view and we
+            // should not cache this statement because a user can later define
+            // a global temporary table with the same name as the view name.
+            //Following demonstrates that
+            //DECLARE GLOBAL TEMPORARY TABLE SESSION.t28v1(c21 int, c22 int) not
+            //     logged
+            //INSERT INTO SESSION.t28v1 VALUES (280,1),(281,2)
+            //SELECT * from SESSION.t28v1 should show contents of global temporary
+            //table and not the view.  Since this select statement was not cached
+            // earlier, it will be compiled again and will go to global temporary
+            // table to fetch data. This plan will not be cached either because
+            // select statement is using SESSION schema object.
+            //
+            //Following if statement makes sure that if the statement is
+            // referencing SESSION schema objects, then we do not want to cache it.
+            // We will remove the entry that was made into the cache for
+            //this statement at the beginning of the compile phase.
+            //The reason we do this check here rather than later in the compile
+            // phase is because for a view, later on, we loose the information that
+            // it was referencing SESSION schema because the reference
+            //view gets replaced with the actual view definition. Right after
+            // binding, we still have the information on the view and that is why
+            // we do the check here.
+            if(preparedStmt.referencesSessionSchema(qt)){
+                if(foundInCache)
+                    ((GenericLanguageConnectionContext)lcc).removeStatement(this);
+            }
+            /*
+             * If we have an explain statement, then we should remove it from the
+             * cache to prevent future readers from fetching it
+             */
+            if(foundInCache && qt instanceof ExplainNode){
+                ((GenericLanguageConnectionContext)lcc).removeStatement(this);
+            }
+            qt.optimizeStatement();
+            dumpOptimizedTree(lcc,qt,false);
+            timestamps[3]=getCurrentTimeMillis(lcc);
+
+            // Call user-written tree-printer if it exists
+            walkAST(lcc,qt,ASTVisitor.AFTER_OPTIMIZE);
+
+            // Statement logging if lcc.getLogStatementText() is true
+            if(istream!=null){
+                String endStatement = "End compiling prepared statement: ";
+                printStatementLine(lcc,istream,endStatement);
+            }
+        }catch(StandardException se){
+            lcc.commitNestedTransaction();
+
+            // Statement logging if lcc.getLogStatementText() is true
+            if(istream!=null){
+                String errorStatement = "Error compiling prepared statement: ";
+                printStatementLine(lcc,istream,errorStatement);
+            }
+            throw se;
+        }finally{
+            /* Tell the data dictionary that we are done reading */
+            if(dataDictionary!=null)
+                dataDictionary.doneReading(ddMode,lcc);
+        }
+    }
+
+    private Timestamp generate(LanguageConnectionContext lcc,
+                               long[] timestamps,
+                               CompilerContext cc,
+                               StatementNode qt) throws StandardException{
+        Timestamp endTimestamp = null;
+        try{        // put in try block, commit sub-transaction if bad
+            dumpOptimizedTree(lcc,qt,true);
+
+            ByteArray array=preparedStmt.getByteCodeSaver();
+            GeneratedClass ac=qt.generate(array);
+
+            timestamps[4]=getCurrentTimeMillis(lcc);
+            /* endTimestamp only meaningful if generateTime is meaningful.
+             * generateTime is meaningful if STATISTICS TIMING is ON.
+             */
+            if(timestamps[4]!=0){
+                endTimestamp=new Timestamp(timestamps[4]);
+            }
+
+            if(SanityManager.DEBUG){
+                if(SanityManager.DEBUG_ON("StopAfterGenerating")){
+                    throw StandardException.newException(SQLState.LANG_STOP_AFTER_GENERATING);
+                }
+            }
+
+            /*
+                copy over the compile-time created objects
+                to the prepared statement.  This always happens
+                at the end of a compile, so there is no need
+                to erase the previous entries on a re-compile --
+                this erases as it replaces.  Set the activation
+                class in case it came from a StorablePreparedStatement
+            */
+            preparedStmt.setConstantAction(qt.makeConstantAction());
+            preparedStmt.setSavedObjects(cc.getSavedObjects());
+            preparedStmt.setRequiredPermissionsList(cc.getRequiredPermissionsList());
+            preparedStmt.incrementVersionCounter();
+            preparedStmt.setActivationClass(ac);
+            preparedStmt.setNeedsSavepoint(qt.needsSavepoint());
+            preparedStmt.setCursorInfo((CursorInfo)cc.getCursorInfo());
+            preparedStmt.setIsAtomic(qt.isAtomic());
+            preparedStmt.setExecuteStatementNameAndSchema(qt.executeStatementName(), qt.executeSchemaName());
+            preparedStmt.setSPSName(qt.getSPSName());
+            preparedStmt.completeCompile(qt);
+            preparedStmt.setCompileTimeWarnings(cc.getWarnings());
+
+            scheduleStatsUpdates(lcc,qt);
+
+        }catch(StandardException e){    // hold it, throw it
+            lcc.commitNestedTransaction();
+            throw e;
+        }
+        return endTimestamp;
+    }
+
+    private void scheduleStatsUpdates(LanguageConnectionContext lcc,StatementNode qt) throws StandardException{
+        // Schedule updates of any stale index statistics we may
+        // have detected when creating the plan.
+        TableDescriptor[] tds=qt.updateIndexStatisticsFor();
+        if(tds.length>0){
+            IndexStatisticsDaemon isd=lcc.getDataDictionary().
+                    getIndexStatsRefresher(true);
+            if(isd!=null){
+                for(TableDescriptor td : tds){
+                    isd.schedule(td);
+                }
+            }
+        }
+    }
+
+    private void printStatementLine(LanguageConnectionContext lcc,HeaderPrintWriter istream,String endStatement){
+        String xactId=lcc.getTransactionExecute().getActiveStateTxIdString();
+        istream.printlnWithHeader(LanguageConnectionContext.xidStr+ xactId+ "), "+
+                LanguageConnectionContext.lccStr+ lcc.getInstanceNumber()+ "), "+
+                LanguageConnectionContext.dbnameStr+ lcc.getDbname()+ "), "+
+                LanguageConnectionContext.drdaStr+ lcc.getDrdaID()+
+                "), "+endStatement+ getSource()+ " :End prepared statement");
+    }
+
+    private void dumpParseTree(LanguageConnectionContext lcc,StatementNode qt,boolean stopAfter) throws StandardException{
+        if(SanityManager.DEBUG){
+            if(SanityManager.DEBUG_ON("DumpParseTree")){
+                SanityManager.GET_DEBUG_STREAM().print("\n\n============PARSE===========\n\n");
+                qt.treePrint();
+                lcc.getPrintedObjectsMap().clear();
+                SanityManager.GET_DEBUG_STREAM().print("\n\n============END PARSE===========\n\n");
+            }
+
+            if(stopAfter && SanityManager.DEBUG_ON("StopAfterParsing")){
+                lcc.setLastQueryTree(qt);
+
+                throw StandardException.newException(SQLState.LANG_STOP_AFTER_PARSING);
+            }
+        }
+    }
+
+    private void dumpBoundTree(LanguageConnectionContext lcc,StatementNode qt) throws StandardException{
+        if(SanityManager.DEBUG){
+            if(SanityManager.DEBUG_ON("DumpBindTree")){
+                SanityManager.GET_DEBUG_STREAM().print(
+                        "\n\n============BIND===========\n\n");
+                qt.treePrint();
+                SanityManager.GET_DEBUG_STREAM().print(
+                        "\n\n============END BIND===========\n\n");
+                lcc.getPrintedObjectsMap().clear();
+            }
+
+            if(SanityManager.DEBUG_ON("StopAfterBinding")){
+                throw StandardException.newException(SQLState.LANG_STOP_AFTER_BINDING);
+            }
+        }
+    }
+
+    private void dumpOptimizedTree(LanguageConnectionContext lcc,StatementNode qt,boolean stopAfter) throws StandardException{
+        if(SanityManager.DEBUG){
+            if(SanityManager.DEBUG_ON("DumpOptimizedTree")){
+                SanityManager.GET_DEBUG_STREAM().print("\n\n============OPTIMIZED===========\n\n");
+                qt.treePrint();
+                lcc.getPrintedObjectsMap().clear();
+                SanityManager.GET_DEBUG_STREAM().print("\n\n============END OPTIMIZED===========\n\n");
+            }
+
+            if(stopAfter && SanityManager.DEBUG_ON("StopAfterOptimizing")){
+                throw StandardException.newException(SQLState.LANG_STOP_AFTER_OPTIMIZING);
+            }
+        }
     }
 
     /**

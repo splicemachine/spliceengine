@@ -21,6 +21,7 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import java.util.List;
 import java.util.Vector;
 
 import com.splicemachine.db.catalog.AliasInfo;
@@ -257,12 +258,10 @@ public class AggregateNode extends UnaryOperatorNode
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public ValueNode bindExpression(
-					FromList			fromList,
-					SubqueryList		subqueryList,
-					Vector				aggregateVector)
-			throws StandardException
-	{
+    @Override
+	public ValueNode bindExpression(FromList fromList,
+                                    SubqueryList subqueryList,
+                                    List<AggregateNode> aggregateVector) throws StandardException {
 		DataDictionary  dd = getDataDictionary();
 		DataTypeDescriptor 	dts = null;
 		ClassFactory		cf;

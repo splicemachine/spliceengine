@@ -66,14 +66,12 @@ public interface AccessPath {
 	 * Return whether or not the optimizer is considering a covering index
 	 * scan on this AccessPath. 
 	 *
-	 * @return boolean		Whether or not the optimizer chose a covering
-	 *						index scan.
+	 * @return boolean Whether or not the optimizer chose a covering index scan.
 	 */
 	public boolean getCoveringIndexScan();
 
 	/**
-	 * Set whether or not to consider a non-matching index scan on this
-	 * AccessPath. 
+	 * Set whether or not to consider a non-matching index scan on this AccessPath.
 	 */
 	public void setNonMatchingIndexScan(boolean nonMatchingIndexScan);
 
@@ -132,6 +130,5 @@ public interface AccessPath {
 	 *
 	 * @exception StandardException 	on error.
 	 */
-	public void initializeAccessPathName(DataDictionary dd, TableDescriptor td)
-		throws StandardException;
+	public void initializeAccessPathName(DataDictionary dd, TableDescriptor td) throws StandardException;
 }	

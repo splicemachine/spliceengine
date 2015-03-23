@@ -337,8 +337,7 @@ public interface Optimizer {
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	double uniqueJoinWithOuterTable(OptimizablePredicateList predList)
-			throws StandardException;
+	double uniqueJoinWithOuterTable(OptimizablePredicateList predList) throws StandardException;
 	
 	/** 
 	 * If statistics should be considered by the optimizer while optimizing 

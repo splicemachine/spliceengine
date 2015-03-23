@@ -27,6 +27,7 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.impl.sql.catalog.Aggregate;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -93,10 +94,10 @@ public class GenerationClauseNode extends ValueNode
 	/**
 	 * Binding the generation clause.
 	 */
-	public ValueNode bindExpression
-        ( FromList fromList, SubqueryList subqueryList, Vector	aggregateVector )
-        throws StandardException
-	{
+    @Override
+	public ValueNode bindExpression(FromList fromList,
+                                    SubqueryList subqueryList,
+                                    List<AggregateNode>	aggregateVector ) throws StandardException {
         _boundExpression = _generationExpression.bindExpression( fromList, subqueryList, aggregateVector );
 
         return _boundExpression;

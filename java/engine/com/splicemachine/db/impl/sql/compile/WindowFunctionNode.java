@@ -20,6 +20,7 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import java.util.List;
 import java.util.Vector;
 
 import com.splicemachine.db.catalog.AliasInfo;
@@ -340,7 +341,7 @@ public abstract class WindowFunctionNode extends AggregateNode {
     @Override
     public ValueNode bindExpression(FromList fromList,
                                     SubqueryList subqueryList,
-                                    Vector aggregateVector) throws StandardException {
+                                    List<AggregateNode> aggregateVector) throws StandardException {
         DataDictionary dd = getDataDictionary();
         DataTypeDescriptor dts = null;
         ClassFactory cf = getClassFactory();
@@ -473,7 +474,7 @@ public abstract class WindowFunctionNode extends AggregateNode {
      * @see org.apache.derby.impl.sql.compile.UnaryOperatorNode#bindOperand(FromList, SubqueryList, java.util.Vector)
      */
     @Override
-    protected void bindOperand(FromList fromList, SubqueryList subqueryList, Vector aggregateVector)
+    protected void bindOperand(FromList fromList, SubqueryList subqueryList, List<AggregateNode> aggregateVector)
         throws StandardException {
         // bind all operands - aggregate operands will be added to aggregateVector
         for (ValueNode node : getOperands()) {

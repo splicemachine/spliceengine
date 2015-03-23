@@ -308,14 +308,11 @@ abstract class MethodCallNode extends JavaValueNode
 	 * @exception StandardException		Thrown on error
 	 */
 
-	final void bindParameters(
-		FromList fromList, SubqueryList subqueryList,
-		Vector	aggregateVector) 
-			throws StandardException
-	{
+	final void bindParameters(FromList fromList,
+                              SubqueryList subqueryList,
+                              List<AggregateNode>aggregateVector)  throws StandardException {
 		/* Bind the parameters */
-		if (methodParms != null)
-		{
+		if (methodParms != null) {
 			int		count = methodParms.length;
 
 			// with a procedure call the signature

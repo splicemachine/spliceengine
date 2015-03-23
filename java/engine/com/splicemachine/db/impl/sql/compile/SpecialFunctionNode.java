@@ -109,13 +109,13 @@ public class SpecialFunctionNode extends ValueNode
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public ValueNode bindExpression(FromList fromList, SubqueryList subqueryList,
-							Vector	aggregateVector)
-					throws StandardException
-	{		DataTypeDescriptor dtd;
+    @Override
+	public ValueNode bindExpression(FromList fromList,
+                                    SubqueryList subqueryList,
+                                    List<AggregateNode> aggregateVector) throws StandardException {
+        DataTypeDescriptor dtd;
 		int nodeType = getNodeType();
-		switch (nodeType)
-		{
+		switch (nodeType) {
 		case C_NodeTypes.USER_NODE:
 		case C_NodeTypes.CURRENT_USER_NODE:
 		case C_NodeTypes.SYSTEM_USER_NODE:

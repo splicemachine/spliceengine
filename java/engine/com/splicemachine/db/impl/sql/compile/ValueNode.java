@@ -373,11 +373,9 @@ public abstract class ValueNode extends QueryTreeNode
 	}
 
 	
-	public ValueNode bindExpression(
-									FromList fromList, SubqueryList subqueryList,
-									Vector	aggregateVector)
-		throws StandardException
-	{
+	public ValueNode bindExpression(FromList fromList,
+                                    SubqueryList subqueryList,
+                                    List<AggregateNode> aggregateVector) throws StandardException {
 		return bindExpression(fromList, subqueryList, aggregateVector,false);
 	}
 	
@@ -396,11 +394,10 @@ public abstract class ValueNode extends QueryTreeNode
 	 * @exception StandardException	Thrown on error
 	 */
 
-	public ValueNode bindExpression(
-			FromList fromList, SubqueryList subqueryList,
-			Vector aggregateVector, boolean forQueryRewrite) 
-				throws StandardException
-	{
+	public ValueNode bindExpression(FromList fromList,
+                                    SubqueryList subqueryList,
+                                    List<AggregateNode> aggregateVector,
+                                    boolean forQueryRewrite)  throws StandardException {
 		/* There are a bizillion classes which extend ValueNode.  Here is info
 		 * on some of the classes that bindExpression() should not be called on
 		 * and why:
@@ -408,8 +405,7 @@ public abstract class ValueNode extends QueryTreeNode
 		 *     in the FromBaseTable.  They are created/bound when binding the
 		 *     FromBaseTable.
 		 */
-		if (SanityManager.DEBUG)
-		{
+		if (SanityManager.DEBUG) {
 			SanityManager.ASSERT(false, 
 						"bindExpression() not expected to be called on a " + 
 						this.getClass().toString());

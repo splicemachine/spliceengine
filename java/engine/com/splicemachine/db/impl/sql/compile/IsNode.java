@@ -28,10 +28,10 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 
+import java.util.List;
 import java.util.Vector;
 
-public class IsNode extends BinaryLogicalOperatorNode
-{
+public class IsNode extends BinaryLogicalOperatorNode {
 	private boolean		notMe;	// set to true if we're to negate the sense of this node
 
 	/**
@@ -65,12 +65,10 @@ public class IsNode extends BinaryLogicalOperatorNode
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-
-	public ValueNode bindExpression(
-		FromList fromList, SubqueryList subqueryList,
-		Vector aggregateVector)
-			throws StandardException
-	{
+    @Override
+	public ValueNode bindExpression(FromList fromList,
+                                    SubqueryList subqueryList,
+                                    List<AggregateNode> aggregateVector) throws StandardException {
 		super.bindExpression(fromList, subqueryList, aggregateVector);
 
 		leftOperand.checkIsBoolean();

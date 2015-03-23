@@ -1,5 +1,7 @@
 package com.splicemachine.db.impl.sql.compile;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Vector;
 
 import com.splicemachine.db.iapi.error.StandardException;
@@ -107,21 +109,22 @@ public class WrappedAggregateFunctionNode extends WindowFunctionNode {
       }
 
     @Override
-    public ValueNode bindExpression(FromList fromList, SubqueryList subqueryList, Vector aggregateVector) throws
-        StandardException {
+    public ValueNode bindExpression(FromList fromList,
+                                    SubqueryList subqueryList,
+                                    List<AggregateNode> aggregateVector) throws StandardException {
         // DB-2086 - Vector.remove() calls node1.isEquivalent(node2), not node1.equals(node2), which
         // returns true for identical aggregate nodes removing the first aggregate, not necessarily
         // this one. We need to create a tmp Vector and add all Agg nodes found but this delegate by
         // checking for object identity (==)
-        Vector<AggregateNode> tmp = new Vector<AggregateNode>();
-        ValueNode boundNode = aggregateFunction.bindExpression(fromList, subqueryList, tmp);
+        List<AggregateNode> tmp = new ArrayList<AggregateNode>();
+        aggregateFunction.bindExpression(fromList,subqueryList,tmp);
 
         // We don't want to be in this aggregateVector - we add all aggs found during bind except
         // this delegate.
         // We want to bind the wrapped aggregate (and operand, etc) but we don't want to show up
         // in this list as an aggregate. The list will be handed to GroupByNode, which we don't
         // want doing the work.  Window function code will handle the window function aggregates
-        for (Object aggFn : tmp) {
+        for (AggregateNode aggFn : tmp) {
             if (aggregateFunction != aggFn) {
                 aggregateVector.add(aggFn);
             }

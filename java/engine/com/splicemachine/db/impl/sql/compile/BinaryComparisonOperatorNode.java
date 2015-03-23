@@ -31,6 +31,7 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.error.StandardException;
 
+import java.util.List;
 import java.util.Vector;
 
 /**
@@ -118,16 +119,13 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
 	 * @exception StandardException		Thrown on error
 	 */
 
-	public ValueNode bindExpression(
-		FromList fromList, SubqueryList subqueryList,
-		Vector	aggregateVector)
-			throws StandardException
-	{
+    @Override
+	public ValueNode bindExpression(FromList fromList,
+                                    SubqueryList subqueryList,
+                                    List<AggregateNode> aggregateVector) throws StandardException {
 		super.bindExpression(fromList, subqueryList, aggregateVector);
 
-		TypeCompiler leftTC = leftOperand.getTypeCompiler();
-		TypeCompiler rightTC = rightOperand.getTypeCompiler();
-		TypeId leftTypeId = leftOperand.getTypeId();
+        TypeId leftTypeId = leftOperand.getTypeId();
 		TypeId rightTypeId = rightOperand.getTypeId();
 
 		/*

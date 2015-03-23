@@ -21,7 +21,6 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import org.apache.commons.lang.builder.HashCodeBuilder;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.NodeFactory;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
@@ -44,8 +43,7 @@ import java.util.Vector;
  *
  */
 
-public class ColumnReference extends ValueNode
-{
+public class ColumnReference extends ValueNode {
 	String	columnName;
 
 	/*
@@ -342,9 +340,7 @@ public class ColumnReference extends ValueNode
 	 *
 	 * @exception StandardException			Thrown on error
 	 */
-	public void copyFields(ColumnReference oldCR)
-		throws StandardException
-	{
+	public void copyFields(ColumnReference oldCR) throws StandardException {
 		super.copyFields(oldCR);
 
 		tableName = oldCR.getTableNameNode();
@@ -376,27 +372,23 @@ public class ColumnReference extends ValueNode
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-
-	public ValueNode bindExpression(FromList fromList, SubqueryList subqueryList,
-			Vector aggregateVector) 
-				throws StandardException
-	{
+    @Override
+	public ValueNode bindExpression(FromList fromList,
+                                    SubqueryList subqueryList,
+                                    List<AggregateNode> aggregateVector) throws StandardException {
 		ResultColumn matchingRC;
 
-		if (SanityManager.DEBUG)
-		{
+		if (SanityManager.DEBUG) {
 			SanityManager.ASSERT(fromList != null, "fromList is expected to be non-null");
 		}
 
-		if (fromList.size() == 0)
-		{
+		if (fromList.size() == 0) {
 			throw StandardException.newException(SQLState.LANG_ILLEGAL_COLUMN_REFERENCE, columnName);
 		}
 
         matchingRC = fromList.bindColumnReference(this);
             /* Error if no match found in fromList */
-        if (matchingRC == null)
-        {
+        if (matchingRC == null) {
             throw StandardException.newException(SQLState.LANG_COLUMN_NOT_FOUND, getSQLColumnName());
         }
 
@@ -1132,7 +1124,7 @@ public class ColumnReference extends ValueNode
 			return null;
 		}
 
-		ValueNode rcExpr = null;
+		ValueNode rcExpr;
 		ResultColumn rc = getSource();
 
 		// Walk the ResultColumn->ColumnReference chain until we
@@ -1202,9 +1194,9 @@ public class ColumnReference extends ValueNode
 		colNum[0] = -1;
 		return null;
 	}
-	
-	protected boolean isEquivalent(ValueNode o) throws StandardException
-	{
+
+    @Override
+	protected boolean isEquivalent(ValueNode o) throws StandardException {
 		if (!isSameNodeType(o)) {
 			return false;
 		}
@@ -1212,14 +1204,12 @@ public class ColumnReference extends ValueNode
 		return (tableNumber == other.tableNumber 
 				&& columnName.equals(other.getColumnName()));
 	}
-	
+
+    @Override
 	public int hashCode(){
-		
-		HashCodeBuilder hcBuilder = new HashCodeBuilder(33, 197);
-		hcBuilder.append(tableNumber)
-				.append(columnName);
-		
-		return hcBuilder.toHashCode();
+	    int hc = tableNumber;
+        hc = hc*31+columnName.hashCode();
+        return hc;
 	}
 
     /**

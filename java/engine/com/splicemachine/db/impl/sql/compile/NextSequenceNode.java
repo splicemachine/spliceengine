@@ -65,11 +65,11 @@ public class NextSequenceNode extends ValueNode {
      * @return The new top of the expression tree.
      * @throws StandardException Thrown on error
      */
-    public ValueNode bindExpression(
-            FromList fromList, SubqueryList subqueryList,
-            Vector aggregateVector, boolean forQueryRewrite)
-            throws StandardException
-    {
+    @Override
+    public ValueNode bindExpression(FromList fromList,
+                                    SubqueryList subqueryList,
+                                    List<AggregateNode> aggregateVector,
+                                    boolean forQueryRewrite) throws StandardException {
         //
         // Higher level bind() logic may try to redundantly re-bind this node. Unfortunately,
         // that causes us to think that the sequence is being referenced more than once

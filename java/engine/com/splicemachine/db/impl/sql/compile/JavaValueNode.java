@@ -47,6 +47,7 @@ import com.splicemachine.db.iapi.reference.SQLState;
 
 import java.lang.reflect.Modifier;
 
+import java.util.List;
 import java.util.Vector;
 
 /**
@@ -213,9 +214,9 @@ abstract class JavaValueNode extends QueryTreeNode
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	abstract JavaValueNode bindExpression(FromList fromList, SubqueryList subqueryList,
-							Vector aggregateVector) 
-							throws StandardException;
+	abstract JavaValueNode bindExpression(FromList fromList,
+                                          SubqueryList subqueryList,
+                                          List<AggregateNode> aggregateVector) throws StandardException;
 	/**
 	 * @see ValueNode#preprocess
 	 *

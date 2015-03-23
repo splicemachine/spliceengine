@@ -789,11 +789,9 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public void bindExpressions(
-					FromList fromList, SubqueryList subqueryList,
-					Vector	aggregateVector)
-				throws StandardException
-	{
+	public void bindExpressions(FromList fromList,
+                                SubqueryList subqueryList,
+                                List<AggregateNode> aggregateVector) throws StandardException {
 		/* First we expand the *'s in the result column list */
 		expandAllsAndNameColumns(fromList);
 
@@ -802,9 +800,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>
  		for (int index = 0; index < size; index++)
 		{
 			ValueNode vn = elementAt(index);
-			vn = vn.bindExpression(
-              fromList, subqueryList,
-              aggregateVector);
+			vn = vn.bindExpression( fromList, subqueryList, aggregateVector);
         //-sf- this cast is safe because ResultColumn returns a ResultColumn from bindExpression()
 			setElementAt((ResultColumn)vn, index);
 		}
@@ -2974,7 +2970,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>
 	 * @param updateColumns		A Vector representing the columns
 	 *							to be updated.
 	 */
-	void markColumnsInSelectListUpdatableByCursor(Vector updateColumns)
+	void markColumnsInSelectListUpdatableByCursor(List<String> updateColumns)
 	{
 		commonCodeForUpdatableByCursor(updateColumns, true);
 	}
@@ -2990,41 +2986,33 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>
 	 * In the eg above, we will find updatable column c11 in the select column
 	 * list but we will not find updatable column c12 in the select column list
 	 */
-	private void commonCodeForUpdatableByCursor(Vector updateColumns, boolean dealingWithSelectResultColumnList)
-	{
+	private void commonCodeForUpdatableByCursor(List<String> updateColumns, boolean dealingWithSelectResultColumnList){
 		/*
 		** If there is no update column list, or the list is empty, then it means that
 		** all the columns which have a base table associated with them are updatable.
 		*/
-		if ( (updateColumns == null) || (updateColumns.size() == 0) )
-		{
+		if ( (updateColumns == null) || (updateColumns.size() == 0) ) {
 			markUpdatableByCursor();
-		}
-		else
-		{
-			int				ucSize = updateColumns.size();
-			ResultColumn	resultColumn;
+		} else {
+            ResultColumn	resultColumn;
 			String columnName;
 
-			for (int index = 0; index < ucSize; index++)
-			{
-				columnName = (String) updateColumns.get(index);
+            for(String updateColumn : updateColumns){
+                columnName=updateColumn;
 
-				resultColumn = getResultColumn(columnName);
-				if (SanityManager.DEBUG)
-				{
-					if (resultColumn == null && !dealingWithSelectResultColumnList)
-					{
-						SanityManager.THROWASSERT("No result column found with name " +
-							columnName);
-					}
-				}
-				//Following if means the column specified in FOR UPDATE clause is not
-				//part of the select list
-				if (resultColumn == null && dealingWithSelectResultColumnList)
-					continue;
-				resultColumn.markUpdatableByCursor();
-			}
+                resultColumn=getResultColumn(columnName);
+                if(SanityManager.DEBUG){
+                    if(resultColumn==null && !dealingWithSelectResultColumnList){
+                        SanityManager.THROWASSERT("No result column found with name "+
+                                columnName);
+                    }
+                }
+                //Following if means the column specified in FOR UPDATE clause is not
+                //part of the select list
+                if(resultColumn==null && dealingWithSelectResultColumnList)
+                    continue;
+                resultColumn.markUpdatableByCursor();
+            }
 		}
 	}
 
@@ -3035,7 +3023,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>
 	 * @param updateColumns		A Vector representing the columns
 	 *							to be updated.
 	 */
-	void markUpdatableByCursor(Vector updateColumns)
+	void markUpdatableByCursor(List<String> updateColumns)
 	{
 		commonCodeForUpdatableByCursor(updateColumns, false);
 	}
@@ -3060,17 +3048,14 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>
 	 *
 	 * @return boolean	Whether or not this RCL can be flattened out of a tree.
 	 */
-	public boolean isCloneable()
-	{
+	public boolean isCloneable() {
 		boolean retcode = true;
 		int size = size();
 
-		for (int index = 0; index < size; index++)
-		{
+		for (int index = 0; index < size; index++) {
 			ResultColumn	rc = elementAt(index);
 
-			if (! rc.getExpression().isCloneable())
-			{
+			if (! rc.getExpression().isCloneable()) {
 				retcode = false;
 				break;
 			}
@@ -3085,11 +3070,9 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>
 	 *
 	 * @exception StandardException			Thrown on error
 	 */
-	public void remapColumnReferencesToExpressions() throws StandardException
-	{
+	public void remapColumnReferencesToExpressions() throws StandardException {
 		int size = size();
-		for (int index = 0; index < size; index++)
-		{
+		for (int index = 0; index < size; index++) {
 			ResultColumn rc = elementAt(index);
 
 			// The expression may be null if this column is an identity
@@ -3109,14 +3092,11 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>
 	**
 	** @param cid	The conglomerate id of the index
 	*/
-	void setIndexRow(long cid, boolean forUpdate)
-	{
+	void setIndexRow(long cid, boolean forUpdate) {
 		indexRow = true;
 		conglomerateId = cid;
 		this.forUpdate = forUpdate;
 	}
-
-	/* Debugging methods */
 
 	/**
 	 * Verify that all ResultColumns and their expressions have type information
@@ -3125,8 +3105,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>
 	 *
 	 * @return boolean	Whether or not the type information is consistent
 	 */
-	public boolean hasConsistentTypeInfo() throws StandardException
-	{
+	public boolean hasConsistentTypeInfo() throws StandardException {
 		boolean isConsistent = true;
 
 		if (SanityManager.DEBUG)

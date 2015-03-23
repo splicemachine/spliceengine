@@ -26,10 +26,10 @@ import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.error.StandardException;
 
+import java.util.List;
 import java.util.Vector;
 
-public class OrNode extends BinaryLogicalOperatorNode
-{
+public class OrNode extends BinaryLogicalOperatorNode {
 	/* Is this the 1st OR in the OR chain? */
 	private boolean firstOr;
 
@@ -70,12 +70,8 @@ public class OrNode extends BinaryLogicalOperatorNode
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-
-	public ValueNode bindExpression(
-		FromList fromList, SubqueryList subqueryList,
-		Vector	aggregateVector)
-			throws StandardException
-	{
+    @Override
+	public ValueNode bindExpression(FromList fromList, SubqueryList subqueryList, List<AggregateNode> aggregateVector) throws StandardException {
 		super.bindExpression(fromList, subqueryList, aggregateVector);
 		postBindFixup();
 		return this;

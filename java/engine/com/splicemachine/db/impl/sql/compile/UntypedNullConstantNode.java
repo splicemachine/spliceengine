@@ -28,6 +28,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 
+import java.util.List;
 import java.util.Vector;
 /**
  * An UntypedNullConstantNode represents a SQL NULL before it has
@@ -97,7 +98,7 @@ public final class UntypedNullConstantNode extends ConstantNode
 	 * This does nothing-- the node is actually bound when
 	 * bindUntypedNullsToResultColumns is called.
 	 */
-	public ValueNode bindExpression(FromList fromList, SubqueryList	subqueryList, Vector aggregateVector)
+	public ValueNode bindExpression(FromList fromList, SubqueryList	subqueryList, List<AggregateNode> aggregateVector)
 	{
 		return this;
 	}

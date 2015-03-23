@@ -51,6 +51,7 @@ import com.splicemachine.db.iapi.sql.depend.ProviderList;
 
 import com.splicemachine.db.iapi.reference.SQLState;
 
+import com.splicemachine.db.impl.sql.catalog.Aggregate;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.impl.sql.execute.ConstraintInfo;
 
@@ -59,11 +60,7 @@ import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 
 import com.splicemachine.db.catalog.UUID;
 
-import java.util.ArrayList;
-import java.util.Hashtable;
-import java.util.HashSet;
-import java.util.Properties;
-import java.util.Vector;
+import java.util.*;
 
 /**
  * A TableElementList represents the list of columns and other table elements
@@ -71,8 +68,7 @@ import java.util.Vector;
  *
  */
 
-public class TableElementList extends QueryTreeNodeVector
-{
+public class TableElementList extends QueryTreeNodeVector {
 	private int				numColumns;
 	private TableDescriptor td;
 
@@ -743,10 +739,9 @@ public class TableElementList extends QueryTreeNodeVector
         
 		cc = getCompilerContext();
 
-		Vector aggregateVector = new Vector();
+		List<AggregateNode> aggregateVector = new ArrayList<AggregateNode>();
 
-		for (int index = 0; index < size; index++)
-		{
+		for (int index = 0; index < size; index++) {
 			ColumnDefinitionNode cdn;
 			TableElementNode element = (TableElementNode) elementAt(index);
             GenerationClauseNode    generationClauseNode;

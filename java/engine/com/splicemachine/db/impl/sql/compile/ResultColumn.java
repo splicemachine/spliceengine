@@ -705,20 +705,17 @@ public class ResultColumn extends ValueNode
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-
-	public ValueNode bindExpression(FromList fromList, SubqueryList subqueryList,
-					Vector	aggregateVector)
-				throws StandardException
-	{
+    @Override
+	public ValueNode bindExpression(FromList fromList,
+                                    SubqueryList subqueryList,
+                                    List<AggregateNode>	aggregateVector) throws StandardException {
 		/*
 		** Set the type of a parameter to the type of the result column.
 		** Don't do it if this result column doesn't have a type yet.
 		** This can happen if the parameter is part of a table constructor.
 		*/
-		if (expression.requiresTypeFromContext())
-		{
-			if (getTypeServices() != null)
-			{
+		if (expression.requiresTypeFromContext()) {
+			if (getTypeServices() != null) {
 				expression.setType(getTypeServices());
 			}
 		}

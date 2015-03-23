@@ -29,6 +29,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.impl.sql.catalog.Aggregate;
 
 import java.sql.Types;
 import java.util.Collections;
@@ -85,10 +86,10 @@ public class CurrentDatetimeOperatorNode extends ValueNode {
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public ValueNode bindExpression(FromList fromList, SubqueryList subqueryList,
-							Vector	aggregateVector)
-					throws StandardException
-	{
+    @Override
+	public ValueNode bindExpression(FromList fromList,
+                                    SubqueryList subqueryList,
+                                    List<AggregateNode>	aggregateVector) throws StandardException {
 		checkReliability( methodName[whichType], CompilerContext.DATETIME_ILLEGAL );
 
 		setType(DataTypeDescriptor.getBuiltInDataTypeDescriptor(

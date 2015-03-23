@@ -34,6 +34,7 @@ import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
+import com.splicemachine.db.impl.sql.catalog.Aggregate;
 
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -189,9 +190,9 @@ public class ConditionalNode extends ValueNode
 	 * @exception             StandardException Thrown on error.
 	 */
 	private DataTypeDescriptor findType(ValueNodeList thenElseList,
-		FromList fromList, SubqueryList subqueryList, Vector aggregateVector)
-		throws StandardException
-	{
+                                        FromList fromList,
+                                        SubqueryList subqueryList,
+                                        List<AggregateNode> aggregateVector) throws StandardException {
 		/* We need to "prebind" because we want the Types.  Provide
 		 * dummy SubqueryList and AggreateList (we don't care)
 		 */
@@ -272,9 +273,10 @@ public class ConditionalNode extends ValueNode
 	 * @exception             StandardException Thrown on error.
 	 */
 	private void recastNullNodes(ValueNodeList thenElseList,
-	                           DataTypeDescriptor castType, FromList fromList,
-	                           SubqueryList subqueryList, Vector aggregateVector)
-	 throws StandardException {
+	                           DataTypeDescriptor castType,
+                               FromList fromList,
+	                           SubqueryList subqueryList,
+                               List<AggregateNode> aggregateVector) throws StandardException {
 
 		// Don't do anything if we couldn't find a castType.
 		if (castType == null) return;
@@ -356,18 +358,15 @@ public class ConditionalNode extends ValueNode
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-
-	public ValueNode bindExpression(FromList fromList, SubqueryList subqueryList,
-		Vector	aggregateVector) 
-			throws StandardException
-	{
+    @Override
+	public ValueNode bindExpression(FromList fromList,
+                                    SubqueryList subqueryList,
+                                    List<AggregateNode> aggregateVector)  throws StandardException {
         CompilerContext cc = getCompilerContext();
         
         int previousReliability = orReliability( CompilerContext.CONDITIONAL_RESTRICTION );
         
-		testCondition = testCondition.bindExpression(fromList,
-			subqueryList,
-			aggregateVector);
+		testCondition = testCondition.bindExpression(fromList, subqueryList, aggregateVector);
 
 		if (thisIsNullIfNode) {
 			//for NULLIF(V1,V2), parser binds thenElseList.elementAt(0) to untyped NULL

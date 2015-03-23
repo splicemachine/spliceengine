@@ -33,6 +33,7 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.util.JBitSet;
 
+import java.util.List;
 import java.util.Vector;
 
 /**
@@ -68,18 +69,12 @@ public class ValueNodeList extends QueryTreeNodeVector
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public void	bindExpression(FromList fromList, 
-							   SubqueryList subqueryList,
-							   Vector aggregateVector)
-			throws StandardException
-	{
+	public void	bindExpression(FromList fromList,  SubqueryList subqueryList, List<AggregateNode> aggregateVector) throws StandardException {
 		int size = size();
 
-		for (int index = 0; index < size; index++)
-		{
+		for (int index = 0; index < size; index++) {
 			ValueNode vn = (ValueNode) elementAt(index);
-			vn = vn.bindExpression(fromList, subqueryList,
-								   aggregateVector);
+			vn = vn.bindExpression(fromList, subqueryList, aggregateVector);
 
 			setElementAt(vn, index);
 		}

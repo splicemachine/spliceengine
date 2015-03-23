@@ -29,7 +29,7 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 
-import java.util.Vector;
+import java.util.List;
 
 public final class CharConstantNode extends ConstantNode
 {
@@ -146,7 +146,7 @@ public final class CharConstantNode extends ConstantNode
 	
 	public ValueNode bindExpression(
 			FromList fromList, SubqueryList subqueryList,
-			Vector	aggregateVector)
+			List<AggregateNode> aggregateVector)
 	throws StandardException
 	{
 		//The DTD for this character constant should get its collation type

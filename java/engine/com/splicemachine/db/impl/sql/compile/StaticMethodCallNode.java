@@ -51,7 +51,9 @@ import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.TypeDescriptor;
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
+import com.splicemachine.db.impl.sql.catalog.Aggregate;
 
+import java.util.List;
 import java.util.Vector;
 import java.lang.reflect.Modifier;
 
@@ -104,8 +106,7 @@ import java.lang.reflect.Modifier;
 
  *
  */
-public class StaticMethodCallNode extends MethodCallNode
-{
+public class StaticMethodCallNode extends MethodCallNode {
 	private TableName procedureName;
 
 	private LocalField[] outParamArrays;
@@ -161,21 +162,19 @@ public class StaticMethodCallNode extends MethodCallNode
 	 * Bind this expression.  This means binding the sub-expressions,
 	 * as well as figuring out what the return type is for this expression.
 	 *
-	 * @param fromList		The FROM list for the query this
+	 * @param fromList        The FROM list for the query this
 	 *				expression is in, for binding columns.
-	 * @param subqueryList		The subquery list being built as we find SubqueryNodes
-	 * @param aggregateVector	The aggregate vector being built as we find AggregateNodes
+	 * @param subqueryList        The subquery list being built as we find SubqueryNodes
+	 * @param aggregateVector    The aggregate vector being built as we find AggregateNodes
 	 *
 	 * @return	this or an AggregateNode
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
 
-	public JavaValueNode bindExpression(
-		FromList fromList, SubqueryList subqueryList,
-		Vector	aggregateVector) 
-			throws StandardException
-	{
+	public JavaValueNode bindExpression(FromList fromList,
+                                        SubqueryList subqueryList,
+                                        List<AggregateNode> aggregateVector) throws StandardException {
 		// for a function we can get called recursively
 		if (alreadyBound)
 			return this;
@@ -448,7 +447,10 @@ public class StaticMethodCallNode extends MethodCallNode
 	 * @param sd
 	 * @throws StandardException
 	 */
-	private void resolveRoutine(FromList fromList, SubqueryList subqueryList, Vector aggregateVector, SchemaDescriptor sd) throws StandardException {
+	private void resolveRoutine(FromList fromList,
+                                SubqueryList subqueryList,
+                                List<AggregateNode> aggregateVector,
+                                SchemaDescriptor sd) throws StandardException {
 		if (sd.getUUID() != null) {
 
 		java.util.List list = getDataDictionary().getRoutineList(

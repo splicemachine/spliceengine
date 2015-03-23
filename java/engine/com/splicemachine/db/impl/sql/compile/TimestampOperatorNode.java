@@ -31,9 +31,11 @@ import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
 
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
+import com.splicemachine.db.impl.sql.catalog.Aggregate;
 
 import java.sql.Types;
 
+import java.util.List;
 import java.util.Vector;
 
 /**
@@ -73,12 +75,8 @@ public class TimestampOperatorNode extends BinaryOperatorNode
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-
-	public ValueNode bindExpression(
-		FromList fromList, SubqueryList subqueryList,
-		Vector	aggregateVector) 
-			throws StandardException
-	{
+    @Override
+	public ValueNode bindExpression( FromList fromList, SubqueryList subqueryList, List<AggregateNode> aggregateVector)  throws StandardException {
 		leftOperand = leftOperand.bindExpression(fromList, subqueryList, 
 			aggregateVector);
 		rightOperand = rightOperand.bindExpression(fromList, subqueryList, 

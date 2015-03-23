@@ -42,6 +42,7 @@ import com.splicemachine.db.iapi.types.Like;
 
 import java.sql.Types;
 
+import java.util.List;
 import java.util.Vector;
 
   
@@ -98,8 +99,7 @@ import java.util.Vector;
 
 **/
 
-public final class LikeEscapeOperatorNode extends TernaryOperatorNode
-{
+public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
     /**************************************************************************
     * Fields of the class
     **************************************************************************
@@ -138,12 +138,10 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode
      *
      * @exception StandardException thrown on failure
      */
-    public ValueNode bindExpression(
-    FromList        fromList, 
-    SubqueryList    subqueryList,
-    Vector          aggregateVector) 
-        throws StandardException
-    {
+    @Override
+    public ValueNode bindExpression(FromList fromList,
+                                    SubqueryList subqueryList,
+                                    List<AggregateNode> aggregateVector)  throws StandardException {
         super.bindExpression(fromList, subqueryList, aggregateVector);
 
         String pattern = null;

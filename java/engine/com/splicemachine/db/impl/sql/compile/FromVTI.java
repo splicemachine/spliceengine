@@ -77,17 +77,15 @@ import java.sql.ResultSet;
 import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.Vector;
+import java.util.*;
+
 import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 
 /**
  * A FromVTI represents a VTI in the FROM list of a DML statement.
  *
  */
-public class FromVTI extends FromTable implements VTIEnvironment
-{
+public class FromVTI extends FromTable implements VTIEnvironment {
 
 	JBitSet				correlationMap;
 	JBitSet				dependencyMap;
@@ -905,22 +903,17 @@ public class FromVTI extends FromTable implements VTIEnvironment
 		 * These CRs will have uninitialized column and table numbers.
 		 */
 		Vector colRefs = getNodesFromParameters(ColumnReference.class);
-		Vector aggregateVector = null;
-		for (Enumeration e = colRefs.elements(); e.hasMoreElements(); )
-		{
+		List<AggregateNode> aggregateVector = null;
+		for (Enumeration e = colRefs.elements(); e.hasMoreElements(); ) {
 			ColumnReference ref = (ColumnReference)e.nextElement();
 
 			// Rebind the CR if the tableNumber is uninitialized
-			if (ref.getTableNumber() == -1)
-			{
+			if (ref.getTableNumber() == -1) {
 				// we need a fake agg list
-				if (aggregateVector == null)
-				{
-					aggregateVector = new Vector();
+				if (aggregateVector == null) {
+					aggregateVector = new ArrayList<AggregateNode>();
 				}
-				ref.bindExpression(fromListParam,
-									subqueryList,
-									aggregateVector);
+				ref.bindExpression(fromListParam, subqueryList, aggregateVector);
 			}
 		}
 	}

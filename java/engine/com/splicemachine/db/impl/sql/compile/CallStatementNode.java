@@ -52,8 +52,7 @@ import java.util.TreeSet;
  * A procedure is always represented by a MethodCallNode.
  *
  */
-public class CallStatementNode extends DMLStatementNode
-{	
+public class CallStatementNode extends DMLStatementNode {
 	/**
 	 * The method call for the Java procedure. Guaranteed to be
 	 * a JavaToSQLValueNode wrapping a MethodCallNode by checks
@@ -134,9 +133,8 @@ public class CallStatementNode extends DMLStatementNode
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-
-	public void bindStatement() throws StandardException
-	{
+    @Override
+	public void bindStatement() throws StandardException {
 		DataDictionary dd = getDataDictionary();
 
 		if (SanityManager.DEBUG)

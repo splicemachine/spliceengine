@@ -23,6 +23,7 @@ package com.splicemachine.db.impl.sql.compile;
 
 import java.sql.Types;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
@@ -102,11 +103,10 @@ public class TruncateOperatorNode extends BinaryOperatorNode {
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-
-	public ValueNode bindExpression(
-		FromList fromList, SubqueryList subqueryList,
-		Vector	aggregateVector) throws StandardException {
-
+    @Override
+	public ValueNode bindExpression(FromList fromList,
+                                    SubqueryList subqueryList,
+                                    List<AggregateNode> aggregateVector) throws StandardException {
 		leftOperand = leftOperand.bindExpression(fromList, subqueryList, aggregateVector);
 		rightOperand = rightOperand.bindExpression(fromList, subqueryList, aggregateVector);
 

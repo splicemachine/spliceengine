@@ -30,6 +30,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.reference.Limits;
 
+import java.util.List;
 import java.util.Vector;
 
 /**
@@ -104,10 +105,7 @@ public class GroupByList extends OrderedColumnList
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public void bindGroupByColumns(SelectNode select,
-								   Vector	aggregateVector)
-					throws StandardException
-	{
+	public void bindGroupByColumns(SelectNode select,List<AggregateNode> aggregateVector) throws StandardException {
 		FromList		 fromList = select.getFromList();
 		ResultColumnList selectRCL = select.getResultColumns();
 		SubqueryList	 dummySubqueryList =

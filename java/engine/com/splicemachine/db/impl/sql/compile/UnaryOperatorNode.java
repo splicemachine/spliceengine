@@ -291,12 +291,10 @@ public class UnaryOperatorNode extends OperatorNode
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-
-	public ValueNode bindExpression(
-					FromList fromList, SubqueryList subqueryList,
-					Vector	aggregateVector)
-				throws StandardException
-	{
+    @Override
+	public ValueNode bindExpression( FromList fromList,
+                                     SubqueryList subqueryList,
+                                     List<AggregateNode>	aggregateVector) throws StandardException {
 		bindOperand(fromList, subqueryList, aggregateVector);
         if (operatorType == XMLPARSE_OP)
             bindXMLParse();
@@ -311,13 +309,10 @@ public class UnaryOperatorNode extends OperatorNode
      * Sub-classes bindExpression() methods need to call this
      * method to bind the operand.
 	 */
-	protected void bindOperand(
-					FromList fromList, SubqueryList subqueryList,
-					Vector	aggregateVector)
-				throws StandardException
-	{
-		operand = operand.bindExpression(fromList, subqueryList,
-								aggregateVector);
+	protected void bindOperand(FromList fromList,
+                               SubqueryList subqueryList,
+                               List<AggregateNode>	aggregateVector) throws StandardException {
+		operand = operand.bindExpression(fromList, subqueryList, aggregateVector);
 
 		if (operand.requiresTypeFromContext()) {
 			bindParameter();

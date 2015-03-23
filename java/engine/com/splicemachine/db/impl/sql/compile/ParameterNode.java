@@ -215,10 +215,10 @@ public class ParameterNode extends ValueNode
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-
+    @Override
 	public ValueNode bindExpression(
 			FromList fromList, SubqueryList subqueryList,
-			Vector	aggregateVector) 
+			List<AggregateNode>	aggregateVector)
 				throws StandardException
 	{
 		checkReliability( "?", CompilerContext.UNNAMED_PARAMETER_ILLEGAL );
@@ -231,12 +231,14 @@ public class ParameterNode extends ValueNode
 	 *
 	 * @return	Whether or not this expression tree represents a constant expression.
 	 */
+    @Override
 	public boolean isConstantExpression()
 	{
 		return true;
 	}
 
 	/** @see ValueNode#constantExpression */
+    @Override
 	public boolean constantExpression(PredicateList whereClause)
 	{
 		return true;
@@ -254,6 +256,7 @@ public class ParameterNode extends ValueNode
 	 *
 	 * @return	The variant type for the underlying expression.
 	 */
+    @Override
 	protected int getOrderableVariantType()
 	{
 		// Parameters are invariant for the life of the query

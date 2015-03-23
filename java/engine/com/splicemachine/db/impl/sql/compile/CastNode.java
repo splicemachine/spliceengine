@@ -44,6 +44,7 @@ import java.lang.reflect.Modifier;
 import com.splicemachine.db.iapi.types.NumberDataType;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.ReuseFactory;
+import com.splicemachine.db.impl.sql.catalog.Aggregate;
 
 import java.sql.Types;
 import java.util.List;
@@ -231,10 +232,10 @@ public class CastNode extends ValueNode
 	 * @exception StandardException		Thrown on error
 	 */
 
-	public ValueNode bindExpression(FromList fromList, SubqueryList subqueryList,
-									Vector aggregateVector)
-				throws StandardException
-	{
+    @Override
+	public ValueNode bindExpression(FromList fromList,
+                                    SubqueryList subqueryList,
+                                    List<AggregateNode> aggregateVector) throws StandardException {
 		castOperand = castOperand.bindExpression(
 								fromList, subqueryList,
 								aggregateVector);

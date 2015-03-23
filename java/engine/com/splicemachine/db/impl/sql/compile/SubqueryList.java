@@ -55,16 +55,13 @@ public class SubqueryList extends QueryTreeNodeVector<SubqueryNode>{
 	 * @exception StandardException		Thrown on error
 	 */
 	public void preprocess(int numTables,
-							FromList outerFromList,
-							SubqueryList outerSubqueryList,
-							PredicateList outerPredicateList) 
-				throws StandardException
-	{
-		SubqueryNode	subqueryNode;
+                           FromList outerFromList,
+                           SubqueryList outerSubqueryList,
+                           PredicateList outerPredicateList)  throws StandardException {
+		SubqueryNode subqueryNode;
 
 		int size = size();
-		for (int index = 0; index < size; index++)
-		{
+		for (int index = 0; index < size; index++) {
 			subqueryNode = elementAt(index);
 			subqueryNode.preprocess(numTables, outerFromList,
 									outerSubqueryList,
@@ -81,13 +78,9 @@ public class SubqueryList extends QueryTreeNodeVector<SubqueryNode>{
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-
-	public void optimize(DataDictionary dataDictionary, double outerRows)
-			throws StandardException
-	{
+	public void optimize(DataDictionary dataDictionary, double outerRows) throws StandardException {
 		int size = size();
-		for (int index = 0; index < size; index++)
-		{
+		for (int index = 0; index < size; index++) {
 			SubqueryNode	subqueryNode;
 			subqueryNode = elementAt(index);
 			subqueryNode.optimize(dataDictionary, outerRows);
@@ -101,12 +94,9 @@ public class SubqueryList extends QueryTreeNodeVector<SubqueryNode>{
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public void modifyAccessPaths()
-			throws StandardException
-	{
+	public void modifyAccessPaths() throws StandardException {
 		int size = size();
-		for (int index = 0; index < size; index++)
-		{
+		for (int index = 0; index < size; index++) {
 			SubqueryNode	subqueryNode;
 			subqueryNode = elementAt(index);
 			subqueryNode.modifyAccessPaths();
@@ -123,22 +113,17 @@ public class SubqueryList extends QueryTreeNodeVector<SubqueryNode>{
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public boolean referencesTarget(String name, boolean baseTable)
-		throws StandardException
-	{
+	public boolean referencesTarget(String name, boolean baseTable) throws StandardException {
 		int size = size();
-		for (int index = 0; index < size; index++)
-		{
+		for (int index = 0; index < size; index++) {
 			SubqueryNode	subqueryNode;
 
 			subqueryNode = elementAt(index);
-			if (subqueryNode.isMaterializable())
-			{
+			if (subqueryNode.isMaterializable()) {
 				continue;
 			}
 
-			if (subqueryNode.getResultSet().referencesTarget(name, baseTable))
-			{
+			if (subqueryNode.getResultSet().referencesTarget(name, baseTable)) {
 				return true;
 			}
 		}
@@ -153,18 +138,15 @@ public class SubqueryList extends QueryTreeNodeVector<SubqueryNode>{
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public boolean referencesSessionSchema()
-		throws StandardException
-	{
+    @Override
+	public boolean referencesSessionSchema() throws StandardException {
 		int size = size();
-		for (int index = 0; index < size; index++)
-		{
+		for (int index = 0; index < size; index++) {
 			SubqueryNode	subqueryNode;
 
 			subqueryNode = elementAt(index);
 
-			if (subqueryNode.getResultSet().referencesSessionSchema())
-			{
+			if (subqueryNode.getResultSet().referencesSessionSchema()) {
 				return true;
 			}
 		}
@@ -179,13 +161,10 @@ public class SubqueryList extends QueryTreeNodeVector<SubqueryNode>{
 	 *
 	 * @exception StandardException			Thrown on error
 	 */
-	public void setPointOfAttachment(int pointOfAttachment)
-		throws StandardException
-	{
+	public void setPointOfAttachment(int pointOfAttachment) throws StandardException {
 		int size = size();
 
-		for (int index = 0; index < size; index++)
-		{
+		for (int index = 0; index < size; index++) {
 			SubqueryNode	subqueryNode;
 
 			subqueryNode = elementAt(index);
@@ -200,12 +179,10 @@ public class SubqueryList extends QueryTreeNodeVector<SubqueryNode>{
 	 *
 	 * @param decrement	The amount to decrement by.
 	 */
-	void decrementLevel(int decrement)
-	{
+	void decrementLevel(int decrement) {
 		int size = size();
 
-		for (int index = 0; index < size; index++)
-		{
+		for (int index = 0; index < size; index++) {
 			elementAt(index).getResultSet().decrementLevel(decrement);
 		}
 	}
@@ -219,8 +196,7 @@ public class SubqueryList extends QueryTreeNodeVector<SubqueryNode>{
 	public void markHavingSubqueries() {
 	    int size = size();
 	    
-	    for (int index = 0; index < size; index++)
-	    {
+	    for (int index = 0; index < size; index++) {
 	        SubqueryNode    subqueryNode;
 
 	        subqueryNode = elementAt(index);
@@ -234,8 +210,7 @@ public class SubqueryList extends QueryTreeNodeVector<SubqueryNode>{
 	 */
 	public void markWhereSubqueries() {
 		int size = size();
-		for (int index = 0; index < size; index++)
-		{
+		for (int index = 0; index < size; index++) {
 			SubqueryNode    subqueryNode;
 
 			subqueryNode = elementAt(index);

@@ -21,6 +21,7 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import java.util.List;
 import java.util.Vector;
 
 import com.splicemachine.db.iapi.error.StandardException;
@@ -91,15 +92,12 @@ public class GroupByColumn extends OrderedColumn
 	 * @exception StandardException	Thrown on error
 	 */
 
-	public void bindExpression(
-			FromList fromList, 
-			SubqueryList subqueryList,
-			Vector	aggregateVector) 
-				throws StandardException
-	{
+	public void bindExpression(FromList fromList,
+                               SubqueryList subqueryList,
+                               List<AggregateNode> aggregateVector)  throws StandardException {
 		/* Bind the ColumnReference to the FromList */
         int previousReliability = orReliability( CompilerContext.GROUP_BY_RESTRICTION );
-		columnExpression = (ValueNode) columnExpression.bindExpression(fromList,
+		columnExpression =columnExpression.bindExpression(fromList,
 							  subqueryList,
 							  aggregateVector);
         getCompilerContext().setReliability( previousReliability );

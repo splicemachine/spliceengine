@@ -284,12 +284,10 @@ public class BinaryOperatorNode extends OperatorNode
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-
-	public ValueNode bindExpression(
-		FromList fromList, SubqueryList subqueryList,
-		Vector	aggregateVector) 
-			throws StandardException
-	{
+    @Override
+	public ValueNode bindExpression(FromList fromList,
+                                    SubqueryList subqueryList,
+                                    List<AggregateNode>	aggregateVector) throws StandardException {
 		leftOperand = leftOperand.bindExpression(fromList, subqueryList, 
 			aggregateVector);
 		rightOperand = rightOperand.bindExpression(fromList, subqueryList, 

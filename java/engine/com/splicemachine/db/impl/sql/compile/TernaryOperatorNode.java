@@ -194,20 +194,16 @@ public class TernaryOperatorNode extends OperatorNode
 	 * @exception StandardException		Thrown on error
 	 */
 
-	public ValueNode bindExpression(FromList fromList, SubqueryList subqueryList,
-		Vector	aggregateVector) 
-			throws StandardException
-	{
-		receiver = receiver.bindExpression(fromList, subqueryList, 
-			aggregateVector);
+	public ValueNode bindExpression(FromList fromList,
+                                    SubqueryList subqueryList,
+                                    List<AggregateNode> aggregateVector)  throws StandardException {
+		receiver = receiver.bindExpression(fromList, subqueryList,  aggregateVector);
 
-		leftOperand = leftOperand.bindExpression(fromList, subqueryList,
-			    aggregateVector);
+		leftOperand = leftOperand.bindExpression(fromList, subqueryList, aggregateVector);
 
 		if (rightOperand != null)
 		{
-			rightOperand = rightOperand.bindExpression(fromList, subqueryList, 
-				aggregateVector);
+			rightOperand = rightOperand.bindExpression(fromList, subqueryList,  aggregateVector);
 		}
 		if (operatorType == TRIM)
 			trimBind();

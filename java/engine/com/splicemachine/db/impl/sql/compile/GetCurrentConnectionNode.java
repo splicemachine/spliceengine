@@ -36,7 +36,7 @@ import com.splicemachine.db.iapi.util.JBitSet;
 
 import com.splicemachine.db.iapi.reference.ClassName;
 
-import java.util.Vector;
+import java.util.List;
 
 /**
  * This node represents a unary getCurrentConnection operator
@@ -66,18 +66,16 @@ public final class GetCurrentConnectionNode extends JavaValueNode
 	/**
 	 * Bind this operator
 	 *
-	 * @param fromList			The query's FROM list
-	 * @param subqueryList		The subquery list being built as we find SubqueryNodes
-	 * @param aggregateVector	The aggregate vector being built as we find AggregateNodes
+	 * @param fromList            The query's FROM list
+	 * @param subqueryList        The subquery list being built as we find SubqueryNodes
+	 * @param aggregateVector    The aggregate vector being built as we find AggregateNodes
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-
-	public JavaValueNode bindExpression(
-		FromList	fromList, SubqueryList subqueryList,
-		Vector	aggregateVector)
-			throws StandardException
-	{
+    @Override
+	public JavaValueNode bindExpression(FromList fromList,
+                                        SubqueryList subqueryList,
+                                        List<AggregateNode> aggregateVector) throws StandardException {
 		return this;
 	}
 

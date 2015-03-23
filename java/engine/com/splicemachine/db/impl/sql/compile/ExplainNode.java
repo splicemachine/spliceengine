@@ -13,22 +13,26 @@ import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 
 /**
- * Created by jyuan on 6/9/14.
+ * @author Jun Yuan
+ * Date: 6/9/14
  */
 public class ExplainNode extends DMLStatementNode {
 
     StatementNode node;
 
-    int activationKind() {
-        return StatementNode.NEED_NOTHING_ACTIVATION;
-    }
+    int activationKind() { return StatementNode.NEED_NOTHING_ACTIVATION; }
 
-    public String statementToString() {
-        return "Explain";
-    }
+    public String statementToString() { return "Explain"; }
 
-    public void init(Object statementNode) {
-        node = (StatementNode)statementNode;
+    public void init(Object statementNode) { node = (StatementNode)statementNode; }
+
+    /**
+     * Used by splice. Provides direct access to the node underlying the explain node.
+     * @return the root of the actual execution plan.
+     */
+    @SuppressWarnings("UnusedDeclaration")
+    public StatementNode getPlanRoot(){
+        return node;
     }
 
     @Override
@@ -37,53 +41,43 @@ public class ExplainNode extends DMLStatementNode {
     }
 
     @Override
-    public void bindStatement() throws StandardException
-    {
+    public void bindStatement() throws StandardException {
         node.bindStatement();
     }
 
     @Override
-    public void generate(ActivationClassBuilder acb,
-                         MethodBuilder mb)
-            throws StandardException
-    {
+    public void generate(ActivationClassBuilder acb, MethodBuilder mb) throws StandardException {
         acb.pushGetResultSetFactoryExpression(mb);
         // parameter
         node.generate(acb, mb);
         acb.pushThisAsActivation(mb);
         int resultSetNumber = getCompilerContext().getNextResultSetNumber();
         mb.push(resultSetNumber);
-        mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getExplainResultSet", ClassName.NoPutResultSet, 3);
+        mb.callMethod(VMOpcode.INVOKEINTERFACE,null, "getExplainResultSet", ClassName.NoPutResultSet, 3);
     }
 
     @Override
-    public ResultDescription makeResultDescription()
-    {
+    public ResultDescription makeResultDescription() {
         DataTypeDescriptor dtd = new DataTypeDescriptor(TypeId.getBuiltInTypeId(TypeId.VARCHAR_NAME), true);
         ResultColumnDescriptor[] colDescs = new GenericColumnDescriptor[1];
         colDescs[0] = new GenericColumnDescriptor("Plan", dtd);
         String statementType = statementToString();
 
-        return getExecutionFactory().getResultDescription(
-                colDescs, statementType );
+        return getExecutionFactory().getResultDescription(colDescs, statementType );
     }
 
-    public void acceptChildren(Visitor v)
-            throws StandardException
-    {
+    @Override
+    public void acceptChildren(Visitor v) throws StandardException {
         super.acceptChildren(v);
 
-        if ( node!= null)
-        {
+        if ( node!= null) {
             node = (StatementNode)node.accept(v);
         }
     }
 
-    public ConstantAction makeConstantAction() throws StandardException
-    {
+    @Override
+    public ConstantAction makeConstantAction() throws StandardException {
         return	node.makeConstantAction();
     }
-    public StatementNode getExplainPlanRoot() {
-        return node;
-    }
+
 }

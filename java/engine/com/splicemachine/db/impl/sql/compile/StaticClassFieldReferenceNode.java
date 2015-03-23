@@ -39,8 +39,7 @@ import com.splicemachine.db.iapi.util.JBitSet;
 
 import java.lang.reflect.Member;
 import java.lang.reflect.Modifier;
-
-import java.util.Vector;
+import java.util.List;
 
 /**
  * A StaticClassFieldReferenceNode represents a Java static field reference from 
@@ -49,8 +48,7 @@ import java.util.Vector;
  *
  */
 
-public final class StaticClassFieldReferenceNode extends JavaValueNode
-{
+public final class StaticClassFieldReferenceNode extends JavaValueNode {
 	/*
 	** Name of the field.
 	*/
@@ -82,20 +80,19 @@ public final class StaticClassFieldReferenceNode extends JavaValueNode
 	 * Bind this expression.  This means binding the sub-expressions,
 	 * as well as figuring out what the return type is for this expression.
 	 *
-	 * @param fromList		The FROM list for the query this
+	 * @param fromList        The FROM list for the query this
 	 *				expression is in, for binding columns.
-	 * @param subqueryList		The subquery list being built as we find SubqueryNodes
-	 * @param aggregateVector	The aggregate vector being built as we find AggregateNodes
+	 * @param subqueryList        The subquery list being built as we find SubqueryNodes
+	 * @param aggregateVector    The aggregate vector being built as we find AggregateNodes
 	 *
 	 * @return	Nothing
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
 
-	public JavaValueNode bindExpression(FromList fromList, SubqueryList subqueryList,
-		Vector aggregateVector) 
-			throws StandardException
-	{
+	public JavaValueNode bindExpression(FromList fromList,
+                                        SubqueryList subqueryList,
+                                        List<AggregateNode> aggregateVector) throws StandardException {
 		ClassInspector classInspector = getClassFactory().getClassInspector();
 
 

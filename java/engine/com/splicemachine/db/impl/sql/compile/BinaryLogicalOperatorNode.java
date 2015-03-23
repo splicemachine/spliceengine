@@ -31,6 +31,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 
+import java.util.List;
 import java.util.Vector;
 
 abstract class BinaryLogicalOperatorNode extends BinaryOperatorNode
@@ -70,12 +71,10 @@ abstract class BinaryLogicalOperatorNode extends BinaryOperatorNode
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-
-	public ValueNode bindExpression(
-		FromList fromList, SubqueryList subqueryList,
-		Vector aggregateVector)
-			throws StandardException
-	{
+    @Override
+	public ValueNode bindExpression(FromList fromList,
+                                    SubqueryList subqueryList,
+                                    List<AggregateNode> aggregateVector) throws StandardException {
 		//following is to check if we have something like "? AND 1=1" or "2>1 OR ?" 
 		if (leftOperand.isParameterNode() || rightOperand.isParameterNode())
 			throw StandardException.newException(SQLState.LANG_NON_BOOLEAN_WHERE_CLAUSE, "PARAMETER" );

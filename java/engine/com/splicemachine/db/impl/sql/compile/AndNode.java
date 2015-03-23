@@ -26,6 +26,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 
+import java.util.List;
 import java.util.Vector;
 
 public class AndNode extends BinaryLogicalOperatorNode
@@ -57,10 +58,10 @@ public class AndNode extends BinaryLogicalOperatorNode
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-
+    @Override
 	public ValueNode bindExpression(
 		FromList fromList, SubqueryList subqueryList,
-		Vector aggregateVector)
+		List<AggregateNode> aggregateVector)
 			throws StandardException
 	{
 		super.bindExpression(fromList, subqueryList, aggregateVector);

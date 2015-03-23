@@ -46,10 +46,7 @@ import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.util.StringUtil;
 
-import java.util.Enumeration;
-import java.util.Properties;
-import java.util.Vector;
-import java.util.HashMap;
+import java.util.*;
 
 /**
  * A FromTable represents a table in the FROM clause of a DML statement.
@@ -1430,8 +1427,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable
 	 * @param updateColumns		A Vector representing the columns
 	 *							that can be updated.
 	 */
-	protected void markUpdatableByCursor(Vector updateColumns)
-	{
+	protected void markUpdatableByCursor(List<String> updateColumns) {
 		resultColumns.markUpdatableByCursor(updateColumns);
 	}
 

@@ -39,6 +39,7 @@ import com.splicemachine.db.iapi.reference.ClassName;
 
 import java.sql.Types;
 
+import java.util.List;
 import java.util.Vector;
 
 /**
@@ -96,9 +97,10 @@ public class ConcatenationOperatorNode extends BinaryOperatorNode {
 	 * @exception StandardException
 	 *                thrown on failure
 	 */
+    @Override
 	public ValueNode bindExpression(FromList fromList,
-			SubqueryList subqueryList, Vector aggregateVector)
-			throws StandardException {
+                                    SubqueryList subqueryList,
+                                    List<AggregateNode> aggregateVector) throws StandardException {
 		// deal with binding operands
 		leftOperand = leftOperand.bindExpression(fromList, subqueryList,
 				aggregateVector);

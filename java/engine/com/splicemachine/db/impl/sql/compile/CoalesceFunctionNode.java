@@ -130,10 +130,10 @@ public class CoalesceFunctionNode extends ValueNode
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public ValueNode bindExpression(FromList fromList, SubqueryList subqueryList,
-							Vector	aggregateVector)
-					throws StandardException
-	{
+    @Override
+	public ValueNode bindExpression(FromList fromList,
+                                    SubqueryList subqueryList,
+                                    List<AggregateNode>	aggregateVector) throws StandardException {
 		//bind all the arguments
 		argumentsList.bindExpression(fromList, subqueryList, aggregateVector);
 
