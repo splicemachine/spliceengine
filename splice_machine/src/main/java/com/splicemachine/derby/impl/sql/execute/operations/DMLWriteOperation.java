@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.base.Strings;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.iapi.storage.RowProvider;
@@ -8,14 +9,17 @@ import com.splicemachine.derby.impl.storage.SingleScanRowProvider;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.stats.TaskStats;
+import com.splicemachine.derby.utils.marshall.DataHash;
+import com.splicemachine.derby.utils.marshall.KeyEncoder;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
+import com.splicemachine.derby.utils.marshall.PairEncoder;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.job.JobResults;
+import com.splicemachine.job.SimpleJobResults;
 import com.splicemachine.metrics.IOStats;
 import com.splicemachine.metrics.Metrics;
-import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.TxnView;
-import com.splicemachine.si.impl.TransactionLifecycle;
-import com.splicemachine.pipeline.exception.ErrorState;
+import com.splicemachine.pipeline.api.RecordingCallBuffer;
+import com.splicemachine.pipeline.impl.WriteCoordinator;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -31,7 +35,6 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -182,27 +185,71 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 				return source.getReduceRowProvider(top, decoder, spliceRuntimeContext,returnDefaultValue);
 		}
 
-		@Override
-		protected JobResults doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException, IOException {
+    @Override
+    protected JobResults doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException, IOException {
         long start = System.currentTimeMillis();
-        final RowProvider rowProvider = getMapRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext),runtimeContext);
 
-        nextTime+= System.currentTimeMillis()-start;
+        /* If the optimizer knows we are only dealing with one row */
+        if (source.getEstimatedRowCount() == 1) {
+            try {
+                return doControlSideShuffle(runtimeContext);
+            } catch (Exception e) {
+                throw new IOException(e);
+            }
+        } else {
+            PairDecoder pairDecoder = OperationUtils.getPairDecoder(this, runtimeContext);
+            final RowProvider rowProvider = getMapRowProvider(this, pairDecoder, runtimeContext);
+            nextTime += System.currentTimeMillis() - start;
+            SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(), this, runtimeContext);
+            jobResults = rowProvider.shuffleRows(soi, OperationUtils.cleanupSubTasks(this));
+            this.rowsSunk = TaskStats.merge(jobResults.getJobStats().getTaskStats()).getTotalRowsWritten();
+            return jobResults;
+        }
+    }
 
-        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(), this, runtimeContext);
-        jobResults = rowProvider.shuffleRows(soi,OperationUtils.cleanupSubTasks(this));
+    /**
+     * Control side shuffle for DML write operations.
+     *
+     * For UPDATE/DELETE/INSERT where the source operation is providing us a small number of rows read them directly from
+     * the source's row provider and write to destination table.  The sub-tree under this operation is still
+     * serialized and attached to the scan, but we avoid the task framework.  UPDATES and DELETES are approximately
+     * 3 times faster this way, in the context of our local TPCC benchmark.
+     */
+    private JobResults doControlSideShuffle(SpliceRuntimeContext runtimeContext) throws Exception {
 
-				long rowsModified = 0;
-				for(TaskStats stats:jobResults.getJobStats().getTaskStats()){
-						rowsModified+=stats.getTotalRowsWritten();
-				}
-				this.rowsSunk = rowsModified;
-				return jobResults;
-		}
+        // WriteBuffer for destination table.
+        WriteCoordinator writeCoordinator = SpliceDriver.driver().getTableWriter();
+        RecordingCallBuffer<KVPair> writeBuffer = writeCoordinator.writeBuffer(getDestinationTable(), runtimeContext.getTxn(), runtimeContext);
+        writeBuffer = this.transformWriteBuffer(writeBuffer);
+
+        // PairEncoder: For local ExecRow -> KVPair -> CallBuffer
+        KeyEncoder keyEncoder = this.getKeyEncoder(runtimeContext);
+        DataHash rowHash = this.getRowHash(runtimeContext);
+        KVPair.Type dataType = this instanceof UpdateOperation ? KVPair.Type.UPDATE :
+                (this instanceof InsertOperation) ? KVPair.Type.INSERT : KVPair.Type.DELETE;
+        PairEncoder pairEncoder = new PairEncoder(keyEncoder, rowHash, dataType);
+
+        // PairDecoder: for RowProvider/Scan: KeyValue -> ExecRow translation.
+        PairDecoder pairDecoder = OperationUtils.getPairDecoder(source, runtimeContext);
+        RowProvider rowProvider = source.getMapRowProvider(source, pairDecoder, runtimeContext);
+        rowProvider.open();
+        ExecRow execRow;
+        while (rowProvider.hasNext()) {
+            execRow = rowProvider.next();
+            this.currentRow = execRow;
+            KVPair kvPair = pairEncoder.encode(execRow);
+            writeBuffer.add(kvPair);
+            rowsSunk++;
+        }
+        rowProvider.close();
+        writeBuffer.flushBuffer();
+        writeBuffer.close();
+        return new SimpleJobResults(new EmptyJobStats(), null);
+    }
 
 		@Override
 		public void open() throws StandardException, IOException {
-				SpliceLogUtils.trace(LOG,"Open");
+				SpliceLogUtils.trace(LOG, "Open");
 				super.open();
 				if(source!=null)source.open();
 		}
@@ -211,6 +258,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 		public void close() throws StandardException, IOException {
 				super.close();
 				source.close();
+                rowsSunk = 0;
 				if (modifiedProvider != null)
 						modifiedProvider.close();
 		}
@@ -238,7 +286,6 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 				}
 				ExecRow row = new ValueRow(dvds.length);
 				row.setRowArray(dvds);
-//				ExecRow row = source.getExecRowDefinition();
 				SpliceLogUtils.trace(LOG,"execRowDefinition=%s",row);
 				return row;
 		}
@@ -431,16 +478,6 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 				return source.isReferencingTable(tableNumber);
 		}
 
-    Txn getChildTransaction() {
-        byte[] destTable = Bytes.toBytes(Long.toString(heapConglom));
-        TxnView parentTxn = operationInformation.getTransaction();
-        try{
-            return TransactionLifecycle.getLifecycleManager().beginChildTransaction(parentTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION, false,destTable);
-        }catch(IOException ioe){
-            LOG.error(ioe);
-            throw new RuntimeException(ErrorState.XACT_INTERNAL_TRANSACTION_EXCEPTION.newException());
-        }
-		}
 
     /**
      * Gets the number of rows that are "filtered". These are rows that derby thinks should have been

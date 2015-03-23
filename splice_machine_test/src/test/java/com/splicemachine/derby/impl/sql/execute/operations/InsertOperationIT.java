@@ -226,7 +226,6 @@ public class InsertOperationIT {
     }
 
     @Test
-//    @Ignore("Transiently fails during Maven build, but passes when run locally. Gotta figure that out first")
     public void testInsertFromSubOperation() throws Exception {
         Map<String, Integer> nameCountMap = Maps.newHashMap();
         Statement s = methodWatcher.getStatement();
@@ -241,7 +240,8 @@ public class InsertOperationIT {
         nameCountMap.put("jleach", 1);
         methodWatcher.commit();
         s = methodWatcher.getStatement();
-        int returned = s.executeUpdate("insert into Z (name,count) select name,count(name) from Y group by name");
+        int rowsInserted = s.executeUpdate("insert into Z (name,count) select name,count(name) from Y group by name");
+        Assert.assertEquals(nameCountMap.size(), rowsInserted);
         methodWatcher.commit();
         ResultSet rs = methodWatcher.executeQuery("select * from Z");
         int groupCount = 0;
