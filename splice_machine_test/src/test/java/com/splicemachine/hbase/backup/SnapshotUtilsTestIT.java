@@ -29,6 +29,7 @@ import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import com.splicemachine.constants.SpliceConstants;
@@ -38,6 +39,7 @@ import com.splicemachine.hbase.HBaseSupportFactory;
 /**
  * Test clone snapshots from the client
  */
+@Ignore
 public class SnapshotUtilsTestIT {
   final Log LOG = LogFactory.getLog(getClass());
 
@@ -52,7 +54,7 @@ public class SnapshotUtilsTestIT {
   private byte[] tableName;
   private HBaseAdmin admin;
   private HBaseSupport support;
-
+  
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
     TEST_UTIL.getConfiguration().setBoolean(SnapshotManager.HBASE_SNAPSHOT_ENABLED, true);
