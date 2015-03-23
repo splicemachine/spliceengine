@@ -1,14 +1,13 @@
 package com.splicemachine.derby.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.compile.CostEstimate;
-import com.splicemachine.db.iapi.sql.compile.JoinStrategy;
-import com.splicemachine.db.iapi.sql.compile.Optimizable;
-import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
-import com.splicemachine.db.iapi.sql.compile.Optimizer;
+import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.impl.sql.compile.FromBaseTable;
+import com.splicemachine.db.impl.sql.compile.FromTable;
 import com.splicemachine.db.impl.sql.compile.HashableJoinStrategy;
+import com.splicemachine.db.impl.sql.compile.QueryTreeNode;
 import org.apache.log4j.Logger;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.HBaseRegionLoads;
@@ -84,31 +83,21 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
                             Optimizer optimizer) throws StandardException {
 //		if (CostUtils.isThisBaseTable(optimizer))
 //			return false;
-        boolean hashFeasible = super.feasible(innerTable, predList, optimizer);
-		SpliceLogUtils.trace(LOG, "feasible innerTable=%s, predList=%s, optimizer=%s, hashFeasible=%s",innerTable,predList,optimizer,hashFeasible);
-		TableDescriptor td;
-		ConglomerateDescriptor[] cd;
+        boolean hashFeasible = super.feasible(innerTable, predList, optimizer) && innerTable.isBaseTable();
+		TableDescriptor td = innerTable.getTableDescriptor();
+        hashFeasible  = hashFeasible && (td!=null);
+        if(!hashFeasible) return false;
+        ConglomerateDescriptor[] cd = td.getConglomerateDescriptors();
+        if(cd==null || cd.length<1) return false;
 
         /* Currently BroadcastJoin does not work with a right side IndexRowToBaseRowOperation */
         if(JoinStrategyUtil.isNonCoveringIndex(innerTable)) {
             return false;
         }
 
-		if (hashFeasible
-                && innerTable.isBaseTable()
-                && (td=innerTable.getTableDescriptor())!=null
-                && (cd=td.getConglomerateDescriptors())!=null && cd.length>=1) {
-	        long cost = HBaseRegionLoads.memstoreAndStoreFileSize(Long.toString(cd[0].getConglomerateNumber()));
-	        if (cost<0)
-	        	return false;
-	        SpliceLogUtils.trace(LOG, "feasible cost=%d",cost);
-	        if (cost < SpliceConstants.broadcastRegionMBThreshold) {
-		        SpliceLogUtils.trace(LOG, "broadcast join is feasible");
-		        return true;
-	        }
-		}
-        SpliceLogUtils.trace(LOG, "broadcast join is not feasible");
-		return false;
+        CostEstimate baseEstimate = innerTable.estimateCost(predList,cd[0],optimizer.newCostEstimate(),optimizer,null);
+        double estimatedMemory = baseEstimate.getEstimatedHeapSize()/1024d/1024d;
+        return estimatedMemory<SpliceConstants.broadcastRegionMBThreshold;
 	}
 
     @Override
@@ -127,11 +116,14 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
             return; //actually a scan, don't do anything
         }
         innerCost.setBase(innerCost.cloneMe());
+        outerCost.setBase(outerCost.cloneMe());
+
         innerCost.setNumPartitions(outerCost.partitionCount());
         innerCost.setLocalCost(innerCost.localCost()+outerCost.localCost());
         innerCost.setRemoteCost(innerCost.remoteCost()+outerCost.remoteCost());
         innerCost.setRowOrdering(outerCost.getRowOrdering());
         innerCost.setEstimatedRowCount((long)outerCost.rowCount());
+        innerCost.setEstimatedHeapSize(outerCost.getEstimatedHeapSize()+innerCost.getEstimatedHeapSize());
 //        SpliceLogUtils.trace(LOG, "rightResultSetCostEstimate outerCost=%s, innerFullKeyCost=%s", outerCost, innerCost);
 //
 //        SpliceCostEstimateImpl inner = (SpliceCostEstimateImpl) innerCost;

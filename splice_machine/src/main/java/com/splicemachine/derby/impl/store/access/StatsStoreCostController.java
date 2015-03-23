@@ -10,6 +10,7 @@ import com.splicemachine.db.iapi.store.access.StoreCostResult;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.store.access.conglomerate.GenericController;
+import com.splicemachine.derby.impl.sql.compile.SimpleCostEstimate;
 import com.splicemachine.derby.impl.stats.FakedPartitionStatistics;
 import com.splicemachine.derby.impl.stats.StatisticsStorage;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
@@ -67,7 +68,9 @@ public class StatsStoreCostController extends GenericController implements Store
                 baseConglomerate.getColumnOrdering(),
                 validColumns);
         double scale = conglomerateStatistics.remoteReadLatency()*columnSizeFactor;
+        long bytes = (long)scale*conglomerateStatistics.avgRowWidth();
         cost.setRemoteCost(cost.remoteCost()+cost.rowCount()*scale);
+        cost.setEstimatedHeapSize(cost.getEstimatedHeapSize()+bytes);
     }
 
 
@@ -89,6 +92,7 @@ public class StatsStoreCostController extends GenericController implements Store
         cost.setLocalCost(cost.localCost()+conglomerateStatistics.localReadLatency());
         cost.setEstimatedRowCount(cost.getEstimatedRowCount()+1l);
         cost.setNumPartitions(cost.partitionCount()+1);
+        cost.setEstimatedHeapSize(cost.getEstimatedHeapSize()+conglomerateStatistics.avgRowWidth());
     }
 
     @Override
@@ -125,6 +129,10 @@ public class StatsStoreCostController extends GenericController implements Store
         List<PartitionStatistics> partStats=conglomerateStatistics.partitionStatistics();
         if(partStats==null||partStats.size()<=0 ||partStats.get(0) instanceof FakedPartitionStatistics){
             ((CostEstimate)cost_result).setIsRealCost(false);
+        }
+
+        if(cost_result instanceof SimpleCostEstimate){
+            ((SimpleCostEstimate)cost_result).setStoreCost(this);
         }
     }
 
@@ -250,6 +258,7 @@ public class StatsStoreCostController extends GenericController implements Store
         boolean includeStop = stopSearchOperator == ScanController.GT;
         boolean includeStart = startSearchOperator != ScanController.GT;
         long numRows = 0l;
+        long bytes = 0l;
         double localCost = 0d;
         double remoteCost = 0d;
         int numPartitions = 0;
@@ -261,7 +270,9 @@ public class StatsStoreCostController extends GenericController implements Store
 
                 localCost+=pStats.localReadLatency()*partRc;
                 double colSizeAdjustment=columnSizeFactor(totalColumns,scanColumnList,pStats,keyMap);
-                remoteCost+=pStats.remoteReadLatency()*partRc*colSizeAdjustment;
+                double size = partRc*colSizeAdjustment;
+                remoteCost+=pStats.remoteReadLatency()*size;
+                bytes+=(colSizeAdjustment*pStats.avgRowWidth())*partRc;
             }
         }
 
@@ -269,6 +280,7 @@ public class StatsStoreCostController extends GenericController implements Store
         costEstimate.setLocalCost(localCost);
         costEstimate.setRemoteCost(remoteCost);
         costEstimate.setNumPartitions(numPartitions);
+        costEstimate.setEstimatedHeapSize(bytes);
     }
 
     private long partitionColumnSelectivity(PartitionStatistics pStats,DataValueDescriptor[] startKeyValue,boolean includeStart,DataValueDescriptor[] stopKeyValue,boolean includeStop,int[] keyMap){
