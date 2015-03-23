@@ -7,9 +7,12 @@ import java.net.URI;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.io.HFileLink;
+import org.apache.hadoop.hbase.util.FSUtils;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.DerbyFactory;
@@ -129,19 +132,50 @@ public class CreateBackupTask extends ZkTask {
     	// TODO
     	// Make sure that backup directory structure is
     	// backupId/namespace/table/region/cf
-    	List<Path> files = utils.getFilesForFullBackup(getSnapshotName(), region);
+    	// files can be HFile links or real paths to a 
+    	// materialized references
+    	List<Object> files = utils.getFilesForFullBackup(getSnapshotName(), region);
     	String backupDirectory = backupItem.getBackupItemFilesystem();
     	String name = region.getRegionNameAsString();
     	FileSystem backupFs = FileSystem.get(URI.create(backupFileSystem), SpliceConstants.config);
-    	for(Path file: files){
+    	for(Object file: files){
             FileSystem fs = region.getFilesystem();
             // TODO dst path?
-	    	FileUtil.copy(fs, file, backupFs,  new Path(backupDirectory+"/"+name), false, SpliceConstants.config);
+	    	copyFile(fs, file, backupFs,  new Path(backupDirectory+"/"+name), false, SpliceConstants.config);
+	    	if(isTempFile(file)){
+	    		deleteFile(fs, file, false);
+	    	}
     	}
     }
     
+    private void deleteFile(FileSystem fs, Object file, boolean b) throws IOException {
+		fs.delete((Path) file, b);
+	}
 
-    
+	private void copyFile(FileSystem srcFS, Object file, FileSystem dstFS,
+			Path dst, boolean deleteSource, Configuration conf) throws IOException 
+	{
+		if(file instanceof Path){
+			Path src = (Path) file;
+			FileUtil.copy(srcFS, src, dstFS, dst, deleteSource,  conf);
+		} else{
+			// Copy HFileLink
+			// TODO: make it more robust
+			Path src = ((HFileLink) file).getAvailablePath(srcFS);
+			FileUtil.copy(srcFS, src, dstFS, dst, deleteSource,  conf);
+		}
+	}
+
+	/**
+     * TODO: do we to delete tmp files (materialized from refs)?    
+     * @param file
+     * @return true if temporary file
+     */
+	private boolean isTempFile(Object file) {
+		
+		return file instanceof Path;
+	}
+
 	private void doIncrementalBackup()
     {
     	// TODO

@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.job.coprocessor;
 
+import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.google.common.base.Throwables;
