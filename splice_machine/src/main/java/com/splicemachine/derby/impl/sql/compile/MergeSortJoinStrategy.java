@@ -25,8 +25,8 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
 	public boolean feasible(Optimizable innerTable,
 			OptimizablePredicateList predList, Optimizer optimizer)
 			throws StandardException {
-		if (CostUtils.isThisBaseTable(optimizer)) 
-			return false;
+//		if (CostUtils.isThisBaseTable(optimizer))
+//			return false;
 		return super.feasible(innerTable, predList, optimizer);
 	}
 

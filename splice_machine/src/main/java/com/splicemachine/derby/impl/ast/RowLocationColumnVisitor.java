@@ -90,7 +90,7 @@ public class RowLocationColumnVisitor extends AbstractSpliceVisitor {
 		//
 		
 		ResultSetNode currentNode = prnUpper;
-		List<ResultSetNode> children = null;
+		List<ResultSetNode> children;
 		List<ResultSetNode> pathToLeaf = new ArrayList<ResultSetNode>();
 		while (true) {
 			children = RSUtils.getChildren(currentNode); // only returns RSN children
@@ -104,7 +104,7 @@ public class RowLocationColumnVisitor extends AbstractSpliceVisitor {
 				currentNode = getLeftChildNode(currentNode);
 			} else if (size == 1) {
 				pathToLeaf.add(currentNode);
-				currentNode = (ResultSetNode)children.get(0);
+				currentNode =children.get(0);
 			} else {
 				// Assume leaf node, so we are done
 				if (!(RSUtils.leafRSNs.contains(currentNode.getClass()))) {
@@ -125,9 +125,9 @@ public class RowLocationColumnVisitor extends AbstractSpliceVisitor {
 		//
 		
 		int maxIndex = pathToLeaf.size() - 1;
-		ResultSetNode pathNode = null;
+		ResultSetNode pathNode;
 		for (int i = maxIndex; i > -1; i--) {
-			pathNode = (ResultSetNode)pathToLeaf.get(i);
+			pathNode =pathToLeaf.get(i);
 			// TODO: handle TableOperatorNode types other than JoinNode?
 			if (pathNode instanceof JoinNode) {
 				// Special case for Join Node until we generalize rebuildRCL
@@ -143,7 +143,7 @@ public class RowLocationColumnVisitor extends AbstractSpliceVisitor {
 				prnUpperRowLocCol.setExpression(
 					(ValueNode)prnUpper.getNodeFactory().getNode(
 						C_NodeTypes.VIRTUAL_COLUMN_NODE,
-						(ResultSetNode)pathToLeaf.get(i + 1), // source result set: my child node
+                            pathToLeaf.get(i + 1), // source result set: my child node
 						rcRowLoc, // source result column
 						ReuseFactory.getInteger(prnUpperRowLocCol.getVirtualColumnId()), // getNode expects 1-based index and virtualColumnId provides that
 						prnUpper.getContextManager())

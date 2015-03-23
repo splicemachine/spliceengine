@@ -42,10 +42,7 @@ public class SpliceASTWalker implements ASTVisitor {
                 ASTVisitor v = new SpliceDerbyVisitorAdapter((ISpliceVisitor) c.newInstance());
                 v.begin(statementText, phase);
                 visitors.add(v);
-            } catch (InstantiationException e) {
-                throw StandardException.newException(MessageId.SPLICE_GENERIC_EXCEPTION, e,
-                        String.format("Problem instantiating SpliceVisitor %s", c.getSimpleName()));
-            } catch (IllegalAccessException e) {
+            } catch (InstantiationException | IllegalAccessException e) {
                 throw StandardException.newException(MessageId.SPLICE_GENERIC_EXCEPTION, e,
                         String.format("Problem instantiating SpliceVisitor %s", c.getSimpleName()));
             }

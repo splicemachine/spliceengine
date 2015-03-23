@@ -1,6 +1,9 @@
 package com.splicemachine.derby.impl.stats;
 
+import com.google.common.base.Function;
+import com.google.common.collect.Lists;
 import com.splicemachine.async.Bytes;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.iapi.catalog.TableStatisticsDescriptor;
 import com.splicemachine.hbase.regioninfocache.RegionCache;
 import com.splicemachine.si.api.Txn;
@@ -29,6 +32,9 @@ public class PartitionStatsStore {
     private final RegionCache regionCache;
     private final TableStatisticsStore tableStatsReader;
     private final ColumnStatisticsStore columnStatsReader;
+    private static final Function<? super HRegionInfo,? extends String> partitionNameTransform = new Function<HRegionInfo, String>(){
+        @Override public String apply(HRegionInfo hRegionInfo){ return hRegionInfo.getEncodedName(); }
+    };
 
     public PartitionStatsStore(RegionCache regionCache,
                                TableStatisticsStore tableStatsReader,
@@ -54,11 +60,12 @@ public class PartitionStatsStore {
     }
 
     public void invalidateCachedStatistics(long conglomerateId) throws ExecutionException{
-        List<String> partitions = new ArrayList<>();
+        List<HRegionInfo> partitions = new ArrayList<>();
         getPartitions(Long.toString(conglomerateId).getBytes(),partitions);
 
-        tableStatsReader.invalidate(conglomerateId,partitions);
-        columnStatsReader.invalidate(conglomerateId,partitions);
+        List<String> partitionNames = Lists.transform(partitions,partitionNameTransform);
+        tableStatsReader.invalidate(conglomerateId,partitionNames);
+        columnStatsReader.invalidate(conglomerateId,partitionNames);
     }
 
     /* ****************************************************************************************************************/
@@ -67,16 +74,17 @@ public class PartitionStatsStore {
     private TableStatistics fetchTableStatistics(long conglomerateId, Txn txn) throws ExecutionException {
         byte[] table = Long.toString(conglomerateId).getBytes();
 
-        List<String> partitions = new ArrayList<>();
+        List<HRegionInfo> partitions = new ArrayList<>();
         int missingPartitions = getPartitions(table, partitions);
 
-        TableStatisticsDescriptor[] tableStatses = tableStatsReader.fetchTableStatistics(txn, conglomerateId, partitions);
+        List<String> partitionNames =Lists.transform(partitions,partitionNameTransform);
+        TableStatisticsDescriptor[] tableStatses = tableStatsReader.fetchTableStatistics(txn, conglomerateId, partitionNames);
         List<String> noStatsPartitions = new LinkedList<>();
         List<String> columnStatsFetchable = new ArrayList<>();
         for (int i = 0; i < tableStatses.length; i++) {
             TableStatisticsDescriptor tStats = tableStatses[i];
             if (tStats == null) {
-                noStatsPartitions.add(partitions.get(i));
+                noStatsPartitions.add(partitionNames.get(i));
             } else {
                 columnStatsFetchable.add(tStats.getPartitionId());
             }
@@ -86,21 +94,20 @@ public class PartitionStatsStore {
         List<PartitionStatistics> partitionStats = new ArrayList<>(partitions.size());
         List<TableStatisticsDescriptor> partiallyOccupied = new LinkedList<>();
         String tableId = Long.toString(conglomerateId);
-        for (int i = 0; i < tableStatses.length; i++) {
-            TableStatisticsDescriptor tStats = tableStatses[i];
-            if (tStats == null) continue; //skip missing partitions entirely
+        for(TableStatisticsDescriptor tStats : tableStatses){
+            if(tStats==null) continue; //skip missing partitions entirely
 
-            List<ColumnStatistics> columnStats = columnStatsMap.get(tStats.getPartitionId());
-            if (columnStats != null && columnStats.size() > 0) {
+            List<ColumnStatistics> columnStats=columnStatsMap.get(tStats.getPartitionId());
+            if(columnStats!=null && columnStats.size()>0){
                 /*
                  * We have Column Statistics, which means that we have everything we need to build a complete
                  * partition statistics entity here
                  */
-                List<ColumnStatistics> copy = new ArrayList<>(columnStats.size());
-                for (ColumnStatistics column : columnStats) {
+                List<ColumnStatistics> copy=new ArrayList<>(columnStats.size());
+                for(ColumnStatistics column : columnStats){
                     copy.add(column.getClone());
                 }
-                PartitionStatistics pStats = new SimplePartitionStatistics(tableId,
+                PartitionStatistics pStats=new SimplePartitionStatistics(tableId,
                         tStats.getPartitionId(),
                         tStats.getRowCount(),
                         tStats.getPartitionSize(),
@@ -109,9 +116,9 @@ public class PartitionStatsStore {
                         tStats.getRemoteReadLatency(),
                         copy);
                 partitionStats.add(pStats);
-            } else if (columnStatsMap.size() > 0) {
+            }else if(columnStatsMap.size()>0){
                 /*
-		             * We have an awkward situation here. We expect that the column statistics are present,
+                     * We have an awkward situation here. We expect that the column statistics are present,
 		             * because the table statistics are. However, table statistics may not include column statistics,
 		             * because we may not have enabled any. Additionally, column statistics may be absent if we
 		             * just recently enabled them but haven't refreshed yet. So in one situation, no partitions
@@ -121,14 +128,14 @@ public class PartitionStatsStore {
 		             * to average
 		             */
                 partiallyOccupied.add(tStats);
-            } else {
+            }else{
 		            /*
 		             * It turns out that there is no available column statistics information for this table. This
 		             * occurs when all column collections are disabled, or when the table has just been created. This
 		             * is kind of bad news, since we rely on it to generate appropriate distributions. Still,
 		             *  we will return what we can
 		             */
-                PartitionStatistics pStats = new SimplePartitionStatistics(tableId,
+                PartitionStatistics pStats=new SimplePartitionStatistics(tableId,
                         tStats.getPartitionId(),
                         tStats.getRowCount(),
                         tStats.getPartitionSize(),
@@ -145,7 +152,7 @@ public class PartitionStatsStore {
          * we have no table information either, so just return an empty list and let the caller figure out
          * what to do
          */
-        if (partitionStats.size() <= 0) return new GlobalStatistics(tableId, partitionStats);
+        if (partitionStats.size() <= 0) return emptyStats(tableId,partitions);
 
         /*
          * We now have separated out our partition map into 4 categories:
@@ -205,6 +212,45 @@ public class PartitionStatsStore {
         return new GlobalStatistics(Long.toString(conglomerateId), partitionStats);
     }
 
+    private GlobalStatistics emptyStats(String tableId,List<HRegionInfo> partitions){
+        /*
+         * There are no statistics collected for this table.
+         *
+         * This is unfortunate, because we still need to *act* like there are statistics, even
+         * though we haven't collected anything. To that end, we create a list
+         * of "fake" partition statistics--statistics which are based off of pretty much arbitrary
+         * values for latency, and which use region size information to build an estimate of
+         * rows. This is pretty much ALWAYS not a good estimate, so we make sure and return a different
+         * type of statistics, which will allow callers to add warnings etc.
+         *
+         * Because we base most optimizations off of the latency measures, our arbitrary scaling factors assume
+         * that the localreadLatency = 1, and we scale all of our other latencies off of that figure.
+         */
+        long perRowLocalLatency = 1;
+        long perRowRemoteLatency = 10*perRowLocalLatency; //assume remote reads are 10x more expensive than local
+
+        int numRegions = partitions.size();
+        long totalBytes = numRegions*SpliceConstants.regionMaxFileSize; //assume each region is full
+        /*
+         * We make the rather stupid assumption of assuming that each row occupies 100 bytes (which is a lot,
+         * but it should make some things at least relatively reasonable)
+         */
+        long numRows = totalBytes/100;
+        long rowsPerRegion = numRows/partitions.size();
+
+        List<PartitionStatistics> partStats = new ArrayList<>(partitions.size());
+        for(HRegionInfo info:partitions){
+            partStats.add(new FakedPartitionStatistics(tableId,info.getEncodedName(),
+                    numRows,
+                    totalBytes,
+                    0l,
+                    perRowLocalLatency*rowsPerRegion,
+                    perRowRemoteLatency*rowsPerRegion,
+                    Collections.<ColumnStatistics>emptyList()));
+        }
+        return new GlobalStatistics(tableId, partStats);
+    }
+
     private Txn getTxn(TxnView wrapperTxn) throws ExecutionException {
         try {
             return TransactionLifecycle.getLifecycleManager().beginChildTransaction(wrapperTxn, Txn.IsolationLevel.READ_UNCOMMITTED,null);
@@ -213,7 +259,7 @@ public class PartitionStatsStore {
         }
     }
 
-    private int getPartitions(byte[] table, List<String> partitions) throws ExecutionException {
+    private int getPartitions(byte[] table, List<HRegionInfo> partitions) throws ExecutionException {
         /*
          * Returns the number of partitions which cannot be found from the RegionCache.
          *
@@ -236,8 +282,7 @@ public class PartitionStatsStore {
                      */
                     missingRanges.add(Pair.newPair(lastEndKey,start));
                 }else{
-                    String encodedName = servers.getFirst().getEncodedName();
-                    partitions.add(encodedName);
+                    partitions.add(servers.getFirst());
                 }
                 lastEndKey = servers.getFirst().getEndKey();
             }

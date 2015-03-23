@@ -90,46 +90,44 @@ public class MergeJoinStrategy extends HashableJoinStrategy {
 
 	@Override
 	public boolean feasible(Optimizable innerTable,OptimizablePredicateList predList, Optimizer optimizer) throws StandardException {
-		if (CostUtils.isThisBaseTable(optimizer)) {
-			SpliceLogUtils.trace(LOG, "not feasible base table innerTable=%s, predList=%s, optimizer=%s",innerTable,predList,optimizer);
-			return false;
-		}
+//		if (CostUtils.isThisBaseTable(optimizer)) {
+//			SpliceLogUtils.trace(LOG, "not feasible base table innerTable=%s, predList=%s, optimizer=%s",innerTable,predList,optimizer);
+//			return false;
+//		}
 		SpliceLevel2OptimizerImpl opt = (SpliceLevel2OptimizerImpl) optimizer;
 
         /* Currently MergeJoin does not work with a right side IndexRowToBaseRowOperation */
         if(JoinStrategyUtil.isNonCoveringIndex(innerTable)) {
             return false;
         }
+        CostEstimate cost = innerTable.getBestAccessPath().getCostEstimate();
+        if(cost.getRowOrdering()==null) return false;
 
-		CostEstimate outerCost;
-		if (opt.joinPosition == 0) {
-			outerCost = opt.outermostCostEstimate;
-		}
-		else
-		{
-			// You cannot sit on top of a MergeSort if you are a Merge Join, it breaks your sorting...
-			for (int i = 0; i<=opt.joinPosition-1;i++) {
-				AccessPath bestAccessPathCheck = opt.optimizableList.getOptimizable(
-						opt.proposedJoinOrder[opt.joinPosition - 1]).getBestAccessPath();
-				if (bestAccessPathCheck.getJoinStrategy().equals(optimizer.getJoinStrategy(1)))
-					return false;
-			}
-			/*
-			** NOTE: This is somewhat problematic.  We assume here that the
-			** outer cost from the best access path for the outer table
-			** is OK to use even when costing the sort avoidance path for
-			** the inner table.  This is probably OK, since all we use
-			** from the outer cost is the row count.
-			*/
-			outerCost =
-					opt.optimizableList.getOptimizable(
-					opt.proposedJoinOrder[opt.joinPosition - 1]).
-						getBestAccessPath().getCostEstimate();
-		}
-		if (outerCost.getRowOrdering() == null) // not feasible
-			return false;
-		boolean hashFeasible = hashFeasible(outerCost.getRowOrdering(),innerTable, predList, optimizer);
-		SpliceLogUtils.trace(LOG, "feasible innerTable=%s, predList=%s, optimizer=%s, hashFeasible=%s, outerCost=%s",innerTable,predList,optimizer,hashFeasible, outerCost);
+//		CostEstimate outerCost;
+//		if (opt.joinPosition == 0) {
+//			outerCost = opt.outermostCostEstimate;
+//		} else {
+//			// You cannot sit on top of a MergeSort if you are a Merge Join, it breaks your sorting...
+//			for (int i = 0; i<=opt.joinPosition-1;i++) {
+//				AccessPath bestAccessPathCheck = opt.optimizableList.getOptimizable(opt.proposedJoinOrder[opt.joinPosition - 1]).getBestAccessPath();
+//				if (bestAccessPathCheck.getJoinStrategy().equals(optimizer.getJoinStrategy(1)))
+//					return false;
+//			}
+//			/*
+//			** NOTE: This is somewhat problematic.  We assume here that the
+//			** outer cost from the best access path for the outer table
+//			** is OK to use even when costing the sort avoidance path for
+//			** the inner table.  This is probably OK, since all we use
+//			** from the outer cost is the row count.
+//			*/
+//			outerCost = opt.optimizableList.getOptimizable(opt.proposedJoinOrder[opt.joinPosition - 1]).getBestAccessPath().getCostEstimate();
+//		}
+//		if (outerCost.getRowOrdering() == null) // not feasible
+//			return false;
+        boolean hashFeasible = hashFeasible(cost.getRowOrdering(),innerTable, predList, optimizer);
+        SpliceLogUtils.trace(LOG,
+                "feasible innerTable=%s, predList=%s, optimizer=%s, hashFeasible=%s, outerCost=%s",
+                innerTable,predList,optimizer,hashFeasible, cost);
 		return hashFeasible;
 	}
 

@@ -5,6 +5,7 @@ import com.splicemachine.derby.hbase.SpliceDriver;
 
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.jdbc.EmbeddedDriver;
+import com.splicemachine.derby.impl.db.AuthenticationConstants;
 
 import java.sql.Connection;
 import java.sql.SQLException;
@@ -48,7 +49,7 @@ public final class EmbedConnectionMaker implements ConnectionPool.Supplier {
     
     public Connection createFirstNew() throws SQLException {
     	Properties first = (Properties) SpliceDriver.driver().getProperties().clone();
-    	if(!SpliceConstants.authentication.toUpperCase().equals("LDAP"))
+    	if(!AuthenticationConstants.authentication.toUpperCase().equals("LDAP"))
     		first.remove(EmbedConnection.INTERNAL_CONNECTION);
     	
         return driver.connect(protocol+SpliceConstants.SPLICE_DB+";create=true;user=splice;password=admin",

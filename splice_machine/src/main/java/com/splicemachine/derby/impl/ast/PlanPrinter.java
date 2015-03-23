@@ -58,12 +58,14 @@ public class PlanPrinter extends AbstractSpliceVisitor {
     }
 
     @Override
+    public Visitable visit(ExplainNode node) throws StandardException{
+        explain = true;
+        return visit(node.getPlanRoot());
+    }
+
+    @Override
     public Visitable defaultVisit(Visitable node) throws StandardException {
 
-        if(node instanceof ExplainNode) {
-            explain = true;
-            defaultVisit(((ExplainNode) node).getExplainPlanRoot());
-        }
         ResultSetNode rsn;
         if ((explain || LOG.isInfoEnabled() || PLAN_LOG.isTraceEnabled()) &&
                 node instanceof DMLStatementNode &&

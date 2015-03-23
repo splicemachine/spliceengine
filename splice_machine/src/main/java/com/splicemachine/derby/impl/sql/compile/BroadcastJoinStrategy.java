@@ -79,11 +79,12 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
      * 
      */
 	@Override
-	public boolean feasible(Optimizable innerTable,OptimizablePredicateList predList, Optimizer optimizer) throws StandardException {
-		if (CostUtils.isThisBaseTable(optimizer)) 
-			return false;
-		SpliceLevel2OptimizerImpl opt = (SpliceLevel2OptimizerImpl) optimizer;
-		boolean hashFeasible = super.feasible(innerTable, predList, optimizer);
+	public boolean feasible(Optimizable innerTable,
+                            OptimizablePredicateList predList,
+                            Optimizer optimizer) throws StandardException {
+//		if (CostUtils.isThisBaseTable(optimizer))
+//			return false;
+        boolean hashFeasible = super.feasible(innerTable, predList, optimizer);
 		SpliceLogUtils.trace(LOG, "feasible innerTable=%s, predList=%s, optimizer=%s, hashFeasible=%s",innerTable,predList,optimizer,hashFeasible);
 		TableDescriptor td;
 		ConglomerateDescriptor[] cd;
@@ -93,9 +94,11 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
             return false;
         }
 
-		if (hashFeasible && innerTable != null && innerTable.isBaseTable() && (td = innerTable.getTableDescriptor())!= null &&
-				(cd = td.getConglomerateDescriptors()) != null && cd.length >= 1) {
-	        long cost = HBaseRegionLoads.memstoreAndStoreFileSize(cd[0].getConglomerateNumber()+"");
+		if (hashFeasible
+                && innerTable.isBaseTable()
+                && (td=innerTable.getTableDescriptor())!=null
+                && (cd=td.getConglomerateDescriptors())!=null && cd.length>=1) {
+	        long cost = HBaseRegionLoads.memstoreAndStoreFileSize(Long.toString(cd[0].getConglomerateNumber()));
 	        if (cost<0)
 	        	return false;
 	        SpliceLogUtils.trace(LOG, "feasible cost=%d",cost);
