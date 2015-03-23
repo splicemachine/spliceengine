@@ -2,6 +2,9 @@ package com.splicemachine.derby.impl.sql.compile;
 
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.compile.RowOrdering;
+import com.splicemachine.db.iapi.store.access.SortCostController;
+import com.splicemachine.db.iapi.store.access.StoreCostController;
+import com.splicemachine.db.iapi.store.access.StoreCostResult;
 import com.splicemachine.db.impl.sql.compile.RowOrderingImpl;
 
 /**
@@ -13,11 +16,15 @@ public class SimpleCostEstimate implements CostEstimate{
     private double remoteCost;
     private int numPartitions;
     private double numRows = Double.MAX_VALUE;
+
     private double singleScanRowCount = Double.MAX_VALUE;
     private RowOrdering rowOrdering;
 
     private CostEstimate baseCost;
-    private boolean isRealCost;
+    private boolean isRealCost=true;
+    private StoreCostController storeCost;
+    private SortCostController sortCost;
+    private long estimatedHeapSize;
 
     public SimpleCostEstimate(){ }
 
@@ -43,6 +50,13 @@ public class SimpleCostEstimate implements CostEstimate{
         this.baseCost = base;
     }
 
+    public void setStoreCost(StoreCostController storeCost){
+        this.storeCost = storeCost;
+    }
+
+    public StoreCostController getStoreCost(){
+        return storeCost;
+    }
 
     @Override
     public void setCost(double cost,double rowCount,double singleScanRowCount){
@@ -64,9 +78,10 @@ public class SimpleCostEstimate implements CostEstimate{
         this.numPartitions =other.partitionCount();
         this.numRows = other.rowCount();
         this.singleScanRowCount = other.singleScanRowCount();
+        this.estimatedHeapSize = other.getEstimatedHeapSize();
 
         CostEstimate base=other.getBase();
-        if(base!=null)
+        if(base!=null && base != other)
             this.baseCost = base.cloneMe();
     }
 
@@ -104,6 +119,9 @@ public class SimpleCostEstimate implements CostEstimate{
            this.rowOrdering.copy(roClone);
         SimpleCostEstimate clone=new SimpleCostEstimate(localCost,remoteCost,numRows,singleScanRowCount,numPartitions);
         clone.setRowOrdering(rowOrdering);
+        clone.setEstimatedHeapSize(estimatedHeapSize);
+        if(baseCost!=null)
+            clone.setBase(baseCost.cloneMe());
         return clone;
     }
 
@@ -148,6 +166,7 @@ public class SimpleCostEstimate implements CostEstimate{
 
         retval.setRemoteCost(sumRemoteCost);
         retval.setCost(sumLocalCost,rowCount,singleScanRowCount,numPartitions);
+        retval.setEstimatedHeapSize(estimatedHeapSize+addend.getEstimatedHeapSize());
         return retval;
     }
 
@@ -173,6 +192,7 @@ public class SimpleCostEstimate implements CostEstimate{
 
         retval.setRemoteCost(multRemoteCost);
         retval.setCost(multLocalCost,rowCount,singleScanRowCount,numPartitions);
+        retval.setEstimatedHeapSize((long)(estimatedHeapSize*multiplicand));
         return retval;
     }
 
@@ -187,7 +207,15 @@ public class SimpleCostEstimate implements CostEstimate{
 
         retval.setRemoteCost(multRemoteCost);
         retval.setCost(multLocalCost,rowCount,singleScanRowCount,numPartitions);
+        retval.setEstimatedHeapSize((long)(estimatedHeapSize/divisor));
         return retval;
     }
 
+    public long getEstimatedHeapSize(){
+        return estimatedHeapSize;
+    }
+
+    public void setEstimatedHeapSize(long estHeapSize){
+        this.estimatedHeapSize = estHeapSize;
+    }
 }

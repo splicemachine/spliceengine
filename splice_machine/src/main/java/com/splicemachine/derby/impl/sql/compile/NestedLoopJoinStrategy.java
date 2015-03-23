@@ -314,6 +314,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy {
         innerCost.setNumPartitions(outerCost.partitionCount());
         innerCost.setEstimatedRowCount((long)outerCost.rowCount());
         innerCost.setRowOrdering(outerCost.getRowOrdering());
+        innerCost.setEstimatedHeapSize(outerCost.getEstimatedHeapSize()+innerCost.getEstimatedHeapSize());
 
 //        double rightSideLocalCost = innerCost.localCost()*outerCost.getEstimatedRowCount();
 //        double rightSideRemoteCost = innerCost.remoteCost()*outerCost.getEstimatedRowCount();
@@ -334,7 +335,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy {
 //        inner.setNumberOfRegions(outer.numberOfRegions);
 //        inner.setRowOrdering(outer.rowOrdering);
 //        SpliceLogUtils.trace(LOG, "rightResultSetCostEstimate computed cost innerCost=%s",innerCost);
-    };
+    }
 
 }
 
