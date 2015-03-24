@@ -68,26 +68,18 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
         return "getMergeSortLeftOuterJoinResultSet";
     }
     
-    /** @see com.splicemachine.db.iapi.sql.compile.JoinStrategy#estimateCost */
-    @Override
-    public void estimateCost(Optimizable innerTable,
-                             OptimizablePredicateList predList,
-                             ConglomerateDescriptor cd,
-                             CostEstimate outerCost,
-                             Optimizer optimizer,
-                             CostEstimate costEstimate) {
-    	SpliceLogUtils.trace(LOG, "estimateCost innerTable=%s,predList=%s,conglomerateDescriptor=%s,outerCost=%s,optimizer=%s,costEstimate=%s",innerTable,predList,cd,outerCost,optimizer,costEstimate);
-    }
-
-    ;
-
 	/**
 	 * 
 	 * Right Side Cost + (LeftSideRows+RightSideRows)*WriteCost 
 	 * 
 	 */
 	@Override
-	public void estimateCost(OptimizablePredicateList predList,CostEstimate outerCost,CostEstimate innerCost) {
+    public void estimateCost(Optimizable innerTable,
+                             OptimizablePredicateList predList,
+                             ConglomerateDescriptor cd,
+                             CostEstimate outerCost,
+                             Optimizer optimizer,
+                             CostEstimate innerCost) {
         /*
          * The SortMerge Algorithm (at least, in FUJI) is as follows:
          *

@@ -59,17 +59,6 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
 		return true;
 	}
     
-    /** 
-     * @see com.splicemachine.db.iapi.sql.compile.JoinStrategy#estimateCost */
-    @Override
-    public void estimateCost(Optimizable innerTable,
-                             OptimizablePredicateList predList,
-                             ConglomerateDescriptor cd,
-                             CostEstimate outerCost,
-                             Optimizer optimizer,
-                             CostEstimate costEstimate) {
-    	SpliceLogUtils.trace(LOG, "estimateCost innerTable=%s,predList=%s,conglomerateDescriptor=%s,outerCost=%s,optimizer=%s,costEstimate=%s",innerTable,predList,cd,outerCost,optimizer,costEstimate);
-    }
     /**
      * 
      * Checks to see if the innerTable is hashable.  If so, it then checks to make sure the
@@ -101,7 +90,12 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
 	}
 
     @Override
-    public void estimateCost(OptimizablePredicateList predList,CostEstimate outerCost,CostEstimate innerCost) {
+    public void estimateCost(Optimizable innerTable,
+                             OptimizablePredicateList predList,
+                             ConglomerateDescriptor cd,
+                             CostEstimate outerCost,
+                             Optimizer optimizer,
+                             CostEstimate innerCost) {
         /*
          * The algorithm for Broadcast is as follows:
          *

@@ -77,17 +77,6 @@ public class MergeJoinStrategy extends HashableJoinStrategy {
         return "getMergeLeftOuterJoinResultSet";
     }
 
-    /** @see com.splicemachine.db.iapi.sql.compile.JoinStrategy#estimateCost */
-    @Override
-    public void estimateCost(Optimizable innerTable,
-                             OptimizablePredicateList predList,
-                             ConglomerateDescriptor cd,
-                             CostEstimate outerCost,
-                             Optimizer optimizer,
-                             CostEstimate costEstimate) {
-			SpliceLogUtils.trace(LOG, "estimateCost innerTable=%s,predList=%s,conglomerateDescriptor=%s,outerCost=%s,optimizer=%s,costEstimate=%s",innerTable,predList,cd,outerCost,optimizer,costEstimate);
-    }
-
 	@Override
 	public boolean feasible(Optimizable innerTable,OptimizablePredicateList predList, Optimizer optimizer) throws StandardException {
 //		if (CostUtils.isThisBaseTable(optimizer)) {
@@ -137,7 +126,12 @@ public class MergeJoinStrategy extends HashableJoinStrategy {
 	 *
 	 */
 	@Override
-	public void estimateCost(OptimizablePredicateList predList,CostEstimate outerCost,CostEstimate innerCost) {
+    public void estimateCost(Optimizable innerTable,
+                             OptimizablePredicateList predList,
+                             ConglomerateDescriptor cd,
+                             CostEstimate outerCost,
+                             Optimizer optimizer,
+                             CostEstimate innerCost) {
 		SpliceLogUtils.trace(LOG, "rightResultSetCostEstimate outerCost=%s, innerFullKeyCost=%s",outerCost, innerCost);
 		// InnerCost does not change
 		SpliceCostEstimateImpl inner = (SpliceCostEstimateImpl) innerCost;
