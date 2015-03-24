@@ -153,11 +153,17 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 
 		@Override
 		protected JobResults doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException, IOException {
-				long start = System.currentTimeMillis();
-				final RowProvider rowProvider = source.getMapRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext), runtimeContext);
-				nextTime+= System.currentTimeMillis()-start;
-				SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this,runtimeContext);
-				return rowProvider.shuffleRows(soi,OperationUtils.cleanupSubTasks(this));
+                RowProvider rowProvider = null;
+                try {
+                    long start = System.currentTimeMillis();
+                    rowProvider = source.getMapRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext), runtimeContext);
+                    nextTime += System.currentTimeMillis() - start;
+                    SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(), this, runtimeContext);
+                    return rowProvider.shuffleRows(soi, OperationUtils.cleanupSubTasks(this));
+                } finally {
+                    if (rowProvider!=null)
+                        rowProvider.close();
+                }
 		}
 
 		@Override
