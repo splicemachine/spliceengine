@@ -299,17 +299,4 @@ public interface JoinStrategy {
 	 */
 	public boolean doesMaterialization();
 
-    /**
-     * Estimate the cost of performing the join between the two estimated cost estimates (plus the predicates list).
-     *
-     * This method should store its final results in the {@code innerCost} variable.
-     *
-     * @param predicateList any predicates on the join.
-     * @param outerCost the cost of the "outer" table. In original derby, this is the left side of the join
-     * @param innerCost the cost of the "inner" table. In original derby, this is the right side of the join
-     */
-	public void estimateCost(OptimizablePredicateList predicateList,CostEstimate outerCost,CostEstimate innerCost);
-
-	public boolean singleRowOnly();
-		
 }

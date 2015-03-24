@@ -885,7 +885,7 @@ public class FromBaseTable extends FromTable{
                     boolean knownConstant=pred.compareWithKnownConstant(this,true);
                     if(knownConstant && pred.isQualifier()){
                         nonKeyQualifiers.add(pred);
-                    }else{
+                    }else if(!((Predicate)pred).isJoinPredicate()){
                         //TODO -sf- add in ScanCostController somehow?
                         nonQualifierSelectivity*=pred.selectivity(this);
                     }
@@ -1021,8 +1021,7 @@ public class FromBaseTable extends FromTable{
              * this and multiply it by the qualifier and non-qualifier selectivity
              * to generate our estimate
              */
-            scc.getScanCost(
-                    currentJoinStrategy.scanCostType(),
+            scc.getScanCost(currentJoinStrategy.scanCostType(),
                     baseRC,
                     1,
                     forUpdate(),
@@ -1047,6 +1046,13 @@ public class FromBaseTable extends FromTable{
             @SuppressWarnings("Convert2Diamond") List<Predicate> rangeStopPredicates=new ArrayList<Predicate>(nonKeyQualifiers.size());
             for(OptimizablePredicate predicate : nonKeyQualifiers){
                 Predicate p=(Predicate)predicate;
+                /*
+                 * We skip join predicates, because we want to rely on the individual
+                 * join strategies to determine how the inner table is filtered, and therefore
+                 * how the inner table selectivity is determined
+                 */
+                if(p.isJoinPredicate()) continue;
+
                 DataValueDescriptor compareValue=p.getCompareValue(this);
                 RelationalOperator relop=p.getRelop();
                 int relationalOperator=relop.getOperator();
@@ -1192,7 +1198,8 @@ public class FromBaseTable extends FromTable{
         /*
          * Now compute the joinStrategy costs.
          */
-        currentJoinStrategy.estimateCost(baseTableRestrictionList,outerCost,costEstimate);
+        currentJoinStrategy.estimateCost(this,baseTableRestrictionList,cd,outerCost,optimizer,costEstimate);
+//        currentJoinStrategy.estimateCost(baseTableRestrictionList,outerCost,costEstimate);
 
 		/* Put the base predicates back in the predicate list */
         currentJoinStrategy.putBasePredicates(predList, baseTableRestrictionList);
@@ -1202,7 +1209,6 @@ public class FromBaseTable extends FromTable{
          * know bad things are going to happen
          */
         if(!costEstimate.isRealCost()){
-
             CompilerContext compilerContext=getCompilerContext();
             compilerContext.addWarning(StandardException.newWarning(SQLState.STATISTICS_UNAVAILABLE,
                     cd.getConglomerateName()));

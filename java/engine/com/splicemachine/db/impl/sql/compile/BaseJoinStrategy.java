@@ -35,7 +35,6 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.util.PropertyUtil;
-import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 
 public abstract class BaseJoinStrategy implements JoinStrategy {
 	public BaseJoinStrategy() {
@@ -206,13 +205,6 @@ public abstract class BaseJoinStrategy implements JoinStrategy {
 	 */
 	protected boolean validForOutermostTable()
 	{
-		return false;
-	}
-
-    public void estimateCost(OptimizablePredicateList predicateList,CostEstimate outerCost,CostEstimate innerCost) {
-		throw new UnsupportedOperationException("rightResultSetCostEstimate is not implemented");
-	}
-	public boolean singleRowOnly() {
 		return false;
 	}
 

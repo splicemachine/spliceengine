@@ -902,18 +902,14 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 	 *
 	 * @return Whether or not this is a join predicate.
 	 */
-	public boolean isJoinPredicate()
-	{
+	public boolean isJoinPredicate() {
 		// If the predicate isn't a binary relational operator,
 		// then it's not a join predicate.
-		if (!(getAndNode().getLeftOperand()
-			instanceof BinaryRelationalOperatorNode))
-		{
+		if (!(getAndNode().getLeftOperand() instanceof BinaryRelationalOperatorNode)) {
 			return false;
 		}
 
-		BinaryRelationalOperatorNode opNode =
-			(BinaryRelationalOperatorNode)getAndNode().getLeftOperand();
+		BinaryRelationalOperatorNode opNode = (BinaryRelationalOperatorNode)getAndNode().getLeftOperand();
 
         ValueNode leftOperand = opNode.getLeftOperand();
         ValueNode rightOperand = opNode.getRightOperand();
@@ -925,8 +921,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         if (leftOperand instanceof ColumnReference) {
             isColumnReferenceOnLeft = true;
             leftTableNumber = ((ColumnReference) leftOperand).getTableNumber();
-        }
-        else if (leftOperand instanceof CastNode) {
+        } else if (leftOperand instanceof CastNode) {
             /*
                 if there is a CASTNODE, look one level deeper
              */
@@ -956,8 +951,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 
 		// If both sides are column references AND they point to different
 		// tables, then this is a join pred.
-		return (isColumnReferenceOnLeft && isColumnReferenceOnRight &&
-                leftTableNumber != rightTableNumber);
+		return (isColumnReferenceOnLeft && isColumnReferenceOnRight && leftTableNumber != rightTableNumber);
 	}
 
 	/**
