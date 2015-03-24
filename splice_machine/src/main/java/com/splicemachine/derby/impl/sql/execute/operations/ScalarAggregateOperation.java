@@ -145,11 +145,15 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 		@Override
 		public void close() throws StandardException, IOException {
 			super.close();
-            if (source != null) source.close();
+            if (source != null)
+                source.close();
+            if (scanAggregator!=null)
+                scanAggregator.close();
 		}
 
 		@Override
 		protected JobResults doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException, IOException {
+                System.out.println("Do Shuffle");
 				long start = System.currentTimeMillis();
 				final RowProvider rowProvider = source.getMapRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext), runtimeContext);
 				nextTime+= System.currentTimeMillis()-start;
@@ -159,6 +163,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 
 		@Override
         public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+            System.out.println("Next Row");
             if (scanAggregator == null) {
                 PairDecoder decoder = OperationUtils.getPairDecoder(this, spliceRuntimeContext);
                 ScalarAggregateScan scan = new ScalarAggregateScan(decoder, spliceRuntimeContext, region, reduceScan);
@@ -185,9 +190,8 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
                     return finish;
                 }
             } finally {
-                if (region != null) {
+                if (region != null)
                     region.closeRegionOperation();
-                }
             }
             timer.stopTiming();
             stopExecutionTime = System.currentTimeMillis();
@@ -386,4 +390,6 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
         }
 
     }
+
+
 }
