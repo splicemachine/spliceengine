@@ -1047,9 +1047,7 @@ public class BinaryRelationalOperatorNode
 	 * Return 50% if this is a comparison with a boolean column, a negative
 	 * selectivity otherwise.
 	 */
-	protected double booleanSelectivity(Optimizable optTable)
-	throws StandardException
-	{
+	protected double booleanSelectivity(Optimizable optTable) throws StandardException {
 		TypeId	typeId = null;
 		double				retval = -1.0d;
 		int					columnSide;
@@ -1381,16 +1379,13 @@ public class BinaryRelationalOperatorNode
 
 	/** return the selectivity of this predicate.
 	 */
-	public double selectivity(Optimizable optTable)
-	throws StandardException
-	{
+	public double selectivity(Optimizable optTable) throws StandardException {
 		double retval = booleanSelectivity(optTable);
 		
 		if (retval >= 0.0d)
 			return retval;
 			
-		switch (operatorType)
-		{
+		switch (operatorType) {
 			case RelationalOperator.EQUALS_RELOP:
 				return 0.1;
 			case RelationalOperator.NOT_EQUALS_RELOP:

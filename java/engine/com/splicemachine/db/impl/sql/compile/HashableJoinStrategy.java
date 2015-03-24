@@ -145,15 +145,25 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
             SanityManager.ASSERT(basePredicates.size() == 0,"The base predicate list should be empty.");
         }
 
-        for (int i = predList.size() - 1; i >= 0; i--) {
-            OptimizablePredicate pred = predList.getOptPredicate(i);
-            if (innerTable.getReferencedTableMap().contains(pred.getReferencedMap())) {
-                basePredicates.addOptPredicate(pred);
-                predList.removeOptPredicate(i);
-            }
+        if (predList != null) {
+            predList.transferAllPredicates(basePredicates);
+            basePredicates.classify(innerTable, innerTable.getCurrentAccessPath().getConglomerateDescriptor());
         }
-        basePredicates.classify(innerTable,innerTable.getCurrentAccessPath().getConglomerateDescriptor());
+
+        /*
+         * We want all the join predicates to be included, so we just pass everything through and filter
+         * it out through the actual costing algorithm
+         */
         return basePredicates;
+//        for (int i = predList.size() - 1; i >= 0; i--) {
+//            OptimizablePredicate pred = predList.getOptPredicate(i);
+//            if (innerTable.getReferencedTableMap().contains(pred.getReferencedMap())) {
+//                basePredicates.addOptPredicate(pred);
+//                predList.removeOptPredicate(i);
+//            }
+//        }
+//        basePredicates.classify(innerTable,innerTable.getCurrentAccessPath().getConglomerateDescriptor());
+//        return basePredicates;
     }
 
     /** @see com.splicemachine.db.iapi.sql.compile.JoinStrategy#nonBasePredicateSelectivity */
@@ -190,11 +200,8 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
                              ConglomerateDescriptor cd,
                              CostEstimate outerCost,
                              Optimizer optimizer,
-                             CostEstimate costEstimate) {
-		/*
-		** The cost of a hash join is the cost of building the hash table.
-		** There is no extra cost per outer row, so don't do anything here.
-		*/
+                             CostEstimate costEstimate) throws StandardException{
+        throw new UnsupportedOperationException("Cost estimate not implemented for class " +this.getClass());
     }
 
     /** @see JoinStrategy#maxCapacity */

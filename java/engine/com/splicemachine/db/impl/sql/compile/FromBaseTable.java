@@ -738,6 +738,10 @@ public class FromBaseTable extends FromTable{
 		/* Get the predicates that can be used for scanning the base table */
         baseTableRestrictionList.removeAllElements();
 
+        /*
+         * -sf- we remove this call because we want the Join strategies to estimate their
+         * own costing strategies
+         */
         currentJoinStrategy.getBasePredicates(predList,baseTableRestrictionList,this);
 		/* RESOLVE: Need to figure out how to cache the StoreCostController */
         StoreCostController scc=getStoreCostController(cd);

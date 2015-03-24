@@ -99,8 +99,7 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
 	 *
 	 * @return Whether or not to use the between selectivity for this node.
 	 */
-	boolean getBetweenSelectivity()
-	{
+	boolean getBetweenSelectivity() {
 		return betweenSelectivity;
 	}
 
