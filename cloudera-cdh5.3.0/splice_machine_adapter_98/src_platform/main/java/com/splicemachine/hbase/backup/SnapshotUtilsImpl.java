@@ -106,6 +106,18 @@ public class SnapshotUtilsImpl implements SnapshotUtils{
 
       return files;
     }
+
+    @Override
+    public List<Object> getSnapshotFilesForRegion(final HRegion region, final Configuration conf,
+                                                  final FileSystem fs, final String snapshotName) throws IOException {
+        Path rootDir = FSUtils.getRootDir(conf);
+
+        Path snapshotDir = SnapshotDescriptionUtils.getCompletedSnapshotDir(snapshotName, rootDir);
+        List<Object> paths = getSnapshotFilesForRegion(region, conf, fs, snapshotDir);
+
+        return paths;
+    }
+    
     /**
      * Returns path to a file referenced in a snapshot
      * FIXME: race condition possible, if file gets archived during
