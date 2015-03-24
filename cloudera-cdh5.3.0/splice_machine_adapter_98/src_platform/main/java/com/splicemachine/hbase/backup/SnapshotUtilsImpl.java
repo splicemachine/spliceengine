@@ -28,6 +28,7 @@ import org.apache.hadoop.hbase.regionserver.StoreFileScanner;
 import org.apache.hadoop.hbase.snapshot.SnapshotDescriptionUtils;
 import org.apache.hadoop.hbase.snapshot.SnapshotReferenceUtil;
 import org.apache.log4j.Logger;
+import org.apache.hadoop.hbase.util.FSUtils;
 
 import com.splicemachine.constants.SpliceConstants;
 
@@ -117,7 +118,7 @@ public class SnapshotUtilsImpl implements SnapshotUtils{
 
         return paths;
     }
-    
+
     /**
      * Returns path to a file referenced in a snapshot
      * FIXME: race condition possible, if file gets archived during
