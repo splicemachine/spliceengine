@@ -141,7 +141,11 @@ class SpliceTestPlatformConfig {
         //
 
         config.setLong("splice.ddl.drainingWait.maximum", SECONDS.toMillis(15)); // wait 15 seconds before bailing on bad ddl statements
-
+        //
+        // Snapshots
+        //
+        config.setBoolean("hbase.snapshot.enabled", true);
+        
         config.setDouble(SpliceConstants.DEBUG_TASK_FAILURE_RATE, 0.05d);
         config.setBoolean(SpliceConstants.DEBUG_FAIL_TASKS_RANDOMLY, failTasksRandomly);
 
