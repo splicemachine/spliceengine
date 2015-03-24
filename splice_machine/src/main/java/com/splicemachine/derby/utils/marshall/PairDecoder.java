@@ -7,6 +7,8 @@ import com.splicemachine.si.impl.SIFactoryDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 
+import java.io.IOException;
+
 /**
  * @author Scott Fines
  * Date: 11/15/13
@@ -86,5 +88,16 @@ public class PairDecoder<Data> {
 		@Override
 		public String toString() {
 			return String.format("PairDecoder { keyDecoder=%s rowDecoder=%s, templateRow=%s}",keyDecoder,rowDecoder,templateRow);
-		}		
+		}
+
+        public void close() throws IOException {
+            try {
+                if (keyDecoder != null)
+                    keyDecoder.close();
+            } finally {
+                if (rowDecoder != null)
+                    rowDecoder.close();
+            }
+        }
+
 }
