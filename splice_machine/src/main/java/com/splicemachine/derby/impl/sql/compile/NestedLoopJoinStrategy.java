@@ -293,7 +293,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
          *
          * innerCost.remoteCost * (number of rows matching join predicates)
          *
-         * the number of rows matching the join predicate is the "join selecitivity", so a better formulation is:
+         * the number of rows matching the join predicate is the "join selectivity", so a better formulation is:
          *
          * innerScan.outputRows = joinSelectivity*innerCost.outputRows
          * innerScan.localCost = innerCost.localCost
@@ -343,7 +343,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
 
         double totalLocalCost=outerCost.localCost()+outerCost.rowCount()*(innerScanLocalCost+innerScanRemoteCost);
         double totalRemoteCost=outerCost.remoteCost()+outerCost.rowCount()*innerScanRemoteCost;
-        double totalOutputRows=outerCost.rowCount();
+        double totalOutputRows=(outerCost.rowCount()*innerCost.rowCount())*outputJoinSelectivity;
         double totalHeapSize=outerCost.getEstimatedHeapSize()+outerCost.rowCount()*innerScanHeapSize;
         int totalPartitions=outerCost.partitionCount()+innerScanNumPartitions;
 
@@ -364,6 +364,8 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         innerCost.setEstimatedRowCount((long)totalOutputRows);
         innerCost.setRemoteCost(totalRemoteCost);
         innerCost.setLocalCost(totalLocalCost);
+        innerCost.setRowOrdering(outerCost.getRowOrdering());
+        innerCost.setSingleScanRowCount(innerCost.getEstimatedRowCount());
     }
 
     /**

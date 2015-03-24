@@ -1,22 +1,15 @@
 package com.splicemachine.derby.impl.sql.compile;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
-import com.splicemachine.db.impl.sql.compile.FromBaseTable;
-import com.splicemachine.db.impl.sql.compile.FromTable;
 import com.splicemachine.db.impl.sql.compile.HashableJoinStrategy;
-import com.splicemachine.db.impl.sql.compile.QueryTreeNode;
-import org.apache.log4j.Logger;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.hbase.HBaseRegionLoads;
-import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.db.impl.sql.compile.Predicate;
 
 public class BroadcastJoinStrategy extends HashableJoinStrategy {
-    private static final Logger LOG = Logger.getLogger(BroadcastJoinStrategy.class);
-    public BroadcastJoinStrategy() {
-    }
+    public BroadcastJoinStrategy() { }
 
     /**
      * @see JoinStrategy#getName
@@ -70,8 +63,6 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
 	public boolean feasible(Optimizable innerTable,
                             OptimizablePredicateList predList,
                             Optimizer optimizer) throws StandardException {
-//		if (CostUtils.isThisBaseTable(optimizer))
-//			return false;
         boolean hashFeasible = super.feasible(innerTable, predList, optimizer) && innerTable.isBaseTable();
 		TableDescriptor td = innerTable.getTableDescriptor();
         hashFeasible  = hashFeasible && (td!=null);
@@ -85,8 +76,8 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
         }
 
         CostEstimate baseEstimate = innerTable.estimateCost(predList,cd[0],optimizer.newCostEstimate(),optimizer,null);
-        double estimatedMemory = baseEstimate.getEstimatedHeapSize()/1024d/1024d;
-        return estimatedMemory<SpliceConstants.broadcastRegionMBThreshold;
+        double estimatedMemoryMB = baseEstimate.getEstimatedHeapSize()/1024d/1024d;
+        return estimatedMemoryMB<SpliceConstants.broadcastRegionMBThreshold;
 	}
 
     @Override
@@ -95,16 +86,27 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
                              ConglomerateDescriptor cd,
                              CostEstimate outerCost,
                              Optimizer optimizer,
-                             CostEstimate innerCost) {
+                             CostEstimate innerCost) throws StandardException{
         /*
-         * The algorithm for Broadcast is as follows:
+         * Broadcast Joins are relatively straightforward. Before scanning a single outer row,
+         * it first reads all inner table rows into a local hashtable; then, as each outer row
+         * is read, the inner hashtable is probed for any matching rows.
          *
-         * 1. Read the entirety of the inner table into memory (locally)
-         * 2. For each left hand row, probe memory for the join condition
+         * The big effect here is that the cost to read the inner table is constant, regardless of
+         * the join predicates (because the join predicate are applied after the inner table is read).
          *
-         * In this case, the overall cost is
+         * totalCost.localCost = outerCost.localCost + innerCost.localCost+innerCost.remoteCost
          *
-         * inner.local + inner.remote + outer.local+outer.remote
+         * But the output metrics are different, based on the join predicates. Thus, we compute
+         * the output joinSelectivity of all join predicates, and adjust the cost as
+         *
+         * totalCost.remoteCost = joinSelectivity*(outerCost.remoteCost+innerCost.remoteCost)
+         * totalCost.outputRows = joinSelectivity*outerCost.outputRows
+         * totalCost.heapSize = joinSelectivity*(outerCost.heapSize + innerCost.heapSize)
+         *
+         * Note that we count the innerCost.remoteCost twice. This accounts for the fact that we
+         * have to read the inner table's data twice--once to build the hashtable, and once
+         * to account for the final scan of data to the control node.
          */
         if(outerCost.localCost()==0d && outerCost.getEstimatedRowCount()==1.0d){
             return; //actually a scan, don't do anything
@@ -112,26 +114,42 @@ public class BroadcastJoinStrategy extends HashableJoinStrategy {
         innerCost.setBase(innerCost.cloneMe());
         outerCost.setBase(outerCost.cloneMe());
 
-        innerCost.setNumPartitions(outerCost.partitionCount());
-        innerCost.setLocalCost(innerCost.localCost()+outerCost.localCost());
-        innerCost.setRemoteCost(innerCost.remoteCost()+outerCost.remoteCost());
+        double joinSelectivity = estimateJoinSelectivity(innerTable,predList,outerCost,innerCost);
+        double totalLocalCost = outerCost.localCost()+innerCost.localCost()+innerCost.remoteCost();
+        double totalRemoteCost = joinSelectivity*(outerCost.remoteCost()+innerCost.remoteCost());
+        //each partition of the outer table will see inner table's partitionCount
+        int totalPartitionCount = outerCost.partitionCount()*innerCost.partitionCount();
+        double totalHeapSize = joinSelectivity*(outerCost.getEstimatedHeapSize()+innerCost.getEstimatedHeapSize());
+        double totalOutputRows = joinSelectivity*(outerCost.getEstimatedRowCount()*innerCost.getEstimatedRowCount());
+
+        innerCost.setNumPartitions(totalPartitionCount);
+        innerCost.setLocalCost(totalLocalCost);
+        innerCost.setRemoteCost(totalRemoteCost);
         innerCost.setRowOrdering(outerCost.getRowOrdering());
-        innerCost.setEstimatedRowCount((long)outerCost.rowCount());
-        innerCost.setEstimatedHeapSize(outerCost.getEstimatedHeapSize()+innerCost.getEstimatedHeapSize());
-//        SpliceLogUtils.trace(LOG, "rightResultSetCostEstimate outerCost=%s, innerFullKeyCost=%s", outerCost, innerCost);
-//
-//        SpliceCostEstimateImpl inner = (SpliceCostEstimateImpl) innerCost;
-//        SpliceCostEstimateImpl outer = (SpliceCostEstimateImpl) outerCost;
-//
-//        inner.setBase(innerCost.cloneMe());
-//
-//        double cost = inner.getEstimatedRowCount() * (SpliceConstants.remoteRead + SpliceConstants.optimizerHashCost) + inner.cost + outer.cost;
-//        double rowCount = Math.max(innerCost.rowCount(),outerCost.rowCount());
-//        inner.setCost(cost, rowCount, rowCount);
-//        inner.setNumberOfRegions(outer.numberOfRegions);
-//        inner.setRowOrdering(outer.rowOrdering);
-//
-//        SpliceLogUtils.trace(LOG, "rightResultSetCostEstimate computed cost innerCost=%s", innerCost);
+        innerCost.setEstimatedRowCount((long)totalOutputRows);
+        innerCost.setEstimatedHeapSize((long)totalHeapSize);
+        innerCost.setSingleScanRowCount(joinSelectivity*outerCost.singleScanRowCount());
+    }
+
+    private double estimateJoinSelectivity(Optimizable innerTable,
+                                           OptimizablePredicateList predList,
+                                           CostEstimate outerCost,
+                                           CostEstimate innerCost) throws StandardException{
+        double selectivity = 1.0d;
+        for(int i=0;i<predList.size();i++){
+            Predicate p = (Predicate)predList.getOptPredicate(i);
+            if(!p.isJoinPredicate()) continue; //skip non-join predicates
+            selectivity*=estimateSelectivity(innerTable,p,outerCost,innerCost);
+        }
+        return selectivity;
+    }
+
+    private double estimateSelectivity(Optimizable innerTable,
+                                       Predicate predicate,
+                                       CostEstimate outerCost,
+                                       CostEstimate innerCost) throws StandardException{
+        //TODO -sf- we need to do something better than this, with cardinalities etc.
+        return predicate.selectivity(innerTable);
     }
 }
 
