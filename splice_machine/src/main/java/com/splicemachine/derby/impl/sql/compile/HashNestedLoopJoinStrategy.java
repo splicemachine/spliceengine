@@ -8,6 +8,7 @@ import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.iapi.sql.compile.OptimizablePredicate;
 import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
 import com.splicemachine.db.iapi.sql.compile.Optimizer;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.impl.sql.compile.FromBaseTable;
 import com.splicemachine.db.impl.sql.compile.HashableJoinStrategy;
@@ -119,7 +120,12 @@ public class HashNestedLoopJoinStrategy extends HashableJoinStrategy {
 	 * 
 	 */
 	@Override
-	public void estimateCost(OptimizablePredicateList predList,CostEstimate outerCost,CostEstimate innerCost) {
+	public void estimateCost(Optimizable innerTable,
+                             OptimizablePredicateList predList,
+                             ConglomerateDescriptor cd,
+                             CostEstimate outerCost,
+                             Optimizer optimizer,
+                             CostEstimate innerCost) {
 		SpliceLogUtils.trace(LOG, "rightResultSetCostEstimate outerCost=%s, innerFullKeyCost=%s",outerCost, innerCost);
 		double cost;
 //		if (outerCost.getEstimatedRowCount() > 10000)
