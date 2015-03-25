@@ -41,7 +41,7 @@ public class Hbase98ExceptionTranslator extends SkeletonExceptionTranslator{
 
     @Override
     public boolean isCallTimeoutException(Throwable t) {
-        return t instanceof RpcClient.CallTimeoutException;
+        return t instanceof RpcClient.CallTimeoutException || isRemoteWithExtras(t, RpcClient.CallTimeoutException.class.getCanonicalName());
     }
 
     @Override
