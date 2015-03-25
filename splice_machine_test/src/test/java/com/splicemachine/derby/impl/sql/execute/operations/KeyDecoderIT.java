@@ -100,6 +100,7 @@ public class KeyDecoderIT extends SpliceUnitTest {
 
     private static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE1, SCHEMA_NAME, CREATE);
     private static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE2, SCHEMA_NAME, "(i int)");
+    private static TemporaryFolder temporaryFolder = new TemporaryFolder();
     private static final String dataFile = SpliceUnitTest.getResourceDirectory()+ "x.txt";
     private static SpliceWatcher methodWatcher = new SpliceWatcher();
     private static TreeMultiset<Timestamp> DAYS = TreeMultiset.create();
@@ -112,12 +113,13 @@ public class KeyDecoderIT extends SpliceUnitTest {
             .around(spliceSchemaWatcher)
             .around(spliceTableWatcher1)
             .around(spliceTableWatcher2)
+            .around(temporaryFolder)
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
                     try {
                         PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA('%s','%s',null,'%s', '|',null,null,null,null,0,%s)",
-                                                                                     SCHEMA_NAME, TABLE1, dataFile, new TemporaryFolder().newFolder().getCanonicalPath()));
+                                                                                     SCHEMA_NAME, TABLE1, dataFile, temporaryFolder.newFolder().getCanonicalPath()));
                         ps.execute();
                         ps.close();
                         ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s",SCHEMA_NAME,TABLE1));
