@@ -6,7 +6,7 @@ import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 import com.splicemachine.db.impl.sql.compile.*;
 
-public class MergeJoinStrategy extends HashableJoinStrategy{
+public class MergeJoinStrategy extends BaseCostedHashableJoinStrategy{
 
     public MergeJoinStrategy(){
     }
@@ -119,12 +119,24 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
          * Which includes network traffic to the outer table's region and network traffic from
          * that region to the control node
          */
-        double joinSelectivity = estimateJoinSelectivity(predList,innerTable);
+        double joinSelectivity = estimateJoinSelectivity(innerTable,cd,predList,outerCost,innerCost);
+
+        double rowCount = joinSelectivity*outerCost.rowCount()*innerCost.rowCount();
 
         double totalLocalCost = outerCost.localCost()+innerCost.localCost()+innerCost.remoteCost();
-        double totalRemoteCost = outerCost.remoteCost()+innerCost.remoteCost();
-        double rowCount = joinSelectivity*outerCost.rowCount()*innerCost.rowCount();
-        double heapSize = joinSelectivity*outerCost.getEstimatedHeapSize()*innerCost.getEstimatedHeapSize();
+        totalLocalCost+=innerCost.partitionCount()*(innerCost.getOpenCost()+innerCost.getCloseCost());
+
+        /*
+         * The costing for broadcast and merge joins are essentially identical, so
+         * it's possible (particularly in the event of high-selectivity joins)
+         * that merge and broadcast joins will cost identicaly. In these situations, we want to
+         * favor merge join, since it can start late and stop early, and thus shave off a few
+         * microseconds of latency. We do this by downshifting the remote cost by a very small
+         * factor (just 5). That way, the costing strategies are slightly different, and we
+         * can favor merge join when all other things are equal
+         */
+        double totalRemoteCost = getTotalRemoteCost(outerCost,innerCost,rowCount)-5;
+        double heapSize = getTotalHeapSize(outerCost,innerCost,rowCount);
         int numPartitions = outerCost.partitionCount()*innerCost.partitionCount();
 
         innerCost.setRowOrdering(outerCost.getRowOrdering()); //merge join inherits the sort order from the outer table
@@ -195,18 +207,4 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
         return foundZerothKey;
     }
 
-    private double estimateJoinSelectivity(OptimizablePredicateList predList,Optimizable innerTable) throws StandardException{
-        double selectivity = 1.0d;
-        for(int i=0;i<predList.size();i++){
-            Predicate pred = (Predicate)predList.getOptPredicate(i);
-            if(!pred.isJoinPredicate()) continue; //skip non-join predicates
-            selectivity*=estimateSelectivity(innerTable,pred);
-        }
-        return selectivity;
-    }
-
-    private double estimateSelectivity(Optimizable innerTable,Predicate pred) throws StandardException{
-        //TODO -sf- refine this
-        return pred.selectivity(innerTable);
-    }
 }

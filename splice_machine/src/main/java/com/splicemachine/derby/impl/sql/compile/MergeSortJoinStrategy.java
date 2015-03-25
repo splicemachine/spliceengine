@@ -6,7 +6,7 @@ import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.impl.sql.compile.HashableJoinStrategy;
 import com.splicemachine.db.impl.sql.compile.Predicate;
 
-public class MergeSortJoinStrategy extends HashableJoinStrategy {
+public class MergeSortJoinStrategy extends BaseCostedHashableJoinStrategy {
 
     public MergeSortJoinStrategy() {
     }
@@ -149,18 +149,19 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
         double innerSortCost = innerCost.localCost()+innerCost.remoteCost();
         double sortCost = Math.max(outerSortCost,innerSortCost);
 
-        double avgLocalLatency = outerCost.localCost()/(2*outerCost.rowCount());
-        avgLocalLatency+=innerCost.localCost()/(2*innerCost.rowCount());
-        double avgRemoteLatency = outerCost.remoteCost()/(2*outerCost.rowCount());
-        avgRemoteLatency+=innerCost.remoteCost()/(2*innerCost.rowCount());
+        double perRowLocalLatency = outerCost.localCost()/(2*outerCost.rowCount());
+        perRowLocalLatency+=innerCost.localCost()/(2*innerCost.rowCount());
 
-        double joinSelectivity = estimateSelectivity(innerTable,predList,cd);
+        double joinSelectivity = estimateJoinSelectivity(innerTable,cd,predList,outerCost,innerCost);
 
-        double mergeLocalCost = avgLocalLatency*(outerCost.rowCount()+innerCost.rowCount());
-        double mergeRows = joinSelectivity*(outerCost.rowCount()*innerCost.rowCount());
-        double mergeRemoteCost = avgRemoteLatency*mergeRows;
-        double mergeHeapSize = joinSelectivity*(outerCost.getEstimatedHeapSize()*innerCost.getEstimatedHeapSize());
         int mergePartitions = 16;
+        double mergeLocalCost = perRowLocalLatency*(outerCost.rowCount()+innerCost.rowCount());
+        double avgOpenCost = (outerCost.getOpenCost()+innerCost.getOpenCost())/2;
+        double avgCloseCost = (outerCost.getCloseCost()+innerCost.getCloseCost())/2;
+        mergeLocalCost+=mergePartitions*(avgOpenCost+avgCloseCost);
+        double mergeRows = joinSelectivity*(outerCost.rowCount()*innerCost.rowCount());
+        double mergeRemoteCost = getTotalRemoteCost(outerCost,innerCost,mergeRows);
+        double mergeHeapSize = getTotalHeapSize(outerCost,innerCost,mergeRows);
 
         double totalLocalCost = sortCost+mergeLocalCost;
 
@@ -176,22 +177,4 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
         innerCost.setRowOrdering(null);
     }
 
-    private double estimateSelectivity(Optimizable innerTable,
-                                       OptimizablePredicateList predList,
-                                       ConglomerateDescriptor cd) throws StandardException{
-        double selectivity = 1.0d;
-        for(int i=0;i<predList.size();i++){
-            Predicate p = (Predicate)predList.getOptPredicate(i);
-            //disregard non-join predicates since they are handled elsewhere
-            if(!p.isJoinPredicate()) continue;
-
-            selectivity*=estimateJoinSelectivity(innerTable,p);
-        }
-        return selectivity;
-    }
-
-    private double estimateJoinSelectivity(Optimizable innerTable,Predicate p) throws StandardException{
-        //TODO -sf- improve on this estimate
-        return p.selectivity(innerTable);
-    }
 }
