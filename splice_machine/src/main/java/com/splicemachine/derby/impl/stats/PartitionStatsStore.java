@@ -11,7 +11,6 @@ import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.PartitionStatistics;
-import com.splicemachine.stats.SimplePartitionStatistics;
 import com.splicemachine.stats.TableStatistics;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
@@ -45,7 +44,7 @@ public class PartitionStatsStore {
     }
 
     @SuppressWarnings("ThrowFromFinallyBlock")
-    public TableStatistics getStatistics(TxnView wrapperTxn,long conglomerateId) throws ExecutionException {
+    public OverheadManagedTableStatistics getStatistics(TxnView wrapperTxn,long conglomerateId) throws ExecutionException {
         Txn txn = getTxn(wrapperTxn);
         try {
             return fetchTableStatistics(conglomerateId, txn);
@@ -71,7 +70,7 @@ public class PartitionStatsStore {
     /* ****************************************************************************************************************/
     /*private helper methods and classes*/
 
-    private TableStatistics fetchTableStatistics(long conglomerateId, Txn txn) throws ExecutionException {
+    private OverheadManagedTableStatistics fetchTableStatistics(long conglomerateId, Txn txn) throws ExecutionException {
         byte[] table = Long.toString(conglomerateId).getBytes();
 
         List<HRegionInfo> partitions = new ArrayList<>();
@@ -91,7 +90,7 @@ public class PartitionStatsStore {
         }
 
         Map<String, List<ColumnStatistics>> columnStatsMap = columnStatsReader.fetchColumnStats(txn, conglomerateId, columnStatsFetchable);
-        List<PartitionStatistics> partitionStats = new ArrayList<>(partitions.size());
+        List<OverheadManagedPartitionStatistics> partitionStats = new ArrayList<>(partitions.size());
         List<TableStatisticsDescriptor> partiallyOccupied = new LinkedList<>();
         String tableId = Long.toString(conglomerateId);
         for(TableStatisticsDescriptor tStats : tableStatses){
@@ -107,13 +106,15 @@ public class PartitionStatsStore {
                 for(ColumnStatistics column : columnStats){
                     copy.add(column.getClone());
                 }
-                PartitionStatistics pStats=new SimplePartitionStatistics(tableId,
+                OverheadManagedPartitionStatistics pStats=new SimpleOverheadManagedPartitionStatistics(tableId,
                         tStats.getPartitionId(),
                         tStats.getRowCount(),
                         tStats.getPartitionSize(),
                         tStats.getQueryCount(),
                         tStats.getLocalReadLatency(),
                         tStats.getRemoteReadLatency(),
+                        tStats.getOpenScannerLatency(), 1l,
+                        tStats.getCloseScannerLatency(), 1l,
                         copy);
                 partitionStats.add(pStats);
             }else if(columnStatsMap.size()>0){
@@ -135,13 +136,15 @@ public class PartitionStatsStore {
 		             * is kind of bad news, since we rely on it to generate appropriate distributions. Still,
 		             *  we will return what we can
 		             */
-                PartitionStatistics pStats=new SimplePartitionStatistics(tableId,
+                OverheadManagedPartitionStatistics pStats=new SimpleOverheadManagedPartitionStatistics(tableId,
                         tStats.getPartitionId(),
                         tStats.getRowCount(),
                         tStats.getPartitionSize(),
                         tStats.getQueryCount(),
                         tStats.getLocalReadLatency(),
                         tStats.getRemoteReadLatency(),
+                        tStats.getOpenScannerLatency(),1l,
+                        tStats.getCloseScannerLatency(),1l,
                         Collections.<ColumnStatistics>emptyList());
                 partitionStats.add(pStats);
             }
@@ -198,12 +201,15 @@ public class PartitionStatsStore {
                 copy.add(avgCol.getClone());
             }
 
-            PartitionStatistics pStats = new SimplePartitionStatistics(tableId, tStats.getPartitionId(),
+            OverheadManagedPartitionStatistics pStats = new SimpleOverheadManagedPartitionStatistics(tableId,
+                    tStats.getPartitionId(),
                     tStats.getRowCount(),
                     tStats.getPartitionSize(),
                     tStats.getQueryCount(),
                     tStats.getLocalReadLatency(),
                     tStats.getRemoteReadLatency(),
+                    tStats.getOpenScannerLatency(),1l,
+                    tStats.getCloseScannerLatency(),1l,
                     copy);
             partitionStats.add(pStats);
         }
@@ -238,14 +244,16 @@ public class PartitionStatsStore {
         long numRows = totalBytes/100;
         long rowsPerRegion = numRows/partitions.size();
 
-        List<PartitionStatistics> partStats = new ArrayList<>(partitions.size());
+        List<OverheadManagedPartitionStatistics> partStats = new ArrayList<>(partitions.size());
         for(HRegionInfo info:partitions){
             partStats.add(new FakedPartitionStatistics(tableId,info.getEncodedName(),
                     numRows,
                     totalBytes,
                     0l,
                     perRowLocalLatency*rowsPerRegion,
+                    perRowLocalLatency,1l,
                     perRowRemoteLatency*rowsPerRegion,
+                    perRowRemoteLatency,1l,
                     Collections.<ColumnStatistics>emptyList()));
         }
         return new GlobalStatistics(tableId, partStats);
@@ -305,7 +313,7 @@ public class PartitionStatsStore {
         return missingSize;
     }
 
-    private PartitionAverage averageKnown(String tableId,List<PartitionStatistics> statistics) {
+    private PartitionAverage averageKnown(String tableId,List<OverheadManagedPartitionStatistics> statistics) {
         /*
          * We can make pretty reasonable assumptions about how data is distributed in the GROSS sense--row counts,
          * etc. will tend to be pretty uniformly distributed, because HBase attempts to split regions such

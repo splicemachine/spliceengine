@@ -12,6 +12,7 @@ import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.store.access.conglomerate.GenericController;
 import com.splicemachine.derby.impl.sql.compile.SimpleCostEstimate;
 import com.splicemachine.derby.impl.stats.FakedPartitionStatistics;
+import com.splicemachine.derby.impl.stats.OverheadManagedTableStatistics;
 import com.splicemachine.derby.impl.stats.StatisticsStorage;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
@@ -31,7 +32,7 @@ import java.util.concurrent.ExecutionException;
  *         Date: 3/4/15
  */
 public class StatsStoreCostController extends GenericController implements StoreCostController {
-    protected TableStatistics conglomerateStatistics;
+    protected OverheadManagedTableStatistics conglomerateStatistics;
     protected OpenSpliceConglomerate baseConglomerate;
 
     public StatsStoreCostController(OpenSpliceConglomerate baseConglomerate) throws StandardException {
@@ -100,6 +101,8 @@ public class StatsStoreCostController extends GenericController implements Store
         cost.setEstimatedHeapSize(bytes);
         cost.setNumPartitions(1);
         cost.setEstimatedRowCount(1l);
+        cost.setOpenCost(conglomerateStatistics.openScannerLatency());
+        cost.setCloseCost(conglomerateStatistics.closeScannerLatency());
     }
 
     @Override
@@ -133,7 +136,7 @@ public class StatsStoreCostController extends GenericController implements Store
                 scanColumnList,
                 startKeyValue,startSearchOperator,
                 stopKeyValue,stopSearchOperator,baseConglomerate.getColumnOrdering(),(CostEstimate)cost_result);
-        List<PartitionStatistics> partStats=conglomerateStatistics.partitionStatistics();
+        List<? extends PartitionStatistics> partStats=conglomerateStatistics.partitionStatistics();
         if(partStats==null||partStats.size()<=0 ||partStats.get(0) instanceof FakedPartitionStatistics){
             ((CostEstimate)cost_result).setIsRealCost(false);
         }
@@ -168,7 +171,7 @@ public class StatsStoreCostController extends GenericController implements Store
     }
 
     protected double nullSelectivityFraction(TableStatistics stats,int columnNumber){
-        List<PartitionStatistics> partStats = stats.partitionStatistics();
+        List<? extends PartitionStatistics> partStats = stats.partitionStatistics();
         long nullCount = 0l;
         int missingStatsCount = partStats.size();
         for(PartitionStatistics pStats:partStats){
@@ -204,7 +207,7 @@ public class StatsStoreCostController extends GenericController implements Store
                                          int columnNumber,
                                          DataValueDescriptor start,boolean includeStart,
                                          DataValueDescriptor stop,boolean includeStop){
-        List<PartitionStatistics> partStats = stats.partitionStatistics();
+        List<? extends PartitionStatistics> partStats = stats.partitionStatistics();
         long rowCount = 0l;
         int missingStatsCount = partStats.size();
         for(PartitionStatistics pStats:partStats){
@@ -234,7 +237,7 @@ public class StatsStoreCostController extends GenericController implements Store
     }
 
     @SuppressWarnings("unchecked")
-    protected void estimateCost(TableStatistics stats,
+    protected void estimateCost(OverheadManagedTableStatistics stats,
                                 int totalColumns, //the total number of columns in the store
                                 FormatableBitSet scanColumnList, //a list of the output columns, or null if fetch all
                                 DataValueDescriptor[] startKeyValue,
@@ -261,7 +264,7 @@ public class StatsStoreCostController extends GenericController implements Store
          * this process recursively, to reduce the total number of rows down. Not as good a heuristic
          * as maintaining a distribution of row keys directly, but for now it'll do.
          */
-        List<PartitionStatistics> partitionStatistics = stats.partitionStatistics();
+        List<? extends PartitionStatistics> partitionStatistics = stats.partitionStatistics();
         boolean includeStop = stopSearchOperator == ScanController.GT;
         boolean includeStart = startSearchOperator != ScanController.GT;
         long numRows = 0l;
@@ -288,6 +291,8 @@ public class StatsStoreCostController extends GenericController implements Store
         costEstimate.setRemoteCost(remoteCost);
         costEstimate.setNumPartitions(numPartitions);
         costEstimate.setEstimatedHeapSize(bytes);
+        costEstimate.setOpenCost(stats.openScannerLatency());
+        costEstimate.setCloseCost(stats.closeScannerLatency());
     }
 
     private long partitionColumnSelectivity(PartitionStatistics pStats,DataValueDescriptor[] startKeyValue,boolean includeStart,DataValueDescriptor[] stopKeyValue,boolean includeStop,int[] keyMap){
@@ -312,7 +317,7 @@ public class StatsStoreCostController extends GenericController implements Store
     protected double columnSizeFactor(TableStatistics tableStats,int totalColumns,int[] keyMap,FormatableBitSet validColumns){
         //get the average columnSize factor across all regions
         double colFactorSum = 0d;
-        List<PartitionStatistics> partStats=tableStats.partitionStatistics();
+        List<? extends PartitionStatistics> partStats=tableStats.partitionStatistics();
         if(partStats.size()<=0) return 0d; //no partitions present? huh?
 
         for(PartitionStatistics pStats: partStats){

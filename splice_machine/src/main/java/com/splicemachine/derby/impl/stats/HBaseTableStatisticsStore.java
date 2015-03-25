@@ -117,6 +117,24 @@ public class HBaseTableStatisticsStore implements TableStatisticsStore {
         long timestamp = decoder.decodeNextLong();
         boolean isStale = decoder.decodeNextBoolean();
         boolean inProgress= decoder.decodeNextBoolean();
+        TableStatisticsDescriptor stats=decode(decoder,conglomId,partitionId,timestamp,isStale,inProgress);
+        if(!inProgress){
+            /*
+             * If the table is currently in progress, then we don't want to cache the value
+             * because it's likely to change again soon. Otherwise, we can freely cache the
+             * TableStats
+             */
+            tableStatsCache.put(partitionId,stats);
+        }
+        return stats;
+    }
+
+    private TableStatisticsDescriptor decode(MultiFieldDecoder decoder,
+                                             long conglomId,
+                                             String partitionId,
+                                             long timestamp,
+                                             boolean isStale,
+                                             boolean inProgress){
         long rowCount = decoder.decodeNextLong();
         long size = decoder.decodeNextLong();
         int avgRowWidth = decoder.decodeNextInt();
@@ -134,8 +152,20 @@ public class HBaseTableStatisticsStore implements TableStatisticsStore {
             remoteReadLat = (long)(StatsConstants.remoteLatencyScaleFactor*localReadLat);
         }
         long writeLat = decoder.decodeNextLong();
+        /*
+         * Get the estimated latencies for opening and closing a scanner.
+         *
+         * If the number is <0, then we default to using the remote read latency as a measure.
+         */
+        long openLat = decoder.decodeNextLong();
+        if(openLat<0)
+            openLat = remoteReadLat;
+        long closeLat = decoder.decodeNextLong();
+        if(closeLat<0)
+            closeLat = remoteReadLat;
 
-        TableStatisticsDescriptor stats = new TableStatisticsDescriptor(conglomId,
+
+        return new TableStatisticsDescriptor(conglomId,
                 partitionId,
                 timestamp,
                 isStale,inProgress,
@@ -145,16 +175,9 @@ public class HBaseTableStatisticsStore implements TableStatisticsStore {
                 queryCount,
                 localReadLat,
                 remoteReadLat,
-                writeLat );
-        if(!inProgress){
-            /*
-             * If the table is currently in progress, then we don't want to cache the value
-             * because it's likely to change again soon. Otherwise, we can freely cache the
-             * TableStats
-             */
-            tableStatsCache.put(partitionId,stats);
-        }
-        return stats;
+                writeLat,
+                openLat,
+                closeLat);
     }
 
     protected TableStatisticsDescriptor decode(EntryDecoder cachedDecoder,KeyValue cell) {
@@ -169,25 +192,7 @@ public class HBaseTableStatisticsStore implements TableStatisticsStore {
         long timestamp = decoder.decodeNextLong();
         boolean isStale = decoder.decodeNextBoolean();
         boolean inProgress= decoder.decodeNextBoolean();
-        long rowCount = decoder.decodeNextLong();
-        long size = decoder.decodeNextLong();
-        int avgRowWidth = decoder.decodeNextInt();
-        long queryCount = decoder.decodeNextLong();
-        long localReadLat = decoder.decodeNextLong();
-        long remoteReadLat = decoder.decodeNextLong();
-        long writeLat = decoder.decodeNextLong();
-
-        TableStatisticsDescriptor stats = new TableStatisticsDescriptor(conglomId,
-                partitionId,
-                timestamp,
-                isStale,inProgress,
-                rowCount,
-                size,
-                avgRowWidth,
-                queryCount,
-                localReadLat,
-                remoteReadLat,
-                writeLat );
+        TableStatisticsDescriptor stats=decode(decoder,conglomId,partitionId,timestamp,isStale,inProgress);
         if(!inProgress){
             /*
              * If the table is currently in progress, then we don't want to cache the value
@@ -208,6 +213,7 @@ public class HBaseTableStatisticsStore implements TableStatisticsStore {
 
         @Override
         public void run() {
+            //TODO -sf- use the transaction
             com.splicemachine.async.Scanner scanner = hbaseClient.newScanner(tableStatsConglom);
             Deferred<ArrayList<ArrayList<KeyValue>>> data = scanner.nextRows();
             ArrayList<ArrayList<KeyValue>> rowBatch;

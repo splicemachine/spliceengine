@@ -2,7 +2,6 @@ package com.splicemachine.derby.impl.stats;
 
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.PartitionStatistics;
-import com.splicemachine.stats.TableStatistics;
 import com.splicemachine.stats.estimate.Distribution;
 import com.splicemachine.stats.estimate.GlobalDistribution;
 
@@ -14,15 +13,39 @@ import java.util.List;
  * @author Scott Fines
  *         Date: 3/9/15
  */
-public class GlobalStatistics implements TableStatistics {
+public class GlobalStatistics implements OverheadManagedTableStatistics {
     private final String tableId;
-    private final List<PartitionStatistics> partitionStatistics;
+    private final List<OverheadManagedPartitionStatistics> partitionStatistics;
 
     private transient List<ColumnStatistics> combinedColumnStatistics;
 
-    public GlobalStatistics(String tableId,List<PartitionStatistics> partitionStatistics) {
+    public GlobalStatistics(String tableId,List<OverheadManagedPartitionStatistics> partitionStatistics) {
         this.partitionStatistics = partitionStatistics;
         this.tableId = tableId;
+    }
+
+    @Override
+    public double openScannerLatency(){
+        double tot = 0d;
+        long numEvents = 0l;
+        for(OverheadManagedPartitionStatistics pStats:partitionStatistics){
+            tot+=pStats.getOpenScannerLatency();
+            numEvents+=pStats.numOpenEvents();
+        }
+        if(numEvents<=0l) return 0d;
+        return tot/numEvents;
+    }
+
+    @Override
+    public double closeScannerLatency(){
+        double tot = 0d;
+        long numEvents = 0l;
+        for(OverheadManagedPartitionStatistics pStats:partitionStatistics){
+            tot+=pStats.getCloseScannerLatency();
+            numEvents+=pStats.numCloseEvents();
+        }
+        if(numEvents<=0l) return 0d;
+        return tot/numEvents;
     }
 
     @Override
@@ -148,7 +171,7 @@ public class GlobalStatistics implements TableStatistics {
     }
 
     @Override
-    public List<PartitionStatistics> partitionStatistics() {
+    public List<? extends PartitionStatistics> partitionStatistics() {
         return partitionStatistics;
     }
 
@@ -159,10 +182,10 @@ public class GlobalStatistics implements TableStatistics {
 
     /* ***************************************************************************************************************/
     /*private helper methods*/
-    private List<ColumnStatistics> mergeColumnStats(List<PartitionStatistics> partitionStatistics){
+    private List<ColumnStatistics> mergeColumnStats(List<OverheadManagedPartitionStatistics> partitionStatistics){
         if(partitionStatistics.size()<=0) return Collections.emptyList();
         List<ColumnStatistics> stats = null;
-        for(PartitionStatistics partStats:partitionStatistics){
+        for(OverheadManagedPartitionStatistics partStats:partitionStatistics){
             List<ColumnStatistics> colStats=partStats.columnStatistics();
             if(colStats.size()<=0) continue;
             if(stats==null)

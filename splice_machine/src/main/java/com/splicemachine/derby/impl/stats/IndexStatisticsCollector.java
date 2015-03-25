@@ -116,12 +116,31 @@ public class IndexStatisticsCollector extends StatisticsCollector {
     }
 
     @Override
+    protected long getOpenScannerTimeMicros(){
+        return (long)getLatency();
+    }
+
+    @Override
+    protected long getCloseScannerTimeMicros(){
+        return (long)getLatency(); //TODO -sf- is this correct?
+    }
+
+    @Override
     protected long getRemoteReadTime(long rowCount) {
-        TimeView time = fetchTimer.getTime();
-        if(fetchTimer.getNumEvents()<=0) return 0l;
-        double latency = ((double) time.getWallClockTime()) / fetchTimer.getNumEvents();
+        double latency=getLatency();
         double est = latency*rowCount;
         return Math.round(est);
+    }
+
+    /* ****************************************************************************************************************/
+    /*private helper methods*/
+    private double getLatency(){
+        TimeView time = fetchTimer.getTime();
+        double latency;
+        if(fetchTimer.getNumEvents()<=0)latency = 0d;
+        else
+            latency = ((double) time.getWallClockTime()) / fetchTimer.getNumEvents();
+        return latency;
     }
 
     private boolean isSampled() {

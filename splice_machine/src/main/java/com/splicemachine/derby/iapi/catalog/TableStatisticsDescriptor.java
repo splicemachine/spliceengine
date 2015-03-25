@@ -20,6 +20,8 @@ public class TableStatisticsDescriptor extends TupleDescriptor {
     private long totalLocalReadLatency;
     private long totalRemoteReadLatency;
     private long totalWriteLatency;
+    private long openScannerLatency;
+    private long closeScannerLatency;
 
     public TableStatisticsDescriptor(long conglomerateId,
                                      String partitionId,
@@ -32,7 +34,9 @@ public class TableStatisticsDescriptor extends TupleDescriptor {
                                      long queryCount,
                                      long totalLocalReadLatency,
                                      long totalRemoteReadLatency,
-                                     long totalWriteLatency) {
+                                     long totalWriteLatency,
+                                     long openScannerLatency,
+                                     long closeScannerLatency) {
         this.conglomerateId = conglomerateId;
         this.partitionId = partitionId;
         this.timestamp = timestamp;
@@ -45,6 +49,8 @@ public class TableStatisticsDescriptor extends TupleDescriptor {
         this.totalLocalReadLatency = totalLocalReadLatency;
         this.totalRemoteReadLatency = totalRemoteReadLatency;
         this.totalWriteLatency = totalWriteLatency;
+        this.openScannerLatency = openScannerLatency;
+        this.closeScannerLatency = closeScannerLatency;
     }
 
     public long getConglomerateId() { return conglomerateId; }
@@ -59,4 +65,6 @@ public class TableStatisticsDescriptor extends TupleDescriptor {
     public long getRemoteReadLatency() { return totalRemoteReadLatency; }
     public long getWriteLatency() { return totalWriteLatency; }
     public boolean isInProgress() { return inProgress; }
+    public long getOpenScannerLatency(){ return openScannerLatency; }
+    public long getCloseScannerLatency(){ return closeScannerLatency; }
 }

@@ -26,6 +26,9 @@ public class SimpleCostEstimate implements CostEstimate{
     private SortCostController sortCost;
     private long estimatedHeapSize;
 
+    private double openCost;
+    private double closeCost;
+
     public SimpleCostEstimate(){ }
 
     public SimpleCostEstimate(double theCost,double theRowCount,double theSingleScanRowCount){
@@ -57,6 +60,12 @@ public class SimpleCostEstimate implements CostEstimate{
     public StoreCostController getStoreCost(){
         return storeCost;
     }
+
+    @Override public double getOpenCost(){ return openCost; }
+    @Override public double getCloseCost(){ return closeCost; }
+
+    @Override public void setOpenCost(double openCost){ this.openCost = openCost;}
+    @Override public void setCloseCost(double closeCost){ this.closeCost = closeCost;}
 
     @Override
     public void setCost(double cost,double rowCount,double singleScanRowCount){
@@ -120,6 +129,8 @@ public class SimpleCostEstimate implements CostEstimate{
         SimpleCostEstimate clone=new SimpleCostEstimate(localCost,remoteCost,numRows,singleScanRowCount,numPartitions);
         clone.setRowOrdering(rowOrdering);
         clone.setEstimatedHeapSize(estimatedHeapSize);
+        clone.setOpenCost(openCost);
+        clone.setCloseCost(closeCost);
         if(baseCost!=null)
             clone.setBase(baseCost.cloneMe());
         return clone;

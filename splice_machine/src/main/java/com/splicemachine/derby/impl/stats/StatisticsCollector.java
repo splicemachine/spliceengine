@@ -15,15 +15,12 @@ import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.stats.ColumnStatistics;
-import com.splicemachine.stats.PartitionStatistics;
-import com.splicemachine.stats.SimplePartitionStatistics;
 import com.splicemachine.stats.collector.ColumnStatsCollector;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -63,6 +60,9 @@ public class StatisticsCollector {
     private final int[] lengths;
     private final long tableConglomerateId;
 
+    protected transient long openScannerTimeMicros = -1l;
+    protected transient long closeScannerTimeMicros = -1l;
+
     public StatisticsCollector(TxnView txn,
                                ExecRow template,
                                Scan partitionScan,
@@ -96,7 +96,7 @@ public class StatisticsCollector {
     }
 
     @SuppressWarnings("unchecked")
-    public PartitionStatistics collect() throws ExecutionException {
+    public OverheadManagedPartitionStatistics collect() throws ExecutionException {
         try(SITableScanner scanner = getTableScanner()){
             ColumnStatsCollector<DataValueDescriptor>[] dvdCollectors = getCollectors();
             int[] fieldLengths = new int[dvdCollectors.length];
@@ -117,12 +117,16 @@ public class StatisticsCollector {
             if(remoteReadTimeMicros>0){
                 remoteReadTimeMicros/=1000;
             }
-            return new SimplePartitionStatistics(tableId,regionId,
+            return new SimpleOverheadManagedPartitionStatistics(tableId,regionId,
                     rowCount,
                     byteCount,
                     0l, //TODO -sf- get Query count for this region
                     localReadTimeMicros,
                     remoteReadTimeMicros,
+                    getOpenScannerTimeMicros(),
+                    getOpenScannerEvents(),
+                    getCloseScannerTimeMicros(),
+                    getCloseScannerEvents(),
                     columnStats);
         } catch (StandardException | IOException e) {
             throw new ExecutionException(e); //should only be IOExceptions
@@ -130,6 +134,13 @@ public class StatisticsCollector {
             closeResources();
         }
     }
+
+    protected long getCloseScannerEvents(){ return 1l; }
+
+    protected long getOpenScannerTimeMicros(){ return openScannerTimeMicros; }
+    protected long  getCloseScannerTimeMicros(){ return closeScannerTimeMicros; }
+
+    protected long getOpenScannerEvents(){ return 1l; }
 
     protected void closeResources() {
 
@@ -171,12 +182,10 @@ public class StatisticsCollector {
             scan.setCaching(fetchSampleSize);
             scan.setBatch(fetchSampleSize);
             Timer remoteReadTimer = Metrics.newWallTimer();
-            long s = System.nanoTime();
+            long openTime = System.nanoTime();
+            long closeTime;
             try(ResultScanner scanner = table.getScanner(scan)){
-                long e = System.nanoTime();
-                double openTimeS = (double)(e-s);
-                openTimeS/=1000*1000;
-                Logger.getLogger(StatisticsCollector.class).info(String.format("Time taken to open scanner(ms): %.6f",openTimeS));
+                openTime = System.nanoTime()-openTime;
                 int pos = 0;
                 remoteReadTimer.startTiming();
                 Result result;
@@ -184,8 +193,13 @@ public class StatisticsCollector {
                     pos++;
                 }
                 remoteReadTimer.tick(pos);
+                closeTime = System.nanoTime();
             }
+            closeTime = System.nanoTime()-closeTime;
 
+            //stash the scanner open and scanner close times
+            openScannerTimeMicros = openTime/1000;
+            closeScannerTimeMicros = closeTime/1000;
             double latency = ((double)remoteReadTimer.getTime().getWallClockTime())/remoteReadTimer.getNumEvents();
             return Math.round(latency*rowCount);
         }catch(IOException e){
