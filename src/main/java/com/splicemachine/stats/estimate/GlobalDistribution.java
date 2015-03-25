@@ -38,7 +38,7 @@ public class GlobalDistribution<T> implements Distribution<T> {
     @Override
     public long selectivity(T element) {
         long selectivityEstimate = 0l;
-        List<PartitionStatistics> statistics = tableStatistics.partitionStatistics();
+        List<? extends PartitionStatistics> statistics = tableStatistics.partitionStatistics();
         for(PartitionStatistics partitionStats:statistics){
             Distribution<T> distribution = partitionStats.columnDistribution(columnId);
             selectivityEstimate+=distribution.selectivity(element);
@@ -49,7 +49,7 @@ public class GlobalDistribution<T> implements Distribution<T> {
     @Override
     public long rangeSelectivity(T start, T stop, boolean includeStart, boolean includeStop) {
         long selectivityEstimate = 0l;
-        List<PartitionStatistics> statistics = tableStatistics.partitionStatistics();
+        List<? extends PartitionStatistics> statistics = tableStatistics.partitionStatistics();
         for(PartitionStatistics partitionStats:statistics){
             Distribution<T> distribution = partitionStats.columnDistribution(columnId);
             selectivityEstimate+=distribution.rangeSelectivity(start,stop,includeStart,includeStop);

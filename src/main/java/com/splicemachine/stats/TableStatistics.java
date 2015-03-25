@@ -100,5 +100,5 @@ public interface TableStatistics extends PartitionStatistics{
     /**
      * @return Detailed statistics for each partition.
      */
-    List<PartitionStatistics> partitionStatistics();
+    List<? extends PartitionStatistics> partitionStatistics();
 }
