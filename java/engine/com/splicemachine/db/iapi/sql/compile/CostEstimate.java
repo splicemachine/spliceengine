@@ -30,8 +30,7 @@ import com.splicemachine.db.iapi.store.access.StoreCostResult;
  *
  */
 
-public interface CostEstimate extends StoreCostResult
-{
+public interface CostEstimate extends StoreCostResult {
     /**
      * Set the cost for this cost estimate.
      */
@@ -129,21 +128,35 @@ public interface CostEstimate extends StoreCostResult
      *
      * @return Whether or not this CostEstimate is uninitialized.
      */
-    public boolean isUninitialized();
+    boolean isUninitialized();
 
-    public RowOrdering getRowOrdering();
+    RowOrdering getRowOrdering();
 
-    public void setRowOrdering(RowOrdering rowOrdering);
+    void setRowOrdering(RowOrdering rowOrdering);
 
-    public CostEstimate getBase();
+    CostEstimate getBase();
 
-    public void setBase(CostEstimate baseCost);
+    void setBase(CostEstimate baseCost);
 
     /**
      * @return true if this is a "real" cost--that is, a cost which was generated
      * using real statistics, rather than from arbitrary scaling factors
      */
-    public boolean isRealCost();
+    boolean isRealCost();
 
-    public void setIsRealCost(boolean isRealCost);
+    void setIsRealCost(boolean isRealCost);
+
+    /**
+     * @return the cost to open a scan and begin reading data
+     */
+    double getOpenCost();
+
+    void setOpenCost(double openCost);
+
+    /**
+     * @return the cost to close a scan after completely reading data
+     */
+    double getCloseCost();
+
+    void setCloseCost(double closeCost);
 }

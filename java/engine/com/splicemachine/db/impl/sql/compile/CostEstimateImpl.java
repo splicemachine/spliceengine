@@ -365,4 +365,8 @@ public class CostEstimateImpl implements CostEstimate {
         //no-op
     }
 
+    @Override public double getOpenCost(){ throw new UnsupportedOperationException(); }
+    @Override public void setOpenCost(double openCost){ throw new UnsupportedOperationException();  }
+    @Override public void setCloseCost(double closeCost){ throw new UnsupportedOperationException(); }
+    @Override public double getCloseCost(){ throw new UnsupportedOperationException(); }
 }
