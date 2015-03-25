@@ -14216,10 +14216,11 @@ alterTableAction(TableElementList tableElementList, int[] changeType, int[] beha
 	{
 		if (tableElement instanceof ColumnDefinitionNode)
 		{
+// DEBUG: JC - don't limit auto-inc id cols in ALTER TABLE
 			//bug 5724 - auto increment columns not allowed in ALTER TABLE statement
-			ColumnDefinitionNode cdn = (ColumnDefinitionNode) tableElement;
-			if ( cdn.isAutoincrementColumn())
-				throw StandardException.newException(SQLState.LANG_ALTER_TABLE_AUTOINCREMENT_COLUMN_NOT_ALLOWED);
+//			ColumnDefinitionNode cdn = (ColumnDefinitionNode) tableElement;
+//			if ( cdn.isAutoincrementColumn())
+//				throw StandardException.newException(SQLState.LANG_ALTER_TABLE_AUTOINCREMENT_COLUMN_NOT_ALLOWED);
 		}
 		changeType[0] = DDLStatementNode.ADD_TYPE;
 		tableElementList.addTableElement(tableElement);
