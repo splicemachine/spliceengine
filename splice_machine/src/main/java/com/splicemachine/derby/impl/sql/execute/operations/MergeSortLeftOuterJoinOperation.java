@@ -81,4 +81,9 @@ public class MergeSortLeftOuterJoinOperation extends MergeSortJoinOperation {
             emptyRow = emptyRowFun.invoke();
         return emptyRow;
     }
+
+
+    protected boolean isOuter() {
+        return true;
+    }
 }
