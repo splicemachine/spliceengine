@@ -36,15 +36,18 @@ import com.splicemachine.uuid.UUIDGenerator;
  */
 public class AddColumnRowTransformer implements RowTransformer {
 
+    private final ExecRow oldRow;
     private final ExecRow newRow;
     private final EntryDataDecoder rowDecoder;
     private final KeyHashDecoder keyDecoder;
     private final PairEncoder entryEncoder;
 
-    private AddColumnRowTransformer(ExecRow newRow,
+    private AddColumnRowTransformer(ExecRow oldRow,
+                                   ExecRow newRow,
                                    KeyHashDecoder keyDecoder,
                                    EntryDataDecoder rowDecoder,
                                    PairEncoder entryEncoder) {
+        this.oldRow = oldRow;
         this.newRow = newRow;
         this.rowDecoder = rowDecoder;
         this.keyDecoder = keyDecoder;
@@ -53,13 +56,13 @@ public class AddColumnRowTransformer implements RowTransformer {
 
     public KVPair transform(KVPair kvPair) throws StandardException, IOException {
         // Decode a row
-        newRow.resetRowArray();
-        if (newRow.nColumns() > 0) {
+        oldRow.resetRowArray();
+        if (oldRow.nColumns() > 0) {
             keyDecoder.set(kvPair.getRowKey(), 0, kvPair.getRowKey().length);
-            keyDecoder.decode(newRow);
+            keyDecoder.decode(oldRow);
 
             rowDecoder.set(kvPair.getValue(), 0, kvPair.getValue().length);
-            rowDecoder.decode(newRow);
+            rowDecoder.decode(oldRow);
         }
 
         // encode the result
@@ -90,10 +93,9 @@ public class AddColumnRowTransformer implements RowTransformer {
                 newRow.setColumn(i+1,dvd);
             }
             // set default value if given
-            // FIXME: JC - defaultValue always null, even when there is one - defaultInfo is not null.
-            DataValueDescriptor newColDVD = columnInfos[columnInfos.length-1].defaultValue;
+            DataValueDescriptor newColDefaultValue = columnInfos[columnInfos.length-1].defaultValue;
             newRow.setColumn(columnInfos.length,
-                             (newColDVD != null ? newColDVD : columnInfos[columnInfos.length-1].dataType.getNull()));
+                             (newColDefaultValue != null ? newColDefaultValue : columnInfos[columnInfos.length-1].dataType.getNull()));
         } catch (StandardException e) {
             throw Exceptions.getIOException(e);
         }
@@ -137,6 +139,6 @@ public class AddColumnRowTransformer implements RowTransformer {
         DataHash rowHash = new EntryDataHash(columns, null,newSerializers);
         PairEncoder rowEncoder = new PairEncoder(encoder,rowHash, KVPair.Type.INSERT);
 
-        return new AddColumnRowTransformer(newRow, keyDecoder, rowDecoder, rowEncoder);
+        return new AddColumnRowTransformer(oldRow, newRow, keyDecoder, rowDecoder, rowEncoder);
     }
 }
