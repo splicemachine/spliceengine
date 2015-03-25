@@ -145,8 +145,8 @@ public class MergeSortJoinStrategy extends BaseCostedHashableJoinStrategy {
          * mergeHeapSize = joinSelectivity*(outerTable.heapSize*innerTable.heapSize)
          * mergePartitions = 16(or whatever the size of TEMP is currently)
          */
-        double outerSortCost = outerCost.localCost()+outerCost.remoteCost();
-        double innerSortCost = innerCost.localCost()+innerCost.remoteCost();
+        double outerSortCost = (outerCost.localCost()+outerCost.remoteCost())/outerCost.partitionCount();
+        double innerSortCost = (innerCost.localCost()+innerCost.remoteCost())/innerCost.partitionCount();
         double sortCost = Math.max(outerSortCost,innerSortCost);
 
         double perRowLocalLatency = outerCost.localCost()/(2*outerCost.rowCount());
@@ -175,6 +175,14 @@ public class MergeSortJoinStrategy extends BaseCostedHashableJoinStrategy {
          * of the data.
          */
         innerCost.setRowOrdering(null);
+
+        /*
+         * Because MergeSort sinks data in parallel, the underlying operation doesn't use remote cost.
+         * To make Explain results easier to interpret, we remote the remote cost from the inner
+         * and outer costs
+         */
+        innerCost.getBase().setRemoteCost(0d);
+        outerCost.getBase().setRemoteCost(0d);
     }
 
 }

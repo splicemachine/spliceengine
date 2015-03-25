@@ -154,11 +154,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         info.put("class", JoinInfo.className.apply(rsn));
         info.put("n", rsn.getResultSetNumber());
         info.put("level", level);
-        info.put("cost", String.format("%.3f",co.getEstimatedCost()));
-        info.put("estRowCount", co.getEstimatedRowCount());
-        info.put("estSingleScanCount", String.format("%.3f",co.singleScanRowCount()));
-        info.put("partitions",co.partitionCount());
-        info.put("heapSize",co.getEstimatedHeapSize());
+        info.put("cost", co.prettyString());
         if (Level.TRACE.equals(LOG.getLevel())) {
 //        if(LOG.isTraceEnabled()){
           // FIXME: FIND OUT WHY LOG.isTraceEnabled() always returns false
