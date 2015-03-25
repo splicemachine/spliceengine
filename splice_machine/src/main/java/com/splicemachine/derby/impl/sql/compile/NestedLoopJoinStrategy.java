@@ -23,14 +23,11 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
     public NestedLoopJoinStrategy(){
     }
 
-
-    /**
-     * @throws StandardException Thrown on error
-     * @see JoinStrategy#feasible
-     */
+    @Override
     public boolean feasible(Optimizable innerTable,
                             OptimizablePredicateList predList,
-                            Optimizer optimizer) throws StandardException{
+                            Optimizer optimizer,
+                            CostEstimate outerCost) throws StandardException{
         /* Nested loop is feasible, except in the corner case
          * where innerTable is a VTI that cannot be materialized
 		 * (because it has a join column as a parameter) and
@@ -47,17 +44,12 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         return innerTable.isMaterializable() || innerTable.supportsMultipleInstantiations();
     }
 
-    /**
-     * @see JoinStrategy#multiplyBaseCostByOuterRows
-     */
+    @Override
     public boolean multiplyBaseCostByOuterRows(){
         return true;
     }
 
-    /**
-     * @throws StandardException Thrown on error
-     * @see JoinStrategy#getBasePredicates
-     */
+    @Override
     public OptimizablePredicateList getBasePredicates(OptimizablePredicateList predList,
                                                       OptimizablePredicateList basePredicates,
                                                       Optimizable innerTable) throws StandardException{
@@ -71,9 +63,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         return basePredicates;
     }
 
-    /**
-     * @see JoinStrategy#nonBasePredicateSelectivity
-     */
+    @Override
     public double nonBasePredicateSelectivity(Optimizable innerTable,OptimizablePredicateList predList){
 		/*
 		** For nested loop, all predicates are base predicates, so there
@@ -82,10 +72,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         return 1.0;
     }
 
-    /**
-     * @throws StandardException Thrown on error
-     * @see JoinStrategy#putBasePredicates
-     */
+    @Override
     public void putBasePredicates(OptimizablePredicateList predList,OptimizablePredicateList basePredicates) throws StandardException{
         for(int i=basePredicates.size()-1;i>=0;i--){
             OptimizablePredicate pred=basePredicates.getOptPredicate(i);
@@ -95,30 +82,22 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         }
     }
 
-    /**
-     * @see JoinStrategy#maxCapacity
-     */
+    @Override
     public int maxCapacity(int userSpecifiedCapacity,int maxMemoryPerTable,double perRowUsage){
         return Integer.MAX_VALUE;
     }
 
-    /**
-     * @see JoinStrategy#getName
-     */
+    @Override
     public String getName(){
         return "NESTEDLOOP";
     }
 
-    /**
-     * @see JoinStrategy#scanCostType
-     */
+    @Override
     public int scanCostType(){
         return StoreCostController.STORECOST_SCAN_NORMAL;
     }
 
-    /**
-     * @see JoinStrategy#resultSetMethodName
-     */
+    @Override
     public String resultSetMethodName(boolean bulkFetch,boolean multiprobe){
         if(bulkFetch)
             return "getBulkTableScanResultSet";
@@ -127,25 +106,17 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         else
             return "getTableScanResultSet";
     }
-
-    /**
-     * @see JoinStrategy#joinResultSetMethodName
-     */
+    @Override
     public String joinResultSetMethodName(){
         return "getNestedLoopJoinResultSet";
     }
 
-    /**
-     * @see JoinStrategy#halfOuterJoinResultSetMethodName
-     */
+    @Override
     public String halfOuterJoinResultSetMethodName(){
         return "getNestedLoopLeftOuterJoinResultSet";
     }
 
-    /**
-     * @throws StandardException Thrown on error
-     * @see JoinStrategy#getScanArgs
-     */
+    @Override
     public int getScanArgs(
             TransactionController tc,
             MethodBuilder mb,
@@ -232,10 +203,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         return numArgs;
     }
 
-    /**
-     * @throws StandardException Thrown on error
-     * @see JoinStrategy#divideUpPredicateLists
-     */
+    @Override
     public void divideUpPredicateLists(
             Optimizable innerTable,
             OptimizablePredicateList originalRestrictionList,
@@ -250,13 +218,14 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         originalRestrictionList.setPredicatesAndProperties(storeRestrictionList);
     }
 
-    /**
-     * @see JoinStrategy#doesMaterialization
-     */
+    @Override
     public boolean doesMaterialization(){
         return false;
     }
 
+    @Override public boolean allowsJoinPredicatePushdown(){ return true; }
+
+    @Override
     public String toString(){
         return getName();
     }
@@ -332,20 +301,45 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
          *
          * We estimate the outputJoinSelectivity using all the available predicates
          */
-        double inputJoinSelectivity=getStartStopSelectivity(innerTable,cd,allPreds);
-        double outputJoinSelectivity=estimateJoinSelectivity(innerTable,allPreds);
+        /*
+         * If the row count is 1l, then we are either a keyed lookup (a special case handled
+         * in FromBaseTable directly), or we are on a table with exactly 1 row returned (which is wild).
+         *
+         * If we are the latter, then not adjusting for start and stop key selectivity won't matter,
+         * and if we are the former, it'll screw up our costing model. So in both cases, don't
+         * adjust the selectivity if our estimated row count is 1
+         */
+        double innerScanLocalCost = innerCost.localCost();
+        double innerScanRemoteCost = innerCost.remoteCost();
+        double innerScanHeapSize = innerCost.getEstimatedHeapSize();
+        int innerScanNumPartitions = innerCost.partitionCount();
+        double innerScanOutputRows = innerCost.rowCount();
+        double innerSingleScanRowCount = innerCost.singleScanRowCount();
+        if(innerCost.getEstimatedRowCount()!=1l){
+            double inputJoinSelectivity=getStartStopSelectivity(innerTable,cd,allPreds);
+            double outputJoinSelectivity = estimateJoinSelectivity(innerTable,allPreds);
 
-        double innerScanLocalCost=inputJoinSelectivity*innerCost.localCost();
-        double innerScanRemoteCost=outputJoinSelectivity*innerCost.remoteCost();
-        double innerScanOutputRows=outputJoinSelectivity*innerCost.rowCount();
-        double innerScanHeapSize=outputJoinSelectivity*innerCost.getEstimatedHeapSize();
-        int innerScanNumPartitions=innerCost.partitionCount();
+            innerScanLocalCost *= inputJoinSelectivity;
+            innerScanRemoteCost *= outputJoinSelectivity;
+            innerScanHeapSize *= outputJoinSelectivity;
+            innerScanOutputRows*=outputJoinSelectivity;
+            innerSingleScanRowCount *= outputJoinSelectivity;
+        }
 
         double totalLocalCost=outerCost.localCost()+outerCost.rowCount()*(innerScanLocalCost+innerScanRemoteCost);
-        double totalRemoteCost=outerCost.remoteCost()+outerCost.rowCount()*innerScanRemoteCost;
-        double totalOutputRows=(outerCost.rowCount()*innerCost.rowCount())*outputJoinSelectivity;
+        int totalPartitions=outerCost.partitionCount()*innerScanNumPartitions;
+
+        /*
+         * unlike other join strategies, NLJ's row count selectivity is determined entirely by
+         * the predicates which are pushed to the right hand side. Therefore, the totalOutputRows
+         * is actually outerCost.rowCount()*innerScanOutputRows
+         */
+        double totalOutputRows=outerCost.rowCount()*innerScanOutputRows;
         double totalHeapSize=outerCost.getEstimatedHeapSize()+outerCost.rowCount()*innerScanHeapSize;
-        int totalPartitions=outerCost.partitionCount()+innerScanNumPartitions;
+
+        double perRowRemoteCost = outerCost.remoteCost()/outerCost.rowCount();
+        perRowRemoteCost+=innerCost.remoteCost()/innerCost.rowCount();
+        double totalRemoteCost=totalOutputRows*perRowRemoteCost;
 
         /*
          * NestedLoopJoin is unusual for a join, because it can actually change the underlying table
@@ -357,7 +351,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         baseInnerCost.setRemoteCost(innerScanRemoteCost);
         baseInnerCost.setEstimatedRowCount((long)innerScanOutputRows);
         baseInnerCost.setEstimatedHeapSize((long)innerScanHeapSize);
-        baseInnerCost.setSingleScanRowCount(outputJoinSelectivity*innerCost.singleScanRowCount());
+        baseInnerCost.setSingleScanRowCount(innerSingleScanRowCount);
 
         innerCost.setEstimatedHeapSize((long)totalHeapSize);
         innerCost.setNumPartitions(totalPartitions);
@@ -375,6 +369,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
      * @return Whether or not this join strategy
      * can be used on the outermose table of a join.
      */
+    @Override
     protected boolean validForOutermostTable(){
         return true;
     }

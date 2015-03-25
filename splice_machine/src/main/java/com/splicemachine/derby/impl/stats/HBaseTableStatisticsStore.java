@@ -123,6 +123,16 @@ public class HBaseTableStatisticsStore implements TableStatisticsStore {
         long queryCount = decoder.decodeNextLong();
         long localReadLat = decoder.decodeNextLong();
         long remoteReadLat = decoder.decodeNextLong();
+        if(remoteReadLat<0){
+            /*
+             * We have a situation where it's difficult to obtain remote read
+             * latency for base tables. In those cases, we store a number
+             * <0 to indicate that we didn't collect it. When we detect
+             * that, we will it in with at "configured remote latency"--e.g.
+             * a (configurable) constant rate times the local latency
+             */
+            remoteReadLat = (long)(StatsConstants.remoteLatencyScaleFactor*localReadLat);
+        }
         long writeLat = decoder.decodeNextLong();
 
         TableStatisticsDescriptor stats = new TableStatisticsDescriptor(conglomId,

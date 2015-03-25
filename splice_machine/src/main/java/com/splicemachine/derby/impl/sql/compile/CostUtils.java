@@ -1,7 +1,5 @@
 package com.splicemachine.derby.impl.sql.compile;
 
-import com.splicemachine.db.iapi.sql.compile.Optimizer;
-
 import static com.google.common.base.Preconditions.checkArgument;
 
 public class CostUtils {

@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.compile;
 
+import com.splicemachine.db.impl.sql.compile.RowOrderingImpl;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
@@ -40,7 +41,7 @@ public class SpliceCostEstimateImpl extends Level2CostEstimateImpl implements So
     /* Caution, not an exact clone, returned object will have null baseCost */
     @Override
     public SpliceCostEstimateImpl cloneMe() {
-        RowOrdering clonedRowOrdering = new SpliceRowOrderingImpl();
+        RowOrdering clonedRowOrdering = new RowOrderingImpl();
         if(this.rowOrdering != null) {
             this.rowOrdering.copy(clonedRowOrdering);
         }
@@ -226,7 +227,7 @@ public class SpliceCostEstimateImpl extends Level2CostEstimateImpl implements So
 
     @Override
     public void setRowOrdering(RowOrdering rowOrdering) {
-        this.rowOrdering = new SpliceRowOrderingImpl();
+        this.rowOrdering = new RowOrderingImpl();
         if (rowOrdering!=null)
             rowOrdering.copy(this.rowOrdering); // Have to make a copy...
     }
