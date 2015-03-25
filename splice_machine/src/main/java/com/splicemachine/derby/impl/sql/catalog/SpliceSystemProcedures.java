@@ -635,7 +635,28 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .numResultSets(1)
                             .ownerClass(TimestampAdmin.class.getCanonicalName())
                             .build());
-                    
+
+                    /*
+                     * Procedure to schedule a daily backup job
+                     */
+                    procedures.add(Procedure.newBuilder().name("SYSCS_SCHEDULE_DAILY_BACKUP")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                            .varchar("directory", 32672)
+                            .varchar("type", 32672)
+                            .integer("hour")
+                            .build());
+
+                    /*
+                     * Procedure to cancel a daily backup job
+                     */
+                    procedures.add(Procedure.newBuilder().name("SYSCS_CANCEL_DAILY_BACKUP")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                            .bigint("hour")
+                            .build());
                 }
 
             } // End iteration through map keys (schema UUIDs)
