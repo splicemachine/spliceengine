@@ -204,8 +204,11 @@ public class Restore {
         return (compareStartKey(startKey1, startKey2) >= 0 && compareEndKey(endKey1, endKey2) <= 0);
     }
 
-    private void readBackupItems() {
+    private void readBackupItems() throws StandardException{
 
+        if (backups.size() == 0) {
+            throw StandardException.newException("Cannot find backup data for specified directory and backup ID.");
+        }
         Iterator<Backup> itr = backups.iterator();
         Backup backup = itr.next();
         while(itr.hasNext()) {
