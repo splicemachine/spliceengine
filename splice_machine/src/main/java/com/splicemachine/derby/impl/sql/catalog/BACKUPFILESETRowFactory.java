@@ -24,7 +24,7 @@ import java.sql.Types;
 public class BACKUPFILESETRowFactory extends CatalogRowFactory {
 
     private static final String TABLENAME_STRING = "BACKUP_FILESET";
-    private static final int BACKUPSTATES_COLUMN_COUNT = 4;
+    private static final int BACKUPFILESET_COLUMN_COUNT = 4;
 
     private static final int BACKUP_ITEM = 1;
     private static final int REGION_NAME = 2;
@@ -38,7 +38,7 @@ public class BACKUPFILESETRowFactory extends CatalogRowFactory {
 
     public BACKUPFILESETRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf) {
         super(uuidf, ef, dvf);
-        initInfo(BACKUPSTATES_COLUMN_COUNT, TABLENAME_STRING, null, null, uuids);
+        initInfo(BACKUPFILESET_COLUMN_COUNT, TABLENAME_STRING, null, null, uuids);
     }
 
     @Override
@@ -57,7 +57,7 @@ public class BACKUPFILESETRowFactory extends CatalogRowFactory {
             include = d.shouldInclude();
         }
 
-        ExecRow row = getExecutionFactory().getValueRow(BACKUPSTATES_COLUMN_COUNT);
+        ExecRow row = getExecutionFactory().getValueRow(BACKUPFILESET_COLUMN_COUNT);
 
         row.setColumn(BACKUP_ITEM, new SQLVarchar(backup_item));
         row.setColumn(REGION_NAME, new SQLVarchar(region_name));
@@ -73,7 +73,7 @@ public class BACKUPFILESETRowFactory extends CatalogRowFactory {
                                            DataDictionary dataDictionary) throws StandardException {
         if (SanityManager.DEBUG) {
             SanityManager.ASSERT(
-                    row.nColumns() == BACKUPSTATES_COLUMN_COUNT,
+                    row.nColumns() == BACKUPFILESET_COLUMN_COUNT,
                     "Wrong number of columns for a BACKUP_FILESET row");
         }
 

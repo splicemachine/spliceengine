@@ -81,6 +81,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
     private volatile TabInfoImpl backupTable = null;
     private volatile TabInfoImpl backupItemsTable = null;
     private volatile TabInfoImpl backupStatesTable = null;
+    private volatile TabInfoImpl backupJobsTable = null;
     private volatile TabInfoImpl taskHistoryTable = null;
     private Splice_DD_Version spliceSoftwareVersion;
     private HTableInterface spliceSequencesTable;
@@ -290,6 +291,14 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
         return backupStatesTable;
     }
 
+    private TabInfoImpl getBackupJobsTable() throws StandardException {
+        if (backupJobsTable == null) {
+            backupJobsTable = new TabInfoImpl(new BACKUPJOBSRowFactory(uuidFactory,exFactory,dvf));
+        }
+        initSystemIndexVariables(backupJobsTable);
+        return backupJobsTable;
+    }
+
     private void addUserTableToDictionary(TabInfoImpl ti,
     SchemaDescriptor sd,
     TransactionController tc,
@@ -409,13 +418,22 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
             if (LOG.isTraceEnabled()) LOG.trace(String.format("Skipping table creation since system table %s.%s already exists.", backupSchemaDesc.getSchemaName(), backupItemsTabInfo.getTableName()));
         }
 
-        // Create BACKUPSTATES
+        // Create BACKUPFILESET
         TabInfoImpl backupStatesTabInfo = getBackupStatesTable();
         if (getTableDescriptor(backupStatesTabInfo.getTableName(), backupSchemaDesc, tc) == null ) {
             if (LOG.isTraceEnabled()) LOG.trace(String.format("Creating system table %s.%s", backupSchemaDesc.getSchemaName(), backupStatesTabInfo.getTableName()));
             createUserTable(backupStatesTabInfo, backupSchemaDesc, tc);
         } else {
             if (LOG.isTraceEnabled()) LOG.trace(String.format("Skipping table creation since system table %s.%s already exists.", backupSchemaDesc.getSchemaName(), backupStatesTabInfo.getTableName()));
+        }
+
+        // Create BACKUPJOBS
+        TabInfoImpl backupJobsTabInfo = getBackupJobsTable();
+        if (getTableDescriptor(backupJobsTabInfo.getTableName(), backupSchemaDesc, tc) == null ) {
+            if (LOG.isTraceEnabled()) LOG.trace(String.format("Creating system table %s.%s", backupSchemaDesc.getSchemaName(), backupJobsTabInfo.getTableName()));
+            createUserTable(backupJobsTabInfo, backupSchemaDesc, tc);
+        } else {
+            if (LOG.isTraceEnabled()) LOG.trace(String.format("Skipping table creation since system table %s.%s already exists.", backupSchemaDesc.getSchemaName(), backupJobsTabInfo.getTableName()));
         }
     }
 
