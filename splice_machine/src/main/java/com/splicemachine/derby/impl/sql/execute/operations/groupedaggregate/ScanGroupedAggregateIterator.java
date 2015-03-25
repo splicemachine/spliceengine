@@ -31,8 +31,6 @@ public class ScanGroupedAggregateIterator extends GroupedAggregateIterator{
         super(source, isRollup, groupColumns);
         this.buffer = buffer;
         this.groupKeyEncoder = encoder;
-//        this.groupSortByColumns = groupSortByColumns;
-//        groupKeyHasher = KeyType.BARE;
         int maxEvicted = isRollup ? groupColumns.length + 1 : 1;
         evictedRows = Lists.newArrayListWithCapacity(maxEvicted);
     }
@@ -41,6 +39,14 @@ public class ScanGroupedAggregateIterator extends GroupedAggregateIterator{
     public void open() throws StandardException, IOException {
         source.open();
     }
+
+    @Override
+    public void close() throws StandardException, IOException {
+        super.close();
+        if (groupKeyEncoder != null)
+            groupKeyEncoder.close();
+    }
+
 
     @Override
     public GroupedRow next(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
