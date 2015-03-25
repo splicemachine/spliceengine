@@ -89,10 +89,17 @@ public class StatsStoreCostController extends GenericController implements Store
          * The first scenario uses this method, but the second scenario actually uses getScanCost(), so we're safe
          * assuming just a single row here
          */
-        cost.setLocalCost(cost.localCost()+conglomerateStatistics.localReadLatency());
-        cost.setEstimatedRowCount(cost.getEstimatedRowCount()+1l);
-        cost.setNumPartitions(cost.partitionCount()+1);
-        cost.setEstimatedHeapSize(cost.getEstimatedHeapSize()+conglomerateStatistics.avgRowWidth());
+        double columnSizeFactor = columnSizeFactor(conglomerateStatistics,
+                ((SpliceConglomerate)baseConglomerate.getConglomerate()).getFormat_ids().length,
+                baseConglomerate.getColumnOrdering(),
+                validColumns);
+        double scale = conglomerateStatistics.remoteReadLatency()*columnSizeFactor;
+        long bytes = (long)scale*conglomerateStatistics.avgRowWidth();
+        cost.setRemoteCost(scale);
+        cost.setLocalCost(conglomerateStatistics.localReadLatency());
+        cost.setEstimatedHeapSize(bytes);
+        cost.setNumPartitions(1);
+        cost.setEstimatedRowCount(1l);
     }
 
     @Override

@@ -13,11 +13,12 @@ public class MergeSortJoinStrategy extends HashableJoinStrategy {
 
     @Override
 	public boolean feasible(Optimizable innerTable,
-			OptimizablePredicateList predList, Optimizer optimizer)
-			throws StandardException {
+                            OptimizablePredicateList predList,
+                            Optimizer optimizer,
+                            CostEstimate outerCost) throws StandardException {
 //		if (CostUtils.isThisBaseTable(optimizer))
 //			return false;
-		return super.feasible(innerTable, predList, optimizer);
+		return super.feasible(innerTable, predList, optimizer,outerCost);
 	}
 
 	/**

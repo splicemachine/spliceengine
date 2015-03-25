@@ -23,6 +23,7 @@ import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -113,10 +114,9 @@ public class StatisticsCollector {
             String regionId = txnRegion.getRegionName();
             long localReadTimeMicros = readTime.getWallClockTime() / 1000; //scale to microseconds
             long remoteReadTimeMicros = getRemoteReadTime(rowCount);
-            if(remoteReadTimeMicros<0)
-                remoteReadTimeMicros = localReadTimeMicros;
-            else
+            if(remoteReadTimeMicros>0){
                 remoteReadTimeMicros/=1000;
+            }
             return new SimplePartitionStatistics(tableId,regionId,
                     rowCount,
                     byteCount,
@@ -171,7 +171,12 @@ public class StatisticsCollector {
             scan.setCaching(fetchSampleSize);
             scan.setBatch(fetchSampleSize);
             Timer remoteReadTimer = Metrics.newWallTimer();
+            long s = System.nanoTime();
             try(ResultScanner scanner = table.getScanner(scan)){
+                long e = System.nanoTime();
+                double openTimeS = (double)(e-s);
+                openTimeS/=1000*1000;
+                Logger.getLogger(StatisticsCollector.class).info(String.format("Time taken to open scanner(ms): %.6f",openTimeS));
                 int pos = 0;
                 remoteReadTimer.startTiming();
                 Result result;

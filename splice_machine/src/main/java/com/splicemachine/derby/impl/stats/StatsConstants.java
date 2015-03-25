@@ -10,6 +10,7 @@ import org.apache.log4j.Logger;
  */
 public class StatsConstants extends SpliceConstants {
     private static final Logger LOG = Logger.getLogger(StatsConstants.class);
+
     static{
         setParameters(config);
     }
@@ -53,6 +54,14 @@ public class StatsConstants extends SpliceConstants {
     @SpliceConstants.Parameter public static final String INDEX_FETCH_SAMPLE_SIZE = "splice.statistics.indexFetch.sampleSize";
     @DefaultValue(value = INDEX_FETCH_SAMPLE_SIZE) public static final int DEFAULT_INDEX_FETCH_SAMPLE_SIZE = 128;
 
+    /*
+     * This is the latency scale factor to fall back on when we cannot measure the remote latency directly.
+     * By default, it's 10 times the cost of a local scan.
+     */
+    public static double remoteLatencyScaleFactor;
+    @SpliceConstants.Parameter public static final String REMOTE_LATENCY_SCALE_FACTOR = "splice.statistics.defaultRemoteLatencyScaleFactor";
+    @DefaultValue(value = INDEX_FETCH_SAMPLE_SIZE) public static final double DEFAULT_REMOTE_LATENCY_SCALE_FACTOR = 20d;
+
     public static void setParameters(Configuration config){
         int cp = config.getInt(CARDINALITY_PRECISION,DEFAULT_CARDINALITY_PRECISION);
         if(cp <4) {
@@ -69,5 +78,7 @@ public class StatsConstants extends SpliceConstants {
         while(i<ifs)
             i<<=1;
         fetchSampleSize = i;
+
+        remoteLatencyScaleFactor = config.getDouble(REMOTE_LATENCY_SCALE_FACTOR,DEFAULT_REMOTE_LATENCY_SCALE_FACTOR);
     }
 }

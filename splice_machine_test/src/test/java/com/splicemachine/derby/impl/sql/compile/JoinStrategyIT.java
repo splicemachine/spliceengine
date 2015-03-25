@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.compile;
 
+import com.splicemachine.db.impl.sql.compile.RowOrderingImpl;
 import org.junit.Assert;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
@@ -9,12 +10,12 @@ import org.junit.Test;
 import com.splicemachine.constants.SpliceConstants;
 
 public class JoinStrategyIT {
-	public static SpliceRowOrderingImpl  RO1;
-	public static SpliceRowOrderingImpl  RO2;
-	public static SpliceRowOrderingImpl  RO3;
-	public static SpliceRowOrderingImpl  RO4;
-	public static SpliceRowOrderingImpl  RO5;
-	public static SpliceRowOrderingImpl  RO6;
+	public static RowOrderingImpl  RO1;
+	public static RowOrderingImpl  RO2;
+	public static RowOrderingImpl  RO3;
+	public static RowOrderingImpl  RO4;
+	public static RowOrderingImpl  RO5;
+	public static RowOrderingImpl  RO6;
 	public static SpliceCostEstimateImpl LT1; 
 	public static SpliceCostEstimateImpl LT2; 
 	public static SpliceCostEstimateImpl ST1; 
@@ -77,13 +78,13 @@ public class JoinStrategyIT {
 
 	
 	static {
-		RO1 = new SpliceRowOrderingImpl();
+		RO1 = new RowOrderingImpl();
 		RO1.addOrderedColumn(1, 1, 1);
-		RO2 = new SpliceRowOrderingImpl();
+		RO2 = new RowOrderingImpl();
 		RO2.addOrderedColumn(2, 1, 1);
-		RO3 = new SpliceRowOrderingImpl();
+		RO3 = new RowOrderingImpl();
 		RO3.addOrderedColumn(3, 1, 1);
-		RO4 = new SpliceRowOrderingImpl();
+		RO4 = new RowOrderingImpl();
 		RO4.addOrderedColumn(4, 1, 1);
 		LT1 = new SpliceCostEstimateImpl(LT1ROWS,LT1ROWS,LT1ROWS,10,RO1); 
 		LT2 = new SpliceCostEstimateImpl(LT2ROWS,LT2ROWS,LT2ROWS,20,RO2); 
