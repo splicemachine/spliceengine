@@ -56,4 +56,9 @@ public class DistinctGroupedAggregateOperation extends GroupedAggregateOperation
 		public byte[] getUniqueSequenceId() {
 				return uniqueSequenceID;
 		}
+
+    @Override
+    public boolean providesRDD() {
+        return false;
+    }
 }
