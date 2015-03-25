@@ -66,21 +66,27 @@ public class RowOrderingImpl implements RowOrdering{
         alwaysOrderedOptimizables=new ArrayList<Optimizable>();
     }
 
-    /**
-     * @see RowOrdering#isColumnAlwaysOrdered
-     */
+    @Override
     public boolean isColumnAlwaysOrdered(int tableNumber,int columnNumber){
         return (columnsAlwaysOrdered.contains(tableNumber,columnNumber));
     }
 
-    /**
-     * @throws StandardException Thrown on error
-     * @see RowOrdering#orderedOnColumn
-     */
-    public boolean orderedOnColumn(int direction,
-                                   int orderPosition,
-                                   int tableNumber,
-                                   int columnNumber) throws StandardException{
+    @Override
+    public Iterable<ColumnOrdering> orderedColumns(){
+        return ordering;
+    }
+
+    @Override
+    public ColumnOrdering ordering(int orderPosition,int tableNumber,int columnNumber) throws StandardException{
+        if(vectorContainsOptimizable(tableNumber,alwaysOrderedOptimizables)){
+
+        }
+        return null;
+    }
+
+    @Override
+    public boolean orderedOnColumn(int direction,int orderPosition,
+                                   int tableNumber,int columnNumber) throws StandardException{
 
 		/*
         ** Return true if the table is always ordered.
@@ -113,9 +119,7 @@ public class RowOrderingImpl implements RowOrdering{
     }
 
     @Override
-    public boolean orderedOnColumn(int direction,
-                                   int tableNumber,
-                                   int columnNumber) throws StandardException{
+    public boolean orderedOnColumn(int direction, int tableNumber, int columnNumber) throws StandardException{
 		/*
 		** Return true if the table is always ordered.
 		*/
@@ -212,32 +216,23 @@ public class RowOrderingImpl implements RowOrdering{
         }
     }
 
-    /**
-     * @see RowOrdering#columnAlwaysOrdered
-     */
+    @Override
     public void columnAlwaysOrdered(Optimizable optimizable,int columnNumber){
-        columnsAlwaysOrdered.addColumn(optimizable.getTableNumber(),
-                columnNumber);
+        columnsAlwaysOrdered.addColumn(optimizable.getTableNumber(), columnNumber);
     }
 
-    /**
-     * @see RowOrdering#alwaysOrdered
-     */
+    @Override
     public boolean alwaysOrdered(int tableNumber){
         return vectorContainsOptimizable(tableNumber, alwaysOrderedOptimizables );
     }
 
-    /**
-     * @see RowOrdering#removeOptimizable
-     */
+    @Override
     public void removeOptimizable(int tableNumber){
-        int i;
-
 		/*
 		** Walk the list backwards, so we can remove elements
 		** by position.
 		*/
-        for(i=ordering.size()-1;i>=0;i--){
+        for(int i=ordering.size()-1;i>=0;i--){
 			/*
 			** First, remove the table from all the ColumnOrderings
 			*/
@@ -257,16 +252,12 @@ public class RowOrderingImpl implements RowOrdering{
         removeOptimizableFromVector(tableNumber,alwaysOrderedOptimizables);
     }
 
-    /**
-     * @see RowOrdering#addUnorderedOptimizable
-     */
+    @Override
     public void addUnorderedOptimizable(Optimizable optimizable){
         unorderedOptimizables.add(optimizable);
     }
 
-    /**
-     * @see RowOrdering#copy
-     */
+    @Override
     public void copy(RowOrdering copyTo){
         assert copyTo instanceof RowOrderingImpl : "copyTo should be a RowOrderingImpl, is a "+ copyTo.getClass();
 
@@ -278,15 +269,9 @@ public class RowOrderingImpl implements RowOrdering{
 
         dest.unorderedOptimizables.clear();
         Collections.copy(unorderedOptimizables,dest.unorderedOptimizables);
-//        for(int i=0;i<unorderedOptimizables.size();i++){
-//            dest.unorderedOptimizables.add(unorderedOptimizables.get(i));
-//        }
 
         dest.alwaysOrderedOptimizables.clear();
         Collections.copy(alwaysOrderedOptimizables,dest.alwaysOrderedOptimizables);
-//        for(int i=0;i<alwaysOrderedOptimizables.size();i++){
-//            dest.alwaysOrderedOptimizables.add(alwaysOrderedOptimizables.get(i));
-//        }
 
         for(int i=0;i<ordering.size();i++){
             ColumnOrdering co=ordering.get(i);

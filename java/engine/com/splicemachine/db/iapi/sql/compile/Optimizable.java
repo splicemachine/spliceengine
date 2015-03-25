@@ -355,17 +355,18 @@ public interface Optimizable {
 	 * Is the current proposed join strategy for this optimizable feasible
 	 * given the predicate list?
 	 *
-	 * @param predList	The predicate list that has been pushed down to
+	 * @param predList    The predicate list that has been pushed down to
 	 *					this optimizable
-	 * @param optimizer	The optimizer to use.
+	 * @param optimizer    The optimizer to use.
 	 *
+	 * @param outerCost the cost of the outer table scan
 	 * @return	true means feasible
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public boolean feasibleJoinStrategy(OptimizablePredicateList predList,
-										Optimizer optimizer)
-			throws StandardException;
+	boolean feasibleJoinStrategy(OptimizablePredicateList predList,
+								 Optimizer optimizer,
+								 CostEstimate outerCost) throws StandardException;
 
     /**
      * @param rowCount

@@ -42,19 +42,18 @@ public interface JoinStrategy {
 	/**
 	 * Is this join strategy feasible under the circumstances?
 	 *
-	 * @param innerTable	The inner table of the join
-	 * @param predList		The predicateList for the join
-	 * @param optimizer		The optimizer to use
+	 * @param innerTable    The inner table of the join
+	 * @param predList        The predicateList for the join
+	 * @param optimizer        The optimizer to use
 	 *
+	 * @param outerCost
 	 * @return	true means the strategy is feasible, false means it isn't
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
 	boolean feasible(Optimizable innerTable,
 					 OptimizablePredicateList predList,
-					 Optimizer optimizer
-					 )
-			throws StandardException;
+					 Optimizer optimizer,CostEstimate outerCost) throws StandardException;
 
 	/**
 	 * Is it OK to use bulk fetch with this join strategy?
@@ -95,8 +94,7 @@ public interface JoinStrategy {
 	OptimizablePredicateList getBasePredicates(
 								OptimizablePredicateList predList,
 								OptimizablePredicateList basePredicates,
-								Optimizable innerTable)
-						throws StandardException;
+								Optimizable innerTable) throws StandardException;
 
 	/**
 	 * Get the extra selectivity of the non-base predicates (those that were
@@ -116,8 +114,7 @@ public interface JoinStrategy {
 	 * @return	The extra selectivity due to non-base predicates
 	 */
 	double nonBasePredicateSelectivity(Optimizable innerTable,
-										OptimizablePredicateList predList)
-	throws StandardException;
+									   OptimizablePredicateList predList) throws StandardException;
 
 	/**
 	 * Put back and base predicates that were removed from the list by
@@ -166,9 +163,9 @@ public interface JoinStrategy {
      *
      * @return The maximum number of rows that can be handled by this join strategy
      */
-    public int maxCapacity( int userSpecifiedCapacity,
-                            int maxMemoryPerTable,
-                            double perRowUsage);
+	int maxCapacity(int userSpecifiedCapacity,
+					int maxMemoryPerTable,
+					double perRowUsage);
     
 	/** Get the name of this join strategy */
 	String getName();
@@ -287,16 +284,17 @@ public interface JoinStrategy {
 	/**
 	 * Is this a form of hash join?
 	 *
-	 * @return Whether or not this strategy is a form
-	 * of hash join.
+	 * @return Whether or not this strategy is a form of hash join.
 	 */
-	public boolean isHashJoin();
+	boolean isHashJoin();
 
 	/**
 	 * Is materialization built in to the join strategy?
 	 *
 	 * @return Whether or not materialization is built in to the join strategy
 	 */
-	public boolean doesMaterialization();
+	boolean doesMaterialization();
+
+	boolean allowsJoinPredicatePushdown();
 
 }

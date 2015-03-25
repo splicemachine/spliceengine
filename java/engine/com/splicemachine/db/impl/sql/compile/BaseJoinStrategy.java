@@ -196,6 +196,8 @@ public abstract class BaseJoinStrategy implements JoinStrategy {
 		return false;
 	}
 
+	@Override public boolean allowsJoinPredicatePushdown(){ return false; }
+
 	/**
 	 * Can this join strategy be used on the
 	 * outermost table of a join.

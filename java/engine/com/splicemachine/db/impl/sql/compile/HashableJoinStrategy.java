@@ -27,7 +27,7 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
      *
      * @exception com.splicemachine.db.iapi.error.StandardException        Thrown on error
      */
-    public boolean feasible(Optimizable innerTable,OptimizablePredicateList predList,Optimizer optimizer) throws StandardException {
+    public boolean feasible(Optimizable innerTable,OptimizablePredicateList predList,Optimizer optimizer,CostEstimate outerCost) throws StandardException {
         //commented out because it's annoying -SF-
         int[] hashKeyColumns = null;
         ConglomerateDescriptor cd = null;

@@ -887,12 +887,8 @@ public abstract class FromTable extends ResultSetNode implements Optimizable
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public boolean feasibleJoinStrategy(OptimizablePredicateList predList,
-										Optimizer optimizer)
-					throws StandardException
-	{
-		return getCurrentAccessPath().getJoinStrategy().
-								feasible(this, predList, optimizer);
+	public boolean feasibleJoinStrategy(OptimizablePredicateList predList,Optimizer optimizer,CostEstimate outerCost) throws StandardException{
+		return getCurrentAccessPath().getJoinStrategy().feasible(this,predList,optimizer,outerCost);
 	}
 
     /** @see Optimizable#memoryUsageOK */

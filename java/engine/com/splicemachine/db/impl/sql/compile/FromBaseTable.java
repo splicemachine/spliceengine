@@ -50,7 +50,6 @@ import com.splicemachine.db.impl.services.daemon.IndexStatisticsDaemonImpl;
 import com.splicemachine.db.impl.sql.catalog.SYSUSERSRowFactory;
 
 import java.lang.reflect.Modifier;
-import java.sql.SQLWarning;
 import java.util.*;
 
 // Temporary until user override for disposable stats has been removed.
@@ -759,7 +758,7 @@ public class FromBaseTable extends FromTable{
                 scanColumnList.set(columnPosition);
             }
         }
-        if(isOneRowResultSet(cd,baseTableRestrictionList)){ // Retrieving only one row...
+        if(currentJoinStrategy.allowsJoinPredicatePushdown() && isOneRowResultSet(cd,baseTableRestrictionList)){ // Retrieving only one row...
              /*
               * The conglomerate matches at most one row (i.e. lookup on primary key or index key). In
               * this case the cost is just the cost to scan a single row + the cost to fetch the record (if
@@ -875,7 +874,7 @@ public class FromBaseTable extends FromTable{
                              * to estimate our
                              */
                             nonKeyQualifiers.add(pred);
-                        }else{
+                        }else if(!((Predicate)pred).isJoinPredicate()){
                             nonQualifierSelectivity*=pred.selectivity(this);
                         }
                     }
@@ -3056,9 +3055,8 @@ public class FromBaseTable extends FromTable{
             }
             return isOneRowResultSet(pl);
         }else{
-            return isOneRowResultSet(getTrulyTheBestAccessPath().
-                            getConglomerateDescriptor(),
-                    restrictionList);
+            AccessPath trulyTheBestAccessPath=getTrulyTheBestAccessPath();
+            return isOneRowResultSet(trulyTheBestAccessPath.getConglomerateDescriptor(),restrictionList);
         }
     }
 
@@ -3508,19 +3506,13 @@ public class FromBaseTable extends FromTable{
     /**
      * Is this a one-row result set with the given conglomerate descriptor?
      */
-    private boolean isOneRowResultSet(ConglomerateDescriptor cd, OptimizablePredicateList predList) throws StandardException{
+    private boolean isOneRowResultSet(ConglomerateDescriptor cd,
+                                      OptimizablePredicateList predList) throws StandardException{
         if(predList==null){
             return false;
         }
 
-        if(SanityManager.DEBUG){
-            if(!(predList instanceof PredicateList)){
-                SanityManager.THROWASSERT(
-                        "predList should be a PredicateList, but is a "+
-                                predList.getClass().getName()
-                );
-            }
-        }
+        assert predList instanceof PredicateList;
 
         @SuppressWarnings("ConstantConditions") PredicateList restrictionList=(PredicateList)predList;
 
@@ -3531,8 +3523,7 @@ public class FromBaseTable extends FromTable{
             }
         }
 
-        IndexRowGenerator irg=
-                cd.getIndexDescriptor();
+        IndexRowGenerator irg= cd.getIndexDescriptor();
 
         // is this a unique index
         if(!irg.isUnique()){
@@ -3542,15 +3533,14 @@ public class FromBaseTable extends FromTable{
         int[] baseColumnPositions=irg.baseColumnPositions();
 
         // Do we have an exact match on the full key
+
         for(int curCol : baseColumnPositions){
             // get the column number at this position
             /* Is there a pushable equality predicate on this key column?
              * (IS NULL is also acceptable)
 			 */
-            if(!restrictionList.hasOptimizableEqualityPredicate(this,curCol,true)){
+            if(!restrictionList.hasOptimizableEqualityPredicate(this,curCol,true))
                 return false;
-            }
-
         }
 
         return true;

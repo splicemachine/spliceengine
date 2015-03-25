@@ -224,10 +224,9 @@ public interface StoreCostController extends RowCountable
      *
 	 * @see RowUtil
      **/
-    public void getFetchFromFullKeyCost(
-    FormatableBitSet     validColumns,
-    int         access_type, CostEstimate cost)
-		throws StandardException;
+    void getFetchFromFullKeyCost(FormatableBitSet validColumns,
+                                 int access_type,
+                                 CostEstimate cost) throws StandardException;
 
     /**
      * Calculate the cost of a scan.

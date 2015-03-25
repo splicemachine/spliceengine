@@ -53,8 +53,8 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy {
 	 */
 	public boolean feasible(Optimizable innerTable,
 							OptimizablePredicateList predList,
-							Optimizer optimizer
-							)
+							Optimizer optimizer,
+							CostEstimate outerCost)
 					throws StandardException 
 	{
 		/* Nested loop is feasible, except in the corner case

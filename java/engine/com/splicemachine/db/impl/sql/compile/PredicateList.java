@@ -310,6 +310,11 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
     public boolean hasOptimizableEqualityPredicate(Optimizable optTable,
                                                    int columnNumber,
                                                    boolean isNullOkay) throws StandardException {
+        return getOptimizableEqualityPredicate(optTable, columnNumber, isNullOkay)!=null;
+    }
+
+    @Override
+    public OptimizablePredicate getOptimizableEqualityPredicate(Optimizable optTable,int columnNumber,boolean isNullOkay) throws StandardException{
         int size = size();
         for (int index = 0; index < size; index++) {
             AndNode			andNode;
@@ -322,11 +327,11 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             ValueNode opNode = andNode.getLeftOperand();
 
             if (opNode.optimizableEqualityNode(optTable, columnNumber, isNullOkay)) {
-                return true;
+                return predicate;
             }
         }
 
-        return false;
+        return null;
     }
 
     /**

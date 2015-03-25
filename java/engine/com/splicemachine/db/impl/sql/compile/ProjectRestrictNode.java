@@ -27,7 +27,6 @@ import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
 import com.splicemachine.db.iapi.sql.compile.Optimizer;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
-import com.splicemachine.db.iapi.sql.compile.RequiredRowOrdering;
 import com.splicemachine.db.iapi.sql.compile.RowOrdering;
 import com.splicemachine.db.iapi.sql.compile.AccessPath;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
@@ -393,17 +392,13 @@ public class ProjectRestrictNode extends SingleChildResultSetNode
 	 * @exception StandardException		Thrown on error
 	 */
 	public boolean feasibleJoinStrategy(OptimizablePredicateList predList,
-										Optimizer optimizer)
-					throws StandardException
-	{
-		AccessPath ap;
+										Optimizer optimizer,CostEstimate outerCost) throws StandardException {
 
 		/* The child being an Optimizable is a special case.  In that
 		 * case, we want to get the current access path and join strategy
 		 * from the child.  Otherwise, we want to get it from this node.
 		 */
-		if (childResult instanceof Optimizable)
-		{
+		if (childResult instanceof Optimizable) {
 			// With DERBY-805 it's possible that, when considering a nested
 			// loop join with this PRN, we pushed predicates down into the
 			// child if the child is a UNION node.  At this point, though, we
@@ -421,12 +416,9 @@ public class ProjectRestrictNode extends SingleChildResultSetNode
 			if (childResult instanceof UnionNode)
 				((UnionNode)childResult).pullOptPredicates(restrictionList);
 
-			return ((Optimizable) childResult).
-				feasibleJoinStrategy(restrictionList, optimizer);
-		}
-		else
-		{
-			return super.feasibleJoinStrategy(restrictionList, optimizer);
+			return ((Optimizable) childResult).feasibleJoinStrategy(restrictionList, optimizer,outerCost);
+		} else {
+			return super.feasibleJoinStrategy(restrictionList, optimizer,outerCost);
 		}
 	}
 

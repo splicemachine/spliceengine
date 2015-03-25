@@ -481,16 +481,11 @@ public class OptimizerImpl implements Optimizer{
 		 * circuit if both currentCost and currentSortAvoidanceCost
 		 * (if the latter is applicable) are greater than bestCost.
 		 */
-        boolean alreadyCostsMore=
-                !bestCost.isUninitialized() &&
+        boolean alreadyCostsMore= !bestCost.isUninitialized() &&
                         (currentCost.compare(bestCost)>0) &&
-                        ((requiredRowOrdering==null) ||
-                                (currentSortAvoidanceCost.compare(bestCost)>0));
+                        ((requiredRowOrdering==null) || (currentSortAvoidanceCost.compare(bestCost)>0));
 
-        if((joinPosition<(numOptimizables-1)) &&
-                !alreadyCostsMore &&
-                (!timeExceeded)
-                ){
+        if((joinPosition<(numOptimizables-1)) && !alreadyCostsMore && (!timeExceeded) ){
 			/*
 			** Are we either starting at the first join position (in which
 			** case joinPosition will be -1), or has a best cost been found
@@ -498,9 +493,7 @@ public class OptimizerImpl implements Optimizer{
 			** true if there is no feasible join order.
 			*/
             if((joinPosition<0) ||
-                    optimizableList.getOptimizable(
-                            proposedJoinOrder[joinPosition]).
-                            getBestAccessPath().getCostEstimate()!=null){
+                    optimizableList.getOptimizable(proposedJoinOrder[joinPosition]).getBestAccessPath().getCostEstimate()!=null){
                 joinPosition++;
                 joinPosAdvanced=true;
 
@@ -1196,10 +1189,8 @@ public class OptimizerImpl implements Optimizer{
 			** the inner table.  This is probably OK, since all we use
 			** from the outer cost is the row count.
 			*/
-            outerCost=
-                    optimizableList.getOptimizable(
-                            proposedJoinOrder[joinPosition-1]).
-                            getBestAccessPath().getCostEstimate();
+            outerCost= optimizableList.getOptimizable(
+                    proposedJoinOrder[joinPosition-1]).getBestAccessPath().getCostEstimate();
         }
 
 		/* At this point outerCost should be non-null (DERBY-1777).
@@ -1209,8 +1200,7 @@ public class OptimizerImpl implements Optimizer{
 		 * it came from.
 		 */
         if(SanityManager.DEBUG){
-            SanityManager.ASSERT(outerCost!=null,
-                    "outerCost is not expected to be null");
+            SanityManager.ASSERT(outerCost!=null, "outerCost is not expected to be null");
         }
 
         Optimizable optimizable=optimizableList.getOptimizable(proposedJoinOrder[joinPosition]);
@@ -1218,15 +1208,12 @@ public class OptimizerImpl implements Optimizer{
 		/*
 		** Don't consider non-feasible join strategies.
 		*/
-        if(!optimizable.feasibleJoinStrategy(predicateList,this)){
+        if(!optimizable.feasibleJoinStrategy(predicateList,this,outerCost)){
             return;
         }
 
 		/* Cost the optimizable at the current join position */
-        optimizable.optimizeIt(this,
-                predicateList,
-                outerCost,
-                currentRowOrdering);
+        optimizable.optimizeIt(this, predicateList, outerCost, currentRowOrdering);
     }
 
     /**
@@ -1242,7 +1229,7 @@ public class OptimizerImpl implements Optimizer{
 		/*
 		** Don't consider non-feasible join strategies.
 		*/
-        if(!optimizable.feasibleJoinStrategy(predList,this)){
+        if(!optimizable.feasibleJoinStrategy(predList,this,outerCost)){
             return;
         }
 
@@ -1257,17 +1244,9 @@ public class OptimizerImpl implements Optimizer{
         // 	predList.classify(optimizable, cd);
 
         if(ruleBasedOptimization){
-            ruleBasedCostOptimizable(optimizable,
-                    td,
-                    cd,
-                    predList,
-                    outerCost);
+            ruleBasedCostOptimizable(optimizable, td, cd, predList, outerCost);
         }else{
-            costBasedCostOptimizable(optimizable,
-                    td,
-                    cd,
-                    predList,
-                    outerCost);
+            costBasedCostOptimizable(optimizable, td, cd, predList, outerCost);
         }
     }
 
@@ -1285,7 +1264,7 @@ public class OptimizerImpl implements Optimizer{
 		/*
 		** Don't consider non-feasible join strategies.
 		*/
-        if(!optimizable.feasibleJoinStrategy(predList,this)){
+        if(!optimizable.feasibleJoinStrategy(predList,this,outerCost)){
             return;
         }
 

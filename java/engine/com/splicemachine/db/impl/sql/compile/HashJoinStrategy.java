@@ -62,8 +62,8 @@ public class HashJoinStrategy extends BaseJoinStrategy {
 	 */
 	public boolean feasible(Optimizable innerTable,
 							OptimizablePredicateList predList,
-							Optimizer optimizer
-							)
+							Optimizer optimizer,
+							CostEstimate outerCost)
 					throws StandardException 
 	{
 		int[] hashKeyColumns = null;
