@@ -146,7 +146,7 @@ public class KeyDecoderIT extends SpliceUnitTest {
                         rs.close();
                     }
                     catch (Exception e) {
-                        LOG.error("Error importing data");
+                        LOG.error("Error importing data", e);
                     }
                 }
             });
