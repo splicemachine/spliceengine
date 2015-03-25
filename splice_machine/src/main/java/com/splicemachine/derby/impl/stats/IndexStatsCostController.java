@@ -23,7 +23,7 @@ import java.util.concurrent.ExecutionException;
  */
 public class IndexStatsCostController extends StatsStoreCostController {
     private final int totalColumns;
-    private TableStatistics baseTableStatistics;
+    private OverheadManagedTableStatistics baseTableStatistics;
     private int[] indexColToHeapColMap;
     private int[] baseTableKeyColumns;
     private boolean isUnique;

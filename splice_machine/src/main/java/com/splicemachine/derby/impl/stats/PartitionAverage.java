@@ -12,7 +12,7 @@ import java.util.List;
  * @author Scott Fines
  *         Date: 3/9/15
  */
-public class PartitionAverage implements PartitionStatistics {
+public class PartitionAverage implements OverheadManagedPartitionStatistics {
     private final String tableId;
     private final String partitionId;
     private long totalRowCount;
@@ -24,6 +24,11 @@ public class PartitionAverage implements PartitionStatistics {
     private long totalLocalReadTime;
     private long totalRemoteReadTime;
     private long totalCollectionTime;
+
+    private double totalOpenScannerLatency;
+    private double totalCloseScannerLatency;
+    private long numOpenEvents;
+    private long numCloseEvents;
 
     private List<ColumnStatistics> columnStats;
 
@@ -43,8 +48,27 @@ public class PartitionAverage implements PartitionStatistics {
         pa.totalLocalReadTime = totalLocalReadTime;
         pa.totalRemoteReadTime = totalRemoteReadTime;
         pa.totalCollectionTime = totalCollectionTime;
+        pa.totalOpenScannerLatency = totalOpenScannerLatency;
+        pa.totalCloseScannerLatency = totalCloseScannerLatency;
+        pa.numOpenEvents = numOpenEvents;
+        pa.numCloseEvents = numCloseEvents;
         return pa;
     }
+
+    @Override
+    public double getOpenScannerLatency(){
+        if(numOpenEvents<=0) return 0d;
+        return totalOpenScannerLatency/numOpenEvents;
+    }
+
+    @Override
+    public double getCloseScannerLatency(){
+        if(numCloseEvents<=0) return 0d;
+        return totalCloseScannerLatency/numCloseEvents;
+    }
+
+    @Override public long numOpenEvents(){ return numOpenEvents; }
+    @Override public long numCloseEvents(){ return numCloseEvents; }
 
     @Override
     public long rowCount() {
@@ -140,6 +164,14 @@ public class PartitionAverage implements PartitionStatistics {
         totalCollectionTime+=other.collectionTime();
         mergeColumns(other.columnStatistics());
         mergeCount++;
+
+        if(other instanceof OverheadManagedPartitionStatistics){
+            OverheadManagedPartitionStatistics ombs = (OverheadManagedPartitionStatistics)other;
+            totalOpenScannerLatency+=ombs.getOpenScannerLatency()*ombs.numOpenEvents();
+            numOpenEvents+=ombs.numOpenEvents();
+            totalCloseScannerLatency+=ombs.getCloseScannerLatency()*ombs.numCloseEvents();
+            numCloseEvents+=ombs.numCloseEvents();
+        }
         return this;
     }
 

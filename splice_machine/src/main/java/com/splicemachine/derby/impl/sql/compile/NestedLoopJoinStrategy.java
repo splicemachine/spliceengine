@@ -325,8 +325,10 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
             innerScanOutputRows*=outputJoinSelectivity;
             innerSingleScanRowCount *= outputJoinSelectivity;
         }
+        double perOuterRowInnerCost = innerScanLocalCost+innerScanRemoteCost
+                +innerCost.getOpenCost()+innerCost.getCloseCost();
 
-        double totalLocalCost=outerCost.localCost()+outerCost.rowCount()*(innerScanLocalCost+innerScanRemoteCost);
+        double totalLocalCost=outerCost.localCost()+outerCost.rowCount()*perOuterRowInnerCost;
         int totalPartitions=outerCost.partitionCount()*innerScanNumPartitions;
 
         /*

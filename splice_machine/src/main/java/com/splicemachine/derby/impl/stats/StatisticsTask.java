@@ -182,7 +182,7 @@ public class StatisticsTask extends ZkTask{
             }
 
             long start = System.nanoTime();
-            PartitionStatistics collected = collector.collect();
+            OverheadManagedPartitionStatistics collected = collector.collect();
 
             long[] statsTableIds = getStatsConglomerateIds();
             writeTableStats(txnRegion, statsTableIds[0], collected);
@@ -328,7 +328,9 @@ public class StatisticsTask extends ZkTask{
         }
     }
 
-    private void writeTableStats(TransactionalRegion txnRegion, long tableStatsConglomerate,PartitionStatistics collected) throws ExecutionException {
+    private void writeTableStats(TransactionalRegion txnRegion,
+                                 long tableStatsConglomerate,
+                                 OverheadManagedPartitionStatistics collected) throws ExecutionException {
         long tableConglomerateId = Long.parseLong(txnRegion.getTableName());
         //get Row Key
         MultiFieldEncoder keyEncoder = MultiFieldEncoder.create(2);
@@ -337,13 +339,13 @@ public class StatisticsTask extends ZkTask{
         byte[] rowKey = keyEncoder.build();
 
         BitSet nonNullRowFields = new BitSet();
-        nonNullRowFields.set(2,12);
+        nonNullRowFields.set(2,14);
         BitSet scalarFields = new BitSet();
         scalarFields.set(2);
-        scalarFields.set(5,12);
+        scalarFields.set(5,14);
 
-        BitSet floatFields = new BitSet();
-        EntryEncoder rowEncoder = EntryEncoder.create(SpliceKryoRegistry.getInstance(),11,nonNullRowFields,scalarFields,floatFields, floatFields);
+        BitSet doubleFields = new BitSet();
+        EntryEncoder rowEncoder = EntryEncoder.create(SpliceKryoRegistry.getInstance(),11,nonNullRowFields,scalarFields,doubleFields, doubleFields);
 
         try(CallBuffer<KVPair> buffer = SpliceDriver.driver().getTableWriter().writeBuffer(Long.toString(tableStatsConglomerate).getBytes(),getTxn())){
             MultiFieldEncoder rEncoder = rowEncoder.getEntryEncoder();
@@ -359,7 +361,9 @@ public class StatisticsTask extends ZkTask{
                     .encodeNext(collected.queryCount())
                     .encodeNext(collected.localReadTime())
                     .encodeNext(collected.remoteReadTime())
-                    .encodeNext(collected.remoteReadTime()); //TODO -sf- add in write latency
+                    .encodeNext(collected.remoteReadTime()) //TODO -sf- add in write latency
+                    .encodeNext((long)collected.getOpenScannerLatency())
+                    .encodeNext((long)collected.getCloseScannerLatency());
 
             byte[] row = rowEncoder.encode();
 

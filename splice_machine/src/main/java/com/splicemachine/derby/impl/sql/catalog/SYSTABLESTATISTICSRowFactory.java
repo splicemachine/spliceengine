@@ -33,6 +33,8 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
     private static final int LOCALREADLATENCY = 10;
     private static final int REMOTEREADLATENCY = 11;
     private static final int WRITELATENCY = 12;
+    private static final int OPENSCANNERLATENCY = 13;
+    private static final int CLOSESCANNERLATENCY = 14;
 
     private String[] uuids = {
             "08264012-014b-c29b-a826-000003009390",
@@ -58,6 +60,8 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
         long localReadLatencyMicros = 0;
         long remoteReadLatencyMicros = 0;
         long writeLatencyMicros = 0;
+        long openScannerMicros = 0l;
+        long closeScannerMicros = 0l;
 
         if(td!=null){
             TableStatisticsDescriptor tsd = (TableStatisticsDescriptor)td;
@@ -73,6 +77,8 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
             localReadLatencyMicros = tsd.getLocalReadLatency();
             remoteReadLatencyMicros = tsd.getRemoteReadLatency();
             writeLatencyMicros = tsd.getWriteLatency();
+            openScannerMicros = tsd.getOpenScannerLatency();
+            closeScannerMicros = tsd.getCloseScannerLatency();
         }
 
         ExecRow row = getExecutionFactory().getValueRow(SYSTABLESTATISTICS_COLUMN_COUNT);
@@ -88,6 +94,8 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
         row.setColumn(LOCALREADLATENCY,new SQLLongint(localReadLatencyMicros));
         row.setColumn(REMOTEREADLATENCY,new SQLLongint(remoteReadLatencyMicros));
         row.setColumn(WRITELATENCY,new SQLLongint(writeLatencyMicros));
+        row.setColumn(OPENSCANNERLATENCY,new SQLLongint(openScannerMicros));
+        row.setColumn(CLOSESCANNERLATENCY,new SQLLongint(closeScannerMicros));
         return row;
     }
 
@@ -122,6 +130,10 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
         long remoteReadLatency = col.getLong();
         col = row.getColumn(WRITELATENCY);
         long writeLatency = col.getLong();
+        col = row.getColumn(OPENSCANNERLATENCY);
+        long openLatency = col.getLong();
+        col = row.getColumn(CLOSESCANNERLATENCY);
+        long closeLatency = col.getLong();
 
         return new TableStatisticsDescriptor(conglomId,
                 partitionId,
@@ -134,7 +146,9 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
                 queryCount,
                 localReadLatency,
                 remoteReadLatency,
-                writeLatency);
+                writeLatency,
+                openLatency,
+                closeLatency);
     }
 
     @Override
@@ -151,7 +165,9 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
                 SystemColumnImpl.getColumn("QUERYCOUNT",Types.BIGINT,true),
                 SystemColumnImpl.getColumn("LOCALREADLATENCY",Types.BIGINT,true),
                 SystemColumnImpl.getColumn("REMOTEREADLATENCY",Types.BIGINT,true),
-                SystemColumnImpl.getColumn("WRITELATENCY",Types.BIGINT,true)
+                SystemColumnImpl.getColumn("WRITELATENCY",Types.BIGINT,true),
+                SystemColumnImpl.getColumn("OPENSCANNERLATENCY",Types.BIGINT,true),
+                SystemColumnImpl.getColumn("CLOSESCANNERLATENCY",Types.BIGINT,true)
         };
     }
 
