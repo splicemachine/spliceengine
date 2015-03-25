@@ -114,7 +114,7 @@ public class DerbyAggregateContext implements AggregateContext {
         ClassFactory cf = lcc.getLanguageConnectionFactory().getClassFactory();
         int count = list.size();
         for (int i = 0; i < count; i++) {
-            AggregatorInfo aggInfo = (AggregatorInfo) list.elementAt(i);
+            AggregatorInfo aggInfo =list.get(i);
             if (! (eliminateDistincts && aggInfo.isDistinct())){
                 tmpAggregators.add(new SpliceGenericAggregator(aggInfo, cf));
             }

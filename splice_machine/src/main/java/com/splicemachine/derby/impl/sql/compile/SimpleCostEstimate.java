@@ -7,6 +7,8 @@ import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.store.access.StoreCostResult;
 import com.splicemachine.db.impl.sql.compile.RowOrderingImpl;
 
+import java.text.DecimalFormat;
+
 /**
  * @author Scott Fines
  *         Date: 3/13/15
@@ -88,12 +90,30 @@ public class SimpleCostEstimate implements CostEstimate{
         this.numRows = other.rowCount();
         this.singleScanRowCount = other.singleScanRowCount();
         this.estimatedHeapSize = other.getEstimatedHeapSize();
+        this.openCost = other.getOpenCost();
+        this.closeCost = other.getCloseCost();
 
         CostEstimate base=other.getBase();
         if(base!=null && base != other)
             this.baseCost = base.cloneMe();
     }
 
+
+    @Override
+    public String prettyString(){
+        DecimalFormat df = new DecimalFormat();
+        df.setMaximumFractionDigits(3);
+        df.setGroupingUsed(false);
+
+        return "(overallCost="+df.format(getEstimatedCost())
+                +",localCost="+df.format(localCost())
+                +",remoteCost="+df.format(remoteCost())
+                +",outputRows="+getEstimatedRowCount()
+                +",outputHeapSize="+getEstimatedHeapSize()+
+                ",partitions="+partitionCount()+")";
+    }
+
+    @Override public void setRowCount(double outerRows){ this.numRows = outerRows;  }
     @Override public void setRemoteCost(double remoteCost){ this.remoteCost = remoteCost; }
     @Override public void setSingleScanRowCount(double singleRowScanCount){this.singleScanRowCount = singleRowScanCount;}
     @Override public void setNumPartitions(int numPartitions){ this.numPartitions = numPartitions; }
