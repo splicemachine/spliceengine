@@ -9,6 +9,7 @@ import com.google.common.collect.TreeMultiset;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
@@ -102,7 +103,8 @@ public class KeyDecoderIT extends SpliceUnitTest {
     private static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE2, SCHEMA_NAME, "(i int)");
     private static TemporaryFolder temporaryFolder = new TemporaryFolder();
     private static final String dataFile = SpliceUnitTest.getResourceDirectory()+ "x.txt";
-    private static SpliceWatcher methodWatcher = new SpliceWatcher();
+    @Rule
+    public SpliceWatcher methodWatcher = new SpliceWatcher();
     private static TreeMultiset<Timestamp> DAYS = TreeMultiset.create();
     private static TreeMultiset<Long> AD_IDS = TreeMultiset.create();
     private static TreeMultiset<Long> ROW_IDS = TreeMultiset.create();
@@ -118,11 +120,11 @@ public class KeyDecoderIT extends SpliceUnitTest {
                 @Override
                 protected void starting(Description description) {
                     try {
-                        PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA('%s','%s',null,'%s', '|',null,null,null,null,0,%s)",
-                                                                                     SCHEMA_NAME, TABLE1, dataFile, temporaryFolder.newFolder().getCanonicalPath()));
+                        PreparedStatement ps = spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_DATA('%s','%s',null,'%s', '|',null,null,null,null,0,'%s')",
+                                SCHEMA_NAME, TABLE1, dataFile, temporaryFolder.newFolder().getCanonicalPath()));
                         ps.execute();
                         ps.close();
-                        ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s",SCHEMA_NAME,TABLE1));
+                        ResultSet rs = spliceClassWatcher.executeQuery(format("select * from %s.%s", SCHEMA_NAME, TABLE1));
                         while (rs.next()) {
                             Timestamp day = rs.getTimestamp(4);
                             DAYS.add(day);
@@ -138,17 +140,18 @@ public class KeyDecoderIT extends SpliceUnitTest {
                         Assert.assertEquals(ROW_IDS.size(), 10);
                         rs.close();
 
-                        ps = methodWatcher.prepareStatement(format("insert into %s.%s values 1", SCHEMA_NAME, TABLE2));
+                        ps = spliceClassWatcher.prepareStatement(format("insert into %s.%s values 1", SCHEMA_NAME, TABLE2));
                         ps.execute();
                         ps.close();
-                        rs = methodWatcher.executeQuery(format("select * from %s.%s", SCHEMA_NAME, TABLE2));
-                        while(rs.next()) {
+                        rs = spliceClassWatcher.executeQuery(format("select * from %s.%s", SCHEMA_NAME, TABLE2));
+                        while (rs.next()) {
                             VAL = rs.getInt(1);
                         }
                         rs.close();
-                    }
-                    catch (Exception e) {
+                    } catch (Exception e) {
                         LOG.error("Error importing data", e);
+                    } finally {
+                        spliceClassWatcher.closeAll();
                     }
                 }
             });
@@ -162,11 +165,13 @@ public class KeyDecoderIT extends SpliceUnitTest {
             days.add(day);
         }
         Assert.assertEquals(days.size(), DAYS.size());
-        Iterator<Timestamp> IT = DAYS.iterator();
+        Iterator<Timestamp> expected = DAYS.iterator();
         Iterator<Timestamp> it = days.iterator();
-        while(IT.hasNext() && it.hasNext()) {
-            Assert.assertEquals(IT.next().compareTo(it.next()), 0);
+        while(expected.hasNext() && it.hasNext()) {
+            Assert.assertEquals(expected.next().compareTo(it.next()), 0);
         }
+        Assert.assertFalse(expected.hasNext());
+        Assert.assertFalse(it.hasNext());
     }
 
     @Test
@@ -178,11 +183,13 @@ public class KeyDecoderIT extends SpliceUnitTest {
             ad_ids.add(ad_id);
         }
         Assert.assertEquals(ad_ids.size(), AD_IDS.size());
-        Iterator<Long> IT = AD_IDS.iterator();
+        Iterator<Long> expected = AD_IDS.iterator();
         Iterator<Long> it = ad_ids.iterator();
-        while(IT.hasNext() && it.hasNext()) {
-            Assert.assertEquals(IT.next().compareTo(it.next()), 0);
+        while(expected.hasNext() && it.hasNext()) {
+            Assert.assertEquals(expected.next().compareTo(it.next()), 0);
         }
+        Assert.assertFalse(expected.hasNext());
+        Assert.assertFalse(it.hasNext());
     }
 
     @Test
@@ -194,11 +201,13 @@ public class KeyDecoderIT extends SpliceUnitTest {
             row_ids.add(row_id);
         }
         Assert.assertEquals(row_ids.size(), AD_IDS.size());
-        Iterator<Long> IT = ROW_IDS.iterator();
+        Iterator<Long> expected = ROW_IDS.iterator();
         Iterator<Long> it = row_ids.iterator();
-        while(IT.hasNext() && it.hasNext()) {
-            Assert.assertEquals(IT.next().compareTo(it.next()), 0);
+        while(expected.hasNext() && it.hasNext()) {
+            Assert.assertEquals(expected.next().compareTo(it.next()), 0);
         }
+        Assert.assertFalse(expected.hasNext());
+        Assert.assertFalse(it.hasNext());
     }
 
     @Test
@@ -209,10 +218,10 @@ public class KeyDecoderIT extends SpliceUnitTest {
         int val;
 
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s", SCHEMA_NAME, TABLE2));
-        while(rs.next()) {
-            val = rs.getInt(1);
-            Assert.assertEquals(val, VAL);
-        }
+        boolean next = rs.next();
+        Assert.assertTrue(next);
+        val = rs.getInt(1);
+        Assert.assertEquals(val, VAL);
         rs.close();
     }
 }
