@@ -21,13 +21,13 @@
 
 package com.splicemachine.db.impl.sql.execute;
 
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.io.Formatable;
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 
-import java.io.ObjectOutput;
-import java.io.ObjectInput;
 import java.io.IOException;
-import java.util.Vector;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.ArrayList;
 
 /**
  * Vector of AggergatorInfo objects.
@@ -35,8 +35,7 @@ import java.util.Vector;
  * @see java.util.Vector
  *
  */
-public class AggregatorInfoList extends Vector implements Formatable 
-{
+public class AggregatorInfoList extends ArrayList<AggregatorInfo> implements Formatable  {
 	/********************************************************
 	**
 	**	This class implements Formatable. That means that it
@@ -64,14 +63,9 @@ public class AggregatorInfoList extends Vector implements Formatable
 	 *
 	 * @return indicates if there is a distinct
 	 */
-	public boolean hasDistinct()
-	{
-		int count = size();
-		for (int i = 0; i < count; i++)
-		{
-			AggregatorInfo aggInfo = (AggregatorInfo) elementAt(i);
-			if (aggInfo.isDistinct())
-			{
+	public boolean hasDistinct() {
+		for(AggregatorInfo aggInfo : this){
+			if(aggInfo.isDistinct()){
 				return true;
 			}
 		}
@@ -89,9 +83,8 @@ public class AggregatorInfoList extends Vector implements Formatable
 	{
 		int count = size();
 		out.writeInt(count);
-		for (int i = 0; i < count; i++)
-		{
-			out.writeObject(elementAt(i));
+		for(AggregatorInfo aggregatorInfo : this){
+			out.writeObject(aggregatorInfo);
 		}
 	}
 
@@ -101,15 +94,13 @@ public class AggregatorInfoList extends Vector implements Formatable
 	 * @exception IOException on error	
 	 * @exception ClassNotFoundException on error	
 	 */
-	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException
-	{
+	public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 		int count = in.readInt();
 
 		ensureCapacity(count);
-		for (int i = 0; i < count; i++)
-		{
+		for (int i = 0; i < count; i++) {
 			AggregatorInfo agg = (AggregatorInfo)in.readObject();
-			addElement(agg);
+			add(agg);
 		}	
 	}
 

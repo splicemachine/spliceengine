@@ -1595,7 +1595,7 @@ public class SelectNode extends ResultSetNode{
 		 * to be "pulled" back up to where they came from.
 		 */
         if(wherePredicates!=null){
-            Predicate pred=null;
+            Predicate pred;
             for(int i=wherePredicates.size()-1;i>=0;i--){
                 pred=(Predicate)wherePredicates.getOptPredicate(i);
                 if(pred.isScopedForPush()){
@@ -1607,12 +1607,6 @@ public class SelectNode extends ResultSetNode{
 
 		/* Get the cost */
         costEstimate=optimizer.getOptimizedCost();
-
-		/* Update row counts if this is a scalar aggregate */
-        if((selectAggregates!=null) && (selectAggregates.size()>0)){
-            costEstimate.setEstimatedRowCount((long)outerRows);
-            costEstimate.setSingleScanRowCount(1);
-        }
 
         selectSubquerys.optimize(dataDictionary,costEstimate.rowCount());
 
@@ -1637,8 +1631,7 @@ public class SelectNode extends ResultSetNode{
      * @return The modified query tree
      * @throws StandardException Thrown on error
      */
-    public ResultSetNode modifyAccessPaths(PredicateList predList)
-            throws StandardException{
+    public ResultSetNode modifyAccessPaths(PredicateList predList) throws StandardException{
         // Take the received list of predicates and propagate them to the
         // predicate list for this node's optimizer.  Then, when we call
         // optimizer.modifyAccessPaths(), the optimizer will have the

@@ -159,4 +159,11 @@ public interface CostEstimate extends StoreCostResult {
     double getCloseCost();
 
     void setCloseCost(double closeCost);
+
+    void setRowCount(double outerRows);
+
+    /**
+     * @return a well-formatted display string
+     */
+    String prettyString();
 }

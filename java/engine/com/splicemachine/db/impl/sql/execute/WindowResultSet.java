@@ -751,10 +751,8 @@ import com.splicemachine.db.iapi.types.RowLocation;
          for (int i = 0; i < aggregates.length; i++)
          {
              GenericAggregator currAggregate = aggregates[i];
-             AggregatorInfo aInfo = (AggregatorInfo)
-                 aggInfoList.elementAt(i);
-             if (aInfo.isDistinct())
-             {
+             AggregatorInfo aInfo =aggInfoList.get(i);
+             if (aInfo.isDistinct()) {
                  DataValueDescriptor newValue = currAggregate.getInputColumnValue(newRow);
                  // A NULL value is always distinct, so we only
                  // have to check for duplicate values for
@@ -779,10 +777,8 @@ import com.splicemachine.db.iapi.types.RowLocation;
      {
          for (int a = 0; a < aggregates.length; a++)
          {
-             AggregatorInfo aInfo = (AggregatorInfo)
-                 aggInfoList.elementAt(a);
-             if (aInfo.isDistinct())
-             {
+             AggregatorInfo aInfo =aggInfoList.get(a);
+             if (aInfo.isDistinct()) {
                  if (allocate)
                      distinctValues[r][a] = new HashSet();
                  else

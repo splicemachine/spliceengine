@@ -1066,8 +1066,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable
 	/**
 	 * Assign the cost estimate in this node to the given cost estimate.
 	 */
-	protected void assignCostEstimate(CostEstimate newCostEstimate)
-	{
+	protected void assignCostEstimate(CostEstimate newCostEstimate) throws StandardException {
 		costEstimate = newCostEstimate;
 	}
 

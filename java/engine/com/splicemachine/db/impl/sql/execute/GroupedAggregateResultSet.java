@@ -712,11 +712,9 @@ class GroupedAggregateResultSet extends GenericAggregateResultSet
 	 *
 	 * @param	row	the row to initialize
 	 *
-	 * @exception	standard Derby exception
+	 * @exception	StandardException Derby exception
 	 */
-	private void initializeVectorAggregation(ExecRow row)
-		throws StandardException
-	{
+	private void initializeVectorAggregation(ExecRow row) throws StandardException {
 		int size = aggregates.length;
 
 		if (SanityManager.DEBUG)
@@ -744,17 +742,14 @@ class GroupedAggregateResultSet extends GenericAggregateResultSet
 	 * @param	newRow	the row to merge
 	 * @param	currRow the row to merge into
 	 *
-	 * @exception	standard Derby exception
+	 * @exception	StandardException Derby exception
 	 */
-	private void mergeVectorAggregates(ExecRow newRow, ExecRow currRow,
-		int level)
-		throws StandardException
-	{
+	private void mergeVectorAggregates(ExecRow newRow, ExecRow currRow, int level) throws StandardException {
 		for (int i = 0; i < aggregates.length; i++)
 		{
 			GenericAggregator currAggregate = aggregates[i];
 			AggregatorInfo aInfo = (AggregatorInfo)
-					aggInfoList.elementAt(i);
+					aggInfoList.get(i);
 			if (aInfo.isDistinct())
 			{
 				DataValueDescriptor newValue = currAggregate.getInputColumnValue(newRow);
@@ -776,15 +771,10 @@ class GroupedAggregateResultSet extends GenericAggregateResultSet
 		}
 	}
 
-	private void initializeDistinctMaps(int r, boolean allocate)
-	    throws StandardException
-	{
-		for (int a = 0; a < aggregates.length; a++)
-		{
-			AggregatorInfo aInfo = (AggregatorInfo)
-						aggInfoList.elementAt(a);
-			if (aInfo.isDistinct())
-			{
+	private void initializeDistinctMaps(int r, boolean allocate) throws StandardException {
+		for (int a = 0; a < aggregates.length; a++) {
+			AggregatorInfo  aInfo=aggInfoList.get(a);
+			if (aInfo.isDistinct()) {
 				if (allocate)
 					distinctValues[r][a] = new HashSet();
 				else

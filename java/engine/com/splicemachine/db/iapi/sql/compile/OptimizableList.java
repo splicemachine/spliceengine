@@ -63,7 +63,7 @@ public interface OptimizableList {
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public void verifyProperties(DataDictionary dDictionary) throws StandardException;
+	void verifyProperties(DataDictionary dDictionary) throws StandardException;
 
 	/**
 	 * Set the join order for this list of optimizables.  The join order is

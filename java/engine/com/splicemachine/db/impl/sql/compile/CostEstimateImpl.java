@@ -368,5 +368,16 @@ public class CostEstimateImpl implements CostEstimate {
     @Override public double getOpenCost(){ throw new UnsupportedOperationException(); }
     @Override public void setOpenCost(double openCost){ throw new UnsupportedOperationException();  }
     @Override public void setCloseCost(double closeCost){ throw new UnsupportedOperationException(); }
+
+    @Override
+    public void setRowCount(double rowCount){
+        this.rowCount = rowCount;
+    }
+
+    @Override
+    public String prettyString(){
+        return toString();
+    }
+
     @Override public double getCloseCost(){ throw new UnsupportedOperationException(); }
 }

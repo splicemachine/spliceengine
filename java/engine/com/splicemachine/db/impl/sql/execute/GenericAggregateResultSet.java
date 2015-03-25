@@ -112,7 +112,7 @@ abstract class GenericAggregateResultSet extends NoPutResultSetImpl
 		int count = list.size();
 		for (int i = 0; i < count; i++)
 		{
-			AggregatorInfo aggInfo = (AggregatorInfo) list.elementAt(i);
+			AggregatorInfo aggInfo =list.get(i);
 			if (! (eliminateDistincts && aggInfo.isDistinct()))
 			// if (eliminateDistincts == aggInfo.isDistinct())
 			{
