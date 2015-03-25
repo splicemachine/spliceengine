@@ -121,12 +121,12 @@ public class DataDictionaryUtils {
                                    desc.getDefaultValue(),
                                    desc.getDefaultInfo(),
                                    null,
+                                   desc.getDefaultUUID(),
                                    null,
-                                   null,
                                    0,
-                                   0,
-                                   0,
-                                   0);
+                                   desc.getAutoincStart(),
+                                   desc.getAutoincInc(),
+                                   desc.getAutoinc_create_or_modify_Start_Increment());
         }
         return columnInfo;
     }

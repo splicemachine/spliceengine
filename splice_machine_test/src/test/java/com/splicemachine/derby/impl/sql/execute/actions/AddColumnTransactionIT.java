@@ -187,7 +187,7 @@ public class AddColumnTransactionIT {
         }
     }
 
-    @Test @Ignore("DB-1755 - still not obeying transactionality.")
+    @Test //@Ignore("DB-1755 - conn b's insert txn is still open, but does alter table txn have to do something special to check this?")
     public void testAddColumnCannotProceedWithOpenDMLOperations() throws Exception {
         TestConnection a;
         TestConnection b;
@@ -213,7 +213,7 @@ public class AddColumnTransactionIT {
         }
     }
 
-    @Test @Ignore("DB-1755 - still not obeying transactionality.")
+    @Test
     public void testAddColumnAfterInsertionIsCorrect() throws Exception {
         TestConnection a;
         TestConnection b;
@@ -231,7 +231,7 @@ public class AddColumnTransactionIT {
         ps.setInt(1,aInt);ps.setInt(2,bInt); ps.execute();
         b.commit();
 
-        a.createStatement().execute("alter table "+ addedTable+" add column f int with default 2");
+        a.createStatement().execute("alter table "+ addedTable+" add column f int not null with default 2");
         a.commit();
 
         ResultSet rs = a.query("select * from "+ addedTable+" where a = "+ aInt);
@@ -245,7 +245,7 @@ public class AddColumnTransactionIT {
         Assert.assertEquals("Incorrect returned row count",1,count);
     }
 
-    @Test @Ignore("DB-1755 - still not obeying transactionality.")
+    @Test //@Ignore("DB-1755 - still not obeying transactionality.")
     public void testAddColumnBeforeInsertionIsCorrect() throws Exception {
         TestConnection a;
         TestConnection b;
@@ -261,7 +261,7 @@ public class AddColumnTransactionIT {
         int bInt = 10;
 
         //alter the table
-        a.createStatement().execute("alter table "+ addedTable2+" add column f int with default 2");
+        a.createStatement().execute("alter table " + addedTable2 + " add column f int not null default 2");
         //now insert some data
         PreparedStatement ps = b.prepareStatement("insert into "+addedTable2+" (a,b) values (?,?)");
         ps.setInt(1,aInt);ps.setInt(2,bInt); ps.execute();
