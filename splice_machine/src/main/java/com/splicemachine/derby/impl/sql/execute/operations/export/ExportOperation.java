@@ -126,7 +126,7 @@ public class ExportOperation extends SpliceBaseOperation implements SinkingOpera
         TxnView txnView = operationInformation.getTransaction();
         SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(), this, runtimeContext, txnView);
         jobResults = rowProvider.shuffleRows(soi, OperationUtils.cleanupSubTasks(this));
-        this.rowsSunk = TaskStats.merge(jobResults.getJobStats().getTaskStats()).getTotalRowsWritten();
+        this.rowsSunk = TaskStats.sumTotalRowsWritten(jobResults.getJobStats().getTaskStats());
         new ExportFailedTaskCleanup().cleanup(this.jobResults, this.exportParams);
         return jobResults;
     }

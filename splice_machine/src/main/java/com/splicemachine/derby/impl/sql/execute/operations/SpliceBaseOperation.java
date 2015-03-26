@@ -280,7 +280,9 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		}
 		@Override
 		public void setCurrentRow(ExecRow row) {
-				operationInformation.setCurrentRow(row);
+                if(resultSetNumber != -1) {
+                    operationInformation.setCurrentRow(row);
+                }
 				currentRow = row;
 		}
 
@@ -751,4 +753,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
                 operationChain.remove(operationChain.size() - 1);
             }
         }
+
+    protected void setRowsSunk(long rowsSunk) {
+        this.rowsSunk = rowsSunk;
+    }
 }

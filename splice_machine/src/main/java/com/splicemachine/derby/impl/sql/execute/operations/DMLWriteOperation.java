@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.base.Strings;
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.iapi.storage.RowProvider;
@@ -9,17 +8,10 @@ import com.splicemachine.derby.impl.storage.SingleScanRowProvider;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.stats.TaskStats;
-import com.splicemachine.derby.utils.marshall.DataHash;
-import com.splicemachine.derby.utils.marshall.KeyEncoder;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
-import com.splicemachine.derby.utils.marshall.PairEncoder;
-import com.splicemachine.hbase.KVPair;
 import com.splicemachine.job.JobResults;
-import com.splicemachine.job.SimpleJobResults;
 import com.splicemachine.metrics.IOStats;
 import com.splicemachine.metrics.Metrics;
-import com.splicemachine.pipeline.api.RecordingCallBuffer;
-import com.splicemachine.pipeline.impl.WriteCoordinator;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -64,6 +56,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 		protected static List<NodeType> sequentialNodeTypes = Arrays.asList(NodeType.SCAN);
 		private boolean isScan = true;
 		private ModifiedRowProvider modifiedProvider;
+        private DMLWriteOperationControlSide dmlWriteOperationControlSide;
 
 		protected DMLWriteInfo writeInfo;
         protected long writeRowsFiltered;
@@ -168,7 +161,6 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 				try {
 						RowProvider rowProvider = getMapRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext),runtimeContext);
 						modifiedProvider = new ModifiedRowProvider(rowProvider,writeInfo.buildInstructions(this));
-						//modifiedProvider.setRowsModified(rowsSunk);
 						return new SpliceNoPutResultSet(activation,this,modifiedProvider,false);
 				} catch (IOException e) {
 						throw Exceptions.parseException(e);
@@ -192,7 +184,10 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
         /* If the optimizer knows we are only dealing with one row */
         if (source.getEstimatedRowCount() == 1) {
             try {
-                return doControlSideShuffle(runtimeContext);
+                if(dmlWriteOperationControlSide == null) {
+                    dmlWriteOperationControlSide = new DMLWriteOperationControlSide(this);
+                }
+                return dmlWriteOperationControlSide.controlSideShuffle(runtimeContext);
             } catch (Exception e) {
                 throw new IOException(e);
             }
@@ -202,52 +197,13 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
             nextTime += System.currentTimeMillis() - start;
             SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(), this, runtimeContext);
             jobResults = rowProvider.shuffleRows(soi, OperationUtils.cleanupSubTasks(this));
-            this.rowsSunk = TaskStats.merge(jobResults.getJobStats().getTaskStats()).getTotalRowsWritten();
+            this.rowsSunk = TaskStats.sumTotalRowsWritten(jobResults.getJobStats().getTaskStats());
             return jobResults;
         }
     }
 
-    /**
-     * Control side shuffle for DML write operations.
-     *
-     * For UPDATE/DELETE/INSERT where the source operation is providing us a small number of rows read them directly from
-     * the source's row provider and write to destination table.  The sub-tree under this operation is still
-     * serialized and attached to the scan, but we avoid the task framework.  UPDATES and DELETES are approximately
-     * 3 times faster this way, in the context of our local TPCC benchmark.
-     */
-    private JobResults doControlSideShuffle(SpliceRuntimeContext runtimeContext) throws Exception {
 
-        // WriteBuffer for destination table.
-        WriteCoordinator writeCoordinator = SpliceDriver.driver().getTableWriter();
-        RecordingCallBuffer<KVPair> writeBuffer = writeCoordinator.writeBuffer(getDestinationTable(), runtimeContext.getTxn(), runtimeContext);
-        writeBuffer = this.transformWriteBuffer(writeBuffer);
-
-        // PairEncoder: For local ExecRow -> KVPair -> CallBuffer
-        KeyEncoder keyEncoder = this.getKeyEncoder(runtimeContext);
-        DataHash rowHash = this.getRowHash(runtimeContext);
-        KVPair.Type dataType = this instanceof UpdateOperation ? KVPair.Type.UPDATE :
-                (this instanceof InsertOperation) ? KVPair.Type.INSERT : KVPair.Type.DELETE;
-        PairEncoder pairEncoder = new PairEncoder(keyEncoder, rowHash, dataType);
-
-        // PairDecoder: for RowProvider/Scan: KeyValue -> ExecRow translation.
-        PairDecoder pairDecoder = OperationUtils.getPairDecoder(source, runtimeContext);
-        RowProvider rowProvider = source.getMapRowProvider(source, pairDecoder, runtimeContext);
-        rowProvider.open();
-        ExecRow execRow;
-        while (rowProvider.hasNext()) {
-            execRow = rowProvider.next();
-            this.currentRow = execRow;
-            KVPair kvPair = pairEncoder.encode(execRow);
-            writeBuffer.add(kvPair);
-            rowsSunk++;
-        }
-        rowProvider.close();
-        writeBuffer.flushBuffer();
-        writeBuffer.close();
-        return new SimpleJobResults(new EmptyJobStats(), null);
-    }
-
-		@Override
+    @Override
 		public void open() throws StandardException, IOException {
 				SpliceLogUtils.trace(LOG, "Open");
 				super.open();
@@ -290,6 +246,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 				return row;
 		}
 
+		@Override
 		public ExecRow getNextSinkRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 				if(timer==null){
 						timer = spliceRuntimeContext.newTimer();
@@ -371,11 +328,6 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 
 				@Override public boolean hasNext() { return false; }
 				@Override public ExecRow next() { return null; }
-
-				public void setRowsModified(long rowsModified){
-						this.isOpen = true;
-						this.rowsModified = rowsModified;
-				}
 
 				//no-op
 				@Override public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) {  }
@@ -494,4 +446,5 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
         return writeRowsFiltered;
 
     }
+
 }
