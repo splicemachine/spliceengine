@@ -107,7 +107,7 @@ public class BroadcastJoinStrategy extends BaseCostedHashableJoinStrategy {
          * have to read the inner table's data twice--once to build the hashtable, and once
          * to account for the final scan of data to the control node.
          */
-        if(outerCost.localCost()==0d && outerCost.getEstimatedRowCount()==1.0d){
+        if(outerCost.isUninitialized() ||(outerCost.localCost()==0d && outerCost.getEstimatedRowCount()==1.0d)){
             return; //actually a scan, don't do anything
         }
         innerCost.setBase(innerCost.cloneMe());
@@ -130,7 +130,7 @@ public class BroadcastJoinStrategy extends BaseCostedHashableJoinStrategy {
         innerCost.setLocalCost(totalLocalCost);
         innerCost.setRemoteCost(totalRemoteCost);
         innerCost.setRowOrdering(outerCost.getRowOrdering());
-        innerCost.setEstimatedRowCount((long)totalOutputRows);
+        innerCost.setRowCount(totalOutputRows);
         innerCost.setEstimatedHeapSize((long)totalHeapSize);
         innerCost.setSingleScanRowCount(joinSelectivity*outerCost.singleScanRowCount());
     }

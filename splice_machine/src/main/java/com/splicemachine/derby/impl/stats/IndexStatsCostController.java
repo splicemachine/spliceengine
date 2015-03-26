@@ -13,6 +13,7 @@ import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.TxnView;
+import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.TableStatistics;
 
 import java.util.concurrent.ExecutionException;
@@ -122,5 +123,4 @@ public class IndexStatsCostController extends StatsStoreCostController {
                 indexColToHeapColMap,
                 (CostEstimate) cost_result);
     }
-
 }

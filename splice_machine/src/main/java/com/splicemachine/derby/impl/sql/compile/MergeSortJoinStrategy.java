@@ -154,12 +154,12 @@ public class MergeSortJoinStrategy extends BaseCostedHashableJoinStrategy {
 
         double joinSelectivity = estimateJoinSelectivity(innerTable,cd,predList,outerCost,innerCost);
 
-        int mergePartitions = 16;
+        double mergeRows = joinSelectivity*(outerCost.rowCount()*innerCost.rowCount());
+        int mergePartitions = (int)Math.round(Math.min(16,mergeRows));
         double mergeLocalCost = perRowLocalLatency*(outerCost.rowCount()+innerCost.rowCount());
         double avgOpenCost = (outerCost.getOpenCost()+innerCost.getOpenCost())/2;
         double avgCloseCost = (outerCost.getCloseCost()+innerCost.getCloseCost())/2;
         mergeLocalCost+=mergePartitions*(avgOpenCost+avgCloseCost);
-        double mergeRows = joinSelectivity*(outerCost.rowCount()*innerCost.rowCount());
         double mergeRemoteCost = getTotalRemoteCost(outerCost,innerCost,mergeRows);
         double mergeHeapSize = getTotalHeapSize(outerCost,innerCost,mergeRows);
 
@@ -167,7 +167,7 @@ public class MergeSortJoinStrategy extends BaseCostedHashableJoinStrategy {
 
         innerCost.setRemoteCost(mergeRemoteCost);
         innerCost.setLocalCost(totalLocalCost);
-        innerCost.setEstimatedRowCount((long)mergeRows);
+        innerCost.setRowCount(mergeRows);
         innerCost.setEstimatedHeapSize((long)mergeHeapSize);
         innerCost.setNumPartitions(mergePartitions);
         /*

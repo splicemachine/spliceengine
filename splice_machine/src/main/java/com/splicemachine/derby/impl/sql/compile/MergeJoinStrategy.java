@@ -142,7 +142,7 @@ public class MergeJoinStrategy extends BaseCostedHashableJoinStrategy{
         innerCost.setRowOrdering(outerCost.getRowOrdering()); //merge join inherits the sort order from the outer table
         innerCost.setLocalCost(totalLocalCost);
         innerCost.setRemoteCost(totalRemoteCost);
-        innerCost.setEstimatedRowCount((long)rowCount);
+        innerCost.setRowCount(rowCount);
         innerCost.setEstimatedHeapSize((long)heapSize);
         innerCost.setNumPartitions(numPartitions);
     }
