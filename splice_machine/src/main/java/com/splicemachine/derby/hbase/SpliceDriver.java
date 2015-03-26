@@ -233,7 +233,7 @@ public class SpliceDriver {
     }
 
     private HRegion getOnlineRegion(String encodedRegionName) {
-        return regionServerServices.getFromOnlineRegions(encodedRegionName);
+        return regionServerServices == null ? null : regionServerServices.getFromOnlineRegions(encodedRegionName);
     }
 
     private RegionCoprocessorHost getCoprocessorHost(String encodedRegionName) {
