@@ -61,6 +61,11 @@ class DDLZookeeperClient {
     // methods for dealing with the server nodes
     // - - - - - - - - - - - - - - - - - - - - - - -
 
+    /**
+     * Returns this server id. If this isn't a server, returns null
+     * @return null if not registered
+     * @throws StandardException
+     */
     static String registerThisServer() throws StandardException {
         /*
          * See DB-1812: Instead of creating our own server registration, we merely fetch our own
