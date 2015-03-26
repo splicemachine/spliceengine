@@ -363,6 +363,106 @@ public class BackupSystemProcedures {
         }
     }
 
+    /**
+     * Delete a backup
+     * @param backupId Id of a backup to be deleted
+     * @param resultSets
+     * @throws StandardException
+     * @throws SQLException
+     */
+    public static void SYSCS_DELETE_BACKUP(long backupId, ResultSet[] resultSets)
+            throws StandardException, SQLException {
+        String query = "select filesystem from backup.backup where transaction_id=?";
+
+        IteratorNoPutResultSet inprs = null;
+        LanguageConnectionContext lcc = null;
+        Connection conn = SpliceAdmin.getDefaultConn();
+
+        try {
+            lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
+
+            PreparedStatement ps = conn.prepareStatement(query);
+            ps.setLong(1, backupId);
+            ResultSet rs = ps.executeQuery();
+            if (!rs.next()) {
+                throw StandardException.newException("Invalid backup ID.");
+            }
+            String filesystem = rs.getString(1);
+            rs.close();
+            deleteBackup(filesystem, backupId);
+            List<Long> backupIdList = new ArrayList<Long>();
+            backupIdList.add(backupId);
+            deleteBackupFromTable(backupIdList, conn);
+        }
+        catch (Throwable t) {
+
+            DataTypeDescriptor dtd =
+                    DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, t.getMessage().length());
+            ResultColumnDescriptor[] rcds = new ResultColumnDescriptor[]{new GenericColumnDescriptor("Error", dtd)};
+            ExecRow template = new ValueRow(1);
+            template.setRowArray(new DataValueDescriptor[]{new SQLVarchar()});
+            List<ExecRow> rows = Lists.newArrayList();
+            template.getColumn(1).setValue(t.getMessage());
+
+            rows.add(template.getClone());
+            inprs = new IteratorNoPutResultSet(rows, rcds, lcc.getLastActivation());
+            inprs.openCore();
+            SpliceLogUtils.error(LOG, "Cancel daily backup error", t);
+            resultSets[0] = new EmbedResultSet40(conn.unwrap(EmbedConnection.class), inprs, false, null, true);
+        }
+    }
+
+    public static void SYSCS_DELETE_OLD_BACKUPS(int backupWindow, ResultSet[] resultSets)
+                                                                        throws StandardException, SQLException {
+
+        IteratorNoPutResultSet inprs = null;
+        LanguageConnectionContext lcc = null;
+        Connection conn = SpliceAdmin.getDefaultConn();
+
+        try {
+            if (backupWindow < 0) {
+                throw StandardException.newException("Invalid backup window.");
+            }
+
+            lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
+            Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
+            calendar.set(Calendar.DAY_OF_MONTH, calendar.get(Calendar.DAY_OF_MONTH) - backupWindow);
+            Timestamp ts = new Timestamp(calendar.getTimeInMillis());
+
+            //Get backups that are more than backupWindow days old
+            String sqlText = "select filesystem, transaction_id from backup.backup where begin_timestamp<?";
+            PreparedStatement ps = conn.prepareStatement(sqlText);
+            ps.setTimestamp(1, ts);
+            ResultSet rs = ps.executeQuery();
+            List<Long> backupIdList = new ArrayList<>();
+            while(rs.next()) {
+                String filesystem = rs.getString(1);
+                long backupId = rs.getLong(2);
+                backupIdList.add(backupId);
+                deleteBackup(filesystem, backupId);
+            }
+            rs.close();
+            deleteBackupFromTable(backupIdList, conn);
+        }
+        catch (Throwable t) {
+
+            DataTypeDescriptor dtd =
+                    DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, t.getMessage().length());
+            ResultColumnDescriptor[] rcds = new ResultColumnDescriptor[]{new GenericColumnDescriptor("Error", dtd)};
+            ExecRow template = new ValueRow(1);
+            template.setRowArray(new DataValueDescriptor[]{new SQLVarchar()});
+            List<ExecRow> rows = Lists.newArrayList();
+            template.getColumn(1).setValue(t.getMessage());
+
+            rows.add(template.getClone());
+            inprs = new IteratorNoPutResultSet(rows, rcds, lcc.getLastActivation());
+            inprs.openCore();
+            SpliceLogUtils.error(LOG, "Cancel daily backup error", t);
+            resultSets[0] = new EmbedResultSet40(conn.unwrap(EmbedConnection.class), inprs, false, null, true);
+        }
+
+
+    }
     /*******************************************************************************************************************
      *       Private methods
      * *****************************************************************************************************************
@@ -502,12 +602,12 @@ public class BackupSystemProcedures {
         }
     }
 
-    public static Connection getConnection() throws SQLException{
+    private static Connection getConnection() throws SQLException{
         loadDriver();
         return DriverManager.getConnection(getURL(DB_URL_LOCAL, DEFAULT_USER, DEFAULT_USER_PASSWORD), new Properties());
     }
 
-    public static String getURL(String providedURL, String userName, String password) {
+    private static String getURL(String providedURL, String userName, String password) {
         return String.format(providedURL, userName, password);
     }
     private synchronized static void loadDriver() {
@@ -520,5 +620,29 @@ public class BackupSystemProcedures {
                 throw new IllegalStateException("Unable to load the JDBC driver.");
             }
         }
+    }
+
+    private static void deleteBackup(String directory, long backupId) throws IOException{
+        Path path = new Path(directory + "/BACKUP$" + backupId);
+        FileSystem fs = FileSystem.get(URI.create(path.toString()), SpliceConstants.config);
+        if (fs.exists(path)) {
+            fs.delete(path, true);
+        }
+    }
+    private static void deleteBackupFromTable(List<Long> backupIdList, Connection conn)
+                                                                                throws IOException, SQLException{
+        if (backupIdList == null || backupIdList.size() == 0) {
+            return;
+        }
+
+        String s = "(";
+        for (long backupId : backupIdList) {
+            s += backupId + ",";
+        }
+        s = s.substring(0, s.length()-1) + ")";
+
+        String sqlText = "delete from backup.backup where transaction_id in " + s;
+        PreparedStatement ps = conn.prepareStatement(sqlText);
+        ps.execute();
     }
 }

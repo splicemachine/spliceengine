@@ -111,7 +111,7 @@ public class BackupUtils {
                 backupTransactionId = rs.getLong(1);
             }
         } catch (Exception e) {
-            SpliceLogUtils.warn(LOG, e.getMessage());
+            SpliceLogUtils.warn(LOG, "%s", e.getMessage());
         }
         return backupTransactionId;
     }

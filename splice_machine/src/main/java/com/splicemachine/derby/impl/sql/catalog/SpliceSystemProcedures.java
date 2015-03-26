@@ -657,6 +657,26 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .ownerClass(BackupSystemProcedures.class.getCanonicalName())
                             .bigint("hour")
                             .build());
+
+                    /*
+                     * Procedure to delete a backup
+                     */
+                    procedures.add(Procedure.newBuilder().name("SYSCS_DELETE_BACKUP")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                            .bigint("backupId")
+                            .build());
+
+                    /*
+                     * Procedure to delete backups in a time window
+                     */
+                    procedures.add(Procedure.newBuilder().name("SYSCS_DELETE_OLD_BACKUPS")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                            .integer("backupWindow")
+                            .build());
                 }
 
             } // End iteration through map keys (schema UUIDs)
