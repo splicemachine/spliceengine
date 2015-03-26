@@ -21,7 +21,6 @@ import java.io.IOException;
 public class KryoDescriptorSerializer implements DescriptorSerializer,Closeable {
 		private final KryoPool kryoPool;
 
-		private Kryo kryo;
 		private Output output;
 		private Input input;
 
@@ -59,9 +58,13 @@ public class KryoDescriptorSerializer implements DescriptorSerializer,Closeable 
 		public void encode(MultiFieldEncoder fieldEncoder, DataValueDescriptor dvd, boolean desc) throws StandardException {
 				initializeForWrite();
 				Object o = dvd.getObject();
-
-				kryo.writeClassAndObject(output,o);
-				fieldEncoder.encodeNextUnsorted(output.toBytes());
+                Kryo kryo = kryoPool.get();
+                try {
+                    kryo.writeClassAndObject(output, o);
+                    fieldEncoder.encodeNextUnsorted(output.toBytes());
+                } finally {
+                    kryoPool.returnInstance(kryo);
+                }
 		}
 
 
@@ -69,16 +72,26 @@ public class KryoDescriptorSerializer implements DescriptorSerializer,Closeable 
 		public byte[] encodeDirect(DataValueDescriptor dvd, boolean desc) throws StandardException {
 				initializeForWrite();
 				Object o = dvd.getObject();
-				kryo.writeClassAndObject(output,o);
-				return Encoding.encodeBytesUnsorted(output.toBytes());
+                Kryo kryo = kryoPool.get();
+                try {
+                    kryo.writeClassAndObject(output, o);
+                    return Encoding.encodeBytesUnsorted(output.toBytes());
+                } finally {
+                    kryoPool.returnInstance(kryo);
+                }
 		}
 
 		@Override
 		public void decode(MultiFieldDecoder fieldDecoder, DataValueDescriptor destDvd, boolean desc) throws StandardException {
 				initializeForReads();
 				input.setBuffer(fieldDecoder.decodeNextBytesUnsorted());
-				Object o = kryo.readClassAndObject(input);
-				destDvd.setValue(o);
+                Kryo kryo = kryoPool.get();
+                try {
+                    Object o = kryo.readClassAndObject(input);
+                    destDvd.setValue(o);
+                } finally {
+                    kryoPool.returnInstance(kryo);
+                }
 		}
 
 
@@ -86,8 +99,13 @@ public class KryoDescriptorSerializer implements DescriptorSerializer,Closeable 
 		public void decodeDirect(DataValueDescriptor dvd, byte[] data, int offset, int length, boolean desc) throws StandardException {
 				initializeForReads();
 				input.setBuffer(Encoding.decodeBytesUnsortd(data,offset,length));
-				Object o = kryo.readClassAndObject(input);
-				dvd.setValue(o);
+                Kryo kryo = kryoPool.get();
+                try {
+                    Object o = kryo.readClassAndObject(input);
+                    dvd.setValue(o);
+                } finally {
+                    kryoPool.returnInstance(kryo);
+                }
 		}
 
 		@Override public boolean isScalarType() { return false; }
@@ -96,26 +114,18 @@ public class KryoDescriptorSerializer implements DescriptorSerializer,Closeable 
 
 		@Override
 		public void close() throws IOException {
-				if(kryo!=null)
-						kryoPool.returnInstance(kryo);
 		}
 
 		private void initializeForReads() {
-				initializeKryo();
 				if(input==null)
 						input = new Input();
 		}
 
 		private void initializeForWrite() {
-				initializeKryo();
 				if(output==null)
 						output = new Output(20,-1);
 				else
 						output.clear();
 		}
 
-		private void initializeKryo() {
-				if(kryo==null)
-						kryo = kryoPool.get();
-		}
 }
