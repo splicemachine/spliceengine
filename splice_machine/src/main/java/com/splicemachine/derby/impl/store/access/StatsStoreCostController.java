@@ -21,6 +21,7 @@ import com.splicemachine.si.api.TxnView;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.PartitionStatistics;
 import com.splicemachine.stats.TableStatistics;
+import com.splicemachine.stats.estimate.Distribution;
 
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -168,6 +169,16 @@ public class StatsStoreCostController extends GenericController implements Store
     @Override
     public double nullSelectivity(int columnNumber){
         return nullSelectivityFraction(conglomerateStatistics,columnNumber);
+    }
+
+    @Override
+    public double cardinalityFraction(int columnNumber){
+        ColumnStatistics<DataValueDescriptor> colStats=getColumnStats(columnNumber);
+        return ((double)colStats.cardinality())/conglomerateStatistics.rowCount();
+    }
+
+    protected ColumnStatistics<DataValueDescriptor> getColumnStats(int columnNumber){
+        return conglomerateStatistics.columnStatistics(columnNumber);
     }
 
     protected double nullSelectivityFraction(TableStatistics stats,int columnNumber){

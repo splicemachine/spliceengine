@@ -201,7 +201,7 @@ public class GlobalStatistics implements OverheadManagedTableStatistics {
                     }
                 }
                 if(!found){
-                    ColumnStatistics cAvg = ColumnAverage.fromExisting(cStats);
+                    ColumnStatistics cAvg = cStats.getClone();
                     stats.add(cAvg);
                 }
             }

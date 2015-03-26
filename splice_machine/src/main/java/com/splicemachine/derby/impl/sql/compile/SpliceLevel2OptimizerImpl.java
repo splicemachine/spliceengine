@@ -9,6 +9,7 @@ import com.splicemachine.db.impl.sql.compile.AggregateNode;
 import com.splicemachine.db.impl.sql.compile.GroupByList;
 import com.splicemachine.db.impl.sql.compile.Level2OptimizerImpl;
 import com.splicemachine.derby.impl.stats.StatisticsStorage;
+import com.splicemachine.derby.impl.store.access.TempGroupedAggregateCostController;
 import com.splicemachine.derby.impl.store.access.TempScalarAggregateCostController;
 
 import java.util.List;
@@ -77,6 +78,6 @@ public class SpliceLevel2OptimizerImpl extends Level2OptimizerImpl{
         if(groupingList==null||groupingList.size()<=0) //we are a scalar aggregate
             return new TempScalarAggregateCostController();
         else //we are a grouped aggregate
-            throw new UnsupportedOperationException("IMPLEMENT");
+        return new TempGroupedAggregateCostController(groupingList);
     }
 }

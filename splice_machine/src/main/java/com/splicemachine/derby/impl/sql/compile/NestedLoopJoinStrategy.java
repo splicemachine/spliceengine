@@ -351,13 +351,13 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         CostEstimate baseInnerCost=innerCost.getBase();
         baseInnerCost.setLocalCost(innerScanLocalCost);
         baseInnerCost.setRemoteCost(innerScanRemoteCost);
-        baseInnerCost.setEstimatedRowCount((long)innerScanOutputRows);
+        baseInnerCost.setRowCount(innerScanOutputRows);
         baseInnerCost.setEstimatedHeapSize((long)innerScanHeapSize);
         baseInnerCost.setSingleScanRowCount(innerSingleScanRowCount);
 
         innerCost.setEstimatedHeapSize((long)totalHeapSize);
         innerCost.setNumPartitions(totalPartitions);
-        innerCost.setEstimatedRowCount((long)totalOutputRows);
+        innerCost.setRowCount(totalOutputRows);
         innerCost.setRemoteCost(totalRemoteCost);
         innerCost.setLocalCost(totalLocalCost);
         innerCost.setRowOrdering(outerCost.getRowOrdering());

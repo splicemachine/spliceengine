@@ -126,7 +126,9 @@ public class SimpleCostEstimate implements CostEstimate{
     @Override public void setRowOrdering(RowOrdering rowOrdering){ this.rowOrdering = rowOrdering; }
     @Override public CostEstimate getBase(){ return baseCost==null?this:baseCost; }
     @Override public void setBase(CostEstimate baseCost){ this.baseCost = baseCost; }
-    @Override public long getEstimatedRowCount(){ return (long)numRows; }
+    @Override public long getEstimatedRowCount(){
+        return Math.round(numRows);
+    }
     @Override public void setEstimatedCost(double cost){ this.localCost = cost; }
     @Override public void setLocalCost(double remoteCost){ this.localCost = remoteCost; }
 
