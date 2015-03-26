@@ -349,16 +349,19 @@ public class UpdateOperationIT {
     public void testUpdateOverNullIndexWorks() throws Exception {
         new TableCreator(methodWatcher.createConnection())
                 .withCreate("create table nt (a int, b int)")
-                .withIndex("create unique index nt_idx on nt (a)")
-                .create();
+                .withInsert("insert into nt values(?,?)")
+                .withRows(rows(row(null, null), row(null, null), row(null, null), row(1, 1)))
+                .withIndex("create unique index nt_idx on nt (a)").create();
 
-        methodWatcher.executeUpdate("insert into NT (a,b) values (null,null)");
 
-        int modified = methodWatcher.executeUpdate("update NT set a = a+ 1.1");
+        // updates to null should remain null.  So we are testing setting null to null on base and index conglom.
+        // Even though null to null rows are not physically changed they should still contribute to row count.
+        assertEquals(4L, methodWatcher.executeUpdate("update NT set a = a + 9"));
 
-//        assertEquals("Claimed to have modified a row!", 0, modified);
-        assertEquals(1L, methodWatcher.query("select count(*) from nt"));
-        assertEquals(1L, methodWatcher.query("select count(*) from nt --SPLICE-PROPERTIES index=nt_idx"));
+        assertEquals(4L, methodWatcher.query("select count(*) from nt"));
+        assertEquals(4L, methodWatcher.query("select count(*) from nt --SPLICE-PROPERTIES index=nt_idx"));
+        assertEquals(3L, methodWatcher.query("select count(*) from nt where a is null"));
+        assertEquals(3L, methodWatcher.query("select count(*) from nt --SPLICE-PROPERTIES index=nt_idx\n where a is null"));
     }
 
     // If you change one of the following 'update over join' tests,
@@ -405,28 +408,28 @@ public class UpdateOperationIT {
 
     @Test
     public void testUpdateMultiColumnMultiSubSyntax() throws Exception {
-    	StringBuffer sb = new StringBuffer(200);
-    	sb.append("update customer \n");
-    	sb.append("  set status = 'false', \n");
-    	sb.append("  level = ( \n");
-		sb.append("    select level \n");
-		sb.append("    from customer_temp custtemp \n");                                                                           
-		sb.append("    where custtemp.cust_id = customer.cust_id \n");
-		sb.append("  )");
-		String query = String.format(sb.toString());
-    	int rows = methodWatcher.executeUpdate(query);
+        StringBuffer sb = new StringBuffer(200);
+        sb.append("update customer \n");
+        sb.append("  set status = 'false', \n");
+        sb.append("  level = ( \n");
+        sb.append("    select level \n");
+        sb.append("    from customer_temp custtemp \n");
+        sb.append("    where custtemp.cust_id = customer.cust_id \n");
+        sb.append("  )");
+        String query = String.format(sb.toString());
+        int rows = methodWatcher.executeUpdate(query);
         Assert.assertEquals("incorrect num rows updated!", 5, rows);
     }
 
     @Test
     public void testUpdateMultiColumnOneSubSyntaxNoOuterWhere() throws Exception {
-    	int rows = doTestUpdateMultiColumnOneSubSyntax(null);
+        int rows = doTestUpdateMultiColumnOneSubSyntax(null);
         Assert.assertEquals("incorrect num rows updated!", 5, rows);
     }
 
     @Test
     public void testUpdateMultiColumnOneSubSyntaxWithOuterWhere() throws Exception {
-    	int rows = doTestUpdateMultiColumnOneSubSyntax(" where customer.cust_id <> 105");
+        int rows = doTestUpdateMultiColumnOneSubSyntax(" where customer.cust_id <> 105");
         Assert.assertEquals("incorrect num rows updated!", 4, rows);
     }
 
