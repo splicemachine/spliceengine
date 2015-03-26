@@ -361,6 +361,8 @@ public class Backup implements InternalTable {
         HTableDescriptor[] descriptorArray = admin.listTables();
 
         for (HTableDescriptor descriptor: descriptorArray) {
+        	// DB-3089
+        	if(isTempTable(descriptor)) continue;
             BackupItem item = new BackupItem(descriptor,this);
             item.createSnapshot(admin, backupTransaction.getBeginTimestamp(), newSnapshotNameSet);
             item.setLastSnapshotName(snapshotNameSet);
@@ -368,7 +370,17 @@ public class Backup implements InternalTable {
         }
     }
 
-    @Override
+    private boolean isTempTable(HTableDescriptor descriptor) {
+		byte[] tableName = descriptor.getName();
+		String strName = new String(tableName);
+		if(strName.equals(SpliceConstants.TEMP_TABLE)) {
+			LOG.info("Skipping "+strName);
+			return true;
+		}
+    	return false;
+	}
+
+	@Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 //  FIXME reenable throw     if(true)
 //          throw new UnsupportedOperationException("DECODE TRANSACTION");

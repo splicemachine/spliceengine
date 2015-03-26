@@ -9,6 +9,7 @@ import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.JobInfo;
+import com.splicemachine.derby.impl.storage.TempSplit;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.job.JobFuture;
@@ -28,6 +29,7 @@ import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
@@ -209,6 +211,9 @@ public class BackupSystemProcedures {
                 throw t;
             }
 
+            // DB-3089
+            restoreTempTable();
+
             // Print reboot statement
             ResultColumnDescriptor[] rcds = new ResultColumnDescriptor[]{
                     new GenericColumnDescriptor("result", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 30)),
@@ -222,7 +227,6 @@ public class BackupSystemProcedures {
             rows.add(template.getClone());
             inprs = new IteratorNoPutResultSet(rows,rcds,lcc.getLastActivation());
             inprs.openCore();
-
             LOG.info("Restore completed. Database reboot is required.");
 
         } catch (Throwable t) {
@@ -251,7 +255,11 @@ public class BackupSystemProcedures {
         }
     }
 
-    /**
+    private static void restoreTempTable() throws SQLException {
+    	TempSplit.SYSCS_SPLIT_TEMP();
+	}
+
+	/**
      * Entry point for system procedure SYSCS_SCHEDULE_DAILY_BACKUP. Submit a scheduled job to back up database
      *
      * @param directory A directory in file system to stored backup data
@@ -496,7 +504,7 @@ public class BackupSystemProcedures {
             backup.insertBackup();
             backup.createProperties();
             HashMap<String, BackupItem> backupItems = backup.getBackupItems();
-
+      
             for (String key : backupItems.keySet()) {
                 BackupItem backupItem =  backupItems.get(key);
                 boolean backedUp = backupItem.doBackup();
