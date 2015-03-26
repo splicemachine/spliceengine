@@ -1,6 +1,17 @@
 #!/bin/bash
 
-ROOT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
+test -L "${BASH_SOURCE[0]}"
+if [[ $? -eq 0 ]] ; then
+    if [[ `uname` == CYGWIN* ]]; then
+        ME=$(readlink $(cygpath "${BASH_SOURCE[0]}"))
+    else
+        ME=$(readlink "${BASH_SOURCE[0]}")
+    fi
+else
+    ME="${BASH_SOURCE[0]}"
+fi
+
+ROOT_DIR="$( cd "$( dirname "${ME}" )/.." && pwd )"
 source ${ROOT_DIR}/bin/functions.sh
 
 # Splice Machine SQL Shell
