@@ -1457,11 +1457,6 @@ public class SpliceTransactionManager implements XATransactionController,
         return accessmanager.getTransactionalProperties().getProperties(this);
     }
 
-    /**
-     * @see TransactionController#openSort
-     * @exception StandardException
-     *                Standard error policy.
-     **/
     public SortController openSort(long id) throws StandardException {
         if (LOG.isTraceEnabled())
             LOG.trace("openSort " + id);
@@ -1499,8 +1494,7 @@ public class SpliceTransactionManager implements XATransactionController,
      *
      * @see StoreCostController
      **/
-    public SortCostController openSortCostController(Properties implParameters)
-            throws StandardException {
+    public SortCostController openSortCostController(Properties implParameters) throws StandardException {
         if (LOG.isTraceEnabled())
             LOG.trace("openSortCostController " + implParameters);
 
@@ -1512,8 +1506,7 @@ public class SpliceTransactionManager implements XATransactionController,
         MethodFactory mfactory;
         mfactory = accessmanager.findMethodFactoryByImpl(implementation);
         if (mfactory == null || !(mfactory instanceof SortFactory)) {
-            throw (StandardException.newException(
-                    SQLState.AM_NO_FACTORY_FOR_IMPLEMENTATION, implementation));
+            throw (StandardException.newException(SQLState.AM_NO_FACTORY_FOR_IMPLEMENTATION, implementation));
         }
         SortFactory sfactory = (SortFactory) mfactory;
 
