@@ -1251,7 +1251,7 @@ public class SelectNode extends ResultSetNode{
                         orderByList,
                         null,
                         getContextManager());
-                prnRSN.costEstimate=costEstimate.cloneMe();
+                prnRSN.costEstimate=optimizer.getOptimizedCost().cloneMe();
             }
 
             // There may be columns added to the select projection list
@@ -1355,7 +1355,8 @@ public class SelectNode extends ResultSetNode{
         }
 
 		/* Set the cost of this node in the generated node */
-        prnRSN.costEstimate=costEstimate.cloneMe();
+        if(prnRSN.costEstimate==null)
+            prnRSN.costEstimate=costEstimate.cloneMe();
 
         return prnRSN;
     }

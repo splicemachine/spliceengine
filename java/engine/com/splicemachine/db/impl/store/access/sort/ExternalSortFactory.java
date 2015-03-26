@@ -31,6 +31,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 import com.splicemachine.db.iapi.error.StandardException;
 
+import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.store.access.conglomerate.Sort;
 import com.splicemachine.db.iapi.store.access.conglomerate.SortFactory;
 
@@ -47,6 +48,7 @@ import com.splicemachine.db.catalog.UUID;
 
 // For JavaDoc references (i.e. @see)
 import com.splicemachine.db.iapi.store.access.conglomerate.MethodFactory;
+import com.splicemachine.db.impl.sql.compile.OrderByList;
 
 /**
 
@@ -334,6 +336,11 @@ public class ExternalSortFactory implements
 
         return(ret_val);
     }
+
+//	@Override
+	public void estimateSortCost(OrderByList orderByList,CostEstimate resultCost) throws StandardException{
+		//no-op
+	}
 
 	/*
 	** Methods of ModuleControl.

@@ -27,11 +27,9 @@ import com.splicemachine.db.iapi.reference.Limits;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.iapi.store.access.SortCostController;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
 
 /**
@@ -44,11 +42,8 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
 
     private boolean allAscending=true;
     private boolean alwaysSort;
-    private ResultSetNode resultToSort;
     private SortCostController scc;
-    private Object[] resultRow;
     private ColumnOrdering[] columnOrdering;
-    private int estimatedRowSize;
     private boolean sortNeeded=true;
     private int resultSetNumber=-1;
 
@@ -70,8 +65,7 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
      * @param position The column to get from the list
      */
     public OrderByColumn getOrderByColumn(int position){
-        if(SanityManager.DEBUG)
-            SanityManager.ASSERT(position>=0 && position<size());
+        assert position>=0 && position < size();
         return (OrderByColumn)elementAt(position);
     }
 
@@ -82,11 +76,9 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
      * @param target The underlying result set
      * @throws StandardException Thrown on error
      */
-    public void bindOrderByColumns(ResultSetNode target)
-            throws StandardException{
+    public void bindOrderByColumns(ResultSetNode target) throws StandardException{
 
 		/* Remember the target for use in optimization */
-        resultToSort=target;
 
         int size=size();
 
@@ -103,8 +95,7 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
             ** Always sort if we are ordering on an expression, and not
 			** just a column.
 			*/
-            if(!
-                    (obc.getResultColumn().getExpression() instanceof ColumnReference)){
+            if(!(obc.getResultColumn().getExpression() instanceof ColumnReference)){
                 alwaysSort=true;
             }
         }
@@ -116,11 +107,9 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
      *
      * @param target The underlying result set
      */
-    public void pullUpOrderByColumns(ResultSetNode target)
-            throws StandardException{
+    public void pullUpOrderByColumns(ResultSetNode target) throws StandardException{
 
 		/* Remember the target for use in optimization */
-        resultToSort=target;
 
         int size=size();
         for(int index=0;index<size;index++){
@@ -138,10 +127,7 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
      * @param mb  the method the generated code is to go into
      * @throws StandardException thrown on failure
      */
-    public void generate(ActivationClassBuilder acb,
-                         MethodBuilder mb,
-                         ResultSetNode child)
-            throws StandardException{
+    public void generate(ActivationClassBuilder acb, MethodBuilder mb, ResultSetNode child) throws StandardException{
 		/*
 		** If sorting is not required, don't generate a sort result set -
 		** just return the child result set.
@@ -164,9 +150,7 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
         CompilerContext cc=getCompilerContext();
 
 
-		/*
-			create the orderItem and stuff it in.
-		 */
+        //create the orderItem and stuff it in.
         int orderItem=acb.addItem(acb.getColumnOrdering(this));
 
 
@@ -212,23 +196,14 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
         mb.push(costEstimate.rowCount());
         mb.push(costEstimate.getEstimatedCost());
 
-        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getSortResultSet",
-                ClassName.NoPutResultSet,9);
-
+        mb.callMethod(VMOpcode.INVOKEINTERFACE,null,"getSortResultSet", ClassName.NoPutResultSet,9);
     }
 
-    /**
-     * @throws StandardException Thrown on error
-     * @see RequiredRowOrdering#sortRequired
-     */
+    @Override
     public int sortRequired(RowOrdering rowOrdering, OptimizableList optimizableList) throws StandardException{
         return sortRequired(rowOrdering,null,optimizableList);
     }
 
-    /**
-     * @throws StandardException Thrown on error
-     * @see RequiredRowOrdering#sortRequired
-     */
     @Override
     public int sortRequired(RowOrdering rowOrdering,
                             JBitSet tableMap,
@@ -281,28 +256,26 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
 			** is found - if so, sorting is required (for example, in a
 			** case like ORDER BY S.A, T.B, S.C, sorting is required).
 			*/
+            int tableNumber=cr.getTableNumber();
             if(tableMap!=null){
-                if(!tableMap.get(cr.getTableNumber())){
+                if(!tableMap.get(tableNumber)){
 					/* Table not in partial join order */
                     for(int remainingPosition=loc+1;
                         remainingPosition<size();
                         remainingPosition++){
                         OrderByColumn remainingobc=getOrderByColumn(loc);
 
-                        ResultColumn remainingrc=
-                                remainingobc.getResultColumn();
+                        ResultColumn remainingrc= remainingobc.getResultColumn();
 
                         ValueNode remainingexpr=remainingrc.getExpression();
 
                         if(remainingexpr instanceof ColumnReference){
-                            ColumnReference remainingcr=
-                                    (ColumnReference)remainingexpr;
+                            ColumnReference remainingcr= (ColumnReference)remainingexpr;
                             if(tableMap.get(remainingcr.getTableNumber())){
                                 return RequiredRowOrdering.SORT_REQUIRED;
                             }
                         }
                     }
-
                     return RequiredRowOrdering.NOTHING_REQUIRED;
                 }
             }
@@ -324,6 +297,7 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
 			 * order being considered has more than one table
 			 */
             boolean moreThanOneTableInJoinOrder=tableMap!=null && (!tableMap.hasSingleBitSet());
+            int columnNumber=cr.getColumnNumber();
             if(moreThanOneTableInJoinOrder){
 				/*
 				 * First check if the order by column has a constant comparison
@@ -335,9 +309,8 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
 				 * sorted and hence we do not need to worry if (any) prior
 				 * optimizables in join order are one-row resultsets or not.
 				 */
-                if((!rowOrdering.alwaysOrdered(cr.getTableNumber())) &&
-                        (!rowOrdering.isColumnAlwaysOrdered(
-                                cr.getTableNumber(),cr.getColumnNumber()))){
+                if((!rowOrdering.alwaysOrdered(tableNumber))
+                        && (!rowOrdering.isColumnAlwaysOrdered(tableNumber,columnNumber))){
 					/*
 					 * The current order by column is not always ordered which
 					 * means that the rows from it will not necessarily be in
@@ -353,15 +326,13 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
                     for(int i=0;i<optimizableList.size();i++){
                         //Get one outer optimizable at a time from the join
                         //order
-                        Optimizable considerOptimizable=
-                                optimizableList.getOptimizable(i);
+                        Optimizable considerOptimizable= optimizableList.getOptimizable(i);
                         //If we have come across the optimizable for the order
                         //by column in the join order, then we do not need to
                         //look at the inner optimizables in the join order. As
                         //long as the outer optimizables are one row resultset,
                         //we are fine to consider sort avoidance.
-                        if(considerOptimizable.getTableNumber()==
-                                cr.getTableNumber())
+                        if(considerOptimizable.getTableNumber()== tableNumber)
                             break;
 						/*
 						 * The following if condition is checking if the
@@ -386,17 +357,13 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
                     }
                 }
             }
-            if(!rowOrdering.alwaysOrdered(cr.getTableNumber())){
+            if(!rowOrdering.alwaysOrdered(tableNumber)){
 				/*
 				** Check whether the ordering is ordered on this column in
 				** this position.
 				*/
-                if(!rowOrdering.orderedOnColumn(
-                        obc.isAscending()? RowOrdering.ASCENDING:RowOrdering.DESCENDING,
-                        position,
-                        cr.getTableNumber(),
-                        cr.getColumnNumber()
-                )){
+                int direction=obc.isAscending()?RowOrdering.ASCENDING:RowOrdering.DESCENDING;
+                if(!rowOrdering.orderedOnColumn( direction, position, tableNumber, columnNumber)){
                     return RequiredRowOrdering.SORT_REQUIRED;
                 }
 
@@ -412,102 +379,56 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
         return RequiredRowOrdering.NOTHING_REQUIRED;
     }
 
-    /**
-     * @throws StandardException Thrown on error
-     * @see RequiredRowOrdering#estimateCost
-     */
-    public void estimateCost(double estimatedInputRows,
+    @Override
+    public void estimateCost(Optimizer optimizer,
                              RowOrdering rowOrdering,
-                             CostEstimate resultCost)
-            throws StandardException{
+                             CostEstimate baseCost) throws StandardException{
 		/*
 		** Do a bunch of set-up the first time: get the SortCostController,
 		** the template row, the ColumnOrdering array, and the estimated
 		** row size.
 		*/
         if(scc==null){
-            scc=getCompilerContext().getSortCostController();
+            scc=optimizer.newSortCostController(this);
 
-            resultRow= resultToSort.getResultColumns().buildEmptyRow().getRowArray();
             columnOrdering=getColumnOrdering();
-            estimatedRowSize= resultToSort.getResultColumns().getTotalColumnSize();
         }
-
-        long inputRows=(long)estimatedInputRows;
-        double sortCost;
-
-        sortCost=scc.getSortCost(
-                (DataValueDescriptor[])resultRow,
-                columnOrdering,
-                false,
-                inputRows,
-                inputRows,
-                estimatedRowSize
-        );
-
-        resultCost.setCost(sortCost,estimatedInputRows,estimatedInputRows);
+        scc.estimateSortCost(this,baseCost);
     }
 
-    /**
-     * @see RequiredRowOrdering#sortNeeded
-     */
-    public void sortNeeded(){
-        sortNeeded=true;
-    }
-
-    /**
-     * @see RequiredRowOrdering#sortNotNeeded
-     */
-    @Override
-    public void sortNotNeeded(){
-        sortNeeded=false;
-    }
-
-    /**
-     * Get whether or not a sort is needed.
-     *
-     * @return Whether or not a sort is needed.
-     */
-    @Override
-    public boolean getSortNeeded(){
-        return sortNeeded;
-    }
+    @Override public boolean getSortNeeded(){ return sortNeeded; }
+    @Override public void sortNeeded(){ sortNeeded=true; }
+    @Override public void sortNotNeeded(){ sortNeeded=false; }
 
     @Override
     public String toString(){
         StringBuilder buff=new StringBuilder();
+        buff = buff.append("allAscending: ").append(allAscending).append("\n");
+        buff = buff.append("alwaysSort: ").append(alwaysSort).append("\n");
+        buff = buff.append("sortNeeded: ").append(sortNeeded).append("\n");
+        buff = buff.append("columnOrdering: ").append("\n");
         if(columnOrdering!=null){
             for(int i=0;i<columnOrdering.length;i++){
                 buff.append("[").append(i).append("] ").append(columnOrdering[i]).append("\n");
             }
         }
+        buff = buff.append("\n").append(super.toString());
 
-        return "allAscending: "+allAscending+"\n"+
-                        "alwaysSort:"+allAscending+"\n"+
-                        "sortNeeded: "+sortNeeded+"\n"+
-                        "columnOrdering: "+"\n"+
-                        buff.toString()+"\n"+
-                        super.toString();
+        return buff.toString();
     }
 
 	/* RequiredRowOrdering interface */
 
-    public int getResultSetNumber(){
-        return resultSetNumber;
-    }
+    public int getResultSetNumber(){ return resultSetNumber; }
 
-    public void setAlwaysSort(){
-        alwaysSort=true;
-    }
+    public void setAlwaysSort(){ alwaysSort=true; }
 
     /**
      * Are all columns in the list ascending.
      *
      * @return Whether or not all columns in the list ascending.
      */
-    boolean allAscending(){
-        return allAscending;
-    }
+    boolean allAscending(){ return allAscending; }
 
     /**
      * Adjust addedColumnOffset values due to removal of a duplicate column
@@ -540,13 +461,7 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
      * @return Whether or not this order by list an in order prefix of the specified RCL.
      */
     boolean isInOrderPrefix(ResultColumnList sourceRCL){
-
-        if(SanityManager.DEBUG){
-            if(size()>sourceRCL.size()){
-                SanityManager.THROWASSERT(
-                        "size() ("+size()+ ") expected to be <= sourceRCL.size() ("+ sourceRCL.size()+")");
-            }
-        }
+        assert size()>sourceRCL.size():"size()("+size()+") expected to be <= "+sourceRCL.size();
 
         int size=size();
         for(int index=0;index<size;index++){
@@ -578,11 +493,8 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
      * @param resultColumns The RCL to reorder.
      * @throws StandardException Thrown on error
      */
-    ResultColumnList reorderRCL(ResultColumnList resultColumns)
-            throws StandardException{
-        ResultColumnList newRCL=(ResultColumnList)getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN_LIST,
-                getContextManager());
+    ResultColumnList reorderRCL(ResultColumnList resultColumns) throws StandardException{
+        ResultColumnList newRCL=(ResultColumnList)getNodeFactory().getNode(C_NodeTypes.RESULT_COLUMN_LIST, getContextManager());
 
 		/* The new RCL starts with the ordering columns */
         int size=size();
@@ -646,16 +558,14 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
      *
      * @throws StandardException Thrown on error
      */
-    void remapColumnReferencesToExpressions() throws StandardException{
-    }
+    void remapColumnReferencesToExpressions() throws StandardException{ }
 
     /**
      * Determine whether or not this RequiredRowOrdering has a
      * DESCENDING requirement for the column referenced by the
      * received ColumnReference.
      */
-    boolean requiresDescending(ColumnReference cRef,int numOptimizables)
-            throws StandardException{
+    boolean requiresDescending(ColumnReference cRef,int numOptimizables) throws StandardException{
         int size=size();
 
 		/* Start by getting the table number and column position for
@@ -668,28 +578,9 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
         int crTableNumber=tNum.getFirstSetBit();
         int crColPosition=btnVis.getColumnNumber();
 
-        if(SanityManager.DEBUG){
-			/* We assume that we only ever get here if the column
-			 * reference points to a specific column in a specific
-			 * table...
-			 */
-            if((crTableNumber<0) || (crColPosition<0)){
-                SanityManager.THROWASSERT(
-                        "Failed to find table/column number for column '"+
-                                cRef.getColumnName()+"' when checking for an "+
-                                "ORDER BY requirement.");
-            }
-
-			/* Since we started with a single ColumnReference there
-			 * should be exactly one table number.
-			 */
-            if(!tNum.hasSingleBitSet()){
-                SanityManager.THROWASSERT(
-                        "Expected ColumnReference '"+cRef.getColumnName()+
-                                "' to reference exactly one table, but tables found "+
-                                "were: "+tNum);
-            }
-        }
+        assert crTableNumber>=0 || crColPosition>=0: "Failed to find table/column number for column "+ cRef.getColumnName();
+        assert tNum.hasSingleBitSet(): "Expected ColumnReference '"+ cRef.getColumnName()+"' to reference" +
+                "exactly one table, but tables found were "+tNum;
 
 		/* Walk through the various ORDER BY elements to see if
 		 * any of them point to the same table and column that
@@ -711,23 +602,9 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
 			 * reference one of the columns in that list (otherwise
 			 * we shouldn't have made it this far).
 			 */
-            if(SanityManager.DEBUG){
-				/* Since we started with a single ResultColumn there
-				 * should exactly one table number.
-				 */
-                if(!tNum.hasSingleBitSet()){
-                    SanityManager.THROWASSERT("Expected ResultColumn '"+
-                            rcOrderBy.getColumnName()+"' to reference "+
-                            "exactly one table, but found: "+tNum);
-                }
-
-                if(obColPosition<0){
-                    SanityManager.THROWASSERT(
-                            "Failed to find orderBy column number "+
-                                    "for ORDER BY check on column '"+
-                                    cRef.getColumnName()+"'.");
-                }
-            }
+            assert tNum.hasSingleBitSet(): "Expected ResultColumn '"+ rcOrderBy.getColumnName()+"' to reference" +
+                    "exactly one table";
+            assert obColPosition>=0:"Failed to find orderBy column number for ORDER BY check on column '"+cRef.getColumnName()+"'.";
 
             if(crTableNumber!=obTableNumber)
                 continue;

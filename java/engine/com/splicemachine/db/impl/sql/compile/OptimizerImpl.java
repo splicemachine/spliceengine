@@ -29,6 +29,7 @@ import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.store.access.AggregateCostController;
+import com.splicemachine.db.iapi.store.access.SortCostController;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.StringUtil;
 
@@ -892,58 +893,13 @@ public class OptimizerImpl implements Optimizer{
         return false;
     }
 
-    /**
-     * @throws StandardException Thrown on error
-     * @see Optimizer#getNextDecoratedPermutation
-     */
+    @Override
     public boolean getNextDecoratedPermutation() throws StandardException{
         boolean retval;
         Optimizable curOpt= optimizableList.getOptimizable(proposedJoinOrder[joinPosition]);
-        double originalRowCount=0.0;
-
-        // RESOLVE: Should we step through the different join strategies here?
-
-		/* Returns true until all access paths are exhausted */
-        retval=curOpt.nextAccessPath(this, null, currentRowOrdering);
-
-        // If the previous path that we considered for curOpt was _not_ the best
-        // path for this round, then we need to revert back to whatever the
-        // best plan for curOpt was this round.  Note that the cost estimate
-        // for bestAccessPath could be null here if the last path that we
-        // checked was the only one possible for this round.
         AccessPath bestAccessPath=curOpt.getBestAccessPath();
         AccessPath currentAccessPath=curOpt.getCurrentAccessPath();
-        if((bestAccessPath.getCostEstimate()!=null) && (currentAccessPath.getCostEstimate()!=null)){
-            /*
-             * Note: we can't just check to see if bestCost is cheaper
-             * than currentCost because it's possible that currentCost
-             * is actually cheaper--but it may have been 'rejected' because
-             * it would have required too much memory.  So we just check
-             * to see if bestCost and currentCost are different.  If so
-             * then we know that the most recent access path (represented
-             * by "current" access path) was not the best.
-             */
-            if(bestAccessPath.getCostEstimate().compare(currentAccessPath.getCostEstimate())!=0){
-                curOpt.updateBestPlanMap(FromTable.LOAD_PLAN,curOpt);
-            }else if(bestAccessPath.getCostEstimate().rowCount()< currentAccessPath.getCostEstimate().rowCount()){
-                /*
-                 * If currentCost and bestCost have the same cost estimate
-                 * but currentCost has been rejected because of memory, we
-                 * still need to revert the plans.  In this case the row
-                 * count for currentCost will be greater than the row count
-                 * for bestCost, so that's what we just checked.
-                 */
-                curOpt.updateBestPlanMap(FromTable.LOAD_PLAN,curOpt);
-            }
-        }
-
-		/*
-		 * If we needed to revert plans for curOpt, we just did it above.
-		 * So we no longer need to keep the previous best plan--and in fact,
-		 * keeping it can lead to extreme memory usage for very large
-		 * queries.  So delete the stored plan for curOpt. DERBY-1315.
-		 */
-        curOpt.updateBestPlanMap(FromTable.REMOVE_PLAN,curOpt);
+        retval=updatePlanMaps(curOpt,bestAccessPath,currentAccessPath);
 
 		/*
 		** When all the access paths have been looked at, we know what the
@@ -961,8 +917,7 @@ public class OptimizerImpl implements Optimizer{
 			*/
             addCost(ce,currentCost);
 
-            if(curOpt.considerSortAvoidancePath() &&
-                    requiredRowOrdering!=null){
+            if(curOpt.considerSortAvoidancePath() && requiredRowOrdering!=null){
 				/* Add the cost for the sort avoidance path, if there is one */
                 ce=curOpt.getBestSortAvoidancePath().getCostEstimate();
 
@@ -984,7 +939,6 @@ public class OptimizerImpl implements Optimizer{
 
 				/* Add cost of sorting to non-sort-avoidance cost */
                 if(requiredRowOrdering!=null){
-                    boolean gotSortCost=false;
 
 					/* Only get the sort cost once */
                     if(sortCost==null){
@@ -1007,45 +961,29 @@ public class OptimizerImpl implements Optimizer{
 					 * sometimes is quite dramatic, eg. from 17 sec to 0.5 sec,
 					 * see beetle 4353.
 					 */
-                    else if(requiredRowOrdering.getSortNeeded()){
-                        if(bestCost.rowCount()>currentCost.rowCount()){
-                            // adjust bestCost
-                            requiredRowOrdering.estimateCost(bestCost.rowCount(),bestRowOrdering,sortCost);
-                            double oldSortLocalCost=sortCost.localCost();
-                            double oldSortRemoteCost=sortCost.remoteCost();
-                            requiredRowOrdering.estimateCost(currentCost.rowCount(),bestRowOrdering,sortCost);
-                            gotSortCost=true;
-                            bestCost.setLocalCost(bestCost.localCost()-oldSortLocalCost+sortCost.localCost());
-                            bestCost.setRemoteCost(bestCost.remoteCost()-oldSortRemoteCost+sortCost.remoteCost());
-                            bestCost.setSingleScanRowCount(currentCost.singleScanRowCount());
-//                            bestCost.setCost(bestCost.getEstimatedCost()-
-//                                            oldSortCost+
-//                                            sortCost.getEstimatedCost(),
-//                                    sortCost.rowCount(),
-//                                    currentCost.singleScanRowCount());
-                        }else if(bestCost.rowCount()<currentCost.rowCount()){
-                            // adjust currentCost's rowCount
-                            currentCost.setEstimatedRowCount(bestCost.getEstimatedRowCount());
-                        }
+                    if(requiredRowOrdering.getSortNeeded()){
+                        requiredRowOrdering.estimateCost(this,bestRowOrdering,currentCost);
+//                        if(bestCost.rowCount()>currentCost.rowCount()){
+//                            requiredRowOrdering.estimateCost(this,currentCost,bestRowOrdering,sortCost);
+//                            // adjust bestCost
+//                            bestCost = sortCost;
+////                            bestCost.setCost(sortCost);
+////                            bestCost.setLocalCost(bestCost.localCost()-oldSortLocalCost+sortCost.localCost());
+////                            bestCost.setRemoteCost(bestCost.remoteCost()-oldSortRemoteCost+sortCost.remoteCost());
+////                            bestCost.setSingleScanRowCount(currentCost.singleScanRowCount());
+//                        }else if(bestCost.rowCount()<currentCost.rowCount()){
+//                            // adjust currentCost's rowCount
+//                            currentCost.setEstimatedRowCount(bestCost.getEstimatedRowCount());
+//                        }
                     }
 
-					/* This does not figure out if sorting is necessary, just
-					 * an asumption that sort is needed; if the assumption is
-					 * wrong, we'll look at sort-avoidance cost as well, later
-					 */
-                    if(!gotSortCost){
-                        requiredRowOrdering.estimateCost(currentCost.rowCount(), bestRowOrdering, sortCost);
-                    }
-
-                    originalRowCount=currentCost.rowCount();
-
-                    currentCost.setLocalCost(currentCost.localCost()+sortCost.localCost());
-                    currentCost.setRemoteCost(currentCost.remoteCost()+sortCost.remoteCost());
-                    currentCost.setEstimatedRowCount((long)sortCost.rowCount());
-//                    currentCost.setCost(currentCost.getEstimatedCost()+sortCost.getEstimatedCost(),
-//                            sortCost.rowCount(),
-//                            currentCost.singleScanRowCount()
-//                    );
+//					/* This does not figure out if sorting is necessary, just
+//					 * an asumption that sort is needed; if the assumption is
+//					 * wrong, we'll look at sort-avoidance cost as well, later
+//					 */
+//                    if(!gotSortCost){
+//                        requiredRowOrdering.estimateCost(this,currentCost, bestRowOrdering, sortCost);
+//                    }
 
                     if(optimizerTrace){
                         trace(COST_OF_SORTING,0,0,0.0,null);
@@ -1085,23 +1023,6 @@ public class OptimizerImpl implements Optimizer{
                 }else
                     reloadBestPlan=true;
 
-				/* Subtract cost of sorting from non-sort-avoidance cost */
-                if(requiredRowOrdering!=null){
-					/*
-					** The cost could go negative due to loss of precision.
-					*/
-                    double newLocalCost = currentCost.localCost()-sortCost.localCost();
-                    if(newLocalCost<0d)
-                        newLocalCost = 0d;
-                    double newRemoteCost = currentCost.remoteCost()-sortCost.remoteCost();
-                    if(newRemoteCost<0d)
-                        newRemoteCost = 0d;
-
-                    currentCost.setRemoteCost(newRemoteCost);
-                    currentCost.setLocalCost(newLocalCost);
-                    currentCost.setEstimatedRowCount((long)originalRowCount);
-                }
-
 				/*
 				** This may be the best sort-avoidance plan if there is a
 				** required row ordering, and we are to consider a sort
@@ -1122,6 +1043,51 @@ public class OptimizerImpl implements Optimizer{
             }
         }
 
+        return retval;
+    }
+
+    private boolean updatePlanMaps(Optimizable curOpt,AccessPath bestAccessPath,AccessPath currentAccessPath) throws StandardException{
+        boolean retval;// RESOLVE: Should we step through the different join strategies here?
+
+		/* Returns true until all access paths are exhausted */
+        retval=curOpt.nextAccessPath(this, null, currentRowOrdering);
+
+        // If the previous path that we considered for curOpt was _not_ the best
+        // path for this round, then we need to revert back to whatever the
+        // best plan for curOpt was this round.  Note that the cost estimate
+        // for bestAccessPath could be null here if the last path that we
+        // checked was the only one possible for this round.
+        if((bestAccessPath.getCostEstimate()!=null) && (currentAccessPath.getCostEstimate()!=null)){
+            /*
+             * Note: we can't just check to see if bestCost is cheaper
+             * than currentCost because it's possible that currentCost
+             * is actually cheaper--but it may have been 'rejected' because
+             * it would have required too much memory.  So we just check
+             * to see if bestCost and currentCost are different.  If so
+             * then we know that the most recent access path (represented
+             * by "current" access path) was not the best.
+             */
+            if(bestAccessPath.getCostEstimate().compare(currentAccessPath.getCostEstimate())!=0){
+                curOpt.updateBestPlanMap(FromTable.LOAD_PLAN,curOpt);
+            }else if(bestAccessPath.getCostEstimate().rowCount()< currentAccessPath.getCostEstimate().rowCount()){
+                /*
+                 * If currentCost and bestCost have the same cost estimate
+                 * but currentCost has been rejected because of memory, we
+                 * still need to revert the plans.  In this case the row
+                 * count for currentCost will be greater than the row count
+                 * for bestCost, so that's what we just checked.
+                 */
+                curOpt.updateBestPlanMap(FromTable.LOAD_PLAN,curOpt);
+            }
+        }
+
+		/*
+		 * If we needed to revert plans for curOpt, we just did it above.
+		 * So we no longer need to keep the previous best plan--and in fact,
+		 * keeping it can lead to extreme memory usage for very large
+		 * queries.  So delete the stored plan for curOpt. DERBY-1315.
+		 */
+        curOpt.updateBestPlanMap(FromTable.REMOVE_PLAN,curOpt);
         return retval;
     }
 
@@ -1459,6 +1425,11 @@ public class OptimizerImpl implements Optimizer{
 
     @Override
     public AggregateCostController newAggregateCostController(GroupByList groupingList,List<AggregateNode> aggregateVector){
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public SortCostController newSortCostController(OrderByList orderByList){
         throw new UnsupportedOperationException();
     }
 

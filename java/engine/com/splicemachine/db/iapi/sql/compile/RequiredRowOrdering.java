@@ -93,16 +93,13 @@ public interface RequiredRowOrdering
 	 * whether the sort is really needed.  It also estimates the number of
 	 * result rows.
 	 *
-	 * @param estimatedInputRows	The estimated number of rows to sort
 	 * @param rowOrdering			The ordering of the input rows
-	 * @param resultCost			A place to store the resulting cost
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	void estimateCost(double estimatedInputRows,
-						RowOrdering rowOrdering,
-						CostEstimate resultCost)
-					throws StandardException;
+	void estimateCost(Optimizer optimizer,
+					  RowOrdering rowOrdering,
+					  CostEstimate baseCost) throws StandardException;
 
 	/**
 	 * Indicate that a sort is necessary to fulfill this required ordering.
@@ -117,5 +114,8 @@ public interface RequiredRowOrdering
 	 */
 	void sortNotNeeded();
 
+	/**
+	 * @return Whether or not a sort is needed.
+	 */
 	boolean getSortNeeded();
 }

@@ -26,8 +26,10 @@ import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.store.access.AggregateCostController;
+import com.splicemachine.db.iapi.store.access.SortCostController;
 import com.splicemachine.db.impl.sql.compile.AggregateNode;
 import com.splicemachine.db.impl.sql.compile.GroupByList;
+import com.splicemachine.db.impl.sql.compile.OrderByList;
 
 import java.util.List;
 
@@ -253,8 +255,10 @@ public interface Optimizer{
      */
     CostEstimate newCostEstimate();
 
-    AggregateCostController newAggregateCostController(GroupByList groupingList,
-                                                       List<AggregateNode> aggregateVector);
+    AggregateCostController newAggregateCostController(GroupByList groupingList, List<AggregateNode> aggregateVector);
+
+    SortCostController newSortCostController(OrderByList orderByList);
+
     /**
      * Get the estimated cost of the optimized query
      */

@@ -1745,9 +1745,7 @@ public interface TransactionController
      *
      * @see StoreCostController
      **/
-    SortCostController openSortCostController(
-    Properties  implParameters)
-		throws StandardException;
+    SortCostController openSortCostController( Properties  implParameters) throws StandardException;
 
 	/**
 	Open a scan for retrieving rows from a sort.  Returns a RowSource for

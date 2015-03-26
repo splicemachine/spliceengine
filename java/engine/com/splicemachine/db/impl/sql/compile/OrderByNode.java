@@ -25,6 +25,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
+import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 
 /**
  * An OrderByNode represents a result set for a sort operation
@@ -52,12 +53,7 @@ public class OrderByNode extends SingleChildResultSetNode
     *
 	 * @exception StandardException		Thrown on error
 	 */
-	public void init(
-						Object childResult,
-						Object orderByList,
-						Object tableProperties)
-		throws StandardException
-	{
+	public void init( Object childResult, Object orderByList, Object tableProperties) throws StandardException {
 		ResultSetNode child = (ResultSetNode) childResult;
 
 		super.init(childResult, tableProperties);
@@ -88,22 +84,19 @@ public class OrderByNode extends SingleChildResultSetNode
 		resultColumns.genVirtualColumnNodes(this, prRCList);
 	}
 
+	@Override
+	public CostEstimate getFinalCostEstimate() throws StandardException{
+		CostEstimate est = super.getFinalCostEstimate();
+		est.setBase(null);
+		return est;
+	}
 
-	/**
-	 * Prints the sub-nodes of this object.  See QueryTreeNode.java for
-	 * how tree printing is supposed to work.
-	 *
-	 * @param depth		The depth of this node in the tree
-	 */
-
-	public void printSubNodes(int depth)
-	{
-		if (SanityManager.DEBUG)
-		{
+	@Override
+	public void printSubNodes(int depth) {
+		if (SanityManager.DEBUG) {
 			super.printSubNodes(depth);
 
-			if (orderByList != null)
-			{
+			if (orderByList != null) {
 				printLabel(depth, "orderByList: ");
 				orderByList.treePrint(depth + 1);
 			}
@@ -122,10 +115,7 @@ public class OrderByNode extends SingleChildResultSetNode
      *
 	 * @exception StandardException		Thrown on error
      */
-	public void generate(ActivationClassBuilder acb,
-								MethodBuilder mb)
-							throws StandardException
-	{
+	public void generate(ActivationClassBuilder acb, MethodBuilder mb) throws StandardException {
 		// Get the cost estimate for the child
 		if (costEstimate == null) {			
 			costEstimate = childResult.getFinalCostEstimate();

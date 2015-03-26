@@ -478,8 +478,7 @@ public class CompilerContextImpl extends ContextImpl
 			** Get a StoreCostController from the store.
 			*/
 
-			sortCostController =
-				lcc.getTransactionCompile().openSortCostController((Properties) null);
+			sortCostController = lcc.getTransactionCompile().openSortCostController(null);
 		}
 
 		return sortCostController;

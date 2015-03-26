@@ -49,18 +49,18 @@ public interface AccessPath {
 	 * Set the given cost estimate in this AccessPath.  Generally, this will
 	 * be the CostEstimate for the plan currently under consideration.
 	 */
-	public void setCostEstimate(CostEstimate costEstimate);
+	void setCostEstimate(CostEstimate costEstimate);
 
 	/**
 	 * Get the cost estimate for this AccessPath.  This is the last one
 	 * set by setCostEstimate.
 	 */
-	public CostEstimate getCostEstimate();
+	CostEstimate getCostEstimate();
 
 	/**
 	 * Set whether or not to consider a covering index scan on the optimizable.
 	 */
-	public void setCoveringIndexScan(boolean coveringIndexScan);
+	void setCoveringIndexScan(boolean coveringIndexScan);
 
 	/**
 	 * Return whether or not the optimizer is considering a covering index
@@ -68,12 +68,12 @@ public interface AccessPath {
 	 *
 	 * @return boolean Whether or not the optimizer chose a covering index scan.
 	 */
-	public boolean getCoveringIndexScan();
+	boolean getCoveringIndexScan();
 
 	/**
 	 * Set whether or not to consider a non-matching index scan on this AccessPath.
 	 */
-	public void setNonMatchingIndexScan(boolean nonMatchingIndexScan);
+	void setNonMatchingIndexScan(boolean nonMatchingIndexScan);
 
 	/**
 	 * Return whether or not the optimizer is considering a non-matching
@@ -83,41 +83,41 @@ public interface AccessPath {
 	 * @return boolean		Whether or not the optimizer is considering
 	 *						a non-matching index scan.
 	 */
-	public boolean getNonMatchingIndexScan();
+	boolean getNonMatchingIndexScan();
 
 	/**
 	 * Remember the given join strategy
 	 *
 	 * @param joinStrategy	The best join strategy
 	 */
-	public void setJoinStrategy(JoinStrategy joinStrategy);
+	void setJoinStrategy(JoinStrategy joinStrategy);
 
 	/**
 	 * Get the join strategy, as set by setJoinStrategy().
 	 */
-	public JoinStrategy getJoinStrategy();
+	JoinStrategy getJoinStrategy();
 
 	/**
 	 * Set the lock mode
 	 */
-	public void setLockMode(int lockMode);
+	void setLockMode(int lockMode);
 
 	/**
 	 * Get the lock mode, as last set in setLockMode().
 	 */
-	public int getLockMode();
+	int getLockMode();
 
 	/**
 	 * Copy all information from the given AccessPath to this one.
 	 */
-	public void copy(AccessPath copyFrom);
+	void copy(AccessPath copyFrom);
 
 	/**
 	 * Get the optimizer associated with this access path.
 	 *
 	 * @return	The optimizer associated with this access path.
 	 */
-	public Optimizer getOptimizer();
+	Optimizer getOptimizer();
 	
 	/**
 	 * Sets the "name" of the access path. if the access path represents an
@@ -130,5 +130,5 @@ public interface AccessPath {
 	 *
 	 * @exception StandardException 	on error.
 	 */
-	public void initializeAccessPathName(DataDictionary dd, TableDescriptor td) throws StandardException;
+	void initializeAccessPathName(DataDictionary dd,TableDescriptor td) throws StandardException;
 }	
