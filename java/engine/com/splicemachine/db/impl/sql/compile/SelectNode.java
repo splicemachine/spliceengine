@@ -1243,7 +1243,9 @@ public class SelectNode extends ResultSetNode{
                     new Integer(nestingLevel),
                     getContextManager());
             gbn.considerPostOptimizeOptimizations(originalWhereClause!=null);
-            gbn.assignCostEstimate(optimizer.getOptimizedCost());
+            CostEstimate ce = gbn.estimateCost(null,null,optimizer.getOptimizedCost(),optimizer,null);
+            gbn.assignCostEstimate(ce);
+//            gbn.assignCostEstimate(optimizer.getOptimizedCost());
 
             //groupByList = null;
             prnRSN=gbn.getParent();

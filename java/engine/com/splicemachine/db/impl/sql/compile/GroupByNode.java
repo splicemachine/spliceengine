@@ -34,6 +34,7 @@ import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.store.access.AggregateCostController;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.impl.sql.execute.AggregatorInfo;
 import com.splicemachine.db.impl.sql.execute.AggregatorInfoList;
@@ -236,31 +237,14 @@ public class GroupByNode extends SingleChildResultSetNode{
         return retval;
     }
 
-    /**
-     * @throws StandardException Thrown on error
-     * @see Optimizable#estimateCost
-     */
     @Override
     public CostEstimate estimateCost(OptimizablePredicateList predList,
                                      ConglomerateDescriptor cd,
                                      CostEstimate outerCost,
                                      Optimizer optimizer,
                                      RowOrdering rowOrdering) throws StandardException{
-        // RESOLVE: NEED TO FACTOR IN THE COST OF GROUPING (SORTING) HERE
-        //
-        CostEstimate childCost=((Optimizable)childResult).estimateCost(
-                predList,
-                cd,
-                outerCost,
-                optimizer,
-                rowOrdering);
-
-        CostEstimate costEstimate=getCostEstimate(optimizer);
-        costEstimate.setCost(childCost.getEstimatedCost(),
-                childCost.rowCount(),
-                childCost.singleScanRowCount());
-
-        return costEstimate;
+        AggregateCostController acc=optimizer.newAggregateCostController(groupingList,aggregateVector);
+        return acc.estimateAggregateCost(outerCost);
     }
 
     /**
@@ -604,87 +588,8 @@ public class GroupByNode extends SingleChildResultSetNode{
         }
     }
 
-    @Override
-    protected void assignCostEstimate(CostEstimate newCostEstimate) throws StandardException{
-        super.assignCostEstimate(adjustCostForAggregates(newCostEstimate));
-    }
-
     /* ****************************************************************************************************************/
     /*private helper methods*/
-    private CostEstimate adjustCostForAggregates(CostEstimate costEstimate) throws StandardException {
-        if(this.groupingList==null){
-           //this is a scalar aggregate
-            return costScalarAggregateTemp(costEstimate);
-        }else{
-            //this is a grouped aggregate
-            return adjustForGroupedAggregate(costEstimate);
-        }
-    }
-
-    private CostEstimate adjustForGroupedAggregate(CostEstimate costEstimate){
-        return costEstimate; //TODO -sf- implement
-    }
-
-    private CostEstimate costScalarAggregateTemp(CostEstimate costEstimate){
-        /*
-         * This costs the scalar aggregate operation based on the TEMP-table algorithm.
-         *
-         * The TEMP-table algorithm is straightforward. For every partition in the underlying
-         * table, it reads all the data, then writes a single entry into a single TEMP bucket.
-         * Then it reads over that single bucket and assembled the final merged value. We
-         * have 2 phases for this: the 'Map' and 'Reduce' phases
-         *
-         * ------
-         * Cost of Map Phase
-         *
-         * we read all data locally (localCost) and write a single row to TEMP (remoteCost/rowCount). This
-         * is done in parallel over all partitions, generating a single row per partition, so the cost is
-         *
-         * cost = localCost + remoteCost/rowCount
-         * rowCount = partitionCount
-         *
-         * -----
-         * Cost of Reduce Phase
-         *
-         * All data is read locally and merged together, giving a local cost of reading from TEMP,
-         * and the remote cost of reading a single record. As a reasonable proxy for local cost, we compute
-         * the "costPerRow" from the underlying estimate, then multiply that by the number of partitions. The
-         * remote cost is then just (remoteCost/rowCount)+openCost+closeCost
-         */
-        //preserve the underlying statistics
-        CostEstimate newEstimate = costEstimate.cloneMe();
-        int mapRows = costEstimate.partitionCount();
-        double remoteCostPerRow=costEstimate.remoteCost()/costEstimate.rowCount();
-        /*
-         * In general, Scalar Aggregates will do one task per partition. Therefore,
-         * to make our costs a bit more realistic (and reflect that difference), we assume
-         * that data is spread more or less uniformly across all partitions, which allows us
-         * to say that the map cost is really the cost for one of those partitions to finish,so
-         * we can just divide the total local cost by the partition count
-         *
-         */
-        double mapCost = costEstimate.localCost()/costEstimate.partitionCount()+remoteCostPerRow;
-
-        double localCostPerRow = costEstimate.localCost()/costEstimate.rowCount();
-        double reduceLocalCost = localCostPerRow*mapRows;
-
-        double totalLocalCost = reduceLocalCost+mapCost;
-        double outputHeapSize = costEstimate.getEstimatedHeapSize()/costEstimate.rowCount();
-
-        newEstimate.setNumPartitions(1);
-        newEstimate.setRemoteCost(remoteCostPerRow);
-        newEstimate.setLocalCost(totalLocalCost);
-        newEstimate.setEstimatedRowCount(1);
-        newEstimate.setEstimatedHeapSize((long)outputHeapSize);
-        /*
-         * the TEMP-based ScalarAggregate algorithm sinks data in parallel, so the underlying
-         * operation doesn't read data over the network. Thus, to make interpreting the EXPLAIN results
-         * easier, we make the underlying cost estimate not include a remote cost.
-         */
-        costEstimate.setRemoteCost(0d);
-
-        return newEstimate;
-    }
 
     /**
      * Add the extra result columns required by the aggregates
