@@ -54,6 +54,8 @@ public class InsertOperationIT {
 
         classWatcher.executeUpdate("create table T5 (a int, c int,b decimal(16,10), d int)");
         classWatcher.executeUpdate("create table SAME_LENGTH (name varchar(40))");
+        classWatcher.executeUpdate("create table batch_test (col1 int, col2 int, col3 int, primary key (col1))");
+
     }
 
     @Rule
@@ -323,4 +325,27 @@ public class InsertOperationIT {
         long count = rs.getLong(1);
         Assert.assertEquals("Incorrect inserted records!", (1 << iterCount), count);
     }
+
+    @Test
+    public void testBatchInsert() throws Exception {
+        Connection conn = methodWatcher.getOrCreateConnection();
+        //insert a single record
+        conn.setAutoCommit(false);
+        PreparedStatement ps = conn.prepareStatement("insert into batch_test (col1,col2,col3) values (?,?,?)");
+        int iterCount = 10;
+        for (int i = 0; i < iterCount; i++) {
+            ps.setInt(1,i);
+            ps.setInt(2,i);
+            ps.setInt(3,i);
+            ps.addBatch();
+        }
+        int[] results = ps.executeBatch();
+        Assert.assertEquals("results returned correct",10,results.length);
+        ps.close();
+        ps = conn.prepareStatement("select count(*) from batch_test");
+        ResultSet rs = ps.executeQuery();
+        rs.next();
+        Assert.assertEquals("results returned correct",10,rs.getInt(1));
+    }
+
 }
