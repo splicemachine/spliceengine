@@ -10,7 +10,13 @@ import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.si.impl.TransactionTimestamps;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.ZkUtils;
-
+import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.impl.services.uuid.BasicUUID;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.db.iapi.error.StandardException;
 import org.apache.hadoop.fs.*;
 import org.apache.hadoop.hbase.HTableDescriptor;
@@ -362,7 +368,7 @@ public class Backup implements InternalTable {
 
         for (HTableDescriptor descriptor: descriptorArray) {
         	// DB-3089
-        	if(isTempTable(descriptor)) continue;
+        	if(isTempTable(descriptor) || isTemporaryTable(descriptor.getNameAsString())) continue;
             BackupItem item = new BackupItem(descriptor,this);
             item.createSnapshot(admin, backupTransaction.getBeginTimestamp(), newSnapshotNameSet);
             item.setLastSnapshotName(snapshotNameSet);
@@ -380,7 +386,46 @@ public class Backup implements InternalTable {
     	return false;
 	}
 
-	@Override
+    /**
+     * Whether a table is a temporary table?
+     * @param tableName name of HBase table
+     * @return
+     */
+    private boolean isTemporaryTable(String tableName) {
+
+        Long congId = null;
+        try{
+            congId = Long.parseLong(tableName);
+        }
+        catch (NumberFormatException nfe) {
+            return false;
+        }
+
+        Connection connection = null;
+        ResultSet rs = null;
+        try {
+            String sqlText = "select t.tableid from sys.systables t, sys.sysconglomerates c " +
+                    "where t.tableid=c.tableid and c.conglomeratenumber=?";
+            connection = SpliceDriver.driver().getInternalConnection();
+            PreparedStatement ps = connection.prepareStatement(sqlText);
+            ps.setLong(1, congId);
+            rs = ps.executeQuery();
+            if (rs.next()) {
+                String s = rs.getString(1);
+                UUID tableId = new BasicUUID(s);
+                LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+                DataDictionary dd = lcc.getDataDictionary();
+                TableDescriptor td = dd.getTableDescriptor(tableId);
+                return !td.isPersistent();
+            }
+        }
+        catch (Exception e) {
+            SpliceLogUtils.warn(LOG, "%s", e.getMessage());
+        }
+        return false;
+    }
+
+    @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 //  FIXME reenable throw     if(true)
 //          throw new UnsupportedOperationException("DECODE TRANSACTION");
