@@ -22,7 +22,8 @@ public class SpliceConstants {
     private static final Logger LOG = Logger.getLogger(SpliceConstants.class);
 
     public static final String SPLICE_JDBC_DRIVER = "com.splicemachine.db.jdbc.ClientDriver";
-    
+    public static final String BATCH_SAVEPOINT = "BATCH_SAVEPOINT";
+
     /**
      * Flag to force the upgrade process to execute during database boot-up.
      * This flag should only be true for the master server.  If the upgrade runs on the region server,
