@@ -348,15 +348,18 @@ public class UpdateOperationIT {
     @Test
     public void testUpdateOverNullIndexWorks() throws Exception {
         new TableCreator(methodWatcher.createConnection())
-                .withCreate("create table nt (a int, b int)")
-                .withInsert("insert into nt values(?,?)")
-                .withRows(rows(row(null, null), row(null, null), row(null, null), row(1, 1)))
+                .withCreate("create table nt (id int primary key, a int, b int)")
+                .withInsert("insert into nt values(?,?,?)")
+                .withRows(rows(row(1, null, null), row(2, null, null), row(3, null, null), row(4, 1, 1)))
                 .withIndex("create unique index nt_idx on nt (a)").create();
 
 
         // updates to null should remain null.  So we are testing setting null to null on base and index conglom.
         // Even though null to null rows are not physically changed they should still contribute to row count.
         assertEquals(4L, methodWatcher.executeUpdate("update NT set a = a + 9"));
+
+        // same thing, but updating using primary key
+        assertEquals(1L, methodWatcher.executeUpdate("update NT set a = a + 9 where id=1"));
 
         assertEquals(4L, methodWatcher.query("select count(*) from nt"));
         assertEquals(4L, methodWatcher.query("select count(*) from nt --SPLICE-PROPERTIES index=nt_idx"));

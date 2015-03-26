@@ -105,5 +105,16 @@ public class TaskStats implements Externalizable {
         }
         return total;
     }
+
+    /**
+     * Sum the TotalRowsWritten property of the specified collection of TaskStats.
+     */
+    public static long sumTotalRowsWritten(Iterable<TaskStats> taskStatsList) {
+        long sum = 0;
+        for (TaskStats stat : taskStatsList) {
+            sum += stat.getTotalRowsWritten();
+        }
+        return sum;
+    }
 }
 

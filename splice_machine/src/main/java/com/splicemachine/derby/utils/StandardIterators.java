@@ -7,6 +7,8 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.sql.execute.StandardCloseable;
+import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.iapi.storage.RowProviderIterator;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.SIFactoryDriver;
@@ -72,6 +74,10 @@ public class StandardIterators {
 
     public static IOStandardIterator<ExecRow> ioIterator(SpliceNoPutResultSet resultSet) {
         return new SpliceResultSetStandardIterator(resultSet);
+    }
+
+    public static StandardIterator<ExecRow> wrap(RowProvider rowProvider) {
+        return new RowProviderStandardIterator(rowProvider);
     }
 
     private static class IteratorStandardIterator<T> implements IOStandardIterator<T> {
@@ -287,13 +293,58 @@ public class StandardIterators {
                 IOException {
             try {
                 return callable.call();
-            } catch (StandardException se) {
+            } catch (StandardException | IOException se) {
                 throw se;
-            } catch (IOException ioe) {
-                throw ioe;
             } catch (Exception e) {
                 throw Exceptions.parseException(e);
             }
         }
     }
+
+    /**
+     * StandardIterator having a RowProvider as its source.
+     */
+    public static class RowProviderStandardIterator implements StandardIterator<ExecRow> {
+
+        private RowProvider rowProvider;
+
+        public RowProviderStandardIterator(RowProvider rowProvider) {
+            this.rowProvider = rowProvider;
+        }
+
+        @Override
+        public void open() throws StandardException, IOException {
+            rowProvider.open();
+        }
+
+        @Override
+        public ExecRow next(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+            return rowProvider.hasNext() ? rowProvider.next() : null;
+        }
+
+        @Override
+        public void close() throws StandardException, IOException {
+            rowProvider.close();
+        }
+    }
+
+    /**
+     * No op default implementation. Intended for use as base class by impls that only override subset of methods.
+     */
+    public static class BaseStandardIterator<T> implements StandardIterator<T> {
+        @Override
+        public void open() throws StandardException, IOException {
+        }
+
+        @Override
+        public T next(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+            return null;
+        }
+
+        @Override
+        public void close() throws StandardException, IOException {
+        }
+    }
+
+
 }
