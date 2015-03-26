@@ -61,6 +61,11 @@ public class B2ICostController extends BTreeCostController
 		super();
 	}
 
+//    @Override
+    public double cardinalityFraction(int columnNumber){
+        return 1d; //not really implemented
+    }
+
     void init(
     TransactionManager  xact_manager,
     B2I                 conglomerate,

@@ -24,6 +24,7 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 
+import java.util.List;
 import java.util.Vector;
 
 /**
@@ -35,8 +36,7 @@ import java.util.Vector;
  * parameter.
  *
  */
-public class CollectNodesVisitor implements Visitor
-{
+public class CollectNodesVisitor implements Visitor {
 	private Vector	nodeList;
 	private Class 	nodeClass;
 	private Class	skipOverClass;
@@ -46,8 +46,7 @@ public class CollectNodesVisitor implements Visitor
 	 * @param nodeClass the class of the node that 
 	 * 	we are looking for.
 	 */
-	public CollectNodesVisitor(Class nodeClass)
-	{
+	public CollectNodesVisitor(Class nodeClass) {
 		this.nodeClass = nodeClass;
 		nodeList = new Vector();
 	}
@@ -103,11 +102,8 @@ public class CollectNodesVisitor implements Visitor
 	 *
 	 * @return true/false
 	 */
-	public boolean skipChildren(Visitable node)
-	{
-		return (skipOverClass == null) ?
-				false:
-				skipOverClass.isInstance(node);
+	public boolean skipChildren(Visitable node) {
+		return (skipOverClass == null) ? false: skipOverClass.isInstance(node);
 	}
 
 	////////////////////////////////////////////////
@@ -119,8 +115,7 @@ public class CollectNodesVisitor implements Visitor
 	 * Return the list of matching nodes.
 	 *
 	 */
-	public Vector getList()
-	{
+	public Vector getList() {
 		return nodeList;
 	}
-}	
+}

@@ -133,6 +133,11 @@ public abstract class GenericCostController extends GenericController implements
     }
 
 //    @Override
+    public double cardinalityFraction(int columnNumber){
+        return 1.0d; //not really implemented
+    }
+
+    //    @Override
     public double nullSelectivity(int columnNumber){
         return 1.0d;
     }

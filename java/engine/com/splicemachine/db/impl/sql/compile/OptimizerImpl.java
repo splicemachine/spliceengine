@@ -1613,9 +1613,9 @@ public class OptimizerImpl implements Optimizer{
     }
 
     protected void addCost(CostEstimate addend,CostEstimate destCost){
-        destCost.setRemoteCost(destCost.remoteCost()+addend.remoteCost());
+        destCost.setRemoteCost(addend.remoteCost());
         destCost.setLocalCost(destCost.localCost()+addend.localCost());
-        destCost.setEstimatedRowCount((long)addend.rowCount());
+        destCost.setRowCount(addend.rowCount());
         destCost.setSingleScanRowCount(addend.singleScanRowCount());
         destCost.setEstimatedHeapSize(addend.getEstimatedHeapSize());
         destCost.setNumPartitions(addend.partitionCount());

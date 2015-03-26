@@ -244,7 +244,27 @@ public class GroupByNode extends SingleChildResultSetNode{
                                      Optimizer optimizer,
                                      RowOrdering rowOrdering) throws StandardException{
         AggregateCostController acc=optimizer.newAggregateCostController(groupingList,aggregateVector);
-        return acc.estimateAggregateCost(outerCost);
+        CostEstimate costEstimate=acc.estimateAggregateCost(outerCost);
+        //set the base so that we can restore the child's finalResultSet from it
+        costEstimate.setBase(outerCost);
+        return costEstimate;
+    }
+
+    @Override
+    public CostEstimate getFinalCostEstimate() throws StandardException{
+        if(costEstimate==null){
+            costEstimate = super.getFinalCostEstimate();
+        }
+        CostEstimate baseEst = costEstimate.getBase();
+        if(baseEst.remoteCost()==0d){
+            /*
+             * We eliminated the remote portion of the cost during this aggregation,
+             * so ensure that the child's final cost estimate reflects that
+             */
+            childResult.getFinalCostEstimate().setRemoteCost(0d);
+        }
+        costEstimate.setBase(null);
+        return costEstimate;
     }
 
     /**

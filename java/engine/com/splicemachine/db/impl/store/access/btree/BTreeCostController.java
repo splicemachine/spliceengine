@@ -643,6 +643,10 @@ public class BTreeCostController extends OpenBTree
         return 1.0d;
     }
 
+    public double cardinalityFraction(int columnNumber){
+        return 1d; //not implemented
+    }
+
     //    @Override
     public double nullSelectivity(int columnNumber){ return 1.0d; }
 
