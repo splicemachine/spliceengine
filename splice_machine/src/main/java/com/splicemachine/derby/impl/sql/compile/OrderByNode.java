@@ -4,12 +4,8 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
-import com.splicemachine.db.impl.sql.compile.ActivationClassBuilder;
-import com.splicemachine.db.impl.sql.compile.OrderByList;
-import com.splicemachine.db.impl.sql.compile.ResultColumnList;
-import com.splicemachine.db.impl.sql.compile.ResultSetNode;
-import com.splicemachine.db.impl.sql.compile.SingleChildResultSetNode;
-import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.db.iapi.sql.compile.CostEstimate;
+import com.splicemachine.db.impl.sql.compile.*;
 
 
 public class OrderByNode extends SingleChildResultSetNode {
@@ -90,20 +86,22 @@ public class OrderByNode extends SingleChildResultSetNode {
 	    return childResult.makeResultDescriptors();
 	}
 
-    /**
-     * generate the distinct result set operating over the source
-	 * resultset.
-     *
-	 * @exception StandardException		Thrown on error
-     */
-	public void generate(ActivationClassBuilder acb,
-								MethodBuilder mb)
-							throws StandardException
-	{
+	@Override
+	public CostEstimate getFinalCostEstimate() throws StandardException{
+		CostEstimate est = super.getFinalCostEstimate();
+		CostEstimate base=est.getBase();
+		if(base!=est){
+			base.setRemoteCost(0d);
+			est.setBase(null);
+		}
+		return est;
+	}
+
+	@Override
+	public void generate(ActivationClassBuilder acb, MethodBuilder mb) throws StandardException {
 		// Get the cost estimate for the child
 		if (costEstimate == null) {			
 			costEstimate = childResult.getFinalCostEstimate().cloneMe();
-			costEstimate.setEstimatedCost(costEstimate.getEstimatedCost()+ ((double) costEstimate.getEstimatedRowCount()*SpliceConstants.optimizerWriteCost)); // Cost + Rows plus networked write
 		}
 
 	    orderByList.generate(acb, mb, childResult);
