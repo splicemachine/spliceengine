@@ -33,6 +33,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 
+import java.util.List;
 import java.util.Vector;
 
 /**
@@ -84,7 +85,7 @@ public class TestConstraintNode extends UnaryLogicalOperatorNode
 
 	public ValueNode bindExpression(
 		FromList fromList, SubqueryList subqueryList,
-		Vector	aggregateVector)
+		List<AggregateNode> aggregateVector)
 			throws StandardException
 	{
 		bindOperand(fromList, subqueryList, aggregateVector);

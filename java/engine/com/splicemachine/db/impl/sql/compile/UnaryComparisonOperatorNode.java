@@ -21,24 +21,17 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.splicemachine.db.iapi.sql.compile.Optimizable;
-
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-
-import com.splicemachine.db.iapi.types.TypeId;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-
-import com.splicemachine.db.iapi.store.access.ScanController;
-
 import com.splicemachine.db.iapi.error.StandardException;
-
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
-
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-
+import com.splicemachine.db.iapi.sql.compile.Optimizable;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.store.access.ScanController;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
 
-import java.util.Vector;
+import java.util.List;
 
 /**
  * This node is the superclass  for all unary comparison operators, such as is null
@@ -46,8 +39,7 @@ import java.util.Vector;
  *
  */
 
-public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode
-{
+public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode implements RelationalOperator {
 	/**
 	 * Bind this comparison operator.  All that has to be done for binding
 	 * a comparison operator is to bind the operand and set the result type 
@@ -61,14 +53,11 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-
-	public ValueNode bindExpression(
-		FromList fromList, SubqueryList subqueryList,
-		Vector	aggregateVector)
-			throws StandardException
-	{
-		bindOperand(fromList, subqueryList, 
-							 aggregateVector);
+	@Override
+	public ValueNode bindExpression(FromList fromList,
+									SubqueryList subqueryList,
+									List<AggregateNode> aggregateVector) throws StandardException {
+		bindOperand(fromList, subqueryList,  aggregateVector);
 
 		/* Set type info for this node */
 		bindComparisonOperator();
@@ -83,9 +72,7 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public void bindComparisonOperator()
-			throws StandardException
-	{
+	public void bindComparisonOperator() throws StandardException {
 		/*
 		** Set the result type of this comparison operator based on the
 		** operand.  The result type is always SQLBoolean and always
@@ -110,11 +97,9 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	ValueNode eliminateNots(boolean underNotNode) 
-					throws StandardException
-	{
-		if (! underNotNode)
-		{
+	@Override
+	ValueNode eliminateNots(boolean underNotNode)  throws StandardException {
+		if (! underNotNode) {
 			return this;
 		}
 
@@ -131,37 +116,27 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	abstract UnaryOperatorNode getNegation(ValueNode operand)
-				throws StandardException;
+	abstract UnaryOperatorNode getNegation(ValueNode operand) throws StandardException;
 
 	/* RelationalOperator interface */
 
-	/** @see RelationalOperator#getColumnOperand */
-	public ColumnReference getColumnOperand(
-								Optimizable optTable,
-								int columnPosition)
-	{
+	@Override
+	public ColumnReference getColumnOperand( Optimizable optTable, int columnPosition) {
 		FromBaseTable	ft;
 
-		if (SanityManager.DEBUG)
-		{
-			SanityManager.ASSERT(optTable instanceof FromBaseTable);
-		}
+		assert optTable instanceof FromBaseTable;
 
 		ft = (FromBaseTable) optTable;
 		ColumnReference	cr;
-		if (operand instanceof ColumnReference)
-		{
+		if (operand instanceof ColumnReference) {
 			/*
 			** The operand is a column reference.
 			** Is it the correct column?
 			*/
 			cr = (ColumnReference) operand;
-			if (cr.getTableNumber() == ft.getTableNumber())
-			{
+			if (cr.getTableNumber() == ft.getTableNumber()) {
 				/* The table is correct, how about the column position? */
-				if (cr.getSource().getColumnPosition() == columnPosition)
-				{
+				if (cr.getSource().getColumnPosition() == columnPosition) {
 					/* We've found the correct column - return it */
 					return cr;
 				}
@@ -172,20 +147,17 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode
 		return null;
 	}
 
-	/** @see RelationalOperator#getColumnOperand */
-	public ColumnReference getColumnOperand(Optimizable optTable)
-	{
+	@Override
+	public ColumnReference getColumnOperand(Optimizable optTable) {
 		ColumnReference	cr;
 
-		if (operand instanceof ColumnReference)
-		{
+		if (operand instanceof ColumnReference) {
 			/*
 			** The operand is a column reference.
 			** Is it the correct column?
 			*/
 			cr = (ColumnReference) operand;
-			if (cr.getTableNumber() == optTable.getTableNumber())
-			{
+			if (cr.getTableNumber() == optTable.getTableNumber()) {
 				/* We've found the correct column - return it */
 				return cr;
 			}
@@ -195,17 +167,14 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode
 		return null;
 	}
 
-	/** @see RelationalOperator#getOperand */
-	public ValueNode getOperand(ColumnReference cRef, int refSetSize,
-		boolean otherSide)
-	{
+	@Override
+	public ValueNode getOperand(ColumnReference cRef, int refSetSize, boolean otherSide) {
 		if (otherSide)
 		// there is no "other" side for Unary, so just return null.
 			return null;
 
 		ColumnReference	cr;
-		if (operand instanceof ColumnReference)
-		{
+		if (operand instanceof ColumnReference) {
 			/*
 			** The operand is a column reference.
 			** Is it the correct column?
@@ -221,22 +190,18 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode
 				btnVis.setTableMap(cRefTables);
 				cRef.accept(btnVis);
 			} catch (StandardException se) {
-            	if (SanityManager.DEBUG)
-            	{
+            	if (SanityManager.DEBUG) {
             	    SanityManager.THROWASSERT("Failed when trying to " +
             	        "find base table number for column reference check:",
 						se);
             	}
 			}
 			crTables.and(cRefTables);
-			if (crTables.getFirstSetBit() != -1)
-			{
+			if (crTables.getFirstSetBit() != -1) {
 				/*
 				** The table is correct, how about the column position?
 				*/
-				if (cr.getSource().getColumnPosition() ==
-					cRef.getColumnNumber())
-				{
+				if (cr.getSource().getColumnPosition() == cRef.getColumnNumber()) {
 					/* We've found the correct column - return it. */
 					return operand;
 				}
@@ -247,68 +212,41 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode
 		return null;
 	}
 
-	/** @see RelationalOperator#selfComparison */
-	public boolean selfComparison(ColumnReference cr)
-	{
-		ValueNode	otherSide;
-		JBitSet		tablesReferenced;
-
-		if (SanityManager.DEBUG)
-		{
-			SanityManager.ASSERT(cr == operand,
-				"ColumnReference not found in IsNullNode.");
-		}
+	@Override
+	public boolean selfComparison(ColumnReference cr) {
+		assert cr==operand: "ColumnReference not found in IsNullNode.";
 
 		/* An IsNullNode is not a comparison with any other column */
 		return false;
 	}
 
-	/**
-	 * @see RelationalOperator#getExpressionOperand
-	 */
-	public ValueNode getExpressionOperand(int tableNumber,
-										  int columnNumber,
-										  FromTable ft)
-	{
+	@Override
+	public ValueNode getExpressionOperand(int tableNumber, int columnNumber, FromTable ft) {
 		return null;
 	}
 
-	/**
-	 * @see RelationalOperator#generateExpressionOperand
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
+	@Override
 	public void generateExpressionOperand(Optimizable optTable,
-												int columnPosition,
-												ExpressionClassBuilder acb,
-												MethodBuilder mb)
-						throws StandardException
-	{
-		acb.generateNull(mb, operand.getTypeCompiler(), 
-				operand.getTypeServices().getCollationType());
+										  int columnPosition,
+										  ExpressionClassBuilder acb,
+										  MethodBuilder mb) throws StandardException {
+		acb.generateNull(mb, operand.getTypeCompiler(),  operand.getTypeServices().getCollationType());
 	}
 
 	/** @see RelationalOperator#getStartOperator */
-	public int getStartOperator(Optimizable optTable)
-	{
-		if (SanityManager.DEBUG)
-		{
-			SanityManager.THROWASSERT(
-							"getStartOperator not expected to be called for " +
-							this.getClass().getName());
+	@Override
+	public int getStartOperator(Optimizable optTable) {
+		if (SanityManager.DEBUG) {
+			SanityManager.THROWASSERT( "getStartOperator not expected to be called for " + this.getClass().getName());
 		}
 
 		return ScanController.GE;
 	}
 
-	/** @see RelationalOperator#getStopOperator */
-	public int getStopOperator(Optimizable optTable)
-	{
-		if (SanityManager.DEBUG)
-		{
-			SanityManager.THROWASSERT(
-							"getStopOperator not expected to be called for " +
-							this.getClass().getName());
+	@Override
+	public int getStopOperator(Optimizable optTable) {
+		if (SanityManager.DEBUG) {
+			SanityManager.THROWASSERT( "getStopOperator not expected to be called for " + this.getClass().getName());
 		}
 
 		return ScanController.GT;
@@ -320,21 +258,14 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode
 		mb.push(true);
 	}
 
-	/**
-	 * @see RelationalOperator#generateQualMethod
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
+	@Override
 	public void generateQualMethod(ExpressionClassBuilder acb,
-										MethodBuilder mb,
-										Optimizable optTable)
-						throws StandardException
-	{
+								   MethodBuilder mb,
+								   Optimizable optTable) throws StandardException {
 		MethodBuilder qualMethod = acb.newUserExprFun();
 
 		/* Generate a method that returns that expression */
-		acb.generateNull(qualMethod, operand.getTypeCompiler(),
-				operand.getTypeServices().getCollationType());
+		acb.generateNull(qualMethod, operand.getTypeCompiler(), operand.getTypeServices().getCollationType());
 		qualMethod.methodReturn();
 		qualMethod.complete();
 
@@ -342,25 +273,20 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode
 		acb.pushMethodReference(mb, qualMethod);
 	}
 
-	/** @see RelationalOperator#generateAbsoluteColumnId */
-	public void generateAbsoluteColumnId(MethodBuilder mb,
-										Optimizable optTable)
-	{
+	@Override
+	public void generateAbsoluteColumnId(MethodBuilder mb, Optimizable optTable) {
 		// Get the absolute 0-based column position for the column
 		int columnPosition = getAbsoluteColumnPosition(optTable);
 
 		mb.push(columnPosition);
 	}
 
-	/** @see RelationalOperator#generateRelativeColumnId */
-	public void generateRelativeColumnId(MethodBuilder mb,
-											   Optimizable optTable)
-	{
+	@Override
+	public void generateRelativeColumnId(MethodBuilder mb, Optimizable optTable) {
 		// Get the absolute 0-based column position for the column
 		int columnPosition = getAbsoluteColumnPosition(optTable);
 		// Convert the absolute to the relative 0-based column position
-		columnPosition = optTable.convertAbsoluteToRelativeColumnPosition(
-								columnPosition);
+		columnPosition = optTable.convertAbsoluteToRelativeColumnPosition(columnPosition);
 
 		mb.push(columnPosition);
 	}
@@ -373,8 +299,7 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode
 	 *
 	 * @return The absolute 0-based column position of the ColumnReference
 	 */
-	private int getAbsoluteColumnPosition(Optimizable optTable)
-	{
+	private int getAbsoluteColumnPosition(Optimizable optTable) {
 		ColumnReference	cr = (ColumnReference) operand;
 		int columnPosition;
 		ConglomerateDescriptor bestCD;
@@ -382,38 +307,27 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode
 		/* Column positions are one-based, store is zero-based */
 		columnPosition = cr.getSource().getColumnPosition();
 
-		bestCD =
-			optTable.getTrulyTheBestAccessPath().getConglomerateDescriptor();
+		bestCD = optTable.getTrulyTheBestAccessPath().getConglomerateDescriptor();
 
 		/*
 		** If it's an index, find the base column position in the index
 		** and translate it to an index column position.
 		*/
-		if (bestCD.isIndex())
-		{
-			columnPosition = bestCD.getIndexDescriptor().
-			  getKeyColumnPosition(columnPosition);
+		if (bestCD.isIndex()) {
+			columnPosition = bestCD.getIndexDescriptor().getKeyColumnPosition(columnPosition);
 
-			if (SanityManager.DEBUG)
-			{
-				SanityManager.ASSERT(columnPosition > 0,
-					"Base column not found in index");
-			}
+			assert columnPosition>0: "Base column not found in index";
 		}
 
 		// return the 0-based column position
 		return columnPosition - 1;
 	}
 
-	/** @see RelationalOperator#orderedNulls */
-	public boolean orderedNulls()
-	{
-		return true;
-	}
+	@Override
+	public boolean orderedNulls() { return true; }
 
-	/** @see RelationalOperator#isQualifier */
-	public boolean isQualifier(Optimizable optTable, boolean forPush)
-	{
+	@Override
+	public boolean isQualifier(Optimizable optTable, boolean forPush) {
 		/*
 		** It's a Qualifier if the operand is a ColumnReference referring
 		** to a column in the given Optimizable table.
@@ -424,20 +338,11 @@ public abstract class UnaryComparisonOperatorNode extends UnaryOperatorNode
 		ColumnReference cr = (ColumnReference) operand;
 		FromTable ft = (FromTable) optTable;
 
-		if (cr.getTableNumber() != ft.getTableNumber())
-			return false;
-
-		return true;
+		return cr.getTableNumber()==ft.getTableNumber();
 	}
 
-	/** 
-	 * @see RelationalOperator#getOrderableVariantType 
-	 *
-	 * @exception StandardException	thrown on error
-	 */
-	public int getOrderableVariantType(Optimizable optTable) 
-		throws StandardException
-	{
+	@Override
+	public int getOrderableVariantType(Optimizable optTable)  throws StandardException {
 		return operand.getOrderableVariantType();
 	}
 }

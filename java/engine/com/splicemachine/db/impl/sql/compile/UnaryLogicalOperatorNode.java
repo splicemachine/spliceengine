@@ -21,54 +21,45 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 
-import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-
+import java.util.List;
 import java.util.Vector;
 
-public abstract class UnaryLogicalOperatorNode extends UnaryOperatorNode
-{
-	/**
-	 * Initializer for a UnaryLogicalOperatorNode
-	 *
-	 * @param operand	The operand of the operator
-	 * @param methodName	The name of the method to call in the generated
-	 *						class.  In this case, it's actually an operator
-	 *						name.
-	 */
+public abstract class UnaryLogicalOperatorNode extends UnaryOperatorNode{
+    /**
+     * Initializer for a UnaryLogicalOperatorNode
+     *
+     * @param operand    The operand of the operator
+     * @param methodName The name of the method to call in the generated
+     *                   class.  In this case, it's actually an operator
+     *                   name.
+     */
+    @Override
+    public void init(Object operand,Object methodName){
+        /* For logical operators, the operator and method names are the same */
+        super.init(operand,methodName,methodName);
+    }
 
-	public void init(
-				Object	operand,
-				Object		methodName)
-	{
-		/* For logical operators, the operator and method names are the same */
-		super.init(operand, methodName, methodName);
-	}
-
-	/**
-	 * Bind this logical operator.  All that has to be done for binding
-	 * a logical operator is to bind the operand, check that the operand
-	 * is SQLBoolean, and set the result type to SQLBoolean.
-	 *
-	 * @param fromList			The query's FROM list
-	 * @param subqueryList		The subquery list being built as we find SubqueryNodes
-	 * @param aggregateVector	The aggregate vector being built as we find AggregateNodes
-	 *
-	 * @return	The new top of the expression tree.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-
-	public ValueNode bindExpression(
-		FromList fromList, SubqueryList subqueryList,
-		Vector	aggregateVector)
-			throws StandardException
-	{
-		bindOperand(fromList, subqueryList,
-							 aggregateVector);
+    /**
+     * Bind this logical operator.  All that has to be done for binding
+     * a logical operator is to bind the operand, check that the operand
+     * is SQLBoolean, and set the result type to SQLBoolean.
+     *
+     * @param fromList        The query's FROM list
+     * @param subqueryList    The subquery list being built as we find SubqueryNodes
+     * @param aggregateVector The aggregate vector being built as we find AggregateNodes
+     * @throws StandardException Thrown on error
+     * @return The new top of the expression tree.
+     */
+    @Override
+    public ValueNode bindExpression(FromList fromList,
+                                    SubqueryList subqueryList,
+                                    List<AggregateNode> aggregateVector) throws StandardException{
+        bindOperand(fromList,subqueryList, aggregateVector);
 
 		/*
 		** Logical operators work only on booleans.  If the operand 
@@ -80,28 +71,25 @@ public abstract class UnaryLogicalOperatorNode extends UnaryOperatorNode
 		** the grammar, so this test will become useful.
 		*/
 
-		if ( ! operand.getTypeServices().getTypeId().isBooleanTypeId())
-		{
-			throw StandardException.newException(SQLState.LANG_UNARY_LOGICAL_NON_BOOLEAN);
-		}
+        if(!operand.getTypeServices().getTypeId().isBooleanTypeId()){
+            throw StandardException.newException(SQLState.LANG_UNARY_LOGICAL_NON_BOOLEAN);
+        }
 
 		/* Set the type info */
-		setFullTypeInfo();
+        setFullTypeInfo();
 
-		return this;
-	}
-		
-	/**
-	 * Set all of the type info (nullability and DataTypeServices) for
-	 * this node.  Extracts out tasks that must be done by both bind()
-	 * and post-bind() AndNode generation.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	protected void setFullTypeInfo()
-		throws StandardException
-	{
-		boolean nullableResult;
+        return this;
+    }
+
+    /**
+     * Set all of the type info (nullability and DataTypeServices) for
+     * this node.  Extracts out tasks that must be done by both bind()
+     * and post-bind() AndNode generation.
+     *
+     * @throws StandardException Thrown on error
+     */
+    protected void setFullTypeInfo() throws StandardException{
+        boolean nullableResult;
 
 		/*
 		** Set the result type of this comparison operator based on the
@@ -110,7 +98,7 @@ public abstract class UnaryLogicalOperatorNode extends UnaryOperatorNode
 		** nullable, the result of the comparison must be nullable, too, so
 		** we can represent the unknown truth value.
 		*/
-		nullableResult = operand.getTypeServices().isNullable();
-		setType(new DataTypeDescriptor(TypeId.BOOLEAN_ID, nullableResult));
-	}
+        nullableResult=operand.getTypeServices().isNullable();
+        setType(new DataTypeDescriptor(TypeId.BOOLEAN_ID,nullableResult));
+    }
 }
