@@ -65,7 +65,7 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 								setCurrentRow(mergedRow);
 								return mergedRow;
 						} else {
-								nestedLoopIterator = new NestedLoopLeftOuterIterator(leftRow,isHash,spliceRuntimeContext);
+								nestedLoopIterator = new NestedLoopLeftOuterIterator(leftRow,isHash,spliceRuntimeContext, true, false);
 								rowsSeenLeft++;
 								return nextRow(spliceRuntimeContext);
 						}
@@ -78,7 +78,7 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 								setCurrentRow(mergedRow);
 								return mergedRow;
 						} else {
-								nestedLoopIterator = new NestedLoopLeftOuterIterator(leftRow,isHash,spliceRuntimeContext);
+								nestedLoopIterator = new NestedLoopLeftOuterIterator(leftRow,isHash,spliceRuntimeContext, true, false);
 								rowsSeenLeft++;
 								return nextRow(spliceRuntimeContext);
 						}
@@ -108,11 +108,16 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 				return "LeftOuter"+super.prettyPrint(indentLevel);
 		}
 
-		private class NestedLoopLeftOuterIterator extends NestedLoopIterator{
+    @Override
+    protected NestedLoopIterator createNestedLoopIterator(ExecRow leftRow, boolean hash, SpliceRuntimeContext spliceRuntimeContext, boolean showStatementInfo, boolean cloneResults) throws StandardException, IOException {
+        return new NestedLoopLeftOuterIterator(leftRow, hash, spliceRuntimeContext, showStatementInfo, cloneResults);
+    }
+
+    private class NestedLoopLeftOuterIterator extends NestedLoopIterator{
 				private boolean seenRow = false;
 
-				NestedLoopLeftOuterIterator(ExecRow leftRow, boolean hash,SpliceRuntimeContext context) throws StandardException, IOException {
-						super(leftRow, hash, true, rightResultSetUniqueSequenceID, context, true, false);
+				NestedLoopLeftOuterIterator(ExecRow leftRow, boolean hash,SpliceRuntimeContext context, boolean showStatementInfo, boolean cloneResults) throws StandardException, IOException {
+						super(leftRow, hash, true, rightResultSetUniqueSequenceID, context, showStatementInfo, cloneResults);
 				}
 
 				@Override
