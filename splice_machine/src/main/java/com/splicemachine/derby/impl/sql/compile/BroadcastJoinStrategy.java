@@ -63,9 +63,9 @@ public class BroadcastJoinStrategy extends BaseCostedHashableJoinStrategy {
                             Optimizer optimizer,
                             CostEstimate outerCost) throws StandardException {
         boolean hashFeasible = super.feasible(innerTable,predList,optimizer,outerCost) && innerTable.isBaseTable();
-		TableDescriptor td = innerTable.getTableDescriptor();
-        hashFeasible  = hashFeasible && (td!=null);
         if(!hashFeasible) return false;
+		TableDescriptor td = innerTable.getTableDescriptor();
+        if(td==null) return false;
         ConglomerateDescriptor[] cd = td.getConglomerateDescriptors();
         if(cd==null || cd.length<1) return false;
 
