@@ -4,8 +4,14 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.store.access.AggregateCostController;
+import com.splicemachine.db.impl.sql.compile.AggregateNode;
+import com.splicemachine.db.impl.sql.compile.GroupByList;
 import com.splicemachine.db.impl.sql.compile.Level2OptimizerImpl;
 import com.splicemachine.derby.impl.stats.StatisticsStorage;
+import com.splicemachine.derby.impl.store.access.TempScalarAggregateCostController;
+
+import java.util.List;
 
 /**
  * This is the Level 2 Optimizer.
@@ -66,4 +72,11 @@ public class SpliceLevel2OptimizerImpl extends Level2OptimizerImpl{
         return new SimpleCostEstimate(theCost,theRowCount,theSingleScanRowCount);
     }
 
+    @Override
+    public AggregateCostController newAggregateCostController(GroupByList groupingList,List<AggregateNode> aggregateVector){
+        if(groupingList==null||groupingList.size()<=0) //we are a scalar aggregate
+            return new TempScalarAggregateCostController();
+        else //we are a grouped aggregate
+            throw new UnsupportedOperationException("IMPLEMENT");
+    }
 }
