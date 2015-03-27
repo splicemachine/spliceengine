@@ -170,7 +170,7 @@ public class SpliceUtils extends SpliceUtilities {
     }
 
     public static byte[] generateInstructions(Activation activation,SpliceOperation topOperation, SpliceRuntimeContext spliceRuntimeContext) {
-        SpliceObserverInstructions instructions = SpliceObserverInstructions.create(activation,topOperation,spliceRuntimeContext,spliceRuntimeContext.getTxn());
+        SpliceObserverInstructions instructions = SpliceObserverInstructions.create(activation,topOperation,spliceRuntimeContext);
         return generateInstructions(instructions);
     }
 
