@@ -1,6 +1,38 @@
 package com.splicemachine.hbase.backup;
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.Collection;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.ContentSummary;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FSDataOutputStream;
+import org.apache.hadoop.fs.FileStatus;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.FSUtils;
+import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
+import org.apache.hadoop.util.StringUtils;
+import org.apache.log4j.Logger;
+
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.utils.ConglomerateUtils;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -8,23 +40,8 @@ import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.si.impl.TransactionTimestamps;
-import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.utils.SpliceUtilities;
 import com.splicemachine.utils.ZkUtils;
-
-import com.splicemachine.db.iapi.error.StandardException;
-import org.apache.hadoop.fs.*;
-import org.apache.hadoop.hbase.HTableDescriptor;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
-import org.apache.log4j.Logger;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.sql.*;
-import java.util.*;
 
 /**
  *
@@ -44,6 +61,8 @@ public class Backup implements InternalTable {
     public static final String BACKUP_META_FOLDER = "meta";
     public static final String BACKUP_PROPERTIES_FOLDER = "properties";
     public static final String BACKUP_VERSION = "1";
+    public static final String BACKUP_LOG_FILE_NAME = "backupStatus.log";
+    public static final long   BACKUP_TPUT_PER_NODE = 30*1024*1024; // modest 30MB per node
 
     private long timestampSource;
 
@@ -91,6 +110,9 @@ public class Backup implements InternalTable {
     private long backupId;
     private HashMap<String, BackupItem> backupItems;
     private long backupTimestamp;
+    private FSDataOutputStream logFileOut;
+    private int totalBackuped = 0;
+    private long backupStartTime;
 
     public long getBackupId() {
         return backupId;
@@ -145,8 +167,23 @@ public class Backup implements InternalTable {
 
     public void setBackupStatus(BackupStatus backupStatus) {
         this.backupStatus = backupStatus;
+        if( backupStatus == BackupStatus.F){
+        	log("Backup FAILED. ");
+        } else if( backupStatus == BackupStatus.S){
+        	log("Finished with Success. Total time taken for backup was: "+
+               formatTime(System.currentTimeMillis() - backupStartTime));
+        }
+        if( backupStatus != BackupStatus.I){
+        	closeLogFile();
+        }
     }
 
+    public void updateProgress()
+    {
+    	totalBackuped++;
+    	log(String.format("%d objects of %d objects backed up..", totalBackuped, backupItems.size()));
+    }
+    
     public String getBackupFilesystem() {
         return backupFilesystem;
     }
@@ -334,10 +371,105 @@ public class Backup implements InternalTable {
             fileSystem.mkdirs(getMetaBackupFilesystemAsPath());
         if (!fileSystem.exists(getPropertiesBackupFilesystemAsPath()))
             fileSystem.mkdirs(getPropertiesBackupFilesystemAsPath());
+        
+        openLogFile();
+        
         return true;
     }
 
-    public void addBackupItem(BackupItem backupItem) {
+    
+    public void start() throws IOException{
+    	long estBackupTime = estimateBackupTime();
+    	this.backupStartTime = System.currentTimeMillis();
+    	Date finishTime = new Date(System.currentTimeMillis()+ estBackupTime * 1000);
+    	
+    	log("Expected time for backup "+formatTime(estBackupTime * 1000)+
+    			". Expected finish on "+ finishTime.toString());
+    	
+    }
+    private void openLogFile() throws IOException
+    {
+    	// We use baseFolder to keep log file in
+    	// Should be called after createBaseBackupDirectory
+    	// TODO we can't probably use Splice configuration
+        FileSystem fs = FileSystem.get(URI.create(getBackupFilesystem()), new Configuration());
+        
+        Path logFilePath = new Path(getBaseBackupFilesystemAsPath(), BACKUP_LOG_FILE_NAME);
+        this.logFileOut = fs.create(logFilePath, true);
+
+    }
+    
+    /**
+     * Close log file
+     * @throws IOException
+     */
+    private void closeLogFile() {
+    	try {
+			this.logFileOut.close();
+		} catch (IOException e) {
+			LOG.error("Failed to close log file", e);
+		}
+    }
+    
+    /**
+     * Estimated backup time
+     * @return time (in seconds)
+     * @throws IOException
+     */
+    private long estimateBackupTime() throws IOException{
+    	Map<String, BackupItem> itemMap = getBackupItems();
+    	Collection<BackupItem> items = itemMap.values();
+    	long clusterSize = getClusterSize();
+    	long totalDataSize = getTotalDataSize(items);
+    	
+    	return (totalDataSize)/(clusterSize * BACKUP_TPUT_PER_NODE);
+    }
+    
+    /**
+     * Logs a message
+     * @param msg
+     * @throws IOException
+     */
+    private void log(String msg) 
+    {
+    	LOG.info(msg);
+    	try{
+    		this.logFileOut.writeBytes(msg+"\n");
+    	} catch (IOException e){
+    		// swallow
+    	}
+    }
+    
+    /**
+     * Format seconds into dd:hh:mm:ss string
+     * @param sec
+     * @return formatted string
+     */
+    private String formatTime(long ms)
+    {
+    	return StringUtils.formatTime(ms);
+    }
+    
+    /**
+     * Returns total space consumed by HBase
+     * @param items
+     * @return
+     * @throws IOException
+     */
+    private long getTotalDataSize(Collection<BackupItem> items) throws IOException {
+    	FileSystem fs = FileSystem.get(SpliceConstants.config);
+    	Path hbaseRoot = FSUtils.getRootDir(SpliceConstants.config);
+    	ContentSummary sum = fs.getContentSummary(hbaseRoot);
+    	// TODO: does it work for directories?
+    	return sum.getSpaceConsumed();
+	}
+
+	private int getClusterSize() throws IOException {
+        HBaseAdmin admin = SpliceUtilities.getAdmin();
+        return admin.getClusterStatus().getServersSize();
+	}
+
+	public void addBackupItem(BackupItem backupItem) {
         if (backupItems == null) {
             backupItems = new HashMap<>();
         }
@@ -361,8 +493,7 @@ public class Backup implements InternalTable {
         HTableDescriptor[] descriptorArray = admin.listTables();
 
         for (HTableDescriptor descriptor: descriptorArray) {
-        	// DB-3089
-        	if(isTempTable(descriptor)) continue;
+            if(isTempTable(descriptor)) continue;          
             BackupItem item = new BackupItem(descriptor,this);
             item.createSnapshot(admin, backupTransaction.getBeginTimestamp(), newSnapshotNameSet);
             item.setLastSnapshotName(snapshotNameSet);
@@ -380,7 +511,7 @@ public class Backup implements InternalTable {
     	return false;
 	}
 
-	@Override
+    @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 //  FIXME reenable throw     if(true)
 //          throw new UnsupportedOperationException("DECODE TRANSACTION");
@@ -541,4 +672,6 @@ public class Backup implements InternalTable {
     public boolean isTemporaryBaseFolder() {
         return temporaryBaseFolder;
     }
+    
+
 }

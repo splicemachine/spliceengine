@@ -504,12 +504,13 @@ public class BackupSystemProcedures {
             backup.insertBackup();
             backup.createProperties();
             HashMap<String, BackupItem> backupItems = backup.getBackupItems();
-      
+            backup.start();
             for (String key : backupItems.keySet()) {
                 BackupItem backupItem =  backupItems.get(key);
                 boolean backedUp = backupItem.doBackup();
-                if (backedUp)
-                    count++;
+                
+                if (backedUp) count++;
+                backup.updateProgress();
             }
 
             // create metadata, including timestamp source's timestamp
