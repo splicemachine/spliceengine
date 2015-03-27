@@ -650,7 +650,9 @@ public class ColumnDefinitionNode extends TableElementNode
 
 			// RESOLVEDEFAULT - Convert to constant if possible
             if (defaultValue == null && defaultTree instanceof ConstantNode) {
-                defaultValue = ((ConstantNode)defaultTree).getValue();
+				DataValueDescriptor tmp = columnTypeId.getNull();
+				tmp.setValue(((ConstantNode)defaultTree).getValue());
+                defaultValue = tmp;
             }
             // Save off the default text and value
 			defaultInfo = new DefaultInfoImpl(false,
