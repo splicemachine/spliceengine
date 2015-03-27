@@ -52,7 +52,6 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.impl.jdbc.Util;
 import com.splicemachine.db.jdbc.InternalDriver;
-import org.apache.log4j.Logger;
 
 /**
  * <p>
@@ -81,7 +80,6 @@ public final class NativeAuthenticationServiceImpl
     // CONSTANTS
     //
     ///////////////////////////////////////////////////////////////////////////////////
-    private static final Logger LOG = Logger.getLogger(NativeAuthenticationServiceImpl.class);
 
     ///////////////////////////////////////////////////////////////////////////////////
     //
@@ -604,12 +602,10 @@ public final class NativeAuthenticationServiceImpl
 		// Check if the DBO already exists which may happen if the manual override for
 		// creation of the native credentials database is set.
 		if (dd.getUser(userName) == null) {
-			if (LOG.isInfoEnabled()) LOG.info(String.format("Saving DBO's initial credentials to SYSUSERS table: username=%s", userName));
 			SystemProcedures.addUser( userName, userPassword, tc );
 			// Change the system schemas to be owned by the user.  This is needed for upgrading
 			// the Splice Machine 0.5 beta where the owner of the system schemas was APP.
 			// Splice Machine 1.0+ has the SPLICE user as the DBO of the system schemas.
-			if (LOG.isInfoEnabled()) LOG.info("Updating the system schemas to be owned by the DBO");
 			SystemProcedures.updateSystemSchemaAuthorization(userName, tc);
 		}
 	}
@@ -631,7 +627,6 @@ public final class NativeAuthenticationServiceImpl
 		// creation of the native credentials database is set.
 		SchemaDescriptor sd = dd.getSchemaDescriptor(userName, tc, false);
 		if (sd == null || sd.getUUID() == null) {
-			if (LOG.isInfoEnabled()) LOG.info("Creating initial schema for DBO");
 			UUID tmpSchemaId = dd.getUUIDFactory().createUUID();
 			dd.startWriting(lcc);
 	        sd = ddg.newSchemaDescriptor(userName, userName, tmpSchemaId);

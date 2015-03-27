@@ -24,14 +24,12 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import org.apache.log4j.Logger;
 
 /**
  * @author Scott Fines
  *         Created on: 2/22/13
  */
 public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator,ModuleControl {
-    private static final Logger LOG = Logger.getLogger(DefaultSystemProcedureGenerator.class);
     private static final String SYSTEM_PROCEDURES = "com.splicemachine.db.catalog.SystemProcedures";
     private static final String LOB_STORED_PROCEDURE = "com.splicemachine.db.impl.jdbc.LOBStoredProcedure";
 
@@ -116,9 +114,6 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
     	if (procedure == null) {
     		throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION, "PROCEDURE", (schemaName + "." + procName));
     	} else {
-    		if (LOG.isInfoEnabled()) {
-    			LOG.info(String.format("Creating procedure: %s.%s", sd.getSchemaName(), procName));
-    		}
     		newlyCreatedRoutines.add(procedure.createSystemProcedure(schemaId, dictionary, tc));
     	}
     }
@@ -156,9 +151,6 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
     	String schemaIdStr = schemaId.toString();
     	AliasDescriptor ad = dictionary.getAliasDescriptor(schemaIdStr, procName, AliasInfo.ALIAS_NAME_SPACE_PROCEDURE_AS_CHAR);
     	if (ad != null) {  // Drop the procedure if it already exists.
-    		if (LOG.isInfoEnabled()) {
-    			LOG.info(String.format("Dropping already existing procedure: %s.%s", sd.getSchemaName(), procName));
-    		}
     		dictionary.dropAliasDescriptor(ad, tc);
     	}
     }
@@ -201,9 +193,6 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
         	ad = dictionary.getAliasDescriptor(schemaIdStr, procName, AliasInfo.ALIAS_NAME_SPACE_FUNCTION_AS_CHAR);
     	}
     	if (ad != null) {  // Drop the procedure if it already exists.
-            if (LOG.isInfoEnabled()) {
-                LOG.info(String.format("Dropping already existing procedure: %s.%s", sd.getSchemaName(), procName));
-            }
     		dictionary.dropAliasDescriptor(ad, tc);
     	}
 
@@ -212,9 +201,6 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
     	if (procedure == null) {
     		throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND_DURING_EXECUTION, "PROCEDURE", (schemaName + "." + procName));
     	} else {
-            if (LOG.isInfoEnabled()) {
-                LOG.info(String.format("Creating procedure: %s.%s", sd.getSchemaName(), procName));
-            }
     		newlyCreatedRoutines.add(procedure.createSystemProcedure(schemaId, dictionary, tc));
     	}
     }

@@ -29,41 +29,38 @@ import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 
 /**
  * An OrderByNode represents a result set for a sort operation
- * for an order by list.  It is expected to only be generated at 
+ * for an order by list.  It is expected to only be generated at
  * the end of optimization, once we have determined that a sort
  * is required.
- *
  */
-public class OrderByNode extends SingleChildResultSetNode
-{
+public class OrderByNode extends SingleChildResultSetNode{
 
-	OrderByList		orderByList;
+    OrderByList orderByList;
 
     @Override
-    public boolean isParallelizable() {
+    public boolean isParallelizable(){
         return true; //represented by a sort operation
     }
 
     /**
-	 * Initializer for a OrderByNode.
-	 *
-	 * @param childResult	The child ResultSetNode
-	 * @param orderByList	The order by list.
- 	 * @param tableProperties	Properties list associated with the table
-    *
-	 * @exception StandardException		Thrown on error
-	 */
-	public void init( Object childResult, Object orderByList, Object tableProperties) throws StandardException {
-		ResultSetNode child = (ResultSetNode) childResult;
+     * Initializer for a OrderByNode.
+     *
+     * @param childResult     The child ResultSetNode
+     * @param orderByList     The order by list.
+     * @param tableProperties Properties list associated with the table
+     * @throws StandardException Thrown on error
+     */
+    public void init(Object childResult,Object orderByList,Object tableProperties) throws StandardException{
+        ResultSetNode child=(ResultSetNode)childResult;
 
-		super.init(childResult, tableProperties);
+        super.init(childResult,tableProperties);
 
-		this.orderByList = (OrderByList) orderByList;
+        this.orderByList=(OrderByList)orderByList;
 
-		ResultColumnList prRCList;
+        ResultColumnList prRCList;
 
 		/*
-			We want our own resultColumns, which are virtual columns
+            We want our own resultColumns, which are virtual columns
 			pointing to the child result's columns.
 
 			We have to have the original object in the distinct node,
@@ -73,68 +70,67 @@ public class OrderByNode extends SingleChildResultSetNode
 		/* We get a shallow copy of the ResultColumnList and its 
 		 * ResultColumns.  (Copy maintains ResultColumn.expression for now.)
 		 */
-		prRCList = child.getResultColumns().copyListAndObjects();
-		resultColumns = child.getResultColumns();
-		child.setResultColumns(prRCList);
+        prRCList=child.getResultColumns().copyListAndObjects();
+        resultColumns=child.getResultColumns();
+        child.setResultColumns(prRCList);
 
 		/* Replace ResultColumn.expression with new VirtualColumnNodes
 		 * in the DistinctNode's RCL.  (VirtualColumnNodes include
 		 * pointers to source ResultSetNode, this, and source ResultColumn.)
 		 */
-		resultColumns.genVirtualColumnNodes(this, prRCList);
-	}
+        resultColumns.genVirtualColumnNodes(this,prRCList);
+    }
 
-	@Override
-	public CostEstimate getFinalCostEstimate() throws StandardException{
-		CostEstimate est = super.getFinalCostEstimate();
-		est.setBase(null);
-		return est;
-	}
+    @Override
+    public CostEstimate getFinalCostEstimate() throws StandardException{
+        CostEstimate est=super.getFinalCostEstimate();
+        est.setBase(null);
+        return est;
+    }
 
-	@Override
-	public void printSubNodes(int depth) {
-		if (SanityManager.DEBUG) {
-			super.printSubNodes(depth);
+    @Override
+    public void printSubNodes(int depth){
+        if(SanityManager.DEBUG){
+            super.printSubNodes(depth);
 
-			if (orderByList != null) {
-				printLabel(depth, "orderByList: ");
-				orderByList.treePrint(depth + 1);
-			}
-		}
-	}
+            if(orderByList!=null){
+                printLabel(depth,"orderByList: ");
+                orderByList.treePrint(depth+1);
+            }
+        }
+    }
 
 
-	public ResultColumnDescriptor[] makeResultDescriptors()
-	{
-	    return childResult.makeResultDescriptors();
-	}
+    public ResultColumnDescriptor[] makeResultDescriptors(){
+        return childResult.makeResultDescriptors();
+    }
 
     /**
      * generate the distinct result set operating over the source
-	 * resultset.
+     * resultset.
      *
-	 * @exception StandardException		Thrown on error
+     * @throws StandardException Thrown on error
      */
-	public void generate(ActivationClassBuilder acb, MethodBuilder mb) throws StandardException {
-		// Get the cost estimate for the child
-		if (costEstimate == null) {			
-			costEstimate = childResult.getFinalCostEstimate();
-		}
+    public void generate(ActivationClassBuilder acb,MethodBuilder mb) throws StandardException{
+        // Get the cost estimate for the child
+        if(costEstimate==null){
+            costEstimate=getFinalCostEstimate();
+        }
 
-	    orderByList.generate(acb, mb, childResult);
+        orderByList.generate(acb,mb,childResult,costEstimate);
 
-		// We need to take note of result set number if ORDER BY is used in a
-		// subquery for the case where a PRN is inserted in top of the select's
-		// PRN to project away a sort column that is not part of the select
-		// list, e.g.
-		//
-		//     select * from (select i from t order by j desc) s
-		//
-		// If the resultSetNumber is not correctly set in our resultColumns,
-		// code generation for the PRN above us will fail when calling
-		// resultColumns.generateCore -> VCN.generateExpression, cf. the Sanity
-		// assert in VCN.generateExpression on sourceResultSetNumber >= 0.
-		resultSetNumber = orderByList.getResultSetNumber();
-		resultColumns.setResultSetNumber(resultSetNumber);
-	}
+        // We need to take note of result set number if ORDER BY is used in a
+        // subquery for the case where a PRN is inserted in top of the select's
+        // PRN to project away a sort column that is not part of the select
+        // list, e.g.
+        //
+        //     select * from (select i from t order by j desc) s
+        //
+        // If the resultSetNumber is not correctly set in our resultColumns,
+        // code generation for the PRN above us will fail when calling
+        // resultColumns.generateCore -> VCN.generateExpression, cf. the Sanity
+        // assert in VCN.generateExpression on sourceResultSetNumber >= 0.
+        resultSetNumber=orderByList.getResultSetNumber();
+        resultColumns.setResultSetNumber(resultSetNumber);
+    }
 }

@@ -80,7 +80,6 @@ import com.splicemachine.db.iapi.types.NumberDataValue;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.db.iapi.util.ReuseFactory;
-import org.apache.log4j.Logger;
 
 /**
  * BaseActivation
@@ -191,7 +190,6 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 	 * StatementContext. The nested SQL session context is initialized
 	 * by code generated for the call, after parameters are evaluated
 	 * or just substatement execution starts.
-	 * @see org.apache.derby.impl.sql.compile.StaticMethodCallNode#generateSetupNestedSessionContext
 	 * @see com.splicemachine.db.impl.sql.GenericPreparedStatement#executeSubStatement
 	 *
 	 */
