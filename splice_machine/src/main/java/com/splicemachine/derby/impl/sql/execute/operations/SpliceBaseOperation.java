@@ -410,10 +410,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 				final RowProvider rowProvider = getMapRowProvider(this, OperationUtils.getPairDecoder(this, spliceRuntimeContext),spliceRuntimeContext);
 
 				nextTime+= System.currentTimeMillis()-start;
-				//TODO -sf- can we remove the transaction here?
-				SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),
-								this,spliceRuntimeContext,
-								spliceRuntimeContext.getTxn());
+				SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(), this,spliceRuntimeContext);
 				jobResults = rowProvider.shuffleRows(soi,OperationUtils.cleanupSubTasks(this));
 				return jobResults;
 		}
