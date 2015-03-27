@@ -27,220 +27,201 @@ import com.splicemachine.db.iapi.error.StandardException;
 /**
  * This interface gathers up some tasty information about the indices on a
  * table from the DataDictionary.
- *
  */
-public class IndexLister
-{
-	////////////////////////////////////////////////////////////////////////
-	//
-	//	STATE
-	//
-	////////////////////////////////////////////////////////////////////////
+public class IndexLister{
+    ////////////////////////////////////////////////////////////////////////
+    //
+    //	STATE
+    //
+    ////////////////////////////////////////////////////////////////////////
 
-	private	TableDescriptor		tableDescriptor;
-	private	IndexRowGenerator[]	indexRowGenerators;
-	private	long[]				indexConglomerateNumbers;
-	private String[]			indexNames;
-	// the following 3 are the compact arrays, without duplicate indexes
-	private IndexRowGenerator[]	distinctIndexRowGenerators;
-	private	long[]				distinctIndexConglomerateNumbers;
-	private String[]			distinctIndexNames;
+    private TableDescriptor tableDescriptor;
+    private IndexRowGenerator[] indexRowGenerators;
+    private long[] indexConglomerateNumbers;
+    private String[] indexNames;
+    // the following 3 are the compact arrays, without duplicate indexes
+    private IndexRowGenerator[] distinctIndexRowGenerators;
+    private long[] distinctIndexConglomerateNumbers;
+    private String[] distinctIndexNames;
 
-	////////////////////////////////////////////////////////////////////////
-	//
-	//	CONSTRUCTORS
-	//
-	////////////////////////////////////////////////////////////////////////
-
-	/**
-	  *	Make an IndexLister
-	  *
-	  *	@param	tableDescriptor	Describes the table in question.
-	  *
-	  */
-	public	IndexLister( TableDescriptor	tableDescriptor )
-	{
-		this.tableDescriptor = tableDescriptor;
-	}
-
-
-	////////////////////////////////////////////////////////////////////////
-	//
-	//	INDEXLISTER METHODS
-	//
-	////////////////////////////////////////////////////////////////////////
+    ////////////////////////////////////////////////////////////////////////
+    //
+    //	CONSTRUCTORS
+    //
+    ////////////////////////////////////////////////////////////////////////
 
     /**
-	  *	Returns an array of all the index row generators on a table.
-	  *
-	  *	@return	an array of index row generators
-	  *
-	  * @exception StandardException		Thrown on error
-	  */
-	public	IndexRowGenerator[]		getIndexRowGenerators()
-					throws StandardException
-	{
-		if ( indexRowGenerators == null ) { getAllIndexes(); }
-		return	indexRowGenerators;
-	}
+     * Make an IndexLister
+     *
+     * @param    tableDescriptor    Describes the table in question.
+     */
+    public IndexLister(TableDescriptor tableDescriptor){
+        this.tableDescriptor=tableDescriptor;
+    }
+
+
+    ////////////////////////////////////////////////////////////////////////
+    //
+    //	INDEXLISTER METHODS
+    //
+    ////////////////////////////////////////////////////////////////////////
 
     /**
-	  *	Returns an array of all the index conglomerate ids on a table.
-	  *
-	  *	@return	an array of index conglomerate ids
-	  *
-	  * @exception StandardException		Thrown on error
-	  */
-    public	long[]		getIndexConglomerateNumbers()
-					throws StandardException
-	{
-		if ( indexConglomerateNumbers == null ) { getAllIndexes(); }
-		return	indexConglomerateNumbers;
-	}
+     * Returns an array of all the index row generators on a table.
+     *
+     * @throws StandardException Thrown on error
+     * @return an array of index row generators
+     */
+    public IndexRowGenerator[] getIndexRowGenerators() throws StandardException{
+        if(indexRowGenerators==null){
+            getAllIndexes();
+        }
+        return indexRowGenerators;
+    }
 
     /**
-	  *	Returns an array of all the index names on a table.
-	  *
-	  *	@return	an array of index names
-	  *
-	  * @exception StandardException		Thrown on error
-	  */
-    public	String[]		getIndexNames()	throws StandardException
-	{
-		if ( indexNames == null ) { getAllIndexes(); }
-		return	indexNames;
-	}
+     * Returns an array of all the index conglomerate ids on a table.
+     *
+     * @throws StandardException Thrown on error
+     * @return an array of index conglomerate ids
+     */
+    public long[] getIndexConglomerateNumbers() throws StandardException{
+        if(indexConglomerateNumbers==null){
+            getAllIndexes();
+        }
+        return indexConglomerateNumbers;
+    }
 
     /**
-	  *	Returns an array of distinct index row generators on a table,
-	  * erasing entries for duplicate indexes (which share same conglomerate).
-	  *
-	  *	@return	an array of index row generators
-	  *
-	  * @exception StandardException		Thrown on error
-	  */
-	public	IndexRowGenerator[]		getDistinctIndexRowGenerators()
-					throws StandardException
-	{
-		if ( distinctIndexRowGenerators == null ) { getAllIndexes(); }
-		return	distinctIndexRowGenerators;
-	}
+     * Returns an array of all the index names on a table.
+     *
+     * @throws StandardException Thrown on error
+     * @return an array of index names
+     */
+    public String[] getIndexNames() throws StandardException{
+        if(indexNames==null){
+            getAllIndexes();
+        }
+        return indexNames;
+    }
 
     /**
-	  *	Returns an array of distinct index conglomerate ids on a table.
-	  * erasing entries for duplicate indexes (which share same conglomerate).
-	  *
-	  *	@return	an array of index conglomerate ids
-	  *
-	  * @exception StandardException		Thrown on error
-	  */
-    public	long[]		getDistinctIndexConglomerateNumbers()
-					throws StandardException
-	{
-		if ( distinctIndexConglomerateNumbers == null ) { getAllIndexes(); }
-		return	distinctIndexConglomerateNumbers;
-	}
+     * Returns an array of distinct index row generators on a table,
+     * erasing entries for duplicate indexes (which share same conglomerate).
+     *
+     * @throws StandardException Thrown on error
+     * @return an array of index row generators
+     */
+    public IndexRowGenerator[] getDistinctIndexRowGenerators() throws StandardException{
+        if(distinctIndexRowGenerators==null){
+            getAllIndexes();
+        }
+        return distinctIndexRowGenerators;
+    }
 
     /**
-	  *	Returns an array of index names for all distinct indexes on a table.
-	  * erasing entries for duplicate indexes (which share same conglomerate).
-	  *
-	  *	@return	an array of index names
-	  *
-	  * @exception StandardException		Thrown on error
-	  */
-    public	String[]		getDistinctIndexNames()	throws StandardException
-	{
-		if ( indexNames == null ) { getAllIndexes(); }
-		return	indexNames;
-	}
+     * Returns an array of distinct index conglomerate ids on a table.
+     * erasing entries for duplicate indexes (which share same conglomerate).
+     *
+     * @throws StandardException Thrown on error
+     * @return an array of index conglomerate ids
+     */
+    public long[] getDistinctIndexConglomerateNumbers() throws StandardException{
+        if(distinctIndexConglomerateNumbers==null){
+            getAllIndexes();
+        }
+        return distinctIndexConglomerateNumbers;
+    }
 
-	////////////////////////////////////////////////////////////////////////
-	//
-	//	MINIONS
-	//
-	////////////////////////////////////////////////////////////////////////
+    /**
+     * Returns an array of index names for all distinct indexes on a table.
+     * erasing entries for duplicate indexes (which share same conglomerate).
+     *
+     * @throws StandardException Thrown on error
+     * @return an array of index names
+     */
+    public String[] getDistinctIndexNames() throws StandardException{
+        if(indexNames==null){
+            getAllIndexes();
+        }
+        return indexNames;
+    }
 
-	/**
-	  *	Reads all the indices on the table and populates arrays with the
-	  *	corresponding index row generators and index conglomerate ids.
-	  *
-	  *
-	  * @exception StandardException		Thrown on error
-	  */
-	private void getAllIndexes()
-					throws StandardException
-	{
-		int			indexCount = 0;
+    ////////////////////////////////////////////////////////////////////////
+    //
+    //	MINIONS
+    //
+    ////////////////////////////////////////////////////////////////////////
 
-		ConglomerateDescriptor[] cds = 
-			              tableDescriptor.getConglomerateDescriptors();
+    /**
+     * Reads all the indices on the table and populates arrays with the
+     * corresponding index row generators and index conglomerate ids.
+     *
+     * @throws StandardException Thrown on error
+     */
+    private void getAllIndexes() throws StandardException{
+        int indexCount=0;
+
+        ConglomerateDescriptor[] cds= tableDescriptor.getConglomerateDescriptors();
 
 		/* from one end of work space, we record distinct conglomerate
-		 * numbers for comparison while we iterate; from the other end of
+         * numbers for comparison while we iterate; from the other end of
 		 * work space, we record duplicate indexes' indexes in "cds" array,
 		 * so that we can skip them in later round.
 		 */
-		long[] workSpace = new long[cds.length - 1];  // 1 heap
-		int distinctIndexCount = 0, duplicateIndex = workSpace.length - 1;
+        long[] workSpace=new long[cds.length-1];  // 1 heap
+        int distinctIndexCount=0, duplicateIndex=workSpace.length-1;
 
-		for (int i = 0; i < cds.length; i++)
-		{
-			// first count the number of indices.
-			ConglomerateDescriptor cd = cds[i];
+        for(int i=0;i<cds.length;i++){
+            // first count the number of indices.
+            ConglomerateDescriptor cd=cds[i];
 
-			if ( ! cd.isIndex())
-				continue;
+            if(!cd.isIndex())
+                continue;
 
-			int k;
-			long thisCongNum = cd.getConglomerateNumber();
+            int k;
+            long thisCongNum=cd.getConglomerateNumber();
 
-			for (k = 0; k < distinctIndexCount; k++)
-			{
-				if (workSpace[k] == thisCongNum)
-				{
-					workSpace[duplicateIndex--] = i;
-					break;
-				}
-			}
-			if (k == distinctIndexCount)			// first appearence
-				workSpace[distinctIndexCount++] = thisCongNum;
+            for(k=0;k<distinctIndexCount;k++){
+                if(workSpace[k]==thisCongNum){
+                    workSpace[duplicateIndex--]=i;
+                    break;
+                }
+            }
+            if(k==distinctIndexCount)            // first appearence
+                workSpace[distinctIndexCount++]=thisCongNum;
 
-			indexCount++;
-		}
+            indexCount++;
+        }
 
-		indexRowGenerators = new IndexRowGenerator[ indexCount ];
-		indexConglomerateNumbers = new long[ indexCount ];
-		indexNames = new String[ indexCount ];
-		distinctIndexRowGenerators = new IndexRowGenerator[ distinctIndexCount ];
-		distinctIndexConglomerateNumbers = new long[ distinctIndexCount ];
-		distinctIndexNames = new String[ distinctIndexCount ];
+        indexRowGenerators=new IndexRowGenerator[indexCount];
+        indexConglomerateNumbers=new long[indexCount];
+        indexNames=new String[indexCount];
+        distinctIndexRowGenerators=new IndexRowGenerator[distinctIndexCount];
+        distinctIndexConglomerateNumbers=new long[distinctIndexCount];
+        distinctIndexNames=new String[distinctIndexCount];
 
-		int duplicatePtr = workSpace.length - 1;
-		for ( int i = 0, j = -1, k = -1; i < cds.length; i++ )
-		{
-			ConglomerateDescriptor cd = cds[i];
+        int duplicatePtr=workSpace.length-1;
+        for(int i=0, j=-1, k=-1;i<cds.length;i++){
+            ConglomerateDescriptor cd=cds[i];
 
-			if ( ! cd.isIndex())
-				continue;
+            if(!cd.isIndex())
+                continue;
 
-			indexRowGenerators[++j] = 
-				(IndexRowGenerator)cd.getIndexDescriptor();
-			indexConglomerateNumbers[j] = cd.getConglomerateNumber();
-			if (!(cd.isConstraint()))
-			{
-				// only fill index name if it is not a constraint.
-				indexNames[j] = cd.getConglomerateName();
-			}
+            indexRowGenerators[++j]= cd.getIndexDescriptor();
+            indexConglomerateNumbers[j]=cd.getConglomerateNumber();
+            if(!(cd.isConstraint())){
+                // only fill index name if it is not a constraint.
+                indexNames[j]=cd.getConglomerateName();
+            }
 
-			if (duplicatePtr > duplicateIndex && i == (int) workSpace[duplicatePtr])
-				duplicatePtr--;
-			else
-			{
-				distinctIndexRowGenerators[++k] = indexRowGenerators[j];
-				distinctIndexConglomerateNumbers[k] = indexConglomerateNumbers[j];
-				distinctIndexNames[k] = indexNames[j];
-			}
-		}
-	}
+            if(duplicatePtr>duplicateIndex && i==(int)workSpace[duplicatePtr])
+                duplicatePtr--;
+            else{
+                distinctIndexRowGenerators[++k]=indexRowGenerators[j];
+                distinctIndexConglomerateNumbers[k]=indexConglomerateNumbers[j];
+                distinctIndexNames[k]=indexNames[j];
+            }
+        }
+    }
 }

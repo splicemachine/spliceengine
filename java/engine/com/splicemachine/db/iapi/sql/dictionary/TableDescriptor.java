@@ -1160,8 +1160,7 @@ public class TableDescriptor extends TupleDescriptor
 	 *
 	 * @exception StandardException		Thrown on failure
 	 */
-	public ConglomerateDescriptor[]	getConglomerateDescriptors()
-	{
+	public ConglomerateDescriptor[]	getConglomerateDescriptors() {
 
 		int size = conglomerateDescriptorList.size();
 		ConglomerateDescriptor[] cdls = new ConglomerateDescriptor[size];
