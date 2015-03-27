@@ -55,9 +55,7 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
     private final long conglomId;
     private final List<LocalWriteFactory> indexFactories = new CopyOnWriteArrayList<>();
     private final Set<ConstraintFactory> constraintFactories = new CopyOnWriteArraySet<>();
-    private final Set<DropColumnFactory> dropColumnFactories = new CopyOnWriteArraySet<>();
-
-    private AddColumnWriteFactory addColumnWriteFactory;
+    private final Set<AlterTableWriteFactory> alterTableWriteFactories = new CopyOnWriteArraySet<>();
 
     private ForeignKeyChildInterceptWriteFactory foreignKeyChildInterceptWriteFactory;
     private ForeignKeyChildCheckWriteFactory foreignKeyChildCheckWriteFactory;
@@ -148,12 +146,8 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
                 indexFactory.addTo(context, true, expectedWrites);
             }
 
-            for (DropColumnFactory dropColumnFactory : dropColumnFactories) {
-                dropColumnFactory.addTo(context, true, expectedWrites);
-            }
-
-            if (addColumnWriteFactory != null) {
-                addColumnWriteFactory.addTo(context, true, expectedWrites);
+            for (AlterTableWriteFactory alterTableWriteFactory : alterTableWriteFactories) {
+                alterTableWriteFactory.addTo(context, true, expectedWrites);
             }
 
             // FK - child intercept (of inserts/updates)
@@ -270,11 +264,9 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
             tableWriteLatch.reset();
             try {
                 switch (ddlChangeType) {
-                    case ADD_COLUMN:
-                        addColumnWriteFactory = AddColumnWriteFactory.create(ddlChange);
-                        break;
                     case DROP_COLUMN:
-                        dropColumnFactories.add(DropColumnFactory.create(ddlChange));
+                    case ADD_COLUMN:
+                        alterTableWriteFactories.add(AlterTableWriteFactory.create(ddlChange));
                         break;
                     default:
                         break;
@@ -450,12 +442,11 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
                         if (ddlDesc.getBaseConglomerateNumber() == conglomId)
                             replace(IndexFactory.create(ddlChange, columnOrdering, formatIds));
                         break;
+                    case DROP_COLUMN:
                     case ADD_COLUMN:
                         if (ddlDesc.getBaseConglomerateNumber() == conglomId)
-                            addColumnWriteFactory = AddColumnWriteFactory.create(ddlChange);
-                    case DROP_COLUMN:
-                        if (ddlDesc.getBaseConglomerateNumber() == conglomId)
-                            dropColumnFactories.add(DropColumnFactory.create(ddlChange));
+                            alterTableWriteFactories.add(AlterTableWriteFactory.create(ddlChange));
+                        break;
                     case DROP_INDEX:
                         if (ddlDesc.getBaseConglomerateNumber() == conglomId)
                             dropIndex(ddlDesc.getConglomerateNumber(), txn);

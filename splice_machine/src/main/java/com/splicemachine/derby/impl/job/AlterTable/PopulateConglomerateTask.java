@@ -10,20 +10,16 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.db.iapi.services.io.ArrayUtil;
-import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
-import com.splicemachine.derby.impl.sql.execute.altertable.AddColumnRowTransformer;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.BufferedRegionScanner;
@@ -34,6 +30,9 @@ import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.pipeline.api.CallBuffer;
 import com.splicemachine.pipeline.api.RecordingCallBuffer;
+import com.splicemachine.pipeline.api.RowTransformer;
+import com.splicemachine.pipeline.ddl.DDLChange;
+import com.splicemachine.pipeline.ddl.TransformingDDLDescriptor;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnLifecycleManager;
@@ -43,7 +42,6 @@ import com.splicemachine.si.impl.DDLTxnView;
 import com.splicemachine.si.impl.HTransactorFactory;
 import com.splicemachine.si.impl.SIFactoryDriver;
 import com.splicemachine.si.impl.SIFilter;
-import com.splicemachine.si.impl.SIFilterPacked;
 import com.splicemachine.si.impl.TransactionalRegions;
 import com.splicemachine.si.impl.TxnFilter;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -54,44 +52,37 @@ import com.splicemachine.utils.SpliceZooKeeperManager;
  *         Date: 3/19/15
  */
 public class PopulateConglomerateTask extends ZkTask {
-    private static final long serialVersionUID = 1l;
+    private static final long serialVersionUID = 1L;
 
-    private String tableVersion;
-    private long newConglomId;
-    private long oldConglomId;
-    private ColumnInfo[] newColumnInfos;
-    private int[] columnOrdering;
+    private int expectedScanReadWidth;
     private long demarcationTimestamp;
-    private static SDataLib dataLib = SIFactoryDriver.siFactory.getDataLib();
+    private DDLChange ddlChange;
+
+    private RecordingCallBuffer<KVPair> writeBuffer;
+    private RowTransformer transformer;
 
     //performance improvement
     private KVPair mainPair;
 
     private byte[] scanStart;
     private byte[] scanStop;
+    private static SDataLib dataLib = SIFactoryDriver.siFactory.getDataLib();
 
     public PopulateConglomerateTask() { }
 
-    public PopulateConglomerateTask(String tableVersion,
-                                    long newConglomId,
-                                    long oldConglomId,
-                                    String jobId,
-                                    ColumnInfo[] newColumnInfos,
-                                    int[] columnOrdering,
-                                    long demarcationTimestamp) {
+    public PopulateConglomerateTask(String jobId,
+                                    int expectedScanReadWidth,
+                                    long demarcationTimestamp,
+                                    DDLChange ddlChange) {
         super(jobId, OperationJob.operationTaskPriority,null);
-        this.tableVersion = tableVersion;
-        this.newConglomId = newConglomId;
-        this.oldConglomId = oldConglomId;
-        this.newColumnInfos = newColumnInfos;
-        this.columnOrdering = columnOrdering;
+        this.expectedScanReadWidth = expectedScanReadWidth;
         this.demarcationTimestamp = demarcationTimestamp;
+        this.ddlChange = ddlChange;
     }
 
     @Override
     public RegionTask getClone() {
-        return new PopulateConglomerateTask(tableVersion,newConglomId, oldConglomId,jobId,
-                                            newColumnInfos,columnOrdering, demarcationTimestamp);
+        return new PopulateConglomerateTask(jobId, expectedScanReadWidth, demarcationTimestamp, ddlChange);
     }
 
     @Override
@@ -114,35 +105,6 @@ public class PopulateConglomerateTask extends ZkTask {
     }
 
     @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        super.writeExternal(out);
-        out.writeObject(tableVersion);
-        out.writeLong(newConglomId);
-        out.writeLong(oldConglomId);
-        out.writeInt(newColumnInfos.length);
-        for (ColumnInfo col: newColumnInfos) {
-            out.writeObject(col);
-        }
-        ArrayUtil.writeIntArray(out, columnOrdering);
-        out.writeLong(demarcationTimestamp);
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        super.readExternal(in);
-        tableVersion = (String) in.readObject();
-        newConglomId = in.readLong();
-        oldConglomId = in.readLong();
-        int size = in.readInt();
-        newColumnInfos = new ColumnInfo[size];
-        for (int i = 0; i < size; ++i) {
-            newColumnInfos[i] = (ColumnInfo)in.readObject();
-        }
-        columnOrdering = ArrayUtil.readIntArray(in);
-        demarcationTimestamp = in.readLong();
-    }
-
-    @Override
     public boolean invalidateOnClose() {
         return true;
     }
@@ -153,24 +115,18 @@ public class PopulateConglomerateTask extends ZkTask {
         long numRecordsRead = 0l;
 
         try {
-            RecordingCallBuffer<KVPair> writeBuffer = null;
             try (MeasuredRegionScanner brs = getRegionScanner(Metrics.noOpMetricFactory())) {
-                AddColumnRowTransformer transformer = AddColumnRowTransformer.create(tableVersion, columnOrdering,
-                                                                                     newColumnInfos);
 
-                byte[] newTableLocation = Bytes.toBytes(Long.toString(newConglomId));
-                writeBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(newTableLocation, getTxn(),
-                                                                                 Metrics.noOpMetricFactory());
                 try {
-                    // scanning the old table - one less column
-                    List nextRow = Lists.newArrayListWithExpectedSize(newColumnInfos.length-1);
+                    // scanning the old table
+                    List nextRow = Lists.newArrayListWithExpectedSize(expectedScanReadWidth);
                     boolean shouldContinue = true;
                     while (shouldContinue) {
                         SpliceBaseOperation.checkInterrupt(numRecordsRead, SpliceConstants.interruptLoopCheck);
                         nextRow.clear();
                         shouldContinue = brs.internalNextRaw(nextRow);
                         numRecordsRead++;
-                        transformResults(nextRow, transformer, writeBuffer);
+                        transformResults(nextRow, getTransformer(), getWriteBuffer());
                     }
                 } finally {
                     writeBuffer.flushBuffer();
@@ -208,7 +164,7 @@ public class PopulateConglomerateTask extends ZkTask {
     }
 
     private void transformResults(List result,
-                                  AddColumnRowTransformer transformer,
+                                  RowTransformer transformer,
                                   CallBuffer<KVPair> writeBuffer) throws Exception {
         //we know that there is only one KeyValue for each row
         for(Object kv:result){
@@ -229,6 +185,22 @@ public class PopulateConglomerateTask extends ZkTask {
         }
     }
 
+    private RecordingCallBuffer<KVPair> getWriteBuffer() {
+        if (writeBuffer == null) {
+            byte[] newTableLocation = Bytes.toBytes(Long.toString(ddlChange.getTentativeDDLDesc().getConglomerateNumber()));
+            writeBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(newTableLocation, getTxn(),
+                                                                             Metrics.noOpMetricFactory());
+        }
+        return writeBuffer;
+    }
+
+    private RowTransformer getTransformer() throws IOException {
+        if (transformer == null) {
+            transformer = ((TransformingDDLDescriptor) ddlChange.getTentativeDDLDesc()).createRowTransformer();
+        }
+        return transformer;
+    }
+
     @Override
     public int getPriority() {
         return SchedulerPriorities.INSTANCE.getBasePriority(PopulateConglomerateTask.class);
@@ -236,6 +208,22 @@ public class PopulateConglomerateTask extends ZkTask {
 
     @Override
     protected Txn beginChildTransaction(TxnView parentTxn, TxnLifecycleManager tc) throws IOException {
-        return tc.beginChildTransaction(parentTxn, Long.toString(this.newConglomId).getBytes());
+        return tc.beginChildTransaction(parentTxn, Long.toString(ddlChange.getTentativeDDLDesc().getConglomerateNumber()).getBytes());
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        super.writeExternal(out);
+        out.writeInt(expectedScanReadWidth);
+        out.writeLong(demarcationTimestamp);
+        out.writeObject(ddlChange);
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        super.readExternal(in);
+        expectedScanReadWidth = in.readInt();
+        demarcationTimestamp = in.readLong();
+        ddlChange = (DDLChange) in.readObject();
     }
 }

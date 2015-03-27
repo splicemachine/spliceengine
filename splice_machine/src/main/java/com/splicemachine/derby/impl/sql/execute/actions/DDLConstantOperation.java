@@ -867,57 +867,6 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
     }
 
     /**
-     * Get a txn chained to the paren txn for a DDL operation, waiting if need be.
-     *
-     * @param parentTransaction txn to chain to
-     * @param tentativeTransaction the tentative user txn to chain to the parent
-     * @param tableConglomId the table on which to enforce the txn
-     * @return the chained txn
-     * @throws StandardException
-     */
-    public Txn getChainedTransaction(TxnView parentTransaction,
-                                     Txn tentativeTransaction,
-                                     long tableConglomId) throws StandardException {
-        Txn waitTxn;
-        try {
-            waitTxn = TransactionLifecycle.getLifecycleManager().chainTransaction(
-                parentTransaction,
-                Txn.IsolationLevel.SNAPSHOT_ISOLATION,
-                false, Bytes.toBytes(Long.toString(tableConglomId)),tentativeTransaction);
-        } catch (IOException e) {
-            throw Exceptions.parseException(e);
-        }
-
-        // Wait for past transactions to die
-        TxnView uTxn = parentTransaction;
-        TxnView n = parentTransaction.getParentTxnView();
-        while(n.getTxnId()>=0){
-            uTxn = n;
-            n = n.getParentTxnView();
-        }
-        long activeTxnId;
-        try {
-            activeTxnId = waitForConcurrentTransactions(waitTxn, uTxn,tableConglomId);
-        } catch (IOException e) {
-            throw Exceptions.parseException(e);
-        }
-        if (activeTxnId>=0) {
-            throw ErrorState.DDL_ACTIVE_TRANSACTIONS.newException("DropColumn",activeTxnId);
-        }
-        Txn chainedTransaction;
-        try {
-            chainedTransaction = TransactionLifecycle.getLifecycleManager().chainTransaction(
-                parentTransaction,
-                Txn.IsolationLevel.SNAPSHOT_ISOLATION,
-                false, Bytes.toBytes(Long.toString(tableConglomId)),waitTxn);
-        } catch (IOException e) {
-            throw Exceptions.parseException(e);
-        }
-
-        return chainedTransaction;
-    }
-
-    /**
      * Waits for concurrent transactions that started before the tentative
      * change completed.
      *

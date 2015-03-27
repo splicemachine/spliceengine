@@ -26,7 +26,6 @@ import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.RowTransformer;
 import com.splicemachine.pipeline.exception.Exceptions;
-import com.splicemachine.pipeline.exception.SpliceDoNotRetryIOException;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.uuid.UUIDGenerator;
 
@@ -80,8 +79,8 @@ public class AddColumnRowTransformer implements RowTransformer {
         Closeables.closeQuietly(entryEncoder);
     }
 
-    public static AddColumnRowTransformer create(String tableVersion, int[] columnOrdering, ColumnInfo[] columnInfos)
-        throws SpliceDoNotRetryIOException {
+    public static RowTransformer create(String tableVersion, int[] columnOrdering, ColumnInfo[] columnInfos)
+        throws IOException {
         // template rows
         ExecRow oldRow = new ValueRow(columnInfos.length-1);
         ExecRow newRow = new ValueRow(columnInfos.length);
@@ -95,7 +94,9 @@ public class AddColumnRowTransformer implements RowTransformer {
             // set default value if given
             DataValueDescriptor newColDefaultValue = columnInfos[columnInfos.length-1].defaultValue;
             newRow.setColumn(columnInfos.length,
-                             (newColDefaultValue != null ? newColDefaultValue : columnInfos[columnInfos.length-1].dataType.getNull()));
+                             (newColDefaultValue != null ?
+                                 newColDefaultValue :
+                                 columnInfos[columnInfos.length-1].dataType.getNull()));
         } catch (StandardException e) {
             throw Exceptions.getIOException(e);
         }

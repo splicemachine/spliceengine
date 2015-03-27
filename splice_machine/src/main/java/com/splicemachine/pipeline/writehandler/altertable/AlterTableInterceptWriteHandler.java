@@ -19,8 +19,8 @@ import com.splicemachine.utils.SpliceLogUtils;
  * @author Jeff Cunningham
  *         Date: 3/16/15
  */
-public class AddColumnInterceptWriteHandler implements WriteHandler {
-    private static final Logger LOG = Logger.getLogger(AddColumnInterceptWriteHandler.class);
+public class AlterTableInterceptWriteHandler implements WriteHandler {
+    private static final Logger LOG = Logger.getLogger(AlterTableInterceptWriteHandler.class);
 
     private final WriteCoordinator writeCoordinator;
     private final RowTransformer rowTransformer;
@@ -28,7 +28,7 @@ public class AddColumnInterceptWriteHandler implements WriteHandler {
 
     private RecordingCallBuffer<KVPair> recordingCallBuffer;
 
-    public AddColumnInterceptWriteHandler(RowTransformer rowTransformer, byte[] newTableName) {
+    public AlterTableInterceptWriteHandler(RowTransformer rowTransformer, byte[] newTableName) {
         this.writeCoordinator = SpliceDriver.driver().getTableWriter();
         this.rowTransformer = rowTransformer;
         this.newTableName = newTableName;

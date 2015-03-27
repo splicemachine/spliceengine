@@ -21,15 +21,15 @@ import com.splicemachine.utils.SpliceLogUtils;
  * @author Jeff Cunningham
  *         Date: 3/16/15
  */
-public class AddColumnTask extends ZkTask {
+public class AlterTableTask extends ZkTask {
 
     private static final long serialVersionUID = 1L;
 
     private DDLChange ddlChange;
 
-    public AddColumnTask() {}
+    public AlterTableTask() {}
 
-    public AddColumnTask(String jobId, DDLChange ddlChange) {
+    public AlterTableTask(String jobId, DDLChange ddlChange) {
         super(jobId, OperationJob.operationTaskPriority, null);
         this.ddlChange = ddlChange;
     }
@@ -73,7 +73,7 @@ public class AddColumnTask extends ZkTask {
 
     @Override
     public int getPriority() {
-        return SchedulerPriorities.INSTANCE.getBasePriority(AddColumnTask.class);
+        return SchedulerPriorities.INSTANCE.getBasePriority(AlterTableTask.class);
     }
 
     @Override
