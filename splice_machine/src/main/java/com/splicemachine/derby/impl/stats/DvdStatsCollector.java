@@ -98,6 +98,12 @@ public abstract class DvdStatsCollector implements ColumnStatsCollector<DataValu
                         cardPrecision,
                         topKSize,
                         stringDistributionFactory(columnLen)),columnLen);
+            case StoredFormatIds.SQL_DATE_ID:
+                return TimeCollector.date(ColumnStatsCollectors.longCollector(columnId,cardPrecision,topKSize));
+            case StoredFormatIds.SQL_TIME_ID:
+                return TimeCollector.time(ColumnStatsCollectors.longCollector(columnId,cardPrecision,topKSize));
+            case StoredFormatIds.SQL_TIMESTAMP_ID:
+                return TimeCollector.timestamp(ColumnStatsCollectors.longCollector(columnId,cardPrecision,topKSize));
             case StoredFormatIds.SQL_VARCHAR_ID:
             case StoredFormatIds.SQL_LONGVARCHAR_ID:
                 return StringStatsCollector.varcharCollector(ColumnStatsCollectors.collector(columnId,

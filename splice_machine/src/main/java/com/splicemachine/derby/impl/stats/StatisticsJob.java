@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.stats;
 
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.job.Task;
@@ -12,6 +11,7 @@ import java.io.IOException;
 import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 
 /**
  * @author Scott Fines
@@ -56,5 +56,11 @@ public class StatisticsJob implements CoprocessorJob {
     @Override
     public <T extends Task> Pair<T, Pair<byte[], byte[]>> resubmitTask(T originalTask, byte[] taskStartKey, byte[] taskEndKey) throws IOException {
         return Pair.newPair(originalTask,Pair.newPair(taskStartKey,taskEndKey));
+    }
+
+    public void invalidateStatisticsCache() throws ExecutionException{
+        if(!StatisticsStorage.isStoreRunning()) return; //nothing to invalidate
+        long conglomId = Long.parseLong(new String(table.getTableName()));
+        StatisticsStorage.getPartitionStore().invalidateCachedStatistics(conglomId);
     }
 }

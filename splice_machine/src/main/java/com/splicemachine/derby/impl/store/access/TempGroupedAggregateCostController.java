@@ -145,29 +145,46 @@ public class TempGroupedAggregateCostController implements AggregateCostControll
         ResultSetNode rsn = col.getSourceResultSet();
         assert rsn!=null;
         assert rsn instanceof FromTable: "Programmer error: unexpected type "+ rsn.getClass();
-        FromTable ft = (FromTable)col.getSourceResultSet();
-        AccessPath ap = ft.getCurrentAccessPath();
-        ConglomerateDescriptor cd;
-        if(ap!=null){
-           cd = ap.getConglomerateDescriptor();
-            if(cd==null){
-            /*
-             * -sf- Derby sometimes does this to us if the current Access path hasn't been
-             * initialized yet (which appears to happen if there are no joins in the query).
-             * In this case, we defer to the bestAccessPath, which appears to always be populated.
-             */
-                cd = ft.getBestAccessPath().getConglomerateDescriptor();
-            }
-        }else{
-            /*
-             * -sf- We don't even HAVE a current access path. I don't believe that this
-             * ever happens, but I'm not yet comfortable enough with how Derby constructs
-             * access paths to be sure.
-             */
-            ap = ft.getBestAccessPath();
-            cd = ap.getConglomerateDescriptor();
-        }
+        ConglomerateDescriptor cd = findConglomerateDescriptor(col.getSourceResultSet());
         //get the underlying store controller for this node.
         return rsn.getCompilerContext().getStoreCostController(cd);
+    }
+
+    private ConglomerateDescriptor findConglomerateDescriptor(ResultSetNode rsn){
+        if(rsn instanceof FromBaseTable){
+            FromBaseTable fbt = (FromBaseTable)rsn;
+            AccessPath ap = fbt.getCurrentAccessPath();
+            ConglomerateDescriptor cd;
+            if(ap!=null){
+                cd = ap.getConglomerateDescriptor();
+                if(cd==null){
+                    /*
+                     * -sf- Derby sometimes does this to us if the current Access path hasn't been
+                     * initialized yet (which appears to happen if there are no joins in the query).
+                     * In this case, we defer to the bestAccessPath, which appears to always be populated.
+                     */
+                    cd = fbt.getBestAccessPath().getConglomerateDescriptor();
+                }
+            }else{
+                /*
+                 * -sf- We don't even HAVE a current access path. I don't believe that this
+                 * ever happens, but I'm not yet comfortable enough with how Derby constructs
+                 * access paths to be sure.
+                 */
+                ap = fbt.getBestAccessPath();
+                cd = ap.getConglomerateDescriptor();
+            }
+            return cd;
+        }else if(rsn instanceof JoinNode){
+            JoinNode joinNode=(JoinNode)rsn;
+            ConglomerateDescriptor cd = findConglomerateDescriptor(joinNode.getLeftResultSet());
+            if(cd==null)
+                cd = findConglomerateDescriptor(joinNode.getRightResultSet());
+            return cd;
+        }else if(rsn instanceof SingleChildResultSetNode){
+            return findConglomerateDescriptor(((SingleChildResultSetNode)rsn).getChildResult());
+        }else{
+            throw new IllegalStateException("Programmer Error: Unexpected node type: "+rsn.getClass());
+        }
     }
 }
