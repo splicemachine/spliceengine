@@ -101,10 +101,10 @@ public class OrderByNode extends SingleChildResultSetNode {
 	public void generate(ActivationClassBuilder acb, MethodBuilder mb) throws StandardException {
 		// Get the cost estimate for the child
 		if (costEstimate == null) {			
-			costEstimate = childResult.getFinalCostEstimate().cloneMe();
+			costEstimate = getFinalCostEstimate();
 		}
 
-	    orderByList.generate(acb, mb, childResult);
+	    orderByList.generate(acb, mb, childResult,costEstimate);
 
 		// We need to take note of result set number if ORDER BY is used in a
 		// subquery for the case where a PRN is inserted in top of the select's

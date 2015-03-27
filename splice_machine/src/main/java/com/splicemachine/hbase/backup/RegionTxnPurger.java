@@ -48,7 +48,7 @@ public class RegionTxnPurger<TxnInfo,Transaction,Data> {
         RegionScanner baseScanner = region.getScanner(scan);
 
         final RegionScanner scanner = new BufferedRegionScanner(region, baseScanner, scan, 1024, Metrics.noOpMetricFactory(),SIFactoryDriver.siFactory.getDataLib() );
-        return new RegionScanIterator<Data,Put,Delete,Get,Scan,Transaction>(scanner, new RegionScanIterator.IOFunction<Transaction,Data>() {
+        return new RegionScanIterator<>(scanner, new RegionScanIterator.IOFunction<Transaction,Data>() {
             @Override
             public Transaction apply(@Nullable List<Data> keyValues) throws IOException {
             	Transaction txn = decode(keyValues);
@@ -94,11 +94,11 @@ public class RegionTxnPurger<TxnInfo,Transaction,Data> {
     }
 
     private Transaction decode(List<Data> keyValues) throws IOException {
-    	Transaction txn = newTransactionDecoder.decode(dataLib,keyValues);
+    	Object txn = newTransactionDecoder.decode(dataLib,keyValues);
         if (txn == null) {
             txn = oldTransactionDecoder.decode(dataLib,keyValues);
         }
 
-        return txn;
+        return (Transaction)txn;
     }
 }

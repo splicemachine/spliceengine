@@ -309,6 +309,20 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
          * and if we are the former, it'll screw up our costing model. So in both cases, don't
          * adjust the selectivity if our estimated row count is 1
          */
+
+        /*
+         * if the outer table claims to have no rows return, then
+         * we are in a bit of a dilema. On the one hand, maybe nothing
+         * comes back, in which case that's correct. Or maybe there are no
+         * statistics, and we are just screwed anyway.
+         *
+         * Regardless, we don't want to mess up our own statistics by dividing by
+         * zero here and so forth, so we choose to accept some error for very small
+         * tables by resetting the output row count to 1 if it's less than that already.
+         */
+        double outerRowCount = outerCost.rowCount();
+        if(outerRowCount<1) outerRowCount=1d;
+
         double innerScanLocalCost = innerCost.localCost();
         double innerScanRemoteCost = innerCost.remoteCost();
         double innerScanHeapSize = innerCost.getEstimatedHeapSize();
@@ -339,8 +353,9 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         double totalOutputRows=outerCost.rowCount()*innerScanOutputRows;
         double totalHeapSize=outerCost.getEstimatedHeapSize()+outerCost.rowCount()*innerScanHeapSize;
 
-        double perRowRemoteCost = outerCost.remoteCost()/outerCost.rowCount();
-        perRowRemoteCost+=innerCost.remoteCost()/innerCost.rowCount();
+        double perRowRemoteCost = outerCost.remoteCost()/outerRowCount;
+        if(innerScanOutputRows>0)
+            perRowRemoteCost+=innerCost.remoteCost()/innerScanOutputRows;
         double totalRemoteCost=totalOutputRows*perRowRemoteCost;
 
         /*
