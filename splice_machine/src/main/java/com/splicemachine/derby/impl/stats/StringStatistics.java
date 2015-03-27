@@ -55,7 +55,7 @@ public abstract class StringStatistics extends BaseDvdStatistics{
 
     @Override
     protected Distribution<DataValueDescriptor> newDistribution(ColumnStatistics baseStats) {
-        return new StringDistribution(stats);
+        return new StringDistribution(baseStats);
     }
 
     public int maxLength(){
