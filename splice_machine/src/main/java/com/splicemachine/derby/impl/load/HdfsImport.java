@@ -254,7 +254,7 @@ public class HdfsImport {
                 if(schemaName==null)
                     schemaName = "APP";
                 if(tableName==null)
-                    throw PublicAPI.wrapStandardException(ErrorState.LANG_TABLE_NOT_FOUND.newException("NULL"));
+                    throw PublicAPI.wrapStandardException(ErrorState.TABLE_NAME_CANNOT_BE_NULL.newException());
 
                 EmbedConnection embedConnection = (EmbedConnection)conn;
                 ExecRow resultRow = importData(txn,user, conn, schemaName.toUpperCase(), tableName.toUpperCase(),

@@ -365,6 +365,15 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(collectStatsForTable);
 
+                    Procedure collectStatsForSchema = Procedure.newBuilder().name("COLLECT_SCHEMA_STATISTICS")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .varchar("schema",128)
+                            .arg("staleOnly", DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getCatalogType())
+                            .ownerClass(StatisticsAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(collectStatsForSchema);
+
                     Procedure enableStatsForColumn = Procedure.newBuilder().name("ENABLE_COLUMN_STATISTICS")
                             .numOutputParams(0)
                             .numResultSets(0)
