@@ -3,6 +3,7 @@ package com.splicemachine.derby.utils;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
@@ -19,7 +20,6 @@ import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.stats.StatisticsJob;
-import com.splicemachine.derby.impl.stats.StatisticsStorage;
 import com.splicemachine.derby.impl.stats.StatisticsTask;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
@@ -117,6 +117,50 @@ public class StatisticsAdmin {
             new GenericColumnDescriptor("tasksExecuted",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
             new GenericColumnDescriptor("rowsCollected",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT))
     };
+
+    @SuppressWarnings("unused")
+    public static void COLLECT_SCHEMA_STATISTICS(String schema, boolean staleOnly,ResultSet[] outputResults) throws SQLException{
+        EmbedConnection conn = (EmbedConnection)SpliceAdmin.getDefaultConn();
+        try{
+            if(schema ==null)
+                throw ErrorState.TABLE_NAME_CANNOT_BE_NULL.newException(); //TODO -sf- change this to proper SCHEMA error?
+            schema = schema.toUpperCase();
+
+            LanguageConnectionContext lcc=conn.getLanguageConnection();
+            DataDictionary dd = lcc.getDataDictionary();
+
+            SchemaDescriptor sd = getSchemaDescriptor(schema,lcc,dd);
+            //get a list of all the TableDescriptors in the schema
+            List<TableDescriptor> tds = getAllTableDescriptors(sd,conn);
+
+            ExecRow templateOutputRow = buildOutputTemplateRow();
+            List<StatsJob> jobs = new ArrayList<>(tds.size());
+            TransactionController transactionExecute = lcc.getTransactionExecute();
+            transactionExecute.elevate("statistics");
+            TxnView txn = ((SpliceTransactionManager) transactionExecute).getRawTransaction().getActiveStateTxn();
+            for(TableDescriptor td:tds){
+                submitStatsCollection(td,txn,templateOutputRow,conn,staleOnly,jobs);
+            }
+
+            List<ExecRow> rows = new ArrayList<>(jobs.size());
+            for(StatsJob row:jobs){
+                rows.add(row.completeJob());
+            }
+
+            IteratorNoPutResultSet results = wrapResults(conn,rows);
+
+            outputResults[0] = new EmbedResultSet40(conn,results,false,null,true);
+
+        }catch(StandardException se){
+            throw PublicAPI.wrapStandardException(se);
+        }catch(ExecutionException e){
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e.getCause()));
+        }catch(InterruptedException e){
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
+
+    }
+
     @SuppressWarnings("UnusedDeclaration")
     public static void COLLECT_TABLE_STATISTICS(String schema,
                                                 String table,
@@ -126,78 +170,26 @@ public class StatisticsAdmin {
         try{
             if(schema==null)
                 schema = "SPLICE";
+            if(table==null)
+                throw ErrorState.TABLE_NAME_CANNOT_BE_NULL.newException();
+
             schema = schema.toUpperCase();
-            table = table!=null? table.toUpperCase(): table; //TODO -sf- deal with this situation
+            table =table.toUpperCase();
             TableDescriptor tableDesc = verifyTableExists(conn,schema,table);
+            List<StatsJob> collectionFutures = new LinkedList<>();
 
-            List<ColumnDescriptor> colsToCollect = getCollectedColumns(tableDesc);
-            if(colsToCollect.size()<=0){
-                 //There are no columns to collect for this table. Issue a warning, but proceed anyway
-                //TODO -sf- make this a warning
-            }
-
-            ExecRow outputRow =  new ValueRow(COLLECTED_STATS_OUTPUT_COLUMNS.length);
-            DataValueDescriptor[] dvds = new DataValueDescriptor[COLLECTED_STATS_OUTPUT_COLUMNS.length];
-            for(int i=0;i<dvds.length;i++){
-                dvds[i] = COLLECTED_STATS_OUTPUT_COLUMNS[i].getType().getNull();
-            }
-            dvds[0].setValue(schema);
-
-            //get the indices for the table
-            IndexLister indexLister = tableDesc.getIndexLister();
-            IndexRowGenerator[] indexGenerators;
-            if(indexLister!=null) {
-                indexGenerators = indexLister.getDistinctIndexRowGenerators();
-            }else
-                indexGenerators = new IndexRowGenerator[]{};
-
-            //submit the base job
-            long heapConglomerateId = tableDesc.getHeapConglomerateId();
-            Collection<HRegionInfo> regionsToCollect = getCollectedRegions(conn, heapConglomerateId, staleOnly);
-            int partitionSize = regionsToCollect.size();
-            dvds[1].setValue(table);
-            dvds[2].setValue(partitionSize);
-            outputRow.setRowArray(dvds);
-
-            JobScheduler<CoprocessorJob> jobScheduler = SpliceDriver.driver().getJobScheduler();
+            ExecRow outputRow=buildOutputTemplateRow();
             TransactionController transactionExecute = conn.getLanguageConnection().getTransactionExecute();
             transactionExecute.elevate("statistics");
             TxnView txn = ((SpliceTransactionManager) transactionExecute).getRawTransaction().getActiveStateTxn();
-            List<Pair<ExecRow,JobFuture>> collectionFutures = new ArrayList<>(indexGenerators.length+1);
-            StatisticsJob job = getBaseTableStatisticsJob(conn, tableDesc, colsToCollect, regionsToCollect, txn);
-            JobFuture jobFuture = jobScheduler.submit(job);
-            collectionFutures.add(new Pair<>(outputRow.getClone(), jobFuture));
-
-            //submit all index collection jobs
-            if(indexGenerators.length>0) {
-                long[] indexConglomIds = indexLister.getDistinctIndexConglomerateNumbers();
-                String[] distinctIndexNames = indexLister.getDistinctIndexNames();
-                for (int i = 0; i < indexGenerators.length; i++) {
-                    IndexRowGenerator irg = indexGenerators[i];
-                    long indexConglomId = indexConglomIds[i];
-                    Collection<HRegionInfo> indexRegions = getCollectedRegions(conn, indexConglomId, staleOnly);
-                    StatisticsJob indexJob = getIndexJob(irg, indexConglomId,
-                            heapConglomerateId, tableDesc, indexRegions,colsToCollect,txn);
-                    JobFuture future = jobScheduler.submit(indexJob);
-                    outputRow.getColumn(2).setValue(distinctIndexNames[i]);
-                    collectionFutures.add(new Pair<>(outputRow.getClone(),future));
-                }
-            }
+            submitStatsCollection(tableDesc,txn,outputRow,conn,staleOnly,collectionFutures);
 
             List<ExecRow> rows = new ArrayList<>(collectionFutures.size());
-            for(Pair<ExecRow,JobFuture> row:collectionFutures){
-                ExecRow statusRow = row.getFirst();
-                completeJob(statusRow,row.getSecond());
-                rows.add(statusRow);
+            for(StatsJob row:collectionFutures){
+                rows.add(row.completeJob());
             }
 
-            //invalidate statistics stored in the cache, since we know we have new data
-            if(StatisticsStorage.isStoreRunning())
-                StatisticsStorage.getPartitionStore().invalidateCachedStatistics(heapConglomerateId);
-
-            Activation lastActivation = conn.getLanguageConnection().getLastActivation();
-            IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows,COLLECTED_STATS_OUTPUT_COLUMNS,lastActivation);
-            resultsToWrap.openCore();
+            IteratorNoPutResultSet resultsToWrap=wrapResults(conn,rows);
 
             outputResults[0] = new EmbedResultSet40(conn,resultsToWrap,false,null,true);
 
@@ -213,18 +205,101 @@ public class StatisticsAdmin {
     /* ****************************************************************************************************************/
     /*private helper methods*/
 
-
-    private static void completeJob(ExecRow outputRow, JobFuture jobFuture) throws ExecutionException, InterruptedException, StandardException {
-        jobFuture.completeAll(null);
-
-        List<TaskStats> taskStats = jobFuture.getJobStats().getTaskStats();
-        long totalRows = 0l;
-        for( TaskStats stats:taskStats){
-            totalRows+=stats.getTotalRowsProcessed();
+    private static void submitStatsCollection(TableDescriptor table,
+                                              TxnView txn,
+                                                ExecRow templateOutputRow,
+                                                EmbedConnection conn,
+                                                boolean staleOnly,
+                                                List<StatsJob> outputJobs) throws StandardException, ExecutionException{
+        List<ColumnDescriptor> colsToCollect = getCollectedColumns(table);
+        if(colsToCollect.size()<=0){
+             //There are no columns to collect for this table. Issue a warning, but proceed anyway
+            //TODO -sf- make this a warning
         }
 
-        outputRow.getColumn(4).setValue(taskStats.size());
-        outputRow.getColumn(5).setValue(totalRows);
+        DataValueDescriptor[] dvds = templateOutputRow.getRowArray();
+        dvds[0].setValue(table.getSchemaName());
+
+        //get the indices for the table
+        IndexLister indexLister = table.getIndexLister();
+        IndexRowGenerator[] indexGenerators;
+        if(indexLister!=null) {
+            indexGenerators = indexLister.getDistinctIndexRowGenerators();
+        }else
+            indexGenerators = new IndexRowGenerator[]{};
+
+        //submit the base job
+        long heapConglomerateId = table.getHeapConglomerateId();
+        Collection<HRegionInfo> regionsToCollect = getCollectedRegions(conn,heapConglomerateId,staleOnly);
+        int partitionSize = regionsToCollect.size();
+        dvds[1].setValue(table.getName());
+        dvds[2].setValue(partitionSize);
+
+        JobScheduler<CoprocessorJob> jobScheduler = SpliceDriver.driver().getJobScheduler();
+        StatisticsJob job = getBaseTableStatisticsJob(conn,table, colsToCollect, regionsToCollect, txn);
+        JobFuture jobFuture = jobScheduler.submit(job);
+        outputJobs.add(new StatsJob(templateOutputRow.getClone(),jobFuture,job));
+
+        //submit all index collection jobs
+        if(indexGenerators.length>0) {
+            //we know this is safe because we've actually already checked for it
+            @SuppressWarnings("ConstantConditions") long[] indexConglomIds = indexLister.getDistinctIndexConglomerateNumbers();
+            String[] distinctIndexNames = indexLister.getDistinctIndexNames();
+            for (int i = 0; i < indexGenerators.length; i++) {
+                IndexRowGenerator irg = indexGenerators[i];
+                long indexConglomId = indexConglomIds[i];
+                Collection<HRegionInfo> indexRegions = getCollectedRegions(conn, indexConglomId, staleOnly);
+                StatisticsJob indexJob = getIndexJob(irg, indexConglomId,
+                        heapConglomerateId,table, indexRegions,colsToCollect,txn);
+                JobFuture future = jobScheduler.submit(indexJob);
+                templateOutputRow.getColumn(2).setValue(distinctIndexNames[i]);
+                outputJobs.add(new StatsJob(templateOutputRow.getClone(),future,indexJob));
+            }
+        }
+    }
+
+
+    private static IteratorNoPutResultSet wrapResults(EmbedConnection conn,List<ExecRow> rows) throws StandardException{
+        Activation lastActivation = conn.getLanguageConnection().getLastActivation();
+        IteratorNoPutResultSet resultsToWrap = new IteratorNoPutResultSet(rows,COLLECTED_STATS_OUTPUT_COLUMNS,lastActivation);
+        resultsToWrap.openCore();
+        return resultsToWrap;
+    }
+
+    private static ExecRow buildOutputTemplateRow() throws StandardException{
+        ExecRow outputRow =  new ValueRow(COLLECTED_STATS_OUTPUT_COLUMNS.length);
+        DataValueDescriptor[] dvds = new DataValueDescriptor[COLLECTED_STATS_OUTPUT_COLUMNS.length];
+        for(int i=0;i<dvds.length;i++){
+            dvds[i] = COLLECTED_STATS_OUTPUT_COLUMNS[i].getType().getNull();
+        }
+        outputRow.setRowArray(dvds);
+        return outputRow;
+    }
+
+    private static List<TableDescriptor> getAllTableDescriptors(SchemaDescriptor sd,EmbedConnection conn) throws SQLException{
+        try(Statement statement = conn.createStatement()){
+            String sql="select tableid from sys.systables t where t.schemaid = '"+sd.getUUID().toString()+"'";
+            try(ResultSet resultSet=statement.executeQuery(sql)){
+                DataDictionary dd = conn.getLanguageConnection().getDataDictionary();
+                UUIDFactory uuidFactory=dd.getUUIDFactory();
+                List<TableDescriptor> tds = new LinkedList<>();
+                while(resultSet.next()){
+                    com.splicemachine.db.catalog.UUID tableId=uuidFactory.recreateUUID(resultSet.getString(1));
+                    TableDescriptor tableDescriptor=dd.getTableDescriptor(tableId);
+                    /*
+                     * We need to filter out views from the TableDescriptor list. Views
+                     * are special cases where the number of conglomerate descriptors is 0. We
+                     * don't collect statistics for those views
+                     */
+                    if(tableDescriptor.getConglomerateDescriptorList().size()>0){
+                        tds.add(tableDescriptor);
+                    }
+                }
+                return tds;
+            }
+        }catch(StandardException e){
+            throw PublicAPI.wrapStandardException(e);
+        }
     }
 
     private static StatisticsJob getIndexJob(IndexRowGenerator irg,
@@ -235,15 +310,17 @@ public class StatisticsAdmin {
                                              List<ColumnDescriptor> columnsToCollect,
                                              TxnView baseTxn) throws StandardException{
         ExecRow indexRow = irg.getIndexRowTemplate();
-        int[] baseColumnPositions = irg.baseColumnPositions();
-        int[] keyTypes = new int[indexRow.nColumns()];
-        int[] keyEncodingOrder = new int[indexRow.nColumns()];
-        boolean[] keySortOrder = new boolean[indexRow.nColumns()];irg.isAscending();
-        System.arraycopy(irg.isAscending(),0,keySortOrder,0,irg.isAscending().length);
-        keySortOrder[indexRow.nColumns()-1] = true;
-        int[] keyDecodingMap =IntArrays.count(indexRow.nColumns());
-        int[] keyBasePositionMap = new int[indexRow.nColumns()];
         int[] fieldLengths = new int[indexRow.nColumns()];
+        int[] keyBasePositionMap = new int[indexRow.nColumns()];
+
+        int[] baseColumnPositions = irg.baseColumnPositions();
+        int keyCols = indexRow.nColumns();
+        if(irg.isUnique())keyCols--;
+        int[] keyTypes = new int[keyCols];
+        int[] keyEncodingOrder = new int[keyCols];
+        boolean[] keySortOrder = new boolean[keyCols];
+        System.arraycopy(irg.isAscending(),0,keySortOrder,0,irg.isAscending().length);
+        int[] keyDecodingMap =IntArrays.count(keyCols);
         int nextColPos = 1;
         for(ColumnDescriptor cd:columnsToCollect){
             int colPos = cd.getPosition();
@@ -254,17 +331,26 @@ public class StatisticsAdmin {
                     DataValueDescriptor val=type.getNull();
                     indexRow.setColumn(nextColPos,val);
                     keyTypes[nextColPos-1] = val.getTypeFormatId();
-                    keyEncodingOrder[nextColPos] = colPos-1;
+                    keyEncodingOrder[nextColPos-1] = colPos-1;
                     keyBasePositionMap[nextColPos-1] = colPos;
                     fieldLengths[nextColPos] = type.getMaximumWidth();
                     nextColPos++;
+                    break;
                 }
             }
         }
         HBaseRowLocation value=new HBaseRowLocation();
         indexRow.setColumn(indexRow.nColumns(),value);
-        keyTypes[indexRow.nColumns()-1] = value.getTypeFormatId();
-        int[] rowDecodingMap = new int[0];
+
+        int[] rowDecodingMap;
+        if(!irg.isUnique()){
+            keySortOrder[indexRow.nColumns()-1] = true;
+            keyTypes[indexRow.nColumns()-1]=value.getTypeFormatId();
+            rowDecodingMap=new int[0];
+        }else{
+            keyBasePositionMap[nextColPos-1] = -1;
+            rowDecodingMap= new int[]{indexRow.nColumns()-1};
+        }
         FormatableBitSet collectedKeyColumns = new FormatableBitSet(baseColumnPositions.length);
         for(int i=0;i<keyEncodingOrder.length;i++){
             collectedKeyColumns.grow(i+1);
@@ -372,14 +458,21 @@ public class StatisticsAdmin {
     private static TableDescriptor verifyTableExists(Connection conn,String schema, String table) throws SQLException, StandardException {
         LanguageConnectionContext lcc = ((EmbedConnection) conn).getLanguageConnection();
         DataDictionary dd = lcc.getDataDictionary();
-        SchemaDescriptor schemaDescriptor = dd.getSchemaDescriptor(schema,lcc.getTransactionExecute(),true);
-        if(schemaDescriptor==null)
-            throw ErrorState.LANG_TABLE_NOT_FOUND.newException(schema);
+        SchemaDescriptor schemaDescriptor=getSchemaDescriptor(schema,lcc,dd);
         TableDescriptor tableDescriptor = dd.getTableDescriptor(table, schemaDescriptor, lcc.getTransactionExecute());
         if(tableDescriptor==null)
             throw ErrorState.LANG_TABLE_NOT_FOUND.newException(schema+"."+table);
 
         return tableDescriptor;
+    }
+
+    private static SchemaDescriptor getSchemaDescriptor(String schema,
+                                                        LanguageConnectionContext lcc,
+                                                        DataDictionary dd) throws StandardException{
+        SchemaDescriptor schemaDescriptor = dd.getSchemaDescriptor(schema,lcc.getTransactionExecute(),true);
+        if(schemaDescriptor==null)
+            throw ErrorState.LANG_TABLE_NOT_FOUND.newException(schema);
+        return schemaDescriptor;
     }
 
     private static List<ColumnDescriptor> getCollectedColumns(TableDescriptor td) throws StandardException {
@@ -439,6 +532,37 @@ public class StatisticsAdmin {
             return toCollect;
         } catch (ExecutionException e) {
             throw Exceptions.parseException(e.getCause());
+        }
+    }
+
+    private static class StatsJob{
+        private ExecRow outputRow;
+        private JobFuture jobFuture;
+        private StatisticsJob job;
+
+        public StatsJob(ExecRow outputRow,JobFuture jobFuture,StatisticsJob job){
+            this.outputRow=outputRow;
+            this.jobFuture=jobFuture;
+            this.job=job;
+        }
+
+        private ExecRow completeJob() throws ExecutionException, InterruptedException, StandardException {
+            jobFuture.completeAll(null);
+            jobFuture.cleanup(); //cleanup the task stuff
+
+            //invalidate the cached statistics, since we have new stats to use
+            job.invalidateStatisticsCache();
+
+            List<TaskStats> taskStats = jobFuture.getJobStats().getTaskStats();
+            long totalRows = 0l;
+            for( TaskStats stats:taskStats){
+                totalRows+=stats.getTotalRowsProcessed();
+            }
+
+            outputRow.getColumn(4).setValue(taskStats.size());
+            outputRow.getColumn(5).setValue(totalRows);
+
+            return outputRow;
         }
     }
 }
