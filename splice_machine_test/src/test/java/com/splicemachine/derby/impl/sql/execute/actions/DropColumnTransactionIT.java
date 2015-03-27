@@ -11,6 +11,7 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
+import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -29,6 +30,7 @@ public class DropColumnTransactionIT {
     public static final SpliceTableWatcher beforeTable = new SpliceTableWatcher("C",schemaWatcher.schemaName,"(a int, b int)");
     public static final SpliceTableWatcher afterTable = new SpliceTableWatcher("D",schemaWatcher.schemaName,"(a int, b int)");
     public static final SpliceTableWatcher afterTable2 = new SpliceTableWatcher("E",schemaWatcher.schemaName,"(a int, b int, c int)");
+    public static final SpliceTableWatcher aTable = new SpliceTableWatcher("F",schemaWatcher.schemaName,"(a int, b int, c int)");
 
     public static final SpliceWatcher classWatcher = new SpliceWatcher();
 
@@ -41,6 +43,7 @@ public class DropColumnTransactionIT {
             .around(beforeTable)
             .around(afterTable)
             .around(afterTable2)
+            .around(aTable)
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
@@ -147,7 +150,7 @@ public class DropColumnTransactionIT {
         preparedStatement.setInt(2,bInt);
         preparedStatement.execute();
 
-        long count = conn2.count("select b from "+ table);
+        long count = conn2.count("select b from " + table);
         Assert.assertEquals("incorrect row count!",2,count);
     }
 
@@ -185,7 +188,7 @@ public class DropColumnTransactionIT {
         Assert.assertEquals("Data was not picked up!",1,count);
     }
 
-    @Test @Ignore("DB-1755 - still not obeying transactionality.")
+    @Test
     public void testDropColumnAfterAddColumnWorks() throws Exception {
          /*
          * This is a test to ensure that the following sequence holds:
@@ -209,27 +212,19 @@ public class DropColumnTransactionIT {
         int aInt = 1;
         int bInt = 2;
         int cInt = 3;
-        b.createStatement().execute("insert into "+ afterTable2+" (a,b,c) values ("+aInt+","+bInt+","+cInt+")");
+        b.createStatement().execute("insert into " + afterTable2 + " (a,b,c) values (" + aInt + "," + bInt + "," +
+                                        cInt + ")");
         b.commit();
-        b.createStatement().execute("alter table "+ afterTable2+" add column d double not null default 2.0");
+        b.createStatement().execute("alter table " + afterTable2 + " add column d decimal(2,1) not null default 2.0");
         b.commit();
-        b.createStatement().execute("alter table "+ afterTable2+" add column e double not null default 3.0");
+        b.createStatement().execute("alter table " + afterTable2 + " add column e decimal(2,1) not null default 3.0");
         b.commit();
 
-        TestConnection conn3 = classWatcher.createConnection();
-        String query = "select * from "+ afterTable2;
-        ResultSet rs = conn3.createStatement().executeQuery(query);
-        conn3.commit();
-        TestUtils.printResult(query, rs, System.out);
-
-        a.createStatement().execute("alter table "+afterTable2+" drop column b");
+        a.commit();  // a commits here so it can see changes b has made since a started
+        a.createStatement().execute("alter table " + afterTable2 + " drop column b");
         a.commit();
 
-        rs = conn3.createStatement().executeQuery(query);
-        conn3.commit();
-        TestUtils.printResult(query, rs, System.out);
-
-        long count = conn3.count("select * from "+ afterTable2+ " where a="+aInt);
+        long count = classWatcher.createConnection().count("select * from " + afterTable2 + " where a=" + aInt);
         Assert.assertEquals("Data was not picked up!",1,count);
     }
 
@@ -260,22 +255,66 @@ public class DropColumnTransactionIT {
 
         int aInt = 3;
         int bInt = 3;
-        b.createStatement().execute("insert into "+ beforeTable+" (a,b) values ("+aInt+","+bInt+")");
+        b.createStatement().execute("insert into " + beforeTable + " (a,b) values (" + aInt + "," + bInt + ")");
         b.commit();
         a.commit();
 
-        long count = conn1.count("select * from "+ beforeTable+ " where a="+aInt);
+        long count = conn1.count("select * from " + beforeTable + " where a=" + aInt);
         Assert.assertEquals("Data was not picked up!",1,count);
     }
 
     @Test
     public void testDropColumnFromtwoTransactionsThrowsWriteConflict() throws Exception {
-        conn1.createStatement().execute("alter table "+ table+" drop column b");
+        conn1.createStatement().execute("alter table " + table + " drop column b");
         try{
             conn2.createStatement().execute("alter table " + table+" drop column b");
             Assert.fail("No write conflict detected!");
         }catch(SQLException se){
-            Assert.assertEquals("Incorrect error type: "+ se.getMessage(),ErrorState.WRITE_WRITE_CONFLICT.getSqlState(),se.getSQLState());
+            Assert.assertEquals("Incorrect error type: "+ se.getMessage(),
+                                ErrorState.WRITE_WRITE_CONFLICT.getSqlState(),se.getSQLState());
         }
+    }
+
+    @Test
+    public void testDropMiddleColumn() throws Exception {
+        int aInt = 1;
+        int bInt = 2;
+        int cInt = 3;
+        BigDecimal dDec = BigDecimal.valueOf(4.0);
+        BigDecimal eDec = BigDecimal.valueOf(5.0);
+
+        conn1.createStatement().execute(
+            String.format("insert into %s (a,b,c) values (%s,%s,%s)", aTable, aInt, bInt, cInt));
+        conn1.createStatement().execute(
+            String.format("alter table %s add column d decimal(2,1) not null default %s", aTable, dDec));
+        conn1.createStatement().execute(
+            String.format("alter table %s add column e decimal(2,1) not null default %s", aTable, eDec));
+
+        conn1.createStatement().execute(
+            String.format("alter table %s drop column b", aTable));
+
+        ResultSet rs = conn1.query("select * from "+ aTable);
+        int count=0;
+        while(rs.next()){
+            int a = rs.getInt("A");
+            Assert.assertFalse("Got a null value for A!",rs.wasNull());
+            Assert.assertEquals("Incorrect value for A!", aInt, a);
+
+            int c = rs.getInt("C");
+            Assert.assertFalse("Got a null value for C!", rs.wasNull());
+            Assert.assertEquals("Incorrect value for C!",cInt,c);
+
+            BigDecimal d = rs.getBigDecimal("D");
+            Assert.assertFalse("Got a null value for D!",rs.wasNull());
+            Assert.assertEquals("Incorrect value for D!",dDec,d);
+
+            BigDecimal e = rs.getBigDecimal("E");
+            Assert.assertFalse("Got a null value for E!",rs.wasNull());
+            Assert.assertEquals("Incorrect value for E!", eDec, e);
+
+            count++;
+        }
+        Assert.assertEquals("Incorrect returned row count", 1, count);
+
     }
 }

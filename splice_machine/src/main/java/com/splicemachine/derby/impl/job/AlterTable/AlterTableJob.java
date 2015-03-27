@@ -8,7 +8,6 @@ import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Pair;
 
-import com.splicemachine.derby.ddl.TentativeAddColumnDesc;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
@@ -20,20 +19,20 @@ import com.splicemachine.si.api.TxnView;
  * @author Jeff Cunningham
  *         Date: 3/16/15
  */
-public class AddColumnJob implements CoprocessorJob {
+public class AlterTableJob implements CoprocessorJob {
 
     private final HTableInterface table;
     private final DDLChange ddlChange;
 
 
-    public AddColumnJob(HTableInterface table, DDLChange ddlChange) {
+    public AlterTableJob(HTableInterface table, DDLChange ddlChange) {
         this.table = table;
         this.ddlChange = ddlChange;
     }
 
     @Override
     public Map<? extends RegionTask, Pair<byte[], byte[]>> getTasks() throws Exception {
-        ZkTask task = new AddColumnTask(getJobId(), ddlChange);
+        ZkTask task = new AlterTableTask(getJobId(), ddlChange);
         return Collections.singletonMap(task, Pair.newPair(HConstants.EMPTY_START_ROW, HConstants.EMPTY_END_ROW));
     }
 
@@ -49,7 +48,7 @@ public class AddColumnJob implements CoprocessorJob {
 
     @Override
     public String getJobId() {
-        return getClass().getSimpleName()+"-"+ddlChange.getTxn().getTxnId();
+        return getClass().getSimpleName()+"-"+ddlChange.getTentativeDDLDesc().getClass().getSimpleName()+"-"+ddlChange.getTxn().getTxnId();
     }
 
     @Override

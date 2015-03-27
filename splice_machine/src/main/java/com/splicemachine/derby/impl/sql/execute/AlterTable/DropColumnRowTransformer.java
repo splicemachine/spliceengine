@@ -8,6 +8,9 @@ import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.pipeline.api.RowTransformer;
+import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.pipeline.exception.SpliceDoNotRetryIOException;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.SIFactoryDriver;
@@ -27,150 +30,51 @@ import java.sql.SQLException;
  * User: jyuan
  * Date: 2/7/14
  */
-public class DropColumnRowTransformer<Data> implements Closeable {
-	private static SDataLib dataLib = SIFactoryDriver.siFactory.getDataLib();
+public class DropColumnRowTransformer implements RowTransformer {
+
+    private final ExecRow oldRow;
+    private final ExecRow newRow;
+    private final EntryDataDecoder rowDecoder;
+    private final KeyHashDecoder keyDecoder;
+    private final PairEncoder entryEncoder;
+
+    private boolean initialized;
+
+
     private UUID tableId;
     private TxnView txn;
-    private boolean initialized = false;
-    private ExecRow oldRow;
-    private ExecRow newRow;
     private ColumnInfo[] columnInfos;
     private int droppedColumnPosition;
-    private EntryDataDecoder rowDecoder;
-	private KeyHashDecoder keyDecoder;
-    private PairEncoder entryEncoder;
     private int[] oldColumnOrdering;
-    private int[] baseColumnMap;
-    int[] formatIds;
-    DataValueDescriptor[] kdvds;
 
-    public DropColumnRowTransformer(UUID tableId,
-                                    TxnView txn,
-                                    ColumnInfo[] columnInfos,
-                                    int droppedColumnPosition) {
-        this.tableId = tableId;
-        this.txn = txn;
-        this.columnInfos = columnInfos;
-        this.droppedColumnPosition = droppedColumnPosition;
+    private DropColumnRowTransformer(ExecRow oldRow,
+                                    ExecRow newRow,
+                                    KeyHashDecoder keyDecoder,
+                                    EntryDataDecoder rowDecoder,
+                                    PairEncoder entryEncoder) {
+        this.oldRow = oldRow;
+        this.newRow = newRow;
+        this.rowDecoder = rowDecoder;
+        this.keyDecoder = keyDecoder;
+        this.entryEncoder = entryEncoder;
     }
 
-    private UUIDGenerator getRandomGenerator(){
-        return SpliceDriver.driver().getUUIDGenerator().newGenerator(100);
-    }
-
-    private void initExecRow() throws StandardException{
-        oldRow = new ValueRow(columnInfos.length);
-        newRow = new ValueRow(columnInfos.length - 1);
-
-        int i = 1;
-        int j =1;
-        for (ColumnInfo col:columnInfos){
-            DataValueDescriptor dataValue = col.dataType.getNull();
-            oldRow.setColumn(i, dataValue);
-            if (i++ != droppedColumnPosition){
-                newRow.setColumn(j++, dataValue);
-            }
-        }
-    }
-
-    private void initEncoder() throws StandardException {
-				String tableVersion = DataDictionaryUtils.getTableVersion(txn,tableId);
-				DescriptorSerializer[] oldSerializers = VersionedSerializers.forVersion(tableVersion,true).getSerializers(oldRow);
-
-        // Initialize decoder
-				rowDecoder = new EntryDataDecoder(baseColumnMap,null,oldSerializers);
-				if(oldColumnOrdering!=null && oldColumnOrdering.length>0){
-						DescriptorSerializer[] oldDenseSerializers = VersionedSerializers.forVersion(tableVersion,false).getSerializers(oldRow);
-						keyDecoder = BareKeyHash.decoder(oldColumnOrdering,null,oldDenseSerializers);
-				}else{
-						keyDecoder = NoOpDataHash.instance().getDecoder();
-				}
-//        keyMarshaller = new KeyMarshaller();
-
-        // initialize encoder
-        oldColumnOrdering = DataDictionaryUtils.getColumnOrdering(txn, tableId);
-        int[] newColumnOrdering = DataDictionaryUtils.getColumnOrderingAfterDropColumn(oldColumnOrdering, droppedColumnPosition);
-
-        KeyEncoder encoder;
-				DescriptorSerializer[] newSerializers = VersionedSerializers.forVersion(tableVersion, true).getSerializers(newRow);
-        if(newColumnOrdering !=null&& newColumnOrdering.length>0){
-						//must use dense encodings in the key
-						DescriptorSerializer[] denseSerializers = VersionedSerializers.forVersion(tableVersion, false).getSerializers(newRow);
-						encoder = new KeyEncoder(NoOpPrefix.INSTANCE, BareKeyHash.encoder(newColumnOrdering, null, denseSerializers), NoOpPostfix.INSTANCE);
-        }else {
-            encoder = new KeyEncoder(new SaltedPrefix(getRandomGenerator()),NoOpDataHash.INSTANCE,NoOpPostfix.INSTANCE);
-        }
-        int[] columns = IntArrays.count(newRow.nColumns());
-
-        if (newColumnOrdering != null && newColumnOrdering.length > 0) {
-            for (int col: newColumnOrdering) {
-                columns[col] = -1;
-            }
-        }
-        DataHash rowHash = new EntryDataHash(columns, null,newSerializers);
-
-        entryEncoder = new PairEncoder(encoder,rowHash, KVPair.Type.INSERT);
-    }
-    private void initialize() throws StandardException, SQLException{
-        initExecRow();
-        initEncoder();
-        baseColumnMap = IntArrays.count(oldRow.nColumns());
-
-        if (oldColumnOrdering != null && oldColumnOrdering.length > 0) {
-            formatIds = DataDictionaryUtils.getFormatIds(txn, tableId);
-            kdvds = new DataValueDescriptor[oldColumnOrdering.length];
-            for (int i = 0; i < oldColumnOrdering.length; ++i) {
-                kdvds[i] = LazyDataValueFactory.getLazyNull(formatIds[oldColumnOrdering[i]]);
-            }
-        }
-        initialized = true;
-    }
-
-		public KVPair transform(KVPair kvPair) throws StandardException,SQLException,IOException{
-				if (!initialized) {
-						initialize();
-				}
-
-				// Decode a row
-				oldRow.resetRowArray();
-				DataValueDescriptor[] oldFields = oldRow.getRowArray();
-				if (oldFields.length != 0) {
-						keyDecoder.set(kvPair.getRowKey(), 0, kvPair.getRowKey().length);
-						keyDecoder.decode(oldRow);
-
-						rowDecoder.set(kvPair.getValue(),0,kvPair.getValue().length);
-						rowDecoder.decode(oldRow);
-				}
-
-				// encode the result
-				KVPair newPair = entryEncoder.encode(newRow);
-
-				// preserve the old row key
-				newPair.setKey(kvPair.getRowKey());
-				return newPair;
-		}
-
-    public KVPair transform(Data kv) throws StandardException, SQLException, IOException{
-        if (!initialized) {
-            initialize();
-        }
-
+    public KVPair transform(KVPair kvPair) throws StandardException, IOException {
         // Decode a row
         oldRow.resetRowArray();
-        DataValueDescriptor[] oldFields = oldRow.getRowArray();
-        if (oldFields.length != 0) {
-						keyDecoder.set(dataLib.getDataRowBuffer(kv),dataLib.getDataRowOffset(kv),dataLib.getDataRowlength(kv));
-						keyDecoder.decode(oldRow);
+        if (oldRow.nColumns() > 0) {
+            keyDecoder.set(kvPair.getRowKey(), 0, kvPair.getRowKey().length);
+            keyDecoder.decode(oldRow);
 
-						rowDecoder.set(dataLib.getDataValueBuffer(kv),dataLib.getDataValueOffset(kv),dataLib.getDataValuelength(kv));
-						rowDecoder.decode(oldRow);
+            rowDecoder.set(kvPair.getValue(), 0, kvPair.getValue().length);
+            rowDecoder.decode(oldRow);
         }
 
         // encode the result
         KVPair newPair = entryEncoder.encode(newRow);
 
-        // preserve the old row key
-        newPair.setKey(dataLib.getDataRow(kv));
+        // preserve the same row key
+        newPair.setKey(kvPair.getRowKey());
         return newPair;
     }
 
@@ -180,5 +84,70 @@ public class DropColumnRowTransformer<Data> implements Closeable {
 				Closeables.closeQuietly(rowDecoder);
 				Closeables.closeQuietly(entryEncoder);
 		}
+
+    public static RowTransformer create(String tableVersion,
+                                                 int[] oldColumnOrdering,
+                                                 int[] newColumnOrdering,
+                                                 ColumnInfo[] columnInfos,
+                                                 int droppedColumnPosition) throws SpliceDoNotRetryIOException {
+        // template rows
+        ExecRow oldRow = new ValueRow(columnInfos.length);
+        ExecRow newRow = new ValueRow(columnInfos.length-1);
+
+        try {
+            int i = 1;
+            int j =1;
+            for (ColumnInfo col:columnInfos){
+                DataValueDescriptor dataValue = col.dataType.getNull();
+                oldRow.setColumn(i, dataValue);
+                if (i++ != droppedColumnPosition){
+                    newRow.setColumn(j++, dataValue);
+                }
+            }
+        } catch (StandardException e) {
+            throw Exceptions.getIOException(e);
+        }
+
+        // key decoder
+        KeyHashDecoder keyDecoder;
+        if(oldColumnOrdering!=null && oldColumnOrdering.length>0){
+            DescriptorSerializer[] oldDenseSerializers =
+                VersionedSerializers.forVersion(tableVersion, false).getSerializers(oldRow);
+            keyDecoder = BareKeyHash.decoder(oldColumnOrdering, null, oldDenseSerializers);
+        }else{
+            keyDecoder = NoOpDataHash.instance().getDecoder();
+        }
+
+        // row decoder
+        DescriptorSerializer[] oldSerializers =
+            VersionedSerializers.forVersion(tableVersion, true).getSerializers(oldRow);
+        EntryDataDecoder rowDecoder = new EntryDataDecoder(IntArrays.count(oldRow.nColumns()),null,oldSerializers);
+
+        // Row encoder
+        KeyEncoder encoder;
+        DescriptorSerializer[] newSerializers =
+            VersionedSerializers.forVersion(tableVersion, true).getSerializers(newRow);
+        if(newColumnOrdering !=null&& newColumnOrdering.length>0){
+            //must use dense encodings in the key
+            DescriptorSerializer[] denseSerializers =
+                VersionedSerializers.forVersion(tableVersion, false).getSerializers(newRow);
+            encoder = new KeyEncoder(NoOpPrefix.INSTANCE, BareKeyHash.encoder(newColumnOrdering, null,
+                                                                              denseSerializers), NoOpPostfix.INSTANCE);
+        } else {
+            UUIDGenerator uuidGenerator = SpliceDriver.driver().getUUIDGenerator().newGenerator(100);
+            encoder = new KeyEncoder(new SaltedPrefix(uuidGenerator), NoOpDataHash.INSTANCE,NoOpPostfix.INSTANCE);
+        }
+        int[] columns = IntArrays.count(newRow.nColumns());
+
+        if (oldColumnOrdering != null && oldColumnOrdering.length > 0) {
+            for (int col: oldColumnOrdering) {
+                columns[col] = -1;
+            }
+        }
+        DataHash rowHash = new EntryDataHash(columns, null,newSerializers);
+        PairEncoder rowEncoder = new PairEncoder(encoder,rowHash, KVPair.Type.INSERT);
+
+        return new DropColumnRowTransformer(oldRow, newRow, keyDecoder, rowDecoder, rowEncoder);
+    }
 
 }

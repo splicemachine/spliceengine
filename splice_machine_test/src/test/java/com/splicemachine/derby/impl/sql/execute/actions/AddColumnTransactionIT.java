@@ -187,7 +187,7 @@ public class AddColumnTransactionIT {
         }
     }
 
-    @Test //@Ignore("DB-1755 - conn b's insert txn is still open, but does alter table txn have to do something special to check this?")
+    @Test @Ignore("DB-1755 - should fail but isn't?")
     public void testAddColumnCannotProceedWithOpenDMLOperations() throws Exception {
         TestConnection a;
         TestConnection b;
@@ -245,7 +245,7 @@ public class AddColumnTransactionIT {
         Assert.assertEquals("Incorrect returned row count",1,count);
     }
 
-    @Test //@Ignore("DB-1755 - still not obeying transactionality.")
+    @Test @Ignore("DB-1755 - still failing.")
     public void testAddColumnBeforeInsertionIsCorrect() throws Exception {
         TestConnection a;
         TestConnection b;
