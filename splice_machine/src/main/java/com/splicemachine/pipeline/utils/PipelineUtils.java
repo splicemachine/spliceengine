@@ -88,6 +88,17 @@ public class PipelineUtils extends PipelineConstants {
 				return SpliceHTableUtil.getWaitTime(tryNum,pause);
 		}
 
+	    /**
+	     * Get the cached regions for the table.  If the cache returns zero regions, invalidate the cache entry for the table and
+	     * retry a number of times assuming that the information is temporarily unavailable.  If after the retries,
+	     * there are still zero regions, throw an IOException since all tables should have at least one region.
+	     * @param regionCache
+	     * @param tableName
+	     * @return
+	     * @throws IOException if unable to get region information for the table (if the # of regions is zero)
+	     * @throws ExecutionException
+	     * @throws InterruptedException
+	     */
 		public static SortedSet<Pair<HRegionInfo,ServerName>> getRegions(RegionCache regionCache, byte[] tableName) throws IOException, ExecutionException, InterruptedException {
 				SortedSet<Pair<HRegionInfo,ServerName>> regions = regionCache.getRegions(tableName);
 				if(regions.size()<=0){
@@ -104,7 +115,6 @@ public class PipelineUtils extends PipelineConstants {
 				}
 				return regions;
 		}
-
 
 		public static String getHostName() {
 				return hostName;

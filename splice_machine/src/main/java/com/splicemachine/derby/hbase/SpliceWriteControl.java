@@ -5,6 +5,14 @@ import com.splicemachine.utils.TrafficControl;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 
+/**
+ * WriteControl limits (or controls) the rate of writes per region server.  It restricts writes based on the number of writes that are currently "in flight"
+ * and the number of writer threads that are currently in use.  WriteControl is essentially a multi-variable counting semaphore where the counting variables
+ * are the number of current writes and the number of current writer threads.  The limiting variables (or buckets) or further subdivided into independent and 
+ * dependent writes.  Independent writes being writes to a single table and dependent writes being writes that require multiple tables to written to such as
+ * a base table and its indexes.  WriteControl does not actually perform writes.  It just controls whether or not the write is allowed to proceed.
+ * It essentially gives out "permits" when the write request fits within the control limits and rejects write requests when they don't.
+ */
 public class SpliceWriteControl {
 
     private final TrafficControl independentTraffic;

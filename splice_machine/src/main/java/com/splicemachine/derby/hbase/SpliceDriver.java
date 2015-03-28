@@ -253,7 +253,10 @@ public class SpliceDriver {
 
     public RegionWritePipeline getWritePipeline(String encodedRegionName) {
         SpliceBaseIndexEndpoint endpoint = getIndexEndpoint(encodedRegionName);
-        if (endpoint == null) return null;
+        if (endpoint == null) {
+        	SpliceLogUtils.debug(LOG, "IndexEndpoint not found for encoded region %s", encodedRegionName);
+        	return null;
+        }
         return endpoint.getWritePipeline();
     }
 
