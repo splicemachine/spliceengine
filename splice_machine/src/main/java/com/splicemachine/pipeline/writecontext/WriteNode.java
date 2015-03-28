@@ -1,5 +1,12 @@
 package com.splicemachine.pipeline.writecontext;
 
+import java.io.IOException;
+import java.util.Map;
+
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.regionserver.HRegion;
+
 import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.CallBuffer;
@@ -7,12 +14,6 @@ import com.splicemachine.pipeline.api.WriteContext;
 import com.splicemachine.pipeline.api.WriteHandler;
 import com.splicemachine.pipeline.impl.WriteResult;
 import com.splicemachine.si.api.TxnView;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.regionserver.HRegion;
-
-import java.io.IOException;
-import java.util.Map;
 
 public class WriteNode implements WriteContext {
 
@@ -117,6 +118,11 @@ public class WriteNode implements WriteContext {
     }
 
     public void setNext(WriteNode next) {
-        this.next = next;
+    	this.next = next;
+    }
+
+    @Override
+    public String toString() {
+        return "WriteNode { pipelineWriteContext=" + pipelineWriteContext.toString() + " }";
     }
 }

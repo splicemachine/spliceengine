@@ -5,6 +5,8 @@ import com.splicemachine.utils.TrafficControl;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.LockSupport;
 
+import org.apache.log4j.Logger;
+
 /**
  * WriteControl limits (or controls) the rate of writes per region server.  It restricts writes based on the number of writes that are currently "in flight"
  * and the number of writer threads that are currently in use.  WriteControl is essentially a multi-variable counting semaphore where the counting variables
@@ -13,8 +15,9 @@ import java.util.concurrent.locks.LockSupport;
  * a base table and its indexes.  WriteControl does not actually perform writes.  It just controls whether or not the write is allowed to proceed.
  * It essentially gives out "permits" when the write request fits within the control limits and rejects write requests when they don't.
  */
-public class SpliceWriteControl {
 
+public class SpliceWriteControl {
+    private static final Logger LOG = Logger.getLogger(SpliceWriteControl.class);
     private final TrafficControl independentTraffic;
 
     public static enum Status {
@@ -42,11 +45,18 @@ public class SpliceWriteControl {
 
     public Status performDependentWrite(int writes) {
         while (true) {
-            WriteStatus state = writeStatus.get();
-            if (state.dependentWriteThreads > maxDependentWriteThreads || state.dependentWriteCount > maxDependentWriteCount)
-                return Status.REJECTED;
-            if (writeStatus.compareAndSet(state, WriteStatus.incrementDependentWriteStatus(state, writes)))
-                return Status.DEPENDENT;
+			WriteStatus state = writeStatus.get();
+			if (state.dependentWriteThreads > maxDependentWriteThreads || state.dependentWriteCount > maxDependentWriteCount) {
+					if (LOG.isTraceEnabled()) {
+						LOG.trace(String.format(
+								"Rejected dependent write: dependentWriteThreads=%d, maxDependentWriteThreads=%d, dependentWriteCount=%d, maxDependentWriteCount=%d, requestedWriteCount=%d",
+								state.dependentWriteThreads, maxDependentWriteThreads, state.dependentWriteCount, maxDependentWriteCount, writes));
+					}
+					return Status.REJECTED;
+			}
+			if (writeStatus.compareAndSet(state, WriteStatus.incrementDependentWriteStatus(state,writes))) {
+					return Status.DEPENDENT;
+			}
         }
     }
 
@@ -60,11 +70,18 @@ public class SpliceWriteControl {
 
     public Status performIndependentWrite(int writes) {
         while (true) {
-            WriteStatus state = writeStatus.get();
-            if (state.independentWriteThreads > maxIndependentWriteThreads || state.independentWriteCount > maxIndependentWriteCount)
-                return performDependentWrite(writes); // Attempt to steal
-            if (writeStatus.compareAndSet(state, WriteStatus.incrementIndependentWriteStatus(state, writes)))
-                return Status.INDEPENDENT;
+			WriteStatus state = writeStatus.get();
+			if (state.independentWriteThreads > maxIndependentWriteThreads || state.independentWriteCount > maxIndependentWriteCount) {
+					if (LOG.isTraceEnabled()) {
+						LOG.trace(String.format(
+								"Rejected independent write, now attempting to steal from dependent: independentWriteThreads=%d, maxIndependentWriteThreads=%d, independentWriteCount=%d, maxIndependentWriteCount=%d, requestedWriteCount=%d",
+								state.independentWriteThreads, maxIndependentWriteThreads, state.independentWriteCount, maxIndependentWriteCount, writes));
+					}
+					return (performDependentWrite(writes)); // Attempt to steal
+			}
+			if (writeStatus.compareAndSet(state, WriteStatus.incrementIndependentWriteStatus(state,writes))) {
+					return Status.INDEPENDENT;
+			}
         }
     }
 
