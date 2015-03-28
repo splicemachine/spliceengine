@@ -11,11 +11,14 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Iterator;
 
+import org.apache.log4j.Logger;
+
 /**
  * @author Scott Fines
  *         Date: 8/14/14
  */
 public abstract class AbstractTxnView implements TxnView {
+	private static final Logger LOG = Logger.getLogger(AbstractTxnView.class);
     protected long txnId;
     protected long beginTimestamp;
     protected Txn.IsolationLevel isolationLevel;
@@ -317,6 +320,14 @@ public abstract class AbstractTxnView implements TxnView {
     	output.writeLong(beginTimestamp);
     	output.writeByte(isolationLevel.encode());    			
 	}
-    
-    
+
+    @Override
+    public String toString(){
+    	return String.format("%s(%s,%s,%s)%s",
+    			getClass().getSimpleName(),
+    			txnId,
+    			getState(),
+    			getSavePointName(),
+    			(LOG.isDebugEnabled() ? String.format(" -> %s", getParentTxnView()) : ""));
+    }    
 }

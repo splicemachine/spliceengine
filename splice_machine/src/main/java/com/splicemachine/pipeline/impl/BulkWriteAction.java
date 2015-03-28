@@ -293,7 +293,7 @@ public class BulkWriteAction implements Callable<WriteStats> {
                 }
             }
             numAttempts++;
-            addToWritesToPerform(retryPipingCallBuffer,writesToPerform);
+            addToWritesToPerform(writesToPerform);
             retryPipingCallBuffer = null;
             if (numAttempts > 100 && numAttempts%50==0)
                 SpliceLogUtils.warn(LOG, "[%d] BulkWriteAction Taking Long Time with [%d] attempts", id,numAttempts);
@@ -333,7 +333,7 @@ public class BulkWriteAction implements Callable<WriteStats> {
 				}
 				retryPipingCallBuffer.addAll(retryBuffer);
 		}
-		private void addToWritesToPerform(PipingCallBuffer retryPipingCallBuffer,List<BulkWrites> writesToPerform) throws Exception {
+		private void addToWritesToPerform(List<BulkWrites> writesToPerform) throws Exception {
 				if (retryPipingCallBuffer != null) {
 						writesToPerform.addAll(retryPipingCallBuffer.getBulkWrites());
 				}

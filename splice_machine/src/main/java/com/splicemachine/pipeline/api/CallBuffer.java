@@ -5,6 +5,9 @@ import com.carrotsearch.hppc.ObjectArrayList;
 import java.util.Collection;
 
 /**
+ * This is an interface to a data structure to buffer (or queue) HBase RPC calls.
+ * Technically, the calls don't need to be HBase RPC calls.  That just happens to be the interface that was first implemented.
+ *
  * @author Scott Fines
  *         Created on: 3/18/13
  */

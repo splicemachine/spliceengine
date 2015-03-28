@@ -16,10 +16,26 @@ import java.util.*;
 import java.util.Map.Entry;
 import java.util.concurrent.Future;
 
+/**
+ * This is a data structure to buffer HBase RPC calls to a specific region server.
+ * The call buffers are partitioned (organized) by region.  The region is identified by the starting row key for the region.
+ * This means the entries that are buffered by this class are pairs consisting of the starting row key and the call buffer for the region.
+ * <em>Please Note:</em> This data structure also contains a table name.  So there will be multiple instances of this class
+ * for each region server, since each table and region server combination will have an instance of this class.
+ */
 class RegionServerCallBuffer implements CallBuffer<Pair<byte[],RegionCallBuffer>> {
 		private static final Logger LOG = Logger.getLogger(RegionServerCallBuffer.class);
 		private ServerName serverName;
 		private final Writer writer;
+
+		/**
+		 * Map of all the call buffers for each region on this region server.
+		 * The map is keyed by the starting row key for the regions.
+		 * And the value (entry) stored in the map is the buffer of calls for the region.
+		 * These calls are HBase RPC calls.
+		 * Regions are basically defined by their table name and the starting row key for the region.
+		 * If you know that information, you can get the call buffer to the region.
+		 */
 		private NavigableMap<byte[],RegionCallBuffer> buffers;
 		private final List<Future<WriteStats>> outstandingRequests = Lists.newArrayList();
 		private final MergingWriteStats writeStats;
@@ -42,6 +58,10 @@ class RegionServerCallBuffer implements CallBuffer<Pair<byte[],RegionCallBuffer>
 				this.buffers = new TreeMap<>(Bytes.BYTES_COMPARATOR);
 		}
 
+	    /**
+	     * Add a buffer of region calls to this region server's call buffers.
+	     * @param element a pair that consists of the starting row key and the call buffer for the region
+	     */
 		@Override
 		public void add(Pair<byte[],RegionCallBuffer> element) throws Exception {
 				SpliceLogUtils.trace(LOG, "add %s", element);
@@ -77,7 +97,6 @@ class RegionServerCallBuffer implements CallBuffer<Pair<byte[],RegionCallBuffer>
 								writeStats.merge(retStats);
 						}
 				}
-
 		}
 
 		public BulkWrites getBulkWrites() throws Exception {
@@ -152,8 +171,4 @@ class RegionServerCallBuffer implements CallBuffer<Pair<byte[],RegionCallBuffer>
 		public WriteConfiguration getWriteConfiguration() {
 				return writeConfiguration;
 		}
-
-
-
 }
-
