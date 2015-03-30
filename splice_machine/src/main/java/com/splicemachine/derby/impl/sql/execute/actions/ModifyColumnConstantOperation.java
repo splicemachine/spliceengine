@@ -110,6 +110,8 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                 lockGranularity, behavior, indexNameForStatistics);
     }
 
+    @Override protected boolean waitsForConcurrentTransactions() { return true; }
+
     @Override
     protected void executeConstantActionBody(Activation activation) throws StandardException {
 
@@ -410,10 +412,6 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
             //wait for all past txns to complete
             Txn populateTxn = getChainedTransaction(tc, tentativeTransaction, oldCongNum, "AddColumn("+colInfo.name+")");
 
-
-            //notify other servers of the change
-            notifyMetadataChangeAndWait(ddlChange);
-
             // Populate new table with additional column with data from old table
             CoprocessorJob populateJob = new PopulateConglomerateJob(hTable,
                                                                      oldTableDescriptor.getNumberOfColumns(),
@@ -435,6 +433,9 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         // we should invalidate all statements that use the old conglomerates
         dd.startWriting(lcc);
         dd.getDependencyManager().invalidateFor(oldTableDescriptor, DependencyManager.COMPRESS_TABLE, lcc);
+
+        //notify other servers of the change
+        notifyMetadataChangeAndWait(ddlChange);
     }
 
     // TODO: JC - figure out how to make this work without executing update on old table first
@@ -1576,8 +1577,6 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         DDLChange ddlChange = new DDLChange(tentativeTransaction, DDLChangeType.DROP_COLUMN);
         ddlChange.setTentativeDDLDesc(tentativeDropColumnDesc);
 
-        notifyMetadataChangeAndWait(ddlChange);
-
         try {
             String schemaName = oldTableDescriptor.getSchemaName();
             String tableName = oldTableDescriptor.getName();
@@ -1594,10 +1593,6 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
 
             //wait for all past txns to complete
             Txn populateTxn = getChainedTransaction(tc, tentativeTransaction, oldCongNum, "DropColumn("+columnName+")");
-
-
-            //notify other servers of the change
-            notifyMetadataChangeAndWait(ddlChange);
 
             // Populate new table with additional column with data from old table
             CoprocessorJob populateJob = new PopulateConglomerateJob(hTable,
@@ -1647,7 +1642,8 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         // we should invalidate all statements that use the old conglomerates
         dd.getDependencyManager().invalidateFor(oldTableDescriptor, DependencyManager.COMPRESS_TABLE, lcc);
 
-        cleanUp();
+        //notify other servers of the change
+        notifyMetadataChangeAndWait(ddlChange);
     }
 
     private void startCoprocessorJob(Activation activation,

@@ -37,25 +37,17 @@ public class AlterTableInterceptWriteHandler implements WriteHandler {
     @Override
     public void next(KVPair mutation, WriteContext ctx) {
         try {
-            KVPair newPair;
-            if (shouldIntercept(mutation.getType())) {
-                newPair = mutation;
-            } else {
-                KVPair kvPair = new KVPair(mutation.getRowKey(), mutation.getValue());
-                newPair = rowTransformer.transform(kvPair);
+            // Don't intercept deletes from the old table.
+            if (mutation.getType() != KVPair.Type.DELETE) {
+                KVPair newPair = rowTransformer.transform(mutation);
+                initTargetCallBuffer(ctx).add(newPair);
+                ctx.success(mutation);
             }
-            initTargetCallBuffer(ctx).add(newPair);
-            ctx.success(mutation);
         } catch (Exception e) {
             ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName() + ":" + e.getMessage()));
         }
 
         ctx.sendUpstream(mutation);
-    }
-
-    /* This WriteHandler doesn't do anything when, for example, we delete from the old table. */
-    private boolean shouldIntercept(KVPair.Type type) {
-        return type == KVPair.Type.INSERT || type == KVPair.Type.UPDATE || type == KVPair.Type.UPSERT;
     }
 
     @Override
