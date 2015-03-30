@@ -580,9 +580,7 @@ public class BinaryRelationalOperatorNode
 			** Is it the correct column?
 			*/
 			cr = (ColumnReference) leftOperand;
-			if (valNodeReferencesOptTable(
-				cr, (FromTable)optTable, false, true))
-			{
+			if (valNodeReferencesOptTable( cr, (FromTable)optTable, false, true)) {
 				/* The left operand is the key column */
 				left = true;
 			}
@@ -595,9 +593,7 @@ public class BinaryRelationalOperatorNode
 			{
 		    	SanityManager.ASSERT(
 					(rightOperand instanceof ColumnReference) &&
-					valNodeReferencesOptTable((ColumnReference)rightOperand,
-			    		(FromTable)optTable, false, true),
-					"Key column not found on either side.");
+					valNodeReferencesOptTable(rightOperand, (FromTable)optTable, false, true), "Key column not found on either side.");
 			}
 		}
 

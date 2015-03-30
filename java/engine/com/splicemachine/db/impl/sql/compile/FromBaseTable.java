@@ -885,8 +885,7 @@ public class FromBaseTable extends FromTable{
                         continue;
                     }
 
-                    boolean knownConstant=pred.compareWithKnownConstant(this,true);
-                    if(knownConstant && pred.isQualifier()){
+                    if(pred.isQualifier() && pred.compareWithKnownConstant(this,true)){
                         nonKeyQualifiers.add(pred);
                     }else if(!((Predicate)pred).isJoinPredicate()){
                         //TODO -sf- add in ScanCostController somehow?
@@ -1043,10 +1042,19 @@ public class FromBaseTable extends FromTable{
              *
              * We want to deal with situations where we have a range of values within two predicates
              * first, then deal with the remainder.
+             *
+             * We have three possibilities:
+             *
+             * 1. the predicate is a "range start" --i.e. it defines the start of a contiguous interval (>=, for
+             * example)
+             * 2. the predicate is a "range stop" --i.e. it defines the end of a contiguous interval (<=,<)
+             * 3. the predicate is an equality predicate
+             * 4. The predicate is something else.
+             *
+             * In the case of #1 and #2, we want to gather those together
              */
 
-            @SuppressWarnings("Convert2Diamond") List<Predicate> rangeStartPredicates=new ArrayList<Predicate>(nonKeyQualifiers.size());
-            @SuppressWarnings("Convert2Diamond") List<Predicate> rangeStopPredicates=new ArrayList<Predicate>(nonKeyQualifiers.size());
+            Map<Integer,List<RangePredicate>> startStopPredicates = new HashMap<>();
             for(OptimizablePredicate predicate : nonKeyQualifiers){
                 Predicate p=(Predicate)predicate;
                 /*
@@ -1060,6 +1068,8 @@ public class FromBaseTable extends FromTable{
                 RelationalOperator relop=p.getRelop();
                 int relationalOperator=relop.getOperator();
                 int columnNumber=relop.getColumnOperand(this).getColumnNumber();
+                List<RangePredicate> rps = startStopPredicates.get(columnNumber);
+                RangePredicate rp;
                 switch(relationalOperator){
                     case RelationalOperator.EQUALS_RELOP:
                         //estimate the selectivity on this column
@@ -1072,20 +1082,53 @@ public class FromBaseTable extends FromTable{
                     case RelationalOperator.GREATER_EQUALS_RELOP:
                     case RelationalOperator.GREATER_THAN_RELOP:
                         //see if there's an equivalent operator already found. If so, add to start in that position
-                        int equivalentPredicatePos=findOpposingPredicate(columnNumber,rangeStopPredicates);
-                        if(equivalentPredicatePos<0)
-                            rangeStartPredicates.add(p);
-                        else
-                            rangeStartPredicates.add(equivalentPredicatePos,p);
+                        if(rps==null){
+                            rps = new LinkedList<>();
+                            rp = new RangePredicate();
+                            rp.stop = p;
+                            rps.add(rp);
+                            startStopPredicates.put(columnNumber,rps);
+                        }else{
+                            boolean found = false;
+                            for(RangePredicate r : rps){
+                                if(r.stop==null){
+                                    r.stop=p;
+                                    found= true;
+                                    break;
+                                }
+                            }
+                            if(!found){
+                                rp = new RangePredicate();
+                                rp.stop = p;
+                                rps.add(rp);
+                            }
+                        }
                         break;
                     case RelationalOperator.LESS_EQUALS_RELOP:
                     case RelationalOperator.LESS_THAN_RELOP:
                         //see if there's an equivalent operator already found. If so, add to start in that position
-                        equivalentPredicatePos=findOpposingPredicate(columnNumber,rangeStartPredicates);
-                        if(equivalentPredicatePos<0)
-                            rangeStopPredicates.add(p);
-                        else
-                            rangeStopPredicates.add(equivalentPredicatePos,p);
+
+                        if(rps==null){
+                            rps = new LinkedList<>();
+                            rp = new RangePredicate();
+                            rp.start = p;
+                            rps.add(rp);
+                            startStopPredicates.put(columnNumber,rps);
+                        }else{
+                            boolean found = false;
+                            for(RangePredicate r : rps){
+                                if(r.start==null){
+                                    r.start=p;
+                                    found= true;
+                                    break;
+                                }
+                            }
+                            if(!found){
+                                rp = new RangePredicate();
+                                rp.start = p;
+                                rps.add(rp);
+                            }
+                        }
                         break;
                     case RelationalOperator.IS_NULL_RELOP:
                         extraQualifierSelectivity*=scc.nullSelectivity(columnNumber);
@@ -1100,19 +1143,32 @@ public class FromBaseTable extends FromTable{
                 }
             }
             //now iterate through our start-stop qualifier ranges and add in a range selectivity
-            for(int i=0;i<rangeStartPredicates.size();i++){
-                Predicate startPred=rangeStartPredicates.get(i);
-                Predicate stopPred=rangeStopPredicates.get(i);
-                RelationalOperator startRelop=startPred.getRelop();
-                RelationalOperator stopRelop=stopPred.getRelop();
-                DataValueDescriptor start=startRelop.getCompareValue(this);
-                DataValueDescriptor stop=stopRelop.getCompareValue(this);
-                int sOp=startRelop.getOperator();
-                int eOp=stopRelop.getOperator();
-                boolean includeStart=sOp==RelationalOperator.GREATER_EQUALS_RELOP;
-                boolean includeStop=eOp==RelationalOperator.LESS_EQUALS_RELOP;
+            for(Map.Entry<Integer,List<RangePredicate>> rangeEntry:startStopPredicates.entrySet()){
+                List<RangePredicate> range = rangeEntry.getValue();
+                int columnNumber = rangeEntry.getKey();
+                for(RangePredicate p:range){
+                    DataValueDescriptor start = null;
+                    boolean includeStart = true;
+                    DataValueDescriptor stop = null;
+                    boolean includeStop = true;
 
-                extraQualifierSelectivity*=scc.getSelectivity(startRelop.getColumnOperand(this).getColumnNumber(),start,includeStart,stop,includeStop);
+                    Predicate startPred=p.start;
+                    if(startPred!=null){
+                        RelationalOperator startRelop=startPred.getRelop();
+                        start=startRelop.getCompareValue(this);
+                        int sOp=startRelop.getOperator();
+                        includeStart = sOp==RelationalOperator.GREATER_EQUALS_RELOP;
+                    }
+                    Predicate stopPred=p.stop;
+                    if(stopPred!=null){
+                        RelationalOperator stopRelop=stopPred.getRelop();
+                        stop=stopRelop.getCompareValue(this);
+                        int eOp=stopRelop.getOperator();
+                        includeStop=eOp==RelationalOperator.LESS_EQUALS_RELOP;
+                    }
+
+                    extraQualifierSelectivity*=scc.getSelectivity(columnNumber,start,includeStart,stop,includeStop);
+                }
             }
 
             double adjustedRowCount=costEstimate.getEstimatedRowCount()*nonQualifierSelectivity*extraQualifierSelectivity;
