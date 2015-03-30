@@ -21,7 +21,7 @@ public class SpliceXPlainTrace extends XPlainTrace{
     public static final String MERGESORTJOIN = "MergeSortJoin";
     public static final String MERGEJOIN = "MergeJoin";
     public static final String BROADCASTJOIN = "BroadcastJoin";
-    public static final String INDEXROWTOBASEROW = "IndexRowToBaseRow";
+    public static final String INDEXROWTOBASEROW = "IndexLookup";
     public static final String SORT = "SORT";
     public static final String DISTINCTSCAN = "DISTINCTSCAN";
     public static final String ONCE = "ONCE";
