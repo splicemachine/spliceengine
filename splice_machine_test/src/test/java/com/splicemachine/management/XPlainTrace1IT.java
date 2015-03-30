@@ -1,5 +1,6 @@
 package com.splicemachine.management;
 
+import com.splicemachine.derby.impl.sql.catalog.SpliceXplainUtils;
 import com.splicemachine.derby.management.XPlainTreeNode;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.test.SerialTest;
@@ -93,9 +94,8 @@ public class XPlainTrace1IT extends BaseXplainIT {
     public void testBroadcastJoin() throws Exception {
         xPlainTrace.turnOnTrace();
 
-        String sql = "select * from " +
-                CLASS_NAME + "." + TABLE1 + " t1, " + CLASS_NAME + "." + TABLE2 + " t2 " +
-                "where t1.i = t2.i";
+        String sql = String.format("select * from %s t1,%s t2 --SPLICE-PROPERTIES joinStrategy=BROADCAST \n" +
+                " where t1.i = t2.i",spliceTableWatcher1,spliceTableWatcher2);
         long count = baseConnection.count(sql);
         Assert.assertEquals("Incorrect row count with XPLAIN enabled",nrows,count);
         xPlainTrace.turnOffTrace();
@@ -110,7 +110,7 @@ public class XPlainTrace1IT extends BaseXplainIT {
             operationType = operation.getOperationType();
             System.out.println(operationType);
         }
-        Assert.assertEquals(operationType.toUpperCase(), SpliceXPlainTrace.BROADCASTJOIN.toUpperCase());
+        Assert.assertEquals(SpliceXPlainTrace.BROADCASTJOIN.toUpperCase(),operationType.toUpperCase());
         Assert.assertEquals(operation.getInputRows(), 10);
         Assert.assertEquals(operation.getOutputRows(), 10);
         Assert.assertEquals(operation.getWriteRows(), 0);
@@ -169,8 +169,8 @@ public class XPlainTrace1IT extends BaseXplainIT {
             Assert.assertEquals(2, children.size());
         }
         finally {
-            methodWatcher.executeUpdate("drop index t1i");
-            methodWatcher.executeUpdate("drop index t2i");
+//            methodWatcher.executeUpdate("drop index t1i");
+//            methodWatcher.executeUpdate("drop index t2i");
         }
     }
 
@@ -326,7 +326,10 @@ public class XPlainTrace1IT extends BaseXplainIT {
         // First child should be a bulk table scan operation
         XPlainTreeNode child = operation.getChildren().getFirst();
         operationType = child.getOperationType();
-        Assert.assertEquals(operationType, SpliceXPlainTrace.BULKTABLESCAN);
+        boolean isTableScan = SpliceXPlainTrace.BULKTABLESCAN.equalsIgnoreCase(operationType)
+                || SpliceXPlainTrace.TABLESCAN.equalsIgnoreCase(operationType);
+        Assert.assertTrue("Not a table scan! expected="+SpliceXPlainTrace.BULKTABLESCAN+" or "+ SpliceXPlainTrace.TABLESCAN,
+                isTableScan);
         Assert.assertEquals(child.getLocalScanRows(), nrows);
         Assert.assertEquals(child.getOutputRows(), nrows);
 

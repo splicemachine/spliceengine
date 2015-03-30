@@ -119,14 +119,17 @@ public class XPlainTrace2IT extends BaseXplainIT{
         XPlainTreeNode operation = xPlainTrace.getOperationTree(statementId);
         operation = operation.getChildren().getFirst();
         String operationType = operation.getOperationType();
-        Assert.assertTrue(operationType.compareToIgnoreCase(SpliceXPlainTrace.INDEXROWTOBASEROW) == 0);
-        Assert.assertTrue(operation.getInfo().compareToIgnoreCase("baseTable:T3") == 0);
+        Assert.assertEquals(SpliceXPlainTrace.INDEXROWTOBASEROW,operationType);
+        Assert.assertTrue(operation.getInfo().compareToIgnoreCase("baseTable:T3")==0);
         Assert.assertEquals(operation.getInputRows(), 1);
         Assert.assertEquals(operation.getOutputRows(), 1);
         Assert.assertEquals(operation.getRemoteGetRows(), 1);
 
         operation = operation.getChildren().getFirst();
-        Assert.assertTrue(operation.getOperationType().compareToIgnoreCase(SpliceXPlainTrace.BULKTABLESCAN)==0);
+        operationType = operation.getOperationType();
+        boolean isTable = SpliceXPlainTrace.BULKTABLESCAN.equalsIgnoreCase(operationType)
+                ||SpliceXPlainTrace.TABLESCAN.equalsIgnoreCase(operationType);
+        Assert.assertTrue("Not a table scan! Expected: <BulkTableScan|TableScan>; Actual: "+operationType,isTable);
         Assert.assertTrue(operation.getInfo().contains("Scan filter:(I[1:1] = 1)"));
         Assert.assertTrue(operation.getInfo().contains("index:TI"));
         Assert.assertEquals(operation.getOutputRows(), 1);
