@@ -624,9 +624,10 @@ public class CreateTriggerNode extends DDLStatementNode
 				checkInvalidTriggerReference(baseTableName);
 
 				newText.append(originalActionText.substring(start, tokBeginOffset-actionOffset));
-				newText.append(baseTableName.equals(oldTableName) ?
-								"new com.splicemachine.db.catalog.TriggerOldTransitionRows() " :
-								"new com.splicemachine.db.catalog.TriggerNewTransitionRows() ");
+				newText.append("new com.splicemachine.db.catalog.TriggerNewTransitionRows() ");
+//				newText.append(baseTableName.equals(oldTableName) ?
+//								"new com.splicemachine.db.catalog.TriggerOldTransitionRows() " :
+//								"new com.splicemachine.db.catalog.TriggerNewTransitionRows() ");
 				/*
 				** If the user supplied a correlation, then just
 				** pick it up automatically; otherwise, supply

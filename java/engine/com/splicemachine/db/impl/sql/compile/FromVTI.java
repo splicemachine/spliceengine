@@ -1759,8 +1759,8 @@ public class FromVTI extends FromTable implements VTIEnvironment {
 	private UUID getSpecialTriggerVTITableName(LanguageConnectionContext lcc, String className)
 		throws StandardException
 	{
-		if (className.equals(ClassName.TriggerNewTransitionRows) ||
-		    className.equals(ClassName.TriggerOldTransitionRows))
+		if (className.equals(ClassName.TriggerNewTransitionRows))
+//				|| className.equals(ClassName.TriggerOldTransitionRows))
 		{
 			// if there isn't an active trigger being compiled, error
 			if (lcc.getTriggerTable() != null)

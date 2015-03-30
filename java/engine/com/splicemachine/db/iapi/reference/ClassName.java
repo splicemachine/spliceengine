@@ -127,7 +127,7 @@ public interface ClassName
 	String ParameterValueSetFactory ="com.splicemachine.db.iapi.sql.ParameterValueSetFactory";
 
 	String TriggerNewTransitionRows = "com.splicemachine.db.catalog.TriggerNewTransitionRows";
-	String TriggerOldTransitionRows = "com.splicemachine.db.catalog.TriggerOldTransitionRows";
+//	String TriggerOldTransitionRows = "com.splicemachine.db.catalog.TriggerOldTransitionRows";
 	String VTICosting = "com.splicemachine.db.vti.VTICosting";
 
 	String Authorizer = "com.splicemachine.db.iapi.sql.conn.Authorizer";

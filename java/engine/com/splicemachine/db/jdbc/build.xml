@@ -55,7 +55,6 @@
         <pathelement path="${compile.classpath}"/>
       </classpath>
       <include name="${splice.package}/jdbc/InternalDriver.java"/>
-      <include name="${splice.package}/jdbc/EmbeddedSimpleDataSource.java"/>
       <include name="${splice.package}/jdbc/Driver169.java"/>
     </javac>
  
