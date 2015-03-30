@@ -52,7 +52,7 @@ public class SpliceConstants {
     @DefaultValue(ROLL_FORWARD_ROW_THRESHOLD) public static final int DEFAULT_ROLLFOWARD_ROW_THRESHOLD=1<<14; //about 16K
     public static int rollForwardRowThreshold;
 
-    @Parameter public static final String ROLL_FORWARD_TXN_THRESHOLD = "splice.txn.rollforward.rowThreshold";
+    @Parameter public static final String ROLL_FORWARD_TXN_THRESHOLD = "splice.txn.rollforward.txnThreshold";
     @DefaultValue(ROLL_FORWARD_TXN_THRESHOLD) public static final int DEFAULT_ROLLFOWARD_TXN_THRESHOLD=1<<10; //about 1K
     public static int rollForwardTxnThreshold;
 
