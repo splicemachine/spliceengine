@@ -71,11 +71,16 @@ public class MergeJoinStrategy extends BaseCostedHashableJoinStrategy{
         boolean hashFeasible=super.feasible(innerTable,predList,optimizer,outerCost);
         if(!hashFeasible) return false;
 
+        RowOrdering innerOrder = innerTable.getCurrentAccessPath().getCostEstimate().getRowOrdering();
+        if(innerOrder==null) return false;
+
         /*
          * MergeJoin is only feasible if the inner and outer tables are both
          * sorted along the join columns *in the same order*.
          */
         ConglomerateDescriptor currentCd=innerTable.getCurrentAccessPath().getConglomerateDescriptor();
+        if(currentCd==null) return false; //TODO -sf- this happens when over a non table scan, we should fix that
+
         IndexRowGenerator innerRowGen=currentCd.getIndexDescriptor();
         return innerRowGen!=null
                 && innerRowGen.getIndexDescriptor()!=null

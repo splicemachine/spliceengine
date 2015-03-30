@@ -71,7 +71,7 @@ public class MergeSortJoinStrategy extends BaseCostedHashableJoinStrategy {
                              CostEstimate outerCost,
                              Optimizer optimizer,
                              CostEstimate innerCost) throws StandardException{
-        if(outerCost.localCost()==0d && outerCost.getEstimatedRowCount()==1.0d)
+        if(outerCost.isUninitialized() ||(outerCost.localCost()==0d && outerCost.getEstimatedRowCount()==1.0d))
             return; //actually a scan, don't change the cost
 
         //set the base costing so that we don't lose the underlying table costs
