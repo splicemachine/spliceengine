@@ -323,11 +323,10 @@ public abstract class AbstractTxnView implements TxnView {
 
     @Override
     public String toString(){
-    	return String.format("%s(%s,%s,%s)%s",
+    	return String.format("%s(%s,%s)%s",
     			getClass().getSimpleName(),
     			txnId,
     			getState(),
-    			getSavePointName(),
     			(LOG.isDebugEnabled() ? String.format(" -> %s", getParentTxnView()) : ""));
     }    
 }
