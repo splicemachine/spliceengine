@@ -129,11 +129,12 @@ public class PopulateConglomerateTask extends ZkTask {
                         transformResults(nextRow, getTransformer(), getWriteBuffer());
                     }
                 } finally {
-                    writeBuffer.flushBuffer();
-                    writeBuffer.close();
+                    if (writeBuffer != null) {
+                        writeBuffer.flushBuffer();
+                        writeBuffer.close();
+                    }
                 }
             }
-
         } catch (IOException e) {
             SpliceLogUtils.error(LOG, e);
             throw new ExecutionException(e);

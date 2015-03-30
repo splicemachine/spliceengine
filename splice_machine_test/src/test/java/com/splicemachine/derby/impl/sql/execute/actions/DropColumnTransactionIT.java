@@ -264,14 +264,14 @@ public class DropColumnTransactionIT {
     }
 
     @Test
-    public void testDropColumnFromtwoTransactionsThrowsWriteConflict() throws Exception {
+    public void testDropColumnFromtwoTransactionsThrowsActiveTransactions() throws Exception {
         conn1.createStatement().execute("alter table " + table + " drop column b");
         try{
             conn2.createStatement().execute("alter table " + table+" drop column b");
             Assert.fail("No write conflict detected!");
         }catch(SQLException se){
             Assert.assertEquals("Incorrect error type: "+ se.getMessage(),
-                                ErrorState.WRITE_WRITE_CONFLICT.getSqlState(),se.getSQLState());
+                                ErrorState.DDL_ACTIVE_TRANSACTIONS.getSqlState(),se.getSQLState());
         }
     }
 

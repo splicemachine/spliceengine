@@ -187,7 +187,7 @@ public class AddColumnTransactionIT {
         }
     }
 
-    @Test @Ignore("DB-1755 - should fail but isn't?")
+    @Test
     public void testAddColumnCannotProceedWithOpenDMLOperations() throws Exception {
         TestConnection a;
         TestConnection b;
@@ -245,7 +245,7 @@ public class AddColumnTransactionIT {
         Assert.assertEquals("Incorrect returned row count",1,count);
     }
 
-    @Test @Ignore("DB-1755 - still failing.")
+    @Test
     public void testAddColumnBeforeInsertionIsCorrect() throws Exception {
         TestConnection a;
         TestConnection b;
