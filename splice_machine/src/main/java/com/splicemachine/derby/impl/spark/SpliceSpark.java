@@ -2,13 +2,16 @@ package com.splicemachine.derby.impl.spark;
 
 import java.io.File;
 import java.io.IOException;
+import java.lang.Exception;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.db.jdbc.EmbeddedDriver;
+
 import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -71,7 +74,7 @@ public class SpliceSpark {
                     driver.start(null); // TODO might cause NPEs....
                 }
                 if (driver.getUUIDGenerator() == null) {
-                    driver.loadUUIDGenerator();
+                    driver.loadUUIDGenerator(1); // Need to get Spark Port? TODO JL
                 }
                 spliceStaticComponentsSetup = true;
             }
@@ -97,6 +100,7 @@ public class SpliceSpark {
         String extraOpts = System.getProperty("splice.spark.extra", "");
         String extraLibraryPath = System.getProperty("splice.spark.extraLibraryPath", "");
         String extraClassPath = System.getProperty("splice.spark.extraClassPath", "");
+        String shuffleMemory = System.getProperty("splice.spark.shuffleMemory", "0.5");
 
         LOG.warn("Initializing Spark with:\n master " + master + "\n home " + home + "\n jars " + jars + "\n environment " + environment);
         Map<String, String> properties = Splitter.on(';').omitEmptyStrings().withKeyValueSeparator(Splitter.on('=')).split(environment);
@@ -110,7 +114,7 @@ public class SpliceSpark {
         // conf.set("spark.serializer", SparkCustomSerializer.class.getName());
         conf.set("spark.executor.memory", "8G");
         // conf.set("spark.closure.serializer", "org.apache.spark.serializer.KryoSerializer");
-        conf.set("spark.io.compression.codec", "snappy"); // TODO implement custom codec using our Snappy version
+        conf.set("spark.io.compression.codec", SpliceConstants.config.get("spark.io.compression.codec","lz4"));
         conf.set("spark.kryoserializer.buffer.mb", "8");
         conf.set("spark.kryoserializer.buffer.max.mb", "128");
         conf.set("spark.executor.extraJavaOptions", extraOpts);
@@ -118,8 +122,8 @@ public class SpliceSpark {
         conf.set("spark.executor.extraClassPath", extraClassPath);
         conf.set("spark.kryo.referenceTracking", "false");
         conf.set("spark.storage.memoryFraction", "0.1"); // no caching at the moment
-        conf.set("spark.shuffle.memoryFraction", "0.7");
-        conf.set("spark.locality.wait", "60000"); // wait up to 60 seconds for a local execution
+        conf.set("spark.shuffle.memoryFraction", shuffleMemory);
+        conf.set("spark.locality.wait", "600000"); // wait up to 10 minutes for a local execution
         conf.set("spark.logConf", "true");
         // conf.set("spark.kryo.registrationRequired", "true");
         if (master.startsWith("local[8]")) {

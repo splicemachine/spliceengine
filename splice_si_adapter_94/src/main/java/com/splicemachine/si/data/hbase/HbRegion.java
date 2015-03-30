@@ -2,19 +2,12 @@ package com.splicemachine.si.data.hbase;
 
 
 import com.splicemachine.collections.CloseableIterator;
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.api.TxnView;
-import com.splicemachine.si.data.api.IHTable;
 
 import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Delete;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
@@ -84,17 +77,24 @@ public class HbRegion extends BaseHbRegion<HbRowLock> {
         region.closeRegionOperation();
     }
 
-		@Override
-		public HbRowLock tryLock(byte[] rowKey) throws IOException {
-            Integer lock = region.getLock(null, rowKey, false);
+    @Override
+    public HbRowLock getLock(byte[] rowKey, boolean waitForLock) throws IOException {
+            Integer lock = region.getLock(null, rowKey, waitForLock);
             if(lock == null) return null;
             return new HbRowLock(lock,region);
-		}
+    }
 
     @Override
     public HbRowLock tryLock(ByteSlice rowKey) throws IOException {
         //unfortunate byte[] copy here AGAIN
-        return tryLock(rowKey.getByteCopy());
+        return getLock(rowKey.getByteCopy(), false);
+    }
+
+    @Override
+    public void increment(byte[] rowKey, byte[] family, byte[] qualifier, long amount, HbRowLock rowLock) throws IOException {
+        Increment increment = new Increment(rowKey);
+        increment.addColumn(family, qualifier, amount);
+        region.increment(increment, rowLock.getLockId(), true);
     }
 
     @Override

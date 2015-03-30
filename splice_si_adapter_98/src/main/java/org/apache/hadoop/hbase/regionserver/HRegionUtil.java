@@ -2,7 +2,10 @@ package org.apache.hadoop.hbase.regionserver;
 
 import java.io.IOException;
 import java.util.*;
+
 import com.splicemachine.constants.SIConstants;
+import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.HConstants;
@@ -11,6 +14,7 @@ import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.io.hfile.HFileBlockIndex;
 import org.apache.hadoop.hbase.regionserver.StoreFile.Reader;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
 import org.cliffc.high_scale_lib.Counter;
 
 /**
@@ -20,6 +24,7 @@ import org.cliffc.high_scale_lib.Counter;
  *
  */
 public class HRegionUtil extends BaseHRegionUtil {
+    private static final Logger LOG = Logger.getLogger(HRegionUtil.class);
     public static KeyExists keyExists;
 
 		public static void lockStore(Store store) {
@@ -173,18 +178,32 @@ public class HRegionUtil extends BaseHRegionUtil {
     
     public static List<byte[]> getCutpoints(Store store, byte[] start, byte[] end) throws IOException {
     	assert Bytes.compareTo(start, end) <= 0 || start.length == 0 || end.length ==0;
+    	if (LOG.isTraceEnabled())
+    		SpliceLogUtils.trace(LOG, "getCutpoints");
 	    Collection<StoreFile> storeFiles;
 	      storeFiles = store.getStorefiles();
 	      HFileBlockIndex.BlockIndexReader fileReader;
 	      List<byte[]> cutPoints = new ArrayList<byte[]>();
 	      for (StoreFile file: storeFiles) {
 	    	  if (file != null) {
+	    	    	if (LOG.isTraceEnabled())
+	    	    		SpliceLogUtils.trace(LOG, "getCutpoints with file=%s",file.getPath());
 	    		  fileReader = file.createReader().getHFileReader().getDataBlockIndexReader();
 	    		  int size = fileReader.getRootBlockCount();
+                  int blockCounter = 0;
+	    		  long lastOffset = 0;
 	    		  for (int i =0; i<size;i++) {
+                      blockCounter += fileReader.getRootBlockOffset(i) - lastOffset;        
+                      if (LOG.isTraceEnabled())
+                    	  SpliceLogUtils.trace(LOG, "block %d, with blockCounter=%d",i,blockCounter);
 	    			  byte[] possibleCutpoint = KeyValue.createKeyValueFromKey(fileReader.getRootBlockKey(i)).getRow();
-	    			  if ((start.length == 0 || Bytes.compareTo(start, possibleCutpoint) < 0) && (end.length ==0 || Bytes.compareTo(end, possibleCutpoint) > 0)) // Do not include cutpoints out of bounds
-	    				  cutPoints.add(possibleCutpoint); // Will have to create rowKey anyway for scan...
+	    			  if ((start.length == 0 || Bytes.compareTo(start, possibleCutpoint) < 0) && (end.length ==0 || Bytes.compareTo(end, possibleCutpoint) > 0)) { // Do not include cutpoints out of bounds
+                          if (blockCounter >= SIConstants.splitBlockSize) {
+                        	  lastOffset = fileReader.getRootBlockOffset(i);
+                              blockCounter = 0;
+                              cutPoints.add(possibleCutpoint); // Will have to create rowKey anyway for scan...
+                          }
+                      }
 	    		  }
 	    	  }  
 	      }

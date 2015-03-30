@@ -1,23 +1,35 @@
 package com.splicemachine.derby.hbase;
 
+import com.google.protobuf.ByteString;
+import com.google.protobuf.RpcCallback;
+import com.google.protobuf.RpcController;
 import com.google.protobuf.Service;
+import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.coprocessor.SpliceMessage.SpliceDerbyCoprocessorService;
-import org.apache.hadoop.hbase.Coprocessor;
+import com.splicemachine.coprocessor.SpliceMessage.SpliceSplitServiceRequest;
+import com.splicemachine.coprocessor.SpliceMessage.SpliceSplitServiceResponse;
+import com.splicemachine.derby.impl.job.coprocessor.BytesCopyTaskSplitter;
+import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.MetaMutationAnnotation;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
+import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.RegionServerCoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.RegionServerObserver;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.List;
 
 public class SpliceDerbyCoprocessor extends SpliceDerbyCoprocessorService implements CoprocessorService, RegionServerObserver {
+	private static final Logger LOG = Logger.getLogger(SpliceDerbyCoprocessor.class);
 
     private SpliceBaseDerbyCoprocessor impl;
+    protected HRegion region;
 
     /**
      * Logs the start of the observer and runs the SpliceDriver if needed...
@@ -26,6 +38,7 @@ public class SpliceDerbyCoprocessor extends SpliceDerbyCoprocessorService implem
     public void start(CoprocessorEnvironment e) {
         impl = new SpliceBaseDerbyCoprocessor();
         impl.start(e);
+        region = ((RegionCoprocessorEnvironment) e).getRegion();
     }
 
     /**
@@ -73,4 +86,30 @@ public class SpliceDerbyCoprocessor extends SpliceDerbyCoprocessorService implem
     @Override
     public void postRollBackMerge(ObserverContext<RegionServerCoprocessorEnvironment> regionServerCoprocessorEnvironmentObserverContext, HRegion hRegion, HRegion hRegion2) throws IOException {
      }
+
+	@Override
+	public void computeSplits(RpcController controller,
+			SpliceSplitServiceRequest request,
+			RpcCallback<SpliceSplitServiceResponse> callback) {
+		if (LOG.isDebugEnabled())
+			SpliceLogUtils.debug(LOG, "computeSplits");
+		SpliceMessage.SpliceSplitServiceResponse.Builder writeResponse = SpliceMessage.SpliceSplitServiceResponse.newBuilder();
+		try {
+				ByteString beginKey = request.getBeginKey();
+				ByteString endKey = request.getEndKey();
+				List<byte[]> splits = computeSplits(region, beginKey.toByteArray(),endKey.toByteArray());
+				if (LOG.isDebugEnabled())
+					SpliceLogUtils.debug(LOG, "computeSplits with beginKey=%s, endKey=%s, numberOfSplits=%s",beginKey,endKey,splits.size());
+				for (byte[] split: splits) 
+					writeResponse.addCutPoint(com.google.protobuf.ByteString.copyFrom(split));
+		} catch (java.io.IOException e) {
+				org.apache.hadoop.hbase.protobuf.ResponseConverter.setControllerException(controller, e);
+		}
+		callback.run(writeResponse.build());		
+	}
+	
+	public List<byte[]> computeSplits(HRegion region, byte[] beginKey, byte[] endKey) throws IOException {
+		return BytesCopyTaskSplitter.getCutPoints(region, beginKey, endKey);
+	}
+	
 }

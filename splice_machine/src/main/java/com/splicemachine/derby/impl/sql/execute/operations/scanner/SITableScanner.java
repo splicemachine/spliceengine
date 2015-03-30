@@ -33,7 +33,9 @@ import com.splicemachine.si.data.hbase.HRowAccumulator;
 import com.splicemachine.si.impl.PackedTxnFilter;
 import com.splicemachine.si.impl.TxnFilter;
 import com.splicemachine.storage.*;
+import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.utils.ByteSlice;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.log4j.Logger;
@@ -75,6 +77,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
     private final SIFilterFactory filterFactory;
     private ExecRowAccumulator accumulator;
     private final SDataLib dataLib;
+    private EntryDecoder entryDecoder;
 
 
     protected SITableScanner(final SDataLib dataLib, MeasuredRegionScanner<Data> scanner,
@@ -141,26 +144,8 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
 
     }
 
-    public void recordFieldLengths(int[] columnLengths){
-        if(rowDecodingMap!=null) {
-            for (int i = 0; i < rowDecodingMap.length; i++) {
-                int pos = rowDecodingMap[i];
-                if(pos<0) continue;
-                columnLengths[pos] = accumulator.getCurrentLength(i);
-            }
-        }
-        if(keyDecodingMap!=null) {
-            for (int i = 0; i < keyDecodingMap.length; i++) {
-                int pos = keyDecodingMap[i];
-                if(pos<0) continue;
-                columnLengths[pos] = keyAccumulator.getCurrentLength(i);
-            }
-        }
-    }
-
     @Override
     public ExecRow next(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-
         SIFilter filter = getSIFilter();
         if(keyValues==null)
             keyValues = Lists.newArrayListWithExpectedSize(2);
@@ -185,14 +170,34 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
                     //still need to filter rows to deal with transactional issues
                     filterCounter.increment();
                     continue;
+                } else {
+                    if (LOG.isTraceEnabled())
+                        SpliceLogUtils.trace(LOG,"miss columns=%d",template.nColumns());
                 }
+                currentKeyValue = keyValues.get(0);
                 setRowLocation(currentKeyValue);
                 return template;
             }
         }while(hasRow);
-
         currentRowLocation = null;
         return null;
+    }
+
+    public void recordFieldLengths(int[] columnLengths){
+        if(rowDecodingMap!=null) {
+            for (int i = 0; i < rowDecodingMap.length; i++) {
+                int pos = rowDecodingMap[i];
+                if(pos<0) continue;
+                columnLengths[pos] = accumulator.getCurrentLength(i);
+            }
+        }
+        if(keyDecodingMap!=null) {
+            for (int i = 0; i < keyDecodingMap.length; i++) {
+                int pos = keyDecodingMap[i];
+                if(pos<0) continue;
+                columnLengths[pos] = keyAccumulator.getCurrentLength(i);
+            }
+        }
     }
 
     public RowLocation getCurrentRowLocation(){
@@ -304,7 +309,27 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
 						* so our RowLocation should point to the main table, and not to the
 						* index (that we're actually scanning)
 						*/
-            currentRowLocation = (RowLocation) template.getColumn(template.nColumns());
+            if (template.getColumn(template.nColumns()).getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID) {
+                currentRowLocation = (RowLocation) template.getColumn(template.nColumns());
+            } else {
+                try {
+                    if (entryDecoder == null)
+                        entryDecoder = new EntryDecoder();
+                    entryDecoder.set(dataLib.getDataValueBuffer(sampleKv),
+                            dataLib.getDataValueOffset(sampleKv),
+                            dataLib.getDataValuelength(sampleKv));
+
+                    MultiFieldDecoder decoder = entryDecoder.getEntryDecoder();
+                    slice.set(decoder.decodeNextBytesUnsorted());
+                    if(currentRowLocation==null)
+                        currentRowLocation = new HBaseRowLocation(slice);
+                    else
+                        currentRowLocation.setValue(slice);
+                }
+                catch (IOException e) {
+                    throw StandardException.newException(e.getMessage());
+                }
+            }
         } else {
             slice.set(dataLib.getDataRowBuffer(sampleKv), dataLib.getDataRowOffset(sampleKv),
                     dataLib.getDataRowlength(sampleKv));
@@ -341,10 +366,8 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
         if(keyAccumulator==null)
             keyAccumulator = ExecRowAccumulator.newAccumulator(predicateFilter,false,template,
                     keyDecodingMap, keyColumnSortOrder, accessedKeys, tableVersion);
-
         keyAccumulator.reset();
         primaryKeyIndex.reset();
-
         return predicateFilter.match(primaryKeyIndex, keyDecoderProvider, keyAccumulator);
     }
 

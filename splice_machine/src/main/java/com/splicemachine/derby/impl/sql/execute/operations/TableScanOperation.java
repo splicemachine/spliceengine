@@ -20,13 +20,14 @@ import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.mrio.MRConstants;
-import com.splicemachine.mrio.api.SMInputFormat;
+import com.splicemachine.mrio.api.core.SMInputFormat;
+import com.splicemachine.mrio.api.serde.ExecRowWritable;
+import com.splicemachine.mrio.api.serde.RowLocationWritable;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.uuid.UUIDGenerator;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
@@ -35,6 +36,7 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.types.RowLocation;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HConstants;
@@ -415,7 +417,7 @@ public class TableScanOperation extends ScanOperation {
 								.rowDecodingMap(baseColumnMap);        	
             JavaSparkContext ctx = SpliceSpark.getContext();
             Configuration conf = new Configuration(SIConstants.config);
-            conf.set(MRConstants.SPLICE_INPUT_CONGLOMERATE, tableName);
+            conf.set(MRConstants.SPLICE_CONGLOMERATE, tableName);
             conf.set(MRConstants.SPLICE_JDBC_STR, "jdbc:derby://localhost:1527/splicedb;create=true;user=splice;password=admin");            
             try {
 				conf.set(MRConstants.SPLICE_SCAN_INFO, tsb.getTableScannerBuilderBase64String());
@@ -425,31 +427,9 @@ public class TableScanOperation extends ScanOperation {
 
             JavaPairRDD<RowLocation, ExecRow> rawRDD = ctx.newAPIHadoopRDD(conf, SMInputFormat.class,
                     RowLocation.class, ExecRow.class);
-//            SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, top, spliceRuntimeContext);
             return rawRDD.values(); //.map(new SparkDecoder(this,soi,top)); // This is not right, should pass location as well.
         }
         
-/*        @Override
-        public JavaRDD<ExecRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-            Scan scan = getNonSIScan(spliceRuntimeContext);
-            SpliceUtils.setInstructions(scan, activation, top, spliceRuntimeContext);
-            scan.setAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_CACHING, Bytes.toBytes(4096));
-            JavaSparkContext ctx = SpliceSpark.getContext();
-            Configuration conf = HBaseConfiguration.create();
-            conf.set(TableInputFormat.INPUT_TABLE, tableName);
-            try {
-                conf.set(TableInputFormat.SCAN, ScanUtil.convert(scan));
-            } catch (IOException e) {
-                LOG.error("Error while setting up scan", e);
-                throw Exceptions.parseException(e);
-            }
-
-            JavaPairRDD<ImmutableBytesWritable, Result> rawRDD = ctx.newAPIHadoopRDD(conf, TableInputFormat.class,
-                    ImmutableBytesWritable.class, Result.class);
-            SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, top, spliceRuntimeContext);
-            return rawRDD.map(new SparkDecoder(this, soi, top));
-        }
-*/
         private static final class SparkDecoder extends SparkOperation<TableScanOperation, Tuple2<RowLocation, ExecRow>, ExecRow> {
             private SpliceOperation top;
             private static final long serialVersionUID = 3958079974858059941L;

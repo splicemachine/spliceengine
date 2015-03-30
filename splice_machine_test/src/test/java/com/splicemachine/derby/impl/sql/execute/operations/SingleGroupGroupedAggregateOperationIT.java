@@ -60,13 +60,13 @@ public class SingleGroupGroupedAggregateOperationIT extends SpliceUnitTest {
 
                                 ps.setString(1, user);
                                 ps.setInt(2, value);
-                                SpliceLogUtils.trace(LOG,"user="+user+",value="+value);
                                 ps.executeUpdate();
                             }
                         }
                         spliceClassWatcher.commit();
 //			        spliceClassWatcher.splitTable(TABLE_NAME_1,CLASS_NAME,size/3);
                     } catch (Exception e) {
+                        LOG.error("Error importing data", e);
                         throw new RuntimeException(e);
                     }
                     finally {

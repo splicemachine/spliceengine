@@ -5,14 +5,16 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
 import com.google.common.base.Strings;
-import com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.impl.spark.RDDUtils;
+import com.splicemachine.derby.impl.spark.SpliceSpark;
+import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.marshall.*;
@@ -56,6 +58,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		private boolean alwaysFalse;
 		protected SpliceMethod<DataValueDescriptor> restriction;
 		protected SpliceMethod<ExecRow> projection;
+        private ExecRow projectionResult;
 
 		static {
 				nodeTypes = Collections.singletonList(NodeType.MAP);
@@ -275,6 +278,9 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 														SpliceLogUtils.trace(LOG, ">>>   ProjectRestrictOp[%d]: Candidate Filtered: %s",Bytes.toLong(uniqueSequenceID), candidateRow);
 												rowsFiltered++;
 										}
+                                        if(candidateRow != null && !restrict && activation.isTraced()) {
+                                            removeFromOperationChain();
+                                        }
 								}
 						}
 				} while ( (candidateRow != null) && (!restrict) );
@@ -403,19 +409,16 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		}
 
     public JavaRDD<ExecRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+        if (alwaysFalse) {
+            return SpliceSpark.getContext().parallelize(Collections.<ExecRow>emptyList());
+        }
         JavaRDD<ExecRow> raw = source.getRDD(spliceRuntimeContext, top);
         if (pushedToServer()) {
             // we want to avoid re-applying the PR if it has already been executed in HBase
             return raw;
         }
         final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this, spliceRuntimeContext);
-        JavaRDD<ExecRow> restricted;
-        if (restriction == null) {
-            restricted = raw;
-        } else {
-            restricted = raw.filter(new RestrictOperation(this, soi));
-        }
-        JavaRDD<ExecRow> projected = restricted.map(new ProjectOperation(this, soi));
+        JavaRDD<ExecRow> projected = raw.mapPartitions(new ProjectRestrictSparkOp(this, soi));
         return projected;
     }
 
@@ -429,25 +432,41 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
         return source.pushedToServer();
     }
 
-    public static final class ProjectOperation extends SparkOperation<ProjectRestrictOperation, ExecRow, ExecRow> {
-        public ProjectOperation() {
+    public static final class ProjectRestrictSparkOp extends SparkFlatMapOperation<ProjectRestrictOperation, Iterator<ExecRow>, ExecRow> {
+        public ProjectRestrictSparkOp() {
         }
 
-        public ProjectOperation(ProjectRestrictOperation spliceOperation, SpliceObserverInstructions soi) {
+        public ProjectRestrictSparkOp(ProjectRestrictOperation spliceOperation, SpliceObserverInstructions soi) {
             super(spliceOperation, soi);
         }
 
-        @Override
-        public ExecRow call(ExecRow sourceRow) throws Exception {
+        public ExecRow project(ExecRow sourceRow) throws Exception {
             ExecRow result;
-            if (sourceRow == null) {
-                return null;
-            }
+
             op.source.setCurrentRow(sourceRow);
+
+            if (op.restriction != null) {
+                DataValueDescriptor restrictBoolean = (DataValueDescriptor) op.restriction.invoke();
+                // if the result is null, we make it false --
+                // so the row won't be returned.
+                boolean restrict = ((! restrictBoolean.isNull()) && restrictBoolean.getBoolean());
+                if (RDDUtils.LOG.isDebugEnabled()) {
+                    RDDUtils.LOG.debug("restricted row " + sourceRow + ": " + restrict);
+                }
+                if (!restrict)
+                    return null; // filter out this row
+            }
+
             if (op.projection != null) {
-                result = (ExecRow) op.projection.invoke();
+                ExecRow tmp = (ExecRow) op.projection.invoke();
+                if (op.projectionResult == null || tmp == op.projectionResult) {
+                    result = tmp.getClone();
+                } else {
+                    result = tmp;
+                }
+                op.projectionResult = tmp;
             } else {
-                result = op.mappedResultRow.getClone();
+                result = op.mappedResultRow.getNewNullRow();
             }
             // Copy any mapped columns from the source
             for (int index = 0; index < op.projectMapping.length; index++) {
@@ -465,33 +484,77 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
             if (RDDUtils.LOG.isDebugEnabled()) {
                 RDDUtils.LOG.debug("Projected " + sourceRow + " into " + result);
             }
-            return result.getClone();
-        }
-    }
-
-    public static final class RestrictOperation extends SparkOperation<ProjectRestrictOperation, ExecRow, Boolean> {
-
-        public RestrictOperation() {
-        }
-
-        public RestrictOperation(ProjectRestrictOperation spliceOperation, SpliceObserverInstructions soi) {
-            super(spliceOperation, soi);
+            return result;
         }
 
         @Override
-        public Boolean call(ExecRow row) throws Exception {
-            if (row == null) {
-                return true;
+        public Iterable<ExecRow> call(Iterator<ExecRow> source) throws Exception {
+            return new IteratorWithContext(source);
+        }
+
+        private class IteratorWithContext implements Iterable<ExecRow>, Iterator<ExecRow> {
+            private final Iterator<ExecRow> source;
+            private boolean populated;
+            private ExecRow next;
+            private boolean prepared = false;
+            private boolean closed = false;
+
+            public IteratorWithContext(Iterator<ExecRow> source) {
+                this.source = source;
             }
-            op.source.setCurrentRow(row);
-            DataValueDescriptor restrictBoolean = (DataValueDescriptor) op.restriction.invoke();
-            // if the result is null, we make it false --
-            // so the row won't be returned.
-            boolean restrict = ((! restrictBoolean.isNull()) && restrictBoolean.getBoolean());
-            if (RDDUtils.LOG.isDebugEnabled()) {
-                RDDUtils.LOG.debug("restricted row " + row + ": " + restrict);
+
+            @Override
+            public Iterator<ExecRow> iterator() {
+                return this;
             }
-            return restrict;
+
+            @Override
+            public boolean hasNext() {
+                if (closed)
+                    return false;
+                if (populated)
+                    return true;
+                try {
+                    if (!prepared) {
+                        impl.prepareContextManager();
+                        prepared = true;
+                    }
+                    next = null;
+                    while(next == null && source.hasNext()) {
+                        ExecRow r = source.next();
+                        next = project(r);
+                    }
+                } catch (Exception e) {
+                    if (prepared) {
+                        closed = true;
+                        impl.resetContextManager();
+                    }
+                    throw new RuntimeException(e);
+                }
+                populated = next != null;
+                if (!populated) {
+                    closed = true;
+                    impl.resetContextManager();
+                }
+                return populated;
+            }
+
+            @Override
+            public ExecRow next() {
+                if (hasNext())  {
+                    populated = false;
+                    ExecRow result = next;
+                    next = null;
+                    return result;
+                }
+                return null;
+            }
+
+            @Override
+            public void remove() {
+                throw new UnsupportedOperationException();
+            }
         }
     }
+
 }

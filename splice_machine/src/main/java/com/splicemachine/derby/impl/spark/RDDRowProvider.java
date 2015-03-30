@@ -63,7 +63,7 @@ public class RDDRowProvider implements RowProvider, Serializable {
 
     @Override
     public void open() throws StandardException {
-        iterator = this.rdd.toLocalIterator();
+        iterator = this.rdd.collect().iterator();
     }
 
     @Override

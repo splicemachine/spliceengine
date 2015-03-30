@@ -67,4 +67,12 @@ public class ScalarAggregateScan implements ScalarAggregateSource{
 
         return (ExecIndexRow)scanDecoder.decode(dataLib.matchDataColumn(next));
     }
+
+    @Override
+    public void close() throws IOException {
+        if (regionScanner != null)
+            regionScanner.close();
+        if (scanDecoder != null)
+            scanDecoder.close();
+    }
 }

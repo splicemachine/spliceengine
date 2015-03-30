@@ -17,7 +17,7 @@ public class SchemaDAO {
     }
 
     /**
-     * Drop the given schema after dropping all dependent objects. Creates a connection.
+     * Drop the given schema after dropping all dependent objects.
      */
     public void drop(String schemaName) {
         Connection connection = jdbcTemplate.getConnection();

@@ -62,4 +62,5 @@ public interface ExceptionTranslator {
     boolean isIndexNotSetupException (Throwable t);
     boolean isPleaseHoldException(Throwable t);
     boolean isFailedServerException(Throwable t);
+    boolean isDoNotRetryIOException(Throwable t);
 }

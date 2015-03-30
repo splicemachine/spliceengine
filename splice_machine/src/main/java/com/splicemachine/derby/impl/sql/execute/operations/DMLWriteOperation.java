@@ -12,10 +12,6 @@ import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.metrics.IOStats;
 import com.splicemachine.metrics.Metrics;
-import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.TxnView;
-import com.splicemachine.si.impl.TransactionLifecycle;
-import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -31,7 +27,6 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -61,6 +56,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 		protected static List<NodeType> sequentialNodeTypes = Arrays.asList(NodeType.SCAN);
 		private boolean isScan = true;
 		private ModifiedRowProvider modifiedProvider;
+        private DMLWriteOperationControlSide dmlWriteOperationControlSide;
 
 		protected DMLWriteInfo writeInfo;
         protected long writeRowsFiltered;
@@ -165,7 +161,6 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 				try {
 						RowProvider rowProvider = getMapRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext),runtimeContext);
 						modifiedProvider = new ModifiedRowProvider(rowProvider,writeInfo.buildInstructions(this));
-						//modifiedProvider.setRowsModified(rowsSunk);
 						return new SpliceNoPutResultSet(activation,this,modifiedProvider,false);
 				} catch (IOException e) {
 						throw Exceptions.parseException(e);
@@ -182,27 +177,35 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 				return source.getReduceRowProvider(top, decoder, spliceRuntimeContext,returnDefaultValue);
 		}
 
-		@Override
-		protected JobResults doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException, IOException {
+    @Override
+    protected JobResults doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException, IOException {
         long start = System.currentTimeMillis();
-        final RowProvider rowProvider = getMapRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext),runtimeContext);
 
-        nextTime+= System.currentTimeMillis()-start;
+        /* If the optimizer knows we are only dealing with one row */
+        if (source.getEstimatedRowCount() == 1) {
+            try {
+                if(dmlWriteOperationControlSide == null) {
+                    dmlWriteOperationControlSide = new DMLWriteOperationControlSide(this);
+                }
+                return dmlWriteOperationControlSide.controlSideShuffle(runtimeContext);
+            } catch (Exception e) {
+                throw new IOException(e);
+            }
+        } else {
+            PairDecoder pairDecoder = OperationUtils.getPairDecoder(this, runtimeContext);
+            final RowProvider rowProvider = getMapRowProvider(this, pairDecoder, runtimeContext);
+            nextTime += System.currentTimeMillis() - start;
+            SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(), this, runtimeContext);
+            jobResults = rowProvider.shuffleRows(soi, OperationUtils.cleanupSubTasks(this));
+            this.rowsSunk = TaskStats.sumTotalRowsWritten(jobResults.getJobStats().getTaskStats());
+            return jobResults;
+        }
+    }
 
-        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(), this, runtimeContext);
-        jobResults = rowProvider.shuffleRows(soi,OperationUtils.cleanupSubTasks(this));
 
-				long rowsModified = 0;
-				for(TaskStats stats:jobResults.getJobStats().getTaskStats()){
-						rowsModified+=stats.getTotalRowsWritten();
-				}
-				this.rowsSunk = rowsModified;
-				return jobResults;
-		}
-
-		@Override
+    @Override
 		public void open() throws StandardException, IOException {
-				SpliceLogUtils.trace(LOG,"Open");
+				SpliceLogUtils.trace(LOG, "Open");
 				super.open();
 				if(source!=null)source.open();
 		}
@@ -211,6 +214,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 		public void close() throws StandardException, IOException {
 				super.close();
 				source.close();
+                rowsSunk = 0;
 				if (modifiedProvider != null)
 						modifiedProvider.close();
 		}
@@ -238,11 +242,11 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 				}
 				ExecRow row = new ValueRow(dvds.length);
 				row.setRowArray(dvds);
-//				ExecRow row = source.getExecRowDefinition();
 				SpliceLogUtils.trace(LOG,"execRowDefinition=%s",row);
 				return row;
 		}
 
+		@Override
 		public ExecRow getNextSinkRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 				if(timer==null){
 						timer = spliceRuntimeContext.newTimer();
@@ -324,11 +328,6 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 
 				@Override public boolean hasNext() { return false; }
 				@Override public ExecRow next() { return null; }
-
-				public void setRowsModified(long rowsModified){
-						this.isOpen = true;
-						this.rowsModified = rowsModified;
-				}
 
 				//no-op
 				@Override public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) {  }
@@ -431,16 +430,6 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 				return source.isReferencingTable(tableNumber);
 		}
 
-    Txn getChildTransaction() {
-        byte[] destTable = Bytes.toBytes(Long.toString(heapConglom));
-        TxnView parentTxn = operationInformation.getTransaction();
-        try{
-            return TransactionLifecycle.getLifecycleManager().beginChildTransaction(parentTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION, false,destTable);
-        }catch(IOException ioe){
-            LOG.error(ioe);
-            throw new RuntimeException(ErrorState.XACT_INTERNAL_TRANSACTION_EXCEPTION.newException());
-        }
-		}
 
     /**
      * Gets the number of rows that are "filtered". These are rows that derby thinks should have been
@@ -457,4 +446,5 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
         return writeRowsFiltered;
 
     }
+
 }

@@ -521,6 +521,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 
         private Joiner createSparkMergeJoiner(boolean outer, Tuple2<Iterable<ExecRow>, Iterable<ExecRow>> source) {
             SparkMergeSortJoinRows joinRows = new SparkMergeSortJoinRows(source);
+            Restriction mergeRestriction = op.getRestriction();
 
             SpliceLogUtils.debug(LOG, ">>>     MergeSortJoin Getting MergeSortJoiner for ",(outer ? "" : "non "),"outer join");
             StandardSupplier<ExecRow> emptyRowSupplier = new StandardSupplier<ExecRow>() {
@@ -529,7 +530,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
                     return op.getEmptyRow();
                 }
             };
-            return new Joiner(joinRows, op.mergedRow, outer, op.wasRightOuterJoin, op.leftNumCols, op.rightNumCols,
+            return new Joiner(joinRows, op.mergedRow, mergeRestriction, outer, op.wasRightOuterJoin, op.leftNumCols, op.rightNumCols,
                     op.oneRowRightSide, op.notExistsRightSide, emptyRowSupplier, new SpliceRuntimeContext());
         }
 

@@ -120,13 +120,14 @@ public abstract class SpliceController<Data> implements ConglomerateController {
 
 		public boolean fetch(RowLocation loc, DataValueDescriptor[] destRow, FormatableBitSet validColumns, boolean waitForLock) throws StandardException {
 				HTableInterface htable = getTable();
-				try {
+                KeyHashDecoder rowDecoder = null;
+                try {
 						Get get = SpliceUtils.createGet(loc, destRow, validColumns, trans.getTxnInformation());
 						Result result = htable.get(get);
 						if(result==null||result.isEmpty()) return false;
 						int[] cols = FormatableBitSetUtils.toIntArray(validColumns);
 						DescriptorSerializer[] serializers = VersionedSerializers.forVersion(tableVersion,true).getSerializers(destRow);
-						KeyHashDecoder rowDecoder = new EntryDataDecoder(cols,null,serializers);
+						rowDecoder = new EntryDataDecoder(cols,null,serializers);
 						ExecRow row = new ValueRow(destRow.length);
 						row.setRowArray(destRow);
 						row.resetRowArray();
@@ -136,8 +137,15 @@ public abstract class SpliceController<Data> implements ConglomerateController {
 						return true;
 				} catch (Exception e) {
 						throw Exceptions.parseException(e);
-				}
-		}
+				} finally {
+                    if (rowDecoder != null) {
+                        try {
+                            rowDecoder.close();
+                        } catch (Exception e) {
+                        }
+                    }
+                }
+            }
 
 		@Override
 		public String toString() {

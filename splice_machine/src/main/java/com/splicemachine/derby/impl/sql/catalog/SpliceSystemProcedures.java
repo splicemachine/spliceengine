@@ -5,6 +5,12 @@ import com.splicemachine.derby.impl.db.SpliceDatabase;
 import com.splicemachine.derby.impl.load.HdfsImport;
 import com.splicemachine.derby.impl.storage.TableSplit;
 import com.splicemachine.derby.impl.storage.TempSplit;
+import java.sql.Types;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Map;
+
+import com.splicemachine.hbase.backup.BackupSystemProcedures;
 import com.splicemachine.derby.utils.*;
 
 import com.splicemachine.db.catalog.UUID;
@@ -37,6 +43,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
     private static final String IMPORT_DATA_NAME = "SYSCS_IMPORT_DATA";
     private static final String XPLAIN_SCHEMA_NAME = "SYSCS_SET_XPLAIN_SCHEMA";
     public static final String RESTORE_DATABASE_NAME = "SYSCS_RESTORE_DATABASE";
+    public static final String BACKUP_DATABASE_NAME = "SYSCS_BACKUP_DATABASE";
 
     /** Flag to ensure the list of procedures is only initialized once. */
     private static volatile boolean initialized = false;
@@ -84,7 +91,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                                 .varchar("columnIndexes",32672)
                                 .varchar("fileName",32672)
                                 .varchar("columnDelimiter",5)
-                                .varchar("characterDelimiter",5)
+                                .varchar("characterDelimiter", 5)
                                 .varchar("timestampFormat",32672)
                                 .varchar("dateFormat",32672)
                                 .varchar("timeFormat",32672).build();
@@ -97,7 +104,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                                 .varchar("insertColumnList",32672)
                                 .varchar("fileName",32672)
                                 .varchar("columnDelimiter",5)
-                                .varchar("characterDelimiter",5)
+                                .varchar("characterDelimiter", 5)
                                 .varchar("timestampFormat",32672)
                                 .varchar("dateFormat",32672)
                                 .varchar("timeFormat",32672)
@@ -113,7 +120,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                                 .varchar("insertColumnList",32672)
                                 .varchar("fileName",32672)
                                 .varchar("columnDelimiter",5)
-                                .varchar("characterDelimiter",5)
+                                .varchar("characterDelimiter", 5)
                                 .varchar("timestampFormat",32672)
                                 .varchar("dateFormat",32672)
                                 .varchar("timeFormat",32672)
@@ -128,19 +135,21 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                                 .build();
                         procedures.add(getAutoIncLocs);
                     }else if(XPLAIN_SCHEMA_NAME.equalsIgnoreCase(sysProc.getName())){
-                        /*Procedure newXplain = Procedure.newBuilder().name("SYSCS_SET_XPLAIN_SCHEMA")
-                                .numOutputParams(0).numResultSets(0)
-                                .sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
-                                .ownerClass(SpliceXplainUtils.class.getCanonicalName())
-                                .catalog("schemaName")
-                                .build();
-                        procedures.set(i,newXplain);*/
+                        //Remove set_xplain_schema procedure
                     } else if(RESTORE_DATABASE_NAME.equals(sysProc.getName())) {
                         Procedure restore = Procedure.newBuilder().name(RESTORE_DATABASE_NAME)
-                                .numOutputParams(0).numResultSets(1).ownerClass(SpliceDatabase.class.getCanonicalName())
-                                .varchar("directory",32672)
+                                .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                                .varchar("directory", 32672)
+                                .bigint("backupId")
                                 .build();
                         procedures.set(i, restore);
+                    } else if(BACKUP_DATABASE_NAME.equals(sysProc.getName())) {
+                        Procedure backup = Procedure.newBuilder().name(BACKUP_DATABASE_NAME)
+                                .numOutputParams(0).numResultSets(1).ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                                .varchar("directory", 32672)
+                                .varchar("type", 32672)
+                                .build();
+                        procedures.set(i, backup);
                     }
                 } // End iteration through existing procedures
 
@@ -678,6 +687,48 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .numOutputParams(0)
                             .numResultSets(1)
                             .ownerClass(TimestampAdmin.class.getCanonicalName())
+                            .build());
+
+                    /*
+                     * Procedure to schedule a daily backup job
+                     */
+                    procedures.add(Procedure.newBuilder().name("SYSCS_SCHEDULE_DAILY_BACKUP")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                            .varchar("directory", 32672)
+                            .varchar("type", 32672)
+                            .integer("hour")
+                            .build());
+
+                    /*
+                     * Procedure to cancel a daily backup job
+                     */
+                    procedures.add(Procedure.newBuilder().name("SYSCS_CANCEL_DAILY_BACKUP")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                            .bigint("hour")
+                            .build());
+
+                    /*
+                     * Procedure to delete a backup
+                     */
+                    procedures.add(Procedure.newBuilder().name("SYSCS_DELETE_BACKUP")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                            .bigint("backupId")
+                            .build());
+
+                    /*
+                     * Procedure to delete backups in a time window
+                     */
+                    procedures.add(Procedure.newBuilder().name("SYSCS_DELETE_OLD_BACKUPS")
+                            .numOutputParams(0)
+                            .numResultSets(1)
+                            .ownerClass(BackupSystemProcedures.class.getCanonicalName())
+                            .integer("backupWindow")
                             .build());
                 }
 

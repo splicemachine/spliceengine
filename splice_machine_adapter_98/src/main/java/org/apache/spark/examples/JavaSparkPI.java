@@ -2,6 +2,7 @@ package org.apache.spark.examples;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.client.Scan;
@@ -11,11 +12,12 @@ import org.apache.hadoop.io.IntWritable;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import com.splicemachine.mrio.api.SMInputFormat;
-import com.splicemachine.mrio.api.SMSQLUtil;
-import com.splicemachine.mrio.api.SpliceJob;
+
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.mrio.api.SpliceTableMapReduceUtil;
+import com.splicemachine.mrio.api.core.SMInputFormat;
+import com.splicemachine.mrio.api.core.SMSQLUtil;
+import com.splicemachine.mrio.api.mapreduce.SpliceJob;
 
 /**
  * Computes an approximation to pi

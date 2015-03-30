@@ -3,13 +3,33 @@ package com.splicemachine.pipeline.impl;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.mock;
 
+import java.util.concurrent.ExecutionException;
+
+import org.apache.hadoop.hbase.ipc.CallerDisconnectedException;
+import org.junit.Assert;
+import org.junit.Ignore;
+import org.junit.Test;
+
+import com.splicemachine.pipeline.api.WriteResponse;
+import com.splicemachine.pipeline.writeconfiguration.DefaultWriteConfiguration;
+
 /**
  * @author Scott Fines
  * Date: 1/31/14
  */
 public class BulkWriteActionTest {
 	public static final String FOO_SERVERNAME="example.org,1234,1212121212";
-/*
+
+	
+	@Test
+	@Ignore
+	public void testCallerDisconnectedException() throws ExecutionException {
+		DefaultWriteConfiguration configuration = new DefaultWriteConfiguration(null);
+		Assert.assertEquals(WriteResponse.THROW_ERROR,configuration.globalError(new CallerDisconnectedException("Disconnected")));
+	}
+	
+	
+	/*
 		@Test
 		public void testCorrectWithSequence() throws Exception {
 				/*

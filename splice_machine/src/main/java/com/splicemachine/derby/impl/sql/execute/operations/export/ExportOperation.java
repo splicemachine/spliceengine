@@ -123,10 +123,9 @@ public class ExportOperation extends SpliceBaseOperation implements SinkingOpera
         PairDecoder pairDecoder = OperationUtils.getPairDecoder(this, runtimeContext);
         RowProvider rowProvider = getMapRowProvider(this, pairDecoder, runtimeContext);
         nextTime += System.currentTimeMillis() - start;
-        TxnView txnView = operationInformation.getTransaction();
-        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(), this, runtimeContext, txnView);
+        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(), this, runtimeContext);
         jobResults = rowProvider.shuffleRows(soi, OperationUtils.cleanupSubTasks(this));
-        this.rowsSunk = TaskStats.merge(jobResults.getJobStats().getTaskStats()).getTotalRowsWritten();
+        this.rowsSunk = TaskStats.sumTotalRowsWritten(jobResults.getJobStats().getTaskStats());
         new ExportFailedTaskCleanup().cleanup(this.jobResults, this.exportParams);
         return jobResults;
     }

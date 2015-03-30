@@ -2,6 +2,8 @@ package com.splicemachine.derby.hbase;
 
 import com.google.common.base.Throwables;
 import com.splicemachine.pipeline.exception.IndexNotSetUpException;
+
+import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.PleaseHoldException;
 import org.apache.hadoop.hbase.RegionTooBusyException;
@@ -39,7 +41,7 @@ public class Hbase98ExceptionTranslator extends SkeletonExceptionTranslator{
 
     @Override
     public boolean isCallTimeoutException(Throwable t) {
-        return t instanceof RpcClient.CallTimeoutException;
+        return t instanceof RpcClient.CallTimeoutException || isRemoteWithExtras(t, RpcClient.CallTimeoutException.class.getCanonicalName());
     }
 
     @Override
@@ -88,6 +90,11 @@ public class Hbase98ExceptionTranslator extends SkeletonExceptionTranslator{
     public boolean isFailedServerException(Throwable t) {
         return t instanceof RpcClient.FailedServerException;
     }
+
+	@Override
+	public boolean isDoNotRetryIOException(Throwable t) {
+        return t instanceof DoNotRetryIOException || isRemoteWithExtras(t, DoNotRetryIOException.class.getCanonicalName());
+	}
 
     private boolean isRemoteWithExtras(Throwable t, String className) {
         if (t instanceof RemoteWithExtrasException &&

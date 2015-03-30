@@ -892,7 +892,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
     }
 
     /**
-     * @see RowLocationRetRowSource#rowLocation
+     * @see RowLocationRetRowSource#currentLocation
      * @exception StandardException on error
      */
     public void rowLocation(RowLocation rl)

@@ -10,13 +10,7 @@ import com.splicemachine.collections.CloseableIterator;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.client.Delete;
-import org.apache.hadoop.hbase.client.Durability;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.Mutation;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
@@ -103,8 +97,8 @@ public class HbRegion extends BaseHbRegion<SRowLock> {
     }
 
     @Override
-    public SRowLock tryLock(byte[] rowKey) throws IOException {
-        HRegion.RowLock rowLock = region.getRowLock(rowKey, false);
+    public SRowLock getLock(byte[] rowKey, boolean waitForLock) throws IOException {
+        HRegion.RowLock rowLock = region.getRowLock(rowKey, waitForLock);
         if(rowLock == null) return null;
         return new HRowLock(rowLock);
     }
@@ -112,7 +106,15 @@ public class HbRegion extends BaseHbRegion<SRowLock> {
     @Override
     public SRowLock tryLock(ByteSlice rowKey) throws IOException {
         //TODO -sf- HBase requires us to make a copy here, can we avoid that?
-        return tryLock(rowKey.getByteCopy());
+        return getLock(rowKey.getByteCopy(), false);
+    }
+
+    @Override
+    public void increment(byte[] rowKey, byte[] family, byte[] qualifier, long amount, SRowLock rowLock) throws IOException {
+        // 98 increment method does not require row lock.
+        Increment increment = new Increment(rowKey);
+        increment.addColumn(family, qualifier, amount);
+        region.increment(increment);
     }
 
     private boolean rowExists(byte[] checkBloomFamily, byte[] rowKey) throws IOException {
