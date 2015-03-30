@@ -50,7 +50,7 @@
             <!-- Can't rely on just compiling PackagePrivateTestSuite, as ant
                  won't check the timestamp on the other Java files to determine
                  if they have been changed since last compile then. -->
-            <include name="org/apache/derby/**/*java"/>
+            <include name="com/splicemachine/db/**/*java"/>
         </javac>
     </target>
 

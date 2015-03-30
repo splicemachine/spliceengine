@@ -328,7 +328,7 @@ public class ClientJDBCObjectFactoryImpl implements ClientJDBCObjectFactory{
             int qryattset,long qryinsid,int actualResultSetType,
             int actualResultSetConcurrency,
             int actualResultSetHoldability) throws SqlException {
-        return new NetResultSet((NetAgent)netAgent,
+        return new NetResultSet40((NetAgent)netAgent,
                 (NetStatement)netStatement,cursor,qryprctyp,sqlcsrhld,qryattscr,
                 qryattsns,qryattset,qryinsid,actualResultSetType,
                 actualResultSetConcurrency,actualResultSetHoldability);

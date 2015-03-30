@@ -52,8 +52,7 @@ import java.sql.Types;
    this sharing must be removed.
  *
  */
-public class EmbedResultSetMetaData
-	implements ResultSetMetaData {
+public class EmbedResultSetMetaData implements ResultSetMetaData {
 
 	private final ResultColumnDescriptor[] columnInfo;
 
@@ -326,6 +325,16 @@ public class EmbedResultSetMetaData
 
 		// we just don't know if it is a base table column or not
 		return false;
+	}
+
+//	@Override
+	public <T> T unwrap(Class<T> iface) throws SQLException{
+		throw new UnsupportedOperationException();
+	}
+
+//	@Override
+	public boolean isWrapperFor(Class<?> iface) throws SQLException{
+		throw new UnsupportedOperationException();
 	}
 
 	/*

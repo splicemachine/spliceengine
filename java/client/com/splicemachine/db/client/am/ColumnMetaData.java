@@ -25,6 +25,7 @@ import java.sql.SQLException;
 
 import com.splicemachine.db.iapi.reference.DRDAConstants;
 import com.splicemachine.db.iapi.reference.JDBC30Translation;
+import com.splicemachine.db.impl.jdbc.Util;
 import com.splicemachine.db.shared.common.reference.SQLState;
 
 // Under JDBC 2, we must new up our parameter meta data as column meta data instances
@@ -101,6 +102,16 @@ public class ColumnMetaData implements java.sql.ResultSetMetaData {
     transient private java.util.Hashtable columnNameToIndexCache_ = null;
 
     transient private boolean statementClosed_ = false;
+
+//    @Override
+    public <T> T unwrap(Class<T> iface) throws SQLException{
+        throw Util.notImplemented("unwrap");
+    }
+
+//    @Override
+    public boolean isWrapperFor(Class<?> iface) throws SQLException{
+        throw Util.notImplemented("isWrapperFor");
+    }
 
     void markClosed() {
         statementClosed_ = true;

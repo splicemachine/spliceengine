@@ -25,6 +25,7 @@ import com.splicemachine.db.iapi.sql.ParameterValueSet;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 
 import java.sql.ParameterMetaData;
+import java.sql.SQLException;
 
 /**
  * This class implements the ParameterMetaData interface from JDBC3.0
@@ -52,5 +53,14 @@ class EmbedParameterMetaData30 extends EmbedParameterSetMetaData
 		super(pvs, types);
     }
 
+//    @Override
+    public <T> T unwrap(Class<T> iface) throws SQLException{
+        throw new UnsupportedOperationException();
+    }
+
+//    @Override
+    public boolean isWrapperFor(Class<?> iface) throws SQLException{
+        throw new UnsupportedOperationException();
+    }
 }
 

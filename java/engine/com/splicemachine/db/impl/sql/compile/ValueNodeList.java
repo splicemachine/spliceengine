@@ -21,7 +21,6 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import org.apache.commons.lang.builder.HashCodeBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
@@ -721,11 +720,11 @@ public class ValueNodeList extends QueryTreeNodeVector
 	}
 	
 	public int hashCode(){
-		HashCodeBuilder hcBuilder = new HashCodeBuilder(83,63);
-		
+		int hashCode = 0;
+
 		for(int i=0; i < size(); i++){
-			hcBuilder.append(elementAt(i));
+			hashCode = 31*hashCode + elementAt(i).hashCode();
 		}
-		return hcBuilder.toHashCode();
+		return hashCode;
 	}
 }

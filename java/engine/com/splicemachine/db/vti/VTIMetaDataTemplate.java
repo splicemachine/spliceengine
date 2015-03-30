@@ -282,4 +282,15 @@ public abstract class VTIMetaDataTemplate implements ResultSetMetaData {
 	public String getColumnClassName(int column) throws SQLException {
 		throw new SQLException("getColumnClassName");
 	}
+
+//	@Override
+	public int getColumnCount() throws SQLException{ throw new UnsupportedOperationException(); }
+//	@Override
+	public int getColumnType(int column) throws SQLException{ throw new UnsupportedOperationException(); }
+
+//	@Override
+	public <T> T unwrap(Class<T> iface) throws SQLException{ throw new UnsupportedOperationException(); }
+
+//	@Override
+	public boolean isWrapperFor(Class<?> iface) throws SQLException{ throw new UnsupportedOperationException(); }
 }

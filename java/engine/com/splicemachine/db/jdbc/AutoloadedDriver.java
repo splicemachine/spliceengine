@@ -21,13 +21,10 @@
 
 package com.splicemachine.db.jdbc;
 
-import java.sql.DriverManager;
-import java.sql.Driver;
-import java.sql.Connection;
-import java.sql.DriverPropertyInfo;
-import java.sql.SQLException;
+import java.sql.*;
 
 import java.util.Properties;
+import java.util.logging.Logger;
 
 import com.splicemachine.db.iapi.reference.MessageId;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -54,8 +51,7 @@ import com.splicemachine.db.impl.jdbc.Util;
     
 	</PRE>
 */
-public class AutoloadedDriver implements Driver
-{
+public class AutoloadedDriver implements Driver {
 	// This flag is set if the engine is forcibly brought down.
 	private	static	boolean	_engineForcedDown = false;
 	
@@ -189,6 +185,10 @@ public class AutoloadedDriver implements Driver
 		}
 	}
 
+//	@Override
+	public Logger getParentLogger() throws SQLFeatureNotSupportedException{
+		throw new SQLFeatureNotSupportedException();
+	}
 	///////////////////////////////////////////////////////////////////////
 	//
 	// Support for booting and shutting down the engine.

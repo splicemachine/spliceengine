@@ -35,7 +35,6 @@ import junit.framework.Test;
 import junit.framework.TestSuite;
 
 import com.splicemachine.db.jdbc.ClientDataSource;
-import com.splicemachine.db.jdbc.EmbeddedSimpleDataSource;
 import org.apache.derbyTesting.functionTests.util.SecurityCheck;
 import org.apache.derbyTesting.junit.BaseJDBCTestCase;
 import org.apache.derbyTesting.junit.CleanDatabaseTestSetup;
@@ -204,16 +203,15 @@ public class DataSourceTest extends BaseJDBCTestCase {
         
         DataSource dssimple = null;
         // simple datasource is only supported with embedded
-        if (usingEmbedded())
-        {
-            EmbeddedSimpleDataSource realdssimple = 
-                new EmbeddedSimpleDataSource();
-            realdssimple.setDatabaseName(dbName);
-            ds = realdssimple;
-            dssimple = (DataSource)realdssimple;
-            assertConnectionOK(
-                expectedValues, "SimpleDataSource", ds.getConnection());
-        }
+//        if (usingEmbedded())
+//        {
+//            EmbeddedSimpleDataSource realdssimple =  new EmbeddedSimpleDataSource();
+//            realdssimple.setDatabaseName(dbName);
+//            ds = realdssimple;
+//            dssimple = (DataSource)realdssimple;
+//            assertConnectionOK(
+//                expectedValues, "SimpleDataSource", ds.getConnection());
+//        }
     }            
     
     // test jira-db 95 - a NullPointerException was returned when passing

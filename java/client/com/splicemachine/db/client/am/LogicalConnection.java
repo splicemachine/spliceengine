@@ -20,9 +20,14 @@
 */
 
 package com.splicemachine.db.client.am;
+import com.splicemachine.db.impl.jdbc.Util;
 import com.splicemachine.db.shared.common.reference.SQLState;
 
-import java.sql.SQLException;
+import java.sql.*;
+import java.sql.Blob;
+import java.sql.Clob;
+import java.util.Properties;
+import java.util.concurrent.Executor;
 
 /**
  * A simple delegation wrapper handle for a physical connection.
@@ -636,7 +641,7 @@ public class LogicalConnection implements java.sql.Connection {
 			throw sqle;
 		}
     }
-    
+
     /**
      * Set the default schema for the Connection.
      */
@@ -650,5 +655,84 @@ public class LogicalConnection implements java.sql.Connection {
 			throw sqle;
 		}
     }
-    
+
+    @Override
+    public NClob createNClob() throws SQLException{
+        throw Util.notImplemented("createNClob");
+    }
+
+    @Override
+    public SQLXML createSQLXML() throws SQLException{
+        throw Util.notImplemented("createSQLXML");
+    }
+
+    @Override
+    public boolean isValid(int timeout) throws SQLException{
+        throw Util.notImplemented("isValid");
+    }
+
+    @Override
+    public void setClientInfo(String name,String value) throws SQLClientInfoException{
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void setClientInfo(Properties properties) throws SQLClientInfoException{
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public String getClientInfo(String name) throws SQLException{
+        throw Util.notImplemented("getClientInfo");
+    }
+
+    @Override
+    public Properties getClientInfo() throws SQLException{
+        throw Util.notImplemented("getClientInfo");
+    }
+
+    @Override
+    public Array createArrayOf(String typeName,Object[] elements) throws SQLException{
+        throw Util.notImplemented("createArrayOf");
+    }
+
+    @Override
+    public Struct createStruct(String typeName,Object[] attributes) throws SQLException{
+        throw Util.notImplemented("createStruct");
+    }
+
+    @Override
+    public void abort(Executor executor) throws SQLException{
+        throw Util.notImplemented("abort");
+    }
+
+    @Override
+    public void setNetworkTimeout(Executor executor,int milliseconds) throws SQLException{
+        throw Util.notImplemented("setNetworkTimeout");
+    }
+
+    @Override
+    public int getNetworkTimeout() throws SQLException{
+        throw Util.notImplemented("getNetworkTimeout");
+    }
+
+    @Override
+    public Clob createClob() throws SQLException{
+        throw Util.notImplemented("createClob");
+    }
+
+    @Override
+    public Blob createBlob() throws SQLException{
+        throw Util.notImplemented("createBlob");
+    }
+
+    @Override
+    public <T> T unwrap(Class<T> iface) throws SQLException{
+        throw Util.notImplemented("unwrap");
+    }
+
+    @Override
+    public boolean isWrapperFor(Class<?> iface) throws SQLException{
+        throw Util.notImplemented("isWrapperFor");
+    }
 }

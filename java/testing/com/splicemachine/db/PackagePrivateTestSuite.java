@@ -1,6 +1,6 @@
 /*
 
-   Derby - Class org.apache.derby.PackagePrivateTestSuite
+   Derby - Class com.splicemachine.db.PackagePrivateTestSuite
 
    Licensed to the Apache Software Foundation (ASF) under one or more
    contributor license agreements.  See the NOTICE file distributed with
@@ -18,8 +18,9 @@
    limitations under the License.
 
  */
-package org.apache.derby;
+package com.splicemachine.db;
 
+import com.splicemachine.db.impl.jdbc._Suite;
 import junit.framework.Test;
 import junit.framework.TestSuite;
 
@@ -39,7 +40,7 @@ public class PackagePrivateTestSuite
 
         TestSuite suite = new TestSuite("Package-private tests");
 
-        suite.addTest(org.apache.derby.impl.jdbc._Suite.suite());
+        suite.addTest(_Suite.suite());
         suite.addTest(com.splicemachine.db.client.am._Suite.suite());
 
         return suite;

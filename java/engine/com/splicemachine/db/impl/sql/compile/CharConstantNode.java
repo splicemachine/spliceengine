@@ -21,7 +21,6 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import org.apache.commons.lang.builder.HashCodeBuilder;
 import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -185,8 +184,6 @@ public final class CharConstantNode extends ConstantNode
 	}
 	
 	public int hashCode(){
-		HashCodeBuilder hcBuilder = new HashCodeBuilder(99, 107);
-		hcBuilder.append(value);
-		return hcBuilder.toHashCode();
+		return value==null? 0: value.hashCode();
 	}
 }

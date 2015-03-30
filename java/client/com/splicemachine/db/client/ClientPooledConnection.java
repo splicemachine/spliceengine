@@ -24,6 +24,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import javax.sql.ConnectionEvent;
 import javax.sql.ConnectionEventListener;
+import javax.sql.StatementEventListener;
 import java.util.ArrayList;
 import java.util.Iterator;
 import com.splicemachine.db.client.net.NetXAConnection;
@@ -341,6 +342,16 @@ public class ClientPooledConnection implements javax.sql.PooledConnection {
             listeners_ = (ArrayList) listeners_.clone();
         }
         listeners_.remove(listener);
+    }
+
+    @Override
+    public void addStatementEventListener(StatementEventListener listener){
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void removeStatementEventListener(StatementEventListener listener){
+        throw new UnsupportedOperationException();
     }
 
     /**

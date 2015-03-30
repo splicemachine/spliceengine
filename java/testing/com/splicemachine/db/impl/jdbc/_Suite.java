@@ -1,6 +1,6 @@
 /*
 
-   Derby - Class org.apache.derby.impl.jdbc._Suite
+   Derby - Class com.splicemachine.db.impl.jdbc._Suite
 
    Licensed to the Apache Software Foundation (ASF) under one
    or more contributor license agreements.  See the NOTICE file
@@ -20,8 +20,9 @@
    under the License.
 
  */
-package org.apache.derby.impl.jdbc;
+package com.splicemachine.db.impl.jdbc;
 
+import com.splicemachine.db.impl.jdbc.*;
 import org.apache.derbyTesting.junit.BaseTestCase;
 
 import junit.framework.Test;

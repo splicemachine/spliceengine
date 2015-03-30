@@ -21,6 +21,7 @@
 
 package com.splicemachine.db.impl.load;
 import com.splicemachine.db.iapi.services.io.LimitInputStream;
+import com.splicemachine.db.impl.jdbc.Util;
 
 import java.sql.Blob;
 import java.sql.SQLException;
@@ -193,6 +194,16 @@ class ImportBlob implements java.sql.Blob {
 		throw LoadError.unexpectedError(
                         new Exception("Method not implemented"));
 	}
+
+//    @Override
+    public void free() throws SQLException{
+        throw Util.notImplemented("free");
+    }
+
+//    @Override
+    public InputStream getBinaryStream(long pos,long length) throws SQLException{
+        throw Util.notImplemented("getBinaryStream");
+    }
 }
 
 

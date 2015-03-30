@@ -32,8 +32,7 @@ import java.sql.Statement;
 /**
 	A Statement implementation that forwards all of its requests to an underlying Statement.
  */
-public class BrokeredStatement implements EngineStatement
-{
+public class BrokeredStatement implements EngineStatement {
 
 	/**
 		My control. Use the controlCheck() method to obtain the control
@@ -484,7 +483,12 @@ public class BrokeredStatement implements EngineStatement
 		return newStatement;
 	}
 
-	void setStatementState(Statement oldStatement, Statement newStatement) throws SQLException {
+//    @Override
+    public <T> T unwrap(Class<T> iface) throws SQLException{
+        return null;
+    }
+
+    void setStatementState(Statement oldStatement, Statement newStatement) throws SQLException {
 		if (cursorName != null)
 			newStatement.setCursorName(cursorName);
 		if (escapeProcessing != null)
@@ -551,6 +555,16 @@ public class BrokeredStatement implements EngineStatement
      */
     public final boolean isClosed() throws SQLException {
         return ((EngineStatement) getStatement()).isClosed();
+    }
+
+//    @Override
+    public void setPoolable(boolean poolable) throws SQLException{
+        throw new UnsupportedOperationException();
+    }
+
+//    @Override
+    public boolean isPoolable() throws SQLException{
+        throw new UnsupportedOperationException();
     }
 
     /**

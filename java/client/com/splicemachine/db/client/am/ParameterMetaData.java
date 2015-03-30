@@ -21,6 +21,8 @@
 
 package com.splicemachine.db.client.am;
 
+import com.splicemachine.db.impl.jdbc.Util;
+
 import java.sql.SQLException;
 
 // Parameter meta data as used internally by the driver is always a column meta data instance.
@@ -89,6 +91,15 @@ public class ParameterMetaData implements java.sql.ParameterMetaData {
         return columnMetaData_.getScale(param);
     }
 
+    @Override
+    public <T> T unwrap(Class<T> iface) throws SQLException{
+        throw Util.notImplemented("unwrap");
+    }
+
+    @Override
+    public boolean isWrapperFor(Class<?> iface) throws SQLException{
+        throw Util.notImplemented("isWrapperFor");
+    }
 }
 
 

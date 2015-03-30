@@ -39,14 +39,13 @@ import com.splicemachine.db.impl.jdbc.EmbedResultSet;
 import com.splicemachine.db.impl.jdbc.EmbedResultSet20;
 import com.splicemachine.db.impl.jdbc.EmbedStatement;
 
-import java.sql.SQLException;
-import java.sql.Driver;
-import java.sql.DriverPropertyInfo;
+import java.sql.*;
 
 import java.security.Permission;
 import java.security.AccessControlException;
 
 import java.util.Properties;
+import java.util.logging.Logger;
 
 /**
 	This class extends the local JDBC driver in order to determine at JBMS
@@ -92,7 +91,11 @@ public abstract class Driver20 extends InternalDriver implements Driver {
 								 isAtomic); 
 	}
 
-    public abstract BrokeredConnection newBrokeredConnection(
+//	@Override
+	public Logger getParentLogger() throws SQLFeatureNotSupportedException{ throw new SQLFeatureNotSupportedException(); }
+
+
+	public abstract BrokeredConnection newBrokeredConnection(
             BrokeredConnectionControl control) throws SQLException;
 
     /**

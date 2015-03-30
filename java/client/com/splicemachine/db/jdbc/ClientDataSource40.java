@@ -108,52 +108,6 @@ public class ClientDataSource40 extends ClientDataSource {
         super();
     }   
     
-    /**
-     * Returns false unless <code>interfaces</code> is implemented 
-     * 
-     * @param  interfaces             a Class defining an interface.
-     * @return true                   if this implements the interface or 
-     *                                directly or indirectly wraps an object 
-     *                                that does.
-     * @throws java.sql.SQLException  if an error occurs while determining 
-     *                                whether this is a wrapper for an object 
-     *                                with the given interface.
-     */
-    public boolean isWrapperFor(Class<?> interfaces) throws SQLException {
-        return interfaces.isInstance(this);
-    }
-    
-    /**
-     * Returns <code>this</code> if this class implements the interface
-     *
-     * @param  interfaces a Class defining an interface
-     * @return an object that implements the interface
-     * @throws java.sql.SQLExption if no object if found that implements the 
-     * interface
-     */
-    public <T> T unwrap(java.lang.Class<T> interfaces)
-                                   throws SQLException {
-        try { 
-            return interfaces.cast(this);
-        } catch (ClassCastException cce) {
-            throw new SqlException(null,new ClientMessageId(SQLState.UNABLE_TO_UNWRAP),
-                    interfaces).getSQLException();
-        }
-    }
 
-    ////////////////////////////////////////////////////////////////////
-    //
-    // INTRODUCED BY JDBC 4.1 IN JAVA 7
-    //
-    ////////////////////////////////////////////////////////////////////
-
-    public  Logger getParentLogger()
-        throws SQLFeatureNotSupportedException
-    {
-        throw (SQLFeatureNotSupportedException)
-            (
-             new SqlException( null, new ClientMessageId(SQLState.NOT_IMPLEMENTED), "getParentLogger" )
-             ).getSQLException();
-    }
     
 }

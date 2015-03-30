@@ -18,8 +18,8 @@
 
   <target name="compile_iapi_jdbc_jsr169">
 	    <javac
-	      source="1.4"
-	      target="1.4"
+							source="${compilerLevel16}"
+							target="${compilerLevel16}"
       bootclasspath="${empty}"
       nowarn="on"
       debug="${debug}"
@@ -54,8 +54,8 @@
 
   <target name="compile_iapi_jdbc_jdbc2" depends="compile_iapi_jdbc_stmt,compile_iapi_jdbc_jsr169">
       <javac
-      source="1.4"
-      target="1.4"
+							source="${compilerLevel16}"
+							target="${compilerLevel16}"
       bootclasspath="${empty}"
       nowarn="on"
       debug="${debug}"
@@ -67,7 +67,7 @@
       srcdir="${derby.engine.src.dir}"
       destdir="${out.dir}">
       <classpath>
-        <pathelement path="${java15compile.classpath}"/>
+        <pathelement path="${java16compile.classpath}"/>
       </classpath>
 	  <include name="${splice.package}/${cur.dir}/BrokeredConnection.java"/>
 	  <include name="${splice.package}/${cur.dir}/BrokeredPreparedStatement.java"/>
@@ -77,8 +77,8 @@
 
   <target name="compile_iapi_jdbc_stmt">
       <javac
-      source="1.4"
-      target="1.4"
+							source="${compilerLevel16}"
+							target="${compilerLevel16}"
       bootclasspath="${empty}"
       nowarn="on"
       debug="${debug}"
@@ -90,7 +90,7 @@
       srcdir="${derby.engine.src.dir}"
       destdir="${out.dir}">
       <classpath>
-        <pathelement path="${java15compile.classpath}"/>
+        <pathelement path="${java16compile.classpath}"/>
       </classpath>
 	  <include name="${splice.package}/${cur.dir}/BrokeredStatement.java"/>
     </javac>
@@ -98,8 +98,8 @@
 
   <target name="compile_iapi_jdbc_jdbc3" depends="compile_iapi_jdbc_jdbc2">
       <javac
-      source="1.4"
-      target="1.4"
+							source="${compilerLevel16}"
+							target="${compilerLevel16}"
       bootclasspath="${empty}"
       nowarn="on"
       debug="${debug}"
@@ -111,7 +111,7 @@
       srcdir="${derby.engine.src.dir}"
       destdir="${out.dir}">
       <classpath>
-        <pathelement path="${java15compile.classpath}"/>
+        <pathelement path="${java16compile.classpath}"/>
       </classpath>
 	  <include name="${splice.package}/${cur.dir}/BrokeredConnection30.java"/>
 	  <include name="${splice.package}/${cur.dir}/BrokeredPreparedStatement30.java"/>

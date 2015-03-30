@@ -1,6 +1,6 @@
 /*
 
-   Derby - Class org.apache.derby.impl.jdbc.BiggerTemporaryClobTest
+   Derby - Class com.splicemachine.db.impl.jdbc.BiggerTemporaryClobTest
 
    Licensed to the Apache Software Foundation (ASF) under one
    or more contributor license agreements.  See the NOTICE file
@@ -20,10 +20,8 @@
    under the License.
 
  */
-package org.apache.derby.impl.jdbc;
+package com.splicemachine.db.impl.jdbc;
 
-import com.splicemachine.db.impl.jdbc.EmbedStatement;
-import com.splicemachine.db.impl.jdbc.TemporaryClob;
 import org.apache.derbyTesting.functionTests.util.streams.CharAlphabet;
 import org.apache.derbyTesting.functionTests.util.streams.LoopingAlphabetReader;
 
@@ -35,7 +33,7 @@ import junit.framework.TestSuite;
  * Test basic operations on a read-wrote Clob that is kept on disk.
  */
 public class BiggerTemporaryClobTest
-    extends InternalClobTest {
+    extends InternalClobTest{
 
     private static final long CLOBLENGTH = 287*1024-115; //~287 KB
     private static final long BYTES_PER_CHAR = 3; // Only Tamil characters.

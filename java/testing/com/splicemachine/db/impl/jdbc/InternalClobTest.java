@@ -1,6 +1,6 @@
 /*
 
-   Derby - Class org.apache.derby.impl.jdbc.InternalClobTest
+   Derby - Class com.splicemachine.db.impl.jdbc.InternalClobTest
 
    Licensed to the Apache Software Foundation (ASF) under one
    or more contributor license agreements.  See the NOTICE file
@@ -20,7 +20,7 @@
    under the License.
 
  */
-package org.apache.derby.impl.jdbc;
+package com.splicemachine.db.impl.jdbc;
 
 import java.io.EOFException;
 import java.lang.reflect.Constructor;

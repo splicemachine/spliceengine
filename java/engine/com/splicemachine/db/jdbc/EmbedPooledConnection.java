@@ -49,6 +49,7 @@ import java.util.Iterator;
 /* -- New jdbc 20 extension types --- */
 import javax.sql.ConnectionEventListener;
 import javax.sql.ConnectionEvent;
+import javax.sql.StatementEventListener;
 
 /** 
 	A PooledConnection object is a connection object that provides hooks for
@@ -306,6 +307,16 @@ class EmbedPooledConnection implements javax.sql.PooledConnection, BrokeredConne
             eventListener = (ArrayList) eventListener.clone();
         }
         eventListener.remove(listener);
+	}
+
+//	@Override
+	public void addStatementEventListener(StatementEventListener listener){
+		throw new UnsupportedOperationException();
+	}
+
+//	@Override
+	public void removeStatementEventListener(StatementEventListener listener){
+		throw new UnsupportedOperationException();
 	}
 
 	/*

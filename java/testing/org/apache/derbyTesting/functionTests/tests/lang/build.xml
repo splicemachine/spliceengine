@@ -67,8 +67,8 @@
 
   <target name="compilet1" >
     <javac
-      source="1.4"
-      target="1.4"
+						source="${compilerLevel16}"
+						target="${compilerLevel16}"
       bootclasspath="${empty}"
       nowarn="on"
       debug="true"
@@ -81,7 +81,7 @@
       destdir="${out.dir}">
       <classpath>
         <!--pathelement location="${oro}"/-->
-        <pathelement path="${java15compile.classpath}"/>
+        <pathelement path="${java16compile.classpath}"/>
       	<pathelement path="${junit}"/>
       </classpath>
       <include name="${this.dir}/*.java"/>
@@ -103,8 +103,8 @@
   </target>
   <target name="compilet2" depends="compilet1">
     <javac
-      source="1.4"
-      target="1.4"
+						source="${compilerLevel16}"
+						target="${compilerLevel16}"
       bootclasspath="${empty}"
       nowarn="on"
       debug="true"
@@ -116,7 +116,7 @@
       srcdir="${derby.testing.src.dir}"
       destdir="${out.dir}">
       <classpath>
-        <pathelement path="${java15compile.classpath}"/>
+        <pathelement path="${java16compile.classpath}"/>
         <pathelement path="${junit}"/>
       </classpath>
       <include name="${this.dir}/holdCursorJavaReflection.java"/>
@@ -131,8 +131,8 @@
 	
   <target name="compilet3" depends="compilet2">
     <javac
-      source="1.4"
-      target="1.4"
+						source="${compilerLevel16}"
+						target="${compilerLevel16}"
       bootclasspath="${empty}"
       nowarn="on"
       debug="true"
@@ -144,15 +144,15 @@
       srcdir="${derby.testing.src.dir}"
       destdir="${out.dir}">
       <classpath>
-        <pathelement path="${java15compile.classpath}"/>
+        <pathelement path="${java16compile.classpath}"/>
       </classpath>
       <include name="${this.dir}/declareGlobalTempTableJavaJDBC30.java"/>
     </javac>
   </target> 
 	<target name="compilet3.1" depends="compilet3">
 	    <javac
-	      source="1.5"
-	      target="1.5"
+							source="${compilerLevel16}"
+							target="${compilerLevel16}"
 	      bootclasspath="${empty}"
 	      nowarn="on"
 	      debug="true"
@@ -164,7 +164,7 @@
 	      srcdir="${derby.testing.src.dir}"
 	      destdir="${out.dir}">
 	      <classpath>
-	        <pathelement path="${java15compile.classpath}"/>
+	        <pathelement path="${java16compile.classpath}"/>
 	      </classpath>
 	      <include name="${this.dir}/FullName.java"/>
 	      <include name="${this.dir}/GenericMode.java"/>
@@ -179,8 +179,8 @@
 	base level -->
 	<target name="compilett4" depends="compilet3.1" >
     <javac
-      source="1.4"
-      target="1.4"
+						source="${compilerLevel16}"
+						target="${compilerLevel16}"
       bootclasspath="${empty}"
       nowarn="on"
       debug="true"

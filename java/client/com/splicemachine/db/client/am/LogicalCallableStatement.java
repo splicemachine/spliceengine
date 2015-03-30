@@ -24,18 +24,15 @@ import java.io.InputStream;
 import java.io.Reader;
 import java.math.BigDecimal;
 import java.net.URL;
-import java.sql.Array;
+import java.sql.*;
 import java.sql.Blob;
 import java.sql.Clob;
-import java.sql.Date;
-import java.sql.Ref;
-import java.sql.SQLException;
-import java.sql.Time;
-import java.sql.Timestamp;
+import java.sql.RowId;
 import java.util.Calendar;
 import java.util.Map;
 
 import com.splicemachine.db.client.am.stmtcache.StatementKey;
+import com.splicemachine.db.shared.common.reference.SQLState;
 
 /**
  * A wrapper class for a physical Derby callable statement.
@@ -382,4 +379,316 @@ public class LogicalCallableStatement
     public void setTimestamp(String parameterName, Timestamp x, Calendar cal) throws SQLException {
          getPhysCs().setTimestamp(parameterName, x, cal);
     }
+
+    public void setRowId(int arg0, java.sql.RowId arg1)
+            throws SQLException {
+        getPhysCs().setRowId(arg0, arg1);
+    }
+
+    public void setNString(int arg0, String arg1)
+            throws SQLException {
+        getPhysCs().setNString(arg0, arg1);
+    }
+
+    public void setNCharacterStream(int arg0, Reader arg1, long arg2)
+            throws SQLException {
+        getPhysCs().setNCharacterStream(arg0, arg1, arg2);
+    }
+
+    public void setNClob(int arg0, NClob arg1)
+            throws SQLException {
+        getPhysCs().setNClob(arg0, arg1);
+    }
+
+    public void setClob(int arg0, Reader arg1, long arg2)
+            throws SQLException {
+        getPhysCs().setClob(arg0, arg1, arg2);
+    }
+
+    public void setBlob(int arg0, InputStream arg1, long arg2)
+            throws SQLException {
+        getPhysCs().setBlob(arg0, arg1, arg2);
+    }
+
+    public void setNClob(int arg0, Reader arg1, long arg2)
+            throws SQLException {
+        getPhysCs().setNClob(arg0, arg1, arg2);
+    }
+
+    public void setSQLXML(int arg0, SQLXML arg1)
+            throws SQLException {
+        getPhysCs().setSQLXML(arg0, arg1);
+    }
+
+    public void setAsciiStream(int arg0, InputStream arg1, long arg2)
+            throws SQLException {
+        getPhysCs().setAsciiStream(arg0, arg1, arg2);
+    }
+
+    public void setBinaryStream(int arg0, InputStream arg1, long arg2)
+            throws SQLException {
+        getPhysCs().setBinaryStream(arg0, arg1, arg2);
+    }
+
+    public void setCharacterStream(int arg0, Reader arg1, long arg2)
+            throws SQLException {
+        getPhysCs().setCharacterStream(arg0, arg1, arg2);
+    }
+
+    public void setAsciiStream(int arg0, InputStream arg1)
+            throws SQLException {
+        getPhysCs().setAsciiStream(arg0, arg1);
+    }
+
+    public void setBinaryStream(int arg0, InputStream arg1)
+            throws SQLException {
+        getPhysCs().setBinaryStream(arg0, arg1);
+    }
+
+    public void setCharacterStream(int arg0, Reader arg1)
+            throws SQLException {
+        getPhysCs().setCharacterStream(arg0, arg1);
+    }
+
+    public void setNCharacterStream(int arg0, Reader arg1)
+            throws SQLException {
+        getPhysCs().setNCharacterStream(arg0, arg1);
+    }
+
+    public void setClob(int arg0, Reader arg1)
+            throws SQLException {
+        getPhysCs().setClob(arg0, arg1);
+    }
+
+    public void setBlob(int arg0, InputStream arg1)
+            throws SQLException {
+        getPhysCs().setBlob(arg0, arg1);
+    }
+
+    public void setNClob(int arg0, Reader arg1)
+            throws SQLException {
+        getPhysCs().setNClob(arg0, arg1);
+    }
+
+    public synchronized boolean isClosed()
+            throws SQLException {
+        // Note the extra synchronization.
+        boolean closed = isLogicalEntityClosed();
+        if (!closed) {
+            // Consult the underlying physical statement.
+            closed = getPhysCs().isClosed();
+        }
+        return closed;
+    }
+
+    public void setPoolable(boolean arg0)
+            throws SQLException {
+        getPhysCs().setPoolable(arg0);
+    }
+
+    public boolean isPoolable()
+            throws SQLException {
+        return getPhysCs().isPoolable();
+    }
+
+    public <T> T unwrap(Class<T> arg0)
+            throws SQLException {
+        try {
+            if (getPhysCs().isClosed()) {
+                throw (new SqlException(null,
+                        new ClientMessageId(SQLState.ALREADY_CLOSED),
+                        "CallableStatement")).getSQLException();
+            }
+            return arg0.cast(this);
+        } catch (ClassCastException cce) {
+            throw new SqlException(
+                    null,
+                    new ClientMessageId(SQLState.UNABLE_TO_UNWRAP),
+                    arg0).getSQLException();
+        }
+    }
+
+    public boolean isWrapperFor(Class<?> arg0)
+            throws SQLException {
+        return getPhysCs().isWrapperFor(arg0);
+    }
+
+    public java.sql.RowId getRowId(int arg0)
+            throws SQLException {
+        return getPhysCs().getRowId(arg0);
+    }
+
+    public java.sql.RowId getRowId(String arg0)
+            throws SQLException {
+        return getPhysCs().getRowId(arg0);
+    }
+
+    public void setRowId(String arg0, RowId arg1)
+            throws SQLException {
+        getPhysCs().setRowId(arg0, arg1);
+    }
+
+    public void setNString(String arg0, String arg1)
+            throws SQLException {
+        getPhysCs().setNString(arg0, arg1);
+    }
+
+    public void setNCharacterStream(String arg0, Reader arg1, long arg2)
+            throws SQLException {
+        getPhysCs().setNCharacterStream(arg0, arg1, arg2);
+    }
+
+    public void setNClob(String arg0, NClob arg1)
+            throws SQLException {
+        getPhysCs().setNClob(arg0, arg1);
+    }
+
+    public void setClob(String arg0, Reader arg1, long arg2)
+            throws SQLException {
+        getPhysCs().setClob(arg0, arg1, arg2);
+    }
+
+    public void setBlob(String arg0, InputStream arg1, long arg2)
+            throws SQLException {
+        getPhysCs().setBlob(arg0, arg1, arg2);
+    }
+
+    public void setNClob(String arg0, Reader arg1, long arg2)
+            throws SQLException {
+        getPhysCs().setNClob(arg0, arg1, arg2);
+    }
+
+    public NClob getNClob(int arg0)
+            throws SQLException {
+        return getPhysCs().getNClob(arg0);
+    }
+
+    public NClob getNClob(String arg0)
+            throws SQLException {
+        return getPhysCs().getNClob(arg0);
+    }
+
+    public void setSQLXML(String arg0, SQLXML arg1)
+            throws SQLException {
+        getPhysCs().setSQLXML(arg0, arg1);
+    }
+
+    public SQLXML getSQLXML(int arg0)
+            throws SQLException {
+        return getPhysCs().getSQLXML(arg0);
+    }
+
+    public SQLXML getSQLXML(String arg0)
+            throws SQLException {
+        return getPhysCs().getSQLXML(arg0);
+    }
+
+    public String getNString(int arg0)
+            throws SQLException {
+        return getPhysCs().getNString(arg0);
+    }
+
+    public String getNString(String arg0)
+            throws SQLException {
+        return getPhysCs().getNString(arg0);
+    }
+
+    public Reader getNCharacterStream(int arg0)
+            throws SQLException {
+        return getPhysCs().getNCharacterStream(arg0);
+    }
+
+    public Reader getNCharacterStream(String arg0)
+            throws SQLException {
+        return getPhysCs().getNCharacterStream(arg0);
+    }
+
+    public Reader getCharacterStream(int arg0)
+            throws SQLException {
+        return getPhysCs().getCharacterStream(arg0);
+    }
+
+    public Reader getCharacterStream(String arg0)
+            throws SQLException {
+        return getPhysCs().getCharacterStream(arg0);
+    }
+
+    public void setBlob(String arg0, Blob arg1)
+            throws SQLException {
+        getPhysCs().setBlob(arg0, arg1);
+    }
+
+    public void setClob(String arg0, Clob arg1)
+            throws SQLException {
+        getPhysCs().setClob(arg0, arg1);
+    }
+
+    public void setAsciiStream(String arg0, InputStream arg1, long arg2)
+            throws SQLException {
+        getPhysCs().setAsciiStream(arg0, arg1, arg2);
+    }
+
+    public void setBinaryStream(String arg0, InputStream arg1, long arg2)
+            throws SQLException {
+        getPhysCs().setBinaryStream(arg0, arg1, arg2);
+    }
+
+    public void setCharacterStream(String arg0, Reader arg1, long arg2)
+            throws SQLException {
+        getPhysCs().setCharacterStream(arg0, arg1, arg2);
+    }
+
+    public void setAsciiStream(String arg0, InputStream arg1)
+            throws SQLException {
+        getPhysCs().setAsciiStream(arg0, arg1);
+    }
+
+    public void setBinaryStream(String arg0, InputStream arg1)
+            throws SQLException {
+        getPhysCs().setBinaryStream(arg0, arg1);
+    }
+
+    public void setCharacterStream(String arg0, Reader arg1)
+            throws SQLException {
+        getPhysCs().setCharacterStream(arg0, arg1);
+    }
+
+    public void setNCharacterStream(String arg0, Reader arg1)
+            throws SQLException {
+        getPhysCs().setNCharacterStream(arg0, arg1);
+    }
+
+    public void setClob(String arg0, Reader arg1)
+            throws SQLException {
+        getPhysCs().setClob(arg0, arg1);
+    }
+
+    public void setBlob(String arg0, InputStream arg1)
+            throws SQLException {
+        getPhysCs().setBlob(arg0, arg1);
+    }
+
+    public void setNClob(String arg0, Reader arg1)
+            throws SQLException {
+        getPhysCs().setNClob(arg0, arg1);
+    }
+
+    ////////////////////////////////////////////////////////////////////
+    //
+    // INTRODUCED BY JDBC 4.1 IN JAVA 7
+    //
+    ////////////////////////////////////////////////////////////////////
+
+    public <T> T getObject( int parameterIndex, Class<T> type )
+            throws SQLException
+    {
+        return ((CallableStatement40)getPhysCs()).getObject( parameterIndex, type );
+    }
+
+    public <T> T getObject(String parameterName, Class<T> type)
+            throws SQLException
+    {
+        return ((CallableStatement40)getPhysCs()).getObject( parameterName, type );
+    }
+
 }

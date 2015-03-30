@@ -31,17 +31,13 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.reference.JDBC30Translation;
 import com.splicemachine.db.iapi.reference.SQLState;
 
+import java.io.InputStream;
+import java.io.Reader;
 import java.math.BigDecimal;
 import java.net.URL;
-import java.sql.Blob;
-import java.sql.CallableStatement;
-import java.sql.Clob;
-import java.sql.SQLException;
-import java.sql.Date;
-import java.sql.Statement;
-import java.sql.Time;
-import java.sql.Timestamp;
+import java.sql.*;
 import java.util.Calendar;
+import java.util.Map;
 
 /**
  * Local implementation.
@@ -512,7 +508,7 @@ public abstract class EmbedCallableStatement extends EmbedPreparedStatement
     public java.sql.Date getDate(int parameterIndex)
       throws SQLException 
 	{
-        return getDate(parameterIndex, getCal());
+        return getDate(parameterIndex,getCal());
 	}
 
     /**
@@ -526,7 +522,7 @@ public abstract class EmbedCallableStatement extends EmbedPreparedStatement
     public java.sql.Time getTime(int parameterIndex)
       throws SQLException 
 	{
-        return getTime(parameterIndex, getCal());
+        return getTime(parameterIndex,getCal());
 	}
 
     /**
@@ -541,7 +537,7 @@ public abstract class EmbedCallableStatement extends EmbedPreparedStatement
     public java.sql.Timestamp getTimestamp(int parameterIndex)
       throws SQLException 
 	{
-        return getTimestamp(parameterIndex, getCal());
+        return getTimestamp(parameterIndex,getCal());
 	}
 
     /**
@@ -623,8 +619,8 @@ public abstract class EmbedCallableStatement extends EmbedPreparedStatement
             return (Blob) o;
         }
         throw newSQLException(SQLState.LANG_DATA_TYPE_GET_MISMATCH,
-                Blob.class.getName(),
-                Util.typeName(getParameterJDBCType(parameterIndex)));
+				Blob.class.getName(),
+				Util.typeName(getParameterJDBCType(parameterIndex)));
     }
 
     /**
@@ -667,5 +663,472 @@ public abstract class EmbedCallableStatement extends EmbedPreparedStatement
 
 		super.addBatch();
 	}
+
+
+	public Object getObject(int parameterIndex,Map<String, Class<?>> map) throws SQLException{ throw new UnsupportedOperationException(); }
+	public Ref getRef(int parameterIndex) throws SQLException{ throw new UnsupportedOperationException(); }
+	public Array getArray(int parameterIndex) throws SQLException{ throw new UnsupportedOperationException(); }
+	public void registerOutParameter(String parameterName,int sqlType) throws SQLException{ throw new UnsupportedOperationException();  }
+	public void registerOutParameter(String parameterName,int sqlType,int scale) throws SQLException{ throw new UnsupportedOperationException();  }
+	public void registerOutParameter(String parameterName,int sqlType,String typeName) throws SQLException{ throw new UnsupportedOperationException();  }
+	public void setNull(String parameterName,int sqlType) throws SQLException{
+		int index=findIndex(parameterName);
+		setNull(index,sqlType);
+	}
+
+	public void setBoolean(String parameterName,boolean x) throws SQLException{
+		setBoolean(findIndex(parameterName),x);
+	}
+
+	public void setByte(String parameterName,byte x) throws SQLException{
+		setByte(findIndex(parameterName),x);
+	}
+
+	//@Override
+	public void setShort(String parameterName,short x) throws SQLException{
+		setShort(findIndex(parameterName),x);
+	}
+
+	//@Override
+	public void setInt(String parameterName,int x) throws SQLException{
+		setInt(findIndex(parameterName),x);
+	}
+
+	//@Override
+	public void setLong(String parameterName,long x) throws SQLException{
+		setLong(findIndex(parameterName),x);
+	}
+
+	//@Override
+	public void setFloat(String parameterName,float x) throws SQLException{
+		setFloat(findIndex(parameterName),x);
+	}
+
+	//@Override
+	public void setDouble(String parameterName,double x) throws SQLException{
+		setDouble(findIndex(parameterName),x);
+	}
+
+	//@Override
+	public void setBigDecimal(String parameterName,BigDecimal x) throws SQLException{
+		setBigDecimal(findIndex(parameterName),x);
+	}
+
+	//@Override
+	public void setString(String parameterName,String x) throws SQLException{
+		setString(findIndex(parameterName),x);
+	}
+
+	//@Override
+	public void setBytes(String parameterName,byte[] x) throws SQLException{
+		setBytes(findIndex(parameterName),x);
+	}
+
+	//@Override
+	public void setDate(String parameterName,Date x) throws SQLException{
+		setDate(findIndex(parameterName),x);
+	}
+
+	//@Override
+	public void setTime(String parameterName,Time x) throws SQLException{
+		setTime(findIndex(parameterName),x);
+	}
+
+	//@Override
+	public void setTimestamp(String parameterName,Timestamp x) throws SQLException{
+		setTimestamp(findIndex(parameterName),x);
+	}
+
+	//@Override
+	public void setAsciiStream(String parameterName,InputStream x,int length) throws SQLException{
+		setAsciiStream(findIndex(parameterName),x,length);
+	}
+
+	//@Override
+	public void setBinaryStream(String parameterName,InputStream x,int length) throws SQLException{
+		setBinaryStream(findIndex(parameterName),x,length);
+	}
+
+	//@Override
+	public void setObject(String parameterName,Object x,int targetSqlType,int scale) throws SQLException{
+		setObject(findIndex(parameterName),x,targetSqlType,scale);
+	}
+
+	//@Override
+	public void setObject(String parameterName,Object x,int targetSqlType) throws SQLException{
+		setObject(findIndex(parameterName),x,targetSqlType);
+	}
+
+	//@Override
+	public void setObject(String parameterName,Object x) throws SQLException{
+		setObject(findIndex(parameterName),x);
+	}
+
+	//@Override
+	public void setCharacterStream(String parameterName,Reader reader,int length) throws SQLException{
+		setCharacterStream(findIndex(parameterName),reader,length);
+	}
+
+	//@Override
+	public void setDate(String parameterName,Date x,Calendar cal) throws SQLException{
+		setDate(findIndex(parameterName),x,cal);
+	}
+
+	//@Override
+	public void setTime(String parameterName,Time x,Calendar cal) throws SQLException{
+		setTime(findIndex(parameterName),x,cal);
+	}
+
+	//@Override
+	public void setTimestamp(String parameterName,Timestamp x,Calendar cal) throws SQLException{
+		setTimestamp(findIndex(parameterName),x,cal);
+	}
+
+	//@Override
+	public void setNull(String parameterName,int sqlType,String typeName) throws SQLException{
+		setNull(findIndex(parameterName),sqlType,typeName);
+	}
+
+	//@Override
+	public String getString(String parameterName) throws SQLException{
+		return getString(findIndex(parameterName));
+	}
+
+	//@Override
+	public boolean getBoolean(String parameterName) throws SQLException{
+		return getBoolean(findIndex(parameterName));
+	}
+
+	//@Override
+	public byte getByte(String parameterName) throws SQLException{
+		return getByte(findIndex(parameterName));
+	}
+
+	//@Override
+	public short getShort(String parameterName) throws SQLException{
+		return getShort(findIndex(parameterName));
+	}
+
+	//@Override
+	public int getInt(String parameterName) throws SQLException{
+		return getInt(findIndex(parameterName));
+	}
+
+	//@Override
+	public long getLong(String parameterName) throws SQLException{
+		return getLong(findIndex(parameterName));
+	}
+
+	//@Override
+	public float getFloat(String parameterName) throws SQLException{
+		return getFloat(findIndex(parameterName));
+	}
+
+	//@Override
+	public double getDouble(String parameterName) throws SQLException{
+		return getDouble(findIndex(parameterName));
+	}
+
+	//@Override
+	public byte[] getBytes(String parameterName) throws SQLException{
+		return getBytes(findIndex(parameterName));
+	}
+
+	//@Override
+	public Date getDate(String parameterName) throws SQLException{
+		return getDate(findIndex(parameterName));
+	}
+
+	//@Override
+	public Time getTime(String parameterName) throws SQLException{
+		return getTime(findIndex(parameterName));
+	}
+
+	//@Override
+	public Timestamp getTimestamp(String parameterName) throws SQLException{
+		return getTimestamp(findIndex(parameterName));
+	}
+
+	//@Override
+	public Object getObject(String parameterName) throws SQLException{
+		return getObject(findIndex(parameterName));
+	}
+
+	//@Override
+	public BigDecimal getBigDecimal(String parameterName) throws SQLException{
+		return getBigDecimal(findIndex(parameterName));
+	}
+
+	//@Override
+	public Object getObject(String parameterName,Map<String, Class<?>> map) throws SQLException{
+		return getObject(findIndex(parameterName));
+	}
+
+	//@Override
+	public Ref getRef(String parameterName) throws SQLException{
+		return getRef(findIndex(parameterName));
+	}
+
+	//@Override
+	public Blob getBlob(String parameterName) throws SQLException{
+		return getBlob(findIndex(parameterName));
+	}
+
+	//@Override
+	public Clob getClob(String parameterName) throws SQLException{
+		return getClob(findIndex(parameterName));
+	}
+
+	//@Override
+	public Array getArray(String parameterName) throws SQLException{
+		return getArray(findIndex(parameterName));
+	}
+
+	//@Override
+	public Date getDate(String parameterName,Calendar cal) throws SQLException{
+		return getDate(findIndex(parameterName),cal);
+	}
+
+	//@Override
+	public Time getTime(String parameterName,Calendar cal) throws SQLException{
+		return getTime(findIndex(parameterName),cal);
+	}
+
+	//@Override
+	public Timestamp getTimestamp(String parameterName,Calendar cal) throws SQLException{
+		return getTimestamp(findIndex(parameterName),cal);
+	}
+
+	//@Override
+	public RowId getRowId(int parameterIndex) throws SQLException{
+		throw new UnsupportedOperationException();
+	}
+
+	//@Override
+	public RowId getRowId(String parameterName) throws SQLException{
+		return getRowId(findIndex(parameterName));
+	}
+
+	//@Override
+	public void setRowId(String parameterName,RowId x) throws SQLException{
+		setRowId(findIndex(parameterName),x);
+	}
+
+	//@Override
+	public void setNString(String parameterName,String value) throws SQLException{
+		setNString(findIndex(parameterName),value);
+	}
+
+	//@Override
+	public void setNCharacterStream(String parameterName,Reader value,long length) throws SQLException{
+		setNCharacterStream(findIndex(parameterName),value,length);
+	}
+
+	//@Override
+	public void setNClob(String parameterName,NClob value) throws SQLException{
+		setNClob(findIndex(parameterName),value);
+	}
+
+	//@Override
+	public void setClob(String parameterName,Reader reader,long length) throws SQLException{
+		setClob(findIndex(parameterName),reader,length);
+	}
+
+	//@Override
+	public void setBlob(String parameterName,InputStream inputStream,long length) throws SQLException{
+		setBlob(findIndex(parameterName),inputStream,length);
+	}
+
+	//@Override
+	public void setNClob(String parameterName,Reader reader,long length) throws SQLException{
+		setNClob(findIndex(parameterName),reader,length);
+	}
+
+	//@Override
+	public NClob getNClob(int parameterIndex) throws SQLException{
+		throw new UnsupportedOperationException();
+	}
+
+	//@Override
+	public NClob getNClob(String parameterName) throws SQLException{
+		throw new UnsupportedOperationException();
+	}
+
+	//@Override
+	public void setSQLXML(String parameterName,SQLXML xmlObject) throws SQLException{
+		setSQLXML(findIndex(parameterName),xmlObject);
+	}
+
+	//@Override
+	public SQLXML getSQLXML(int parameterIndex) throws SQLException{
+		throw new UnsupportedOperationException();
+	}
+
+	//@Override
+	public SQLXML getSQLXML(String parameterName) throws SQLException{
+		return getSQLXML(findIndex(parameterName));
+	}
+
+	//@Override
+	public String getNString(int parameterIndex) throws SQLException{
+		throw new UnsupportedOperationException();
+	}
+
+	//@Override
+	public String getNString(String parameterName) throws SQLException{
+		return getNString(findIndex(parameterName));
+	}
+
+	//@Override
+	public Reader getNCharacterStream(int parameterIndex) throws SQLException{
+		throw new UnsupportedOperationException();
+	}
+
+	//@Override
+	public Reader getNCharacterStream(String parameterName) throws SQLException{
+		return getNCharacterStream(findIndex(parameterName));
+	}
+
+	//@Override
+	public Reader getCharacterStream(int parameterIndex) throws SQLException{
+		throw new UnsupportedOperationException();
+	}
+
+	//@Override
+	public Reader getCharacterStream(String parameterName) throws SQLException{
+		return getCharacterStream(findIndex(parameterName));
+	}
+
+	//@Override
+	public void setBlob(String parameterName,Blob x) throws SQLException{
+		setBlob(findIndex(parameterName),x);
+	}
+
+	//@Override
+	public void setClob(String parameterName,Clob x) throws SQLException{
+		setClob(findIndex(parameterName),x);
+	}
+
+	//@Override
+	public void setAsciiStream(String parameterName,InputStream x,long length) throws SQLException{
+		setAsciiStream(findIndex(parameterName),x,length);
+	}
+
+	//@Override
+	public void setBinaryStream(String parameterName,InputStream x,long length) throws SQLException{
+		setBinaryStream(findIndex(parameterName),x,length);
+	}
+
+	//@Override
+	public void setCharacterStream(String parameterName,Reader reader,long length) throws SQLException{
+		setCharacterStream(findIndex(parameterName),reader,length);
+	}
+
+	//@Override
+	public void setAsciiStream(String parameterName,InputStream x) throws SQLException{
+		setAsciiStream(findIndex(parameterName),x);
+	}
+
+	//@Override
+	public void setBinaryStream(String parameterName,InputStream x) throws SQLException{
+		setBinaryStream(findIndex(parameterName),x);
+	}
+
+	//@Override
+	public void setCharacterStream(String parameterName,Reader reader) throws SQLException{
+		setCharacterStream(findIndex(parameterName),reader);
+	}
+
+	//@Override
+	public void setNCharacterStream(String parameterName,Reader value) throws SQLException{
+		setNCharacterStream(findIndex(parameterName),value);
+	}
+
+	//@Override
+	public void setClob(String parameterName,Reader reader) throws SQLException{
+		setClob(findIndex(parameterName),reader);
+	}
+
+	//@Override
+	public void setBlob(String parameterName,InputStream inputStream) throws SQLException{
+		setBlob(findIndex(parameterName),inputStream);
+	}
+
+	//@Override
+	public void setNClob(String parameterName,Reader reader) throws SQLException{
+		setNClob(findIndex(parameterName),reader);
+	}
+
+	//@Override
+	public <T> T getObject(int parameterIndex,Class<T> type) throws SQLException{
+		Object object=getObject(parameterIndex);
+		if(object==null) return null;
+		return type.cast(object);
+	}
+
+	//@Override
+	public <T> T getObject(String parameterName,Class<T> type) throws SQLException{
+		return getObject(findIndex(parameterName),type);
+	}
+
+	//@Override
+	public void setRef(int parameterIndex,Ref x) throws SQLException{
+		throw new UnsupportedOperationException();
+	}
+
+	//@Override
+	public void setArray(int parameterIndex,Array x) throws SQLException{
+		throw new UnsupportedOperationException();
+	}
+
+	//@Override
+	public ParameterMetaData getParameterMetaData() throws SQLException{
+		throw new UnsupportedOperationException();
+	}
+
+	//@Override
+	public void setRowId(int parameterIndex,RowId x) throws SQLException{
+		throw new UnsupportedOperationException();
+	}
+
+	//@Override
+	public void setNString(int parameterIndex,String value) throws SQLException{
+		throw new UnsupportedOperationException();
+	}
+
+	//@Override
+	public void setNCharacterStream(int parameterIndex,Reader value,long length) throws SQLException{
+		throw new UnsupportedOperationException();
+	}
+
+	//@Override
+	public void setNClob(int parameterIndex,NClob value) throws SQLException{
+		throw new UnsupportedOperationException();
+	}
+
+	//@Override
+	public void setNClob(int parameterIndex,Reader reader,long length) throws SQLException{
+		throw new UnsupportedOperationException();
+	}
+
+	//@Override
+	public void setSQLXML(int parameterIndex,SQLXML xmlObject) throws SQLException{
+		throw new UnsupportedOperationException();
+	}
+
+	//@Override
+	public void setNCharacterStream(int parameterIndex,Reader value) throws SQLException{
+		throw new UnsupportedOperationException();
+	}
+
+	//@Override
+	public void setNClob(int parameterIndex,Reader reader) throws SQLException{
+		throw new UnsupportedOperationException();
+	}
+
+	protected int findIndex(String parameterName){
+		throw new UnsupportedOperationException();
+	}
 }
+
 

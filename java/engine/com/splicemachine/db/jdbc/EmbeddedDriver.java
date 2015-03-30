@@ -21,14 +21,11 @@
 
 package com.splicemachine.db.jdbc;
 
-import java.sql.DriverManager;
-import java.sql.Driver;
-import java.sql.Connection;
-import java.sql.DriverPropertyInfo;
-import java.sql.SQLException;
+import java.sql.*;
 
 import java.io.PrintStream;
 import java.util.Properties;
+import java.util.logging.Logger;
 
 import com.splicemachine.db.iapi.reference.Attribute;
 import com.splicemachine.db.iapi.jdbc.JDBCBoot;
@@ -174,7 +171,12 @@ public class EmbeddedDriver  implements Driver {
 		}
 	}
 
-  /**
+	@Override
+	public Logger getParentLogger() throws SQLFeatureNotSupportedException{
+		throw new SQLFeatureNotSupportedException();
+	}
+
+	/**
    * Lookup the booted driver module appropriate to our JDBC level.
    */
 	private	Driver	getDriverModule()

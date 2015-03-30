@@ -1,6 +1,6 @@
 /*
 
-   Derby - Class org.apache.derby.impl.jdbc.SmallStoreStreamTest
+   Derby - Class org.apache.derby.impl.jdbc.BiggerStoreStreamTest
 
    Licensed to the Apache Software Foundation (ASF) under one
    or more contributor license agreements.  See the NOTICE file
@@ -20,33 +20,31 @@
    under the License.
 
  */
-package org.apache.derby.impl.jdbc;
+package com.splicemachine.db.impl.jdbc;
 
 import java.io.InputStream;
 
-import com.splicemachine.db.impl.jdbc.EmbedStatement;
-import com.splicemachine.db.impl.jdbc.StoreStreamClob;
 import junit.framework.Test;
 import junit.framework.TestSuite;
 import com.splicemachine.db.iapi.jdbc.CharacterStreamDescriptor;
 
 /**
- * Tests basic operations on a small read-only Clob from the store module.
+ * Tests basic operations on a bigger read-only Clob from the store module.
  */
-public class SmallStoreStreamClobTest
-    extends InternalClobTest {
+public class BiggerStoreStreamClobTest
+    extends InternalClobTest{
 
-    private static final long CLOBLENGTH = 1197;
+    private static final long CLOBLENGTH = 67*1024+19; // ~97 KB
     private static final long BYTES_PER_CHAR = 1; // All modern Latin
 
-    public SmallStoreStreamClobTest(String name) {
+    public BiggerStoreStreamClobTest(String name) {
         super(name);
     }
 
     public void setUp()
             throws Exception {
         super.initialCharLength = CLOBLENGTH;
-        super.headerLength = 2 + 3;
+        super.headerLength = 2 +3;
         // The fake stream uses ascii. Add header and EOF marker.
         super.initialByteLength = CLOBLENGTH + headerLength;
         super.bytesPerChar = BYTES_PER_CHAR;
@@ -69,8 +67,8 @@ public class SmallStoreStreamClobTest
     }
 
     public static Test suite() {
-        TestSuite suite = new TestSuite(SmallStoreStreamClobTest.class,
-                                        "SmallStoreStreamClobTest suite");
+        TestSuite suite = new TestSuite(BiggerStoreStreamClobTest.class,
+                                        "BiggerStoreStreamClobTest suite");
         return suite;
     }
-} // End class SmallStoreStreamClobTest
+} // End class BiggerStoreStreamClobTest

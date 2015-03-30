@@ -22,7 +22,10 @@ package com.splicemachine.db.client.net;
 
 import java.nio.ByteBuffer;
 import java.nio.CharBuffer;
-import java.sql.SQLException;
+import java.sql.*;
+import java.util.Properties;
+import java.util.concurrent.Executor;
+
 import com.splicemachine.db.client.am.CallableStatement;
 import com.splicemachine.db.client.am.DatabaseMetaData;
 import com.splicemachine.db.client.am.DisconnectException;
@@ -30,6 +33,7 @@ import com.splicemachine.db.client.am.EncryptionManager;
 import com.splicemachine.db.client.am.PreparedStatement;
 import com.splicemachine.db.client.am.SqlException;
 import com.splicemachine.db.client.am.ClientMessageId;
+import com.splicemachine.db.impl.jdbc.Util;
 import com.splicemachine.db.shared.common.reference.MessageId;
 import com.splicemachine.db.shared.common.i18n.MessageUtil;
 import com.splicemachine.db.client.am.Statement;
@@ -153,6 +157,16 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
     //SQLCARD is empty. If connectionNull=true, connect method in 
     //ClientDriver will in turn return null connection.
     private boolean connectionNull = false;
+
+    @Override
+    public <T> T unwrap(Class<T> iface) throws SQLException{
+        return null;
+    }
+
+    @Override
+    public boolean isWrapperFor(Class<?> iface) throws SQLException{
+        return false;
+    }
 
     private void setDeferredResetPassword(String password) {
         deferredResetPassword_ = (password == null) ? null : flipBits(password.toCharArray());
@@ -1784,7 +1798,67 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
             return; // still open, return
         }
     }
-    
+
+    @Override
+    public NClob createNClob() throws SQLException{
+        throw Util.notImplemented("createNClob");
+    }
+
+    @Override
+    public SQLXML createSQLXML() throws SQLException{
+        throw Util.notImplemented("createSQLXML");
+    }
+
+    @Override
+    public boolean isValid(int timeout) throws SQLException{
+        throw Util.notImplemented("isValid");
+    }
+
+    @Override
+    public void setClientInfo(String name,String value) throws SQLClientInfoException{
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public void setClientInfo(Properties properties) throws SQLClientInfoException{
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public String getClientInfo(String name) throws SQLException{
+        throw Util.notImplemented("getClientInfo");
+    }
+
+    @Override
+    public Properties getClientInfo() throws SQLException{
+        throw Util.notImplemented("getClientInfo");
+    }
+
+    @Override
+    public Array createArrayOf(String typeName,Object[] elements) throws SQLException{
+        throw Util.notImplemented("createArrayOf");
+    }
+
+    @Override
+    public Struct createStruct(String typeName,Object[] attributes) throws SQLException{
+        throw Util.notImplemented("createStruct");
+    }
+
+    @Override
+    public void abort(Executor executor) throws SQLException{
+        throw Util.notImplemented("abort");
+    }
+
+    @Override
+    public void setNetworkTimeout(Executor executor,int milliseconds) throws SQLException{
+        throw Util.notImplemented("setNetworkTimeout");
+    }
+
+    @Override
+    public int getNetworkTimeout() throws SQLException{
+        throw Util.notImplemented("getNetworkTimeout");
+    }
+
     /**
      * closes underlying connection and associated resource.
      */

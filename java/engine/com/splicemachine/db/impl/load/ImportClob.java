@@ -223,5 +223,13 @@ class ImportClob implements java.sql.Clob {
         throw LoadError.unexpectedError(
                          new Exception("Method not implemented"));  
     }
+
+//    @Override
+    public void free() throws SQLException{ throw new UnsupportedOperationException(); }
+
+//    @Override
+    public Reader getCharacterStream(long pos,long length) throws SQLException{
+        throw new UnsupportedOperationException();
+    }
 }
 

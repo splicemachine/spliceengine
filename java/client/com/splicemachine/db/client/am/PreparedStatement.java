@@ -21,16 +21,14 @@
 
 package com.splicemachine.db.client.am;
 
+import com.splicemachine.db.impl.jdbc.Util;
 import com.splicemachine.db.shared.common.reference.JDBC40Translation;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
 
 import java.io.InputStream;
 import java.io.Reader;
-import java.sql.Date;
-import java.sql.SQLException;
-import java.sql.Time;
-import java.sql.Timestamp;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -3194,5 +3192,45 @@ public class PreparedStatement extends Statement
             return DEFAULT_POSSIBLE_TYPES_FOR_NULL;
         }
         
+    }
+
+    @Override
+    public void setNString(int parameterIndex,String value) throws SQLException{
+       throw Util.notImplemented("setNString");
+    }
+
+    @Override
+    public void setNCharacterStream(int parameterIndex,Reader value,long length) throws SQLException{
+        throw Util.notImplemented("setNCharacterStream");
+    }
+
+    @Override
+    public void setNClob(int parameterIndex,NClob value) throws SQLException{
+        throw Util.notImplemented("setNClob");
+    }
+
+    @Override
+    public void setNClob(int parameterIndex,Reader reader,long length) throws SQLException{
+        throw Util.notImplemented("setNClob");
+    }
+
+    @Override
+    public void setSQLXML(int parameterIndex,SQLXML xmlObject) throws SQLException{
+        throw Util.notImplemented("setSQLXML");
+    }
+
+    @Override
+    public void setNCharacterStream(int parameterIndex,Reader value) throws SQLException{
+        throw Util.notImplemented("setNCharacterStream");
+    }
+
+    @Override
+    public void setNClob(int parameterIndex,Reader reader) throws SQLException{
+        throw Util.notImplemented("setNClob");
+    }
+
+    @Override
+    public <T> T unwrap(Class<T> iface) throws SQLException{
+        throw Util.notImplemented("unwrap");
     }
 }

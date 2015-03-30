@@ -21,7 +21,6 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import org.apache.commons.lang.builder.HashCodeBuilder;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
@@ -256,8 +255,6 @@ public final class NumericConstantNode extends ConstantNode
 	}
 	
 	public int hashCode(){
-		HashCodeBuilder hcBuilder = new HashCodeBuilder(47, 203);
-		hcBuilder.append(value);
-		return hcBuilder.toHashCode();
+		return value==null?0 : value.hashCode();
 	}
 }		

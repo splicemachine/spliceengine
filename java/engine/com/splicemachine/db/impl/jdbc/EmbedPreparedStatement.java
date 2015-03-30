@@ -42,6 +42,7 @@ import com.splicemachine.db.iapi.reference.JDBC40Translation;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.sql.*;
 import java.util.Calendar;
 import java.util.Vector;
 
@@ -50,18 +51,9 @@ import java.util.Vector;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 */
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.Date;
-import java.sql.Statement;
-import java.sql.Time;
-import java.sql.Timestamp;
-import java.sql.Clob;
-import java.sql.Blob;
 
 import java.io.InputStream;
 import java.io.Reader;
-import java.sql.Types;
 
 import com.splicemachine.db.iapi.jdbc.BrokeredConnectionControl;
 import com.splicemachine.db.iapi.jdbc.EngineParameterMetaData;
@@ -1977,4 +1969,59 @@ public abstract class EmbedPreparedStatement
     public final long getVersionCounter() throws SQLException {
         return preparedStatement.getVersionCounter();
     }
+
+	//@Override
+	public void setRef(int parameterIndex,Ref x) throws SQLException{
+		throw Util.notImplemented("setRef");
+	}
+
+	//@Override
+	public void setArray(int parameterIndex,Array x) throws SQLException{
+		throw Util.notImplemented("setArray");
+	}
+
+	//@Override
+	public ParameterMetaData getParameterMetaData() throws SQLException{
+		throw Util.notImplemented("getParameterMetaData");
+	}
+
+	//@Override
+	public void setRowId(int parameterIndex,RowId x) throws SQLException{
+		throw Util.notImplemented("setRowId");
+	}
+
+	//@Override
+	public void setNString(int parameterIndex,String value) throws SQLException{
+		throw Util.notImplemented("setNString");
+	}
+
+	//@Override
+	public void setNCharacterStream(int parameterIndex,Reader value,long length) throws SQLException{
+		throw Util.notImplemented("setNCharacterStream");
+	}
+
+	//@Override
+	public void setNClob(int parameterIndex,NClob value) throws SQLException{
+		throw Util.notImplemented("setNClob");
+	}
+
+	//@Override
+	public void setNClob(int parameterIndex,Reader reader,long length) throws SQLException{
+		throw Util.notImplemented("setNClob");
+	}
+
+	//@Override
+	public void setSQLXML(int parameterIndex,SQLXML xmlObject) throws SQLException{
+		throw Util.notImplemented("setSQLXML");
+	}
+
+	//@Override
+	public void setNCharacterStream(int parameterIndex,Reader value) throws SQLException{
+		throw Util.notImplemented("setNCharacterStream");
+	}
+
+	//@Override
+	public void setNClob(int parameterIndex,Reader reader) throws SQLException{
+		throw Util.notImplemented("setNClob");
+	}
 }

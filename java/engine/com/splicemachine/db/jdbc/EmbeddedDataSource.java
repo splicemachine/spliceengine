@@ -23,13 +23,11 @@ package com.splicemachine.db.jdbc;
 
 import com.splicemachine.db.iapi.reference.Attribute;
 
-import java.sql.Connection;
-import java.sql.Driver;
-import java.sql.DriverManager;
-import java.sql.SQLException;
+import java.sql.*;
 
 import java.io.PrintWriter;
 import java.util.Properties;
+import java.util.logging.Logger;
 
 /* -- New jdbc 20 extension types --- */
 
@@ -436,6 +434,15 @@ public class EmbeddedDataSource extends ReferenceableDataSource implements
 	{
 		return this.getConnection(username, password, true);
 	}
+
+//	@Override
+	public Logger getParentLogger() throws SQLFeatureNotSupportedException{ throw new SQLFeatureNotSupportedException(); }
+
+//	@Override
+	public <T> T unwrap(Class<T> iface) throws SQLException{ throw new UnsupportedOperationException(); }
+
+//	@Override
+	public boolean isWrapperFor(Class<?> iface) throws SQLException{ throw new UnsupportedOperationException(); }
 
 	/**
 		@param	requestPassword true if the password came from the getConnection() call.

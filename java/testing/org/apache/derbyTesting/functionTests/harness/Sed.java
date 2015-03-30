@@ -30,13 +30,16 @@ package org.apache.derbyTesting.functionTests.harness;
  *
  ***/
 
+import org.apache.derbyTesting.functionTests.util.TestUtil;
+
 import java.io.*;
-import java.util.Vector;
-import org.apache.oro.text.regex.*;
 import java.util.Enumeration;
 import java.util.Properties;
 import java.util.StringTokenizer;
-import org.apache.derbyTesting.functionTests.util.TestUtil;
+import java.util.Vector;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 public class Sed
 {
@@ -313,9 +316,9 @@ public class Sed
     {
 		
         boolean lineDeleted = false;
-        PatternMatcher matcher;
-        Perl5Compiler pcompiler;
-        PatternMatcherInput input;
+//        Pattern pcompiler;
+//        PatternMatcher matcher;
+//        PatternMatcherInput input;
         BufferedReader inFile;
         PrintWriter outFile;
         String result = "";
@@ -373,8 +376,8 @@ public class Sed
         // ---------------------------------
 
         //Create Perl5Compiler and Perl5Matcher
-        pcompiler = new Perl5Compiler();
-        matcher = new Perl5Matcher();
+//        pcompiler = new Perl5Compiler();
+//        matcher = new Perl5Matcher();
 
         // Define the input and output files based on args
         if (is == null && isI18N) {
@@ -397,12 +400,10 @@ public class Sed
             {
                 regex = (String)deleteLines.elementAt(i);
                 //System.out.println("The pattern: " + regex);
-                Pattern pattern = pcompiler.compile(regex);
-                if (pattern == null)
-                    System.out.println("pattern is null");
+                Pattern pattern = Pattern.compile(regex);
                 delPatternVector.addElement(pattern);
             }
-            catch(MalformedPatternException e)
+            catch(PatternSyntaxException e)
             {
                 System.out.println("Bad pattern.");
                 System.out.println(e.getMessage());
@@ -416,12 +417,10 @@ public class Sed
             {
                 regex = (String)searchStrings.elementAt(i);
                 //System.out.println("The pattern: " + regex);
-                Pattern pattern = pcompiler.compile(regex);
-                if (pattern == null)
-                    System.out.println("pattern is null");
+                Pattern pattern = Pattern.compile(regex);
                 subPatternVector.addElement(pattern);
             }
-            catch(MalformedPatternException e)
+            catch(PatternSyntaxException e)
             {
                 System.out.println("Bad pattern.");
                 System.out.println(e.getMessage());
@@ -491,14 +490,17 @@ public class Sed
             }
 
             // Determine if this line should be deleted for delete pattern match
+            Matcher foundMatcher;
             if ( lineDeleted == false )
             {
                 for (j = 0; j < delPatternVector.size(); j++)
                 {
-                    if ( matcher.contains( str, (Pattern)delPatternVector.elementAt(j) ) )
-                    {
+                    Pattern pattern=(Pattern)delPatternVector.elementAt(j);
+                    Matcher matcher = pattern.matcher(str);
+                    if ( matcher.find() ) {
+                        foundMatcher = matcher;
                         //System.out.println("***Match found to delete line***");
-                        String tmpp = ((Pattern)delPatternVector.elementAt(j)).getPattern();
+//                        String tmpp = (pattern).getPattern();
                         //System.out.println("***Pattern is: " + tmpp);
 
                         // In this case we are removing the line, so don't write it out
@@ -509,52 +511,50 @@ public class Sed
             }
 
             // Determine if any substitutions are needed
-            if (lineDeleted == false)
-            {
-                Substitution substitution;
-                StringSubstitution strsub = new StringSubstitution("");
-                Perl5Substitution perlsub = new Perl5Substitution("");
-                boolean subDone = false;
-                for (j = 0; j < subPatternVector.size(); j++)
-                {
-                    input = new PatternMatcherInput(str);
-                    Pattern patt = (Pattern)subPatternVector.elementAt(j);
-                    String pstr = patt.getPattern();
-                    //System.out.println("Pattern string is " + pstr);
-                    String sub = (String)subStrings.elementAt(j);
-                    if (sub.indexOf("$") > 0)
-                    {
-                        perlsub.setSubstitution(sub);
-                        substitution = (Substitution)perlsub;
-                    } else {
-                        strsub.setSubstitution(sub);
-                        substitution = (Substitution)strsub;
-                    }
-                    //System.out.println("Substitute str = " + sub);
-                    if ( matcher.contains( input, patt ) )
-                    {
-                        MatchResult mr = matcher.getMatch();
-                        //System.out.println("***Match found for substitute***");
-                        // In this case we do a substitute
-                        result = Util.substitute(matcher, patt, substitution, str,
-                        Util.SUBSTITUTE_ALL);
-                        //System.out.println("New string: " + result);
-                        //outFile.println(result);
-                        str = result;
-                        subDone = true;
-                    }
-                }
-                if (subDone)
-                {
-                    //System.out.println("write the subbed line");
-                    outFile.println(result);
-                }
-                else
-                {
-                    //System.out.println("Write the str: " + str);
-                    outFile.println(str);
-                    outFile.flush();
-                }
+            if (!lineDeleted) {
+                throw new UnsupportedOperationException("IMPLEMENT");
+//                Substitution substitution;
+//                StringSubstitution strsub = new StringSubstitution("");
+//                Perl5Substitution perlsub = new Perl5Substitution("");
+//                boolean subDone = false;
+//                for (j = 0; j < subPatternVector.size(); j++)
+//                {
+//                    Pattern patt = (Pattern)subPatternVector.elementAt(j);
+//                    String pstr = patt.pattern();
+//                    //System.out.println("Pattern string is " + pstr);
+//                    String sub = (String)subStrings.elementAt(j);
+//                    if (sub.indexOf("$") > 0) {
+//                        perlsub.setSubstitution(sub);
+//                        substitution = (Substitution)perlsub;
+//                    } else {
+//                        strsub.setSubstitution(sub);
+//                        substitution = (Substitution)strsub;
+//                    }
+//                    //System.out.println("Substitute str = " + sub);
+//                    if ( ( input, patt ) )
+//                    {
+//                        MatchResult mr = matcher.getMatch();
+//                        //System.out.println("***Match found for substitute***");
+//                        // In this case we do a substitute
+//                        result = Util.substitute(matcher, patt, substitution, str,
+//                        Util.SUBSTITUTE_ALL);
+//                        //System.out.println("New string: " + result);
+//                        //outFile.println(result);
+//                        str = result;
+//                        subDone = true;
+//                    }
+//                }
+//                if (subDone)
+//                {
+//                    //System.out.println("write the subbed line");
+//                    outFile.println(result);
+//                }
+//                else
+//                {
+//                    //System.out.println("Write the str: " + str);
+//                    outFile.println(str);
+//                    outFile.flush();
+//                }
             }// end if
         } // end while
         inFile.close();

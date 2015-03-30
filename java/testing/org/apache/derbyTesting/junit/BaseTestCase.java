@@ -19,10 +19,10 @@
  */
 package org.apache.derbyTesting.junit;
 
-import org.apache.derbyTesting.functionTests.util.PrivilegedFileOpsForTests;
-import junit.framework.Assert;
-import junit.framework.TestCase;
 import junit.framework.AssertionFailedError;
+import junit.framework.TestCase;
+import junit.framework.Assert;
+import org.apache.derbyTesting.functionTests.util.PrivilegedFileOpsForTests;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -50,7 +50,7 @@ import java.util.ArrayList;
  * Base class for JUnit tests.
  */
 public abstract class BaseTestCase
-    extends TestCase {
+    extends TestCase{
 
     protected final static String ERRORSTACKTRACEFILE = "error-stacktrace.out";
     protected final static String DEFAULT_DB_DIR      = "system";
@@ -512,11 +512,11 @@ public abstract class BaseTestCase
 	    String expectedStrings = "";
 	    for (int i = 0; i < expectedString.length; i++) 
 	        expectedStrings += "\t[" +i + "]" + expectedString[i] +  "\n";
-	    Assert.assertEquals("expectedExitValue:" + expectedExitValue +
-	            " does not match exitValue:" + exitValue +"\n" +
-	            "expected output strings:\n" + expectedStrings + 
-	            " actual output:" + output,
-	            expectedExitValue, exitValue);
+	    Assert.assertEquals("expectedExitValue:"+expectedExitValue+
+                        " does not match exitValue:"+exitValue+"\n"+
+                        "expected output strings:\n"+expectedStrings+
+                        " actual output:"+output,
+                expectedExitValue,exitValue);
 	    if (expectedString != null) {
 	        for (int i = 0; i < expectedString.length; i++) {
 	            assertTrue("Could not find expectedString:" +
@@ -876,7 +876,7 @@ public abstract class BaseTestCase
      * @exception AssertionFailedError
      */
     public static void fail(String msg, Throwable t)
-            throws AssertionFailedError {
+            throws AssertionFailedError{
 
         AssertionFailedError ae = new AssertionFailedError(msg);
         ae.initCause(t);

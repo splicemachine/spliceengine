@@ -438,14 +438,12 @@ public class BrokeredCallableStatement40 extends BrokeredCallableStatement30
     public <T> T getObject( int parameterIndex, Class<T> type )
         throws SQLException
     {
-        return ((EngineCallableStatement40) getCallableStatement())
-                .getObject(parameterIndex, type);
+        return getCallableStatement().getObject(parameterIndex,type);
     }
     
     public <T> T getObject(String parameterName, Class<T> type)
         throws SQLException
     {
-        return ((EngineCallableStatement40) getCallableStatement())
-                .getObject(parameterName, type);
+        return getCallableStatement().getObject(parameterName,type);
     }
 }

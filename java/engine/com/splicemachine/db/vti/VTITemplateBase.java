@@ -23,19 +23,12 @@ package com.splicemachine.db.vti;
 
 import java.io.InputStream;
 
-import java.sql.Statement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.SQLWarning;
+import java.io.Reader;
+import java.sql.*;
 import java.math.BigDecimal;
 
 import java.net.URL;
 import java.util.Calendar;
-import java.sql.Ref;
-import java.sql.Blob;
-import java.sql.Clob;
-import java.sql.Array;
 
 /**
 	An  implementation of the JDBC 3.0 ResultSet that is useful
@@ -190,7 +183,60 @@ class VTITemplateBase implements ResultSet
 	public void updateArray(int columnIndex, Array x) throws SQLException { throw notImplemented( "updateArray" ); }
 	public void updateArray(String columnName, Array x) throws SQLException { throw notImplemented( "updateArray" ); }
 
-    
+    public RowId getRowId(int columnIndex) throws SQLException{ throw notImplemented("getRowId"); }
+    public RowId getRowId(String columnLabel) throws SQLException{ throw notImplemented("getRowId"); }
+    public void updateRowId(int columnIndex,RowId x) throws SQLException{ throw notImplemented("updateRowId"); }
+    public void updateRowId(String columnLabel,RowId x) throws SQLException{ throw notImplemented("updateRowId"); }
+    public int getHoldability() throws SQLException{ throw notImplemented("getHoldability"); }
+
+    public boolean isClosed() throws SQLException{ throw notImplemented("isClosed"); }
+    public void updateNString(int columnIndex,String nString) throws SQLException{throw notImplemented("updateNString");}
+    public void updateNString(String columnLabel,String nString) throws SQLException{ throw notImplemented("updateNString"); }
+    public void updateNClob(int columnIndex,NClob nClob) throws SQLException{ throw notImplemented("updateNClob"); }
+    public void updateNClob(String columnLabel,NClob nClob) throws SQLException{ throw notImplemented("updateNClob"); }
+    public NClob getNClob(int columnIndex) throws SQLException{ throw notImplemented("getNClob"); }
+    public NClob getNClob(String columnLabel) throws SQLException{ throw notImplemented("getNClob"); }
+    public SQLXML getSQLXML(int columnIndex) throws SQLException{ throw notImplemented("getSQLXML"); }
+    public SQLXML getSQLXML(String columnLabel) throws SQLException{ throw notImplemented("getSQLXML"); }
+    public void updateSQLXML(int columnIndex,SQLXML xmlObject) throws SQLException{ throw notImplemented("updateSQLXML"); }
+    public void updateSQLXML(String columnLabel,SQLXML xmlObject) throws SQLException{ throw notImplemented("updateSQLXML"); }
+    public String getNString(int columnIndex) throws SQLException{ throw notImplemented("getNString"); }
+    public String getNString(String columnLabel) throws SQLException{ throw notImplemented("getNString"); }
+    public Reader getNCharacterStream(int columnIndex) throws SQLException{ throw notImplemented("getNCharacterStream"); }
+    public Reader getNCharacterStream(String columnLabel) throws SQLException{ throw notImplemented("getNCharacterStream"); }
+    public void updateNCharacterStream(int columnIndex,Reader x,long length) throws SQLException{ throw notImplemented("updateNCharacterStream"); }
+    public void updateNCharacterStream(String columnLabel,Reader reader,long length) throws SQLException{ throw notImplemented("updateNCharacterStream"); }
+    public void updateAsciiStream(int columnIndex,InputStream x,long length) throws SQLException{ throw notImplemented("updateAsciiStream"); }
+    public void updateBinaryStream(int columnIndex,InputStream x,long length) throws SQLException{  throw notImplemented("updateBinaryStream"); }
+    public void updateCharacterStream(int columnIndex,Reader x,long length) throws SQLException{ throw notImplemented("updateCharacterStream"); }
+    public void updateAsciiStream(String columnLabel,InputStream x,long length) throws SQLException{ throw notImplemented("updateAsciiStream"); }
+    public void updateBinaryStream(String columnLabel,InputStream x,long length) throws SQLException{ throw notImplemented("updateBinaryStream"); }
+    public void updateCharacterStream(String columnLabel,Reader reader,long length) throws SQLException{ throw notImplemented("updateCharacterStream"); }
+    public void updateBlob(int columnIndex,InputStream inputStream,long length) throws SQLException{ throw notImplemented("updateBlob"); }
+    public void updateBlob(String columnLabel,InputStream inputStream,long length) throws SQLException{ throw notImplemented("updateBlob"); }
+    public void updateClob(int columnIndex,Reader reader,long length) throws SQLException{ throw notImplemented("updateClob"); }
+    public void updateClob(String columnLabel,Reader reader,long length) throws SQLException{ throw notImplemented("updateClob"); }
+    public void updateNClob(int columnIndex,Reader reader,long length) throws SQLException{ throw notImplemented("updateNClob"); }
+    public void updateNClob(String columnLabel,Reader reader,long length) throws SQLException{ throw notImplemented("updateNClob"); }
+    public void updateNCharacterStream(int columnIndex,Reader x) throws SQLException{ throw notImplemented("updateNCharacterStream"); }
+    public void updateNCharacterStream(String columnLabel,Reader reader) throws SQLException{ throw notImplemented("updateNCharacterStream"); }
+    public void updateAsciiStream(int columnIndex,InputStream x) throws SQLException{ throw notImplemented("updateAsciiStream"); }
+    public void updateBinaryStream(int columnIndex,InputStream x) throws SQLException{ throw notImplemented("updateBinaryStream"); }
+    public void updateCharacterStream(int columnIndex,Reader x) throws SQLException{ throw notImplemented("updateCharacterStream"); }
+    public void updateAsciiStream(String columnLabel,InputStream x) throws SQLException{ throw notImplemented("updateAsciiStream"); }
+    public void updateBinaryStream(String columnLabel,InputStream x) throws SQLException{ throw notImplemented("updateBinaryStream");  }
+    public void updateCharacterStream(String columnLabel,Reader reader) throws SQLException{ throw notImplemented("updateCharacterStream"); }
+    public void updateBlob(int columnIndex,InputStream inputStream) throws SQLException{ throw notImplemented("updateBlob"); }
+    public void updateBlob(String columnLabel,InputStream inputStream) throws SQLException{ throw notImplemented("updateBlob"); }
+    public void updateClob(int columnIndex,Reader reader) throws SQLException{ throw notImplemented("updateClob"); }
+    public void updateClob(String columnLabel,Reader reader) throws SQLException{ throw notImplemented("updateClob");  }
+    public void updateNClob(int columnIndex,Reader reader) throws SQLException{ throw notImplemented("updateNClob"); }
+    public void updateNClob(String columnLabel,Reader reader) throws SQLException{ throw notImplemented("updateNClob"); }
+    public <T> T getObject(int columnIndex,Class<T> type) throws SQLException{ throw notImplemented("getObject"); }
+    public <T> T getObject(String columnLabel,Class<T> type) throws SQLException{ throw notImplemented("getObject"); }
+    public <T> T unwrap(Class<T> iface) throws SQLException{ throw notImplemented("unwrap");  }
+    public boolean isWrapperFor(Class<?> iface) throws SQLException{ throw notImplemented("isWrapperFor"); }
+
     /////////////////////////////////////////////////////////////////////////
     //
     //  MINIONS

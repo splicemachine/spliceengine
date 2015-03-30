@@ -22,6 +22,7 @@ package com.splicemachine.db.client.am;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.sql.RowIdLifetime;
 import java.sql.SQLException;
 
 /**
@@ -63,6 +64,16 @@ public class LogicalDatabaseMetaData
                 logicalCon.getRealMetaDataObject().getDriverMajorVersion();
         this.driverMinorVersion =
                 logicalCon.getRealMetaDataObject().getDriverMinorVersion();
+    }
+
+    @Override
+    public <T> T unwrap(Class<T> iface) throws SQLException{
+        return null;
+    }
+
+    @Override
+    public boolean isWrapperFor(Class<?> iface) throws SQLException{
+        return false;
     }
 
     /**
@@ -799,5 +810,50 @@ public class LogicalDatabaseMetaData
 
     public boolean supportsStatementPooling() throws SQLException {
         return getRealMetaDataObject().supportsStatementPooling();
+    }
+
+    @Override
+    public RowIdLifetime getRowIdLifetime() throws SQLException{
+        return getRealMetaDataObject().getRowIdLifetime();
+    }
+
+    @Override
+    public ResultSet getSchemas(String catalog,String schemaPattern) throws SQLException{
+        return getRealMetaDataObject().getSchemas(catalog, schemaPattern);
+    }
+
+    @Override
+    public boolean supportsStoredFunctionsUsingCallSyntax() throws SQLException{
+        return getRealMetaDataObject().supportsStoredFunctionsUsingCallSyntax();
+    }
+
+    @Override
+    public boolean autoCommitFailureClosesAllResultSets() throws SQLException{
+        return getRealMetaDataObject().autoCommitFailureClosesAllResultSets();
+    }
+
+    @Override
+    public ResultSet getClientInfoProperties() throws SQLException{
+        return getRealMetaDataObject().getClientInfoProperties();
+    }
+
+    @Override
+    public ResultSet getFunctions(String catalog,String schemaPattern,String functionNamePattern) throws SQLException{
+        return getRealMetaDataObject().getFunctions(catalog, schemaPattern, functionNamePattern);
+    }
+
+    @Override
+    public ResultSet getFunctionColumns(String catalog,String schemaPattern,String functionNamePattern,String columnNamePattern) throws SQLException{
+        return getRealMetaDataObject().getFunctionColumns(catalog, schemaPattern, functionNamePattern, columnNamePattern);
+    }
+
+    @Override
+    public ResultSet getPseudoColumns(String catalog,String schemaPattern,String tableNamePattern,String columnNamePattern) throws SQLException{
+        return getRealMetaDataObject().getPseudoColumns(catalog, schemaPattern, tableNamePattern, columnNamePattern);
+    }
+
+    @Override
+    public boolean generatedKeyAlwaysReturned() throws SQLException{
+        return getRealMetaDataObject().generatedKeyAlwaysReturned();
     }
 }

@@ -21,13 +21,13 @@
 
 package com.splicemachine.db.iapi.tools;
 
-import java.io.IOException;
 import com.splicemachine.db.drda.NetworkServerControl;
+import com.splicemachine.db.iapi.tools.i18n.LocalizedResource;
 import com.splicemachine.db.tools.dblook;
 import com.splicemachine.db.tools.ij;
 import com.splicemachine.db.tools.sysinfo;
-import com.splicemachine.db.tools.SignatureChecker;
-import com.splicemachine.db.iapi.tools.i18n.LocalizedResource;
+
+import java.io.IOException;
 
 /**
   <p>
@@ -57,8 +57,6 @@ public class run {
           dblook.main(trimArgs(args));
       } else if (args[0].equals("server")) {
           NetworkServerControl.main(trimArgs(args));
-      } else if (args[0].equals("SignatureChecker")) {
-          SignatureChecker.main(trimArgs(args));
       } else printUsage();
   }
 

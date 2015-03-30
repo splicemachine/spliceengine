@@ -33,6 +33,8 @@ import java.math.*;
 import java.sql.*;
 import java.util.*;
 import java.util.regex.Pattern;
+
+import com.splicemachine.db.impl.jdbc.Util;
 import org.apache.derbyTesting.junit.JDBC;
 
 public	class	JDBCDriverTest	extends	CompatibilitySuite
@@ -1429,7 +1431,17 @@ public	class	JDBCDriverTest	extends	CompatibilitySuite
             throw new SQLException("not implemented for this test");
         }
 
-	}
+        @Override
+        public void free() throws SQLException{
+            throw Util.notImplemented("free");
+        }
+
+        @Override
+        public InputStream getBinaryStream(long pos,long length) throws SQLException{
+            throw Util.notImplemented("getBinaryStream");
+        }
+
+    }
 
 	/**
 	 * <p>
@@ -1520,6 +1532,16 @@ public	class	JDBCDriverTest	extends	CompatibilitySuite
             
         }
 
-	}
+        @Override
+        public void free() throws SQLException{
+            throw Util.notImplemented("free");
+        }
+
+        @Override
+        public Reader getCharacterStream(long pos,long length) throws SQLException{
+            throw Util.notImplemented("getCharacterStream");
+        }
+
+    }
 
 }

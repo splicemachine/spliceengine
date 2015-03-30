@@ -23,6 +23,7 @@ package com.splicemachine.db.iapi.jdbc;
 
 import java.io.InputStream;
 import java.io.Reader;
+import java.net.URL;
 import java.util.Calendar;
 
 import java.sql.*;
@@ -552,5 +553,95 @@ public abstract class BrokeredPreparedStatement extends BrokeredStatement
     public final long getVersionCounter() throws SQLException {
         return ((EnginePreparedStatement)getPreparedStatement()).
                 getVersionCounter();
+    }
+
+    @Override
+    public void setURL(int parameterIndex,URL x) throws SQLException{
+        getPreparedStatement().setURL(parameterIndex, x);
+    }
+
+    @Override
+    public ParameterMetaData getParameterMetaData() throws SQLException{
+        return getPreparedStatement().getParameterMetaData();
+    }
+
+    @Override
+    public void setRowId(int parameterIndex,RowId x) throws SQLException{
+        getPreparedStatement().setRowId(parameterIndex, x);
+    }
+
+    @Override
+    public void setNString(int parameterIndex,String value) throws SQLException{
+        getPreparedStatement().setNString(parameterIndex, value);
+    }
+
+    @Override
+    public void setNCharacterStream(int parameterIndex,Reader value,long length) throws SQLException{
+        getPreparedStatement().setNCharacterStream(parameterIndex, value, length);
+    }
+
+    @Override
+    public void setNClob(int parameterIndex,NClob value) throws SQLException{
+        getPreparedStatement().setNClob(parameterIndex, value);
+    }
+
+    @Override
+    public void setClob(int parameterIndex,Reader reader,long length) throws SQLException{
+        getPreparedStatement().setClob(parameterIndex, reader, length);
+    }
+
+    @Override
+    public void setBlob(int parameterIndex,InputStream inputStream,long length) throws SQLException{
+        getPreparedStatement().setBlob(parameterIndex, inputStream, length);
+    }
+
+    @Override
+    public void setNClob(int parameterIndex,Reader reader,long length) throws SQLException{
+        getPreparedStatement().setNClob(parameterIndex, reader, length);
+    }
+
+    @Override
+    public void setSQLXML(int parameterIndex,SQLXML xmlObject) throws SQLException{
+        getPreparedStatement().setSQLXML(parameterIndex, xmlObject);
+    }
+
+    @Override
+    public void setAsciiStream(int parameterIndex,InputStream x,long length) throws SQLException{
+        getPreparedStatement().setAsciiStream(parameterIndex, x, length);
+    }
+
+    @Override
+    public void setBinaryStream(int parameterIndex,InputStream x,long length) throws SQLException{
+        getPreparedStatement().setBinaryStream(parameterIndex, x, length);
+    }
+
+    @Override
+    public void setCharacterStream(int parameterIndex,Reader reader,long length) throws SQLException{
+        getPreparedStatement().setCharacterStream(parameterIndex, reader, length);
+    }
+
+    @Override
+    public void setAsciiStream(int parameterIndex,InputStream x) throws SQLException{
+        getPreparedStatement().setAsciiStream(parameterIndex, x);
+    }
+
+    @Override
+    public void setNCharacterStream(int parameterIndex,Reader value) throws SQLException{
+        getPreparedStatement().setNCharacterStream(parameterIndex, value);
+    }
+
+    @Override
+    public void setClob(int parameterIndex,Reader reader) throws SQLException{
+        getPreparedStatement().setClob(parameterIndex, reader);
+    }
+
+    @Override
+    public void setBlob(int parameterIndex,InputStream inputStream) throws SQLException{
+        getPreparedStatement().setBlob(parameterIndex, inputStream);
+    }
+
+    @Override
+    public void setNClob(int parameterIndex,Reader reader) throws SQLException{
+        getPreparedStatement().setNClob(parameterIndex, reader);
     }
 }

@@ -1,6 +1,6 @@
 /*
 
-   Derby - Class org.apache.derby.impl.jdbc.UTF8ReaderTest
+   Derby - Class com.splicemachine.db.impl.jdbc.UTF8ReaderTest
 
    Licensed to the Apache Software Foundation (ASF) under one
    or more contributor license agreements.  See the NOTICE file
@@ -20,7 +20,7 @@
    under the License.
 
  */
-package org.apache.derby.impl.jdbc;
+package com.splicemachine.db.impl.jdbc;
 
 import java.io.EOFException;
 import java.io.IOException;
@@ -30,8 +30,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
-import com.splicemachine.db.impl.jdbc.EmbedResultSet;
-import com.splicemachine.db.impl.jdbc.StoreStreamClob;
 import junit.framework.Test;
 import junit.framework.TestSuite;
 

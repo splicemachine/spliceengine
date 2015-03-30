@@ -70,6 +70,7 @@
     <ant antfile="${src.dir}/build.xml" target="genParser">
       <property name="msg" value="Generating SQL parser..."/>
       <property name="srcroot" value="engine"/>
+			<property name="baseDir" value="engine"/>
       <property name="directory" value="${splice.package}/impl/sql/compile"/>
       <property name="rmfiles" value="implparser_rm.files"/>
       <property name="jjfile" value="sqlgrammar.jj"/>
@@ -98,7 +99,7 @@
       we delete the conflicting classes here.
     -->
     <delete>
-      <fileset dir="${generated.src.dir}/${splice.package}/impl/sql/compile">
+						<fileset dir="${generated.engine.dir}/${splice.package}/impl/sql/compile">
         <include name="CharStream.java"/>
         <include name="ParseException.java"/>
         <include name="Token.java"/>
@@ -122,7 +123,7 @@
       optimize="${optimize}"
       proceed="${proceed}"
       verbose="${verbose}"
-      srcdir="${derby.engine.src.dir}:${generated.src.dir}"
+      srcdir="${derby.engine.src.dir}:${generated.engine.dir}"
       destdir="${out.dir}">
       <classpath>
         <pathelement path="${log4j};${joda-time};${compile.classpath}"/>

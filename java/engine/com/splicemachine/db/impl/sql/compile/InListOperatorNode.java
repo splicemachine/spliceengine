@@ -21,7 +21,6 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import org.apache.commons.lang.builder.HashCodeBuilder;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
@@ -767,14 +766,12 @@ public final class InListOperatorNode extends BinaryListOperatorNode
 		return sortDescending;
 	}
 	
+	@Override
 	public int hashCode(){
-		
-		HashCodeBuilder hcBuilder = new HashCodeBuilder(199,99);
-		hcBuilder.append(isOrdered)
-			.append(sortDescending)
-			.append(leftOperand)
-			.append(rightOperandList);
-		
-		return hcBuilder.toHashCode();
+		int result=(isOrdered?1:0);
+		result=31*result+(sortDescending?1:0);
+		result = 31*result + leftOperand.hashCode();
+		result = 31*result + rightOperandList.hashCode();
+		return result;
 	}
 }

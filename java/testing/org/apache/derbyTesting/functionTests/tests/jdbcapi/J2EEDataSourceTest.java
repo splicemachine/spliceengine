@@ -56,7 +56,6 @@ import junit.framework.TestSuite;
 import com.splicemachine.db.jdbc.ClientBaseDataSource;
 import com.splicemachine.db.jdbc.ClientConnectionPoolDataSource;
 import com.splicemachine.db.jdbc.ClientXADataSource;
-import com.splicemachine.db.jdbc.EmbeddedSimpleDataSource;
 import org.apache.derbyTesting.functionTests.util.PrivilegedFileOpsForTests;
 import org.apache.derbyTesting.functionTests.util.SecurityCheck;
 import org.apache.derbyTesting.functionTests.util.TestRoutines;
@@ -1176,16 +1175,14 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
 
         DataSource dssimple = null;
         // simple datasource is only supported with embedded
-        if (usingEmbedded())
-        {
-            EmbeddedSimpleDataSource realdssimple =
-                    new EmbeddedSimpleDataSource();
-            realdssimple.setDatabaseName(dbName);
-            ds = realdssimple;
-            dssimple = (DataSource)realdssimple;
-            assertConnectionOK(
-                    expectedValues, "SimpleDataSource", ds.getConnection());
-        }
+//        if (usingEmbedded()) {
+//            EmbeddedSimpleDataSource realdssimple = new EmbeddedSimpleDataSource();
+//            realdssimple.setDatabaseName(dbName);
+//            ds = realdssimple;
+//            dssimple = (DataSource)realdssimple;
+//            assertConnectionOK(
+//                    expectedValues, "SimpleDataSource", ds.getConnection());
+//        }
 
         ConnectionPoolDataSource dsp =
                 J2EEDataSource.getConnectionPoolDataSource();

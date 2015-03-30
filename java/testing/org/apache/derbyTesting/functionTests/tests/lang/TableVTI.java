@@ -21,20 +21,14 @@ limitations under the License.
 
 package org.apache.derbyTesting.functionTests.tests.lang;
 
-import java.sql.Connection;
-import java.sql.Statement;
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
-import java.sql.SQLWarning;
+import java.io.InputStream;
+import java.io.Reader;
+import java.sql.*;
 import java.math.BigDecimal;
-import java.sql.DriverManager;
 import java.net.URL;
 import java.util.Calendar;
-import java.sql.Ref;
-import java.sql.Blob;
-import java.sql.Clob;
-import java.sql.Array;
+
+import com.splicemachine.db.impl.jdbc.Util;
 import org.apache.derbyTesting.junit.JDBC;
 
 /**
@@ -356,7 +350,7 @@ public abstract class TableVTI implements ResultSet {
      * @exception SQLException on unexpected JDBC error
      */
     public BigDecimal getBigDecimal(String columnName, int scale) throws SQLException {
-        return getBigDecimal(findColumn(columnName), scale);
+        return getBigDecimal(findColumn(columnName),scale);
     }
     
     /**
@@ -1466,5 +1460,266 @@ public abstract class TableVTI implements ResultSet {
     public void updateArray(String columnName, Array x)
     throws SQLException {
         throw new SQLException("updateArray");
+    }
+
+
+    @Override
+    public RowId getRowId(int columnIndex) throws SQLException{
+        throw Util.notImplemented("getRowId");
+    }
+
+    @Override
+    public RowId getRowId(String columnLabel) throws SQLException{
+        return getRowId(findColumn(columnLabel));
+    }
+
+    @Override
+    public void updateRowId(int columnIndex,RowId x) throws SQLException{
+        throw Util.notImplemented("updateRowId");
+    }
+
+    @Override
+    public void updateRowId(String columnLabel,RowId x) throws SQLException{
+        updateRowId(findColumn(columnLabel),x);
+    }
+
+    @Override
+    public int getHoldability() throws SQLException{
+        throw Util.notImplemented("getHoldability");
+    }
+
+    @Override
+    public boolean isClosed() throws SQLException{
+        throw Util.notImplemented("isClosed");
+    }
+
+    @Override
+    public void updateNString(int columnIndex,String nString) throws SQLException{
+        throw Util.notImplemented("updateNString");
+    }
+
+    @Override
+    public void updateNString(String columnLabel,String nString) throws SQLException{
+        updateNString(findColumn(columnLabel),nString);
+    }
+
+    @Override
+    public void updateNClob(int columnIndex,NClob nClob) throws SQLException{
+        throw Util.notImplemented("updateNClob");
+    }
+
+    @Override
+    public void updateNClob(String columnLabel,NClob nClob) throws SQLException{
+        updateNClob(findColumn(columnLabel),nClob);
+    }
+
+    @Override
+    public NClob getNClob(int columnIndex) throws SQLException{
+        throw Util.notImplemented("getNClob");
+    }
+
+    @Override
+    public NClob getNClob(String columnLabel) throws SQLException{
+        return getNClob(findColumn(columnLabel));
+    }
+
+    @Override
+    public SQLXML getSQLXML(int columnIndex) throws SQLException{
+        throw Util.notImplemented("getSQLXML");
+    }
+
+    @Override
+    public SQLXML getSQLXML(String columnLabel) throws SQLException{
+        return getSQLXML(findColumn(columnLabel));
+    }
+
+    @Override
+    public void updateSQLXML(int columnIndex,SQLXML xmlObject) throws SQLException{
+        throw Util.notImplemented("UpdateSQLXML");
+    }
+
+    @Override
+    public void updateSQLXML(String columnLabel,SQLXML xmlObject) throws SQLException{
+        updateSQLXML(findColumn(columnLabel),xmlObject);
+    }
+
+    @Override
+    public String getNString(int columnIndex) throws SQLException{
+        throw Util.notImplemented("getNString");
+    }
+
+    @Override
+    public String getNString(String columnLabel) throws SQLException{
+        return getNString(findColumn(columnLabel));
+    }
+
+    @Override
+    public Reader getNCharacterStream(int columnIndex) throws SQLException{
+        throw Util.notImplemented("getNCharacterStream");
+    }
+
+    @Override
+    public Reader getNCharacterStream(String columnLabel) throws SQLException{
+        return getNCharacterStream(findColumn(columnLabel));
+    }
+
+    @Override
+    public void updateNCharacterStream(int columnIndex,Reader x,long length) throws SQLException{
+        throw Util.notImplemented("updateNCharacterStream");
+    }
+
+    @Override
+    public void updateNCharacterStream(String columnLabel,Reader reader,long length) throws SQLException{
+        updateNCharacterStream(findColumn(columnLabel),reader,length);
+    }
+
+    @Override
+    public void updateAsciiStream(int columnIndex,InputStream x,long length) throws SQLException{
+        throw Util.notImplemented("updateAsciiStream");
+    }
+
+    @Override
+    public void updateBinaryStream(int columnIndex,InputStream x,long length) throws SQLException{
+        throw Util.notImplemented("updateBinaryStream");
+    }
+
+    @Override
+    public void updateCharacterStream(int columnIndex,Reader x,long length) throws SQLException{
+        throw Util.notImplemented("updateCharacterStream");
+    }
+
+    @Override
+    public void updateAsciiStream(String columnLabel,InputStream x,long length) throws SQLException{
+        updateAsciiStream(findColumn(columnLabel),x,length);
+    }
+
+    @Override
+    public void updateBinaryStream(String columnLabel,InputStream x,long length) throws SQLException{
+        updateBinaryStream(findColumn(columnLabel),x,length);
+    }
+
+    @Override
+    public void updateCharacterStream(String columnLabel,Reader reader,long length) throws SQLException{
+        updateCharacterStream(findColumn(columnLabel),reader,length);
+    }
+
+    @Override
+    public void updateBlob(int columnIndex,InputStream inputStream,long length) throws SQLException{
+        throw Util.notImplemented("updateBlob");
+    }
+
+    @Override
+    public void updateBlob(String columnLabel,InputStream inputStream,long length) throws SQLException{
+        updateBlob(findColumn(columnLabel),inputStream,length);
+    }
+
+    @Override
+    public void updateClob(int columnIndex,Reader reader,long length) throws SQLException{
+        throw Util.notImplemented("updateClob");
+    }
+
+    @Override
+    public void updateClob(String columnLabel,Reader reader,long length) throws SQLException{
+        updateClob(findColumn(columnLabel),reader,length);
+    }
+
+    @Override
+    public void updateNClob(int columnIndex,Reader reader,long length) throws SQLException{
+        throw Util.notImplemented("updateNClob");
+    }
+
+    @Override
+    public void updateNClob(String columnLabel,Reader reader,long length) throws SQLException{
+        updateNClob(findColumn(columnLabel),reader,length);
+    }
+
+    @Override
+    public void updateNCharacterStream(int columnIndex,Reader x) throws SQLException{
+        throw Util.notImplemented("updateNCharacterStream");
+    }
+
+    @Override
+    public void updateNCharacterStream(String columnLabel,Reader reader) throws SQLException{
+        updateNCharacterStream(findColumn(columnLabel),reader);
+    }
+
+    @Override
+    public void updateAsciiStream(int columnIndex,InputStream x) throws SQLException{
+        throw Util.notImplemented("updateAsciiStream");
+    }
+
+    @Override
+    public void updateBinaryStream(int columnIndex,InputStream x) throws SQLException{
+        throw Util.notImplemented("updateBinaryStream");
+    }
+
+    @Override
+    public void updateCharacterStream(int columnIndex,Reader x) throws SQLException{
+        throw Util.notImplemented("updateCharacterStream");
+    }
+
+    @Override
+    public void updateAsciiStream(String columnLabel,InputStream x) throws SQLException{
+        updateAsciiStream(findColumn(columnLabel),x);
+    }
+
+    @Override
+    public void updateBinaryStream(String columnLabel,InputStream x) throws SQLException{
+        updateBinaryStream(findColumn(columnLabel),x);
+    }
+
+    @Override
+    public void updateCharacterStream(String columnLabel,Reader reader) throws SQLException{
+        updateCharacterStream(findColumn(columnLabel),reader);
+    }
+
+    @Override
+    public void updateBlob(int columnIndex,InputStream inputStream) throws SQLException{
+        throw Util.notImplemented("updateBlob");
+    }
+
+    @Override
+    public void updateBlob(String columnLabel,InputStream inputStream) throws SQLException{
+        updateBlob(findColumn(columnLabel),inputStream);
+    }
+
+    @Override
+    public void updateClob(int columnIndex,Reader reader) throws SQLException{
+        throw Util.notImplemented("updateClob");
+    }
+
+    @Override
+    public void updateClob(String columnLabel,Reader reader) throws SQLException{
+        updateClob(findColumn(columnLabel),reader);
+    }
+
+    @Override
+    public void updateNClob(int columnIndex,Reader reader) throws SQLException{
+        throw Util.notImplemented("updateNClob");
+    }
+
+    @Override
+    public void updateNClob(String columnLabel,Reader reader) throws SQLException{
+        updateNClob(findColumn(columnLabel),reader);
+    }
+
+    @Override
+    public <T> T getObject(int columnIndex,Class<T> type) throws SQLException{
+        throw Util.notImplemented("getObject");
+    }
+
+    @Override
+    public <T> T getObject(String columnLabel,Class<T> type) throws SQLException{
+        return getObject(findColumn(columnLabel),type);
+    }
+
+    @Override
+    public <T> T unwrap(Class<T> iface) throws SQLException{
+        throw Util.notImplemented("unwrap");
+    }
+
+    @Override
+    public boolean isWrapperFor(Class<?> iface) throws SQLException{
+        throw Util.notImplemented("isWrapperFor");
     }
 }

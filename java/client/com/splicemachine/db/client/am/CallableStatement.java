@@ -22,13 +22,15 @@
 package com.splicemachine.db.client.am;
 
 import com.splicemachine.db.client.ClientPooledConnection;
+import com.splicemachine.db.impl.jdbc.Util;
 import com.splicemachine.db.shared.common.reference.SQLState;
 
+import java.io.InputStream;
 import java.io.Reader;
-import java.sql.Date;
-import java.sql.SQLException;
-import java.sql.Time;
-import java.sql.Timestamp;
+import java.sql.*;
+import java.sql.Blob;
+import java.sql.Clob;
+import java.sql.RowId;
 import java.util.Calendar;
 
 public class CallableStatement extends PreparedStatement
@@ -1253,6 +1255,171 @@ public class CallableStatement extends PreparedStatement
         }
         return new SqlException(agent_.logWriter_, 
             new ClientMessageId(SQLState.JDBC_METHOD_NOT_IMPLEMENTED)).getSQLException();
+    }
+
+    @Override
+    public RowId getRowId(int parameterIndex) throws SQLException{
+        throw Util.notImplemented("getRowId");
+    }
+
+    @Override
+    public RowId getRowId(String parameterName) throws SQLException{
+        throw Util.notImplemented("getRowId");
+    }
+
+    @Override
+    public void setRowId(String parameterName,RowId x) throws SQLException{
+        throw Util.notImplemented("setRowId");
+    }
+
+    @Override
+    public void setNString(String parameterName,String value) throws SQLException{
+        throw Util.notImplemented("setNString");
+    }
+
+    @Override
+    public void setNCharacterStream(String parameterName,Reader value,long length) throws SQLException{
+        throw Util.notImplemented("setNCharacterStream");
+    }
+
+    @Override
+    public void setNClob(String parameterName,NClob value) throws SQLException{
+        throw Util.notImplemented("setNClob");
+    }
+
+    @Override
+    public void setClob(String parameterName,Reader reader,long length) throws SQLException{
+        throw Util.notImplemented("setClob");
+    }
+
+    @Override
+    public void setBlob(String parameterName,InputStream inputStream,long length) throws SQLException{
+        throw Util.notImplemented("setBlob");
+    }
+
+    @Override
+    public void setNClob(String parameterName,Reader reader,long length) throws SQLException{
+        throw Util.notImplemented("setNClob");
+    }
+
+    @Override
+    public NClob getNClob(int parameterIndex) throws SQLException{
+        throw Util.notImplemented("getNClob");
+    }
+
+    @Override
+    public NClob getNClob(String parameterName) throws SQLException{
+        throw Util.notImplemented("getNClob");
+    }
+
+    @Override
+    public void setSQLXML(String parameterName,SQLXML xmlObject) throws SQLException{
+        throw Util.notImplemented("setSQLXML");
+    }
+
+    @Override
+    public SQLXML getSQLXML(int parameterIndex) throws SQLException{
+        throw Util.notImplemented("getSQLXML");
+    }
+
+    @Override
+    public SQLXML getSQLXML(String parameterName) throws SQLException{
+        throw Util.notImplemented("getSQLXML");
+    }
+
+    @Override
+    public String getNString(int parameterIndex) throws SQLException{
+        throw Util.notImplemented("getNString");
+    }
+
+    @Override
+    public String getNString(String parameterName) throws SQLException{
+        throw Util.notImplemented("getNString");
+    }
+
+    @Override
+    public Reader getNCharacterStream(int parameterIndex) throws SQLException{
+        throw Util.notImplemented("getNCharacterStream");
+    }
+
+    @Override
+    public Reader getNCharacterStream(String parameterName) throws SQLException{
+        throw Util.notImplemented("getNCharacterStream");
+    }
+
+    @Override
+    public Reader getCharacterStream(String parameterName) throws SQLException{
+        throw Util.notImplemented("getCharacterStream");
+    }
+
+    @Override
+    public void setBlob(String parameterName,Blob x) throws SQLException{
+        throw Util.notImplemented("setBlob");
+    }
+
+    @Override
+    public void setClob(String parameterName,Clob x) throws SQLException{
+        throw Util.notImplemented("setClob");
+    }
+
+    @Override
+    public void setAsciiStream(String parameterName,InputStream x,long length) throws SQLException{
+        throw Util.notImplemented("setAsciiStream");
+    }
+
+    @Override
+    public void setBinaryStream(String parameterName,InputStream x,long length) throws SQLException{
+        throw Util.notImplemented("setBinaryStream");
+    }
+
+    @Override
+    public void setCharacterStream(String parameterName,Reader reader,long length) throws SQLException{
+        throw Util.notImplemented("setCharacterStream");
+    }
+
+    @Override
+    public void setAsciiStream(String parameterName,InputStream x) throws SQLException{
+        throw Util.notImplemented("setAsciiStream");
+    }
+
+    @Override
+    public void setBinaryStream(String parameterName,InputStream x) throws SQLException{
+        throw Util.notImplemented("setBinaryStream");
+    }
+
+    @Override
+    public void setCharacterStream(String parameterName,Reader reader) throws SQLException{
+        throw Util.notImplemented("setCharacterStream");
+    }
+
+    @Override
+    public void setNCharacterStream(String parameterName,Reader value) throws SQLException{
+        throw Util.notImplemented("setNCharacterStream");
+    }
+
+    @Override
+    public void setClob(String parameterName,Reader reader) throws SQLException{
+        throw Util.notImplemented("setClob");
+    }
+
+    @Override
+    public void setBlob(String parameterName,InputStream inputStream) throws SQLException{
+        throw Util.notImplemented("setBlob");
+    }
+
+    @Override
+    public void setNClob(String parameterName,Reader reader) throws SQLException{
+        throw Util.notImplemented("setNClob");
+    }
+
+    @Override
+    public <T> T getObject(int parameterIndex,Class<T> type) throws SQLException{
+        throw Util.notImplemented("getObject");
+    }
+
+    @Override
+    public <T> T getObject(String parameterName,Class<T> type) throws SQLException{
+        throw Util.notImplemented("getObject");
     }
 }
 

@@ -90,8 +90,8 @@
 	
   <target name="compilet1">
     <javac
-      source="1.4"
-      target="1.4"
+						source="${compilerLevel16}"
+						target="${compilerLevel16}"
       bootclasspath="${empty}"
       nowarn="on"
       debug="true"
@@ -104,7 +104,7 @@
       destdir="${out.dir}">
       <classpath>
         <!--pathelement location="${oro}"/-->
-        <pathelement path="${java15compile.classpath}"/>
+        <pathelement path="${java16compile.classpath}"/>
 		<pathelement path="${junit}"/>
       </classpath>
       <include name="${this.dir}/*.java"/>
@@ -127,8 +127,8 @@
 
   <target name="compilet2" depends="compilet1,compilex">
     <javac
-      source="1.4"
-      target="1.4"
+						source="${compilerLevel16}"
+						target="${compilerLevel16}"
       bootclasspath="${empty}"
       nowarn="on"
       debug="true"
@@ -140,7 +140,7 @@
       srcdir="${derby.testing.src.dir}"
       destdir="${out.dir}">
       <classpath>
-        <pathelement path="${java15compile.classpath}"/>
+        <pathelement path="${java16compile.classpath}"/>
         <pathelement path="${junit}"/>
       </classpath>
       <!--exclude name=""/-->
@@ -162,8 +162,8 @@
 
   <target name="compilex">
     <javac
-      source="1.4"
-      target="1.4"
+						source="${compilerLevel16}"
+						target="${compilerLevel16}"
       bootclasspath="${empty}"
       nowarn="on"
       debug="true"
@@ -175,7 +175,7 @@
       srcdir="${derby.testing.src.dir}"
       destdir="${out.dir}">
       <classpath>
-        <pathelement path="${java15compile.classpath}"/>
+        <pathelement path="${java16compile.classpath}"/>
         <pathelement location="${oro}"/>
       </classpath>
       <!--exclude name=""/-->

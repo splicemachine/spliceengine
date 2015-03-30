@@ -1826,6 +1826,15 @@ public class EmbedStatement extends ConnectionChild
     {
         return ( (rs != null) && (!rs.isClosed()) );
     }
-    
+
+//	@Override
+	public <T> T unwrap(Class<T> iface) throws SQLException{
+		throw new UnsupportedOperationException();
+	}
+
+//	@Override
+	public boolean isWrapperFor(Class<?> iface) throws SQLException{
+		throw new UnsupportedOperationException();
+	}
 }
 

@@ -21,7 +21,6 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import org.apache.commons.lang.builder.HashCodeBuilder;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
@@ -318,11 +317,8 @@ public class BetweenOperatorNode extends BinaryListOperatorNode
 	}
 	
 	public int hashCode(){
-		
-		HashCodeBuilder hcBuilder = new HashCodeBuilder(203,13);
-		hcBuilder.append(leftOperand)
-			.append(rightOperandList);
-		
-		return hcBuilder.toHashCode();
+		int result = leftOperand==null? 0: leftOperand.hashCode();
+		result = 31*result+(rightOperandList==null?0:rightOperandList.hashCode());
+		return result;
 	}
 }

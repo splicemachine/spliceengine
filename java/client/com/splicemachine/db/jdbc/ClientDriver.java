@@ -28,8 +28,10 @@ import com.splicemachine.db.shared.common.reference.MessageId;
 import com.splicemachine.db.shared.common.reference.SQLState;
 
 import java.sql.SQLException;
+import java.sql.SQLFeatureNotSupportedException;
 import java.util.Enumeration;
 import java.util.Properties;
+import java.util.logging.Logger;
 
 
 public class ClientDriver implements java.sql.Driver {
@@ -239,6 +241,11 @@ public class ClientDriver implements java.sql.Driver {
 
     public boolean jdbcCompliant() {
         return Configuration.jdbcCompliant;
+    }
+
+    @Override
+    public Logger getParentLogger() throws SQLFeatureNotSupportedException{
+        throw new SQLFeatureNotSupportedException();
     }
 
     // ----------------helper methods---------------------------------------------

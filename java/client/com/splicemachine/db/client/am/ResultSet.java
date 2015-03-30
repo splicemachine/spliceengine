@@ -6274,4 +6274,5 @@ public abstract class ResultSet implements java.sql.ResultSet,
             this.lobState = LOBStateTracker.NO_OP_TRACKER;
         }
     }
+
 }

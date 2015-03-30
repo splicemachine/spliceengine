@@ -1,6 +1,6 @@
 /*
 
-   Derby - Class org.apache.derby.impl.jdbc.SmallTemporaryClobTest
+   Derby - Class com.splicemachine.db.impl.jdbc.SmallTemporaryClobTest
 
    Licensed to the Apache Software Foundation (ASF) under one
    or more contributor license agreements.  See the NOTICE file
@@ -20,10 +20,8 @@
    under the License.
 
  */
-package org.apache.derby.impl.jdbc;
+package com.splicemachine.db.impl.jdbc;
 
-import com.splicemachine.db.impl.jdbc.EmbedStatement;
-import com.splicemachine.db.impl.jdbc.TemporaryClob;
 import org.apache.derbyTesting.functionTests.util.streams.CharAlphabet;
 import org.apache.derbyTesting.functionTests.util.streams.LoopingAlphabetReader;
 
@@ -37,8 +35,7 @@ import junit.framework.TestSuite;
  * The test is intended to use sizes that makes the Clob stay in memory (i.e.
  * it is not being pushed to disk due to size).
  */
-public class SmallTemporaryClobTest
-    extends InternalClobTest {
+public class SmallTemporaryClobTest extends InternalClobTest{
 
     private static final long CLOBLENGTH = 1027;
     private static final long BYTES_PER_CHAR = 3;

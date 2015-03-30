@@ -26,7 +26,7 @@ import com.splicemachine.db.client.am.Section;
 import com.splicemachine.db.client.am.SqlException;
 
 
-public class NetResultSet extends com.splicemachine.db.client.am.ResultSet {
+public abstract class NetResultSet extends com.splicemachine.db.client.am.ResultSet {
     // Alias for (NetConnection) super.statement.connection
     private final NetConnection netConnection_;
 
@@ -260,4 +260,5 @@ public class NetResultSet extends com.splicemachine.db.client.am.ResultSet {
             netCursor_.scanDataBufferForEndOfData();
         }
     }
+
 }

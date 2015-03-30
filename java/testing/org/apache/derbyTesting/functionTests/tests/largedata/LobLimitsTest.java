@@ -38,6 +38,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
 
+import com.splicemachine.db.impl.jdbc.Util;
 import junit.framework.Test;
 
 import org.apache.derbyTesting.junit.BaseJDBCTestCase;
@@ -1605,6 +1606,16 @@ class BlobImplT implements java.sql.Blob {
     public void truncate(long len)
             throws SQLException {
         throw new SQLException("Not implemented");
+    }
+
+    @Override
+    public void free() throws SQLException{
+       throw Util.notImplemented("free");
+    }
+
+    @Override
+    public InputStream getBinaryStream(long pos,long length) throws SQLException{
+        throw Util.notImplemented("getBinaryStream");
     }
 
     public byte[] getBytes(long pos, int length)

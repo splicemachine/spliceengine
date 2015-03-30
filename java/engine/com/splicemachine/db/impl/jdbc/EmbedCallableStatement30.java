@@ -80,9 +80,10 @@ public class EmbedCallableStatement30 extends EmbedCallableStatement20
 		if (preparedStatement == null)
 			return null;
 		
-		return new EmbedParameterMetaData30(
-				getParms(), preparedStatement.getParameterTypes());
+		return new EmbedParameterMetaData30( getParms(), preparedStatement.getParameterTypes());
 	}
+
+
 
 }
 

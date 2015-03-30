@@ -36,13 +36,8 @@ import com.splicemachine.db.impl.sql.execute.GenericConstantActionFactory;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.reference.Limits;
 
+import java.sql.*;
 import java.util.Properties;
-import java.sql.DatabaseMetaData;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.sql.ResultSet;
-import java.sql.Types;
 import java.io.IOException;
 import java.io.InputStream;
 
@@ -119,7 +114,18 @@ public class EmbedDatabaseMetaData extends ConnectionChild
     private static Properties queryDescriptions;
     /** Cached query descriptions from metadata_net.properties. */
     private static Properties queryDescriptions_net;
-    /**
+
+//	@Override
+	public <T> T unwrap(Class<T> iface) throws SQLException{
+		throw new UnsupportedOperationException();
+	}
+
+//	@Override
+	public boolean isWrapperFor(Class<?> iface) throws SQLException{
+		throw new UnsupportedOperationException();
+	}
+
+	/**
      * Return all queries found in either metadata.properties or
      * metadata_net.properties.
      *
@@ -3523,6 +3529,11 @@ public class EmbedDatabaseMetaData extends ConnectionChild
 		return false;
 	}
 
+//	@Override
+	public RowIdLifetime getRowIdLifetime() throws SQLException{
+		throw new UnsupportedOperationException();
+	}
+
 	/**
     * JDBC 3.0
     *
@@ -3824,7 +3835,17 @@ public class EmbedDatabaseMetaData extends ConnectionChild
         return s.executeQuery();
     }
 
-    /////////////////////////////////////////////////////////////////////////
+//	@Override
+	public boolean supportsStoredFunctionsUsingCallSyntax() throws SQLException{
+		throw new UnsupportedOperationException();
+	}
+
+//	@Override
+	public boolean autoCommitFailureClosesAllResultSets() throws SQLException{
+		throw new UnsupportedOperationException();
+	}
+
+	/////////////////////////////////////////////////////////////////////////
     //
     //  JDBC 4.1 - New public methods
     //

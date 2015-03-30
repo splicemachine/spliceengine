@@ -29,10 +29,10 @@ import com.splicemachine.db.jdbc.InternalDriver;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.reference.Limits;
 
-import java.sql.Savepoint;
-import java.sql.SQLException;
+import java.sql.*;
 
 import java.util.Properties;
+import java.util.concurrent.Executor;
 
 
 /**
@@ -238,5 +238,75 @@ public class EmbedConnection30 extends EmbedConnection
 			throw newSQLException(SQLState.XACT_SAVEPOINT_RELEASE_ROLLBACK_FAIL);
       
 		return;
+	}
+
+	//@Override
+	public NClob createNClob() throws SQLException{
+		throw Util.notImplemented("CreateNClob");
+	}
+
+	//@Override
+	public SQLXML createSQLXML() throws SQLException{
+		throw Util.notImplemented("createSQLXML");
+	}
+
+	//@Override
+	public boolean isValid(int timeout) throws SQLException{
+		throw Util.notImplemented("isValid");
+	}
+
+	//@Override
+	public void setClientInfo(String name,String value) throws SQLClientInfoException{
+		throw new UnsupportedOperationException();
+	}
+
+	//@Override
+	public void setClientInfo(Properties properties) throws SQLClientInfoException{
+		throw new UnsupportedOperationException();
+	}
+
+	//@Override
+	public String getClientInfo(String name) throws SQLException{
+		throw Util.notImplemented("getClientInfo");
+	}
+
+	//@Override
+	public Properties getClientInfo() throws SQLException{
+		throw Util.notImplemented("getClientInfo");
+	}
+
+	//@Override
+	public Array createArrayOf(String typeName,Object[] elements) throws SQLException{
+		throw Util.notImplemented("createArrayOf");
+	}
+
+	//@Override
+	public Struct createStruct(String typeName,Object[] attributes) throws SQLException{
+		throw Util.notImplemented("createStruct");
+	}
+
+	//@Override
+	public void abort(Executor executor) throws SQLException{
+		throw Util.notImplemented("abort");
+	}
+
+	//@Override
+	public void setNetworkTimeout(Executor executor,int milliseconds) throws SQLException{
+		throw Util.notImplemented("setNetworkTimeout");
+	}
+
+	//@Override
+	public int getNetworkTimeout() throws SQLException{
+		throw Util.notImplemented("getNetworkTimeout");
+	}
+
+	//@Override
+	public <T> T unwrap(Class<T> iface) throws SQLException{
+		throw Util.notImplemented("unwrap");
+	}
+
+	//@Override
+	public boolean isWrapperFor(Class<?> iface) throws SQLException{
+		throw Util.notImplemented("isWrapperFor");
 	}
 }

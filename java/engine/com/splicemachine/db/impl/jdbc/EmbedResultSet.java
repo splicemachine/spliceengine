@@ -57,16 +57,8 @@ import com.splicemachine.db.iapi.reference.SQLState;
 /* can't import these due to name overlap:
 import java.sql.ResultSet;
 */
-import java.sql.Blob;
-import java.sql.Clob;
-import java.sql.Statement;
-import java.sql.SQLException;
-import java.sql.SQLWarning;
-import java.sql.ResultSetMetaData;
-import java.sql.Date;
-import java.sql.Time;
-import java.sql.Timestamp;
-import java.sql.Types;
+import java.math.BigDecimal;
+import java.sql.*;
 
 import java.io.Reader;
 import java.io.InputStream;
@@ -75,6 +67,7 @@ import java.net.URL;
 
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Map;
 
 import com.splicemachine.db.iapi.jdbc.CharacterStreamDescriptor;
 import com.splicemachine.db.iapi.services.io.CloseFilterInputStream;
@@ -2252,7 +2245,7 @@ public abstract class EmbedResultSet extends ConnectionChild
 
 	//do following few checks before accepting updateXXX resultset api
 	protected void checksBeforeUpdateXXX(String methodName, int columnIndex) throws SQLException {
-      checksBeforeUpdateOrDelete(methodName, columnIndex);
+      checksBeforeUpdateOrDelete(methodName,columnIndex);
 
       //1)Make sure for updateXXX methods, the column position is not out of range
       ResultDescription rd = theResults.getResultDescription();
@@ -2290,7 +2283,7 @@ public abstract class EmbedResultSet extends ConnectionChild
 
 	//mark the column as updated and return DataValueDescriptor for it. It will be used by updateXXX methods to put new values
 	protected DataValueDescriptor getDVDforColumnToBeUpdated(int columnIndex, String updateMethodName) throws StandardException, SQLException {
-      checksBeforeUpdateXXX(updateMethodName, columnIndex);
+      checksBeforeUpdateXXX(updateMethodName,columnIndex);
       columnGotUpdated[columnIndex-1] = true;
       currentRowHasBeenUpdated = true;
       
@@ -2327,7 +2320,7 @@ public abstract class EmbedResultSet extends ConnectionChild
     private void checksBeforeUpdateAsciiStream(int columnIndex)
         throws SQLException
     {
-        checksBeforeUpdateXXX("updateAsciiStream", columnIndex);
+        checksBeforeUpdateXXX("updateAsciiStream",columnIndex);
         int colType = getColumnType(columnIndex);
         if (!DataTypeDescriptor.isAsciiStreamAssignable(colType)) {
             throw dataTypeConversion(columnIndex, "java.io.InputStream");
@@ -2363,10 +2356,10 @@ public abstract class EmbedResultSet extends ConnectionChild
     private void checksBeforeUpdateCharacterStream(int columnIndex)
         throws SQLException
     {
-        checksBeforeUpdateXXX("updateCharacterStream", columnIndex);
+        checksBeforeUpdateXXX("updateCharacterStream",columnIndex);
         int colType = getColumnType(columnIndex);
         if (!DataTypeDescriptor.isCharacterStreamAssignable(colType)) {
-            throw dataTypeConversion(columnIndex, "java.io.Reader");
+            throw dataTypeConversion(columnIndex,"java.io.Reader");
         }
     }
     
@@ -2760,8 +2753,8 @@ public abstract class EmbedResultSet extends ConnectionChild
                 throw new SQLException(uee.getMessage());
             }
         }
-        updateCharacterStreamInternal(columnIndex, r, true, -1,
-                                      "updateAsciiStream");
+        updateCharacterStreamInternal(columnIndex,r,true,-1,
+				"updateAsciiStream");
     }
 
 	/**
@@ -2792,8 +2785,8 @@ public abstract class EmbedResultSet extends ConnectionChild
 			return;
 		}
 
-		updateBinaryStreamInternal(columnIndex, x, false, length,
-                                   "updateBinaryStream");
+		updateBinaryStreamInternal(columnIndex,x,false,length,
+				"updateBinaryStream");
 	}
 
     /**
@@ -2816,8 +2809,8 @@ public abstract class EmbedResultSet extends ConnectionChild
     public void updateBinaryStream(int columnIndex, InputStream x)
             throws SQLException {
         checksBeforeUpdateBinaryStream(columnIndex);
-        updateBinaryStreamInternal(columnIndex, x, true, -1,
-                                   "updateBinaryStream");
+        updateBinaryStreamInternal(columnIndex,x,true,-1,
+				"updateBinaryStream");
     }
 
     /**
@@ -2895,8 +2888,8 @@ public abstract class EmbedResultSet extends ConnectionChild
 	public void updateCharacterStream(int columnIndex, java.io.Reader x,
 			long length) throws SQLException {
 		checksBeforeUpdateCharacterStream(columnIndex);
-		updateCharacterStreamInternal(columnIndex, x, false, length,
-                                      "updateCharacterStream");
+		updateCharacterStreamInternal(columnIndex,x,false,length,
+				"updateCharacterStream");
 	}
 
     /**
@@ -2919,8 +2912,8 @@ public abstract class EmbedResultSet extends ConnectionChild
     public void updateCharacterStream(int columnIndex, Reader x)
             throws SQLException {
         checksBeforeUpdateCharacterStream(columnIndex);
-        updateCharacterStreamInternal(columnIndex, x, true, -1,
-                                      "updateCharacterStream");
+        updateCharacterStreamInternal(columnIndex,x,true,-1,
+				"updateCharacterStream");
     }
 
     /**
@@ -3022,7 +3015,7 @@ public abstract class EmbedResultSet extends ConnectionChild
                                                dvd.getStreamHeaderGenerator());
             }
 
-            dvd.setValue(utfIn, usableLength);
+            dvd.setValue(utfIn,usableLength);
         } catch (StandardException t) {
             throw noStateChangeException(t);
         }
@@ -3051,7 +3044,7 @@ public abstract class EmbedResultSet extends ConnectionChild
 	 */
 	public void updateObject(int columnIndex, Object x, int scale)
 			throws SQLException {
-		updateObject(columnIndex, x);
+		updateObject(columnIndex,x);
 		/*
 		* If the parameter type is DECIMAL or NUMERIC, then
 		* we need to set them to the passed scale.
@@ -3217,7 +3210,7 @@ public abstract class EmbedResultSet extends ConnectionChild
 	 */
 	public void updateBoolean(String columnName, boolean x) throws SQLException {
 		checkIfClosed("updateBoolean");
-		updateBoolean(findColumnName(columnName), x);
+		updateBoolean(findColumnName(columnName),x);
 	}
 
 	/**
@@ -3239,7 +3232,7 @@ public abstract class EmbedResultSet extends ConnectionChild
 	 */
 	public void updateByte(String columnName, byte x) throws SQLException {
 		checkIfClosed("updateByte");
-		updateByte(findColumnName(columnName), x);
+		updateByte(findColumnName(columnName),x);
 	}
 
 	/**
@@ -3261,7 +3254,7 @@ public abstract class EmbedResultSet extends ConnectionChild
 	 */
 	public void updateShort(String columnName, short x) throws SQLException {
 		checkIfClosed("updateShort");
-		updateShort(findColumnName(columnName), x);
+		updateShort(findColumnName(columnName),x);
 	}
 
 	/**
@@ -3283,7 +3276,7 @@ public abstract class EmbedResultSet extends ConnectionChild
 	 */
 	public void updateInt(String columnName, int x) throws SQLException {
 		checkIfClosed("updateInt");
-		updateInt(findColumnName(columnName), x);
+		updateInt(findColumnName(columnName),x);
 	}
 
 	/**
@@ -3305,7 +3298,7 @@ public abstract class EmbedResultSet extends ConnectionChild
 	 */
 	public void updateLong(String columnName, long x) throws SQLException {
 		checkIfClosed("updateLong");
-		updateLong(findColumnName(columnName), x);
+		updateLong(findColumnName(columnName),x);
 	}
 
 	/**
@@ -3327,7 +3320,7 @@ public abstract class EmbedResultSet extends ConnectionChild
 	 */
 	public void updateFloat(String columnName, float x) throws SQLException {
 		checkIfClosed("updateFloat");
-		updateFloat(findColumnName(columnName), x);
+		updateFloat(findColumnName(columnName),x);
 	}
 
 	/**
@@ -3349,7 +3342,7 @@ public abstract class EmbedResultSet extends ConnectionChild
 	 */
 	public void updateDouble(String columnName, double x) throws SQLException {
 		checkIfClosed("updateDouble");
-		updateDouble(findColumnName(columnName), x);
+		updateDouble(findColumnName(columnName),x);
 	}
 
 	/**
@@ -3371,7 +3364,7 @@ public abstract class EmbedResultSet extends ConnectionChild
 	 */
 	public void updateString(String columnName, String x) throws SQLException {
 		checkIfClosed("updateString");
-		updateString(findColumnName(columnName), x);
+		updateString(findColumnName(columnName),x);
 	}
 
 	/**
@@ -3393,7 +3386,7 @@ public abstract class EmbedResultSet extends ConnectionChild
 	 */
 	public void updateBytes(String columnName, byte x[]) throws SQLException {
 		checkIfClosed("updateBytes");
-		updateBytes(findColumnName(columnName), x);
+		updateBytes(findColumnName(columnName),x);
 	}
 
 	/**
@@ -3416,7 +3409,7 @@ public abstract class EmbedResultSet extends ConnectionChild
 	public void updateDate(String columnName, java.sql.Date x)
 			throws SQLException {
 		checkIfClosed("updateDate");
-		updateDate(findColumnName(columnName), x);
+		updateDate(findColumnName(columnName),x);
 	}
 
 	/**
@@ -3439,7 +3432,7 @@ public abstract class EmbedResultSet extends ConnectionChild
 	public void updateTime(String columnName, java.sql.Time x)
 			throws SQLException {
 		checkIfClosed("updateTime");
-		updateTime(findColumnName(columnName), x);
+		updateTime(findColumnName(columnName),x);
 	}
 
 	/**
@@ -3462,7 +3455,7 @@ public abstract class EmbedResultSet extends ConnectionChild
 	public void updateTimestamp(String columnName, java.sql.Timestamp x)
 			throws SQLException {
 		checkIfClosed("updateTimestamp");
-		updateTimestamp(findColumnName(columnName), x);
+		updateTimestamp(findColumnName(columnName),x);
 	}
 
 	/**
@@ -3487,7 +3480,7 @@ public abstract class EmbedResultSet extends ConnectionChild
 	public void updateAsciiStream(String columnName, java.io.InputStream x,
 			int length) throws SQLException {
 		checkIfClosed("updateAsciiStream");
-		updateAsciiStream(findColumnName(columnName), x, length);
+		updateAsciiStream(findColumnName(columnName),x,length);
 	}
 
 	/**
@@ -3512,7 +3505,7 @@ public abstract class EmbedResultSet extends ConnectionChild
 	public void updateBinaryStream(String columnName, java.io.InputStream x,
 			int length) throws SQLException {
 		checkIfClosed("updateBinaryStream");
-		updateBinaryStream(findColumnName(columnName), x, length);
+		updateBinaryStream(findColumnName(columnName),x,length);
 	}
 
 	/**
@@ -3537,7 +3530,7 @@ public abstract class EmbedResultSet extends ConnectionChild
 	public void updateCharacterStream(String columnName, java.io.Reader reader,
 			int length) throws SQLException {
 		checkIfClosed("updateCharacterStream");
-		updateCharacterStream(findColumnName(columnName), reader, length);
+		updateCharacterStream(findColumnName(columnName),reader,length);
 	}
 
 	/**
@@ -3560,7 +3553,7 @@ public abstract class EmbedResultSet extends ConnectionChild
 	public void updateObject(String columnName, Object x, int scale)
       throws SQLException {
 		checkIfClosed("updateObject");
-		updateObject(findColumnName(columnName), x, scale);
+		updateObject(findColumnName(columnName),x,scale);
 	}
 
 	/**
@@ -3582,7 +3575,7 @@ public abstract class EmbedResultSet extends ConnectionChild
 	 */
 	public void updateObject(String columnName, Object x) throws SQLException {
 		checkIfClosed("updateObject");
-		updateObject(findColumnName(columnName), x);
+		updateObject(findColumnName(columnName),x);
 	}
 
 	/**
@@ -3768,7 +3761,7 @@ public abstract class EmbedResultSet extends ConnectionChild
             statementContext.setActivation(parentAct);
 
             com.splicemachine.db.iapi.sql.PreparedStatement ps = lcc.prepareInternalStatement(updateWhereCurrentOfSQL.toString());
-            Activation act = ps.getActivation(lcc, false);
+            Activation act = ps.getActivation(lcc,false);
 
             statementContext.setActivation(act);
 
@@ -4127,7 +4120,7 @@ public abstract class EmbedResultSet extends ConnectionChild
                 }
 
                 EmbedClob result =  new EmbedClob(ec, dvd);
-                restoreIntrFlagIfSeen(pushStack, ec);
+                restoreIntrFlagIfSeen(pushStack,ec);
                 return result;
 			} catch (Throwable t) {
 				throw handleException(t);
@@ -4183,7 +4176,7 @@ public abstract class EmbedResultSet extends ConnectionChild
 	 *                Feature not implemented for now.
 	 */
 	public void updateBlob(int columnIndex, Blob x) throws SQLException {
-        checksBeforeUpdateXXX("updateBlob", columnIndex);
+        checksBeforeUpdateXXX("updateBlob",columnIndex);
         int colType = getColumnType(columnIndex);
         if (colType != Types.BLOB)
             throw dataTypeConversion(columnIndex, "java.sql.Blob");
@@ -4214,7 +4207,7 @@ public abstract class EmbedResultSet extends ConnectionChild
 	 */
 	public void updateBlob(String columnName, Blob x) throws SQLException {
 		checkIfClosed("updateBlob");
-		updateBlob(findColumnName(columnName), x);
+		updateBlob(findColumnName(columnName),x);
 	}
 
 	/**
@@ -4233,7 +4226,7 @@ public abstract class EmbedResultSet extends ConnectionChild
 	 *                Feature not implemented for now.
 	 */
 	public void updateClob(int columnIndex, Clob x) throws SQLException {
-        checksBeforeUpdateXXX("updateClob", columnIndex);
+        checksBeforeUpdateXXX("updateClob",columnIndex);
         int colType = getColumnType(columnIndex);
         if (colType != Types.CLOB)
             throw dataTypeConversion(columnIndex, "java.sql.Clob");
@@ -4353,7 +4346,7 @@ public abstract class EmbedResultSet extends ConnectionChild
                 markClosed();
 			}
 
-			throw newSQLException(SQLState.LANG_RESULT_SET_NOT_OPEN, operation);
+			throw newSQLException(SQLState.LANG_RESULT_SET_NOT_OPEN,operation);
 		}
 	}
 
@@ -4636,13 +4629,13 @@ public abstract class EmbedResultSet extends ConnectionChild
     }
 
 	private final SQLException dataTypeConversion(String targetType, int column) {
-		return newSQLException(SQLState.LANG_DATA_TYPE_GET_MISMATCH, targetType,
-                getColumnSQLType(column));
+		return newSQLException(SQLState.LANG_DATA_TYPE_GET_MISMATCH,targetType,
+				getColumnSQLType(column));
 	}
 
 	private final SQLException dataTypeConversion(int column, String targetType) {
 		return newSQLException(SQLState.LANG_DATA_TYPE_GET_MISMATCH,
-                getColumnSQLType(column), targetType);
+				getColumnSQLType(column),targetType);
 	}
     
     /**
@@ -4844,7 +4837,7 @@ public abstract class EmbedResultSet extends ConnectionChild
     public void updateAsciiStream(String columnName, InputStream x)
             throws SQLException {
         checkIfClosed("updateAsciiStream");
-        updateAsciiStream(findColumnName(columnName), x);
+        updateAsciiStream(findColumnName(columnName),x);
     }
 
      /**
@@ -4896,7 +4889,7 @@ public abstract class EmbedResultSet extends ConnectionChild
     public void updateBinaryStream(String columnName, InputStream x)
             throws SQLException {
         checkIfClosed("updateBinaryStream");
-        updateBinaryStream(findColumnName(columnName), x);
+        updateBinaryStream(findColumnName(columnName),x);
     }
 
      /**
@@ -4946,7 +4939,7 @@ public abstract class EmbedResultSet extends ConnectionChild
     public void updateCharacterStream(String columnName, Reader reader)
             throws SQLException {
         checkIfClosed("updateCharacterStream");
-        updateCharacterStream(findColumnName(columnName), reader);
+        updateCharacterStream(findColumnName(columnName),reader);
     }
 
      /**
@@ -4969,7 +4962,7 @@ public abstract class EmbedResultSet extends ConnectionChild
       */
      public void updateBlob(int columnIndex, InputStream x, long length)
      throws SQLException {
-         checksBeforeUpdateXXX("updateBlob", columnIndex);
+         checksBeforeUpdateXXX("updateBlob",columnIndex);
          int colType = getColumnType(columnIndex);
          if (colType != Types.BLOB)
              throw dataTypeConversion(columnIndex, "java.sql.Blob");
@@ -5001,12 +4994,12 @@ public abstract class EmbedResultSet extends ConnectionChild
      */
     public void updateBlob(int columnIndex, InputStream x)
            throws SQLException {
-       checksBeforeUpdateXXX("updateBlob", columnIndex);
+       checksBeforeUpdateXXX("updateBlob",columnIndex);
        int colType = getColumnType(columnIndex);
        if (colType != Types.BLOB) {
             throw dataTypeConversion(columnIndex, "java.sql.Blob");
        }
-       updateBinaryStreamInternal(columnIndex, x, true, -1, "updateBlob");
+       updateBinaryStreamInternal(columnIndex,x,true,-1,"updateBlob");
     }
 
      /**
@@ -5056,7 +5049,7 @@ public abstract class EmbedResultSet extends ConnectionChild
     public void updateBlob(String columnName, InputStream x)
            throws SQLException {
        checkIfClosed("updateBlob");
-       updateBlob(findColumnName(columnName), x);
+       updateBlob(findColumnName(columnName),x);
     }
 
      /**
@@ -5077,7 +5070,7 @@ public abstract class EmbedResultSet extends ConnectionChild
       */
      public void updateClob(int columnIndex, Reader x, long length)
      throws SQLException {
-         checksBeforeUpdateXXX("updateClob", columnIndex);
+         checksBeforeUpdateXXX("updateClob",columnIndex);
          int colType = getColumnType(columnIndex);
          if (colType != Types.CLOB)
              throw dataTypeConversion(columnIndex, "java.sql.Clob");
@@ -5113,12 +5106,12 @@ public abstract class EmbedResultSet extends ConnectionChild
      */
     public void updateClob(int columnIndex, Reader x)
            throws SQLException {
-        checksBeforeUpdateXXX("updateClob", columnIndex);
+        checksBeforeUpdateXXX("updateClob",columnIndex);
         int colType = getColumnType(columnIndex);
         if (colType != Types.CLOB) {
             throw dataTypeConversion(columnIndex, "java.sql.Clob");
         }
-        updateCharacterStreamInternal(columnIndex, x, true, -1, "updateClob");
+        updateCharacterStreamInternal(columnIndex,x,true,-1,"updateClob");
     }
 
      /**
@@ -5201,5 +5194,243 @@ public abstract class EmbedResultSet extends ConnectionChild
 		public ResultSet getUnderlyingResultSet(){
 						return theResults;
 		}
-    
+
+	public RowId getRowId(int columnIndex) throws SQLException {
+		throw Util.notImplemented();
+	}
+
+
+	public RowId getRowId(String columnName) throws SQLException {
+		throw Util.notImplemented();
+	}
+
+	public void updateNCharacterStream(int columnIndex, Reader x)
+			throws SQLException {
+		throw Util.notImplemented();
+	}
+
+	public void updateNCharacterStream(int columnIndex, Reader x, long length)
+			throws SQLException {
+		throw Util.notImplemented();
+	}
+
+	public void updateNCharacterStream(String columnName, Reader x)
+			throws SQLException {
+		throw Util.notImplemented();
+	}
+
+	public void updateNCharacterStream(String columnName, Reader x, long length)
+			throws SQLException {
+		throw Util.notImplemented();
+	}
+
+	public void updateNString(int columnIndex, String nString) throws SQLException {
+		throw Util.notImplemented();
+	}
+
+	public void updateNString(String columnName, String nString) throws SQLException {
+		throw Util.notImplemented();
+	}
+
+	public void updateNClob(int columnIndex, NClob nClob) throws SQLException {
+		throw Util.notImplemented();
+	}
+
+	public void updateNClob(int columnIndex, Reader reader)
+			throws SQLException {
+		throw Util.notImplemented();
+	}
+
+	public void updateNClob(String columnName, NClob nClob) throws SQLException {
+		throw Util.notImplemented();
+	}
+
+	public void updateNClob(String columnName, Reader reader)
+			throws SQLException {
+		throw Util.notImplemented();
+	}
+
+	public Reader getNCharacterStream(int columnIndex) throws SQLException {
+		throw Util.notImplemented();
+	}
+
+	public Reader getNCharacterStream(String columnName) throws SQLException {
+		throw Util.notImplemented();
+	}
+
+	public NClob getNClob(int i) throws SQLException {
+		throw Util.notImplemented();
+	}
+
+	public NClob getNClob(String colName) throws SQLException {
+		throw Util.notImplemented();
+	}
+
+	public String getNString(int columnIndex) throws SQLException {
+		throw Util.notImplemented();
+	}
+
+	public String getNString(String columnName) throws SQLException {
+		throw Util.notImplemented();
+	}
+
+	public void updateRowId(int columnIndex, RowId x) throws SQLException {
+		throw Util.notImplemented();
+	}
+
+	public void updateRowId(String columnName, RowId x) throws SQLException {
+		throw Util.notImplemented();
+	}
+
+	public SQLXML getSQLXML(int columnIndex) throws SQLException {
+		throw Util.notImplemented();
+	}
+
+	public SQLXML getSQLXML(String colName) throws SQLException {
+		throw Util.notImplemented();
+	}
+
+	public void updateSQLXML(int columnIndex, SQLXML xmlObject) throws SQLException {
+		throw Util.notImplemented();
+	}
+
+	public void updateSQLXML(String columnName, SQLXML xmlObject) throws SQLException {
+		throw Util.notImplemented();
+	}
+
+	/**
+	 * Returns false unless <code>interfaces</code> is implemented
+	 *
+	 * @param  interfaces             a Class defining an interface.
+	 * @return true                   if this implements the interface or
+	 *                                directly or indirectly wraps an object
+	 *                                that does.
+	 * @throws java.sql.SQLException  if an error occurs while determining
+	 *                                whether this is a wrapper for an object
+	 *                                with the given interface.
+	 */
+	public boolean isWrapperFor(Class<?> interfaces) throws SQLException {
+		checkIfClosed("isWrapperFor");
+		return interfaces.isInstance(this);
+	}
+
+	/**
+	 * Returns <code>this</code> if this class implements the interface
+	 *
+	 * @param  interfaces a Class defining an interface
+	 * @return an object that implements the interface
+	 * @throws java.sql.SQLException if no object if found that implements the
+	 * interface
+	 */
+	public <T> T unwrap(java.lang.Class<T> interfaces)
+			throws SQLException{
+		checkIfClosed("unwrap");
+		//Derby does not implement non-standard methods on
+		//JDBC objects
+		//hence return this if this class implements the interface
+		//or throw an SQLException
+		try {
+			return interfaces.cast(this);
+		} catch (ClassCastException cce) {
+			throw newSQLException(SQLState.UNABLE_TO_UNWRAP,interfaces);
+		}
+	}
+
+	/**
+	 *
+	 * Updates the designated column using the given Reader  object,
+	 * which is the given number of characters long.
+	 *
+	 * @param columnIndex -
+	 *        the first column is 1, the second is 2
+	 * @param x -
+	 *        the new column value
+	 * @param length -
+	 *        the length of the stream
+	 *
+	 * @exception SQLException
+	 *                Feature not implemented for now.
+	 */
+	public void updateNClob(int columnIndex, Reader x, long length)
+			throws SQLException {
+		throw Util.notImplemented();
+	}
+
+	/**
+	 * Updates the designated column using the given Reader  object,
+	 * which is the given number of characters long.
+	 *
+	 * @param columnName -
+	 *            the Name of the column to be updated
+	 * @param x -
+	 *            the new column value
+	 * @param length -
+	 *        the length of the stream
+	 *
+	 * @exception SQLException
+	 *                Feature not implemented for now.
+	 *
+	 */
+	public void updateNClob(String columnName, Reader x, long length)
+			throws SQLException{
+		throw Util.notImplemented();
+	}
+
+
+
+
+	public  <T> T getObject( String columnName, Class<T> type )
+			throws SQLException
+	{
+		checkIfClosed("getObject");
+
+		return getObject( findColumn( columnName ), type );
+	}
+	/**
+	 * Retrieve the column as an object of the desired type.
+	 */
+	public  <T> T getObject( int columnIndex, Class<T> type )
+			throws SQLException
+	{
+		checkIfClosed("getObject");
+
+		if ( type == null )
+		{
+			throw mismatchException( "NULL", columnIndex );
+		}
+
+		Object   retval;
+
+		if ( String.class.equals( type ) ) { retval = getString( columnIndex ); }
+		else if ( BigDecimal.class.equals( type ) ) { retval = getBigDecimal( columnIndex ); }
+		else if ( Boolean.class.equals( type ) ) { retval = Boolean.valueOf( getBoolean(columnIndex ) ); }
+		else if ( Byte.class.equals( type ) ) { retval = Byte.valueOf( getByte( columnIndex ) ); }
+		else if ( Short.class.equals( type ) ) { retval = Short.valueOf( getShort( columnIndex ) ); }
+		else if ( Integer.class.equals( type ) ) { retval = Integer.valueOf( getInt( columnIndex ) ); }
+		else if ( Long.class.equals( type ) ) { retval = Long.valueOf( getLong( columnIndex ) ); }
+		else if ( Float.class.equals( type ) ) { retval = Float.valueOf( getFloat( columnIndex ) ); }
+		else if ( Double.class.equals( type ) ) { retval = Double.valueOf( getDouble( columnIndex ) ); }
+		else if ( Date.class.equals( type ) ) { retval = getDate( columnIndex ); }
+		else if ( Time.class.equals( type ) ) { retval = getTime( columnIndex ); }
+		else if ( Timestamp.class.equals( type ) ) { retval = getTimestamp( columnIndex ); }
+		else if ( Blob.class.equals( type ) ) { retval = getBlob( columnIndex ); }
+		else if ( Clob.class.equals( type ) ) { retval = getClob( columnIndex ); }
+		else if ( type.isArray() && type.getComponentType().equals( byte.class ) ) { retval = getBytes( columnIndex ); }
+		else { retval = getObject( columnIndex ); }
+
+		if ( wasNull() ) { retval = null; }
+
+		if ( (retval == null) || (type.isInstance( retval )) ) { return type.cast( retval ); }
+
+		throw mismatchException( type.getName(), columnIndex );
+	}
+
+	private SQLException    mismatchException( String targetTypeName, int columnIndex )
+			throws SQLException
+	{
+		String sourceTypeName = getMetaData().getColumnTypeName( columnIndex );
+		SQLException se = newSQLException( SQLState.LANG_DATA_TYPE_GET_MISMATCH, targetTypeName, sourceTypeName );
+
+		return se;
+	}
 }

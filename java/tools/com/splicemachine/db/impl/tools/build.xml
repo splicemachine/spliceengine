@@ -39,7 +39,8 @@
     <ant antfile="${src.dir}/build.xml" target="genParser">
       <property name="msg" value="Generating ij parser..."/>
       <property name="srcroot" value="tools"/>
-      <property name="directory" value="${splice.package}/impl/tools/ij"/>
+			<property name="baseDir" value="tools"/>
+			<property name="directory" value="${splice.package}/impl/tools/ij"/>
       <property name="rmfiles" value="ijimplparser_rm.files"/>
       <property name="jjfile" value="ij.jj"/>
       <property name="chkfile" value="ij.java"/>
@@ -48,6 +49,7 @@
     <ant antfile="${src.dir}/build.xml" target="genParser">
       <property name="msg" value="Generating mtGrammar parser..."/>
       <property name="srcroot" value="tools"/>
+			<property name="baseDir" value="tools"/>
       <property name="directory" value="${splice.package}/impl/tools/ij"/>
       <property name="rmfiles" value="mtparser_rm.files"/>
       <property name="jjfile" value="mtGrammar.jj"/>
@@ -78,7 +80,7 @@
       we delete the conflicting class here.
     -->
     <delete>
-      <fileset dir="${generated.src.dir}/${splice.package}/impl/tools/ij">
+      <fileset dir="${generated.ij.dir}">
         <include name="ParseException.java"/>
       </fileset>
     </delete>
@@ -86,7 +88,7 @@
   </target>
 
   <target name="compile_tools_impl" depends="parser">
-
+					<echo message="srcpath=${derby.tools.src.dir}:${generated.ij.dir}" />
     <javac
       source="1.4"
       target="1.4"
@@ -98,7 +100,7 @@
       optimize="${optimize}"
       proceed="${proceed}"
       verbose="${verbose}"
-      srcdir="${derby.tools.src.dir}:${generated.src.dir}"
+			srcdir="${derby.tools.src.dir}:${generated.src.dir}/tools"
       destdir="${out.dir}">
       <classpath>
         <pathelement path="${java15compile.classpath}"/>
