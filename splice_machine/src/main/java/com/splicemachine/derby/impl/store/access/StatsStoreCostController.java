@@ -14,6 +14,7 @@ import com.splicemachine.derby.impl.sql.compile.SimpleCostEstimate;
 import com.splicemachine.derby.impl.stats.FakedPartitionStatistics;
 import com.splicemachine.derby.impl.stats.OverheadManagedTableStatistics;
 import com.splicemachine.derby.impl.stats.StatisticsStorage;
+import com.splicemachine.derby.impl.stats.StatsConstants;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.pipeline.exception.Exceptions;
@@ -174,7 +175,13 @@ public class StatsStoreCostController extends GenericController implements Store
     @Override
     public double cardinalityFraction(int columnNumber){
         ColumnStatistics<DataValueDescriptor> colStats=getColumnStats(columnNumber);
-        return ((double)colStats.cardinality())/conglomerateStatistics.rowCount();
+        if(colStats!=null)
+            return ((double)colStats.cardinality())/conglomerateStatistics.rowCount();
+        /*
+         * If we can't find any statistics for this column, then use a fallback number--arbitrary
+         * numbers are better than no numbers at all (although that is somewhat debatable in practice)
+         */
+        return StatsConstants.fallbackCardinalityFraction;
     }
 
     protected ColumnStatistics<DataValueDescriptor> getColumnStats(int columnNumber){
@@ -222,7 +229,7 @@ public class StatsStoreCostController extends GenericController implements Store
         long rowCount = 0l;
         int missingStatsCount = partStats.size();
         for(PartitionStatistics pStats:partStats){
-            ColumnStatistics<DataValueDescriptor> cStats = pStats.columnStatistics(columnNumber-1);
+            ColumnStatistics<DataValueDescriptor> cStats = pStats.columnStatistics(columnNumber);
             if(cStats!=null){
                 rowCount+= cStats.getDistribution().rangeSelectivity(start,stop,includeStart,includeStop);
                 missingStatsCount--;

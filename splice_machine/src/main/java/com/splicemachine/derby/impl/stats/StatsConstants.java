@@ -62,6 +62,19 @@ public class StatsConstants extends SpliceConstants {
     @SpliceConstants.Parameter public static final String REMOTE_LATENCY_SCALE_FACTOR = "splice.statistics.defaultRemoteLatencyScaleFactor";
     @DefaultValue(value = INDEX_FETCH_SAMPLE_SIZE) public static final double DEFAULT_REMOTE_LATENCY_SCALE_FACTOR = 20d;
 
+    /*
+     * This is the cardinality fraction to fall back on when we cannot measure the cardinality directly (or
+     * statistics are not available for some reason). By default it assumes that there are 100 duplicates
+     * of every row (giving a cardinality fraction of 0.01)
+     *
+     * Note that this is configurable, but that configuring it is pretty pointless--it is FAR better to just
+     * compute statistics on the column of interest to get more precise values. This is only here as an absolute
+     * fallback when the algorithm can do nothing else.
+     */
+    public static double fallbackCardinalityFraction;
+    @Parameter public static final String FALLBACK_CARDINALITY_FRACTION = "splice.statistics.defaultCardinalityFraction";
+    @DefaultValue(value=FALLBACK_CARDINALITY_FRACTION)public static final double DEFAULT_FALLBACK_CARDINALITY_FRACTION=.01d;
+
     public static void setParameters(Configuration config){
         int cp = config.getInt(CARDINALITY_PRECISION,DEFAULT_CARDINALITY_PRECISION);
         if(cp <4) {
@@ -80,5 +93,6 @@ public class StatsConstants extends SpliceConstants {
         fetchSampleSize = i;
 
         remoteLatencyScaleFactor = config.getDouble(REMOTE_LATENCY_SCALE_FACTOR,DEFAULT_REMOTE_LATENCY_SCALE_FACTOR);
+        fallbackCardinalityFraction = config.getDouble(FALLBACK_CARDINALITY_FRACTION,DEFAULT_FALLBACK_CARDINALITY_FRACTION);
     }
 }
