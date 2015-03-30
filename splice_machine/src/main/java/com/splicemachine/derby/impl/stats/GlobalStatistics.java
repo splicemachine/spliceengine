@@ -206,6 +206,7 @@ public class GlobalStatistics implements OverheadManagedTableStatistics {
                 }
             }
         }
+        if(stats==null) return Collections.emptyList();
         return stats;
     }
 }

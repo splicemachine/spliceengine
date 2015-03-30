@@ -71,9 +71,6 @@ public class MergeJoinStrategy extends BaseCostedHashableJoinStrategy{
         boolean hashFeasible=super.feasible(innerTable,predList,optimizer,outerCost);
         if(!hashFeasible) return false;
 
-        RowOrdering innerOrder = innerTable.getCurrentAccessPath().getCostEstimate().getRowOrdering();
-        if(innerOrder==null) return false;
-
         /*
          * MergeJoin is only feasible if the inner and outer tables are both
          * sorted along the join columns *in the same order*.
@@ -199,7 +196,7 @@ public class MergeJoinStrategy extends BaseCostedHashableJoinStrategy{
 
             //TODO -sf- is this correct?
             int outerTableNum=outerColumn.getTableNumber()+1;
-            int outerColNum=outerColumn.getColumnNumber()-1;
+            int outerColNum=outerColumn.getColumnNumber();
             if(ascending){
                 if(!outerRowOrdering.orderedOnColumn(RowOrdering.ASCENDING,outerTableNum,outerColNum))
                     return false;
