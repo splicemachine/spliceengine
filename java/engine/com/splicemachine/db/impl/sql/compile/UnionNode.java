@@ -237,24 +237,60 @@ public class UnionNode extends SetOperatorNode{
         // getNextDecoratedPermutation() method.
         updateBestPlanMap(ADD_PLAN,this);
 
-        leftResultSet=optimizeSource( optimizer, leftResultSet, getLeftOptPredicateList(), outerCost);
+        leftResultSet=optimizeSource(optimizer, leftResultSet, getLeftOptPredicateList(), outerCost);
 
-        rightResultSet=optimizeSource( optimizer, rightResultSet, getRightOptPredicateList(), outerCost);
+        rightResultSet=optimizeSource(optimizer, rightResultSet, getRightOptPredicateList(), outerCost);
 
+        CostEstimate leftCost = leftResultSet.getCostEstimate();
+        CostEstimate rightCost = rightResultSet.getCostEstimate();
         CostEstimate costEstimate=getCostEstimate(optimizer);
 
-		/* The cost is the sum of the two child costs */
-        costEstimate.setCost(leftResultSet.getCostEstimate().getEstimatedCost(),
-                leftResultSet.getCostEstimate().rowCount(),
-                leftResultSet.getCostEstimate().singleScanRowCount()+
-                        rightResultSet.getCostEstimate().singleScanRowCount());
+        double remoteCost;
+        double localCost;
+        if(all){
+            /*
+             * This is a Union All. In Splice the UnionAll scans the left, then scans the right,
+             * so the cost is
+             *
+             * remoteCost = left.remoteCost + right.remoteCost
+             * localCost = left.localCost + right.localCost
+             * outputRows = left.outputRows + right.outputRows
+             * heapSize = left.heapSize + right.heapSize
+             * partitions = left.partitions + right.partitions
+             */
+            remoteCost = leftCost.remoteCost()+rightCost.remoteCost();
+            localCost = leftCost.localCost()+rightCost.localCost();
+        }else{
+            /*
+             * This is a Union, which will impose a sort distinct over top of us. In this case,
+             * we want to inherit the costs of what goes below us, since the union won't do anything.
+             * *However*, we can't really do that, because the Sort costing assumes that it's operating
+             * over a single table, so we need to represent this as a single table (with an eye to the
+             * fact that we are actually going to be under a distinct node here).
+             *
+             * Since we will be under a parallel distinct node, the cost is the max between
+             * the local+remote costs of both tables (since we'll need to write at least one entry for
+             * each row)
+             */
+            localCost = Math.max(leftCost.localCost(),rightCost.localCost());
+            remoteCost = Math.max(leftCost.remoteCost(),rightCost.remoteCost());
+        }
+        double outputRows = leftCost.rowCount()+rightCost.rowCount();
+        double heapSize = leftCost.getEstimatedHeapSize()+rightCost.getEstimatedHeapSize();
+        int partitions = leftCost.partitionCount() + rightCost.partitionCount();
 
-        costEstimate.add(rightResultSet.costEstimate,costEstimate);
+
+        costEstimate.setLocalCost(localCost);
+        costEstimate.setRemoteCost(remoteCost);
+        costEstimate.setRowCount(outputRows);
+        costEstimate.setEstimatedHeapSize((long)heapSize);
+        costEstimate.setNumPartitions(partitions);
+
 
 		/*
 		** Get the cost of this result set in the context of the whole plan.
 		*/
-        getCurrentAccessPath().getJoinStrategy().estimateCost(this, predList, null, outerCost, optimizer, costEstimate);
+//        getCurrentAccessPath().getJoinStrategy().estimateCost(this, predList, null, outerCost, optimizer, costEstimate);
 
         optimizer.considerCost(this,predList,costEstimate,outerCost);
 
@@ -397,6 +433,7 @@ public class UnionNode extends SetOperatorNode{
                     orderByList,
                     tableProperties,
                     getContextManager());
+            getCostEstimate().setRowOrdering(treeTop.getCostEstimate().getRowOrdering());
         }
 
 
