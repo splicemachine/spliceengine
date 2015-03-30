@@ -845,7 +845,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(BackupItem.RegionInfo.class, EXTERNALIZABLE_SERIALIZER,227);
         instance.register(Pair.class, 228);
         instance.register(CreateFkTask.class, EXTERNALIZABLE_SERIALIZER,229);
-        instance.register(CreateIncrementalBackupTask.class, EXTERNALIZABLE_SERIALIZER,230);
         instance.register(StatisticsTask.class, EXTERNALIZABLE_SERIALIZER,230);
 
         //statistics
@@ -864,5 +863,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(TimeStats.class,EXTERNALIZABLE_SERIALIZER,243);
         instance.register(DateStatistics.class,EXTERNALIZABLE_SERIALIZER,244);
         instance.register(ColumnStatisticsMerge.class,EXTERNALIZABLE_SERIALIZER,245);
+        instance.register(CreateIncrementalBackupTask.class, EXTERNALIZABLE_SERIALIZER,246);
     }
 }

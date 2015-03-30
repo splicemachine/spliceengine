@@ -336,11 +336,9 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
         for (int i = 0; i < columnCount; i++)
             cdl.add(cdlArray[i]);
     }
-    private void createUserTable (TabInfoImpl					ti,
-                                  SchemaDescriptor			sd,
-                                  TransactionController 		tc )
-            throws StandardException
-    {
+    private void createUserTable (TabInfoImpl ti,
+                                  SchemaDescriptor	sd,
+                                  TransactionController tc) throws StandardException {
         DataDescriptorGenerator ddg = getDataDescriptorGenerator();
 
         Properties	heapProperties = ti.getCreateHeapProperties();
@@ -420,7 +418,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl {
         //create SYSPRIMARYKEYS
         makeCatalog(getPkTable(), getSystemSchemaDescriptor(), tc);
 
-        createFujiTables(tc);
+        createXplainTables(tc);
         createLassenTables(tc);
 
         //create the Statistics tables

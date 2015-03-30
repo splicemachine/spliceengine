@@ -49,7 +49,7 @@ public class ForeignKey_Concurrent_IT {
                 .create();
     }
 
-    @Test
+    @Test(timeout=10000)
     public void concurrentTransactions_insertFirst() throws Exception {
         Connection connection1 = newNoAutoCommitConnection();
         Connection connection2 = newNoAutoCommitConnection();
@@ -73,7 +73,7 @@ public class ForeignKey_Concurrent_IT {
         assertEquals(1L, methodWatcher.query("select count(*) from C where a=1"));
     }
 
-    @Test
+    @Test(timeout=10000)
     public void concurrentTransactions_deleteFirst() throws Exception {
         Connection connection1 = newNoAutoCommitConnection();
         Connection connection2 = newNoAutoCommitConnection();
@@ -112,7 +112,7 @@ public class ForeignKey_Concurrent_IT {
      * <li>Multiple child threads inserting references to the same parent do NOT conflict with each other</li>
      * </ul>
      */
-    @Test
+    @Test(timeout =10000)
     public void largerNumberOfConcurrentThreads() throws Exception {
         final int THREADS = 8;
         final int CHILD_ROWS_PER_THREAD = 5;
