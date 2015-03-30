@@ -8,6 +8,10 @@ import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.ForwardingLifecycleManager;
 import com.splicemachine.si.impl.ReadOnlyTxn;
 import com.splicemachine.si.impl.WriteConflict;
+import com.splicemachine.si.testsetup.LStoreSetup;
+import com.splicemachine.si.testsetup.StoreSetup;
+import com.splicemachine.si.testsetup.TestTransactionSetup;
+import com.splicemachine.si.testsetup.TransactorTestUtility;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.junit.*;
@@ -33,6 +37,7 @@ import java.util.List;
  */
 public class TransactionInteractionTest {
     public static final byte[] DESTINATION_TABLE = Bytes.toBytes("1184");
+
     boolean useSimple = true;
     static StoreSetup storeSetup;
     static TestTransactionSetup transactorSetup;
@@ -50,7 +55,7 @@ public class TransactionInteractionTest {
                 createdParentTxns.add(txn);
             }
         };
-        testUtility = new TransactorTestUtility(useSimple,storeSetup,transactorSetup,transactor,control);
+        testUtility = new TransactorTestUtility(useSimple,storeSetup,transactorSetup);
     }
 
     @BeforeClass

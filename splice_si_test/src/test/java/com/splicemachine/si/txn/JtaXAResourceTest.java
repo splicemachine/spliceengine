@@ -1,19 +1,17 @@
 package com.splicemachine.si.txn;
 
-import com.splicemachine.si.LStoreSetup;
-import com.splicemachine.si.StoreSetup;
-import com.splicemachine.si.TestTransactionSetup;
+import com.splicemachine.si.testsetup.LStoreSetup;
+import com.splicemachine.si.testsetup.StoreSetup;
+import com.splicemachine.si.testsetup.TestTransactionSetup;
 import com.splicemachine.si.api.Transactor;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.junit.AfterClass;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.Test;
+import org.junit.*;
 
 import javax.transaction.xa.XAException;
 import javax.transaction.xa.Xid;
 import java.io.IOException;
 
+@Ignore("was not run by suites")
 public class JtaXAResourceTest {
     protected static Transactor transactor;
 

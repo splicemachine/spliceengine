@@ -22,6 +22,7 @@ import com.splicemachine.derby.utils.ErrorReporter;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.SpliceMetrics;
+import com.splicemachine.hbase.backup.BackupHFileCleaner;
 import com.splicemachine.job.*;
 import com.splicemachine.pipeline.api.Service;
 import com.splicemachine.pipeline.impl.WriteCoordinator;
@@ -45,11 +46,14 @@ import com.splicemachine.db.drda.NetworkServerControl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.HColumnDescriptor;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.PleaseHoldException;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.master.cleaner.HFileCleaner;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionCoprocessorHost;
 import org.apache.hadoop.hbase.regionserver.RegionServerServices;
@@ -57,13 +61,12 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import javax.management.*;
+
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
 import java.sql.Connection;
-import java.util.List;
-import java.util.Properties;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.ExecutorService;
@@ -155,8 +158,22 @@ public class SpliceDriver {
         System.setProperty(Property.SPLICE_VERSION_HASH, spliceVersion.getImplementationVersion());
         System.setProperty(Property.SPLICE_BUILD_TIME, spliceVersion.getBuildTime());
         System.setProperty(Property.SPLICE_URL, spliceVersion.getURL());
+        setBackupHFileCleaner();
     }
 
+    private void setBackupHFileCleaner() {
+        Configuration c = SpliceConstants.config;
+        Set<String> hfileCleaners = new HashSet<String>();
+        String[] cleaners = c.getStrings(HFileCleaner.MASTER_HFILE_CLEANER_PLUGINS);
+
+        if (cleaners != null) {
+            Collections.addAll(hfileCleaners, cleaners);
+        }
+
+        hfileCleaners.add(BackupHFileCleaner.class.getName());
+        c.setStrings(HFileCleaner.MASTER_HFILE_CLEANER_PLUGINS,
+                hfileCleaners.toArray(new String[hfileCleaners.size()]));
+    }
     public XplainTaskReporter getTaskReporter() {
         return taskReporter;
     }
@@ -219,7 +236,7 @@ public class SpliceDriver {
     }
 
     private HRegion getOnlineRegion(String encodedRegionName) {
-        return regionServerServices.getFromOnlineRegions(encodedRegionName);
+        return regionServerServices == null ? null : regionServerServices.getFromOnlineRegions(encodedRegionName);
     }
 
     private RegionCoprocessorHost getCoprocessorHost(String encodedRegionName) {
@@ -376,7 +393,7 @@ public class SpliceDriver {
                 new SpliceAccessManager();
                 // Since SPLICE_SEQUENCES table is set up, initialize the UUID generator, so the new Derby connection below
                 // can execute an upgrade process if requested and create and store new system objects in the data dictionary tables.
-                loadUUIDGenerator();
+                loadUUIDGenerator(SpliceConstants.config.getInt(HConstants.REGIONSERVER_PORT, 60020));
 
                 // Create an embedded connection to Derby.  This essentially boots up Derby by creating an internal connection to it.
                 // External connections to Derby are created later when the Derby network server is started.
@@ -503,8 +520,8 @@ public class SpliceDriver {
         return snowflake;
     }
 
-    public void loadUUIDGenerator() throws IOException {
-        snowflake = snowLoader.load();
+    public void loadUUIDGenerator(int port) throws IOException {
+        snowflake = snowLoader.load(port);
     }
 
     public MetricsRegistry getRegistry() {

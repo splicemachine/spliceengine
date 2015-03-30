@@ -77,8 +77,9 @@ public class RestoreBackupTask extends ZkTask {
                 return;
             }
             List<Pair<byte[], String>> famPaths = regionInfo.getFamPaths();
-            List<Pair<byte[], String>> copyPaths = copyStoreFiles(famPaths);
-            derbyFactory.bulkLoadHFiles(region, copyPaths);
+            //List<Pair<byte[], String>> copyPaths = copyStoreFiles(famPaths);
+            //derbyFactory.bulkLoadHFiles(region, copyPaths);
+            derbyFactory.bulkLoadHFiles(region, famPaths);
         } catch (IOException e) {
             SpliceLogUtils.error(LOG, "Couldn't recover region " + region, e);
             throw new ExecutionException("Failed recovery of region " + region, e);

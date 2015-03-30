@@ -4,11 +4,14 @@ import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.api.*;
 import com.splicemachine.si.coprocessors.SIObserver;
 import com.splicemachine.si.data.api.IHTable;
+import com.splicemachine.si.data.api.SRowLock;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
 import com.splicemachine.si.data.hbase.HbRegion;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.ByteSlice;
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
@@ -16,6 +19,9 @@ import org.apache.hadoop.hbase.regionserver.OperationStatus;
 
 import java.io.IOException;
 import java.util.Collection;
+
+import static com.splicemachine.constants.SpliceConstants.DEFAULT_FAMILY_BYTES;
+import static com.splicemachine.constants.SpliceConstants.PACKED_COLUMN_BYTES;
 
 /**
  * Base implementation of a TransactionalRegion
@@ -71,15 +77,15 @@ public class TxnRegion implements TransactionalRegion {
         return new SICompactionState(dataStore, txnSupplier, rollForward);
     }
 
-		@Override
-		public boolean rowInRange(byte[] row) {
-				return HRegion.rowIsInRange(region.getRegionInfo(),row);
-		}
+    @Override
+    public boolean rowInRange(byte[] row) {
+        return HRegion.rowIsInRange(region.getRegionInfo(), row);
+    }
 
-		@Override
-		public boolean rowInRange(ByteSlice slice) {
-				return HRegionUtil.containsRow(region.getRegionInfo(),slice.array(),slice.offset(),slice.length());
-		}
+    @Override
+    public boolean rowInRange(ByteSlice slice) {
+        return HRegionUtil.containsRow(region.getRegionInfo(), slice.array(), slice.offset(), slice.length());
+    }
 
     @Override
     public boolean isClosed() {
@@ -116,6 +122,25 @@ public class TxnRegion implements TransactionalRegion {
             return transactor.processKvBatch(hbRegion, rollForward, txn, family, qualifier, data, constraintChecker);
         else
             return hbRegion.batchMutate(data, txn);
+    }
+
+    @Override
+    public boolean verifyForeignKeyReferenceExists(TxnView txnView, byte[] rowKey) throws IOException {
+        SRowLock rowLock = null;
+        try {
+            rowLock = (SRowLock) hbRegion.getLock(rowKey, true);
+            Get get = TransactionOperations.getOperationFactory().newGet(txnView, rowKey);
+            get.addColumn(DEFAULT_FAMILY_BYTES, PACKED_COLUMN_BYTES);
+            Result result = hbRegion.get(get);
+            if (!result.isEmpty()) {
+                // Referenced row DOES exist in parent.
+                transactor.updateCounterColumn(hbRegion, txnView, rowLock, rowKey);
+                return true;
+            }
+        } finally {
+            hbRegion.unLockRow(rowLock);
+        }
+        return false;
     }
 
     @Override

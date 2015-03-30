@@ -122,7 +122,8 @@ service SpliceSchedulerService {
 }
 
 service SpliceDerbyCoprocessorService {
-
+	rpc computeSplits(SpliceSplitServiceRequest)
+		returns (SpliceSplitServiceResponse);
 }
 
 message SpliceSplitServiceRequest {
@@ -134,8 +135,3 @@ message SpliceSplitServiceResponse {
     repeated bytes cutPoint = 1;
 }
 
-
-service SpliceSplitService {
-	rpc computSplits(SpliceSplitServiceRequest)
-		returns (SpliceSplitServiceResponse);
-}

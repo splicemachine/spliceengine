@@ -1,6 +1,7 @@
 package com.splicemachine.si;
 
-import org.junit.AfterClass;
+import com.splicemachine.si.testsetup.SharedStoreHolder;
+import com.splicemachine.si.testsetup.TestTransactionSetup;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -16,28 +17,15 @@ public class SITransactorHBasePackedTest extends SITransactorTest {
     @Override
     @Before
     public void setUp() throws IOException {
-        this.storeSetup = HBaseSuite.classStoreSetup;
-        this.transactorSetup = new TestTransactionSetup(storeSetup,false);
+        storeSetup = SharedStoreHolder.getHstoreSetup();
+        transactorSetup = new TestTransactionSetup(storeSetup, false);
         baseSetUp();
     }
-		private static boolean selfManaged = false;
 
-		@BeforeClass
-		public static void setUpClass() throws Exception {
-				if(HBaseSuite.classStoreSetup==null){
-						System.out.printf("[%s]Not running in Suite, Setting up HBase myself%n",SITransactorHBasePackedTest.class.getSimpleName());
-						HBaseSuite.setUp();
-						selfManaged = true;
-				}
-		}
+    @BeforeClass
+    public static void setUpClass() throws Exception {
 
-		@AfterClass
-		public static void tearDownClass() throws Exception {
-				if(selfManaged){
-						System.out.printf("[%s]Tearing down HBase%n",SITransactorHBasePackedTest.class.getSimpleName());
-						HBaseSuite.tearDownClass();
-				}
-		}
+    }
 
     @Test
     public void writeReadViaFilterResult() throws IOException {
@@ -53,10 +41,10 @@ public class SITransactorHBasePackedTest extends SITransactorTest {
     public void writeScanWithFilter() throws IOException {
         // temporarily mask test in parent class
     }
-    
+
     @Test
     public void writeWriteRead() throws IOException {
-    	super.writeWriteRead();
+        super.writeWriteRead();
     }
 
     @Override

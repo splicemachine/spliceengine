@@ -7,6 +7,7 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.*;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorTaskScheduler;
+import com.splicemachine.hbase.backup.BackupHFileCleaner;
 import com.splicemachine.si.coprocessors.SIObserver;
 import com.splicemachine.si.coprocessors.TimestampMasterObserver;
 import com.splicemachine.si.coprocessors.TxnLifecycleEndpoint;
@@ -14,6 +15,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.io.hfile.CacheConfig;
+import org.apache.hadoop.hbase.master.cleaner.TimeToLiveHFileCleaner;
 
 import java.util.List;
 
@@ -40,6 +42,9 @@ class SpliceTestPlatformConfig {
             SpliceMasterObserver.class,
             TimestampMasterObserver.class);
 
+    private static final List<Class<?>> HFILE_CLEANERS = ImmutableList.<Class<?>>of(
+            BackupHFileCleaner.class,
+            TimeToLiveHFileCleaner.class);
 
     /*
      * Create an HBase config object suitable for use in our test platform.
@@ -129,7 +134,8 @@ class SpliceTestPlatformConfig {
         config.setFloat("hfile.block.cache.size", 0.25f); // set block cache to 25% of heap
         config.setFloat("io.hfile.bloom.error.rate", (float) 0.005);
         config.setBoolean(CacheConfig.CACHE_BLOOM_BLOCKS_ON_WRITE_KEY, true); // hfile.block.bloom.cacheonwrite
-
+        //config.set("hbase.master.hfilecleaner.plugins", getHFileCleanerAsString());
+        config.set("hbase.master.hfilecleaner.plugins", getHFileCleanerAsString());
         //
         // Misc
         //
@@ -141,7 +147,11 @@ class SpliceTestPlatformConfig {
         //
 
         config.setLong("splice.ddl.drainingWait.maximum", SECONDS.toMillis(15)); // wait 15 seconds before bailing on bad ddl statements
-
+        //
+        // Snapshots
+        //
+        config.setBoolean("hbase.snapshot.enabled", true);
+        
         config.setDouble(SpliceConstants.DEBUG_TASK_FAILURE_RATE, 0.05d);
         config.setBoolean(SpliceConstants.DEBUG_FAIL_TASKS_RANDOMLY, failTasksRandomly);
 
@@ -170,4 +180,7 @@ class SpliceTestPlatformConfig {
         return Joiner.on(",").join(transform(MASTER_COPROCESSORS, CLASS_NAME_FUNC));
     }
 
+    private static String getHFileCleanerAsString() {
+        return Joiner.on(",").join(transform(HFILE_CLEANERS, CLASS_NAME_FUNC));
+    }
 }

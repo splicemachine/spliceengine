@@ -7,15 +7,10 @@ import java.lang.Override;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.NavigableSet;
-import java.util.SortedSet;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicReference;
 
+import com.splicemachine.derby.impl.job.scheduler.SubregionSplitter;
 import com.splicemachine.derby.impl.sql.execute.operations.SparkUtilsImpl;
 
 import javax.management.MBeanServerConnection;
@@ -48,11 +43,6 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.*;
-
-import com.splicemachine.mrio.api.MemStoreFlushAwareScanner;
-import com.splicemachine.mrio.api.MemstoreAware;
-import com.splicemachine.mrio.api.SpliceRegionScanner;
-
 import org.apache.hadoop.hbase.HServerLoad.RegionLoad;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HConnection;
@@ -64,14 +54,10 @@ import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.ipc.HBaseServer;
 import org.apache.hadoop.hbase.ipc.RpcCallContext;
 import org.apache.hadoop.hbase.master.MasterServices;
-import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.regionserver.InternalScanner;
-import org.apache.hadoop.hbase.regionserver.KeyValueScanner;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
-import org.apache.hadoop.hbase.regionserver.RegionServerServices;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.Store.*;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
@@ -93,7 +79,10 @@ import com.splicemachine.hase.debug.HBaseEntryPredicateFilter;
 import com.splicemachine.hbase.HBaseRegionLoads;
 import com.splicemachine.hbase.ThrowIfDisconnected;
 import com.splicemachine.hbase.jmx.JMXUtils;
-import com.splicemachine.mrio.api.SplitRegionScanner;
+import com.splicemachine.mrio.api.core.MemStoreFlushAwareScanner;
+import com.splicemachine.mrio.api.core.MemstoreAware;
+import com.splicemachine.mrio.api.core.SpliceRegionScanner;
+import com.splicemachine.mrio.api.core.SplitRegionScanner;
 import com.splicemachine.pipeline.api.BulkWritesInvoker.Factory;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.pipeline.impl.BulkWritesRPCInvoker;
@@ -573,4 +562,15 @@ public class DerbyFactoryImpl implements DerbyFactory<SparseTxn> {
 			return new MemStoreFlushAwareScanner(region,store,scanInfo,scan,columns,readPt,memstoreAware,initialValue);
 		}
 
+    @Override
+    public SubregionSplitter getSubregionSplitter() {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public Path getTableDir(HRegion region) throws IOException {
+        Path rootDir = FSUtils.getRootDir(SpliceConstants.config);
+        Path tableDir = HTableDescriptor.getTableDir(rootDir, region.getTableDesc().getName());
+        return tableDir;
+    }
 }

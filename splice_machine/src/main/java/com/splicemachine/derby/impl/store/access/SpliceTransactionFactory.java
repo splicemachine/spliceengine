@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.store.access;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.store.access.base.SpliceLocalFileResource;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnLifecycleManager;
@@ -224,7 +225,7 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 				lockFactory.boot(create, properties);
         storageFactory = new DirStorageFactory4();
         try {
-            storageFactory.init(null, "splicedb", null, null);  // Grumble, grumble, ... not a big fan of hard coding "splicedb" as the dbname.
+            storageFactory.init(null, SpliceConstants.SPLICE_DB, null, null);
         } catch (IOException ioe) {
             throw StandardException.newException(
                     SQLState.FILE_UNEXPECTED_EXCEPTION, ioe);

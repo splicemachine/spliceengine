@@ -1,6 +1,7 @@
 package com.splicemachine.pipeline.writehandler.foreignkey;
 
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.Code;
@@ -8,13 +9,7 @@ import com.splicemachine.pipeline.api.WriteContext;
 import com.splicemachine.pipeline.api.WriteHandler;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
 import com.splicemachine.pipeline.impl.WriteResult;
-import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.TransactionalRegion;
-import com.splicemachine.si.api.TxnOperationFactory;
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 
 import java.io.IOException;
 import java.util.List;
@@ -25,19 +20,15 @@ import java.util.List;
  */
 public class ForeignKeyParentCheckWriteHandler implements WriteHandler {
 
-    private final TransactionalRegion region;
-    private final TxnOperationFactory txnOperationFactory;
-    private final RegionCoprocessorEnvironment env;
+    private final TransactionalRegion transactionalRegion;
 
     /* FormatIds of just the FK columns. */
     private final int formatIds[];
     private final MultiFieldDecoder multiFieldDecoder;
 
-    public ForeignKeyParentCheckWriteHandler(TransactionalRegion region, RegionCoprocessorEnvironment env, int[] formatIds) {
-        this.region = region;
-        this.env = env;
+    public ForeignKeyParentCheckWriteHandler(TransactionalRegion transactionalRegion, int[] formatIds) {
+        this.transactionalRegion = transactionalRegion;
         this.formatIds = formatIds;
-        this.txnOperationFactory = TransactionOperations.getOperationFactory();
         this.multiFieldDecoder = MultiFieldDecoder.create();
     }
 
@@ -48,36 +39,36 @@ public class ForeignKeyParentCheckWriteHandler implements WriteHandler {
     public void next(KVPair kvPair, WriteContext ctx) {
         // I only do foreign key checks.
         if (kvPair.getType() == KVPair.Type.FOREIGN_KEY_PARENT_EXISTENCE_CHECK) {
-            if (!region.rowInRange(kvPair.getRowKey())) {
-                // The row would not longer be in this region, if it did/does exist.
-                ctx.failed(kvPair, WriteResult.wrongRegion());
-            } else {
-                try {
-                    byte[] targetRowKey = getCheckRowKey(kvPair.getRowKey());
-                    // targetRowKey == null means that the referencing row contained at least one null, in which
-                    // case FK rules say it can never be a violation, the insert/update is allowed.
-                    if (targetRowKey != null) {
-
-                        Get get = txnOperationFactory.newGet(ctx.getTxn(), targetRowKey);
-                        Result result = env.getRegion().get(get);
-                        if (result.isEmpty()) {
-                            // ConstraintContext will be replaced later where we have child table name, etc.
-                            String failedKvAsHex = BytesUtil.toHex(kvPair.getRowKey());
-                            ConstraintContext context = new ConstraintContext(failedKvAsHex);
-                            WriteResult foreignKeyConstraint = new WriteResult(Code.FOREIGN_KEY_VIOLATION, context);
-                            ctx.failed(kvPair, foreignKeyConstraint);
-                        } else {
-                            ctx.success(kvPair);
-                        }
-                    } else {
-                        ctx.success(kvPair);
-                    }
-                } catch (IOException e) {
-                    throw new IllegalStateException(e);
-                }
+            try {
+                doCheck(kvPair, ctx);
+            } catch (IOException e) {
+                failWrite(kvPair, ctx);
             }
         }
         ctx.sendUpstream(kvPair);
+    }
+
+    private void doCheck(KVPair kvPair, WriteContext ctx) throws IOException {
+        byte[] targetRowKey = getCheckRowKey(kvPair.getRowKey());
+        // targetRowKey == null means that the referencing row contained at least one null, in which
+        // case FK rules say it can never be a violation, the insert/update is allowed.
+        if (targetRowKey == null) {
+            ctx.success(kvPair);
+            return;
+        }
+
+        if (transactionalRegion.verifyForeignKeyReferenceExists(ctx.getTxn(), targetRowKey)) {
+            ctx.success(kvPair);
+        } else {
+            failWrite(kvPair, ctx);
+        }
+    }
+
+    private void failWrite(KVPair kvPair, WriteContext ctx) {
+        String failedKvAsHex = BytesUtil.toHex(kvPair.getRowKey());
+        ConstraintContext context = new ConstraintContext(failedKvAsHex);
+        WriteResult foreignKeyConstraint = new WriteResult(Code.FOREIGN_KEY_VIOLATION, context);
+        ctx.failed(kvPair, foreignKeyConstraint);
     }
 
     @Override

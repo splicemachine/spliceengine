@@ -21,6 +21,7 @@ import java.io.IOException;
  */
 public class DeleteOperation extends DMLWriteOperation {
 	private static final Logger LOG = Logger.getLogger(DeleteOperation.class);
+    private static final FixedDataHash EMPTY_VALUES_ENCODER = new FixedDataHash(new byte[]{});
 	protected  boolean cascadeDelete;
     protected static final String NAME = DeleteOperation.class.getSimpleName().replaceAll("Operation","");
 
@@ -28,19 +29,19 @@ public class DeleteOperation extends DMLWriteOperation {
 	public String getName() {
 			return NAME;
 	}
-	
+
 	public DeleteOperation(){
 		super();
 	}
 
 	public DeleteOperation(SpliceOperation source, Activation activation) throws StandardException {
 		super(source, activation);
-		recordConstructorTime(); 
+		recordConstructorTime();
 	}
 
 	public DeleteOperation(SpliceOperation source, ConstantAction passedInConstantAction, Activation activation) throws StandardException {
 		super(source, activation);
-		recordConstructorTime(); 
+		recordConstructorTime();
 	}
 
 	@Override
@@ -76,7 +77,7 @@ public class DeleteOperation extends DMLWriteOperation {
 
 		@Override
 		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-				return new FixedDataHash(new byte[]{});
+            return EMPTY_VALUES_ENCODER;
 		}
 
 		@Override

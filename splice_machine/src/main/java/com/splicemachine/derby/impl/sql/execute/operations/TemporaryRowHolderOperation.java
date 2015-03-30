@@ -1189,7 +1189,7 @@ public class TemporaryRowHolderOperation implements CursorResultSet, NoPutResult
 
 		@return true iff this row source expects some row location to be
 		returned 
-		@see #rowLocation
+		@see #currentLocation
 	 */
 	public boolean needsRowLocation()
 	{

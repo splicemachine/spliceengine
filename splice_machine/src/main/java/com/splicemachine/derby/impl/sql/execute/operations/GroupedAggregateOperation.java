@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.db.impl.sql.execute.IndexValueRow;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
@@ -170,8 +171,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 
     @Override
     public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws
-                                                                                                                                                             StandardException,
-                                                                                                                                                             IOException {
+                                                                                                                                                             StandardException,                                                                                                                                         IOException {
         buildReduceScan();
         if (top != this && top instanceof SinkingOperation) {
             SpliceUtils.setInstructions(reduceScan, activation, top, spliceRuntimeContext);
@@ -214,13 +214,19 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
     protected JobResults doShuffle(SpliceRuntimeContext runtimeContext) throws
                                                                         StandardException,
                                                                         IOException {
-        long start = System.currentTimeMillis();
-        final RowProvider rowProvider = source.getMapRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext), runtimeContext);
-        nextTime += System.currentTimeMillis() - start;
-        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(), this, runtimeContext);
-        JobResults jobResults = rowProvider.shuffleRows(soi, OperationUtils.cleanupSubTasks(this));
-        usedTempBuckets = getUsedTempBuckets(jobResults);
-        return jobResults;
+        RowProvider rowProvider = null;
+        try {
+            long start = System.currentTimeMillis();
+            rowProvider = source.getMapRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext), runtimeContext);
+            nextTime += System.currentTimeMillis() - start;
+            SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(), this, runtimeContext);
+            JobResults jobResults = rowProvider.shuffleRows(soi, OperationUtils.cleanupSubTasks(this));
+            usedTempBuckets = getUsedTempBuckets(jobResults);
+            return jobResults;
+        } finally {
+            if (rowProvider != null)
+                rowProvider.close();
+        }
     }
 
     @Override
@@ -407,13 +413,13 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 						int[] groupingKeys = groupedAggregateContext.getGroupingKeys();
 						boolean[] groupingKeyOrder = groupedAggregateContext.getGroupingKeyOrder();
 
-            StandardIterator<ExecRow> sourceIterator = getSourceIterator(spliceRuntimeContext,groupingKeys);
+                        StandardIterator<ExecRow> sourceIterator = getSourceIterator(spliceRuntimeContext,groupingKeys);
 						DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(sourceExecIndexRow);
 						KeyEncoder encoder = new KeyEncoder(NoOpPrefix.INSTANCE,BareKeyHash.encoder(groupingKeys,groupingKeyOrder,serializers),NoOpPostfix.INSTANCE);
 						aggregator = new ScanGroupedAggregateIterator(buffer,sourceIterator,encoder,groupingKeys,false);
 						aggregator.open();
 						timer = spliceRuntimeContext.newTimer();
-				}
+		}
                 timer.startTiming();
 				boolean shouldClose = true;
 				try{
@@ -609,7 +615,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         public ExecRow call(ExecRow row) throws Exception {
             if (!(row instanceof ExecIndexRow)) {
                 op.sourceExecIndexRow.execRowToExecIndexRow(row);
-                row = (ExecIndexRow) op.sourceExecIndexRow.getClone();
+                row = new IndexValueRow(row);
             }
             if (!op.isInitialized(row)) {
                 op.initializeVectorAggregation(row);
@@ -636,14 +642,13 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                 RDDUtils.LOG.debug(String.format("Reducing %s and %s", t1, t2));
             }
             if (!(t1 instanceof ExecIndexRow)) {
-                op.sourceExecIndexRow.execRowToExecIndexRow(t1);
-                t1 = (ExecIndexRow) op.sourceExecIndexRow.getClone();
+                t1 = new IndexValueRow(t1);
             }
             if (!op.isInitialized(t1)) {
                 op.initializeVectorAggregation(t1);
             }
             aggregate(t2, (ExecIndexRow) t1);
-            return t1.getClone();
+            return t1;
         }
 
         private void aggregate(ExecRow next, ExecIndexRow agg) throws StandardException {
@@ -655,8 +660,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                     aggregate.merge(next, agg);
                 }
             } else {
-                op.sourceExecIndexRow.execRowToExecIndexRow(next);
-                next = op.sourceExecIndexRow.getClone();
+                next = new IndexValueRow(next);
                 if (RDDUtils.LOG.isDebugEnabled()) {
                     RDDUtils.LOG.debug(String.format("Aggregating %s to %s", next, agg));
                 }

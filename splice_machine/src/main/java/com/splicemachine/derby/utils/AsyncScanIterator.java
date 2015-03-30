@@ -47,6 +47,8 @@ public class AsyncScanIterator implements StandardIterator<ExecRow> {
     @Override
     public void close() throws StandardException, IOException {
         scanner.close();
+        if (rowDecoder != null)
+            rowDecoder.close();
     }
 
     public static StandardIterator<ExecRow> create(final byte[] tableName, Scan baseScan,

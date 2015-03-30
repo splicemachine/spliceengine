@@ -215,9 +215,9 @@
 								<option>-keep public class com.splicemachine.hbase.AbstractSkippingScanFilter { public *; }</option>
 								<option>-keep public class com.splicemachine.hbase.BaseReadAheadRegionScanner { public *; }</option>
 								<option>-keep public class com.splicemachine.hbase.RegionScanIterator* { public *; }</option>
-								<option>-keep public class com.splicemachine.si.LStoreSetup { public *; }</option>
+								<option>-keep public class com.splicemachine.si.testsetup.LStoreSetup { public *; }</option>
 								<option>-keep public class com.splicemachine.si.LStoreTest { public *; }</option>
-								<option>-keep public class com.splicemachine.si.TestTransactionSetup { public *; }</option>
+								<option>-keep public class com.splicemachine.si.testsetup.TestTransactionSetup { public *; }</option>
 								<option>-keep public class com.splicemachine.si.api.Clock { public *; }</option>
 								<option>-keep public class com.splicemachine.si.api.RollForwardQueue { public *; }</option>
 								<option>-keep public class com.splicemachine.si.api.RowAccumulator { public *; }</option>

@@ -7,9 +7,12 @@ import java.net.URI;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.io.HFileLink;
+import org.apache.hadoop.hbase.util.FSUtils;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.DerbyFactory;
@@ -94,55 +97,81 @@ public class CreateBackupTask extends ZkTask {
     @Override
     public void doExecute() throws ExecutionException, InterruptedException {
         if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, 
-            		String.format("executing %S backup on region %s",
-            				backupItem.getBackup().isIncrementalBackup()?"incremental":"full", region.toString()));
+            SpliceLogUtils.trace(LOG, String.format("executing %S backup on region %s",backupItem.getBackup().isIncrementalBackup()?"incremental":"full", region.toString()));
         try {
-
-            if(backupItem.getBackup().isIncrementalBackup()){
-            	doIncrementalBackup();
-            } else{
-            	doFullBackup();
-            }
-        	writeRegioninfoOnFilesystem();
-
+            writeRegionInfoOnFilesystem();
+            doFullBackup();
         } catch (IOException e) {
             throw new ExecutionException(e);
         }
-        
-        // TODO: insert backup item
     }
 
-    private void writeRegioninfoOnFilesystem() throws IOException
+    private void writeRegionInfoOnFilesystem() throws IOException
     {
     	DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
         FileSystem fs = FileSystem.get(URI.create(backupFileSystem), SpliceConstants.config);
 
-    	derbyFactory.writeRegioninfoOnFilesystem(region.getRegionInfo(), 
-        		new Path(backupItem.getBackupItemFilesystem()+"/"+derbyFactory.getRegionDir(region).getName()+
-        				"/"+BackupUtils.REGION_INFO), fs, SpliceConstants.config);
+        BackupUtils.derbyFactory.writeRegioninfoOnFilesystem(region.getRegionInfo(),
+                new Path(backupFileSystem), fs, SpliceConstants.config);
     }
     
     private void doFullBackup() throws IOException
     {
     	SnapshotUtils utils = SnapshotUtilsFactory.snapshotUtils;
-    	List<Path> files = utils.getFilesForFullBackup(getSnapshotName(), region);
+    	// TODO
+    	// Make sure that backup directory structure is
+    	// backupId/namespace/table/region/cf
+    	// files can be HFile links or real paths to a 
+    	// materialized references
+    	List<Object> files = utils.getFilesForFullBackup(getSnapshotName(), region);
     	String backupDirectory = backupItem.getBackupItemFilesystem();
     	String name = region.getRegionNameAsString();
     	FileSystem backupFs = FileSystem.get(URI.create(backupFileSystem), SpliceConstants.config);
-    	for(Path file: files){
+    	for(Object file: files){
             FileSystem fs = region.getFilesystem();
+            String[] s = file.toString().split("/");
+            int n = s.length;
+            String fileName = s[n - 1];
+            String familyName = s[n - 2];
+            String regionName = s[n - 3];
+            Path destPath = new Path(backupFileSystem + "/" + regionName + "/" + familyName + "/" + fileName);
+            copyFile(fs, file, backupFs,  destPath, false, SpliceConstants.config);
+            //FileUtil.copy(fs, file, backupFs, destPath, false, SpliceConstants.config);
             // TODO dst path?
-	    	FileUtil.copy(fs, file, backupFs,  new Path(backupDirectory+"/"+name), false, SpliceConstants.config);
+	    	//copyFile(fs, file, backupFs,  new Path(backupDirectory+"/"+name), false, SpliceConstants.config);
+	    	if(isTempFile(file)){
+	    		deleteFile(fs, file, false);
+	    	}
     	}
     }
     
+    private void deleteFile(FileSystem fs, Object file, boolean b) throws IOException {
+		fs.delete((Path) file, b);
+	}
 
-    
-	private void doIncrementalBackup()
-    {
-    	// TODO
-    }
+	private void copyFile(FileSystem srcFS, Object file, FileSystem dstFS,
+			Path dst, boolean deleteSource, Configuration conf) throws IOException 
+	{
+		if(file instanceof Path){
+			Path src = (Path) file;
+			FileUtil.copy(srcFS, src, dstFS, dst, deleteSource,  conf);
+		} else{
+			// Copy HFileLink
+			// TODO: make it more robust
+			Path src = ((HFileLink) file).getAvailablePath(srcFS);
+			FileUtil.copy(srcFS, src, dstFS, dst, deleteSource,  conf);
+		}
+	}
+
+	/**
+     * TODO: do we to delete tmp files (materialized from refs)?    
+     * @param file
+     * @return true if temporary file
+     */
+	private boolean isTempFile(Object file) {
+		
+		return file instanceof Path;
+	}
     
     private String getSnapshotName()
     {
@@ -153,5 +182,6 @@ public class CreateBackupTask extends ZkTask {
     public int getPriority() {
         return SchedulerPriorities.INSTANCE.getBasePriority(CreateBackupTask.class);
     }
+
 }
 

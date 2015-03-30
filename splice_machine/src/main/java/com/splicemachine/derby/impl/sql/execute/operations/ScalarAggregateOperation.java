@@ -145,16 +145,25 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 		@Override
 		public void close() throws StandardException, IOException {
 			super.close();
-            if (source != null) source.close();
+            if (source != null)
+                source.close();
+            if (scanAggregator!=null)
+                scanAggregator.close();
 		}
 
 		@Override
 		protected JobResults doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException, IOException {
-				long start = System.currentTimeMillis();
-				final RowProvider rowProvider = source.getMapRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext), runtimeContext);
-				nextTime+= System.currentTimeMillis()-start;
-				SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(),this,runtimeContext);
-				return rowProvider.shuffleRows(soi,OperationUtils.cleanupSubTasks(this));
+                RowProvider rowProvider = null;
+                try {
+                    long start = System.currentTimeMillis();
+                    rowProvider = source.getMapRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext), runtimeContext);
+                    nextTime += System.currentTimeMillis() - start;
+                    SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(), this, runtimeContext);
+                    return rowProvider.shuffleRows(soi, OperationUtils.cleanupSubTasks(this));
+                } finally {
+                    if (rowProvider!=null)
+                        rowProvider.close();
+                }
 		}
 
 		@Override
@@ -185,9 +194,8 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
                     return finish;
                 }
             } finally {
-                if (region != null) {
+                if (region != null)
                     region.closeRegionOperation();
-                }
             }
             timer.stopTiming();
             stopExecutionTime = System.currentTimeMillis();
@@ -386,4 +394,6 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
         }
 
     }
+
+
 }

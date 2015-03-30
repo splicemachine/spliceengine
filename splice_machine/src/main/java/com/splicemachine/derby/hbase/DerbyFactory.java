@@ -18,6 +18,7 @@ import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 
+import com.splicemachine.derby.impl.job.scheduler.SubregionSplitter;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -30,11 +31,6 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.master.MasterServices;
-import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.regionserver.InternalScanner;
-import org.apache.hadoop.hbase.regionserver.KeyValueScanner;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
-import org.apache.hadoop.hbase.regionserver.RegionServerServices;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.Store.*;
 import org.apache.hadoop.hbase.util.Pair;
@@ -47,8 +43,8 @@ import com.splicemachine.pipeline.api.BulkWritesInvoker;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceZooKeeperManager;
-import com.splicemachine.mrio.api.MemstoreAware;
-import com.splicemachine.mrio.api.SpliceRegionScanner;
+import com.splicemachine.mrio.api.core.MemstoreAware;
+import com.splicemachine.mrio.api.core.SpliceRegionScanner;
 
 public interface DerbyFactory<Transaction> {
 		Filter getAllocatedFilter(byte[] localAddress);
@@ -62,7 +58,8 @@ public interface DerbyFactory<Transaction> {
 		void checkCallerDisconnect(HRegion region) throws IOException;
 		InternalScanner noOpInternalScanner();
 		void writeRegioninfoOnFilesystem(HRegionInfo regionInfo, Path regiondir, FileSystem fs, Configuration conf) throws IOException;
-		Path getRegionDir(HRegion region);
+		Path getTableDir(HRegion region) throws IOException;
+        Path getRegionDir(HRegion region);
 		void bulkLoadHFiles(HRegion region, List<Pair<byte[], String>> paths) throws IOException;
 		BulkWritesInvoker.Factory getBulkWritesInvoker(HConnection connection, byte[] tableName);
 		long computeRowCount(Logger LOG, String tableName,SortedSet<Pair<HRegionInfo, ServerName>> baseRegions, Scan scan);
@@ -82,6 +79,7 @@ public interface DerbyFactory<Transaction> {
 		ExceptionTranslator getExceptionHandler();
         SparkUtils getSparkUtils();
         SpliceRegionScanner getSplitRegionScanner(Scan scan, HTable htable) throws IOException;
-        KeyValueScanner getMemstoreFlushAwareScanner(HRegion region, Store store, ScanInfo scanInfo, Scan scan, 
+        KeyValueScanner getMemstoreFlushAwareScanner(HRegion region, Store store, ScanInfo scanInfo, Scan scan,
 				final NavigableSet<byte[]> columns, long readPt, AtomicReference<MemstoreAware> memstoreAware, MemstoreAware initialValue) throws IOException;
+        SubregionSplitter getSubregionSplitter();
 }

@@ -114,7 +114,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 				return new KeyEncoder(prefix,dataHash,postfix);
 		}
 
-        private int[] getEncodingColumns(int n) {
+        public static int[] getEncodingColumns(int n, int[] pkCols) {
             int[] columns = IntArrays.count(n);
 
             // Skip primary key columns to save space
@@ -129,7 +129,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 				//get all columns that are being set
 				ExecRow defnRow = getExecRowDefinition();
-				int[] columns = getEncodingColumns(defnRow.nColumns());
+				int[] columns = getEncodingColumns(defnRow.nColumns(),pkCols);
 				DescriptorSerializer[] serializers = VersionedSerializers.forVersion(writeInfo.getTableVersion(),true).getSerializers(defnRow);
 				return new EntryDataHash(columns,null,serializers);
 		}

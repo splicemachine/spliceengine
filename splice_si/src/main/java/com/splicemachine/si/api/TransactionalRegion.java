@@ -44,9 +44,9 @@ public interface TransactionalRegion extends AutoCloseable{
      */
     boolean isClosed();
 
-		boolean rowInRange(byte[] row);
+    boolean rowInRange(byte[] row);
 
-		boolean rowInRange(ByteSlice slice);
+    boolean rowInRange(ByteSlice slice);
 
     boolean containsRange(byte[] start, byte[] stop);
 
@@ -61,6 +61,13 @@ public interface TransactionalRegion extends AutoCloseable{
                                 ConstraintChecker constraintChecker,
                                 Collection<KVPair> data) throws IOException;
 
+    /**
+     * Check for rowKey existence and update the FK row counter with given transaction's ID while holding
+     * the row lock. Throw WriteConflict if referenced row has been concurrently deleted.
+     *
+     * @return true if the row exists.
+     */
+    boolean verifyForeignKeyReferenceExists(TxnView txnView, byte[] rowKey) throws IOException;
 
     String getRegionName();
 

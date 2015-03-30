@@ -1,15 +1,19 @@
 package com.splicemachine.si.impl;
 
+import com.splicemachine.constants.SIConstants;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.si.api.*;
 import com.splicemachine.si.coprocessors.SICompactionScanner;
 import com.splicemachine.si.coprocessors.SIObserver;
 import com.splicemachine.si.data.api.IHTable;
+import com.splicemachine.si.data.api.SRowLock;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
 import com.splicemachine.si.data.hbase.HbRegion;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.ByteSlice;
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
@@ -108,7 +112,7 @@ public class TxnRegion implements TransactionalRegion {
 		@Override
 		@SuppressWarnings("unchecked")
 		public OperationStatus[] bulkWrite(TxnView txn,
-																			 byte[] family, byte[] qualifier,
+						 byte[] family, byte[] qualifier,
 																			 ConstraintChecker constraintChecker, //TODO -sf- can we encapsulate this as well?
 																			 Collection<KVPair> data) throws IOException {
 					if(transactionalWrites)
@@ -117,7 +121,25 @@ public class TxnRegion implements TransactionalRegion {
 						return hbRegion.batchMutate(data, txn);
 		}
 
-		@Override public String getRegionName() { return region.getRegionNameAsString(); }
+    @Override
+    public boolean verifyForeignKeyReferenceExists(TxnView txnView, byte[] rowKey) throws IOException {
+        SRowLock rowLock = null;
+        try {
+            rowLock = (SRowLock) hbRegion.getLock(rowKey, true);
+            Get get = TransactionOperations.getOperationFactory().newGet(txnView, rowKey);
+            get.addColumn(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES);
+            if (!hbRegion.get(get).isEmpty()) {
+                // Referenced row DOES exist, update counter.
+                transactor.updateCounterColumn(hbRegion, txnView, rowLock, rowKey);
+                return true;
+            }
+        } finally {
+            hbRegion.unLockRow(rowLock);
+        }
+        return false;
+    }
+
+    @Override public String getRegionName() { return region.getRegionNameAsString(); }
 
     @Override public TxnSupplier getTxnSupplier() { return txnSupplier; }
     @Override public ReadResolver getReadResolver() { return readResolver; }

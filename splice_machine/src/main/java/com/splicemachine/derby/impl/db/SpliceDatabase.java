@@ -30,6 +30,12 @@ import com.splicemachine.db.shared.common.sanity.SanityManager;
 import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.derby.ddl.DDLWatcher;
+import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.protobuf.generated.HBaseProtos;
+import org.apache.log4j.Logger;
+
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.ast.*;
 import com.splicemachine.derby.impl.job.JobInfo;
@@ -346,62 +352,6 @@ public class SpliceDatabase extends BasicDatabase{
     @Override
     public void unfreeze() throws SQLException{
         throw new SQLException("Unsupported Exception");
-    }
-
-    @Override
-    public void restore(String restoreDir,boolean wait) throws SQLException{
-    }
-
-    //
-    // This API call is only for full DB backup
-    // TODO: add backup for schema:table(s)
-    //
-    @Override
-    public void backup(String backupDir,boolean wait) throws SQLException{
-
-        HBaseAdmin admin=null;
-        Backup backup=null;
-        try{
-
-            // Check for ongoing backup...
-            String backupResponse=null;
-            Backup.validateBackupSchema();
-            if((backupResponse=BackupUtils.isBackupRunning())!=null)
-                throw new SQLException(backupResponse); // TODO i18n
-            backup=Backup.createBackup(backupDir,BackupScope.D,-1l);
-            backup.createBaseBackupDirectory();
-            long start=System.currentTimeMillis();
-            admin=SpliceUtilities.getAdmin();
-            backup.createBackupItems(admin);
-            backup.insertBackup();
-            backup.createProperties();
-            // Create snapshots first for all tables in backup list
-            createSnapshots(Long.toString(backup.getBackupTimestamp()));
-
-            for(BackupItem backupItem : backup.getBackupItems()){
-                backupItem.doBackup();
-            }
-
-            // create metadata, including timestamp source's timestamp
-            // this has to be called after all tables have been dumped.
-            backup.createMetadata();
-
-            if(backup.isTemporaryBaseFolder()){
-                backup.moveToBaseFolder();
-            }
-
-            backup.markBackupSuccesful();
-            backup.writeBackupStatusChange();
-        }catch(Throwable e){
-            if(backup!=null){
-                backup.markBackupFailed();
-                backup.writeBackupStatusChange();
-            }
-            LOG.error("Couldn't backup database",e);
-            throw new SQLException(Exceptions.parseException(e));
-        }finally{
-            Closeables.closeQuietly(admin);
-        }
     }
 
     @Override

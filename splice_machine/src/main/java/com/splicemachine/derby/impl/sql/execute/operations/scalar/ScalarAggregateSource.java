@@ -12,4 +12,5 @@ import java.io.IOException;
  */
 public interface ScalarAggregateSource {
     ExecIndexRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException,IOException;
+    void close() throws IOException;
 }

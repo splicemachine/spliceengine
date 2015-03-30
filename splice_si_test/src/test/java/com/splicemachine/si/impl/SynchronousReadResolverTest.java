@@ -4,7 +4,7 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.impl.MockRegionUtils;
-import com.splicemachine.si.SimpleTimestampSource;
+import com.splicemachine.si.testsetup.SimpleTimestampSource;
 import com.splicemachine.si.api.ReadResolver;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnLifecycleManager;

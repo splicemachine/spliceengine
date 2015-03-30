@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.store.access;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.*;
@@ -21,7 +22,11 @@ import java.util.LinkedList;
 
 public class SpliceTransaction extends BaseSpliceTransaction {
     private static Logger LOG = Logger.getLogger(SpliceTransaction.class);
+    protected boolean ignoreSavePoints = false;
 
+    public void setIgnoreSavePoints(boolean ignoreSavePoints) {
+        this.ignoreSavePoints = ignoreSavePoints;
+    }
 		private Deque<Pair<String,Txn>> txnStack = new LinkedList<Pair<String, Txn>>();
 
 		public SpliceTransaction(CompatibilitySpace compatibilitySpace,
@@ -51,6 +56,12 @@ public class SpliceTransaction extends BaseSpliceTransaction {
 
     @Override
     public int setSavePoint(String name, Object kindOfSavepoint) throws StandardException {
+        if (ignoreSavePoints)
+            return 1;
+        if (kindOfSavepoint != null && SpliceConstants.BATCH_SAVEPOINT.equals(kindOfSavepoint)) {
+            ignoreSavePoints = true;
+        }
+
 	    if (LOG.isDebugEnabled())
 	        SpliceLogUtils.debug(LOG, "Before setSavePoint: name=%s, savePointStack=\n%s", name, getSavePointStackString());
         setActiveState(false, false, null); //make sure that we are active
@@ -68,8 +79,15 @@ public class SpliceTransaction extends BaseSpliceTransaction {
 
     @Override
     public int releaseSavePoint(String name, Object kindOfSavepoint) throws StandardException {
-	    if (LOG.isDebugEnabled())
+        if (ignoreSavePoints)
+            return 0;
+        if (kindOfSavepoint != null && SpliceConstants.BATCH_SAVEPOINT.equals(kindOfSavepoint)) {
+            ignoreSavePoints = false;
+        }
+        if (LOG.isDebugEnabled())
 	        SpliceLogUtils.debug(LOG, "Before releaseSavePoint: name=%s, savePointStack=\n%s", name, getSavePointStackString());
+
+
         /*
          * Check first to ensure such a save point exists before we attempt to release anything
          */
@@ -113,7 +131,9 @@ public class SpliceTransaction extends BaseSpliceTransaction {
 
     @Override
     public int rollbackToSavePoint(String name, Object kindOfSavepoint) throws StandardException {
-	    if (LOG.isDebugEnabled())
+        if (ignoreSavePoints)
+            return 0;
+        if (LOG.isDebugEnabled())
 	        SpliceLogUtils.debug(LOG, "Before rollbackToSavePoint: name=%s, savePointStack=\n%s", name, getSavePointStackString());
         /*
          * Check first to ensure such a save point exists before we attempt to release anything
@@ -163,8 +183,10 @@ public class SpliceTransaction extends BaseSpliceTransaction {
 	    if (LOG.isDebugEnabled())
 	        SpliceLogUtils.debug(LOG, "Before commit: state=%s, savePointStack=\n%s", getTransactionStatusAsString(), getSavePointStackString());
         if (state == IDLE) {
-            if(LOG.isTraceEnabled())
-                SpliceLogUtils.trace(LOG, "The transaction is in idle state and there is nothing to commit, transID=" + txnStack.getLast().getSecond());
+            if(LOG.isTraceEnabled()) {
+                String message = ((txnStack != null && txnStack.size() > 0 && txnStack.getLast().getSecond() != null) ? txnStack.getLast().getSecond().toString() : "null");
+                SpliceLogUtils.trace(LOG, "The transaction is in idle state and there is nothing to commit, transID=" + message);
+            }
             return null;
         }
         if (state == CLOSED) {

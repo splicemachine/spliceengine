@@ -21,11 +21,14 @@ public class RowIdIT extends SpliceUnitTest {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final String TABLE1_NAME = "A";
     public static final String TABLE2_NAME = "B";
+    public static final String TABLE3_NAME = "C";
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
     private static String tableDef = "(I INT)";
+    private static String tableDef2 = "(I INT, J INT)";
     protected static SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE1_NAME,CLASS_NAME, tableDef);
     protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE2_NAME,CLASS_NAME, tableDef);
+    protected static SpliceTableWatcher spliceTableWatcher3 = new SpliceTableWatcher(TABLE3_NAME,CLASS_NAME, tableDef2);
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -57,6 +60,24 @@ public class RowIdIT extends SpliceUnitTest {
                             ps.setInt(1, i);
                             ps.execute();
                         }
+                    }  catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            })
+            .around(spliceTableWatcher3).around(new SpliceDataWatcher() {
+                @Override
+                protected void starting(Description description) {
+                    PreparedStatement ps;
+                    try {
+                        ps = spliceClassWatcher.prepareStatement(
+                                String.format("insert into %s (i) values (?)", spliceTableWatcher3));
+                        ps.setInt(1, 1);
+                        ps.execute();
+
+                        ps = spliceClassWatcher.prepareStatement(
+                                String.format("create index ti on  %s (i)", spliceTableWatcher3));
+                        ps.execute();
                     }  catch (Exception e) {
                         throw new RuntimeException(e);
                     }
@@ -241,5 +262,27 @@ public class RowIdIT extends SpliceUnitTest {
             String s = rs.getString(2);
             Assert.assertTrue(s.compareToIgnoreCase(rId.toString()) == 0);
         }
+    }
+
+    @Test
+    public void testCoveringIndex() throws Exception {
+        ResultSet rs  = methodWatcher.executeQuery(
+                String.format("select rowid, i, j from %s --SPLICE-PROPERTIES index=ti \n where i=1", this.getTableReference(TABLE3_NAME)));
+        Assert.assertTrue(rs.next());
+        RowId rowId1 = rs.getRowId(1);
+
+        rs  = methodWatcher.executeQuery(
+                String.format("select rowid, i from %s --SPLICE-PROPERTIES index=ti \n where i=1", this.getTableReference(TABLE3_NAME)));
+        Assert.assertTrue(rs.next());
+        RowId rowId2 = rs.getRowId(1);
+
+        Assert.assertEquals(rowId1.toString(), rowId2.toString());
+
+        rs  = methodWatcher.executeQuery(
+                String.format("select rowid, i from %s --SPLICE-PROPERTIES index=null \n where i=1", this.getTableReference(TABLE3_NAME)));
+        Assert.assertTrue(rs.next());
+        RowId rowId3 = rs.getRowId(1);
+
+        Assert.assertEquals(rowId1.toString(), rowId3.toString());
     }
 }

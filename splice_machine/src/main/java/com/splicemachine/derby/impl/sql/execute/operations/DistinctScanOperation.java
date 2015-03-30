@@ -1,11 +1,15 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.spark.RDDUtils;
+import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.impl.sql.execute.operations.sort.DistinctSortAggregateBuffer;
@@ -21,6 +25,8 @@ import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.metrics.TimeView;
+import com.splicemachine.mrio.MRConstants;
+import com.splicemachine.mrio.api.core.SMInputFormat;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.hash.HashFunctions;
@@ -35,9 +41,13 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.shared.common.reference.SQLState;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+import org.apache.spark.api.java.JavaPairRDD;
+import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.JavaSparkContext;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -399,4 +409,54 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
         return "Distinct"+super.prettyPrint(indentLevel);
     }
 
+    @Override
+    public boolean providesRDD() {
+        return true;
+    }
+
+    @Override
+    public JavaRDD<ExecRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+        assert currentTemplate != null: "Current Template Cannot Be Null";
+        int[] execRowTypeFormatIds = new int[currentTemplate.nColumns()];
+        for (int i = 0; i< currentTemplate.nColumns(); i++) {
+            execRowTypeFormatIds[i] = currentTemplate.getColumn(i+1).getTypeFormatId();
+        }
+        FormatableBitSet cols = scanInformation.getAccessedColumns();
+        int[] colMap;
+        if(cols!=null){
+            colMap = new int[cols.getLength()];
+            Arrays.fill(colMap,-1);
+            for(int i=cols.anySetBit(),pos=0;i>=0;i=cols.anySetBit(i),pos++){
+                colMap[i] = pos;
+            }
+        } else {
+            colMap = keyColumns;
+        }
+        TableScannerBuilder tsb = new TableScannerBuilder()
+                .transaction(operationInformation.getTransaction())
+                .scan(getNonSIScan(spliceRuntimeContext))
+                .template(currentRow)
+                .tableVersion(scanInformation.getTableVersion())
+                .indexName(indexName)
+                .keyColumnEncodingOrder(scanInformation.getColumnOrdering())
+                .keyColumnSortOrder(scanInformation.getConglomerate().getAscDescInfo())
+                .keyColumnTypes(getKeyFormatIds())
+                .execRowTypeFormatIds(execRowTypeFormatIds)
+                .accessedKeyColumns(scanInformation.getAccessedPkColumns())
+                .keyDecodingMap(getKeyDecodingMap())
+                .rowDecodingMap(colMap);
+        JavaSparkContext ctx = SpliceSpark.getContext();
+        Configuration conf = new Configuration(SIConstants.config);
+        conf.set(MRConstants.SPLICE_CONGLOMERATE, Long.toString(scanInformation.getConglomerateId()));
+        conf.set(MRConstants.SPLICE_JDBC_STR, "jdbc:derby://localhost:1527/splicedb;create=true;user=splice;password=admin");
+        try {
+            conf.set(MRConstants.SPLICE_SCAN_INFO, tsb.getTableScannerBuilderBase64String());
+        } catch (IOException ioe) {
+            throw StandardException.unexpectedUserException(ioe);
+        }
+
+        JavaPairRDD<RowLocation, ExecRow> rawRDD = ctx.newAPIHadoopRDD(conf, SMInputFormat.class,
+                RowLocation.class, ExecRow.class);
+        return rawRDD.values().distinct(); //.map(new SparkDecoder(this,soi,top)); // This is not right, should pass location as well.
+    }
 }

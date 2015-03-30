@@ -199,9 +199,11 @@ public class NestedLoopJoinOperation extends JoinOperation {
             super.updateStats(stats);
 		}
 
-    protected NestedLoopIterator createNestedLoopIterator(ExecRow leftRow, boolean hash, boolean outerJoin, byte[] rightResultSetUniqueSequenceID,
-                                                          SpliceRuntimeContext spliceRuntimeContext, boolean showStatementInfo, boolean cloneResults) throws StandardException, IOException {
-        return new NestedLoopIterator(leftRow, hash, outerJoin, rightResultSetUniqueSequenceID, spliceRuntimeContext, showStatementInfo, cloneResults);
+    protected NestedLoopIterator createNestedLoopIterator(ExecRow leftRow, boolean hash, SpliceRuntimeContext spliceRuntimeContext, boolean showStatementInfo, boolean cloneResults) throws StandardException, IOException {
+        if (rightResultSetUniqueSequenceID == null) {
+            rightResultSetUniqueSequenceID = rightResultSet.getUniqueSequenceID();
+        }
+        return new NestedLoopIterator(leftRow, hash, false, rightResultSetUniqueSequenceID, spliceRuntimeContext, showStatementInfo, cloneResults);
     }
 
     protected class NestedLoopIterator implements Iterator<ExecRow>, Iterable<ExecRow> {
@@ -379,7 +381,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
             if (rightResultSetUniqueSequenceID == null) {
                 rightResultSetUniqueSequenceID = op.rightResultSet.getUniqueSequenceID();
             }
-            nestedLoopIterator = op.createNestedLoopIterator(sourceRow, op.isHash, false, rightResultSetUniqueSequenceID, soi.getSpliceRuntimeContext(), false, true);
+            nestedLoopIterator = op.createNestedLoopIterator(sourceRow, op.isHash, soi.getSpliceRuntimeContext(), false, true);
             return nestedLoopIterator;
         }
     }

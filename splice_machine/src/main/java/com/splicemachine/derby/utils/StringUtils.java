@@ -145,5 +145,18 @@ public class StringUtils {
         copy.set(size - 1, String.format("%s %s", conjunction, copy.get(size - 1)));
         return Joiner.on(", ").join(copy);
     }
-
+    
+    /*
+     * Formats time
+     */
+    public static String formatTime(long sec){
+       	long days = sec / (3600 * 24);
+    	sec -= days * 3600 * 24;
+    	long hours = sec / 3600 ;
+    	sec -= hours * 3600;
+    	long mins = sec / 60;
+    	sec -= mins * 60;
+    	long secs = sec;
+    	return String.format("%sd %sh %sm %ss", days, hours, mins, secs);
+    }
 }

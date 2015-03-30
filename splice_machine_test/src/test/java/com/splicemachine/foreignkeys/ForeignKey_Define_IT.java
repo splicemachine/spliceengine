@@ -16,7 +16,7 @@ import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.*;
 
 /**
- * Foreign Key tests for *defining* FKs.
+ * Foreign Key tests for *defining* FK constraints.
  */
 public class ForeignKey_Define_IT {
 

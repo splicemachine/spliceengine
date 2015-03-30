@@ -67,9 +67,13 @@ public class SimpleTxnFilter<RowLock,Data> implements TxnFilter<Data> {
 						ensureTransactionIsCached(element);
 						return Filter.ReturnCode.SKIP;
 				}
+                if(type == KeyValueType.FOREIGN_KEY_COUNTER) {
+                    /* Transactional reads always ignore this column, no exceptions. */
+                    return Filter.ReturnCode.SKIP;
+                }
 
 				readResolve(element);
-				switch(dataStore.getKeyValueType(element)){
+				switch(type){
 						case TOMBSTONE:
 								addToTombstoneCache(element);
 								return Filter.ReturnCode.SKIP;
@@ -80,7 +84,7 @@ public class SimpleTxnFilter<RowLock,Data> implements TxnFilter<Data> {
 								return checkVisibility(element);
 						default:
 								//TODO -sf- do better with this?
-								throw new AssertionError("Unexpected Data type: "+ dataStore.getKeyValueType(element));
+								throw new AssertionError("Unexpected Data type: "+ type);
 				}
 		}
 

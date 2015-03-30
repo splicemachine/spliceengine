@@ -34,4 +34,9 @@ public class OperationScalarAggregateSource implements ScalarAggregateSource {
         }
         return null;
     }
+
+    @Override
+    public void close() throws IOException {
+        //
+    }
 }

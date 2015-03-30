@@ -17,6 +17,8 @@ import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.utils.StandardIterator;
+import com.splicemachine.derby.utils.StandardIterators;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
@@ -63,6 +65,7 @@ public class UpdateOperation extends DMLWriteOperation{
     private DataValueDescriptor[] kdvds;
     private int[] colPositionMap;
     private FormatableBitSet heapList;
+    private UpdateOperationNoOpRowSkipper noOpRowSkipper;
 
     protected static final String NAME = UpdateOperation.class.getSimpleName().replaceAll("Operation","");
 
@@ -78,6 +81,7 @@ public class UpdateOperation extends DMLWriteOperation{
 
     int[] pkCols;
     FormatableBitSet     pkColumns;
+
     public UpdateOperation(SpliceOperation source, GeneratedMethod generationClauses,
                            GeneratedMethod checkGM, Activation activation)
             throws StandardException, IOException {
@@ -87,42 +91,19 @@ public class UpdateOperation extends DMLWriteOperation{
     }
 
     @Override
-		public ExecRow getNextSinkRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-        boolean shouldContinue;
-        ExecRow nextSinkRow;
-        do{
-            nextSinkRow = super.getNextSinkRow(spliceRuntimeContext);
-            shouldContinue = nextSinkRow!=null;
-            if(!shouldContinue) break;
-
-            /*
-             * DB-2007 occurs because we attempt to write an update where we change a value
-             * from NULL to NULL, and it explodes. A fix for that is to check for situations
-             * where we change from NULL to NULL and not write rows that do that.
-             *
-             * More generally, any time a row is not changed by the update, we don't need to write
-             * that row--there's no point. This block of code simply filters out rows where the updated
-             * value is the same as the original value. This has the added side effect of improving
-             * write performance (fewer index changes, fewer network calls, etc.)
-             */
-            shouldContinue = true;
-            DataValueDescriptor[] dvds = nextSinkRow.getRowArray();
-            for(int i=heapList.anySetBit(),oldPos=0;i>=0;i=heapList.anySetBit(i),oldPos++){
-                DataValueDescriptor old = dvds[oldPos];
-                DataValueDescriptor newVal = dvds[colPositionMap[i]];
-                if(!newVal.equals(old)){
-                    shouldContinue=false;
-                    break;
-                }
-            }
-            if(shouldContinue) writeRowsFiltered++;  //increment the number of rows that we have filtered out
-        }while(shouldContinue);
-        if(nextSinkRow==null&&resultSupplier!=null)
+    public ExecRow getNextSinkRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+        if(noOpRowSkipper == null) {
+            noOpRowSkipper = buildNoOpRowSkipper(new SuperSinkRowStandardIterator());
+        }
+        ExecRow nextSinkRow = noOpRowSkipper.next(spliceRuntimeContext);
+        writeRowsFiltered += noOpRowSkipper.getSkippedRows();
+        if (nextSinkRow == null && resultSupplier != null) {
             resultSupplier.close();
+        }
         return nextSinkRow;
     }
 
-		@Override
+    @Override
 		public void init(SpliceOperationContext context) throws StandardException, IOException {
 				SpliceLogUtils.trace(LOG,"init with regionScanner %s",regionScanner);
 				super.init(context);
@@ -315,7 +296,17 @@ public class UpdateOperation extends DMLWriteOperation{
 				return "Update{destTable="+heapConglom+",source=" + source + "}";
 		}
 
-		private class ResultSupplier{
+    /**
+     * Returns an iterator wrapping the specified one, but one which skips NO-OP update rows.
+     */
+    public UpdateOperationNoOpRowSkipper buildNoOpRowSkipper(StandardIterator<ExecRow> rowIterator) throws StandardException {
+        FormatableBitSet heapList = getHeapList();
+        int[] columnPositionMap = getColumnPositionMap(heapList);
+        return new UpdateOperationNoOpRowSkipper(rowIterator, heapList, columnPositionMap);
+    }
+
+
+    private class ResultSupplier{
 				private KeyValue result;
 
 				private byte[] location;
@@ -582,4 +573,17 @@ public class UpdateOperation extends DMLWriteOperation{
                 return NoOpKeyHashDecoder.INSTANCE;
             }
         }
+
+    /**
+     * StandardIterator for providing sink rows from super class.
+     */
+    private class SuperSinkRowStandardIterator extends StandardIterators.BaseStandardIterator<ExecRow> {
+        @Override
+        public ExecRow next(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+            return UpdateOperation.super.getNextSinkRow(spliceRuntimeContext);
+        }
+    }
+
+
+
 }

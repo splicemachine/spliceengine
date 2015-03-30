@@ -1,12 +1,15 @@
 package com.splicemachine.derby.hbase;
 
 import com.google.common.collect.Lists;
+import com.google.protobuf.ByteString;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.operation.SuccessFilter;
 import com.splicemachine.derby.impl.job.scheduler.BaseJobControl;
 import com.splicemachine.derby.impl.job.scheduler.JobControl;
 import com.splicemachine.derby.impl.job.scheduler.JobMetrics;
+import com.splicemachine.derby.impl.job.scheduler.SubregionSplitter;
 import com.splicemachine.derby.impl.sql.execute.DropIndexConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.SkippingScanFilter;
 import com.splicemachine.derby.impl.sql.execute.operations.SparkUtilsImpl;
@@ -18,10 +21,13 @@ import com.splicemachine.hbase.HBaseRegionLoads;
 import com.splicemachine.hbase.HBaseServerUtils;
 import com.splicemachine.hbase.debug.HBaseEntryPredicateFilter;
 import com.splicemachine.hbase.jmx.JMXUtils;
-import com.splicemachine.mrio.api.MemStoreFlushAwareScanner;
-import com.splicemachine.mrio.api.MemstoreAware;
-import com.splicemachine.mrio.api.SpliceRegionScanner;
-import com.splicemachine.mrio.api.SplitRegionScanner;
+import com.splicemachine.hbase.table.BoundCall;
+import com.splicemachine.hbase.table.SpliceRpcController;
+import com.splicemachine.mrio.api.core.MemStoreFlushAwareScanner;
+import com.splicemachine.mrio.api.core.MemstoreAware;
+import com.splicemachine.mrio.api.core.SMSplit;
+import com.splicemachine.mrio.api.core.SpliceRegionScanner;
+import com.splicemachine.mrio.api.core.SplitRegionScanner;
 import com.splicemachine.pipeline.api.BulkWritesInvoker.Factory;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.pipeline.impl.BulkWritesRPCInvoker;
@@ -61,14 +67,18 @@ import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
+import org.apache.hadoop.hbase.mapreduce.TableSplit;
 import org.apache.hadoop.hbase.master.MasterServices;
 import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
 import org.apache.hadoop.hbase.protobuf.generated.ClientProtos;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
+import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -166,9 +176,13 @@ public class DerbyFactoryImpl implements DerbyFactory<TxnMessage.TxnInfo> {
 		HRegionFileSystem.createRegionOnFileSystem(conf, fs, regiondir, regionInfo);
 	}
 	@Override
-	public Path getRegionDir(HRegion region) {
-		return region.getRegionFileSystem().getRegionDir();
-	}	
+	public Path getTableDir(HRegion region) {
+		return region.getRegionFileSystem().getTableDir();
+	}
+    @Override
+    public Path getRegionDir(HRegion region) {
+        return region.getRegionFileSystem().getRegionDir();
+    }
 	@Override
 	public void bulkLoadHFiles(HRegion region, List<Pair<byte[], String>> paths) throws IOException {
 		region.bulkLoadHFiles(paths,true); // TODO
@@ -546,4 +560,58 @@ public class DerbyFactoryImpl implements DerbyFactory<TxnMessage.TxnInfo> {
 			return new MemStoreFlushAwareScanner(region,store,scanInfo,scan,columns,readPt,memstoreAware,initialValue);
 		}
 
+    @Override
+    public SubregionSplitter getSubregionSplitter() {
+        return new SubregionSplitter() {
+            @Override
+            public List<InputSplit> getSubSplits(HTable table, List<InputSplit> splits) {
+                List<InputSplit> results = new ArrayList<>();
+                for (InputSplit split : splits) {
+                    final TableSplit tableSplit = (TableSplit) split;
+                    try {
+                        byte[] probe;
+                        byte[] start = tableSplit.getStartRow();
+                        if (start.length == 0) {
+                            // first region, pick smallest rowkey possible
+                            probe = new byte[] { 0 };
+                        } else  {
+                            // any other region, pick start row
+                            probe = start;
+                        }
+
+                        Map<byte[], List<InputSplit>> splitResults = table.coprocessorService(SpliceMessage.SpliceDerbyCoprocessorService.class, probe, probe,
+                                new Batch.Call<SpliceMessage.SpliceDerbyCoprocessorService, List<InputSplit>>() {
+                                    @Override
+                                    public List<InputSplit> call(SpliceMessage.SpliceDerbyCoprocessorService instance) throws IOException {
+                                        SpliceRpcController controller = new SpliceRpcController();
+                                        byte[] startKey = tableSplit.getStartRow();
+                                        byte[] stopKey = tableSplit.getEndRow();
+
+                                        SpliceMessage.SpliceSplitServiceRequest message = SpliceMessage.SpliceSplitServiceRequest.newBuilder().setBeginKey(ByteString.copyFrom(startKey)).setEndKey(ByteString.copyFrom(stopKey)).build();
+
+                                        BlockingRpcCallback<SpliceMessage.SpliceSplitServiceResponse> rpcCallback = new BlockingRpcCallback();
+                                        instance.computeSplits(controller, message, rpcCallback);
+                                        SpliceMessage.SpliceSplitServiceResponse response = rpcCallback.get();
+                                        List<InputSplit> result = new ArrayList<InputSplit>();
+                                        byte[] first = startKey;
+                                        for (ByteString cutpoint : response.getCutPointList()) {
+                                            byte[] end = cutpoint.toByteArray();
+                                            result.add(new SMSplit(new TableSplit(tableSplit.getTable(), first, end, tableSplit.getRegionLocation())));
+                                            first = end;
+                                        }
+                                        result.add(new SMSplit(new TableSplit(tableSplit.getTable(), first, stopKey, tableSplit.getRegionLocation())));
+                                        return result;
+                                    }
+                                });
+                        for (List<InputSplit> value : splitResults.values()) {
+                            results.addAll(value);
+                        }
+                    } catch (Throwable throwable) {
+                        throw new RuntimeException(throwable);
+                    }
+                }
+                return results;
+            }
+        };
+    }
 }

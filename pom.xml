@@ -420,16 +420,14 @@
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
 				<configuration>
-					<argLine>-Xms256M -Xmx1024M</argLine>
+					<argLine>-Xmx1024M</argLine>
 					<redirectTestOutputToFile>true</redirectTestOutputToFile>
 					<includes>
-						<include>**/*Suite.java</include>
 						<include>**/*Test.java</include>
 					</includes>
 					<excludes>
 						<!-- Skip ITs -->
 						<exclude>**/*IT.java</exclude>
-						<exclude>**/si/**/*Test.java</exclude>
 						<!-- Skip Window function UIs temporarily - DB-1765 -->
 						<exclude>com/splicemachine/derby/impl/sql/execute/operations/window/**</exclude>
 					</excludes>

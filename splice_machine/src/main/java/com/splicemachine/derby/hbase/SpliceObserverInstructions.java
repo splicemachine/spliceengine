@@ -110,7 +110,6 @@ public class SpliceObserverInstructions implements Externalizable {
 		}
 
 		public GenericStorablePreparedStatement getStatement() {
-				SpliceLogUtils.trace(LOG, "getStatement %s",statement);
 				return statement;
 		}
 
@@ -127,21 +126,12 @@ public class SpliceObserverInstructions implements Externalizable {
 		}
 
 		public SpliceOperation getTopOperation() {
-				SpliceLogUtils.trace(LOG, "getTopOperation %s",topOperation);
 				return topOperation;
 		}
 
 		public static SpliceObserverInstructions create(Activation activation,
-																										SpliceOperation topOperation,
-																										SpliceRuntimeContext spliceRuntimeContext){
-				TxnView txn = ((SpliceTransactionManager)activation.getTransactionController()).getRawTransaction().getActiveStateTxn();
-				return create(activation, topOperation, spliceRuntimeContext, txn);
-		}
-
-		public static SpliceObserverInstructions create(Activation activation,
-																										SpliceOperation topOperation,
-																										SpliceRuntimeContext spliceRuntimeContext,
-																										TxnView txn) {
+                                                        SpliceOperation topOperation,
+														SpliceRuntimeContext spliceRuntimeContext){
 				ActivationContext activationContext = ActivationContext.create(activation, topOperation);
 
 				return new SpliceObserverInstructions(
@@ -308,14 +298,10 @@ public class SpliceObserverInstructions implements Externalizable {
 								activation.getLanguageConnectionContext().pushStatementContext(statementAtomic,
 												statementReadOnly,stmtText,pvs,stmtRollBackParentContext,stmtTimeout);
 								return activation;
-						}catch (IOException e) {
-								SpliceLogUtils.logAndThrowRuntime(LOG,e);
-						} catch (IllegalAccessException e) {
-								SpliceLogUtils.logAndThrowRuntime(LOG,e);
-						} catch (NoSuchFieldException e) {
+						}catch (IOException | IllegalAccessException | NoSuchFieldException e) {
 								SpliceLogUtils.logAndThrowRuntime(LOG,e);
 						}
-						return null;
+                    return null;
 				}
 
 		}

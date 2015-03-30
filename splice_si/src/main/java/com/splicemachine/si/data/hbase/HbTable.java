@@ -71,18 +71,23 @@ public class HbTable implements IHTable<SRowLock> {
         throw new RuntimeException("not implemented");
     }
 
-		@Override
-		public SRowLock tryLock(byte[] rowKey) {
-				try {
-						return lockRow(rowKey);
-				} catch (IOException e) {
-						throw new RuntimeException(e);
-				}
-		}
+    @Override
+    public SRowLock getLock(byte[] rowKey, boolean waitForLock) {
+        try {
+            return lockRow(rowKey);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
 
     @Override
     public SRowLock tryLock(ByteSlice rowKey) throws IOException {
         return lockRow(rowKey.getByteCopy());
+    }
+
+    @Override
+    public void increment(byte[] rowKey, byte[] family, byte[] qualifier, long amount, SRowLock rowLock) throws IOException {
+        throw new UnsupportedOperationException("Cannot increment with row lock at table level.");
     }
 
     @Override

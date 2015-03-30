@@ -93,4 +93,9 @@ public class ScalarAggregator {
 				}
 		}
 
+
+        public void close() throws IOException {
+            if (source!=null)
+                source.close();
+        }
 }

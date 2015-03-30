@@ -6,10 +6,13 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.uuid.Snowflake;
+
+import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.util.Bytes;
+
 import java.io.IOException;
 import java.net.InetAddress;
 import java.util.List;
@@ -22,12 +25,12 @@ public class SnowflakeLoader extends SIConstants {
 	DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
     private Snowflake snowflake;
 
-    public synchronized Snowflake load() throws IOException {
+    public synchronized Snowflake load(Integer port) throws IOException {
         if(snowflake!=null)
             return snowflake;
 
         //get this machine's IP address
-        byte[] localAddress = InetAddress.getLocalHost().getAddress();
+        byte[] localAddress = Bytes.add(InetAddress.getLocalHost().getAddress(),Bytes.toBytes(port));
         HTableInterface sequenceTable = SpliceAccessManager.getHTable(SpliceConstants.SEQUENCE_TABLE_NAME_BYTES);
         byte[] counterNameRow = MACHINE_ID_COUNTER.getBytes();
         try{
@@ -111,7 +114,7 @@ public class SnowflakeLoader extends SIConstants {
     public static void main(String... args) throws Exception{
         new SpliceAccessManager();// initialize the table pool
         SnowflakeLoader loader = new SnowflakeLoader();
-        Snowflake snowflake = loader.load();
+        Snowflake snowflake = loader.load(HBaseConfiguration.create().getInt(HConstants.REGIONSERVER_PORT, 6020));
         System.out.println(snowflake.nextUUID());
     }
 }
