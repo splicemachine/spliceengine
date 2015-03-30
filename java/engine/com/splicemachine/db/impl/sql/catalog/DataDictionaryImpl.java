@@ -9163,14 +9163,14 @@ public class DataDictionaryImpl extends BaseDataDictionary {
 
      @exception StandardException Standard Derby error policy.
      */
-    private long createConglomerate(String name,
+    protected long createConglomerate(String name,
                                     TransactionController tc,
                                     ExecRow rowTemplate,
                                     Properties properties) throws StandardException {
         return createConglomerate(name,tc,rowTemplate,properties,null);
     }
 
-    private long createConglomerate(String name,
+    protected long createConglomerate(String name,
                                     TransactionController tc,
                                     ExecRow rowTemplate,
                                     Properties properties,
