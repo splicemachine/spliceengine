@@ -1,6 +1,14 @@
 package com.splicemachine.derby.hbase;
 
+import com.splicemachine.constants.SIConstants;
+import com.splicemachine.derby.impl.stats.HBase94TableStatsDecoder;
+import com.splicemachine.derby.impl.stats.TableStatsDecoder;
+import com.splicemachine.encoding.MultiFieldDecoder;
+import com.splicemachine.hbase.KeyValueUtils;
+import com.splicemachine.storage.EntryDecoder;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionServerCoprocessorEnvironment;
@@ -21,6 +29,8 @@ public class SpliceDerbyCoprocessor extends BaseEndpointCoprocessor implements R
      */
     @Override
     public void start(CoprocessorEnvironment e) {
+        TableStatsDecoder.setInstance(new HBase94TableStatsDecoder());
+
         impl = new SpliceBaseDerbyCoprocessor();
         impl.start(e);
         super.start(e);

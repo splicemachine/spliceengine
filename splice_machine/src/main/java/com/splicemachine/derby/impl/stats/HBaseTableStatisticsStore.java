@@ -9,7 +9,6 @@ import com.splicemachine.derby.iapi.catalog.TableStatisticsDescriptor;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
-import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnOperationFactory;
@@ -18,7 +17,6 @@ import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.index.BitIndex;
 import com.stumbleupon.async.Deferred;
-import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
@@ -41,13 +39,18 @@ public class HBaseTableStatisticsStore implements TableStatisticsStore {
     private final ScheduledExecutorService refreshThread;
     private final byte[] tableStatsConglom;
     private final HBaseClient hbaseClient;
+    private final TableStatsDecoder tableStatsDecoder;
 
-    public HBaseTableStatisticsStore(ScheduledExecutorService refreshThread, byte[] tableStatsConglom, HBaseClient hbaseClient) {
+    public HBaseTableStatisticsStore(ScheduledExecutorService refreshThread,
+                                     byte[] tableStatsConglom,
+                                     HBaseClient hbaseClient,
+                                     TableStatsDecoder tableStatsDecoder) {
         this.refreshThread = refreshThread;
         this.tableStatsConglom = tableStatsConglom;
         this.hbaseClient = hbaseClient;
         this.tableStatsCache = CacheBuilder.newBuilder().expireAfterWrite(StatsConstants.partitionCacheExpiration, TimeUnit.MILLISECONDS)
                 .maximumSize(StatsConstants.partitionCacheSize).build();
+        this.tableStatsDecoder = tableStatsDecoder;
     }
 
     public void start() throws ExecutionException {
@@ -89,8 +92,7 @@ public class HBaseTableStatisticsStore implements TableStatisticsStore {
             for(String partition:toFetch.keySet()){
                 Result r = results[i];
                 if(r==null||r.isEmpty()) continue;
-                Cell cell = CellUtils.matchDataColumn(r.rawCells());
-                stats[toFetch.get(partition)] = decode(entryDecoder,cell);
+                stats[toFetch.get(partition)] = tableStatsDecoder.decode(r,entryDecoder);
                 i++;
             }
         } catch (IOException e) {
@@ -104,37 +106,6 @@ public class HBaseTableStatisticsStore implements TableStatisticsStore {
         for(String partition:partitionsToInvalidate){
             tableStatsCache.invalidate(partition);
         }
-    }
-
-    protected TableStatisticsDescriptor decode(EntryDecoder cachedDecoder,Cell cell) throws IOException {
-        assert cell!=null: "Programmer error: no data column returned!";
-        MultiFieldDecoder decoder = cachedDecoder.get();
-        decoder.set(cell.getRowArray(),cell.getRowOffset(),cell.getRowLength());
-        long conglomId = decoder.decodeNextLong();
-        String partitionId = decoder.decodeNextString();
-
-        cachedDecoder.set(cell.getValueArray(),cell.getValueOffset(),cell.getValueLength());
-        BitIndex index=cachedDecoder.getCurrentIndex();
-        decoder=cachedDecoder.get();
-        long timestamp;
-        boolean isStale;
-        boolean inProgress;
-        timestamp=index.isSet(0)?decoder.decodeNextLong():System.currentTimeMillis();
-        isStale=!index.isSet(1) || decoder.decodeNextBoolean();
-        inProgress=index.isSet(2) && decoder.decodeNextBoolean();
-
-        TableStatisticsDescriptor stats = null;
-        if(index.isSet(3))
-            stats=decode(decoder,conglomId,partitionId,timestamp,isStale,inProgress);
-        if(!inProgress && stats!=null){
-            /*
-             * If the table is currently in progress, then we don't want to cache the value
-             * because it's likely to change again soon. Otherwise, we can freely cache the
-             * TableStats
-             */
-            tableStatsCache.put(partitionId,stats);
-        }
-        return stats;
     }
 
     private TableStatisticsDescriptor decode(MultiFieldDecoder decoder,
@@ -237,7 +208,7 @@ public class HBaseTableStatisticsStore implements TableStatisticsStore {
                 while((rowBatch = data.join())!=null){
                     for(List<KeyValue> row:rowBatch){
                         KeyValue kv = matchDataColumn(row);
-                        TableStatisticsDescriptor stats = decode(decoder,kv); //caches the record
+                        TableStatisticsDescriptor stats = tableStatsDecoder.decode(kv,decoder);
                     }
                     data = scanner.nextRows();
                 }

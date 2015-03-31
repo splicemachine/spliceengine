@@ -98,7 +98,10 @@ public class StatisticsStorage {
         columnStatsStore.start();
 
         byte[] tableStatTable = Long.toString(tableStatsId).getBytes();
-        TableStatisticsStore tableStatsStore = new HBaseTableStatisticsStore(refreshExecutor,tableStatTable,hbaseClient);
+        TableStatisticsStore tableStatsStore = new HBaseTableStatisticsStore(refreshExecutor,
+                tableStatTable,
+                hbaseClient,
+                TableStatsDecoder.decoder());
         tableStatsStore.start();
 
         partitionStore = new PartitionStatsStore(HBaseRegionCache.getInstance(),tableStatsStore,columnStatsStore);
