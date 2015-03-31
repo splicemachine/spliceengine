@@ -163,16 +163,22 @@ public class NumericStats extends BaseDvdStatistics{
     private static final Encoder<BigDecimal> bigDecimalEncoder = new Encoder<BigDecimal>() {
         @Override
         public void encode(BigDecimal item, DataOutput dataInput) throws IOException {
-            byte[] dataEncoding = Encoding.encode(item);
-            dataInput.write(dataEncoding.length);
-            dataInput.write(dataEncoding);
+            dataInput.writeBoolean(item!=null);
+            if(item!=null){
+                byte[] dataEncoding=Encoding.encode(item);
+                dataInput.write(dataEncoding.length);
+                dataInput.write(dataEncoding);
+            }
         }
 
         @Override
         public BigDecimal decode(DataInput input) throws IOException {
-            byte[] data = new byte[input.readInt()];
-            input.readFully(data);
-            return Encoding.decodeBigDecimal(data);
+            if(input.readBoolean()){
+                byte[] data=new byte[input.readInt()];
+                input.readFully(data);
+                return Encoding.decodeBigDecimal(data);
+            }else
+                return null;
         }
     };
 

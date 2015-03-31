@@ -20,14 +20,13 @@ public abstract class TimeCollector extends DvdStatsCollector{
 
     protected TimeCollector(LongColumnStatsCollector collector){
         super(collector);
-        this.baseCollector = baseCollector;
+        this.baseCollector = collector;
     }
 
     @Override
     protected void doUpdate(DataValueDescriptor dataValueDescriptor,
                             long count) throws StandardException{
         baseCollector.update(getLong(dataValueDescriptor),count);
-
     }
 
     protected abstract long getLong(DataValueDescriptor dataValueDescriptor) throws StandardException;
