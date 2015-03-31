@@ -24,13 +24,13 @@ import java.util.*;
 import java.util.Map.Entry;
 
 /**
- * A CallBuffer which pre-maps entries to a separate buffer based on which region
- * the write belongs to.  These pre-maps are incorporated into
+ * A CallBuffer which pre-maps (or pipes) entries to a separate buffer based on which region
+ * the write belongs to.  These "pre-mapped pipes" are incorporated into ???
  *
  * This implementation obeys any per-region bounds set in the passed in
  * {@link BufferConfiguration} entity.
  *
- * This class is <em>not</em> Thread-safe. It's use should be restricted to a
+ * This class is <em>not</em> Thread-safe. Its use should be restricted to a
  * single thread. If that is not possible, then external synchronization is
  * necessary.
  *
@@ -40,8 +40,15 @@ import java.util.Map.Entry;
 public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, CanRebuild {
     private static final Logger LOG = Logger.getLogger(PipingCallBuffer.class);
 
-    private NavigableMap<byte[],Pair<RegionCallBuffer,ServerName>> startKeyToBufferMap;
-    private NavigableMap<ServerName,RegionServerCallBuffer> serverToRSBufferMap;
+    /**
+     * Map from the region's starting row key to a pair consisting of the region's call buffer and server name.
+     */
+    private NavigableMap<byte[],Pair<RegionCallBuffer,ServerName>> startKeyToRegionCBMap;
+
+    /**
+     * Map from a server name to the region server's call buffer.
+     */
+    private NavigableMap<ServerName,RegionServerCallBuffer> serverNameToRegionServerCBMap;
 
     private final Writer writer;
     private final byte[] tableName;
@@ -70,25 +77,32 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, CanRebuild
         this.tableName = tableName;
         this.txn = txn;
         this.regionCache = regionCache;
-        this.writeConfiguration = new UpdatingWriteConfiguration(writeConfiguration,this);
-        this.startKeyToBufferMap = new TreeMap<>(Bytes.BYTES_COMPARATOR);
-        this.serverToRSBufferMap = new TreeMap<>();
+        this.writeConfiguration = new UpdatingWriteConfiguration(writeConfiguration,this); 
+        this.startKeyToRegionCBMap = new TreeMap<>(Bytes.BYTES_COMPARATOR);
+        this.serverNameToRegionServerCBMap = new TreeMap<>();
         this.bufferConfiguration = bufferConfiguration;
         this.preFlushHook = preFlushHook;
         MetricFactory metricFactory = writeConfiguration!=null? writeConfiguration.getMetricFactory(): Metrics.noOpMetricFactory();
         writeStats = new MergingWriteStats(metricFactory);
     }
 
+    /**
+     * Add a KVPair object ("Splice mutation") to the call buffer.
+     * This method will "pipe" (set) the mutation into the correct region's call buffer for later flushing.
+     */
     @Override
     public void add(KVPair element) throws Exception {
         assert element!=null: "Cannot add a non-null element!";
-        SpliceLogUtils.trace(LOG, "add %s",element);
         rebuildIfNecessary();
-        Map.Entry<byte[],Pair<RegionCallBuffer,ServerName>> entry = startKeyToBufferMap.floorEntry(element.getRowKey());
-        if(entry==null) entry = startKeyToBufferMap.firstEntry();
+        Map.Entry<byte[],Pair<RegionCallBuffer,ServerName>> entry = startKeyToRegionCBMap.floorEntry(element.getRowKey());
+        if(entry==null) entry = startKeyToRegionCBMap.firstEntry();
         assert entry!=null;
-        entry.getValue().getFirst().add(element);
-        long size = element.getSize();
+        RegionCallBuffer regionCB = entry.getValue().getFirst();
+        if (LOG.isTraceEnabled())
+        	SpliceLogUtils.trace(LOG, "Adding KVPair object (Splice mutation) %s to the call buffer for the region %s",
+        			element, regionCB.getHregionInfo().getRegionNameAsString());
+        regionCB.add(element);
+		long size = element.getSize();
         currentHeapSize+=size;
         currentKVPairSize++;
         if (record) {
@@ -104,7 +118,7 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, CanRebuild
     private void flushLargestBuffer() throws Exception {
         int maxSize = 0;
         RegionServerCallBuffer bufferToFlush = null;
-        for (RegionServerCallBuffer buffer : serverToRSBufferMap.values()) {
+        for (RegionServerCallBuffer buffer : serverNameToRegionServerCBMap.values()) {
             if (buffer.getHeapSize() > maxSize) {
                 bufferToFlush = buffer;
                 maxSize = buffer.getHeapSize();
@@ -120,9 +134,10 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, CanRebuild
     }
 
     private void rebuildIfNecessary() throws Exception {
-        if (!rebuildBuffer && startKeyToBufferMap != null && !startKeyToBufferMap.isEmpty()) {
+        if (!rebuildBuffer && startKeyToRegionCBMap != null && !startKeyToRegionCBMap.isEmpty()) {
             return; //no need to rebuild the buffer
         }
+
         /*
          * We need to rebuild the buffer. It's possible that there are
          * multiple buffer flushes in flight, some of whom may fail
@@ -134,55 +149,67 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, CanRebuild
          * that we block all new additions (and thus, all new buffer flushes),
          * until after the region map has been rebuilt.
          */
-        Collection<KVPair> items = getKVPairs();
+
+        // Get all of the "Splice mutations" that need to be performed on this table.
+        Collection<KVPair> items = getKVPairs();  // KVPairs are simple, just a row key, value, and "Splice mutation" type.
         assert items != null;
-        if(startKeyToBufferMap!=null) {
-            for (Pair<RegionCallBuffer, ServerName> buffer : startKeyToBufferMap.values())
+
+        // The following block of code flushes the region and region server call buffers.
+        if(startKeyToRegionCBMap!=null) {
+            for (Pair<RegionCallBuffer, ServerName> buffer : startKeyToRegionCBMap.values())
                 buffer.getFirst().flushBuffer();
-            for (RegionServerCallBuffer buffer : serverToRSBufferMap.values()) {
-                assert (buffer.getBulkWrites().numEntries() == 0);
+            for (RegionServerCallBuffer buffer : serverNameToRegionServerCBMap.values()) {
+                assert (buffer.getBulkWrites().numEntries() == 0);  // This asserts that there are not any outstanding RegionCallBuffers for the region server that need to be flushed still.
                 buffer.close();
             }
         }
-        this.startKeyToBufferMap = new TreeMap<>(Bytes.BYTES_COMPARATOR);
-        this.serverToRSBufferMap = new TreeMap<>();
+        this.startKeyToRegionCBMap = new TreeMap<>(Bytes.BYTES_COMPARATOR);
+        this.serverNameToRegionServerCBMap = new TreeMap<>();
         currentHeapSize=0;
         currentKVPairSize=0;
 
+        // Get all of the regions for the table and the servers that the regions reside on.
         if (LOG.isDebugEnabled())
-            SpliceLogUtils.debug(LOG, "rebuilding region map %s",Bytes.toString(tableName));
+            SpliceLogUtils.debug(LOG, "rebuilding region map for table %s", Bytes.toString(tableName));
         SortedSet<Pair<HRegionInfo,ServerName>> regions = PipelineUtils.getRegions(regionCache, tableName);
         if (LOG.isDebugEnabled()) {
             for (Pair<HRegionInfo,ServerName> pair: regions) {
                 SpliceLogUtils.debug(LOG, "region %s on server %s",pair.getFirst().getRegionNameAsString(), pair.getSecond().getServerName());
             }
         }
+
         for(Pair<HRegionInfo,ServerName> pair:regions){
             HRegionInfo region = pair.getFirst();
+            ServerName serverName = pair.getSecond();
             byte[] startKey = region.getStartKey();
-            RegionServerCallBuffer rsc = this.serverToRSBufferMap.get(pair.getSecond());
-            // Do we have this RS already?
-            if (rsc == null) {
-                SpliceLogUtils.debug(LOG, "adding RSC %s", pair.getSecond());
-                rsc = new RegionServerCallBuffer(tableName,
+            RegionServerCallBuffer regionServerCB = this.serverNameToRegionServerCBMap.get(serverName);
+
+            // Do we have this RS call buffer already?
+            if (regionServerCB == null) {
+                SpliceLogUtils.debug(LOG, "adding RegionServerCallBuffer for server %s and table %s", serverName, tableName);
+                regionServerCB = new RegionServerCallBuffer(tableName,
                         txn,
                         writeConfiguration,
-                        pair.getSecond(),
-                        writer != null? new RegulatedWriter(writer):null,
+                        serverName,
+                        (writer != null ? new RegulatedWriter(writer) : null),
                         writeStats);
-                serverToRSBufferMap.put(pair.getSecond(), rsc);
+                serverNameToRegionServerCBMap.put(serverName, regionServerCB);
             }
-            Entry<byte[], Pair<RegionCallBuffer, ServerName>> startKeyToBuffer = this.startKeyToBufferMap.floorEntry(startKey);
-            // Total Miss
-            RegionCallBuffer rcb = null;
-            HRegionInfo info = null;
-            if (startKeyToBuffer != null)
-                rcb = startKeyToBuffer.getValue().getFirst();
-            if (startKeyToBuffer == null || rcb.keyOutsideBuffer(startKey)) {
-                if (LOG.isDebugEnabled()) {
-                    SpliceLogUtils.debug(LOG, "lower startKey %s", startKeyToBuffer);
-                    if (rcb!=null) {
-                        info = rcb.getHregionInfo();
+
+            // Attempt to get the call buffer for the correct region that contains this row key.
+            Entry<byte[], Pair<RegionCallBuffer, ServerName>> startKeyToRegionCBEntry = this.startKeyToRegionCBMap.floorEntry(startKey);
+            RegionCallBuffer regionCB = null;
+            if (startKeyToRegionCBEntry != null)
+                regionCB = startKeyToRegionCBEntry.getValue().getFirst();
+
+            // Check if the region call buffer does not exist or if the row is outside of this region (comes after it).
+            if (startKeyToRegionCBEntry == null || regionCB.keyOutsideBuffer(startKey)) {
+
+            	// Debug logging stuff.
+            	if (LOG.isDebugEnabled()) {
+                    SpliceLogUtils.debug(LOG, "lower startKey %s", startKeyToRegionCBEntry);
+                    if (regionCB!=null) {
+                        HRegionInfo info = regionCB.getHregionInfo();
                         SpliceLogUtils.debug(LOG, "region %s", info.getRegionNameAsString());
                         SpliceLogUtils.debug(LOG, "region startKey %s", new Object[]{info.getStartKey()});
                         SpliceLogUtils.debug(LOG, "region endKey %s", new Object[]{info.getEndKey()});
@@ -191,29 +218,40 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, CanRebuild
                     SpliceLogUtils.debug(LOG, "startKey %s", new Object[]{startKey});
                     SpliceLogUtils.debug(LOG, "key outside buffer, add new region (suspect) %s", region.getRegionNameAsString());
                 }
-                RegionCallBuffer newBuffer = new RegionCallBuffer(region,preFlushHook);
-                startKeyToBufferMap.put(startKey,Pair.newPair(newBuffer,pair.getSecond()));
-                rsc.add(Pair.newPair(startKey, newBuffer));
+
+            	// Create a new RegionCallBuffer, add it to the map, and add it to the RegionServerCallBuffer.
+                RegionCallBuffer newBuffer = new RegionCallBuffer(region, preFlushHook);
+                startKeyToRegionCBMap.put(startKey, Pair.newPair(newBuffer, serverName));
+                regionServerCB.add(Pair.newPair(startKey, newBuffer));
             } else {
                 throw new RuntimeException("Not Functional Path");
-
             }
-
         }
+
         rebuildBuffer=false;
         if (LOG.isDebugEnabled())
-            SpliceLogUtils.debug(LOG, "Adding Items Backs %s", items.size());
+            SpliceLogUtils.debug(LOG, "Adding %s KVPair objects ('Splice mutations') back into the appropriate region call buffers", items.size());
         record = false;
+
+        // Add all of the KVPairs (Splice mutations) to the correct region call buffers.
         this.addAll(items);
         record = true;
     }
 
+    /**
+     * Add a bunch of KVPairs ("Splice mutations") to the call buffers.
+     * This method will "pipe" (set) the mutations into the correct region's call buffers for later flushing.
+     */
     @Override
     public void addAll(KVPair[] elements) throws Exception {
         for(KVPair element:elements)
             add(element);
     }
 
+    /**
+     * Add a bunch of KVPairs ("Splice mutations") to the call buffers.
+     * This method will "pipe" (set) the mutations into the correct region's call buffers for later flushing.
+     */
     @Override
     public void addAll(Iterable<KVPair> elements) throws Exception {
         for(KVPair element:elements){
@@ -223,13 +261,13 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, CanRebuild
 
     @Override
     public void flushBuffer() throws Exception {
-        SpliceLogUtils.debug(LOG, "flushBuffer");
-        if (serverToRSBufferMap == null) return;
-        //flush all buffers
+    	SpliceLogUtils.debug(LOG, "flushBuffer");
+        if (serverNameToRegionServerCBMap == null) return;
+    	//flush all buffers
         rebuildIfNecessary();
-        for(RegionServerCallBuffer buffer:serverToRSBufferMap.values()) {
-            if (LOG.isDebugEnabled())
-                SpliceLogUtils.debug(LOG, "flushBuffer {table=%s, server=%s, rows=%d ",Bytes.toString(tableName),buffer.getServerName(),buffer.getKVPairSize());
+        for(RegionServerCallBuffer buffer:serverNameToRegionServerCBMap.values()) {
+        	if (LOG.isDebugEnabled())
+        		SpliceLogUtils.debug(LOG, "flushBuffer {table=%s, server=%s, rows=%d ",Bytes.toString(tableName),buffer.getServerName(),buffer.getKVPairSize());
             buffer.flushBuffer();
         }
         currentHeapSize=0;
@@ -239,20 +277,20 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, CanRebuild
 
     @Override
     public void close() throws Exception {
-        SpliceLogUtils.debug(LOG, "close");
-        //close all buffers
-        if (serverToRSBufferMap == null) return;
+    	SpliceLogUtils.debug(LOG, "close");
+    	//close all buffers
+        if (serverNameToRegionServerCBMap == null) return;
         rebuildIfNecessary();
-        for(RegionServerCallBuffer buffer:serverToRSBufferMap.values()) {
-            if (LOG.isDebugEnabled())
-                SpliceLogUtils.debug(LOG, "Closing {table=%s, server=%s}",Bytes.toString(tableName),buffer.getServerName());
+        for(RegionServerCallBuffer buffer:serverNameToRegionServerCBMap.values()) {
+        	if (LOG.isDebugEnabled())
+        		SpliceLogUtils.debug(LOG, "Closing {table=%s, server=%s}",Bytes.toString(tableName),buffer.getServerName());
             buffer.close();
         }
-
-        for(Pair<RegionCallBuffer,ServerName> buffer:startKeyToBufferMap.values())
-            buffer.getFirst().close();
-        serverToRSBufferMap = null;
-        startKeyToBufferMap = null;
+        
+        for(Pair<RegionCallBuffer,ServerName> buffer:startKeyToRegionCBMap.values())
+        	buffer.getFirst().close();        
+        serverNameToRegionServerCBMap = null;
+        startKeyToRegionCBMap = null;
         currentHeapSize = 0;
         currentKVPairSize = 0;
     }
@@ -268,21 +306,30 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, CanRebuild
     public List<BulkWrites> getBulkWrites() throws Exception {
         SpliceLogUtils.trace(LOG, "getBulkWrites");
         rebuildIfNecessary();
-        List<BulkWrites> writes = new ArrayList<>(serverToRSBufferMap.size());
-        for(RegionServerCallBuffer buffer:serverToRSBufferMap.values())
+        List<BulkWrites> writes = new ArrayList<>(serverNameToRegionServerCBMap.size());
+        for(RegionServerCallBuffer buffer:serverNameToRegionServerCBMap.values())
             writes.add(buffer.getBulkWrites());
         return writes;
     }
 
+	/**
+	 * Return the KVPairs ("Splice mutations") which are buffered for all regions on all servers for the specific table associated with this PipingCallBuffer.
+	 * @return list of all "Splice mutations" that are buffered for the table
+	 * @throws Exception
+	 */
     public Collection<KVPair> getKVPairs() throws Exception {
         SpliceLogUtils.trace(LOG, "getKVPairs");
         Collection<KVPair> kvPairs = new ArrayList<>();
-        for(Pair<RegionCallBuffer,ServerName> buffer:startKeyToBufferMap.values()) {
+        for(Pair<RegionCallBuffer,ServerName> buffer:startKeyToRegionCBMap.values()) {
             kvPairs.addAll(buffer.getFirst().getBuffer());
         }
         return kvPairs;
     }
 
+	/**
+	 * Mark the buffer to be rebuilt.
+	 * <em>Please Note:</em> This method does not actually rebuild the buffer.  It only marks it to be rebuilt later.
+	 */
     @Override
     public void rebuildBuffer() {
         rebuildBuffer = true;
@@ -297,6 +344,4 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, CanRebuild
     public WriteConfiguration getWriteConfiguration() {
         return writeConfiguration;
     }
-
 }
-

@@ -10,6 +10,12 @@ import org.apache.hadoop.hbase.HRegionInfo;
 import java.util.ArrayList;
 import java.util.Collection;
 
+/**
+ * This is a data structure to buffer HBase RPC calls to a specific region.
+ * The RPC call is a Splice specific type of operation (or mutation), which is called a KVPair.
+ * A KVPair is a CRUD (INSERT, UPDATE, DELETE, or UPSERT) operation.
+ * This class also adds a transactional context to each operation (call).
+ */
 public class RegionCallBuffer implements CallBuffer<KVPair> {
 		private Collection<KVPair> buffer;
 		private int heapSize;
@@ -41,6 +47,10 @@ public class RegionCallBuffer implements CallBuffer<KVPair> {
 				}
 		}
 
+	    /**
+	     * Flushes the buffer.  By flushing, this method just clears out the buffer.
+	     * In other words, calls are not executed.  The buffer's entries are all removed.
+	     */
 		@Override
 		public void flushBuffer() throws Exception {
 				heapSize = 0;
@@ -66,6 +76,11 @@ public class RegionCallBuffer implements CallBuffer<KVPair> {
 				return new BulkWrite(heapSize,preFlushHook.transform(buffer),hregionInfo.getEncodedName());
 		}
 
+		/**
+		 * Returns a boolean whether the row key is not contained by (is outside of) the region of this call buffer.
+		 * @param key  row key
+		 * @return true if the row key is not contained by (is outside of) the region of this call buffer
+		 */
 		public boolean keyOutsideBuffer(byte[] key) {
 				return !this.hregionInfo.containsRow(key);
 		}
@@ -88,6 +103,4 @@ public class RegionCallBuffer implements CallBuffer<KVPair> {
 		public Collection<KVPair> getBuffer() {
 				return buffer;
 		}
-
 }
-

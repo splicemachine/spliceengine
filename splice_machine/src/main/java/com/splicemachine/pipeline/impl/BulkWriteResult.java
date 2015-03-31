@@ -34,7 +34,7 @@ public class BulkWriteResult {
 				this.globalStatus = globalStatus;
 		}
 
-		public BulkWriteResult(WriteResult globalStatus, IntOpenHashSet notRunRows,IntObjectOpenHashMap<WriteResult> failedRows){
+		public BulkWriteResult(WriteResult globalStatus, IntOpenHashSet notRunRows, IntObjectOpenHashMap<WriteResult> failedRows){
 				this.notRunRows = notRunRows;
 				this.failedRows = failedRows;
 				this.globalStatus = globalStatus;
@@ -88,10 +88,11 @@ public class BulkWriteResult {
 		@Override
 		public String toString() {
 				return "BulkWriteResult{" +
-								"globalStatus=" + (globalStatus==null?"null":globalStatus.toString()) +
-								", notRunRows=" + (notRunRows==null?"null":notRunRows.size()) +
-								", failedRows=" + (failedRows==null?"null":failedRows.size()) +
-								'}';
+						"globalStatus=" + (globalStatus==null?"null":globalStatus.toString()) + 
+						", notRunRows=" + (notRunRows==null?"null":notRunRows.size()) +
+						", failedRows=" + (failedRows==null?"null":failedRows.size()) +
+						", writeContext=" + (writeContext==null?"null":writeContext.toString()) +
+						'}';
 		}
 
 		public static Serializer<BulkWriteResult> kryoSerializer(){

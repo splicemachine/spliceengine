@@ -111,40 +111,54 @@ public class SpliceBaseIndexEndpoint {
             regionWritePipeline.close();
     }
 
-
+    /**
+     * Perform the actual bulk writes.
+     * The logic is...  Determine whether the writes are independent or dependent.  Get a "permit" for the writes.
+     * And then perform the writes through the region's write pipeline.
+     * @param bulkWrites the bulks writes to perform on the region
+     * @return
+     * @throws IOException
+     */
     public BulkWritesResult bulkWrite(BulkWrites bulkWrites) throws IOException {
         if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "bulkWrite %s ",bulkWrites);
-//        BulkWritesResult result = new BulkWritesResult();
+            SpliceLogUtils.trace(LOG, "BulkWrites %s for region %s", bulkWrites, rce.getRegion().getRegionNameAsString());
         Collection<BulkWrite> bws = bulkWrites.getBulkWrites();
-        int size =  bulkWrites.getBulkWrites().size();
-        List<BulkWriteResult> result = new ArrayList<>(size);
-        // start
-//				List<Pair<BulkWriteResult,RegionWritePipeline>> startPoints = Lists.newArrayListWithExpectedSize(size);
+        int numBulkWrites = bulkWrites.getBulkWrites().size();
+        List<BulkWriteResult> result = new ArrayList<>(numBulkWrites);
         IndexCallBufferFactory indexWriteBufferFactory = new IndexCallBufferFactory();
 
-        if (size==0) {
-        	throw new DoNotRetryIOException("Should Never Send Empty Call to Endpoint");
+        if (numBulkWrites==0) {
+            if (LOG.isDebugEnabled())
+                SpliceLogUtils.debug(LOG, "The number of bulk writes is 0 for the region %s.  Do not retry this.", rce.getRegion().getRegionNameAsString());
+            throw new DoNotRetryIOException("Should Never Send Empty Call to Endpoint");
         }
+
+        // Determine whether or not this write is dependent or independent.  Dependent writes are writes to a table with indexes.
         boolean dependent;
         try {
         	dependent = regionWritePipeline.isDependent(bulkWrites.getTxn());
         } catch (InterruptedException e1) {
         	throw new IOException(e1);
         }
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG, "BulkWrites will be %s for region %s", (dependent ? "dependent" : "independent"), rce.getRegion().getRegionNameAsString());
 
         SpliceWriteControl.Status status;
-        int kvPairSize = bulkWrites.numEntries();
-        status = (dependent) ? writeControl.performDependentWrite(kvPairSize) : writeControl.performIndependentWrite(kvPairSize);
+        int numKVPairs = bulkWrites.numEntries();  // KVPairs are just Splice mutations.  You can think of this count as rows modified (written to).
+        // Get the "permit" to write.  WriteControl does not perform the writes.  It just controls whether or not the write is allowed to proceed.
+        status = (dependent) ? writeControl.performDependentWrite(numKVPairs) : writeControl.performIndependentWrite(numKVPairs);
         if (status.equals(SpliceWriteControl.Status.REJECTED)) {
             //we cannot write to this
-            rejectAll(result, size);
-            rejectedCount.addAndGet(size);
+            if (LOG.isDebugEnabled())
+                SpliceLogUtils.debug(LOG, "All bulk writes have been rejected by the write control for the region %s.", rce.getRegion().getRegionNameAsString());
+            rejectAll(result,numBulkWrites);
+            rejectedCount.addAndGet(numBulkWrites);
             return new BulkWritesResult(result);
         }
         try {
 
-            Map<BulkWrite, Pair<BulkWriteResult, RegionWritePipeline>> writePairMap = getBulkWritePairMap(bws, size);
+            // Add the writes to the writePairMap, which helps link the BulkWrites to their result and write pipeline objects.
+            Map<BulkWrite, Pair<BulkWriteResult, RegionWritePipeline>> writePairMap = getBulkWritePairMap(bws, numBulkWrites);
 
             //
             // Submit the bulk writes for which we found a RegionWritePipeline.
@@ -192,21 +206,21 @@ public class SpliceBaseIndexEndpoint {
                 case REJECTED:
                     break;
                 case DEPENDENT:
-                    writeControl.finishDependentWrite(kvPairSize);
+                    writeControl.finishDependentWrite(numKVPairs);
                     break;
                 case INDEPENDENT:
-                    writeControl.finishIndependentWrite(kvPairSize);
+                    writeControl.finishIndependentWrite(numKVPairs);
                     break;
-
             }
         }
     }
-		private void rejectAll(Collection<BulkWriteResult> result, int numResults) {
-				this.rejectedMeter.mark();
-				for (int i = 0; i < numResults; i++) {
-						result.add(new BulkWriteResult(WriteResult.pipelineTooBusy(rce.getRegion().getRegionNameAsString())));
-				}
-		}
+
+    private void rejectAll(Collection<BulkWriteResult> result, int numResults) {
+    	this.rejectedMeter.mark();
+    	for (int i = 0; i < numResults; i++) {
+    		result.add(new BulkWriteResult(WriteResult.pipelineTooBusy(rce.getRegion().getRegionNameAsString())));
+    	}
+    }
 
     /**
      * Just builds this map:  BulkWrite -> (BulkWriteResult, RegionWritePipeline) where the RegionWritePipeline may
@@ -221,8 +235,8 @@ public class SpliceBaseIndexEndpoint {
                 //we might be able to write this one
                 writeResult = new BulkWriteResult();
             } else {
-                if (LOG.isTraceEnabled())
-                    SpliceLogUtils.trace(LOG, "endpoint not found for region %s on region %s", bw.getEncodedStringName(), rce.getRegion().getRegionNameAsString());
+                if (LOG.isInfoEnabled())
+                    SpliceLogUtils.info(LOG, "Endpoint (or write pipeline) not found for encoded region %s on region %s", bw.getEncodedStringName(), rce.getRegion().getRegionNameAsString());
                 writeResult = new BulkWriteResult(WriteResult.notServingRegion());
             }
             writePairMap.put(bw, Pair.newPair(writeResult, writePipeline));
