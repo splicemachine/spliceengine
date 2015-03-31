@@ -33,7 +33,6 @@ import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.util.JBitSet;
 
 import java.util.List;
-import java.util.Vector;
 
 /**
  * A ValueNodeList represents a list of ValueNodes within a specific predicate 
@@ -337,9 +336,8 @@ public class ValueNodeList extends QueryTreeNodeVector
 			** Can the types be compared to each other?  If not, throw an
 			** exception.
 			*/
-			if (! leftOperand.getTypeServices().comparable(valueNode.getTypeServices(),
-									false,
-									getClassFactory()))
+			if (! leftOperand.getTypeServices().comparable(valueNode.getTypeServices()
+			))
 			{
 				throw StandardException.newException(SQLState.LANG_NOT_COMPARABLE, 
 						leftOperand.getTypeServices().getSQLTypeNameWithCollation(),

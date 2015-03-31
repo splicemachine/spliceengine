@@ -23,7 +23,6 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 
-import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 
@@ -32,7 +31,6 @@ import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.error.StandardException;
 
 import java.util.List;
-import java.util.Vector;
 
 /**
  * This node is the superclass  for all binary comparison operators, such as =,
@@ -247,10 +245,7 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
 		*/
 		boolean forEquals = operator.equals("=") || operator.equals("<>");
 
-        boolean cmp = leftOperand.getTypeServices().comparable(
-        		rightOperand.getTypeServices(),
-				forEquals,
-				getClassFactory());
+        boolean cmp = leftOperand.getTypeServices().comparable( rightOperand.getTypeServices() );
 		// Bypass the comparable check if this is a rewrite from the 
 		// optimizer.  We will assume Mr. Optimizer knows what he is doing.
           if (!cmp && !forQueryRewrite) {
@@ -448,8 +443,8 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
 		 */
 		if (leftTypeId.userType())
 		{
-			if (leftOperand.getTypeServices().comparable(leftOperand.getTypeServices(),
-					false, getClassFactory()))
+			if (leftOperand.getTypeServices().comparable(leftOperand.getTypeServices()
+			))
 				return this;
 
 			leftOperand = leftOperand.genSQLJavaSQLTree();
@@ -459,8 +454,8 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
 
 		if (rightTypeId.userType())
 		{
-			if (rightOperand.getTypeServices().comparable(rightOperand.getTypeServices(),
-					false, getClassFactory()))
+			if (rightOperand.getTypeServices().comparable(rightOperand.getTypeServices()
+			))
 				return this;
 
 			rightOperand = rightOperand.genSQLJavaSQLTree();

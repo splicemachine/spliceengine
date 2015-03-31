@@ -8573,6 +8573,19 @@ Shutting down instance {0} on database directory {1} with class loader {2} </tex
 							<text>Setting write throughput to {0}, which is lower than 10,000 rows/second. This may cause exceptionally poor performance</text>
 							<arg>throughput</arg>
 						</msg>
+
+						<msg>
+							<name>SE020</name>
+							<text>Cannot collect statistics for column {0}: Column type {1} does not support statistics.</text>
+							<arg>column</arg>
+							<arg>columnType</arg>
+						</msg>
+
+						<msg>
+							<name>SE021</name>
+							<text>Cannot disable statistics for column {0}: It is a primary key or indexed column</text>
+							<arg>column</arg>
+						</msg>
        </family>
     </section>
 

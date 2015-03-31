@@ -34,12 +34,10 @@ import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
-import com.splicemachine.db.impl.sql.catalog.Aggregate;
 
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Vector;
 
 /**
  * A ConditionalNode represents an if/then/else operator with a single
@@ -473,7 +471,7 @@ public class ConditionalNode extends ValueNode
 		// RESOLVE DJDOI - this looks wrong, why should the then expression
 		// be comparable to the then expression ??
 		if (! thenExpression.getTypeServices().
-			 comparable(elseExpression.getTypeServices(), false, getClassFactory()) &&
+			 comparable(elseExpression.getTypeServices()) &&
 			! cu.assignableTo(thenExpression.getTypeId().getCorrespondingJavaTypeName(),
 							  elseExpression.getTypeId().getCorrespondingJavaTypeName()) &&
 			! cu.assignableTo(elseExpression.getTypeId().getCorrespondingJavaTypeName(),
