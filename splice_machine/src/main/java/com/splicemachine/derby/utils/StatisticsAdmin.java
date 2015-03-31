@@ -3,6 +3,7 @@ package com.splicemachine.derby.utils;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
@@ -61,7 +62,9 @@ public class StatisticsAdmin {
             ColumnDescriptorList columnDescriptorList = td.getColumnDescriptorList();
             for(ColumnDescriptor descriptor: columnDescriptorList){
                 if(descriptor.getColumnName().equalsIgnoreCase(columnName)){
-                    descriptor.setCollectStatistics(true);
+                    //need to make sure it's not a pk or indexed column
+                    ensureNotKeyed(descriptor,td);
+                    descriptor.setCollectStatistics(false);
                     LanguageConnectionContext languageConnection = conn.getLanguageConnection();
                     PreparedStatement ps = conn.prepareStatement("update SYS.SYSCOLUMNS set collectstats=false where " +
                             "referenceid = ? and columnname = ?");
@@ -72,12 +75,13 @@ public class StatisticsAdmin {
                     return;
                 }
             }
-            throw ErrorState.LANG_COLUMN_NOT_FOUND_IN_TABLE.newException(schema+"."+table,columnName);
+            throw ErrorState.LANG_COLUMN_NOT_FOUND_IN_TABLE.newException(columnName,schema+"."+table);
 
         } catch (StandardException e) {
             throw PublicAPI.wrapStandardException(e);
         }
     }
+
 
     @SuppressWarnings("UnusedDeclaration")
     public static void ENABLE_COLUMN_STATISTICS(String schema,
@@ -93,6 +97,9 @@ public class StatisticsAdmin {
             ColumnDescriptorList columnDescriptorList = td.getColumnDescriptorList();
             for(ColumnDescriptor descriptor: columnDescriptorList){
                 if(descriptor.getColumnName().equalsIgnoreCase(columnName)){
+                    DataTypeDescriptor type=descriptor.getType();
+                    if(!allowsStatistics(type.getNull().getTypeFormatId()))
+                        throw ErrorState.LANG_COLUMN_STATISTICS_NOT_POSSIBLE.newException(columnName,type.getTypeName());
                     descriptor.setCollectStatistics(true);
                     PreparedStatement ps = conn.prepareStatement("update SYS.SYSCOLUMNS set collectstats=true where " +
                                                                  "referenceid = ? and columnnumber = ?");
@@ -103,7 +110,7 @@ public class StatisticsAdmin {
                     return;
                 }
             }
-            throw ErrorState.LANG_COLUMN_NOT_FOUND_IN_TABLE.newException(schema+"."+table,columnName);
+            throw ErrorState.LANG_COLUMN_NOT_FOUND_IN_TABLE.newException(columnName,schema+"."+table);
 
         } catch (StandardException e) {
             throw PublicAPI.wrapStandardException(e);
@@ -532,6 +539,47 @@ public class StatisticsAdmin {
             return toCollect;
         } catch (ExecutionException e) {
             throw Exceptions.parseException(e.getCause());
+        }
+    }
+
+    private static void ensureNotKeyed(ColumnDescriptor descriptor,TableDescriptor td) throws StandardException{
+        ConglomerateDescriptor heapConglom=td.getConglomerateDescriptor(td.getHeapConglomerateId());
+        IndexRowGenerator pkDescriptor=heapConglom.getIndexDescriptor();
+        for(int pkCol:pkDescriptor.baseColumnPositions()){
+           if(pkCol==descriptor.getPosition()){
+               throw ErrorState.LANG_DISABLE_STATS_FOR_KEYED_COLUMN.newException(descriptor.getColumnName());
+           }
+        }
+        IndexLister indexLister=td.getIndexLister();
+        if(indexLister!=null){
+            for(IndexRowGenerator irg:indexLister.getIndexRowGenerators()){
+                for(int col:irg.baseColumnPositions()){
+                    if(col==descriptor.getPosition())
+                        throw ErrorState.LANG_DISABLE_STATS_FOR_KEYED_COLUMN.newException(descriptor.getColumnName());
+                }
+            }
+        }
+    }
+
+    private static boolean allowsStatistics(int typeFormatId){
+        switch(typeFormatId){
+            case StoredFormatIds.SQL_BOOLEAN_ID:
+            case StoredFormatIds.SQL_TINYINT_ID:
+            case StoredFormatIds.SQL_SMALLINT_ID:
+            case StoredFormatIds.SQL_INTEGER_ID:
+            case StoredFormatIds.SQL_LONGINT_ID:
+            case StoredFormatIds.SQL_REAL_ID:
+            case StoredFormatIds.SQL_DOUBLE_ID:
+            case StoredFormatIds.SQL_DECIMAL_ID:
+            case StoredFormatIds.SQL_CHAR_ID:
+            case StoredFormatIds.SQL_DATE_ID:
+            case StoredFormatIds.SQL_TIME_ID:
+            case StoredFormatIds.SQL_TIMESTAMP_ID:
+            case StoredFormatIds.SQL_VARCHAR_ID:
+            case StoredFormatIds.SQL_LONGVARCHAR_ID:
+                return true;
+            default:
+                return false;
         }
     }
 

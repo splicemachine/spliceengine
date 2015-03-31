@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.stats;
 
 import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.pipeline.exception.ErrorState;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -19,7 +20,7 @@ public class StatisticsDataTypeIT {
     private static final SpliceWatcher classWatcher = new SpliceWatcher();
     private static final SpliceSchemaWatcher schema = new SpliceSchemaWatcher(StatisticsDataTypeIT.class.getSimpleName().toUpperCase());
 
-    private static final String BASE_SCHEMA="b smallint,c int,d bigint,e real,f double,g numeric(5,2),h char(5),i varchar(10)";
+    private static final String BASE_SCHEMA="b smallint,c int,d bigint,e real,f double,g numeric(5,2),h char(5),i varchar(10),j blob,k clob";
     private static final SpliceTableWatcher allDataTypes    = new SpliceTableWatcher("DT"        ,schema.schemaName,"("+BASE_SCHEMA+")");
     private static final SpliceTableWatcher smallintPk      = new SpliceTableWatcher("smallintPk",schema.schemaName,"("+BASE_SCHEMA+",PRIMARY KEY(b))");
     private static final SpliceTableWatcher intPk           = new SpliceTableWatcher("intPk"     ,schema.schemaName,"("+BASE_SCHEMA+",PRIMARY KEY(b,c))");
@@ -45,15 +46,16 @@ public class StatisticsDataTypeIT {
                 @Override
                 protected void starting(Description description) {
                     try {
-                        PreparedStatement adtPs = classWatcher.prepareStatement("insert into " + allDataTypes + " (b,c,d,e,f,g,h,i) values (?,?,?,?,?,?,?,?)");
-                        PreparedStatement siPs  = classWatcher.prepareStatement("insert into " + smallintPk + " (b,c,d,e,f,g,h,i) values (?,?,?,?,?,?,?,?)");
-                        PreparedStatement iPs   = classWatcher.prepareStatement("insert into " + intPk + " (b,c,d,e,f,g,h,i) values (?,?,?,?,?,?,?,?)");
-                        PreparedStatement biPs  = classWatcher.prepareStatement("insert into " + bigintPk + " (b,c,d,e,f,g,h,i) values (?,?,?,?,?,?,?,?)");
-                        PreparedStatement rPs   = classWatcher.prepareStatement("insert into " + realPk + " (b,c,d,e,f,g,h,i) values (?,?,?,?,?,?,?,?)");
-                        PreparedStatement dPs   = classWatcher.prepareStatement("insert into " + doublePk + " (b,c,d,e,f,g,h,i) values (?,?,?,?,?,?,?,?)");
-                        PreparedStatement nPs   = classWatcher.prepareStatement("insert into " + numericPk + " (b,c,d,e,f,g,h,i) values (?,?,?,?,?,?,?,?)");
-                        PreparedStatement cPs   = classWatcher.prepareStatement("insert into " + charPk + " (b,c,d,e,f,g,h,i) values (?,?,?,?,?,?,?,?)");
-                        PreparedStatement vcPs  = classWatcher.prepareStatement("insert into " + varcharPk + " (b,c,d,e,f,g,h,i) values (?,?,?,?,?,?,?,?)");
+                        String format = "insert into %s (b,c,d,e,f,g,h,i) values (?,?,?,?,?,?,?,?)";
+                        PreparedStatement adtPs = classWatcher.prepareStatement(String.format(format,allDataTypes));
+                        PreparedStatement siPs  = classWatcher.prepareStatement(String.format(format,smallintPk));
+                        PreparedStatement iPs   = classWatcher.prepareStatement(String.format(format,intPk));
+                        PreparedStatement biPs  = classWatcher.prepareStatement(String.format(format,bigintPk));
+                        PreparedStatement rPs   = classWatcher.prepareStatement(String.format(format,realPk));
+                        PreparedStatement dPs   = classWatcher.prepareStatement(String.format(format,doublePk));
+                        PreparedStatement nPs   = classWatcher.prepareStatement(String.format(format,numericPk));
+                        PreparedStatement cPs   = classWatcher.prepareStatement(String.format(format,charPk));
+                        PreparedStatement vcPs  = classWatcher.prepareStatement(String.format(format,varcharPk));
                         short bVal = (short) 0;
                         int cVal = 0;
                         long dVal = 0;
@@ -109,7 +111,15 @@ public class StatisticsDataTypeIT {
                 }
             });
 
-    private static void setInsertValues(PreparedStatement adtPs, short bVal, int cVal, long dVal, float eVal, double fVal, BigDecimal hVal, String iVal, String jVal) throws SQLException {
+    private static void setInsertValues(PreparedStatement adtPs,
+                                        short bVal,
+                                        int cVal,
+                                        long dVal,
+                                        float eVal,
+                                        double fVal,
+                                        BigDecimal hVal,
+                                        String iVal,
+                                        String jVal) throws SQLException {
         adtPs.setShort(1, bVal);
         adtPs.setInt(2, cVal);
         adtPs.setLong(3, dVal);
@@ -295,13 +305,86 @@ public class StatisticsDataTypeIT {
     @Test public void pk_varchar_char()    throws Exception{ testCorrect(varcharPk.tableName,vcCol,cCol); }
 
     /* ****************************************************************************************************************/
+    /*Error handling tests*/
+
+    @Test(expected = SQLException.class)
+    public void cannotEnableStatsOnClob() throws Exception{
+        try{
+            enable(allDataTypes.tableName,"k");
+            Assert.fail("No Exception thrown!");
+        }catch(SQLException se){
+            assertCodeCorrect(ErrorState.LANG_COLUMN_STATISTICS_NOT_POSSIBLE,se);
+            throw se;
+        }
+    }
+
+    @Test(expected = SQLException.class)
+    public void cannotEnableStatsOnBlob() throws Exception{
+        try{
+            enable(allDataTypes.tableName,"j");
+            Assert.fail("No Exception thrown!");
+        }catch(SQLException se){
+            assertCodeCorrect(ErrorState.LANG_COLUMN_STATISTICS_NOT_POSSIBLE,se);
+            throw se;
+        }
+    }
+
+    @Test(expected = SQLException.class)
+    public void enableColumnDoesNotExist() throws Exception{
+        try{
+            enable(allDataTypes.tableName,"doesnotexist");
+            Assert.fail("No Exception thrown!");
+        }catch(SQLException se){
+            assertCodeCorrect(ErrorState.LANG_COLUMN_NOT_FOUND_IN_TABLE,se);
+            throw se;
+        }
+    }
+
+    @Test(expected=SQLException.class)
+    public void disableKeyedColumn() throws Exception{
+        try(CallableStatement cs =conn.prepareCall("call SYSCS_UTIL.DISABLE_COLUMN_STATISTICS(?,?,?)")){
+            cs.setString(1,schema.schemaName);
+            cs.setString(2,smallintPk.tableName);
+            cs.setString(3,"b");
+
+            cs.execute();
+            Assert.fail("No Exception thrown!");
+        }catch(SQLException se){
+            assertCodeCorrect(ErrorState.LANG_DISABLE_STATS_FOR_KEYED_COLUMN,se);
+            throw se;
+        }
+    }
+
+    @Test(expected=SQLException.class)
+    public void disableColumnNotExists() throws Exception{
+        try(CallableStatement cs =conn.prepareCall("call SYSCS_UTIL.DISABLE_COLUMN_STATISTICS(?,?,?)")){
+            cs.setString(1,schema.schemaName);
+            cs.setString(2,smallintPk.tableName);
+            cs.setString(3,"doesnotexist");
+
+            cs.execute();
+            Assert.fail("No Exception thrown!");
+        }catch(SQLException se){
+            assertCodeCorrect(ErrorState.LANG_COLUMN_NOT_FOUND_IN_TABLE,se);
+            throw se;
+        }
+    }
+
+    /* ****************************************************************************************************************/
     /*private helper methods*/
+
+    private void assertCodeCorrect(ErrorState error,SQLException se){
+        String code = se.getSQLState();
+        System.out.println(se.getMessage());
+        Assert.assertEquals("Incorrect SQL state!",error.getSqlState(),code);
+    }
     private void enable(String tableName,String columnName) throws SQLException {
-        CallableStatement enableCall = conn.prepareCall("call SYSCS_UTIL.ENABLE_COLUMN_STATISTICS(?,?,?)");
-        enableCall.setString(1,schema.schemaName);
-        enableCall.setString(2,tableName);
-        enableCall.setString(3,columnName.toUpperCase());
-        enableCall.execute();
+        try(CallableStatement enableCall = conn.prepareCall("call SYSCS_UTIL.ENABLE_COLUMN_STATISTICS(?,?,?)")){
+            enableCall.setString(1,schema.schemaName);
+            enableCall.setString(2,tableName);
+            enableCall.setString(3,columnName.toUpperCase());
+            enableCall.execute();
+        }
     }
 
     private void assertCorrectCollectResults(String tableName,ResultSet results) throws SQLException {
@@ -315,7 +398,8 @@ public class StatisticsDataTypeIT {
     }
 
     private void assertCorrectTableStatistics(String tableName) throws SQLException {
-        try (PreparedStatement ps = conn.prepareStatement("select * from sys.systablestatistics where schemaname = ? and tablename = ?")) {
+        try (PreparedStatement ps = conn.prepareStatement("select * " +
+                "from sys.systablestatistics where schemaname = ? and tablename = ?")) {
             ps.setString(1, schema.schemaName);
             ps.setString(2, tableName);
 
@@ -333,7 +417,8 @@ public class StatisticsDataTypeIT {
 
     private void assertColumnStatsCorrect(String tableName,String colName,boolean useFloatStrings) throws SQLException {
         colName = colName.toUpperCase();
-        try(PreparedStatement ps = conn.prepareStatement("select * from sys.syscolumnstatistics where schemaname = ? and tablename = ? and columnName=?")){
+        try(PreparedStatement ps = conn.prepareStatement("select * from " +
+                "sys.syscolumnstatistics where schemaname = ? and tablename = ? and columnName=?")){
             ps.setString(1,schema.schemaName);
             ps.setString(2,tableName);
             ps.setString(3,colName);
