@@ -866,13 +866,10 @@ public class SpliceConstants {
 		public static boolean dumpClassFile;
 
 		/**
-		 * For debugging statements issued in derby.  This is on by default, but will hurt you in the case of an OLTP
-		 * workload.
-		 * 
-		 * 
+		 * For logging sql statements.  This is off by default. Turning on will hurt you in the case of an OLTP workload.
 		 */
 		@Parameter private static final String DEBUG_LOG_STATEMENT_CONTEXT = "splice.debug.logStatementContext";
-		@DefaultValue(DEBUG_DUMP_CLASS_FILE) public static final boolean DEFAULT_LOG_STATEMENT_CONTEXT=true;
+		@DefaultValue(DEBUG_DUMP_CLASS_FILE) public static final boolean DEFAULT_LOG_STATEMENT_CONTEXT=false;
 		public static boolean logStatementContext;
 
 
