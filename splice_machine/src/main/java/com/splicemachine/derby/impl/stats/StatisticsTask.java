@@ -331,7 +331,7 @@ public class StatisticsTask extends ZkTask{
                 .encodeNext(region.getRegionInfo().getEncodedName()).build();
 
         BitSet nonNullRowFields = new BitSet();
-        nonNullRowFields.set(2);
+        nonNullRowFields.set(4);
         BitSet typedFields = new BitSet();
 
         EntryEncoder rowEncoder = EntryEncoder.create(SpliceKryoRegistry.getInstance(),11,nonNullRowFields,typedFields,typedFields,typedFields);

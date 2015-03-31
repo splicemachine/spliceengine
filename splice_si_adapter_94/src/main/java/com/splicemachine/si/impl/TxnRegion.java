@@ -164,8 +164,7 @@ public class TxnRegion implements TransactionalRegion {
     }
 
     @Override
-    public void discard() {
-    } //no-op
+    public void close() { } //no-op
 
     @Override
     public InternalScanner compactionScanner(InternalScanner scanner) {
