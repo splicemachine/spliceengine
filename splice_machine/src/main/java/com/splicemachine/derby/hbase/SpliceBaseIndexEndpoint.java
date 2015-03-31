@@ -235,8 +235,8 @@ public class SpliceBaseIndexEndpoint {
                 //we might be able to write this one
                 writeResult = new BulkWriteResult();
             } else {
-                if (LOG.isInfoEnabled())
-                    SpliceLogUtils.info(LOG, "Endpoint (or write pipeline) not found for encoded region %s on region %s", bw.getEncodedStringName(), rce.getRegion().getRegionNameAsString());
+                if (LOG.isDebugEnabled())
+                    SpliceLogUtils.debug(LOG, "Endpoint (or write pipeline) not found for encoded region %s on region %s", bw.getEncodedStringName(), rce.getRegion().getRegionNameAsString());
                 writeResult = new BulkWriteResult(WriteResult.notServingRegion());
             }
             writePairMap.put(bw, Pair.newPair(writeResult, writePipeline));
