@@ -73,15 +73,17 @@ public class PipelineUtils extends PipelineConstants {
 		}
 
 		public static InputStream getSnappyInputStream(InputStream input) throws IOException {
-				if (supportsNative)
-						return snappy.createInputStream(input);
-				return new DataInputStream(input);
+				if (supportsNative) {
+                    return snappy.createInputStream(input);
+                }
+				return input;
 		}
 
 		public static OutputStream getSnappyOutputStream(OutputStream outputStream) throws IOException {
-				if (supportsNative)
-						return snappy.createOutputStream(outputStream);
-				return new DataOutputStream(outputStream);
+				if (supportsNative) {
+                    return snappy.createOutputStream(outputStream);
+                }
+				return outputStream;
 		}
 
 		public static long getWaitTime(int tryNum,long pause) {
