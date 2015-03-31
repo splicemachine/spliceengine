@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.store.access;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.AccessPath;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
+import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.AggregateCostController;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
@@ -144,15 +145,13 @@ public class TempGroupedAggregateCostController implements AggregateCostControll
 
         ResultSetNode rsn = col.getSourceResultSet();
         assert rsn!=null;
-        assert rsn instanceof FromTable: "Programmer error: unexpected type "+ rsn.getClass();
-        ConglomerateDescriptor cd = findConglomerateDescriptor(col.getSourceResultSet());
         //get the underlying store controller for this node.
-        return rsn.getCompilerContext().getStoreCostController(cd);
+        return findConglomerateDescriptor(ref,rsn);
     }
 
-    private ConglomerateDescriptor findConglomerateDescriptor(ResultSetNode rsn){
+    private StoreCostController findConglomerateDescriptor(ColumnReference ref,ResultSetNode rsn) throws StandardException{
         if(rsn instanceof FromBaseTable){
-            FromBaseTable fbt = (FromBaseTable)rsn;
+            FromTable fbt = (FromTable)rsn;
             AccessPath ap = fbt.getCurrentAccessPath();
             ConglomerateDescriptor cd;
             if(ap!=null){
@@ -174,15 +173,38 @@ public class TempGroupedAggregateCostController implements AggregateCostControll
                 ap = fbt.getBestAccessPath();
                 cd = ap.getConglomerateDescriptor();
             }
-            return cd;
+            String[] columnNames=cd.getColumnNames();
+            for(String columnName:columnNames){
+                if(ref.getColumnName().equals(columnName)){
+                    return rsn.getCompilerContext().getStoreCostController(cd);
+                }
+            }
+            return null;
         }else if(rsn instanceof JoinNode){
             JoinNode joinNode=(JoinNode)rsn;
-            ConglomerateDescriptor cd = findConglomerateDescriptor(joinNode.getLeftResultSet());
-            if(cd==null)
-                cd = findConglomerateDescriptor(joinNode.getRightResultSet());
-            return cd;
+            StoreCostController scc = findConglomerateDescriptor(ref,joinNode.getLeftResultSet());
+            if(scc==null)
+                scc = findConglomerateDescriptor(ref,joinNode.getRightResultSet());
+            return scc;
         }else if(rsn instanceof SingleChildResultSetNode){
-            return findConglomerateDescriptor(((SingleChildResultSetNode)rsn).getChildResult());
+            return findConglomerateDescriptor(ref,((SingleChildResultSetNode)rsn).getChildResult());
+        }else if(rsn instanceof IndexToBaseRowNode){
+            /*
+             * We have two options--either the conglomerate of the index OR the conglomerate
+             * of the base table is what we want, so we need to check both
+             */
+            FromBaseTable fbt = ((IndexToBaseRowNode)rsn).getSource();
+            StoreCostController scc = findConglomerateDescriptor(ref,fbt);
+            if(scc==null){
+                ConglomerateDescriptor cd = ((IndexToBaseRowNode)rsn).getBaseConglomerateDescriptor();
+                String[] columnNames=cd.getColumnNames();
+                for(String columnName:columnNames){
+                    if(ref.getColumnName().equals(columnName)){
+                        return rsn.getCompilerContext().getStoreCostController(cd);
+                    }
+                }
+                return null;
+            }else return scc;
         }else{
             throw new IllegalStateException("Programmer Error: Unexpected node type: "+rsn.getClass());
         }
