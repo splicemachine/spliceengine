@@ -14,12 +14,13 @@ import java.util.Iterator;
 
 public class Joiner {
     private static Logger LOG = Logger.getLogger(Joiner.class);
+    private final boolean reuseRow;
 
     private Iterator<ExecRow> rightSideRowIterator;
     private ExecRow currentLeftRow;
     private boolean rightSideReturned;
 
-    private final ExecRow mergedRowTemplate;
+    private ExecRow mergedRowTemplate;
     private final IJoinRowsIterator<ExecRow> joinRowsSource;
     private final boolean isOuterJoin;
     private final boolean wasRightOuterJoin;
@@ -42,7 +43,7 @@ public class Joiner {
                   boolean antiJoin,
                   StandardSupplier<ExecRow> emptyRowSupplier,MetricFactory metricFactory) {
         this(joinRowsSource, mergedRowTemplate, Restriction.noOpRestriction, isOuterJoin,
-                wasRightOuterJoin, leftNumCols, rightNumCols, oneRowRightSide, antiJoin,
+                wasRightOuterJoin, leftNumCols, rightNumCols, oneRowRightSide, antiJoin, true,
                 emptyRowSupplier,metricFactory);
     }
 
@@ -55,6 +56,7 @@ public class Joiner {
 									int rightNumCols,
 									boolean oneRowRightSide,
 									boolean antiJoin,
+                                    boolean reuseRow,
 									StandardSupplier<ExecRow> emptyRowSupplier,
 									MetricFactory metricFactory) {
         this.isOuterJoin = isOuterJoin;
@@ -66,6 +68,7 @@ public class Joiner {
         this.mergeRestriction = mergeRestriction;
         this.oneRowRightSide = oneRowRightSide;
         this.antiJoin = antiJoin;
+        this.reuseRow = reuseRow;
         if (emptyRowSupplier == null)
             emptyRowSupplier = StandardSuppliers.emptySupplier();
         this.emptyRowSupplier = emptyRowSupplier;
@@ -88,6 +91,9 @@ public class Joiner {
 
     private ExecRow getNextFromBuffer() throws StandardException {
         if (currentLeftRow != null && rightSideRowIterator != null) {
+            if (!reuseRow) {
+                mergedRowTemplate = mergedRowTemplate.getNewNullRow();
+            }
             boolean foundRows = false;
             while (rightSideRowIterator.hasNext()) {
                 ExecRow candidate = getMergedRow(currentLeftRow, rightSideRowIterator.next());
