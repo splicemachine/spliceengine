@@ -472,7 +472,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
         if (distinct) {
             rdd = rdd.distinct();
         }
-        JavaPairRDD<ExecRow, ExecRow> keyed = RDDUtils.getKeyedRDD(rdd, keyColumns).cache();
+        JavaPairRDD<ExecRow, ExecRow> keyed = RDDUtils.getKeyedRDD(rdd, keyColumns);
         JavaPairRDD<ExecRow, ExecRow> sorted = keyed.sortByKey(new RowComparator(descColumns));
         return sorted.values();
     }
