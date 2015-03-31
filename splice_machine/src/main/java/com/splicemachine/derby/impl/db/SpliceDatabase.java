@@ -81,7 +81,7 @@ public class SpliceDatabase extends BasicDatabase {
         Configuration.setConfiguration(null);
         //System.setProperty("derby.language.logQueryPlan", Boolean.toString(true));
         if (SpliceConstants.logStatementContext)
-            System.setProperty("derby.language.logStatementText", Boolean.toString(true));
+            System.setProperty("derby.language.logStatementText", "true");
         if (SpliceConstants.authenticationNativeCreateCredentialsDatabase) {
             System.setProperty(Property.AUTHENTICATION_NATIVE_CREATE_CREDENTIALS_DATABASE, Boolean.toString(true));
         }
