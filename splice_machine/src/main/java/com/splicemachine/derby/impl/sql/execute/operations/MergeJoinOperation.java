@@ -248,11 +248,28 @@ public class MergeJoinOperation extends JoinOperation {
     public JavaRDD<ExecRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
 
 
-        JavaPairRDD<ExecRow, ExecRow> leftRDD = RDDUtils.getKeyedRDD(leftResultSet.getRDD(spliceRuntimeContext, leftResultSet), leftHashKeys);
-        // right is the one we are just reading, we have TableSplits for it.
+        JavaRDD<ExecRow> leftRDD = leftResultSet.getRDD(spliceRuntimeContext, leftResultSet);
         JavaRDD<ExecRow> rightRDD = rightResultSet.getRDD(spliceRuntimeContext, rightResultSet);
 
-        Partition[] partitions = rightRDD.rdd().partitions();
+        Partition[] rightPartitions = rightRDD.rdd().partitions();
+        Partition[] leftPartitions = leftRDD.rdd().partitions();
+
+        JavaPairRDD<ExecRow, ExecRow> partitionedRDD;
+        JavaRDD<ExecRow> partitionerRDD;
+        int[] formatIds;
+        Partition[] partitions;
+        if (rightPartitions.length < leftPartitions.length) {
+            formatIds = SpliceUtils.getFormatIds(RDDUtils.getKey(this.leftResultSet.getExecRowDefinition(), this.leftHashKeys).getRowArray());
+            partitions = leftPartitions;
+            partitionedRDD = RDDUtils.getKeyedRDD(rightRDD, rightHashKeys);
+            partitionerRDD = leftRDD;
+        } else {
+            formatIds = SpliceUtils.getFormatIds(RDDUtils.getKey(this.rightResultSet.getExecRowDefinition(), this.rightHashKeys).getRowArray());
+            partitions = rightPartitions;
+            partitionedRDD = RDDUtils.getKeyedRDD(leftRDD, leftHashKeys);
+            partitionerRDD = rightRDD;
+        }
+
         List<byte[]> splits = new ArrayList<>();
         for (Partition p : partitions) {
             assert p instanceof NewHadoopPartition;
@@ -264,11 +281,10 @@ public class MergeJoinOperation extends JoinOperation {
         }
         Collections.sort(splits, BytesUtil.endComparator);
 
-        int[] formatIds = SpliceUtils.getFormatIds(RDDUtils.getKey(this.rightResultSet.getExecRowDefinition(), this.rightHashKeys).getRowArray());
         Partitioner partitioner = new CustomPartitioner(splits, formatIds);
 
         final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this, spliceRuntimeContext);
-        return leftRDD.partitionBy(partitioner).zipPartitions(rightRDD, new SparkJoiner(this, soi, true));
+        return partitionedRDD.partitionBy(partitioner).zipPartitions(partitionerRDD, new SparkJoiner(this, soi, true));
     }
 
     @Override
