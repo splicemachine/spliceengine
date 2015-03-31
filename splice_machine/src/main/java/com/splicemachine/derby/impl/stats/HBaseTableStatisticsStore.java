@@ -16,6 +16,7 @@ import com.splicemachine.si.api.TxnOperationFactory;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.storage.EntryDecoder;
+import com.splicemachine.storage.index.BitIndex;
 import com.stumbleupon.async.Deferred;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.Get;
@@ -113,12 +114,19 @@ public class HBaseTableStatisticsStore implements TableStatisticsStore {
         String partitionId = decoder.decodeNextString();
 
         cachedDecoder.set(cell.getValueArray(),cell.getValueOffset(),cell.getValueLength());
-        decoder = cachedDecoder.get();
-        long timestamp = decoder.decodeNextLong();
-        boolean isStale = decoder.decodeNextBoolean();
-        boolean inProgress= decoder.decodeNextBoolean();
-        TableStatisticsDescriptor stats=decode(decoder,conglomId,partitionId,timestamp,isStale,inProgress);
-        if(!inProgress){
+        BitIndex index=cachedDecoder.getCurrentIndex();
+        decoder=cachedDecoder.get();
+        long timestamp;
+        boolean isStale;
+        boolean inProgress;
+        timestamp=index.isSet(0)?decoder.decodeNextLong():System.currentTimeMillis();
+        isStale=!index.isSet(1) || decoder.decodeNextBoolean();
+        inProgress=index.isSet(2) && decoder.decodeNextBoolean();
+
+        TableStatisticsDescriptor stats = null;
+        if(index.isSet(3))
+            stats=decode(decoder,conglomId,partitionId,timestamp,isStale,inProgress);
+        if(!inProgress && stats!=null){
             /*
              * If the table is currently in progress, then we don't want to cache the value
              * because it's likely to change again soon. Otherwise, we can freely cache the
@@ -180,20 +188,27 @@ public class HBaseTableStatisticsStore implements TableStatisticsStore {
                 closeLat);
     }
 
-    protected TableStatisticsDescriptor decode(EntryDecoder cachedDecoder,KeyValue cell) {
-        assert cell!=null: "Programmer error: no data column returned!";
-        MultiFieldDecoder decoder = cachedDecoder.get();
+    protected TableStatisticsDescriptor decode(EntryDecoder cachedDecoder,KeyValue cell){
+        assert cell!=null:"Programmer error: no data column returned!";
+        MultiFieldDecoder decoder=cachedDecoder.get();
         decoder.set(cell.key());
-        long conglomId = decoder.decodeNextLong();
-        String partitionId = decoder.decodeNextString();
+        long conglomId=decoder.decodeNextLong();
+        String partitionId=decoder.decodeNextString();
 
         cachedDecoder.set(cell.value());
-        decoder = cachedDecoder.get();
-        long timestamp = decoder.decodeNextLong();
-        boolean isStale = decoder.decodeNextBoolean();
-        boolean inProgress= decoder.decodeNextBoolean();
-        TableStatisticsDescriptor stats=decode(decoder,conglomId,partitionId,timestamp,isStale,inProgress);
-        if(!inProgress){
+        BitIndex index=cachedDecoder.getCurrentIndex();
+        decoder=cachedDecoder.get();
+        long timestamp;
+        boolean isStale;
+        boolean inProgress;
+        timestamp=index.isSet(0)?decoder.decodeNextLong():System.currentTimeMillis();
+        isStale=!index.isSet(1) || decoder.decodeNextBoolean();
+        inProgress=index.isSet(2) && decoder.decodeNextBoolean();
+
+        TableStatisticsDescriptor stats = null;
+        if(index.isSet(3))
+            stats=decode(decoder,conglomId,partitionId,timestamp,isStale,inProgress);
+        if(!inProgress && stats!=null){
             /*
              * If the table is currently in progress, then we don't want to cache the value
              * because it's likely to change again soon. Otherwise, we can freely cache the
