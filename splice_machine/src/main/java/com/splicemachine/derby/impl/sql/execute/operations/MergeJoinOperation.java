@@ -254,22 +254,25 @@ public class MergeJoinOperation extends JoinOperation {
         Partition[] rightPartitions = rightRDD.rdd().partitions();
         Partition[] leftPartitions = leftRDD.rdd().partitions();
 
-        JavaPairRDD<ExecRow, ExecRow> partitionedRDD;
-        JavaRDD<ExecRow> partitionerRDD;
-        int[] formatIds;
-        Partition[] partitions;
+        JavaRDD<ExecRow> partitionedLeftRDD;
+        JavaRDD<ExecRow> partitionedRightRDD;
         if (rightPartitions.length < leftPartitions.length) {
-            formatIds = SpliceUtils.getFormatIds(RDDUtils.getKey(this.leftResultSet.getExecRowDefinition(), this.leftHashKeys).getRowArray());
-            partitions = leftPartitions;
-            partitionedRDD = RDDUtils.getKeyedRDD(rightRDD, rightHashKeys);
-            partitionerRDD = leftRDD;
+            int[] formatIds = SpliceUtils.getFormatIds(RDDUtils.getKey(this.leftResultSet.getExecRowDefinition(), this.leftHashKeys).getRowArray());
+            Partitioner partitioner = getPartitioner(formatIds, leftPartitions);
+            partitionedLeftRDD = leftRDD;
+            partitionedRightRDD = RDDUtils.getKeyedRDD(rightRDD, rightHashKeys).partitionBy(partitioner).values();
         } else {
-            formatIds = SpliceUtils.getFormatIds(RDDUtils.getKey(this.rightResultSet.getExecRowDefinition(), this.rightHashKeys).getRowArray());
-            partitions = rightPartitions;
-            partitionedRDD = RDDUtils.getKeyedRDD(leftRDD, leftHashKeys);
-            partitionerRDD = rightRDD;
+            int[] formatIds = SpliceUtils.getFormatIds(RDDUtils.getKey(this.rightResultSet.getExecRowDefinition(), this.rightHashKeys).getRowArray());
+            Partitioner partitioner = getPartitioner(formatIds, rightPartitions);
+            partitionedLeftRDD = RDDUtils.getKeyedRDD(leftRDD, leftHashKeys).partitionBy(partitioner).values();
+            partitionedRightRDD = rightRDD;
         }
 
+        final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this, spliceRuntimeContext);
+        return partitionedLeftRDD.zipPartitions(partitionedRightRDD, new SparkJoiner(this, soi, true));
+    }
+
+    private Partitioner getPartitioner(int[] formatIds, Partition[] partitions) {
         List<byte[]> splits = new ArrayList<>();
         for (Partition p : partitions) {
             assert p instanceof NewHadoopPartition;
@@ -281,10 +284,7 @@ public class MergeJoinOperation extends JoinOperation {
         }
         Collections.sort(splits, BytesUtil.endComparator);
 
-        Partitioner partitioner = new CustomPartitioner(splits, formatIds);
-
-        final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this, spliceRuntimeContext);
-        return partitionedRDD.partitionBy(partitioner).zipPartitions(partitionerRDD, new SparkJoiner(this, soi, true));
+        return new CustomPartitioner(splits, formatIds);
     }
 
     @Override
@@ -359,7 +359,7 @@ public class MergeJoinOperation extends JoinOperation {
     }
 
 
-    private static final class SparkJoiner extends SparkFlatMap2Operation<MergeJoinOperation, Iterator<Tuple2<ExecRow, ExecRow>>, Iterator<ExecRow>, ExecRow> {
+    private static final class SparkJoiner extends SparkFlatMap2Operation<MergeJoinOperation, Iterator<ExecRow>, Iterator<ExecRow>, ExecRow> {
         boolean outer;
         private Joiner joiner;
 
@@ -371,7 +371,7 @@ public class MergeJoinOperation extends JoinOperation {
             this.outer = outer;
         }
 
-        private Joiner initJoiner(final Iterator<Tuple2<ExecRow, ExecRow>> left, Iterator<ExecRow> right) throws StandardException {
+        private Joiner initJoiner(final Iterator<ExecRow> left, Iterator<ExecRow> right) throws StandardException {
             StandardIterator<ExecRow> leftIterator = new StandardIterator<ExecRow>() {
                 @Override
                 public void open() throws StandardException, IOException {
@@ -382,7 +382,7 @@ public class MergeJoinOperation extends JoinOperation {
                 public ExecRow next(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
                     if (!left.hasNext())
                         return null;
-                    return left.next()._2();
+                    return left.next();
                 }
 
                 @Override
@@ -415,7 +415,7 @@ public class MergeJoinOperation extends JoinOperation {
         }
 
         @Override
-        public Iterable<ExecRow> call(Iterator<Tuple2<ExecRow, ExecRow>> left, Iterator<ExecRow> right) throws Exception {
+        public Iterable<ExecRow> call(Iterator<ExecRow> left, Iterator<ExecRow> right) throws Exception {
             if (joiner == null) {
                 joiner = initJoiner(left, right);
                 joiner.open();
