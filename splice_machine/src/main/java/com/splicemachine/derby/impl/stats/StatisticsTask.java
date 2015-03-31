@@ -21,7 +21,6 @@ import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.marshall.dvd.TimestampV2DescriptorSerializer;
-import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.KVPair;
@@ -38,7 +37,6 @@ import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.HTransactorFactory;
 import com.splicemachine.si.impl.TransactionalRegions;
 import com.splicemachine.stats.ColumnStatistics;
-import com.splicemachine.stats.PartitionStatistics;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import com.splicemachine.utils.kryo.KryoObjectOutput;
@@ -49,8 +47,6 @@ import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.net.InetAddress;
-import java.net.UnknownHostException;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.List;
@@ -144,8 +140,9 @@ public class StatisticsTask extends ZkTask{
     @Override
     protected void doExecute() throws ExecutionException, InterruptedException {
         Txn txn = getTxn();
-
+        long[] statsTableIds = getStatsConglomerateIds();
         try(TransactionalRegion txnRegion = TransactionalRegions.get(region)) {
+            markCollectionInProgress(txnRegion,statsTableIds[0]);
             StatisticsCollector collector;
             if(baseTableConglomerateId<0) {
                 collector = new StatisticsCollector(txn,
@@ -184,7 +181,6 @@ public class StatisticsTask extends ZkTask{
             long start = System.nanoTime();
             OverheadManagedPartitionStatistics collected = collector.collect();
 
-            long[] statsTableIds = getStatsConglomerateIds();
             writeTableStats(txnRegion, statsTableIds[0], collected);
             writeColumnStats(txnRegion, statsTableIds[1], collected.columnStatistics());
             long end = System.nanoTime();
@@ -193,6 +189,7 @@ public class StatisticsTask extends ZkTask{
             status.setStats(ts);
         }
     }
+
 
     @Override
     protected Txn beginChildTransaction(TxnView parentTxn, TxnLifecycleManager tc) throws IOException {
@@ -325,6 +322,34 @@ public class StatisticsTask extends ZkTask{
             throw new ExecutionException(e);
         } finally{
             SpliceKryoRegistry.getInstance().returnInstance(kryo);
+        }
+    }
+
+    private void markCollectionInProgress(TransactionalRegion txnRegion,long tableStatsConglomerate) throws ExecutionException{
+        long tableConglomerateId = Long.parseLong(txnRegion.getTableName());
+        byte[] rowKey =MultiFieldEncoder.create(2).encodeNext(tableConglomerateId)
+                .encodeNext(region.getRegionInfo().getEncodedName()).build();
+
+        BitSet nonNullRowFields = new BitSet();
+        nonNullRowFields.set(2);
+        BitSet typedFields = new BitSet();
+
+        EntryEncoder rowEncoder = EntryEncoder.create(SpliceKryoRegistry.getInstance(),11,nonNullRowFields,typedFields,typedFields,typedFields);
+        try(CallBuffer<KVPair> buffer = SpliceDriver.driver().getTableWriter().writeBuffer(Long.toString(tableStatsConglomerate).getBytes(),getTxn())){
+            MultiFieldEncoder rEncoder = rowEncoder.getEntryEncoder();
+            rEncoder.encodeNext(true);
+
+            byte[] row = rowEncoder.encode();
+
+            KVPair kvPair = new KVPair(rowKey,row,KVPair.Type.UPSERT);
+            buffer.add(kvPair);
+            buffer.flushBuffer();
+
+        }catch(Exception e){
+            if(e instanceof ExecutionException) throw (ExecutionException)e;
+            else throw new ExecutionException(e);
+        }finally{
+            rowEncoder.close();
         }
     }
 

@@ -207,9 +207,9 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
             ",max(ts.meanrowWidth) as ROW_WIDTH" + //7
             ",sum(ts.queryCount) as TOTAL_QUERY_COUNT" + //8
             ",avg(ts.queryCount) as AVG_QUERY_COUNT" + //9
-            ",avg(ts.localReadLatency/ts.rowCount) as AVG_LOCAL_READ_LATENCY" + //10
-            ",avg(ts.remoteReadLatency/ts.rowCount) as AVG_REMOTE_READ_LATENCY" + //11
-            ",avg(ts.writeLatency/ts.rowCount) as AVG_WRITE_LATENCY" + //12
+            ",avg(CASE WHEN ts.rowCount>0 then ts.localReadLatency/ts.rowCount ELSE 0 END) as AVG_LOCAL_READ_LATENCY" + //10
+            ",avg(CASE WHEN ts.rowCount>0 then ts.remoteReadLatency/ts.rowCount ELSE 0 END) as AVG_REMOTE_READ_LATENCY" + //11
+            ",avg(CASE WHEN ts.rowCount>0 then ts.writeLatency/ts.rowCount ELSE 0 END) as AVG_WRITE_LATENCY" + //12
             " from " +
             "sys.systables t" +
             ",sys.sysschemas s" +
