@@ -68,6 +68,7 @@ public class AsyncClientScanProvider extends AbstractAsyncScanProvider {
         try {
             return scanner.nextKeyValues();
         } catch (Exception e) {
+            SpliceLogUtils.warn(LOG,"AsyncClientScanProvider#getResult handled an exception",e);
             throw Exceptions.parseException(e);
         }
     }

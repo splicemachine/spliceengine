@@ -93,6 +93,8 @@ public class ImportTask extends ZkTask{
 				try{
 						ExecRow row = getExecRow(importContext);
 
+						long previouslyLoggedRowsRead = 0l;  // The number of rows read that was last logged.
+						long logRowCountInterval = 10000l;   // The row count interval of when to log rows read.  For example, write to the log every 10,000 rows read.
 						long rowsRead = 0l;
 						long stopTime;
 						Timer totalTimer = importContext.shouldRecordStats()? Metrics.newTimer(): Metrics.noOpTimer();
@@ -127,7 +129,16 @@ public class ImportTask extends ZkTask{
 														}
 												}
 
+												if (LOG.isDebugEnabled() && (rowsRead - previouslyLoggedRowsRead) >= logRowCountInterval) {
+													SpliceLogUtils.debug(LOG, "Imported %d rows", rowsRead);
+													previouslyLoggedRowsRead = rowsRead;
+												}
 										}while(shouldContinue);
+
+										if (LOG.isDebugEnabled()) {
+											SpliceLogUtils.debug(LOG, "Import task finished.  Imported %d rows", rowsRead);
+											previouslyLoggedRowsRead = rowsRead;
+										}
 								} catch (Exception e) {
 										throw new ExecutionException(e);
 								} finally{
