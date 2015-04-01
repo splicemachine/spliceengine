@@ -68,7 +68,7 @@ public class BooleanStats extends BaseDvdStatistics {
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        baseStats = BooleanColumnStatistics.encoder().decode(in);
+        super.baseStats = baseStats = BooleanColumnStatistics.encoder().decode(in);
     }
 
     /* ****************************************************************************************************************/
