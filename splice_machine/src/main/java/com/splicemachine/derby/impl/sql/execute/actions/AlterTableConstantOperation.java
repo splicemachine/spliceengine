@@ -1,19 +1,12 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Properties;
+
 import com.google.common.io.Closeables;
-import com.splicemachine.derby.ddl.DDLChangeType;
-import com.splicemachine.derby.ddl.TentativeIndexDesc;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.primitives.BooleanArrays;
-import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.TxnView;
-import com.splicemachine.si.impl.TransactionLifecycle;
-import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.pipeline.ddl.DDLChange;
-import com.splicemachine.pipeline.exception.Exceptions;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.log4j.Logger;
 
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -25,22 +18,41 @@ import com.splicemachine.db.iapi.sql.PreparedStatement;
 import com.splicemachine.db.iapi.sql.ResultSet;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
-import com.splicemachine.db.iapi.sql.dictionary.*;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptorList;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.IndexLister;
+import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
+import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.store.access.*;
+import com.splicemachine.db.iapi.store.access.ColumnOrdering;
+import com.splicemachine.db.iapi.store.access.ConglomerateController;
+import com.splicemachine.db.iapi.store.access.GroupFetchScanController;
+import com.splicemachine.db.iapi.store.access.RowLocationRetRowSource;
+import com.splicemachine.db.iapi.store.access.RowSource;
+import com.splicemachine.db.iapi.store.access.RowUtil;
+import com.splicemachine.db.iapi.store.access.ScanController;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.log4j.Logger;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Properties;
+import com.splicemachine.derby.ddl.DDLChangeType;
+import com.splicemachine.derby.ddl.TentativeIndexDesc;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.pipeline.ddl.DDLChange;
+import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.primitives.BooleanArrays;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.impl.TransactionLifecycle;
+import com.splicemachine.utils.SpliceLogUtils;
 
 /**
  *	This class  describes actions that are ALWAYS performed for an
@@ -68,18 +80,10 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
     private     ExecIndexRow[]			    indexRows;
     private	    GroupFetchScanController    compressHeapGSC;
     protected IndexRowGenerator[]		    compressIRGs;
-    private     int						    droppedColumnPosition;
     private     ColumnOrdering[][]		    ordering;
     private     int[][]		                collation;
 
-    private	TableDescriptor 		        td;
-
     // CONSTRUCTORS
-    private LanguageConnectionContext lcc;
-    private DataDictionary dd;
-    private DependencyManager dm;
-    private TransactionController tc;
-    private Activation activation;
 
     /**
      *	Make the AlterAction for an ALTER TABLE statement.
@@ -134,11 +138,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
     public void executeConstantAction(Activation activation) throws StandardException {
         SpliceLogUtils.trace(LOG, "executeConstantAction with activation %s",activation);
 
-        try{
-            executeConstantActionBody(activation);
-        }finally{
-            clearState();
-        }
+        executeConstantActionBody(activation);
     }
 
     /**
@@ -155,20 +155,18 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         SpliceLogUtils.trace(LOG, "executeConstantActionBody with activation %s",activation);
 
         // Save references to the main structures we need.
-        this.activation = activation;
-        lcc = activation.getLanguageConnectionContext();
-        dd = lcc.getDataDictionary();
-        dm = dd.getDependencyManager();
-        tc = lcc.getTransactionExecute();
-		    /*
-				** Inform the data dictionary that we are about to write to it.
-				** There are several calls to data dictionary "get" methods here
-				** that might be done in "read" mode in the data dictionary, but
-				** it seemed safer to do this whole operation in "write" mode.
-				**
-				** We tell the data dictionary we're done writing at the end of
-				** the transaction.
-				*/
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        DataDictionary dd = lcc.getDataDictionary();
+        DependencyManager dm = dd.getDependencyManager();
+        /*
+        ** Inform the data dictionary that we are about to write to it.
+        ** There are several calls to data dictionary "get" methods here
+        ** that might be done in "read" mode in the data dictionary, but
+        ** it seemed safer to do this whole operation in "write" mode.
+        **
+        ** We tell the data dictionary we're done writing at the end of
+        ** the transaction.
+        */
         dd.startWriting(lcc);
 
         // now do the real work
@@ -179,7 +177,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         // concurrent thread doing add/drop column.
 
         // older version (or at target) has to get td first, potential deadlock
-        getTableDescriptor();
+        TableDescriptor td = getTableDescriptor(dd);
 
         dm.invalidateFor(td, DependencyManager.ALTER_TABLE, lcc);
 
@@ -208,10 +206,10 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         adjustUDTDependencies( lcc, dd, td, columnInfo, false );
 
         executeConstraintActions(activation, td,numRows);
-        adjustLockGranularity();
+        adjustLockGranularity(activation.getTransactionController(), td, dd);
     }
 
-    protected void adjustLockGranularity() throws StandardException {
+    protected void adjustLockGranularity(TransactionController tc, TableDescriptor td, DataDictionary dd) throws StandardException {
         // Are we changing the lock granularity?
         if (lockGranularity != '\0') {
             if (SanityManager.DEBUG) {
@@ -228,6 +226,8 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
 
     protected void executeConstraintActions(Activation activation,TableDescriptor td, int numRows) throws StandardException {
         if(constraintActions==null) return; //no constraints to apply, so nothing to do
+        TransactionController tc = activation.getTransactionController();
+        DataDictionary dd = activation.getLanguageConnectionContext().getDataDictionary();
         boolean tableScanned = numRows>=0;
         if(numRows<0)
             numRows = 0;
@@ -238,10 +238,10 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
             if (cca instanceof CreateConstraintConstantOperation) {
                 int constraintType = cca.getConstraintType();
 
-					      /* Some constraint types require special checking:
-					       *   Check		 - table must be empty, for now
-					       *   Primary Key - table cannot already have a primary key
-					       */
+              /* Some constraint types require special checking:
+               *   Check		 - table must be empty, for now
+               *   Primary Key - table cannot already have a primary key
+               */
                 switch (constraintType) {
                     case DataDictionary.PRIMARYKEY_CONSTRAINT:
                         // Check to see if a constraint of the same type
@@ -262,15 +262,15 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
                             numRows = getSemiRowCount(tc,td);
                         }
                         if (numRows > 0){
-								            /*
-								            ** We are assuming that there will only be one
-								            ** check constraint that we are adding, so it
-								            ** is ok to do the check now rather than try
-								            ** to lump together several checks.
-								            */
+                            /*
+                            ** We are assuming that there will only be one
+                            ** check constraint that we are adding, so it
+                            ** is ok to do the check now rather than try
+                            ** to lump together several checks.
+                            */
                             ConstraintConstantOperation.validateConstraint(
                                     cca.getConstraintName(), ((CreateConstraintConstantOperation)cca).getConstraintText(),
-                                    td, lcc, true);
+                                    td, activation.getLanguageConnectionContext(), true);
                         }
                         break;
                 }
@@ -286,42 +286,10 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         }
     }
 
-    private void getTableDescriptor() throws StandardException {
-        if (tableConglomerateId == 0) {
-            td = dd.getTableDescriptor(tableId);
-            if (td == null) {
-                throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND_DURING_EXECUTION, tableName);
-            }
-            tableConglomerateId = td.getHeapConglomerateId();
-        }
-
-        // XXX - TODO JL CANNOT LOCK lockTableForDDL(tc, tableConglomerateId, true);
-
-        td = dd.getTableDescriptor(tableId);
-        if (td == null) {
-            throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND_DURING_EXECUTION, tableName);
-        }
-    }
-
-    /**
-     * Clear the state of this constant action.
-     */
-    private void clearState() {
-        SpliceLogUtils.trace(LOG, "clearState");
-        // DERBY-3009: executeConstantAction() stores some of its state in
-        // instance variables instead of local variables for convenience.
-        // These variables should be cleared after the execution of the
-        // constant action has completed, so that the objects they reference
-        // can be garbage collected.
-        td = null;
-        lcc = null;
-        dd = null;
-        dm = null;
-        tc = null;
-        activation = null;
-    }
-
-    protected void updateAllIndexes(long newHeapConglom, DataDictionary dd,TableDescriptor td, TransactionController tc) throws StandardException {
+    protected void updateAllIndexes(Activation activation,
+                                    long newHeapConglom,
+                                    TableDescriptor td,
+                                    TransactionController tc) throws StandardException {
         /*
          * Update all of the indexes on a table when doing a bulk insert
          * on an empty table.
@@ -361,6 +329,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         ColumnOrdering[] columnOrder = ordering[index];
         int[] collationIds = collation[index];
 
+        DataDictionary dd = activation.getLanguageConnectionContext().getDataDictionary();
         doIndexUpdate(dd,td,tc, index, newIndexCongloms, cd, properties, false,rowArray,columnOrder,collationIds);
         try{
             // Populate indexes
@@ -706,86 +675,6 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         return td.getNumberOfColumns();
     }
 
-    /**
-     * Iterate through the received list of CreateIndexConstantActions and
-     * execute each one, It's possible that one or more of the constant
-     * actions in the list has been rendered "unneeded" by the time we get
-     * here (because the index that the constant action was going to create
-     * is no longer needed), so we have to check for that.
-     *
-     * @param newConglomActions Potentially empty list of constant actions
-     *   to execute, if still needed
-     * @param ixCongNums Optional array of conglomerate numbers; if non-null
-     *   then any entries in the array which correspond to a dropped physical
-     *   conglomerate (as determined from the list of constant actions) will
-     *   be updated to have the conglomerate number of the newly-created
-     *   physical conglomerate.
-     */
-    private void createNewBackingCongloms(ArrayList newConglomActions, long [] ixCongNums) throws StandardException {
-        SpliceLogUtils.trace(LOG, "createNewBackingCongloms");
-        for (Object newConglomAction : newConglomActions) {
-            CreateIndexConstantOperation ca =
-                    (CreateIndexConstantOperation) newConglomAction;
-
-            if (dd.getConglomerateDescriptor(ca.getCreatedUUID()) == null) {
-        /* Conglomerate descriptor was dropped after
-				 * being selected as the source for a new
-				 * conglomerate, so don't create the new
-				 * conglomerate after all.  Either we found
-				 * another conglomerate descriptor that can
-				 * serve as the source for the new conglom,
-				 * or else we don't need a new conglomerate
-				 * at all because all constraints/indexes
-				 * which shared it had a dependency on the
-				 * dropped column and no longer exist.
-				 */
-                continue;
-            }
-
-            executeConglomReplacement(ca, activation);
-            long oldCongNum = ca.getReplacedConglomNumber();
-            long newCongNum = ca.getCreatedConglomNumber();
-
-			/* The preceding call to executeConglomReplacement updated all
-			 * relevant ConglomerateDescriptors with the new conglomerate
-			 * number *WITHIN THE DATA DICTIONARY*.  But the table
-			 * descriptor that we have will not have been updated.
-			 * There are two approaches to syncing the table descriptor
-			 * with the dictionary: 1) refetch the table descriptor from
-			 * the dictionary, or 2) update the table descriptor directly.
-			 * We choose option #2 because the caller of this method (esp.
-			 * getAffectedIndexes()) has pointers to objects from the
-			 * table descriptor as it was before we entered this method.
-			 * It then changes data within those objects, with the
-			 * expectation that, later, those objects can be used to
-			 * persist the changes to disk.  If we change the table
-			 * descriptor here the objects that will get persisted to
-			 * disk (from the table descriptor) will *not* be the same
-			 * as the objects that were updated--so we'll lose the updates
-			 * and that will in turn cause other problems.  So we go with
-			 * option #2 and just change the existing TableDescriptor to
-			 * reflect the fact that the conglomerate number has changed.
-			 */
-            ConglomerateDescriptor[] tdCDs =
-                    td.getConglomerateDescriptors(oldCongNum);
-
-            for (ConglomerateDescriptor tdCD : tdCDs)
-                tdCD.setConglomerateNumber(newCongNum);
-
-			/* If we received a list of index conglomerate numbers
-			 * then they are the "old" numbers; see if any of those
-			 * numbers should now be updated to reflect the new
-			 * conglomerate, and if so, update them.
-			 */
-            if (ixCongNums != null) {
-                for (int j = 0; j < ixCongNums.length; j++) {
-                    if (ixCongNums[j] == oldCongNum)
-                        ixCongNums[j] = newCongNum;
-                }
-            }
-        }
-    }
-
     // RowSource interface
 
 
@@ -892,7 +781,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
     }
 
     /**
-     * @see RowLocationRetRowSource#currentLocation
+     * @see RowLocationRetRowSource#rowLocation
      * @exception StandardException on error
      */
     public void rowLocation(RowLocation rl)
