@@ -33,104 +33,102 @@ import java.util.List;
  * QueryTreeNodeVector is the root class for all lists of query tree nodes.
  * It provides a wrapper for java.util.Vector. All
  * lists of query tree nodes inherit from QueryTreeNodeVector.
- *
  */
 
-abstract class QueryTreeNodeVector<T extends QueryTreeNode> extends QueryTreeNode implements Iterable<T> {
-	private List<T> v = new ArrayList<T>();
+abstract class QueryTreeNodeVector<T extends QueryTreeNode> extends QueryTreeNode implements Iterable<T>{
+    private List<T> v=new ArrayList<>();
 
-	public final int size()
-	{
-		return v.size();
-	}
+    public final int size(){
+        return v.size();
+    }
 
-	T elementAt(int index) {
-		return v.get(index);
-	}
+    T elementAt(int index){
+        return v.get(index);
+    }
 
-	final void addElement(T qt) {
-		v.add(qt);
-	}
+    final void addElement(T qt){
+        v.add(qt);
+    }
 
-	final void removeElementAt(int index) {
-		v.remove(index);
-	}
+    final void removeElementAt(int index){
+        v.remove(index);
+    }
 
-	final void removeElement(T qt) {
-		v.remove(qt);
-	}
+    final void removeElement(T qt){
+        v.remove(qt);
+    }
 
-	final T remove(int index) {
-		return v.remove(index);
-	}
+    final T remove(int index){
+        return v.remove(index);
+    }
 
-	final int indexOf(T qt) {
-		return v.indexOf(qt);
-	}
+    final int indexOf(T qt){
+        return v.indexOf(qt);
+    }
 
-	final void setElementAt(T qt, int index) {
-		v.set(index, qt);
-	}
+    final void setElementAt(T qt,int index){
+        v.set(index,qt);
+    }
 
-    public Iterator<T> iterator() {
+    public Iterator<T> iterator(){
         return v.iterator();
     }
 
-	void destructiveAppend(QueryTreeNodeVector<T> qtnv) {
-		nondestructiveAppend(qtnv);
-		qtnv.removeAllElements();
-	}
+    void destructiveAppend(QueryTreeNodeVector<T> qtnv){
+        nondestructiveAppend(qtnv);
+        qtnv.removeAllElements();
+    }
 
-	void nondestructiveAppend(QueryTreeNodeVector<T> qtnv) {
-		int qtnvSize = qtnv.size();
-		for (int index = 0; index < qtnvSize; index++) {
-			v.add(qtnv.elementAt(index));
-		}
-	}
+    void nondestructiveAppend(QueryTreeNodeVector<T> qtnv){
+        int qtnvSize=qtnv.size();
+        for(int index=0;index<qtnvSize;index++){
+            v.add(qtnv.elementAt(index));
+        }
+    }
 
-	final void removeAllElements() {
-		v.clear();
-	}
+    final void removeAllElements(){
+        v.clear();
+    }
 
-	final void insertElementAt(T qt, int index) {
-		v.add(index, qt);
-	}
-
-
-	/**
-	 * Prints the sub-nodes of this object.  See QueryTreeNode.java for
-	 * how tree printing is supposed to work.
-	 * @param depth		The depth to indent the sub-nodes
-	 */
-	public void printSubNodes(int depth) {
-		if (SanityManager.DEBUG) {
-			for (int index = 0; index < size(); index++) {
-				debugPrint(formatNodeString("[" + index + "]:", depth));
-				T elt = elementAt(index);
-				elt.treePrint(depth);
-			}
-		}
-	}
+    final void insertElementAt(T qt,int index){
+        v.add(index,qt);
+    }
 
 
-	/**
-	 * Accept the visitor for all visitable children of this node.
-	 * 
-	 * @param v the visitor
-	 *
-	 * @exception StandardException on error
-	 */
-	public void acceptChildren(Visitor v) throws StandardException {
-		super.acceptChildren(v);
+    /**
+     * Prints the sub-nodes of this object.  See QueryTreeNode.java for
+     * how tree printing is supposed to work.
+     *
+     * @param depth The depth to indent the sub-nodes
+     */
+    public void printSubNodes(int depth){
+        if(SanityManager.DEBUG){
+            for(int index=0;index<size();index++){
+                debugPrint(formatNodeString("["+index+"]:",depth));
+                T elt=elementAt(index);
+                elt.treePrint(depth);
+            }
+        }
+    }
 
-		int size = size();
-		for (int index = 0; index < size; index++) {
-        //noinspection unchecked
-        setElementAt((T) elementAt(index).accept(v), index);
-		}
-	}
-	
-	public List getNodes(){
-		return v;
-	}
+
+    /**
+     * Accept the visitor for all visitable children of this node.
+     *
+     * @param v the visitor
+     * @throws StandardException on error
+     */
+    public void acceptChildren(Visitor v) throws StandardException{
+        super.acceptChildren(v);
+
+        int size=size();
+        for(int index=0;index<size;index++){
+            //noinspection unchecked
+            setElementAt((T)elementAt(index).accept(v),index);
+        }
+    }
+
+    public List getNodes(){
+        return v;
+    }
 }

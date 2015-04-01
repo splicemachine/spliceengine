@@ -107,7 +107,7 @@ public class JoinNode extends TableOperatorNode{
     }
 
 	/*
-	 *  Optimizable interface
+     *  Optimizable interface
 	 */
 
     /**
@@ -148,13 +148,9 @@ public class JoinNode extends TableOperatorNode{
 		 */
         if(resultColumns!=null){
 			/* A longer term assertion */
-            if(SanityManager.DEBUG){
-                SanityManager.ASSERT((leftResultSet.getReferencedTableMap()!=null &&
-                                rightResultSet.getReferencedTableMap()!=null) ||
-                                (leftResultSet.getReferencedTableMap()==null &&
-                                        rightResultSet.getReferencedTableMap()==null),
-                        "left and right referencedTableMaps are expected to either both be non-null or both be null");
-            }
+            assert (leftResultSet.getReferencedTableMap()!=null && rightResultSet.getReferencedTableMap()!=null)
+                   || (leftResultSet.getReferencedTableMap()==null && rightResultSet.getReferencedTableMap()==null):
+                    "left and right referencedTableMaps are expected to either both be non-null or both be null";
 
 			/* Build the referenced table map (left || right) */
             if(leftResultSet.getReferencedTableMap()!=null){
@@ -162,9 +158,7 @@ public class JoinNode extends TableOperatorNode{
                 referencedTableMap.or(rightResultSet.getReferencedTableMap());
             }
         }
-        joinPredicates=(PredicateList)getNodeFactory().getNode(
-                C_NodeTypes.PREDICATE_LIST,
-                getContextManager());
+        joinPredicates=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST, getContextManager());
 
     }
 
@@ -210,7 +204,7 @@ public class JoinNode extends TableOperatorNode{
         // RESOLVE: NEED TO SET ROW ORDERING OF SOURCES IN THE ROW ORDERING
         // THAT WAS PASSED IN.
 
-        leftResultSet=optimizeSource( optimizer, leftResultSet, getLeftPredicateList(), outerCost);
+        leftResultSet=optimizeSource(optimizer,leftResultSet,getLeftPredicateList(),outerCost);
 
 		/* Move all joinPredicates down to the right.
 		 * RESOLVE - When we consider the reverse join order then
@@ -274,8 +268,7 @@ public class JoinNode extends TableOperatorNode{
 			/* RESOLVE - Need to figure out how to really optimize this node.
 		 	* Also need to figure out the pushing of the joinClause.
 		 	*/
-            subqueryList.optimize(optimizer.getDataDictionary(),
-                    costEstimate.rowCount());
+            subqueryList.optimize(optimizer.getDataDictionary(), costEstimate.rowCount());
             subqueryList.modifyAccessPaths();
         }
 
@@ -286,7 +279,7 @@ public class JoinNode extends TableOperatorNode{
 
     @Override
     public boolean pushOptPredicate(OptimizablePredicate optimizablePredicate) throws StandardException{
-        assert optimizablePredicate instanceof Predicate: "optimizablePredicate expected to be instanceof Predicate";
+        assert optimizablePredicate instanceof Predicate:"optimizablePredicate expected to be instanceof Predicate";
         assert !optimizablePredicate.hasSubquery() && !optimizablePredicate.hasMethodCall():
                 "optimizablePredicate either has a subquery or a method call";
 
@@ -313,7 +306,7 @@ public class JoinNode extends TableOperatorNode{
      * @throws StandardException
      */
     public boolean addOptPredicate(OptimizablePredicate optimizablePredicate) throws StandardException{
-        assert optimizablePredicate instanceof Predicate: "optimizablePredicate expected to be instanceof Predicate";
+        assert optimizablePredicate instanceof Predicate:"optimizablePredicate expected to be instanceof Predicate";
         assert !optimizablePredicate.hasSubquery() && !optimizablePredicate.hasMethodCall():
                 "optimizablePredicate either has a subquery or a method call";
 
@@ -424,10 +417,10 @@ public class JoinNode extends TableOperatorNode{
      *
      * @param columnReference The columnReference whose name we're looking
      *                        for in the given table.
-     * @throws StandardException Thrown on error
      * @return A ResultColumn whose expression is the ColumnNode
      * that matches the ColumnReference.
      * Returns null if there is no match.
+     * @throws StandardException Thrown on error
      */
     @Override
     public ResultColumn getMatchingColumn(ColumnReference columnReference) throws StandardException{
@@ -590,7 +583,7 @@ public class JoinNode extends TableOperatorNode{
                                   ResultColumnList targetColumnList,
                                   DMLStatementNode statement,
                                   FromList fromListParam) throws StandardException{
-        super.bindResultColumns(targetTableDescriptor, targetVTI, targetColumnList,statement, fromListParam);
+        super.bindResultColumns(targetTableDescriptor,targetVTI,targetColumnList,statement,fromListParam);
 
 		/* Now we build our RCL */
         buildRCL();
@@ -630,7 +623,7 @@ public class JoinNode extends TableOperatorNode{
      * @throws StandardException Thrown on error
      */
     @Override
-    public ResultSetNode preprocess(int numTables, GroupByList gbl, FromList fromList) throws StandardException{
+    public ResultSetNode preprocess(int numTables,GroupByList gbl,FromList fromList) throws StandardException{
         ResultSetNode newTreeTop;
 
         newTreeTop=super.preprocess(numTables,gbl,fromList);
@@ -919,7 +912,7 @@ public class JoinNode extends TableOperatorNode{
      * @throws StandardException Thrown on error
      */
     @Override
-    public void generate(ActivationClassBuilder acb, MethodBuilder mb) throws StandardException{
+    public void generate(ActivationClassBuilder acb,MethodBuilder mb) throws StandardException{
         generateCore(acb,mb,INNERJOIN,null,null);
     }
 
@@ -928,7 +921,7 @@ public class JoinNode extends TableOperatorNode{
      *
      * @throws StandardException Thrown on error
      */
-    public void generateCore(ActivationClassBuilder acb, MethodBuilder mb, int joinType) throws StandardException{
+    public void generateCore(ActivationClassBuilder acb,MethodBuilder mb,int joinType) throws StandardException{
         generateCore(acb,mb,joinType,joinClause,subqueryList);
     }
 
@@ -1078,8 +1071,8 @@ public class JoinNode extends TableOperatorNode{
      * it public.
      */
     @SuppressWarnings("UnusedDeclaration")
-    public void rebuildRCL() throws StandardException {
-        assert resultColumns != null;
+    public void rebuildRCL() throws StandardException{
+        assert resultColumns!=null;
 
         setResultColumns(null);
         buildRCL();
@@ -1092,7 +1085,8 @@ public class JoinNode extends TableOperatorNode{
      * So, adjust this value now. This method does nothing for most
      * join types.
      */
-    protected void adjustNumberOfRowsReturned(CostEstimate costEstimate){ }
+    protected void adjustNumberOfRowsReturned(CostEstimate costEstimate){
+    }
 
     protected void pushExpressionsToLeft(PredicateList outerPredicateList) throws StandardException{
         FromTable leftFromTable=(FromTable)leftResultSet;
@@ -1183,11 +1177,11 @@ public class JoinNode extends TableOperatorNode{
         String joinResultSetString;
 
         if(joinType==LEFTOUTERJOIN){
-            joinResultSetString= ((Optimizable)rightResultSet).getTrulyTheBestAccessPath().
-                            getJoinStrategy().halfOuterJoinResultSetMethodName();
+            joinResultSetString=((Optimizable)rightResultSet).getTrulyTheBestAccessPath().
+                    getJoinStrategy().halfOuterJoinResultSetMethodName();
         }else{
-            joinResultSetString= ((Optimizable)rightResultSet).getTrulyTheBestAccessPath().
-                            getJoinStrategy().joinResultSetMethodName();
+            joinResultSetString=((Optimizable)rightResultSet).getTrulyTheBestAccessPath().
+                    getJoinStrategy().joinResultSetMethodName();
         }
 
         acb.pushGetResultSetFactoryExpression(mb);
@@ -1195,7 +1189,7 @@ public class JoinNode extends TableOperatorNode{
         mb.callMethod(VMOpcode.INVOKEINTERFACE,null,joinResultSetString,ClassName.NoPutResultSet,nargs);
     }
 
-    protected void oneRowRightSide(ActivationClassBuilder acb, MethodBuilder mb) throws StandardException{
+    protected void oneRowRightSide(ActivationClassBuilder acb,MethodBuilder mb) throws StandardException{
         mb.push(rightResultSet.isOneRowResultSet());
         mb.push(rightResultSet.isNotExists());  //join is for NOT EXISTS
     }
@@ -1218,20 +1212,20 @@ public class JoinNode extends TableOperatorNode{
      *            return The number of args added
      * @throws StandardException Thrown on error
      */
-    protected int addOuterJoinArguments(ActivationClassBuilder acb, MethodBuilder mb) throws StandardException{
+    protected int addOuterJoinArguments(ActivationClassBuilder acb,MethodBuilder mb) throws StandardException{
         return 0;
     }
 
     protected PredicateList getLeftPredicateList() throws StandardException{
         if(leftPredicateList==null)
-            leftPredicateList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST, getContextManager());
+            leftPredicateList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,getContextManager());
 
         return leftPredicateList;
     }
 
     protected PredicateList getRightPredicateList() throws StandardException{
         if(rightPredicateList==null)
-            rightPredicateList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST, getContextManager());
+            rightPredicateList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,getContextManager());
 
         return rightPredicateList;
     }
@@ -1264,12 +1258,12 @@ public class JoinNode extends TableOperatorNode{
      * RESOLVE - This method currently only considers the outermost table
      * of the query block.
      *
-     * @throws StandardException Thrown on error
-     * @param    crs                    The specified ColumnReference[]
-     * @param    permuteOrdering        Whether or not the order of the CRs in the array can be permuted
-     * @param    fbtVector            Vector that is to be filled with the FromBaseTable
+     * @param crs             The specified ColumnReference[]
+     * @param permuteOrdering Whether or not the order of the CRs in the array can be permuted
+     * @param fbtVector       Vector that is to be filled with the FromBaseTable
      * @return Whether the underlying ResultSet tree
      * is ordered on the specified column.
+     * @throws StandardException Thrown on error
      */
     @Override
     boolean isOrderedOn(ColumnReference[] crs,boolean permuteOrdering,Vector fbtVector) throws StandardException{
@@ -1357,7 +1351,7 @@ public class JoinNode extends TableOperatorNode{
 			/* Both sides are non-null.  This should only happen
 			 * if allTableName is null.
 			 */
-            assert allTableName==null: "alltableName ("+allTableName+") expected to be null";
+            assert allTableName==null:"alltableName ("+allTableName+") expected to be null";
 
             // Return a spliced copy of the 2 lists
             ResultColumnList tempList=(ResultColumnList)getNodeFactory().getNode(
@@ -1438,7 +1432,7 @@ public class JoinNode extends TableOperatorNode{
 
     private void deferredBindExpressions(FromList fromListParam) throws StandardException{
 		/* Bind the expressions in the join clause */
-        subqueryList=(SubqueryList)getNodeFactory().getNode( C_NodeTypes.SUBQUERY_LIST, getContextManager());
+        subqueryList=(SubqueryList)getNodeFactory().getNode(C_NodeTypes.SUBQUERY_LIST,getContextManager());
         //noinspection Convert2Diamond
         aggregateVector=new ArrayList<AggregateNode>();
 
@@ -1459,7 +1453,7 @@ public class JoinNode extends TableOperatorNode{
             fromList.addElement(rightResultSet);
 
             int previousReliability=orReliability(CompilerContext.ON_CLAUSE_RESTRICTION);
-            joinClause=joinClause.bindExpression( fromList,subqueryList, aggregateVector);
+            joinClause=joinClause.bindExpression(fromList,subqueryList,aggregateVector);
             cc.setReliability(previousReliability);
 
             // SQL 2003, section 7.7 SR 5
@@ -1589,19 +1583,19 @@ public class JoinNode extends TableOperatorNode{
      * @throws StandardException on error
      */
     private ResultColumnList getCommonColumnsForNaturalJoin() throws StandardException{
-        ResultColumnList leftRCL= getLeftResultSet().getAllResultColumns(null);
-        ResultColumnList rightRCL= getRightResultSet().getAllResultColumns(null);
+        ResultColumnList leftRCL=getLeftResultSet().getAllResultColumns(null);
+        ResultColumnList rightRCL=getRightResultSet().getAllResultColumns(null);
 
         List<String> columnNames=extractColumnNames(leftRCL);
         columnNames.retainAll(extractColumnNames(rightRCL));
 
-        ResultColumnList commonColumns= (ResultColumnList)getNodeFactory().getNode(
-                        C_NodeTypes.RESULT_COLUMN_LIST,
-                        getContextManager());
+        ResultColumnList commonColumns=(ResultColumnList)getNodeFactory().getNode(
+                C_NodeTypes.RESULT_COLUMN_LIST,
+                getContextManager());
 
         for(String name : columnNames){
             ResultColumn rc=(ResultColumn)getNodeFactory().getNode(
-                    C_NodeTypes.RESULT_COLUMN, name, null,getContextManager());
+                    C_NodeTypes.RESULT_COLUMN,name,null,getContextManager());
             commonColumns.addResultColumn(rc);
         }
 
@@ -1720,8 +1714,8 @@ public class JoinNode extends TableOperatorNode{
      * @param acb        The ActivationClassBuilder for the class we're building.
      * @param mb         the method the generated code is going into
      * @param joinClause The join clause, if any
-     * @throws StandardException Thrown on error
      * @return The array of arguments to the join result set
+     * @throws StandardException Thrown on error
      */
     private int getJoinArguments(ActivationClassBuilder acb,
                                  MethodBuilder mb,
@@ -1880,8 +1874,6 @@ public class JoinNode extends TableOperatorNode{
 
         return result;
     }
-
-
 
 
 }

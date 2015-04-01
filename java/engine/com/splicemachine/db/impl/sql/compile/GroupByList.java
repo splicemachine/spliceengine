@@ -21,143 +21,124 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Limits;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
-
-import com.splicemachine.db.iapi.error.StandardException;
-
-import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.reference.Limits;
-
 import java.util.List;
-import java.util.Vector;
 
 /**
  * A GroupByList represents the list of expressions in a GROUP BY clause in
  * a SELECT statement.
- *
  */
 
-public class GroupByList extends OrderedColumnList
-{
-	int		numGroupingColsAdded = 0;
-	boolean         rollup = false;
+public class GroupByList extends OrderedColumnList{
+    int numGroupingColsAdded=0;
+    boolean rollup=false;
 
-	/**
-		Add a column to the list
+    /**
+     * Add a column to the list
+     *
+     * @param column The column to add to the list
+     */
+    public void addGroupByColumn(GroupByColumn column){
+        addElement(column);
+    }
 
-		@param column	The column to add to the list
-	 */
-	public void addGroupByColumn(GroupByColumn column)
-	{
-		addElement(column);
-	}
-
-	/**
-		Get a column from the list
-
-		@param position	The column to get from the list
-	 */
-	public GroupByColumn getGroupByColumn(int position)
-	{
-		if (SanityManager.DEBUG)
-		{
-			SanityManager.ASSERT(position >=0 && position < size(),
-					"position (" + position +
-					") expected to be between 0 and " + size());
-		}
-		return (GroupByColumn) elementAt(position);
-	}
+    /**
+     * Get a column from the list
+     *
+     * @param position The column to get from the list
+     */
+    public GroupByColumn getGroupByColumn(int position){
+        assert position>=0: "position <0";
+        assert position < size() : "position>=size()";
+        return (GroupByColumn)elementAt(position);
+    }
 
 
-	public void setRollup()
-	{
-		rollup = true;
-	}
-	public boolean isRollup()
-	{
-		return rollup;
-	}
-                        
+    public void setRollup(){
+        rollup=true;
+    }
 
-	/**
-	 * Get the number of grouping columns that need to be added to the SELECT list.
-	 *
-	 * @return int	The number of grouping columns that need to be added to
-	 *				the SELECT list.
-	 */
-	public int getNumNeedToAddGroupingCols()
-	{
-		return numGroupingColsAdded;
-	}
+    public boolean isRollup(){
+        return rollup;
+    }
 
-	/**
-	 *  Bind the group by list.  Verify:
-	 *		o  Number of grouping columns matches number of non-aggregates in
-	 *		   SELECT's RCL.
-	 *		o  Names in the group by list are unique
-	 *		o  Names of grouping columns match names of non-aggregate
-	 *		   expressions in SELECT's RCL.
-	 *
-	 * @param select		The SelectNode
-	 * @param aggregateVector	The aggregate vector being built as we find AggregateNodes
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public void bindGroupByColumns(SelectNode select,List<AggregateNode> aggregateVector) throws StandardException {
-		FromList		 fromList = select.getFromList();
-		ResultColumnList selectRCL = select.getResultColumns();
-		SubqueryList	 dummySubqueryList =
-									(SubqueryList) getNodeFactory().getNode(
-													C_NodeTypes.SUBQUERY_LIST,
-													getContextManager());
-		int				 numColsAddedHere = 0;
-		int				 size = size();
+
+    /**
+     * Get the number of grouping columns that need to be added to the SELECT list.
+     *
+     * @return int    The number of grouping columns that need to be added to
+     * the SELECT list.
+     */
+    public int getNumNeedToAddGroupingCols(){
+        return numGroupingColsAdded;
+    }
+
+    /**
+     * Bind the group by list.  Verify:
+     * o  Number of grouping columns matches number of non-aggregates in
+     * SELECT's RCL.
+     * o  Names in the group by list are unique
+     * o  Names of grouping columns match names of non-aggregate
+     * expressions in SELECT's RCL.
+     *
+     * @param select          The SelectNode
+     * @param aggregateVector The aggregate vector being built as we find AggregateNodes
+     * @throws StandardException Thrown on error
+     */
+    public void bindGroupByColumns(SelectNode select,List<AggregateNode> aggregateVector) throws StandardException{
+        FromList fromList=select.getFromList();
+        ResultColumnList selectRCL=select.getResultColumns();
+        SubqueryList dummySubqueryList=
+                (SubqueryList)getNodeFactory().getNode(
+                        C_NodeTypes.SUBQUERY_LIST,
+                        getContextManager());
+        int numColsAddedHere=0;
+        int size=size();
 
 		/* Only 32677 columns allowed in GROUP BY clause */
-		if (size > Limits.DB2_MAX_ELEMENTS_IN_GROUP_BY)
-		{
-			throw StandardException.newException(SQLState.LANG_TOO_MANY_ELEMENTS);
-		}
+        if(size>Limits.DB2_MAX_ELEMENTS_IN_GROUP_BY){
+            throw StandardException.newException(SQLState.LANG_TOO_MANY_ELEMENTS);
+        }
 
 		/* Bind the grouping column */
-		for (int index = 0; index < size; index++)
-		{
-			GroupByColumn groupByCol = (GroupByColumn) elementAt(index);
-			groupByCol.bindExpression(fromList,
-									  dummySubqueryList, aggregateVector);
-		}
+        for(int index=0;index<size;index++){
+            GroupByColumn groupByCol=(GroupByColumn)elementAt(index);
+            groupByCol.bindExpression(fromList,
+                    dummySubqueryList,aggregateVector);
+        }
 
-		
-		int				rclSize = selectRCL.size();
-		for (int index = 0; index < size; index++)
-		{
-			boolean				matchFound = false;
-			GroupByColumn		groupingCol = (GroupByColumn) elementAt(index);
+
+        int rclSize=selectRCL.size();
+        for(int index=0;index<size;index++){
+            boolean matchFound=false;
+            GroupByColumn groupingCol=(GroupByColumn)elementAt(index);
 
 			/* Verify that this entry in the GROUP BY list matches a
-			 * grouping column in the select list.
+             * grouping column in the select list.
 			 */
-			for (int inner = 0; inner < rclSize; inner++)
-			{
-				ResultColumn selectListRC = (ResultColumn) selectRCL.elementAt(inner);
-				if (!(selectListRC.getExpression() instanceof ColumnReference)) {
-					continue;
-				}
-				
-				ColumnReference selectListCR = (ColumnReference) selectListRC.getExpression();
+            for(int inner=0;inner<rclSize;inner++){
+                ResultColumn selectListRC=(ResultColumn)selectRCL.elementAt(inner);
+                if(!(selectListRC.getExpression() instanceof ColumnReference)){
+                    continue;
+                }
 
-				if (selectListCR.isEquivalent(groupingCol.getColumnExpression())) { 
+                ColumnReference selectListCR=(ColumnReference)selectListRC.getExpression();
+
+                if(selectListCR.isEquivalent(groupingCol.getColumnExpression())){
 					/* Column positions for grouping columns are 0-based */
-					groupingCol.setColumnPosition(inner + 1);
+                    groupingCol.setColumnPosition(inner+1);
 
 					/* Mark the RC in the SELECT list as a grouping column */
-					selectListRC.markAsGroupingColumn();
-					matchFound = true;
-					break;
-				}
-			}
+                    selectListRC.markAsGroupingColumn();
+                    matchFound=true;
+                    break;
+                }
+            }
 			/* If no match found in the SELECT list, then add a matching
 			 * ResultColumn/ColumnReference pair to the SelectNode's RCL.
 			 * However, don't add additional result columns if the query
@@ -166,36 +147,35 @@ public class GroupByList extends OrderedColumnList
 			 * results: e.g. select distinct a,b from t group by a,b,c
 			 * should not consider column c in distinct processing (DERBY-3613)
 			 */
-			if (! matchFound && !select.hasDistinct() &&
-			    groupingCol.getColumnExpression() instanceof ColumnReference) 
-			{
-			    	// only add matching columns for column references not 
-			    	// expressions yet. See DERBY-883 for details. 
-				ResultColumn newRC;
+            if(!matchFound && !select.hasDistinct() &&
+                    groupingCol.getColumnExpression() instanceof ColumnReference){
+                // only add matching columns for column references not
+                // expressions yet. See DERBY-883 for details.
+                ResultColumn newRC;
 
 				/* Get a new ResultColumn */
-				newRC = (ResultColumn) getNodeFactory().getNode(
-								C_NodeTypes.RESULT_COLUMN,
-								groupingCol.getColumnName(),
-								groupingCol.getColumnExpression().getClone(),
-								getContextManager());
-				newRC.setVirtualColumnId(selectRCL.size() + 1);
-				newRC.markGenerated();
-				newRC.markAsGroupingColumn();
+                newRC=(ResultColumn)getNodeFactory().getNode(
+                        C_NodeTypes.RESULT_COLUMN,
+                        groupingCol.getColumnName(),
+                        groupingCol.getColumnExpression().getClone(),
+                        getContextManager());
+                newRC.setVirtualColumnId(selectRCL.size()+1);
+                newRC.markGenerated();
+                newRC.markAsGroupingColumn();
 
 				/* Add the new RC/CR to the RCL */
-				selectRCL.addElement(newRC);
+                selectRCL.addElement(newRC);
 
 				/* Set the columnPosition in the GroupByColumn, now that it
 				* has a matching entry in the SELECT list.
 				*/
-				groupingCol.setColumnPosition(selectRCL.size());
-				
-				// a new hidden or generated column is added to this RCL
-				// i.e. that the size() of the RCL != visibleSize(). 
-				// Error checking done later should be aware of this 
-				// special case.
-				selectRCL.setCountMismatchAllowed(true);
+                groupingCol.setColumnPosition(selectRCL.size());
+
+                // a new hidden or generated column is added to this RCL
+                // i.e. that the size() of the RCL != visibleSize().
+                // Error checking done later should be aware of this
+                // special case.
+                selectRCL.setCountMismatchAllowed(true);
 
 				/*
 				** Track the number of columns that we have added
@@ -206,105 +186,92 @@ public class GroupByList extends OrderedColumnList
 				** once (in which case numGroupingColsAdded will
 				** already be set).
 				*/
-				numColsAddedHere++;
-			}
-			if (groupingCol.getColumnExpression() instanceof JavaToSQLValueNode) 
-			{
-				// disallow any expression which involves native java computation. 
-				// Not possible to consider java expressions for equivalence.
-				throw StandardException.newException(					
-						SQLState.LANG_INVALID_GROUPED_SELECT_LIST);
-			}
-		}
+                numColsAddedHere++;
+            }
+            if(groupingCol.getColumnExpression() instanceof JavaToSQLValueNode){
+                // disallow any expression which involves native java computation.
+                // Not possible to consider java expressions for equivalence.
+                throw StandardException.newException(
+                        SQLState.LANG_INVALID_GROUPED_SELECT_LIST);
+            }
+        }
 
 		/* Verify that no subqueries got added to the dummy list */
-		if (SanityManager.DEBUG)
-		{
-			SanityManager.ASSERT(dummySubqueryList.size() == 0,
-				"dummySubqueryList.size() is expected to be 0");
-		}
+        if(SanityManager.DEBUG){
+            SanityManager.ASSERT(dummySubqueryList.size()==0,
+                    "dummySubqueryList.size() is expected to be 0");
+        }
 
-		numGroupingColsAdded+= numColsAddedHere;
-	}
+        numGroupingColsAdded+=numColsAddedHere;
+    }
 
-	
 
-	/**
-	 * Find the matching grouping column if any for the given expression
-	 * 
-	 * @param node an expression for which we are trying to find a match
-	 * in the group by list.
-	 * 
-	 * @return the matching GroupByColumn if one exists, null otherwise.
-	 * 
-	 * @throws StandardException
-	 */
-	public GroupByColumn findGroupingColumn(ValueNode node)
-	        throws StandardException
-	{
-		int sz = size();
-		for (int i = 0; i < sz; i++) 
-		{
-			GroupByColumn gbc = (GroupByColumn)elementAt(i);
-			if (gbc.getColumnExpression().isEquivalent(node))
-			{
-				return gbc;
-			}
-		}
-		return null;
-	}
-	
-	/**
-	 * Remap all ColumnReferences in this tree to be clones of the
-	 * underlying expression.
-	 *
-	 * @exception StandardException			Thrown on error
-	 */
-	public void remapColumnReferencesToExpressions() throws StandardException
-	{
-		GroupByColumn	gbc;
-		int				size = size();
+    /**
+     * Find the matching grouping column if any for the given expression
+     *
+     * @param node an expression for which we are trying to find a match
+     *             in the group by list.
+     * @return the matching GroupByColumn if one exists, null otherwise.
+     * @throws StandardException
+     */
+    public GroupByColumn findGroupingColumn(ValueNode node)
+            throws StandardException{
+        int sz=size();
+        for(int i=0;i<sz;i++){
+            GroupByColumn gbc=(GroupByColumn)elementAt(i);
+            if(gbc.getColumnExpression().isEquivalent(node)){
+                return gbc;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Remap all ColumnReferences in this tree to be clones of the
+     * underlying expression.
+     *
+     * @throws StandardException Thrown on error
+     */
+    public void remapColumnReferencesToExpressions() throws StandardException{
+        GroupByColumn gbc;
+        int size=size();
 
 		/* This method is called when flattening a FromTable. */
-		// gd this is pulling in a patch from Derby 10.11 see JIRA issue DERBY-5313
-		for (int index = 0; index < size; index++)
-		{
-			gbc = (GroupByColumn) elementAt(index);
+        // gd this is pulling in a patch from Derby 10.11 see JIRA issue DERBY-5313
+        for(int index=0;index<size;index++){
+            gbc=(GroupByColumn)elementAt(index);
 
-			gbc.setColumnExpression(
-					gbc.getColumnExpression().remapColumnReferencesToExpressions());
-		
-		}
-	}
+            gbc.setColumnExpression(
+                    gbc.getColumnExpression().remapColumnReferencesToExpressions());
 
-
-	/**
-	 * Convert this object to a String.  See comments in QueryTreeNode.java
-	 * for how this should be done for tree printing.
-	 *
-	 * @return	This object as a String
-	 */
-	public String toString()
-	{
-		if (SanityManager.DEBUG) {
-			return "numGroupingColsAdded: " + numGroupingColsAdded + "\n" +
-				super.toString();
-		} else {
-			return "";
-		}
-	}
+        }
+    }
 
 
-	public void preprocess(
-			int numTables, FromList fromList, SubqueryList whereSubquerys, 
-			PredicateList wherePredicates) throws StandardException 
-	{
-		for (int index = 0; index < size(); index++)
-		{
-			GroupByColumn	groupingCol = (GroupByColumn) elementAt(index);
-			groupingCol.setColumnExpression(
-					groupingCol.getColumnExpression().preprocess(
-							numTables, fromList, whereSubquerys, wherePredicates));
-		}		
-	}
+    /**
+     * Convert this object to a String.  See comments in QueryTreeNode.java
+     * for how this should be done for tree printing.
+     *
+     * @return This object as a String
+     */
+    public String toString(){
+        if(SanityManager.DEBUG){
+            return "numGroupingColsAdded: "+numGroupingColsAdded+"\n"+
+                    super.toString();
+        }else{
+            return "";
+        }
+    }
+
+
+    public void preprocess(
+            int numTables,FromList fromList,SubqueryList whereSubquerys,
+            PredicateList wherePredicates) throws StandardException{
+        for(int index=0;index<size();index++){
+            GroupByColumn groupingCol=(GroupByColumn)elementAt(index);
+            groupingCol.setColumnExpression(
+                    groupingCol.getColumnExpression().preprocess(
+                            numTables,fromList,whereSubquerys,wherePredicates));
+        }
+    }
 }

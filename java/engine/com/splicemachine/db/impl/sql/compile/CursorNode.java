@@ -118,9 +118,9 @@ public class CursorNode extends DMLStatementNode{
         this.orderByList=(OrderByList)orderByList;
         this.offset=(ValueNode)offset;
         this.fetchFirst=(ValueNode)fetchFirst;
-        this.hasJDBClimitClause=(hasJDBClimitClause==null)?false:((Boolean)hasJDBClimitClause).booleanValue();
+        this.hasJDBClimitClause=(hasJDBClimitClause!=null) && (Boolean)hasJDBClimitClause;
 
-        this.updateMode=((Integer)updateMode).intValue();
+        this.updateMode=(Integer)updateMode;
         this.updatableColumns=(Vector)updatableColumns;
 
 		/*

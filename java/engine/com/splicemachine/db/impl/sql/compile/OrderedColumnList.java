@@ -28,60 +28,57 @@ import java.util.Set;
 
 /**
  * List of OrderedColumns
- *
  */
-public abstract class OrderedColumnList extends QueryTreeNodeVector<OrderedColumn> {
-	/**
-	 * Get an array of ColumnOrderings to pass to the store
-	 */
-	public IndexColumnOrder[] getColumnOrdering()
-	{
-		IndexColumnOrder[] ordering;
-		int numCols = size();
-		int actualCols;
+public abstract class OrderedColumnList extends QueryTreeNodeVector<OrderedColumn>{
+    /**
+     * Get an array of ColumnOrderings to pass to the store
+     */
+    public IndexColumnOrder[] getColumnOrdering(){
+        IndexColumnOrder[] ordering;
+        int numCols=size();
+        int actualCols;
 
-		ordering = new IndexColumnOrder[numCols];
+        ordering=new IndexColumnOrder[numCols];
 
 		/*
-			order by is fun, in that we need to ensure
+            order by is fun, in that we need to ensure
 			there are no duplicates in the list.  later copies
 			of an earlier entry are considered purely redundant,
 			they won't affect the result, so we can drop them.
 			We don't know how many columns are in the source,
 			so we use a hashtable for lookup of the positions
 		*/
-		Set<Integer> hashColumns = new HashSet<Integer>();
+        Set<Integer> hashColumns=new HashSet<Integer>();
 
-		actualCols = 0;
+        actualCols=0;
 
-      for (int i = 0; i < numCols; i++) {
-          OrderedColumn oc = elementAt(i);
+        for(int i=0;i<numCols;i++){
+            OrderedColumn oc=elementAt(i);
 
-          // order by (lang) positions are 1-based,
-          // order items (store) are 0-based.
-          int position = oc.getColumnPosition() - 1;
+            // order by (lang) positions are 1-based,
+            // order items (store) are 0-based.
+            int position=oc.getColumnPosition()-1;
 
-          Integer posInt = position;
+            Integer posInt=position;
 
-          if(hashColumns.add(posInt)){
-              ordering[i] = new IndexColumnOrder(position,
-                      oc.isAscending(),
-                      oc.isNullsOrderedLow());
-              actualCols++;
-          }
-      }
+            if(hashColumns.add(posInt)){
+                ordering[i]=new IndexColumnOrder(position,
+                        oc.isAscending(),
+                        oc.isNullsOrderedLow());
+                actualCols++;
+            }
+        }
 
 		/*
 			If there were duplicates removed, we need
 			to shrink the array down to what we used.
 		*/
-      if (actualCols < numCols)
-      {
-          IndexColumnOrder[] newOrdering = new IndexColumnOrder[actualCols];
-          System.arraycopy(ordering, 0, newOrdering, 0, actualCols);
-          ordering = newOrdering;
-      }
+        if(actualCols<numCols){
+            IndexColumnOrder[] newOrdering=new IndexColumnOrder[actualCols];
+            System.arraycopy(ordering,0,newOrdering,0,actualCols);
+            ordering=newOrdering;
+        }
 
-		return ordering;
-	}
+        return ordering;
+    }
 }
