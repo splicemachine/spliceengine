@@ -37,6 +37,23 @@ public class ConcurrentHyperLogLogCounter extends BaseHyperLogLogCounter {
         return new ConcurrentHyperLogLogCounter(precision,hashFunction, atomicIntegerArray);
     }
 
+    /**
+     * Clear the current value of this counter. This is useful
+     * when the counter is keeping track of real-life measurements.
+     *
+     * Note: this is <em>not</em> atomic--it is possible that, even
+     * as it clears elements, more elements can be added in, resulting in
+     * a weak clear--e.g some elements may not be counted, and some elements
+     * may be considered twice. Thus, it is recommended that this method
+     * be used only when approximate clearing is needed. Otherwise, synchronization
+     * would be required (which we don't want).
+     */
+	public void clear(){
+		for(int i=0;i<buckets.length();i++){
+			buckets.set(i,0);
+		}
+	}
+
     @Override
     protected void updateRegister(int register, int value) {
         boolean success =false;
