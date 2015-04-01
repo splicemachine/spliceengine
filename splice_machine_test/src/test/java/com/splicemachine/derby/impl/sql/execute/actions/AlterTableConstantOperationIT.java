@@ -4,6 +4,9 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.homeless.TestUtils;
+
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -27,6 +30,7 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
     public static final String TABLE_NAME_8 = "H";
     public static final String TABLE_NAME_9 = "I";
     public static final String TABLE_NAME_10 = "J";
+    public static final String TABLE_NAME_11 = "K";
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
     private static String tableDef = "(TaskId INT NOT NULL, empId Varchar(3) NOT NULL, StartedAt INT NOT NULL, FinishedAt INT NOT NULL)";
@@ -40,6 +44,10 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
     protected static SpliceTableWatcher spliceTableWatcher8 = new SpliceTableWatcher(TABLE_NAME_8,CLASS_NAME, "(i int)");
     protected static SpliceTableWatcher spliceTableWatcher9 = new SpliceTableWatcher(TABLE_NAME_9,CLASS_NAME, "(i int)");
     protected static SpliceTableWatcher spliceTableWatcher10 = new SpliceTableWatcher(TABLE_NAME_10,CLASS_NAME, "(i int)");
+    protected static SpliceTableWatcher spliceTableWatcher11 = new SpliceTableWatcher(TABLE_NAME_11,CLASS_NAME,
+                                      "(num varchar(4) not null, name char(20), " +
+                                          "grade decimal(4) not null check (grade in (100,150,200)), city char(15), " +
+                                          "primary key (grade,num))");
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -53,7 +61,8 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
             .around(spliceTableWatcher7)
             .around(spliceTableWatcher8)
             .around(spliceTableWatcher9)
-            .around(spliceTableWatcher10);
+            .around(spliceTableWatcher10)
+            .around(spliceTableWatcher11);
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -150,7 +159,7 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
                 String.format("insert into %1$s (TaskId, empId, StartedAt, FinishedAt, Date) values (%2$d,'JC',09%3$d,09%4$d, '2013-05-28 13:03:20')",
                         this.getTableReference(TABLE_NAME_4), 1244, 0, 30));
         resultSet = connection1.createStatement().executeQuery(String.format("select * from %s", this.getTableReference(TABLE_NAME_4)));
-        Assert.assertEquals("Can't read own write",1, resultSetSize(resultSet));
+        Assert.assertEquals("Can't read own write", 1, resultSetSize(resultSet));
         connection1.commit();
         resultSet = connection2.createStatement().executeQuery(String.format("select * from %s", this.getTableReference(TABLE_NAME_4)));
         Assert.assertEquals("Expected to see an additional row.",1, resultSetSize(resultSet));
@@ -166,7 +175,8 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
         PreparedStatement ps = connection1.prepareStatement(String.format("select * from %s", this.getTableReference(TABLE_NAME_5)));
         ResultSet resultSet = ps.executeQuery();
         Assert.assertEquals("Should have only 1 column.", 1, columnWidth(resultSet));
-        connection1.createStatement().execute(String.format("alter table %s add column j int default 5", this.getTableReference(TABLE_NAME_5)));
+        connection1.createStatement().execute(String.format("alter table %s add column j int default 5", this
+            .getTableReference(TABLE_NAME_5)));
 
         resultSet = ps.executeQuery();
         Assert.assertEquals("Should have 2 columns.", 2, columnWidth(resultSet));
@@ -317,5 +327,24 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
         resultSet = ps.executeQuery();
         Assert.assertEquals("Should have 3 rows.", 3, resultSetSize(resultSet));
         connection1.commit();
+    }
+
+    @Test
+    public void testAddCheckConstraint() throws Exception {
+        // test for DB-2705: NPE when altering table adding check constraint.
+        // Does not check that check constraint works - they don't - just tests the NPE is fixed.
+        TestConnection connection = methodWatcher.createConnection();
+
+        connection.createStatement().execute(String.format("alter table %s add constraint numck check (num < '999')",
+                                                           spliceTableWatcher11));
+        connection.commit();
+
+        connection.createStatement().execute(String.format("insert into %s values ('01', 'Jeff', 100, " +
+                                                               "'St. Louis')",
+                                                           spliceTableWatcher11));
+
+        long count = connection.count(String.format("select * from %s", spliceTableWatcher11));
+        Assert.assertEquals("incorrect row count!", 1, count);
+
     }
 }

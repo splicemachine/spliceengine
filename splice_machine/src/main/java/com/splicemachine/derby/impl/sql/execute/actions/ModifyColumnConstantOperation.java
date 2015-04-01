@@ -168,7 +168,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         adjustUDTDependencies( lcc, dd, td, columnInfo, false );
 
         executeConstraintActions(activation, td,numRows);
-        adjustLockGranularity();
+        adjustLockGranularity(activation.getTransactionController(), td, dd);
     }
 
     private int manageColumnInfo(Activation activation,TableDescriptor td) throws StandardException{
@@ -1626,7 +1626,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
 
         // Update all indexes
         if (compressIRGs.length > 0) {
-            updateAllIndexes(newHeapConglom, dd,oldTableDescriptor,tc);
+            updateAllIndexes(activation, newHeapConglom, oldTableDescriptor,tc);
         }
 
         // Update the DataDictionary
