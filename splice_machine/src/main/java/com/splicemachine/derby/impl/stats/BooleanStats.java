@@ -53,7 +53,7 @@ public class BooleanStats extends BaseDvdStatistics {
 
     @Override
     protected Distribution<DataValueDescriptor> newDistribution(ColumnStatistics baseStats) {
-        return new BooleanDist(this.baseStats);
+        return new BooleanDist(baseStats);
     }
 
     @Override

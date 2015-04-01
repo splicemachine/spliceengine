@@ -22,8 +22,8 @@ public class StatisticsDataTypeIT {
     private static final SpliceSchemaWatcher schema = new SpliceSchemaWatcher(StatisticsDataTypeIT.class.getSimpleName().toUpperCase());
 
     private static final String BASE_SCHEMA="a boolean,b smallint,c int,d bigint,e real,f double,g numeric(5,2),h char(5),i varchar(10),j blob,k clob,l date,m time,n timestamp";
+    private static final String INSERTION_SCHEMA="a,b,c,d,e,f,g,h,i,l,m,n";
     private static final SpliceTableWatcher allDataTypes            = new SpliceTableWatcher("DT"               ,schema.schemaName,"("+BASE_SCHEMA+")");
-    private static final SpliceTableWatcher booleanPk               = new SpliceTableWatcher("smallintPk"       ,schema.schemaName,"("+BASE_SCHEMA+",PRIMARY KEY(a))");
     private static final SpliceTableWatcher smallintPk              = new SpliceTableWatcher("smallintPk"       ,schema.schemaName,"("+BASE_SCHEMA+",PRIMARY KEY(a,b))");
     private static final SpliceTableWatcher intPk                   = new SpliceTableWatcher("intPk"            ,schema.schemaName,"("+BASE_SCHEMA+",PRIMARY KEY(a,b,c))");
     private static final SpliceTableWatcher bigintPk                = new SpliceTableWatcher("bigintPk"         ,schema.schemaName,"("+BASE_SCHEMA+",PRIMARY KEY(a,b,c,d))");
@@ -55,7 +55,6 @@ public class StatisticsDataTypeIT {
     @ClassRule public static final TestRule rule = RuleChain.outerRule(classWatcher)
             .around(schema)
             .around(allDataTypes)
-            .around(booleanPk)
             .around(smallintPk)
             .around(intPk)
             .around(bigintPk)
@@ -81,33 +80,30 @@ public class StatisticsDataTypeIT {
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description){
-                    try{
-                        String format="insert into %s (a,b,c,d,e,f,g,h,i,l,m,n) values (?,?,?,?,?,?,?,?,?,?,?,?)";
-                        PreparedStatement adtPs=classWatcher.prepareStatement(String.format(format,allDataTypes));
-                        PreparedStatement bPs=classWatcher.prepareStatement(String.format(format,booleanPk));
-                        PreparedStatement siPs=classWatcher.prepareStatement(String.format(format,smallintPk));
-                        PreparedStatement iPs=classWatcher.prepareStatement(String.format(format,intPk));
-                        PreparedStatement biPs=classWatcher.prepareStatement(String.format(format,bigintPk));
-                        PreparedStatement rPs=classWatcher.prepareStatement(String.format(format,realPk));
-                        PreparedStatement dPs=classWatcher.prepareStatement(String.format(format,doublePk));
-                        PreparedStatement nPs=classWatcher.prepareStatement(String.format(format,numericPk));
-                        PreparedStatement cPs=classWatcher.prepareStatement(String.format(format,charPk));
-                        PreparedStatement vcPs=classWatcher.prepareStatement(String.format(format,varcharPk));
-                        PreparedStatement daPs=classWatcher.prepareStatement(String.format(format,datePk));
-                        PreparedStatement tPs=classWatcher.prepareStatement(String.format(format,timePk));
-                        PreparedStatement tsPs=classWatcher.prepareStatement(String.format(format,timestampPk));
-
-                        PreparedStatement siPsR=classWatcher.prepareStatement(String.format(format,smallintPkReversed));
-                        PreparedStatement iPsR=classWatcher.prepareStatement(String.format(format,intPkReversed));
-                        PreparedStatement biPsR=classWatcher.prepareStatement(String.format(format,bigintPkReversed));
-                        PreparedStatement rPsR=classWatcher.prepareStatement(String.format(format,realPkReversed));
-                        PreparedStatement dPsR=classWatcher.prepareStatement(String.format(format,doublePkReversed));
-                        PreparedStatement nPsR=classWatcher.prepareStatement(String.format(format,numericPkReversed));
-                        PreparedStatement cPsR=classWatcher.prepareStatement(String.format(format,charPkReversed));
-                        PreparedStatement vcPsR=classWatcher.prepareStatement(String.format(format,varcharPkReversed));
-                        PreparedStatement daPsR=classWatcher.prepareStatement(String.format(format,datePkReversed));
-                        PreparedStatement tPsR=classWatcher.prepareStatement(String.format(format,timePkReversed));
-                        PreparedStatement tsPsR=classWatcher.prepareStatement(String.format(format,timestampPkReversed));
+                    try(TestDataBuilder tdBuilder = new TestDataBuilder(schema.schemaName,INSERTION_SCHEMA,classWatcher.getOrCreateConnection(),size/8)){
+                        tdBuilder.newTable(allDataTypes.tableName)
+                                .newTable(smallintPk.tableName)
+                                .newTable(intPk.tableName)
+                                .newTable(bigintPk.tableName)
+                                .newTable(realPk.tableName)
+                                .newTable(doublePk.tableName)
+                                .newTable(numericPk.tableName)
+                                .newTable(charPk.tableName)
+                                .newTable(varcharPk.tableName)
+                                .newTable(datePk.tableName)
+                                .newTable(timePk.tableName)
+                                .newTable(timestampPk.tableName)
+                                .newTable(smallintPkReversed.tableName)
+                                .newTable(intPkReversed.tableName)
+                                .newTable(bigintPkReversed.tableName)
+                                .newTable(realPkReversed.tableName)
+                                .newTable(doublePkReversed.tableName)
+                                .newTable(numericPkReversed.tableName)
+                                .newTable(charPkReversed.tableName)
+                                .newTable(varcharPkReversed.tableName)
+                                .newTable(datePkReversed.tableName)
+                                .newTable(timePkReversed.tableName)
+                                .newTable(timestampPkReversed.tableName);
                         short bVal=(short)0;
                         int cVal=0;
                         long dVal=0;
@@ -129,57 +125,18 @@ public class StatisticsDataTypeIT {
                             tsVal=new Timestamp(i%4);
                             tsCol.setMin(tsVal);
                             boVal = i%2==0;
-                            setInsertValues(adtPs,boVal,bVal,cVal,dVal,eVal,fVal,hVal,iVal,jVal,daVal,tVal,tsVal);
-                            setInsertValues(siPs,boVal,bVal,cVal,dVal,eVal,fVal,hVal,iVal,jVal,daVal,tVal,tsVal);
-                            setInsertValues(iPs,boVal,bVal,cVal,dVal,eVal,fVal,hVal,iVal,jVal,daVal,tVal,tsVal);
-                            setInsertValues(biPs,boVal,bVal,cVal,dVal,eVal,fVal,hVal,iVal,jVal,daVal,tVal,tsVal);
-                            setInsertValues(rPs,boVal,bVal,cVal,dVal,eVal,fVal,hVal,iVal,jVal,daVal,tVal,tsVal);
-                            setInsertValues(dPs,boVal,bVal,cVal,dVal,eVal,fVal,hVal,iVal,jVal,daVal,tVal,tsVal);
-                            setInsertValues(nPs,boVal,bVal,cVal,dVal,eVal,fVal,hVal,iVal,jVal,daVal,tVal,tsVal);
-                            setInsertValues(cPs,boVal,bVal,cVal,dVal,eVal,fVal,hVal,iVal,jVal,daVal,tVal,tsVal);
-                            setInsertValues(vcPs,boVal,bVal,cVal,dVal,eVal,fVal,hVal,iVal,jVal,daVal,tVal,tsVal);
-                            setInsertValues(daPs,boVal,bVal,cVal,dVal,eVal,fVal,hVal,iVal,jVal,daVal,tVal,tsVal);
-                            setInsertValues(tPs,boVal,bVal,cVal,dVal,eVal,fVal,hVal,iVal,jVal,daVal,tVal,tsVal);
-                            setInsertValues(tsPs,boVal,bVal,cVal,dVal,eVal,fVal,hVal,iVal,jVal,daVal,tVal,tsVal);
-
-                            setInsertValues(siPsR,boVal,bVal,cVal,dVal,eVal,fVal,hVal,iVal,jVal,daVal,tVal,tsVal);
-                            setInsertValues(iPsR,boVal,bVal,cVal,dVal,eVal,fVal,hVal,iVal,jVal,daVal,tVal,tsVal);
-                            setInsertValues(biPsR,boVal,bVal,cVal,dVal,eVal,fVal,hVal,iVal,jVal,daVal,tVal,tsVal);
-                            setInsertValues(rPsR,boVal,bVal,cVal,dVal,eVal,fVal,hVal,iVal,jVal,daVal,tVal,tsVal);
-                            setInsertValues(dPsR,boVal,bVal,cVal,dVal,eVal,fVal,hVal,iVal,jVal,daVal,tVal,tsVal);
-                            setInsertValues(nPsR,boVal,bVal,cVal,dVal,eVal,fVal,hVal,iVal,jVal,daVal,tVal,tsVal);
-                            setInsertValues(cPsR,boVal,bVal,cVal,dVal,eVal,fVal,hVal,iVal,jVal,daVal,tVal,tsVal);
-                            setInsertValues(vcPsR,boVal,bVal,cVal,dVal,eVal,fVal,hVal,iVal,jVal,daVal,tVal,tsVal);
-                            setInsertValues(daPsR,boVal,bVal,cVal,dVal,eVal,fVal,hVal,iVal,jVal,daVal,tVal,tsVal);
-                            setInsertValues(tPsR,boVal,bVal,cVal,dVal,eVal,fVal,hVal,iVal,jVal,daVal,tVal,tsVal);
-                            setInsertValues(tsPsR,boVal,bVal,cVal,dVal,eVal,fVal,hVal,iVal,jVal,daVal,tVal,tsVal);
-                            if(i%100==0){
-                                adtPs.executeBatch();
-                                bPs.executeBatch();
-                                siPs.executeBatch();
-                                iPs.executeBatch();
-                                biPs.executeBatch();
-                                rPs.executeBatch();
-                                dPs.executeBatch();
-                                nPs.executeBatch();
-                                cPs.executeBatch();
-                                vcPs.executeBatch();
-                                daPs.executeBatch();
-                                tPs.executeBatch();
-                                tsPs.executeBatch();
-
-                                siPsR.executeBatch();
-                                iPsR.executeBatch();
-                                biPsR.executeBatch();
-                                rPsR.executeBatch();
-                                dPsR.executeBatch();
-                                nPsR.executeBatch();
-                                cPsR.executeBatch();
-                                vcPsR.executeBatch();
-                                daPsR.executeBatch();
-                                tPsR.executeBatch();
-                                tsPsR.executeBatch();
-                            }
+                            tdBuilder.booleanField(boVal)
+                                    .shortField(bVal)
+                                    .intField(cVal)
+                                    .bigintField(dVal)
+                                    .realField(eVal)
+                                    .doubleField(fVal)
+                                    .numericField(hVal)
+                                    .charField(iVal)
+                                    .varcharField(jVal)
+                                    .dateField(daVal)
+                                    .timeField(tVal)
+                                    .timestampField(tsVal).rowEnd();
 
                             bVal++;
                             if(i%2==0) cVal++;
@@ -189,67 +146,13 @@ public class StatisticsDataTypeIT {
                             if(i%32==0) hVal=hVal.add(BigDecimal.ONE);
                             if(i%64==0) iVal=Integer.toString(Integer.parseInt(iVal)+1);
                             if(i%128==0) jVal=Integer.toString(Integer.parseInt(jVal)+2);
-
                         }
-                        adtPs.executeBatch();
-                        bPs.executeBatch();
-                        siPs.executeBatch();
-                        iPs.executeBatch();
-                        biPs.executeBatch();
-                        rPs.executeBatch();
-                        dPs.executeBatch();
-                        nPs.executeBatch();
-                        cPs.executeBatch();
-                        vcPs.executeBatch();
-                        daPs.executeBatch();
-                        tPs.executeBatch();
-                        tsPs.executeBatch();
-
-                        siPsR.executeBatch();
-                        iPsR.executeBatch();
-                        biPsR.executeBatch();
-                        rPsR.executeBatch();
-                        dPsR.executeBatch();
-                        nPsR.executeBatch();
-                        cPsR.executeBatch();
-                        vcPsR.executeBatch();
-                        daPsR.executeBatch();
-                        tPsR.executeBatch();
-                        tsPsR.executeBatch();
+                        tdBuilder.flush();
                     }catch(Exception e){
                         throw new RuntimeException(e);
                     }
                 }
             });
-
-    private static void setInsertValues(PreparedStatement adtPs,
-                                        boolean boVal,
-                                        short bVal,
-                                        int cVal,
-                                        long dVal,
-                                        float eVal,
-                                        double fVal,
-                                        BigDecimal hVal,
-                                        String iVal,
-                                        String jVal,
-                                        Date daVal,
-                                        Time tVal,
-                                        Timestamp tsVal) throws SQLException {
-        adtPs.setBoolean(   1,boVal);
-        adtPs.setShort(     2, bVal);
-        adtPs.setInt(       3, cVal);
-        adtPs.setLong(      4, dVal);
-        adtPs.setFloat(     5, eVal);
-        adtPs.setDouble(    6, fVal);
-        adtPs.setBigDecimal(7, hVal);
-        adtPs.setString(    8, iVal);
-        adtPs.setString(    9, jVal);
-        adtPs.setDate(      10,daVal);
-        adtPs.setTime(      11,tVal);
-        adtPs.setTimestamp( 12,tsVal);
-
-        adtPs.addBatch();
-    }
 
     private static Connection conn;
 
@@ -470,19 +373,6 @@ public class StatisticsDataTypeIT {
     @Test public void noPk_timestamp_varchar()  throws Exception{ testCorrect(allDataTypes.tableName,tsCol,vcCol); }
     @Test public void noPk_timestamp_date()     throws Exception{ testCorrect(allDataTypes.tableName,tsCol,daCol); }
     @Test public void noPk_timestamp_time()     throws Exception{ testCorrect(allDataTypes.tableName,tsCol,tCol); }
-
-    @Test public void pk_boolean()              throws Exception{ testCorrect(booleanPk.tableName,boCol); }
-    @Test public void pk_boolean_smallint()     throws Exception{ testCorrect(booleanPk.tableName,boCol,siCol); }
-    @Test public void pk_boolean_int()          throws Exception{ testCorrect(booleanPk.tableName,boCol,iCol); }
-    @Test public void pk_boolean_bigint()       throws Exception{ testCorrect(booleanPk.tableName,boCol,biCol); }
-    @Test public void pk_boolean_real()         throws Exception{ testCorrect(booleanPk.tableName,boCol,rCol); }
-    @Test public void pk_boolean_double()       throws Exception{ testCorrect(booleanPk.tableName,boCol,dCol); }
-    @Test public void pk_boolean_numeric()      throws Exception{ testCorrect(booleanPk.tableName,boCol,nCol); }
-    @Test public void pk_boolean_char()         throws Exception{ testCorrect(booleanPk.tableName,boCol,cCol); }
-    @Test public void pk_boolean_varchar()      throws Exception{ testCorrect(booleanPk.tableName,boCol,vcCol); }
-    @Test public void pk_boolean_date()         throws Exception{ testCorrect(booleanPk.tableName,boCol,daCol); }
-    @Test public void pk_boolean_time()         throws Exception{ testCorrect(booleanPk.tableName,boCol,tCol); }
-    @Test public void pk_boolean_timestamp()    throws Exception{ testCorrect(booleanPk.tableName,boCol,tsCol); }
 
     @Test public void pk_smallint()             throws Exception{ testCorrect(smallintPk.tableName,siCol); }
     @Test public void pk_smallint_boolean()     throws Exception{ testCorrect(smallintPk.tableName,siCol,boCol); }

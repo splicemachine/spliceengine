@@ -13,15 +13,12 @@ import java.io.Externalizable;
  */
 public abstract class BaseDvdStatistics implements ColumnStatistics<DataValueDescriptor>,Externalizable {
     protected ColumnStatistics baseStats;
-    private Distribution<DataValueDescriptor> distribution;
 
     public BaseDvdStatistics() {
-        this.distribution = EmptyDistribution.emptyDistribution();
     }
 
     public BaseDvdStatistics(ColumnStatistics baseStats) {
         this.baseStats = baseStats;
-        this.distribution = newDistribution(baseStats);
     }
 
     @Override public long cardinality() { return baseStats.cardinality(); }
@@ -32,7 +29,9 @@ public abstract class BaseDvdStatistics implements ColumnStatistics<DataValueDes
     @Override public long minCount() { return baseStats.minCount(); }
     @Override public int columnId() { return baseStats.columnId(); }
 
-    @Override public Distribution<DataValueDescriptor> getDistribution() { return distribution; }
+    @Override public Distribution<DataValueDescriptor> getDistribution() {
+        return newDistribution(baseStats);
+    }
 
     @Override
     @SuppressWarnings("unchecked")

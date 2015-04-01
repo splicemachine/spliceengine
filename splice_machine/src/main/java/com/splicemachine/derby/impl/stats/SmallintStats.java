@@ -28,12 +28,13 @@ public class SmallintStats extends BaseDvdStatistics {
     public SmallintStats(){}
 
     public SmallintStats(ShortColumnStatistics build) {
+        super(build);
         stats = build;
     }
 
     @Override
     protected Distribution<DataValueDescriptor> newDistribution(ColumnStatistics baseStats) {
-        return new ShortDist(stats);
+        return new ShortDist((ShortColumnStatistics)baseStats);
     }
 
     @Override
@@ -51,7 +52,7 @@ public class SmallintStats extends BaseDvdStatistics {
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        baseStats = stats = CombinedShortColumnStatistics.encoder().decode(in);
+        super.baseStats = stats = CombinedShortColumnStatistics.encoder().decode(in);
     }
 
     @Override

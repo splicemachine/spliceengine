@@ -27,6 +27,7 @@ public class BigintStats extends BaseDvdStatistics {
     public BigintStats(){}
 
     public BigintStats(LongColumnStatistics build) {
+        super(build);
         stats = build;
     }
 
