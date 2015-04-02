@@ -21,7 +21,7 @@ import java.sql.*;
 public class ExplainTableScanIT{
     private static final int size=128;
     private static final SpliceWatcher classWatcher = new SpliceWatcher();
-    private static final SpliceSchemaWatcher schema = new SpliceSchemaWatcher(StatisticsDataTypeIT.class.getSimpleName().toUpperCase());
+    private static final SpliceSchemaWatcher schema = new SpliceSchemaWatcher(ExplainTableScanIT.class.getSimpleName().toUpperCase());
 
     private static final String BASE_SCHEMA="a boolean,b smallint,c int,d bigint,e real,f double,g numeric(5,2),h char(5),i varchar(10),l date,m time,n timestamp";
     private static final String INSERTION_SCHEMA="a,b,c,d,e,f,g,h,i,l,m,n";
@@ -38,52 +38,6 @@ public class ExplainTableScanIT{
     private static final SpliceTableWatcher datePk       = new SpliceTableWatcher("datePk"     ,schema.schemaName,"("+BASE_SCHEMA+",PRIMARY KEY(l,b))");
     private static final SpliceTableWatcher timePk       = new SpliceTableWatcher("timePk"     ,schema.schemaName,"("+BASE_SCHEMA+",PRIMARY KEY(m,b))");
     private static final SpliceTableWatcher timestampPk  = new SpliceTableWatcher("timestampPk",schema.schemaName,"("+BASE_SCHEMA+",PRIMARY KEY(n,b))");
-
-    private static final TestColumn boCol = new TestColumn("a",false){
-        @Override
-        String getMinValueString(){
-            return "true";
-        }
-    };
-    private static final TestColumn siCol = new TestColumn("b",false);
-    private static final TestColumn iCol = new TestColumn("c",false);
-    private static final TestColumn biCol = new TestColumn("d",false);
-    private static final TestColumn rCol = new TestColumn("e",true);
-    private static final TestColumn dCol = new TestColumn("f",true);
-    private static final TestColumn nCol = new TestColumn("g",false);
-    private static final TestColumn cCol = new TestColumn("h",false);
-    private static final TestColumn vcCol = new TestColumn("i",false);
-    private static final TestColumn daCol = new TestColumn("l",false){
-        Date min;
-        @Override String getMinValueString(){ return min==null? "null":min.toString(); }
-
-        @Override
-        public void setMin(Object min){
-            Date m = (Date)min;
-            if(this.min==null||this.min.compareTo(m)>0)
-                this.min = m;
-        }
-    };
-    private static final TestColumn tCol = new TestColumn("m",false){
-        Time min;
-        @Override String getMinValueString(){ return min==null? "null":min.toString(); }
-        @Override
-        public void setMin(Object min){
-            Time m = (Time)min;
-            if(this.min==null||this.min.compareTo(m)>0)
-                this.min = m;
-        }
-    };
-    private static final TestColumn tsCol = new TestColumn("n",false){
-        Timestamp min;
-        @Override String getMinValueString(){ return min==null? "null":min.toString(); }
-        @Override
-        public void setMin(Object min){
-            Timestamp m = (Timestamp)min;
-            if(this.min==null||this.min.compareTo(m)>0)
-                this.min = m;
-        }
-    };
 
     @ClassRule public static final TestRule rule =RuleChain.outerRule(classWatcher)
             .around(schema)
@@ -131,11 +85,8 @@ public class ExplainTableScanIT{
                         Timestamp tsVal;
                         for(int i=0;i<size;i++){
                             daVal=new Date(i);
-                            daCol.setMin(daVal);
                             tVal=new Time(i%2);
-                            tCol.setMin(tVal);
                             tsVal=new Timestamp(i%4);
-                            tsCol.setMin(tsVal);
                             tdBuilder.booleanField(i%2==0)
                                     .shortField(bVal)
                                     .intField(cVal)
@@ -412,26 +363,4 @@ public class ExplainTableScanIT{
         }
     }
 
-    private static class TestColumn{
-        String columnName;
-        boolean useFloatStrings;
-        public String minValueString;
-
-        public static TestColumn create(String columnName,boolean useFloatStrings){
-            return new TestColumn(columnName,useFloatStrings);
-        }
-        public TestColumn(String columnName, boolean useFloatStrings) {
-            this.columnName = columnName;
-            this.useFloatStrings = useFloatStrings;
-            this.minValueString = useFloatStrings?"0.0":"0";
-        }
-
-        public void setMin(Object min){
-            //no-op
-        }
-
-        String getMinValueString(){
-            return minValueString;
-        }
-    }
 }

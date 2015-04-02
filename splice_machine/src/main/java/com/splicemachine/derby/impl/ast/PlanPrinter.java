@@ -229,8 +229,8 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         List<Map<String, Object>> resultColumns = new ArrayList<Map<String, Object>>();
         ResultColumnList resultColumnList = rsn.getResultColumns();
         if (resultColumnList != null && resultColumnList.size() > 0) {
-            ResultColumn[] columns = resultColumnList.getColumnsAsArray();
-            for (ResultColumn resultColumn : columns) {
+
+            for (ResultColumn resultColumn : resultColumnList) {
                 Map<String, Object> columnInfo = new LinkedHashMap<String, Object>();
                 if (resultColumn != null) {
                     columnInfo.put("column", resultColumn.getName());

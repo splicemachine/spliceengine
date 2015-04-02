@@ -44,8 +44,8 @@ public class MergeJoinIT extends SpliceUnitTest {
     protected static final String FOO2_IDX = "FOO2_IDX";
     protected static final String TEST = "TEST";
     protected static final String TEST2 = "TEST2";
-    
-    
+
+
 
     protected static SpliceTableWatcher lineItemTable = new SpliceTableWatcher(LINEITEM, CLASS_NAME,
             "( L_ORDERKEY INTEGER NOT NULL,L_PARTKEY INTEGER NOT NULL, L_SUPPKEY INTEGER NOT NULL, " +
@@ -67,107 +67,107 @@ public class MergeJoinIT extends SpliceUnitTest {
 
     protected static SpliceTableWatcher testTable = new SpliceTableWatcher(TEST, CLASS_NAME,
             "(col1 int, col2 int, col3 int, col4 int, col5 int, col6 int, col7 int, col8 int, primary key (col5, col7))");
-    
+
     protected static SpliceTableWatcher test2Table = new SpliceTableWatcher(TEST2, CLASS_NAME,
             "(col1 int, col2 int, col3 int, col4 int, primary key (col1, col2))");
 
     protected static SpliceIndexWatcher foo2Index = new SpliceIndexWatcher(FOO2,CLASS_NAME,FOO2_IDX,CLASS_NAME,"(col3, col2, col1)");
 
     protected static String MERGE_INDEX_RIGHT_SIDE_TEST = format("select * from --SPLICE-PROPERTIES joinOrder=fixed\n" +
-    						" %s.%s inner join %s.%s --SPLICE-PROPERTIES index=%s, joinStrategy=MERGE\n" + 
-    						" on foo.col1 = foo2.col3",CLASS_NAME,FOO,CLASS_NAME,FOO2,FOO2_IDX);
+            " %s.%s inner join %s.%s --SPLICE-PROPERTIES index=%s, joinStrategy=MERGE\n" +
+            " on foo.col1 = foo2.col3",CLASS_NAME,FOO,CLASS_NAME,FOO2,FOO2_IDX);
 
     protected static String MERGE_WITH_UNORDERED = format("select test.col1, test2.col4 from --SPLICE-PROPERTIES joinOrder=fixed\n" +
-			" %s.%s inner join %s.%s --SPLICE-PROPERTIES joinStrategy=MERGE\n" + 
-			" on test.col7 = test2.col2 and" +
-			" test.col5 = test2.col1",CLASS_NAME,TEST,CLASS_NAME,TEST2);
+            " %s.%s inner join %s.%s --SPLICE-PROPERTIES joinStrategy=MERGE\n" +
+            " on test.col7 = test2.col2 and" +
+            " test.col5 = test2.col1",CLASS_NAME,TEST,CLASS_NAME,TEST2);
 
-    
+
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceSchemaWatcher)
-        .around(spliceClassWatcher)
-        .around(lineItemTable)
-        .around(orderTable)
-        .around(fooTable)
-        .around(foo2Table)
-        .around(foo2Index)
-        .around(testTable)
-        .around(test2Table)
-        .around(new SpliceDataWatcher() {
-        	  @Override
-              protected void starting(Description description) {
-                  try {
-                	  spliceClassWatcher.executeUpdate(format("insert into %s.%s values (1,2)",CLASS_NAME,FOO));
-                	  spliceClassWatcher.executeUpdate(format("insert into %s.%s values (3,2,1)",CLASS_NAME,FOO2));
-                	  spliceClassWatcher.executeUpdate(format("insert into %s.%s values (1,2,3,4,1,6,2,8)",CLASS_NAME,TEST));
-                	  spliceClassWatcher.executeUpdate(format("insert into %s.%s values (1,2,3,4)",CLASS_NAME,TEST2));
+            .around(spliceClassWatcher)
+            .around(lineItemTable)
+            .around(orderTable)
+            .around(fooTable)
+            .around(foo2Table)
+            .around(foo2Index)
+            .around(testTable)
+            .around(test2Table)
+            .around(new SpliceDataWatcher() {
+                @Override
+                protected void starting(Description description) {
+                    try {
+                        spliceClassWatcher.executeUpdate(format("insert into %s.%s values (1,2)",CLASS_NAME,FOO));
+                        spliceClassWatcher.executeUpdate(format("insert into %s.%s values (3,2,1)",CLASS_NAME,FOO2));
+                        spliceClassWatcher.executeUpdate(format("insert into %s.%s values (1,2,3,4,1,6,2,8)",CLASS_NAME,TEST));
+                        spliceClassWatcher.executeUpdate(format("insert into %s.%s values (1,2,3,4)",CLASS_NAME,TEST2));
 
-                  } catch (Exception e) {
-                      throw new RuntimeException(e);
-                  } finally {
-                      spliceClassWatcher.closeAll();
-                  }
-              }
-        })
-        .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/employee.sql", CLASS_NAME))
-        .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/basic_join_dataset.sql", CLASS_NAME))
-        .around(new SpliceDataWatcher() {
-            @Override
-            protected void starting(Description description) {
-                try {
-                    PreparedStatement ps = spliceClassWatcher.prepareStatement(
-                            format("call SYSCS_UTIL.SYSCS_IMPORT_DATA(" +
-                                    "'%s','%s',null,null,'%s','|','\"',null,null,null)",
-                                    CLASS_NAME, LINEITEM, getResource("lineitem.tbl")));
-                    ps.execute();
-                    ps = spliceClassWatcher.prepareStatement(
-                            format("call SYSCS_UTIL.SYSCS_IMPORT_DATA(" +
-                                    "'%s','%s',null,null,'%s','|','\"',null,null,null)",
-                                    CLASS_NAME, ORDERS, getResource("orders.tbl")));
-                    ps.execute();
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                } finally {
-                    spliceClassWatcher.closeAll();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    } finally {
+                        spliceClassWatcher.closeAll();
+                    }
                 }
-            }
-        })
-        .around(TestUtils.createStringDataWatcher(spliceClassWatcher,
-                                                 "create table people " +
-                                                     "  (fname varchar(25)," +
-                                                     "  lname varchar(25), " +
-                                                     "  age int, " +
-                                                     "  primary key(fname,lname));" +
-                                                     "create table purchase " +
-                                                     "  (fname varchar(25)," +
-                                                     "  lname varchar(25), num int," +
-                                                     "  primary key (fname,lname,num));" +
-                                                     "insert into people values " +
-                                                     "  ('adam', 'scott', 22)," +
-                                                     "  ('scott', 'anchorman', 23)," +
-                                                     "  ('tori', 'spelling', 9);" +
-                                                     "insert into purchase values" +
-                                                     "  ('adam', 'scott', 1)," +
-                                                     "  ('scott', 'anchorman', 1)," +
-                                                     "  ('scott', 'anchorman', 2)," +
-                                                     "  ('tori', 'spelling', 1)," +
-                                                     "  ('adam', 'scott', 10)," +
-                                                     "  ('scott', 'anchorman', 5);",
-                                                 CLASS_NAME))
-    .around(TestUtils.createStringDataWatcher(spliceClassWatcher,
-                                                     "create table shipmode " +
-                                                         "  (mode varchar(10)," +
-                                                         "  id int," +
-                                                         "  primary key (id)); " +
-                                                         "insert into shipmode values " +
-                                                         "  ('AIR', 1)," +
-                                                         "  ('FOB', 2)," +
-                                                         "  ('MAIL', 3)," +
-                                                         "  ('RAIL', 4)," +
-                                                         "  ('REG AIR', 5)," +
-                                                         "  ('SHIP', 6)," +
-                                                         "  ('TRUCK', 7);",
-                                                     CLASS_NAME));
+            })
+            .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/employee.sql", CLASS_NAME))
+            .around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/basic_join_dataset.sql", CLASS_NAME))
+            .around(new SpliceDataWatcher() {
+                @Override
+                protected void starting(Description description) {
+                    try {
+                        PreparedStatement ps = spliceClassWatcher.prepareStatement(
+                                format("call SYSCS_UTIL.SYSCS_IMPORT_DATA(" +
+                                                "'%s','%s',null,null,'%s','|','\"',null,null,null)",
+                                        CLASS_NAME, LINEITEM, getResource("lineitem.tbl")));
+                        ps.execute();
+                        ps = spliceClassWatcher.prepareStatement(
+                                format("call SYSCS_UTIL.SYSCS_IMPORT_DATA(" +
+                                                "'%s','%s',null,null,'%s','|','\"',null,null,null)",
+                                        CLASS_NAME, ORDERS, getResource("orders.tbl")));
+                        ps.execute();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    } finally {
+                        spliceClassWatcher.closeAll();
+                    }
+                }
+            })
+            .around(TestUtils.createStringDataWatcher(spliceClassWatcher,
+                    "create table people " +
+                            "  (fname varchar(25)," +
+                            "  lname varchar(25), " +
+                            "  age int, " +
+                            "  primary key(fname,lname));" +
+                            "create table purchase " +
+                            "  (fname varchar(25)," +
+                            "  lname varchar(25), num int," +
+                            "  primary key (fname,lname,num));" +
+                            "insert into people values " +
+                            "  ('adam', 'scott', 22)," +
+                            "  ('scott', 'anchorman', 23)," +
+                            "  ('tori', 'spelling', 9);" +
+                            "insert into purchase values" +
+                            "  ('adam', 'scott', 1)," +
+                            "  ('scott', 'anchorman', 1)," +
+                            "  ('scott', 'anchorman', 2)," +
+                            "  ('tori', 'spelling', 1)," +
+                            "  ('adam', 'scott', 10)," +
+                            "  ('scott', 'anchorman', 5);",
+                    CLASS_NAME))
+            .around(TestUtils.createStringDataWatcher(spliceClassWatcher,
+                    "create table shipmode " +
+                            "  (mode varchar(10)," +
+                            "  id int," +
+                            "  primary key (id)); " +
+                            "insert into shipmode values " +
+                            "  ('AIR', 1)," +
+                            "  ('FOB', 2)," +
+                            "  ('MAIL', 3)," +
+                            "  ('RAIL', 4)," +
+                            "  ('REG AIR', 5)," +
+                            "  ('SHIP', 6)," +
+                            "  ('TRUCK', 7);",
+                    CLASS_NAME));
 
 
     @Rule
@@ -206,39 +206,39 @@ public class MergeJoinIT extends SpliceUnitTest {
         }
 
         final List<Object[]> expected = Arrays.asList(
-                                                   o("P1", "E1", "P1"),
-                                                   o("P1", "E2", "P1"),
-                                                   o("P2", "E1", "P2"),
-                                                   o("P2", "E2", "P2"),
-                                                   o("P2", "E3", "P2"),
-                                                   o("P2", "E4", "P2"),
-                                                   o("P3", "E1", "P3"),
-                                                   o("P4", "E1", "P4"),
-                                                   o("P4", "E4", "P4"),
-                                                   o("P5", "E1", "P5"),
-                                                   o("P5", "E4", "P5"),
-                                                   o("P6", "E1", "P6"));
+                o("P1", "E1", "P1"),
+                o("P1", "E2", "P1"),
+                o("P2", "E1", "P2"),
+                o("P2", "E2", "P2"),
+                o("P2", "E3", "P2"),
+                o("P2", "E4", "P2"),
+                o("P3", "E1", "P3"),
+                o("P4", "E1", "P4"),
+                o("P4", "E4", "P4"),
+                o("P5", "E1", "P5"),
+                o("P5", "E4", "P5"),
+                o("P6", "E1", "P6"));
 
         try {
             String query = "select w.pnum, w.empnum, p2.pnum " +
-                               "from --splice-properties joinOrder=fixed\n" +
-                               "         (select empnum, pnum from works order by pnum) w " +
-                               "            inner join proj p --splice-properties index=proj_pnum, joinStrategy=%s\n" +
-                               "               on w.pnum = p.pnum" +
-                               "     inner join proj p2  --splice-properties index=proj_pnum, joinStrategy=%s\n" +
-                               "            on p.pnum = p2.pnum " +
-                               " order by w.pnum, w.empnum, p2.pnum";
+                    "from --splice-properties joinOrder=fixed\n" +
+                    "         (select empnum, pnum from works order by pnum) w " +
+                    "            inner join proj p --splice-properties index=proj_pnum, joinStrategy=%s\n" +
+                    "               on w.pnum = p.pnum" +
+                    "     inner join proj p2  --splice-properties index=proj_pnum, joinStrategy=%s\n" +
+                    "            on p.pnum = p2.pnum " +
+                    " order by w.pnum, w.empnum, p2.pnum";
 
             for (Pair<String,String> pair : strategyPairs){
                 try {
                     ResultSet rs = methodWatcher.executeQuery(String.format(query,
-                                                                               pair.getFirst(),
-                                                                               pair.getSecond()));
+                            pair.getFirst(),
+                            pair.getSecond()));
                     List<Object[]> results = TestUtils.resultSetToArrays(rs);
                     Assert.assertArrayEquals(String.format("%s over %s produces incorrect results",
-                                                              pair.getSecond(), pair.getFirst()),
-                                                expected.toArray(),
-                                                results.toArray());
+                                    pair.getSecond(), pair.getFirst()),
+                            expected.toArray(),
+                            results.toArray());
                 } catch (Exception e) {
                     Assert.fail(String.format("%s failed with exception %s", pair, e));
                 }
@@ -253,14 +253,14 @@ public class MergeJoinIT extends SpliceUnitTest {
     @Test
     public void testSimpleJoinOn2Columns() throws Exception {
         List<Object[]> expected = Arrays.asList(
-                                                   o("adam",1),
-                                                   o("adam",10),
-                                                   o("scott",1),
-                                                   o("scott",2),
-                                                   o("scott",5),
-                                                   o("tori",1));
+                o("adam",1),
+                o("adam",10),
+                o("scott",1),
+                o("scott",2),
+                o("scott",5),
+                o("tori",1));
         String query = "select p.fname, t.num from people p, purchase t --splice-properties joinStrategy=%s \n" +
-                           "where p.fname = t.fname and p.lname = t.lname order by p.fname, t.num";
+                "where p.fname = t.fname and p.lname = t.lname order by p.fname, t.num";
         List<List<Object[]>> results = Lists.newArrayList();
 
         for (String strategy : STRATEGIES) {
@@ -269,10 +269,10 @@ public class MergeJoinIT extends SpliceUnitTest {
         }
 
         Assert.assertTrue("Each strategy returns the same join results",
-                             results.size() == STRATEGIES.size());
+                results.size() == STRATEGIES.size());
         for (List<Object[]> result: results) {
             Assert.assertArrayEquals("The join results match expected results",
-                                        expected.toArray(), result.toArray());
+                    expected.toArray(), result.toArray());
         }
     }
 
@@ -358,25 +358,25 @@ public class MergeJoinIT extends SpliceUnitTest {
     @Test
     public void testBCastOverMerge() throws Exception {
         String query = "select count(*) " +
-                           "from --splice-properties joinOrder=fixed\n" +
-                           "    (select * from orders where o_orderkey > 1000) o, " +
-                           "    lineitem l --splice-properties joinStrategy=merge\n" +
-                           "     , shipmode s --splice-properties joinStrategy=broadcast\n " +
-                           "where o_orderkey = l_orderkey" +
-                               "  and l_shipmode = s.mode";
+                "from --splice-properties joinOrder=fixed\n" +
+                "    (select * from orders where o_orderkey > 1000) o, " +
+                "    lineitem l --splice-properties joinStrategy=merge\n" +
+                "     , shipmode s --splice-properties joinStrategy=broadcast\n " +
+                "where o_orderkey = l_orderkey" +
+                "  and l_shipmode = s.mode";
         Assert.assertEquals(8954L, TestUtils.resultSetToArrays(methodWatcher.executeQuery(query)).get(0)[0]);
     }
-    
+
     @Test
     public void testMergeWithRightCoveringIndex() throws Exception {
-    	List<Object[]> data = TestUtils.resultSetToArrays(methodWatcher.executeQuery(MERGE_INDEX_RIGHT_SIDE_TEST));
-    	Assert.assertTrue("does not return 1 row for merge, position problems in MergeSortJoinStrategy/Operation?",data.size()==1);
+        List<Object[]> data = TestUtils.resultSetToArrays(methodWatcher.executeQuery(MERGE_INDEX_RIGHT_SIDE_TEST));
+        Assert.assertTrue("does not return 1 row for merge, position problems in MergeSortJoinStrategy/Operation?",data.size()==1);
     }
 
     @Test
     public void testMergeWithUnorderedPredicates() throws Exception {
-    	List<Object[]> data = TestUtils.resultSetToArrays(methodWatcher.executeQuery(MERGE_WITH_UNORDERED));
-    	Assert.assertTrue("does not return 1 row for merge, position problems in MergeSortJoinStrategy/Operation?",data.size()==1);
+        List<Object[]> data = TestUtils.resultSetToArrays(methodWatcher.executeQuery(MERGE_WITH_UNORDERED));
+        Assert.assertTrue("does not return 1 row for merge, position problems in MergeSortJoinStrategy/Operation?",data.size()==1);
     }
 
     private static String getResource(String name) {
