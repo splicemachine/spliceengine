@@ -59,6 +59,9 @@ import com.splicemachine.utils.ZkUtils;
  *
  */
 public class Backup implements InternalTable {
+	public static final String CONF_BANDWIDTH_MB = "splice.backup.bandwidth.mb";
+	public static final String CONF_IOTHROTTLE = "splice.backup.throttle.enabled";
+
     private static Logger LOG = Logger.getLogger(Backup.class);
 
     public static final String DEFAULT_SCHEMA = "BACKUP";
