@@ -9,6 +9,8 @@ import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.utils.io.IOUtils;
+
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.regionserver.Store;
 import org.apache.hadoop.conf.Configuration;
@@ -133,6 +135,8 @@ public class CreateIncrementalBackupTask extends ZkTask {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, String.format("executing incremental backup on region %s", region.toString()));
 
+        boolean throttleEnabled = 
+    			getConfiguration().getBoolean(Backup.CONF_IOTHROTTLE, false);
         tableName = region.getTableDesc().getNameAsString();
         encodedRegionName = region.getRegionInfo().getEncodedName();
         int count = 0;
@@ -155,7 +159,11 @@ public class CreateIncrementalBackupTask extends ZkTask {
                     String familyName = s[n - 2];
                     String regionName = s[n - 3];
                     Path destPath = new Path(backupFileSystem + "/" + regionName + "/" + familyName + "/" + fileName);
-                    FileUtil.copy(fs, p, fs, destPath, false, SpliceConstants.config);
+                    if(throttleEnabled){
+                    	IOUtils.copyFileWithThrottling(fs, p, fs, destPath, false, SpliceConstants.config);
+                    } else{
+                    	FileUtil.copy(fs, p, fs, destPath, false, SpliceConstants.config);
+                    }
                     count++;
                 }
             }
@@ -173,7 +181,11 @@ public class CreateIncrementalBackupTask extends ZkTask {
         }
     }
 
-    /**
+    private Configuration getConfiguration() {
+		return SpliceConstants.config;
+	}
+
+	/**
      * For each HFile in archived directory, check whether it should be included in incremental backup.
      * Delete all entries for this region in BACKUP.BACKUP_FILESET. BACKUP.BACKUP_FILESET should only keeps track of
      * HFile changes between two consecutive incremental backups.

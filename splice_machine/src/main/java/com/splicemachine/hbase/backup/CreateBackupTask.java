@@ -1,8 +1,6 @@
 package com.splicemachine.hbase.backup;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.net.URI;
@@ -10,14 +8,10 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.io.HFileLink;
-import org.apache.hadoop.util.StringUtils;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.job.ZkTask;
@@ -25,7 +19,7 @@ import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.utils.io.ThrottledInputStream;
+import com.splicemachine.utils.io.IOUtils;
 /**
  *
  * \begin{enumerate}
@@ -122,7 +116,13 @@ public class CreateBackupTask extends ZkTask {
                 new Path(backupFileSystem), fs, SpliceConstants.config);
     }
     
-    private void doFullBackup() throws IOException
+    private Configuration getConfiguration()
+    {
+    	return SpliceConstants.config;
+    }
+    
+	
+	private void doFullBackup() throws IOException
     {
     	SnapshotUtils utils = SnapshotUtilsFactory.snapshotUtils;
     	boolean throttleEnabled = 
@@ -143,7 +143,7 @@ public class CreateBackupTask extends ZkTask {
             String regionName = s[n - 3];
             Path destPath = new Path(backupFileSystem + "/" + regionName + "/" + familyName + "/" + fileName);
             if(throttleEnabled){
-            	copyFileWithThrottling(fs, file, backupFs,  destPath, false, SpliceConstants.config);
+            	IOUtils.copyFileWithThrottling(fs, file, backupFs,  destPath, false, getConfiguration());
             } else{
             	copyFile(fs, file, backupFs,  destPath, false, SpliceConstants.config);
             }
@@ -171,140 +171,7 @@ public class CreateBackupTask extends ZkTask {
 		}
 	}
 
-	private Configuration getConfiguration()
-	{
-		return SpliceConstants.config;
-	}
-	
-	private Path getPath(FileSystem fs, Object file) throws IOException{
-		if( file instanceof HFileLink) {
-			HFileLink link = (HFileLink) file;
-			return link.getAvailablePath(fs);
-		} else{
-			return (Path) file;
-		}
-	}
-	
-	private void copyFileWithThrottling(FileSystem srcFS, Object file, FileSystem outputFs,
-			Path outputPath, boolean deleteSource, Configuration conf) throws IOException 
-	{
-	      // Get the file information
-	      FileStatus inputStat = getSourceFileStatus(srcFS, file);
-		  // Verify if the output file exists and is the same that we want to copy
-	      if (outputFs.exists(outputPath)) {
-	        FileStatus outputStat = outputFs.getFileStatus(outputPath);
-	        if (outputStat != null && sameFile(inputStat, outputStat)) {
-	        	SpliceLogUtils.info(LOG, 
-	        			"Skip copy " + inputStat.getPath() + " to " + outputPath + ", same file.");	          
-	          return;
-	        }
-	      }
-	      InputStream in = openSourceFile(srcFS, file);
-	      int bandwidthMB = getConfiguration().getInt(Backup.CONF_BANDWIDTH_MB, 100);
-	      if (Integer.MAX_VALUE != bandwidthMB) {
-	        in = new ThrottledInputStream(new BufferedInputStream(in), bandwidthMB * 1024 * 1024);
-	      }
-	      try {
-	        // Ensure that the output folder is there and copy the file
-	        outputFs.mkdirs(outputPath.getParent());
-	        FSDataOutputStream out = outputFs.create(outputPath, true);
-	        try {
-	          copyData( getPath(srcFS, file), in, outputPath, out, inputStat.getLen());
-	        } finally {
-	          out.close();
-	        }
-	      } finally {
-	        in.close();
-	      }		
-	}
-	
 
-      /**
-       * Check if the two files are equal by looking at the file length.
-       * (they already have the same name).
-       * 
-       */
-      private boolean sameFile(final FileStatus inputStat, final FileStatus outputStat) {
-        // Not matching length
-        if (inputStat.getLen() != outputStat.getLen()) return false;
-        return true;
-      }
-
-	private FileStatus getSourceFileStatus(FileSystem fs, Object file) throws IOException {
-		if( file instanceof HFileLink){
-			HFileLink link = (HFileLink) file;
-			return link.getFileStatus(fs);
-		} else{
-			return fs.getFileStatus((Path) file);
-		}		
-	}
-
-	private FSDataInputStream openSourceFile(FileSystem fs, Object file) throws IOException
-	{
-		if( file instanceof HFileLink){
-			return ((HFileLink) file).open(fs, Backup.IO_BUFFER_SIZE);
-		} else{
-			Path path = (Path) file;
-			return fs.open(path, Backup.IO_BUFFER_SIZE);
-		}
-	}
-	
-    @SuppressWarnings("deprecation")
-	private void copyData(
-            final Path inputPath, final InputStream in,
-            final Path outputPath, final FSDataOutputStream out,
-            final long inputFileSize)
-            throws IOException {
-          final String statusMessage = "copied %s/" + 
-        		  StringUtils.humanReadableInt(inputFileSize) + " (%.1f%%)";
-
-          try {
-            byte[] buffer = new byte[Backup.IO_BUFFER_SIZE];
-            long totalBytesWritten = 0;
-            int reportBytes = 0;
-            int bytesRead;
-
-            long stime = System.currentTimeMillis();
-            while ((bytesRead = in.read(buffer)) > 0) {
-              out.write(buffer, 0, bytesRead);
-              totalBytesWritten += bytesRead;
-              reportBytes += bytesRead;
-              if (reportBytes >= Backup.IO_REPORT_SIZE) {
-                
-            	if (LOG.isTraceEnabled())
-                      SpliceLogUtils.trace(LOG,
-                       String.format(statusMessage,
-                                  StringUtils.humanReadableInt(totalBytesWritten),
-                                  (totalBytesWritten/(float)inputFileSize) * 100.0f) +
-                                  " from " + inputPath + " to " + outputPath);
-                reportBytes = 0;
-              }
-            }
-            long etime = System.currentTimeMillis();
- 
-            SpliceLogUtils.info(LOG, String.format(statusMessage,
-                    StringUtils.humanReadableInt(totalBytesWritten),
-                    (totalBytesWritten/(float)inputFileSize) * 100.0f) +
-                    " from " + inputPath + " to " + outputPath);
-            
-            // Verify that the written size match
-            if (totalBytesWritten != inputFileSize) {
-              String msg = "number of bytes copied not matching copied=" + totalBytesWritten +
-                           " expected=" + inputFileSize + " for file=" + inputPath;
-              throw new IOException(msg);
-            }
-
-            SpliceLogUtils.info(LOG, "copy completed for input=" + inputPath + " output=" + outputPath);
-            SpliceLogUtils.info(LOG, "size=" + totalBytesWritten +
-                " (" + StringUtils.humanReadableInt(totalBytesWritten) + ")" +
-                " time=" + StringUtils.formatTimeDiff(etime, stime) +
-                String.format(" %.3fM/sec", (totalBytesWritten / ((etime - stime)/1000.0))/1048576.0));
-          } catch (IOException e) {
-            LOG.error("Error copying " + inputPath + " to " + outputPath, e);
-            throw e;
-          }
-        }
-	
 	/**
      * TODO: do we have to delete temporary files (materialized from refs)?    
      * @param file
