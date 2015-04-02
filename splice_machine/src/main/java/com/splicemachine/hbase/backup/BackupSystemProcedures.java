@@ -79,7 +79,7 @@ public class BackupSystemProcedures {
         IteratorNoPutResultSet inprs = null;
         LanguageConnectionContext lcc = null;
         Connection conn = null;
-
+        type = type.trim();
         try {
             conn = SpliceAdmin.getDefaultConn();
             lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();

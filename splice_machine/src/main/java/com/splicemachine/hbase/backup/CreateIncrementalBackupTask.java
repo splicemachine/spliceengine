@@ -239,31 +239,27 @@ public class CreateIncrementalBackupTask extends ZkTask {
             throw new ExecutionException(e);
         }
 
-        if (lastPaths == null || lastPaths.size() == 0)
-            // If no files in the previous snapshot, or there was no previous snapshot, then return all files in the
-            // latest snapshot
-            return paths;
-        else {
-            // Hash files from the latest snapshot, ignore files that should be excluded
-            HashMap<String, Path> pathMap = new HashMap<>();
-            for(Path p : paths) {
-                String name = p.getName();
-                if (!excludeFileSet.contains(name)) {
-                    pathMap.put(name, p);
-                }
+        // Hash files from the latest snapshot, ignore files that should be excluded
+        HashMap<String, Path> pathMap = new HashMap<>();
+        for(Path p : paths) {
+            String name = p.getName();
+            if (!excludeFileSet.contains(name)) {
+                pathMap.put(name, p);
             }
+        }
 
+        if (lastPaths != null && lastPaths.size() > 0) {
             // remove an HFile if it also appears in a previous snapshot
-            for(Path p : lastPaths) {
+            for (Path p : lastPaths) {
                 String name = p.getName();
                 if (pathMap.containsKey(name)) {
                     pathMap.remove(name);
                 }
             }
-
-            Collection<Path> r = pathMap.values();
-            hFiles = new ArrayList<>(r);
         }
+        Collection<Path> r = pathMap.values();
+        hFiles = new ArrayList<>(r);
+
         return hFiles;
     }
 

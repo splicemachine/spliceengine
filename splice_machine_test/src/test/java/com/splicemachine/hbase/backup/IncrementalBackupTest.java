@@ -101,8 +101,8 @@ public class IncrementalBackupTest {
             method.setAccessible(true);
             List<Path> paths = (List<Path>) method.invoke(incrementalBackupTask);
             Assert.assertEquals(2, paths.size());
-            Assert.assertTrue(paths.get(0).getName().compareTo("f0")== 0);
-            Assert.assertTrue(paths.get(1).getName().compareTo("f1")== 0);
+            Assert.assertTrue(paths.get(0).getName().compareTo("f0")== 0 || paths.get(0).getName().compareTo("f1")== 0);
+            Assert.assertTrue(paths.get(1).getName().compareTo("f0")== 0 || paths.get(1).getName().compareTo("f1")== 0);
 
             // Another test
             snapshotName = "s2";
