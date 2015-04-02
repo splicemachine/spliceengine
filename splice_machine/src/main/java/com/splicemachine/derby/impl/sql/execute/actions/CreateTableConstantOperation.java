@@ -319,7 +319,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         }
 
         // The table itself can depend on the user defined types of its columns.
-        adjustUDTDependencies( lcc, dd, td, columnInfo, false );
+        adjustUDTDependencies(activation, columnInfo, false );
 
         if ( tableType == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE ) {
             lcc.addDeclaredGlobalTempTable(td);

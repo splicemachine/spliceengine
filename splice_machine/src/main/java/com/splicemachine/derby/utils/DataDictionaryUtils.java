@@ -1,6 +1,8 @@
 package com.splicemachine.derby.utils;
 
 import com.google.common.collect.Lists;
+
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.TxnView;
@@ -18,18 +20,14 @@ import java.util.List;
  */
 public class DataDictionaryUtils {
 
-    public static String getTableVersion(TxnView txn, UUID tableId) throws StandardException {
-        TableDescriptor td;
-        try {
-            SpliceTransactionResourceImpl impl = new SpliceTransactionResourceImpl();
-            impl.marshallTransaction(txn);
-            LanguageConnectionContext lcc = impl.getLcc();
 
-            DataDictionary dd = lcc.getDataDictionary();
-            td = dd.getTableDescriptor(tableId);
-        } catch (SQLException e) {
-            throw Exceptions.parseException(e);
-        }
+    public static TableDescriptor getTableDescriptor(LanguageConnectionContext lcc, UUID tableId) throws StandardException {
+        DataDictionary dd = lcc.getDataDictionary();
+        return dd.getTableDescriptor(tableId);
+    }
+
+    public static String getTableVersion(LanguageConnectionContext lcc, UUID tableId) throws StandardException {
+        TableDescriptor td = getTableDescriptor(lcc, tableId);
         if (td != null) {
             return td.getVersion();
         }

@@ -4,6 +4,7 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.pipeline.exception.ErrorState;
 
 import org.junit.*;
@@ -28,6 +29,7 @@ public class AddColumnTransactionIT {
     public static final SpliceTableWatcher addedTable = new SpliceTableWatcher("E",schemaWatcher.schemaName,"(a int, b int)");
     public static final SpliceTableWatcher addedTable2 = new SpliceTableWatcher("F",schemaWatcher.schemaName,"(a int, b int)");
     public static final SpliceTableWatcher addedTable3 = new SpliceTableWatcher("G",schemaWatcher.schemaName,"(a int, b int)");
+    public static final SpliceTableWatcher addedTable4 = new SpliceTableWatcher("H",schemaWatcher.schemaName,"(name char(14) not null primary key, age int)");
 
     public static final SpliceWatcher classWatcher = new SpliceWatcher();
 
@@ -41,7 +43,8 @@ public class AddColumnTransactionIT {
             .around(afterTable)
             .around(addedTable)
             .around(addedTable2)
-            .around(addedTable3);
+            .around(addedTable3)
+            .around(addedTable4);
 
     private static TestConnection conn1;
     private static TestConnection conn2;
@@ -86,7 +89,7 @@ public class AddColumnTransactionIT {
         preparedStatement.setInt(2,bInt);
         conn1.commit();
 
-        conn1.createStatement().execute("alter table "+ commitTable+" add column c int");
+        conn1.createStatement().execute("alter table " + commitTable + " add column c int");
         conn1.commit();
 
         ResultSet rs = conn1.query("select * from " + commitTable);
@@ -114,7 +117,7 @@ public class AddColumnTransactionIT {
 
         while(rs.next()){
             int anInt = rs.getInt("D");
-            Assert.assertEquals("Incorrect value for column D",2,anInt);
+            Assert.assertEquals("Incorrect value for column D", 2, anInt);
             Assert.assertTrue("Column D is null!",!rs.wasNull());
         }
     }
@@ -124,7 +127,7 @@ public class AddColumnTransactionIT {
         int aInt = 3;
         int bInt = 3;
         PreparedStatement preparedStatement = conn1.prepareStatement("insert into " + table + " (a,b) values (?,?)");
-        preparedStatement.setInt(1,aInt);
+        preparedStatement.setInt(1, aInt);
         preparedStatement.setInt(2, bInt);
 
         conn1.createStatement().execute("alter table " + commitTable + " add column e int with default 2");
@@ -201,7 +204,7 @@ public class AddColumnTransactionIT {
 
         int aInt = 7;
         int bInt = 7;
-        PreparedStatement ps = b.prepareStatement("insert into "+addedTable3+" (a,b) values (?,?)");
+        PreparedStatement ps = b.prepareStatement("insert into " + addedTable3 + " (a,b) values (?,?)");
         ps.setInt(1,aInt);ps.setInt(2,bInt); ps.execute();
 
         try{
@@ -242,7 +245,7 @@ public class AddColumnTransactionIT {
             Assert.assertEquals("Incorrect default value!",2,f);
             count++;
         }
-        Assert.assertEquals("Incorrect returned row count",1,count);
+        Assert.assertEquals("Incorrect returned row count", 1, count);
     }
 
     @Test
@@ -264,7 +267,7 @@ public class AddColumnTransactionIT {
         a.createStatement().execute("alter table " + addedTable2 + " add column f int not null default 2");
         //now insert some data
         PreparedStatement ps = b.prepareStatement("insert into "+addedTable2+" (a,b) values (?,?)");
-        ps.setInt(1,aInt);ps.setInt(2,bInt); ps.execute();
+        ps.setInt(1,aInt);ps.setInt(2, bInt); ps.execute();
         b.commit();
 
         a.commit();
@@ -278,4 +281,43 @@ public class AddColumnTransactionIT {
         }
         Assert.assertEquals("Incorrect returned row count",1,count);
     }
+
+    @Test
+    public void testAddUniqueColumnToTableWithPrimaryKey() throws Exception {
+        // test DB-3113: NPE when adding column to table with primary key
+
+        PreparedStatement ps = conn2.prepareStatement("insert into "+addedTable4+" (name,age) values (?,?)");
+        ps.setString(1, "Ralph");ps.setInt(2, 22); ps.execute();
+        conn2.commit();
+
+        // add a column with a default
+        conn1.createStatement().execute("alter table " + addedTable4 + " add column num char(11) not null default '000001'");
+        conn1.commit();
+
+        // insert with value for new column
+        ps = conn2.prepareStatement("insert into "+addedTable4+" values (?,?,?)");
+        ps.setString(1, "Jeff");ps.setInt(2, 13); ps.setString(3, "9999"); ps.execute();
+        conn2.commit();
+
+        // add a column with a unique constraint
+        conn1.createStatement().execute("alter table " + addedTable4 + " add column id int constraint uid unique");
+        conn1.commit();
+
+        // insert without value for new column
+        ps = conn2.prepareStatement("insert into "+addedTable4+" (name, age) values (?,?)");
+        ps.setString(1, "Joe");ps.setInt(2, 11); ps.execute();
+
+        // insert with value for new column
+        ps = conn2.prepareStatement("insert into "+addedTable4+" values (?,?,?,?)");
+        ps.setString(1, "Fred");ps.setInt(2, 20); ps.setString(3, "121212"); ps.setInt(4, 123); ps.execute();
+        conn2.commit();
+
+        String query = "select * from " + addedTable4;
+        TestUtils.printResult(query, conn1.query(query), System.out);
+        query = "select * from " + addedTable4 + " where id is not null";
+        TestUtils.printResult(query, conn1.query(query), System.out);
+        query = "select * from " + addedTable4 + " where id = 123";
+        TestUtils.printResult(query, conn1.query(query), System.out);
+    }
+
 }
