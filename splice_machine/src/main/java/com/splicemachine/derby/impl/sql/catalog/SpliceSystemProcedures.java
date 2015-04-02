@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import com.splicemachine.encoding.debug.DataType;
 import com.splicemachine.hbase.backup.BackupSystemProcedures;
 import com.splicemachine.derby.utils.*;
 
@@ -861,7 +862,28 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .isDeterministic(true).ownerClass(SpliceDateFunctions.class.getCanonicalName())
                             .arg("SOURCE", DataTypeDescriptor.getCatalogType(Types.TIMESTAMP))
                             .varchar("FIELD", Limits.DB2_VARCHAR_MAXWIDTH)
+                            .build(),
+
+                    //numeric functions
+                    Procedure.newBuilder().name("SCALAR_POW")
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .sqlControl(RoutineAliasInfo.NO_SQL)
+                            .returnType(DataTypeDescriptor.getCatalogType(Types.BIGINT))
+                            .isDeterministic(true).ownerClass(NumericFunctions.class.getCanonicalName())
+                            .arg("BASE",DataTypeDescriptor.getCatalogType(Types.BIGINT))
+                            .arg("SCALE",DataTypeDescriptor.getCatalogType(Types.INTEGER))
+                            .build(),
+                    Procedure.newBuilder().name("POW")
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .sqlControl(RoutineAliasInfo.NO_SQL)
+                            .returnType(DataTypeDescriptor.getCatalogType(Types.DOUBLE))
+                            .isDeterministic(true).ownerClass(NumericFunctions.class.getCanonicalName())
+                            .arg("BASE",DataTypeDescriptor.getCatalogType(Types.DOUBLE))
+                            .arg("SCALE",DataTypeDescriptor.getCatalogType(Types.DOUBLE))
                             .build()
+
             ));
 
             SYSFUN_PROCEDURES.addAll(Arrays.asList(
