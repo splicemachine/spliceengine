@@ -614,9 +614,7 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
      */
     protected   void    adjustUDTDependencies
         (
-         LanguageConnectionContext  lcc,
-         DataDictionary             dd,
-         TableDescriptor            td,
+         Activation					activation,
          ColumnInfo[]               columnInfos,
          boolean                    dropWholeTable
          )
@@ -624,7 +622,10 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
     {
         if ( (!dropWholeTable) && (columnInfos == null) ) { return; }
 
+		LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
 		TransactionController tc = lcc.getTransactionExecute();
+		DataDictionary dd = lcc.getDataDictionary();
+		TableDescriptor td = activation.getDDLTableDescriptor();
 
         int changedColumnCount = columnInfos == null ? 0 : columnInfos.length;
         HashMap addUdtMap = new HashMap();
