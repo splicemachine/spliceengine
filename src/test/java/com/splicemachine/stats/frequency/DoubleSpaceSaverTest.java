@@ -38,7 +38,7 @@ public class DoubleSpaceSaverTest {
 
     private void checkMultiplesOf8(DoubleFrequentElements fe) {
         Assert.assertEquals("Incorrect value for -8!", 15, fe.equal(-8d).count());
-        Assert.assertEquals("Incorrect value for 0!", 15, fe.equal(0d).count());
+        Assert.assertEquals("Incorrect value for 0!", 15, fe.equal(0d).count()-fe.equal(0d).error());
 
         //check before -8
         assertEmpty("Values <-8 found!", fe.frequentBefore(-8, false));

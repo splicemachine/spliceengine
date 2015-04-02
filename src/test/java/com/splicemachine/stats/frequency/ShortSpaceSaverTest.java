@@ -38,7 +38,7 @@ public class ShortSpaceSaverTest {
 
     private void checkMultiplesOf8(ShortFrequentElements fe) {
         Assert.assertEquals("Incorrect value for -8!", 15, fe.equal((short)-8).count());
-        Assert.assertEquals("Incorrect value for 0!", 15, fe.equal((short)0).count());
+        Assert.assertEquals("Incorrect value for 0!", 15, fe.equal((short)0).count()-fe.equal((short)0).error());
 
         //check before -8
         assertEmpty("Values <-8 found!", fe.frequentBefore((short)-8, false));

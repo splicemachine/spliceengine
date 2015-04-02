@@ -38,7 +38,7 @@ public class FloatSpaceSaverTest {
 
     private void checkMultiplesOf8(FloatFrequentElements fe) {
         Assert.assertEquals("Incorrect value for -8!", 15, fe.equal(-8f).count());
-        Assert.assertEquals("Incorrect value for 0!", 15, fe.equal(0f).count());
+        Assert.assertEquals("Incorrect value for 0!", 15, fe.equal(0f).count()-fe.equal(0f).error());
 
         //check before -8
         assertEmpty("Values <-8 found!", fe.frequentBefore(-8, false));
