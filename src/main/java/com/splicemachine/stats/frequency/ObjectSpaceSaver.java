@@ -52,8 +52,8 @@ class ObjectSpaceSaver<T> implements FrequencyCounter<T> {
         int b = 1;
         while(b<initialSize)
             b<<=1;
-        if(b>m)
-            b=m;
+        if(b>2*m)
+            b=2*m;
 
         hashCodes = new int[b];
         //noinspection unchecked
@@ -129,10 +129,12 @@ class ObjectSpaceSaver<T> implements FrequencyCounter<T> {
     protected final void doUpdate(long count) {
         int hashCode = holderEntry.hashCode();
         Entry entry = getEntry(holderEntry,hashCode);
+        boolean evicted = false;
         if(entry==null){
             //no entry exists in the hashtable
             if(size ==maxSize){
                 entry = evict();
+                evicted=true;
             }else
                 entry = newEntry();
             setValue(holderEntry,entry);
@@ -140,6 +142,8 @@ class ObjectSpaceSaver<T> implements FrequencyCounter<T> {
             entry.hashCode = hashCode;
 
             sizedInsert(entry, hashCode);
+            if(!evicted)
+                size++;
         }
         //increment the count
         entry.increment(count);
@@ -171,10 +175,13 @@ class ObjectSpaceSaver<T> implements FrequencyCounter<T> {
 
         private void increment(long count) {
             long newV = this.bucket==null?count:bucket.count+count;
-            SizeBucket b = getIncrementedBucket(this.bucket,newV);
+            SizeBucket b = getIncrementedBucket(this.bucket,newV,this);
             if(b!=bucket){
                 if(bucket!=null){
-                   bucket.remove(this);
+                    bucket.remove(this);
+                    bucket.size--;
+                    if(bucket.size==0)
+                        bucket.removeBucket();
                 }
                 b.add(this);
                 bucket = b;
@@ -225,59 +232,61 @@ class ObjectSpaceSaver<T> implements FrequencyCounter<T> {
     /*****************************************************************************************************************/
     /*private helper methods*/
 
-    private SizeBucket getIncrementedBucket(SizeBucket oldValue, long newValue) {
-        SizeBucket nextBucket;
-        if(oldValue==null){
-            nextBucket = minBucket;
-        }else{
-            nextBucket = oldValue;
-        }
-        SizeBucket n = nextBucket;
+    private SizeBucket getIncrementedBucket(SizeBucket oldValue,long newValue,Entry entry) {
+        if(oldValue==null)
+            oldValue = minBucket;
+
+        SizeBucket floor = oldValue;
+        SizeBucket n = floor.next;
         while(n!=null && n.count<=newValue){
-            nextBucket = n;
+            floor = n;
             n = n.next;
         }
-        if(nextBucket.count==newValue){
-            return nextBucket; //we have found the proper bucket, nothing more to do
-        }else {
-                /*
-                 * In this case, nextBucket is the largest size < newValue,
-                 * so we have a special case: If nextBucket==oldValue and it only contains one element,
-                 * then we can just set the count to the new value, and avoid an object
-                 * creation; otherwise, we need to create a new bucket to hold our value
-                 */
-            if(nextBucket==oldValue && nextBucket.size==1){
-                nextBucket.count = newValue;
-            }else{
-                /*
-                 * We either have a different bucket, or we have more than
-                 * one entry in the bucket, so we'll need to create a new bucket and link it
-                 */
-                SizeBucket b = new SizeBucket(newValue);
-                if(nextBucket.count<newValue){
-                    b.previous = nextBucket;
-                    b.next = nextBucket.next;
-                    if(nextBucket.next!=null)
-                        nextBucket.next.previous = b;
-                    nextBucket.next = b;
-                    nextBucket = b;
-                }else{
-                    /*
-                     * We have a minbucket situation here, where we are < than minBucket
-                     */
-                    b.next = nextBucket;
-                    b.previous = nextBucket.previous;
-                    nextBucket.previous = b;
-                    nextBucket = b;
-                }
-            }
 
-            if(nextBucket.count>maxBucket.count)
-                maxBucket = nextBucket;
-            if(minBucket.count>nextBucket.count)
-                minBucket = nextBucket;
-            return nextBucket;
+        SizeBucket addedBucket;
+        if(floor.count==newValue)
+            return floor;
+        else if(floor.size==0 || (floor.size==1 && floor.firstEntry==entry)){
+            floor.count = newValue;
+            //unlink floor, then find a new floor
+            addedBucket = floor;
+            n = floor.next;
+            while(n!=null && n.count <=floor.count){
+                floor = n;
+                n = n.next;
+            }
+            if(floor!=addedBucket){
+                addedBucket.next=null;
+                addedBucket.previous=null; //we need to re-link it now
+            }
+        } else{
+           addedBucket = new SizeBucket(newValue);
         }
+
+        //link the new bucket
+        if(floor.count< addedBucket.count){
+            addedBucket.next = floor.next;
+            addedBucket.previous = floor;
+            if(floor.next!=null)
+                floor.next.previous=addedBucket;
+            floor.next=addedBucket;
+        }else if(floor.count>addedBucket.count){
+            /*
+             * This can happen if we are adding an entry which is below
+             * the current minBucket
+             */
+            addedBucket.next = floor;
+            addedBucket.previous = floor.previous;
+            if(floor.previous!=null)
+                floor.previous.next = floor;
+            floor.previous = addedBucket;
+        }
+
+        if(minBucket.count>addedBucket.count)
+            minBucket = addedBucket;
+        if(maxBucket.count<addedBucket.count)
+            maxBucket = addedBucket;
+        return addedBucket;
     }
 
 
@@ -287,7 +296,6 @@ class ObjectSpaceSaver<T> implements FrequencyCounter<T> {
         if(size==expandPoint)
             resize();
         insert(entry,hashCode);
-        size++;
     }
 
     private void insert(Entry entry, int hashCode) {
@@ -310,8 +318,7 @@ class ObjectSpaceSaver<T> implements FrequencyCounter<T> {
                  * swap it's position with ours to keep the chain length shorter
                  */
                 Entry e = entries[pos];
-                entries[pos] = toInsert;
-                hashCodes[pos] = code;
+                place(pos,toInsert,code);
                 toInsert = e;
                 code = hC;
                 chainLength = probeLength;
@@ -319,6 +326,11 @@ class ObjectSpaceSaver<T> implements FrequencyCounter<T> {
             pos = (pos+1) & positionMask;
             chainLength++;
         }
+    }
+
+    private void place(int pos,Entry toInsert,int code){
+        entries[pos] = toInsert;
+        hashCodes[pos] = code;
     }
 
     private int getProbeDistance(int hash, int currentPosition) {
@@ -386,10 +398,12 @@ class ObjectSpaceSaver<T> implements FrequencyCounter<T> {
             int hC = hashCodes[n];
             if(hC==0){
                 //we are done!
+                hashCodes[p] = 0;
                 return;
             }else{
                 int probeLength = getProbeDistance(hC,n);
                 if(probeLength==0){
+                    hashCodes[p] = 0;
                     //We have hit a position that is in the correct location already, so we are done
                     return;
                 }
@@ -488,14 +502,8 @@ class ObjectSpaceSaver<T> implements FrequencyCounter<T> {
                 p.next = n;
             entry.previous = null;
             entry.next=null;
-            size--;
-            if(size==0){
-                removeBucket();
-            }else{
-                if(entry==firstEntry)
-                    firstEntry = n;
-            }
-
+            if(entry==firstEntry)
+                firstEntry = n;
         }
 
         private void removeBucket() {

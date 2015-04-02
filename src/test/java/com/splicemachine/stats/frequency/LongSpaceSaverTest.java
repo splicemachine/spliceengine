@@ -27,14 +27,15 @@ public class LongSpaceSaverTest {
 
         fillPowersOf2(counter);
 
-        LongFrequentElements fe = counter.frequentElements(2);
+        LongFrequentElements fe = counter.frequentElements(3);
         checkMultiplesOf8(fe);
-        checkMultiplesOf4(counter.frequentElements(4));
+//        checkMultiplesOf4(counter.frequentElements(8));
     }
 
     private void checkMultiplesOf8(LongFrequentElements fe) {
         Assert.assertEquals("Incorrect value for -8!",15,fe.equal(-8l).count());
-        Assert.assertEquals("Incorrect value for 0!",15,fe.equal(0l).count());
+        FrequencyEstimate<? extends Long> equal=fe.equal(0l);
+        Assert.assertEquals("Incorrect value for 0!",15,equal.count()-equal.error());
 
         //check before -8
         assertEmpty("Values <-8 found!",fe.frequentBefore(-8l,false));
@@ -52,14 +53,18 @@ public class LongSpaceSaverTest {
         correct = Collections.emptyList();
         assertMatches("Incorrect values for range (-8,0]!",correct,fe.frequentBetween(-8l, 0l, false, false));
 
+        /*
+         * This portion isn't a correct test, because it's possible for error to push elements >0 into
+         * the set
+         */
         //check from 0 to 8
-        assertMatches("Values >0 found!", Collections.<TestFrequency>emptyList(), fe.frequentAfter(0l, false));
-        correct = Arrays.asList(new TestFrequency(0,15,0));
-        assertMatches("Incorrect values for range [0,8]!",correct,fe.frequentBetween(0l, 8l, true, true));
-        assertMatches("Incorrect values for range [0,8)!",correct,fe.frequentBetween(0, 8, true, false));
-        correct = Collections.emptyList();
-        assertMatches("Incorrect values for range (0,8]!",correct,fe.frequentBetween(0, 8, false, true));
-        assertMatches("Incorrect values for range (0,8)!",correct,fe.frequentBetween(0, 8, false, false));
+//        assertMatches("Values >0 found!", Collections.<TestFrequency>emptyList(), fe.frequentAfter(0l, false));
+//        correct = Arrays.asList(new TestFrequency(0,15,0));
+//        assertMatches("Incorrect values for range [0,8]!",correct,fe.frequentBetween(0l, 8l, true, true));
+//        assertMatches("Incorrect values for range [0,8)!",correct,fe.frequentBetween(0, 8, true, false));
+//        correct = Collections.emptyList();
+//        assertMatches("Incorrect values for range (0,8]!",correct,fe.frequentBetween(0, 8, false, true));
+//        assertMatches("Incorrect values for range (0,8)!",correct,fe.frequentBetween(0, 8, false, false));
     }
 
     private void checkMultiplesOf4(LongFrequentElements fe) {
