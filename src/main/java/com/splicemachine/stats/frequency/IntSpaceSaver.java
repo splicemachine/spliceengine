@@ -64,7 +64,7 @@ class IntSpaceSaver extends ObjectSpaceSaver<Integer> implements IntFrequencyCou
 
     @Override
     public void update(int item, long count) {
-        ((IntegerEntry)holderEntry).value = item;
+        ((IntegerEntry)holderEntry).setValue(item);
         doUpdate(count);
     }
 
@@ -98,6 +98,11 @@ class IntSpaceSaver extends ObjectSpaceSaver<Integer> implements IntFrequencyCou
         @Override
         public int compareTo(IntFrequencyEstimate o) {
             return Ints.compare(value, o.value());
+        }
+
+        public void setValue(int item){
+            this.value = item;
+            this.hashCode = 0; //reset the hash code for this entry
         }
 
         @Override

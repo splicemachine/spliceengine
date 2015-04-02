@@ -64,7 +64,7 @@ class FloatSpaceSaver extends ObjectSpaceSaver<Float> implements FloatFrequencyC
 
     @Override
     public void update(float item, long count) {
-        ((FloatEntry)holderEntry).value = item;
+        ((FloatEntry)holderEntry).setValue(item);
         doUpdate(count);
     }
 
@@ -98,6 +98,11 @@ class FloatSpaceSaver extends ObjectSpaceSaver<Float> implements FloatFrequencyC
         @Override
         public int compareTo(FloatFrequencyEstimate o) {
             return Floats.compare(value, o.value());
+        }
+
+        public void setValue(float item){
+            this.value = item;
+            this.hashCode = 0;
         }
 
         @Override

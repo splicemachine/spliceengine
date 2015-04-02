@@ -64,7 +64,7 @@ class DoubleSpaceSaver extends ObjectSpaceSaver<Double> implements DoubleFrequen
 
     @Override
     public void update(double item, long count) {
-        ((DoubleEntry)holderEntry).value = item;
+        ((DoubleEntry)holderEntry).setValue(item);
         doUpdate(count);
     }
 
@@ -98,6 +98,11 @@ class DoubleSpaceSaver extends ObjectSpaceSaver<Double> implements DoubleFrequen
         @Override
         public int compareTo(DoubleFrequencyEstimate o) {
             return Doubles.compare(value, o.value());
+        }
+
+        public void setValue(double item){
+            this.value = item;
+            this.hashCode = 0;
         }
 
         @Override

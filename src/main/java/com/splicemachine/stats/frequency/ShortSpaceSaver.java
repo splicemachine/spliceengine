@@ -64,7 +64,7 @@ class ShortSpaceSaver extends ObjectSpaceSaver<Short> implements ShortFrequencyC
 
     @Override
     public void update(short item, long count) {
-        ((ShortEntry)holderEntry).value = item;
+        ((ShortEntry)holderEntry).setValue(item);
         doUpdate(count);
     }
 
@@ -98,6 +98,11 @@ class ShortSpaceSaver extends ObjectSpaceSaver<Short> implements ShortFrequencyC
         @Override
         public int compareTo(ShortFrequencyEstimate o) {
             return Shorts.compare(value, o.value());
+        }
+
+        public void setValue(short item){
+            this.value = item;
+            this.hashCode = 0;
         }
 
         @Override

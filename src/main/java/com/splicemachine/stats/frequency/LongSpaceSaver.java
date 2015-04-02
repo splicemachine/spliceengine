@@ -61,7 +61,7 @@ class LongSpaceSaver extends ObjectSpaceSaver<Long> implements LongFrequencyCoun
 
     @Override
     public void update(long item, long count) {
-        ((LongEntry)holderEntry).value = item;
+        ((LongEntry)holderEntry).setValue(item);
         doUpdate(count);
     }
 
@@ -95,6 +95,11 @@ class LongSpaceSaver extends ObjectSpaceSaver<Long> implements LongFrequencyCoun
         @Override
         public int compareTo(LongFrequencyEstimate o) {
             return Longs.compare(value,o.value());
+        }
+
+        public void setValue(long item){
+            this.value = item;
+            this.hashCode = 0;
         }
 
         @Override
