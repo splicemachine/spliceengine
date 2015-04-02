@@ -58,11 +58,7 @@ import com.splicemachine.utils.io.ThrottledInputStream;
  *
  */
 public class CreateBackupTask extends ZkTask {
-	
-	
-	final static int REPORT_SIZE = 4 * 1024 * 1024;
-    final static int BUFFER_SIZE = 64 * 1024;
-    
+	    
 	private static final long serialVersionUID = 5l;
     private BackupItem backupItem;
     private String backupFileSystem;
@@ -246,10 +242,10 @@ public class CreateBackupTask extends ZkTask {
 	private FSDataInputStream openSourceFile(FileSystem fs, Object file) throws IOException
 	{
 		if( file instanceof HFileLink){
-			return ((HFileLink) file).open(fs, BUFFER_SIZE);
+			return ((HFileLink) file).open(fs, Backup.IO_BUFFER_SIZE);
 		} else{
 			Path path = (Path) file;
-			return fs.open(path, BUFFER_SIZE);
+			return fs.open(path, Backup.IO_BUFFER_SIZE);
 		}
 	}
 	
@@ -263,7 +259,7 @@ public class CreateBackupTask extends ZkTask {
         		  StringUtils.humanReadableInt(inputFileSize) + " (%.1f%%)";
 
           try {
-            byte[] buffer = new byte[BUFFER_SIZE];
+            byte[] buffer = new byte[Backup.IO_BUFFER_SIZE];
             long totalBytesWritten = 0;
             int reportBytes = 0;
             int bytesRead;
@@ -273,7 +269,7 @@ public class CreateBackupTask extends ZkTask {
               out.write(buffer, 0, bytesRead);
               totalBytesWritten += bytesRead;
               reportBytes += bytesRead;
-              if (reportBytes >= REPORT_SIZE) {
+              if (reportBytes >= Backup.IO_REPORT_SIZE) {
                 
             	if (LOG.isTraceEnabled())
                       SpliceLogUtils.trace(LOG,
