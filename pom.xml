@@ -8,30 +8,25 @@
 	<artifactId>utilities</artifactId>
 	<name>${project.artifactId}</name>
 	<description>Splice Machine Common Utilities</description>
-
 	<parent>
 		<groupId>com.splicemachine</groupId>
 		<artifactId>splice-maven-parent</artifactId>
-		<version>1.0.0</version>
+		<version>1.0.3-SNAPSHOT</version>
 	</parent>
-
 	<scm>
 		<connection>scm:git:git@github.com:splicemachine/${project.artifactId}.git</connection>
 		<developerConnection>scm:git:git@github.com:splicemachine/${project.artifactId}.git</developerConnection>
 		<url>https://github.com/splicemachine/${project.artifactId}</url>
 	</scm>
-
 	<repositories>
 		<repository>
 			<id>splicemachine</id>
 			<url>http://nexus.splicemachine.com/nexus/content/groups/developers</url>
 		</repository>
 	</repositories>
-
 	<dependencies>
 		<dependency> <groupId>com.google.guava</groupId> <artifactId>guava</artifactId> <version>11.0.2</version> </dependency>
 	</dependencies>
-
 	<build>
 		<plugins>
 			<plugin>
