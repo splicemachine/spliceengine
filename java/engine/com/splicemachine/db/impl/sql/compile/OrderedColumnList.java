@@ -48,7 +48,7 @@ public abstract class OrderedColumnList extends QueryTreeNodeVector<OrderedColum
 			We don't know how many columns are in the source,
 			so we use a hashtable for lookup of the positions
 		*/
-        Set<Integer> hashColumns=new HashSet<Integer>();
+        Set<Integer> hashColumns=new HashSet<>();
 
         actualCols=0;
 
@@ -62,9 +62,7 @@ public abstract class OrderedColumnList extends QueryTreeNodeVector<OrderedColum
             Integer posInt=position;
 
             if(hashColumns.add(posInt)){
-                ordering[i]=new IndexColumnOrder(position,
-                        oc.isAscending(),
-                        oc.isNullsOrderedLow());
+                ordering[i]=new IndexColumnOrder(position, oc.isAscending(), oc.isNullsOrderedLow());
                 actualCols++;
             }
         }

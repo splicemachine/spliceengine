@@ -913,7 +913,7 @@ public class JoinNode extends TableOperatorNode{
      */
     @Override
     public void generate(ActivationClassBuilder acb,MethodBuilder mb) throws StandardException{
-        generateCore(acb,mb,INNERJOIN,null,null);
+        generateCore(acb,mb,INNERJOIN,null);
     }
 
     /**
@@ -922,7 +922,7 @@ public class JoinNode extends TableOperatorNode{
      * @throws StandardException Thrown on error
      */
     public void generateCore(ActivationClassBuilder acb,MethodBuilder mb,int joinType) throws StandardException{
-        generateCore(acb,mb,joinType,joinClause,subqueryList);
+        generateCore(acb,mb,joinType,joinClause);
     }
 
     /**
@@ -1147,14 +1147,12 @@ public class JoinNode extends TableOperatorNode{
      * @param mb         the method the code is to go into
      * @param joinType   The join type
      * @param joinClause The join clause, if any
-     * @param subquerys  The list of subqueries in the join clause, if any
      * @throws StandardException Thrown on error
      */
     protected void generateCore(ActivationClassBuilder acb,
                                 MethodBuilder mb,
                                 int joinType,
-                                ValueNode joinClause,
-                                SubqueryList subquerys) throws StandardException{
+                                ValueNode joinClause) throws StandardException{
 		
 		
 		/* Put the predicates back into the tree */

@@ -922,7 +922,7 @@ public class SelectNode extends ResultSetNode{
             int distinctTable=resultColumns.allTopCRsFromSameTable();
 
             if(distinctTable!=-1){
-                if(fromList.returnsAtMostSingleRow(resultColumns, whereClause,wherePredicates, getDataDictionary())){
+                if(fromList.returnsAtMostSingleRow(resultColumns, whereClause,wherePredicates )){
                     isDistinct=false;
                 }
             }
@@ -1286,6 +1286,21 @@ public class SelectNode extends ResultSetNode{
         }
 
         if(offset!=null || fetchFirst!=null){
+            if(fetchFirst!=null){
+                //adjust the cost estimate to reflect the reduced network overhead
+                int limitCount = (Integer)(fetchFirst.getConstantValueAsObject());
+
+                double remoteCost=costEstimate.remoteCost();
+                double overallRowCount=costEstimate.rowCount();
+                double remoteCostPerRow=overallRowCount>0?remoteCost/overallRowCount:0d;
+                remoteCost = remoteCostPerRow*limitCount;
+                costEstimate.setRemoteCost(remoteCost);
+                costEstimate.setRowCount(limitCount);
+
+                double heapSize = costEstimate.getEstimatedHeapSize();
+                heapSize = overallRowCount>0?heapSize/overallRowCount:0d;
+                costEstimate.setEstimatedHeapSize((long)(heapSize*limitCount));
+            }
             // Keep the same RCL on top, since there may be references to
             // its result columns above us.
             ResultColumnList topList=prnRSN.getResultColumns();
@@ -2024,7 +2039,7 @@ public class SelectNode extends ResultSetNode{
         }
 
         ResultColumnList rcl=(additionalCR==null)?null:getResultColumns();
-        return fromList.returnsAtMostSingleRow(rcl, whereClause,wherePredicates, getDataDictionary());
+        return fromList.returnsAtMostSingleRow(rcl, whereClause,wherePredicates );
     }
 
     /**

@@ -62,14 +62,11 @@ abstract class QueryTreeNodeVector<T extends QueryTreeNode> extends QueryTreeNod
         return v.remove(index);
     }
 
-    final int indexOf(T qt){
-        return v.indexOf(qt);
-    }
-
     final void setElementAt(T qt,int index){
         v.set(index,qt);
     }
 
+    @Override
     public Iterator<T> iterator(){
         return v.iterator();
     }
@@ -94,13 +91,13 @@ abstract class QueryTreeNodeVector<T extends QueryTreeNode> extends QueryTreeNod
         v.add(index,qt);
     }
 
-
     /**
      * Prints the sub-nodes of this object.  See QueryTreeNode.java for
      * how tree printing is supposed to work.
      *
      * @param depth The depth to indent the sub-nodes
      */
+    @Override
     public void printSubNodes(int depth){
         if(SanityManager.DEBUG){
             for(int index=0;index<size();index++){
@@ -111,13 +108,13 @@ abstract class QueryTreeNodeVector<T extends QueryTreeNode> extends QueryTreeNod
         }
     }
 
-
     /**
      * Accept the visitor for all visitable children of this node.
      *
      * @param v the visitor
      * @throws StandardException on error
      */
+    @Override
     public void acceptChildren(Visitor v) throws StandardException{
         super.acceptChildren(v);
 

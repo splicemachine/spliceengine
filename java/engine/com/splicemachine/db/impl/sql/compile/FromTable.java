@@ -77,8 +77,6 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
 
     protected CostEstimate bestCostEstimate;
 
-    private FormatableBitSet refCols;
-
     private double perRowUsage=-1;
 
     private boolean considerSortAvoidancePath;
@@ -113,6 +111,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
      * @param correlationName The correlation name
      * @param tableProperties Properties list associated with the table
      */
+    @Override
     public void init(Object correlationName,Object tableProperties){
         this.correlationName=(String)correlationName;
         this.tableProperties=(Properties)tableProperties;
@@ -131,16 +130,11 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
 	 *  Optimizable interface
 	 */
 
-    /**
-     * @throws StandardException Thrown on error
-     * @see com.splicemachine.db.iapi.sql.compile.Optimizable#optimizeIt
-     */
-    public CostEstimate optimizeIt(
-            Optimizer optimizer,
-            OptimizablePredicateList predList,
-            CostEstimate outerCost,
-            RowOrdering rowOrdering)
-            throws StandardException{
+    @Override
+    public CostEstimate optimizeIt(Optimizer optimizer,
+                                   OptimizablePredicateList predList,
+                                   CostEstimate outerCost,
+                                   RowOrdering rowOrdering) throws StandardException{
         // It's possible that a call to optimize the left/right will cause
         // a new "truly the best" plan to be stored in the underlying base
         // tables.  If that happens and then we decide to skip that plan
@@ -153,11 +147,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         // getNextDecoratedPermutation() method.
         updateBestPlanMap(ADD_PLAN,this);
 
-        CostEstimate singleScanCost=estimateCost(predList,
-                (ConglomerateDescriptor)null,
-                outerCost,
-                optimizer,
-                rowOrdering);
+        CostEstimate singleScanCost=estimateCost(predList, null, outerCost, optimizer, rowOrdering);
 
 		/* Make sure there is a cost estimate to set */
         getCostEstimate(optimizer);
@@ -173,30 +163,17 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
 		/*
 		** Get the cost of this result set in the context of the whole plan.
 		*/
-        getCurrentAccessPath().
-                getJoinStrategy().
-                estimateCost(
-                        this,
-                        predList,
-                        (ConglomerateDescriptor)null,
-                        outerCost,
-                        optimizer,
-                        getCostEstimate()
-                );
+        getCurrentAccessPath().getJoinStrategy().estimateCost(this,predList,null,outerCost,optimizer,getCostEstimate());
 
         optimizer.considerCost(this,predList,getCostEstimate(),outerCost);
 
         return getCostEstimate();
     }
 
-    /**
-     * @throws StandardException Thrown on error
-     * @see Optimizable#nextAccessPath
-     */
+    @Override
     public boolean nextAccessPath(Optimizer optimizer,
                                   OptimizablePredicateList predList,
-                                  RowOrdering rowOrdering)
-            throws StandardException{
+                                  RowOrdering rowOrdering) throws StandardException{
         int numStrat=optimizer.getNumberOfJoinStrategies();
         boolean found=false;
         AccessPath ap=getCurrentAccessPath();
@@ -212,12 +189,11 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
 			** looked at the strategy, so go back to null.
 			*/
             if(ap.getJoinStrategy()!=null){
-                ap.setJoinStrategy((JoinStrategy)null);
+                ap.setJoinStrategy(null);
 
                 found=false;
             }else{
-                ap.setJoinStrategy(
-                        optimizer.getJoinStrategy(userSpecifiedJoinStrategy));
+                ap.setJoinStrategy(optimizer.getJoinStrategy(userSpecifiedJoinStrategy));
 
                 if(ap.getJoinStrategy()==null){
                     throw StandardException.newException(SQLState.LANG_INVALID_JOIN_STRATEGY,
@@ -235,8 +211,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
 
             found=true;
 
-            optimizer.trace(Optimizer.CONSIDERING_JOIN_STRATEGY,tableNumber,0,0.0,
-                    ap.getJoinStrategy());
+            optimizer.trace(Optimizer.CONSIDERING_JOIN_STRATEGY,tableNumber,0,0.0, ap.getJoinStrategy());
         }
 
 		/*
@@ -255,151 +230,95 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         return false;
     }
 
-    /**
-     * @see Optimizable#getCurrentAccessPath
-     */
+    @Override
     public AccessPath getCurrentAccessPath(){
         return currentAccessPath;
     }
 
-    /**
-     * @see Optimizable#getBestAccessPath
-     */
+    @Override
     public AccessPath getBestAccessPath(){
         return bestAccessPath;
     }
 
-    /**
-     * @see Optimizable#getBestSortAvoidancePath
-     */
+    @Override
     public AccessPath getBestSortAvoidancePath(){
         return bestSortAvoidancePath;
     }
 
-    /**
-     * @see Optimizable#getTrulyTheBestAccessPath
-     */
+    @Override
     public AccessPath getTrulyTheBestAccessPath(){
         return trulyTheBestAccessPath;
     }
 
-    /**
-     * @see Optimizable#rememberSortAvoidancePath
-     */
+    @Override
     public void rememberSortAvoidancePath(){
         considerSortAvoidancePath=true;
     }
 
-    /**
-     * @see Optimizable#considerSortAvoidancePath
-     */
+    @Override
     public boolean considerSortAvoidancePath(){
         return considerSortAvoidancePath;
     }
 
-    /**
-     * @see Optimizable#rememberJoinStrategyAsBest
-     */
+    @Override
     public void rememberJoinStrategyAsBest(AccessPath ap){
         Optimizer optimizer=ap.getOptimizer();
 
         ap.setJoinStrategy(getCurrentAccessPath().getJoinStrategy());
 
-        optimizer.trace(Optimizer.REMEMBERING_JOIN_STRATEGY,tableNumber,0,0.0,
-                getCurrentAccessPath().getJoinStrategy());
+        optimizer.trace(Optimizer.REMEMBERING_JOIN_STRATEGY,tableNumber,0,0.0,getCurrentAccessPath().getJoinStrategy());
 
         if(ap==bestAccessPath){
-            optimizer.trace(Optimizer.REMEMBERING_BEST_ACCESS_PATH_SUBSTRING,
-                    tableNumber,0,0.0,ap);
+            optimizer.trace(Optimizer.REMEMBERING_BEST_ACCESS_PATH_SUBSTRING, tableNumber,0,0.0,ap);
         }else if(ap==bestSortAvoidancePath){
-            optimizer.trace(Optimizer.REMEMBERING_BEST_SORT_AVOIDANCE_ACCESS_PATH_SUBSTRING,
-                    tableNumber,0,0.0,ap);
+            optimizer.trace(Optimizer.REMEMBERING_BEST_SORT_AVOIDANCE_ACCESS_PATH_SUBSTRING, tableNumber,0,0.0,ap);
         }else{
-			/* We currently get here when optimizing an outer join.
-			 * (Problem predates optimizer trace change.)
-			 * RESOLVE - fix this at some point.
-			if (SanityManager.DEBUG)
-			{
-				SanityManager.THROWASSERT(
-					"unknown access path type");
-			}
-			 */
-            optimizer.trace(Optimizer.REMEMBERING_BEST_UNKNOWN_ACCESS_PATH_SUBSTRING,
-                    tableNumber,0,0.0,ap);
+            optimizer.trace(Optimizer.REMEMBERING_BEST_UNKNOWN_ACCESS_PATH_SUBSTRING, tableNumber,0,0.0,ap);
         }
     }
 
-    /**
-     * @see Optimizable#getTableDescriptor
-     */
+    @Override
     public TableDescriptor getTableDescriptor(){
         if(SanityManager.DEBUG){
-            SanityManager.THROWASSERT(
-                    "getTableDescriptor() not expected to be called for "
-                            +getClass().toString());
+            SanityManager.THROWASSERT( "getTableDescriptor() not expected to be called for " +getClass().toString());
         }
 
         return null;
     }
 
-    /**
-     * @throws StandardException Thrown on error
-     * @see com.splicemachine.db.iapi.sql.compile.Optimizable#pushOptPredicate
-     */
-
-    public boolean pushOptPredicate(OptimizablePredicate optimizablePredicate)
-            throws StandardException{
+    @Override
+    public boolean pushOptPredicate(OptimizablePredicate optimizablePredicate) throws StandardException{
         return false;
     }
 
-    /**
-     * @throws StandardException Thrown on error
-     * @see Optimizable#pullOptPredicates
-     */
-    public void pullOptPredicates(
-            OptimizablePredicateList optimizablePredicates)
-            throws StandardException{
+    @Override
+    public void pullOptPredicates(OptimizablePredicateList optimizablePredicates) throws StandardException{
 		/* For most types of Optimizable, do nothing */
-        return;
     }
 
-    /**
-     * @throws StandardException Thrown on error
-     * @see Optimizable#modifyAccessPath
-     */
+    @Override
     public Optimizable modifyAccessPath(JBitSet outerTables) throws StandardException{
 		/* For most types of Optimizable, do nothing */
         return this;
     }
 
-    /**
-     * @throws StandardException Thrown on error
-     * @see Optimizable#isCoveringIndex
-     */
+    @Override
     public boolean isCoveringIndex(ConglomerateDescriptor cd) throws StandardException{
         return false;
     }
 
-    /**
-     * @see Optimizable#getProperties
-     */
+    @Override
     public Properties getProperties(){
         return tableProperties;
     }
 
-    /**
-     * @see Optimizable#setProperties
-     */
+    @Override
     public void setProperties(Properties tableProperties){
         this.tableProperties=tableProperties;
     }
 
-    /**
-     * @throws StandardException Thrown on error
-     * @see Optimizable#verifyProperties
-     */
-    public void verifyProperties(DataDictionary dDictionary)
-            throws StandardException{
+    @Override
+    public void verifyProperties(DataDictionary dDictionary) throws StandardException{
         if(tableProperties==null){
             return;
         }
@@ -410,78 +329,68 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
 		 *		invalid value for hashLoadFactor
 		 *		invalid value for hashMaxCapacity
 		 */
-        boolean indexSpecified=false;
         Enumeration e=tableProperties.keys();
         while(e.hasMoreElements()){
             String key=(String)e.nextElement();
             String value=(String)tableProperties.get(key);
 
-            if(key.equals("joinStrategy")){
-                userSpecifiedJoinStrategy=StringUtil.SQLToUpperCase(value);
-            }else if(key.equals("hashInitialCapacity")){
-                initialCapacity=getIntProperty(value,key);
+            switch(key){
+                case "joinStrategy":
+                    userSpecifiedJoinStrategy=StringUtil.SQLToUpperCase(value);
+                    break;
+                case "hashInitialCapacity":
+                    initialCapacity=getIntProperty(value,key);
 
-                // verify that the specified value is valid
-                if(initialCapacity<=0){
-                    throw StandardException.newException(SQLState.LANG_INVALID_HASH_INITIAL_CAPACITY,
-                            String.valueOf(initialCapacity));
-                }
-            }else if(key.equals("hashLoadFactor")){
-                try{
-                    loadFactor=Float.parseFloat(value);
-                }catch(NumberFormatException nfe){
-                    throw StandardException.newException(SQLState.LANG_INVALID_NUMBER_FORMAT_FOR_OVERRIDE,
-                            value,key);
-                }
+                    // verify that the specified value is valid
+                    if(initialCapacity<=0){
+                        throw StandardException.newException(SQLState.LANG_INVALID_HASH_INITIAL_CAPACITY,
+                                String.valueOf(initialCapacity));
+                    }
+                    break;
+                case "hashLoadFactor":
+                    try{
+                        loadFactor=Float.parseFloat(value);
+                    }catch(NumberFormatException nfe){
+                        throw StandardException.newException(SQLState.LANG_INVALID_NUMBER_FORMAT_FOR_OVERRIDE, value,key);
+                    }
 
-                // verify that the specified value is valid
-                if(loadFactor<=0.0 || loadFactor>1.0){
-                    throw StandardException.newException(SQLState.LANG_INVALID_HASH_LOAD_FACTOR,
-                            value);
-                }
-            }else if(key.equals("hashMaxCapacity")){
-                maxCapacity=getIntProperty(value,key);
+                    // verify that the specified value is valid
+                    if(loadFactor<=0.0 || loadFactor>1.0){
+                        throw StandardException.newException(SQLState.LANG_INVALID_HASH_LOAD_FACTOR, value);
+                    }
+                    break;
+                case "hashMaxCapacity":
+                    maxCapacity=getIntProperty(value,key);
 
-                // verify that the specified value is valid
-                if(maxCapacity<=0){
-                    throw StandardException.newException(SQLState.LANG_INVALID_HASH_MAX_CAPACITY,
-                            String.valueOf(maxCapacity));
-                }
-            }else{
-                // No other "legal" values at this time
-                throw StandardException.newException(SQLState.LANG_INVALID_FROM_TABLE_PROPERTY,key,
-                        "joinStrategy");
+                    // verify that the specified value is valid
+                    if(maxCapacity<=0){
+                        throw StandardException.newException(SQLState.LANG_INVALID_HASH_MAX_CAPACITY, String.valueOf(maxCapacity));
+                    }
+                    break;
+                default:
+                    // No other "legal" values at this time
+                    throw StandardException.newException(SQLState.LANG_INVALID_FROM_TABLE_PROPERTY,key, "joinStrategy");
             }
         }
     }
 
-    /**
-     * @throws StandardException Thrown on error
-     * @see Optimizable#getName
-     */
+    @Override
     public String getName() throws StandardException{
         return getExposedName();
     }
 
-    /**
-     * @see Optimizable#getBaseTableName
-     */
+    @Override
     public String getBaseTableName(){
         return "";
     }
 
-    /**
-     * @see Optimizable#convertAbsoluteToRelativeColumnPosition
-     */
+    @Override
     public int convertAbsoluteToRelativeColumnPosition(int absolutePosition){
         return absolutePosition;
     }
 
-    /**
-     * @see Optimizable#updateBestPlanMap
-     */
-    public void updateBestPlanMap(short action,
-                                  Object planKey) throws StandardException{
+    @Override
+    public void updateBestPlanMap(short action, Object planKey) throws StandardException{
         if(action==REMOVE_PLAN){
             if(bestPlanMap!=null){
                 bestPlanMap.remove(planKey);
@@ -515,10 +424,11 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
                 if(planKey instanceof Optimizer)
                     ap=new AccessPathImpl((Optimizer)planKey);
                 else
-                    ap=new AccessPathImpl((Optimizer)null);
+                    ap=new AccessPathImpl(null);
             }
 
             ap.copy(bestPath);
+            //noinspection unchecked
             bestPlanMap.put(planKey,ap);
             return;
         }
@@ -542,29 +452,22 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         // We found a best plan in our map, so load it into this Optimizable's
         // trulyTheBestAccessPath field.
         bestPath.copy(ap);
-        return;
     }
 
-    /**
-     * @see Optimizable#rememberAsBest
-     */
-    public void rememberAsBest(int planType,Optimizer optimizer)
-            throws StandardException{
+    @Override
+    public void rememberAsBest(int planType,Optimizer optimizer) throws StandardException{
         AccessPath bestPath=null;
 
         switch(planType){
             case Optimizer.NORMAL_PLAN:
                 bestPath=getBestAccessPath();
                 break;
-
             case Optimizer.SORT_AVOIDANCE_PLAN:
                 bestPath=getBestSortAvoidancePath();
                 break;
-
             default:
                 if(SanityManager.DEBUG){
-                    SanityManager.THROWASSERT(
-                            "Invalid plan type "+planType);
+                    SanityManager.THROWASSERT( "Invalid plan type "+planType);
                 }
         }
 
@@ -594,7 +497,6 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
 		/* also store the name of the access path; i.e index name/constraint
 		 * name if we're using an index to access the base table.
 		 */
-        ConglomerateDescriptor cd=bestPath.getConglomerateDescriptor();
 
         if(isBaseTable()){
             DataDictionary dd=getDataDictionary();
@@ -602,17 +504,15 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
             getTrulyTheBestAccessPath().initializeAccessPathName(dd,td);
         }
 
+        assert bestPath!=null;
         setCostEstimate(bestPath.getCostEstimate());
 
-        bestPath.getOptimizer().trace(Optimizer.REMEMBERING_BEST_ACCESS_PATH,
-                tableNumber,planType,0.0,bestPath);
+        bestPath.getOptimizer().trace(Optimizer.REMEMBERING_BEST_ACCESS_PATH, tableNumber,planType,0.0,bestPath);
     }
 
-    /**
-     * @see Optimizable#startOptimizing
-     */
+    @Override
     public void startOptimizing(Optimizer optimizer,RowOrdering rowOrdering){
-        resetJoinStrategies(optimizer);
+        resetJoinStrategies();
 
         considerSortAvoidancePath=false;
 
@@ -641,25 +541,19 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
      * Set this join strategy number to 0 to indicate that
      * no join strategy has been considered for this table yet.
      */
-    protected void resetJoinStrategies(Optimizer optimizer){
+    protected void resetJoinStrategies(){
         joinStrategyNumber=0;
-        getCurrentAccessPath().setJoinStrategy((JoinStrategy)null);
+        getCurrentAccessPath().setJoinStrategy(null);
     }
 
-    /**
-     * @throws StandardException Thrown on error
-     * @see Optimizable#estimateCost
-     */
+    @Override
     public CostEstimate estimateCost(OptimizablePredicateList predList,
                                      ConglomerateDescriptor cd,
                                      CostEstimate outerCost,
                                      Optimizer optimizer,
-                                     RowOrdering rowOrdering)
-            throws StandardException{
+                                     RowOrdering rowOrdering) throws StandardException{
         if(SanityManager.DEBUG){
-            SanityManager.THROWASSERT(
-                    "estimateCost() not expected to be called for "+
-                            getClass().toString());
+            SanityManager.THROWASSERT("estimateCost() not expected to be called for "+ getClass().toString());
         }
 
         return null;
@@ -673,8 +567,8 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
      * If there's no trulyTheBestAccessPath for this node, then
      * we just return the value stored in costEstimate as a default.
      */
-    public CostEstimate getFinalCostEstimate()
-            throws StandardException{
+    @Override
+    public CostEstimate getFinalCostEstimate() throws StandardException{
         // If we already found it, just return it.
         if(finalCostEstimate!=null)
             return finalCostEstimate;
@@ -687,9 +581,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         return finalCostEstimate;
     }
 
-    /**
-     * @see Optimizable#isBaseTable
-     */
+    @Override
     public boolean isBaseTable(){
         return false;
     }
@@ -701,9 +593,10 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
      * @return {@code true} if at least one large object column is referenced,
      * {@code false} otherwise
      */
+    @Override
     public boolean hasLargeObjectColumns(){
         for(int i=0;i<resultColumns.size();i++){
-            ResultColumn rc=(ResultColumn)resultColumns.elementAt(i);
+            ResultColumn rc=resultColumns.elementAt(i);
             if(rc.isReferenced()){
                 DataTypeDescriptor type=rc.getType();
                 if(type!=null && type.getTypeId().isLOBTypeId()){
@@ -714,12 +607,8 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         return false;
     }
 
-    /**
-     * @throws StandardException Thrown on error
-     * @see Optimizable#isMaterializable
-     */
-    public boolean isMaterializable()
-            throws StandardException{
+    @Override
+    public boolean isMaterializable() throws StandardException{
 		/* Derived tables are materializable
 		 * iff they are not correlated with an outer query block.
 		 */
@@ -729,37 +618,27 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         return !(visitor.hasCorrelatedCRs());
     }
 
-    /**
-     * @see Optimizable#supportsMultipleInstantiations
-     */
+    @Override
     public boolean supportsMultipleInstantiations(){
         return true;
     }
 
-    /**
-     * @see Optimizable#getTableNumber
-     */
+    @Override
     public int getTableNumber(){
         return tableNumber;
     }
 
-    /**
-     * @see Optimizable#hasTableNumber
-     */
+    @Override
     public boolean hasTableNumber(){
         return tableNumber>=0;
     }
 
-    /**
-     * @see Optimizable#forUpdate
-     */
+    @Override
     public boolean forUpdate(){
         return false;
     }
 
-    /**
-     * @see Optimizable#initialCapacity
-     */
+    @Override
     public int initialCapacity(){
         if(SanityManager.DEBUG){
             SanityManager.THROWASSERT("Not expected to be called");
@@ -768,9 +647,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         return 0;
     }
 
-    /**
-     * @see Optimizable#loadFactor
-     */
+    @Override
     public float loadFactor(){
         if(SanityManager.DEBUG){
             SanityManager.THROWASSERT("Not expected to be called");
@@ -779,9 +656,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         return 0.0F;
     }
 
-    /**
-     * @see Optimizable#maxCapacity
-     */
+    @Override
     public int maxCapacity(JoinStrategy joinStrategy,int maxMemoryPerTable) throws StandardException{
         return joinStrategy.maxCapacity(maxCapacity,maxMemoryPerTable,getPerRowUsage());
     }
@@ -819,9 +694,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         return perRowUsage;
     } // end of getPerRowUsage
 
-    /**
-     * @see Optimizable#hashKeyColumns
-     */
+    @Override
     public int[] hashKeyColumns(){
         if(SanityManager.DEBUG){
             SanityManager.ASSERT(hashKeyColumns!=null,
@@ -831,26 +704,18 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         return hashKeyColumns;
     }
 
-    /**
-     * @see Optimizable#setHashKeyColumns
-     */
+    @Override
     public void setHashKeyColumns(int[] columnNumbers){
         hashKeyColumns=columnNumbers;
     }
 
-    /**
-     * @throws StandardException Thrown on error
-     * @see Optimizable#feasibleJoinStrategy
-     */
+    @Override
     public boolean feasibleJoinStrategy(OptimizablePredicateList predList,Optimizer optimizer,CostEstimate outerCost) throws StandardException{
         return getCurrentAccessPath().getJoinStrategy().feasible(this,predList,optimizer,outerCost);
     }
 
-    /**
-     * @see Optimizable#memoryUsageOK
-     */
-    public boolean memoryUsageOK(double rowCount,int maxMemoryPerTable)
-            throws StandardException{
+    @Override
+    public boolean memoryUsageOK(double rowCount,int maxMemoryPerTable) throws StandardException{
 		/*
 		** Don't enforce maximum memory usage for a user-specified join
 		** strategy.
@@ -867,38 +732,26 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
      *
      * @see HalfOuterJoinNode#isJoinColumnForRightOuterJoin
      */
-    public void isJoinColumnForRightOuterJoin(ResultColumn rc){
-        return;
-    }
+    public void isJoinColumnForRightOuterJoin(ResultColumn rc){ }
 
-    /**
-     * @see Optimizable#legalJoinOrder
-     */
+    @Override
     public boolean legalJoinOrder(JBitSet assignedTableMap){
         // Only those subclasses with dependencies need to override this.
         return true;
     }
 
-    /**
-     * @see Optimizable#getNumColumnsReturned
-     */
+    @Override
     public int getNumColumnsReturned(){
         return resultColumns.size();
     }
 
-    /**
-     * @see Optimizable#isTargetTable
-     */
+    @Override
     public boolean isTargetTable(){
         return false;
     }
 
-    /**
-     * @throws StandardException Thrown on error
-     * @see Optimizable#isOneRowScan
-     */
-    public boolean isOneRowScan()
-            throws StandardException{
+    @Override
+    public boolean isOneRowScan() throws StandardException{
 		/* We simply return isOneRowResultSet() for all
 		 * subclasses except for EXISTS FBT where
 		 * the semantics differ between 1 row per probe
@@ -908,9 +761,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         return isOneRowResultSet();
     }
 
-    /**
-     * @see Optimizable#initAccessPaths
-     */
+    @Override
     public void initAccessPaths(Optimizer optimizer){
         if(currentAccessPath==null){
             currentAccessPath=new AccessPathImpl(optimizer);
@@ -926,22 +777,10 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         }
     }
 
-    /**
-     * @throws StandardException Thrown on error
-     * @see Optimizable#uniqueJoin
-     */
-    public double uniqueJoin(OptimizablePredicateList predList)
-            throws StandardException{
-        return -1.0;
+    @Override
+    public double uniqueJoin(OptimizablePredicateList predList) throws StandardException{
+        return -1d;
     }
-
-    private FormatableBitSet getRefCols(){
-        if(refCols==null)
-            refCols=resultColumns.getReferencedFormatableBitSet(cursorTargetTable(),true,false);
-
-        return refCols;
-    }
-
 
     /**
      * Return the user specified join strategy, if any for this table.
@@ -1010,12 +849,11 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
      *
      * @return This object as a String
      */
-
+    @Override
     public String toString(){
         if(SanityManager.DEBUG){
             return "correlation Name: "+correlationName+"\n"+
-                    (corrTableName!=null?
-                            corrTableName.toString():"null")+"\n"+
+                    (corrTableName!=null? corrTableName.toString():"null")+"\n"+
                     "tableNumber "+tableNumber+"\n"+
                     "level "+level+"\n"+
                     super.toString();
@@ -1036,9 +874,8 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
      */
     public ResultColumnList getResultColumnsForList(TableName allTableName,
                                                     ResultColumnList inputRcl,
-                                                    TableName tableName)
-            throws StandardException{
-        ResultColumnList rcList=null;
+                                                    TableName tableName) throws StandardException{
+        ResultColumnList rcList;
         ResultColumn resultColumn;
         ValueNode valueNode;
         String columnName;
@@ -1058,8 +895,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
                 toCompare=makeTableName(null,correlationName);
         }
 
-        if(allTableName!=null &&
-                !allTableName.equals(toCompare)){
+        if(allTableName!=null && !allTableName.equals(toCompare)){
             return null;
         }
 
@@ -1073,9 +909,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
             exposedName=makeTableName(null,correlationName);
         }
 
-        rcList=(ResultColumnList)getNodeFactory().getNode(
-                C_NodeTypes.RESULT_COLUMN_LIST,
-                getContextManager());
+        rcList=(ResultColumnList)getNodeFactory().getNode( C_NodeTypes.RESULT_COLUMN_LIST, getContextManager());
 
 		/* Build a new result column list based off of resultColumns.
 		 * NOTE: This method will capture any column renaming due to 
@@ -1084,7 +918,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         int inputSize=inputRcl.size();
         for(int index=0;index<inputSize;index++){
             // Build a ResultColumn/ColumnReference pair for the column //
-            columnName=((ResultColumn)inputRcl.elementAt(index)).getName();
+            columnName=inputRcl.elementAt(index).getName();
             valueNode=(ValueNode)getNodeFactory().getNode(
                     C_NodeTypes.COLUMN_REFERENCE,
                     columnName,
@@ -1112,12 +946,8 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
      * @param predicateList The PredicateList.
      * @throws StandardException Thrown on error
      */
-    void pushExpressions(PredicateList predicateList)
-            throws StandardException{
-        if(SanityManager.DEBUG){
-            SanityManager.ASSERT(predicateList!=null,
-                    "predicateList is expected to be non-null");
-        }
+    void pushExpressions(PredicateList predicateList) throws StandardException{
+        assert predicateList!=null: "predicateList is expected to be non-null";
     }
 
     /**
@@ -1141,9 +971,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
      */
     public void setTableNumber(int tableNumber){
 		/* This should only be called if the tableNumber has not been set yet */
-        if(SanityManager.DEBUG)
-            SanityManager.ASSERT(this.tableNumber==-1,
-                    "tableNumber is not expected to be already set");
+        assert this.tableNumber==-1: "tableNumber is not expected to be already set";
         this.tableNumber=tableNumber;
     }
 
@@ -1155,8 +983,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
      * @return a TableName node representing this FromTable.
      * @throws StandardException Thrown on error
      */
-    public TableName getTableName()
-            throws StandardException{
+    public TableName getTableName() throws StandardException{
         if(correlationName==null) return null;
 
         if(corrTableName==null){
@@ -1190,19 +1017,11 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
      *
      * @param decrement The amount to decrement by.
      */
+    @Override
     void decrementLevel(int decrement){
-        if(SanityManager.DEBUG){
-			/* NOTE: level doesn't get propagated 
-			 * to nodes generated after binding.
-			 */
-            if(level<decrement && level!=0){
-                SanityManager.THROWASSERT(
-                        "level ("+level+
-                                ") expected to be >= decrement ("+
-                                decrement+")");
-            }
-        }
-		/* NOTE: level doesn't get propagated 
+        assert level!=0: "Level is 0 already";
+        assert level<decrement: "level ("+level+") expteds to be >= decrement ("+decrement+")";
+		/* NOTE: level doesn't get propagated
 		 * to nodes generated after binding.
 		 */
         if(level>0){
@@ -1249,8 +1068,8 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
      * @return The FromTable, if any, with the exposed name.
      * @throws StandardException Thrown on error
      */
-    protected FromTable getFromTableByName(String name,String schemaName,boolean exactMatch)
-            throws StandardException{
+    @Override
+    protected FromTable getFromTableByName(String name,String schemaName,boolean exactMatch) throws StandardException{
         // Only FromBaseTables have schema names
         if(schemaName!=null){
             return null;
@@ -1275,8 +1094,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
     /**
      * no LOJ reordering for this FromTable.
      */
-    public boolean LOJ_reorderable(int numTables)
-            throws StandardException{
+    public boolean LOJ_reorderable(int numTables) throws StandardException{
         return false;
     }
 
@@ -1289,8 +1107,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
      * @return The new tree top (OuterJoin or InnerJoin).
      * @throws StandardException Thrown on error
      */
-    public FromTable transformOuterJoins(ValueNode predicateTree,int numTables)
-            throws StandardException{
+    public FromTable transformOuterJoins(ValueNode predicateTree,int numTables) throws StandardException{
         return this;
     }
 
@@ -1299,6 +1116,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
      *
      * @param passedMap The table map to fill in.
      */
+    @Override
     public void fillInReferencedTableMap(JBitSet passedMap){
         if(tableNumber!=-1){
             passedMap.set(tableNumber);
@@ -1337,12 +1155,9 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
                             PredicateList outerPList,
                             SubqueryList sql,
                             GroupByList gbl,
-                            ValueNode havingClause)
-
-            throws StandardException{
+                            ValueNode havingClause)  throws StandardException{
         if(SanityManager.DEBUG){
-            SanityManager.THROWASSERT(
-                    "flatten() not expected to be called for "+this);
+            SanityManager.THROWASSERT( "flatten() not expected to be called for "+this);
         }
         return null;
     }
@@ -1354,17 +1169,13 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
      *
      * @throws StandardException Thrown on error
      */
-    void optimizeSubqueries(DataDictionary dd,double rowCount)
-            throws StandardException{
-    }
+    void optimizeSubqueries(DataDictionary dd,double rowCount) throws StandardException{ }
 
     /**
      * Tell the given RowOrdering about any columns that are constant
      * due to their being equality comparisons with constant expressions.
      */
-    protected void tellRowOrderingAboutConstantColumns(
-            RowOrdering rowOrdering,
-            OptimizablePredicateList predList){
+    protected void tellRowOrderingAboutConstantColumns( RowOrdering rowOrdering, OptimizablePredicateList predList){
 		/*
 		** Tell the RowOrdering about columns that are equal to constant
 		** expressions.
@@ -1376,6 +1187,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
 				/* Is it an = comparison with a constant expression? */
                 if(pred.equalsComparisonWithConstantExpression(this)){
 					/* Get the column being compared to the constant */
+                    //noinspection ConstantConditions
                     ColumnReference cr=pred.getRelop().getColumnOperand(this);
 
                     if(cr!=null){

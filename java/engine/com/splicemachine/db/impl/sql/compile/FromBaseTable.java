@@ -317,7 +317,7 @@ public class FromBaseTable extends FromTable{
 				     ** New conglomerate, so step through join strategies
 				     ** again.
 				     */
-                    resetJoinStrategies(optimizer);
+                    resetJoinStrategies();
 
                     if(!super.nextAccessPath(optimizer,predList,rowOrdering)){
                         if(SanityManager.DEBUG){
@@ -1413,9 +1413,10 @@ public class FromBaseTable extends FromTable{
      *
      * @param locations vector of bit numbers to be cleared
      */
-    void clearDependency(Vector<Integer> locations){
+    void clearDependency(List<Integer> locations){
         if(this.dependencyMap!=null){
-            for(Object location : locations) this.dependencyMap.clear((Integer)location);
+            for(Integer location : locations)
+                this.dependencyMap.clear(location);
         }
     }
 
@@ -3654,8 +3655,8 @@ public class FromBaseTable extends FromTable{
         ExecRow emptyIndexRow=templateColumns.buildEmptyIndexRow(
                 tableDescriptor,
                 cd,
-                scc,
-                getDataDictionary());
+                scc
+        );
 
         return emptyIndexRow.getRowArray();
     }

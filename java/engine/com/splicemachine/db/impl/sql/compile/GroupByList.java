@@ -69,16 +69,6 @@ public class GroupByList extends OrderedColumnList{
 
 
     /**
-     * Get the number of grouping columns that need to be added to the SELECT list.
-     *
-     * @return int    The number of grouping columns that need to be added to
-     * the SELECT list.
-     */
-    public int getNumNeedToAddGroupingCols(){
-        return numGroupingColsAdded;
-    }
-
-    /**
      * Bind the group by list.  Verify:
      * o  Number of grouping columns matches number of non-aggregates in
      * SELECT's RCL.
@@ -122,7 +112,7 @@ public class GroupByList extends OrderedColumnList{
              * grouping column in the select list.
 			 */
             for(int inner=0;inner<rclSize;inner++){
-                ResultColumn selectListRC=(ResultColumn)selectRCL.elementAt(inner);
+                ResultColumn selectListRC=selectRCL.elementAt(inner);
                 if(!(selectListRC.getExpression() instanceof ColumnReference)){
                     continue;
                 }
@@ -191,8 +181,7 @@ public class GroupByList extends OrderedColumnList{
             if(groupingCol.getColumnExpression() instanceof JavaToSQLValueNode){
                 // disallow any expression which involves native java computation.
                 // Not possible to consider java expressions for equivalence.
-                throw StandardException.newException(
-                        SQLState.LANG_INVALID_GROUPED_SELECT_LIST);
+                throw StandardException.newException(SQLState.LANG_INVALID_GROUPED_SELECT_LIST);
             }
         }
 
@@ -254,6 +243,7 @@ public class GroupByList extends OrderedColumnList{
      *
      * @return This object as a String
      */
+    @Override
     public String toString(){
         if(SanityManager.DEBUG){
             return "numGroupingColsAdded: "+numGroupingColsAdded+"\n"+
@@ -264,14 +254,14 @@ public class GroupByList extends OrderedColumnList{
     }
 
 
-    public void preprocess(
-            int numTables,FromList fromList,SubqueryList whereSubquerys,
-            PredicateList wherePredicates) throws StandardException{
+    public void preprocess(int numTables,
+                           FromList fromList,
+                           SubqueryList whereSubquerys,
+                           PredicateList wherePredicates) throws StandardException{
         for(int index=0;index<size();index++){
             GroupByColumn groupingCol=(GroupByColumn)elementAt(index);
             groupingCol.setColumnExpression(
-                    groupingCol.getColumnExpression().preprocess(
-                            numTables,fromList,whereSubquerys,wherePredicates));
+                    groupingCol.getColumnExpression().preprocess(numTables,fromList,whereSubquerys,wherePredicates));
         }
     }
 }
