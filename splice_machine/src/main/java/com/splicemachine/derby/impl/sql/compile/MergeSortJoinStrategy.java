@@ -175,14 +175,6 @@ public class MergeSortJoinStrategy extends BaseCostedHashableJoinStrategy {
          * of the data.
          */
         innerCost.setRowOrdering(null);
-
-        /*
-         * Because MergeSort sinks data in parallel, the underlying operation doesn't use remote cost.
-         * To make Explain results easier to interpret, we remote the remote cost from the inner
-         * and outer costs
-         */
-        innerCost.getBase().setRemoteCost(0d);
-        outerCost.getBase().setRemoteCost(0d);
     }
 
 }
