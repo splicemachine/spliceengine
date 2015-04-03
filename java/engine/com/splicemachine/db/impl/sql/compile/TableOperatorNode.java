@@ -201,9 +201,8 @@ public abstract class TableOperatorNode extends FromTable
 	 * left and right child, in order to ensure that we've handled
 	 * the full plan all the way down this node's subtree. 
 	 */
-	public void updateBestPlanMap(short action,
-		Object planKey) throws StandardException
-	{
+	@Override
+	public void updateBestPlanMap(short action, Object planKey) throws StandardException {
 		super.updateBestPlanMap(action, planKey);
 
 		// Now walk the children.  Note that if either child is not

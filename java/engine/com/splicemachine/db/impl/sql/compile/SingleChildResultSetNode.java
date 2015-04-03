@@ -165,9 +165,8 @@ public abstract class SingleChildResultSetNode extends FromTable {
 	 * child, in order to ensure that we've handled the full plan
 	 * all the way down this node's subtree.
 	 */
-	public void updateBestPlanMap(short action,
-		Object planKey) throws StandardException
-	{
+	@Override
+	public void updateBestPlanMap(short action, Object planKey) throws StandardException {
 		super.updateBestPlanMap(action, planKey);
 
 		// Now walk the child.  Note that if the child is not an

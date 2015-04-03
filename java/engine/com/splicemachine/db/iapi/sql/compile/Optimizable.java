@@ -261,8 +261,7 @@ public interface Optimizable {
 	 *  Optimizable that could potentially reject plans chosen by the
 	 *  OptimizerImpl to which this Optimizable belongs.
 	 */
-	public void updateBestPlanMap(short action,
-		Object planKey) throws StandardException;
+	void updateBestPlanMap(short action,Object planKey) throws StandardException;
 
 	/**
 	 * Remember the current access path as the best one (so far).
