@@ -21,13 +21,7 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.splicemachine.db.iapi.sql.compile.CostEstimate;
-import com.splicemachine.db.iapi.sql.compile.ExpressionClassBuilderInterface;
-import com.splicemachine.db.iapi.sql.compile.JoinStrategy;
-import com.splicemachine.db.iapi.sql.compile.Optimizable;
-import com.splicemachine.db.iapi.sql.compile.Optimizer;
-import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
-import com.splicemachine.db.iapi.sql.compile.OptimizablePredicate;
+import com.splicemachine.db.iapi.sql.compile.*;
 
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
@@ -147,8 +141,8 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy {
 							 CostEstimate costEstimate) {
 		costEstimate.multiply(outerCost.rowCount(), costEstimate);
 
-		optimizer.trace(Optimizer.COST_OF_N_SCANS, innerTable.getTableNumber(), 0, outerCost.rowCount(),
-						costEstimate);
+		optimizer.tracer().trace(OptimizerFlag.COST_OF_N_SCANS,innerTable.getTableNumber(),0,outerCost.rowCount(),
+				costEstimate);
 	}
 
 	/** @see JoinStrategy#maxCapacity */

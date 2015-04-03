@@ -172,7 +172,7 @@ public class JoinNode extends TableOperatorNode{
             CostEstimate outerCost,
             RowOrdering rowOrdering)
             throws StandardException{
-        optimizer.trace(Optimizer.CALLING_ON_JOIN_NODE,0,0,0.0,null);
+        optimizer.tracer().trace(OptimizerFlag.CALLING_ON_JOIN_NODE,0,0,0.0,null);
 
         // It's possible that a call to optimize the left/right will cause
         // a new "truly the best" plan to be stored in the underlying base

@@ -20,13 +20,7 @@ Derby - Class org.apache.derby.impl.sql.compile.HashJoinStrategy
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.splicemachine.db.iapi.sql.compile.CostEstimate;
-import com.splicemachine.db.iapi.sql.compile.ExpressionClassBuilderInterface;
-import com.splicemachine.db.iapi.sql.compile.JoinStrategy;
-import com.splicemachine.db.iapi.sql.compile.Optimizable;
-import com.splicemachine.db.iapi.sql.compile.Optimizer;
-import com.splicemachine.db.iapi.sql.compile.OptimizablePredicate;
-import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
+import com.splicemachine.db.iapi.sql.compile.*;
 
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
@@ -76,11 +70,11 @@ public class HashJoinStrategy extends BaseJoinStrategy {
 		 * join columns in the VTI's parameters.
 		 * If so, then hash join is not feasible.
 		 */
+		OptimizerTrace tracer=optimizer.tracer();
 		if (! innerTable.isMaterializable())
 		{
 
-			optimizer.trace(Optimizer.HJ_SKIP_NOT_MATERIALIZABLE, 0, 0, 0.0,
-							null);
+			tracer.trace(OptimizerFlag.HJ_SKIP_NOT_MATERIALIZABLE,0,0,0.0, null);
 			return false;
 		}
 
@@ -164,13 +158,11 @@ public class HashJoinStrategy extends BaseJoinStrategy {
 		
 		if (SanityManager.DEBUG)
 		{
-			if (hashKeyColumns == null)
-			{
-				optimizer.trace(Optimizer.HJ_SKIP_NO_JOIN_COLUMNS, 0, 0, 0.0, null);
+			if (hashKeyColumns == null) {
+				tracer.trace(OptimizerFlag.HJ_SKIP_NO_JOIN_COLUMNS, 0, 0, 0.0, null);
 			}
-			else
-			{
-				optimizer.trace(Optimizer.HJ_HASH_KEY_COLUMNS, 0, 0, 0.0, hashKeyColumns);
+			else {
+				tracer.trace(OptimizerFlag.HJ_HASH_KEY_COLUMNS, 0, 0, 0.0, hashKeyColumns);
 			}
 		}
 

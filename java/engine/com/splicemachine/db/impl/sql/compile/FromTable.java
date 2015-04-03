@@ -211,7 +211,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
 
             found=true;
 
-            optimizer.trace(Optimizer.CONSIDERING_JOIN_STRATEGY,tableNumber,0,0.0, ap.getJoinStrategy());
+            optimizer.tracer().trace(OptimizerFlag.CONSIDERING_JOIN_STRATEGY,tableNumber,0,0.0,ap.getJoinStrategy());
         }
 
 		/*
@@ -266,14 +266,15 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
 
         ap.setJoinStrategy(getCurrentAccessPath().getJoinStrategy());
 
-        optimizer.trace(Optimizer.REMEMBERING_JOIN_STRATEGY,tableNumber,0,0.0,getCurrentAccessPath().getJoinStrategy());
+        OptimizerTrace tracer=optimizer.tracer();
+        tracer.trace(OptimizerFlag.REMEMBERING_JOIN_STRATEGY,tableNumber,0,0.0,getCurrentAccessPath().getJoinStrategy());
 
         if(ap==bestAccessPath){
-            optimizer.trace(Optimizer.REMEMBERING_BEST_ACCESS_PATH_SUBSTRING, tableNumber,0,0.0,ap);
+            tracer.trace(OptimizerFlag.REMEMBERING_BEST_ACCESS_PATH_SUBSTRING, tableNumber,0,0.0,ap);
         }else if(ap==bestSortAvoidancePath){
-            optimizer.trace(Optimizer.REMEMBERING_BEST_SORT_AVOIDANCE_ACCESS_PATH_SUBSTRING, tableNumber,0,0.0,ap);
+            tracer.trace(OptimizerFlag.REMEMBERING_BEST_SORT_AVOIDANCE_ACCESS_PATH_SUBSTRING, tableNumber,0,0.0,ap);
         }else{
-            optimizer.trace(Optimizer.REMEMBERING_BEST_UNKNOWN_ACCESS_PATH_SUBSTRING, tableNumber,0,0.0,ap);
+            tracer.trace(OptimizerFlag.REMEMBERING_BEST_UNKNOWN_ACCESS_PATH_SUBSTRING, tableNumber,0,0.0,ap);
         }
     }
 
@@ -507,7 +508,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         assert bestPath!=null;
         setCostEstimate(bestPath.getCostEstimate());
 
-        bestPath.getOptimizer().trace(Optimizer.REMEMBERING_BEST_ACCESS_PATH, tableNumber,planType,0.0,bestPath);
+        bestPath.getOptimizer().tracer().trace(OptimizerFlag.REMEMBERING_BEST_ACCESS_PATH,tableNumber,planType,0.0,bestPath);
     }
 
     @Override

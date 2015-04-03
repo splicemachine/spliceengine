@@ -243,7 +243,8 @@ public class FromBaseTable extends FromTable{
         AccessPath ap=getCurrentAccessPath();
         ConglomerateDescriptor currentConglomerateDescriptor=ap.getConglomerateDescriptor();
 
-        optimizer.trace(Optimizer.CALLING_NEXT_ACCESS_PATH, ((predList==null)?0:predList.size()),0,0.0,getExposedName());
+        OptimizerTrace tracer=optimizer.tracer();
+        tracer.trace(OptimizerFlag.CALLING_NEXT_ACCESS_PATH,((predList==null)?0:predList.size()),0,0.0,getExposedName());
 
 		/*
 		 ** Remove the ordering of the current conglomerate descriptor,
@@ -266,7 +267,7 @@ public class FromBaseTable extends FromTable{
                     currentConglomerateDescriptor=null;
                 }
             }else{
-                optimizer.trace(Optimizer.LOOKING_FOR_SPECIFIED_INDEX,tableNumber,0,0.0,userSpecifiedIndexName);
+                tracer.trace(OptimizerFlag.LOOKING_FOR_SPECIFIED_INDEX,tableNumber,0,0.0,userSpecifiedIndexName);
 
                 if(StringUtil.SQLToUpperCase(userSpecifiedIndexName).equals("NULL")){
 					/* Special case - user-specified table scan */
@@ -338,10 +339,10 @@ public class FromBaseTable extends FromTable{
         }
 
         if(currentConglomerateDescriptor==null){
-            optimizer.trace(Optimizer.NO_MORE_CONGLOMERATES,tableNumber,0,0.0,null);
+            tracer.trace(OptimizerFlag.NO_MORE_CONGLOMERATES,tableNumber,0,0.0,null);
         }else{
             currentConglomerateDescriptor.setColumnNames(columnNames);
-            optimizer.trace(Optimizer.CONSIDERING_CONGLOMERATE,tableNumber,0,0.0,currentConglomerateDescriptor);
+            tracer.trace(OptimizerFlag.CONSIDERING_CONGLOMERATE,tableNumber,0,0.0,currentConglomerateDescriptor);
         }
 
 		    /*
@@ -372,11 +373,11 @@ public class FromBaseTable extends FromTable{
 	             * though.)
 	             */
                 if(!isOneRowResultSet(predList)){
-                    optimizer.trace(Optimizer.ADDING_UNORDERED_OPTIMIZABLE,((predList==null)?0:predList.size()),0,0.0,null);
+                    tracer.trace(OptimizerFlag.ADDING_UNORDERED_OPTIMIZABLE,((predList==null)?0:predList.size()),0,0.0,null);
 
                     rowOrdering.addUnorderedOptimizable(this);
                 }else{
-                    optimizer.trace(Optimizer.SCANNING_HEAP_FULL_MATCH_ON_UNIQUE_KEY,0,0,0.0,null);
+                    tracer.trace(OptimizerFlag.SCANNING_HEAP_FULL_MATCH_ON_UNIQUE_KEY,0,0,0.0,null);
                 }
             }else{
                 int[] baseColumnPositions=irg.baseColumnPositions();
@@ -730,7 +731,8 @@ public class FromBaseTable extends FromTable{
 
         AccessPath currentAccessPath=getCurrentAccessPath();
         JoinStrategy currentJoinStrategy=currentAccessPath.getJoinStrategy();
-        optimizer.trace(Optimizer.ESTIMATING_COST_OF_CONGLOMERATE,tableNumber,0,0.0,cd);
+        OptimizerTrace tracer =optimizer.tracer();
+        tracer.trace(OptimizerFlag.ESTIMATING_COST_OF_CONGLOMERATE,tableNumber,0,0.0,cd);
 		/* Get the uniqueness factory for later use (see below) */
 //        double tableUniquenessFactor=optimizer.uniqueJoinWithOuterTable(predList);
 //        boolean oneRowResultSetForSomeConglom=isOneRowResultSet(predList);
@@ -1184,7 +1186,7 @@ public class FromBaseTable extends FromTable{
 	         ** the total row count and singleScanRowCount.
 	         */
             if(extraFirstColumnSelectivity!=1.0d){
-                optimizer.trace(Optimizer.COST_INCLUDING_EXTRA_1ST_COL_SELECTIVITY,tableNumber,0,0.0,costEstimate);
+                tracer.trace(OptimizerFlag.COST_INCLUDING_EXTRA_1ST_COL_SELECTIVITY,tableNumber,0,0.0,costEstimate);
             }
 
 	        /* Factor in the extra start/stop selectivity (see comment above).
@@ -1192,7 +1194,7 @@ public class FromBaseTable extends FromTable{
 	         * the row count and singleScanRowCount.
 	         */
             if(extraStartStopSelectivity!=1.0d){
-                optimizer.trace(Optimizer.COST_INCLUDING_EXTRA_START_STOP,tableNumber,0,0.0,costEstimate);
+                tracer.trace(OptimizerFlag.COST_INCLUDING_EXTRA_START_STOP,tableNumber,0,0.0,costEstimate);
             }
 
             singleScanRowCount=costEstimate.singleScanRowCount();
@@ -1200,8 +1202,8 @@ public class FromBaseTable extends FromTable{
 
 //        currentJoinStrategy.rightResultSetCostEstimate(baseTableRestrictionList,outerCost,costEstimate);
 
-        optimizer.trace(Optimizer.COST_OF_CONGLOMERATE_SCAN1,tableNumber,0,0.0,cd);
-        optimizer.trace(Optimizer.COST_OF_CONGLOMERATE_SCAN2,tableNumber,0,0.0,costEstimate);
+        tracer.trace(OptimizerFlag.COST_OF_CONGLOMERATE_SCAN1,tableNumber,0,0.0,cd);
+        tracer.trace(OptimizerFlag.COST_OF_CONGLOMERATE_SCAN2,tableNumber,0,0.0,costEstimate);
 
 
 		/* If the start and stop key came from an IN-list "probe predicate"
@@ -1248,11 +1250,11 @@ public class FromBaseTable extends FromTable{
                 }
             }
             scc.getFetchFromRowLocationCost(heapCols,0,costEstimate);
-            optimizer.trace(Optimizer.COST_OF_NONCOVERING_INDEX,tableNumber,0,0.0,costEstimate);
+            tracer.trace(OptimizerFlag.COST_OF_NONCOVERING_INDEX,tableNumber,0,0.0,costEstimate);
         }
         costEstimate.setSingleScanRowCount(singleScanRowCount);
 
-        optimizer.trace(Optimizer.COST_OF_N_SCANS, tableNumber,0,outerCost.rowCount(),costEstimate);
+        tracer.trace(OptimizerFlag.COST_OF_N_SCANS,tableNumber,0,outerCost.rowCount(),costEstimate);
 
         /*
          * Now compute the joinStrategy costs.
@@ -1273,18 +1275,6 @@ public class FromBaseTable extends FromTable{
                     cd.getConglomerateName()));
         }
         return costEstimate;
-    }
-
-    private int findOpposingPredicate(int columnNumber,List<Predicate> predicates){
-        /*
-         * Find a predicate in the list which occurs against the same column number
-         */
-        int i =0;
-        for(Predicate p:predicates){
-            if(p.getRelop().getColumnOperand(this).getColumnNumber()==columnNumber) return i;
-            i++;
-        }
-        return -1;
     }
 
     @Override
@@ -2025,12 +2015,11 @@ public class FromBaseTable extends FromTable{
     public ResultSetNode changeAccessPath() throws StandardException{
         ResultSetNode retval;
         AccessPath ap=getTrulyTheBestAccessPath();
-        ConglomerateDescriptor trulyTheBestConglomerateDescriptor=
-                ap.getConglomerateDescriptor();
+        ConglomerateDescriptor trulyTheBestConglomerateDescriptor= ap.getConglomerateDescriptor();
         JoinStrategy trulyTheBestJoinStrategy=ap.getJoinStrategy();
         Optimizer optimizer=ap.getOptimizer();
 
-        optimizer.trace(Optimizer.CHANGING_ACCESS_PATH_FOR_TABLE, tableNumber,0,0.0,null);
+        optimizer.tracer().trace(OptimizerFlag.CHANGING_ACCESS_PATH_FOR_TABLE, tableNumber,0,0.0,null);
 
         if(SanityManager.DEBUG){
             SanityManager.ASSERT(trulyTheBestConglomerateDescriptor!=null,
@@ -2071,16 +2060,10 @@ public class FromBaseTable extends FromTable{
 		** Divide up the predicates for different processing phases of the
 		** best join strategy.
 		*/
-        storeRestrictionList=(PredicateList)getNodeFactory().getNode(
-                C_NodeTypes.PREDICATE_LIST,
-                getContextManager());
-        nonStoreRestrictionList=(PredicateList)getNodeFactory().getNode(
-                C_NodeTypes.PREDICATE_LIST,
-                getContextManager());
-        requalificationRestrictionList=
-                (PredicateList)getNodeFactory().getNode(
-                        C_NodeTypes.PREDICATE_LIST,
-                        getContextManager());
+        ContextManager ctxMgr=getContextManager();
+        storeRestrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,ctxMgr);
+        nonStoreRestrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,ctxMgr);
+        requalificationRestrictionList=(PredicateList)getNodeFactory().getNode(C_NodeTypes.PREDICATE_LIST,ctxMgr);
         trulyTheBestJoinStrategy.divideUpPredicateLists(
                 this,
                 restrictionList,
@@ -2263,7 +2246,7 @@ public class FromBaseTable extends FromTable{
                 requalificationRestrictionList,
                 forUpdate(),
                 tableProperties,
-                getContextManager());
+                ctxMgr);
 
 		/*
 		** The template row is all the columns.  The

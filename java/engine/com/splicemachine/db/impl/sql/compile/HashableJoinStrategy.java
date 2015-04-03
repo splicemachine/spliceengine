@@ -29,14 +29,15 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
      */
     public boolean feasible(Optimizable innerTable,OptimizablePredicateList predList,Optimizer optimizer,CostEstimate outerCost) throws StandardException {
         //commented out because it's annoying -SF-
-        int[] hashKeyColumns = null;
+        int[] hashKeyColumns;
         ConglomerateDescriptor cd = null;
+        OptimizerTrace tracer=optimizer.tracer();
 
 		/* If the innerTable is a VTI, then we must check to see if there are any
 		 * join columns in the VTI's parameters.  If so, then hash join is not feasible.
 		 */
         if (! innerTable.isMaterializable()) {
-            optimizer.trace(Optimizer.HJ_SKIP_NOT_MATERIALIZABLE, 0, 0, 0.0,null);
+            tracer.trace(OptimizerFlag.HJ_SKIP_NOT_MATERIALIZABLE,0,0,0.0,null);
             return false;
         }
 
@@ -110,17 +111,14 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
 
         if (SanityManager.DEBUG) {
             if (hashKeyColumns == null) {
-                optimizer.trace(Optimizer.HJ_SKIP_NO_JOIN_COLUMNS, 0, 0, 0.0, null);
+                tracer.trace(OptimizerFlag.HJ_SKIP_NO_JOIN_COLUMNS,0,0,0.0,null);
             }
             else {
-                optimizer.trace(Optimizer.HJ_HASH_KEY_COLUMNS, 0, 0, 0.0, hashKeyColumns);
+                tracer.trace(OptimizerFlag.HJ_HASH_KEY_COLUMNS,0,0,0.0,hashKeyColumns);
             }
         }
 
-        if (hashKeyColumns == null) {
-            return false;
-        }
-        return true;
+        return hashKeyColumns!=null;
     }
 
     /** @see com.splicemachine.db.iapi.sql.compile.JoinStrategy#ignoreBulkFetch */

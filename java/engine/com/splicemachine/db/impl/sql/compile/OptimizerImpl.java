@@ -337,9 +337,10 @@ public class OptimizerImpl implements Optimizer{
     @Override
     public boolean getNextPermutation() throws StandardException{
 		/* Don't get any permutations if there is nothing to optimize */
+        OptimizerTrace tracer = tracer();
         if(numOptimizables<1){
             if(optimizerTrace){
-                trace(NO_TABLES,0,0,0.0,null);
+                tracer.trace(OptimizerFlag.NO_TABLES,0,0,0.0,null);
             }
 
             endOfRoundCleanup();
@@ -368,7 +369,7 @@ public class OptimizerImpl implements Optimizer{
             timeExceeded=(currentTime-timeOptimizationStarted)>timeLimit;
 
             if(optimizerTrace && timeExceeded){
-                trace(TIME_EXCEEDED,0,0,0.0,null);
+                tracer.trace(OptimizerFlag.TIME_EXCEEDED,0,0,0.0,null);
             }
         }
 
@@ -507,7 +508,7 @@ public class OptimizerImpl implements Optimizer{
 				** order are taken.
 				*/
                 if(joinPosition<(numOptimizables-1)){
-                    trace(SHORT_CIRCUITING,0,0,0.0,null);
+                    tracer.trace(OptimizerFlag.SHORT_CIRCUITING,0,0,0.0,null);
                 }
             }
 
@@ -715,7 +716,7 @@ public class OptimizerImpl implements Optimizer{
 					 */
                     if((nextOptimizable<numOptimizables) && !joinOrderMeetsDependencies(nextOptimizable)){
                         if(optimizerTrace){
-                            trace(SKIPPING_JOIN_ORDER,nextOptimizable,0,0.0,null);
+                            tracer.trace(OptimizerFlag.SKIPPING_JOIN_ORDER,nextOptimizable,0,0.0,null);
                         }
 
 						/*
@@ -723,7 +724,7 @@ public class OptimizerImpl implements Optimizer{
 						*/
                         if(!optimizableList.optimizeJoinOrder()){
                             if(optimizerTrace){
-                                trace(ILLEGAL_USER_JOIN_ORDER,0,0,0.0,null);
+                                tracer.trace(OptimizerFlag.ILLEGAL_USER_JOIN_ORDER,0,0,0.0,null);
                             }
 
                             throw StandardException.newException(SQLState.LANG_ILLEGAL_FORCED_JOIN_ORDER);
@@ -744,14 +745,14 @@ public class OptimizerImpl implements Optimizer{
                     // Verify that the user specified a legal join order
                     if(!optimizableList.legalJoinOrder(numTablesInQuery)){
                         if(optimizerTrace){
-                            trace(ILLEGAL_USER_JOIN_ORDER,0,0,0.0,null);
+                            tracer.trace(OptimizerFlag.ILLEGAL_USER_JOIN_ORDER,0,0,0.0,null);
                         }
 
                         throw StandardException.newException(SQLState.LANG_ILLEGAL_FORCED_JOIN_ORDER);
                     }
 
                     if(optimizerTrace){
-                        trace(USER_JOIN_ORDER_OPTIMIZED,0,0,0.0,null);
+                        tracer.trace(OptimizerFlag.USER_JOIN_ORDER_OPTIMIZED,0,0,0.0,null);
                     }
 
                     desiredJoinOrderFound=true;
@@ -857,7 +858,7 @@ public class OptimizerImpl implements Optimizer{
             optimizableList.getOptimizable(nextOptimizable).getBestAccessPath().setCostEstimate(null);
 
             if(optimizerTrace){
-                trace(CONSIDERING_JOIN_ORDER,0,0,0.0,null);
+                tracer.trace(OptimizerFlag.CONSIDERING_JOIN_ORDER,0,0,0.0,null);
             }
 
             Optimizable nextOpt= optimizableList.getOptimizable(nextOptimizable);
@@ -924,17 +925,18 @@ public class OptimizerImpl implements Optimizer{
                 addCost(ce,currentSortAvoidanceCost);
             }
 
+            OptimizerTrace tracer = tracer();
             if(optimizerTrace){
-                trace(TOTAL_COST_NON_SA_PLAN,0,0,0.0,null);
+                tracer.trace(OptimizerFlag.TOTAL_COST_NON_SA_PLAN,0,0,0.0,null);
                 if(curOpt.considerSortAvoidancePath()){
-                    trace(TOTAL_COST_SA_PLAN,0,0,0.0,null);
+                    tracer.trace(OptimizerFlag.TOTAL_COST_SA_PLAN,0,0,0.0,null);
                 }
             }
 
 			/* Do we have a complete join order? */
             if(joinPosition==(numOptimizables-1)){
                 if(optimizerTrace){
-                    trace(COMPLETE_JOIN_ORDER,0,0,0.0,null);
+                    tracer.trace(OptimizerFlag.COMPLETE_JOIN_ORDER,0,0,0.0,null);
                 }
 
 				/* Add cost of sorting to non-sort-avoidance cost */
@@ -986,8 +988,8 @@ public class OptimizerImpl implements Optimizer{
 //                    }
 
                     if(optimizerTrace){
-                        trace(COST_OF_SORTING,0,0,0.0,null);
-                        trace(TOTAL_COST_WITH_SORTING,0,0,0.0,null);
+                        tracer.trace(OptimizerFlag.COST_OF_SORTING,0,0,0.0,null);
+                        tracer.trace(OptimizerFlag.TOTAL_COST_WITH_SORTING,0,0,0.0,null);
                     }
                 }
 
@@ -1032,7 +1034,7 @@ public class OptimizerImpl implements Optimizer{
                     if(requiredRowOrdering.sortRequired(
                             bestRowOrdering,optimizableList)==RequiredRowOrdering.NOTHING_REQUIRED){
                         if(optimizerTrace){
-                            trace(CURRENT_PLAN_IS_SA_PLAN,0,0,0.0,null);
+                            tracer.trace(OptimizerFlag.CURRENT_PLAN_IS_SA_PLAN,0,0,0.0,null);
                         }
 
                         if((currentSortAvoidanceCost.compare(bestCost)<=0) || bestCost.isUninitialized()){
@@ -1212,7 +1214,7 @@ public class OptimizerImpl implements Optimizer{
         double rowCount=estimatedCost.rowCount()/outerCost.rowCount();
         if(maxMemoryPerTable!=-1 && !optimizable.memoryUsageOK(rowCount,maxMemoryPerTable)){
             if(optimizerTrace){
-                trace(SKIPPING_DUE_TO_EXCESS_MEMORY,0,0,0.0,null);
+                tracer().trace(OptimizerFlag.SKIPPING_DUE_TO_EXCESS_MEMORY,0,0,0.0,null);
             }
             return;
         }
@@ -1283,13 +1285,14 @@ public class OptimizerImpl implements Optimizer{
      */
     @Override
     public void modifyAccessPaths() throws StandardException{
+        OptimizerTrace tracer = tracer();
         if(optimizerTrace){
-            trace(MODIFYING_ACCESS_PATHS,0,0,0.0,null);
+            tracer.trace(OptimizerFlag.MODIFYING_ACCESS_PATHS,0,0,0.0,null);
         }
 
         if(!foundABestPlan){
             if(optimizerTrace){
-                trace(NO_BEST_PLAN,0,0,0.0,null);
+                tracer.trace(OptimizerFlag.NO_BEST_PLAN,0,0,0.0,null);
             }
 
             throw StandardException.newException(SQLState.LANG_NO_BEST_PLAN_FOUND);
@@ -1442,8 +1445,7 @@ public class OptimizerImpl implements Optimizer{
         return new CostEstimateImpl(theCost,theRowCount,theSingleScanRowCount);
     }
 
-    @Override
-    public void trace(int traceFlag,int intParam1,int intParam2, double doubleParam,Object objectParam1){ }
+    @Override public OptimizerTrace tracer(){ return NoOpOptimizerTrace.INSTANCE; }
 
     @Override
     public boolean useStatistics(){
@@ -2099,10 +2101,11 @@ public class OptimizerImpl implements Optimizer{
     private void rememberBestCost(CostEstimate currentCost,int planType) throws StandardException{
         foundABestPlan=true;
 
+        OptimizerTrace tracer = tracer();
         if(optimizerTrace){
-            trace(CHEAPEST_PLAN_SO_FAR,0,0,0.0,null);
-            trace(PLAN_TYPE,planType,0,0.0,null);
-            trace(COST_OF_CHEAPEST_PLAN_SO_FAR,0,0,0.0,null);
+            tracer.trace(OptimizerFlag.CHEAPEST_PLAN_SO_FAR,0,0,0.0,null);
+            tracer.trace(OptimizerFlag.PLAN_TYPE,planType,0,0.0,null);
+            tracer.trace(OptimizerFlag.COST_OF_CHEAPEST_PLAN_SO_FAR,0,0,0.0,null);
         }
 
 		/* Remember the current cost as best */
@@ -2141,9 +2144,9 @@ public class OptimizerImpl implements Optimizer{
 
         if(optimizerTrace){
             if(requiredRowOrdering!=null){
-                trace(SORT_NEEDED_FOR_ORDERING,planType,0,0.0,null);
+                tracer.trace(OptimizerFlag.SORT_NEEDED_FOR_ORDERING,planType,0,0.0,null);
             }
-            trace(REMEMBERING_BEST_JOIN_ORDER,0,0,0.0,null);
+            tracer.trace(OptimizerFlag.REMEMBERING_BEST_JOIN_ORDER,0,0,0.0,null);
         }
     }
 
@@ -2306,7 +2309,7 @@ public class OptimizerImpl implements Optimizer{
         // DERBY-1259.
         if(maxMemoryPerTable>0 && !optimizable.memoryUsageOK(estimatedCost.rowCount()/outerCost.rowCount(),maxMemoryPerTable)){
             if(optimizerTrace){
-                trace(SKIPPING_DUE_TO_EXCESS_MEMORY,0,0,0.0,null);
+                tracer().trace(OptimizerFlag.SKIPPING_DUE_TO_EXCESS_MEMORY,0,0,0.0,null);
             }
             return;
         }
