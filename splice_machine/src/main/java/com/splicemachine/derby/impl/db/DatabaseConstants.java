@@ -34,12 +34,12 @@ public class DatabaseConstants extends SpliceConstants{
     @Parameter private static final String DEBUG_DUMP_OPTIMIZED_TREE = "splice.debug.compile.dumpOptimizedTree";
     @DefaultValue(DEBUG_DUMP_OPTIMIZED_TREE) public static final boolean DEFAULT_DUMP_OPTIMIZED_TREE=false;
     public static boolean dumpOptimizedTree;
+
     /**
-     * For debugging statements issued in derby.  This is on by default, but will hurt you in the case of an OLTP
-     * workload.
+     * For logging sql statements.  This is off by default. Turning on will hurt you in the case of an OLTP workload.
      */
     @Parameter private static final String DEBUG_LOG_STATEMENT_CONTEXT = "splice.debug.logStatementContext";
-    @DefaultValue(DEBUG_LOG_STATEMENT_CONTEXT) public static final boolean DEFAULT_LOG_STATEMENT_CONTEXT=true;
+    @DefaultValue(DEBUG_LOG_STATEMENT_CONTEXT) public static final boolean DEFAULT_LOG_STATEMENT_CONTEXT=false;
     public static boolean logStatementContext;
 
     public static void setParameters(Configuration config){
