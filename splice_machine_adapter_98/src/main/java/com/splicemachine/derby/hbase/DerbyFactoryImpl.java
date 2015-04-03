@@ -171,9 +171,9 @@ public class DerbyFactoryImpl implements DerbyFactory<TxnMessage.TxnInfo> {
 	}
 	@Override
 	public void writeRegioninfoOnFilesystem(HRegionInfo regionInfo,
-			Path regiondir, FileSystem fs, Configuration conf)
+			Path tabledir, FileSystem fs, Configuration conf)
 			throws IOException {
-		HRegionFileSystem.createRegionOnFileSystem(conf, fs, regiondir, regionInfo);
+		HRegionFileSystem.createRegionOnFileSystem(conf, fs, tabledir, regionInfo);
 	}
 	@Override
 	public Path getTableDir(HRegion region) {
