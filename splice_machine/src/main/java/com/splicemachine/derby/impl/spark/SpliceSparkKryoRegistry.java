@@ -11,14 +11,15 @@ import com.esotericsoftware.kryo.serializers.FieldSerializer;
 import com.esotericsoftware.kryo.serializers.MapSerializer;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.ddl.DDLChangeType;
+import com.splicemachine.derby.ddl.TentativeAddColumnDesc;
 import com.splicemachine.derby.ddl.TentativeDropColumnDesc;
 import com.splicemachine.derby.ddl.TentativeIndexDesc;
 import com.splicemachine.derby.hbase.ActivationSerializer;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.impl.job.AlterTable.DropColumnTask;
-import com.splicemachine.derby.impl.job.AlterTable.LoadConglomerateTask;
+import com.splicemachine.derby.impl.job.altertable.AlterTableTask;
 import com.splicemachine.derby.impl.job.ZkTask;
+import com.splicemachine.derby.impl.job.altertable.PopulateConglomerateTask;
 import com.splicemachine.derby.impl.job.index.CreateIndexTask;
 import com.splicemachine.derby.impl.job.index.PopulateIndexTask;
 import com.splicemachine.derby.impl.job.operation.SinkTask;
@@ -558,10 +559,10 @@ public class SpliceSparkKryoRegistry implements KryoPool.KryoRegistry{
 						}
 				},168);
 				instance.register(DDLChangeType.class,new DefaultSerializers.EnumSerializer(DDLChangeType.class),169);
-				instance.register(DropColumnTask.class,EXTERNALIZABLE_SERIALIZER,170);
+				// 170 is open
 				instance.register(ColumnInfo.class,EXTERNALIZABLE_SERIALIZER,171);
 				instance.register(ColumnInfo[].class,172);
-				instance.register(LoadConglomerateTask.class,EXTERNALIZABLE_SERIALIZER,173);
+				// 173 is open
 				instance.register(MergeLeftOuterJoinOperation.class, EXTERNALIZABLE_SERIALIZER,174);
         instance.register(DataValueDescriptor[].class,175);
         instance.register(Tuple2.class, new Serializer<Tuple2>() {
@@ -653,5 +654,8 @@ public class SpliceSparkKryoRegistry implements KryoPool.KryoRegistry{
 //        instance.register(WrappedArray.ofUnit.class, 194);
         instance.register(Object[].class,189);
         instance.register(CompressedMapStatus.class,190);
+        instance.register(AlterTableTask.class,EXTERNALIZABLE_SERIALIZER,191);
+        instance.register(PopulateConglomerateTask.class,EXTERNALIZABLE_SERIALIZER,192);
+        instance.register(TentativeAddColumnDesc.class,new FieldSerializer(instance,TentativeAddColumnDesc.class),193);
     }
 }

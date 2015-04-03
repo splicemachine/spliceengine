@@ -84,7 +84,7 @@ public abstract class DDLSingleTableConstantOperation extends DDLConstantOperati
 	 *  is effectively ignored (which may be fine in some cases--
 	 *  ex. when dropping a table).
 	 */
-	void dropConstraint(ConstraintDescriptor consDesc,TableDescriptor skipCreate, List newConglomActions,
+	void dropConstraint(ConstraintDescriptor consDesc,TableDescriptor skipCreate, List<ConstantAction> newConglomActions,
 		Activation activation, LanguageConnectionContext lcc, boolean clearDeps) throws StandardException {
 		SpliceLogUtils.trace(LOG, "dropConstraint %s",consDesc);
 		/* Get the properties on the old backing conglomerate before

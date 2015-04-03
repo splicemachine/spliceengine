@@ -12,16 +12,14 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.io.HFileLink;
-import org.apache.hadoop.hbase.util.FSUtils;
 
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.hbase.DerbyFactory;
-import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.utils.io.IOUtils;
 /**
  *
  * \begin{enumerate}
@@ -54,18 +52,22 @@ import com.splicemachine.utils.SpliceLogUtils;
  *
  */
 public class CreateBackupTask extends ZkTask {
-    private static final long serialVersionUID = 5l;
+	    
+	private static final long serialVersionUID = 5l;
     private BackupItem backupItem;
     private String backupFileSystem;
+    
+    
     public CreateBackupTask() { }
 
     public CreateBackupTask(BackupItem backupItem, String jobId, String backupFileSystem) {
         super(jobId, OperationJob.operationTaskPriority);
         this.backupItem = backupItem;
         this.backupFileSystem = backupFileSystem;
+        
     }
 
-    @Override
+	@Override
     protected String getTaskType() {
         return "createBackupTask";
     }
@@ -106,26 +108,31 @@ public class CreateBackupTask extends ZkTask {
         }
     }
 
-    private void writeRegionInfoOnFilesystem() throws IOException
+	private void writeRegionInfoOnFilesystem() throws IOException
     {
-    	DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
         FileSystem fs = FileSystem.get(URI.create(backupFileSystem), SpliceConstants.config);
 
         BackupUtils.derbyFactory.writeRegioninfoOnFilesystem(region.getRegionInfo(),
                 new Path(backupFileSystem), fs, SpliceConstants.config);
     }
     
-    private void doFullBackup() throws IOException
+    private Configuration getConfiguration()
+    {
+    	return SpliceConstants.config;
+    }
+    
+	
+	private void doFullBackup() throws IOException
     {
     	SnapshotUtils utils = SnapshotUtilsFactory.snapshotUtils;
-    	// TODO
-    	// Make sure that backup directory structure is
+    	boolean throttleEnabled = 
+    			getConfiguration().getBoolean(Backup.CONF_IOTHROTTLE, false);
+    	    	
+    	// Backup directory structure is
     	// backupId/namespace/table/region/cf
     	// files can be HFile links or real paths to a 
     	// materialized references
     	List<Object> files = utils.getFilesForFullBackup(getSnapshotName(), region);
-    	String backupDirectory = backupItem.getBackupItemFilesystem();
-    	String name = region.getRegionNameAsString();
     	FileSystem backupFs = FileSystem.get(URI.create(backupFileSystem), SpliceConstants.config);
     	for(Object file: files){
             FileSystem fs = region.getFilesystem();
@@ -135,10 +142,11 @@ public class CreateBackupTask extends ZkTask {
             String familyName = s[n - 2];
             String regionName = s[n - 3];
             Path destPath = new Path(backupFileSystem + "/" + regionName + "/" + familyName + "/" + fileName);
-            copyFile(fs, file, backupFs,  destPath, false, SpliceConstants.config);
-            //FileUtil.copy(fs, file, backupFs, destPath, false, SpliceConstants.config);
-            // TODO dst path?
-	    	//copyFile(fs, file, backupFs,  new Path(backupDirectory+"/"+name), false, SpliceConstants.config);
+            if(throttleEnabled){
+            	IOUtils.copyFileWithThrottling(fs, file, backupFs,  destPath, false, getConfiguration());
+            } else{
+            	copyFile(fs, file, backupFs,  destPath, false, SpliceConstants.config);
+            }
 	    	if(isTempFile(file)){
 	    		deleteFile(fs, file, false);
 	    	}
@@ -163,13 +171,13 @@ public class CreateBackupTask extends ZkTask {
 		}
 	}
 
+
 	/**
-     * TODO: do we to delete tmp files (materialized from refs)?    
+     * TODO: do we have to delete temporary files (materialized from refs)?    
      * @param file
      * @return true if temporary file
      */
-	private boolean isTempFile(Object file) {
-		
+	private boolean isTempFile(Object file) {		
 		return file instanceof Path;
 	}
     

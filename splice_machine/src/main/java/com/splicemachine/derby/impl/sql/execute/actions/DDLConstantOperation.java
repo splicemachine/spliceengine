@@ -1,6 +1,15 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.ddl.DDLCoordinationFactory;
+import com.splicemachine.pipeline.exception.ErrorState;
+import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.api.TxnView;
+import com.splicemachine.si.impl.TransactionLifecycle;
+import com.splicemachine.stream.Stream;
+import com.splicemachine.stream.StreamException;
+import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.TypeDescriptor;
@@ -30,6 +39,8 @@ import com.splicemachine.si.api.TxnView;
 import com.splicemachine.stream.Stream;
 import com.splicemachine.stream.StreamException;
 import com.splicemachine.utils.SpliceLogUtils;
+
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;

@@ -59,6 +59,13 @@ import com.splicemachine.utils.ZkUtils;
  *
  */
 public class Backup implements InternalTable {
+	public static final String CONF_BANDWIDTH_MB = "splice.backup.bandwidth.mb";
+	public static final String CONF_IOTHROTTLE = "splice.backup.throttle.enabled";
+	// Do report every XXX bytes copied (with IO throttling enabled)
+	public static final int IO_REPORT_SIZE = 4 * 1024 * 1024;
+	// IO buffer size for file copy (IO throttling mode)
+    public static final int IO_BUFFER_SIZE = 64 * 1024;
+    
     private static Logger LOG = Logger.getLogger(Backup.class);
 
     public static final String DEFAULT_SCHEMA = "BACKUP";

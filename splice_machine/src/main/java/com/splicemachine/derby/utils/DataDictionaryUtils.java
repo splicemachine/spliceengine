@@ -19,17 +19,21 @@ import java.util.List;
 public class DataDictionaryUtils {
 
     public static String getTableVersion(TxnView txn, UUID tableId) throws StandardException {
+        TableDescriptor td;
         try {
             SpliceTransactionResourceImpl impl = new SpliceTransactionResourceImpl();
             impl.marshallTransaction(txn);
             LanguageConnectionContext lcc = impl.getLcc();
 
             DataDictionary dd = lcc.getDataDictionary();
-            TableDescriptor td = dd.getTableDescriptor(tableId);
-            return td.getVersion();
+            td = dd.getTableDescriptor(tableId);
         } catch (SQLException e) {
             throw Exceptions.parseException(e);
         }
+        if (td != null) {
+            return td.getVersion();
+        }
+        return null;
     }
 
     // Get 0-based columnOrdering from a table with primary key
@@ -87,8 +91,11 @@ public class DataDictionaryUtils {
         DataDictionary dd = lcc.getDataDictionary();
         TableDescriptor td = dd.getTableDescriptor(tableId);
 
-        ColumnDescriptorList cdList = td.getColumnDescriptorList();
-        return getFormatIds(cdList);
+        if (td != null) {
+            return getFormatIds(td.getColumnDescriptorList());
+        } else {
+            return new int[0];
+        }
     }
 
     public static int[] getFormatIds(ColumnDescriptorList cdList) throws StandardException {
@@ -109,7 +116,17 @@ public class DataDictionaryUtils {
         for (int i = 0; i < len; ++i) {
             ColumnDescriptor desc = cdl.get(i);
             columnInfo[i] =
-                    new ColumnInfo(desc.getColumnName(), desc.getType(), null, null, null, null, null, 0, 0, 0, 0);
+                    new ColumnInfo(desc.getColumnName(),
+                                   desc.getType(),
+                                   desc.getDefaultValue(),
+                                   desc.getDefaultInfo(),
+                                   null,
+                                   desc.getDefaultUUID(),
+                                   null,
+                                   0,
+                                   desc.getAutoincStart(),
+                                   desc.getAutoincInc(),
+                                   desc.getAutoinc_create_or_modify_Start_Increment());
         }
         return columnInfo;
     }

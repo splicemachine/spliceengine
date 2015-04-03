@@ -9,6 +9,8 @@ import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.utils.io.IOUtils;
+
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.regionserver.Store;
 import org.apache.hadoop.conf.Configuration;
@@ -133,6 +135,8 @@ public class CreateIncrementalBackupTask extends ZkTask {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, String.format("executing incremental backup on region %s", region.toString()));
 
+        boolean throttleEnabled = 
+    			getConfiguration().getBoolean(Backup.CONF_IOTHROTTLE, false);
         tableName = region.getTableDesc().getNameAsString();
         encodedRegionName = region.getRegionInfo().getEncodedName();
         int count = 0;
@@ -155,7 +159,11 @@ public class CreateIncrementalBackupTask extends ZkTask {
                     String familyName = s[n - 2];
                     String regionName = s[n - 3];
                     Path destPath = new Path(backupFileSystem + "/" + regionName + "/" + familyName + "/" + fileName);
-                    FileUtil.copy(fs, p, fs, destPath, false, SpliceConstants.config);
+                    if(throttleEnabled){
+                    	IOUtils.copyFileWithThrottling(fs, p, fs, destPath, false, SpliceConstants.config);
+                    } else{
+                    	FileUtil.copy(fs, p, fs, destPath, false, SpliceConstants.config);
+                    }
                     count++;
                 }
             }
@@ -173,7 +181,11 @@ public class CreateIncrementalBackupTask extends ZkTask {
         }
     }
 
-    /**
+    private Configuration getConfiguration() {
+		return SpliceConstants.config;
+	}
+
+	/**
      * For each HFile in archived directory, check whether it should be included in incremental backup.
      * Delete all entries for this region in BACKUP.BACKUP_FILESET. BACKUP.BACKUP_FILESET should only keeps track of
      * HFile changes between two consecutive incremental backups.
@@ -239,31 +251,27 @@ public class CreateIncrementalBackupTask extends ZkTask {
             throw new ExecutionException(e);
         }
 
-        if (lastPaths == null || lastPaths.size() == 0)
-            // If no files in the previous snapshot, or there was no previous snapshot, then return all files in the
-            // latest snapshot
-            return paths;
-        else {
-            // Hash files from the latest snapshot, ignore files that should be excluded
-            HashMap<String, Path> pathMap = new HashMap<>();
-            for(Path p : paths) {
-                String name = p.getName();
-                if (!excludeFileSet.contains(name)) {
-                    pathMap.put(name, p);
-                }
+        // Hash files from the latest snapshot, ignore files that should be excluded
+        HashMap<String, Path> pathMap = new HashMap<>();
+        for(Path p : paths) {
+            String name = p.getName();
+            if (!excludeFileSet.contains(name)) {
+                pathMap.put(name, p);
             }
+        }
 
+        if (lastPaths != null && lastPaths.size() > 0) {
             // remove an HFile if it also appears in a previous snapshot
-            for(Path p : lastPaths) {
+            for (Path p : lastPaths) {
                 String name = p.getName();
                 if (pathMap.containsKey(name)) {
                     pathMap.remove(name);
                 }
             }
-
-            Collection<Path> r = pathMap.values();
-            hFiles = new ArrayList<>(r);
         }
+        Collection<Path> r = pathMap.values();
+        hFiles = new ArrayList<>(r);
+
         return hFiles;
     }
 

@@ -192,7 +192,7 @@ public class MergeJoinOperation extends JoinOperation {
 
         return new Joiner(mergedRowSource, getExecRowDefinition(), getRestriction(),
                              isOuterJoin, wasRightOuterJoin, leftNumCols, rightNumCols,
-                             oneRowRightSide, notExistsRightSide, emptyRowSupplier,spliceRuntimeContext);
+                             oneRowRightSide, notExistsRightSide, true, emptyRowSupplier,spliceRuntimeContext);
     }
 
     @Override
@@ -400,7 +400,7 @@ public class MergeJoinOperation extends JoinOperation {
 
             return new Joiner(mergedRowSource, op.getExecRowDefinition(), op.getRestriction(),
                     op.isOuterJoin, op.wasRightOuterJoin, op.leftNumCols, op.rightNumCols,
-                    op.oneRowRightSide, op.notExistsRightSide, emptyRowSupplier, soi.getSpliceRuntimeContext());
+                    op.oneRowRightSide, op.notExistsRightSide, false, emptyRowSupplier, soi.getSpliceRuntimeContext());
         }
 
         @Override
@@ -453,7 +453,7 @@ public class MergeJoinOperation extends JoinOperation {
             public ExecRow next() {
                 if (!hasNext())
                     return null;
-                ExecRow result = next.getClone();
+                ExecRow result = next;
                 next = null;
                 return result;
             }

@@ -55,7 +55,7 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
     private final long conglomId;
     private final List<LocalWriteFactory> indexFactories = new CopyOnWriteArrayList<>();
     private final Set<ConstraintFactory> constraintFactories = new CopyOnWriteArraySet<>();
-    private final Set<DropColumnFactory> dropColumnFactories = new CopyOnWriteArraySet<>();
+    private final Set<AlterTableWriteFactory> alterTableWriteFactories = new CopyOnWriteArraySet<>();
 
     private ForeignKeyChildInterceptWriteFactory foreignKeyChildInterceptWriteFactory;
     private ForeignKeyChildCheckWriteFactory foreignKeyChildCheckWriteFactory;
@@ -146,8 +146,8 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
                 indexFactory.addTo(context, true, expectedWrites);
             }
 
-            for (DropColumnFactory dropColumnFactory : dropColumnFactories) {
-                dropColumnFactory.addTo(context, true, expectedWrites);
+            for (AlterTableWriteFactory alterTableWriteFactory : alterTableWriteFactories) {
+                alterTableWriteFactory.addTo(context, true, expectedWrites);
             }
 
             // FK - child intercept (of inserts/updates)
@@ -265,7 +265,8 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
             try {
                 switch (ddlChangeType) {
                     case DROP_COLUMN:
-                        dropColumnFactories.add(DropColumnFactory.create(ddlChange));
+                    case ADD_COLUMN:
+                        alterTableWriteFactories.add(AlterTableWriteFactory.create(ddlChange));
                         break;
                     default:
                         break;
@@ -429,25 +430,24 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
             if (txn.getEffectiveState().isFinal()) {
                 DDLCoordinationFactory.getController().finishMetadataChange(ddlChange.getChangeId());
             } else {
+                assert ddlDesc != null : "Cannot have a null ddl descriptor!";
                 switch (ddlChange.getChangeType()) {
                     case CHANGE_PK:
                     case ADD_CHECK:
                     case CREATE_FK:
                     case ADD_NOT_NULL:
-                    case ADD_COLUMN:
                     case DROP_TABLE:
                         break; //TODO -sf- implement
                     case CREATE_INDEX:
-                        assert ddlDesc != null : "Cannot have a null ddl descriptor!";
                         if (ddlDesc.getBaseConglomerateNumber() == conglomId)
                             replace(IndexFactory.create(ddlChange, columnOrdering, formatIds));
                         break;
                     case DROP_COLUMN:
-                        assert ddlDesc != null : "Cannot have a null ddl descriptor!";
+                    case ADD_COLUMN:
                         if (ddlDesc.getBaseConglomerateNumber() == conglomId)
-                            dropColumnFactories.add(DropColumnFactory.create(ddlChange));
+                            alterTableWriteFactories.add(AlterTableWriteFactory.create(ddlChange));
+                        break;
                     case DROP_INDEX:
-                        assert ddlDesc != null : "Cannot have a null ddl descriptor!";
                         if (ddlDesc.getBaseConglomerateNumber() == conglomId)
                             dropIndex(ddlDesc.getConglomerateNumber(), txn);
 
