@@ -168,8 +168,9 @@ public class DerbyFactoryImpl implements DerbyFactory<SparseTxn> {
 
 	@Override
 	public void writeRegioninfoOnFilesystem(HRegionInfo regionInfo,
-			Path regiondir, FileSystem fs, Configuration conf)
+			Path tabledir, FileSystem fs, Configuration conf)
 			throws IOException {
+        Path regiondir = new Path(tabledir.toString() + "/" + regionInfo.getEncodedName());
 		HRegion.writeRegioninfoOnFilesystem(regionInfo, regiondir, fs, conf);
 	}
 

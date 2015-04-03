@@ -229,7 +229,7 @@ public class BackupItem implements InternalTable {
         String parentRegionName = null;
 
         for (FileStatus stat : status) {
-            if (!stat.isDir()) {
+            if (!stat.isDir() || stat.getPath().getName().compareTo(".tmp") == 0) {
                 continue; // ignore non directories
             }
             HRegionInfo regionInfo = derbyFactory.loadRegionInfoFileContent(fs, stat.getPath());
@@ -314,7 +314,7 @@ public class BackupItem implements InternalTable {
             FileSystem fileSystem = FileSystem.get(URI.create(getBackupItemFilesystem()),SpliceConstants.config);
             Path path = new Path(getBackupItemFilesystem());
             FileStatus[] status = fileSystem.listStatus(path);
-            if (status.length == 0) {
+            if (backup.isIncrementalBackup() && !containsRegion(status)) {
                 fileSystem.delete(path, true);
                 deleteBackupItem();
                 backedUp = false;
@@ -333,6 +333,19 @@ public class BackupItem implements InternalTable {
         }
 
         return backedUp;
+    }
+
+    private boolean containsRegion(FileStatus[] fileStatus) {
+
+        int count = 0;
+        for (FileStatus status : fileStatus) {
+            if (status.getPath().getName().charAt(0) == '.') {
+                continue;
+            }
+            count++;
+        }
+
+        return count > 0;
     }
 
     public void createSnapshot(HBaseAdmin admin, long snapId, Set<String> snapshotNameSet) throws StandardException {
