@@ -2,23 +2,23 @@ package com.splicemachine.derby.impl.spark;
 
 import com.carrotsearch.hppc.BitSet;
 import com.esotericsoftware.kryo.Kryo;
-import com.esotericsoftware.kryo.Registration;
 import com.esotericsoftware.kryo.Serializer;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.serializers.DefaultSerializers;
 import com.esotericsoftware.kryo.serializers.FieldSerializer;
 import com.esotericsoftware.kryo.serializers.MapSerializer;
-import com.splicemachine.constants.SpliceConstants;
+
 import com.splicemachine.derby.ddl.DDLChangeType;
+import com.splicemachine.derby.ddl.TentativeAddColumnDesc;
 import com.splicemachine.derby.ddl.TentativeDropColumnDesc;
 import com.splicemachine.derby.ddl.TentativeIndexDesc;
 import com.splicemachine.derby.hbase.ActivationSerializer;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.impl.job.AlterTable.DropColumnTask;
-import com.splicemachine.derby.impl.job.AlterTable.LoadConglomerateTask;
+import com.splicemachine.derby.impl.job.altertable.AlterTableTask;
 import com.splicemachine.derby.impl.job.ZkTask;
+import com.splicemachine.derby.impl.job.altertable.PopulateConglomerateTask;
 import com.splicemachine.derby.impl.job.index.CreateIndexTask;
 import com.splicemachine.derby.impl.job.index.PopulateIndexTask;
 import com.splicemachine.derby.impl.job.operation.SinkTask;
@@ -48,7 +48,7 @@ import com.splicemachine.job.TaskStatus;
 import com.splicemachine.pipeline.impl.BulkWrite;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.kryo.ExternalizableSerializer;
-import com.splicemachine.utils.kryo.KryoPool;
+
 import com.twitter.chill.TraversableSerializer;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
 import com.splicemachine.db.catalog.types.*;
@@ -71,13 +71,7 @@ import org.apache.spark.scheduler.MapStatus;
 import org.apache.spark.serializer.KryoRegistrator;
 import org.apache.spark.storage.BlockManagerId;
 import org.apache.spark.storage.StorageLevel;
-import scala.Tuple2;
-import scala.collection.mutable.ArrayBuffer;
-import scala.collection.mutable.WrappedArray;
 
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.sql.Time;
@@ -537,6 +531,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator {
 				instance.register(FileImportReader.class,EXTERNALIZABLE_SERIALIZER);
 				instance.register(TentativeIndexDesc.class,new FieldSerializer(instance,TentativeIndexDesc.class));
 				instance.register(TentativeDropColumnDesc.class,new FieldSerializer(instance,TentativeDropColumnDesc.class));
+				instance.register(TentativeAddColumnDesc.class,new FieldSerializer(instance,TentativeAddColumnDesc.class));
 				instance.register(BitSet.class,new Serializer<BitSet>() {
 						@Override
 						public void write(Kryo kryo, Output output, BitSet object) {
@@ -558,10 +553,10 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator {
 						}
 				});
 				instance.register(DDLChangeType.class,new DefaultSerializers.EnumSerializer(DDLChangeType.class));
-				instance.register(DropColumnTask.class,EXTERNALIZABLE_SERIALIZER);
+				instance.register(AlterTableTask.class,EXTERNALIZABLE_SERIALIZER);
+				instance.register(PopulateConglomerateTask.class,EXTERNALIZABLE_SERIALIZER);
 				instance.register(ColumnInfo.class,EXTERNALIZABLE_SERIALIZER);
 				instance.register(ColumnInfo[].class);
-				instance.register(LoadConglomerateTask.class,EXTERNALIZABLE_SERIALIZER);
 				instance.register(MergeLeftOuterJoinOperation.class, EXTERNALIZABLE_SERIALIZER);
         instance.register(DataValueDescriptor[].class);
 //        instance.register(Tuple2.class, new Serializer<Tuple2>() {

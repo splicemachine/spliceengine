@@ -93,14 +93,14 @@ import java.util.Properties;
  *
  * Scenario 1: Before Create
  * The sequence is as follows:
- *
- * 1. Parent transaction is created (Tp = [bp,...))
- * 2. Independent transaction is created (To = [bo,...) such that {@code bp < bo})
- * 3. To commits (To = [bo,co))
- * 4. Create transaction is created as child of parent (Tc = [bc,...),Tc.parent = Tp)
- * 5. Create transaction is committed at {@code cc}(Tc = [bc,cc))
- * 6. Populate transaction is created and committed as child of parent (Tpop = [bpop,cpop),Tpop.parent = Tp)
- *
+ * <ol>
+ * <li>Parent transaction is created (Tp = [bp,...))</li>
+ * <li>Independent transaction is created (To = [bo,...) such that {@code bp < bo})</li>
+ * <li>To commits (To = [bo,co))</li>
+ * <li>Create transaction is created as child of parent (Tc = [bc,...),Tc.parent = Tp)</li>
+ * <li>Create transaction is committed at {@code cc}(Tc = [bc,cc))</li>
+ * <li>Populate transaction is created and committed as child of parent (Tpop = [bpop,cpop),Tpop.parent = Tp)</li>
+ * </ol>
  * In this case, we expect that the writes from the independent transaction will not have been
  * picked up by the interceptor that we place during the create phase (as the create phase has not happened yet).
  * Therefore the independent transaction's writes need to be picked up by the populate child transaction--this
@@ -111,14 +111,14 @@ import java.util.Properties;
  *
  * Scenario 2: Between Creation and Population
  * The sequence is:
- *
- * 1. {@code Tp} created ({@code Tp = [bp,...)}).
- * 2. Create transaction {@code Tc} is created ({@code Tc = [bc,...), Tc.parent = Tp})
- * 3. Create transaction {@code Tc} is committed ({@code Tc = [bc,cc)})
- * 4. Independent Transaction {@code To = [bo,...)} is created such that {@code cc < bo}
- * 4. Independent Transaction {@code To} is committed ({@code To = [bo,co)})
- * 5. Populate Transaction is created and committed.
- *
+ *<ol>
+ * <li>{@code Tp} created ({@code Tp = [bp,...)}).</li>
+ * <li>Create transaction {@code Tc} is created ({@code Tc = [bc,...), Tc.parent = Tp})</li>
+ * <li>Create transaction {@code Tc} is committed ({@code Tc = [bc,cc)})</li>
+ * <li>Independent Transaction {@code To = [bo,...)} is created such that {@code cc < bo}</li>
+ * <li>Independent Transaction {@code To} is committed ({@code To = [bo,co)})</li>
+ * <li>Populate Transaction is created and committed.</li>
+ *</ol>
  * In this scenario, the independent transaction was created <em>after</em> the create transaction
  * was committed--therefore, we should be able to make the guarantee that the write pipeline interceptor
  * will catch the write and transform it directly; as a result, the populate task <em>cannot</em> see this write.

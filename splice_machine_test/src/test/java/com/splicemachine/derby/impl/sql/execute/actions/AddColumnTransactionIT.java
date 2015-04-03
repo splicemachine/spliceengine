@@ -26,6 +26,8 @@ public class AddColumnTransactionIT {
     public static final SpliceTableWatcher beforeTable = new SpliceTableWatcher("C",schemaWatcher.schemaName,"(a int, b int)");
     public static final SpliceTableWatcher afterTable = new SpliceTableWatcher("D",schemaWatcher.schemaName,"(a int, b int)");
     public static final SpliceTableWatcher addedTable = new SpliceTableWatcher("E",schemaWatcher.schemaName,"(a int, b int)");
+    public static final SpliceTableWatcher addedTable2 = new SpliceTableWatcher("F",schemaWatcher.schemaName,"(a int, b int)");
+    public static final SpliceTableWatcher addedTable3 = new SpliceTableWatcher("G",schemaWatcher.schemaName,"(a int, b int)");
 
     public static final SpliceWatcher classWatcher = new SpliceWatcher();
 
@@ -37,7 +39,9 @@ public class AddColumnTransactionIT {
             .around(commitTable)
             .around(beforeTable)
             .around(afterTable)
-            .around(addedTable);
+            .around(addedTable)
+            .around(addedTable2)
+            .around(addedTable3);
 
     private static TestConnection conn1;
     private static TestConnection conn2;
@@ -184,7 +188,6 @@ public class AddColumnTransactionIT {
     }
 
     @Test
-    @Ignore("Ignored until DB-1755 is resolved")
     public void testAddColumnCannotProceedWithOpenDMLOperations() throws Exception {
         TestConnection a;
         TestConnection b;
@@ -198,11 +201,11 @@ public class AddColumnTransactionIT {
 
         int aInt = 7;
         int bInt = 7;
-        PreparedStatement ps = b.prepareStatement("insert into "+addedTable+" (a,b) values (?,?)");
+        PreparedStatement ps = b.prepareStatement("insert into "+addedTable3+" (a,b) values (?,?)");
         ps.setInt(1,aInt);ps.setInt(2,bInt); ps.execute();
 
         try{
-            a.createStatement().execute("alter table "+ addedTable+" add column f int with default 2");
+            a.createStatement().execute("alter table "+ addedTable3+" add column c int with default 2");
             Assert.fail("Did not catch an exception!");
         }catch(SQLException se){
             System.out.printf("%s:%s%n",se.getSQLState(),se.getMessage());
@@ -211,7 +214,6 @@ public class AddColumnTransactionIT {
     }
 
     @Test
-    @Ignore("Ignored until DB-1755 is resolved")
     public void testAddColumnAfterInsertionIsCorrect() throws Exception {
         TestConnection a;
         TestConnection b;
@@ -229,7 +231,7 @@ public class AddColumnTransactionIT {
         ps.setInt(1,aInt);ps.setInt(2,bInt); ps.execute();
         b.commit();
 
-        a.createStatement().execute("alter table "+ addedTable+" add column f int with default 2");
+        a.createStatement().execute("alter table "+ addedTable+" add column f int not null with default 2");
         a.commit();
 
         ResultSet rs = a.query("select * from "+ addedTable+" where a = "+ aInt);
@@ -244,7 +246,6 @@ public class AddColumnTransactionIT {
     }
 
     @Test
-    @Ignore("Ignored until DB-1755 is resolved")
     public void testAddColumnBeforeInsertionIsCorrect() throws Exception {
         TestConnection a;
         TestConnection b;
@@ -260,14 +261,14 @@ public class AddColumnTransactionIT {
         int bInt = 10;
 
         //alter the table
-        a.createStatement().execute("alter table "+ addedTable+" add column f int with default 2");
+        a.createStatement().execute("alter table " + addedTable2 + " add column f int not null default 2");
         //now insert some data
-        PreparedStatement ps = b.prepareStatement("insert into "+addedTable+" (a,b) values (?,?)");
+        PreparedStatement ps = b.prepareStatement("insert into "+addedTable2+" (a,b) values (?,?)");
         ps.setInt(1,aInt);ps.setInt(2,bInt); ps.execute();
         b.commit();
 
         a.commit();
-        ResultSet rs = a.query("select * from "+ addedTable+" where a = "+ aInt);
+        ResultSet rs = a.query("select * from "+ addedTable2+" where a = "+ aInt);
         int count=0;
         while(rs.next()){
             int f = rs.getInt("F");

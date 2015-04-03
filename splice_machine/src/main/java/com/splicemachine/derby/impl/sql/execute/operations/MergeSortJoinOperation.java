@@ -430,7 +430,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         };
         joinRows.open();
         return new Joiner(joinRows, mergedRow, mergeRestriction, outer, wasRightOuterJoin, leftNumCols, rightNumCols,
-                             oneRowRightSide, notExistsRightSide, emptyRowSupplier,spliceRuntimeContext);
+                             oneRowRightSide, notExistsRightSide, true, emptyRowSupplier,spliceRuntimeContext);
     }
 
     private ResultMergeScanner getMergeScanner(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
@@ -514,7 +514,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
             joiner.open();
             ExecRow row;
             while ((row = joiner.nextRow(context)) != null) {
-                results.add(row.getClone());
+                results.add(row);
             }
             return results;
         }
@@ -531,7 +531,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
                 }
             };
             return new Joiner(joinRows, op.mergedRow, mergeRestriction, outer, op.wasRightOuterJoin, op.leftNumCols, op.rightNumCols,
-                    op.oneRowRightSide, op.notExistsRightSide, emptyRowSupplier, new SpliceRuntimeContext());
+                    op.oneRowRightSide, op.notExistsRightSide, false, emptyRowSupplier, new SpliceRuntimeContext());
         }
 
         @Override
