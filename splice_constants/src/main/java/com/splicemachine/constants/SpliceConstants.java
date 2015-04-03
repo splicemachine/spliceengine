@@ -557,7 +557,6 @@ public class SpliceConstants {
     @DefaultValue(HASHNLJ_RIGHTHASHTABLE_SIZE) public static final int DEFAULT_HASHNLJ_RIGHTHASHTABLE_SIZE = 1024;
     public static int hashNLJRightHashTableSize;
 
-<<<<<<< HEAD
     /**
      * Threshold in megabytes for the broadcast join region size.
      *
@@ -565,14 +564,6 @@ public class SpliceConstants {
     @Parameter private static final String BROADCAST_REGION_MB_THRESHOLD = "splice.optimizer.broadcastRegionMBThreshold";
     @DefaultValue(BROADCAST_REGION_MB_THRESHOLD) public static final int DEFAULT_BROADCAST_REGION_MB_THRESHOLD = (int) (Runtime.getRuntime().maxMemory() / (1024l * 1024l * 100l));
     public static int broadcastRegionMBThreshold;
-=======
-		/**
-		 * For logging sql statements.  This is off by default. Turning on will hurt you in the case of an OLTP workload.
-		 */
-		@Parameter private static final String DEBUG_LOG_STATEMENT_CONTEXT = "splice.debug.logStatementContext";
-		@DefaultValue(DEBUG_DUMP_CLASS_FILE) public static final boolean DEFAULT_LOG_STATEMENT_CONTEXT=false;
-		public static boolean logStatementContext;
->>>>>>> master
 
     /**
      * Estimate of the number of rows in a region.
@@ -762,12 +753,8 @@ public class SpliceConstants {
     @Parameter private static final String INDEX_BATCH_SIZE = "splice.index.batchSize";
     @DefaultValue(INDEX_BATCH_SIZE) public static final int DEFAULT_INDEX_BATCH_SIZE=4000;
     public static int indexBatchSize;
-		/**
-		 * For logging sql statements.  This is off by default. Turning on will hurt you in the case of an OLTP workload.
-		 */
-		@Parameter private static final String DEBUG_LOG_STATEMENT_CONTEXT = "splice.debug.logStatementContext";
-		@DefaultValue(DEBUG_DUMP_CLASS_FILE) public static final boolean DEFAULT_LOG_STATEMENT_CONTEXT=false;
-		public static boolean logStatementContext;
+
+
 
     /**
      * The number of concurrent bulk fetches a single index operation can initiate

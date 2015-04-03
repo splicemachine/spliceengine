@@ -152,10 +152,10 @@ public class PopulateConglomerateTask extends ZkTask {
         scan.setStopRow(scanStop);
         scan.setCacheBlocks(false);
 
-        TransactionalRegion transactionalRegion = TransactionalRegions.get(region);
-        TxnFilter txnFilter = transactionalRegion.unpackedFilter(new DDLTxnView(getTxn(), this.demarcationTimestamp));
-        transactionalRegion.discard();
-        scan.setFilter(new SIFilter(txnFilter));
+        try(TransactionalRegion transactionalRegion = TransactionalRegions.get(region)){
+            TxnFilter txnFilter=transactionalRegion.unpackedFilter(new DDLTxnView(getTxn(),this.demarcationTimestamp));
+            scan.setFilter(new SIFilter(txnFilter));
+        }
 
         RegionScanner regionScanner = region.getScanner(scan);
 
