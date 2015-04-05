@@ -289,7 +289,7 @@ public class BackupSystemProcedures {
                 throw StandardException.newException("Invalid backup type.");
             }
 
-            if (hour <= 0) {
+            if (hour < 0) {
                 throw StandardException.newException("Hour must be greater than 0.");
             }
 
@@ -546,17 +546,25 @@ public class BackupSystemProcedures {
     }
 
     private static long getInitialDelay(int hour) {
-        Calendar calendar = Calendar.getInstance(TimeZone.getTimeZone("GMT"));
+        Calendar calendar = Calendar.getInstance();
         Date date = calendar.getTime();
+        int timeZoneOffset = calendar.get(Calendar.ZONE_OFFSET) / (60 * 60 * 1000);
+        int dstOffset = calendar.get(Calendar.DST_OFFSET) / (60 * 60 * 1000);
+        int adjustedHour = hour + timeZoneOffset +dstOffset;
+        if (adjustedHour < 0) {
+            adjustedHour += 24;
+        }
         Calendar nextCalendar = (Calendar) calendar.clone();
-        nextCalendar.set(Calendar.HOUR, hour);
+        nextCalendar.set(Calendar.HOUR_OF_DAY, adjustedHour);
         nextCalendar.set(Calendar.MINUTE, 0);
         nextCalendar.set(Calendar.SECOND, 0);
         nextCalendar.set(Calendar.MILLISECOND, 0);
+
         if (nextCalendar.before(calendar)) {
             int day = nextCalendar.get(Calendar.DAY_OF_MONTH);
             nextCalendar.set(Calendar.DAY_OF_MONTH, day+1);
         }
+
         Date nextDate = nextCalendar.getTime();
         return (nextDate.getTime() - date.getTime());
     }
