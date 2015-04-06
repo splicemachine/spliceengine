@@ -50,7 +50,6 @@ import com.splicemachine.db.iapi.store.access.ConglomerateController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.IdUtil;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.impl.sql.compile.CollectNodesVisitor;
@@ -302,7 +301,6 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         compressHeapCC.close();
 
         // calculate column order for new table
-        ExecRow emptyHeapRow  = oldTableDescriptor.getEmptyExecRow();
         TxnView parentTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
         int[] oldColumnOrder = DataDictionaryUtils.getColumnOrdering(parentTxn, tableId);
         boolean newColumnHasConstraint = columnHasIndexableConstraint(colInfo.name, constraintActions);
@@ -322,6 +320,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         }
 
         // Create a new table -- use createConglomerate() to avoid confusing calls to createAndLoad()
+        ExecRow emptyHeapRow  = oldTableDescriptor.getEmptyExecRow();
         int[]   collation_ids = oldTableDescriptor.getColumnCollationIds();
         long newCongNum = tc.createConglomerate("heap", emptyHeapRow.getRowArray(),
                                                 newColumnOrdering, collation_ids,
@@ -397,11 +396,12 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
             throw Exceptions.parseException(e);
         }
         String tableVersion = DataDictionaryUtils.getTableVersion(lcc, tableId);
+        int[] columnOrdering = DataDictionaryUtils.getColumnOrdering(parentTxn, tableId);
         ColumnInfo[] newColumnInfo = DataDictionaryUtils.getColumnInfo(oldTableDescriptor);
         TentativeAddColumnDesc interceptColumnDesc = new TentativeAddColumnDesc(tableVersion,
                                                                                 newCongNum,
                                                                                 oldCongNum,
-                                                                                oldColumnOrder,
+                                                                                columnOrdering,
                                                                                 newColumnInfo);
 
         DDLChange ddlChange = new DDLChange(tentativeTransaction, DDLChangeType.ADD_COLUMN);
