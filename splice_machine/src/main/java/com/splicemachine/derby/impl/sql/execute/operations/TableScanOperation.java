@@ -60,10 +60,8 @@ import java.util.Properties;
 public class TableScanOperation extends ScanOperation {
         protected static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
 		private static final long serialVersionUID = 3l;
-
 		private static Logger LOG = Logger.getLogger(TableScanOperation.class);
 		private static List<NodeType> NODE_TYPES = Arrays.asList(NodeType.MAP,NodeType.SCAN);
-
 		protected int indexColItem;
 		public String userSuppliedOptimizerOverrides;
 		public int rowsPerRead;
@@ -72,13 +70,10 @@ public class TableScanOperation extends ScanOperation {
 		public String startPositionString;
 		public String stopPositionString;
 		public ByteSlice slice;
-
-
 		private int[] baseColumnMap;
-
 		private SITableScanner tableScanner;
-		
 	    protected static final String NAME = TableScanOperation.class.getSimpleName().replaceAll("Operation","");
+        protected byte[] tableNameBytes;
 
 		@Override
 		public String getName() {
@@ -128,8 +123,8 @@ public class TableScanOperation extends ScanOperation {
 				this.isConstraint = isConstraint;
 				this.rowsPerRead = rowsPerRead;
 				this.tableName = Long.toString(scanInformation.getConglomerateId());
+                this.tableNameBytes = Bytes.toBytes(this.tableName);
 				this.indexColItem = indexColItem;
-				
 				this.indexName = indexName;
 				runTimeStatisticsOn = operationInformation.isRuntimeStatisticsEnabled();
 				if (LOG.isTraceEnabled())
@@ -146,6 +141,7 @@ public class TableScanOperation extends ScanOperation {
     public void readExternal(ObjectInput in) throws IOException,ClassNotFoundException {
         super.readExternal(in);
         tableName = in.readUTF();
+        tableNameBytes = Bytes.toBytes(tableName);
         indexColItem = in.readInt();
         if(in.readBoolean())
             indexName = in.readUTF();
@@ -206,7 +202,7 @@ public class TableScanOperation extends ScanOperation {
 
 				SpliceUtils.setInstructions(scan, activation, top,spliceRuntimeContext);
 //				ClientScanProvider provider = new ClientScanProvider("tableScan",Bytes.toBytes(tableName),scan,decoder,spliceRuntimeContext);
-        AsyncClientScanProvider provider = new AsyncClientScanProvider("tableScan",Bytes.toBytes(tableName),scan,decoder,spliceRuntimeContext);
+        AsyncClientScanProvider provider = new AsyncClientScanProvider("tableScan",tableNameBytes,scan,decoder,spliceRuntimeContext);
 				nextTime += System.currentTimeMillis() - beginTime;
 				return provider;
 		}
