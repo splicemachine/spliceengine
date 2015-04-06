@@ -289,10 +289,7 @@ public class FromBaseTable extends FromTable{
                     }
 
 					/* We should always find a match */
-                    if(SanityManager.DEBUG){
-                        SanityManager.ASSERT(currentConglomerateDescriptor!=null,
-                                "Expected to find match for forced index "+userSpecifiedIndexName);
-                    }
+                    assert currentConglomerateDescriptor!=null:"Expected to find match for forced index "+userSpecifiedIndexName;
                 }
 
                 if(!super.nextAccessPath(optimizer,predList,rowOrdering)){
@@ -345,9 +342,9 @@ public class FromBaseTable extends FromTable{
             tracer.trace(OptimizerFlag.CONSIDERING_CONGLOMERATE,tableNumber,0,0.0,currentConglomerateDescriptor);
         }
 
-		    /*
-		     ** Tell the rowOrdering that what the ordering of this conglomerate is
-		     */
+		/*
+		 * Tell the rowOrdering that what the ordering of this conglomerate is
+		 */
         IndexRowGenerator irg=null;
         if(currentConglomerateDescriptor!=null){
             if(currentConglomerateDescriptor.isIndex()){ // Index
@@ -545,6 +542,7 @@ public class FromBaseTable extends FromTable{
                     throw StandardException.newException(SQLState.LANG_BOTH_FORCE_INDEX_AND_CONSTRAINT_SPECIFIED,
                             getBaseTableName());
                 }
+                indexSpecified=true;
 
 		        /* Validate index name - NULL means table scan */
                 if(!StringUtil.SQLToUpperCase(value).equals("NULL")){
@@ -565,13 +563,11 @@ public class FromBaseTable extends FromTable{
 
                     // Throw exception if user specified index not found
                     if(cd==null){
-                        throw StandardException.newException(SQLState.LANG_INVALID_FORCED_INDEX1,
-                                value,getBaseTableName());
+                        throw StandardException.newException(SQLState.LANG_INVALID_FORCED_INDEX1, value,getBaseTableName());
                     }
 					              /* Query is dependent on the ConglomerateDescriptor */
                     getCompilerContext().createDependency(cd);
                 }
-                break;
             } else if(key.equals("constraint")){
                 // User only allowed to specify 1 of index and constraint, not both
                 if(indexSpecified){
@@ -600,8 +596,7 @@ public class FromBaseTable extends FromTable{
 
                 // verify that the specified value is valid
                 if(initialCapacity<=0){
-                    throw StandardException.newException(SQLState.LANG_INVALID_HASH_INITIAL_CAPACITY,
-                            String.valueOf(initialCapacity));
+                    throw StandardException.newException(SQLState.LANG_INVALID_HASH_INITIAL_CAPACITY,String.valueOf(initialCapacity));
                 }
             }else if(key.equals("hashLoadFactor")){
                 try{
@@ -1186,7 +1181,7 @@ public class FromBaseTable extends FromTable{
 	         ** the total row count and singleScanRowCount.
 	         */
             if(extraFirstColumnSelectivity!=1.0d){
-                tracer.trace(OptimizerFlag.COST_INCLUDING_EXTRA_1ST_COL_SELECTIVITY,tableNumber,0,0.0,costEstimate);
+                tracer.trace(OptimizerFlag.COST_INCLUDING_EXTRA_1ST_COL_SELECTIVITY,tableNumber,0,0d,costEstimate);
             }
 
 	        /* Factor in the extra start/stop selectivity (see comment above).
@@ -1194,7 +1189,7 @@ public class FromBaseTable extends FromTable{
 	         * the row count and singleScanRowCount.
 	         */
             if(extraStartStopSelectivity!=1.0d){
-                tracer.trace(OptimizerFlag.COST_INCLUDING_EXTRA_START_STOP,tableNumber,0,0.0,costEstimate);
+                tracer.trace(OptimizerFlag.COST_INCLUDING_EXTRA_START_STOP,tableNumber,0,0d,costEstimate);
             }
 
             singleScanRowCount=costEstimate.singleScanRowCount();
@@ -1203,7 +1198,7 @@ public class FromBaseTable extends FromTable{
 //        currentJoinStrategy.rightResultSetCostEstimate(baseTableRestrictionList,outerCost,costEstimate);
 
         tracer.trace(OptimizerFlag.COST_OF_CONGLOMERATE_SCAN1,tableNumber,0,0.0,cd);
-        tracer.trace(OptimizerFlag.COST_OF_CONGLOMERATE_SCAN2,tableNumber,0,0.0,costEstimate);
+        tracer.trace(OptimizerFlag.COST_OF_CONGLOMERATE_SCAN2,tableNumber,0,0d,costEstimate);
 
 
 		/* If the start and stop key came from an IN-list "probe predicate"
@@ -1250,7 +1245,7 @@ public class FromBaseTable extends FromTable{
                 }
             }
             scc.getFetchFromRowLocationCost(heapCols,0,costEstimate);
-            tracer.trace(OptimizerFlag.COST_OF_NONCOVERING_INDEX,tableNumber,0,0.0,costEstimate);
+            tracer.trace(OptimizerFlag.COST_OF_NONCOVERING_INDEX,tableNumber,0,0d,costEstimate);
         }
         costEstimate.setSingleScanRowCount(singleScanRowCount);
 
@@ -3358,7 +3353,7 @@ public class FromBaseTable extends FromTable{
      * @param distinctColumns the set of distinct columns
      * @return Whether or not it is possible to do a distinct scan on this ResultSet tree.
      */
-    boolean isPossibleDistinctScan(Set distinctColumns){
+    boolean isPossibleDistinctScan(Set<BaseColumnNode> distinctColumns){
         if((restrictionList!=null && restrictionList.size()!=0)){
             return false;
         }

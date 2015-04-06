@@ -57,8 +57,7 @@ public interface Optimizable {
 	 */
 	boolean nextAccessPath(Optimizer optimizer,
 							OptimizablePredicateList predList,
-							RowOrdering rowOrdering)
-			throws StandardException;
+							RowOrdering rowOrdering) throws StandardException;
 
 	/**
 	 * Choose the best access path for this Optimizable.
@@ -74,12 +73,10 @@ public interface Optimizable {
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	CostEstimate optimizeIt(
-					Optimizer optimizer,
-					OptimizablePredicateList predList,
-					CostEstimate outerCost,
-					RowOrdering rowOrdering)
-				throws StandardException;
+	CostEstimate optimizeIt(Optimizer optimizer,
+							 OptimizablePredicateList predList,
+							 CostEstimate outerCost,
+							 RowOrdering rowOrdering) throws StandardException;
 
 	/**
 	 * Get the current access path under consideration for this Optimizable
@@ -142,8 +139,7 @@ public interface Optimizable {
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	boolean pushOptPredicate(OptimizablePredicate optimizablePredicate)
-			throws StandardException;
+	boolean pushOptPredicate(OptimizablePredicate optimizablePredicate) throws StandardException;
 
 	/**
 	 * Pull all the OptimizablePredicates from this Optimizable and put them
@@ -154,8 +150,7 @@ public interface Optimizable {
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	void pullOptPredicates(OptimizablePredicateList optimizablePredicates)
-			throws StandardException;
+	void pullOptPredicates(OptimizablePredicateList optimizablePredicates) throws StandardException;
 
 	/**
 	 * Modify the access path for this Optimizable, as necessary.  This includes
@@ -180,21 +175,21 @@ public interface Optimizable {
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public boolean isCoveringIndex(ConglomerateDescriptor cd) throws StandardException;
+	boolean isCoveringIndex(ConglomerateDescriptor cd) throws StandardException;
 
 	/**
 	 * Get the Properties list, if any, associated with this optimizable.
 	 *
 	 * @return The Properties list, if any, associated with this optimizable.
 	 */
-	public Properties getProperties();
+	Properties getProperties();
 
 	/**
 	 * Set the Properties list for this optimizalbe.
 	 *
 	 * @param tableProperties The Properties list for this optimizable.
 	 */
-	public void setProperties(Properties tableProperties);
+	void setProperties(Properties tableProperties);
 
 	/** 
 	 * Verify that the Properties list with optimizer overrides, if specified, is valid
@@ -203,7 +198,7 @@ public interface Optimizable {
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public void verifyProperties(DataDictionary dDictionary) throws StandardException;
+	void verifyProperties(DataDictionary dDictionary) throws StandardException;
 
 	/**
 	 * Get the (exposed) name of this Optimizable
@@ -211,14 +206,14 @@ public interface Optimizable {
 	 * @return	The name of this Optimizable.
 	 * @exception StandardException		Thrown on error
 	 */
-	public String getName() throws StandardException;
+	String getName() throws StandardException;
 
 	/**
 	 * Get the table name of this Optimizable.  Only base tables have
 	 * table names (by the time we use this method, all views will have
 	 * been resolved).
 	 */
-	public String getBaseTableName();
+	String getBaseTableName();
 
 	/** 
 	 *  Convert an absolute to a relative 0-based column position.
@@ -229,7 +224,7 @@ public interface Optimizable {
 	 *
 	 *  @return The relative 0-based column position for the column.
 	 */
-	public int convertAbsoluteToRelativeColumnPosition(int absolutePosition);
+	int convertAbsoluteToRelativeColumnPosition(int absolutePosition);
 
 	/**
 	 * When remembering "truly the best" access path for an Optimizable, we
@@ -273,8 +268,7 @@ public interface Optimizable {
 	 *
 	 * @exception StandardException thrown on error.
 	 */
-	public void rememberAsBest(int planType, Optimizer optimizer)
-		throws StandardException;
+	void rememberAsBest(int planType,Optimizer optimizer) throws StandardException;
 
 	/**
 	 * Begin the optimization process for this Optimizable.  This can be
@@ -282,7 +276,7 @@ public interface Optimizable {
 	 * it will typically be called every time the Optimizable is placed
 	 * in a potential join order.
 	 */
-	public void startOptimizing(Optimizer optimizer, RowOrdering rowOrdering);
+	void startOptimizing(Optimizer optimizer,RowOrdering rowOrdering);
 
 	/**
 	 * Estimate the cost of scanning this Optimizable using the given
@@ -336,19 +330,19 @@ public interface Optimizable {
 	boolean hasTableNumber();
 
 	/** Return true if this is the target table of an update */
-	public boolean forUpdate();
+	boolean forUpdate();
 
 	/** Return the initial capacity of the hash table, for hash join strategy */
-	public int initialCapacity();
+	int initialCapacity();
 
 	/** Return the load factor of the hash table, for hash join strategy */
-	public float loadFactor();
+	float loadFactor();
 
 	/** Return the hash key column numbers, for hash join strategy */
-	public int[] hashKeyColumns();
+	int[] hashKeyColumns();
 
 	/** Set the hash key column numbers, for hash join strategy */
-	public void setHashKeyColumns(int[] columnNumbers);
+	void setHashKeyColumns(int[] columnNumbers);
 
 	/**
 	 * Is the current proposed join strategy for this optimizable feasible
@@ -374,8 +368,7 @@ public interface Optimizable {
      *
      * @exception StandardException standard error policy
      */
-    public boolean memoryUsageOK( double rowCount, int maxMemoryPerTable)
-			throws StandardException;
+	boolean memoryUsageOK(double rowCount,int maxMemoryPerTable) throws StandardException;
 
 	/**
      * Return the maximum capacity of the hash table, for hash join strategy
@@ -385,7 +378,7 @@ public interface Optimizable {
      *
      * @exception StandardException Standard error policy
      */
-	public int maxCapacity( JoinStrategy joinStrategy, int maxMemoryPerTable) throws StandardException;
+	int maxCapacity(JoinStrategy joinStrategy,int maxMemoryPerTable) throws StandardException;
 
 	/**
 	 * Can this Optimizable appear at the current location in the join order.
@@ -395,7 +388,7 @@ public interface Optimizable {
 	 *
 	 * @return	Where or not this Optimizable can appear at the current location in the join order.
 	 */
-	public boolean legalJoinOrder(JBitSet assignedTableMap);
+	boolean legalJoinOrder(JBitSet assignedTableMap);
 
 	/**
 	 * Get the DataDictionary from this Optimizable.  This is useful for code generation
@@ -406,21 +399,21 @@ public interface Optimizable {
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public DataDictionary getDataDictionary() throws StandardException;
+	DataDictionary getDataDictionary() throws StandardException;
 
 	/**
 	 * Is the optimizable the target table of an update or delete?
 	 *
 	 * @return Whether or not the optimizable the target table of an update or delete.
 	 */
-	public boolean isTargetTable();
+	boolean isTargetTable();
 
 	/**
 	 * Get the number of the number of columns returned by this Optimizable.
 	 *
 	 * @return The number of the number of columns returned by this Optimizable.
 	 */
-	public int getNumColumnsReturned();
+	int getNumColumnsReturned();
 
 	/**
 	 * Will the optimizable return at most 1 row per scan?
@@ -429,14 +422,14 @@ public interface Optimizable {
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public boolean isOneRowScan() throws StandardException;
+	boolean isOneRowScan() throws StandardException;
 
 	/**
 	 * Init the access paths for this optimizable.
 	 *
 	 * @param optimizer The optimizer being used.
 	 */
-	public void initAccessPaths(Optimizer optimizer);
+	void initAccessPaths(Optimizer optimizer);
 
 	/**
 	 * Does this optimizable have a uniqueness condition on the
@@ -451,6 +444,5 @@ public interface Optimizable {
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	public double uniqueJoin(OptimizablePredicateList predList)
-								throws StandardException;
+	double uniqueJoin(OptimizablePredicateList predList) throws StandardException;
 }

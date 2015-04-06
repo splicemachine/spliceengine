@@ -58,7 +58,7 @@ public class Level2OptimizerTrace implements OptimizerTrace{
                 traceString="Short circuiting based on "+basis+" at join position "+optimizer.joinPosition;
                 break;
             case SKIPPING_JOIN_ORDER:
-                traceString=buildJoinOrder("\n\nSkipping join order: ",true,intParam1,optimizer.proposedJoinOrder);
+                traceString=buildJoinOrder("Skipping join order: ",true,intParam1,optimizer.proposedJoinOrder);
                 break;
             case ILLEGAL_USER_JOIN_ORDER:
                 traceString="User specified join order is not legal.";
@@ -67,7 +67,7 @@ public class Level2OptimizerTrace implements OptimizerTrace{
                 traceString="User-specified join order has now been optimized.";
                 break;
             case CONSIDERING_JOIN_ORDER:
-                traceString=buildJoinOrder("\n\nConsidering join order: ",false,intParam1,optimizer.proposedJoinOrder);
+                traceString=buildJoinOrder("Considering join order: ",false,intParam1,optimizer.proposedJoinOrder);
                 break;
             case TOTAL_COST_NON_SA_PLAN:
                 traceString="Total cost of non-sort-avoidance plan is "+optimizer.currentCost;
@@ -96,7 +96,7 @@ public class Level2OptimizerTrace implements OptimizerTrace{
                         "\n\tRow ordering: "+optimizer.requiredRowOrdering;
                 break;
             case REMEMBERING_BEST_JOIN_ORDER:
-                traceString=buildJoinOrder("\n\nRemembering join order as best: ",false,intParam1,optimizer.bestJoinOrder);
+                traceString=buildJoinOrder("Remembering join order as best: ",false,intParam1,optimizer.bestJoinOrder);
                 break;
             case SKIPPING_DUE_TO_EXCESS_MEMORY:
                 traceString="Skipping access path due to excess memory usage, maximum is "+optimizer.maxMemoryPerTable;
@@ -122,7 +122,7 @@ public class Level2OptimizerTrace implements OptimizerTrace{
                 break;
             case CONSIDERING_JOIN_STRATEGY:
                 JoinStrategy js=(JoinStrategy)objectParam1;
-                traceString="\nConsidering join strategy "+js+" for table "+intParam1;
+                traceString="Considering join strategy "+js+" for table "+intParam1;
                 break;
             case REMEMBERING_BEST_ACCESS_PATH:
                 traceString="Remembering access path "+objectParam1+
@@ -202,7 +202,7 @@ public class Level2OptimizerTrace implements OptimizerTrace{
                         costForTable(objectParam1,intParam1);
                 break;
             case REMEMBERING_JOIN_STRATEGY:
-                traceString="\nRemembering join strategy "+objectParam1+" as best for table "+intParam1;
+                traceString="Remembering join strategy "+objectParam1+" as best for table "+intParam1;
                 break;
             case REMEMBERING_BEST_ACCESS_PATH_SUBSTRING:
                 traceString="in best access path";
@@ -255,6 +255,10 @@ public class Level2OptimizerTrace implements OptimizerTrace{
                 throw new IllegalStateException("Unexpected Trace flag: "+ flag);
         }
         assert traceString!=null: "TraceString expected to be non-null";
+        trace(traceString);
+    }
+
+    protected void trace(String traceString){
         lcc.appendOptimizerTraceOutput(traceString+"\n");
     }
 

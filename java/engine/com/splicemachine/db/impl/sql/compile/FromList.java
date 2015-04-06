@@ -758,7 +758,7 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
 
         if(SanityManager.DEBUG){
             if(joinOrder.length!=size()){
-                SanityManager.THROWASSERT("In reOrder(), size of FromList is "+size()+" while size of joinOrder array is "+joinOrder.length);
+                SanityManager.THROWASSERT("In reOrder(), FromList.size()=="+size()+",but joinOrder.length=="+joinOrder.length);
             }
 
 			/*
@@ -768,16 +768,14 @@ public class FromList extends QueryTreeNodeVector<QueryTreeNode> implements Opti
 			** for that array size.
 			*/
             int sum=0;
+            int joLength=joinOrder.length-1;
             for(int i=0;i<joinOrder.length;i++){
-                if(joinOrder[i]<0 || joinOrder[i]>(joinOrder.length-1)){
-                    SanityManager.THROWASSERT("joinOrder["+i+"] == "+
-                            joinOrder[i]+
-                            " is out of range - must be between 0 and "+
-                            (joinOrder.length-1)+
-                            " inclusive.");
+                int jo=joinOrder[i];
+                if(jo<0 || jo>joLength){
+                    SanityManager.THROWASSERT(String.format("joinOrder[%d]==%d is out of range[0,%d]",i,jo,joLength));
                 }
 
-                sum+=joinOrder[i];
+                sum+=jo;
             }
 
 			/*

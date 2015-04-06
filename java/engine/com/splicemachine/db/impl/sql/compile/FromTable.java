@@ -35,10 +35,7 @@ import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.impl.sql.execute.HashScanResultSet;
 
-import java.util.Enumeration;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 
 /**
  * A FromTable represents a table in the FROM clause of a DML statement.
@@ -91,7 +88,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
      * idea of what this Optimizable's "best access path" is, so we have to
      * keep track of them all.
      */
-    private HashMap bestPlanMap;
+    private Map<Object,AccessPath> bestPlanMap;
 
     /**
      * Operations that can be performed on bestPlanMap.
@@ -270,11 +267,11 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         tracer.trace(OptimizerFlag.REMEMBERING_JOIN_STRATEGY,tableNumber,0,0.0,getCurrentAccessPath().getJoinStrategy());
 
         if(ap==bestAccessPath){
-            tracer.trace(OptimizerFlag.REMEMBERING_BEST_ACCESS_PATH_SUBSTRING, tableNumber,0,0.0,ap);
+            tracer.trace(OptimizerFlag.REMEMBERING_BEST_ACCESS_PATH_SUBSTRING,tableNumber,0,0.0,ap);
         }else if(ap==bestSortAvoidancePath){
-            tracer.trace(OptimizerFlag.REMEMBERING_BEST_SORT_AVOIDANCE_ACCESS_PATH_SUBSTRING, tableNumber,0,0.0,ap);
+            tracer.trace(OptimizerFlag.REMEMBERING_BEST_SORT_AVOIDANCE_ACCESS_PATH_SUBSTRING,tableNumber,0,0.0,ap);
         }else{
-            tracer.trace(OptimizerFlag.REMEMBERING_BEST_UNKNOWN_ACCESS_PATH_SUBSTRING, tableNumber,0,0.0,ap);
+            tracer.trace(OptimizerFlag.REMEMBERING_BEST_UNKNOWN_ACCESS_PATH_SUBSTRING,tableNumber,0,0.0,ap);
         }
     }
 
@@ -403,7 +400,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         }
 
         AccessPath bestPath=getTrulyTheBestAccessPath();
-        AccessPathImpl ap=null;
+        AccessPath ap=null;
         if(action==ADD_PLAN){
             // If we get to this method before ever optimizing this node, then
             // there will be no best path--so there's nothing to do.
@@ -413,9 +410,9 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
             // If the bestPlanMap already exists, search for an
             // AccessPath for the received key and use that if we can.
             if(bestPlanMap==null)
-                bestPlanMap=new HashMap();
+                bestPlanMap=new HashMap<>();
             else
-                ap=(AccessPathImpl)bestPlanMap.get(planKey);
+                ap=bestPlanMap.get(planKey);
 
             // If we don't already have an AccessPath for the key,
             // create a new one.  If the key is an OptimizerImpl then
@@ -443,7 +440,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         if(bestPlanMap==null)
             return;
 
-        ap=(AccessPathImpl)bestPlanMap.get(planKey);
+        ap=bestPlanMap.get(planKey);
 
         // It might be the case that there is no plan stored for
         // the key, in which case there's nothing to load.
@@ -1176,7 +1173,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
      * Tell the given RowOrdering about any columns that are constant
      * due to their being equality comparisons with constant expressions.
      */
-    protected void tellRowOrderingAboutConstantColumns( RowOrdering rowOrdering, OptimizablePredicateList predList){
+    protected void tellRowOrderingAboutConstantColumns(RowOrdering rowOrdering, OptimizablePredicateList predList){
 		/*
 		** Tell the RowOrdering about columns that are equal to constant
 		** expressions.

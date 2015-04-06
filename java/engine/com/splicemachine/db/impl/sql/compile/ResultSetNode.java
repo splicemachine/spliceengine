@@ -1066,23 +1066,17 @@ public abstract class ResultSetNode extends QueryTreeNode{
      *
      * @throws StandardException Thrown on error
      */
-    protected Optimizer getOptimizer(
-            OptimizableList optList,
-            OptimizablePredicateList predList,
-            DataDictionary dataDictionary,
-            RequiredRowOrdering requiredRowOrdering)
-            throws StandardException{
+    protected Optimizer getOptimizer(OptimizableList optList,
+                                     OptimizablePredicateList predList,
+                                     DataDictionary dataDictionary,
+                                     RequiredRowOrdering requiredRowOrdering) throws StandardException{
         if(optimizer==null){
 			/* Get an optimizer. */
-            OptimizerFactory optimizerFactory=getLanguageConnectionContext().getOptimizerFactory();
+            LanguageConnectionContext lcc=getLanguageConnectionContext();
+            OptimizerFactory optimizerFactory=lcc.getOptimizerFactory();
 
-            optimizer=optimizerFactory.getOptimizer(
-                    optList,
-                    predList,
-                    dataDictionary,
-                    requiredRowOrdering,
-                    getCompilerContext().getNumTables(),
-                    getLanguageConnectionContext());
+            int numTables=getCompilerContext().getNumTables();
+            optimizer=optimizerFactory.getOptimizer(optList,predList,dataDictionary,requiredRowOrdering,numTables,lcc);
         }
 
         optimizer.prepForNextRound();
@@ -1425,7 +1419,7 @@ public abstract class ResultSetNode extends QueryTreeNode{
      * @param distinctColumns the set of distinct columns
      * @return Whether or not it is possible to do a distinct scan on this ResultSet tree.
      */
-    boolean isPossibleDistinctScan(Set distinctColumns){
+    boolean isPossibleDistinctScan(Set<BaseColumnNode> distinctColumns){
         return false;
     }
 

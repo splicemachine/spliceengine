@@ -102,6 +102,10 @@ public final class JBitSet{
         return true;
     }
 
+    public boolean intersects(JBitSet other){
+        return bitSet.intersects(other.bitSet);
+    }
+
     /**
      * See of a JBitSet has exactly 1 bit set.
      *

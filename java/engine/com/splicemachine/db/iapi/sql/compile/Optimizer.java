@@ -95,16 +95,48 @@ public interface Optimizer{
     int SORT_AVOIDANCE_PLAN=2;
 
     /**
-     * Iterate through the permutations, returning false when the permutations
-     * are exhausted.
-     * NOTE - Implementers are responsible for hiding tree pruning of permutations
-     * behind this method call.
+     * move to the next <em>legal</em> join order in the table.
      *
-     * @return boolean    True - An optimizable permutation remains.
-     * False - Permutations are exhausted.
+     * Making sense of this call relies on understanding the performance implications
+     * of joining multiple tables together. To do this, we start with an example:
+     *
+     * Suppose we have three tables {@code A},{@code B},and {@code C}. {@code A} has
+     * 1 millions rows, {@code B} has 500,000 rows, and {@code C} has 100,000 rows. Now
+     * suppose we are performing something like {@code A inner join B inner join C}, where {@code A join B}
+     * will output 500K rows, and {@code B join C} will output 50K.
+     *
+     * We have two choices of the order of operations: {@code A join B join C} or {@code C join B join A}. If
+     * we choose the first case, we will first generate an intermediate data set of {@code A join B} = 500K rows,
+     * then we will filter that result set down to 50K when we perform the {@code B join C} component.
+     *
+     * Alternatively, we could perform the {@code C join B} component first, which will generate only 50K intermediate
+     * rows. Applying the join with {@code A }afterwards, we generate {@code C join B join A} which will stll output
+     * 50K rows. All things being equal, we would expect the second to be much faster (since it won't move as
+     * much data around).
+     *
+     * Of course, all things are not equal--it may be that the access path of one table (index choice) forces
+     * or allows different join strategies to be applied. Thus, in order to choose our best overall query
+     * plan, we'll need to try different join orders.
+     *
+     * This method is responsible for generating the next join order. When all join orders are exhausted (or
+     * some other consideration is taken into account), this method will return false, which indicates that no
+     * more join strategies can be considered.
+     *
+     * Some Notes:
+     *
+     * 1. Not all Join permutations are legal (for example, if you are using a column which is generated
+     * from the joined output results of something else as a join clause later). Implementations of this method
+     * need to ensure that only <em>legal</em> join orders are allowed when called.
+     *
+     * 2. The method signature necessarily implies state--It is necessary for the underlying implementation
+     * to store all relevant information for each permutation of the join order internally, for use within
+     * the next level of optimization.
+     *
+     * @return boolean true  - An optimizable permutation remains.
+     *                 false - Permutations are exhausted.
      * @throws StandardException Thrown on error
      */
-    boolean getNextPermutation() throws StandardException;
+    boolean nextJoinOrder() throws StandardException;
 
     /**
      * Iterate through the "decorated permutations", returning false when they
@@ -112,8 +144,8 @@ public interface Optimizer{
      * NOTE - Implementers are responsible for hiding tree pruning of access
      * methods behind this method call.
      *
-     * @return boolean    True - An optimizable decorated permutation remains.
-     * False - Decorated permutations are exhausted.
+     * @return boolean True - An optimizable decorated permutation remains.
+     *                 False - Decorated permutations are exhausted.
      * @throws StandardException Thrown on error
      */
     boolean getNextDecoratedPermutation() throws StandardException;

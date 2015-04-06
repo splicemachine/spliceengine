@@ -43,7 +43,7 @@ public class OptimizerTrace
 	 *
 	 * @return Whether or not the call was successful.  (false will be returned when optimizer tracing is not supported.)
 	 */
-	public static boolean setOptimizerTrace(boolean onOrOff)
+	public static boolean setOptimizerTrae(boolean onOrOff)
 	{
 		boolean retCode = false;
 

@@ -1203,7 +1203,7 @@ public class SelectNode extends ResultSetNode{
             boolean distinctScanPossible=false;
             if(origFromListSize==1 && !orderByAndDistinctMerged){
                 boolean simpleColumns=true;
-                HashSet<BaseColumnNode> distinctColumns=new HashSet<>();
+                Set<BaseColumnNode> distinctColumns=new HashSet<>();
                 int size=resultColumns.size();
                 for(int i=1;i<=size;i++){
                     BaseColumnNode bc=resultColumns.getResultColumn(i).getBaseColumnNode();
@@ -1392,8 +1392,7 @@ public class SelectNode extends ResultSetNode{
 		/* Optimize any subquerys before optimizing the underlying result set */
 
 		/* selectSubquerys is always allocated at bind() time */
-        if(SanityManager.DEBUG)
-            SanityManager.ASSERT(selectSubquerys!=null, "selectSubquerys is expected to be non-null");
+        assert selectSubquerys != null: "selectSubquerys is expected to be non-null";
 
 		/* If this select node is the child of an outer node that is
 		 * being optimized, we can get here multiple times (once for
@@ -1413,8 +1412,6 @@ public class SelectNode extends ResultSetNode{
                     wherePredicates.removeOptPredicate(i);
             }
         }
-
-		/* Get a new optimizer */
 
 		/* With DERBY-805 we take any optimizable predicates that
 		 * were pushed into this node and we add them to the list of
@@ -1469,11 +1466,13 @@ public class SelectNode extends ResultSetNode{
             // the optimizer will optimize away the sort.
             orderByList.setAlwaysSort();
         }
+
+		/* Get a new optimizer */
         optimizer=getOptimizer(fromList, wherePredicates, dataDictionary, orderByList);
         optimizer.setOuterRows(outerRows);
 
 		/* Optimize this SelectNode */
-        while(optimizer.getNextPermutation()){
+        while(optimizer.nextJoinOrder()){
             while(optimizer.getNextDecoratedPermutation()){
                 optimizer.costPermutation();
             }

@@ -34,9 +34,9 @@ import com.splicemachine.db.iapi.util.JBitSet;
  */
 public interface RequiredRowOrdering
 {
-	static final int SORT_REQUIRED = 1;
-	static final int ELIMINATE_DUPS = 2;
-	static final int NOTHING_REQUIRED = 3;
+	int SORT_REQUIRED = 1;
+	int ELIMINATE_DUPS = 2;
+	int NOTHING_REQUIRED = 3;
 
 	/**
 	 * Tell whether sorting is required for this RequiredRowOrdering,
@@ -57,8 +57,7 @@ public interface RequiredRowOrdering
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	int sortRequired(RowOrdering rowOrdering, OptimizableList optimizableList) 
-	throws StandardException;
+	int sortRequired(RowOrdering rowOrdering, OptimizableList optimizableList)  throws StandardException;
 
 	/**
 	 * Tell whether sorting is required for this RequiredRowOrdering,
@@ -83,9 +82,7 @@ public interface RequiredRowOrdering
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	int sortRequired(RowOrdering rowOrdering, JBitSet tableMap, 
-			OptimizableList optimizableList)
-			throws StandardException;
+	int sortRequired(RowOrdering rowOrdering,JBitSet tableMap,OptimizableList optimizableList) throws StandardException;
 
 	/**
 	 * Estimate the cost of doing a sort for this row ordering, given
@@ -97,9 +94,7 @@ public interface RequiredRowOrdering
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-	void estimateCost(Optimizer optimizer,
-					  RowOrdering rowOrdering,
-					  CostEstimate baseCost) throws StandardException;
+	void estimateCost(Optimizer optimizer, RowOrdering rowOrdering, CostEstimate baseCost) throws StandardException;
 
 	/**
 	 * Indicate that a sort is necessary to fulfill this required ordering.
