@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 import java.sql.Types;
 
+import java.util.List;
 import java.util.Vector;
 
 /**
@@ -78,18 +79,14 @@ public class ExtractOperatorNode extends UnaryOperatorNode {
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-
-	public ValueNode bindExpression(
-		FromList		fromList, 
-		SubqueryList	subqueryList,
-		Vector	aggregateVector)
-			throws StandardException 
-	{
+	@Override
+	public ValueNode bindExpression(FromList fromList,
+									SubqueryList subqueryList,
+									List<AggregateNode> aggregateVector) throws StandardException  {
 		int	operandType;
 		TypeId opTypeId;
 
-		bindOperand(fromList, subqueryList,
-				aggregateVector);
+		bindOperand(fromList, subqueryList, aggregateVector);
 
 		opTypeId = operand.getTypeId();
 		operandType = opTypeId.getJDBCTypeId();

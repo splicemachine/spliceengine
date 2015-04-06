@@ -21,174 +21,154 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
-import com.splicemachine.db.iapi.types.DataValueFactory;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.DateTimeDataValue;
-import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.error.StandardException;
-
-import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
-
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
+import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.DataValueFactory;
+import com.splicemachine.db.iapi.types.DateTimeDataValue;
 
 import java.sql.Types;
-
-import java.util.Vector;
+import java.util.List;
 
 /**
  * This class implements the timestamp( x) and date(x) functions.
- *
+ * <p/>
  * These two functions implement a few special cases of string conversions beyond the normal string to
  * date/timestamp casts.
  */
-public class UnaryDateTimestampOperatorNode extends UnaryOperatorNode
-{
-    private static final String TIMESTAMP_METHOD_NAME = "getTimestamp";
-    private static final String DATE_METHOD_NAME = "getDate";
-    
+public class UnaryDateTimestampOperatorNode extends UnaryOperatorNode{
+    private static final String TIMESTAMP_METHOD_NAME="getTimestamp";
+    private static final String DATE_METHOD_NAME="getDate";
+
     /**
-     * @param operand The operand of the function
+     * @param operand    The operand of the function
      * @param targetType The type of the result. Timestamp or Date.
-     *
-	 * @exception StandardException		Thrown on error
-	 */
+     * @throws StandardException Thrown on error
+     */
 
-	public void init( Object operand, Object targetType)
-		throws StandardException
-	{
-		setType( (DataTypeDescriptor) targetType);
-        switch( getTypeServices().getJDBCTypeId())
-        {
-        case Types.DATE:
-            super.init( operand, "date", DATE_METHOD_NAME);
-            break;
+    public void init(Object operand,Object targetType)
+            throws StandardException{
+        setType((DataTypeDescriptor)targetType);
+        switch(getTypeServices().getJDBCTypeId()){
+            case Types.DATE:
+                super.init(operand,"date",DATE_METHOD_NAME);
+                break;
 
-        case Types.TIMESTAMP:
-            super.init( operand, "timestamp", TIMESTAMP_METHOD_NAME);
-            break;
+            case Types.TIMESTAMP:
+                super.init(operand,"timestamp",TIMESTAMP_METHOD_NAME);
+                break;
 
-        default:
-            if( SanityManager.DEBUG)
-                SanityManager.NOTREACHED();
-            super.init( operand);
+            default:
+                if(SanityManager.DEBUG)
+                    SanityManager.NOTREACHED();
+                super.init(operand);
         }
     }
-    
+
     /**
      * Called by UnaryOperatorNode.bindExpression.
-     *
+     * <p/>
      * If the operand is a constant then evaluate the function at compile time. Otherwise,
      * if the operand input type is the same as the output type then discard this node altogether.
      * If the function is "date" and the input is a timestamp then change this node to a cast.
      *
-	 * @param fromList		The FROM list for the query this
-	 *				expression is in, for binding columns.
-	 * @param subqueryList		The subquery list being built as we find SubqueryNodes
-	 * @param aggregateVector	The aggregate vector being built as we find AggregateNodes
-	 *
-	 * @return	The new top of the expression tree.
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
-	public ValueNode bindExpression (
-					FromList fromList, SubqueryList subqueryList,
-					Vector aggregateVector)
-				throws StandardException
-	{
-        boolean isIdentity = false; // Is this function the identity operator?
-        boolean operandIsNumber = false;
-        
-        bindOperand( fromList, subqueryList, aggregateVector);
-        DataTypeDescriptor operandType = operand.getTypeServices();
-        switch( operandType.getJDBCTypeId())
-        {
-        case Types.BIGINT:
-        case Types.INTEGER:
-        case Types.SMALLINT:
-        case Types.TINYINT:
-        case Types.DECIMAL:
-        case Types.NUMERIC:
-        case Types.DOUBLE:
-        case Types.FLOAT:
-            if( TIMESTAMP_METHOD_NAME.equals( methodName))
+     * @param fromList        The FROM list for the query this
+     *                        expression is in, for binding columns.
+     * @param subqueryList    The subquery list being built as we find SubqueryNodes
+     * @param aggregateVector The aggregate vector being built as we find AggregateNodes
+     * @throws StandardException Thrown on error
+     * @return The new top of the expression tree.
+     */
+    @Override
+    public ValueNode bindExpression(FromList fromList,
+                                    SubqueryList subqueryList,
+                                    List<AggregateNode> aggregateVector) throws StandardException{
+        boolean isIdentity=false; // Is this function the identity operator?
+        boolean operandIsNumber=false;
+
+        bindOperand(fromList,subqueryList,aggregateVector);
+        DataTypeDescriptor operandType=operand.getTypeServices();
+        switch(operandType.getJDBCTypeId()){
+            case Types.BIGINT:
+            case Types.INTEGER:
+            case Types.SMALLINT:
+            case Types.TINYINT:
+            case Types.DECIMAL:
+            case Types.NUMERIC:
+            case Types.DOUBLE:
+            case Types.FLOAT:
+                if(TIMESTAMP_METHOD_NAME.equals(methodName))
+                    invalidOperandType();
+                operandIsNumber=true;
+                break;
+
+            case Types.CHAR:
+            case Types.VARCHAR:
+                break;
+
+            case Types.DATE:
+                if(!TIMESTAMP_METHOD_NAME.equals(methodName))
+                    isIdentity=true;
+                break;
+
+            case Types.NULL:
+                break;
+
+            case Types.TIMESTAMP:
+                if(TIMESTAMP_METHOD_NAME.equals(methodName))
+                    isIdentity=true;
+                break;
+
+            default:
                 invalidOperandType();
-            operandIsNumber = true;
-            break;
-            
-        case Types.CHAR:
-        case Types.VARCHAR:
-            break;
-
-        case Types.DATE:
-            if(! TIMESTAMP_METHOD_NAME.equals( methodName))
-                isIdentity = true;
-            break;
-
-        case Types.NULL:
-            break;
-
-        case Types.TIMESTAMP:
-            if( TIMESTAMP_METHOD_NAME.equals( methodName))
-                isIdentity = true;
-            break;
-
-        default:
-            invalidOperandType();
-        }
-       
-        if( operand instanceof ConstantNode)
-        {
-            DataValueFactory dvf = getLanguageConnectionContext().getDataValueFactory();
-            DataValueDescriptor sourceValue = ((ConstantNode) operand).getValue();
-            DataValueDescriptor destValue = null;
-            if( sourceValue.isNull())
-            {
-                destValue = (TIMESTAMP_METHOD_NAME.equals( methodName))
-                ? dvf.getNullTimestamp( (DateTimeDataValue) null)
-                : dvf.getNullDate( (DateTimeDataValue) null);
-            }
-            else
-            {
-                destValue = (TIMESTAMP_METHOD_NAME.equals( methodName))
-                  ? dvf.getTimestamp( sourceValue) : dvf.getDate( sourceValue);
-            }
-            return (ValueNode) getNodeFactory().getNode( C_NodeTypes.USERTYPE_CONSTANT_NODE,
-                                                         destValue, getContextManager());
         }
 
-        if( isIdentity)
+        if(operand instanceof ConstantNode){
+            DataValueFactory dvf=getLanguageConnectionContext().getDataValueFactory();
+            DataValueDescriptor sourceValue=((ConstantNode)operand).getValue();
+            DataValueDescriptor destValue=null;
+            if(sourceValue.isNull()){
+                destValue=(TIMESTAMP_METHOD_NAME.equals(methodName))
+                        ?dvf.getNullTimestamp((DateTimeDataValue)null)
+                        :dvf.getNullDate((DateTimeDataValue)null);
+            }else{
+                destValue=(TIMESTAMP_METHOD_NAME.equals(methodName))
+                        ?dvf.getTimestamp(sourceValue):dvf.getDate(sourceValue);
+            }
+            return (ValueNode)getNodeFactory().getNode(C_NodeTypes.USERTYPE_CONSTANT_NODE,
+                    destValue,getContextManager());
+        }
+
+        if(isIdentity)
             return operand;
         return this;
     } // end of bindUnaryOperator
 
-    private void invalidOperandType() throws StandardException
-    {
-        throw StandardException.newException( SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
-                                              getOperatorString(), getOperand().getTypeServices().getSQLstring());
+    private void invalidOperandType() throws StandardException{
+        throw StandardException.newException(SQLState.LANG_UNARY_FUNCTION_BAD_TYPE,
+                getOperatorString(),getOperand().getTypeServices().getSQLstring());
     }
 
-	/**
-	 * Do code generation for this unary operator.
-	 *
-	 * @param acb	The ExpressionClassBuilder for the class we're generating
-	 * @param mb	The method the expression will go into
-	 *
-	 *
-	 * @exception StandardException		Thrown on error
-	 */
+    /**
+     * Do code generation for this unary operator.
+     *
+     * @param acb The ExpressionClassBuilder for the class we're generating
+     * @param mb  The method the expression will go into
+     * @throws StandardException Thrown on error
+     */
 
-	public void generateExpression( ExpressionClassBuilder acb,
-                                    MethodBuilder mb)
-        throws StandardException
-	{
-        acb.pushDataValueFactory( mb);
-        operand.generateExpression( acb, mb);
-        mb.cast( ClassName.DataValueDescriptor);
-        mb.callMethod( VMOpcode.INVOKEINTERFACE, (String) null, methodName, getTypeCompiler().interfaceName(), 1);
+    public void generateExpression(ExpressionClassBuilder acb,
+                                   MethodBuilder mb)
+            throws StandardException{
+        acb.pushDataValueFactory(mb);
+        operand.generateExpression(acb,mb);
+        mb.cast(ClassName.DataValueDescriptor);
+        mb.callMethod(VMOpcode.INVOKEINTERFACE,(String)null,methodName,getTypeCompiler().interfaceName(),1);
     } // end of generateExpression
 }

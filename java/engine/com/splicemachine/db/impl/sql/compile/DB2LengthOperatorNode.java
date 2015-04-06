@@ -36,6 +36,7 @@ import java.lang.reflect.Modifier;
 
 import java.sql.Types;
 
+import java.util.List;
 import java.util.Vector;
 
 /**
@@ -68,12 +69,10 @@ public final class DB2LengthOperatorNode extends UnaryOperatorNode
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-
-	public ValueNode bindExpression(
-		FromList	fromList, SubqueryList subqueryList,
-		Vector	aggregateVector)
-			throws StandardException
-	{
+    @Override
+	public ValueNode bindExpression(FromList fromList,
+                                    SubqueryList subqueryList,
+                                    List<AggregateNode> aggregateVector) throws StandardException {
         bindOperand( fromList, subqueryList, aggregateVector);
 
         // This operator is not allowed on XML types.

@@ -30,9 +30,11 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
+import com.splicemachine.db.impl.sql.catalog.Aggregate;
 
 import java.sql.Types;
 
+import java.util.List;
 import java.util.Vector;
 
 /**
@@ -81,12 +83,10 @@ public final class LengthOperatorNode extends UnaryOperatorNode
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
-
-	public ValueNode bindExpression(
-		FromList	fromList, SubqueryList subqueryList,
-		Vector	aggregateVector)
-			throws StandardException
-	{
+	@Override
+	public ValueNode bindExpression(FromList fromList,
+									SubqueryList subqueryList,
+									List<AggregateNode> aggregateVector) throws StandardException{
 		TypeId	operandType;
 
 		bindOperand(fromList, subqueryList,
