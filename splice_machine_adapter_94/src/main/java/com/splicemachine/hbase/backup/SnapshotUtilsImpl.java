@@ -52,7 +52,7 @@ public class SnapshotUtilsImpl implements SnapshotUtils {
      */
     public List<Object> getSnapshotFilesForRegion(final HRegion reg, final Configuration conf,
         final FileSystem fs, final Path snapshotDir) throws IOException {
-      final String regionName = reg.getRegionNameAsString();
+      final String regionName = (reg != null) ? reg.getRegionNameAsString() : null;
       SnapshotDescription snapshotDesc = SnapshotDescriptionUtils.readSnapshotInfo(fs, snapshotDir);
 
       final List<Object> files = new ArrayList<Object>();
@@ -65,8 +65,8 @@ public class SnapshotUtilsImpl implements SnapshotUtils {
         new SnapshotReferenceUtil.FileVisitor() {
           public void storeFile (final String region, final String family, final String hfile)
               throws IOException {
-      
-          	if( isRegionTheSame(regionName, region) ){  
+            // if reg is null, get snapshot files for all regions
+          	if( regionName == null || isRegionTheSame(regionName, region) ){
         		Path path = HFileLink.createPath(table, region, family, hfile);
         		HFileLink link = new HFileLink(conf, path);
         		if( isReference(hfile) ) {

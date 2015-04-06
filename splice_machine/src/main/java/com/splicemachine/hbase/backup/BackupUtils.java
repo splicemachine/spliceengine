@@ -111,7 +111,7 @@ public class BackupUtils {
                 backupTransactionId = rs.getLong(1);
             }
         } catch (Exception e) {
-            SpliceLogUtils.warn(LOG, "%s", e.getMessage());
+            SpliceLogUtils.warn(LOG, "BackupUtils.getLastBackupTime: %s", e.getMessage());
         }
         return backupTransactionId;
     }
@@ -132,7 +132,7 @@ public class BackupUtils {
             ResultSet rs = ps.executeQuery();
             exists = rs.next();
         } catch (Exception e) {
-            SpliceLogUtils.warn(LOG, e.getMessage());
+            SpliceLogUtils.warn(LOG, "BackupUtils.existBackupWithStatus: %s", e.getMessage());
         }
 
         return exists;
@@ -156,7 +156,7 @@ public class BackupUtils {
                 snapshotName = getSnapshotName(tableName, backupId);
             }
         } catch (Exception e) {
-            SpliceLogUtils.warn(LOG, e.getMessage());
+            SpliceLogUtils.warn(LOG, "BackupUtils.getSnapshotName: %s", e.getMessage());
         }
 
         return snapshotName;
@@ -243,7 +243,7 @@ public class BackupUtils {
                  exclude = (rs.getInt(1) > 0);
             }
         } catch (Exception e) {
-            SpliceLogUtils.warn(LOG, e.getMessage());
+            SpliceLogUtils.warn(LOG, "BackupUtils.shouldExclude: %s", e.getMessage());
         }
         return exclude;
     }
@@ -275,7 +275,7 @@ public class BackupUtils {
             ps.execute();
             ps.close();
         } catch (Exception e) {
-            SpliceLogUtils.warn(LOG, e.getMessage());
+            SpliceLogUtils.warn(LOG, "BackupUtils.insertFileSet: %s",e.getMessage());
         }
     }
 
@@ -301,7 +301,7 @@ public class BackupUtils {
             rs = ps.executeQuery();
 
         } catch (Exception e) {
-            SpliceLogUtils.warn(LOG, e.getMessage());
+            SpliceLogUtils.warn(LOG, "BackupUtils.queryFileSet: %s", e.getMessage());
         }
         return rs;
     }
@@ -334,7 +334,7 @@ public class BackupUtils {
             ps.execute();
             ps.close();
         } catch (Exception e) {
-            SpliceLogUtils.warn(LOG, e.getMessage());
+            SpliceLogUtils.warn(LOG, "BackupUtils.deleteFileSet: %s", e.getMessage());
         }
     }
 
@@ -363,7 +363,7 @@ public class BackupUtils {
             }
 
         } catch (Exception e) {
-            SpliceLogUtils.warn(LOG, e.getMessage());
+            SpliceLogUtils.warn(LOG, "BackupUtils.getFileSet: %s", e.getMessage());
         }
         return null;
     }

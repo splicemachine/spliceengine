@@ -50,7 +50,7 @@ public class SnapshotUtilsImpl implements SnapshotUtils {
      */
     public List<Object> getSnapshotFilesForRegion(final HRegion reg, final Configuration conf,
         final FileSystem fs, final Path snapshotDir) throws IOException {
-      final String regionName = reg.getRegionNameAsString();
+      final String regionName = (reg != null) ? reg.getRegionNameAsString() : null;
       SnapshotDescription snapshotDesc = SnapshotDescriptionUtils.readSnapshotInfo(fs, snapshotDir);
 
       final List<Object> files = new ArrayList<Object>();
@@ -64,7 +64,7 @@ public class SnapshotUtilsImpl implements SnapshotUtils {
               throws IOException {
         	  LOG.info("look for: " + regionName);
         	  LOG.info("found   : " + region);
-        	if( isRegionTheSame(regionName, region) ){  
+        	if( regionName == null || isRegionTheSame(regionName, region) ){
         		Path path = HFileLink.createPath(TableName.valueOf(table), region, family, hfile);
         		//long size = new HFileLink(conf, path).getFileStatus(fs).getLen();
         		HFileLink link = new HFileLink(conf, path);
