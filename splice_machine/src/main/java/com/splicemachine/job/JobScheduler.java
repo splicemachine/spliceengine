@@ -10,6 +10,8 @@ public interface JobScheduler<J extends Job> {
 
     JobFuture submit(J job) throws ExecutionException;
 
+    JobFuture submit(J job, JobStatusLogger jobStatusLogger) throws ExecutionException;
+
     JobSchedulerManagement getJobMetrics();
 
 		long[] getActiveOperations() throws ExecutionException;

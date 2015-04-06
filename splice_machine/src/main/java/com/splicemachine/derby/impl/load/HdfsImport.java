@@ -1,29 +1,31 @@
 package com.splicemachine.derby.impl.load;
 
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Types;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.Pair;
+import org.apache.hadoop.util.StringUtils;
+import org.apache.log4j.Logger;
+
 import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.impl.job.JobInfo;
-import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.impl.store.access.SpliceTransaction;
-import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.derby.management.OperationInfo;
-import com.splicemachine.derby.management.StatementInfo;
-import com.splicemachine.derby.stats.TaskStats;
-import com.splicemachine.derby.utils.*;
-import com.splicemachine.job.JobFuture;
-import com.splicemachine.job.JobStats;
-import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.impl.TransactionLifecycle;
-import com.splicemachine.pipeline.exception.ErrorState;
-import com.splicemachine.pipeline.exception.Exceptions;
-import com.splicemachine.utils.SpliceLogUtils;
-
-import com.splicemachine.db.iapi.error.ExceptionSeverity;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -35,31 +37,37 @@ import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.db.iapi.types.SQLInteger;
+import com.splicemachine.db.iapi.types.SQLLongint;
+import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.MasterNotRunningException;
-import org.apache.hadoop.hbase.ZooKeeperConnectionException;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.util.Pair;
-import org.apache.log4j.Logger;
-
-import java.io.IOException;
-import java.sql.*;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ExecutionException;
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.impl.job.JobInfo;
+import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.impl.store.access.SpliceTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.management.OperationInfo;
+import com.splicemachine.derby.management.StatementInfo;
+import com.splicemachine.derby.stats.TaskStats;
+import com.splicemachine.derby.utils.SpliceAdmin;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.job.JobFuture;
+import com.splicemachine.job.JobStatusLogger;
+import com.splicemachine.job.JobStats;
+import com.splicemachine.pipeline.exception.ErrorState;
+import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.impl.TransactionLifecycle;
+import com.splicemachine.utils.SpliceLogUtils;
 
 /**
  * Imports a delimiter-separated file located in HDFS in a parallel way.
@@ -453,6 +461,7 @@ public class HdfsImport {
 						HTableInterface table = SpliceAccessManager.getHTable(SpliceDriver.driver().getTempTable().getTempTableName());
 
 						List<Pair<JobFuture,JobInfo>> jobFutures = Lists.newArrayList();
+						JobStatusLogger jobStatusLogger = new ImportJobStatusLogger(context);
 						StatementInfo statementInfo = runtimeContext.getStatementInfo();
 						Set<OperationInfo> opInfos = statementInfo.getOperationInfo();
 						OperationInfo opInfo = null;
@@ -465,8 +474,9 @@ public class HdfsImport {
 								LOG.info("Importing files "+ file.getPaths());
 								ImportJob importJob = new FileImportJob(table,context,statementId,file.getPaths(),operationId,txn);
 								long start = System.currentTimeMillis();
-								JobFuture jobFuture = SpliceDriver.driver().getJobScheduler().submit(importJob);
+								JobFuture jobFuture = SpliceDriver.driver().getJobScheduler().submit(importJob,jobStatusLogger);
 								JobInfo info = new JobInfo(importJob.getJobId(),jobFuture.getNumTasks(),start);
+								jobStatusLogger.log(String.format("Importing %d files...", jobFuture.getNumTasks()));
 								info.tasksRunning(jobFuture.getAllTaskIds());
 								if(opInfo!=null)
 										opInfo.addJob(info);
@@ -488,6 +498,9 @@ public class HdfsImport {
 										numImported+= totalRowsWritten;
 										numBadRecords+=(totalRead-totalRowsWritten);
 								}
+								jobStatusLogger.log(String.format(
+										"Import finished with success. Total rows imported: %d. Total rows rejected: %d. Total time for import: %s.",
+										numImported, numBadRecords, StringUtils.formatTimeDiff(info.getJobFinishMs(), info.getJobStartMs())));
 								ExecRow result = new ValueRow(3);
 								result.setRowArray(new DataValueDescriptor[]{
 												new SQLInteger(file.getPaths().size()),
@@ -512,6 +525,7 @@ public class HdfsImport {
 												LOG.error("Exception cleaning up import future",e);
 										}
 								}
+								jobStatusLogger.closeLogFile();
 						}
 				} catch (IOException e) {
 						throw Exceptions.parseException(e);
