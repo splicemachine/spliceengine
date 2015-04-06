@@ -113,6 +113,16 @@ public class SimpleCostEstimate implements CostEstimate{
                 ",partitions="+partitionCount()+")";
     }
 
+    @Override
+    public String toString(){
+        return "(overallCost="+getEstimatedCost()
+                +",localCost="+localCost()
+                +",remoteCost="+remoteCost()
+                +",outputRows="+getEstimatedRowCount()
+                +",outputHeapSize="+getEstimatedHeapSize()+
+                ",partitions="+partitionCount()+")";
+    }
+
     @Override public void setRowCount(double outerRows){ this.numRows = outerRows;  }
     @Override public void setRemoteCost(double remoteCost){ this.remoteCost = remoteCost; }
     @Override public void setSingleScanRowCount(double singleRowScanCount){this.singleScanRowCount = singleRowScanCount;}
