@@ -1,41 +1,67 @@
 package com.splicemachine.derby.hbase;
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Types;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.NavigableSet;
+import java.util.SortedSet;
+import java.util.concurrent.atomic.AtomicReference;
+
+import javax.management.MBeanServerConnection;
+import javax.management.MalformedObjectNameException;
+import javax.management.ObjectName;
+import javax.management.remote.JMXConnector;
+
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.ClusterStatus;
+import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.RegionLoad;
+import org.apache.hadoop.hbase.ServerLoad;
+import org.apache.hadoop.hbase.ServerName;
+import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.catalog.MetaReader;
+import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.client.HConnection;
+import org.apache.hadoop.hbase.client.HTable;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.coprocessor.Batch;
+import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.filter.Filter;
+import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
+import org.apache.hadoop.hbase.mapreduce.TableSplit;
+import org.apache.hadoop.hbase.master.MasterServices;
+import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
+import org.apache.hadoop.hbase.protobuf.generated.ClientProtos;
+import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.HRegionFileSystem;
+import org.apache.hadoop.hbase.regionserver.InternalScanner;
+import org.apache.hadoop.hbase.regionserver.KeyValueScanner;
+import org.apache.hadoop.hbase.regionserver.RegionScanner;
+import org.apache.hadoop.hbase.regionserver.RegionServerServices;
+import org.apache.hadoop.hbase.regionserver.ScanInfo;
+import org.apache.hadoop.hbase.regionserver.Store;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.Pair;
+import org.apache.hadoop.mapreduce.InputSplit;
+import org.apache.log4j.Logger;
+
 import com.google.common.collect.Lists;
 import com.google.protobuf.ByteString;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.coprocessor.SpliceMessage;
-import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
-import com.splicemachine.derby.impl.job.operation.SuccessFilter;
-import com.splicemachine.derby.impl.job.scheduler.BaseJobControl;
-import com.splicemachine.derby.impl.job.scheduler.JobControl;
-import com.splicemachine.derby.impl.job.scheduler.JobMetrics;
-import com.splicemachine.derby.impl.job.scheduler.SubregionSplitter;
-import com.splicemachine.derby.impl.sql.execute.DropIndexConstantOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.SkippingScanFilter;
-import com.splicemachine.derby.impl.sql.execute.operations.SparkUtilsImpl;
-import com.splicemachine.derby.impl.store.access.base.SpliceGenericCostController;
-import com.splicemachine.derby.utils.BaseAdminProcedures;
-import com.splicemachine.derby.utils.SpliceAdmin;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.hbase.HBaseRegionLoads;
-import com.splicemachine.hbase.HBaseServerUtils;
-import com.splicemachine.hbase.debug.HBaseEntryPredicateFilter;
-import com.splicemachine.hbase.jmx.JMXUtils;
-import com.splicemachine.hbase.table.BoundCall;
-import com.splicemachine.hbase.table.SpliceRpcController;
-import com.splicemachine.mrio.api.core.MemStoreFlushAwareScanner;
-import com.splicemachine.mrio.api.core.MemstoreAware;
-import com.splicemachine.mrio.api.core.SMSplit;
-import com.splicemachine.mrio.api.core.SpliceRegionScanner;
-import com.splicemachine.mrio.api.core.SplitRegionScanner;
-import com.splicemachine.pipeline.api.BulkWritesInvoker.Factory;
-import com.splicemachine.pipeline.exception.Exceptions;
-import com.splicemachine.pipeline.impl.BulkWritesRPCInvoker;
-import com.splicemachine.si.api.TransactionalRegion;
-import com.splicemachine.si.coprocessor.TxnMessage;
-import com.splicemachine.storage.EntryPredicateFilter;
-import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.utils.SpliceZooKeeperManager;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -56,44 +82,38 @@ import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.*;
-import org.apache.hadoop.hbase.catalog.MetaReader;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.client.HConnection;
-import org.apache.hadoop.hbase.client.HTable;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.client.coprocessor.Batch;
-import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.filter.Filter;
-import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
-import org.apache.hadoop.hbase.mapreduce.TableSplit;
-import org.apache.hadoop.hbase.master.MasterServices;
-import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
-import org.apache.hadoop.hbase.protobuf.generated.ClientProtos;
-import org.apache.hadoop.hbase.regionserver.*;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.util.Pair;
-import org.apache.hadoop.mapreduce.InputSplit;
-import org.apache.log4j.Logger;
-
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Types;
-import java.util.*;
-import java.util.concurrent.atomic.AtomicReference;
-
-import javax.management.MBeanServerConnection;
-import javax.management.MalformedObjectNameException;
-import javax.management.ObjectName;
-import javax.management.remote.JMXConnector;
+import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
+import com.splicemachine.derby.impl.job.operation.SuccessFilter;
+import com.splicemachine.derby.impl.job.scheduler.BaseJobControl;
+import com.splicemachine.derby.impl.job.scheduler.JobControl;
+import com.splicemachine.derby.impl.job.scheduler.JobMetrics;
+import com.splicemachine.derby.impl.job.scheduler.SubregionSplitter;
+import com.splicemachine.derby.impl.sql.execute.DropIndexConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.SkippingScanFilter;
+import com.splicemachine.derby.impl.sql.execute.operations.SparkUtilsImpl;
+import com.splicemachine.derby.impl.store.access.base.SpliceGenericCostController;
+import com.splicemachine.derby.utils.BaseAdminProcedures;
+import com.splicemachine.derby.utils.SpliceAdmin;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.hbase.HBaseRegionLoads;
+import com.splicemachine.hbase.HBaseServerUtils;
+import com.splicemachine.hbase.debug.HBaseEntryPredicateFilter;
+import com.splicemachine.hbase.jmx.JMXUtils;
+import com.splicemachine.hbase.table.SpliceRpcController;
+import com.splicemachine.job.JobStatusLogger;
+import com.splicemachine.mrio.api.core.MemStoreFlushAwareScanner;
+import com.splicemachine.mrio.api.core.MemstoreAware;
+import com.splicemachine.mrio.api.core.SMSplit;
+import com.splicemachine.mrio.api.core.SpliceRegionScanner;
+import com.splicemachine.mrio.api.core.SplitRegionScanner;
+import com.splicemachine.pipeline.api.BulkWritesInvoker.Factory;
+import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.pipeline.impl.BulkWritesRPCInvoker;
+import com.splicemachine.si.api.TransactionalRegion;
+import com.splicemachine.si.coprocessor.TxnMessage;
+import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.utils.SpliceZooKeeperManager;
 
 public class DerbyFactoryImpl implements DerbyFactory<TxnMessage.TxnInfo> {
 
@@ -140,8 +160,8 @@ public class DerbyFactoryImpl implements DerbyFactory<TxnMessage.TxnInfo> {
 	@Override
 	public BaseJobControl getJobControl(CoprocessorJob job, String jobPath,
 			SpliceZooKeeperManager zkManager, int maxResubmissionAttempts,
-			JobMetrics jobMetrics) {
-		return new JobControl(job,jobPath,zkManager,maxResubmissionAttempts,jobMetrics);
+			JobMetrics jobMetrics, JobStatusLogger jobStatusLogger) {
+		return new JobControl(job,jobPath,zkManager,maxResubmissionAttempts,jobMetrics,jobStatusLogger);
 	}
 	@Override
 	public void writeScanExternal(ObjectOutput output, Scan scan)

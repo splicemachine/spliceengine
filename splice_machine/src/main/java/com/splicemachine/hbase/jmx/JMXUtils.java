@@ -8,6 +8,7 @@ import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -16,12 +17,14 @@ import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 
 import org.apache.hadoop.hbase.util.Pair;
+
 import com.splicemachine.tools.version.SpliceMachineVersion;
 import com.splicemachine.derby.hbase.DerbyFactory;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.hbase.SpliceBaseIndexEndpoint.ActiveWriteHandlersIface;
 import com.splicemachine.derby.impl.job.scheduler.StealableTaskSchedulerManagement;
 import com.splicemachine.derby.impl.job.scheduler.TieredSchedulerManagement;
+import com.splicemachine.derby.impl.load.ImportTaskManagement;
 import com.splicemachine.derby.management.StatementManagement;
 import com.splicemachine.job.JobSchedulerManagement;
 import com.splicemachine.si.impl.timestamp.TimestampMasterManagement;
@@ -40,6 +43,7 @@ public class JMXUtils {
 	public static final String STATEMENT_MANAGEMENT_BASE = "com.splicemachine.statement:type=StatementManagement";
     public static final String ACTIVE_WRITE_HANDLERS = "com.splicemachine.derby.hbase:type=ActiveWriteHandlers";
     public static final String JOB_SCHEDULER_MANAGEMENT = "com.splicemachine.job:type=JobSchedulerManagement";
+    public static final String IMPORT_TASK_MANAGEMENT = "com.splicemachine.job:type=ImportTaskManagement";
     public static final String SPLICEMACHINE_VERSION = "com.splicemachine.version:type=SpliceMachineVersion";
     public static final String TIMESTAMP_MASTER_MANAGEMENT = "com.splicemachine.si.impl.timestamp.generator:type=TimestampMasterManagement";
     public static final String TIMESTAMP_REGION_MANAGEMENT = "com.splicemachine.si.impl.timestamp.request:type=TimestampRegionManagement";
@@ -98,6 +102,23 @@ public class JMXUtils {
             jobMonitors.add(new Pair<String, JobSchedulerManagement>(mbsc.getFirst(),getNewMBeanProxy(mbsc.getSecond(), JOB_SCHEDULER_MANAGEMENT, JobSchedulerManagement.class)));
         }
         return jobMonitors;
+    }
+
+    /**
+     * Returns a list of JMX MBeans with statistics for the running import tasks on all of the region servers.
+     * Each entry in the list contains a "pair" which contains the region server that is executing the import task
+     * and the statistics for the import task.  The statistics are retrieved from each region server MBean using JMX.
+     *
+     * @return list of JMX MBeans with statistics for the running import tasks on all of the region servers
+     *
+     * @throws SQLException
+     */
+    public static List<Pair<String,ImportTaskManagement>> getImportTaskManagement(List<Pair<String,JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
+        List<Pair<String,ImportTaskManagement>> importTasks = Lists.newArrayListWithCapacity(mbscArray.size());
+        for (Pair<String,JMXConnector> mbsc: mbscArray) {
+        	importTasks.add(new Pair<String, ImportTaskManagement>(mbsc.getFirst(), getNewMXBeanProxy(mbsc.getSecond(), IMPORT_TASK_MANAGEMENT, ImportTaskManagement.class)));
+        }
+        return importTasks;
     }
 
     public static List<TieredSchedulerManagement> getTaskSchedulerManagement(List<Pair<String,JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {

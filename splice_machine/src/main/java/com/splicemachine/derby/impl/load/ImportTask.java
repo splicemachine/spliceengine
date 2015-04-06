@@ -12,6 +12,7 @@ import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.metrics.IOStats;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.TimeView;
@@ -28,16 +29,30 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.lang.management.ManagementFactory;
+import java.net.URI;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
+
+import javax.management.InstanceAlreadyExistsException;
+import javax.management.InstanceNotFoundException;
+import javax.management.MBeanRegistrationException;
+import javax.management.MBeanServer;
+import javax.management.MalformedObjectNameException;
+import javax.management.NotCompliantMBeanException;
+import javax.management.ObjectName;
 
 /**
  * @author Scott Fines
@@ -54,6 +69,11 @@ public class ImportTask extends ZkTask{
 		private Importer importer;
 		private long statementId;
 		private long operationId;
+
+		private long logRowCountInterval = SpliceConstants.importTaskStatusReportingRowCount;   // The row count interval of when to log rows read.  For example, write to the log every 10,000 rows read.
+		private long rowsRead = 0l;
+		private long previouslyLoggedRowsRead = 0l;  // The number of rows read that was last logged.
+		private ImportErrorReporter errorReporter = null;
 
 		/**
 		 * @deprecated only available for a a no-args constructor
@@ -90,18 +110,22 @@ public class ImportTask extends ZkTask{
 
 		@Override
 		public void doExecute() throws ExecutionException, InterruptedException {
+				String importFilePath = getImportFilePathAsString();
+
 				try{
 						ExecRow row = getExecRow(importContext);
 
-						long previouslyLoggedRowsRead = 0l;  // The number of rows read that was last logged.
-						long logRowCountInterval = 10000l;   // The row count interval of when to log rows read.  For example, write to the log every 10,000 rows read.
-						long rowsRead = 0l;
+						rowsRead = 0l;
+						previouslyLoggedRowsRead = 0l;  // The number of rows read that was last logged.
 						long stopTime;
 						Timer totalTimer = importContext.shouldRecordStats()? Metrics.newTimer(): Metrics.noOpTimer();
 						totalTimer.startTiming();
 						long startTime = System.currentTimeMillis();
 						RowErrorLogger errorLogger = getErrorLogger();
-						ImportErrorReporter errorReporter = getErrorReporter(row.getClone(),errorLogger);
+						errorReporter = getErrorReporter(row.getClone(),errorLogger);
+
+						ImportTaskManagementStats.initialize(importFilePath);  // Initialize our JMX stats.  Set entries for this importFilePath to 0.
+
 						try{
 								errorLogger.open();
 								reader.setup(fileSystem,importContext);
@@ -129,15 +153,27 @@ public class ImportTask extends ZkTask{
 														}
 												}
 
-												if (LOG.isDebugEnabled() && (rowsRead - previouslyLoggedRowsRead) >= logRowCountInterval) {
-													SpliceLogUtils.debug(LOG, "Imported %d rows", rowsRead);
+												if ((rowsRead - previouslyLoggedRowsRead) >= logRowCountInterval) {
+													ImportTaskManagementStats.setImportedRowCount(importFilePath, rowsRead - errorReporter.errorsReported());
+													ImportTaskManagementStats.setBadRowCount(importFilePath, errorReporter.errorsReported());
 													previouslyLoggedRowsRead = rowsRead;
+													if (LOG.isDebugEnabled()) {
+														SpliceLogUtils.debug(LOG, "Imported %d total rows.  Rejected %d total bad rows.  File is %s.", (rowsRead - errorReporter.errorsReported()), errorReporter.errorsReported(), importFilePath);
+														if (LOG.isTraceEnabled()) {
+															SpliceLogUtils.trace(LOG, "taskId is %s.  taskPath is %s.", Bytes.toLong(taskId), getTaskNode());
+														}
+													}
 												}
 										}while(shouldContinue);
 
+										ImportTaskManagementStats.setImportedRowCount(importFilePath, rowsRead - errorReporter.errorsReported());
+										ImportTaskManagementStats.setBadRowCount(importFilePath, errorReporter.errorsReported());
+										previouslyLoggedRowsRead = rowsRead;
 										if (LOG.isDebugEnabled()) {
-											SpliceLogUtils.debug(LOG, "Import task finished.  Imported %d rows", rowsRead);
-											previouslyLoggedRowsRead = rowsRead;
+											SpliceLogUtils.debug(LOG, "Import task finished.  Imported %d total rows.  Rejected %d total bad rows.  File is %s.", (rowsRead - errorReporter.errorsReported()), errorReporter.errorsReported(), importFilePath);
+											if (LOG.isTraceEnabled()) {
+												SpliceLogUtils.trace(LOG, "taskId is %s.  taskPath is %s.", Bytes.toLong(taskId), getTaskNode());
+											}
 										}
 								} catch (Exception e) {
 										throw new ExecutionException(e);
@@ -170,7 +206,31 @@ public class ImportTask extends ZkTask{
 						}
 				} catch (StandardException e) {
 						throw new ExecutionException(e);
+				} finally {
+					ImportTaskManagementStats.cleanup(importFilePath);  // Clean up our JMX stats.  Remove entries for this taskId.
 				}
+		}
+
+		/**
+		 * Return the import file path as a String.  This is useful for displaying information about the file actually being imported.
+		 *
+		 * @return the import file path as a String
+		 */
+		private String getImportFilePathAsString() {
+			String importFilePathStr = "UNKNOWN_IMPORT_FILE_PATH";
+			if (importContext != null) {
+				Path tmpFilePath = importContext.getFilePath();
+				if (tmpFilePath != null) {
+					URI tmpUri = tmpFilePath.toUri();
+					if (tmpUri != null) {
+						String tmpPath = tmpUri.getPath();
+						if (tmpPath != null) {
+							importFilePathStr = tmpPath;
+						}
+					}
+				}
+			}
+			return importFilePathStr;
 		}
 
 		protected ImportErrorReporter getErrorReporter(ExecRow rowTemplate,RowErrorLogger errorLogger) {

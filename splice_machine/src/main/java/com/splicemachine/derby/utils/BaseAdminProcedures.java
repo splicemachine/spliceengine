@@ -18,7 +18,6 @@ import javax.management.remote.JMXConnectorFactory;
 import javax.management.remote.JMXServiceURL;
 
 import com.splicemachine.constants.SpliceConstants;
-
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
@@ -27,6 +26,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.jdbc.Util;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.db.jdbc.InternalDriver;
+
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.util.Pair;
 
@@ -61,7 +61,7 @@ public abstract class BaseAdminProcedures {
         return names;
     }
 
-	private static void throwNullArgError(Object value) {
+	protected static void throwNullArgError(Object value) {
 	    throw new IllegalArgumentException(String.format("Required argument %s is null.", value));	
 	}
 	
@@ -69,11 +69,51 @@ public abstract class BaseAdminProcedures {
         void operate(List<Pair<String, JMXConnector>> jmxConnector) throws MalformedObjectNameException, IOException, SQLException;
     }
 
+    /**
+     * Get the JMX connections for the region servers.
+     *
+     * @param serverNames
+     * @return
+     * @throws IOException
+     */
+    protected static List<Pair<String, JMXConnector>> getConnections(List<ServerName> serverNames) throws IOException {
+    	return JMXUtils.getMBeanServerConnections(getServerNames(serverNames));
+    }
+
+    /**
+     * Execute (or "operate") the JMX operation on the region servers using the specified JMX connections.
+     *
+     * @param operation
+     * @param connections
+     *
+     * @throws SQLException
+     */
+    protected static void operateWithExistingConnections(JMXServerOperation operation, List<Pair<String, JMXConnector>> connections) throws SQLException {
+    	if (operation == null) throwNullArgError("operation");
+    	if (connections == null) throwNullArgError("connections");
+        try {
+            operation.operate(connections);
+        } catch (MalformedObjectNameException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        } catch (IOException e) {
+            throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
+        }
+    }
+
+    /**
+     * Execute (or "operate") the JMX operation on the region servers.
+     * JMX connections will be created and closed for each operation on each region server.
+     *
+     * @param operation
+     * @param serverNames
+     *
+     * @throws SQLException
+     */
     protected static void operate(JMXServerOperation operation, List<ServerName> serverNames) throws SQLException {
     	if (operation == null) throwNullArgError("operation");
         List<Pair<String, JMXConnector>> connections = null;
         try {
-            connections = JMXUtils.getMBeanServerConnections(getServerNames(serverNames));
+            connections = getConnections(serverNames);
             operation.operate(connections);
         } catch (MalformedObjectNameException e) {
             throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
@@ -81,9 +121,20 @@ public abstract class BaseAdminProcedures {
             throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
         } finally {
             if (connections != null) {
-                for (Pair<String, JMXConnector> connectorPair : connections) {
-                    Closeables.closeQuietly(connectorPair.getSecond());
-                }
+            	close(connections);
+            }
+        }
+    }
+
+    /**
+     * Close all JMX connections.
+     * 
+     * @param connections
+     */
+    protected static void close(List<Pair<String, JMXConnector>> connections) {
+        if (connections != null) {
+            for (Pair<String, JMXConnector> connectorPair : connections) {
+                Closeables.closeQuietly(connectorPair.getSecond());
             }
         }
     }

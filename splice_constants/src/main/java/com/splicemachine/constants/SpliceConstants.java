@@ -380,6 +380,27 @@ public class SpliceConstants {
 		@DefaultValue(IMPORT_MAX_READ_BUFFER_SIZE) private static final int DEFAULT_IMPORT_MAX_READ_BUFFER_SIZE= 1024;
 		public static int maxImportReadBufferSize;
 
+		/**
+		 * Interval of the number of imported rows to report the status of a running import task.
+		 * For example, a running import task will by default report to JMX every 10,000 rows that it has imported.
+		 * It may not be exactly 10,000 rows since it is based on checking row counts after a "batch" of rows has been written
+		 * and the batches can be smaller than or larger than the configured row count here.
+		 *
+		 * Defaults to 10000 rows.
+		 */
+		@Parameter public static final String IMPORT_TASK_STATUS_REPORTING_ROWCOUNT = "splice.import.task.status.reporting.rowcount";
+		@DefaultValue(IMPORT_TASK_STATUS_REPORTING_ROWCOUNT) public static final long DEFAULT_IMPORT_TASK_STATUS_REPORTING_ROWCOUNT = 10000l;
+		public static Long importTaskStatusReportingRowCount;
+
+		/**
+		 * Interval of time (in milliseconds) to log the status of all running import tasks to the import job status log.
+		 *
+		 * Defaults to 10000 ms.
+		 */
+		@Parameter public static final String IMPORT_TASK_STATUS_LOGGING_INTERVAL = "splice.import.task.status.logging.interval";
+		@DefaultValue(IMPORT_TASK_STATUS_LOGGING_INTERVAL) public static final long DEFAULT_IMPORT_TASK_STATUS_LOGGING_INTERVAL = 10000l;
+		public static Long importTaskStatusLoggingInterval;
+
 		//common SI fields
 		public static final String NA_TRANSACTION_ID = "NA_TRANSACTION_ID";
 		public static final String SI_EXEMPT = "si-exempt";
@@ -1231,6 +1252,9 @@ public class SpliceConstants {
 				maxImportProcessingThreads = config.getInt(IMPORT_MAX_PROCESSING_THREADS,DEFAULT_IMPORT_MAX_PROCESSING_THREADS);
 				interruptLoopCheck = config.getInt(INTERRUPT_LOOP_CHECK,DEFAULT_INTERRUPT_LOOP_CHECK);
 				maxImportReadBufferSize = config.getInt(IMPORT_MAX_READ_BUFFER_SIZE,DEFAULT_IMPORT_MAX_READ_BUFFER_SIZE);
+
+				importTaskStatusReportingRowCount = config.getLong(IMPORT_TASK_STATUS_REPORTING_ROWCOUNT, DEFAULT_IMPORT_TASK_STATUS_REPORTING_ROWCOUNT);
+				importTaskStatusLoggingInterval = config.getLong(IMPORT_TASK_STATUS_LOGGING_INTERVAL, DEFAULT_IMPORT_TASK_STATUS_LOGGING_INTERVAL);
 
 				maxFlushesPerRegion = config.getInt(WRITE_MAX_FLUSHES_PER_REGION,WRITE_DEFAULT_MAX_FLUSHES_PER_REGION);
 

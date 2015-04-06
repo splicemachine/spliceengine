@@ -9,6 +9,7 @@ import com.splicemachine.derby.ddl.DDLWatcher;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.scheduler.*;
+import com.splicemachine.derby.impl.load.ImportTaskManagementStats;
 import com.splicemachine.derby.impl.sql.execute.sequence.AbstractSequenceKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
@@ -43,6 +44,7 @@ import com.splicemachine.db.drda.NetworkServerControl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.HColumnDescriptor;
@@ -472,6 +474,8 @@ public class SpliceDriver {
 
             ObjectName txnStoreName = new ObjectName("com.splicemachine.txn:type=TxnStoreManagement");
             mbs.registerMBean(TransactionStorage.getTxnStoreManagement(), txnStoreName);
+
+            ImportTaskManagementStats.registerJMX(mbs);
 
         } catch (MalformedObjectNameException | NotCompliantMBeanException | InstanceAlreadyExistsException | MBeanRegistrationException e) {
             //we want to log the message, but this shouldn't affect startup
