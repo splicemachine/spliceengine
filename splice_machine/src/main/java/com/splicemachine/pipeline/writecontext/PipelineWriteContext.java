@@ -177,6 +177,11 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
     }
 
     @Override
+    public Map<KVPair, WriteResult> currentResults(){
+        return resultsMap;
+    }
+
+    @Override
     public String toString() {
         return "PipelineWriteContext { region=" + rce.getRegionName() + " }";
     }
