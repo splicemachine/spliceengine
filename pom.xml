@@ -543,39 +543,39 @@
 						<artifactId>maven-checkstyle-plugin</artifactId>
 						<configuration>
 							<!-- defaults for checkstyle:checkstyle
-							   <includeResources>true</includeResources>
-							   <includeTestResources>true</includeTestResources>
-							   <includes>**\/*.java</includes>
-							   <resourceIncludes>**/*.properties</resourceIncludes>
-							   <cacheFile>${project.build.directory}/checkstyle-cachefile</cacheFile>
-							   <configLocation>config/sun_checks.xml</configLocation>
-							   <configLocation>config/maven_checks.xml</configLocation>
-							   <consoleOutput>false</consoleOutput>
-							   <enableFilesSummary>true</enableFilesSummary>
-							   <enableRSS>true</enableRSS>
-							   <enableRulesSummary>true</enableRulesSummary>
-							   <enableSeveritySummary>true</enableSeveritySummary>
-							   <encoding>${project.build.sourceEncoding}</encoding>
-							   <excludes></excludes>
-							   <failsOnError>false</failsOnError>
-							   <headerLocation>LICENSE.txt</headerLocation>
-							   <includeTestSourceDirectory>false</includeTestSourceDirectory>
-							   <linkXRef>true</linkXRef>
-							   <outputFile>${project.build.directory}/checkstyle-result.xml</outputFile>
-							   <outputFileFormat>xml</outputFileFormat>
-							   <packageNamesLocation></packageNamesLocation>
-							   <propertiesLocation></propertiesLocation>
-							   <propertyExpansion></propertyExpansion>
-							   <resourceExcludes></resourceExcludes>
-							   <skip>false</skip>
-							   <sourceDirectories>${project.compileSourceRoots}</sourceDirectories>
-							   <suppressionsFileExpression>checkstyle.suppressions.file</suppressionsFileExpression>
-							   <suppressionsLocation></suppressionsLocation>
-							   <testSourceDirectories>${project.testCompileSourceRoots}</testSourceDirectories>
-							   <treeWalkerNames></treeWalkerNames>
-							   <useFile></useFile>
-							   <xrefLocation>${project.reporting.outputDirectory}/xref</xrefLocation>
-							   -->
+							<includeResources>true</includeResources>
+							<includeTestResources>true</includeTestResources>
+							<includes>**\/*.java</includes>
+							<resourceIncludes>**/*.properties</resourceIncludes>
+							<cacheFile>${project.build.directory}/checkstyle-cachefile</cacheFile>
+							<configLocation>config/sun_checks.xml</configLocation>
+							<configLocation>config/maven_checks.xml</configLocation>
+							<consoleOutput>false</consoleOutput>
+							<enableFilesSummary>true</enableFilesSummary>
+							<enableRSS>true</enableRSS>
+							<enableRulesSummary>true</enableRulesSummary>
+							<enableSeveritySummary>true</enableSeveritySummary>
+							<encoding>${project.build.sourceEncoding}</encoding>
+							<excludes></excludes>
+							<failsOnError>false</failsOnError>
+							<headerLocation>LICENSE.txt</headerLocation>
+							<includeTestSourceDirectory>false</includeTestSourceDirectory>
+							<linkXRef>true</linkXRef>
+							<outputFile>${project.build.directory}/checkstyle-result.xml</outputFile>
+							<outputFileFormat>xml</outputFileFormat>
+							<packageNamesLocation></packageNamesLocation>
+							<propertiesLocation></propertiesLocation>
+							<propertyExpansion></propertyExpansion>
+							<resourceExcludes></resourceExcludes>
+							<skip>false</skip>
+							<sourceDirectories>${project.compileSourceRoots}</sourceDirectories>
+							<suppressionsFileExpression>checkstyle.suppressions.file</suppressionsFileExpression>
+							<suppressionsLocation></suppressionsLocation>
+							<testSourceDirectories>${project.testCompileSourceRoots}</testSourceDirectories>
+							<treeWalkerNames></treeWalkerNames>
+							<useFile></useFile>
+							<xrefLocation>${project.reporting.outputDirectory}/xref</xrefLocation>
+							-->
 							<linkXRef>false</linkXRef>
 						</configuration>
 						<executions>
@@ -593,55 +593,56 @@
 						<artifactId>maven-pmd-plugin</artifactId>
 						<configuration>
 							<!-- defaults for pmd:pmd
-							   <outputDirectory>${project.reporting.outputDirectory}</outputDirectory>
-							   <targetDirectory>${project.build.directory}</targetDirectory>
-							   <aggregate>false</aggregate>
-							   <benchmark>false</benchmark>
-							   <benchmarkOutputFilename>${project.build.directory}/pmd-benchmark.txt</benchmarkOutputFilename>
-							   <excludeRoots></excludeRoots>
-							   <excludes></excludes>
-							   <format>xml</format>
-							   <includeTests>false</includeTests>
-							   <includeXmlInSite>false</includeXmlInSite>
-							   <includes>**\/*.java</includes>
-							   <language>java</language>
-							   <linkXRef>true</linkXRef>
-							   <minimumPriority>5</minimumPriority>
-							   <outputEncoding>${project.reporting.outputEncoding}</outputEncoding>
-							   <rulesets>java-basic, java-imports and java-unusedcode</rulesets>
-							   <skip>false</skip>
-							   <skipEmptyReport>true</skipEmptyReport>
-							   <skipPmdError>true</skipPmdError>
-							   <sourceEncoding>${project.build.sourceEncoding}</sourceEncoding>
-							   <suppressMarker>NOPMD</suppressMarker>
-							   <targetJdk>${maven.compiler.target}</targetJdk>
-							   <typeResolution>false</typeResolution>
-							   <xrefLocation>${project.reporting.outputDirectory}/xref</xrefLocation>
-							   <xrefTestLocation>${project.reporting.outputDirectory}/xref-test</xrefTestLocation>
-							   -->
+							<outputDirectory>${project.reporting.outputDirectory}</outputDirectory>
+							<targetDirectory>${project.build.directory}</targetDirectory>
+							<aggregate>false</aggregate>
+							<benchmark>false</benchmark>
+							<benchmarkOutputFilename>${project.build.directory}/pmd-benchmark.txt</benchmarkOutputFilename>
+							<excludeRoots></excludeRoots>
+							<excludes></excludes>
+							<format>xml</format>
+							<includeTests>false</includeTests>
+							<includeXmlInSite>false</includeXmlInSite>
+							<includes>**\/*.java</includes>
+							<language>java</language>
+							<linkXRef>true</linkXRef>
+							<minimumPriority>5</minimumPriority>
+							<outputEncoding>${project.reporting.outputEncoding}</outputEncoding>
+							<rulesets>java-basic, java-imports and java-unusedcode</rulesets>
+							<skip>false</skip>
+							<skipEmptyReport>true</skipEmptyReport>
+							<skipPmdError>true</skipPmdError>
+							<sourceEncoding>${project.build.sourceEncoding}</sourceEncoding>
+							<suppressMarker>NOPMD</suppressMarker>
+							<targetJdk>${maven.compiler.target}</targetJdk>
+							<typeResolution>false</typeResolution>
+							<xrefLocation>${project.reporting.outputDirectory}/xref</xrefLocation>
+							<xrefTestLocation>${project.reporting.outputDirectory}/xref-test</xrefTestLocation>
+							-->
 
 							<!-- defaults for pmd:cpd
-							   <outputDirectory></outputDirectory>
-							   <targetDirectory></targetDirectory>
-							   <aggregate>false</aggregate>
-							   <excludeRoots></excludeRoots>
-							   <excludes></excludes>
-							   <format>xml</format>
-							   <ignoreIdentifiers>false</ignoreIdentifiers>
-							   <ignoreLiterals>false</ignoreLiterals>
-							   <includeTests>false</includeTests>
-							   <includeXmlInSite>false</includeXmlInSite>
-							   <includes>**\/*.java</includes>
-							   <linkXRef>true</linkXRef>
-							   <minimumTokens>100</minimumTokens>
-							   <outputEncoding>${project.reporting.outputEncoding}</outputEncoding>
-							   <skip>false</skip>
-							   <skipEmptyReport>true</skipEmptyReport>
-							   <sourceEncoding>${project.build.sourceEncoding}</sourceEncoding>
-							   <xrefLocation>${project.reporting.outputDirectory}/xref</xrefLocation>
-							   <xrefTestLocation>${project.reporting.outputDirectory}/xref-test</xrefTestLocation>
-							   -->
+							<outputDirectory></outputDirectory>
+							<targetDirectory></targetDirectory>
+							<aggregate>false</aggregate>
+							<excludeRoots></excludeRoots>
+							<excludes></excludes>
+							<format>xml</format>
+							<ignoreIdentifiers>false</ignoreIdentifiers>
+							<ignoreLiterals>false</ignoreLiterals>
+							<includeTests>false</includeTests>
+							<includeXmlInSite>false</includeXmlInSite>
+							<includes>**\/*.java</includes>
+							<linkXRef>true</linkXRef>
+							<minimumTokens>100</minimumTokens>
+							<outputEncoding>${project.reporting.outputEncoding}</outputEncoding>
+							<skip>false</skip>
+							<skipEmptyReport>true</skipEmptyReport>
+							<sourceEncoding>${project.build.sourceEncoding}</sourceEncoding>
+							<xrefLocation>${project.reporting.outputDirectory}/xref</xrefLocation>
+							<xrefTestLocation>${project.reporting.outputDirectory}/xref-test</xrefTestLocation>
+							-->
 
+							<includeTests>true</includeTests>
 							<linkXRef>false</linkXRef>
 							<excludeRoots>
 								<excludeRoot>target/generated-sources</excludeRoot>
@@ -663,42 +664,41 @@
 						<artifactId>findbugs-maven-plugin</artifactId>
 						<configuration>
 							<!-- defaults for findbugs:findbugs
-							   <classFilesDirectory>${project.build.outputDirectory}</classFilesDirectory>
-							   <findbugsXmlOutputDirectory>${project.build.directory}</findbugsXmlOutputDirectory>
-							   <outputDirectory>${project.reporting.outputDirectory}</outputDirectory>
-							   <testClassFilesDirectory>${project.build.testOutputDirectory}</testClassFilesDirectory>
-							   <xmlOutput>false</xmlOutput>
-							   <xmlOutputDirectory>${project.build.directory}</xmlOutputDirectory>
-
-							   <debug>false</debug>
-							   <effort>Default</effort>
-							   <excludeBugsFile></excludeBugsFile>
-							   <excludeFilterFile></excludeFilterFile>
-							   <failOnError>true</failOnError>
-							   <findbugsXmlOutput>true</findbugsXmlOutput>
-							   <fork>true</fork>
-							   <includeFilterFile></includeFilterFile>
-							   <includeTests>false</includeTests>
-							   <jvmArgs></jvmArgs>
-							   <maxHeap>512</maxHeap>
-							   <maxRank></maxRank>
-							   <nested>false</nested>
-							   <omitVisitors></omitVisitors>
-							   <onlyAnalyze></onlyAnalyze>
-							   <outputEncoding>${project.reporting.outputEncoding}</outputEncoding>
-							   <pluginList></pluginList>
-							   <plugins></plugins>
-							   <relaxed>false</relaxed>
-							   <skip>false</skip>
-							   <skipEmptyReport>false</skipEmptyReport>
-							   <sourceEncoding>${project.build.sourceEncoding}</sourceEncoding>
-							   <threshold>Default</threshold>
-							   <timeout>600000</timeout>
-							   <trace>false</trace>
-							   <visitors></visitors>
-							   <xrefLocation>${project.reporting.outputDirectory}/xref</xrefLocation>
-							   <xrefTestLocation>${project.reporting.outputDirectory}/xref-test</xrefTestLocation>
-							   -->
+							<classFilesDirectory>${project.build.outputDirectory}</classFilesDirectory>
+							<findbugsXmlOutputDirectory>${project.build.directory}</findbugsXmlOutputDirectory>
+							<outputDirectory>${project.reporting.outputDirectory}</outputDirectory>
+							<testClassFilesDirectory>${project.build.testOutputDirectory}</testClassFilesDirectory>
+							<xmlOutput>false</xmlOutput>
+							<xmlOutputDirectory>${project.build.directory}</xmlOutputDirectory>
+							<debug>false</debug>
+							<effort>Default</effort>
+							<excludeBugsFile></excludeBugsFile>
+							<excludeFilterFile></excludeFilterFile>
+							<failOnError>true</failOnError>
+							<findbugsXmlOutput>true</findbugsXmlOutput>
+							<fork>true</fork>
+							<includeFilterFile></includeFilterFile>
+							<includeTests>false</includeTests>
+							<jvmArgs></jvmArgs>
+							<maxHeap>512</maxHeap>
+							<maxRank></maxRank>
+							<nested>false</nested>
+							<omitVisitors></omitVisitors>
+							<onlyAnalyze></onlyAnalyze>
+							<outputEncoding>${project.reporting.outputEncoding}</outputEncoding>
+							<pluginList></pluginList>
+							<plugins></plugins>
+							<relaxed>false</relaxed>
+							<skip>false</skip>
+							<skipEmptyReport>false</skipEmptyReport>
+							<sourceEncoding>${project.build.sourceEncoding}</sourceEncoding>
+							<threshold>Default</threshold>
+							<timeout>600000</timeout>
+							<trace>false</trace>
+							<visitors></visitors>
+							<xrefLocation>${project.reporting.outputDirectory}/xref</xrefLocation>
+							<xrefTestLocation>${project.reporting.outputDirectory}/xref-test</xrefTestLocation>
+							-->
 						</configuration>
 						<executions>
 							<execution>
