@@ -50,42 +50,6 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
 	private IndexDescriptor	id;
 	private ExecutionFactory ef;
 
-	/**
-	 * Constructor for an IndexRowGeneratorImpl
-	 *
-	 * @param indexType		The type of index
-	 * @param isUnique		True means the index is unique
-	 * @param baseColumnPositions	An array of column positions in the base
-	 *								table.  Each index column corresponds to a
-	 *								column position in the base table.
-	 * @param isAscending	An array of booleans telling asc/desc on each
-	 *						column.
-	 * @param numberOfOrderedColumns	In the future, it will be possible
-	 *									to store non-ordered columns in an
-	 *									index.  These will be useful for
-	 *									covered queries.
-	 */
-	public IndexRowGenerator(String indexType,
-								boolean isUnique,
-								int[] baseColumnPositions,
-								boolean[] isAscending,
-								int numberOfOrderedColumns)
-	{
-		id = new IndexDescriptorImpl(
-                        indexType,
-                        isUnique, //default uniqueWithDuplicateNulls to false
-                        false,
-                        baseColumnPositions,
-                        isAscending,
-                        numberOfOrderedColumns);
-
-		if (SanityManager.DEBUG)
-		{
-			SanityManager.ASSERT(baseColumnPositions != null,
-				"baseColumnPositions are null");
-		}
-	}
-        
     /**
      * Constructor for an IndexRowGeneratorImpl
      * 
@@ -172,18 +136,18 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
     		RowLocation rowLocation)
     throws StandardException
     {
-            int[] baseColumnPositions = id.baseColumnPositions();
-            ExecIndexRow indexRow = getIndexRowTemplate();
+		int[] baseColumnPositions = id.baseColumnPositions();
+		ExecIndexRow indexRow = getIndexRowTemplate();
 
-            for (int i = 0; i < baseColumnPositions.length; i++)
-            {
-                    DataTypeDescriptor dtd =
-                            columnList.elementAt(baseColumnPositions[i] - 1).getType();
-                    indexRow.setColumn(i + 1, dtd.getNull());
-            }
+		for (int i = 0; i < baseColumnPositions.length; i++)
+		{
+			DataTypeDescriptor dtd =
+				columnList.elementAt(baseColumnPositions[i] - 1).getType();
+			indexRow.setColumn(i + 1, dtd.getNull());
+		}
 
-            indexRow.setColumn(baseColumnPositions.length + 1, rowLocation);
-            return indexRow;
+		indexRow.setColumn(baseColumnPositions.length + 1, rowLocation);
+		return indexRow;
     }
 
     /**
@@ -438,18 +402,21 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
 	 *
 	 * @return	true if this indexrowgenerator has the same value as other
 	 */
+	@Override
+	public boolean equals(Object other) {
+		if (this == other) return true;
+		if (other == null || getClass() != other.getClass()) return false;
 
-	public boolean equals(Object other)
-	{
-		return id.equals(other);
+		IndexRowGenerator that = (IndexRowGenerator) other;
+
+		if (id != null ? !id.equals(that.id) : that.id != null) return false;
+
+		return true;
 	}
 
-	/**
-	  @see java.lang.Object#hashCode
-	  */
-	public int hashCode()
-	{
-		return id.hashCode();
+	@Override
+	public int hashCode() {
+		return id != null ? id.hashCode() : 0;
 	}
 
 	private ExecutionFactory getExecutionFactory()
