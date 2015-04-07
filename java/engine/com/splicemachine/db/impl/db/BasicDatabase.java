@@ -226,11 +226,6 @@ public class BasicDatabase implements ModuleControl, ModuleSupportable, Property
 
 		active = true;
 
-        // Create an index statistics update daemon.
-        if (dd.doCreateIndexStatsRefresher()) {
-            dd.createIndexStatsRefresher(this, allParams.getProperty(
-                        Property.PROPERTY_RUNTIME_PREFIX + "serviceDirectory"));
-        }
     }
 
 	public void stop() {

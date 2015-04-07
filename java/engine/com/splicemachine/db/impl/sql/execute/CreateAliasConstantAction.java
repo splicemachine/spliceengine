@@ -38,6 +38,8 @@ import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 
+import java.util.List;
+
 /**
  *	This class performs actions that are ALWAYS performed for a
  *	CREATE FUNCTION, PROCEDURE or SYNONYM Statement at execution time.
@@ -243,18 +245,15 @@ class CreateAliasConstantAction extends DDLConstantAction
 		    }
 			
 		    // also don't want to collide with 1-arg functions by the same name
-			java.util.List funcList = dd.getRoutineList( sd.getUUID().toString(), aliasName, AliasInfo.ALIAS_TYPE_FUNCTION_AS_CHAR );
-			for ( int i = 0; i < funcList.size(); i++ )
-			{
-			    AliasDescriptor func = (AliasDescriptor) funcList.get(i);
-			
-			    RoutineAliasInfo funcInfo = (RoutineAliasInfo) func.getAliasInfo();
-			    if ( funcInfo.getParameterCount() == 1 )
-			    {
-			        throw StandardException.newException
-			             ( SQLState.LANG_BAD_UDA_OR_FUNCTION_NAME, schemaName, aliasName );
-			    }
-			}            
+			List<AliasDescriptor> funcList = dd.getRoutineList( sd.getUUID().toString(), aliasName, AliasInfo.ALIAS_TYPE_FUNCTION_AS_CHAR );
+			for(AliasDescriptor aFuncList : funcList){
+
+				RoutineAliasInfo funcInfo=(RoutineAliasInfo)aFuncList.getAliasInfo();
+				if(funcInfo.getParameterCount()==1){
+					throw StandardException.newException
+							(SQLState.LANG_BAD_UDA_OR_FUNCTION_NAME,schemaName,aliasName);
+				}
+			}
 			break;  
 
 		case AliasInfo.ALIAS_TYPE_UDT_AS_CHAR:
@@ -357,11 +356,11 @@ class CreateAliasConstantAction extends DDLConstantAction
 		     )
 		    throws StandardException
 		{
-		    java.util.List list = dd.getRoutineList( sd.getUUID().toString(), aliasName, aliasType );
+		    List<AliasDescriptor> list = dd.getRoutineList( sd.getUUID().toString(), aliasName, aliasType );
 		    
 		    for (int i = list.size() - 1; i >= 0; i--)
 		    {
-		        AliasDescriptor proc = (AliasDescriptor) list.get(i);
+		        AliasDescriptor proc =list.get(i);
 		        
 		        RoutineAliasInfo procedureInfo = (RoutineAliasInfo) proc.getAliasInfo();
 		        int parameterCount = procedureInfo.getParameterCount();

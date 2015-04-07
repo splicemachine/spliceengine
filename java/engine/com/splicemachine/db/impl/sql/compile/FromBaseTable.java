@@ -46,7 +46,6 @@ import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.iapi.util.StringUtil;
-import com.splicemachine.db.impl.services.daemon.IndexStatisticsDaemonImpl;
 import com.splicemachine.db.impl.sql.catalog.SYSUSERSRowFactory;
 
 import java.lang.reflect.Modifier;
@@ -3708,35 +3707,6 @@ public class FromBaseTable extends FromTable{
         if(requalificationRestrictionList!=null){
             requalificationRestrictionList.accept(v);
         }
-    }
-
-    /**
-     * Tells if the given table qualifies for a statistics update check in the
-     * current configuration.
-     *
-     * @param td the table to check
-     * @return {@code true} if qualified, {@code false} if not
-     */
-    private boolean qualifiesForStatisticsUpdateCheck(TableDescriptor td)
-            throws StandardException{
-        int qualifiedIndexes=0;
-        // Only base tables qualifies.
-        if(td.getTableType()==TableDescriptor.BASE_TABLE_TYPE){
-            IndexStatisticsDaemonImpl istatDaemon=(IndexStatisticsDaemonImpl)
-                    getDataDictionary().getIndexStatsRefresher(false);
-            // Usually only tables with at least one non-unique index or
-            // multi-column unique indexes qualify, but soft-upgrade mode is a
-            // special case (as is the temporary user override available).
-            // TODO: Rewrite if-logic when the temporary override is removed.
-            if(istatDaemon==null){ // Read-only database
-                qualifiedIndexes=0;
-            }else if(istatDaemon.skipDisposableStats){
-                qualifiedIndexes=td.getQualifiedNumberOfIndexes(2,true);
-            }else{
-                qualifiedIndexes=td.getTotalNumberOfIndexes();
-            }
-        }
-        return (qualifiedIndexes>0);
     }
 
     @Override

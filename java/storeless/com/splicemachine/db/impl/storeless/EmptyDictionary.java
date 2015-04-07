@@ -20,14 +20,10 @@
  */
 package com.splicemachine.db.impl.storeless;
 
-import java.util.Dictionary;
-import java.util.Hashtable;
-import java.util.List;
-import java.util.Properties;
+import java.util.*;
 
 import com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.iapi.db.Database;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.EngineType;
 import com.splicemachine.db.iapi.services.daemon.IndexStatisticsDaemon;
@@ -37,39 +33,14 @@ import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
-import com.splicemachine.db.iapi.sql.dictionary.AliasDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ColPermsDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptorList;
-import com.splicemachine.db.iapi.sql.dictionary.DataDescriptorGenerator;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.DependencyDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.FileInfoDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.GenericDescriptorList;
-import com.splicemachine.db.iapi.sql.dictionary.PasswordHasher;
-import com.splicemachine.db.iapi.sql.dictionary.PermissionsDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.RoutinePermsDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.RoleGrantDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SequenceDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.PermDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.RoleClosureIterator;
-import com.splicemachine.db.iapi.sql.dictionary.SubKeyConstraintDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TablePermsDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TupleDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.UserDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ViewDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueFactory;
 import com.splicemachine.db.iapi.types.NumberDataValue;
 import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.db.impl.sql.catalog.NoOpStatisticsStore;
 
 /**
  * DataDictionary implementation that does nothing!
@@ -574,13 +545,17 @@ public class EmptyDictionary implements DataDictionary, ModuleSupportable {
 
 	}
 
-	public Hashtable hashAllConglomerateDescriptorsByNumber(
-			TransactionController tc) throws StandardException {
+	@Override
+	public StatisticsStore getStatisticsStore(){
+		return NoOpStatisticsStore.INSTANCE;
+	}
+
+	public Map<Long,ConglomerateDescriptor> hashAllConglomerateDescriptorsByNumber( TransactionController tc) throws StandardException {
 		// Auto-generated method stub
 		return null;
 	}
 
-	public Hashtable hashAllTableDescriptorsByTableId(TransactionController tc)
+	public Map<UUID,TableDescriptor> hashAllTableDescriptorsByTableId(TransactionController tc)
 			throws StandardException {
 		// Auto-generated method stub
 		return null;
@@ -960,12 +935,7 @@ public class EmptyDictionary implements DataDictionary, ModuleSupportable {
         return null;
     }
 
-    public void dropAllPermDescriptors(UUID objectID, TransactionController tc)
-            throws StandardException {
-        // Auto-generated method stub
-    }
-
-    public IndexStatisticsDaemon getIndexStatsRefresher(boolean asDaemon) {
+	public IndexStatisticsDaemon getIndexStatsRefresher(boolean asDaemon) {
         return null;
     }
 
@@ -977,11 +947,7 @@ public class EmptyDictionary implements DataDictionary, ModuleSupportable {
         return false;
     }
 
-    public void createIndexStatsRefresher(Database db, String dbName) {
-        // Do nothing
-    }
-
-    public DependableFinder getDependableFinder(int formatId) {
+	public DependableFinder getDependableFinder(int formatId) {
         return null;
     }
 

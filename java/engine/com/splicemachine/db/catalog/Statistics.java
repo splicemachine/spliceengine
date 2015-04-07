@@ -31,8 +31,13 @@ package com.splicemachine.db.catalog;
  <p>
 */
 
-public interface Statistics
-{
+public interface Statistics {
+    /**
+     * @return the UUID of the <em>backing conglomerate</em> which this
+     * statistics entity describes (e.g. the table heap, index, and so on)
+     */
+    long getConglomerateId();
+
     /**
      * Returns the estimated number of rows in the index.
      *
@@ -44,4 +49,6 @@ public interface Statistics
 	 * @return the selectivity for a set of predicates.
 	 */
 	double selectivity(Object[] predicates);
+
+    int getColumnCount();
 }

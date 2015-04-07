@@ -21,10 +21,8 @@
 
 package com.splicemachine.db.impl.sql.catalog;
 
-import java.util.List;
-import java.util.HashMap;
-import java.util.ArrayList;
-import java.util.Iterator;
+import java.util.*;
+
 import com.splicemachine.db.iapi.sql.dictionary.RoleGrantDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.RoleClosureIterator;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -66,7 +64,7 @@ public class RoleClosureIteratorImpl implements RoleClosureIterator
      *        in graph</li>
      * </ul>
      */
-    private HashMap graph;
+    private Map<String,List<RoleGrantDescriptor>> graph;
 
     /**
      * Holds discovered, but not yet handed out, roles in the closure.

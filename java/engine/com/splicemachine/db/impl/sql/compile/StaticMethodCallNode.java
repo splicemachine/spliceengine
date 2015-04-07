@@ -453,14 +453,14 @@ public class StaticMethodCallNode extends MethodCallNode {
                                 SchemaDescriptor sd) throws StandardException {
 		if (sd.getUUID() != null) {
 
-		java.util.List list = getDataDictionary().getRoutineList(
+		List<AliasDescriptor> list = getDataDictionary().getRoutineList(
 			sd.getUUID().toString(), methodName,
 			forCallStatement ? AliasInfo.ALIAS_NAME_SPACE_PROCEDURE_AS_CHAR : AliasInfo.ALIAS_NAME_SPACE_FUNCTION_AS_CHAR
 			);
 
 		for (int i = list.size() - 1; i >= 0; i--) {
 
-			AliasDescriptor proc = (AliasDescriptor) list.get(i);
+			AliasDescriptor proc =list.get(i);
 
 			RoutineAliasInfo routineInfo = (RoutineAliasInfo) proc.getAliasInfo();
 			int parameterCount = routineInfo.getParameterCount();

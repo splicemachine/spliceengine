@@ -21,6 +21,7 @@
 
 package com.splicemachine.db.impl.services.locks;
 
+import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 import com.splicemachine.db.iapi.error.StandardException;
@@ -33,13 +34,14 @@ import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 
 import java.util.Hashtable;
+import java.util.Map;
 
 public class TableNameInfo {
 
 	// things to look up table name etc
 	private DataDictionary dd;
-	private Hashtable ddCache;			// conglomId -> conglomerateDescriptor
-	private Hashtable tdCache;			// tableID UUID -> table descriptor
+	private Map<Long,ConglomerateDescriptor> ddCache;			// conglomId -> conglomerateDescriptor
+	private Map<UUID,TableDescriptor> tdCache;			// tableID UUID -> table descriptor
 	private Hashtable tableCache;		// conglomId -> table descriptor
 	private Hashtable indexCache;		// conglomId -> indexname
 
@@ -68,15 +70,14 @@ public class TableNameInfo {
 		{
 			// first time we see this conglomerate, get it from the
 			// ddCache 
-			ConglomerateDescriptor cd =
-				(ConglomerateDescriptor)ddCache.get(conglomId);
+			ConglomerateDescriptor cd = ddCache.get(conglomId);
 
             if (cd != null)
             {
                 // conglomerateDescriptor is not null, this table is known
                 // to the data dictionary
 
-                td = (TableDescriptor) tdCache.get(cd.getTableID());
+                td =tdCache.get(cd.getTableID());
             }
 
 			if ((cd == null) || (td == null))
@@ -88,8 +89,7 @@ public class TableNameInfo {
 				// 1. the table has just been dropped
 				// 2. the table is an internal one that lives below
 				// 		the data dictionary
-				if (conglomId.longValue() > 20)
-				{
+				if (conglomId> 20) {
 					// table probably dropped!  
 					name = "*** TRANSIENT_" + conglomId;
 				}

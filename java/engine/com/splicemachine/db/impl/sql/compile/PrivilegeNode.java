@@ -192,8 +192,8 @@ public class PrivilegeNode extends QueryTreeNode
             }
 				
             AliasDescriptor proc = null;
-            RoutineAliasInfo routineInfo = null;
-            java.util.List list = getDataDictionary().getRoutineList(
+            RoutineAliasInfo routineInfo;
+            List<AliasDescriptor> list = getDataDictionary().getRoutineList(
                 sd.getUUID().toString(), objectName.getTableName(),
                 routineDesignator.isFunction ? AliasInfo.ALIAS_NAME_SPACE_FUNCTION_AS_CHAR : AliasInfo.ALIAS_NAME_SPACE_PROCEDURE_AS_CHAR
                 );

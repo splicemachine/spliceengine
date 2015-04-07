@@ -33,6 +33,7 @@ import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.store.access.ScanController;
+import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
 
@@ -3263,7 +3264,8 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             if(conglomIndex==-1)
                 break;            // no more stats available.
 
-            selectivity*=td.selectivityForConglomerate(conglomerates[conglomIndex],maxPreds.size());
+            TransactionController tc=getLanguageConnectionContext().getTransactionExecute();
+            selectivity*=td.selectivityForConglomerate(tc,conglomerates[conglomIndex],maxPreds.size());
 
             for(Predicate maxPred : maxPreds){
                 /* remove the predicates that we've calculated the selectivity

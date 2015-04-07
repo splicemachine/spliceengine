@@ -21,8 +21,6 @@
 
 package com.splicemachine.db.impl.sql.execute;
 
-import java.util.Properties;
-
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.catalog.types.StatisticsImpl;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -33,35 +31,19 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
-import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptorList;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptorList;
-import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.DataDescriptorGenerator;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.StatisticsDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.store.access.AccessFactoryGlobals;
-import com.splicemachine.db.iapi.store.access.ColumnOrdering;
-import com.splicemachine.db.iapi.store.access.ConglomerateController;
-import com.splicemachine.db.iapi.store.access.GroupFetchScanController;
-import com.splicemachine.db.iapi.store.access.RowLocationRetRowSource;
-import com.splicemachine.db.iapi.store.access.SortController;
-import com.splicemachine.db.iapi.store.access.SortObserver;
-import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.store.access.*;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.iapi.types.TypeId;
 
+import java.util.Properties;
+
 // Used only to access a debug flag, will be removed or replaced.
-import com.splicemachine.db.impl.services.daemon.IndexStatisticsDaemonImpl;
 
 /**
  * ConstantAction to create an index either through
@@ -955,21 +937,22 @@ class CreateIndexConstantAction extends IndexConstantAction
      *      SYS.SYSSTATISTICS, {@code false} otherwise.
      * @throws StandardException if accessing the data dictionary fails
      */
-    private boolean addStatistics(DataDictionary dd,
-                                  IndexRowGenerator irg,
-                                  long numRows)
-            throws StandardException {
-        boolean add = (numRows > 0);
-        if (dd.checkVersion(DataDictionary.DD_VERSION_DERBY_10_9, null) &&
-                // This horrible piece of code will hopefully go away soon!
-               ((IndexStatisticsDaemonImpl)dd.getIndexStatsRefresher(false)).
-                    skipDisposableStats) {
-            if (add && irg.isUnique() && irg.numberOfOrderedColumns() == 1) {
-                // Do not add statistics for single-column unique indexes.
-                add = false;
-            }
-        }
-        return add;
+    private boolean addStatistics(DataDictionary dd, IndexRowGenerator irg, long numRows) throws StandardException {
+		/*
+		 * -sf- In splice, we keep statistics up to date using a different mechanism
+		 */
+		return false;
+//        boolean add = (numRows > 0);
+//        if (dd.checkVersion(DataDictionary.DD_VERSION_DERBY_10_9, null) &&
+//                // This horrible piece of code will hopefully go away soon!
+//               ((IndexStatisticsDaemonImpl)dd.getIndexStatsRefresher(false)).
+//                    skipDisposableStats) {
+//            if (add && irg.isUnique() && irg.numberOfOrderedColumns() == 1) {
+//                // Do not add statistics for single-column unique indexes.
+//                add = false;
+//            }
+//        }
+//        return add;
     }
 
 	// CLASS METHODS

@@ -30,8 +30,7 @@ import java.io.ObjectOutput;
 import java.io.ObjectInput;
 import java.io.IOException;
 
-public class StatisticsImpl	implements Statistics, Formatable
-{
+public class StatisticsImpl	implements Statistics, Formatable {
 	/* total count of rows for which this statistic was created-- this
 	   is not the same as the total number of rows in the conglomerate
 	   currently, but a snapshot; i.e the  number of rows when this
@@ -44,6 +43,8 @@ public class StatisticsImpl	implements Statistics, Formatable
 	 */
 	private long numUnique;
 
+	private transient long conglomerateNumber;
+	private transient int columnCount;
 	/**
 	 * Constructor for StatisticsImpl.
 	 * 
@@ -62,7 +63,11 @@ public class StatisticsImpl	implements Statistics, Formatable
 	public StatisticsImpl()
 	{}
 
-    /** {@inheritDoc} */
+	@Override public long getConglomerateId(){ return conglomerateNumber; }
+
+	@Override public int getColumnCount(){ return columnCount; }
+
+	/** {@inheritDoc} */
     public long getRowEstimate() {
         return numRows;
     }
