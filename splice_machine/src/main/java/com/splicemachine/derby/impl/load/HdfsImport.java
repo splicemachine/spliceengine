@@ -6,11 +6,14 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Date;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 
+import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HConstants;
@@ -18,6 +21,7 @@ import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Logger;
@@ -60,6 +64,7 @@ import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.hbase.backup.BackupItem;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobStatusLogger;
 import com.splicemachine.job.JobStats;
@@ -68,6 +73,7 @@ import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.utils.SpliceUtilities;
 
 /**
  * Imports a delimiter-separated file located in HDFS in a parallel way.
@@ -476,6 +482,9 @@ public class HdfsImport {
 								long start = System.currentTimeMillis();
 								JobFuture jobFuture = SpliceDriver.driver().getJobScheduler().submit(importJob,jobStatusLogger);
 								JobInfo info = new JobInfo(importJob.getJobId(),jobFuture.getNumTasks(),start);
+								long estImportTime = estimateImportTime();
+								jobStatusLogger.log(String.format("Expected time for import %s.  Expected finish is %s.",
+										StringUtils.formatTime(estImportTime), new Date(System.currentTimeMillis() + estImportTime)));
 								jobStatusLogger.log(String.format("Importing %d files...", jobFuture.getNumTasks()));
 								info.tasksRunning(jobFuture.getAllTaskIds());
 								if(opInfo!=null)
@@ -499,7 +508,7 @@ public class HdfsImport {
 										numBadRecords+=(totalRead-totalRowsWritten);
 								}
 								jobStatusLogger.log(String.format(
-										"Import finished with success. Total rows imported: %d. Total rows rejected: %d. Total time for import: %s.",
+										"Import finished with success. Total rows imported: %,d. Total rows rejected: %,d. Total time for import: %s.",
 										numImported, numBadRecords, StringUtils.formatTimeDiff(info.getJobFinishMs(), info.getJobStartMs())));
 								ExecRow result = new ValueRow(3);
 								result.setRowArray(new DataValueDescriptor[]{
@@ -535,7 +544,69 @@ public class HdfsImport {
 				}
 		}
 
+    	/**
+    	 * Return an estimate of the time required for the import job to finish.
+    	 *
+    	 * @return time estimate for the import job duration
+    	 *
+    	 * @throws IOException 
+    	 */
+	    private long estimateImportTime() throws IOException {
+	    	/*
+	    	 * This is a very simple model to estimate the completion time of an import job based on
+	    	 * the size of the data, calculated import ingestion rates, and the number of region servers.
+	    	 *
+	    	 * PLEASE NOTE: This is an incredibly basic estimation model.  Many things still need to be considered such as the following:
+	    	 *   - number of indexes on the table that is being imported into
+	    	 *   - number of import tasks
+	    	 *   - total number of cores for the cluster
+	    	 *   - general load on the cluster
+	    	 *   - whether or not the files are compressed and which compression algorithm (gzip, pkzip, zip, etc.) is being used
+	    	 *   - and also the fact that our import ingest rates fluctuate with region server activity such as compactions, region splits, etc.
+	    	 * But hey, it's a start...
+	    	 */
 
+	    	// The following rates were empirically derived from SAP import timings.
+	    	double importRatePerNode = 1.95d * 1024d * 1024d / 1000d;  // 1.95MB/sec
+	    	double standaloneBoost = 1.0d;
+
+	    	int numServers = getRegionServerCount();
+	    	long importDataSize = getImportDataSize();
+
+	    	// Standalone has a 50% higher import ingest rate since there is less contention and the disks are local (often they are flash too).
+	    	if (numServers == 1) standaloneBoost = 1.5d;
+	    	if (LOG.isDebugEnabled()) SpliceLogUtils.debug(LOG,
+	    			"importDataSize(bytes)=%,d numServers=%d importRatePerNode(bytes/ms)=%,.2f standaloneBoost=%,.2f",
+	    			importDataSize, numServers, importRatePerNode, standaloneBoost);
+
+	    	return (long)((double)importDataSize / ((double)numServers * importRatePerNode * standaloneBoost));
+	    }
+
+	    /**
+	     * Get the number of region servers in the cluster.
+	     *
+	     * @return number of region servers in the cluster
+	     *
+	     * @throws IOException
+	     */
+		private int getRegionServerCount() throws IOException {
+	        return SpliceUtilities.getAdmin().getClusterStatus().getServersSize();
+		}
+
+	    /**
+	     * Return the total space consumed by the import data files.
+	     *
+	     * @return total space consumed by the import data files
+	     *
+	     * @throws IOException
+	     */
+	    private long getImportDataSize() throws IOException {
+	    	FileSystem fs = FileSystem.get(SpliceConstants.config);
+	    	Path path = context.getFilePath();
+	    	ContentSummary summary = fs.getContentSummary(path);
+	    	if (LOG.isDebugEnabled()) SpliceLogUtils.debug(LOG, "Path=%s SpaceConsumed=%,d", path, summary.getSpaceConsumed());
+	    	return summary.getSpaceConsumed();
+		}
 
 		private void splitToFit(byte[] tableName, ImportFile file) throws IOException {
 				/*

@@ -67,7 +67,7 @@ public abstract class BaseJobControl implements JobFuture {
         this.tasksToWatch = new ConcurrentSkipListSet<RegionTaskControl>();
         this.jobStatusLogger = jobStatusLogger;
         this.taskStatusThread = new TaskStatusLoggerThread(this);
-        this.taskStatusThread.start();  // Start polling for status of the import tasks.
+        this.taskStatusThread.start();  // Start polling for status of the tasks.
 
         this.changedTasks = new LinkedBlockingQueue<RegionTaskControl>();
         this.failedTasks = Collections.newSetFromMap(new ConcurrentHashMap<RegionTaskControl, Boolean>());
@@ -399,9 +399,9 @@ public abstract class BaseJobControl implements JobFuture {
                         final int tryCount) throws ExecutionException;
 
     /**
-     * A thread that polls JMX every configured interval to check the import statistics of each import task.
+     * A thread that polls JMX every configured interval to check the import statistics of each task.
      * If the task has made progress (e.g. imported or rejected rows) since the last time it was checked,
-     * the current statistics for the import task will be written to the import log.
+     * the current statistics for the task will be written to the import log.
      *
      * @author dwinters
      */
@@ -413,7 +413,7 @@ public abstract class BaseJobControl implements JobFuture {
     	BaseJobControl jobControl = null;
 
     	/**
-    	 * Number of milliseconds to sleep before checking JMX for progress by the import tasks.
+    	 * Number of milliseconds to sleep before checking JMX for progress by the tasks.
     	 */
     	long sleepMillis = SpliceConstants.importTaskStatusLoggingInterval;
 
@@ -433,7 +433,7 @@ public abstract class BaseJobControl implements JobFuture {
     	}
 
     	/**
-    	 * Loop checking JMX for import task updates (and sleep) until requested to stop.
+    	 * Loop checking JMX for task updates (and sleep) until requested to stop.
     	 */
     	@Override
     	public void run() {
@@ -444,7 +444,7 @@ public abstract class BaseJobControl implements JobFuture {
 					while (runTaskStatusLoggerThread) {
 
 						/*
-						 * Write the status of all running import tasks to the import job status log.
+						 * Write the status of all running tasks to the import job status log.
 						 */
 						try {
 							List<Pair<String, ImportTaskManagement>> importTaskPairs = importAdmin.getRegionServerImportTaskInfo();
@@ -458,7 +458,7 @@ public abstract class BaseJobControl implements JobFuture {
 									Long importRowCount = importedRowsMapEntry.getValue();
 									Long badRowCount = badRowsMap.get(importFileName);
 									if (jobStatusLogger != null) {
-										jobStatusLogger.log(String.format("Imported %d rows and rejected %d rows from %s on %s", importRowCount, badRowCount, importFileName, regionServer));
+										jobStatusLogger.log(String.format("Imported %,d rows and rejected %,d rows from %s on %s", importRowCount, badRowCount, importFileName, regionServer));
 									}
 								}
 							}
@@ -471,7 +471,7 @@ public abstract class BaseJobControl implements JobFuture {
 						}
 
 						/*
-						 * Sleep for a configured amount of time and then log the import task status again.
+						 * Sleep for a configured amount of time and then log the status of the tasks again.
 						 */
 						try {
 							sleep(sleepMillis);
