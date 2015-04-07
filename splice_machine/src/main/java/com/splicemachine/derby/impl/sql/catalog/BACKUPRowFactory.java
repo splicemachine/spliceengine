@@ -24,7 +24,7 @@ public class BACKUPRowFactory extends CatalogRowFactory {
     private static final String TABLENAME_STRING = "BACKUP";
     private static final int BACKUP_COLUMN_COUNT = 9;
 
-    private static final int TRANSACTION_ID = 1;
+    private static final int BACKUP_ID = 1;
     private static final int BEGIN_TIMESTAMP = 2;
     private static final int END_TIMESTAMP = 3;
     private static final int STATUS = 4;
@@ -47,7 +47,7 @@ public class BACKUPRowFactory extends CatalogRowFactory {
     @Override
     public ExecRow makeRow(TupleDescriptor td, TupleDescriptor parent) throws StandardException {
 
-        long txnId = 0;
+        long backupId = 0;
         DateTime beginTimestamp = null;
         DateTime endTimestamp = null;
         String status = null;
@@ -59,7 +59,7 @@ public class BACKUPRowFactory extends CatalogRowFactory {
 
         if (td != null) {
             BackupDescriptor d = (BackupDescriptor)td;
-            txnId = d.getTxnId();
+            backupId = d.getBackupId();
             beginTimestamp = d.getBeginTimestamp();
             endTimestamp = d.getEndTimestamp();
             status = d.getStatus();
@@ -72,7 +72,7 @@ public class BACKUPRowFactory extends CatalogRowFactory {
 
         ExecRow row = getExecutionFactory().getValueRow(BACKUP_COLUMN_COUNT);
 
-        row.setColumn(TRANSACTION_ID, new SQLLongint(txnId));
+        row.setColumn(BACKUP_ID, new SQLLongint(backupId));
         row.setColumn(BEGIN_TIMESTAMP, new SQLTimestamp(beginTimestamp));
         row.setColumn(END_TIMESTAMP, new SQLTimestamp(endTimestamp));
         row.setColumn(STATUS, new SQLVarchar(status));
@@ -95,8 +95,8 @@ public class BACKUPRowFactory extends CatalogRowFactory {
                     "Wrong number of columns for a SYSBACKUP row");
         }
 
-        DataValueDescriptor col = row.getColumn(TRANSACTION_ID);
-        long txnId = col.getLong();
+        DataValueDescriptor col = row.getColumn(BACKUP_ID);
+        long backupId = col.getLong();
 
         col = row.getColumn(BEGIN_TIMESTAMP);
         DateTime beginTimestamp = col.getDateTime();
@@ -122,14 +122,14 @@ public class BACKUPRowFactory extends CatalogRowFactory {
         col = row.getColumn(ITEMS);
         int items = col.getInt();
 
-        return new BackupDescriptor(txnId, beginTimestamp, endTimestamp, status, fileSystem,
+        return new BackupDescriptor(backupId, beginTimestamp, endTimestamp, status, fileSystem,
                 scope, isIncremental, parentId, items);
     }
 
     @Override
     public SystemColumn[] buildColumnList() throws StandardException {
         return new SystemColumn[]{
-                SystemColumnImpl.getColumn("TRANSACTION_ID", Types.BIGINT, false),
+                SystemColumnImpl.getColumn("BACKUP_ID", Types.BIGINT, false),
                 SystemColumnImpl.getColumn("BEGIN_TIMESTAMP",Types.TIMESTAMP,false),
                 SystemColumnImpl.getColumn("END_TIMESTAMP",Types.TIMESTAMP,true),
                 SystemColumnImpl.getColumn("STATUS",Types.VARCHAR,false,10),

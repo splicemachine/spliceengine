@@ -37,12 +37,11 @@ public class BackupItem implements InternalTable {
 	public static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
 	public static final String DEFAULT_SCHEMA = Backup.DEFAULT_SCHEMA;
 	public static final String DEFAULT_TABLE = "BACKUP_ITEMS";
-	public static final String INSERT_BACKUP_ITEM = "insert into %s.%s (transaction_id, item, begin_timestamp, snapshot_name)"
+	public static final String INSERT_BACKUP_ITEM = "insert into %s.%s (backup_id, item, begin_timestamp, snapshot_name)"
 			+ " values (?,?,?, ?)";
-    public static final String DELETE_BACKUP_ITEM = "delete from %s.%s where transaction_id=? and item=?";
+    public static final String DELETE_BACKUP_ITEM = "delete from %s.%s where backup_id=? and item=?";
 
-    public static final String UPDATE_BACKUP_ITEM_STATUS = "update %s.%s set end_timestamp = ? where transaction_id = ? and item = ?";
-    public static final String QUERY_BACKUP_ITEM = "select item, begin_timestamp, end_timestamp from %s.%s where transaction_id=?";
+    public static final String UPDATE_BACKUP_ITEM_STATUS = "update %s.%s set end_timestamp = ? where backup_id = ? and item = ?";
 
     public BackupItem () {
 		

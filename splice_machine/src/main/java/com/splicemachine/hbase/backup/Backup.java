@@ -103,11 +103,11 @@ public class Backup implements InternalTable {
      */
     public static enum BackupStatus {S,F,I}
 
-    public static final String INSERT_START_BACKUP = "insert into %s.%s (transaction_id, begin_timestamp, status, filesystem, "
+    public static final String INSERT_START_BACKUP = "insert into %s.%s (backup_id, begin_timestamp, status, filesystem, "
             + "scope, incremental_backup, incremental_parent_backup_id, backup_item) values (?,?,?,?,?,?,?,?)";
-    public static final String UPDATE_BACKUP_STATUS = "update %s.%s set status=?, end_timestamp=?, backup_item=? where transaction_id=?";
-    public static final String RUNNING_CHECK = "select transaction_id from %s.%s where status = ?";
-    public static final String QUERY_PARENT_BACKUP_DIRECTORY = "select filesystem from %s.%s where transaction_id = ?";
+    public static final String UPDATE_BACKUP_STATUS = "update %s.%s set status=?, end_timestamp=?, backup_item=? where backup_id=?";
+    public static final String RUNNING_CHECK = "select backup_id from %s.%s where status = ?";
+    public static final String QUERY_PARENT_BACKUP_DIRECTORY = "select filesystem from %s.%s where backup_id = ?";
 
     public static final String VERSION_FILE = "version";
     public static final String BACKUP_TIMESTAMP_FILE = "backupTimestamp";
