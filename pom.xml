@@ -68,10 +68,10 @@
 				</exclusions>
 			</dependency>
 			<dependency>
-				  <groupId>com.googlecode.concurrentlinkedhashmap</groupId>
-				  <artifactId>concurrentlinkedhashmap-lru</artifactId>
-				  <version>1.4.2</version>
-			</dependency>			
+				<groupId>com.googlecode.concurrentlinkedhashmap</groupId>
+				<artifactId>concurrentlinkedhashmap-lru</artifactId>
+				<version>1.4.2</version>
+			</dependency>
 			<dependency>
 				<groupId>com.splicemachine</groupId>
 				<artifactId>splice-web</artifactId>
@@ -339,6 +339,11 @@
 				<artifactId>super-csv</artifactId>
 				<version>2.2.0</version>
 			</dependency>
+			<dependency>
+				<groupId>net.sourceforge.cobertura</groupId>
+				<artifactId>cobertura</artifactId>
+				<version>2.1.1</version>
+			</dependency>
 		</dependencies>
 	</dependencyManagement>
 	<build>
@@ -348,7 +353,7 @@
 					<groupId>org.codehaus.mojo</groupId>
 					<artifactId>exec-maven-plugin</artifactId>
 					<configuration>
-            <killAfter>-1</killAfter>
+						<killAfter>-1</killAfter>
 					</configuration>
 				</plugin>
 				<plugin>
@@ -401,6 +406,7 @@
 			</plugins>
 		</pluginManagement>
 		<plugins>
+
 			<plugin>
 				<groupId>org.codehaus.mojo</groupId>
 				<artifactId>buildnumber-maven-plugin</artifactId>
@@ -433,6 +439,7 @@
 						<!-- Skip Window function UIs temporarily - DB-1765 -->
 						<exclude>com/splicemachine/derby/impl/sql/execute/operations/window/**</exclude>
 					</excludes>
+					<runOrder>alphabetical</runOrder>
 				</configuration>
 			</plugin>
 			<plugin>
@@ -459,6 +466,7 @@
 								<!-- Skip all unit tests -->
 								<exclude>**/*Test.java</exclude>
 							</excludes>
+							<runOrder>alphabetical</runOrder>
 						</configuration>
 					</execution>
 					<!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: PARALLEL -->
@@ -483,6 +491,7 @@
 								<!-- Skip all unit tests -->
 								<exclude>**/*Test.java</exclude>
 							</excludes>
+							<runOrder>alphabetical</runOrder>
 						</configuration>
 					</execution>
 					<!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = Integration tests: FINAL -->
@@ -505,6 +514,7 @@
 								<!-- Skip all unit tests -->
 								<exclude>**/*Test.java</exclude>
 							</excludes>
+							<runOrder>alphabetical</runOrder>
 						</configuration>
 					</execution>
 				</executions>
@@ -523,6 +533,281 @@
 				<module>hdp2.2</module>
 				<module>mapr4.0</module>
 			</modules>
+		</profile>
+		<profile>
+			<id>staticanalysis</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-checkstyle-plugin</artifactId>
+						<configuration>
+							<!-- defaults for checkstyle:checkstyle
+							   <includeResources>true</includeResources>
+							   <includeTestResources>true</includeTestResources>
+							   <includes>**\/*.java</includes>
+							   <resourceIncludes>**/*.properties</resourceIncludes>
+							   <cacheFile>${project.build.directory}/checkstyle-cachefile</cacheFile>
+							   <configLocation>config/sun_checks.xml</configLocation>
+							   <configLocation>config/maven_checks.xml</configLocation>
+							   <consoleOutput>false</consoleOutput>
+							   <enableFilesSummary>true</enableFilesSummary>
+							   <enableRSS>true</enableRSS>
+							   <enableRulesSummary>true</enableRulesSummary>
+							   <enableSeveritySummary>true</enableSeveritySummary>
+							   <encoding>${project.build.sourceEncoding}</encoding>
+							   <excludes></excludes>
+							   <failsOnError>false</failsOnError>
+							   <headerLocation>LICENSE.txt</headerLocation>
+							   <includeTestSourceDirectory>false</includeTestSourceDirectory>
+							   <linkXRef>true</linkXRef>
+							   <outputFile>${project.build.directory}/checkstyle-result.xml</outputFile>
+							   <outputFileFormat>xml</outputFileFormat>
+							   <packageNamesLocation></packageNamesLocation>
+							   <propertiesLocation></propertiesLocation>
+							   <propertyExpansion></propertyExpansion>
+							   <resourceExcludes></resourceExcludes>
+							   <skip>false</skip>
+							   <sourceDirectories>${project.compileSourceRoots}</sourceDirectories>
+							   <suppressionsFileExpression>checkstyle.suppressions.file</suppressionsFileExpression>
+							   <suppressionsLocation></suppressionsLocation>
+							   <testSourceDirectories>${project.testCompileSourceRoots}</testSourceDirectories>
+							   <treeWalkerNames></treeWalkerNames>
+							   <useFile></useFile>
+							   <xrefLocation>${project.reporting.outputDirectory}/xref</xrefLocation>
+							   -->
+							<linkXRef>false</linkXRef>
+						</configuration>
+						<executions>
+							<execution>
+								<id>checkstyle</id>
+								<phase>validate</phase>
+								<goals>
+									<goal>checkstyle</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.apache.maven.plugins</groupId>
+						<artifactId>maven-pmd-plugin</artifactId>
+						<configuration>
+							<!-- defaults for pmd:pmd
+							   <outputDirectory>${project.reporting.outputDirectory}</outputDirectory>
+							   <targetDirectory>${project.build.directory}</targetDirectory>
+							   <aggregate>false</aggregate>
+							   <benchmark>false</benchmark>
+							   <benchmarkOutputFilename>${project.build.directory}/pmd-benchmark.txt</benchmarkOutputFilename>
+							   <excludeRoots></excludeRoots>
+							   <excludes></excludes>
+							   <format>xml</format>
+							   <includeTests>false</includeTests>
+							   <includeXmlInSite>false</includeXmlInSite>
+							   <includes>**\/*.java</includes>
+							   <language>java</language>
+							   <linkXRef>true</linkXRef>
+							   <minimumPriority>5</minimumPriority>
+							   <outputEncoding>${project.reporting.outputEncoding}</outputEncoding>
+							   <rulesets>java-basic, java-imports and java-unusedcode</rulesets>
+							   <skip>false</skip>
+							   <skipEmptyReport>true</skipEmptyReport>
+							   <skipPmdError>true</skipPmdError>
+							   <sourceEncoding>${project.build.sourceEncoding}</sourceEncoding>
+							   <suppressMarker>NOPMD</suppressMarker>
+							   <targetJdk>${maven.compiler.target}</targetJdk>
+							   <typeResolution>false</typeResolution>
+							   <xrefLocation>${project.reporting.outputDirectory}/xref</xrefLocation>
+							   <xrefTestLocation>${project.reporting.outputDirectory}/xref-test</xrefTestLocation>
+							   -->
+
+							<!-- defaults for pmd:cpd
+							   <outputDirectory></outputDirectory>
+							   <targetDirectory></targetDirectory>
+							   <aggregate>false</aggregate>
+							   <excludeRoots></excludeRoots>
+							   <excludes></excludes>
+							   <format>xml</format>
+							   <ignoreIdentifiers>false</ignoreIdentifiers>
+							   <ignoreLiterals>false</ignoreLiterals>
+							   <includeTests>false</includeTests>
+							   <includeXmlInSite>false</includeXmlInSite>
+							   <includes>**\/*.java</includes>
+							   <linkXRef>true</linkXRef>
+							   <minimumTokens>100</minimumTokens>
+							   <outputEncoding>${project.reporting.outputEncoding}</outputEncoding>
+							   <skip>false</skip>
+							   <skipEmptyReport>true</skipEmptyReport>
+							   <sourceEncoding>${project.build.sourceEncoding}</sourceEncoding>
+							   <xrefLocation>${project.reporting.outputDirectory}/xref</xrefLocation>
+							   <xrefTestLocation>${project.reporting.outputDirectory}/xref-test</xrefTestLocation>
+							   -->
+
+							<linkXRef>false</linkXRef>
+							<excludeRoots>
+								<excludeRoot>target/generated-sources</excludeRoot>
+							</excludeRoots>
+						</configuration>
+						<executions>
+							<execution>
+								<id>pmd-cpd</id>
+								<phase>validate</phase>
+								<goals>
+									<goal>pmd</goal>
+									<goal>cpd</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>findbugs-maven-plugin</artifactId>
+						<configuration>
+							<!-- defaults for findbugs:findbugs
+							   <classFilesDirectory>${project.build.outputDirectory}</classFilesDirectory>
+							   <findbugsXmlOutputDirectory>${project.build.directory}</findbugsXmlOutputDirectory>
+							   <outputDirectory>${project.reporting.outputDirectory}</outputDirectory>
+							   <testClassFilesDirectory>${project.build.testOutputDirectory}</testClassFilesDirectory>
+							   <xmlOutput>false</xmlOutput>
+							   <xmlOutputDirectory>${project.build.directory}</xmlOutputDirectory>
+
+							   <debug>false</debug>
+							   <effort>Default</effort>
+							   <excludeBugsFile></excludeBugsFile>
+							   <excludeFilterFile></excludeFilterFile>
+							   <failOnError>true</failOnError>
+							   <findbugsXmlOutput>true</findbugsXmlOutput>
+							   <fork>true</fork>
+							   <includeFilterFile></includeFilterFile>
+							   <includeTests>false</includeTests>
+							   <jvmArgs></jvmArgs>
+							   <maxHeap>512</maxHeap>
+							   <maxRank></maxRank>
+							   <nested>false</nested>
+							   <omitVisitors></omitVisitors>
+							   <onlyAnalyze></onlyAnalyze>
+							   <outputEncoding>${project.reporting.outputEncoding}</outputEncoding>
+							   <pluginList></pluginList>
+							   <plugins></plugins>
+							   <relaxed>false</relaxed>
+							   <skip>false</skip>
+							   <skipEmptyReport>false</skipEmptyReport>
+							   <sourceEncoding>${project.build.sourceEncoding}</sourceEncoding>
+							   <threshold>Default</threshold>
+							   <timeout>600000</timeout>
+							   <trace>false</trace>
+							   <visitors></visitors>
+							   <xrefLocation>${project.reporting.outputDirectory}/xref</xrefLocation>
+							   <xrefTestLocation>${project.reporting.outputDirectory}/xref-test</xrefTestLocation>
+							   -->
+						</configuration>
+						<executions>
+							<execution>
+								<id>findbugs</id>
+								<phase>compile</phase>
+								<goals>
+									<goal>findbugs</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
+		</profile>
+		<profile>
+			<id>codecoverage</id>
+			<build>
+				<plugins>
+					<plugin>
+						<groupId>org.codehaus.mojo</groupId>
+						<artifactId>cobertura-maven-plugin</artifactId>
+						<configuration>
+
+							<!-- defaults for cobertura:check
+							<check>
+								<branchRate>85</branchRate>
+								<lineRate>85</lineRate>
+								<haltOnFailure>true</haltOnFailure>
+								<totalBranchRate>85</totalBranchRate>
+								<totalLineRate>85</totalLineRate>
+								<packageLineRate>85</packageLineRate>
+								<packageBranchRate>85</packageBranchRate>
+								<regexes>
+									<regex>
+										<pattern></pattern>
+										<branchRate>90</branchRate>
+										<lineRate>80</lineRate>
+									</regex>
+									<regex>
+										<pattern></pattern>
+										<branchRate>40</branchRate>
+										<lineRate>30</lineRate>
+									</regex>
+								</regexes>
+							</check>
+							<forceMojoExecution>false<forceMojoExecution>
+							<maxmem>64m</maxmem>
+							<quiet>false</quiet>
+							<skip>false</skip>
+							-->
+
+							<!-- defaults for cobertura:cobertura and cobertura:cobertura-integration-test
+							<outputDirectory>${project.reporting.outputDirectory}/cobertura</outputDirectory>
+							<aggregate>false</aggregate>
+							<encoding>UTF-8</encoding>
+							<formats>
+								<format>html</format>
+							</formats>
+							<maxmem></maxmem>
+							<omitGplFiles>false</omitGplFiles>
+							<quiet>false</quiet>
+							-->
+
+							<!-- defaults for cobertura:instrument
+							<forceMojoExecution>false<forceMojoExecution>
+							<attach>false</attach>
+							<classifier>cobertura</classifier>
+							<instrumentation>
+								<ignores>
+									<ignore></ignore>
+								</ignores>
+								<excludes>
+									<exclude></exclude>
+								</excludes>
+							</instrumentation>
+							<maxmem>64m</maxmem>
+							<quiet>false</quiet>
+							<skip>false</skip>
+							-->
+
+							<check>
+								<haltOnFailure>false</haltOnFailure>
+							</check>
+							<forceMojoExecution>false</forceMojoExecution>
+							<attach>true</attach>
+							<aggregate>true</aggregate>
+							<formats>
+								<format>xml</format>
+							</formats>
+						</configuration>
+						<executions>
+							<execution>
+								<id>cobertura-clean</id>
+								<phase>clean</phase>
+								<goals>
+									<goal>clean</goal>
+								</goals>
+							</execution>
+							<execution>
+								<id>cobertura</id>
+								<phase>verify</phase>
+								<goals>
+									<goal>cobertura-integration-test</goal>
+								</goals>
+							</execution>
+						</executions>
+					</plugin>
+				</plugins>
+			</build>
 		</profile>
 		<profile>
 			<id>no_obfuscate</id>
