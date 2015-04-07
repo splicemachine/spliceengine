@@ -15,11 +15,7 @@ import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Delete;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.Put;
-import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.InternalScanner;
@@ -36,7 +32,7 @@ import java.util.List;
  * Implementation of SDataLib that is specific to the HBase operation and result types.
  */
 public class HDataLib implements SDataLib<Cell,Put, Delete, Get, Scan> {
-
+    private static final String ISOLATION_LEVEL = "_isolationlevel_";
 		@Override
     public byte[] newRowKey(Object... args) {
         List<byte[]> bytes = new ArrayList<byte[]>();
@@ -147,6 +143,7 @@ public class HDataLib implements SDataLib<Cell,Put, Delete, Get, Scan> {
 		@Override
     public Get newGet(byte[] rowKey, List<byte[]> families, List<List<byte[]>> columns, Long effectiveTimestamp) {
         Get get = new Get(rowKey);
+        get.setAttribute(ISOLATION_LEVEL,IsolationLevel.READ_UNCOMMITTED.toBytes());
         if (families != null) {
             for (byte[] f : families) {
                 get.addFamily(f);
@@ -210,6 +207,7 @@ public class HDataLib implements SDataLib<Cell,Put, Delete, Get, Scan> {
     @Override
     public Scan newScan(byte[] startRowKey, byte[] endRowKey, List<byte[]> families, List<List<byte[]>> columns, Long effectiveTimestamp) {
         Scan scan = new Scan();
+        scan.setIsolationLevel(IsolationLevel.READ_UNCOMMITTED);
         scan.setStartRow(startRowKey);
         scan.setStopRow(endRowKey);
         if (families != null) {
