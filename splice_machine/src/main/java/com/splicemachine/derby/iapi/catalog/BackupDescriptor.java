@@ -8,7 +8,7 @@ import org.joda.time.DateTime;
 
 public class BackupDescriptor extends TupleDescriptor {
 
-    private long txnId;
+    private long backupId;
     private DateTime beginTimestamp;
     private DateTime endTimestamp;
     private String status;
@@ -18,7 +18,7 @@ public class BackupDescriptor extends TupleDescriptor {
     private long parentId;
     private int items;
 
-    public BackupDescriptor(long txnId,
+    public BackupDescriptor(long backupId,
                             DateTime beginTimestamp,
                             DateTime endTimestamp,
                             String status,
@@ -27,7 +27,7 @@ public class BackupDescriptor extends TupleDescriptor {
                             boolean isIncremental,
                             long parentId,
                             int items) {
-        this.txnId = txnId;
+        this.backupId = backupId;
         this.beginTimestamp = beginTimestamp;
         this.endTimestamp = endTimestamp;
         this.status = status;
@@ -38,8 +38,8 @@ public class BackupDescriptor extends TupleDescriptor {
         this.items = items;
     }
 
-    public long getTxnId() {
-        return txnId;
+    public long getBackupId() {
+        return backupId;
     }
 
     public DateTime getBeginTimestamp() {
