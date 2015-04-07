@@ -5,6 +5,7 @@ import java.io.IOException;
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.constants.SpliceConstants;
@@ -32,10 +33,15 @@ public class ImportJobStatusLogger implements JobStatusLogger {
 	 */
 	@Override
 	public void openLogFile() throws IOException {
-		// Keep the log file in the 'bad' directory since we are sure to have write access to it.
-		FileSystem fs = importContext.getBadLogDirectory().getFileSystem(SpliceConstants.config);
+		// First, try to put the log file in the 'bad' directory where the import tasks write the failed record files.
+		Path directory = importContext.getBadLogDirectory();
+		// Next, if the bad directory was not specified, put the log file in the parent of the import directory/file.
+		if (directory == null) {
+			directory = importContext.getFilePath().getParent();
+		}
+		FileSystem fs = directory.getFileSystem(SpliceConstants.config);
 
-		Path logFilePath = new Path(importContext.getBadLogDirectory(), IMPORT_LOG_FILE_NAME);
+		Path logFilePath = new Path(directory, IMPORT_LOG_FILE_NAME);
 		this.logFileOut = fs.create(logFilePath, true);
 	}
 

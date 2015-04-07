@@ -66,8 +66,14 @@ public abstract class BaseJobControl implements JobFuture {
         this.stats = new JobStatsAccumulator(job.getJobId());
         this.tasksToWatch = new ConcurrentSkipListSet<RegionTaskControl>();
         this.jobStatusLogger = jobStatusLogger;
-        this.taskStatusThread = new TaskStatusLoggerThread(this);
-        this.taskStatusThread.start();  // Start polling for status of the tasks.
+
+        // Only start the task status thread if there is a job status logger.
+        if (this.jobStatusLogger == null) {
+        	this.taskStatusThread = null;
+        } else {
+        	this.taskStatusThread = new TaskStatusLoggerThread(this);
+        	this.taskStatusThread.start();  // Start polling for status of the tasks.
+        }
 
         this.changedTasks = new LinkedBlockingQueue<RegionTaskControl>();
         this.failedTasks = Collections.newSetFromMap(new ConcurrentHashMap<RegionTaskControl, Boolean>());
@@ -237,7 +243,9 @@ public abstract class BaseJobControl implements JobFuture {
     			failedTasks.clear();
     			tasksToWatch.clear();
     			changedTasks.clear();
-    			taskStatusThread.requestStop();  // Stop the task status logging thread.
+    			if (taskStatusThread != null) {
+    				taskStatusThread.requestStop();  // Stop the task status logging thread.
+    			}
     		}
     	}
     }
