@@ -80,6 +80,7 @@ public interface WriteContext {
      */
     Map<KVPair, WriteResult> close() throws IOException;
 
+    Map<KVPair,WriteResult> currentResults();
     /**
      * CanRun
      */

@@ -48,6 +48,11 @@ public class WriteNode implements WriteContext {
         return null; //ignored
     }
 
+    @Override
+    public Map<KVPair, WriteResult> currentResults(){
+        return pipelineWriteContext.currentResults();
+    }
+
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     // WriteContext methods implemented by delegating to pipelineWriteContext
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
