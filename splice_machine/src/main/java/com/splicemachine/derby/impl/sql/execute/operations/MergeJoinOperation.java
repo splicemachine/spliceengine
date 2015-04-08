@@ -420,48 +420,7 @@ public class MergeJoinOperation extends JoinOperation {
                 joiner = initJoiner(left, right);
                 joiner.open();
             }
-            return new JoinerIterator();
-        }
-
-        private class JoinerIterator implements Iterator<ExecRow>, Iterable<ExecRow> {
-            ExecRow next = null;
-            boolean consumed = false;
-
-            @Override
-            public Iterator<ExecRow> iterator() {
-                return this;
-            }
-
-            @Override
-            public boolean hasNext() {
-                if (consumed) return false;
-                try {
-                    if (next == null) {
-                        next = joiner.nextRow(soi.getSpliceRuntimeContext());
-                    }
-                    if (next == null) {
-                        consumed = true;
-                        joiner.close();
-                    }
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-                return next != null;
-            }
-
-            @Override
-            public ExecRow next() {
-                if (!hasNext())
-                    return null;
-                ExecRow result = next;
-                next = null;
-                return result;
-            }
-
-            @Override
-            public void remove() {
-                throw new UnsupportedOperationException("Can't remove elements from this iterator");
-            }
+            return new SparkJoinerIterator(joiner, soi);
         }
     }
 }
