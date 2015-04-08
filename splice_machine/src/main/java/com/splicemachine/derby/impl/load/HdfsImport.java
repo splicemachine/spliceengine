@@ -215,22 +215,25 @@ public class HdfsImport {
                 timeFormat,
                 maxBadRecords,
                 badRecordDirectory,
+                -1,
                 true,
+                false,
                 results);
     }
 
-		public static void IMPORT_DATA(String schemaName, String tableName,
-																				 String insertColumnList,
-																				 String fileName,
-																				 String columnDelimiter,
-																				 String characterDelimiter,
-																				 String timestampFormat,
-																				 String dateFormat,
-																				 String timeFormat,
-																				 long maxBadRecords,
-																				 String badRecordDirectory,
-																				 ResultSet[] results
-																				 ) throws SQLException {
+    public static void UPSERT_CHECK_DATA_FROM_FILE(String schemaName, String tableName,
+                                             String insertColumnList,
+                                             String fileName,
+                                             String columnDelimiter,
+                                             String characterDelimiter,
+                                             String timestampFormat,
+                                             String dateFormat,
+                                             String timeFormat,
+                                             long maxBadRecords,
+                                             String badRecordDirectory,
+                                             long maxRecords,
+                                             ResultSet[] results
+    ) throws SQLException {
         doImport(schemaName,
                 tableName,
                 insertColumnList,
@@ -242,9 +245,70 @@ public class HdfsImport {
                 timeFormat,
                 maxBadRecords,
                 badRecordDirectory,
-                false,
+                maxRecords,
+                true,
+                true,
                 results);
-		}
+    }
+
+	public static void IMPORT_DATA(String schemaName, String tableName,
+																			 String insertColumnList,
+																			 String fileName,
+																			 String columnDelimiter,
+																			 String characterDelimiter,
+																			 String timestampFormat,
+																			 String dateFormat,
+																			 String timeFormat,
+																			 long maxBadRecords,
+																			 String badRecordDirectory,
+																			 ResultSet[] results
+																			 ) throws SQLException {
+    doImport(schemaName,
+            tableName,
+            insertColumnList,
+            fileName,
+            columnDelimiter,
+            characterDelimiter,
+            timestampFormat,
+            dateFormat,
+            timeFormat,
+            maxBadRecords,
+            badRecordDirectory,
+            -1,
+            false,
+            false,
+            results);
+	}
+
+	public static void IMPORT_CHECK_DATA(String schemaName, String tableName,
+																			 String insertColumnList,
+																			 String fileName,
+																			 String columnDelimiter,
+																			 String characterDelimiter,
+																			 String timestampFormat,
+																			 String dateFormat,
+																			 String timeFormat,
+																			 long maxBadRecords,
+																			 String badRecordDirectory,
+																			 long maxRecords,
+																			 ResultSet[] results
+																			 ) throws SQLException {
+    doImport(schemaName,
+            tableName,
+            insertColumnList,
+            fileName,
+            columnDelimiter,
+            characterDelimiter,
+            timestampFormat,
+            dateFormat,
+            timeFormat,
+            maxBadRecords,
+            badRecordDirectory,
+            maxRecords,
+            false,
+            true,
+            results);
+	}
 
     private static void doImport(String schemaName, String tableName,
                                  String insertColumnList,
@@ -256,7 +320,9 @@ public class HdfsImport {
                                  String timeFormat,
                                  long maxBadRecords,
                                  String badRecordDirectory,
+                                 long maxRecords,
                                  boolean isUpsert,
+                                 boolean isCheckScan,
                                  ResultSet[] results) throws SQLException {
         Connection conn = SpliceAdmin.getDefaultConn();
         try {
@@ -273,7 +339,8 @@ public class HdfsImport {
                 EmbedConnection embedConnection = (EmbedConnection)conn;
                 ExecRow resultRow = importData(txn,user, conn, schemaName.toUpperCase(), tableName.toUpperCase(),
                         insertColumnList, fileName, columnDelimiter,
-                        characterDelimiter, timestampFormat, dateFormat, timeFormat, lcc, maxBadRecords, badRecordDirectory,isUpsert);
+                        characterDelimiter, timestampFormat, dateFormat, timeFormat, lcc, maxBadRecords, badRecordDirectory,
+                        maxRecords, isUpsert, isCheckScan);
                 IteratorNoPutResultSet rs = new IteratorNoPutResultSet(Arrays.asList(resultRow),IMPORT_RESULT_COLUMNS,activation);
                 rs.open();
                 results[0] = new EmbedResultSet40(embedConnection,rs,false,null,true);
@@ -317,7 +384,9 @@ public class HdfsImport {
                                      LanguageConnectionContext lcc,
                                      long maxBadRecords,
                                      String badRecordDirectory,
-                                     boolean upsert) throws SQLException{
+                                     long maxRecords,
+                                     boolean upsert,
+                                     boolean isCheckScan) throws SQLException{
         if(connection ==null)
             throw PublicAPI.wrapStandardException(StandardException.newException(SQLState.CONNECTION_NULL));
         if(tableName==null)
@@ -333,7 +402,9 @@ public class HdfsImport {
                     .timeFormat(timeFormat)
                     .maxBadRecords(maxBadRecords)
                     .badLogDirectory(badRecordDirectory==null?null: new Path(badRecordDirectory))
+                    .maxRecords(maxRecords)
                     .upsert(upsert)
+                    .checkScan(isCheckScan)
             ;
 
 						if(lcc.getRunTimeStatisticsMode()){

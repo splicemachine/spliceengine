@@ -89,7 +89,9 @@ public class SequentialImporter implements Importer{
 						if(row==null) continue; //unable to parse the row, so skip it.
 						if(entryEncoder==null)
 								entryEncoder = ImportUtils.newEntryEncoder(row,importContext,getRandomGenerator(),importType);
-						writeBuffer.add(entryEncoder.encode(row));
+						// Don't write any rows if we are just doing a pre-import ("check") scan.
+						if(!importContext.isCheckScan())
+							writeBuffer.add(entryEncoder.encode(row));
 				}
 				if(count>0)
 						writeTimer.tick(count);
