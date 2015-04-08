@@ -222,8 +222,7 @@ public class Backup implements InternalTable {
 
     public void setBackupFilesystem(String backupFilesystem) {
         this.backupFilesystem = backupFilesystem;
-        this.baseFolder = backupFilesystem + "/" + BACKUP_BASE_FOLDER;
-        this.baseFolder += "$" + backupId;
+        this.baseFolder = backupFilesystem + "/" + BACKUP_BASE_FOLDER + "_" + backupId;
     }
 
     public BackupScope getBackupScope() {
@@ -720,7 +719,7 @@ public class Backup implements InternalTable {
         if (fileSystem.exists(oldBase)) {
             fileSystem.delete(oldBase, true);
         }
-        Path base = new Path(backupFilesystem + "/" + BACKUP_BASE_FOLDER + "$" + backupTransaction.getBeginTimestamp());
+        Path base = new Path(backupFilesystem + "/" + BACKUP_BASE_FOLDER + "_" + backupTransaction.getBeginTimestamp());
         fileSystem.rename(base, oldBase);
 
         fileSystem.rename(getBaseBackupFilesystemAsPath(), base);

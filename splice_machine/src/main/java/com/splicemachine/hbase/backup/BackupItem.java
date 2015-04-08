@@ -225,20 +225,13 @@ public class BackupItem implements InternalTable {
 
     private void readRegionsFromFileSystem(FileSystem fs) throws IOException {
         FileStatus[] status = fs.listStatus(new Path(getBackupItemFilesystem()));
-        String parentRegionName = null;
 
         for (FileStatus stat : status) {
             if (!stat.isDir() || stat.getPath().getName().compareTo(".tmp") == 0) {
                 continue; // ignore non directories
             }
             HRegionInfo regionInfo = derbyFactory.loadRegionInfoFileContent(fs, stat.getPath());
-            Path p = new Path(stat.getPath().toString() + "/.parentRegion");
-            if (fs.exists(p)) {
-                FSDataInputStream in = fs.open(p);
-                parentRegionName = in.readUTF();
-                in.close();
-            }
-            addRegionInfo(new RegionInfo(regionInfo, getFamilyPaths(fs, stat.getPath()), parentRegionName));
+            addRegionInfo(new RegionInfo(regionInfo, getFamilyPaths(fs, stat.getPath())));
         };
     }
 
@@ -334,7 +327,7 @@ public class BackupItem implements InternalTable {
         return backedUp;
     }
 
-    private boolean containsRegion(FileStatus[] fileStatus) {
+    public boolean containsRegion(FileStatus[] fileStatus) {
 
         int count = 0;
         for (FileStatus status : fileStatus) {
@@ -360,6 +353,10 @@ public class BackupItem implements InternalTable {
         }
     }
 
+    public String getLastSnapshotName() {
+        return lastSnapshotName;
+    }
+
     public static class RegionInfo implements Externalizable {
         private HRegionInfo hRegionInfo;
         private List<Pair<byte[], String>> famPaths;
@@ -367,7 +364,7 @@ public class BackupItem implements InternalTable {
         public RegionInfo() {
         }
 
-        public RegionInfo(HRegionInfo hRegionInfo, List<Pair<byte[], String>> famPaths, String parentRegionName) {
+        public RegionInfo(HRegionInfo hRegionInfo, List<Pair<byte[], String>> famPaths) {
             this.hRegionInfo = hRegionInfo;
             this.famPaths = famPaths;
         }
