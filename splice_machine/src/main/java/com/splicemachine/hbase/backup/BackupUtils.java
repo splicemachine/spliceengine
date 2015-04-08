@@ -32,7 +32,7 @@ public class BackupUtils {
 
     private static final Logger LOG = Logger.getLogger(BackupUtils.class);
 
-    public static final String QUERY_LAST_BACKUP = "select max(transaction_id) from %s.%s";
+    public static final String QUERY_LAST_BACKUP = "select max(backup_id) from %s.%s";
     public static final String BACKUP_FILESET_TABLE = "BACKUP_FILESET";
     public static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
 
