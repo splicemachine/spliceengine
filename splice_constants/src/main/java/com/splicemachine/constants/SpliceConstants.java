@@ -220,6 +220,11 @@ public class SpliceConstants {
 		public static String zkSpliceDerbyPropertyPath;
 		public static String zkSpliceQueryNodePath;
 
+        /**
+         * Path in Zookeeper for storing ongoing backup Id
+         */
+        @Parameter public static final String BACKUP_PATH = "splice.backup_node";
+        @DefaultValue(BACKUP_PATH) public static final String DEFAULT_BACKUP_PATH = "/backup";
 		/**
 		 * Location of Startup node in ZooKeeper. The presence of this node
 		 * indicates whether or not Splice needs to attempt to recreate

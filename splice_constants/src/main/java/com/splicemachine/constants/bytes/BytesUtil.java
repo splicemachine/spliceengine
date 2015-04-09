@@ -286,6 +286,19 @@ public class BytesUtil {
         return value;
     }
 
+    public static long bytesToLong(byte[] data, int offset){
+        long value = 0;
+        value |= (data[offset] & 0xff)<<56;
+        value |= (data[offset+1] & 0xff)<<48;
+        value |= (data[offset+2] & 0xff)<<40;
+        value |= (data[offset+3] & 0xff)<<32;
+        value |= (data[offset+4] & 0xff)<<24;
+        value |= (data[offset+5] & 0xff)<<16;
+        value |= (data[offset+6] & 0xff)<<8;
+        value |= (data[offset+7] & 0xff);
+        return value;
+    }
+
     public static byte[] toByteArray(BitSet bits) {
         byte[] bytes = new byte[ (int) ((bits.length()+7)/8+4)];
         intToBytes((int)(bits.length()+7)/8,bytes,0);
