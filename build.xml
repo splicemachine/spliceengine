@@ -25,7 +25,7 @@
 
   <target
       name="buildsource"
-      depends="init,prebuild,setCompilerProperties,jsr169stubs,jdbc3stubs,jdbc4stubs,felixStubs,engine,storeless,tools,drda,client,build,versioninfo,localeinfo,binscripts"
+      depends="init,prebuild,setCompilerProperties,jsr169stubs,jdbc3stubs,jdbc4stubs,felixStubs,engine,storeless,tools,drda,client,build,versioninfo,optlocaleinfo,binscripts"
       description="Compile the product source (does not build the tests)."
   />
   <target
@@ -317,6 +317,7 @@
     <!-- Compile-time classpath`< properties files -->
     <property file="${properties.dir}/extrapath.properties"/>
 
+
     <!-- 
             If a Java 6 JDK isn't present, then use the Java 5 environment to build the JDBC 4 support.
             If a Java 5 JDK also isn't present then use the Java 7 environment to build the JDBC 4 support
@@ -324,16 +325,6 @@
     <condition property="java16compile.classpath" value="${out.jdbc4.dir}:${java15compile.classpath}" else="${java18compile.classpath}">
           <isset property="java15compile.classpath"/>
     </condition>
-
-    <!-- 
-            If a Java 7 JDK isn't present, then use the Java 6 environment.
-    -->
-    <property name="java17compile.classpath" value="${java16compile.classpath}"/>
-
-    <!-- 
-            If a Java 7 JDK isn't present, then use the Java 6 environment.
-    -->
-    <property name="java18compile.classpath" value="${java17compile.classpath}"/>
 
     <!-- 
             If a Java 5 JDK isn't present, then use the Java 6 environment to build the Java 5 support
@@ -418,7 +409,7 @@
 <!--                   Locale info writer build target                    -->
 <!-- ==================================================================== -->
 
-  <target name="buildlocaleinfo">
+  <target name="buildlocaleinfo" unless="skip.locale">
     <antcall target="localeinfowriter">
       <param name="info.buildnumber" value="1"/>
       <param name="info.iname" value="_${locale.iname}"/>
@@ -445,6 +436,8 @@
 <!-- ==================================================================== -->
 <!--                           Build Locale info                          -->
 <!-- ==================================================================== -->
+
+<target name="optlocaleinfo" depends="localeinfo" unless="skip.locale"/>
 
   <target name="localeinfo"
           depends="checklocaleinfo,checkmessages"
@@ -761,6 +754,7 @@
   <target name="jsr169stubs">
     <mkdir dir="${out.stubs.dir}"/>
     <mkdir dir="${out.jsr169.dir}"/>
+		<echo message="compile.classpath=${compile.classpath}"/>
     <javac
       source="1.6"
       target="1.6"
@@ -1430,7 +1424,7 @@
 
 <!-- - - - - - - - - - - - - - locale jar targets - - - - - - - - - - - -->
 
-  <target name="derbylocalejars" depends="initjars">
+  <target name="derbylocalejars" depends="initjars" unless="skip.locale">
  
     <!-- purge lists directory to avoid unnecessary content from other jars -->
     <delete>

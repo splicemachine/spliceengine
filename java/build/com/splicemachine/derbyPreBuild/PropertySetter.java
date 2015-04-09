@@ -33,9 +33,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.net.URL;
 import java.net.URLDecoder;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Hashtable;
+import java.util.*;
 
 
 /**
@@ -48,6 +46,7 @@ import java.util.Hashtable;
  * <li>java15compile.classpath</li>
  * <li>java16compile.classpath</li>
  * <li>java17compile.classpath</li>
+ * <li>java18compile.classpath</li>
  * </ul>
  * <p/>
  * <p>
@@ -73,6 +72,7 @@ import java.util.Hashtable;
  * </li>
  * </ul>
  */
+@SuppressWarnings("unused")
 public class PropertySetter extends Task{
     /////////////////////////////////////////////////////////////////////////
     //
@@ -81,8 +81,7 @@ public class PropertySetter extends Task{
     /////////////////////////////////////////////////////////////////////////
 
     // declared in ascending order
-    private static final VMLevel[] VM_LEVELS=
-            {
+    private static final VMLevel[] VM_LEVELS= {
                     new VMLevel("15","1.5"),
                     new VMLevel("16","1.6"),
                     new VMLevel("17","1.7"),
@@ -104,7 +103,6 @@ public class PropertySetter extends Task{
 
     private static final String FILE_TOKEN="file:";
     private static final String JAR_TERMINATOR_TOKEN="!";
-    private static final String JAR_EXTENSION=".jar";
 
     /////////////////////////////////////////////////////////////////////////
     //
@@ -139,7 +137,7 @@ public class PropertySetter extends Task{
      * Describes a major Java version.
      * </p>
      */
-    private static final class VMLevel implements Comparable{
+    private static final class VMLevel implements Comparable<VMLevel>{
         private int _sortOrder; // used by Comparable methods
         private String _propertySeed; // used to construct property names: java${seed}compile.classpath and j${seed}lib
         private String _javaVersionPrefix; // leading prefix of value returned by System.getProperty( "java.version" )
@@ -178,18 +176,22 @@ public class PropertySetter extends Task{
         }
 
         // Comparable behavior
-        public int compareTo(Object other){
+        @Override
+        public int compareTo(VMLevel other){
             if(other==null){
                 return -1;
-            }else if(!(other instanceof VMLevel)){
-                return -1;
             }else{
-                return _sortOrder-((VMLevel)other)._sortOrder;
+                return _sortOrder-other._sortOrder;
             }
         }
 
         public boolean equals(Object other){
-            return (compareTo(other)==0);
+            return other instanceof VMLevel && (compareTo((VMLevel)other)==0);
+        }
+
+        @Override
+        public String toString(){
+            return "java"+this._javaVersionPrefix;
         }
 
         public int hashCode(){
@@ -208,8 +210,8 @@ public class PropertySetter extends Task{
      * Let Ant conjure us out of thin air.
      * </p>
      */
-    public PropertySetter(){
-    }
+    @SuppressWarnings("unused")
+    public PropertySetter(){ }
 
     /////////////////////////////////////////////////////////////////////////
     //
@@ -225,8 +227,8 @@ public class PropertySetter extends Task{
      * error and the build aborts.
      * </p>
      */
-    public void execute()
-            throws BuildException{
+    @Override
+    public void execute() throws BuildException{
         refreshProperties();
 
         debug("\nPropertySetter environment =\n\n"+showEnvironment()+"\n\n");
@@ -264,11 +266,14 @@ public class PropertySetter extends Task{
             // At least set the classpath property corresponding to the currently running VM,
             // if it is not already set.
             //
-            VMLevel vmLevel=findVMLevel();
-            String currentClasspathPropertyName=vmLevel.getClasspathPropertyName();
 
-            if(!isSet(currentClasspathPropertyName)){
-                setFromCurrentVM(vmLevel);
+//            VMLevel vmLevel=findVMLevel();
+            for(VMLevel vmLevel:VM_LEVELS){
+                String currentClasspathPropertyName=vmLevel.getClasspathPropertyName();
+
+                if(!isSet(currentClasspathPropertyName)){
+                    setFromCurrentVM(vmLevel);
+                }
             }
         }catch(Throwable t){
             echoThrowable(t);
@@ -301,14 +306,13 @@ public class PropertySetter extends Task{
      * Set the classpath property from the library shipped with the currently running VM.
      * </p>
      */
-    private void setFromCurrentVM(VMLevel vmLevel)
-            throws Exception{
-        String[] jarDirectories=
-                {
+    private void setFromCurrentVM(VMLevel vmLevel) throws Exception{
+        String[] jarDirectories= {
                         getJarFileDirectory("java.lang.String"),
                         getJarFileDirectory("java.util.Vector"),  // needed for building classes against IBM JDK 7
                 };
 
+        log("Setting classpath for vmLevel "+ vmLevel);
         setClasspathFromLib(vmLevel,jarDirectories);
     }
 
@@ -317,12 +321,11 @@ public class PropertySetter extends Task{
      * Get the name of the directory holding the jar file which contains the passed-in class name.
      * </p>
      */
-    private String getJarFileDirectory(String className)
-            throws Exception{
+    private String getJarFileDirectory(String className) throws Exception{
         Class klass=Class.forName(className);
         String fileName=klass.getName().replace('.','/')+".class";
-        ClassLoader classLoader=klass.getClassLoader();
-        URL classURL=classLoader.getSystemResource(fileName);
+//        ClassLoader classLoader=klass.getClassLoader();
+        URL classURL=ClassLoader.getSystemResource(fileName);
         String classLocation=URLDecoder.decode(classURL.toString(),System.getProperty("file.encoding"));
 
         //
@@ -334,8 +337,7 @@ public class PropertySetter extends Task{
         // off everything up to and including the "file:" token and everything starting with
         // and following the "!" token.
         //
-        String jarFileName=classLocation.substring
-                (
+        String jarFileName=classLocation.substring (
                         classLocation.indexOf(FILE_TOKEN)+FILE_TOKEN.length(),
                         classLocation.indexOf(JAR_TERMINATOR_TOKEN)
                 );
@@ -357,10 +359,8 @@ public class PropertySetter extends Task{
      * Try to set a classpath from a corresponding lib property.
      * </p>
      */
-    private void tryToSetClasspathFromLib(VMLevel vmLevel)
-            throws BuildException{
+    private void tryToSetClasspathFromLib(VMLevel vmLevel) throws BuildException{
         String libPropertyName=vmLevel.getLibPropertyName();
-        String classpathPropertyName=vmLevel.getClasspathPropertyName();
         String libPropertyValue=getProperty(libPropertyName);
 
         if(libPropertyValue!=null){
@@ -378,18 +378,19 @@ public class PropertySetter extends Task{
      * Throws a BuildException if there's a problem.
      * </p>
      */
-    private void setClasspathFromLib(VMLevel vmLevel,String[] libraryDirectories)
-            throws BuildException{
+    private void setClasspathFromLib(VMLevel vmLevel,String[] libraryDirectories) throws BuildException{
         String classpathPropertyName=vmLevel.getClasspathPropertyName();
         String classpath=getProperty(classpathPropertyName);
 
         // nothing to do if the property is already set. we can't override it.
         if(classpath!=null){
+            log("Classpath for vmlLevel"+vmLevel+" is already set, ignoring");
             return;
         }
 
         // refuse to set certain properties
         if(shouldNotSetClasspathProperty(vmLevel)){
+            log("Should not set classpath for vmLevel " +"vmLevel");
             return;
         }
 
@@ -399,9 +400,7 @@ public class PropertySetter extends Task{
             throw couldntSetProperty(classpathPropertyName);
         }
 
-        if(jars!=null){
-            setProperty(classpathPropertyName,jars);
-        }
+        setProperty(classpathPropertyName,jars);
     }
 
     /**
@@ -413,7 +412,7 @@ public class PropertySetter extends Task{
      * </p>
      */
     private String listJars(String[] dirNames){
-        HashSet<File> fileSet=new HashSet<File>();
+        Set<File> fileSet=new HashSet<>();
 
         for(String dirName : dirNames){
             listJars(dirName,fileSet);
@@ -430,7 +429,7 @@ public class PropertySetter extends Task{
         }
 
         int count=jars.length;
-        StringBuffer buffer=new StringBuffer();
+        StringBuilder buffer=new StringBuilder();
 
         for(int i=0;i<count;i++){
             if(i>0){
@@ -449,7 +448,7 @@ public class PropertySetter extends Task{
      * the evolving HashSet.
      * </p>
      */
-    private void listJars(String dirName,HashSet<File> map){
+    private void listJars(String dirName,Set<File> map){
         debug("Listing jars in directory "+dirName);
 
         if(dirName==null){
@@ -469,9 +468,7 @@ public class PropertySetter extends Task{
 
         File[] jars=dir.listFiles(new JarFilter());
 
-        for(File jar : jars){
-            map.add(jar);
-        }
+        Collections.addAll(map,jars);
     }
 
     /**
@@ -482,41 +479,7 @@ public class PropertySetter extends Task{
     private boolean isSet(String name){
         String value=getProperty(name);
 
-        if(value==null){
-            return false;
-        }else{
-            return true;
-        }
-    }
-
-    /**
-     * <p>
-     * Print a property.
-     * </p>
-     */
-    private void printProperty(String name){
-        String value=getProperty(name);
-
-        if(value==null){
-            value="NULL";
-        }
-
-        echo("${"+name+"} = "+value);
-    }
-
-    /**
-     * <p>
-     * Gets a property. If it is not already set, defaults it to a value.
-     * </p>
-     */
-    private String getProperty(String name,String defaultValue){
-        String value=getProperty(name);
-
-        if(value==null){
-            value=defaultValue;
-        }
-
-        return value;
+        return value!=null;
     }
 
     /**
@@ -530,9 +493,7 @@ public class PropertySetter extends Task{
         _propertiesSnapshot=helper.getProperties();
 
         // Set the verbose debugging flag, it is used by static methods.
-        VERBOSE_DEBUG_ENABLED=Boolean.valueOf((String)
-                        _propertiesSnapshot.get(PROPERTY_SETTER_VERBOSE_DEBUG_FLAG)
-        ).booleanValue();
+        VERBOSE_DEBUG_ENABLED=Boolean.valueOf((String) _propertiesSnapshot.get(PROPERTY_SETTER_VERBOSE_DEBUG_FLAG) );
     }
 
     /**
@@ -545,13 +506,9 @@ public class PropertySetter extends Task{
             String classpathPropertyName=vmLevel.getClasspathPropertyName();
             String libPropertyName=vmLevel.getLibPropertyName();
 
-            if(
-                    shouldNotSetClasspathProperty(vmLevel) &&
-                            (isSet(classpathPropertyName) || isSet(libPropertyName))
-                    ){
+            if( shouldNotSetClasspathProperty(vmLevel) && (isSet(classpathPropertyName) || isSet(libPropertyName)) ){
                 String javaVersion=getProperty(JAVA_VERSION);
-                throw new BuildException
-                        (
+                throw new BuildException (
                                 "\nThe build raises version mismatch errors when using a "+
                                         javaVersion+" compiler with libraries from a later JDK.\n"+
                                         "Please either use a later compiler or do not "+
@@ -590,10 +547,7 @@ public class PropertySetter extends Task{
             }
         }
 
-        throw new BuildException
-                (
-                        "\nPropertySetter does not know how to handle java.version = "+javaVersion+"\n"
-                );
+        throw new BuildException ( "\nPropertySetter does not know how to handle java.version = "+javaVersion+"\n" );
     }
 
     /**
@@ -610,8 +564,7 @@ public class PropertySetter extends Task{
      * Set an ant property.
      * </p>
      */
-    private void setProperty(String name,String value)
-            throws BuildException{
+    private void setProperty(String name,String value) throws BuildException{
         log("Setting property "+name+" to "+value,Project.MSG_INFO);
 
         Property property=new Property();
@@ -659,8 +612,7 @@ public class PropertySetter extends Task{
      * Require that at least one of the classpath properties is set.
      * </p>
      */
-    private void requireAtLeastOneProperty()
-            throws BuildException{
+    private void requireAtLeastOneProperty() throws BuildException{
         String[] properties=new String[VM_LEVELS.length];
 
         for(int i=0;i<VM_LEVELS.length;i++){
@@ -681,7 +633,7 @@ public class PropertySetter extends Task{
      * </p>
      */
     private BuildException couldntSetProperty(String... properties){
-        StringBuffer buffer=new StringBuffer();
+        StringBuilder buffer=new StringBuilder();
         int count=properties.length;
 
         buffer.append("Don't know how to set ");
@@ -710,8 +662,7 @@ public class PropertySetter extends Task{
         appendProperty(buffer,JAVA_HOME);
         appendProperty(buffer,JAVA_VERSION);
         appendProperty(buffer,OPERATING_SYSTEM);
-        for(int i=0;i<VM_LEVELS.length;i++){
-            VMLevel vmLevel=VM_LEVELS[i];
+        for(VMLevel vmLevel : VM_LEVELS){
             appendProperty(buffer,vmLevel.getLibPropertyName());
             appendProperty(buffer,vmLevel.getClasspathPropertyName());
         }
@@ -740,23 +691,8 @@ public class PropertySetter extends Task{
      * @param msg the message to print
      */
     private void debug(CharSequence msg){
-        if(isSet(PROPERTY_SETTER_DEBUG_FLAG) ||
-                VERBOSE_DEBUG_ENABLED){
+        if(isSet(PROPERTY_SETTER_DEBUG_FLAG) || VERBOSE_DEBUG_ENABLED){
             System.out.println(msg);
-        }
-    }
-
-    /**
-     * Emits a debug message to the console if verbose debugging is enabled.
-     * <p/>
-     * Verbose debugging is controlled by
-     * {@linkplain #PROPERTY_SETTER_VERBOSE_DEBUG_FLAG}.
-     *
-     * @param msg the message to print
-     */
-    private static void verbose(CharSequence msg){
-        if(VERBOSE_DEBUG_ENABLED){
-            System.out.println("[verbose] "+msg);
         }
     }
 
