@@ -9,11 +9,13 @@ import java.util.*;
 import java.util.concurrent.ExecutionException;
 
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.utils.SpliceUtilities;
+import com.splicemachine.utils.ZkUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -24,9 +26,11 @@ import com.splicemachine.derby.hbase.DerbyFactory;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import org.apache.hadoop.hbase.snapshot.SnapshotDescriptionUtils;
 import org.apache.hadoop.hbase.util.FSUtils;
+import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.zookeeper.KeeperException;
 
 public class BackupUtils {
 
@@ -36,8 +40,14 @@ public class BackupUtils {
     public static final String BACKUP_FILESET_TABLE = "BACKUP_FILESET";
     public static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
 
-    public static String isBackupRunning() throws SQLException {
-        return Backup.isBackupRunning();
+    public static String isBackupRunning() throws KeeperException, InterruptedException {
+        RecoverableZooKeeper zooKeeper = ZkUtils.getRecoverableZooKeeper();
+        if (zooKeeper.exists(SpliceConstants.DEFAULT_BACKUP_PATH, false) != null) {
+            long id = BytesUtil.bytesToLong(zooKeeper.getData(SpliceConstants.DEFAULT_BACKUP_PATH, false, null), 0);
+            return String.format("A concurrent backup with id of %d is running.", id);
+        }
+
+        return null;
     }
 
     /**

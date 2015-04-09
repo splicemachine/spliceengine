@@ -37,6 +37,7 @@ import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.protobuf.generated.HBaseProtos;
 import org.apache.log4j.Logger;
 import org.apache.hadoop.fs.Path;
+import org.apache.zookeeper.KeeperException;
 
 import java.io.IOException;
 import java.net.URI;
@@ -476,20 +477,15 @@ public class BackupSystemProcedures {
      * *****************************************************************************************************************
      */
 
-    private static void backup(String backupDir, long parentBackupId) throws SQLException, IOException{
+    private static void backup(String backupDir, long parentBackupId)
+            throws SQLException, IOException, KeeperException, InterruptedException{
         HBaseAdmin admin = null;
         Backup backup = null;
         Set<String> newSnapshotNameSet = new HashSet<>();
         int count = 0;
         try {
-
-            // Check for ongoing backup...
-            // TODO: Use zookeeper to make sure only one backup or restore job is executing
-            String backupResponse = null;
-            if ( (backupResponse = BackupUtils.isBackupRunning()) != null)
-                throw new SQLException(backupResponse); // TODO i18n
-
             backup = Backup.createBackup(backupDir, Backup.BackupScope.D, parentBackupId);
+            backup.registerBackup();
             backup.createBaseBackupDirectory();
 
             // Get existing snapshot
@@ -527,6 +523,7 @@ public class BackupSystemProcedures {
             backup.markBackupSuccessful();
             backup.writeBackupStatusChange(count);
             backup.getBackupTransaction().commit();
+            backup.deregisterBackup();
 
         } catch (Throwable e) {
 
@@ -539,8 +536,9 @@ public class BackupSystemProcedures {
                 admin.deleteSnapshot(snapshotName);
             }
             LOG.error("Couldn't backup database", e);
-            throw new SQLException(Exceptions.parseException(e));
+            throw new SQLException(e.getMessage());
         }finally {
+            backup.deregisterBackup();
             Closeables.closeQuietly(admin);
         }
     }
