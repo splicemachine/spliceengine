@@ -42,6 +42,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 	protected static String TABLE_14 = "N";	
 	protected static String TABLE_15 = "O";	
 	protected static String TABLE_16 = "P";	
+	protected static String TABLE_17 = "Q";	
 	private static final String AUTO_INCREMENT_TABLE = "INCREMENT";
 
 	
@@ -69,6 +70,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 			"( cUsToMeR_pRoDuCt_Id InTeGeR NoT NuLl PrImArY KeY, ShIpPeD_DaTe TiMeStAmP WiTh DeFaUlT CuRrEnT_tImEsTaMp, SoUrCe_SyS_CrEaTe_DtS TiMeStAmP WiTh DeFaUlT cUrReNt_TiMeStAmP NoT NuLl,sOuRcE_SyS_UpDaTe_DtS TiMeStAmP WiTh DeFaUlT cUrReNt_TiMeStAmP NoT NuLl,"+
 							"SdR_cReAtE_dAtE tImEsTaMp wItH DeFaUlT CuRrEnT_tImEsTaMp, SdR_uPdAtE_dAtE TimEstAmp With deFauLT cuRRent_tiMesTamP,Dw_srcC_ExtrC_DttM TimEStamP WitH DefAulT CurrEnt_TimesTamp)");
 	protected static SpliceTableWatcher spliceTableWatcher16 = new SpliceTableWatcher(TABLE_16,spliceSchemaWatcher.schemaName,"(id int, description varchar(1000), name varchar(10))");
+	protected static SpliceTableWatcher spliceTableWatcher17 = new SpliceTableWatcher(TABLE_17,spliceSchemaWatcher.schemaName,"(name varchar(40), title varchar(40), age int,PRIMARY KEY(name))");
 
 
 	
@@ -95,6 +97,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 						.around(spliceTableWatcher14)
 						.around(spliceTableWatcher15)
 						.around(spliceTableWatcher16)
+						.around(spliceTableWatcher17)
 						.around(autoIncTableWatcher);
 
     @Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -625,5 +628,33 @@ public class HdfsImportIT extends SpliceUnitTest {
 			results.add(String.format("id:%d,description:%s,name:%s",id, description, name));
 		}
 		Assert.assertEquals("Incorrect number of rows imported", importCount, results.size());
+	}
+
+	@Test
+	public void testNewImportCheckDirectory() throws Exception{
+		testNewImportCheck(spliceSchemaWatcher.schemaName,TABLE_17,getResourceDirectory()+"importdir","NAME,TITLE,AGE",baddir.newFolder().getCanonicalPath(),0,0);
+	}
+
+	// uses new stored procedure
+	// removes rows from table before insertion
+	// checks count at the end
+	private void testNewImportCheck(String schemaName, String tableName,String location,String colList,String badDir,int failErrorCount,int importCount) throws Exception {
+		methodWatcher.executeUpdate("delete from "+schemaName + "." + tableName);
+		PreparedStatement ps = methodWatcher.prepareStatement(format("call SYSCS_UTIL.IMPORT_CHECK_DATA('%s','%s','%s','%s',',',null,null,null,null,%d,'%s',-1)",
+				schemaName,tableName,colList,location,failErrorCount,badDir));
+		ps.execute();
+		ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s",schemaName,tableName));
+		List<String> results = Lists.newArrayList();
+		while(rs.next()){
+			String name = rs.getString(1);
+			String title = rs.getString(2);
+			int age = rs.getInt(3);
+			Assert.assertTrue("age was null!", !rs.wasNull());
+			Assert.assertNotNull("Name is null!", name);
+			Assert.assertNotNull("Title is null!", title);
+			Assert.assertNotNull("Age is null!",age);
+			results.add(String.format("name:%s,title:%s,age:%d",name,title,age));
+		}
+		Assert.assertTrue("Incorrect number of rows imported", results.size() == importCount);
 	}
 }
