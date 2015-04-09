@@ -456,17 +456,22 @@ public abstract class BaseJobControl implements JobFuture {
 						 */
 						try {
 							List<Pair<String, ImportTaskManagement>> importTaskPairs = importAdmin.getRegionServerImportTaskInfo();
-							for (Pair<String, ImportTaskManagement> importTaskPair : importTaskPairs) {
-								String regionServer = importTaskPair.getFirst();
-								ImportTaskManagement importTask = importTaskPair.getSecond();
-								Map<String, Long> importedRowsMap = importTask.getTotalImportedRowsByFilePath();
-								Map<String, Long> badRowsMap = importTask.getTotalBadRowsByFilePath();
-								for (Map.Entry<String, Long> importedRowsMapEntry : importedRowsMap.entrySet()) {
-									String importFileName = importedRowsMapEntry.getKey();
-									Long importRowCount = importedRowsMapEntry.getValue();
-									Long badRowCount = badRowsMap.get(importFileName);
-									if (jobStatusLogger != null) {
-										jobStatusLogger.log(String.format("Imported %,d rows and rejected %,d rows from %s on %s", importRowCount, badRowCount, importFileName, regionServer));
+							if (importTaskPairs != null) {
+								if (jobStatusLogger != null) {
+									jobStatusLogger.log(String.format("  %d import task(s) being run in parallel...", importTaskPairs.size()));
+								}
+								for (Pair<String, ImportTaskManagement> importTaskPair : importTaskPairs) {
+									String regionServer = importTaskPair.getFirst();
+									ImportTaskManagement importTask = importTaskPair.getSecond();
+									Map<String, Long> importedRowsMap = importTask.getTotalImportedRowsByFilePath();
+									Map<String, Long> badRowsMap = importTask.getTotalBadRowsByFilePath();
+									for (Map.Entry<String, Long> importedRowsMapEntry : importedRowsMap.entrySet()) {
+										String importFileName = importedRowsMapEntry.getKey();
+										Long importRowCount = importedRowsMapEntry.getValue();
+										Long badRowCount = badRowsMap.get(importFileName);
+										if (jobStatusLogger != null) {
+											jobStatusLogger.log(String.format("    Imported %,d rows and rejected %,d rows from %s on %s", importRowCount, badRowCount, importFileName, regionServer));
+										}
 									}
 								}
 							}
