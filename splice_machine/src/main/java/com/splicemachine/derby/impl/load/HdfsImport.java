@@ -615,13 +615,13 @@ public class HdfsImport {
 				}
 		}
 
-    	/**
-    	 * Return an estimate of the time required for the import job to finish.
-    	 *
-    	 * @return time estimate for the import job duration
-    	 *
-    	 * @throws IOException 
-    	 */
+	    /**
+	     * Return an estimate of the time required for the import job to finish.
+	     *
+	     * @return time estimate for the import job duration
+	     *
+	     * @throws IOException
+	     */
 	    private long estimateImportTime() throws IOException {
 	    	/*
 	    	 * This is a very simple model to estimate the completion time of an import job based on
@@ -636,20 +636,20 @@ public class HdfsImport {
 	    	 *   - and also the fact that our import ingest rates fluctuate with region server activity such as compactions, region splits, etc.
 	    	 * But hey, it's a start...
 	    	 */
-
+	
 	    	// The following rates were empirically derived from SAP import timings.
-	    	double importRatePerNode = 1.95d * 1024d * 1024d / 1000d;  // 1.95MB/sec
+	    	double importRatePerNode = 1.9d * 1024d * 1024d / 1000d;  // 1.9 MB/sec
 	    	double standaloneBoost = 1.0d;
-
+	
 	    	int numServers = getRegionServerCount();
 	    	long importDataSize = getImportDataSize();
-
-	    	// Standalone has a 50% higher import ingest rate since there is less contention and the disks are local (often they are flash too).
-	    	if (numServers == 1) standaloneBoost = 1.5d;
+	
+	    	// Standalone has a 25-50% higher import ingest rate since there is less contention and the disks are local (often they are flash too).
+	    	if (numServers == 1) standaloneBoost = 1.3d;
 	    	if (LOG.isDebugEnabled()) SpliceLogUtils.debug(LOG,
 	    			"importDataSize(bytes)=%,d numServers=%d importRatePerNode(bytes/ms)=%,.2f standaloneBoost=%,.2f",
 	    			importDataSize, numServers, importRatePerNode, standaloneBoost);
-
+	
 	    	return (long)((double)importDataSize / ((double)numServers * importRatePerNode * standaloneBoost));
 	    }
 
