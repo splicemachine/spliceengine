@@ -123,6 +123,7 @@ public class ImportTask extends ZkTask{
 						long startTime = System.currentTimeMillis();
 						RowErrorLogger errorLogger = getErrorLogger();
 						errorReporter = getErrorReporter(row.getClone(),errorLogger);
+						long maxRecords = importContext.getMaxRecords();
 
 						ImportTaskManagementStats.initialize(importFilePath);  // Initialize our JMX stats.  Set entries for this importFilePath to 0.
 
@@ -164,6 +165,11 @@ public class ImportTask extends ZkTask{
 														}
 													}
 												}
+
+												if (maxRecords > 0 && rowsRead >= maxRecords) {
+													shouldContinue = false;
+												}
+
 										}while(shouldContinue);
 
 										ImportTaskManagementStats.setImportedRowCount(importFilePath, rowsRead - errorReporter.errorsReported());
