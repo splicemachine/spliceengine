@@ -1320,7 +1320,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
      *
      * @return true if this ProjectRestrict is a No-Op.
      */
-    boolean nopProjectRestrict(){
+    public boolean nopProjectRestrict(){
 		/*
 		** This ProjectRestrictNode is not a No-Op if it does any
 		** restriction.
