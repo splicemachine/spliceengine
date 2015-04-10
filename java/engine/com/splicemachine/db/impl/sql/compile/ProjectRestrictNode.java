@@ -742,7 +742,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
 
     @Override
     public boolean legalJoinOrder(JBitSet assignedTableMap){
-        return childResult instanceof Optimizable && ((Optimizable)childResult).legalJoinOrder(assignedTableMap);
+        return !(childResult instanceof Optimizable) || ((Optimizable)childResult).legalJoinOrder(assignedTableMap);
     }
 
     @Override
