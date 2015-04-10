@@ -466,7 +466,7 @@ public class StatisticsAdmin {
         LanguageConnectionContext lcc = ((EmbedConnection) conn).getLanguageConnection();
         DataDictionary dd = lcc.getDataDictionary();
         SchemaDescriptor schemaDescriptor=getSchemaDescriptor(schema,lcc,dd);
-        TableDescriptor tableDescriptor = dd.getTableDescriptor(table, schemaDescriptor, lcc.getTransactionExecute());
+        TableDescriptor tableDescriptor = dd.getTableDescriptor(table,schemaDescriptor,lcc.getTransactionExecute());
         if(tableDescriptor==null)
             throw ErrorState.LANG_TABLE_NOT_FOUND.newException(schema+"."+table);
 
@@ -545,14 +545,17 @@ public class StatisticsAdmin {
     private static void ensureNotKeyed(ColumnDescriptor descriptor,TableDescriptor td) throws StandardException{
         ConglomerateDescriptor heapConglom=td.getConglomerateDescriptor(td.getHeapConglomerateId());
         IndexRowGenerator pkDescriptor=heapConglom.getIndexDescriptor();
-        for(int pkCol:pkDescriptor.baseColumnPositions()){
-           if(pkCol==descriptor.getPosition()){
-               throw ErrorState.LANG_DISABLE_STATS_FOR_KEYED_COLUMN.newException(descriptor.getColumnName());
-           }
+        if(pkDescriptor!=null && pkDescriptor.getIndexDescriptor()!=null){
+            for(int pkCol : pkDescriptor.baseColumnPositions()){
+                if(pkCol==descriptor.getPosition()){
+                    throw ErrorState.LANG_DISABLE_STATS_FOR_KEYED_COLUMN.newException(descriptor.getColumnName());
+                }
+            }
         }
         IndexLister indexLister=td.getIndexLister();
         if(indexLister!=null){
             for(IndexRowGenerator irg:indexLister.getIndexRowGenerators()){
+                if(irg.getIndexDescriptor()==null) continue;
                 for(int col:irg.baseColumnPositions()){
                     if(col==descriptor.getPosition())
                         throw ErrorState.LANG_DISABLE_STATS_FOR_KEYED_COLUMN.newException(descriptor.getColumnName());

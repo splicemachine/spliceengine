@@ -1,13 +1,5 @@
 package com.splicemachine.derby.impl.ast;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
 import com.google.common.base.Function;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
@@ -18,13 +10,15 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.compile.*;
+import com.splicemachine.derby.impl.sql.execute.operations.IndexRowToBaseRowOperation;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.derby.impl.sql.compile.SortState;
+import java.util.*;
 
 
 /**
@@ -38,9 +32,9 @@ public class PlanPrinter extends AbstractSpliceVisitor {
 
     public static final String spaces = "  ";
     private boolean explain = false;
-    public static ThreadLocal<Map<String,List<Pair<String,Integer>>>> planMap = new ThreadLocal<Map<String,List<Pair<String,Integer>>>>(){
+    public static ThreadLocal<Map<String,ExplainTree>> planMap = new ThreadLocal<Map<String,ExplainTree>>(){
         @Override
-        protected Map<String,List<Pair<String,Integer>>> initialValue(){
+        protected Map<String,ExplainTree> initialValue(){
             return new HashMap<>();
         }
     };
@@ -71,9 +65,10 @@ public class PlanPrinter extends AbstractSpliceVisitor {
                 node instanceof DMLStatementNode &&
                 (rsn = ((DMLStatementNode) node).getResultSetNode()) != null) {
 
-            List<Pair<String,Integer>> plan = planToString(rsn);
-            Map<String, List<Pair<String,Integer>>> m=planMap.get();
-            m.put(query, plan);
+            ExplainTree tree = buildExplainTree(rsn);
+//            List<Pair<String,Integer>> plan = planToString(rsn);
+            Map<String, ExplainTree> m=planMap.get();
+            m.put(query, tree);
 
             if (LOG.isInfoEnabled()){
                 String treeToString = treeToString(rsn);
@@ -88,6 +83,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         explain = false;
         return node;
     }
+
 
 
     public static Map without(Map m, Object... keys){
@@ -148,6 +144,80 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         return buf.toString();
     }
 
+    private ExplainTree buildExplainTree(ResultSetNode rsn) throws StandardException{
+        ExplainTree.Builder builder = new ExplainTree.Builder();
+        pushExplain(rsn,builder);
+        return builder.build();
+    }
+
+    private void pushExplain(ResultSetNode rsn,ExplainTree.Builder builder) throws StandardException{
+        CostEstimate ce = rsn.getFinalCostEstimate().getBase();
+        int rsNum = rsn.getResultSetNumber();
+
+        if(rsn instanceof FromBaseTable){
+            FromBaseTable fbt=(FromBaseTable)rsn;
+            TableDescriptor tableDescriptor=fbt.getTableDescriptor();
+            String tableName = String.format("%s(%s)",tableDescriptor.getName(),tableDescriptor.getHeapConglomerateId());
+
+            ConglomerateDescriptor cd = fbt.getTrulyTheBestAccessPath().getConglomerateDescriptor();
+            String indexName = null;
+            if (cd.isIndex()) {
+                indexName = String.format("%s(%s)", cd.getConglomerateName(), cd.getConglomerateNumber());
+            }
+            List<String> qualifiers =  Lists.transform(preds(rsn), PredicateUtils.predToString);
+            builder.addBaseTable(rsNum,ce,tableName,indexName,qualifiers);
+        }else if(rsn instanceof RowResultSetNode){
+            builder.pushValuesNode(rsNum,ce);
+        } else if(rsn instanceof ProjectRestrictNode){
+            pushExplain(((SingleChildResultSetNode)rsn).getChildResult(),builder);
+            if(!((ProjectRestrictNode)rsn).nopProjectRestrict()){
+                List<String> predicates=Lists.transform(preds(rsn),PredicateUtils.predToString);
+                builder.pushProjection(rsNum,ce,predicates);
+            }
+        }else if(rsn instanceof IndexToBaseRowNode){
+            pushExplain(((IndexToBaseRowNode)rsn).getSource(),builder);
+            long heapTable=((IndexToBaseRowNode)rsn).getBaseConglomerateDescriptor().getConglomerateNumber();
+            builder.pushIndexFetch(rsNum,ce,heapTable);
+        }else if(rsn instanceof ScrollInsensitiveResultSetNode){
+            pushExplain(((ScrollInsensitiveResultSetNode)rsn).getChildResult(),builder);
+        }else if(rsn instanceof JoinNode){
+            JoinNode j  = (JoinNode)rsn;
+            String joinStrategy = RSUtils.ap(j).getJoinStrategy().getName();
+            List<String> joinPreds =  Lists.transform(PredicateUtils.PLtoList(j.joinPredicates),PredicateUtils.predToString);
+            ExplainTree.Builder rightBuilder = new ExplainTree.Builder();
+            pushExplain(j.getRightResultSet(),rightBuilder);
+            //push the left side directly
+            pushExplain(j.getLeftResultSet(),builder);
+
+            builder.pushJoin(rsNum,ce,joinStrategy,joinPreds,rightBuilder);
+        } else if(rsn instanceof SingleChildResultSetNode){
+
+            pushExplain(((SingleChildResultSetNode)rsn).getChildResult(),builder);
+            String nodeName=rsn.getClass().getSimpleName().replace("Node","");
+            builder.pushNode(nodeName,rsNum,ce);
+        } else if(rsn instanceof TableOperatorNode){
+            //we have two tables to work with
+            ExplainTree.Builder rightBuilder = new ExplainTree.Builder();
+            pushExplain(((TableOperatorNode)rsn).getRightResultSet(),rightBuilder);
+            pushExplain(((TableOperatorNode)rsn).getLeftResultSet(),builder);
+            builder.pushTableOperator(rsn.getClass().getSimpleName().replace("Node",""),rsNum,ce,rightBuilder);
+        }
+
+        //collect subqueries
+        List<SubqueryNode> subs = RSUtils.collectExpressionNodes(rsn,SubqueryNode.class);
+        if(subs.size()>0){
+            ExplainTree.Builder subqueryBuilder = new ExplainTree.Builder();
+            for(SubqueryNode subqueryNode : subs){
+                pushExplain(subqueryNode.getResultSet(),subqueryBuilder);
+                boolean exprSub = subqueryNode.getSubqueryType()==SubqueryNode.EXPRESSION_SUBQUERY;
+                boolean corrSub = subqueryNode.hasCorrelatedCRs();
+                boolean invariant = subqueryNode.isInvariant();
+                builder.pushSubquery(subqueryNode.getResultSet().getResultSetNumber(),exprSub,corrSub,invariant,subqueryBuilder);
+                subqueryBuilder.reset(); //reset for the next subquery in the list
+            }
+        }
+    }
+
     public static Map<String,Object> nodeInfo(final ResultSetNode rsn, final int level) throws StandardException {
         Map<String,Object> info = new HashMap<>();
         CostEstimate co = rsn.getFinalCostEstimate().getBase();
@@ -181,10 +251,9 @@ public class PlanPrinter extends AbstractSpliceVisitor {
             @Override
             public Map apply(SubqueryNode subq) {
                 try {
-                    HashMap<String, Object> subInfo = new HashMap<String, Object>();
+                    HashMap<String, Object> subInfo = new HashMap<>();
                     subInfo.put("node", nodeInfo(subq.getResultSet(), 1));
-                    subInfo.put("expression?", subq.getSubqueryType() ==
-                            SubqueryNode.EXPRESSION_SUBQUERY);
+                    subInfo.put("expression?", subq.getSubqueryType() == SubqueryNode.EXPRESSION_SUBQUERY);
                     subInfo.put("correlated?", subq.hasCorrelatedCRs());
                     subInfo.put("invariant?", subq.isInvariant());
                     return subInfo;
@@ -200,15 +269,10 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         if (rsn instanceof FromBaseTable){
             FromBaseTable fbt = (FromBaseTable) rsn;
             ConglomerateDescriptor cd = fbt.getTrulyTheBestAccessPath().getConglomerateDescriptor();
-            info.put("table", String.format("%s(%s)",
-                    fbt.getTableDescriptor().getName(),
-                    fbt.getTableDescriptor().getHeapConglomerateId()));
-            info.put("quals", Lists.transform(preds(rsn),
-                                                PredicateUtils.predToString));
+            info.put("table", String.format("%s(%s)", fbt.getTableDescriptor().getName(), fbt.getTableDescriptor().getHeapConglomerateId()));
+            info.put("quals", Lists.transform(preds(rsn), PredicateUtils.predToString));
             if (cd.isIndex()) {
-                info.put("using-index", String.format("%s(%s)",
-                        cd.getConglomerateName(),
-                        cd.getConglomerateNumber()));
+                info.put("using-index", String.format("%s(%s)", cd.getConglomerateName(), cd.getConglomerateNumber()));
             }
 
         }
@@ -297,22 +361,24 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         for (Pair<Integer,Map> sub: subs){
             Map subInfo = sub.getSecond();
             Map<String,Object> subqInfoNode = (Map<String,Object>)subInfo.get("node");
-            sb.append(String.format(
-                                       "\nSubquery n=%s: expression?=%s, invariant?=%s, correlated?=%s\n",
-                                       subqInfoNode.get("n"), subInfo.get("expression?"),
-                                       subInfo.get("invariant?"), subInfo.get("correlated?")));
+            sb.append(subqueryToString(subInfo,subqInfoNode));
             sb.append(treeToString(subqInfoNode));
         }
         return sb.toString();
     }
 
-    public static String treeToString(ResultSetNode rsn, int initLevel)
-            throws StandardException {
+    private static String subqueryToString(Map subInfo,Map<String, Object> subqInfoNode){
+        return String.format("\nSubquery n=%s: expression?=%s, invariant?=%s, correlated?=%s\n",
+                subqInfoNode.get("n"),subInfo.get("expression?"),
+                subInfo.get("invariant?"),subInfo.get("correlated?"));
+    }
+
+    public static String treeToString(ResultSetNode rsn, int initLevel) throws StandardException {
         return treeToString(nodeInfo(rsn, initLevel));
     }
 
     public static String treeToString(ResultSetNode rsn) throws StandardException {
-        return treeToString(rsn, 0);
+        return treeToString(rsn,0);
     }
 
     private static List<Predicate> preds(ResultSetNode t) throws StandardException {
@@ -337,6 +403,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         return flattenedPlanMap;
     }
 
+
     private static void pushPlanInfo(Map<String, Object> nodeInfo,List<Pair<String,Integer>> planMap) throws StandardException{
         @SuppressWarnings("unchecked") List<Map<String,Object>> children = (List<Map<String,Object>>)nodeInfo.get("children");
         String thisNodeInfo = infoToString(nodeInfo,false);
@@ -345,5 +412,15 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         for(Map<String,Object> child:children){
             pushPlanInfo(child,planMap);
         }
+
+        if(!nodeInfo.containsKey("subqueries")) return; //nothing to work with
+        @SuppressWarnings("unchecked") List<Map<String,Object>> subqueries = (List<Map<String,Object>>)nodeInfo.get("subqueries");
+        for(Map<String,Object> subquery:subqueries){
+            Map<String,Object> subqueryNodeInfo = (Map<String,Object>)subquery.get("node");
+            pushPlanInfo(subqueryNodeInfo,planMap);
+            String subqueryInfo = subqueryToString(subquery,subqueryNodeInfo);
+            planMap.add(new Pair<>(subqueryInfo,level));
+        }
     }
+
 }
