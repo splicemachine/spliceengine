@@ -362,12 +362,14 @@ public class GenericLanguageConnectionContext
 
         setRunTimeStatisticsMode(logQueryPlan);
 
-        lockEscalationThreshold = 
+/*        lockEscalationThreshold =
             PropertyUtil.getServiceInt(tranCtrl,
                                        Property.LOCKS_ESCALATION_THRESHOLD,
                                        Property.MIN_LOCKS_ESCALATION_THRESHOLD,
                                        Integer.MAX_VALUE,
-                                       Property.DEFAULT_LOCKS_ESCALATION_THRESHOLD);                                                             
+                                       Property.DEFAULT_LOCKS_ESCALATION_THRESHOLD);
+        */
+        lockEscalationThreshold = Property.DEFAULT_LOCKS_ESCALATION_THRESHOLD;
         stmtValidators = new ArrayList<ExecutionStmtValidator>();
         triggerExecutionContexts = new ArrayList<TriggerExecutionContext>();
         triggerTables = new ArrayList<TableDescriptor>();

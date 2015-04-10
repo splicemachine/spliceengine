@@ -378,8 +378,7 @@ public class SYSCONSTRAINTSRowFactory extends CatalogRowFactory
 					SanityManager.ASSERT(conglomDesc != null,
 					"conglomDesc is expected to be non-null for backing index");
 				}
-				keyColumns = conglomDesc.getIndexDescriptor().baseColumnPositions();
-				referencedConstraintId = ((SubKeyConstraintDescriptor) 
+				referencedConstraintId = ((SubKeyConstraintDescriptor)
 											parentTupleDescriptor).getKeyConstraintId();
 				keyColumns = conglomDesc.getIndexDescriptor().baseColumnPositions();
 				break;
