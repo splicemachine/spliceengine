@@ -1,29 +1,35 @@
 package com.splicemachine.derby.impl.load;
 
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Types;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Date;
+import java.util.List;
+import java.util.Set;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.ExecutionException;
+
+import org.apache.hadoop.fs.ContentSummary;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.FSUtils;
+import org.apache.hadoop.hbase.util.Pair;
+import org.apache.hadoop.util.StringUtils;
+import org.apache.log4j.Logger;
+
 import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.impl.job.JobInfo;
-import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.impl.store.access.SpliceTransaction;
-import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.derby.management.OperationInfo;
-import com.splicemachine.derby.management.StatementInfo;
-import com.splicemachine.derby.stats.TaskStats;
-import com.splicemachine.derby.utils.*;
-import com.splicemachine.job.JobFuture;
-import com.splicemachine.job.JobStats;
-import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.impl.TransactionLifecycle;
-import com.splicemachine.pipeline.exception.ErrorState;
-import com.splicemachine.pipeline.exception.Exceptions;
-import com.splicemachine.utils.SpliceLogUtils;
-
-import com.splicemachine.db.iapi.error.ExceptionSeverity;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -35,31 +41,39 @@ import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.db.iapi.types.SQLInteger;
+import com.splicemachine.db.iapi.types.SQLLongint;
+import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.HRegionInfo;
-import org.apache.hadoop.hbase.MasterNotRunningException;
-import org.apache.hadoop.hbase.ZooKeeperConnectionException;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.util.Pair;
-import org.apache.log4j.Logger;
-
-import java.io.IOException;
-import java.sql.*;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Set;
-import java.util.concurrent.CancellationException;
-import java.util.concurrent.ExecutionException;
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.impl.job.JobInfo;
+import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.derby.impl.store.access.SpliceTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.management.OperationInfo;
+import com.splicemachine.derby.management.StatementInfo;
+import com.splicemachine.derby.stats.TaskStats;
+import com.splicemachine.derby.utils.SpliceAdmin;
+import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.hbase.backup.BackupItem;
+import com.splicemachine.job.JobFuture;
+import com.splicemachine.job.JobStatusLogger;
+import com.splicemachine.job.JobStats;
+import com.splicemachine.pipeline.exception.ErrorState;
+import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.impl.TransactionLifecycle;
+import com.splicemachine.utils.SpliceLogUtils;
+import com.splicemachine.utils.SpliceUtilities;
 
 /**
  * Imports a delimiter-separated file located in HDFS in a parallel way.
@@ -201,22 +215,25 @@ public class HdfsImport {
                 timeFormat,
                 maxBadRecords,
                 badRecordDirectory,
+                -1,
                 true,
+                false,
                 results);
     }
 
-		public static void IMPORT_DATA(String schemaName, String tableName,
-																				 String insertColumnList,
-																				 String fileName,
-																				 String columnDelimiter,
-																				 String characterDelimiter,
-																				 String timestampFormat,
-																				 String dateFormat,
-																				 String timeFormat,
-																				 long maxBadRecords,
-																				 String badRecordDirectory,
-																				 ResultSet[] results
-																				 ) throws SQLException {
+    public static void UPSERT_CHECK_DATA_FROM_FILE(String schemaName, String tableName,
+                                             String insertColumnList,
+                                             String fileName,
+                                             String columnDelimiter,
+                                             String characterDelimiter,
+                                             String timestampFormat,
+                                             String dateFormat,
+                                             String timeFormat,
+                                             long maxBadRecords,
+                                             String badRecordDirectory,
+                                             long maxRecords,
+                                             ResultSet[] results
+    ) throws SQLException {
         doImport(schemaName,
                 tableName,
                 insertColumnList,
@@ -228,9 +245,70 @@ public class HdfsImport {
                 timeFormat,
                 maxBadRecords,
                 badRecordDirectory,
-                false,
+                maxRecords,
+                true,
+                true,
                 results);
-		}
+    }
+
+	public static void IMPORT_DATA(String schemaName, String tableName,
+																			 String insertColumnList,
+																			 String fileName,
+																			 String columnDelimiter,
+																			 String characterDelimiter,
+																			 String timestampFormat,
+																			 String dateFormat,
+																			 String timeFormat,
+																			 long maxBadRecords,
+																			 String badRecordDirectory,
+																			 ResultSet[] results
+																			 ) throws SQLException {
+    doImport(schemaName,
+            tableName,
+            insertColumnList,
+            fileName,
+            columnDelimiter,
+            characterDelimiter,
+            timestampFormat,
+            dateFormat,
+            timeFormat,
+            maxBadRecords,
+            badRecordDirectory,
+            -1,
+            false,
+            false,
+            results);
+	}
+
+	public static void IMPORT_CHECK_DATA(String schemaName, String tableName,
+																			 String insertColumnList,
+																			 String fileName,
+																			 String columnDelimiter,
+																			 String characterDelimiter,
+																			 String timestampFormat,
+																			 String dateFormat,
+																			 String timeFormat,
+																			 long maxBadRecords,
+																			 String badRecordDirectory,
+																			 long maxRecords,
+																			 ResultSet[] results
+																			 ) throws SQLException {
+    doImport(schemaName,
+            tableName,
+            insertColumnList,
+            fileName,
+            columnDelimiter,
+            characterDelimiter,
+            timestampFormat,
+            dateFormat,
+            timeFormat,
+            maxBadRecords,
+            badRecordDirectory,
+            maxRecords,
+            false,
+            true,
+            results);
+	}
 
     private static void doImport(String schemaName, String tableName,
                                  String insertColumnList,
@@ -242,7 +320,9 @@ public class HdfsImport {
                                  String timeFormat,
                                  long maxBadRecords,
                                  String badRecordDirectory,
+                                 long maxRecords,
                                  boolean isUpsert,
+                                 boolean isCheckScan,
                                  ResultSet[] results) throws SQLException {
         Connection conn = SpliceAdmin.getDefaultConn();
         try {
@@ -259,7 +339,8 @@ public class HdfsImport {
                 EmbedConnection embedConnection = (EmbedConnection)conn;
                 ExecRow resultRow = importData(txn,user, conn, schemaName.toUpperCase(), tableName.toUpperCase(),
                         insertColumnList, fileName, columnDelimiter,
-                        characterDelimiter, timestampFormat, dateFormat, timeFormat, lcc, maxBadRecords, badRecordDirectory,isUpsert);
+                        characterDelimiter, timestampFormat, dateFormat, timeFormat, lcc, maxBadRecords, badRecordDirectory,
+                        maxRecords, isUpsert, isCheckScan);
                 IteratorNoPutResultSet rs = new IteratorNoPutResultSet(Arrays.asList(resultRow),IMPORT_RESULT_COLUMNS,activation);
                 rs.open();
                 results[0] = new EmbedResultSet40(embedConnection,rs,false,null,true);
@@ -303,7 +384,9 @@ public class HdfsImport {
                                      LanguageConnectionContext lcc,
                                      long maxBadRecords,
                                      String badRecordDirectory,
-                                     boolean upsert) throws SQLException{
+                                     long maxRecords,
+                                     boolean upsert,
+                                     boolean isCheckScan) throws SQLException{
         if(connection ==null)
             throw PublicAPI.wrapStandardException(StandardException.newException(SQLState.CONNECTION_NULL));
         if(tableName==null)
@@ -319,7 +402,9 @@ public class HdfsImport {
                     .timeFormat(timeFormat)
                     .maxBadRecords(maxBadRecords)
                     .badLogDirectory(badRecordDirectory==null?null: new Path(badRecordDirectory))
+                    .maxRecords(maxRecords)
                     .upsert(upsert)
+                    .checkScan(isCheckScan)
             ;
 
 						if(lcc.getRunTimeStatisticsMode()){
@@ -453,6 +538,7 @@ public class HdfsImport {
 						HTableInterface table = SpliceAccessManager.getHTable(SpliceDriver.driver().getTempTable().getTempTableName());
 
 						List<Pair<JobFuture,JobInfo>> jobFutures = Lists.newArrayList();
+						JobStatusLogger jobStatusLogger = new ImportJobStatusLogger(context);
 						StatementInfo statementInfo = runtimeContext.getStatementInfo();
 						Set<OperationInfo> opInfos = statementInfo.getOperationInfo();
 						OperationInfo opInfo = null;
@@ -465,8 +551,12 @@ public class HdfsImport {
 								LOG.info("Importing files "+ file.getPaths());
 								ImportJob importJob = new FileImportJob(table,context,statementId,file.getPaths(),operationId,txn);
 								long start = System.currentTimeMillis();
-								JobFuture jobFuture = SpliceDriver.driver().getJobScheduler().submit(importJob);
+								JobFuture jobFuture = SpliceDriver.driver().getJobScheduler().submit(importJob,jobStatusLogger);
 								JobInfo info = new JobInfo(importJob.getJobId(),jobFuture.getNumTasks(),start);
+								long estImportTime = estimateImportTime();
+								jobStatusLogger.log(String.format("Expected time for import %s.  Expected finish is %s.",
+										StringUtils.formatTime(estImportTime), new Date(System.currentTimeMillis() + estImportTime)));
+								jobStatusLogger.log(String.format("Importing %d files...", jobFuture.getNumTasks()));
 								info.tasksRunning(jobFuture.getAllTaskIds());
 								if(opInfo!=null)
 										opInfo.addJob(info);
@@ -488,6 +578,9 @@ public class HdfsImport {
 										numImported+= totalRowsWritten;
 										numBadRecords+=(totalRead-totalRowsWritten);
 								}
+								jobStatusLogger.log(String.format(
+										"Import finished with success. Total rows imported: %,d. Total rows rejected: %,d. Total time for import: %s.",
+										numImported, numBadRecords, StringUtils.formatTimeDiff(info.getJobFinishMs(), info.getJobStartMs())));
 								ExecRow result = new ValueRow(3);
 								result.setRowArray(new DataValueDescriptor[]{
 												new SQLInteger(file.getPaths().size()),
@@ -512,6 +605,7 @@ public class HdfsImport {
 												LOG.error("Exception cleaning up import future",e);
 										}
 								}
+								jobStatusLogger.closeLogFile();
 						}
 				} catch (IOException e) {
 						throw Exceptions.parseException(e);
@@ -521,7 +615,69 @@ public class HdfsImport {
 				}
 		}
 
+	    /**
+	     * Return an estimate of the time required for the import job to finish.
+	     *
+	     * @return time estimate for the import job duration
+	     *
+	     * @throws IOException
+	     */
+	    private long estimateImportTime() throws IOException {
+	    	/*
+	    	 * This is a very simple model to estimate the completion time of an import job based on
+	    	 * the size of the data, calculated import ingestion rates, and the number of region servers.
+	    	 *
+	    	 * PLEASE NOTE: This is an incredibly basic estimation model.  Many things still need to be considered such as the following:
+	    	 *   - number of indexes on the table that is being imported into
+	    	 *   - number of import tasks
+	    	 *   - total number of cores for the cluster
+	    	 *   - general load on the cluster
+	    	 *   - whether or not the files are compressed and which compression algorithm (gzip, pkzip, zip, etc.) is being used
+	    	 *   - and also the fact that our import ingest rates fluctuate with region server activity such as compactions, region splits, etc.
+	    	 * But hey, it's a start...
+	    	 */
+	
+	    	// The following rates were empirically derived from SAP import timings.
+	    	double importRatePerNode = 1.9d * 1024d * 1024d / 1000d;  // 1.9 MB/sec
+	    	double standaloneBoost = 1.0d;
+	
+	    	int numServers = getRegionServerCount();
+	    	long importDataSize = getImportDataSize();
+	
+	    	// Standalone has a 25-50% higher import ingest rate since there is less contention and the disks are local (often they are flash too).
+	    	if (numServers == 1) standaloneBoost = 1.3d;
+	    	if (LOG.isDebugEnabled()) SpliceLogUtils.debug(LOG,
+	    			"importDataSize(bytes)=%,d numServers=%d importRatePerNode(bytes/ms)=%,.2f standaloneBoost=%,.2f",
+	    			importDataSize, numServers, importRatePerNode, standaloneBoost);
+	
+	    	return (long)((double)importDataSize / ((double)numServers * importRatePerNode * standaloneBoost));
+	    }
 
+	    /**
+	     * Get the number of region servers in the cluster.
+	     *
+	     * @return number of region servers in the cluster
+	     *
+	     * @throws IOException
+	     */
+		private int getRegionServerCount() throws IOException {
+	        return SpliceUtilities.getAdmin().getClusterStatus().getServersSize();
+		}
+
+	    /**
+	     * Return the total space consumed by the import data files.
+	     *
+	     * @return total space consumed by the import data files
+	     *
+	     * @throws IOException
+	     */
+	    private long getImportDataSize() throws IOException {
+	    	FileSystem fs = FileSystem.get(SpliceConstants.config);
+	    	Path path = context.getFilePath();
+	    	ContentSummary summary = fs.getContentSummary(path);
+	    	if (LOG.isDebugEnabled()) SpliceLogUtils.debug(LOG, "Path=%s SpaceConsumed=%,d", path, summary.getSpaceConsumed());
+	    	return summary.getSpaceConsumed();
+		}
 
 		private void splitToFit(byte[] tableName, ImportFile file) throws IOException {
 				/*

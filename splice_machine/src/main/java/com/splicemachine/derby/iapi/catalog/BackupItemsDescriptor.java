@@ -7,26 +7,26 @@ import org.joda.time.DateTime;
  * Created by jyuan on 2/6/15.
  */
 public class BackupItemsDescriptor extends TupleDescriptor {
-    private long txnId;
+    private long backupId;
     private String item;
     private DateTime beginTimestamp;
     private DateTime endTimestamp;
     private String snapshotName;
 
-    public BackupItemsDescriptor(long txnId,
+    public BackupItemsDescriptor(long backupId,
                                  String item,
                                  DateTime beginTimestamp,
                                  DateTime endTimestamp,
                                  String snapshotName) {
-        this.txnId = txnId;
+        this.backupId = backupId;
         this.item = item;
         this.beginTimestamp = beginTimestamp;
         this.endTimestamp = endTimestamp;
         this.snapshotName = snapshotName;
     }
 
-    public long getTxnId() {
-        return txnId;
+    public long getBackupId() {
+        return backupId;
     }
 
     public String getItem() {

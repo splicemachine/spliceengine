@@ -171,9 +171,9 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
                     SpliceLogUtils.info(LOG, "updateFileSet: referenceFileName = " + referenceFileName);
                     SpliceLogUtils.info(LOG, "updateFileSet: referenced file = " + fileName);
                 }
-                if (pathSet.contains(fileName)) {
-                    // If referenced file appears in the last snapshot, then reference file in child region
-                    // should not be included in next incremental backup
+                if (pathSet.contains(fileName) || s.length == 1) {
+                    // If referenced file appears in the last snapshot, or this is a materialized file,
+                    // then file in child region should not be included in next incremental backup
                     BackupUtils.insertFileSet(tableName, childRegionName, referenceFileName, false);
                 }
                 BackupUtils.FileSet fileSet = BackupUtils.getFileSet(tableName, parentRegionName, fileName);

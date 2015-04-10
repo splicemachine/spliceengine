@@ -85,6 +85,7 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
 
       /* Get the table descriptor. */
       td = dd.getTableDescriptor(tableId);
+        activation.setDDLTableDescriptor(td);
 
       if (td == null) {
           throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND_DURING_EXECUTION, fullTableName);
@@ -171,7 +172,7 @@ public class DropTableConstantOperation extends DDLSingleTableConstantOperation 
 
       // The table itself can depend on the user defined types of its columns.
       // Drop all of those dependencies now.
-      adjustUDTDependencies(lcc, dd, td, null, true);
+      adjustUDTDependencies(activation, null, true);
 
         // remove from LCC
         lcc.dropDeclaredGlobalTempTable(td);

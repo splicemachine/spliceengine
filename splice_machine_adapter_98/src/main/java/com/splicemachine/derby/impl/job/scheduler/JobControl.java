@@ -11,14 +11,17 @@ import com.splicemachine.derby.impl.job.coprocessor.TaskFutureContext;
 import com.splicemachine.hbase.table.BoundCall;
 import com.splicemachine.hbase.table.IncorrectRegionException;
 import com.splicemachine.hbase.table.SpliceRpcController;
+import com.splicemachine.job.JobStatusLogger;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import com.splicemachine.utils.kryo.KryoPool;
+
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
 import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.util.concurrent.*;
 
@@ -29,8 +32,8 @@ import java.util.concurrent.*;
 public class JobControl extends BaseJobControl {
     private static final Logger LOG = Logger.getLogger(JobControl.class);
 
-    public JobControl(CoprocessorJob job, String jobPath,SpliceZooKeeperManager zkManager, int maxResubmissionAttempts, JobMetrics jobMetrics){
-    	super(job,jobPath,zkManager,maxResubmissionAttempts,jobMetrics);
+    public JobControl(CoprocessorJob job, String jobPath,SpliceZooKeeperManager zkManager, int maxResubmissionAttempts, JobMetrics jobMetrics, JobStatusLogger jobStatusLogger){
+    	super(job,jobPath,zkManager,maxResubmissionAttempts,jobMetrics,jobStatusLogger);
     }
     /*
      * Physically submits a Task.

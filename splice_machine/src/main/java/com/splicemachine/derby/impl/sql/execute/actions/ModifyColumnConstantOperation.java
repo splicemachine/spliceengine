@@ -45,6 +45,7 @@ import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.iapi.store.access.ConglomerateController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
@@ -139,11 +140,15 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         // concurrent thread doing add/drop column.
 
         // older version (or at target) has to get td first, potential deadlock
-        TableDescriptor td = getTableDescriptor(dd);
+        TableDescriptor td = getTableDescriptor(lcc);
 
         dm.invalidateFor(td, DependencyManager.ALTER_TABLE, lcc);
 
-        // Save the TableDescriptor off in the Activation
+        // Cache the TableDescriptor in the Activation
+        // Since it will be changing (adding/dropping columns, etc) during the life of this method,
+        // we'll have to refresh it from time to time.
+        // Any method that changes artifacts of the TableDescriptor should update the DataDictionary
+        // and refetch the TableDescriptor and refresh the Activation with the new copy.
         activation.setDDLTableDescriptor(td);
 
 		/*
@@ -163,18 +168,20 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         //TODO -sf- do we need to invalidate twice?
         dm.invalidateFor(td, DependencyManager.ALTER_TABLE, lcc);
 
-        int numRows = manageColumnInfo(activation,td);
-        // adjust dependencies on user defined types
-        adjustUDTDependencies( lcc, dd, td, columnInfo, false );
+        int numRows = manageColumnInfo(activation);
 
-        executeConstraintActions(activation, td,numRows);
-        adjustLockGranularity(activation.getTransactionController(), td, dd);
+        // adjust dependencies on user defined types
+        adjustUDTDependencies(activation, columnInfo, false );
+
+        executeConstraintActions(activation, numRows);
+        adjustLockGranularity(activation);
     }
 
-    private int manageColumnInfo(Activation activation,TableDescriptor td) throws StandardException{
+    private int manageColumnInfo(Activation activation) throws StandardException{
         LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         TransactionController tc = lcc.getTransactionExecute();
         DataDictionary dd = lcc.getDataDictionary();
+        TableDescriptor td = activation.getDDLTableDescriptor();
         boolean tableNeedsScanning = false;
         boolean tableScanned = false;
         int numRows = -1;
@@ -296,11 +303,19 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         // calculate column order for new table
         TxnView parentTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
         int[] oldColumnOrder = DataDictionaryUtils.getColumnOrdering(parentTxn, tableId);
-        IndexColumnOrder[] columnOrdering = null;
-        if (oldColumnOrder != null && oldColumnOrder.length > 0) {
-            columnOrdering = new IndexColumnOrder[oldColumnOrder.length +1];
-            for (int i = 0; i < oldColumnOrder.length; ++i) {
-                columnOrdering[i] = new IndexColumnOrder(oldColumnOrder[i]);
+        boolean newColumnHasConstraint = columnHasIndexableConstraint(colInfo.name, constraintActions);
+        int size = (oldColumnOrder == null ? 0 : oldColumnOrder.length) + (newColumnHasConstraint ? 1 : 0);    // TODO: JC - size may be +1 if new col indexable?
+        ColumnOrdering[] newColumnOrdering = null;
+        if (oldColumnOrder != null && size > 0) {
+            newColumnOrdering = new IndexColumnOrder[size];
+            int i=0;
+            for (;i < oldColumnOrder.length; ++i) {
+                newColumnOrdering[i] = new IndexColumnOrder(oldColumnOrder[i]);
+            }
+            if (size > oldColumnOrder.length) {
+                // if new column has an index generating constraint, the new IndexColumnOrder position
+                // (zero-based) is the same as the new (appended) column.
+                newColumnOrdering[i] = new IndexColumnOrder(colNumber);
             }
         }
 
@@ -308,7 +323,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         ExecRow emptyHeapRow  = oldTableDescriptor.getEmptyExecRow();
         int[]   collation_ids = oldTableDescriptor.getColumnCollationIds();
         long newCongNum = tc.createConglomerate("heap", emptyHeapRow.getRowArray(),
-                                                columnOrdering, collation_ids,
+                                                newColumnOrdering, collation_ids,
                                                 properties, TransactionController.IS_DEFAULT);
 
         if (colInfo.defaultValue != null)
@@ -380,13 +395,13 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
             LOG.error("Couldn't start transaction for tentative Add Column operation");
             throw Exceptions.parseException(e);
         }
-        String tableVersion = DataDictionaryUtils.getTableVersion(parentTxn, tableId);
-        int[] columOrdering = DataDictionaryUtils.getColumnOrdering(parentTxn, tableId);
+        String tableVersion = DataDictionaryUtils.getTableVersion(lcc, tableId);
+        int[] columnOrdering = DataDictionaryUtils.getColumnOrdering(parentTxn, tableId);
         ColumnInfo[] newColumnInfo = DataDictionaryUtils.getColumnInfo(oldTableDescriptor);
         TentativeAddColumnDesc interceptColumnDesc = new TentativeAddColumnDesc(tableVersion,
                                                                                 newCongNum,
                                                                                 oldCongNum,
-                                                                                columOrdering,
+                                                                                columnOrdering,
                                                                                 newColumnInfo);
 
         DDLChange ddlChange = new DDLChange(tentativeTransaction, DDLChangeType.ADD_COLUMN);
@@ -433,9 +448,38 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         // we should invalidate all statements that use the old conglomerates
         dd.startWriting(lcc);
         dd.getDependencyManager().invalidateFor(oldTableDescriptor, DependencyManager.COMPRESS_TABLE, lcc);
+        // refresh the activation's TableDescriptor
+        activation.setDDLTableDescriptor(getTableDescriptor(lcc));
 
         //notify other servers of the change
         notifyMetadataChangeAndWait(ddlChange);
+    }
+
+    private static boolean columnHasIndexableConstraint(String columnName, ConstraintConstantOperation[] constraints) {
+        if (constraints != null && constraints.length > 0) {
+            for (ConstraintConstantOperation constraint : constraints) {
+                int constraintType = constraint.getConstraintType();
+                if (constraintType == DataDictionary.PRIMARYKEY_CONSTRAINT ||
+                    constraintType == DataDictionary.UNIQUE_CONSTRAINT) {
+                    // TODO: JC - are these the only constraint types that will be "indexable"?
+                    if (contains(((CreateConstraintConstantOperation)constraint).columnNames, columnName)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private static boolean contains(String[] columnNames, String columnName) {
+        if (columnNames != null) {
+            for (String aColumnName : columnNames) {
+                if (columnName.equals(aColumnName)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     // TODO: JC - figure out how to make this work without executing update on old table first
@@ -885,7 +929,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
 
         // Create new table without column, map current rows and ongoing txns
         // to the new table
-        performColumnDrop(activation,oldTableDescriptor,tc,droppedColumnPosition, columnName);
+        performColumnDrop(activation,oldTableDescriptor,lcc, tc,droppedColumnPosition, columnName);
 
         ColumnDescriptorList tab_cdl = oldTableDescriptor.getColumnDescriptorList();
 
@@ -1491,7 +1535,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
 
     private void performColumnDrop(Activation activation,
                                    TableDescriptor oldTableDescriptor,
-                                   TransactionController tc,
+                                   LanguageConnectionContext lcc, TransactionController tc,
                                    int droppedColumnPosition,
                                    String columnName) throws StandardException {
         Properties properties = new Properties();
@@ -1568,7 +1612,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
             throw Exceptions.parseException(e);
         }
 
-        String tableVersion = DataDictionaryUtils.getTableVersion(parentTxn, tableId);
+        String tableVersion = DataDictionaryUtils.getTableVersion(lcc, tableId);
         ColumnInfo[] allColumnInfo = DataDictionaryUtils.getColumnInfo(oldTableDescriptor);
         TentativeDropColumnDesc tentativeDropColumnDesc =
                 new TentativeDropColumnDesc(oldTableDescriptor.getHeapConglomerateId(), newHeapConglom, tableVersion,
@@ -1620,7 +1664,6 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         ** We tell the data dictionary we're done writing at the end of
         ** the transaction.
         */
-        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
         DataDictionary dd = lcc.getDataDictionary();
         dd.startWriting(lcc);
 

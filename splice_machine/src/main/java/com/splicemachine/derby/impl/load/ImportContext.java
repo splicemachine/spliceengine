@@ -59,11 +59,13 @@ public class ImportContext implements Externalizable{
 		 */
 		private long maxBadRecords;
 		private Path badLogDirectory;
+		private long maxRecords;
 		private String tableVersion;
 
-    private boolean isUpsert;
+		private boolean isUpsert;
+		private boolean isCheckScan;
 
-    public ImportContext(){}
+		public ImportContext(){}
 
 		private ImportContext( Path filePath,
 													long destTableId,
@@ -78,8 +80,10 @@ public class ImportContext implements Externalizable{
 													boolean recordStats,
 													long maxBadRecords,
 													Path badLogDirectory,
+													long maxRecords,
 													String tableVersion,
-                          boolean isUpsert){
+													boolean isUpsert,
+													boolean isCheckScan){
 				this.filePath = filePath;
 				this.columnDelimiter = columnDelimiter!= null?columnDelimiter:DEFAULT_COLUMN_DELIMITTER;
 				this.stripString = stripString!=null?stripString:DEFAULT_STRIP_STRING;
@@ -93,8 +97,10 @@ public class ImportContext implements Externalizable{
 				this.recordStats = recordStats;
 				this.maxBadRecords = maxBadRecords;
 				this.badLogDirectory = badLogDirectory;
+				this.maxRecords = maxRecords;
 				this.tableVersion = tableVersion;
-        this.isUpsert = isUpsert;
+				this.isUpsert = isUpsert;
+				this.isCheckScan = isCheckScan;
 		}
 
 		public void setFilePath(Path filePath) {
@@ -155,11 +161,13 @@ public class ImportContext implements Externalizable{
 				out.writeBoolean(badLogDirectory!=null);
 				if(badLogDirectory!=null)
 						out.writeUTF(badLogDirectory.toString());
+				out.writeLong(maxRecords);
 
 				out.writeBoolean(tableVersion!=null);
 				if(tableVersion!=null)
 						out.writeUTF(tableVersion);
-        out.writeBoolean(isUpsert);
+				out.writeBoolean(isUpsert);
+				out.writeBoolean(isCheckScan);
 		}
 
 		@Override
@@ -185,9 +193,11 @@ public class ImportContext implements Externalizable{
 				maxBadRecords = in.readLong();
 				if(in.readBoolean())
 						badLogDirectory = new Path(in.readUTF());
+				maxRecords = in.readLong();
 				if(in.readBoolean())
 						tableVersion = in.readUTF();
-        isUpsert = in.readBoolean();
+				isUpsert = in.readBoolean();
+				isCheckScan = in.readBoolean();
 		}
 
 		@Override
@@ -202,10 +212,10 @@ public class ImportContext implements Externalizable{
 								", byteOffset=" + byteOffset +
 								", bytesToRead=" + bytesToRead +
 								", columns="+ Arrays.toString(columnInformation) +
-                ", isUpsert="+isUpsert+
+								", isUpsert="+isUpsert+
+								", isCheckScan="+isCheckScan+
 								'}';
 		}
-
 
 		public int[] getPrimaryKeys() {
 				int[] pkCols = new int[columnInformation.length];
@@ -229,18 +239,20 @@ public class ImportContext implements Externalizable{
 				return new ImportContext(filePath,tableId,columnDelimiter,stripString,
 								columnInformation,timestampFormat,
 								dateFormat,timeFormat,byteOffset,bytesToRead,
-								recordStats,maxBadRecords,badLogDirectory,tableVersion,isUpsert);
+								recordStats,maxBadRecords,badLogDirectory,maxRecords,tableVersion,isUpsert,isCheckScan);
 		}
 
 		public long getMaxBadRecords() { return maxBadRecords; }
+
+		public long getMaxRecords() { return maxRecords; }
 
 		public Path getBadLogDirectory() { return badLogDirectory; }
 
 		public String getTableVersion() { return tableVersion; }
 
-    public boolean isUpsert() {
-        return isUpsert;
-    }
+		public boolean isUpsert() { return isUpsert; }
+
+		public boolean isCheckScan() { return isCheckScan; }
 
     public static class Builder{
 				private Path filePath;
@@ -260,16 +272,28 @@ public class ImportContext implements Externalizable{
 
 				private long maxBadRecords = 0l;
 				private Path badLogDirectory = null;
+				private long maxRecords = -1l;
 				private String tableVersion;
-        private boolean isUpsert = false;
+				private boolean isUpsert = false;
+				private boolean isCheckScan = false;
 
-        public Builder upsert(boolean upsert){
-            this.isUpsert = upsert;
-            return this;
-        }
+				public Builder upsert(boolean upsert){
+						this.isUpsert = upsert;
+						return this;
+				}
 
-        public Builder maxBadRecords(long maxBadRecords){
+				public Builder checkScan(boolean checkScan){
+						this.isCheckScan = checkScan;
+						return this;
+				}
+
+				public Builder maxBadRecords(long maxBadRecords){
 						this.maxBadRecords = maxBadRecords;
+						return this;
+				}
+
+				public Builder maxRecords(long maxRecords){
+						this.maxRecords = maxRecords;
 						return this;
 				}
 
@@ -277,7 +301,6 @@ public class ImportContext implements Externalizable{
 						this.badLogDirectory = badLogDirectory;
 						return this;
 				}
-
 
 				public Builder addColumn(ColumnContext columnContext){
 						this.columnInformation.add(columnContext);
@@ -300,7 +323,7 @@ public class ImportContext implements Externalizable{
 				}
 
 				public Builder colDelimiter(String columnDelimiter) {
-            if(columnDelimiter==null) return this; //use the default value for column delimiter
+						if(columnDelimiter==null) return this; //use the default value for column delimiter
 
 						// DB-824: Check that the escape character (e.g. backslash or '\') is not used as the column separator.
 						if("\\".equals(columnDelimiter)){
@@ -365,8 +388,8 @@ public class ImportContext implements Externalizable{
 						Preconditions.checkNotNull(filePath,"No File specified!");
 						Preconditions.checkNotNull(tableId,"No destination table specified!");
 
-            if(columnDelimiter==null)
-                columnDelimiter = ",";
+						if(columnDelimiter==null)
+								columnDelimiter = ",";
 
 						ColumnContext[] context = new ColumnContext[columnInformation.size()];
 						Collections.sort(columnInformation,new Comparator<ColumnContext>() {
@@ -386,12 +409,11 @@ public class ImportContext implements Externalizable{
 										columnDelimiter,stripString,
 										context,
 										timestampFormat,dateFormat,timeFormat, byteOffset, bytesToRead,
-										recordStats,maxBadRecords,badLogDirectory,tableVersion,isUpsert);
+										recordStats,maxBadRecords,badLogDirectory,maxRecords,tableVersion,isUpsert,isCheckScan);
 				}
 
 				public long getDestinationConglomerate() {
 						return this.tableId;
 				}
-
-    }
+		}
 }

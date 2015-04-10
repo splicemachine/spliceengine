@@ -1,13 +1,16 @@
 package com.splicemachine.derby.impl.job.scheduler;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.hbase.ExceptionTranslator;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
+import com.splicemachine.derby.impl.load.ImportTaskManagement;
 import com.splicemachine.derby.stats.TaskStats;
+import com.splicemachine.derby.utils.ImportAdmin;
 import com.splicemachine.job.JobFuture;
+import com.splicemachine.job.JobStatusLogger;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.job.Status;
 import com.splicemachine.job.TaskFuture;
@@ -15,6 +18,7 @@ import com.splicemachine.si.api.TxnView;
 import com.splicemachine.pipeline.exception.AttemptsExhaustedException;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
+
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.ZooKeeperConnectionException;
 import org.apache.hadoop.hbase.client.HTableInterface;
@@ -23,7 +27,9 @@ import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.AsyncCallback;
 import org.apache.zookeeper.ZooKeeper;
+
 import java.io.IOException;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -44,26 +50,37 @@ public abstract class BaseJobControl implements JobFuture {
     protected final int maxResubmissionAttempts;
     protected final JobMetrics jobMetrics;
     protected final String jobPath;
+    protected final JobStatusLogger jobStatusLogger;
+    protected final TaskStatusLoggerThread taskStatusThread;
     protected final List<Callable<Void>> finalCleanupTasks;
     protected final List<Callable<Void>> intermediateCleanupTasks;
     protected volatile boolean cancelled = false;
     protected volatile boolean cleanedUp = false;
     protected volatile boolean intermediateCleanedUp = false;
 
-    BaseJobControl(CoprocessorJob job, String jobPath,SpliceZooKeeperManager zkManager, int maxResubmissionAttempts, JobMetrics jobMetrics){
+    BaseJobControl(CoprocessorJob job, String jobPath,SpliceZooKeeperManager zkManager, int maxResubmissionAttempts, JobMetrics jobMetrics, JobStatusLogger jobStatusLogger){
         this.job = job;
         this.jobPath = jobPath;
         this.zkManager = zkManager;
         this.jobMetrics = jobMetrics;
         this.stats = new JobStatsAccumulator(job.getJobId());
         this.tasksToWatch = new ConcurrentSkipListSet<RegionTaskControl>();
+        this.jobStatusLogger = jobStatusLogger;
+
+        // Only start the task status thread if there is a job status logger.
+        if (this.jobStatusLogger == null) {
+        	this.taskStatusThread = null;
+        } else {
+        	this.taskStatusThread = new TaskStatusLoggerThread(this);
+        	this.taskStatusThread.start();  // Start polling for status of the tasks.
+        }
 
         this.changedTasks = new LinkedBlockingQueue<RegionTaskControl>();
         this.failedTasks = Collections.newSetFromMap(new ConcurrentHashMap<RegionTaskControl, Boolean>());
         this.completedTasks = Collections.newSetFromMap(new ConcurrentHashMap<RegionTaskControl, Boolean>());
         this.cancelledTasks = Collections.newSetFromMap(new ConcurrentHashMap<RegionTaskControl, Boolean>());
         this.finalCleanupTasks = Lists.newLinkedList();
-				this.intermediateCleanupTasks = Lists.newLinkedList();
+        this.intermediateCleanupTasks = Lists.newLinkedList();
         this.maxResubmissionAttempts = maxResubmissionAttempts;
     }
 
@@ -145,6 +162,9 @@ public abstract class BaseJobControl implements JobFuture {
                         completedTasks.add(changedFuture);
                         if (statusHook != null)
                             statusHook.success(changedFuture.getTaskId());
+                        if (jobStatusLogger != null) {
+                        	jobStatusLogger.log(String.format("%d of %d files imported...", (getNumTasks() - getRemainingTasks()), getNumTasks()));
+                        }
                         return;
                     } else {
                         //our commit failed, we have to resubmit the task (if possible)
@@ -193,74 +213,77 @@ public abstract class BaseJobControl implements JobFuture {
 
     @Override
     public void cleanup() throws ExecutionException {
-				if(cleanedUp)
-						return; //don't try cleaning up twice
-				else
-					cleanedUp = true;
-        SpliceLogUtils.trace(LOG, "cleaning up job %s", job.getJobId());
-				intermediateCleanup(); //in case cleanups don't get called
-        try {
-            ZooKeeper zooKeeper = zkManager.getRecoverableZooKeeper().getZooKeeper();
-            zooKeeper.delete(jobPath, -1, new AsyncCallback.VoidCallback() {
-                @Override
-                public void processResult(int i, String s, Object o) {
-										if(LOG.isTraceEnabled())
-                    LOG.trace("Result for deleting path " + jobPath + ": i=" + i + ", s=" + s);
-                }
-            }, this);
-        } catch (ZooKeeperConnectionException e) {
-            throw new ExecutionException(e);
-				} finally {
-            try {
-								for(Callable<Void> c: finalCleanupTasks){
-										c.call();
-								}
-            } catch (Exception e) {
-								throw new ExecutionException(e);
-						} finally {
-                finalCleanupTasks.clear();
-                completedTasks.clear();
-                failedTasks.clear();
-                tasksToWatch.clear();
-                changedTasks.clear();
-            }
-        }
+    	if(cleanedUp)
+    		return; //don't try cleaning up twice
+    	else
+    		cleanedUp = true;
+    	SpliceLogUtils.trace(LOG, "cleaning up job %s", job.getJobId());
+    	intermediateCleanup(); //in case cleanups don't get called
+    	try {
+    		ZooKeeper zooKeeper = zkManager.getRecoverableZooKeeper().getZooKeeper();
+    		zooKeeper.delete(jobPath, -1, new AsyncCallback.VoidCallback() {
+    			@Override
+    			public void processResult(int i, String s, Object o) {
+    				if(LOG.isTraceEnabled())
+    					LOG.trace("Result for deleting path " + jobPath + ": i=" + i + ", s=" + s);
+    			}
+    		}, this);
+    	} catch (ZooKeeperConnectionException e) {
+    		throw new ExecutionException(e);
+    	} finally {
+    		try {
+    			for(Callable<Void> c: finalCleanupTasks){
+    				c.call();
+    			}
+    		} catch (Exception e) {
+    			throw new ExecutionException(e);
+    		} finally {
+    			finalCleanupTasks.clear();
+    			completedTasks.clear();
+    			failedTasks.clear();
+    			tasksToWatch.clear();
+    			changedTasks.clear();
+    			if (taskStatusThread != null) {
+    				taskStatusThread.requestStop();  // Stop the task status logging thread.
+    			}
+    		}
+    	}
     }
 
     @Override
-		public void intermediateCleanup() throws ExecutionException {
-				if(intermediateCleanedUp)
-						return; //don't cleanup twice
-				else
-					intermediateCleanedUp = true;
+    public void intermediateCleanup() throws ExecutionException {
+    	if(intermediateCleanedUp)
+    		return; //don't cleanup twice
+    	else
+    		intermediateCleanedUp = true;
 
-				ZooKeeper zooKeeper;
-				try {
-						zooKeeper = zkManager.getRecoverableZooKeeper().getZooKeeper();
-				} catch (ZooKeeperConnectionException e) {
-						throw new ExecutionException(e);
-				}
-				for (RegionTaskControl task : tasksToWatch) {
-						zooKeeper.delete(task.getTaskNode(), -1, new AsyncCallback.VoidCallback() {
-								@Override
-								public void processResult(int i, String s, Object o) {
-										if(LOG.isTraceEnabled())
-												LOG.trace("Result for deleting path " + jobPath + ": i=" + i + ", s=" + s);
-								}
-						}, this);
-				}
+    	ZooKeeper zooKeeper;
+    	try {
+    		zooKeeper = zkManager.getRecoverableZooKeeper().getZooKeeper();
+    	} catch (ZooKeeperConnectionException e) {
+    		throw new ExecutionException(e);
+    	}
+    	for (RegionTaskControl task : tasksToWatch) {
+    		zooKeeper.delete(task.getTaskNode(), -1, new AsyncCallback.VoidCallback() {
+    			@Override
+    			public void processResult(int i, String s, Object o) {
+    				if(LOG.isTraceEnabled())
+    					LOG.trace("Result for deleting path " + jobPath + ": i=" + i + ", s=" + s);
+    			}
+    		}, this);
+    	}
 
-				Throwable error = null;
-				for(Callable<Void> c:intermediateCleanupTasks){
-						try {
-								c.call();
-						} catch (Exception e) {
-								error = e;
-						}
-				}
-				if(error!=null)
-						throw new ExecutionException(error);
-		}
+    	Throwable error = null;
+    	for(Callable<Void> c:intermediateCleanupTasks){
+    		try {
+    			c.call();
+    		} catch (Exception e) {
+    			error = e;
+    		}
+    	}
+    	if(error!=null)
+    		throw new ExecutionException(error);
+    }
 
 		@Override
     public void addCleanupTask(Callable<Void> closable) {
@@ -382,4 +405,109 @@ public abstract class BaseJobControl implements JobFuture {
                         Pair<byte[], byte[]> range,
                         HTableInterface table,
                         final int tryCount) throws ExecutionException;
+
+    /**
+     * A thread that polls JMX every configured interval to check the import statistics of each task.
+     * If the task has made progress (e.g. imported or rejected rows) since the last time it was checked,
+     * the current statistics for the task will be written to the import log.
+     *
+     * @author dwinters
+     */
+    private class TaskStatusLoggerThread extends Thread {
+
+    	/**
+    	 * Reference to parent job control.
+    	 */
+    	BaseJobControl jobControl = null;
+
+    	/**
+    	 * Number of milliseconds to sleep before checking JMX for progress by the tasks.
+    	 */
+    	long sleepMillis = SpliceConstants.importTaskStatusLoggingInterval;
+
+    	/**
+    	 * Flag that tells the TaskStatusLoggerThread when it should exit.
+    	 */
+    	private boolean runTaskStatusLoggerThread = true;
+
+    	/**
+    	 * Default constructor that sets the name of the thread.
+    	 *
+    	 * @param jobControl parent job control object
+    	 */
+    	public TaskStatusLoggerThread(BaseJobControl jobControl) {
+    		super("task-status-logger-thread");
+    		this.jobControl = jobControl;
+    	}
+
+    	/**
+    	 * Loop checking JMX for task updates (and sleep) until requested to stop.
+    	 */
+    	@Override
+    	public void run() {
+			ImportAdmin importAdmin;
+			try {
+				importAdmin = new ImportAdmin();
+				try {
+					while (runTaskStatusLoggerThread) {
+
+						/*
+						 * Write the status of all running tasks to the import job status log.
+						 */
+						try {
+							List<Pair<String, ImportTaskManagement>> importTaskPairs = importAdmin.getRegionServerImportTaskInfo();
+							if (importTaskPairs != null) {
+								if (jobStatusLogger != null) {
+									jobStatusLogger.log(String.format("  %d import task(s) being run in parallel...", importTaskPairs.size()));
+								}
+								for (Pair<String, ImportTaskManagement> importTaskPair : importTaskPairs) {
+									String regionServer = importTaskPair.getFirst();
+									ImportTaskManagement importTask = importTaskPair.getSecond();
+									Map<String, Long> importedRowsMap = importTask.getTotalImportedRowsByFilePath();
+									Map<String, Long> badRowsMap = importTask.getTotalBadRowsByFilePath();
+									for (Map.Entry<String, Long> importedRowsMapEntry : importedRowsMap.entrySet()) {
+										String importFileName = importedRowsMapEntry.getKey();
+										Long importRowCount = importedRowsMapEntry.getValue();
+										Long badRowCount = badRowsMap.get(importFileName);
+										if (jobStatusLogger != null) {
+											jobStatusLogger.log(String.format("    Imported %,d rows and rejected %,d rows from %s on %s", importRowCount, badRowCount, importFileName, regionServer));
+										}
+									}
+								}
+							}
+						} catch (SQLException e) {
+							LOG.error("TaskStatusLoggerThread has experienced a SQL exception.  Stopping thread.", e);
+							if (jobStatusLogger != null) {
+								jobStatusLogger.log("TaskStatusLoggerThread has experienced a SQL exception.  Stopping thread.  Check the logs for the stack trace.");
+							}
+							break;
+						}
+
+						/*
+						 * Sleep for a configured amount of time and then log the status of the tasks again.
+						 */
+						try {
+							sleep(sleepMillis);
+						} catch (InterruptedException e) {
+							LOG.error("TaskStatusLoggerThread has been interrupted.", e);
+						}
+					}
+				} finally {
+					importAdmin.close();
+				}
+			} catch (Exception e) {
+				LOG.error("TaskStatusLoggerThread has experienced an exception.  Stopping thread.", e);
+				if (jobStatusLogger != null) {
+					jobStatusLogger.log("TaskStatusLoggerThread has experienced an exception.  Stopping thread.  Check the logs for the stack trace.");
+				}
+			}
+    	}
+
+    	/**
+    	 * Request the current thread to stop after it is done sleeping.
+    	 */
+    	public void requestStop() {
+    		runTaskStatusLoggerThread = false;
+    	}
+    }
 }
