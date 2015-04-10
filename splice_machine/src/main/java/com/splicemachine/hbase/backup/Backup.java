@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import com.splicemachine.constants.bytes.BytesUtil;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FSDataInputStream;
@@ -28,6 +29,7 @@ import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
+import org.apache.hadoop.hbase.zookeeper.ZKUtil;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Logger;
 
@@ -50,6 +52,9 @@ import com.splicemachine.si.impl.TransactionTimestamps;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceUtilities;
 import com.splicemachine.utils.ZkUtils;
+import org.apache.zookeeper.CreateMode;
+import org.apache.zookeeper.KeeperException;
+import org.apache.zookeeper.ZooDefs;
 
 
 /**
@@ -103,11 +108,11 @@ public class Backup implements InternalTable {
      */
     public static enum BackupStatus {S,F,I}
 
-    public static final String INSERT_START_BACKUP = "insert into %s.%s (transaction_id, begin_timestamp, status, filesystem, "
+    public static final String INSERT_START_BACKUP = "insert into %s.%s (backup_id, begin_timestamp, status, filesystem, "
             + "scope, incremental_backup, incremental_parent_backup_id, backup_item) values (?,?,?,?,?,?,?,?)";
-    public static final String UPDATE_BACKUP_STATUS = "update %s.%s set status=?, end_timestamp=?, backup_item=? where transaction_id=?";
-    public static final String RUNNING_CHECK = "select transaction_id from %s.%s where status = ?";
-    public static final String QUERY_PARENT_BACKUP_DIRECTORY = "select filesystem from %s.%s where transaction_id = ?";
+    public static final String UPDATE_BACKUP_STATUS = "update %s.%s set status=?, end_timestamp=?, backup_item=? where backup_id=?";
+    public static final String RUNNING_CHECK = "select backup_id from %s.%s where status = ?";
+    public static final String QUERY_PARENT_BACKUP_DIRECTORY = "select filesystem from %s.%s where backup_id = ?";
 
     public static final String VERSION_FILE = "version";
     public static final String BACKUP_TIMESTAMP_FILE = "backupTimestamp";
@@ -184,7 +189,9 @@ public class Backup implements InternalTable {
     public void setBackupStatus(BackupStatus backupStatus) {
         this.backupStatus = backupStatus;
         if( backupStatus == BackupStatus.F){
-        	log("Backup FAILED. ");
+            if (logFileOut != null) {
+                log("Backup FAILED. ");
+            }
         } else if( backupStatus == BackupStatus.S){
         	log("Finished with Success. Total time taken for backup was: "+
                formatTime(System.currentTimeMillis() - backupStartTime));
@@ -222,8 +229,7 @@ public class Backup implements InternalTable {
 
     public void setBackupFilesystem(String backupFilesystem) {
         this.backupFilesystem = backupFilesystem;
-        this.baseFolder = backupFilesystem + "/" + BACKUP_BASE_FOLDER;
-        this.baseFolder += "$" + backupId;
+        this.baseFolder = backupFilesystem + "/" + BACKUP_BASE_FOLDER + "_" + backupId;
     }
 
     public BackupScope getBackupScope() {
@@ -319,7 +325,6 @@ public class Backup implements InternalTable {
                         "parent id timestamp larger than the current timestamp " +
                         "{incrementalParentBackupID=%d,transactionID=%d",parentBackupID,backupTxn.getTxnId()));
             backupTxn.elevateToWritable("recovery".getBytes());
-
             Backup backup = new Backup();
             backup.setBackupTransaction(backupTxn);
             backup.setBeginBackupTimestamp(new Timestamp(System.currentTimeMillis()));
@@ -354,6 +359,7 @@ public class Backup implements InternalTable {
         return isBackupRunning(DEFAULT_SCHEMA,DEFAULT_TABLE);
     }
     public static String isBackupRunning(String schemaName, String tableName) throws SQLException {
+
         Connection connection = null;
         try {
             connection = SpliceAdmin.getDefaultConn();
@@ -421,7 +427,9 @@ public class Backup implements InternalTable {
      */
     private void closeLogFile() {
     	try {
-			this.logFileOut.close();
+            if (this.logFileOut != null) {
+                this.logFileOut.close();
+            }
 		} catch (IOException e) {
 			LOG.error("Failed to close log file", e);
 		}
@@ -450,7 +458,7 @@ public class Backup implements InternalTable {
     {
     	LOG.info(msg);
     	try{
-    		this.logFileOut.writeBytes(msg+"\n");
+    		this.logFileOut.writeBytes(msg + "\n");
     	} catch (IOException e){
     		// swallow
     	}
@@ -458,7 +466,7 @@ public class Backup implements InternalTable {
     
     /**
      * Format seconds into dd:hh:mm:ss string
-     * @param sec
+     * @param ms
      * @return formatted string
      */
     private String formatTime(long ms)
@@ -720,7 +728,7 @@ public class Backup implements InternalTable {
         if (fileSystem.exists(oldBase)) {
             fileSystem.delete(oldBase, true);
         }
-        Path base = new Path(backupFilesystem + "/" + BACKUP_BASE_FOLDER + "$" + backupTransaction.getBeginTimestamp());
+        Path base = new Path(backupFilesystem + "/" + BACKUP_BASE_FOLDER + "_" + backupTransaction.getBeginTimestamp());
         fileSystem.rename(base, oldBase);
 
         fileSystem.rename(getBaseBackupFilesystemAsPath(), base);
@@ -731,4 +739,30 @@ public class Backup implements InternalTable {
     }
     
 
+    public void registerBackup() throws KeeperException, InterruptedException, StandardException {
+        RecoverableZooKeeper zooKeeper = ZkUtils.getRecoverableZooKeeper();
+        try {
+            byte[] backupId = BytesUtil.longToBytes(backupTransaction.getTxnId());
+            zooKeeper.create(SpliceConstants.DEFAULT_BACKUP_PATH, backupId, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
+        } catch (KeeperException e) {
+            if(e.code()== KeeperException.Code.NODEEXISTS){
+                //it's already been created, so nothing to do
+                long id = BytesUtil.bytesToLong(zooKeeper.getData(SpliceConstants.DEFAULT_BACKUP_PATH, false, null), 0);
+                throw StandardException.newException(String.format("A concurrent backup with id of %d is running.", id));
+            }
+            else {
+                throw e;
+            }
+        }
+    }
+
+    public void deregisterBackup() throws KeeperException, InterruptedException {
+        RecoverableZooKeeper zooKeeper = ZkUtils.getRecoverableZooKeeper();
+        if (zooKeeper.exists(SpliceConstants.DEFAULT_BACKUP_PATH, false) != null) {
+            long id = BytesUtil.bytesToLong(zooKeeper.getData(SpliceConstants.DEFAULT_BACKUP_PATH, false, null), 0);
+            if (id == this.backupId) {
+                zooKeeper.delete(SpliceConstants.DEFAULT_BACKUP_PATH, -1);
+            }
+        }
+    }
 }

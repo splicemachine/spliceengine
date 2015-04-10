@@ -45,6 +45,7 @@ import com.splicemachine.derby.ddl.TentativeIndexDesc;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.derby.utils.DataDictionaryUtils;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.pipeline.exception.Exceptions;
@@ -67,9 +68,8 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
     protected String						tableName;
     protected UUID						schemaId;
     protected ColumnInfo[]				columnInfo;
-    private	    ConstraintConstantOperation[]	constraintActions;
+    protected ConstraintConstantOperation[]	constraintActions;
     private	    char						lockGranularity;
-    protected long						tableConglomerateId;
     protected int						    behavior;
 
     protected String						indexNameForStatistics;
@@ -113,7 +113,6 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
             SpliceLogUtils.trace(LOG, "instantiating AlterTableConstantOperation for table {%s.%s} with ColumnInfo {%s} and constraintActions {%s}",sd!=null?sd.getSchemaName():"default",tableName, Arrays.toString(columnInfo), Arrays.toString(constraintActions));
         this.sd                     = sd;
         this.tableName              = tableName;
-        this.tableConglomerateId    = tableConglomerateId;
         this.columnInfo             = columnInfo;
         this.constraintActions      = (ConstraintConstantOperation[]) constraintActions;
         this.lockGranularity        = lockGranularity;
@@ -177,7 +176,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         // concurrent thread doing add/drop column.
 
         // older version (or at target) has to get td first, potential deadlock
-        TableDescriptor td = getTableDescriptor(dd);
+        TableDescriptor td = getTableDescriptor(lcc);
 
         dm.invalidateFor(td, DependencyManager.ALTER_TABLE, lcc);
 
@@ -203,15 +202,18 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
 
         int numRows = 0;
         // adjust dependencies on user defined types
-        adjustUDTDependencies( lcc, dd, td, columnInfo, false );
+        adjustUDTDependencies(activation, columnInfo, false );
 
-        executeConstraintActions(activation, td,numRows);
-        adjustLockGranularity(activation.getTransactionController(), td, dd);
+        executeConstraintActions(activation, numRows);
+        adjustLockGranularity(activation);
     }
 
-    protected void adjustLockGranularity(TransactionController tc, TableDescriptor td, DataDictionary dd) throws StandardException {
+    protected void adjustLockGranularity(Activation activation) throws StandardException {
         // Are we changing the lock granularity?
         if (lockGranularity != '\0') {
+            LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+            DataDictionary dd = lcc.getDataDictionary();
+            TableDescriptor td = activation.getDDLTableDescriptor();
             if (SanityManager.DEBUG) {
                 if (lockGranularity != 'T' && lockGranularity != 'R') {
                     SanityManager.THROWASSERT("lockGranularity expected to be 'T'or 'R', not " + lockGranularity);
@@ -220,14 +222,15 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
             // update the TableDescriptor
             td.setLockGranularity(lockGranularity);
             // update the DataDictionary
-            dd.updateLockGranularity(td, sd, lockGranularity, tc);
+            dd.updateLockGranularity(td, sd, lockGranularity, lcc.getTransactionExecute());
         }
     }
 
-    protected void executeConstraintActions(Activation activation,TableDescriptor td, int numRows) throws StandardException {
+    protected void executeConstraintActions(Activation activation, int numRows) throws StandardException {
         if(constraintActions==null) return; //no constraints to apply, so nothing to do
         TransactionController tc = activation.getTransactionController();
         DataDictionary dd = activation.getLanguageConnectionContext().getDataDictionary();
+        TableDescriptor td = activation.getDDLTableDescriptor();
         boolean tableScanned = numRows>=0;
         if(numRows<0)
             numRows = 0;
@@ -839,14 +842,11 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
 //        }
     }
 
-    protected TableDescriptor getTableDescriptor(DataDictionary dd) throws StandardException {
+    protected TableDescriptor getTableDescriptor(LanguageConnectionContext lcc) throws StandardException {
         TableDescriptor td;
-        td = dd.getTableDescriptor(tableId);
+        td = DataDictionaryUtils.getTableDescriptor(lcc, tableId);
         if (td == null) {
             throw StandardException.newException(SQLState.LANG_TABLE_NOT_FOUND_DURING_EXECUTION, tableName);
-        }
-        if (tableConglomerateId == 0) {
-            tableConglomerateId = td.getHeapConglomerateId();
         }
         return td;
     }

@@ -37,12 +37,11 @@ public class BackupItem implements InternalTable {
 	public static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
 	public static final String DEFAULT_SCHEMA = Backup.DEFAULT_SCHEMA;
 	public static final String DEFAULT_TABLE = "BACKUP_ITEMS";
-	public static final String INSERT_BACKUP_ITEM = "insert into %s.%s (transaction_id, item, begin_timestamp, snapshot_name)"
+	public static final String INSERT_BACKUP_ITEM = "insert into %s.%s (backup_id, item, begin_timestamp, snapshot_name)"
 			+ " values (?,?,?, ?)";
-    public static final String DELETE_BACKUP_ITEM = "delete from %s.%s where transaction_id=? and item=?";
+    public static final String DELETE_BACKUP_ITEM = "delete from %s.%s where backup_id=? and item=?";
 
-    public static final String UPDATE_BACKUP_ITEM_STATUS = "update %s.%s set end_timestamp = ? where transaction_id = ? and item = ?";
-    public static final String QUERY_BACKUP_ITEM = "select item, begin_timestamp, end_timestamp from %s.%s where transaction_id=?";
+    public static final String UPDATE_BACKUP_ITEM_STATUS = "update %s.%s set end_timestamp = ? where backup_id = ? and item = ?";
 
     public BackupItem () {
 		
@@ -226,20 +225,13 @@ public class BackupItem implements InternalTable {
 
     private void readRegionsFromFileSystem(FileSystem fs) throws IOException {
         FileStatus[] status = fs.listStatus(new Path(getBackupItemFilesystem()));
-        String parentRegionName = null;
 
         for (FileStatus stat : status) {
-            if (!stat.isDir()) {
+            if (!stat.isDir() || stat.getPath().getName().compareTo(".tmp") == 0) {
                 continue; // ignore non directories
             }
             HRegionInfo regionInfo = derbyFactory.loadRegionInfoFileContent(fs, stat.getPath());
-            Path p = new Path(stat.getPath().toString() + "/.parentRegion");
-            if (fs.exists(p)) {
-                FSDataInputStream in = fs.open(p);
-                parentRegionName = in.readUTF();
-                in.close();
-            }
-            addRegionInfo(new RegionInfo(regionInfo, getFamilyPaths(fs, stat.getPath()), parentRegionName));
+            addRegionInfo(new RegionInfo(regionInfo, getFamilyPaths(fs, stat.getPath())));
         };
     }
 
@@ -314,7 +306,7 @@ public class BackupItem implements InternalTable {
             FileSystem fileSystem = FileSystem.get(URI.create(getBackupItemFilesystem()),SpliceConstants.config);
             Path path = new Path(getBackupItemFilesystem());
             FileStatus[] status = fileSystem.listStatus(path);
-            if (status.length == 0) {
+            if (backup.isIncrementalBackup() && !containsRegion(status)) {
                 fileSystem.delete(path, true);
                 deleteBackupItem();
                 backedUp = false;
@@ -335,6 +327,19 @@ public class BackupItem implements InternalTable {
         return backedUp;
     }
 
+    public boolean containsRegion(FileStatus[] fileStatus) {
+
+        int count = 0;
+        for (FileStatus status : fileStatus) {
+            if (status.getPath().getName().charAt(0) == '.') {
+                continue;
+            }
+            count++;
+        }
+
+        return count > 0;
+    }
+
     public void createSnapshot(HBaseAdmin admin, long snapId, Set<String> snapshotNameSet) throws StandardException {
         try {
             long start = System.currentTimeMillis();
@@ -348,6 +353,10 @@ public class BackupItem implements InternalTable {
         }
     }
 
+    public String getLastSnapshotName() {
+        return lastSnapshotName;
+    }
+
     public static class RegionInfo implements Externalizable {
         private HRegionInfo hRegionInfo;
         private List<Pair<byte[], String>> famPaths;
@@ -355,7 +364,7 @@ public class BackupItem implements InternalTable {
         public RegionInfo() {
         }
 
-        public RegionInfo(HRegionInfo hRegionInfo, List<Pair<byte[], String>> famPaths, String parentRegionName) {
+        public RegionInfo(HRegionInfo hRegionInfo, List<Pair<byte[], String>> famPaths) {
             this.hRegionInfo = hRegionInfo;
             this.famPaths = famPaths;
         }

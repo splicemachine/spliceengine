@@ -244,7 +244,7 @@ public class Restore {
         try {
             while (directory != null) {
                 FileSystem fileSystem = FileSystem.get(URI.create(directory), SpliceConstants.config);
-                Path path = new Path(directory + "/BACKUP$" + backupId + "/"+ Backup.BACKUP_META_FOLDER, Backup.PARENT_BACKUP_FILE);
+                Path path = new Path(directory + "/BACKUP_" + backupId + "/"+ Backup.BACKUP_META_FOLDER, Backup.PARENT_BACKUP_FILE);
                 if (!fileSystem.exists(path)) {
                     directory = null;
                     continue;

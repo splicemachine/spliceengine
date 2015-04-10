@@ -9,11 +9,13 @@ import java.util.*;
 import java.util.concurrent.ExecutionException;
 
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.utils.SpliceUtilities;
+import com.splicemachine.utils.ZkUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -24,20 +26,28 @@ import com.splicemachine.derby.hbase.DerbyFactory;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import org.apache.hadoop.hbase.snapshot.SnapshotDescriptionUtils;
 import org.apache.hadoop.hbase.util.FSUtils;
+import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.zookeeper.KeeperException;
 
 public class BackupUtils {
 
     private static final Logger LOG = Logger.getLogger(BackupUtils.class);
 
-    public static final String QUERY_LAST_BACKUP = "select max(transaction_id) from %s.%s";
+    public static final String QUERY_LAST_BACKUP = "select max(backup_id) from %s.%s";
     public static final String BACKUP_FILESET_TABLE = "BACKUP_FILESET";
     public static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
 
-    public static String isBackupRunning() throws SQLException {
-        return Backup.isBackupRunning();
+    public static String isBackupRunning() throws KeeperException, InterruptedException {
+        RecoverableZooKeeper zooKeeper = ZkUtils.getRecoverableZooKeeper();
+        if (zooKeeper.exists(SpliceConstants.DEFAULT_BACKUP_PATH, false) != null) {
+            long id = BytesUtil.bytesToLong(zooKeeper.getData(SpliceConstants.DEFAULT_BACKUP_PATH, false, null), 0);
+            return String.format("A concurrent backup with id of %d is running.", id);
+        }
+
+        return null;
     }
 
     /**
@@ -111,7 +121,7 @@ public class BackupUtils {
                 backupTransactionId = rs.getLong(1);
             }
         } catch (Exception e) {
-            SpliceLogUtils.warn(LOG, "%s", e.getMessage());
+            SpliceLogUtils.warn(LOG, "BackupUtils.getLastBackupTime: %s", e.getMessage());
         }
         return backupTransactionId;
     }
@@ -132,7 +142,7 @@ public class BackupUtils {
             ResultSet rs = ps.executeQuery();
             exists = rs.next();
         } catch (Exception e) {
-            SpliceLogUtils.warn(LOG, e.getMessage());
+            SpliceLogUtils.warn(LOG, "BackupUtils.existBackupWithStatus: %s", e.getMessage());
         }
 
         return exists;
@@ -156,7 +166,7 @@ public class BackupUtils {
                 snapshotName = getSnapshotName(tableName, backupId);
             }
         } catch (Exception e) {
-            SpliceLogUtils.warn(LOG, e.getMessage());
+            SpliceLogUtils.warn(LOG, "BackupUtils.getSnapshotName: %s", e.getMessage());
         }
 
         return snapshotName;
@@ -243,7 +253,7 @@ public class BackupUtils {
                  exclude = (rs.getInt(1) > 0);
             }
         } catch (Exception e) {
-            SpliceLogUtils.warn(LOG, e.getMessage());
+            SpliceLogUtils.warn(LOG, "BackupUtils.shouldExclude: %s", e.getMessage());
         }
         return exclude;
     }
@@ -275,7 +285,7 @@ public class BackupUtils {
             ps.execute();
             ps.close();
         } catch (Exception e) {
-            SpliceLogUtils.warn(LOG, e.getMessage());
+            SpliceLogUtils.warn(LOG, "BackupUtils.insertFileSet: %s",e.getMessage());
         }
     }
 
@@ -301,7 +311,7 @@ public class BackupUtils {
             rs = ps.executeQuery();
 
         } catch (Exception e) {
-            SpliceLogUtils.warn(LOG, e.getMessage());
+            SpliceLogUtils.warn(LOG, "BackupUtils.queryFileSet: %s", e.getMessage());
         }
         return rs;
     }
@@ -334,7 +344,7 @@ public class BackupUtils {
             ps.execute();
             ps.close();
         } catch (Exception e) {
-            SpliceLogUtils.warn(LOG, e.getMessage());
+            SpliceLogUtils.warn(LOG, "BackupUtils.deleteFileSet: %s", e.getMessage());
         }
     }
 
@@ -363,7 +373,7 @@ public class BackupUtils {
             }
 
         } catch (Exception e) {
-            SpliceLogUtils.warn(LOG, e.getMessage());
+            SpliceLogUtils.warn(LOG, "BackupUtils.getFileSet: %s", e.getMessage());
         }
         return null;
     }

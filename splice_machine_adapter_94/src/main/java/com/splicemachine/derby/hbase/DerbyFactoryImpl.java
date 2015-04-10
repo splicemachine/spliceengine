@@ -79,6 +79,7 @@ import com.splicemachine.hase.debug.HBaseEntryPredicateFilter;
 import com.splicemachine.hbase.HBaseRegionLoads;
 import com.splicemachine.hbase.ThrowIfDisconnected;
 import com.splicemachine.hbase.jmx.JMXUtils;
+import com.splicemachine.job.JobStatusLogger;
 import com.splicemachine.mrio.api.core.MemStoreFlushAwareScanner;
 import com.splicemachine.mrio.api.core.MemstoreAware;
 import com.splicemachine.mrio.api.core.SpliceRegionScanner;
@@ -135,8 +136,8 @@ public class DerbyFactoryImpl implements DerbyFactory<SparseTxn> {
 	@Override
 	public BaseJobControl getJobControl(CoprocessorJob job, String jobPath,
 			SpliceZooKeeperManager zkManager, int maxResubmissionAttempts,
-			JobMetrics jobMetrics) {
-		return new JobControl(job,jobPath,zkManager,maxResubmissionAttempts,jobMetrics);
+			JobMetrics jobMetrics, JobStatusLogger jobStatusLogger) {
+		return new JobControl(job,jobPath,zkManager,maxResubmissionAttempts,jobMetrics,jobStatusLogger);
 	}
 
 	@Override
@@ -168,8 +169,9 @@ public class DerbyFactoryImpl implements DerbyFactory<SparseTxn> {
 
 	@Override
 	public void writeRegioninfoOnFilesystem(HRegionInfo regionInfo,
-			Path regiondir, FileSystem fs, Configuration conf)
+			Path tabledir, FileSystem fs, Configuration conf)
 			throws IOException {
+        Path regiondir = new Path(tabledir.toString() + "/" + regionInfo.getEncodedName());
 		HRegion.writeRegioninfoOnFilesystem(regionInfo, regiondir, fs, conf);
 	}
 
