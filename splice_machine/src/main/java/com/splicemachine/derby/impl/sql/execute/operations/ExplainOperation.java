@@ -1,7 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 
-import com.google.common.base.Strings;
+import com.google.common.collect.Iterators;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -13,19 +13,15 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.ast.ExplainTree;
 import com.splicemachine.derby.impl.ast.PlanPrinter;
 import com.splicemachine.derby.impl.storage.RowProviders;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.util.*;
 
 /**
  * @author Jun Yuan
@@ -38,9 +34,10 @@ public class ExplainOperation extends SpliceBaseOperation {
     protected static List<NodeType> nodeTypes;
     protected ExecRow currentTemplate;
     private int pos = 0;
-    private Pair<String,Integer>[] plan;
+//    private Pair<String,Integer>[] plan;
     protected static final String NAME = ExplainOperation.class.getSimpleName().replaceAll("Operation","");
-    private static final Pattern pattern = Pattern.compile("n=[0-9]+");
+//    private static final Pattern pattern = Pattern.compile("n=[0-9]+");
+    private Iterator<String> explainStringIter;
 
 	@Override
 	public String getName() {
@@ -78,66 +75,21 @@ public class ExplainOperation extends SpliceBaseOperation {
     @Override
     public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 
-        if (plan == null || pos >= plan.length) {
+        if(!this.explainStringIter.hasNext()){
             clearState();
             return null;
         }
+        String n = explainStringIter.next();
 
         currentTemplate.resetRowArray();
         DataValueDescriptor[] dvds = currentTemplate.getRowArray();
-        Pair<String,Integer> next;
-        do{
-            next=plan[pos++];
-        }while(pos<plan.length && filterNonExistingNodes(next.getFirst()));
 
-        if(pos>plan.length){
-            clearState();
-            return null;
-        }
-        dvds[0].setValue(Strings.repeat(" ",next.getSecond())+next.getFirst());
+        dvds[0].setValue(n);
         return currentTemplate;
     }
 
-    private boolean filterNonExistingNodes(String next){
-        /*
-         * The query planner will impose a ProjectRestrictNode
-         * into the PlanPrinter which will disappear after optimization. This
-         * method filters those ProjectRestricts out.
-         *
-         * In addition, we throw out the ScrollInsensitive if it pops to the top,
-         * just to make things look nice and pretty(since Splice doesn't make sense
-         * of the SI result set)
-         */
-        if(next.startsWith("ScrollInsensitive")) return true;
-        if(!next.startsWith("ProjectRestrict")) return false;
-
-        //find the corresponding projectrestrict operation
-        Matcher rsnStr = pattern.matcher(next);
-        int rsn;
-        if(rsnStr.find()){
-            String match = rsnStr.group();
-            rsn = Integer.parseInt(match.substring(2));
-            return findOp(source,rsn)==null;
-        }else{
-            //should never happen
-            return true;
-        }
-    }
-
-    private SpliceOperation findOp(SpliceOperation op,int rsn){
-        if(op==null) return null;
-        if(op.resultSetNumber()==rsn) return op;
-        List<SpliceOperation> children = op.getSubOperations();
-        for(SpliceOperation child:children){
-            SpliceOperation found = findOp(child,rsn);
-            if(found!=null)
-                return found;
-        }
-        return null;
-    }
-
     protected void clearState(){
-        Map<String, List<Pair<String,Integer>>> m=PlanPrinter.planMap.get();
+        Map<String, ExplainTree> m=PlanPrinter.planMap.get();
         String sql = activation.getPreparedStatement().getSource();
         m.remove(sql);
     }
@@ -159,7 +111,7 @@ public class ExplainOperation extends SpliceBaseOperation {
 
     @Override
     public List<SpliceOperation> getSubOperations() {
-        return Arrays.asList(source);
+        return Collections.singletonList(source);
     }
 
     @Override
@@ -192,14 +144,13 @@ public class ExplainOperation extends SpliceBaseOperation {
 
     @SuppressWarnings("unchecked")
     private void getPlanInformation(){
-        Map<String,List<Pair<String,Integer>>> m = PlanPrinter.planMap.get();
+        Map<String,ExplainTree> m = PlanPrinter.planMap.get();
         String sql = activation.getPreparedStatement().getSource();
-        List<Pair<String,Integer>> opPlanMap = m.get(sql);
+        ExplainTree opPlanMap = m.get(sql);
         if(opPlanMap!=null){
-            plan = new Pair[opPlanMap.size()];
-            opPlanMap.toArray(plan);
+            explainStringIter = opPlanMap.treeToString();
         }else
-            plan = new Pair[]{};
+            explainStringIter =Iterators.emptyIterator();
     }
 
 }

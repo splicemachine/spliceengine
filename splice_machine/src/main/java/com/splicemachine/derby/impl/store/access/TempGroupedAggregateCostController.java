@@ -63,13 +63,16 @@ public class TempGroupedAggregateCostController implements AggregateCostControll
         double sumCardFrac = 0d;
         for(OrderedColumn oc:groupingList){
             ValueNode colExprValue=oc.getColumnExpression();
+            if(colExprValue instanceof UnaryOperatorNode){
+                colExprValue = ((UnaryOperatorNode)colExprValue).getOperand();
+            }
             assert colExprValue!=null;
-            assert colExprValue instanceof ColumnReference: "Programmer error: unexpected type "+ colExprValue.getClass();
+            assert colExprValue instanceof ColumnReference: "Programmer error: unexpected type:"+colExprValue.getClass();
 
-            ColumnReference ref = (ColumnReference)colExprValue;
+            ColumnReference ref=(ColumnReference)colExprValue;
             StoreCostController storeCostController=getStoreCostForColumn(ref);
             double c=storeCostController.cardinalityFraction(ref.getSourceResultColumn().getColumnPosition());
-            overallCardinalityFraction *=c;
+            overallCardinalityFraction*=c;
             sumCardFrac+=c;
         }
 
