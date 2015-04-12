@@ -31,7 +31,7 @@ import java.util.concurrent.ExecutionException;
  * @author Scott Fines
  * Created on: 9/17/13
  */
-class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
+public class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
     private static final Logger LOG = Logger.getLogger(RegionTaskControl.class);
     private final byte[] startRow;
     private final RegionTask task;
@@ -197,7 +197,7 @@ class RegionTaskControl implements Comparable<RegionTaskControl>,TaskFuture {
     /*Package-local operators. Mainly used by JobControl */
 
     //get the zk node for this task
-    String getTaskNode() {
+    public String getTaskNode() {
         return taskFutureContext.getTaskNode();
     }
 

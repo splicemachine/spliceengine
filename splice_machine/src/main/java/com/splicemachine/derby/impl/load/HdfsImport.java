@@ -6,7 +6,6 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Date;
 import java.util.List;
 import java.util.Set;
@@ -21,7 +20,6 @@ import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Logger;
@@ -54,7 +52,6 @@ import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
@@ -64,7 +61,6 @@ import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.hbase.backup.BackupItem;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobStatusLogger;
 import com.splicemachine.job.JobStats;
@@ -537,7 +533,7 @@ public class HdfsImport {
 						}
 						HTableInterface table = SpliceAccessManager.getHTable(SpliceDriver.driver().getTempTable().getTempTableName());
 
-						List<Pair<JobFuture,JobInfo>> jobFutures = Lists.newArrayList();
+						List<Pair<JobFuture,ImportJobInfo>> jobFutures = Lists.newArrayList();
 						JobStatusLogger jobStatusLogger = new ImportJobStatusLogger(context);
 						StatementInfo statementInfo = runtimeContext.getStatementInfo();
 						Set<OperationInfo> opInfos = statementInfo.getOperationInfo();
@@ -548,7 +544,7 @@ public class HdfsImport {
 								break;
 						}
 
-						JobInfo info = null;
+						ImportJobInfo info = null;
 						long numImported = 0l;
 						long numBadRecords = 0l;
 
@@ -556,8 +552,8 @@ public class HdfsImport {
 								LOG.info("Importing files "+ file.getPaths());
 								ImportJob importJob = new FileImportJob(table,context,statementId,file.getPaths(),operationId,txn);
 								long start = System.currentTimeMillis();
-								JobFuture jobFuture = SpliceDriver.driver().getJobScheduler().submit(importJob,jobStatusLogger);
-								info = new JobInfo(importJob.getJobId(),jobFuture.getNumTasks(),start);
+								JobFuture jobFuture = SpliceDriver.driver().getJobScheduler().submit(importJob);
+								info = new ImportJobInfo(importJob.getJobId(),jobFuture,start, jobStatusLogger);
 								long estImportTime = estimateImportTime();
 								jobStatusLogger.log(String.format("Expected time for import %s.  Expected finish is %s.",
 										StringUtils.formatTime(estImportTime), new Date(System.currentTimeMillis() + estImportTime)));
@@ -567,6 +563,7 @@ public class HdfsImport {
 										opInfo.addJob(info);
 								jobFutures.add(Pair.newPair(jobFuture,info));
 
+								info.logStatusOfImportFiles(jobFuture.getNumTasks(), jobFuture.getRemainingTasks());
 								try{
 										jobFuture.completeAll(info);
 								}catch(ExecutionException e){
@@ -611,13 +608,14 @@ public class HdfsImport {
 								throw Exceptions.parseException(e);
 						} finally{
 								Closeables.closeQuietly(table);
-								for(Pair<JobFuture,JobInfo> future:jobFutures){
+								for(Pair<JobFuture,ImportJobInfo> future:jobFutures){
 										try {
 												future.getFirst().cleanup();
 										} catch (ExecutionException e) {
 												LOG.error("Exception cleaning up import future",e);
 										}
 								}
+								info.cleanup();
 								jobStatusLogger.closeLogFile();
 						}
 				} catch (IOException e) {

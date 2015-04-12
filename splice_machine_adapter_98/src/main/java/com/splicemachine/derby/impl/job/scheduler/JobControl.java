@@ -9,9 +9,7 @@ import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.coprocessor.TaskFutureContext;
 import com.splicemachine.hbase.table.BoundCall;
-import com.splicemachine.hbase.table.IncorrectRegionException;
 import com.splicemachine.hbase.table.SpliceRpcController;
-import com.splicemachine.job.JobStatusLogger;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import com.splicemachine.utils.kryo.KryoPool;
@@ -32,8 +30,8 @@ import java.util.concurrent.*;
 public class JobControl extends BaseJobControl {
     private static final Logger LOG = Logger.getLogger(JobControl.class);
 
-    public JobControl(CoprocessorJob job, String jobPath,SpliceZooKeeperManager zkManager, int maxResubmissionAttempts, JobMetrics jobMetrics, JobStatusLogger jobStatusLogger){
-    	super(job,jobPath,zkManager,maxResubmissionAttempts,jobMetrics,jobStatusLogger);
+    public JobControl(CoprocessorJob job, String jobPath,SpliceZooKeeperManager zkManager, int maxResubmissionAttempts, JobMetrics jobMetrics){
+    	super(job,jobPath,zkManager,maxResubmissionAttempts,jobMetrics);
     }
     /*
      * Physically submits a Task.
