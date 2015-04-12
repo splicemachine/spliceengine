@@ -5,7 +5,6 @@ import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.coprocessor.SpliceSchedulerProtocol;
 import com.splicemachine.derby.impl.job.coprocessor.TaskFutureContext;
 import com.splicemachine.hbase.table.BoundCall;
-import com.splicemachine.job.JobStatusLogger;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
@@ -21,8 +20,8 @@ import java.util.concurrent.*;
 public class JobControl extends BaseJobControl {
     private static final Logger LOG = Logger.getLogger(JobControl.class);
 
-    public JobControl(CoprocessorJob job, String jobPath,SpliceZooKeeperManager zkManager, int maxResubmissionAttempts, JobMetrics jobMetrics, JobStatusLogger jobStatusLogger){
-    	super(job,jobPath,zkManager,maxResubmissionAttempts,jobMetrics,jobStatusLogger);
+    public JobControl(CoprocessorJob job, String jobPath,SpliceZooKeeperManager zkManager, int maxResubmissionAttempts, JobMetrics jobMetrics){
+    	super(job,jobPath,zkManager,maxResubmissionAttempts,jobMetrics);
     }
     /*
      * Physically submits a Task.

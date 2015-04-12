@@ -6,7 +6,6 @@ import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.JobFuture;
-import com.splicemachine.job.JobStatusLogger;
 import com.splicemachine.job.JobScheduler;
 import com.splicemachine.job.JobSchedulerManagement;
 import com.splicemachine.si.api.TxnView;
@@ -50,19 +49,14 @@ public class DistributedJobScheduler implements JobScheduler<CoprocessorJob>{
     }
 
     @Override
-    public JobFuture submit(CoprocessorJob job) throws ExecutionException {
-    	return submit(job, null);
-    }
-
-    @Override
-    public JobFuture submit(CoprocessorJob job, JobStatusLogger jobStatusLogger)
+    public JobFuture submit(CoprocessorJob job)
     		throws ExecutionException {
     	if(LOG.isTraceEnabled())
     		SpliceLogUtils.trace(LOG,"Submitting job %s",job.getJobId());
     	jobMetrics.totalSubmittedJobs.incrementAndGet();
     	try{
     		String jobPath = createJobNode(job);
-    		return submitTasks(job,jobPath,jobStatusLogger);
+    		return submitTasks(job,jobPath);
     	} catch (InterruptedException e) {
     		throw new ExecutionException(e);
     	} catch (KeeperException e) {
@@ -118,8 +112,8 @@ public class DistributedJobScheduler implements JobScheduler<CoprocessorJob>{
 		/********************************************************************************************/
     /*Private helper methods*/
 
-		private JobFuture submitTasks(CoprocessorJob job,String jobPath,JobStatusLogger jobStatusLogger) throws ExecutionException{
-				BaseJobControl control = derbyFactory.getJobControl(job, jobPath, zkManager, maxResubmissionAttempts, jobMetrics, jobStatusLogger);
+		private JobFuture submitTasks(CoprocessorJob job,String jobPath) throws ExecutionException{
+				BaseJobControl control = derbyFactory.getJobControl(job, jobPath, zkManager, maxResubmissionAttempts, jobMetrics);
 				Map<? extends RegionTask, Pair<byte[], byte[]>> tasks;
 				try {
 						tasks = job.getTasks();

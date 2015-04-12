@@ -100,7 +100,6 @@ import com.splicemachine.hbase.HBaseServerUtils;
 import com.splicemachine.hbase.debug.HBaseEntryPredicateFilter;
 import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.hbase.table.SpliceRpcController;
-import com.splicemachine.job.JobStatusLogger;
 import com.splicemachine.mrio.api.core.MemStoreFlushAwareScanner;
 import com.splicemachine.mrio.api.core.MemstoreAware;
 import com.splicemachine.mrio.api.core.SMSplit;
@@ -160,8 +159,8 @@ public class DerbyFactoryImpl implements DerbyFactory<TxnMessage.TxnInfo> {
 	@Override
 	public BaseJobControl getJobControl(CoprocessorJob job, String jobPath,
 			SpliceZooKeeperManager zkManager, int maxResubmissionAttempts,
-			JobMetrics jobMetrics, JobStatusLogger jobStatusLogger) {
-		return new JobControl(job,jobPath,zkManager,maxResubmissionAttempts,jobMetrics,jobStatusLogger);
+			JobMetrics jobMetrics) {
+		return new JobControl(job,jobPath,zkManager,maxResubmissionAttempts,jobMetrics);
 	}
 	@Override
 	public void writeScanExternal(ObjectOutput output, Scan scan)
