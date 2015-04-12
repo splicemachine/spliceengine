@@ -14,7 +14,7 @@ import java.net.UnknownHostException;
  * @author Scott Fines
  * Date: 1/22/14
  */
-public class XplainStatementReporter extends TransactionalXplainReporter<StatementInfo> {
+public class XplainStatementReporter extends TransactionalSysTableWriter<StatementInfo> {
 
 		public XplainStatementReporter() throws StandardException {
 				super("SYSSTATEMENTHISTORY");

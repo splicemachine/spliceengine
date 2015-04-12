@@ -2,9 +2,6 @@ package com.splicemachine.hbase.backup;
 
 import java.io.*;
 import java.net.URI;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.*;
 import java.util.concurrent.CancellationException;
@@ -25,7 +22,6 @@ import org.apache.hadoop.hbase.util.Bytes;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.DerbyFactory;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
-import com.splicemachine.derby.utils.SpliceAdmin;
 import org.apache.hadoop.hbase.util.Pair;
 
 import org.apache.log4j.Logger;
@@ -35,16 +31,8 @@ public class BackupItem implements InternalTable {
     private static Logger LOG = Logger.getLogger(BackupItem.class);
 
 	public static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
-	public static final String DEFAULT_SCHEMA = Backup.DEFAULT_SCHEMA;
-	public static final String DEFAULT_TABLE = "BACKUP_ITEMS";
-	public static final String INSERT_BACKUP_ITEM = "insert into %s.%s (backup_id, item, begin_timestamp, snapshot_name)"
-			+ " values (?,?,?, ?)";
-    public static final String DELETE_BACKUP_ITEM = "delete from %s.%s where backup_id=? and item=?";
-
-    public static final String UPDATE_BACKUP_ITEM_STATUS = "update %s.%s set end_timestamp = ? where backup_id = ? and item = ?";
 
     public BackupItem () {
-		
 	}
 	
 	public BackupItem(HTableDescriptor tableDescriptor, Backup backup) {
@@ -129,60 +117,13 @@ public class BackupItem implements InternalTable {
     public String getSnapshotName() {
         return snapshotName;
     }
-    public void insertBackupItem() throws SQLException {
-        Connection connection = null;
-        try {
-            connection = SpliceAdmin.getDefaultConn();
-            PreparedStatement preparedStatement = connection.prepareStatement(String.format(INSERT_BACKUP_ITEM,DEFAULT_SCHEMA,DEFAULT_TABLE));
-            preparedStatement.setLong(1, getBackupTransaction().getTxnId());
-            preparedStatement.setString(2, getBackupItem());
-            preparedStatement.setTimestamp(3, getBackupItemBeginTimestamp());
-            preparedStatement.setString(4, getSnapshotName());
-            preparedStatement.execute();
-            return;
-        } catch (SQLException e) {
-            throw e;
-        }
-        finally {
-            if (connection !=null)
-                connection.close();
-        }
-    }
 
-    public void deleteBackupItem() throws SQLException {
-        Connection connection = null;
+    public void insertBackupItem() throws StandardException {
         try {
-            connection = SpliceAdmin.getDefaultConn();
-            PreparedStatement preparedStatement = connection.prepareStatement(String.format(DELETE_BACKUP_ITEM,DEFAULT_SCHEMA,DEFAULT_TABLE));
-            preparedStatement.setLong(1, getBackupTransaction().getTxnId());
-            preparedStatement.setString(2, getBackupItem());
-            preparedStatement.execute();
-            return;
-        } catch (SQLException e) {
-            throw e;
+            BackupSystemProcedures.backupItemReporter.report(this, getBackupTransaction());
         }
-        finally {
-            if (connection !=null)
-                connection.close();
-        }
-    }
-
-    public void updateBackupItem() throws SQLException {
-        Connection connection = null;
-        try {
-            connection = SpliceAdmin.getDefaultConn();
-            PreparedStatement preparedStatement = connection.prepareStatement(String.format(UPDATE_BACKUP_ITEM_STATUS,DEFAULT_SCHEMA,DEFAULT_TABLE));
-            preparedStatement.setTimestamp(1, getBackupItemEndTimestamp());
-            preparedStatement.setLong(2, getBackupTransaction().getTxnId());
-            preparedStatement.setString(3, getBackupItem());
-            preparedStatement.execute();
-            return;
-        } catch (SQLException e) {
-            throw e;
-        }
-        finally {
-            if (connection !=null)
-                connection.close();
+        catch (Exception e) {
+            throw StandardException.newException(e.getMessage());
         }
     }
 
@@ -281,7 +222,6 @@ public class BackupItem implements InternalTable {
         boolean backedUp = false;
         try {
             setBackupItemBeginTimestamp(new Timestamp(System.currentTimeMillis()));
-            insertBackupItem();
             HTableInterface table = SpliceAccessManager.getHTable(getBackupItemBytes());
 
             if (backup.getParentBackupId() > 0) {
@@ -308,13 +248,12 @@ public class BackupItem implements InternalTable {
             FileStatus[] status = fileSystem.listStatus(path);
             if (backup.isIncrementalBackup() && !containsRegion(status)) {
                 fileSystem.delete(path, true);
-                deleteBackupItem();
                 backedUp = false;
             }
             else {
                 writeDescriptorToFileSystem();
                 setBackupItemEndTimestamp(new Timestamp(System.currentTimeMillis()));
-                updateBackupItem();
+                insertBackupItem();
                 backedUp = true;
             }
         } catch (CancellationException ce) {

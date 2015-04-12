@@ -15,6 +15,8 @@ import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.si.api.Txn;
+import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceUtilities;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -58,13 +60,21 @@ public class BackupSystemProcedures {
     private static final String DB_URL_LOCAL = "jdbc:splice://localhost:1527/" + SpliceConstants.SPLICE_DB + ";create=true;user=%s;password=%s";
     public static final String DEFAULT_USER = "splice";
     public static final String DEFAULT_USER_PASSWORD = "admin";
-
+    public static BackupReporter backupReporter;
+    public static BackupItemReporter backupItemReporter;
+    public static BackupJobReporter backupJobReporter;
+    public static BackupFileSetReporter backupFileSetReporter;
 
     static {
         ThreadFactory backupFactory = new ThreadFactoryBuilder().setDaemon(true)
                 .setNameFormat("backup-scheduler-%d").build();
         backupScheduler = Executors.newScheduledThreadPool(4, backupFactory);
         backupJobMap = new HashMap<Long, ScheduledFuture>();
+        backupReporter = new BackupReporter();
+        backupItemReporter = new BackupItemReporter();
+        backupJobReporter = new BackupJobReporter();
+        backupFileSetReporter = new BackupFileSetReporter();
+
     }
     /**
      * Entry point for system procedure SYSCS_UTIL.SYSCS_BACKUP_DATABASE
@@ -97,7 +107,7 @@ public class BackupSystemProcedures {
 
             } else if (type.compareToIgnoreCase("INCREMENTAL") == 0) {
                 // Find the most recent backup (full or incremental). The next incremental backup will be based on it.
-                long parent_backup_id = BackupUtils.getLastBackupTime();
+                long parent_backup_id = BackupUtils.getLastBackupId();
                 if (parent_backup_id <= 0) {
                     // Fall back to a full backup
                     backup(directory, -1);
@@ -327,12 +337,12 @@ public class BackupSystemProcedures {
             throws StandardException, SQLException {
 
         //Query backup.backup_jobs to validate jobId
-        String query = "select * from backup.backup_jobs where job_id=?";
-        String delete = "delete from backup.backup_jobs where job_id=?";
+        String query = "select * from sys.sysbackupjobs where job_id=?";
         IteratorNoPutResultSet inprs = null;
         LanguageConnectionContext lcc = null;
         Connection conn = SpliceAdmin.getDefaultConn();
 
+        Txn txn = null;
         try {
             lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
 
@@ -343,6 +353,11 @@ public class BackupSystemProcedures {
                 throw StandardException.newException("Invalid job ID.");
             }
             rs.close();
+
+            txn = TransactionLifecycle.getLifecycleManager()
+                    .beginTransaction()
+                    .elevateToWritable("backup".getBytes());
+
             ScheduledFuture future = backupJobMap.get(jobId);
             if (future != null) {
                 future.cancel(false);
@@ -350,11 +365,19 @@ public class BackupSystemProcedures {
             else {
                 SpliceLogUtils.warn(LOG, "Scheduled job with id %d not found", jobId);
             }
-            ps = conn.prepareStatement(delete);
-            ps.setLong(1, jobId);
-            ps.executeUpdate();
+            BackupJob backupJob = new BackupJob(jobId);
+            backupJobReporter.remove(backupJob, txn);
+            txn.commit();
+
         }
         catch (Throwable t) {
+
+            try{
+                txn.rollback();
+            }
+            catch (Exception e) {
+                throw StandardException.newException(e.getMessage());
+            }
 
             DataTypeDescriptor dtd =
                     DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, t.getMessage().length());
@@ -478,11 +501,10 @@ public class BackupSystemProcedures {
      */
 
     private static void backup(String backupDir, long parentBackupId)
-            throws SQLException, IOException, KeeperException, InterruptedException{
+            throws SQLException, IOException, KeeperException, InterruptedException, StandardException{
         HBaseAdmin admin = null;
         Backup backup = null;
         Set<String> newSnapshotNameSet = new HashSet<>();
-        int count = 0;
         try {
             backup = Backup.createBackup(backupDir, Backup.BackupScope.D, parentBackupId);
             backup.registerBackup();
@@ -497,7 +519,6 @@ public class BackupSystemProcedures {
             }
 
             backup.createBackupItems(admin, snapshotNameSet, newSnapshotNameSet);
-            backup.insertBackup();
             backup.createProperties();
             HashMap<String, BackupItem> backupItems = backup.getBackupItems();
             backup.start();
@@ -505,14 +526,13 @@ public class BackupSystemProcedures {
                 BackupItem backupItem =  backupItems.get(key);
                 boolean backedUp = backupItem.doBackup();
                 
-                if (backedUp) count++;
+                if (backedUp) backup.incrementActualBackupCount();
                 backup.updateProgress();
             }
 
             // create metadata, including timestamp source's timestamp
             // this has to be called after all tables have been dumped.
             backup.createMetadata(parentBackupId);
-
             if (backup.isTemporaryBaseFolder()) {
                 backup.moveToBaseFolder();
             }
@@ -521,15 +541,21 @@ public class BackupSystemProcedures {
                 admin.deleteSnapshot(snapshotName);
             }
             backup.markBackupSuccessful();
-            backup.writeBackupStatusChange(count);
+            backup.setEndBackupTimestamp(new Timestamp(System.currentTimeMillis()));
+            insertBackup(backup);
             backup.getBackupTransaction().commit();
             backup.deregisterBackup();
 
         } catch (Throwable e) {
 
-            if (backup != null) {
-                backup.markBackupFailed();
-                backup.writeBackupStatusChange(count);
+            try {
+                if (backup != null) {
+                    backup.markBackupFailed();
+                    insertBackup(backup);
+                }
+            }
+            catch (Exception ex) {
+                throw StandardException.newException(ex.getMessage());
             }
             // Delete previous snapshots
             for(String snapshotName : newSnapshotNameSet) {
@@ -540,6 +566,15 @@ public class BackupSystemProcedures {
         }finally {
             backup.deregisterBackup();
             Closeables.closeQuietly(admin);
+        }
+    }
+
+    private static void insertBackup(Backup backup) throws StandardException {
+        try {
+            backupReporter.report(backup, backup.getBackupTransaction());
+        }
+        catch (Exception e) {
+            throw StandardException.newException(e.getMessage());
         }
     }
 
@@ -567,15 +602,19 @@ public class BackupSystemProcedures {
         return (nextDate.getTime() - date.getTime());
     }
 
-    private static void submitBackupJob(final String directory, final String type, int hour) throws SQLException{
+    private static void submitBackupJob(final String directory, final String type, int hour) throws StandardException{
 
         ScheduledFuture future = null;
         Long jobId = null;
 
         long initialDelay = getInitialDelay(hour);
         long delay = 24*60*60*1000;
-        
+        Txn txn = null;
         try {
+            txn = TransactionLifecycle.getLifecycleManager()
+                    .beginTransaction()
+                    .elevateToWritable("backup".getBytes());
+
             final Connection conn = SpliceAdmin.getDefaultConn();
             future = backupScheduler.scheduleAtFixedRate(new Runnable() {
                 @Override
@@ -594,17 +633,10 @@ public class BackupSystemProcedures {
 
             jobId = SpliceDriver.driver().getUUIDGenerator().nextUUID();
             backupJobMap.put(jobId, future);
-
-            String sqlText = "insert into backup.backup_jobs (job_id, filesystem, type, hour_of_day, begin_timestamp) values(?, ?, ?, ?, ?)";
-            PreparedStatement ps = conn.prepareStatement(sqlText);
-            ps.setLong(1, jobId);
-            ps.setString(2, directory);
-            ps.setString(3, type);
-            ps.setInt(4, hour);
-            ps.setTimestamp(5, new Timestamp(System.currentTimeMillis()));
-            ps.execute();
+            backupJobReporter.report(new BackupJob(jobId, directory, type, hour, new Timestamp(System.currentTimeMillis())), txn);
+            txn.commit();
         }
-        catch (SQLException e) {
+        catch (Exception e) {
             if (jobId != null && backupJobMap.containsKey(jobId)){
                 backupJobMap.remove(jobId);
             }
@@ -612,8 +644,13 @@ public class BackupSystemProcedures {
             if (future != null) {
                 future.cancel(false);
             }
-
-            throw e;
+            try {
+                txn.rollback();
+            }
+            catch (Exception ex) {
+                throw StandardException.newException(ex.getMessage());
+            }
+            throw StandardException.newException(e.getMessage());
         }
     }
 

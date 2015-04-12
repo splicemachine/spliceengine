@@ -2,6 +2,7 @@ package com.splicemachine.hbase.backup;
 
 import com.google.common.base.Throwables;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.hbase.DerbyFactory;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.impl.job.ZkTask;
@@ -26,8 +27,6 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.net.URI;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.concurrent.ExecutionException;
 import java.util.List;
@@ -141,8 +140,7 @@ public class CreateIncrementalBackupTask extends ZkTask {
         encodedRegionName = region.getRegionInfo().getEncodedName();
         int count = 0;
         try{
-            populateExcludeFileSet();
-            populateIncludeFileSet();
+            populateFileSet();
             List<Path> paths = getIncrementalChanges();
             FileSystem fs = region.getFilesystem();
 
@@ -190,7 +188,7 @@ public class CreateIncrementalBackupTask extends ZkTask {
      * Delete all entries for this region in BACKUP.BACKUP_FILESET. BACKUP.BACKUP_FILESET should only keeps track of
      * HFile changes between two consecutive incremental backups.
      */
-    private int copyArchivedHFiles() throws IOException{
+    private int copyArchivedHFiles() throws IOException, StandardException{
 
         if (includeFileSet.size() == 0) {
             return 0;
@@ -215,13 +213,13 @@ public class CreateIncrementalBackupTask extends ZkTask {
                 Path srcPath = stat.getPath();
                 String fileName = srcPath.getName();
                 Path destPath = new Path(backupFileSystem + "/" + encodedRegionName + "/" + familyName + "/" + fileName);
-                if(includeFileSet.contains(fileName)) {
+                if (includeFileSet.contains(fileName)) {
                     FileUtil.copy(fileSystem, srcPath, fileSystem, destPath, false, conf);
                     ++count;
+                    BackupUtils.deleteFileSet(tableName, encodedRegionName, fileName, true);
                 }
             }
         }
-        BackupUtils.deleteFileSet(tableName, encodedRegionName, "%", true);
         return count;
     }
 
@@ -275,29 +273,18 @@ public class CreateIncrementalBackupTask extends ZkTask {
         return hFiles;
     }
 
-    /*
-     * Query from BACKUP.BACKUP_FILESET the HFiles that should not be included for incremental backup
-     */
-    private void populateExcludeFileSet() throws SQLException{
-        ResultSet rs = BackupUtils.queryFileSet(tableName, encodedRegionName, false);
-        if (rs != null) {
-            while (rs.next()) {
-                excludeFileSet.add(rs.getString(1));
+    private void populateFileSet() throws StandardException {
+        BackupFileSetReporter backupFileSetReporter = BackupUtils.scanFileSetForRegion(tableName, encodedRegionName);
+        BackupFileSet backupFileSet = null;
+        while ((backupFileSet = backupFileSetReporter.next()) != null) {
+            if (backupFileSet.shouldInclude()) {
+                includeFileSet.add(backupFileSet.getFileName());
+            }
+            else {
+                excludeFileSet.add(backupFileSet.getFileName());
             }
         }
-        rs.close();
-    }
 
-    /*
-     * Query from BACKUP.BACKUP_FILESET the HFiles that should be included for incremental backup
-     */
-    private void populateIncludeFileSet() throws SQLException{
-        ResultSet rs = BackupUtils.queryFileSet(tableName, encodedRegionName, true);
-        if (rs != null) {
-            while (rs.next()) {
-                includeFileSet.add(rs.getString(1));
-            }
-        }
-        rs.close();
+        backupFileSetReporter.closeScanner();
     }
 }

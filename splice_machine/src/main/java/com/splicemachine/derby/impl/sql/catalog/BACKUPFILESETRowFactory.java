@@ -23,7 +23,7 @@ import java.sql.Types;
  */
 public class BACKUPFILESETRowFactory extends CatalogRowFactory {
 
-    private static final String TABLENAME_STRING = "BACKUP_FILESET";
+    private static final String TABLENAME_STRING = "SYSBACKUPFILESET";
     private static final int BACKUPFILESET_COLUMN_COUNT = 4;
 
     private static final int BACKUP_ITEM = 1;

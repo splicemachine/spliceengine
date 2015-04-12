@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import com.splicemachine.async.Bytes;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.impl.temp.TempTable;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.backup.Backup;
@@ -37,8 +38,7 @@ import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
-import org.apache.hadoop.hbase.snapshot.SnapshotDescriptionUtils;
-import org.apache.hadoop.hbase.util.FSUtils;
+import com.splicemachine.hbase.backup.BackupFileSet;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -156,8 +156,12 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
      */
     /*private helper methods*/
 
-    private void updateFileSet(String tableName, String parentRegionName, Set<String> pathSet,
-                               HashMap<byte[], Collection<StoreFile>> storeFileInfoMap, HRegion r) {
+    private void updateFileSet(String tableName,
+                               String parentRegionName,
+                               Set<String> pathSet,
+                               HashMap<byte[], Collection<StoreFile>> storeFileInfoMap,
+                               HRegion r) throws StandardException{
+
         if (LOG.isTraceEnabled()) {
             SpliceLogUtils.info(LOG, "updateFileSet: region = " + r.getRegionInfo().getEncodedName());
         }
@@ -176,7 +180,7 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
                     // then file in child region should not be included in next incremental backup
                     BackupUtils.insertFileSet(tableName, childRegionName, referenceFileName, false);
                 }
-                BackupUtils.FileSet fileSet = BackupUtils.getFileSet(tableName, parentRegionName, fileName);
+                BackupFileSet fileSet = BackupUtils.getFileSet(tableName, parentRegionName, fileName);
                 if (fileSet != null) {
                     // If there is an entry in Backup.FileSet for the referenceD file in parent region, an entry should
                     // be created for reference file in child region

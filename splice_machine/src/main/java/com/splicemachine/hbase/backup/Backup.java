@@ -29,7 +29,6 @@ import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
-import org.apache.hadoop.hbase.zookeeper.ZKUtil;
 import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Logger;
 
@@ -43,7 +42,6 @@ import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.impl.services.uuid.BasicUUID;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.ConglomerateUtils;
-import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.Txn;
@@ -73,8 +71,8 @@ public class Backup implements InternalTable {
     
     private static Logger LOG = Logger.getLogger(Backup.class);
 
-    public static final String DEFAULT_SCHEMA = "BACKUP";
-    public static final String DEFAULT_TABLE = "BACKUP";
+    public static final String DEFAULT_SCHEMA = "SYS";
+    public static final String DEFAULT_TABLE = "SYSBACKUP";
     public static final String BACKUP_BASE_FOLDER = "BACKUP";
     public static final String BACKUP_TEMP_BASE_FOLDER = "BACKUP_TEMP";
     public static final String BACKUP_OLD_BASE_FOLDER = "BACKUP_OLD";
@@ -108,9 +106,6 @@ public class Backup implements InternalTable {
      */
     public static enum BackupStatus {S,F,I}
 
-    public static final String INSERT_START_BACKUP = "insert into %s.%s (backup_id, begin_timestamp, status, filesystem, "
-            + "scope, incremental_backup, incremental_parent_backup_id, backup_item) values (?,?,?,?,?,?,?,?)";
-    public static final String UPDATE_BACKUP_STATUS = "update %s.%s set status=?, end_timestamp=?, backup_item=? where backup_id=?";
     public static final String RUNNING_CHECK = "select backup_id from %s.%s where status = ?";
     public static final String QUERY_PARENT_BACKUP_DIRECTORY = "select filesystem from %s.%s where backup_id = ?";
 
@@ -122,6 +117,7 @@ public class Backup implements InternalTable {
 
     private Txn backupTransaction;
     private Timestamp beginBackupTimestamp;
+    private Timestamp endBackupTimestamp;
     private BackupStatus backupStatus;
     private String backupFilesystem;
     private String baseFolder;
@@ -134,6 +130,7 @@ public class Backup implements InternalTable {
     private FSDataOutputStream logFileOut;
     private int totalBackuped = 0;
     private long backupStartTime;
+    private int actualBackupCount = 0;
 
     public long getBackupId() {
         return backupId;
@@ -164,6 +161,18 @@ public class Backup implements InternalTable {
     public Backup () {
     }
 
+    public void incrementActualBackupCount() {
+        actualBackupCount++;
+    }
+
+    public int getActualBackupCount() {
+        return actualBackupCount;
+    }
+
+    public void setActualBackupCount(int count) {
+        actualBackupCount = count;
+    }
+
     public Txn getBackupTransaction() {
         return backupTransaction;
     }
@@ -182,6 +191,13 @@ public class Backup implements InternalTable {
         this.beginBackupTimestamp = beginBackupTimestamp;
     }
 
+    public Timestamp getEndBackupTimestamp() {
+        return endBackupTimestamp;
+    }
+
+    public void setEndBackupTimestamp(Timestamp endBackupTimestamp) {
+        this.endBackupTimestamp = endBackupTimestamp;
+    }
     public BackupStatus getBackupStatus() {
         return backupStatus;
     }
@@ -256,54 +272,6 @@ public class Backup implements InternalTable {
         this.parentBackupId = parentBackupId;
     }
 
-    /** Begin Helper Methods
-     * @throws SQLException **/
-
-    public void insertBackup() throws SQLException {
-        Connection connection = null;
-        try {
-            connection = SpliceAdmin.getDefaultConn();
-            PreparedStatement preparedStatement = connection.prepareStatement(
-                    String.format(INSERT_START_BACKUP,DEFAULT_SCHEMA,DEFAULT_TABLE));
-            preparedStatement.setLong(1, backupTransaction.getTxnId());
-            preparedStatement.setTimestamp(2, getBeginBackupTimestamp());
-            preparedStatement.setString(3, getBackupStatus().toString());
-            preparedStatement.setString(4, getBackupFilesystem());
-            preparedStatement.setString(5, getBackupScope().toString());
-            preparedStatement.setBoolean(6, isIncrementalBackup());
-            preparedStatement.setLong(7, getParentBackupId());
-            preparedStatement.setInt(8, backupItems.size());
-            preparedStatement.execute();
-            return;
-        } catch (SQLException e) {
-            throw e;
-        }
-        finally {
-            if (connection !=null)
-                connection.close();
-        }
-    }
-
-    public void writeBackupStatusChange(int count) throws SQLException {
-        Connection connection = null;
-        try {
-            connection = SpliceAdmin.getDefaultConn();
-            PreparedStatement preparedStatement = connection.prepareStatement(String.format(UPDATE_BACKUP_STATUS,DEFAULT_SCHEMA,DEFAULT_TABLE));
-            preparedStatement.setString(1, getBackupStatus().toString());
-            preparedStatement.setTimestamp(2, new Timestamp(System.currentTimeMillis()));
-            preparedStatement.setInt(3, count);
-            preparedStatement.setLong(4, backupTransaction.getTxnId());
-            preparedStatement.executeUpdate();
-            return;
-        } catch (SQLException e) {
-            throw e;
-        }
-        finally {
-            if (connection !=null)
-                connection.close();
-        }
-    }
-
     /**
      *
      * Create the initial backup object with a new timestamp cut point.
@@ -318,13 +286,14 @@ public class Backup implements InternalTable {
                                       BackupScope backupScope,
                                       long parentBackupID) throws SQLException {
         try {
-            Txn backupTxn = TransactionLifecycle.getLifecycleManager().beginTransaction();
+            Txn backupTxn = TransactionLifecycle.getLifecycleManager()
+                    .beginTransaction()
+                    .elevateToWritable("backup".getBytes());
 
             if (parentBackupID > 0 && parentBackupID >= backupTxn.getTxnId())
                 throw new SQLException(String.format("createBackup attempted to create a backup with an incremental " +
                         "parent id timestamp larger than the current timestamp " +
                         "{incrementalParentBackupID=%d,transactionID=%d",parentBackupID,backupTxn.getTxnId()));
-            backupTxn.elevateToWritable("recovery".getBytes());
             Backup backup = new Backup();
             backup.setBackupTransaction(backupTxn);
             backup.setBeginBackupTimestamp(new Timestamp(System.currentTimeMillis()));
@@ -353,29 +322,6 @@ public class Backup implements InternalTable {
      */
     public void markBackupSuccessful() {
         this.setBackupStatus(BackupStatus.S);
-    }
-
-    public static String isBackupRunning() throws SQLException {
-        return isBackupRunning(DEFAULT_SCHEMA,DEFAULT_TABLE);
-    }
-    public static String isBackupRunning(String schemaName, String tableName) throws SQLException {
-
-        Connection connection = null;
-        try {
-            connection = SpliceAdmin.getDefaultConn();
-            PreparedStatement preparedStatement = connection.prepareStatement(String.format(RUNNING_CHECK,schemaName,tableName));
-            preparedStatement.setString(1, BackupStatus.I.toString());
-            ResultSet rs = preparedStatement.executeQuery();
-            while (rs.next())
-                return String.format("Current Transaction Backup Is Running %d",rs.getLong(1));
-            return null;
-        } catch (SQLException e) {
-            throw e;
-        }
-        finally {
-            if (connection !=null)
-                connection.close();
-        }
     }
 
     public boolean createBaseBackupDirectory() throws IOException, URISyntaxException {
@@ -458,7 +404,9 @@ public class Backup implements InternalTable {
     {
     	LOG.info(msg);
     	try{
-    		this.logFileOut.writeBytes(msg + "\n");
+            if (this.logFileOut != null) {
+                this.logFileOut.writeBytes(msg + "\n");
+            }
     	} catch (IOException e){
     		// swallow
     	}
@@ -651,7 +599,7 @@ public class Backup implements InternalTable {
         out.writeLong(parentBackupId);
 
         if (parentBackupId > 0) {
-            String parentBackupDir = BackupUtils.getBackupDirectory(parentBackupId);
+            String parentBackupDir = BackupUtils.getBackupDirectory(parentBackupId, backupTransaction);
             out.writeUTF(parentBackupDir);
         }
         out.close();
