@@ -16,7 +16,7 @@ import java.util.Comparator;
  * @author Scott Fines
  * Date: 1/22/14
  */
-public class XplainTaskReporter extends TransactionalXplainReporter<OperationRuntimeStats>{
+public class XplainTaskReporter extends TransactionalSysTableWriter<OperationRuntimeStats>{
 		public XplainTaskReporter() throws StandardException {
 				super("SYSTASKHISTORY");
 		}

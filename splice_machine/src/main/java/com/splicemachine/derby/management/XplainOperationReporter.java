@@ -12,7 +12,7 @@ import com.splicemachine.db.iapi.error.StandardException;
  * @author Scott Fines
  *         Date: 1/22/14
  */
-public class XplainOperationReporter extends TransactionalXplainReporter<OperationInfo> {
+public class XplainOperationReporter extends TransactionalSysTableWriter<OperationInfo> {
 		public XplainOperationReporter() throws StandardException {
 				super("SYSOPERATIONHISTORY");
 		}

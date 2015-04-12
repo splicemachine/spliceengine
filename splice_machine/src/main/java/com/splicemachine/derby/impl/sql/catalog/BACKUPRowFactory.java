@@ -14,14 +14,15 @@ import com.splicemachine.db.iapi.sql.dictionary.TupleDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.types.*;
-
+import com.splicemachine.db.iapi.store.access.ColumnOrdering;
+import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
 import com.splicemachine.db.impl.sql.catalog.SystemColumnImpl;
 import org.joda.time.DateTime;
 
 import java.sql.Types;
 
 public class BACKUPRowFactory extends CatalogRowFactory {
-    private static final String TABLENAME_STRING = "BACKUP";
+    private static final String TABLENAME_STRING = "SYSBACKUP";
     private static final int BACKUP_COLUMN_COUNT = 9;
 
     private static final int BACKUP_ID = 1;

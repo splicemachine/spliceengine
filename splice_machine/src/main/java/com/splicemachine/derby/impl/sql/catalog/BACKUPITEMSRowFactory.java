@@ -1,5 +1,7 @@
 package com.splicemachine.derby.impl.sql.catalog;
 
+import com.splicemachine.db.iapi.store.access.ColumnOrdering;
+import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
 import com.splicemachine.derby.iapi.catalog.BackupItemsDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -21,7 +23,7 @@ import java.sql.Types;
  */
 public class BACKUPITEMSRowFactory extends CatalogRowFactory {
 
-    private static final String TABLENAME_STRING = "BACKUP_ITEMS";
+    private static final String TABLENAME_STRING = "SYSBACKUPITEMS";
     private static final int BACKUPITEMS_COLUMN_COUNT = 5;
 
     private static final int BACKUP_ID = 1;
@@ -76,7 +78,7 @@ public class BACKUPITEMSRowFactory extends CatalogRowFactory {
         if (SanityManager.DEBUG) {
             SanityManager.ASSERT(
                     row.nColumns() == BACKUPITEMS_COLUMN_COUNT,
-                    "Wrong number of columns for a BACKUP_ITEMS row");
+                    "Wrong number of columns for a SYSBACKUPITEMS row");
         }
 
         DataValueDescriptor col = row.getColumn(BACKUP_ID);

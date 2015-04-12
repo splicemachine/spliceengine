@@ -21,7 +21,7 @@ import java.sql.Types;
  * Created by jyuan on 3/24/15.
  */
 public class BACKUPJOBSRowFactory extends CatalogRowFactory {
-    private static final String TABLENAME_STRING = "BACKUP_JOBS";
+    private static final String TABLENAME_STRING = "SYSBACKUPJOBS";
     private static final int BACKUPJOBS_COLUMN_COUNT = 5;
 
     private static final int JOB_ID = 1;
