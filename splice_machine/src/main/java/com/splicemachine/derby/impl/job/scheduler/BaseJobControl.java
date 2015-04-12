@@ -6,7 +6,9 @@ import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.hbase.ExceptionTranslator;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
+import com.splicemachine.derby.impl.load.ImportTask;
 import com.splicemachine.derby.impl.load.ImportTaskManagement;
+import com.splicemachine.derby.impl.load.ImportTaskManagementStats;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.ImportAdmin;
 import com.splicemachine.job.JobFuture;
@@ -52,6 +54,7 @@ public abstract class BaseJobControl implements JobFuture {
     protected final String jobPath;
     protected final JobStatusLogger jobStatusLogger;
     protected final TaskStatusLoggerThread taskStatusThread;
+    protected ImportAdmin jobImportAdmin = null;
     protected final List<Callable<Void>> finalCleanupTasks;
     protected final List<Callable<Void>> intermediateCleanupTasks;
     protected volatile boolean cancelled = false;
@@ -59,21 +62,30 @@ public abstract class BaseJobControl implements JobFuture {
     protected volatile boolean intermediateCleanedUp = false;
 
     BaseJobControl(CoprocessorJob job, String jobPath,SpliceZooKeeperManager zkManager, int maxResubmissionAttempts, JobMetrics jobMetrics, JobStatusLogger jobStatusLogger){
-        this.job = job;
-        this.jobPath = jobPath;
-        this.zkManager = zkManager;
-        this.jobMetrics = jobMetrics;
-        this.stats = new JobStatsAccumulator(job.getJobId());
-        this.tasksToWatch = new ConcurrentSkipListSet<RegionTaskControl>();
-        this.jobStatusLogger = jobStatusLogger;
+    	this.job = job;
+    	this.jobPath = jobPath;
+    	this.zkManager = zkManager;
+    	this.jobMetrics = jobMetrics;
+    	this.stats = new JobStatsAccumulator(job.getJobId());
+    	this.tasksToWatch = new ConcurrentSkipListSet<RegionTaskControl>();
+    	this.jobStatusLogger = jobStatusLogger;
 
-        // Only start the task status thread if there is a job status logger.
-        if (this.jobStatusLogger == null) {
-        	this.taskStatusThread = null;
-        } else {
-        	this.taskStatusThread = new TaskStatusLoggerThread(this);
-        	this.taskStatusThread.start();  // Start polling for status of the tasks.
-        }
+    	// Only start the task status thread if there is a job status logger.
+    	if (this.jobStatusLogger == null) {
+    		this.taskStatusThread = null;
+    		this.jobImportAdmin = null;
+    	} else {
+    		this.taskStatusThread = new TaskStatusLoggerThread(this);
+    		this.taskStatusThread.start();  // Start polling for status of the tasks.
+    		try {
+    			this.jobImportAdmin = new ImportAdmin();
+    		} catch (IOException | SQLException e) {
+    			LOG.error("Creating ImportAdmin has experienced an exception.", e);
+    			if (jobStatusLogger != null) {
+    				jobStatusLogger.log("Creating ImportAdmin has experienced an exception.  Check the logs for the stack trace.");
+    			}
+    		}
+    	}
 
         this.changedTasks = new LinkedBlockingQueue<RegionTaskControl>();
         this.failedTasks = Collections.newSetFromMap(new ConcurrentHashMap<RegionTaskControl, Boolean>());
@@ -94,6 +106,7 @@ public abstract class BaseJobControl implements JobFuture {
 
     @Override
     public void completeAll(StatusHook statusHook) throws ExecutionException, InterruptedException, CancellationException {
+        logStatusOfImportFiles();
         while(getRemainingTasks()>0)
             completeNext(statusHook);
     }
@@ -143,13 +156,13 @@ public abstract class BaseJobControl implements JobFuture {
                         statusHook.failure(changedFuture.getTaskId());
                     changedFuture.cleanup();
                     try {
-                        SpliceLogUtils.trace(LOG, "[%s] Task %s failed", job.getJobId(), changedFuture.getTaskNode());
-                        stats.addFailedTask(changedFuture.getTaskId());
-                        changedFuture.dealWithError();
+                    	SpliceLogUtils.trace(LOG, "[%s] Task %s failed", job.getJobId(), changedFuture.getTaskNode());
+                    	stats.addFailedTask(changedFuture.getTaskId());
+                    	changedFuture.dealWithError();
                     } catch (ExecutionException ee) {
-                        //update our metrics
-                        failedTasks.add(changedFuture);
-                        throw ee;
+                    	//update our metrics
+                    	failedTasks.add(changedFuture);
+                    	throw ee;
                     }
                     break;
                 case COMPLETED:
@@ -162,9 +175,20 @@ public abstract class BaseJobControl implements JobFuture {
                         completedTasks.add(changedFuture);
                         if (statusHook != null)
                             statusHook.success(changedFuture.getTaskId());
-                        if (jobStatusLogger != null) {
-                        	jobStatusLogger.log(String.format("%d of %d files imported...", (getNumTasks() - getRemainingTasks()), getNumTasks()));
+                        try {
+                        	logStatusOfImportTasks(jobImportAdmin);
+                        	// Clean up our JMX stats for this task.  Remove entries for the taskPath.
+                        	String taskPath = changedFuture.getTaskNode();
+                        	if (taskPath != null) {
+                        		ImportTaskManagementStats.cleanup(taskPath);
+                        	}
+                        } catch (SQLException e) {
+                        	LOG.error("Logging status of the import tasks has experienced an exception.", e);
+                        	if (jobStatusLogger != null) {
+                        		jobStatusLogger.log("Logging status of the import tasks has experienced an exception.  Check the logs for the stack trace.");
+                        	}
                         }
+                        logStatusOfImportFiles();
                         return;
                     } else {
                         //our commit failed, we have to resubmit the task (if possible)
@@ -445,36 +469,27 @@ public abstract class BaseJobControl implements JobFuture {
     	 */
     	@Override
     	public void run() {
-			ImportAdmin importAdmin;
+			ImportAdmin threadImportAdmin;
 			try {
-				importAdmin = new ImportAdmin();
+				threadImportAdmin = new ImportAdmin();
 				try {
+
+					/*
+					 * Initially sleep a bit to give the import tasks some time to get some work done.
+					 */
+					try {
+						sleep(sleepMillis);
+					} catch (InterruptedException e) {
+						LOG.error("TaskStatusLoggerThread has been interrupted.", e);
+					}
+
 					while (runTaskStatusLoggerThread) {
 
 						/*
 						 * Write the status of all running tasks to the import job status log.
 						 */
 						try {
-							List<Pair<String, ImportTaskManagement>> importTaskPairs = importAdmin.getRegionServerImportTaskInfo();
-							if (importTaskPairs != null) {
-								if (jobStatusLogger != null) {
-									jobStatusLogger.log(String.format("  %d import task(s) being run in parallel...", importTaskPairs.size()));
-								}
-								for (Pair<String, ImportTaskManagement> importTaskPair : importTaskPairs) {
-									String regionServer = importTaskPair.getFirst();
-									ImportTaskManagement importTask = importTaskPair.getSecond();
-									Map<String, Long> importedRowsMap = importTask.getTotalImportedRowsByFilePath();
-									Map<String, Long> badRowsMap = importTask.getTotalBadRowsByFilePath();
-									for (Map.Entry<String, Long> importedRowsMapEntry : importedRowsMap.entrySet()) {
-										String importFileName = importedRowsMapEntry.getKey();
-										Long importRowCount = importedRowsMapEntry.getValue();
-										Long badRowCount = badRowsMap.get(importFileName);
-										if (jobStatusLogger != null) {
-											jobStatusLogger.log(String.format("    Imported %,d rows and rejected %,d rows from %s on %s", importRowCount, badRowCount, importFileName, regionServer));
-										}
-									}
-								}
-							}
+							logStatusOfImportTasks(threadImportAdmin);
 						} catch (SQLException e) {
 							LOG.error("TaskStatusLoggerThread has experienced a SQL exception.  Stopping thread.", e);
 							if (jobStatusLogger != null) {
@@ -493,7 +508,7 @@ public abstract class BaseJobControl implements JobFuture {
 						}
 					}
 				} finally {
-					importAdmin.close();
+					threadImportAdmin.close();
 				}
 			} catch (Exception e) {
 				LOG.error("TaskStatusLoggerThread has experienced an exception.  Stopping thread.", e);
@@ -510,4 +525,63 @@ public abstract class BaseJobControl implements JobFuture {
     		runTaskStatusLoggerThread = false;
     	}
     }
+
+	/**
+	 * Write the status of the import files to the job status log.
+	 */
+	private void logStatusOfImportFiles() {
+		if (jobStatusLogger != null) {
+			int totalTasks = getNumTasks();
+			int completedTasks = totalTasks - getRemainingTasks();
+			jobStatusLogger.log(String.format("%d of %d files imported (%.0f%% files imported)", completedTasks, totalTasks, ((double)completedTasks/(double)totalTasks)*100.0d));
+		}
+	}
+
+	/**
+	 * Write the status of all running import tasks to the job status log.
+	 *
+	 * @param importAdmin
+	 * @throws SQLException
+	 */
+	private void logStatusOfImportTasks(ImportAdmin importAdmin) throws SQLException {
+		if (importAdmin != null) {
+			List<Pair<String, ImportTaskManagement>> importTaskPairs = importAdmin.getRegionServerImportTaskInfo();
+			if (importTaskPairs != null) {
+				/*
+				 * We are going to first write everything into a buffer and then we will write that to the log.
+				 * There are a couple reasons why we do it that.
+				 *   1. Don't loop through the import task stats twice to calculate first the # of tasks and then
+				 *      to write out the number of rows imported or rejected.  If we loop twice, we stand the chance
+				 *      that the total # of tasks in the summary line will differ from the actual # of tasks in
+				 *      the detailed lines.  This was happening quite regularly before.
+				 *   2. This will reduce the number of writes to HDFS where we are forcing the flush.
+				 */
+
+				// Write detailed lines of how many rows have been imported/rejected for each import task.
+				StringBuffer importDetailsBuffer = new StringBuffer();
+				int numImportTasks = 0;
+				for (Pair<String, ImportTaskManagement> importTaskPair : importTaskPairs) {
+					String regionServer = importTaskPair.getFirst();
+					ImportTaskManagement importTask = importTaskPair.getSecond();
+					Map<String, Long> importedRowsMap = importTask.getTotalImportedRowsByTaskPath();
+					numImportTasks += importedRowsMap.size();
+					Map<String, Long> badRowsMap = importTask.getTotalBadRowsByTaskPath();
+					Map<String, String> filePathsMap = importTask.getImportFilePathsByTaskPath();
+					for (Map.Entry<String, Long> importedRowsMapEntry : importedRowsMap.entrySet()) {
+						String importTaskPath = importedRowsMapEntry.getKey();
+						Long importRowCount = importedRowsMapEntry.getValue();
+						Long badRowCount = badRowsMap.get(importTaskPath);
+						String importFilePath = filePathsMap.get(importTaskPath);
+						importDetailsBuffer.append((String.format("    Imported %,d rows and rejected %,d rows from %s on %s running %s\n", importRowCount, badRowCount, importFilePath, regionServer, importTaskPath)));
+					}
+				}
+
+				// Write a summary line of how many import tasks are currently running, and then write the detailed lines with their row counts.
+				importDetailsBuffer.insert(0, String.format("  %d import task%s:\n", numImportTasks, (numImportTasks == 1 ? " running" : "s running in parallel")));
+				if (jobStatusLogger != null) {
+					jobStatusLogger.logString(importDetailsBuffer.toString());
+				}
+			}
+		}
+	}
 }

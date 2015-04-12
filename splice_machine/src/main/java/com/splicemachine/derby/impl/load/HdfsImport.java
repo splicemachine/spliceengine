@@ -547,12 +547,17 @@ public class HdfsImport {
 								opInfo = opInfoField;
 								break;
 						}
+
+						JobInfo info = null;
+						long numImported = 0l;
+						long numBadRecords = 0l;
+
 						try {
 								LOG.info("Importing files "+ file.getPaths());
 								ImportJob importJob = new FileImportJob(table,context,statementId,file.getPaths(),operationId,txn);
 								long start = System.currentTimeMillis();
 								JobFuture jobFuture = SpliceDriver.driver().getJobScheduler().submit(importJob,jobStatusLogger);
-								JobInfo info = new JobInfo(importJob.getJobId(),jobFuture.getNumTasks(),start);
+								info = new JobInfo(importJob.getJobId(),jobFuture.getNumTasks(),start);
 								long estImportTime = estimateImportTime();
 								jobStatusLogger.log(String.format("Expected time for import %s.  Expected finish is %s.",
 										StringUtils.formatTime(estImportTime), new Date(System.currentTimeMillis() + estImportTime)));
@@ -570,8 +575,6 @@ public class HdfsImport {
 								}
 								JobStats jobStats = jobFuture.getJobStats();
 								List<TaskStats> taskStats = jobStats.getTaskStats();
-								long numImported = 0l;
-								long numBadRecords = 0l;
 								for(TaskStats stats:taskStats){
 										long totalRowsWritten = stats.getTotalRowsWritten();
 										long totalRead = stats.getTotalRowsProcessed();
@@ -590,11 +593,21 @@ public class HdfsImport {
 								});
 								return result;
 						} catch (InterruptedException e) {
+								jobStatusLogger.log(String.format(
+										"Import has been interrupted. All imported rows will be rolled back. Total rows imported: %,d. Total rows rejected: %,d. Total time for import: %s.",
+										numImported, numBadRecords, (info == null ? "Unknown" : StringUtils.formatTimeDiff(info.getJobFinishMs(), info.getJobStartMs()))));
 								throw Exceptions.parseException(e);
 						} catch (ExecutionException e) {
-								throw Exceptions.parseException(e.getCause());
+								Throwable cause = e.getCause();
+								jobStatusLogger.log(String.format(
+										"Import has failed due to an execution error: %s. All imported rows will be rolled back. Total rows imported: %,d. Total rows rejected: %,d. Total time for import: %s.",
+										(cause == null ? "Unknown" : cause.getLocalizedMessage()), numImported, numBadRecords, (info == null ? "Unknown" : StringUtils.formatTimeDiff(info.getJobFinishMs(), info.getJobStartMs()))));
+								throw Exceptions.parseException(cause);
 						} // still need to cancel all other jobs ? // JL
 						catch (IOException e) {
+								jobStatusLogger.log(String.format(
+										"Import has failed due to an I/O error: %s. All imported rows will be rolled back. Total rows imported: %,d. Total rows rejected: %,d. Total time for import: %s.",
+										(e == null ? "Unknown" : e.getLocalizedMessage()), numImported, numBadRecords, (info == null ? "Unknown" : StringUtils.formatTimeDiff(info.getJobFinishMs(), info.getJobStartMs()))));
 								throw Exceptions.parseException(e);
 						} finally{
 								Closeables.closeQuietly(table);
