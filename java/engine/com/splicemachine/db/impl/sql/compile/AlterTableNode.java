@@ -94,8 +94,6 @@ public class AlterTableNode extends DDLStatementNode
 
 	public	TableDescriptor		baseTable;
 
-	protected	int						numConstraints;
-
 	private		int				changeType = UNKNOWN_TYPE;
 
 	private boolean             truncateTable = false;
@@ -103,8 +101,6 @@ public class AlterTableNode extends DDLStatementNode
 	// constant action arguments
 
 	protected	SchemaDescriptor			schemaDescriptor = null;
-	protected	ColumnInfo[] 				colInfos = null;
-	protected	ConstantAction[]	conActions = null;
 
 
 	/**
@@ -139,7 +135,7 @@ public class AlterTableNode extends DDLStatementNode
 	{
 		initAndCheck(objectName);
 
-		this.sequential = ((Boolean) sequential).booleanValue();
+		this.sequential = (Boolean) sequential;
 		/* For now, this init() only called for compress table */
 		compressTable = true;
 
@@ -165,9 +161,9 @@ public class AlterTableNode extends DDLStatementNode
 	{
 		initAndCheck(objectName);
 
-		this.purge = ((Boolean) purge).booleanValue();
-		this.defragment = ((Boolean) defragment).booleanValue();
-		this.truncateEndOfTable = ((Boolean) truncateEndOfTable).booleanValue();
+		this.purge = (Boolean) purge;
+		this.defragment = (Boolean) defragment;
+		this.truncateEndOfTable = (Boolean) truncateEndOfTable;
 		compressTable = true;
 		schemaDescriptor = getSchemaDescriptor(true, false);
 	}
@@ -219,19 +215,19 @@ public class AlterTableNode extends DDLStatementNode
 		    case MODIFY_TYPE:
 		    case LOCKING_TYPE:
 				this.tableElementList = (TableElementList) param1;
-				this.lockGranularity = ((Character) param2).charValue();
+				this.lockGranularity = (Character) param2;
 				int[]	bh = (int[]) param3;
 				this.behavior = bh[0];
 				break;
 
 		    case UPDATE_STATISTICS:
-				this.updateStatisticsAll = ((Boolean) param1).booleanValue();
+				this.updateStatisticsAll = (Boolean) param1;
 				this.indexNameForStatistics = (String)param2;
 				updateStatistics = true;
 				break;
 
 		    case DROP_STATISTICS:
-				this.dropStatisticsAll = ((Boolean) param1).booleanValue();
+				this.dropStatisticsAll = (Boolean) param1;
 				this.indexNameForStatistics = (String)param2;
 				dropStatistics = true;
 				break;
@@ -490,7 +486,40 @@ public String statementToString()
 	 */
 	public ConstantAction	makeConstantAction() throws StandardException
 	{
-		prepConstantAction();
+        ColumnInfo[] colInfos = new ColumnInfo[0];
+        int numConstraints = 0;
+
+        if (tableElementList != null) {
+            // Generate the ColumnInfo argument for the constant action. Keep the number of constraints.
+            colInfos = new ColumnInfo[tableElementList.countNumberOfColumns()];
+
+            numConstraints = tableElementList.genColumnInfos(colInfos);
+        }
+
+		/* If we've seen a constraint, then build a constraint list */
+        ConstantAction[] conActions = new ConstantAction[0];
+        if (numConstraints > 0) {
+            conActions = getGenericConstantActionFactory().createConstraintConstantActionArray(numConstraints);
+
+            tableElementList.genConstraintActions(false, conActions, getRelativeName(), schemaDescriptor,
+                                                  getDataDictionary());
+
+            for (ConstantAction cca : conActions) {
+                if (getGenericConstantActionFactory().primaryKeyConstantActionCheck(cca)) {
+                    DataDictionary dd = getDataDictionary();
+                    // Check to see if a constraint of the same type
+                    // already exists
+                    ConstraintDescriptorList cdl =
+                        dd.getConstraintDescriptors(baseTable);
+
+                    if (cdl.getPrimaryKey() != null) {
+                        throw StandardException.newException(
+                            SQLState.LANG_ADD_PRIMARY_KEY_FAILED1,
+                            baseTable.getQualifiedName());
+                    }
+                }
+            }
+        }
 
 		return	getGenericConstantActionFactory().getAlterTableConstantAction(schemaDescriptor,
 											 getRelativeName(),
@@ -513,62 +542,6 @@ public String statementToString()
  										     dropStatisticsAll,
  										     indexNameForStatistics);
 	}
-
-	/**
-	  *	Generate arguments to constant action. Called by makeConstantAction() in this class and in
-	  *	our subclass RepAlterTableNode.
-	  *
-	  *
-	  * @exception StandardException		Thrown on failure
-	  */
-	private void	prepConstantAction() throws StandardException
-	{
-		if (tableElementList != null)
-		{
-			genColumnInfo();
-		}
-
-		/* If we've seen a constraint, then build a constraint list */
-
-		if (numConstraints > 0)
-		{
-			conActions = getGenericConstantActionFactory().createConstraintConstantActionArray(numConstraints);
-
-			tableElementList.genConstraintActions(false, conActions, getRelativeName(), schemaDescriptor,
-												  getDataDictionary());
-
-			for (int conIndex = 0; conIndex < conActions.length; conIndex++) {
-				ConstantAction cca = conActions[conIndex];
-				if (getGenericConstantActionFactory().primaryKeyConstantActionCheck(cca)) {
-						DataDictionary dd = getDataDictionary();
-						// Check to see if a constraint of the same type 
-						// already exists
-						ConstraintDescriptorList cdl = 
-                                dd.getConstraintDescriptors(baseTable);
-
-						if (cdl.getPrimaryKey() != null)
-						{
-							throw StandardException.newException(
-                                    SQLState.LANG_ADD_PRIMARY_KEY_FAILED1, 
-                                    baseTable.getQualifiedName());
-						}
-					}
-				}
-		}
-	}
-	  
-	/**
-	  *	Generate the ColumnInfo argument for the constant action. Return the number of constraints.
-	  */
-	public	void	genColumnInfo()
-        throws StandardException
-	{
-		// for each column, stuff system.column
-		colInfos = new ColumnInfo[tableElementList.countNumberOfColumns()]; 
-
-	    numConstraints = tableElementList.genColumnInfos(colInfos);
-	}
-
 
 	/**
 	 * Accept the visitor for all visitable children of this node.
