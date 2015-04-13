@@ -6,6 +6,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang.WordUtils;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
@@ -32,16 +33,21 @@ public class ImportJobInfo extends JobInfo {
 	private JobStatusLogger jobStatusLogger = null;
 	private TaskStatusLoggerThread taskStatusThread = null;
 	private JobFuture jobFuture = null;
+	private ImportContext importContext = null;
 
 	/**
+	 * Constructor that starts the task status thread if a job status logger is passed.
+	 *
 	 * @param jobId
-	 * @param numTasks
+	 * @param jobFuture
 	 * @param jobStartMs
+	 * @param jobStatusLogger
 	 */
-	public ImportJobInfo(String jobId, JobFuture jobFuture, long jobStartMs, JobStatusLogger jobStatusLogger) {
+	public ImportJobInfo(String jobId, JobFuture jobFuture, long jobStartMs, JobStatusLogger jobStatusLogger, ImportContext importContext) {
 		super(jobId, (jobFuture == null ? 0 : jobFuture.getNumTasks()), jobStartMs);
 		this.jobFuture = jobFuture;
 		this.jobStatusLogger = jobStatusLogger;
+		this.importContext = importContext;
 
 		// Only start the task status thread if there is a job status logger.
 		if (this.jobStatusLogger != null) {
@@ -103,7 +109,10 @@ public class ImportJobInfo extends JobInfo {
 	public void logStatusOfImportFiles(int totalTasks, int remainingTasks) {
 		if (jobStatusLogger != null) {
 			int completedTasks = totalTasks - remainingTasks;
-			jobStatusLogger.log(String.format("%d of %d files imported (%.0f%% files imported)", completedTasks, totalTasks, ((double)completedTasks/(double)totalTasks)*100.0d));
+			String logVerb = getLogVerb();
+			jobStatusLogger.log(String.format("%d of %d files %sed (%.0f%% files %sed)",
+					completedTasks, totalTasks, logVerb,
+					((double)completedTasks/(double)totalTasks)*100.0d, logVerb));
 		}
 	}
 
@@ -130,8 +139,14 @@ public class ImportJobInfo extends JobInfo {
 				 */
 
 				// Write detailed lines of how many rows have been imported/rejected for each import task.
-				LinkedList<String> logRows = new LinkedList<String>();
+				// Put these lines in a buffer (list) so that we can iterate through the importTaskPairs once and
+				// count the import tasks at the same time.  When we have finished looping through them, we will
+				// add a summary line at the beginning of the buffer and write out the buffer to the import status log.
+
+				LinkedList<String> logRows = new LinkedList<String>();  // log lines buffer
 				int numImportTasks = 0;
+				String logVerb = getLogVerb();
+
 				for (Pair<String, ImportTaskManagement> importTaskPair : importTaskPairs) {
 					String regionServer = importTaskPair.getFirst();
 					ImportTaskManagement importTask = importTaskPair.getSecond();
@@ -145,7 +160,8 @@ public class ImportJobInfo extends JobInfo {
 						Long badRowCount = badRowsMap.get(importTaskPath);
 						if (!skipZeroRows || importRowCount > 0 || badRowCount > 0) {
 							String importFilePath = filePathsMap.get(importTaskPath);
-							logRows.add((String.format("    Imported %,d rows and rejected %,d rows from %s on %s\n", importRowCount, badRowCount, importFilePath, regionServer)));
+							logRows.add((String.format("    %sed%s %,d rows and rejected %,d rows from %s on %s",
+									WordUtils.capitalize(logVerb), (importContext.isCheckScan() ? " OK" : ""), importRowCount, badRowCount, importFilePath, regionServer)));
 						} else {
 							numImportTasks--;
 						}
@@ -153,14 +169,23 @@ public class ImportJobInfo extends JobInfo {
 				}
 
 				// Write a summary line of how many import tasks are currently running, and then write the detailed lines with their row counts.
-				logRows.addFirst(String.format("  %d import task%s:\n", numImportTasks, (numImportTasks == 1 ? " running" : "s running in parallel")));
+				logRows.addFirst(String.format("  %d %s task%s:", numImportTasks, logVerb, (numImportTasks == 1 ? " running" : "s running in parallel")));
 				if (jobStatusLogger != null) {
 					for (String logRow : logRows) {
-						jobStatusLogger.logString(logRow);
+						jobStatusLogger.log(logRow);
 					}
 				}
 			}
 		}
+	}
+
+	/**
+	 * Returns the verb, "check" or "import", depending on whether records are being imported from the files or just checked.
+	 *
+	 * @return the verb, "check" or "import"
+	 */
+	private String getLogVerb() {
+		return importContext.isCheckScan() ? "check" : "import";
 	}
 
 	/**
