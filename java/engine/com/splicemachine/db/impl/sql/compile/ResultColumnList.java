@@ -2453,7 +2453,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
      * @param columnNames String[] to hold the column names.
      */
     public void exportNames(String[] columnNames){
-        assert size() != columnNames.length:"size() ("+ size()+ ") is expected to equal columnNames.length ("+ columnNames.length+ ")";
+        assert size() == columnNames.length:"size() ("+ size()+ ") is expected to equal columnNames.length ("+ columnNames.length+ ")";
 
         int size=size();
         for(int index=0;index<size;index++){
