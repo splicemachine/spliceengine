@@ -12,7 +12,6 @@ import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.hbase.jmx.JMXUtils;
 import com.splicemachine.metrics.IOStats;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.TimeView;
@@ -40,19 +39,8 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.lang.management.ManagementFactory;
 import java.net.URI;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutionException;
-
-import javax.management.InstanceAlreadyExistsException;
-import javax.management.InstanceNotFoundException;
-import javax.management.MBeanRegistrationException;
-import javax.management.MBeanServer;
-import javax.management.MalformedObjectNameException;
-import javax.management.NotCompliantMBeanException;
-import javax.management.ObjectName;
 
 /**
  * @author Scott Fines
@@ -110,7 +98,8 @@ public class ImportTask extends ZkTask{
 
 		@Override
 		public void doExecute() throws ExecutionException, InterruptedException {
-				String importFilePath = getImportFilePathAsString();
+			String importFilePath = getImportFilePathAsString();
+			String importTaskPath = getTaskNode();
 
 				try{
 						ExecRow row = getExecRow(importContext);
@@ -125,7 +114,10 @@ public class ImportTask extends ZkTask{
 						errorReporter = getErrorReporter(row.getClone(),errorLogger);
 						long maxRecords = importContext.getMaxRecords();
 
-						ImportTaskManagementStats.initialize(importFilePath);  // Initialize our JMX stats.  Set entries for this importFilePath to 0.
+						// Initialize our JMX stats.  Set row counts for this importTaskPath (and importFilePath) to 0.
+						if (importTaskPath != null) {
+							ImportTaskManagementStats.initialize(importTaskPath, importFilePath);
+						}
 
 						try{
 								errorLogger.open();
@@ -155,13 +147,15 @@ public class ImportTask extends ZkTask{
 												}
 
 												if ((rowsRead - previouslyLoggedRowsRead) >= logRowCountInterval) {
-													ImportTaskManagementStats.setImportedRowCount(importFilePath, rowsRead - errorReporter.errorsReported());
-													ImportTaskManagementStats.setBadRowCount(importFilePath, errorReporter.errorsReported());
+													if (importTaskPath != null) {
+														ImportTaskManagementStats.setImportedRowCount(importTaskPath, rowsRead - errorReporter.errorsReported());
+														ImportTaskManagementStats.setBadRowCount(importTaskPath, errorReporter.errorsReported());
+													}
 													previouslyLoggedRowsRead = rowsRead;
 													if (LOG.isDebugEnabled()) {
 														SpliceLogUtils.debug(LOG, "Imported %d total rows.  Rejected %d total bad rows.  File is %s.", (rowsRead - errorReporter.errorsReported()), errorReporter.errorsReported(), importFilePath);
 														if (LOG.isTraceEnabled()) {
-															SpliceLogUtils.trace(LOG, "taskId is %s.  taskPath is %s.", Bytes.toLong(taskId), getTaskNode());
+															SpliceLogUtils.trace(LOG, "taskId is %s.  taskPath is %s.", Bytes.toLong(taskId), importTaskPath);
 														}
 													}
 												}
@@ -172,13 +166,15 @@ public class ImportTask extends ZkTask{
 
 										}while(shouldContinue);
 
-										ImportTaskManagementStats.setImportedRowCount(importFilePath, rowsRead - errorReporter.errorsReported());
-										ImportTaskManagementStats.setBadRowCount(importFilePath, errorReporter.errorsReported());
+										if (importTaskPath != null) {
+											ImportTaskManagementStats.setImportedRowCount(importTaskPath, rowsRead - errorReporter.errorsReported());
+											ImportTaskManagementStats.setBadRowCount(importTaskPath, errorReporter.errorsReported());
+										}
 										previouslyLoggedRowsRead = rowsRead;
 										if (LOG.isDebugEnabled()) {
 											SpliceLogUtils.debug(LOG, "Import task finished.  Imported %d total rows.  Rejected %d total bad rows.  File is %s.", (rowsRead - errorReporter.errorsReported()), errorReporter.errorsReported(), importFilePath);
 											if (LOG.isTraceEnabled()) {
-												SpliceLogUtils.trace(LOG, "taskId is %s.  taskPath is %s.", Bytes.toLong(taskId), getTaskNode());
+												SpliceLogUtils.trace(LOG, "taskId is %s.  taskPath is %s.", Bytes.toLong(taskId), importTaskPath);
 											}
 										}
 								} catch (Exception e) {
@@ -212,8 +208,6 @@ public class ImportTask extends ZkTask{
 						}
 				} catch (StandardException e) {
 						throw new ExecutionException(e);
-				} finally {
-					ImportTaskManagementStats.cleanup(importFilePath);  // Clean up our JMX stats.  Remove entries for this taskId.
 				}
 		}
 

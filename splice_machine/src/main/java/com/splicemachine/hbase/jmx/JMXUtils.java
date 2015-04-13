@@ -50,7 +50,7 @@ public class JMXUtils {
 
     public static List<Pair<String,JMXConnector>> getMBeanServerConnections(Collection<Pair<String,String>> serverConnections) throws IOException {
         List<Pair<String,JMXConnector>> mbscArray = new ArrayList<Pair<String,JMXConnector>>(serverConnections.size());
-        String regionServerJMXPort = SpliceConstants.config.get("hbase.regionserver.jmx.port","10102");
+        String regionServerJMXPort = SpliceConstants.config.get("hbase.regionserver.jmx.port",Integer.toString(SpliceConstants.DEFAULT_JMX_BIND_PORT));
         for (Pair<String,String> serverConn: serverConnections) {
             JMXServiceURL url = new JMXServiceURL(String.format("service:jmx:rmi://%1$s/jndi/rmi://%1$s:%2$s/jmxrmi",serverConn.getFirst(),regionServerJMXPort));
             JMXConnector jmxc = JMXConnectorFactory.connect(url, null);

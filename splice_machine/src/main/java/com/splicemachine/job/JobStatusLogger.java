@@ -28,4 +28,10 @@ public interface JobStatusLogger {
 	 */
 	public abstract void log(String msg);
 
+	/**
+	 * Write a message to the import log file and do not append a newline on the end.
+	 * @param msg the message to log
+	 * @throws IOException
+	 */
+	public abstract void logString(String msg);
 }

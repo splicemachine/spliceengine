@@ -1,16 +1,12 @@
 package com.splicemachine.derby.impl.job.scheduler;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.hbase.ExceptionTranslator;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
-import com.splicemachine.derby.impl.load.ImportTaskManagement;
 import com.splicemachine.derby.stats.TaskStats;
-import com.splicemachine.derby.utils.ImportAdmin;
 import com.splicemachine.job.JobFuture;
-import com.splicemachine.job.JobStatusLogger;
 import com.splicemachine.job.JobStats;
 import com.splicemachine.job.Status;
 import com.splicemachine.job.TaskFuture;
@@ -29,7 +25,6 @@ import org.apache.zookeeper.AsyncCallback;
 import org.apache.zookeeper.ZooKeeper;
 
 import java.io.IOException;
-import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -50,30 +45,19 @@ public abstract class BaseJobControl implements JobFuture {
     protected final int maxResubmissionAttempts;
     protected final JobMetrics jobMetrics;
     protected final String jobPath;
-    protected final JobStatusLogger jobStatusLogger;
-    protected final TaskStatusLoggerThread taskStatusThread;
     protected final List<Callable<Void>> finalCleanupTasks;
     protected final List<Callable<Void>> intermediateCleanupTasks;
     protected volatile boolean cancelled = false;
     protected volatile boolean cleanedUp = false;
     protected volatile boolean intermediateCleanedUp = false;
 
-    BaseJobControl(CoprocessorJob job, String jobPath,SpliceZooKeeperManager zkManager, int maxResubmissionAttempts, JobMetrics jobMetrics, JobStatusLogger jobStatusLogger){
-        this.job = job;
-        this.jobPath = jobPath;
-        this.zkManager = zkManager;
-        this.jobMetrics = jobMetrics;
-        this.stats = new JobStatsAccumulator(job.getJobId());
-        this.tasksToWatch = new ConcurrentSkipListSet<RegionTaskControl>();
-        this.jobStatusLogger = jobStatusLogger;
-
-        // Only start the task status thread if there is a job status logger.
-        if (this.jobStatusLogger == null) {
-        	this.taskStatusThread = null;
-        } else {
-        	this.taskStatusThread = new TaskStatusLoggerThread(this);
-        	this.taskStatusThread.start();  // Start polling for status of the tasks.
-        }
+    BaseJobControl(CoprocessorJob job, String jobPath,SpliceZooKeeperManager zkManager, int maxResubmissionAttempts, JobMetrics jobMetrics){
+    	this.job = job;
+    	this.jobPath = jobPath;
+    	this.zkManager = zkManager;
+    	this.jobMetrics = jobMetrics;
+    	this.stats = new JobStatsAccumulator(job.getJobId());
+    	this.tasksToWatch = new ConcurrentSkipListSet<RegionTaskControl>();
 
         this.changedTasks = new LinkedBlockingQueue<RegionTaskControl>();
         this.failedTasks = Collections.newSetFromMap(new ConcurrentHashMap<RegionTaskControl, Boolean>());
@@ -128,7 +112,7 @@ public abstract class BaseJobControl implements JobFuture {
                     SpliceLogUtils.trace(LOG, "[%s] Task %s is invalid, resubmitting", job.getJobId(), changedFuture.getTaskNode());
                     stats.invalidTaskCount.incrementAndGet();
                     if (statusHook != null)
-                        statusHook.invalidated(changedFuture.getTaskId());
+                        statusHook.invalidated(changedFuture);
 
                     if (changedFuture.rollback()) {
                         resubmit(changedFuture, changedFuture.tryNumber());
@@ -140,16 +124,16 @@ public abstract class BaseJobControl implements JobFuture {
                     break;
                 case FAILED:
                     if (statusHook != null)
-                        statusHook.failure(changedFuture.getTaskId());
+                        statusHook.failure(changedFuture);
                     changedFuture.cleanup();
                     try {
-                        SpliceLogUtils.trace(LOG, "[%s] Task %s failed", job.getJobId(), changedFuture.getTaskNode());
-                        stats.addFailedTask(changedFuture.getTaskId());
-                        changedFuture.dealWithError();
+                    	SpliceLogUtils.trace(LOG, "[%s] Task %s failed", job.getJobId(), changedFuture.getTaskNode());
+                    	stats.addFailedTask(changedFuture.getTaskId());
+                    	changedFuture.dealWithError();
                     } catch (ExecutionException ee) {
-                        //update our metrics
-                        failedTasks.add(changedFuture);
-                        throw ee;
+                    	//update our metrics
+                    	failedTasks.add(changedFuture);
+                    	throw ee;
                     }
                     break;
                 case COMPLETED:
@@ -161,23 +145,20 @@ public abstract class BaseJobControl implements JobFuture {
                             this.stats.addTaskStatus(changedFuture.getTaskNode(), taskStats);
                         completedTasks.add(changedFuture);
                         if (statusHook != null)
-                            statusHook.success(changedFuture.getTaskId());
-                        if (jobStatusLogger != null) {
-                        	jobStatusLogger.log(String.format("%d of %d files imported...", (getNumTasks() - getRemainingTasks()), getNumTasks()));
-                        }
+                            statusHook.success(changedFuture);
                         return;
                     } else {
                         //our commit failed, we have to resubmit the task (if possible)
                         SpliceLogUtils.debug(LOG, "[%s] Task %s did not successfully commit", job.getJobId(), changedFuture.getTaskNode());
                         if (statusHook != null)
-                            statusHook.failure(changedFuture.getTaskId());
+                            statusHook.failure(changedFuture);
                         changedFuture.dealWithError();
                     }
                     break;
                 case CANCELLED:
                     SpliceLogUtils.trace(LOG, "[%s] Task %s is cancelled", job.getJobId(), changedFuture.getTaskNode());
                     if (statusHook != null)
-                        statusHook.cancelled(changedFuture.getTaskId());
+                        statusHook.cancelled(changedFuture);
                     changedFuture.cleanup();
 										changedFuture.rollback();
                     cancelledTasks.add(changedFuture);
@@ -243,9 +224,6 @@ public abstract class BaseJobControl implements JobFuture {
     			failedTasks.clear();
     			tasksToWatch.clear();
     			changedTasks.clear();
-    			if (taskStatusThread != null) {
-    				taskStatusThread.requestStop();  // Stop the task status logging thread.
-    			}
     		}
     	}
     }
@@ -405,109 +383,4 @@ public abstract class BaseJobControl implements JobFuture {
                         Pair<byte[], byte[]> range,
                         HTableInterface table,
                         final int tryCount) throws ExecutionException;
-
-    /**
-     * A thread that polls JMX every configured interval to check the import statistics of each task.
-     * If the task has made progress (e.g. imported or rejected rows) since the last time it was checked,
-     * the current statistics for the task will be written to the import log.
-     *
-     * @author dwinters
-     */
-    private class TaskStatusLoggerThread extends Thread {
-
-    	/**
-    	 * Reference to parent job control.
-    	 */
-    	BaseJobControl jobControl = null;
-
-    	/**
-    	 * Number of milliseconds to sleep before checking JMX for progress by the tasks.
-    	 */
-    	long sleepMillis = SpliceConstants.importTaskStatusLoggingInterval;
-
-    	/**
-    	 * Flag that tells the TaskStatusLoggerThread when it should exit.
-    	 */
-    	private boolean runTaskStatusLoggerThread = true;
-
-    	/**
-    	 * Default constructor that sets the name of the thread.
-    	 *
-    	 * @param jobControl parent job control object
-    	 */
-    	public TaskStatusLoggerThread(BaseJobControl jobControl) {
-    		super("task-status-logger-thread");
-    		this.jobControl = jobControl;
-    	}
-
-    	/**
-    	 * Loop checking JMX for task updates (and sleep) until requested to stop.
-    	 */
-    	@Override
-    	public void run() {
-			ImportAdmin importAdmin;
-			try {
-				importAdmin = new ImportAdmin();
-				try {
-					while (runTaskStatusLoggerThread) {
-
-						/*
-						 * Write the status of all running tasks to the import job status log.
-						 */
-						try {
-							List<Pair<String, ImportTaskManagement>> importTaskPairs = importAdmin.getRegionServerImportTaskInfo();
-							if (importTaskPairs != null) {
-								if (jobStatusLogger != null) {
-									jobStatusLogger.log(String.format("  %d import task(s) being run in parallel...", importTaskPairs.size()));
-								}
-								for (Pair<String, ImportTaskManagement> importTaskPair : importTaskPairs) {
-									String regionServer = importTaskPair.getFirst();
-									ImportTaskManagement importTask = importTaskPair.getSecond();
-									Map<String, Long> importedRowsMap = importTask.getTotalImportedRowsByFilePath();
-									Map<String, Long> badRowsMap = importTask.getTotalBadRowsByFilePath();
-									for (Map.Entry<String, Long> importedRowsMapEntry : importedRowsMap.entrySet()) {
-										String importFileName = importedRowsMapEntry.getKey();
-										Long importRowCount = importedRowsMapEntry.getValue();
-										Long badRowCount = badRowsMap.get(importFileName);
-										if (jobStatusLogger != null) {
-											jobStatusLogger.log(String.format("    Imported %,d rows and rejected %,d rows from %s on %s", importRowCount, badRowCount, importFileName, regionServer));
-										}
-									}
-								}
-							}
-						} catch (SQLException e) {
-							LOG.error("TaskStatusLoggerThread has experienced a SQL exception.  Stopping thread.", e);
-							if (jobStatusLogger != null) {
-								jobStatusLogger.log("TaskStatusLoggerThread has experienced a SQL exception.  Stopping thread.  Check the logs for the stack trace.");
-							}
-							break;
-						}
-
-						/*
-						 * Sleep for a configured amount of time and then log the status of the tasks again.
-						 */
-						try {
-							sleep(sleepMillis);
-						} catch (InterruptedException e) {
-							LOG.error("TaskStatusLoggerThread has been interrupted.", e);
-						}
-					}
-				} finally {
-					importAdmin.close();
-				}
-			} catch (Exception e) {
-				LOG.error("TaskStatusLoggerThread has experienced an exception.  Stopping thread.", e);
-				if (jobStatusLogger != null) {
-					jobStatusLogger.log("TaskStatusLoggerThread has experienced an exception.  Stopping thread.  Check the logs for the stack trace.");
-				}
-			}
-    	}
-
-    	/**
-    	 * Request the current thread to stop after it is done sleeping.
-    	 */
-    	public void requestStop() {
-    		runTaskStatusLoggerThread = false;
-    	}
-    }
 }

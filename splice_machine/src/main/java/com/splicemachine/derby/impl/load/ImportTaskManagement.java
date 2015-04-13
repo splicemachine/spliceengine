@@ -14,16 +14,23 @@ import javax.management.MXBean;
 public interface ImportTaskManagement {
 
 	/**
-	 * Return a map of the current total number of rows that have been imported, keyed by the import file path.
+	 * Return a map of the current total number of rows that have been imported, keyed by the import task path.
 	 *
 	 * @return the total number of imported rows
 	 */
-	Map<String, Long> getTotalImportedRowsByFilePath();
+	Map<String, Long> getTotalImportedRowsByTaskPath();
 
 	/**
-	 * Return a map of the current total number of rows that have been rejected as "bad", keyed by the import file path.
+	 * Return a map of the current total number of rows that have been rejected as "bad", keyed by the import task path.
 	 *
 	 * @return the total number of rejected "bad" rows
 	 */
-	Map<String, Long> getTotalBadRowsByFilePath();
+	Map<String, Long> getTotalBadRowsByTaskPath();
+
+	/**
+	 * Return a map of the current file paths that are being imported, keyed by the import task path.
+	 *
+	 * @return the current file paths that are being imported
+	 */
+	Map<String, String> getImportFilePathsByTaskPath();
 }

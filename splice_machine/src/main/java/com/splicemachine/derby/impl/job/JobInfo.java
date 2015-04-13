@@ -1,9 +1,12 @@
 package com.splicemachine.derby.impl.job;
 
 import com.splicemachine.job.JobFuture;
+import com.splicemachine.job.TaskFuture;
+
 import org.apache.hadoop.hbase.util.Bytes;
 
 import javax.management.openmbean.*;
+
 import java.beans.ConstructorProperties;
 import java.util.ArrayList;
 import java.util.List;
@@ -83,7 +86,7 @@ public class JobInfo implements JobFuture.StatusHook {
 		}
 
 		@Override
-		public void success(byte[] taskId) {
+		public void success(TaskFuture taskFuture) {
 				int completedCount = tasksCompleted.incrementAndGet();
 				tasksPending.decrementAndGet();
 				if(completedCount>=taskIds.length){
@@ -95,17 +98,17 @@ public class JobInfo implements JobFuture.StatusHook {
 		}
 
 		@Override
-		public void failure(byte[] taskId) {
+		public void failure(TaskFuture taskFuture) {
 				tasksFailed.incrementAndGet();
 		}
 
 		@Override
-		public void cancelled(byte[] taskId) {
+		public void cancelled(TaskFuture taskFuture) {
 			//no-op
 		}
 
 		@Override
-		public void invalidated(byte[] taskId) {
+		public void invalidated(TaskFuture taskFuture) {
 				tasksFailed.incrementAndGet();
 		}
 
