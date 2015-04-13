@@ -673,7 +673,7 @@ public class OptimizerImpl implements Optimizer{
 					 * checked its dependencies before putting it there.
 					 */
                     if(found){
-                        assert nextOptimizable<numOptimizables &&!joinOrderMeetsDependencies(nextOptimizable):
+                        assert nextOptimizable>=numOptimizables ||joinOrderMeetsDependencies(nextOptimizable):
                                 "Found optimizable '"+nextOptimizable+"' in current join order even though its" +
                                         "dependencies were NOT satisfied.";
 
