@@ -1,36 +1,23 @@
 package com.splicemachine.derby.hbase;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.Callable;
-
-import com.google.common.base.Throwables;
 import com.google.common.collect.Maps;
-import org.apache.derbyTesting.functionTests.tests.derbynet.executeUpdate;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.test.framework.*;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.util.Pair;
-import org.junit.Assert;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.derby.test.framework.SpliceDataWatcher;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.Callable;
 
 @Ignore("Tests take FOREVER to run, so don't unignore them unless you REALLY want to")
 public class SplittingTempTableIT extends SpliceUnitTest {

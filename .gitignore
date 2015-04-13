@@ -28,3 +28,4 @@ redeployDerby.sh
 **/*.bbl
 **/*.blg
 **/*.run.xml
+**/*.crc
