@@ -1,6 +1,8 @@
 package com.splicemachine.derby.impl.load;
 
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 import org.apache.hadoop.fs.FSDataOutputStream;
 import org.apache.hadoop.fs.FileSystem;
@@ -20,6 +22,11 @@ public class ImportJobStatusLogger implements JobStatusLogger {
 	private static Logger LOG = Logger.getLogger(ImportJobStatusLogger.class);
 	private FSDataOutputStream logFileOut;
 	private ImportContext importContext;
+
+	/**
+	 * Used by the log method which is synchronized.
+	 */
+	private SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS");
 
 	public static final String IMPORT_LOG_FILE_NAME = "importStatus.log";
 
@@ -59,15 +66,23 @@ public class ImportJobStatusLogger implements JobStatusLogger {
 
 	/* (non-Javadoc)
 	 * @see com.splicemachine.derby.impl.load.JobLogger#log(java.lang.String)
+	 */
+	@Override
+	public void log(String msg) {
+		logString(msg + "\n");
+	}
+
+	/* (non-Javadoc)
+	 * @see com.splicemachine.derby.impl.load.JobLogger#logString(java.lang.String)
 	 * Make this method synchronized since both the job and task status threads may attempt to log status at the same time.
 	 */
 	@Override
-	public synchronized void log(String msg) {
+	public synchronized void logString(String msg) {
 		if (LOG.isInfoEnabled()) {
 			LOG.info(msg);
 		}
 		try {
-			this.logFileOut.writeBytes(msg + "\n");
+			this.logFileOut.writeBytes(String.format("%s %s", dateFormat.format(new Date()), msg));
 			this.logFileOut.flush();
 		} catch (IOException e){
 			LOG.error("Failed to write to the import log file", e);

@@ -256,7 +256,13 @@ public class SpliceConstants {
     @DefaultValue(DERBY_BIND_PORT) public static final int DEFAULT_DERBY_BIND_PORT = 1527;
     public static int derbyBindPort;
 
-    // Splice timestamp server (generator) settings */
+		/**
+		 * The default port to bind the JMX connection to.
+		 * Defaults to 10102 which is the same as the default JMX port for HBase region servers.
+		 */
+		public static final int DEFAULT_JMX_BIND_PORT = 10102;
+
+		// Splice timestamp server (generator) settings */
 
     /**
      * The IP address to bind the Timestamp Server connection to.

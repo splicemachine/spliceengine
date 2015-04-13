@@ -115,12 +115,12 @@ public interface JobFuture {
     byte[][] getAllTaskIds();
 
     public interface StatusHook {
-        void success(byte[] taskId);
+        void success(TaskFuture taskFuture);
 
-        void failure(byte[] taskId);
+        void failure(TaskFuture taskFuture);
 
-        void cancelled(byte[] taskId);
+        void cancelled(TaskFuture taskFuture);
 
-        void invalidated(byte[] taskId);
+        void invalidated(TaskFuture taskFuture);
     }
 }
