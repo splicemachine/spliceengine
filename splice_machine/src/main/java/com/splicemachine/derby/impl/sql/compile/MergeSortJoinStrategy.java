@@ -3,8 +3,6 @@ package com.splicemachine.derby.impl.sql.compile;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.impl.sql.compile.HashableJoinStrategy;
-import com.splicemachine.db.impl.sql.compile.Predicate;
 
 public class MergeSortJoinStrategy extends BaseCostedHashableJoinStrategy {
 
@@ -145,23 +143,50 @@ public class MergeSortJoinStrategy extends BaseCostedHashableJoinStrategy {
          * mergeHeapSize = joinSelectivity*(outerTable.heapSize*innerTable.heapSize)
          * mergePartitions = 16(or whatever the size of TEMP is currently)
          */
-        double outerSortCost = (outerCost.localCost()+outerCost.remoteCost())/outerCost.partitionCount();
-        double innerSortCost = (innerCost.localCost()+innerCost.remoteCost())/innerCost.partitionCount();
+        double innerRowCount=innerCost.rowCount();
+        double outerRowCount=outerCost.rowCount();
+        if(innerRowCount==0d){
+            if(outerRowCount==0d) return; //we don't expect to change the cost any when we run this, because we expect to be empty
+            else{
+                /*
+                 * For the purposes of estimation, we will assume that the innerRowCount = 1, so that
+                 * we can safely compute the estimate. The difference between 1 and 0 is generally negliable,
+                 * and it will allow us to get a sensical cost estimate
+                 */
+                innerRowCount = 1d;
+            }
+        }else if(outerRowCount==0d){
+            /*
+             * For the purposes of safe estimation, we assume that we are returning at least one row. The
+             * cost difference is relatively negligiable, but this way we avoid NaNs and so forth.
+             */
+            outerRowCount = 1d;
+        }
+
+        double outerRemoteCost=outerCost.remoteCost();
+        double innerRemoteCost=innerCost.remoteCost();
+
+        double outerSortCost = (outerCost.localCost()+outerRemoteCost)/outerCost.partitionCount();
+        double innerSortCost = (innerCost.localCost()+innerRemoteCost)/innerCost.partitionCount();
         double sortCost = Math.max(outerSortCost,innerSortCost);
 
-        double perRowLocalLatency = outerCost.localCost()/(2*outerCost.rowCount());
-        perRowLocalLatency+=innerCost.localCost()/(2*innerCost.rowCount());
+        double perRowLocalLatency = outerCost.localCost()/(2*outerRowCount);
+        perRowLocalLatency+=innerCost.localCost()/(2*innerRowCount);
 
-        double joinSelectivity = estimateJoinSelectivity(innerTable,cd,predList,outerCost,innerCost);
+        double joinSelectivity = estimateJoinSelectivity(innerTable,cd,predList,innerRowCount);
 
-        double mergeRows = joinSelectivity*(outerCost.rowCount()*innerCost.rowCount());
+        double mergeRows = joinSelectivity*(outerRowCount*innerRowCount);
         int mergePartitions = (int)Math.round(Math.min(16,mergeRows));
-        double mergeLocalCost = perRowLocalLatency*(outerCost.rowCount()+innerCost.rowCount());
+        double mergeLocalCost = perRowLocalLatency*(outerRowCount+innerRowCount);
         double avgOpenCost = (outerCost.getOpenCost()+innerCost.getOpenCost())/2;
         double avgCloseCost = (outerCost.getCloseCost()+innerCost.getCloseCost())/2;
         mergeLocalCost+=mergePartitions*(avgOpenCost+avgCloseCost);
-        double mergeRemoteCost = getTotalRemoteCost(outerCost,innerCost,mergeRows);
-        double mergeHeapSize = getTotalHeapSize(outerCost,innerCost,mergeRows);
+        double mergeRemoteCost = getTotalRemoteCost(outerRemoteCost,innerRemoteCost,outerRowCount,innerRowCount,mergeRows);
+        double mergeHeapSize = getTotalHeapSize(outerCost.getEstimatedHeapSize(),
+                innerCost.getEstimatedHeapSize(),
+                outerRowCount,
+                innerRowCount,
+                mergeRows);
 
         double totalLocalCost = sortCost+mergeLocalCost;
 

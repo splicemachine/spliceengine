@@ -111,20 +111,38 @@ public class BroadcastJoinStrategy extends BaseCostedHashableJoinStrategy {
             return; //actually a scan, don't do anything
         }
         innerCost.setBase(innerCost.cloneMe());
+        double outerRowCount=outerCost.rowCount();
+        double innerRowCount=innerCost.rowCount();
+        if(innerRowCount==0d){
+            //we don't do anything to the base scan costs, but we DO affect the join
+            //selectivity, so we treat the inner row count as 1
+            innerRowCount = 1d;
+        }
+        if(outerRowCount==0d){
+            outerRowCount = 1d;
+        }
 
-        double joinSelectivity = estimateJoinSelectivity(innerTable,cd,predList,outerCost,innerCost);
-        double totalLocalCost = outerCost.localCost()+innerCost.localCost()+innerCost.remoteCost();
+        double outerRemoteCost=outerCost.remoteCost();
+        double innerRemoteCost=innerCost.remoteCost();
+
+        double joinSelectivity = estimateJoinSelectivity(innerTable,cd,predList,innerRowCount);
+        double totalLocalCost = outerCost.localCost()+innerCost.localCost()+innerRemoteCost;
         //add in the overhead to open the inner table scan
         totalLocalCost+= innerCost.partitionCount()*(innerCost.getOpenCost()+innerCost.getCloseCost());
 
-        double totalOutputRows = joinSelectivity*(outerCost.getEstimatedRowCount()*innerCost.getEstimatedRowCount());
 
-        double totalRemoteCost=getTotalRemoteCost(outerCost,innerCost,totalOutputRows);
+        double totalOutputRows = joinSelectivity*(outerRowCount*innerRowCount);
+
+        double totalRemoteCost=getTotalRemoteCost(outerRemoteCost,innerRemoteCost,outerRowCount,innerRowCount,totalOutputRows);
 
         //each partition of the outer table will see inner table's partitionCount
         int totalPartitionCount = outerCost.partitionCount()*innerCost.partitionCount();
 
-        double totalHeapSize=getTotalHeapSize(outerCost,innerCost,totalOutputRows);
+        double totalHeapSize=getTotalHeapSize(outerCost.getEstimatedHeapSize(),
+                innerCost.getEstimatedHeapSize(),
+                outerRowCount,
+                innerRowCount,
+                totalOutputRows);
 
         innerCost.setNumPartitions(totalPartitionCount);
         innerCost.setLocalCost(totalLocalCost);
