@@ -12,6 +12,7 @@ import java.util.Set;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 
+import org.apache.commons.lang.WordUtils;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -163,6 +164,13 @@ public class HdfsImport {
 						new GenericColumnDescriptor("numFiles",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
 						new GenericColumnDescriptor("numTasks",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
 						new GenericColumnDescriptor("numRowsImported",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
+						new GenericColumnDescriptor("numBadRecords",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT))
+		};
+
+		private static final ResultColumnDescriptor[] CHECK_RESULT_COLUMNS = new GenericColumnDescriptor[]{
+						new GenericColumnDescriptor("numFiles",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
+						new GenericColumnDescriptor("numTasks",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.INTEGER)),
+						new GenericColumnDescriptor("numRowsCheckedOK",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT)),
 						new GenericColumnDescriptor("numBadRecords",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT))
 		};
 
@@ -337,7 +345,9 @@ public class HdfsImport {
                         insertColumnList, fileName, columnDelimiter,
                         characterDelimiter, timestampFormat, dateFormat, timeFormat, lcc, maxBadRecords, badRecordDirectory,
                         maxRecords, isUpsert, isCheckScan);
-                IteratorNoPutResultSet rs = new IteratorNoPutResultSet(Arrays.asList(resultRow),IMPORT_RESULT_COLUMNS,activation);
+                IteratorNoPutResultSet rs =
+                		new IteratorNoPutResultSet(Arrays.asList(resultRow),
+                				(isCheckScan ? CHECK_RESULT_COLUMNS : IMPORT_RESULT_COLUMNS), activation);
                 rs.open();
                 results[0] = new EmbedResultSet40(embedConnection,rs,false,null,true);
 
@@ -547,17 +557,22 @@ public class HdfsImport {
 						ImportJobInfo info = null;
 						long numImported = 0l;
 						long numBadRecords = 0l;
+						/*
+						 * Are we checking the import files or actually importing them?
+						 * Set the verb appropriately for all of our logging.
+						 */
+						String logVerb = (context.isCheckScan() ? "check" : "import");
 
 						try {
-								LOG.info("Importing files "+ file.getPaths());
+								LOG.info(String.format("%sing files %s", logVerb, file.getPaths()));
 								ImportJob importJob = new FileImportJob(table,context,statementId,file.getPaths(),operationId,txn);
 								long start = System.currentTimeMillis();
 								JobFuture jobFuture = SpliceDriver.driver().getJobScheduler().submit(importJob);
-								info = new ImportJobInfo(importJob.getJobId(),jobFuture,start, jobStatusLogger);
+								info = new ImportJobInfo(importJob.getJobId(),jobFuture,start, jobStatusLogger, context);
 								long estImportTime = estimateImportTime();
-								jobStatusLogger.log(String.format("Expected time for import %s.  Expected finish is %s.",
-										StringUtils.formatTime(estImportTime), new Date(System.currentTimeMillis() + estImportTime)));
-								jobStatusLogger.log(String.format("Importing %d files...", jobFuture.getNumTasks()));
+								jobStatusLogger.log(String.format("Expected time for %s is %s.  Expected finish is %s.",
+										logVerb, StringUtils.formatTime(estImportTime), new Date(System.currentTimeMillis() + estImportTime)));
+								jobStatusLogger.log(String.format("%sing %d files...", WordUtils.capitalize(logVerb), jobFuture.getNumTasks()));
 								info.tasksRunning(jobFuture.getAllTaskIds());
 								if(opInfo!=null)
 										opInfo.addJob(info);
@@ -579,8 +594,8 @@ public class HdfsImport {
 										numBadRecords+=(totalRead-totalRowsWritten);
 								}
 								jobStatusLogger.log(String.format(
-										"Import finished with success. Total rows imported: %,d. Total rows rejected: %,d. Total time for import: %s.",
-										numImported, numBadRecords, StringUtils.formatTimeDiff(info.getJobFinishMs(), info.getJobStartMs())));
+										"%s finished with success. Total rows %sed%s: %,d. Total rows rejected: %,d. Total time for %s: %s.",
+										WordUtils.capitalize(logVerb), logVerb, (context.isCheckScan() ? " OK" : ""), numImported, numBadRecords, logVerb, StringUtils.formatTimeDiff(info.getJobFinishMs(), info.getJobStartMs())));
 								ExecRow result = new ValueRow(3);
 								result.setRowArray(new DataValueDescriptor[]{
 												new SQLInteger(file.getPaths().size()),
@@ -591,20 +606,20 @@ public class HdfsImport {
 								return result;
 						} catch (InterruptedException e) {
 								jobStatusLogger.log(String.format(
-										"Import has been interrupted. All imported rows will be rolled back. Total rows imported: %,d. Total rows rejected: %,d. Total time for import: %s.",
-										numImported, numBadRecords, (info == null ? "Unknown" : StringUtils.formatTimeDiff(info.getJobFinishMs(), info.getJobStartMs()))));
+										"%s has been interrupted. All imported rows will be rolled back. Total rows imported: %,d. Total rows rejected: %,d. Total time for import: %s.",
+										WordUtils.capitalize(logVerb), numImported, numBadRecords, (info == null ? "Unknown" : StringUtils.formatTimeDiff(info.getJobFinishMs(), info.getJobStartMs()))));
 								throw Exceptions.parseException(e);
 						} catch (ExecutionException e) {
 								Throwable cause = e.getCause();
 								jobStatusLogger.log(String.format(
-										"Import has failed due to an execution error: %s. All imported rows will be rolled back. Total rows imported: %,d. Total rows rejected: %,d. Total time for import: %s.",
-										(cause == null ? "Unknown" : cause.getLocalizedMessage()), numImported, numBadRecords, (info == null ? "Unknown" : StringUtils.formatTimeDiff(info.getJobFinishMs(), info.getJobStartMs()))));
+										"%s has failed due to an execution error: %s. All imported rows will be rolled back. Total rows imported: %,d. Total rows rejected: %,d. Total time for import: %s.",
+										WordUtils.capitalize(logVerb), (cause == null ? "Unknown" : cause.getLocalizedMessage()), numImported, numBadRecords, (info == null ? "Unknown" : StringUtils.formatTimeDiff(info.getJobFinishMs(), info.getJobStartMs()))));
 								throw Exceptions.parseException(cause);
 						} // still need to cancel all other jobs ? // JL
 						catch (IOException e) {
 								jobStatusLogger.log(String.format(
-										"Import has failed due to an I/O error: %s. All imported rows will be rolled back. Total rows imported: %,d. Total rows rejected: %,d. Total time for import: %s.",
-										(e == null ? "Unknown" : e.getLocalizedMessage()), numImported, numBadRecords, (info == null ? "Unknown" : StringUtils.formatTimeDiff(info.getJobFinishMs(), info.getJobStartMs()))));
+										"%s has failed due to an I/O error: %s. All imported rows will be rolled back. Total rows imported: %,d. Total rows rejected: %,d. Total time for import: %s.",
+										WordUtils.capitalize(logVerb), (e == null ? "Unknown" : e.getLocalizedMessage()), numImported, numBadRecords, (info == null ? "Unknown" : StringUtils.formatTimeDiff(info.getJobFinishMs(), info.getJobStartMs()))));
 								throw Exceptions.parseException(e);
 						} finally{
 								Closeables.closeQuietly(table);
@@ -647,21 +662,27 @@ public class HdfsImport {
 	    	 *   - and also the fact that our import ingest rates fluctuate with region server activity such as compactions, region splits, etc.
 	    	 * But hey, it's a start...
 	    	 */
-	
+
 	    	// The following rates were empirically derived from SAP import timings.
 	    	double importRatePerNode = 1.9d * 1024d * 1024d / 1000d;  // 1.9 MB/sec
 	    	double standaloneBoost = 1.0d;
-	
+	    	double checkScanBoost = 1.0d;
+
 	    	int numServers = getRegionServerCount();
 	    	long importDataSize = getImportDataSize();
-	
+
 	    	// Standalone has a 25-50% higher import ingest rate since there is less contention and the disks are local (often they are flash too).
 	    	if (numServers == 1) standaloneBoost = 1.3d;
+
+	    	// Check scans are import jobs that only check the data and do not insert it into the database.
+	    	// Check scans run in about 40% of the time of an actual import.
+	    	if (context.isCheckScan()) checkScanBoost = 0.4d;
+
 	    	if (LOG.isDebugEnabled()) SpliceLogUtils.debug(LOG,
-	    			"importDataSize(bytes)=%,d numServers=%d importRatePerNode(bytes/ms)=%,.2f standaloneBoost=%,.2f",
-	    			importDataSize, numServers, importRatePerNode, standaloneBoost);
-	
-	    	return (long)((double)importDataSize / ((double)numServers * importRatePerNode * standaloneBoost));
+	    			"importDataSize(bytes)=%,d numServers=%d importRatePerNode(bytes/ms)=%,.2f standaloneBoost=%,.2f checkScanBoost=%,.2f",
+	    			importDataSize, numServers, importRatePerNode, standaloneBoost, checkScanBoost);
+
+	    	return (long)((double)importDataSize / ((double)numServers * importRatePerNode * standaloneBoost) * checkScanBoost);
 	    }
 
 	    /**
