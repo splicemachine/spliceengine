@@ -13,6 +13,7 @@ _retrySplice() {
     CP="${8}"
     SPLICE_MAIN_CLASS="${9}"
     CHAOS="${10}"
+    SPARK="${11}"
 
     # number of seconds we should allow for isReady to return 0
     HBASE_TIMEOUT=100
@@ -52,11 +53,16 @@ _retrySplice() {
         fi
     done
 
+    if [ "${SPARK}" = true ]; then
+        # Start Spark
+        _startSpark "${ROOT_DIR}" "${CP}" "${SPLICELOGFILE}"
+    fi
+
     # Start HBase
     if [[ ${ERROR_CODE} -eq 0 ]]; then
         for (( RETRY=1; RETRY<=MAXRETRY; RETRY++ )); do
             # splice/hbase will be retried several times to accommodate timeouts
-            _startSplice "${ROOT_DIR}" "${SPLICELOGFILE}" "${LOG4J_PATH}" "${HBASE_ROOT_DIR_URI}" "${CP}" "${SPLICE_MAIN_CLASS}" "${CHAOS}"
+            _startSplice "${ROOT_DIR}" "${SPLICELOGFILE}" "${LOG4J_PATH}" "${HBASE_ROOT_DIR_URI}" "${CP}" "${SPLICE_MAIN_CLASS}" "${CHAOS}" "${SPARK}"
             if [[ ${RETRY} -eq 1 ]]; then
                 # We can only check for error msg the first time, else we'll see the same ones again
                 _waitfor "${SPLICELOGFILE}" "${HBASE_TIMEOUT}" 'Ready to accept JDBC connections' 'Master not active after'
@@ -96,6 +102,23 @@ _retrySplice() {
     fi
 }
 
+_startSpark() {
+    ROOT_DIR="${1}"
+    CLASSPATH="${2}"
+    LOGFILE="${3}"
+
+    # setup compute-classpath.sh
+    mkdir -p "${ROOT_DIR}"/spark/bin
+    echo "echo ${CLASSPATH}" > "${ROOT_DIR}"/spark/bin/compute-classpath.sh
+    chmod +x "${ROOT_DIR}"/spark/bin/compute-classpath.sh
+
+    export CLASSPATH
+    (java org.apache.spark.deploy.master.Master -i `hostname` >> "${LOGFILE}" 2>&1 ) &
+    echo "$!" > "${ROOT_DIR}"/spark_master_pid
+    (java org.apache.spark.deploy.worker.Worker spark://`hostname`:7077 -d "${ROOT_DIR}"/spark >> "${LOGFILE}" 2>&1 ) &
+    echo "$!" > "${ROOT_DIR}"/spark_worker_pid
+}
+
 _startSplice() {
     ROOT_DIR="${1}"
     LOGFILE="${2}"
@@ -104,15 +127,25 @@ _startSplice() {
     CLASSPATH="${5}"
     SPLICE_MAIN_CLASS="${6}"
     CHAOS="${7}"
+    SPARK="${8}"
 
     SPLICE_PID_FILE="${ROOT_DIR}"/splice_pid
     export CLASSPATH
     LOG4J_CONFIG="-Dlog4j.configuration=$LOG4J_PATH"
 
+    # Spark config
+    SPARK_MASTER_HOST=`hostname`
+    if [ "${SPARK}" = true ]; then
+        SPARK_CONFIG="-Dsplice.spark.enabled=true -Dsplice.spark.master=spark://${SPARK_MASTER_HOST}:7077 -Dsplice.spark.home=${ROOT_DIR}/spark "
+    else
+        SPARK_CONFIG=""
+    fi
+
 
     SYS_ARGS="-verbose:gc \
     -Xdebug \
     ${LOG4J_CONFIG} \
+    ${SPARK_CONFIG} \
     -Djava.net.preferIPv4Stack=true \
     -Djava.awt.headless=true \
     -Dzookeeper.sasl.client=false \
@@ -245,6 +278,14 @@ _stopServer() {
     echo "Shutting down Zookeeper..."
     # shut down zookeeper, timeout value is hardcoded
     _stop "${PID_DIR}"/zoo_pid 15
+
+    echo "Shutting down Spark worker..."
+    # shut down spark worker, timeout value is hardcoded
+    _stop "${PID_DIR}"/spark_worker_pid 15
+
+    echo "Shutting down Spark master..."
+    # shut down spark worker, timeout value is hardcoded
+    _stop "${PID_DIR}"/spark_master_pid 15
 }
 
 _waitfor() {
