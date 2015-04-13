@@ -21,35 +21,42 @@ import java.util.BitSet;
  */
 public abstract class BaseCostedHashableJoinStrategy extends HashableJoinStrategy{
 
-    protected double getTotalHeapSize(CostEstimate outerCost,CostEstimate innerCost,double totalOutputRows){
-        double perRowHeapSize = outerCost.getEstimatedHeapSize()/outerCost.rowCount();
-        perRowHeapSize+=innerCost.getEstimatedHeapSize()/innerCost.rowCount();
+    protected double getTotalHeapSize(double outerHeapSize,
+                                        double innerHeapSize,
+                                        double innerRowCount,
+                                        double outerRowCount,
+                                        double totalOutputRows){
+        double perRowHeapSize = outerHeapSize/outerRowCount;
+        perRowHeapSize+=innerHeapSize/innerRowCount;
         return perRowHeapSize*totalOutputRows;
     }
 
-    protected double getTotalRemoteCost(CostEstimate outerCost,CostEstimate innerCost,double totalOutputRows){
-        double perRowRemoteCost = outerCost.remoteCost()/outerCost.rowCount();
-        perRowRemoteCost+=innerCost.remoteCost()/innerCost.rowCount();
+    protected double getTotalRemoteCost(double outerRemoteCost,
+                                        double innerRemoteCost,
+                                        double outerRowCount,
+                                        double innerRowCount,
+                                        double totalOutputRows){
+        double perRowRemoteCost = outerRemoteCost/outerRowCount;
+        perRowRemoteCost+=innerRemoteCost/innerRowCount;
         return totalOutputRows*perRowRemoteCost;
     }
 
     protected double estimateJoinSelectivity(Optimizable innerTable,
-                                           ConglomerateDescriptor cd,
-                                           OptimizablePredicateList predList,
-                                           CostEstimate outerCost,
-                                           CostEstimate innerCost) throws StandardException{
+                                             ConglomerateDescriptor cd,
+                                             OptimizablePredicateList predList,
+                                             double innerRowCount) throws StandardException{
         IndexRowGenerator irg=cd.getIndexDescriptor();
         if(irg==null||irg.getIndexDescriptor()==null){
             return estimateNonKeyedSelectivity(innerTable,predList);
         }else{
-            return estimateKeyedSelectivity(innerTable,predList,irg,innerCost);
+            return estimateKeyedSelectivity(innerTable,predList,irg,innerRowCount);
         }
     }
 
     private double estimateKeyedSelectivity(Optimizable innerTable,
                                             OptimizablePredicateList predList,
                                             IndexRowGenerator irg,
-                                            CostEstimate innerCost) throws StandardException{
+                                            double innerRowCount) throws StandardException{
         BitSet setKeyColumns = new BitSet(irg.numberOfOrderedColumns());
         for(int i=0;i<predList.size();i++){
             Predicate pred = (Predicate)predList.getOptPredicate(i);
@@ -71,7 +78,7 @@ public abstract class BaseCostedHashableJoinStrategy extends HashableJoinStrateg
              * to 1 with our selectivity. Because we do this, we don't bother adding in any additional
              * selectivity
              */
-            return 1d/innerCost.rowCount();
+            return 1d/innerRowCount;
         }else{
             /*
              * We don't have a complete set of predicates on the key columns of the inner table,

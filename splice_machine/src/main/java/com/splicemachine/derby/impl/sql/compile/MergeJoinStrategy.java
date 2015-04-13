@@ -121,11 +121,29 @@ public class MergeJoinStrategy extends BaseCostedHashableJoinStrategy{
          * Which includes network traffic to the outer table's region and network traffic from
          * that region to the control node
          */
-        double joinSelectivity = estimateJoinSelectivity(innerTable,cd,predList,outerCost,innerCost);
+        double outerRowCount=outerCost.rowCount();
+        double innerRowCount=innerCost.rowCount();
+        if(outerRowCount==0){
+            /*
+             * There is no way that merge will do anything, so we can just stop here
+             */
+            return;
+        }
+        if(innerRowCount==0){
+            /*
+             * We don't modify the scan any, but it's possible that the inner side
+             * has non-negligible costs in order to generate 0 rows, so we can't disregard it.
+             * Instead, we just assume that innerRowCount==1
+             */
+            innerRowCount = 1d;
+        }
+        double joinSelectivity = estimateJoinSelectivity(innerTable,cd,predList,innerRowCount);
+        double outerRemoteCost=outerCost.remoteCost();
 
-        double rowCount = joinSelectivity*outerCost.rowCount()*innerCost.rowCount();
+        double rowCount = joinSelectivity*outerRowCount*innerRowCount;
 
-        double totalLocalCost = outerCost.localCost()+innerCost.localCost()+innerCost.remoteCost();
+        double innerRemoteCost=innerCost.remoteCost();
+        double totalLocalCost = outerCost.localCost()+innerCost.localCost()+innerRemoteCost;
         totalLocalCost+=innerCost.partitionCount()*(innerCost.getOpenCost()+innerCost.getCloseCost());
 
         /*
@@ -137,8 +155,16 @@ public class MergeJoinStrategy extends BaseCostedHashableJoinStrategy{
          * factor (just 5). That way, the costing strategies are slightly different, and we
          * can favor merge join when all other things are equal
          */
-        double totalRemoteCost = getTotalRemoteCost(outerCost,innerCost,rowCount)-5;
-        double heapSize = getTotalHeapSize(outerCost,innerCost,rowCount);
+        double totalRemoteCost = getTotalRemoteCost(outerRemoteCost,
+                innerRemoteCost,
+                outerRowCount,
+                innerRowCount,
+                rowCount)-5;
+        double heapSize = getTotalHeapSize(outerCost.getEstimatedHeapSize(),
+                innerCost.getEstimatedHeapSize(),
+                outerRowCount,
+                innerRowCount,
+                rowCount);
         int numPartitions = outerCost.partitionCount()*innerCost.partitionCount();
 
         innerCost.setRowOrdering(outerCost.getRowOrdering()); //merge join inherits the sort order from the outer table

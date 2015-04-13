@@ -307,7 +307,8 @@ public class StatsStoreCostController extends GenericController implements Store
         costEstimate.setEstimatedRowCount(numRows);
         costEstimate.setLocalCost(localCost);
         costEstimate.setRemoteCost(remoteCost);
-        costEstimate.setNumPartitions(numPartitions);
+        //we always touch at least 1 partition
+        costEstimate.setNumPartitions(numPartitions>0?numPartitions:1);
         costEstimate.setEstimatedHeapSize(bytes);
         costEstimate.setOpenCost(stats.openScannerLatency());
         costEstimate.setCloseCost(stats.closeScannerLatency());
@@ -360,6 +361,10 @@ public class StatsStoreCostController extends GenericController implements Store
          */
         int columnSize = 0;
         int adjAvgRowWidth = getAdjustedRowSize(partStats);
+        if(adjAvgRowWidth==0){
+            assert partStats.rowCount()==0: "No row width exists, but there is a positive row count!";
+            return 0d;
+        }
         if(scanColumnList!=null && scanColumnList.getNumBitsSet()!=totalColumns){
             for(int i=scanColumnList.anySetBit();i>=0;i=scanColumnList.anySetBit(i)){
                 columnSize +=getColumnSize(partStats,totalColumns,i,adjAvgRowWidth);
