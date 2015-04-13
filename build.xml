@@ -1074,8 +1074,6 @@
       </classpath>
     </java>
 
-		<copy file="${derby.jar.dir}/lists/derby.list" todir="/Users/scottfines/workspace/derby" overwrite="true" />
-
     <!-- This next antcall generates a new properties file for the build.  -->
     <!-- If a changenumber is passed into the build via a property file or -->
     <!-- on the command line, the build number will be inserted into the   -->
