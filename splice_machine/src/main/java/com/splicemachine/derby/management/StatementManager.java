@@ -118,6 +118,7 @@ public class StatementManager implements StatementManagement{
 			if(info.getStatementUuid()==statementUuid){
 				try {
 					info.cancel();
+					removeStatementInfo(info);
 				} catch (ExecutionException e) {
 					throw new RuntimeException(
 						String.format("Exception attempting to cancel statement with statementUuid = %s", statementUuid), e);
@@ -142,6 +143,7 @@ public class StatementManager implements StatementManagement{
 					continue;
 				}
 				info.cancel();
+				removeStatementInfo(info);
 			} catch (ExecutionException e) {
 				throw new RuntimeException(e);
 			}
