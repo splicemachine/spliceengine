@@ -45,9 +45,9 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
     protected static SpliceTableWatcher spliceTableWatcher9 = new SpliceTableWatcher(TABLE_NAME_9,CLASS_NAME, "(i int)");
     protected static SpliceTableWatcher spliceTableWatcher10 = new SpliceTableWatcher(TABLE_NAME_10,CLASS_NAME, "(i int)");
     protected static SpliceTableWatcher spliceTableWatcher11 = new SpliceTableWatcher(TABLE_NAME_11,CLASS_NAME,
-                                      "(num varchar(4) not null, name char(20), " +
-                                          "grade decimal(4) not null check (grade in (100,150,200)), city char(15), " +
-                                          "primary key (grade,num))");
+            "(num varchar(4) not null, name char(20), " +
+                    "grade decimal(4) not null check (grade in (100,150,200)), city char(15), " +
+                    "primary key (grade,num))");
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -131,17 +131,17 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
 
     @Test
     public void testUpdatingAlteredColumns() throws Exception {
-		Statement s = methodWatcher.getStatement();	
-		s.executeUpdate(String.format("insert into %s values 1,2,3,4,5",this.getTableReference(TABLE_NAME_3)));
-		s.executeUpdate(String.format("alter table %s add column j int",this.getTableReference(TABLE_NAME_3)));
-		s.executeUpdate(String.format("update %s set j = 5",this.getTableReference(TABLE_NAME_3)));
-		ResultSet rs = methodWatcher.executeQuery(String.format("select j from %s",this.getTableReference(TABLE_NAME_3)));
-		int i=0;
-		while (rs.next()) {
-			i++;
-			Assert.assertEquals("Update did not happen", 5, rs.getInt(1));
-		}
-		Assert.assertEquals("returned values must match", 5,i);
+        Statement s = methodWatcher.getStatement();
+        s.executeUpdate(String.format("insert into %s values 1,2,3,4,5",this.getTableReference(TABLE_NAME_3)));
+        s.executeUpdate(String.format("alter table %s add column j int",this.getTableReference(TABLE_NAME_3)));
+        s.executeUpdate(String.format("update %s set j = 5",this.getTableReference(TABLE_NAME_3)));
+        ResultSet rs = methodWatcher.executeQuery(String.format("select j from %s",this.getTableReference(TABLE_NAME_3)));
+        int i=0;
+        while (rs.next()) {
+            i++;
+            Assert.assertEquals("Update did not happen", 5, rs.getInt(1));
+        }
+        Assert.assertEquals("returned values must match", 5,i);
     }
 
     @Test
@@ -169,23 +169,27 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
 
     @Test
     public void testAddColumnDefaultIsReadable() throws Exception {
-        Connection connection1 = methodWatcher.createConnection();
-        connection1.createStatement().execute(String.format("insert into %s values 1,2,3", this.getTableReference(TABLE_NAME_5)));
+        Connection conn = methodWatcher.createConnection();
+        try(Statement statement=conn.createStatement()){
+            statement.execute(String.format("insert into %s values 1,2,3",spliceTableWatcher5));
 
-        PreparedStatement ps = connection1.prepareStatement(String.format("select * from %s", this.getTableReference(TABLE_NAME_5)));
-        ResultSet resultSet = ps.executeQuery();
-        Assert.assertEquals("Should have only 1 column.", 1, columnWidth(resultSet));
-        connection1.createStatement().execute(String.format("alter table %s add column j int default 5", this
-            .getTableReference(TABLE_NAME_5)));
+            try(ResultSet resultSet=statement.executeQuery("select * from "+ spliceTableWatcher5)){
+                Assert.assertEquals("Should have only 1 column.",1,columnWidth(resultSet));
+            }
+            statement.execute(String.format("alter table %s add column j int default 5",spliceTableWatcher5));
 
-        resultSet = ps.executeQuery();
-        Assert.assertEquals("Should have 2 columns.", 2, columnWidth(resultSet));
-        int count = 0;
-        while(resultSet.next()) {
-            Assert.assertEquals("Second column should have the default value", 5, resultSet.getInt(2));
-            count ++;
+            try(ResultSet resultSet=statement.executeQuery("select * from "+ spliceTableWatcher5)){
+                Assert.assertEquals("Should have 2 columns.",2,columnWidth(resultSet));
+                int count=0;
+                while(resultSet.next()){
+                    Assert.assertEquals("Second column should have the default value",5,resultSet.getInt(2));
+                    count++;
+                }
+                Assert.assertEquals("Wrong number of results",3,count);
+            }
+        }finally{
+            conn.close();
         }
-        Assert.assertEquals("Wrong number of results", 3, count);
     }
 
     @Test
@@ -336,12 +340,12 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
         TestConnection connection = methodWatcher.createConnection();
 
         connection.createStatement().execute(String.format("alter table %s add constraint numck check (num < '999')",
-                                                           spliceTableWatcher11));
+                spliceTableWatcher11));
         connection.commit();
 
         connection.createStatement().execute(String.format("insert into %s values ('01', 'Jeff', 100, " +
-                                                               "'St. Louis')",
-                                                           spliceTableWatcher11));
+                        "'St. Louis')",
+                spliceTableWatcher11));
 
         long count = connection.count(String.format("select * from %s", spliceTableWatcher11));
         Assert.assertEquals("incorrect row count!", 1, count);
