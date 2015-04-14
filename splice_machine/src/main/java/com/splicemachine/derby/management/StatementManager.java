@@ -25,18 +25,18 @@ import java.util.concurrent.atomic.AtomicReferenceArray;
  */
 public class StatementManager implements StatementManagement{
     private static Logger LOG = Logger.getLogger(StatementManager.class);
-		private final Set<StatementInfo> executingStatements =
-						Collections.newSetFromMap(new ConcurrentHashMap<StatementInfo, Boolean>());
+	private final Set<StatementInfo> executingStatements =
+		Collections.newSetFromMap(new ConcurrentHashMap<StatementInfo, Boolean>());
 
-		private final AtomicReferenceArray<StatementInfo> completedStatements;
-		private final AtomicInteger statementInfoPointer = new AtomicInteger(0);
+	private final AtomicReferenceArray<StatementInfo> completedStatements;
+	private final AtomicInteger statementInfoPointer = new AtomicInteger(0);
 
-		private volatile XplainStatementReporter statementReporter;
-		private volatile XplainOperationReporter operationReporter;
+	private volatile XplainStatementReporter statementReporter;
+	private volatile XplainOperationReporter operationReporter;
 
-		public StatementManager() throws StandardException {
-				this.completedStatements = new AtomicReferenceArray<StatementInfo>(SpliceConstants.pastStatementBufferSize);
-		}
+	public StatementManager() throws StandardException {
+		this.completedStatements = new AtomicReferenceArray<StatementInfo>(SpliceConstants.pastStatementBufferSize);
+	}
 
     private void setupXplainReporters() throws StandardException {
         if(statementReporter==null){
@@ -50,17 +50,12 @@ public class StatementManager implements StatementManagement{
     }
 
     public void addStatementInfo(StatementInfo statementInfo) {
-    	/*
-		if (statementInfo.getSql() == null || statementInfo.getSql().isEmpty() || statementInfo.getSql().equalsIgnoreCase("null")) {
-			if (LOG.isTraceEnabled()) {
-				LOG.trace(String.format("Got null sql to add to executing stmts (numExecStmts=%s): %s\nStack trace:\n%s",
-					executingStatements.size(), statementInfo, SpliceLogUtils.getStackTrace()));
-			}
-		}
-		*/
 		if (!executingStatements.add(statementInfo)) {
-			SpliceLogUtils.error(LOG, String.format("Failed to add executing stmt (numExecStmts=%s): %s", executingStatements.size(), statementInfo));
-			return;
+        	// Even this 'failure' is logged at trace level, because it's normal
+	        if (LOG.isTraceEnabled()) {
+			    LOG.trace(String.format("Failed to add executing stmt (numExecStmts=%s): %s", executingStatements.size(), statementInfo));
+	        }
+	        return;
 		}
         if (LOG.isTraceEnabled()) {
 			LOG.trace(String.format("Added to executing stmts (numExecStmts=%s): %s", executingStatements.size(), statementInfo));
@@ -68,27 +63,26 @@ public class StatementManager implements StatementManagement{
         return;
 	}
 
-	public void completedStatement(StatementInfo statementInfo, boolean shouldTrace,TxnView txn) throws IOException, StandardException {
-		/*
-		if (statementInfo.getSql() == null || statementInfo.getSql().isEmpty() || statementInfo.getSql().equalsIgnoreCase("null")) {
-			if (LOG.isTraceEnabled()) {
-				LOG.trace(String.format("Got null sql to remove from executing stmts (numExecStmts=%s): %s\nStack trace:\n%s",
-					executingStatements.size(), statementInfo, SpliceLogUtils.getStackTrace()));
-			}
-		}
-		*/
-		statementInfo.markCompleted(); //make sure the stop time is set
-        int position = statementInfoPointer.getAndIncrement()%completedStatements.length();
-        completedStatements.set(position, statementInfo);
-
-        if (!executingStatements.remove(statementInfo)) {
-			SpliceLogUtils.error(LOG, String.format("Failed to remove executing stmt (numExecStmts=%s): %s", executingStatements.size(), statementInfo));
+    private void removeStatementInfo(StatementInfo statementInfo) {
+	    if (!executingStatements.remove(statementInfo)) {
+	    	// Even this 'failure' is logged at trace level, because it's normal
+	        if (LOG.isTraceEnabled()) {
+	        	LOG.trace(String.format("Failed to remove executing stmt (numExecStmts=%s): %s", executingStatements.size(), statementInfo));
+	        }
 		} else {
 	        if (LOG.isTraceEnabled()) {
 				LOG.trace(String.format("Removed executing stmt (numExecStmts=%s): %s", executingStatements.size(), statementInfo));
 	        }
 		}
-		
+    }
+	
+	public void completedStatement(StatementInfo statementInfo, boolean shouldTrace,TxnView txn) throws IOException, StandardException {
+		statementInfo.markCompleted(); //make sure the stop time is set
+        int position = statementInfoPointer.getAndIncrement()%completedStatements.length();
+        completedStatements.set(position, statementInfo);
+
+        removeStatementInfo(statementInfo);
+        		
         if (shouldTrace) {
             setupXplainReporters();
             if (!"null".equalsIgnoreCase(statementInfo.getSql())){
@@ -101,66 +95,67 @@ public class StatementManager implements StatementManagement{
         }
     }
 
-		@Override
-		public Set<StatementInfo> getExecutingStatementInfo() {
-				return executingStatements;
-		}
+	@Override
+	public Set<StatementInfo> getExecutingStatementInfo() {
+		return executingStatements;
+	}
 
-		@Override
-		public List<StatementInfo> getRecentCompletedStatements() {
-				List<StatementInfo> recentCompleted = Lists.newArrayListWithCapacity(completedStatements.length());
-				for(int i=0;i<completedStatements.length();i++){
-						StatementInfo e = completedStatements.get(i);
-						if(e!=null)
-								recentCompleted.add(e);
-				}
-				return recentCompleted;
+	@Override
+	public List<StatementInfo> getRecentCompletedStatements() {
+		List<StatementInfo> recentCompleted = Lists.newArrayListWithCapacity(completedStatements.length());
+		for(int i=0;i<completedStatements.length();i++){
+			StatementInfo e = completedStatements.get(i);
+			if(e!=null)
+				recentCompleted.add(e);
 		}
-
-		@Override
-		public boolean killStatement(long statementUuid) {
-    		SpliceLogUtils.info(LOG, "Attempting to kill statement with uuid = %s", statementUuid);
-				for(StatementInfo info:executingStatements){
-						if(info.getStatementUuid()==statementUuid){
-								try {
-										info.cancel();
-								} catch (ExecutionException e) {
-										throw new RuntimeException(
-										        String.format("Exception attempting to cancel statement with statementUuid = %s", statementUuid), e);
-								}
-								return true;
-						}
-				}
-				return false;
-		}
-
-		@Override
-		public void killAllStatements() {
-    		SpliceLogUtils.info(LOG, "Attempting to kill all statements...");
-			for (StatementInfo info : executingStatements) {
+		return recentCompleted;
+	}
+	
+	@Override
+	public boolean killStatement(long statementUuid) {
+		SpliceLogUtils.debug(LOG, "Attempting to kill statement with uuid = %s", statementUuid);
+		for(StatementInfo info:executingStatements){
+			if(info.getStatementUuid()==statementUuid){
 				try {
-	        		SpliceLogUtils.debug(LOG, "Killing statement with uuid = %s", info.getStatementUuid());
-					// Crude way to avoid killing the very statement requesting the kill
-					if (info.getSql() != null && info.getSql().toUpperCase().contains("SYSCS_KILL_ALL_STATEMENTS")) {
-		        		SpliceLogUtils.debug(LOG, "Not killing syscs_kill_all_statements itself with uuid = %s",
-		        			info.getStatementUuid());
-						continue;
-					}
 					info.cancel();
 				} catch (ExecutionException e) {
-					throw new RuntimeException(e);
+					throw new RuntimeException(
+						String.format("Exception attempting to cancel statement with statementUuid = %s", statementUuid), e);
 				}
+				return true;
 			}
 		}
+		SpliceLogUtils.debug(LOG, "Unable to kill statement with uuid = %s. Not found in executingStatements.", statementUuid);
+		return false;
+	}
 
-		public StatementInfo getExecutingStatementByTxnId(String txnId) {
-			if (txnId != null) {
-				for (StatementInfo info:executingStatements) {
-					if (txnId.equals(info.getTxnId())) {
-						return info;
-					}
+	@Override
+	public void killAllStatements() {
+		SpliceLogUtils.info(LOG, "Attempting to kill all statements...");
+		for (StatementInfo info : executingStatements) {
+			try {
+        		SpliceLogUtils.debug(LOG, "Killing statement with uuid = %s (part of kill all request)", info.getStatementUuid());
+				// Crude way to avoid killing the very statement requesting the kill
+				if (info.getSql() != null && info.getSql().toUpperCase().contains("SYSCS_KILL_ALL_STATEMENTS")) {
+	        		SpliceLogUtils.debug(LOG, "Not killing syscs_kill_all_statements itself with uuid = %s",
+	        			info.getStatementUuid());
+					continue;
+				}
+				info.cancel();
+			} catch (ExecutionException e) {
+				throw new RuntimeException(e);
+			}
+		}
+	}
+
+	public StatementInfo getExecutingStatementByTxnId(String txnId) {
+		if (txnId != null) {
+			for (StatementInfo info:executingStatements) {
+				if (txnId.equals(info.getTxnId())) {
+					return info;
 				}
 			}
-			return null;
 		}
+		return null;
+	}
 }
