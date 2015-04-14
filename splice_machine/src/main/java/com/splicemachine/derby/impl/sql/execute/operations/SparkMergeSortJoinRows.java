@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.impl.spark.RDDUtils;
 import com.splicemachine.derby.utils.JoinSideExecRow;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -37,24 +38,7 @@ public class SparkMergeSortJoinRows implements IJoinRowsIterator<ExecRow> {
 		if (lefts.hasNext()) {
 			leftRowsSeen++;
 //			rightRowsSeen += rights.size();   TODO fix statistics
-            final Iterator<SparkRow> rightsIterator = rights.iterator();
-            Iterator<ExecRow> iterator = new Iterator<ExecRow>() {
-                @Override
-                public boolean hasNext() {
-                    return rightsIterator.hasNext();
-                }
-
-                @Override
-                public ExecRow next() {
-                    return rightsIterator.next().getRow();
-                }
-
-                @Override
-                public void remove() {
-                    rightsIterator.remove();
-                }
-            };
-			return new Pair<ExecRow,Iterator<ExecRow>>(lefts.next().getRow(), iterator);
+			return new Pair<ExecRow,Iterator<ExecRow>>(lefts.next().getRow(), RDDUtils.toExecRowsIterator(rights.iterator()));
 		}
         return null;
     }
