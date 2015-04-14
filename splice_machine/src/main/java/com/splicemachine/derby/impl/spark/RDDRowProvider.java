@@ -10,6 +10,7 @@ import java.util.concurrent.Callable;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.sql.execute.operations.EmptyJobStats;
+import com.splicemachine.derby.impl.sql.execute.operations.SparkRow;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.job.SimpleJobResults;
@@ -34,21 +35,21 @@ public class RDDRowProvider implements RowProvider, Serializable {
     private SpliceRuntimeContext spliceRuntimeContext;
 
     // TODO missing activation for shuffle of rows for operations higher up
-    public RDDRowProvider(JavaRDD<ExecRow> javaRDD, SpliceRuntimeContext spliceRuntimeContext) {
+    public RDDRowProvider(JavaRDD<SparkRow> javaRDD, SpliceRuntimeContext spliceRuntimeContext) {
         this.rdd = javaRDD;
         this.spliceRuntimeContext = spliceRuntimeContext;
     }
 
     private static final long serialVersionUID = -6767694441802309601L;
-    protected transient Iterator<ExecRow> iterator;
+    protected transient Iterator<SparkRow> iterator;
     protected ExecRow currentRow;
     private HBaseRowLocation currentRowLocation;
-    protected JavaRDD<ExecRow> rdd;
+    protected JavaRDD<SparkRow> rdd;
 
     @Override
     public boolean hasNext() throws StandardException, IOException {
         if (iterator.hasNext()) {
-            this.currentRow = iterator.next();
+            this.currentRow = iterator.next().getRow();
             this.currentRowLocation = new HBaseRowLocation(SpliceUtils.getUniqueKey());
             return true;
         } else {
@@ -101,7 +102,7 @@ public class RDDRowProvider implements RowProvider, Serializable {
         return 0;
     }
 
-    public JavaRDD<ExecRow> getRDD() {
+    public JavaRDD<SparkRow> getRDD() {
         return rdd;
     }
 

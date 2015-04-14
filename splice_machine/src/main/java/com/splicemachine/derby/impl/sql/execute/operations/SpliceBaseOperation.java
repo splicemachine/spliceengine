@@ -685,7 +685,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
         }
 
         @Override
-        public JavaRDD<ExecRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+        public JavaRDD<SparkRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
             throw new UnsupportedOperationException();
         }
 
@@ -694,7 +694,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
             if (!providesRDD()) {
                 throw new UnsupportedOperationException();
             }
-            JavaRDD<ExecRow> rdd = getRDD(runtimeContext, this);
+            JavaRDD<SparkRow> rdd = getRDD(runtimeContext, this);
             if (LOG.isInfoEnabled()) {
                 LOG.info("RDD for operation " + this + " :\n " + rdd.toDebugString());
             }

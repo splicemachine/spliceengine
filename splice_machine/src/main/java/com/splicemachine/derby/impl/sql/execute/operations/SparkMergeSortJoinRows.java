@@ -19,8 +19,8 @@ import java.util.List;
  */
 public class SparkMergeSortJoinRows implements IJoinRowsIterator<ExecRow> {
 
-	private final Iterator<ExecRow> lefts;
-	private final Iterable<ExecRow> rights;
+	private final Iterator<SparkRow> lefts;
+	private final Iterable<SparkRow> rights;
     List<ExecRow> currentRights = new ArrayList<ExecRow>();
     byte[] currentRightHash;
     Pair<ExecRow,Iterator<ExecRow>> nextBatch;
@@ -28,7 +28,7 @@ public class SparkMergeSortJoinRows implements IJoinRowsIterator<ExecRow> {
     private int rightRowsSeen;
 
 
-    public SparkMergeSortJoinRows(Tuple2<Iterable<ExecRow>, Iterable<ExecRow>> source){
+    public SparkMergeSortJoinRows(Tuple2<Iterable<SparkRow>, Iterable<SparkRow>> source){
         this.lefts = source._1().iterator();
 		this.rights = source._2();
     }
@@ -37,7 +37,24 @@ public class SparkMergeSortJoinRows implements IJoinRowsIterator<ExecRow> {
 		if (lefts.hasNext()) {
 			leftRowsSeen++;
 //			rightRowsSeen += rights.size();   TODO fix statistics
-			return new Pair<ExecRow,Iterator<ExecRow>>(lefts.next(), rights.iterator());
+            final Iterator<SparkRow> rightsIterator = rights.iterator();
+            Iterator<ExecRow> iterator = new Iterator<ExecRow>() {
+                @Override
+                public boolean hasNext() {
+                    return rightsIterator.hasNext();
+                }
+
+                @Override
+                public ExecRow next() {
+                    return rightsIterator.next().getRow();
+                }
+
+                @Override
+                public void remove() {
+                    rightsIterator.remove();
+                }
+            };
+			return new Pair<ExecRow,Iterator<ExecRow>>(lefts.next().getRow(), iterator);
 		}
         return null;
     }

@@ -262,15 +262,15 @@ public class UnionOperation extends SpliceBaseOperation {
         return firstResultSet.providesRDD() && secondResultSet.providesRDD();
     }
 
-    public JavaRDD<ExecRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+    public JavaRDD<SparkRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
         SpliceRuntimeContext left = spliceRuntimeContext.copy();
         SpliceRuntimeContext right = spliceRuntimeContext.copy();
         left.addPath(resultSetNumber, SpliceRuntimeContext.Side.LEFT);
         right.addPath(resultSetNumber, SpliceRuntimeContext.Side.RIGHT);
-        JavaRDD<ExecRow> firstRDD = firstResultSet.getRDD(spliceRuntimeContext, top);
-        JavaRDD<ExecRow> secondRDD = secondResultSet.getRDD(spliceRuntimeContext, top);
+        JavaRDD<SparkRow> firstRDD = firstResultSet.getRDD(spliceRuntimeContext, top);
+        JavaRDD<SparkRow> secondRDD = secondResultSet.getRDD(spliceRuntimeContext, top);
 
-        JavaRDD<ExecRow> result = firstRDD.union(secondRDD);
+        JavaRDD<SparkRow> result = firstRDD.union(secondRDD);
 //        RDDUtils.printRDD("Union result", result);
         return result;
     }

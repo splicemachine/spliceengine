@@ -133,7 +133,9 @@ public class SpliceSpark {
             }
             return localContext;
         } else {
-            conf.setSparkHome(home);
+            if (home != null) {
+                conf.setSparkHome(home);
+            }
             // conf.setJars(files);
             conf.set("spark.cores.max", cores);
             conf.set("spark.executor.memory", memory);

@@ -408,17 +408,17 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 								+ "source:" + source.prettyPrint(indentLevel + 1);
 		}
 
-    public JavaRDD<ExecRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+    public JavaRDD<SparkRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
         if (alwaysFalse) {
-            return SpliceSpark.getContext().parallelize(Collections.<ExecRow>emptyList());
+            return SpliceSpark.getContext().parallelize(Collections.<SparkRow>emptyList());
         }
-        JavaRDD<ExecRow> raw = source.getRDD(spliceRuntimeContext, top);
+        JavaRDD<SparkRow> raw = source.getRDD(spliceRuntimeContext, top);
         if (pushedToServer()) {
             // we want to avoid re-applying the PR if it has already been executed in HBase
             return raw;
         }
         final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this, spliceRuntimeContext);
-        JavaRDD<ExecRow> projected = raw.mapPartitions(new ProjectRestrictSparkOp(this, soi));
+        JavaRDD<SparkRow> projected = raw.mapPartitions(new ProjectRestrictSparkOp(this, soi));
         return projected;
     }
 
@@ -432,7 +432,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
         return source.pushedToServer();
     }
 
-    public static final class ProjectRestrictSparkOp extends SparkFlatMapOperation<ProjectRestrictOperation, Iterator<ExecRow>, ExecRow> {
+    public static final class ProjectRestrictSparkOp extends SparkFlatMapOperation<ProjectRestrictOperation, Iterator<SparkRow>, SparkRow> {
         public ProjectRestrictSparkOp() {
         }
 
@@ -440,10 +440,10 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
             super(spliceOperation, soi);
         }
 
-        public ExecRow project(ExecRow sourceRow) throws Exception {
+        public SparkRow project(SparkRow sourceRow) throws Exception {
             ExecRow result;
 
-            op.source.setCurrentRow(sourceRow);
+            op.source.setCurrentRow(sourceRow.getRow());
 
             if (op.restriction != null) {
                 DataValueDescriptor restrictBoolean = (DataValueDescriptor) op.restriction.invoke();
@@ -471,7 +471,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
             // Copy any mapped columns from the source
             for (int index = 0; index < op.projectMapping.length; index++) {
                 if (sourceRow != null && op.projectMapping[index] != -1) {
-                    DataValueDescriptor dvd = sourceRow.getColumn(op.projectMapping[index]);
+                    DataValueDescriptor dvd = sourceRow.getRow().getColumn(op.projectMapping[index]);
                     // See if the column has been marked for cloning.
                     // If the value isn't a stream, don't bother cloning it.
                     if (op.cloneMap[index] && dvd.hasStream()) {
@@ -484,27 +484,27 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
             if (RDDUtils.LOG.isDebugEnabled()) {
                 RDDUtils.LOG.debug("Projected " + sourceRow + " into " + result);
             }
-            return result;
+            return new SparkRow(sourceRow.getRowLocation(), result);
         }
 
         @Override
-        public Iterable<ExecRow> call(Iterator<ExecRow> source) throws Exception {
+        public Iterable<SparkRow> call(Iterator<SparkRow> source) throws Exception {
             return new IteratorWithContext(source);
         }
 
-        private class IteratorWithContext implements Iterable<ExecRow>, Iterator<ExecRow> {
-            private final Iterator<ExecRow> source;
+        private class IteratorWithContext implements Iterable<SparkRow>, Iterator<SparkRow> {
+            private final Iterator<SparkRow> source;
             private boolean populated;
-            private ExecRow next;
+            private SparkRow next;
             private boolean prepared = false;
             private boolean closed = false;
 
-            public IteratorWithContext(Iterator<ExecRow> source) {
+            public IteratorWithContext(Iterator<SparkRow> source) {
                 this.source = source;
             }
 
             @Override
-            public Iterator<ExecRow> iterator() {
+            public Iterator<SparkRow> iterator() {
                 return this;
             }
 
@@ -521,7 +521,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
                     }
                     next = null;
                     while(next == null && source.hasNext()) {
-                        ExecRow r = source.next();
+                        SparkRow r = source.next();
                         next = project(r);
                     }
                 } catch (Exception e) {
@@ -540,10 +540,10 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
             }
 
             @Override
-            public ExecRow next() {
+            public SparkRow next() {
                 if (hasNext())  {
                     populated = false;
-                    ExecRow result = next;
+                    SparkRow result = next;
                     next = null;
                     return result;
                 }
