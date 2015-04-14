@@ -290,4 +290,30 @@ public class IndexTransactionIT {
                 " where a = 1");
         Assert.assertEquals("Incorrect count from index table!",1l,count);
     }
+
+    @Test(expected=SQLException.class)
+    public void testCanCreateIndexAndThenRollBackIndexDisappears() throws Exception{
+        /*
+         * Create a table, create an index, rollback, and see if the index is still there
+         */
+        conn1.createStatement().execute("create table "+schemaWatcher.schemaName+".ROLLBACK_TABLE (a int, b int)");
+
+        conn1.createStatement().execute("insert into "+schemaWatcher+".ROLLBACK_TABLE (a,b) values (1,1)");
+
+        conn1.commit();
+        //this is where it broke before, make sure it doesn't now
+        conn1.createStatement().execute("create index ROLLBACK_IDX on "+schemaWatcher.schemaName+".ROLLBACK_TABLE(a)");
+
+        //commit and verify that all is well
+        conn1.rollback();
+        try{
+            conn1.count("select * from "+schemaWatcher+".ROLLBACK_TABLE --SPLICE-PROPERTIES index=ROLLBACK_IDX \n"+
+                    " where a = 1");
+            Assert.fail("Did not throw an error!!");
+        }catch(SQLException se){
+            Assert.assertEquals(ErrorState.LANG_INVALID_FORCED_INDEX1.getSqlState(),se.getSQLState());
+            throw se;
+        }
+
+    }
 }
