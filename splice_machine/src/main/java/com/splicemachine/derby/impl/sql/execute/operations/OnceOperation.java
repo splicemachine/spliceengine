@@ -258,16 +258,16 @@ public class OnceOperation extends SpliceBaseOperation {
 		}
 
     private static class IteratorRowSource implements RowSource {
-        private final Iterator<ExecRow> iterator;
+        private final Iterator<SparkRow> iterator;
 
-        public IteratorRowSource(Iterator<ExecRow> iterator) {
+        public IteratorRowSource(Iterator<SparkRow> iterator) {
             this.iterator = iterator;
         }
 
         @Override
         public ExecRow next() throws StandardException, IOException {
             if (iterator.hasNext()) {
-                return iterator.next();
+                return iterator.next().getRow();
             } else {
                 return null;
             }
@@ -424,20 +424,20 @@ public class OnceOperation extends SpliceBaseOperation {
 				return row;
 		}
 
-    public JavaRDD<ExecRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-        JavaRDD<ExecRow> raw = source.getRDD(spliceRuntimeContext, top);
+    public JavaRDD<SparkRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+        JavaRDD<SparkRow> raw = source.getRDD(spliceRuntimeContext, top);
         if (pushedToServer()) {
             // we want to avoid re-applying the OnceOp if it has already been executed in HBase
             return raw;
         }
-        final Iterator<ExecRow> iterator = raw.toLocalIterator();
+        final Iterator<SparkRow> iterator = raw.toLocalIterator();
         ExecRow result;
         try {
             result = validateNextRow(new IteratorRowSource(iterator), false);
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
-        return SpliceSpark.getContext().parallelize(Lists.newArrayList(result));
+        return SpliceSpark.getContext().parallelize(Lists.newArrayList(new SparkRow(result)));
     }
 
     @Override
@@ -458,7 +458,7 @@ public class OnceOperation extends SpliceBaseOperation {
 
     @Override
     public SpliceNoPutResultSet executeRDD(SpliceRuntimeContext runtimeContext) throws StandardException {
-        JavaRDD<ExecRow> rdd = getRDD(runtimeContext, this);
+        JavaRDD<SparkRow> rdd = getRDD(runtimeContext, this);
         if (LOG.isInfoEnabled()) {
             LOG.info("RDD for operation " + this + " :\n " + rdd.toDebugString());
         }

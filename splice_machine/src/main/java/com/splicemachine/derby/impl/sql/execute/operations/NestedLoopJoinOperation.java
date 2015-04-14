@@ -23,6 +23,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.function.Function;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -354,14 +355,19 @@ public class NestedLoopJoinOperation extends JoinOperation {
     }
 
     @Override
-    public JavaRDD<ExecRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-        JavaRDD<ExecRow> left = leftResultSet.getRDD(spliceRuntimeContext, leftResultSet);
+    public JavaRDD<SparkRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+        JavaRDD<SparkRow> left = leftResultSet.getRDD(spliceRuntimeContext, leftResultSet);
         final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this, spliceRuntimeContext);
-        return left.flatMap(new NLJSparkOperation(this, soi));
+        return left.flatMap(new NLJSparkOperation(this, soi)).map(new Function<ExecRow, SparkRow>() {
+            @Override
+            public SparkRow call(ExecRow execRow) throws Exception {
+                return new SparkRow(execRow);
+            }
+        });
     }
 
 
-    public static final class NLJSparkOperation extends SparkFlatMapOperation<NestedLoopJoinOperation, ExecRow, ExecRow> {
+    public static final class NLJSparkOperation extends SparkFlatMapOperation<NestedLoopJoinOperation, SparkRow, ExecRow> {
         private NestedLoopIterator nestedLoopIterator;
         private byte[] rightResultSetUniqueSequenceID;
 
@@ -373,15 +379,15 @@ public class NestedLoopJoinOperation extends JoinOperation {
         }
 
         @Override
-        public Iterable<ExecRow> call(ExecRow sourceRow) throws Exception {
+        public Iterable<ExecRow> call(SparkRow sourceRow) throws Exception {
             if (sourceRow == null) {
                 return null;
             }
-            op.leftResultSet.setCurrentRow(sourceRow);
+            op.leftResultSet.setCurrentRow(sourceRow.getRow());
             if (rightResultSetUniqueSequenceID == null) {
                 rightResultSetUniqueSequenceID = op.rightResultSet.getUniqueSequenceID();
             }
-            nestedLoopIterator = op.createNestedLoopIterator(sourceRow, op.isHash, soi.getSpliceRuntimeContext(), false, true);
+            nestedLoopIterator = op.createNestedLoopIterator(sourceRow.getRow(), op.isHash, soi.getSpliceRuntimeContext(), false, true);
             return nestedLoopIterator;
         }
     }

@@ -392,14 +392,14 @@ public class NormalizeOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public JavaRDD<ExecRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-        JavaRDD<ExecRow> raw = source.getRDD(spliceRuntimeContext, top);
+    public JavaRDD<SparkRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+        JavaRDD<SparkRow> raw = source.getRDD(spliceRuntimeContext, top);
         if (pushedToServer()) {
             // we want to avoid re-applying the PR if it has already been executed in HBase
             return raw;
         }
         final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this, spliceRuntimeContext);
-        JavaRDD<ExecRow> normalized = raw.map(new NormalizeSparkOperation(this, soi));
+        JavaRDD<SparkRow> normalized = raw.map(new NormalizeSparkOperation(this, soi));
         return normalized;
     }
 
@@ -409,7 +409,7 @@ public class NormalizeOperation extends SpliceBaseOperation {
     }
 
 
-    public static final class NormalizeSparkOperation extends SparkOperation<NormalizeOperation, ExecRow, ExecRow> {
+    public static final class NormalizeSparkOperation extends SparkOperation<NormalizeOperation, SparkRow, SparkRow> {
 
         private static final long serialVersionUID = 7780564699906451370L;
 
@@ -417,14 +417,14 @@ public class NormalizeOperation extends SpliceBaseOperation {
         }
 
         @Override
-        public ExecRow call(ExecRow sourceRow) throws Exception {
-            op.source.setCurrentRow(sourceRow);
+        public SparkRow call(SparkRow sourceRow) throws Exception {
+            op.source.setCurrentRow(sourceRow.getRow());
             ExecRow normalized = null;
             if (sourceRow != null) {
-                normalized = op.normalizeRow(sourceRow, true);
+                normalized = op.normalizeRow(sourceRow.getRow(), true);
             }
             activation.setCurrentRow(normalized, op.resultSetNumber);
-            return normalized;
+            return new SparkRow(sourceRow.getRowLocation(), normalized);
         }
 
         public NormalizeSparkOperation(NormalizeOperation normalizeOperation, SpliceObserverInstructions soi) {

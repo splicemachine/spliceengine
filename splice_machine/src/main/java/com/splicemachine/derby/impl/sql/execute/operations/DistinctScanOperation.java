@@ -48,6 +48,7 @@ import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.spark.api.java.function.Function;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -415,7 +416,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
     }
 
     @Override
-    public JavaRDD<ExecRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+    public JavaRDD<SparkRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
         assert currentTemplate != null: "Current Template Cannot Be Null";
         int[] execRowTypeFormatIds = new int[currentTemplate.nColumns()];
         for (int i = 0; i< currentTemplate.nColumns(); i++) {
@@ -457,6 +458,6 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
 
         JavaPairRDD<RowLocation, ExecRow> rawRDD = ctx.newAPIHadoopRDD(conf, SMInputFormat.class,
                 RowLocation.class, ExecRow.class);
-        return rawRDD.values().distinct(); //.map(new SparkDecoder(this,soi,top)); // This is not right, should pass location as well.
+        return RDDUtils.toSparkRows(rawRDD.values().distinct());
     }
 }

@@ -7,6 +7,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.spark.RDDUtils;
 import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.impl.storage.RowProviders;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
@@ -162,7 +163,7 @@ public class CachedOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public JavaRDD<ExecRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-        return SpliceSpark.getContext().parallelize(rows);
+    public JavaRDD<SparkRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+        return RDDUtils.toSparkRows(SpliceSpark.getContext().parallelize(rows));
     }
 }

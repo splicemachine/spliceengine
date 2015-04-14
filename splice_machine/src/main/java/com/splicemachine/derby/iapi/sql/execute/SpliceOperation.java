@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.List;
 
 import com.splicemachine.derby.impl.sql.execute.operations.OperationInformation;
+import com.splicemachine.derby.impl.sql.execute.operations.SparkRow;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.job.JobResults;
@@ -244,7 +245,7 @@ public interface SpliceOperation extends StandardCloseable {
      */
     public boolean expectsRDD();
 
-    public JavaRDD<ExecRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException;
+    public JavaRDD<SparkRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException;
 
     /**
      *

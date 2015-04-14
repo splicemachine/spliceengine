@@ -47,6 +47,7 @@ import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 
+import org.apache.spark.api.java.function.Function;
 import scala.Tuple2;
 
 import java.io.IOException;
@@ -392,7 +393,7 @@ public class TableScanOperation extends ScanOperation {
         }
 
         @Override
-        public JavaRDD<ExecRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+        public JavaRDD<SparkRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
         	assert currentTemplate != null: "Current Template Cannot Be Null";        	
         	int[] execRowTypeFormatIds = new int[currentTemplate.nColumns()];
         	for (int i = 0; i< currentTemplate.nColumns(); i++) {
@@ -423,44 +424,12 @@ public class TableScanOperation extends ScanOperation {
 
             JavaPairRDD<RowLocation, ExecRow> rawRDD = ctx.newAPIHadoopRDD(conf, SMInputFormat.class,
                     RowLocation.class, ExecRow.class);
-            return rawRDD.values(); //.map(new SparkDecoder(this,soi,top)); // This is not right, should pass location as well.
-        }
-        
-        private static final class SparkDecoder extends SparkOperation<TableScanOperation, Tuple2<RowLocation, ExecRow>, ExecRow> {
-            private SpliceOperation top;
-            private static final long serialVersionUID = 3958079974858059941L;
-            transient ExecRow template;
-
-            public SparkDecoder() {
-            }
-
-            public SparkDecoder(TableScanOperation tableScanOperation, SpliceObserverInstructions soi, SpliceOperation top) {
-                super(tableScanOperation, soi);
-                this.top = top;
-            }
-
-            @Override
-            public void readExternalInContext(ObjectInput in) throws IOException, ClassNotFoundException{
-                top = (SpliceOperation) in.readObject();
-                try {
-					top.init(context);
-				} catch (StandardException e) {
-					throw new IOException(e);
-				}
-            }
-
-            @Override
-            public void writeExternal(ObjectOutput out) throws IOException {
-            	super.writeExternal(out);
-                out.writeObject(top);
-            }
-
-            @Override
-            public ExecRow call(Tuple2<RowLocation, ExecRow> t) throws Exception {
-                if (RDDUtils.LOG.isDebugEnabled()) {
-                    RDDUtils.LOG.debug("Returning row: " + t._2 + " with id " + System.identityHashCode(t._2));
+            return rawRDD.map(new Function<Tuple2<RowLocation, ExecRow>, SparkRow>() {
+                @Override
+                public SparkRow call(Tuple2<RowLocation, ExecRow> tuple) throws Exception {
+                    return new SparkRow(tuple._1(), tuple._2());
                 }
-                return t._2;
-            }
+            });
         }
+
 }

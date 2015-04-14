@@ -321,27 +321,27 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
     }
 
     @Override
-    public JavaRDD<ExecRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-        JavaRDD<ExecRow> rdd = source.getRDD(spliceRuntimeContext, this);
+    public JavaRDD<SparkRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+        JavaRDD<SparkRow> rdd = source.getRDD(spliceRuntimeContext, this);
         final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this, spliceRuntimeContext);
 
         if (LOG.isInfoEnabled()) {
             LOG.info("RDD for operation " + this + " :\n " + rdd.toDebugString());
         }
-        ExecRow result = rdd.fold(null, new SparkAggregator(this, soi));
+        SparkRow result = rdd.fold(null, new SparkAggregator(this, soi));
         if (result == null) {
-            return SpliceSpark.getContext().parallelize(Lists.newArrayList(getExecRowDefinition()));
+            return SpliceSpark.getContext().parallelize(Lists.newArrayList(new SparkRow(getExecRowDefinition())));
         }
 
         if (!(result instanceof ExecIndexRow)) {
-            sourceExecIndexRow.execRowToExecIndexRow(result);
-            initializeVectorAggregation(result);
+            sourceExecIndexRow.execRowToExecIndexRow(result.getRow());
+            initializeVectorAggregation(result.getRow());
         }
-        finishAggregation(result);
-        return SpliceSpark.getContext().parallelize(Lists.newArrayList(result), 1);
+        finishAggregation(result.getRow());
+        return SpliceSpark.getContext().parallelize(Lists.newArrayList(new SparkRow(result.getRow())), 1);
     }
 
-    private static final class SparkAggregator extends SparkOperation2<ScalarAggregateOperation, ExecRow, ExecRow, ExecRow> {
+    private static final class SparkAggregator extends SparkOperation2<ScalarAggregateOperation, SparkRow, SparkRow, SparkRow> {
         private static final long serialVersionUID = -4150499166764796082L;
 
 
@@ -353,7 +353,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
         }
 
         @Override
-        public ExecRow call(ExecRow t1, ExecRow t2) throws Exception {
+        public SparkRow call(SparkRow t1, SparkRow t2) throws Exception {
             if (t2 == null) {
                 return t1;
             }
@@ -363,14 +363,15 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
             if (RDDUtils.LOG.isDebugEnabled()) {
                 RDDUtils.LOG.debug(String.format("Reducing %s and %s", t1, t2));
             }
-            if (!(t1 instanceof ExecIndexRow)) {
-                t1 = new IndexValueRow(t1);
+            ExecRow r1 = t1.getRow();
+            if (!(r1 instanceof ExecIndexRow)) {
+                r1 = new IndexValueRow(r1);
             }
-            if (!op.isInitialized(t1)) {
-                op.initializeVectorAggregation(t1);
+            if (!op.isInitialized(r1)) {
+                op.initializeVectorAggregation(r1);
             }
-            aggregate(t2, (ExecIndexRow) t1);
-            return t1;
+            aggregate(t2.getRow(), (ExecIndexRow) r1);
+            return new SparkRow(r1);
         }
 
         private void aggregate(ExecRow next, ExecIndexRow agg) throws StandardException {

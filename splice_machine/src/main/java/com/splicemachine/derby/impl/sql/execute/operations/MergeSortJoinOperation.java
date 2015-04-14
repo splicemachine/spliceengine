@@ -461,7 +461,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
     };
 
     @Override
-    public JavaRDD<ExecRow> getRDD(SpliceRuntimeContext runtimeContext, SpliceOperation top) throws StandardException {
+    public JavaRDD<SparkRow> getRDD(SpliceRuntimeContext runtimeContext, SpliceOperation top) throws StandardException {
         SpliceRuntimeContext spliceLRuntimeContext = runtimeContext.copy();
         spliceLRuntimeContext.addLeftRuntimeContext(resultSetNumber);
         spliceLRuntimeContext.setStatementInfo(runtimeContext.getStatementInfo());
@@ -469,8 +469,8 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         spliceRRuntimeContext.addRightRuntimeContext(resultSetNumber);
         spliceRRuntimeContext.setStatementInfo(runtimeContext.getStatementInfo());
 
-        JavaPairRDD<ExecRow, ExecRow> leftRDD = RDDUtils.getKeyedRDD(leftResultSet.getRDD(spliceLRuntimeContext, leftResultSet), leftHashKeys);
-        JavaPairRDD<ExecRow, ExecRow> rightRDD = RDDUtils.getKeyedRDD(rightResultSet.getRDD(spliceRRuntimeContext, rightResultSet), rightHashKeys);
+        JavaPairRDD<ExecRow, SparkRow> leftRDD = RDDUtils.getKeyedRDD(leftResultSet.getRDD(spliceLRuntimeContext, leftResultSet), leftHashKeys);
+        JavaPairRDD<ExecRow, SparkRow> rightRDD = RDDUtils.getKeyedRDD(rightResultSet.getRDD(spliceRRuntimeContext, rightResultSet), rightHashKeys);
 
 //        JavaPairRDD<ExecRow, ExecRow> sortedRight = rightRDD.sortByKey(new RowComparator(new boolean[rightHashKeys.length]));
 //        JavaPairRDD<ExecRow, ExecRow> sortedLeft = leftRDD.repartitionAndSortWithinPartitions(rightRDD.rdd().partitioner().get(), new RowComparator(new boolean[leftHashKeys.length]));
@@ -480,8 +480,8 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
                 .values().map(new SetupActivation(this, soi));
     }
 
-    protected JavaPairRDD<ExecRow, ExecRow> joinRDDs(JavaPairRDD<ExecRow, ExecRow> leftRDD,
-                                                     JavaPairRDD<ExecRow, ExecRow> rightRDD,
+    protected JavaPairRDD<ExecRow, SparkRow> joinRDDs(JavaPairRDD<ExecRow, SparkRow> leftRDD,
+                                                     JavaPairRDD<ExecRow, SparkRow> rightRDD,
                                                      SpliceObserverInstructions soi) {
         boolean outer = isOuter();
         return leftRDD.cogroup(rightRDD).flatMapValues(new SparkJoiner(this, soi, outer));
@@ -491,7 +491,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         return false;
     }
 
-    private static final class SparkJoiner extends SparkOperation<MergeSortJoinOperation, Tuple2<Iterable<ExecRow>, Iterable<ExecRow>>, Iterable<ExecRow>> {
+    private static final class SparkJoiner extends SparkOperation<MergeSortJoinOperation, Tuple2<Iterable<SparkRow>, Iterable<SparkRow>>, Iterable<SparkRow>> {
         boolean outer;
         SpliceRuntimeContext context;
 
@@ -505,8 +505,8 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         }
 
         @Override
-        public Iterable<ExecRow> call(Tuple2<Iterable<ExecRow>, Iterable<ExecRow>> source) throws Exception {
-            List<ExecRow> results = new ArrayList<ExecRow>();
+        public Iterable<SparkRow> call(Tuple2<Iterable<SparkRow>, Iterable<SparkRow>> source) throws Exception {
+            List<SparkRow> results = new ArrayList<SparkRow>();
             if (RDDUtils.LOG.isDebugEnabled()) {
                 RDDUtils.LOG.debug("Matching " + source._1() + " with " + source._2());
             }
@@ -514,12 +514,12 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
             joiner.open();
             ExecRow row;
             while ((row = joiner.nextRow(context)) != null) {
-                results.add(row);
+                results.add(new SparkRow(row));
             }
             return results;
         }
 
-        private Joiner createSparkMergeJoiner(boolean outer, Tuple2<Iterable<ExecRow>, Iterable<ExecRow>> source) {
+        private Joiner createSparkMergeJoiner(boolean outer, Tuple2<Iterable<SparkRow>, Iterable<SparkRow>> source) {
             SparkMergeSortJoinRows joinRows = new SparkMergeSortJoinRows(source);
             Restriction mergeRestriction = op.getRestriction();
 
@@ -578,7 +578,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 
     }
 
-    private static class SetupActivation extends SparkOperation<MergeSortJoinOperation, ExecRow, ExecRow> {
+    private static class SetupActivation extends SparkOperation<MergeSortJoinOperation, SparkRow, SparkRow> {
         public SetupActivation() {
         }
 
@@ -587,9 +587,9 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         }
 
         @Override
-        public ExecRow call(ExecRow execRow) throws Exception {
-            op.setCurrentRow(execRow);
-            return execRow;
+        public SparkRow call(SparkRow row) throws Exception {
+            op.setCurrentRow(row.getRow());
+            return row;
         }
     }
 }

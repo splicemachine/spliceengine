@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.spark;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.impl.sql.execute.operations.SparkRow;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
@@ -11,12 +12,14 @@ import org.apache.spark.api.java.function.PairFunction;
 
 import scala.Tuple2;
 
+import java.util.Iterator;
+
 public class RDDUtils {
     public static final Logger LOG = Logger.getLogger(RDDUtils.class);
 
-    public static JavaPairRDD<ExecRow, ExecRow> getKeyedRDD(JavaRDD<ExecRow> rdd, final int[] keyColumns)
+    public static JavaPairRDD<ExecRow, SparkRow> getKeyedRDD(JavaRDD<SparkRow> rdd, final int[] keyColumns)
             throws StandardException {
-        JavaPairRDD<ExecRow, ExecRow> keyed = rdd.keyBy(new Keyer(keyColumns));
+        JavaPairRDD<ExecRow, SparkRow> keyed = rdd.keyBy(new Keyer(keyColumns));
         return keyed;
     }
 
@@ -58,7 +61,67 @@ public class RDDUtils {
         return key;
     }
 
-    public static class Keyer implements Function<ExecRow, ExecRow> {
+    public static JavaRDD<SparkRow> toSparkRows(JavaRDD<ExecRow> execRows) {
+        return execRows.map(new Function<ExecRow, SparkRow>() {
+            @Override
+            public SparkRow call(ExecRow execRow) throws Exception {
+                return new SparkRow(execRow);
+            }
+        });
+    }
+
+    public static Iterator<ExecRow> toExecRowsIterator(final Iterator<SparkRow> sparkRowsIterator) {
+        return new Iterator<ExecRow>() {
+            @Override
+            public boolean hasNext() {
+                return sparkRowsIterator.hasNext();
+            }
+
+            @Override
+            public ExecRow next() {
+                return sparkRowsIterator.next().getRow();
+            }
+
+            @Override
+            public void remove() {
+                sparkRowsIterator.remove();
+            }
+        };
+    }
+
+    public static Iterable<SparkRow> toSparkRowsIterable(Iterable<ExecRow> execRows) {
+        return new SparkRowsIterable(execRows);
+    }
+
+    public static class SparkRowsIterable implements Iterable<SparkRow>, Iterator<SparkRow> {
+        private Iterator<ExecRow> execRows;
+
+        public SparkRowsIterable(Iterable<ExecRow> execRows) {
+            this.execRows = execRows.iterator();
+        }
+
+        @Override
+        public Iterator<SparkRow> iterator() {
+            return this;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return execRows.hasNext();
+        }
+
+        @Override
+        public SparkRow next() {
+            return new SparkRow(execRows.next());
+        }
+
+        @Override
+        public void remove() {
+            execRows.remove();
+        }
+    }
+
+    public static class Keyer implements Function<SparkRow, ExecRow> {
 
         private static final long serialVersionUID = 3988079974858059941L;
         private int[] keyColumns;
@@ -71,8 +134,8 @@ public class RDDUtils {
         }
 
         @Override
-        public ExecRow call(ExecRow row) throws Exception {
-            return RDDUtils.getKey(row, keyColumns);
+        public ExecRow call(SparkRow row) throws Exception {
+            return RDDUtils.getKey(row.getRow(), keyColumns);
         }
     }
 }
