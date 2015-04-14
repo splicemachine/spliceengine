@@ -333,7 +333,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
             return SpliceSpark.getContext().parallelize(Lists.newArrayList(new SparkRow(getExecRowDefinition())));
         }
 
-        if (!(result instanceof ExecIndexRow)) {
+        if (!(result.getRow() instanceof ExecIndexRow)) {
             sourceExecIndexRow.execRowToExecIndexRow(result.getRow());
             initializeVectorAggregation(result.getRow());
         }
