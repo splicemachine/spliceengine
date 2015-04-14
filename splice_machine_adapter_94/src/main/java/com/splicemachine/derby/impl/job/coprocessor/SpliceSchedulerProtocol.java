@@ -10,5 +10,14 @@ import java.io.IOException;
  */
 public interface SpliceSchedulerProtocol extends CoprocessorProtocol {
 
-    public TaskFutureContext[] submit(byte[] taskStart,byte[] taskStop,RegionTask task,boolean allowSplits) throws IOException;
+    /**
+     *
+     * @param taskStart
+     * @param taskStop
+     * @param taskData an encoded (using Kryo) region task to execute
+     * @param allowSplits
+     * @return an encoded list of TaskFutureContext (using Kryo)
+     * @throws IOException
+     */
+    byte[] submit(byte[] taskStart,byte[] taskStop,byte[] taskData,boolean allowSplits) throws IOException;
 }
