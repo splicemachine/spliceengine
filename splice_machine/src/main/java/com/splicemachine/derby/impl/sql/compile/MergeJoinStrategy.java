@@ -167,7 +167,15 @@ public class MergeJoinStrategy extends BaseCostedHashableJoinStrategy{
                 rowCount);
         int numPartitions = outerCost.partitionCount()*innerCost.partitionCount();
 
-        innerCost.setRowOrdering(outerCost.getRowOrdering()); //merge join inherits the sort order from the outer table
+        /*
+         * MergeJoin is sorted according to the outer table first, then the inner table
+         */
+        RowOrdering outerRowOrdering = outerCost.getRowOrdering();
+        RowOrdering innerRowOrdering = innerCost.getRowOrdering();
+        RowOrdering outputOrder = outerRowOrdering.getClone();
+        innerRowOrdering.copy(outputOrder);
+
+        innerCost.setRowOrdering(outputOrder);
         innerCost.setLocalCost(totalLocalCost);
         innerCost.setRemoteCost(totalRemoteCost);
         innerCost.setRowCount(rowCount);
@@ -221,7 +229,7 @@ public class MergeJoinStrategy extends BaseCostedHashableJoinStrategy{
                 outerColumn = (ColumnReference)bron.getLeftOperand();
 
             //TODO -sf- is this correct?
-            int outerTableNum=outerColumn.getTableNumber()+1;
+            int outerTableNum=outerColumn.getTableNumber();
             int outerColNum=outerColumn.getColumnNumber();
             if(ascending){
                 if(!outerRowOrdering.orderedOnColumn(RowOrdering.ASCENDING,outerTableNum,outerColNum))

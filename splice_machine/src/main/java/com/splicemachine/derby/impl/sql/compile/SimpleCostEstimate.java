@@ -4,8 +4,6 @@ import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.compile.RowOrdering;
 import com.splicemachine.db.iapi.store.access.SortCostController;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
-import com.splicemachine.db.iapi.store.access.StoreCostResult;
-import com.splicemachine.db.impl.sql.compile.RowOrderingImpl;
 
 import java.text.DecimalFormat;
 
@@ -92,7 +90,11 @@ public class SimpleCostEstimate implements CostEstimate{
         this.estimatedHeapSize = other.getEstimatedHeapSize();
         this.openCost = other.getOpenCost();
         this.closeCost = other.getCloseCost();
-        this.rowOrdering = other.getRowOrdering().getClone();
+        RowOrdering rowOrdering=other.getRowOrdering();
+        if(rowOrdering!=null)
+            this.rowOrdering = rowOrdering.getClone();
+        else
+            this.rowOrdering = null;
 
         CostEstimate base=other.getBase();
         if(base!=null && base != other)
@@ -156,11 +158,12 @@ public class SimpleCostEstimate implements CostEstimate{
 
     @Override
     public CostEstimate cloneMe(){
-        RowOrdering roClone = new RowOrderingImpl();
-        if(this.rowOrdering!=null)
-           this.rowOrdering.copy(roClone);
+        RowOrdering roClone = null;
+        if(this.rowOrdering!=null){
+            roClone =this.rowOrdering.getClone();
+        }
         SimpleCostEstimate clone=new SimpleCostEstimate(localCost,remoteCost,numRows,singleScanRowCount,numPartitions);
-        clone.setRowOrdering(rowOrdering.getClone());
+        clone.setRowOrdering(roClone);
         clone.setEstimatedHeapSize(estimatedHeapSize);
         clone.setOpenCost(openCost);
         clone.setCloseCost(closeCost);

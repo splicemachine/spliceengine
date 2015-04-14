@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.store.access;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.AccessPath;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
+import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.AggregateCostController;
@@ -64,16 +65,20 @@ public class TempGroupedAggregateCostController implements AggregateCostControll
         for(OrderedColumn oc:groupingList){
             ValueNode colExprValue=oc.getColumnExpression();
             if(colExprValue instanceof UnaryOperatorNode){
-                colExprValue = ((UnaryOperatorNode)colExprValue).getOperand();
+                colExprValue=((UnaryOperatorNode)colExprValue).getOperand();
             }
             assert colExprValue!=null;
-            assert colExprValue instanceof ColumnReference: "Programmer error: unexpected type:"+colExprValue.getClass();
+            assert colExprValue instanceof ColumnReference:"Programmer error: unexpected type:"+colExprValue.getClass();
 
             ColumnReference ref=(ColumnReference)colExprValue;
             StoreCostController storeCostController=getStoreCostForColumn(ref);
-            double c=storeCostController.cardinalityFraction(ref.getSourceResultColumn().getColumnPosition());
-            overallCardinalityFraction*=c;
-            sumCardFrac+=c;
+            double card;
+            if(storeCostController!=null)
+                card=storeCostController.cardinalityFraction(ref.getSourceResultColumn().getColumnPosition());
+            else
+                card = 1d; //when in doubt, say it doesn't reduce anything
+            overallCardinalityFraction*=card;
+            sumCardFrac+=card;
         }
 
         double cardFraction = sumCardFrac-overallCardinalityFraction;
@@ -131,9 +136,6 @@ public class TempGroupedAggregateCostController implements AggregateCostControll
         newEstimate.setLocalCost(seqLocalCost);
         newEstimate.setRemoteCost(seqRemoteCost);
 
-        //because this is a parallel sink algorithm, the underlying cost should not include any remote cost
-        baseCost.setRemoteCost(0d);
-
         return newEstimate;
     }
 
@@ -145,6 +147,13 @@ public class TempGroupedAggregateCostController implements AggregateCostControll
         assert exprNode instanceof VirtualColumnNode: "Programmer error: unexpected type "+ exprNode.getClass();
 
         VirtualColumnNode col = (VirtualColumnNode)exprNode;
+
+        ValueNode newRef = ref.getSourceResultColumn().getExpression();
+        if(newRef instanceof UnaryOperatorNode){
+            newRef = ((UnaryOperatorNode)newRef).getOperand();
+        }
+        if(newRef instanceof ColumnReference)
+            ref = (ColumnReference)newRef; //get the base result column expression
 
         ResultSetNode rsn = col.getSourceResultSet();
         assert rsn!=null;
@@ -208,7 +217,19 @@ public class TempGroupedAggregateCostController implements AggregateCostControll
                 }
                 return null;
             }else return scc;
-        }else{
+        }else if(rsn instanceof SelectNode){
+            //aggregate over a join, look through each node in the FromList
+            SelectNode sn = (SelectNode)rsn;
+            FromList fl = sn.getFromList();
+            int size=fl.size();
+            for(int i=0;i<size;i++){
+                Optimizable o = fl.getOptimizable(i);
+                assert o instanceof ResultSetNode: "Programmer error: unexpected type "+ o.getClass();
+                StoreCostController scc = findConglomerateDescriptor(ref,(ResultSetNode)o);
+                if(scc!=null) return scc;
+            }
+            return null;
+        } else{
             throw new IllegalStateException("Programmer Error: Unexpected node type: "+rsn.getClass());
         }
     }

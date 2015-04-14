@@ -38,7 +38,26 @@ public class TempScalarAggregateCostController implements AggregateCostControlle
          */
         CostEstimate newEstimate = baseCost.cloneMe();
         int mapRows = baseCost.partitionCount();
-        double remoteCostPerRow=baseCost.remoteCost()/baseCost.rowCount();
+        double baseRc = baseCost.rowCount();
+        double remoteCostPerRow;
+        double outputHeapSize;
+        double localCostPerRow;
+        if(baseRc==0d){
+            /*
+             * Scalar Aggregates always emit a single record, so we need
+             * some kind of heap size. However, since we have no rows, we have
+             * no idea what that size will be. In that case, we pick an arbitrary
+             * size which seems to empirically line up with the size of a single
+             * aggregate
+             */
+            outputHeapSize = 70;
+            localCostPerRow = baseCost.localCost();
+            remoteCostPerRow = baseCost.remoteCost();
+        }else{
+            outputHeapSize=baseCost.getEstimatedHeapSize()/baseRc;
+            localCostPerRow=baseCost.localCost()/baseRc;
+            remoteCostPerRow=baseCost.remoteCost()/baseRc;
+        }
         /*
          * In general, Scalar Aggregates will do one task per partition. Therefore,
          * to make our costs a bit more realistic (and reflect that difference), we assume
@@ -49,23 +68,15 @@ public class TempScalarAggregateCostController implements AggregateCostControlle
          */
         double mapCost = baseCost.localCost()/baseCost.partitionCount()+remoteCostPerRow;
 
-        double localCostPerRow = baseCost.localCost()/baseCost.rowCount();
         double reduceLocalCost = localCostPerRow*mapRows;
 
         double totalLocalCost = reduceLocalCost+mapCost;
-        double outputHeapSize = baseCost.getEstimatedHeapSize()/baseCost.rowCount();
 
         newEstimate.setNumPartitions(1);
         newEstimate.setRemoteCost(remoteCostPerRow);
         newEstimate.setLocalCost(totalLocalCost);
         newEstimate.setEstimatedRowCount(1);
         newEstimate.setEstimatedHeapSize((long)outputHeapSize);
-        /*
-         * the TEMP-based ScalarAggregate algorithm sinks data in parallel, so the underlying
-         * operation doesn't read data over the network. Thus, to make interpreting the EXPLAIN results
-         * easier, we make the underlying cost estimate not include a remote cost.
-         */
-        baseCost.setRemoteCost(0d);
 
         return newEstimate;
     }
