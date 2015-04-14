@@ -477,7 +477,7 @@ public class SpliceDriver {
             ObjectName txnStoreName = new ObjectName("com.splicemachine.txn:type=TxnStoreManagement");
             mbs.registerMBean(TransactionStorage.getTxnStoreManagement(), txnStoreName);
 
-            ImportTaskManagementStats.registerJMX(mbs);
+            ImportTaskManagementStats.getInstance().registerJMX(mbs);
 
         } catch (MalformedObjectNameException | NotCompliantMBeanException | InstanceAlreadyExistsException | MBeanRegistrationException e) {
             //we want to log the message, but this shouldn't affect startup

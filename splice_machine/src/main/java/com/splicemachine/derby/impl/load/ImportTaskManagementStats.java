@@ -54,7 +54,7 @@ public class ImportTaskManagementStats implements ImportTaskManagement {
 	/**
 	 *  Singleton factory method.
 	 */
-	public static ImportTaskManagementStats getImportTaskManagementStats() {
+	public static ImportTaskManagementStats getInstance() {
 		return stats;
 	}
 
@@ -67,7 +67,7 @@ public class ImportTaskManagementStats implements ImportTaskManagement {
 	 * @throws InstanceAlreadyExistsException
 	 * @throws MBeanRegistrationException
 	 */
-	public static void registerJMX(MBeanServer mbs)
+	public void registerJMX(MBeanServer mbs)
 			throws MalformedObjectNameException,
 			NotCompliantMBeanException,
 			InstanceAlreadyExistsException,
@@ -81,7 +81,7 @@ public class ImportTaskManagementStats implements ImportTaskManagement {
 	 * @param importTaskPath
 	 * @param importFilePath
 	 */
-	public static void initialize(String importTaskPath, String importFilePath) {
+	public void initialize(String importTaskPath, String importFilePath) {
 		if (importTaskPath == null) return;
 		importedRowsMap.put(importTaskPath, 0l);
 		badRowsMap.put(importTaskPath, 0l);
@@ -93,7 +93,7 @@ public class ImportTaskManagementStats implements ImportTaskManagement {
 	 *
 	 * @param importTaskPath
 	 */
-	public static void cleanup(String importTaskPath) {
+	public void cleanup(String importTaskPath) {
 		if (importTaskPath == null) return;  // This can happen for RollForward tasks that are not distributed, thus they do not have nodes in ZooKeeper.
 		importedRowsMap.remove(importTaskPath);
 		badRowsMap.remove(importTaskPath);
@@ -106,7 +106,7 @@ public class ImportTaskManagementStats implements ImportTaskManagement {
 	 * @param importTaskPath
 	 * @param rowCount
 	 */
-	public static void setImportedRowCount(String importTaskPath, long rowCount) {
+	public void setImportedRowCount(String importTaskPath, long rowCount) {
 		importedRowsMap.put(importTaskPath, rowCount);
 	}
 
@@ -116,29 +116,20 @@ public class ImportTaskManagementStats implements ImportTaskManagement {
 	 * @param importTaskPath
 	 * @param rowCount
 	 */
-	public static void setBadRowCount(String importTaskPath, long rowCount) {
+	public void setBadRowCount(String importTaskPath, long rowCount) {
 		badRowsMap.put(importTaskPath, rowCount);
 	}
 
-	/* (non-Javadoc)
-	 * @see com.splicemachine.derby.impl.load.ImportTaskManagement#getTotalImportedRowsByTaskPath()
-	 */
 	@Override
 	public Map<String, Long> getTotalImportedRowsByTaskPath() {
 		return importedRowsMap;
 	}
 
-	/* (non-Javadoc)
-	 * @see com.splicemachine.derby.impl.load.ImportTaskManagement#getTotalBadRowsByTaskPath()
-	 */
 	@Override
 	public Map<String, Long> getTotalBadRowsByTaskPath() {
 		return badRowsMap;
 	}
 
-	/* (non-Javadoc)
-	 * @see com.splicemachine.derby.impl.load.ImportTaskManagement#getImportFilePathsByTaskPath()
-	 */
 	@Override
 	public Map<String, String> getImportFilePathsByTaskPath() {
 		return filePathsMap;

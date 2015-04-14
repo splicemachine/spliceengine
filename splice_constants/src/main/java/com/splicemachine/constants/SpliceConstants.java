@@ -391,19 +391,19 @@ public class SpliceConstants {
 		 * It may not be exactly 10,000 rows since it is based on checking row counts after a "batch" of rows has been written
 		 * and the batches can be smaller than or larger than the configured row count here.
 		 *
-		 * Defaults to 10000 rows.
+		 * Defaults to 1000000 rows.
 		 */
 		@Parameter public static final String IMPORT_TASK_STATUS_REPORTING_ROWCOUNT = "splice.import.task.status.reporting.rowcount";
-		@DefaultValue(IMPORT_TASK_STATUS_REPORTING_ROWCOUNT) public static final long DEFAULT_IMPORT_TASK_STATUS_REPORTING_ROWCOUNT = 10000l;
+		@DefaultValue(IMPORT_TASK_STATUS_REPORTING_ROWCOUNT) public static final long DEFAULT_IMPORT_TASK_STATUS_REPORTING_ROWCOUNT = 1000000l;
 		public static Long importTaskStatusReportingRowCount;
 
 		/**
 		 * Interval of time (in milliseconds) to log the status of all running import tasks to the import job status log.
 		 *
-		 * Defaults to 10000 ms.
+		 * Defaults to 60000 ms.
 		 */
 		@Parameter public static final String IMPORT_TASK_STATUS_LOGGING_INTERVAL = "splice.import.task.status.logging.interval";
-		@DefaultValue(IMPORT_TASK_STATUS_LOGGING_INTERVAL) public static final long DEFAULT_IMPORT_TASK_STATUS_LOGGING_INTERVAL = 10000l;
+		@DefaultValue(IMPORT_TASK_STATUS_LOGGING_INTERVAL) public static final long DEFAULT_IMPORT_TASK_STATUS_LOGGING_INTERVAL = 60000l;
 		public static Long importTaskStatusLoggingInterval;
 
 		//common SI fields
