@@ -1,6 +1,10 @@
 package com.splicemachine.derby.impl.job.coprocessor;
 
+import com.esotericsoftware.kryo.Kryo;
+import com.esotericsoftware.kryo.io.Input;
+import com.esotericsoftware.kryo.io.Output;
 import com.google.common.base.Throwables;
+import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -13,6 +17,7 @@ import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.ZkUtils;
 
+import com.splicemachine.utils.kryo.KryoPool;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.coprocessor.BaseEndpointCoprocessor;
@@ -78,20 +83,34 @@ public class CoprocessorTaskScheduler extends BaseEndpointCoprocessor implements
     }
 
 		@Override
-		public TaskFutureContext[] submit(byte[] taskStart,byte[] taskEnd,final RegionTask task,boolean allowSplits) throws IOException {
+		public byte[] submit(byte[] taskStart,byte[] taskEnd,final byte[] taskBytes,boolean allowSplits) throws IOException {
 				RegionCoprocessorEnvironment rce = (RegionCoprocessorEnvironment)this.getEnvironment();
 
-        //make sure that the task is fully contained within this region
-				HRegion region = rce.getRegion();
-				if(region.isClosed()|| region.isClosing())
-						throw new NotServingRegionException("Region "+ region.getRegionNameAsString()+" is closing");
-        if(!HRegionUtil.containsRange(region,taskStart,taskEnd))
-            throw new IncorrectRegionException("Incorrect region for Task submission");
-				if(!SpliceDriver.driver().isStarted())
-						throw new ServerNotRunningYetException("Cannot submit tasks until Server is fully online. Please retry");
+			//make sure that the task is fully contained within this region
+			HRegion region = rce.getRegion();
+			if(region.isClosed()|| region.isClosing())
+				throw new NotServingRegionException("Region "+ region.getRegionNameAsString()+" is closing");
+			if(!HRegionUtil.containsRange(region,taskStart,taskEnd))
+				throw new IncorrectRegionException("Incorrect region for Task submission");
+			if(!SpliceDriver.driver().isStarted())
+				throw new ServerNotRunningYetException("Cannot submit tasks until Server is fully online. Please retry");
 
-				Collection<SizedInterval> splitPoints = split(task,taskStart,taskEnd,allowSplits);
-				return submitAll(task, splitPoints, rce);
+			KryoPool kryoPool=SpliceKryoRegistry.getInstance();
+			Kryo kryo =kryoPool.get();
+			try{
+				RegionTask task = (RegionTask)kryo.readClassAndObject(new Input(taskBytes));
+				Collection<SizedInterval> splitPoints=split(task,taskStart,taskEnd,allowSplits);
+				TaskFutureContext[] taskFutureContexts=submitAll(task,splitPoints,rce);
+				Output output = new Output(128,-1);
+				output.writeInt(taskFutureContexts.length);
+				for(TaskFutureContext tfc:taskFutureContexts){
+					kryo.writeObject(output,tfc);
+				}
+				output.flush();
+				return output.toBytes();
+			}finally{
+				kryoPool.returnInstance(kryo);
+			}
 		}
 
 		@SuppressWarnings("unchecked")

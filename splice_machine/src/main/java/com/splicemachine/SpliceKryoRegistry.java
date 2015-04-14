@@ -7,6 +7,7 @@ import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.serializers.MapSerializer;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.ddl.*;
+import com.splicemachine.derby.impl.job.coprocessor.TaskFutureContext;
 import com.splicemachine.derby.impl.job.fk.CreateFkTask;
 import com.splicemachine.derby.impl.sql.catalog.Splice_DD_Version;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
@@ -859,5 +860,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(DateStatistics.class,EXTERNALIZABLE_SERIALIZER,249);
         instance.register(ColumnStatisticsMerge.class,EXTERNALIZABLE_SERIALIZER,250);
         instance.register(CreateIncrementalBackupTask.class, EXTERNALIZABLE_SERIALIZER,251);
+        instance.register(TaskFutureContext.class, EXTERNALIZABLE_SERIALIZER,252);
     }
 }
