@@ -1097,6 +1097,7 @@ public class SpliceConstants {
         maxConcurrentWrites = config.getInt(MAX_CONCURRENT_WRITES, DEFAULT_MAX_CONCURRENT_WRITES);
         maxBufferEntries = config.getInt(BUFFER_ENTRIES, DEFAULT_MAX_BUFFER_ENTRIES);
         maxThreads = config.getInt(WRITE_THREADS_MAX,DEFAULT_WRITE_THREADS_MAX);
+        try { HBASE_ROOT_DIR = FSUtils.getRootDir(config); } catch (IOException e) {}
         remoteRead = config.getDouble(OPTIMIZER_REMOTE_READ, DEFAULT_OPTIMIZER_REMOTE_READ);
         maxTreeThreads = config.getInt(MAX_CONCURRENT_OPERATIONS,DEFAULT_MAX_CONCURRENT_OPERATIONS);
         siDelayRollForwardMaxSize = config.getInt(SI_DELAY_ROLL_FORWARD_MAX_SIZE, DEFAULT_SI_DELAY_ROLL_FORWARD_MAX_SIZE);
