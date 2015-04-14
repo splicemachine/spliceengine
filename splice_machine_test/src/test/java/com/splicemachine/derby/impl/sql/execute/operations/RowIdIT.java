@@ -265,6 +265,7 @@ public class RowIdIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore("DB-3169")
     public void testCoveringIndex() throws Exception {
         ResultSet rs  = methodWatcher.executeQuery(
                 String.format("select rowid, i, j from %s --SPLICE-PROPERTIES index=ti \n where i=1", this.getTableReference(TABLE3_NAME)));

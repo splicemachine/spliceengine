@@ -411,7 +411,7 @@ public class UpdateOperationIT {
 
     @Test
     public void testUpdateMultiColumnMultiSubSyntax() throws Exception {
-        StringBuffer sb = new StringBuffer(200);
+        StringBuilder sb = new StringBuilder(200);
         sb.append("update customer \n");
         sb.append("  set status = 'false', \n");
         sb.append("  level = ( \n");
@@ -419,7 +419,7 @@ public class UpdateOperationIT {
         sb.append("    from customer_temp custtemp \n");
         sb.append("    where custtemp.cust_id = customer.cust_id \n");
         sb.append("  )");
-        String query = String.format(sb.toString());
+        String query =sb.toString();
         int rows = methodWatcher.executeUpdate(query);
         Assert.assertEquals("incorrect num rows updated!", 5, rows);
     }
@@ -431,6 +431,7 @@ public class UpdateOperationIT {
     }
 
     @Test
+    @Ignore("DB-")
     public void testUpdateMultiColumnOneSubSyntaxWithOuterWhere() throws Exception {
         int rows = doTestUpdateMultiColumnOneSubSyntax(" where customer.cust_id <> 105");
         Assert.assertEquals("incorrect num rows updated!", 4, rows);
@@ -438,18 +439,26 @@ public class UpdateOperationIT {
 
     // Used by previous tests (testUpdateMultiColumnOneSub*)
     private int doTestUpdateMultiColumnOneSubSyntax(String outerWhere) throws Exception {
-        StringBuffer sb = new StringBuffer(200);
-        sb.append("update customer \n");
-        sb.append("  set (status, level) = ( \n");
-        sb.append("    select customer_temp.status, customer_temp.level \n");
-        sb.append("    from customer_temp \n");
-        sb.append("    where customer_temp.cust_id = customer.cust_id \n");
-        sb.append("  ) ");
-        if (outerWhere != null) {
-            sb.append(outerWhere);
+        Connection conn = methodWatcher.getOrCreateConnection();
+        conn.setAutoCommit(false);
+        try{
+            StringBuilder sb=new StringBuilder(200);
+            sb.append("update customer \n");
+            sb.append("  set (status, level) = ( \n");
+            sb.append("    select customer_temp.status, customer_temp.level \n");
+            sb.append("    from customer_temp \n");
+            sb.append("    where customer_temp.cust_id = customer.cust_id \n");
+            sb.append("  ) ");
+            if(outerWhere!=null){
+                sb.append(outerWhere);
+            }
+            String query=sb.toString();
+            try(Statement statement=conn.createStatement()){
+                return statement.executeUpdate(query);
+            }
+        }finally{
+            conn.rollback();
         }
-        String query = String.format(sb.toString());
-        return methodWatcher.executeUpdate(query);
     }
 
 }
