@@ -104,7 +104,21 @@ public class SchemaTransactionIT {
     @Test
     public void testDropSchemaNotRecognizedUntilCommit() throws Exception {
         String schemaName = "schema4".toUpperCase();
-        conn1.createStatement().execute(String.format("create schema %s",schemaName));
+        try{
+            conn1.createStatement().execute(String.format("create schema %s",schemaName));
+        }catch(SQLException se){
+            /*
+             * It's possible that the schema was leftover from a previous failure. In that case,
+             * we will get a specific error--when we see that error, we will drop the schema,
+             * then try the test over again
+             */
+            if(ErrorState.LANG_OBJECT_ALREADY_EXISTS.getSqlState().equals(se.getSQLState())){
+                conn1.createStatement().execute(String.format("drop schema %s",schemaName));
+                conn1.commit();
+                conn2.commit(); //make sure the other transaction rolls forward
+                testDropSchemaNotRecognizedUntilCommit(); //re-start the test
+            }
+        }
         conn1.commit();
         conn2.commit();
 
