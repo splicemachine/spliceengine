@@ -433,7 +433,6 @@ public class UnionNode extends SetOperatorNode{
                     orderByList,
                     tableProperties,
                     getContextManager());
-            getCostEstimate().setRowOrdering(treeTop.getCostEstimate().getRowOrdering());
         }
 
 

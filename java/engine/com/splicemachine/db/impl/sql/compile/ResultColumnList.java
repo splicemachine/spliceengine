@@ -3586,7 +3586,7 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         for(int i=sz-1;i>=0;i--){
             ResultColumn rc=elementAt(i);
             if(rc.isGenerated()){
-                assert inVisibleRange: "Encountered generated column in expected visible range at rcl["+i+"]";
+                assert !inVisibleRange: "Encountered generated column in expected visible range at rcl["+i+"]";
                 numGenerated++;
             }else{
                 // We are counting down, so as soon as we see one visible column, the rest should be th same
