@@ -219,6 +219,13 @@ public class XPlainTrace1IT extends BaseXplainIT {
 
 
     @Test
+    public void testRepeatedTableScan() throws Exception{
+        for(int i=0;i<100;i++){
+            testTableScan();
+        }
+    }
+
+    @Test
     public void testTableScan() throws Exception {
         xPlainTrace.turnOnTrace();
         String sql = "select * from " + CLASS_NAME + "." + TABLE1 + " where i > 0";
@@ -337,7 +344,7 @@ public class XPlainTrace1IT extends BaseXplainIT {
         operationType = child.getOperationType();
         System.out.println(operationType);
         Assert.assertTrue("No table scan found!",operationType.contains(SpliceXPlainTrace.TABLESCAN));
-        Assert.assertEquals(child.getLocalScanRows(), nrows * nrows);
+        Assert.assertEquals(nrows*nrows,child.getLocalScanRows());
         Assert.assertEquals(child.getOutputRows(), nrows);
         Assert.assertEquals(child.getIterations(), nrows);
         String info = child.getInfo();

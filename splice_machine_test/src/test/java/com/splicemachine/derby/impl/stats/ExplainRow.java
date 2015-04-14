@@ -24,7 +24,7 @@ public class ExplainRow{
 
 
     public enum Type{
-        TABLESCAN("FromBaseTable"),
+        TABLESCAN("TableScan"),
         PROJECTRESTRICT("ProjectRestrictNode"),
         INDEXLOOKUP("IndexLookup"),
         ORDERBY("OrderBy"),

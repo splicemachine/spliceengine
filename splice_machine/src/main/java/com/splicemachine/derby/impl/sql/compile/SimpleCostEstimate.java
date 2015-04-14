@@ -92,6 +92,7 @@ public class SimpleCostEstimate implements CostEstimate{
         this.estimatedHeapSize = other.getEstimatedHeapSize();
         this.openCost = other.getOpenCost();
         this.closeCost = other.getCloseCost();
+        this.rowOrdering = other.getRowOrdering().getClone();
 
         CostEstimate base=other.getBase();
         if(base!=null && base != other)
@@ -159,7 +160,7 @@ public class SimpleCostEstimate implements CostEstimate{
         if(this.rowOrdering!=null)
            this.rowOrdering.copy(roClone);
         SimpleCostEstimate clone=new SimpleCostEstimate(localCost,remoteCost,numRows,singleScanRowCount,numPartitions);
-        clone.setRowOrdering(rowOrdering);
+        clone.setRowOrdering(rowOrdering.getClone());
         clone.setEstimatedHeapSize(estimatedHeapSize);
         clone.setOpenCost(openCost);
         clone.setCloseCost(closeCost);
