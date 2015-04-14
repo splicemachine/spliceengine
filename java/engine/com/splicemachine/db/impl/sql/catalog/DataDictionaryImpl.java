@@ -2003,7 +2003,7 @@ public class DataDictionaryImpl extends BaseDataDictionary{
         boolean foundRow;
         FormatableBitSet colToCheck=new FormatableBitSet(indexCol);
 
-        assert indexId<0:"Programmer error: code needs to be enhanced to support a table scan to find the index id";
+        assert indexId>=0:"Programmer error: code needs to be enhanced to support a table scan to find the index id";
 
         colToCheck.set(indexCol-1);
 

@@ -202,4 +202,6 @@ public interface RowOrdering{
      * Copy the contents of this RowOrdering to the given RowOrdering.
      */
     void copy(RowOrdering copyTo);
+
+    RowOrdering getClone();
 }

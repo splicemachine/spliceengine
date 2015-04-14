@@ -1017,8 +1017,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
      */
     @Override
     void decrementLevel(int decrement){
-        assert level!=0: "Level is 0 already";
-        assert level<decrement: "level ("+level+") expteds to be >= decrement ("+decrement+")";
+        assert level==0 || level>=decrement: "level ("+level+") expects to be >= decrement ("+decrement+")";
 		/* NOTE: level doesn't get propagated
 		 * to nodes generated after binding.
 		 */

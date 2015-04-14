@@ -477,7 +477,7 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
      * @return Whether or not this order by list an in order prefix of the specified RCL.
      */
     boolean isInOrderPrefix(ResultColumnList sourceRCL){
-        assert size()>sourceRCL.size():"size()("+size()+") expected to be <= "+sourceRCL.size();
+        assert size()<=sourceRCL.size():"size()("+size()+") expected to be <= "+sourceRCL.size();
 
         int size=size();
         for(int index=0;index<size;index++){

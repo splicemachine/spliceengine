@@ -288,6 +288,13 @@ public class RowOrderingImpl implements RowOrdering{
     }
 
     @Override
+    public RowOrdering getClone(){
+        RowOrdering ordering = new RowOrderingImpl();
+        copy(ordering);
+        return ordering;
+    }
+
+    @Override
     public String toString(){
         String retval=null;
 
