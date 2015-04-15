@@ -7,6 +7,7 @@ import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.test.SerialTest;
 
+import com.splicemachine.test.Transactions;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -19,7 +20,7 @@ import java.sql.SQLException;
  * @author Scott Fines
  *         Date: 9/4/14
  */
-//@Category(SerialTest.class) //serial until DB-1777 is resolved
+@Category({Transactions.class})
 public class DropTableTransactionIT {
     public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(DropTableTransactionIT.class.getSimpleName().toUpperCase());
 

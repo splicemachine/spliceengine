@@ -3,7 +3,9 @@ package com.splicemachine.derby.transactions;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.pipeline.exception.ErrorState;
 
+import com.splicemachine.test.Transactions;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -19,6 +21,7 @@ import java.sql.SQLException;
  * @author Scott Fines
  * Date: 8/25/14
  */
+@Category({Transactions.class})
 public class InsertInsertTransactionIT {
 
     public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(InsertInsertTransactionIT.class.getSimpleName().toUpperCase());

@@ -1,7 +1,9 @@
 package com.splicemachine.derby.transactions;
 
 import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.test.Transactions;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -16,6 +18,7 @@ import java.sql.Statement;
  * @author Scott Fines
  *         Date: 11/10/14
  */
+@Category({Transactions.class})
 public class UpdateTransactionIT {
     private static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(UpdateTransactionIT.class.getSimpleName());
 

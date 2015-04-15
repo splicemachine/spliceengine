@@ -1,10 +1,12 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.test.Transactions;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -14,9 +16,8 @@ import java.sql.PreparedStatement;
 
 /**
  * Index tests. Using more manual SQL, rather than SpliceIndexWatcher.
- * @see NonUniqueIndexTest
- * @see UniqueIndexTest
  */
+@Category({Transactions.class})
 public class WriteWriteRollbackIT extends SpliceUnitTest { 
     public static final String CLASS_NAME = WriteWriteRollbackIT.class.getSimpleName().toUpperCase();
 

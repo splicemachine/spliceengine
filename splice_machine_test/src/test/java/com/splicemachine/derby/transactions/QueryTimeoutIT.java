@@ -1,27 +1,18 @@
 package com.splicemachine.derby.transactions;
 
-import static junit.framework.Assert.assertEquals;
+import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.Transactions;
+import org.junit.*;
+import org.junit.experimental.categories.Category;
+import org.junit.rules.RuleChain;
+import org.junit.rules.TestRule;
+import org.junit.runner.Description;
 
 import java.io.File;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-
-import org.junit.After;
-import org.junit.Assert;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Test;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TestRule;
-import org.junit.runner.Description;
-
-import com.splicemachine.derby.test.framework.SpliceDataWatcher;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.homeless.TestUtils;
 
 /**
  * ITs relating to transactional behavior when queries time out.
@@ -33,6 +24,7 @@ import com.splicemachine.homeless.TestUtils;
  * @author Jeff Cunningham
  *         Date: 12/8/14
  */
+@Category({Transactions.class})
 public class QueryTimeoutIT extends SpliceUnitTest {
     private static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(QueryTimeoutIT.class.getSimpleName());
 
