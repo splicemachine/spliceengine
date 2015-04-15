@@ -10,9 +10,6 @@ import java.sql.*;
  */
 public class SpliceXPlainTrace extends XPlainTrace{
 
-    private static final String STATEMENT_TABLE = "SYS.SYSSTATEMENTHISTORY";
-    private static final String TASK_TABLE = "SYS.SYSTASKHISTORY";
-
     public static final String TABLESCAN = "TableScan";
     public static final String BULKTABLESCAN = "BulkTableScan";
     public static final String PROJECTRESTRICT = "ProjectRestrict";
@@ -35,39 +32,10 @@ public class SpliceXPlainTrace extends XPlainTrace{
     public static final String IMPORT = "IMPORT";
 
     private TestConnection testConn;
-    private PreparedStatement countStatementPs;
-    private PreparedStatement countOperationPs;
     private CallableStatement disableXPlainTracePs;
     private CallableStatement enableXPlainTracePs;
 
     public SpliceXPlainTrace () {
-    }
-
-    private void waitForStatement(long statementId) throws Exception{
-        System.out.println(statementId);
-        if(countStatementPs==null){
-            countStatementPs = testConn.prepareStatement("select count(*) from " + STATEMENT_TABLE + " where statementid = ?");
-        }
-        countStatementPs.setLong(1,statementId);
-        long count = testConn.getCount(countStatementPs);
-        // Wait util statementHistory table is populated
-        while (count == 0) {
-            Thread.sleep(200);
-            count = testConn.getCount(countStatementPs);
-        }
-
-        // Wait until taskHistory table is populated
-        long count_before = -1;
-        if(countOperationPs==null)
-            countOperationPs = testConn.prepareStatement("select count(*) from " + TASK_TABLE + " where statementid = ?");
-
-        countOperationPs.setLong(1,statementId);
-        count = testConn.getCount(countOperationPs);
-        while (count_before != count || count == -1) {
-            count_before = count;
-            Thread.sleep(200);
-            count = testConn.getCount(countOperationPs);
-        }
     }
 
     public XPlainTreeNode getOperationTree(long statementId) throws Exception{

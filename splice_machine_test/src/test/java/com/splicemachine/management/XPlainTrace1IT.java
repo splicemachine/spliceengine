@@ -14,6 +14,7 @@ import org.junit.runner.Description;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.util.Deque;
+import java.util.regex.Pattern;
 
 /**
  * Tests for XPLAIN trace
@@ -220,7 +221,7 @@ public class XPlainTrace1IT extends BaseXplainIT {
 
     @Test
     public void testRepeatedTableScan() throws Exception{
-        for(int i=0;i<100;i++){
+        for(int i=0;i<1000;i++){
             testTableScan();
         }
     }
@@ -228,7 +229,7 @@ public class XPlainTrace1IT extends BaseXplainIT {
     @Test
     public void testTableScan() throws Exception {
         xPlainTrace.turnOnTrace();
-        String sql = "select * from " + CLASS_NAME + "." + TABLE1 + " where i > 0";
+        String sql = "select * from " + spliceTableWatcher1 + " where i > 0";
         long count =  baseConnection.count(sql);
         Assert.assertEquals("Incorrect query with XPLAIN enabled",nrows-1,count);
         xPlainTrace.turnOffTrace();
@@ -237,16 +238,18 @@ public class XPlainTrace1IT extends BaseXplainIT {
         ResultSet statementLine = getStatementsForTxn();
         Assert.assertTrue("Count not find statement line for explain query!", statementLine.next());
         long statementId = statementLine.getLong("STATEMENTID");
-        Assert.assertFalse("No statement id found!", statementLine.wasNull());
+        Assert.assertFalse("No statement id found!",statementLine.wasNull());
 
         XPlainTreeNode topOperation = xPlainTrace.getOperationTree(statementId);
         String operationType = topOperation.getOperationType();
 
         Assert.assertTrue("No table scan found!",operationType.contains(SpliceXPlainTrace.TABLESCAN));
-        Assert.assertEquals(topOperation.getLocalScanRows(), nrows);
+        Assert.assertEquals("Incorrect output row count!",count,topOperation.getOutputRows());
+        Assert.assertEquals("Output rows do not match local + filtered!",
+                topOperation.getOutputRows(),topOperation.getLocalScanRows()-topOperation.getFilteredRows());
         String info = topOperation.getInfo();
-        System.out.println(info);
-        Assert.assertTrue(info.contains("Scan filter:(I[0:1] > 0), table:"));
+//        System.out.println(info);
+        Assert.assertTrue("Info incorrect: info="+info,info.contains("Scan filter:(I[0:1] > 0),"));
     }
 
     @Test

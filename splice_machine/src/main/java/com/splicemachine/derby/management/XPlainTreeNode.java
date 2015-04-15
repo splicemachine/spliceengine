@@ -96,9 +96,9 @@ public class XPlainTreeNode {
     public XPlainTreeNode(long statementId, long operationId) {
         this.statementId = statementId;
         this.operationId = operationId;
-        children = new LinkedList<XPlainTreeNode>();
+        children = new LinkedList<>();
         fields = this.getClass().getDeclaredFields();
-        fieldMap = new HashMap<String, Field>(fields.length * 2);
+        fieldMap = new HashMap<>(fields.length * 2);
 
         for (Field field:fields) {
             String name = field.getName().toUpperCase();
