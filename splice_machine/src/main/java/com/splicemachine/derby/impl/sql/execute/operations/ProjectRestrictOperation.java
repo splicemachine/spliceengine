@@ -444,6 +444,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
             ExecRow result;
 
             op.source.setCurrentRow(sourceRow.getRow());
+            op.source.setCurrentRowLocation(sourceRow.getRowLocation());
 
             if (op.restriction != null) {
                 DataValueDescriptor restrictBoolean = (DataValueDescriptor) op.restriction.invoke();

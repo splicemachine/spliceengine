@@ -34,4 +34,21 @@ public class SparkRow {
     public void setRowLocation(RowLocation rowLocation) {
         this.rowLocation = rowLocation;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+
+        SparkRow sparkRow = (SparkRow) o;
+
+        if (!row.equals(sparkRow.row)) return false;
+
+        return true;
+    }
+
+    @Override
+    public int hashCode() {
+        return row.hashCode();
+    }
 }
