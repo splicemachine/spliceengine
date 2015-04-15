@@ -2,11 +2,11 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<packaging>pom</packaging>
-	<artifactId>spliceengine-mapr4.0</artifactId>
+	<artifactId>spliceengine-mapr0.98.4</artifactId>
 	<name>${project.artifactId}</name>
-	<description>Splice Engine Parent POM for mapr4.0</description>
+	<description>Splice Engine Parent POM for mapr0.98.4</description>
 	<properties>
-		<envClassifier>mapr4.0</envClassifier>
+		<envClassifier>mapr0.98.4</envClassifier>
 		<!-- platform component versions -->
 		<hadoop.version>2.4.1-mapr-1408</hadoop.version>
 		<hbase.version>0.98.4-mapr4.0.1-splice1.0.2-SNAPSHOT</hbase.version>

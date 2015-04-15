@@ -1,19 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	<artifactId>splice_si_adapter_94-cloudera-cdh4.5.0</artifactId>
+	<artifactId>splice_si_adapter_94-cdh4.5.0</artifactId>
 	<packaging>jar</packaging>
 	<name>${project.artifactId}</name>
 	<description>Splice SI 94 Adapter</description>
 	<parent>
-		<artifactId>spliceengine-cloudera-cdh4.5.0</artifactId>
+		<artifactId>spliceengine-cdh4.5.0</artifactId>
 		<groupId>com.splicemachine</groupId>
 		<version>1.1.1-SNAPSHOT</version>
 	</parent>
 	<dependencies>
 		<dependency>
 			<groupId>com.splicemachine</groupId>
-			<artifactId>splice_si-cloudera-cdh4.5.0</artifactId>
+			<artifactId>splice_si-cdh4.5.0</artifactId>
 			<version>1.1.1-SNAPSHOT</version>
 			<classifier>${obfuscate.si}</classifier>
 		</dependency>
