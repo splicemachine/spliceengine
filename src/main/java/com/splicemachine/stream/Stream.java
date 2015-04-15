@@ -73,7 +73,7 @@ public interface Stream<T> extends AutoCloseable{
     Stream<T> limit(long maxSize);
 
     /**
-     * Converstion utility to allow Streams to be treated as iterators. This is useful
+     * Conversion utility to allow Streams to be treated as iterators. This is useful
      * for interacting with library methods which do not allow streams.
      *
      * Be aware that the iterator interface hides exceptions by converting into runtime exceptions. While
@@ -81,7 +81,7 @@ public interface Stream<T> extends AutoCloseable{
      * we expect certain error patterns, it is not always a good idea to hide those error patterns from view.
      *
      * @return an Iterator representation of this Stream. The returned iterator does <em>not</em> close
-     * this stream, so you'll still need to explicitely close the stream.
+     * this stream, so you'll still need to explicitly close the stream.
      */
     Iterator<T> asIterator();
 
