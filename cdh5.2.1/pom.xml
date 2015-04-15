@@ -2,11 +2,11 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<packaging>pom</packaging>
-	<artifactId>spliceengine-cloudera-cdh5.2.1</artifactId>
+	<artifactId>spliceengine-cdh5.2.1</artifactId>
 	<name>${project.artifactId}</name>
-	<description>Splice Engine Parent POM for cloudera-cdh5.2.1</description>
+	<description>Splice Engine Parent POM for cdh5.2.1</description>
 	<properties>
-		<envClassifier>cloudera-cdh5.2.1</envClassifier>
+		<envClassifier>cdh5.2.1</envClassifier>
 		<!-- platform component versions -->
 		<hadoop.version>2.5.0-cdh5.2.1</hadoop.version>
 		<hbase.version>0.98.6-cdh5.2.1-splice1.0.2-SNAPSHOT</hbase.version>

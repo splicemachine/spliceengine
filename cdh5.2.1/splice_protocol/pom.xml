@@ -2,18 +2,18 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<packaging>jar</packaging>
-	<artifactId>splice_protocol-cloudera-cdh5.2.1</artifactId>
+	<artifactId>splice_protocol-cdh5.2.1</artifactId>
 	<name>${project.artifactId}</name>
 	<description>Splice Engine Snapshot Isolation</description>
 	<parent>
-		<artifactId>spliceengine-cloudera-cdh5.2.1</artifactId>
+		<artifactId>spliceengine-cdh5.2.1</artifactId>
 		<groupId>com.splicemachine</groupId>
 		<version>1.1.1-SNAPSHOT</version>
 	</parent>
 	<dependencies>
 		<dependency>
 			<groupId>com.splicemachine</groupId>
-			<artifactId>splice_constants-cloudera-cdh5.2.1</artifactId>
+			<artifactId>splice_constants-cdh5.2.1</artifactId>
 			<version>1.1.1-SNAPSHOT</version>
 			<exclusions>
 				<exclusion>
