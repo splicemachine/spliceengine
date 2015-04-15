@@ -530,9 +530,9 @@
 		<profile>
 			<id>all</id>
 			<modules>
-				<module>cloudera-cdh4.5.0</module>
-				<module>cloudera-cdh5.2.1</module>
-				<module>cloudera-cdh5.3.0</module>
+				<module>cdh4.5.0</module>
+				<module>cdh5.2.1</module>
+				<module>cdh5.3.0</module>
 				<module>hdp2.1.5</module>
 				<module>hdp2.2.0</module>
 				<module>mapr4.0</module>
@@ -840,21 +840,21 @@
 			</properties>
 		</profile>
 		<profile>
-			<id>cloudera-cdh4.5.0</id>
+			<id>cdh4.5.0</id>
 			<modules>
-				<module>cloudera-cdh4.5.0</module>
+				<module>cdh4.5.0</module>
 			</modules>
 		</profile>
 		<profile>
-			<id>cloudera-cdh5.2.1</id>
+			<id>cdh5.2.1</id>
 			<modules>
-				<module>cloudera-cdh5.2.1</module>
+				<module>cdh5.2.1</module>
 			</modules>
 		</profile>
 		<profile>
-			<id>cloudera-cdh5.3.0</id>
+			<id>cdh5.3.0</id>
 			<modules>
-				<module>cloudera-cdh5.3.0</module>
+				<module>cdh5.3.0</module>
 			</modules>
 		</profile>
 		<profile>
