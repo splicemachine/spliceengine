@@ -350,7 +350,7 @@ public class XPlainTrace1IT extends BaseXplainIT {
         Assert.assertEquals("Table scan has incorrect number of iterations",count,child.getIterations());
         String info = child.getInfo();
 //        System.out.println(info);
-        Assert.assertTrue("Incorrect info: info="+info,info.compareToIgnoreCase("Scan filter:(T1.I[1:1] = T2.I[2:1]), table:XPLAINTRACE1IT.TAB2")==0);
+        Assert.assertTrue("Incorrect info: info="+info,info.compareToIgnoreCase("Scan filter:(T1.I[1:1] = T2.I[2:1])")==0);
     }
 
 
