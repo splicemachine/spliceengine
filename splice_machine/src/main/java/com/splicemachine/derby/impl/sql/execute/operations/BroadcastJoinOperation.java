@@ -391,15 +391,15 @@ public class BroadcastJoinOperation extends JoinOperation {
     }
 
     @Override
-    public JavaRDD<SparkRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-        JavaRDD<SparkRow> left = leftResultSet.getRDD(spliceRuntimeContext, top);
+    public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+        JavaRDD<LocatedRow> left = leftResultSet.getRDD(spliceRuntimeContext, top);
         if (pushedToServer()) {
             return left;
         }
-        JavaRDD<SparkRow> right = rightResultSet.getRDD(spliceRuntimeContext, rightResultSet);
-        JavaPairRDD<ExecRow, ExecRow> keyedRight = RDDUtils.getKeyedRDD(right, rightHashKeys).mapToPair(new PairFunction<Tuple2<ExecRow,SparkRow>, ExecRow, ExecRow>() {
+        JavaRDD<LocatedRow> right = rightResultSet.getRDD(spliceRuntimeContext, rightResultSet);
+        JavaPairRDD<ExecRow, ExecRow> keyedRight = RDDUtils.getKeyedRDD(right, rightHashKeys).mapToPair(new PairFunction<Tuple2<ExecRow,LocatedRow>, ExecRow, ExecRow>() {
             @Override
-            public Tuple2<ExecRow, ExecRow> call(Tuple2<ExecRow, SparkRow> t) throws Exception {
+            public Tuple2<ExecRow, ExecRow> call(Tuple2<ExecRow, LocatedRow> t) throws Exception {
                 return new Tuple2(t._1(), t._2().getRow());
             }
         });
@@ -417,7 +417,7 @@ public class BroadcastJoinOperation extends JoinOperation {
         return leftResultSet.pushedToServer() && rightResultSet.pushedToServer();
     }
 
-    public static final class BroadcastSparkOperation extends SparkFlatMapOperation<BroadcastJoinOperation, Iterator<SparkRow>, SparkRow> {
+    public static final class BroadcastSparkOperation extends SparkFlatMapOperation<BroadcastJoinOperation, Iterator<LocatedRow>, LocatedRow> {
         private Broadcast<List<Tuple2<ExecRow, ExecRow>>> right;
         private Multimap<ExecRow, ExecRow> rightMap;
         private Joiner joiner;
@@ -440,7 +440,7 @@ public class BroadcastJoinOperation extends JoinOperation {
         }
 
         @Override
-        public Iterable<SparkRow> call(Iterator<SparkRow> sourceRows) throws Exception {
+        public Iterable<LocatedRow> call(Iterator<LocatedRow> sourceRows) throws Exception {
             if (joiner == null) {
                 joiner = initJoiner(sourceRows);
                 joiner.open();
@@ -448,7 +448,7 @@ public class BroadcastJoinOperation extends JoinOperation {
             return RDDUtils.toSparkRowsIterable(new SparkJoinerIterator(joiner, soi));
         }
 
-        private Joiner initJoiner(final Iterator<SparkRow> sourceRows) throws StandardException {
+        private Joiner initJoiner(final Iterator<LocatedRow> sourceRows) throws StandardException {
             rightMap = collectAsMap(right.getValue());
             Function<ExecRow, List<ExecRow>> lookup = new Function<ExecRow, List<ExecRow>>() {
                 @Override

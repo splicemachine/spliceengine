@@ -10,11 +10,9 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.spark.RDDRowProvider;
-import com.splicemachine.derby.impl.sql.execute.operations.GroupedAggregateOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationUtils;
-import com.splicemachine.derby.impl.sql.execute.operations.SparkRow;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
-import com.splicemachine.derby.impl.storage.AbstractMultiScanProvider;
 import com.splicemachine.derby.impl.storage.MultiScanRowProvider;
 import com.splicemachine.derby.impl.storage.SingleScanRowProvider;
 import com.splicemachine.derby.metrics.OperationMetric;
@@ -369,7 +367,7 @@ public class RowCountOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public JavaRDD<SparkRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+    public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
         return source.getRDD(spliceRuntimeContext, source);
     }
 

@@ -14,7 +14,6 @@ import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.impl.spark.RDDUtils;
 import com.splicemachine.derby.impl.spark.SpliceSpark;
-import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.marshall.*;
@@ -408,17 +407,17 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 								+ "source:" + source.prettyPrint(indentLevel + 1);
 		}
 
-    public JavaRDD<SparkRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+    public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
         if (alwaysFalse) {
-            return SpliceSpark.getContext().parallelize(Collections.<SparkRow>emptyList());
+            return SpliceSpark.getContext().parallelize(Collections.<LocatedRow>emptyList());
         }
-        JavaRDD<SparkRow> raw = source.getRDD(spliceRuntimeContext, top);
+        JavaRDD<LocatedRow> raw = source.getRDD(spliceRuntimeContext, top);
         if (pushedToServer()) {
             // we want to avoid re-applying the PR if it has already been executed in HBase
             return raw;
         }
         final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this, spliceRuntimeContext);
-        JavaRDD<SparkRow> projected = raw.mapPartitions(new ProjectRestrictSparkOp(this, soi));
+        JavaRDD<LocatedRow> projected = raw.mapPartitions(new ProjectRestrictSparkOp(this, soi));
         return projected;
     }
 
@@ -432,7 +431,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
         return source.pushedToServer();
     }
 
-    public static final class ProjectRestrictSparkOp extends SparkFlatMapOperation<ProjectRestrictOperation, Iterator<SparkRow>, SparkRow> {
+    public static final class ProjectRestrictSparkOp extends SparkFlatMapOperation<ProjectRestrictOperation, Iterator<LocatedRow>, LocatedRow> {
         public ProjectRestrictSparkOp() {
         }
 
@@ -440,7 +439,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
             super(spliceOperation, soi);
         }
 
-        public SparkRow project(SparkRow sourceRow) throws Exception {
+        public LocatedRow project(LocatedRow sourceRow) throws Exception {
             ExecRow result;
 
             op.source.setCurrentRow(sourceRow.getRow());
@@ -485,27 +484,27 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
             if (RDDUtils.LOG.isDebugEnabled()) {
                 RDDUtils.LOG.debug("Projected " + sourceRow + " into " + result);
             }
-            return new SparkRow(sourceRow.getRowLocation(), result);
+            return new LocatedRow(sourceRow.getRowLocation(), result);
         }
 
         @Override
-        public Iterable<SparkRow> call(Iterator<SparkRow> source) throws Exception {
+        public Iterable<LocatedRow> call(Iterator<LocatedRow> source) throws Exception {
             return new IteratorWithContext(source);
         }
 
-        private class IteratorWithContext implements Iterable<SparkRow>, Iterator<SparkRow> {
-            private final Iterator<SparkRow> source;
+        private class IteratorWithContext implements Iterable<LocatedRow>, Iterator<LocatedRow> {
+            private final Iterator<LocatedRow> source;
             private boolean populated;
-            private SparkRow next;
+            private LocatedRow next;
             private boolean prepared = false;
             private boolean closed = false;
 
-            public IteratorWithContext(Iterator<SparkRow> source) {
+            public IteratorWithContext(Iterator<LocatedRow> source) {
                 this.source = source;
             }
 
             @Override
-            public Iterator<SparkRow> iterator() {
+            public Iterator<LocatedRow> iterator() {
                 return this;
             }
 
@@ -522,7 +521,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
                     }
                     next = null;
                     while(next == null && source.hasNext()) {
-                        SparkRow r = source.next();
+                        LocatedRow r = source.next();
                         next = project(r);
                     }
                 } catch (Exception e) {
@@ -541,10 +540,10 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
             }
 
             @Override
-            public SparkRow next() {
+            public LocatedRow next() {
                 if (hasNext())  {
                     populated = false;
-                    SparkRow result = next;
+                    LocatedRow result = next;
                     next = null;
                     return result;
                 }

@@ -5,17 +5,15 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import java.io.IOException;
 import java.util.List;
 
+import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationInformation;
-import com.splicemachine.derby.impl.sql.execute.operations.SparkRow;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import com.splicemachine.db.iapi.types.RowLocation;
-import org.apache.hadoop.hbase.client.Scan;
 import org.apache.spark.api.java.JavaRDD;
 
 /**
@@ -245,7 +243,7 @@ public interface SpliceOperation extends StandardCloseable {
      */
     public boolean expectsRDD();
 
-    public JavaRDD<SparkRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException;
+    public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException;
 
     /**
      *

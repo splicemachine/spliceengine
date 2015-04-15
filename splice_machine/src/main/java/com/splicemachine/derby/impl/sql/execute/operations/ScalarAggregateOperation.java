@@ -321,16 +321,16 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
     }
 
     @Override
-    public JavaRDD<SparkRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-        JavaRDD<SparkRow> rdd = source.getRDD(spliceRuntimeContext, this);
+    public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+        JavaRDD<LocatedRow> rdd = source.getRDD(spliceRuntimeContext, this);
         final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this, spliceRuntimeContext);
 
         if (LOG.isInfoEnabled()) {
             LOG.info("RDD for operation " + this + " :\n " + rdd.toDebugString());
         }
-        SparkRow result = rdd.fold(null, new SparkAggregator(this, soi));
+        LocatedRow result = rdd.fold(null, new SparkAggregator(this, soi));
         if (result == null) {
-            return SpliceSpark.getContext().parallelize(Lists.newArrayList(new SparkRow(getExecRowDefinition())));
+            return SpliceSpark.getContext().parallelize(Lists.newArrayList(new LocatedRow(getExecRowDefinition())));
         }
 
         if (!(result.getRow() instanceof ExecIndexRow)) {
@@ -338,10 +338,10 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
             initializeVectorAggregation(result.getRow());
         }
         finishAggregation(result.getRow());
-        return SpliceSpark.getContext().parallelize(Lists.newArrayList(new SparkRow(result.getRow())), 1);
+        return SpliceSpark.getContext().parallelize(Lists.newArrayList(new LocatedRow(result.getRow())), 1);
     }
 
-    private static final class SparkAggregator extends SparkOperation2<ScalarAggregateOperation, SparkRow, SparkRow, SparkRow> {
+    private static final class SparkAggregator extends SparkOperation2<ScalarAggregateOperation, LocatedRow, LocatedRow, LocatedRow> {
         private static final long serialVersionUID = -4150499166764796082L;
 
 
@@ -353,7 +353,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
         }
 
         @Override
-        public SparkRow call(SparkRow t1, SparkRow t2) throws Exception {
+        public LocatedRow call(LocatedRow t1, LocatedRow t2) throws Exception {
             if (t2 == null) {
                 return t1;
             }
@@ -371,7 +371,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
                 op.initializeVectorAggregation(r1);
             }
             aggregate(t2.getRow(), (ExecIndexRow) r1);
-            return new SparkRow(r1);
+            return new LocatedRow(r1);
         }
 
         private void aggregate(ExecRow next, ExecIndexRow agg) throws StandardException {

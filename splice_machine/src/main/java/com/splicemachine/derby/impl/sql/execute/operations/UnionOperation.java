@@ -10,7 +10,6 @@ import com.splicemachine.derby.impl.storage.RowProviders;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
-import com.splicemachine.job.TaskScheduler;
 import com.splicemachine.pipeline.exception.Exceptions;
 
 import com.splicemachine.db.iapi.error.StandardException;
@@ -262,15 +261,15 @@ public class UnionOperation extends SpliceBaseOperation {
         return firstResultSet.providesRDD() && secondResultSet.providesRDD();
     }
 
-    public JavaRDD<SparkRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+    public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
         SpliceRuntimeContext left = spliceRuntimeContext.copy();
         SpliceRuntimeContext right = spliceRuntimeContext.copy();
         left.addPath(resultSetNumber, SpliceRuntimeContext.Side.LEFT);
         right.addPath(resultSetNumber, SpliceRuntimeContext.Side.RIGHT);
-        JavaRDD<SparkRow> firstRDD = firstResultSet.getRDD(spliceRuntimeContext, top);
-        JavaRDD<SparkRow> secondRDD = secondResultSet.getRDD(spliceRuntimeContext, top);
+        JavaRDD<LocatedRow> firstRDD = firstResultSet.getRDD(spliceRuntimeContext, top);
+        JavaRDD<LocatedRow> secondRDD = secondResultSet.getRDD(spliceRuntimeContext, top);
 
-        JavaRDD<SparkRow> result = firstRDD.union(secondRDD);
+        JavaRDD<LocatedRow> result = firstRDD.union(secondRDD);
 //        RDDUtils.printRDD("Union result", result);
         return result;
     }

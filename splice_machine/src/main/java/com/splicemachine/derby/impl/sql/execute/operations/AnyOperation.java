@@ -229,13 +229,13 @@ public class AnyOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public JavaRDD<SparkRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+    public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
         return source.getRDD(spliceRuntimeContext, top);
     }
 
     @Override
     public SpliceNoPutResultSet executeRDD(SpliceRuntimeContext runtimeContext) throws StandardException {
-        JavaRDD<SparkRow> rdd = getRDD(runtimeContext, this);
+        JavaRDD<LocatedRow> rdd = getRDD(runtimeContext, this);
         if (LOG.isInfoEnabled()) {
             LOG.info("RDD for operation " + this + " :\n " + rdd.toDebugString());
         }

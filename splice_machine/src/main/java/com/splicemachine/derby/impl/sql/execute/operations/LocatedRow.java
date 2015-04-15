@@ -6,16 +6,16 @@ import com.splicemachine.db.iapi.types.RowLocation;
 /**
  * Created by dgomezferro on 4/14/15.
  */
-public class SparkRow {
+public class LocatedRow {
     private RowLocation rowLocation;
     private ExecRow row;
 
-    public SparkRow(RowLocation rowLocation, ExecRow row) {
+    public LocatedRow(RowLocation rowLocation, ExecRow row) {
         this.rowLocation = rowLocation;
         this.row = row;
     }
 
-    public SparkRow(ExecRow row) {
+    public LocatedRow(ExecRow row) {
         this(null, row);
     }
 
@@ -40,9 +40,9 @@ public class SparkRow {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
 
-        SparkRow sparkRow = (SparkRow) o;
+        LocatedRow locatedRow = (LocatedRow) o;
 
-        if (!row.equals(sparkRow.row)) return false;
+        if (!row.equals(locatedRow.row)) return false;
 
         return true;
     }

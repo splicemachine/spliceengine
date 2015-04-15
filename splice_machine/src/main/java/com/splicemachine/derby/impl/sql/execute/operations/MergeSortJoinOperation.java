@@ -34,7 +34,6 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLInteger;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
-import org.apache.spark.Partitioner;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 
@@ -461,7 +460,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
     };
 
     @Override
-    public JavaRDD<SparkRow> getRDD(SpliceRuntimeContext runtimeContext, SpliceOperation top) throws StandardException {
+    public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext runtimeContext, SpliceOperation top) throws StandardException {
         SpliceRuntimeContext spliceLRuntimeContext = runtimeContext.copy();
         spliceLRuntimeContext.addLeftRuntimeContext(resultSetNumber);
         spliceLRuntimeContext.setStatementInfo(runtimeContext.getStatementInfo());
@@ -469,8 +468,8 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         spliceRRuntimeContext.addRightRuntimeContext(resultSetNumber);
         spliceRRuntimeContext.setStatementInfo(runtimeContext.getStatementInfo());
 
-        JavaPairRDD<ExecRow, SparkRow> leftRDD = RDDUtils.getKeyedRDD(leftResultSet.getRDD(spliceLRuntimeContext, leftResultSet), leftHashKeys);
-        JavaPairRDD<ExecRow, SparkRow> rightRDD = RDDUtils.getKeyedRDD(rightResultSet.getRDD(spliceRRuntimeContext, rightResultSet), rightHashKeys);
+        JavaPairRDD<ExecRow, LocatedRow> leftRDD = RDDUtils.getKeyedRDD(leftResultSet.getRDD(spliceLRuntimeContext, leftResultSet), leftHashKeys);
+        JavaPairRDD<ExecRow, LocatedRow> rightRDD = RDDUtils.getKeyedRDD(rightResultSet.getRDD(spliceRRuntimeContext, rightResultSet), rightHashKeys);
 
 //        JavaPairRDD<ExecRow, ExecRow> sortedRight = rightRDD.sortByKey(new RowComparator(new boolean[rightHashKeys.length]));
 //        JavaPairRDD<ExecRow, ExecRow> sortedLeft = leftRDD.repartitionAndSortWithinPartitions(rightRDD.rdd().partitioner().get(), new RowComparator(new boolean[leftHashKeys.length]));
@@ -480,8 +479,8 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
                 .values().map(new SetupActivation(this, soi));
     }
 
-    protected JavaPairRDD<ExecRow, SparkRow> joinRDDs(JavaPairRDD<ExecRow, SparkRow> leftRDD,
-                                                     JavaPairRDD<ExecRow, SparkRow> rightRDD,
+    protected JavaPairRDD<ExecRow, LocatedRow> joinRDDs(JavaPairRDD<ExecRow, LocatedRow> leftRDD,
+                                                     JavaPairRDD<ExecRow, LocatedRow> rightRDD,
                                                      SpliceObserverInstructions soi) {
         boolean outer = isOuter();
         return leftRDD.cogroup(rightRDD).flatMapValues(new SparkJoiner(this, soi, outer));
@@ -491,7 +490,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         return false;
     }
 
-    private static final class SparkJoiner extends SparkOperation<MergeSortJoinOperation, Tuple2<Iterable<SparkRow>, Iterable<SparkRow>>, Iterable<SparkRow>> {
+    private static final class SparkJoiner extends SparkOperation<MergeSortJoinOperation, Tuple2<Iterable<LocatedRow>, Iterable<LocatedRow>>, Iterable<LocatedRow>> {
         boolean outer;
         SpliceRuntimeContext context;
 
@@ -505,8 +504,8 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         }
 
         @Override
-        public Iterable<SparkRow> call(Tuple2<Iterable<SparkRow>, Iterable<SparkRow>> source) throws Exception {
-            List<SparkRow> results = new ArrayList<SparkRow>();
+        public Iterable<LocatedRow> call(Tuple2<Iterable<LocatedRow>, Iterable<LocatedRow>> source) throws Exception {
+            List<LocatedRow> results = new ArrayList<LocatedRow>();
             if (RDDUtils.LOG.isDebugEnabled()) {
                 RDDUtils.LOG.debug("Matching " + source._1() + " with " + source._2());
             }
@@ -514,12 +513,12 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
             joiner.open();
             ExecRow row;
             while ((row = joiner.nextRow(context)) != null) {
-                results.add(new SparkRow(row));
+                results.add(new LocatedRow(row));
             }
             return results;
         }
 
-        private Joiner createSparkMergeJoiner(boolean outer, Tuple2<Iterable<SparkRow>, Iterable<SparkRow>> source) {
+        private Joiner createSparkMergeJoiner(boolean outer, Tuple2<Iterable<LocatedRow>, Iterable<LocatedRow>> source) {
             SparkMergeSortJoinRows joinRows = new SparkMergeSortJoinRows(source);
             Restriction mergeRestriction = op.getRestriction();
 
@@ -578,7 +577,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
 
     }
 
-    private static class SetupActivation extends SparkOperation<MergeSortJoinOperation, SparkRow, SparkRow> {
+    private static class SetupActivation extends SparkOperation<MergeSortJoinOperation, LocatedRow, LocatedRow> {
         public SetupActivation() {
         }
 
@@ -587,7 +586,7 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         }
 
         @Override
-        public SparkRow call(SparkRow row) throws Exception {
+        public LocatedRow call(LocatedRow row) throws Exception {
             op.setCurrentRow(row.getRow());
             return row;
         }

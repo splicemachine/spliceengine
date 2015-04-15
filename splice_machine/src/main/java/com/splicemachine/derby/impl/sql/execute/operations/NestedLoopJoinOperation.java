@@ -1,13 +1,11 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.google.common.collect.Lists;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.OperationResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.impl.spark.RDDUtils;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.metrics.IOStats;
@@ -355,19 +353,19 @@ public class NestedLoopJoinOperation extends JoinOperation {
     }
 
     @Override
-    public JavaRDD<SparkRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-        JavaRDD<SparkRow> left = leftResultSet.getRDD(spliceRuntimeContext, leftResultSet);
+    public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+        JavaRDD<LocatedRow> left = leftResultSet.getRDD(spliceRuntimeContext, leftResultSet);
         final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this, spliceRuntimeContext);
-        return left.flatMap(new NLJSparkOperation(this, soi)).map(new Function<ExecRow, SparkRow>() {
+        return left.flatMap(new NLJSparkOperation(this, soi)).map(new Function<ExecRow, LocatedRow>() {
             @Override
-            public SparkRow call(ExecRow execRow) throws Exception {
-                return new SparkRow(execRow);
+            public LocatedRow call(ExecRow execRow) throws Exception {
+                return new LocatedRow(execRow);
             }
         });
     }
 
 
-    public static final class NLJSparkOperation extends SparkFlatMapOperation<NestedLoopJoinOperation, SparkRow, ExecRow> {
+    public static final class NLJSparkOperation extends SparkFlatMapOperation<NestedLoopJoinOperation, LocatedRow, ExecRow> {
         private NestedLoopIterator nestedLoopIterator;
         private byte[] rightResultSetUniqueSequenceID;
 
@@ -379,7 +377,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
         }
 
         @Override
-        public Iterable<ExecRow> call(SparkRow sourceRow) throws Exception {
+        public Iterable<ExecRow> call(LocatedRow sourceRow) throws Exception {
             if (sourceRow == null) {
                 return null;
             }
