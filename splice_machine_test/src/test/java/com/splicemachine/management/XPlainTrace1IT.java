@@ -231,7 +231,7 @@ public class XPlainTrace1IT extends BaseXplainIT {
         xPlainTrace.turnOnTrace();
         String sql = "select * from " + spliceTableWatcher1 + " where i > 0";
         long count =  baseConnection.count(sql);
-        Assert.assertEquals("Incorrect query with XPLAIN enabled",nrows-1,count);
+        Assert.assertEquals("Incorrect query with XPLAIN enabted",nrows-1,count);
         xPlainTrace.turnOffTrace();
 
         //get the last statement id
@@ -314,45 +314,43 @@ public class XPlainTrace1IT extends BaseXplainIT {
                 CLASS_NAME + "." + TABLE1 + " t1, " + CLASS_NAME + "." + TABLE2 + " t2 --SPLICE-PROPERTIES joinStrategy=NESTEDLOOP\n" +
                 "where t1.i = t2.i";
         long count = baseConnection.count(sql);
-        Assert.assertEquals(10,count);
+        Assert.assertEquals(nrows,count);
         long statementId = getLastStatementId();
         xPlainTrace.turnOffTrace();
 
         XPlainTreeNode operation = xPlainTrace.getOperationTree(statementId);
         String operationType = operation.getOperationType();
-        System.out.println(operationType);
-        Assert.assertEquals(operationType, SpliceXPlainTrace.PROJECTRESTRICT);
-        Assert.assertEquals(count ,operation.getInputRows());
-        Assert.assertEquals(count ,operation.getOutputRows());
+//        System.out.println(operationType);
+        Assert.assertEquals("Incorrect tree: expected ProjectRestrict on top",SpliceXPlainTrace.PROJECTRESTRICT,operationType);
+        Assert.assertEquals("ProjectRestrict has incorrect input rows!",count,operation.getInputRows());
+        Assert.assertEquals("ProjectRestrict has incorrect output rows!",count,operation.getOutputRows());
 
-        Assert.assertEquals(1,operation.getChildren().size());
+        Assert.assertEquals("ProjectRestrict has more than one child",1,operation.getChildren().size());
         operation = operation.getChildren().getFirst();
         operationType = operation.getOperationType();
-        Assert.assertEquals(operationType, SpliceXPlainTrace.NESTEDLOOPJOIN);
-        Assert.assertEquals(operation.getInputRows(), nrows);
-        Assert.assertEquals(operation.getRemoteScanRows(), count);
-        Assert.assertEquals(operation.getOutputRows(), count);
+        Assert.assertEquals("Incorrect tree: expected NestedLoop under ProjectRestrict",SpliceXPlainTrace.NESTEDLOOPJOIN,operationType);
+        Assert.assertEquals("Incorrect left-side input rows",nrows,operation.getInputRows());
+        Assert.assertEquals("Incorrect join right-side rows",count,operation.getRemoteScanRows());
+        Assert.assertEquals("Incorrect join output rows",count,operation.getOutputRows());
 
         // First child should be a bulk table scan operation
         XPlainTreeNode child = operation.getChildren().getFirst();
         operationType = child.getOperationType();
         boolean isTableScan = SpliceXPlainTrace.BULKTABLESCAN.equalsIgnoreCase(operationType)
                 || SpliceXPlainTrace.TABLESCAN.equalsIgnoreCase(operationType);
-        Assert.assertTrue("Not a table scan! expected="+SpliceXPlainTrace.BULKTABLESCAN+" or "+ SpliceXPlainTrace.TABLESCAN,
-                isTableScan);
-        Assert.assertEquals(child.getLocalScanRows(), nrows);
-        Assert.assertEquals(child.getOutputRows(), nrows);
+        Assert.assertTrue("Not a table scan! expected="+SpliceXPlainTrace.BULKTABLESCAN+" or "+ SpliceXPlainTrace.TABLESCAN, isTableScan);
+        Assert.assertEquals("Incorrect output of left side table scan",nrows,child.getOutputRows());
+        Assert.assertEquals("table scan output does not match scan+ filtered",child.getOutputRows(),child.getLocalScanRows()-child.getFilteredRows());
 
         child = operation.getChildren().getLast();
         operationType = child.getOperationType();
-        System.out.println(operationType);
+//        System.out.println(operationType);
         Assert.assertTrue("No table scan found!",operationType.contains(SpliceXPlainTrace.TABLESCAN));
-        Assert.assertEquals(nrows*nrows,child.getLocalScanRows());
-        Assert.assertEquals(child.getOutputRows(), nrows);
-        Assert.assertEquals(child.getIterations(), nrows);
+        Assert.assertEquals("Table scan not outputing correct row count",count,child.getOutputRows());
+        Assert.assertEquals("Table scan has incorrect number of iterations",count,child.getIterations());
         String info = child.getInfo();
-        System.out.println(info);
-        Assert.assertTrue(info.compareToIgnoreCase("Scan filter:(T1.I[1:1] = T2.I[2:1]), table:XPLAINTRACE1IT.TAB2")==0);
+//        System.out.println(info);
+        Assert.assertTrue("Incorrect info: info="+info,info.compareToIgnoreCase("Scan filter:(T1.I[1:1] = T2.I[2:1]), table:XPLAINTRACE1IT.TAB2")==0);
     }
 
 
