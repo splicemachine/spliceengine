@@ -359,8 +359,7 @@ public class Backup implements InternalTable {
     {
     	// We use baseFolder to keep log file in
     	// Should be called after createBaseBackupDirectory
-    	// TODO we can't probably use Splice configuration
-        FileSystem fs = FileSystem.get(URI.create(getBackupFilesystem()), new Configuration());
+        FileSystem fs = FileSystem.get(URI.create(getBackupFilesystem()), SpliceConstants.config);
         
         Path logFilePath = new Path(getBaseBackupFilesystemAsPath(), BACKUP_LOG_FILE_NAME);
         this.logFileOut = fs.create(logFilePath, true);
