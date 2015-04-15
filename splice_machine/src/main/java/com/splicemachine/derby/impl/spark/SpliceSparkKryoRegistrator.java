@@ -49,7 +49,6 @@ import com.splicemachine.pipeline.impl.BulkWrite;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.kryo.ExternalizableSerializer;
 
-import com.twitter.chill.TraversableSerializer;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
 import com.splicemachine.db.catalog.types.*;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -65,12 +64,8 @@ import com.splicemachine.db.impl.sql.catalog.DD_Version;
 import com.splicemachine.db.impl.sql.catalog.DDdependableFinder;
 import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.db.impl.store.access.PC_XenaVersion;
-import org.apache.spark.SerializableWritable;
 import org.apache.spark.scheduler.CompressedMapStatus;
-import org.apache.spark.scheduler.MapStatus;
 import org.apache.spark.serializer.KryoRegistrator;
-import org.apache.spark.storage.BlockManagerId;
-import org.apache.spark.storage.StorageLevel;
 
 import java.math.BigDecimal;
 import java.sql.Date;
@@ -559,7 +554,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator {
 				instance.register(ColumnInfo[].class);
 				instance.register(MergeLeftOuterJoinOperation.class, EXTERNALIZABLE_SERIALIZER);
         instance.register(DataValueDescriptor[].class);
-        instance.register(SparkRow.class);
+        instance.register(LocatedRow.class);
 //        instance.register(Tuple2.class, new Serializer<Tuple2>() {
 //            @Override
 //            public Tuple2 read(Kryo kryo, Input input, Class type) {

@@ -591,19 +591,19 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         return ((SpliceOperation) source).providesRDD();
     }
 
-    public JavaRDD<SparkRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-        JavaRDD<SparkRow> rdd = source.getRDD(spliceRuntimeContext, this);
+    public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+        JavaRDD<LocatedRow> rdd = source.getRDD(spliceRuntimeContext, this);
         int[] groupByCols = groupedAggregateContext.getGroupingKeys();
-        JavaPairRDD<ExecRow, SparkRow> keyedRDD = RDDUtils.getKeyedRDD(rdd, groupByCols);
+        JavaPairRDD<ExecRow, LocatedRow> keyedRDD = RDDUtils.getKeyedRDD(rdd, groupByCols);
         final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this, spliceRuntimeContext);
-        JavaPairRDD<ExecRow, SparkRow> resultRDD = keyedRDD.reduceByKey(new Aggregator(this, soi));
-        JavaRDD<SparkRow> keylessRDD = resultRDD.values();
-        JavaRDD<SparkRow> finished = keylessRDD.map(new Finisher(this, soi));
+        JavaPairRDD<ExecRow, LocatedRow> resultRDD = keyedRDD.reduceByKey(new Aggregator(this, soi));
+        JavaRDD<LocatedRow> keylessRDD = resultRDD.values();
+        JavaRDD<LocatedRow> finished = keylessRDD.map(new Finisher(this, soi));
 
         return finished;
     }
 
-    private static final class Finisher extends SparkOperation<GroupedAggregateOperation, SparkRow, SparkRow> {
+    private static final class Finisher extends SparkOperation<GroupedAggregateOperation, LocatedRow, LocatedRow> {
         public Finisher() {
         }
 
@@ -612,8 +612,8 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         }
 
         @Override
-        public SparkRow call(SparkRow sparkRow) throws Exception {
-            ExecRow row = sparkRow.getRow();
+        public LocatedRow call(LocatedRow locatedRow) throws Exception {
+            ExecRow row = locatedRow.getRow();
             if (!(row instanceof ExecIndexRow)) {
                 op.sourceExecIndexRow.execRowToExecIndexRow(row);
                 row = new IndexValueRow(row);
@@ -622,12 +622,12 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                 op.initializeVectorAggregation(row);
             }
             op.finishAggregation(row);
-            return sparkRow;
+            return locatedRow;
         }
 
     }
 
-    private static final class Aggregator extends SparkOperation2<GroupedAggregateOperation, SparkRow, SparkRow, SparkRow> {
+    private static final class Aggregator extends SparkOperation2<GroupedAggregateOperation, LocatedRow, LocatedRow, LocatedRow> {
         private static final long serialVersionUID = -4879775024011078994L;
 
         public Aggregator() {
@@ -638,7 +638,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         }
 
         @Override
-        public SparkRow call(SparkRow t1, SparkRow t2) throws Exception {
+        public LocatedRow call(LocatedRow t1, LocatedRow t2) throws Exception {
             if (RDDUtils.LOG.isDebugEnabled()) {
                 RDDUtils.LOG.debug(String.format("Reducing %s and %s", t1, t2));
             }
@@ -650,7 +650,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
                 op.initializeVectorAggregation(r1);
             }
             aggregate(t2.getRow(), (ExecIndexRow) r1);
-            return new SparkRow(r1);
+            return new LocatedRow(r1);
         }
 
         private void aggregate(ExecRow next, ExecIndexRow agg) throws StandardException {

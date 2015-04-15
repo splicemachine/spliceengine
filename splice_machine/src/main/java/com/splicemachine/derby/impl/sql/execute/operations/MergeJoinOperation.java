@@ -25,20 +25,12 @@ import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 
-import org.apache.hadoop.hbase.mapreduce.TableSplit;
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.log4j.Logger;
 import org.apache.spark.Partition;
 import org.apache.spark.Partitioner;
-import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.function.FlatMapFunction2;
 import org.apache.spark.rdd.NewHadoopPartition;
-import org.apache.spark.rdd.NewHadoopRDD;
-
-import scala.Function1;
-import scala.Function2;
-import scala.Tuple2;
 
 import java.io.Externalizable;
 import java.io.IOException;
@@ -244,17 +236,17 @@ public class MergeJoinOperation extends JoinOperation {
     }
 
     @Override
-    public JavaRDD<SparkRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+    public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
 
 
-        JavaRDD<SparkRow> leftRDD = leftResultSet.getRDD(spliceRuntimeContext, leftResultSet);
-        JavaRDD<SparkRow> rightRDD = rightResultSet.getRDD(spliceRuntimeContext, rightResultSet);
+        JavaRDD<LocatedRow> leftRDD = leftResultSet.getRDD(spliceRuntimeContext, leftResultSet);
+        JavaRDD<LocatedRow> rightRDD = rightResultSet.getRDD(spliceRuntimeContext, rightResultSet);
 
         Partition[] rightPartitions = rightRDD.rdd().partitions();
         Partition[] leftPartitions = leftRDD.rdd().partitions();
 
-        JavaRDD<SparkRow> partitionedLeftRDD;
-        JavaRDD<SparkRow> partitionedRightRDD;
+        JavaRDD<LocatedRow> partitionedLeftRDD;
+        JavaRDD<LocatedRow> partitionedRightRDD;
         if (rightPartitions.length < leftPartitions.length) {
             int[] formatIds = SpliceUtils.getFormatIds(RDDUtils.getKey(this.leftResultSet.getExecRowDefinition(), this.leftHashKeys).getRowArray());
             Partitioner partitioner = getPartitioner(formatIds, leftPartitions);
@@ -358,7 +350,7 @@ public class MergeJoinOperation extends JoinOperation {
     }
 
 
-    private static final class SparkJoiner extends SparkFlatMap2Operation<MergeJoinOperation, Iterator<SparkRow>, Iterator<SparkRow>, SparkRow> {
+    private static final class SparkJoiner extends SparkFlatMap2Operation<MergeJoinOperation, Iterator<LocatedRow>, Iterator<LocatedRow>, LocatedRow> {
         boolean outer;
         private Joiner joiner;
 
@@ -414,7 +406,7 @@ public class MergeJoinOperation extends JoinOperation {
         }
 
         @Override
-        public Iterable<SparkRow> call(Iterator<SparkRow> left, Iterator<SparkRow> right) throws Exception {
+        public Iterable<LocatedRow> call(Iterator<LocatedRow> left, Iterator<LocatedRow> right) throws Exception {
             if (joiner == null) {
                 joiner = initJoiner(RDDUtils.toExecRowsIterator(left), RDDUtils.toExecRowsIterator(right));
                 joiner.open();

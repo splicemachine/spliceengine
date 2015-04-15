@@ -6,7 +6,6 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.impl.spark.RDDUtils;
 import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
@@ -21,8 +20,6 @@ import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.mrio.api.core.SMInputFormat;
-import com.splicemachine.mrio.api.serde.ExecRowWritable;
-import com.splicemachine.mrio.api.serde.RowLocationWritable;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.IntArrays;
@@ -38,8 +35,6 @@ import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.types.RowLocation;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HBaseConfiguration;
-import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
@@ -393,7 +388,7 @@ public class TableScanOperation extends ScanOperation {
         }
 
         @Override
-        public JavaRDD<SparkRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+        public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
         	assert currentTemplate != null: "Current Template Cannot Be Null";        	
         	int[] execRowTypeFormatIds = new int[currentTemplate.nColumns()];
         	for (int i = 0; i< currentTemplate.nColumns(); i++) {
@@ -424,10 +419,10 @@ public class TableScanOperation extends ScanOperation {
 
             JavaPairRDD<RowLocation, ExecRow> rawRDD = ctx.newAPIHadoopRDD(conf, SMInputFormat.class,
                     RowLocation.class, ExecRow.class);
-            return rawRDD.map(new Function<Tuple2<RowLocation, ExecRow>, SparkRow>() {
+            return rawRDD.map(new Function<Tuple2<RowLocation, ExecRow>, LocatedRow>() {
                 @Override
-                public SparkRow call(Tuple2<RowLocation, ExecRow> tuple) throws Exception {
-                    return new SparkRow(tuple._1(), tuple._2());
+                public LocatedRow call(Tuple2<RowLocation, ExecRow> tuple) throws Exception {
+                    return new LocatedRow(tuple._1(), tuple._2());
                 }
             });
         }

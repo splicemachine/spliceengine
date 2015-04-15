@@ -2,7 +2,6 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.spark.RDDUtils;
-import com.splicemachine.derby.utils.JoinSideExecRow;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.util.Pair;
@@ -10,7 +9,6 @@ import scala.Tuple2;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 
@@ -20,8 +18,8 @@ import java.util.List;
  */
 public class SparkMergeSortJoinRows implements IJoinRowsIterator<ExecRow> {
 
-	private final Iterator<SparkRow> lefts;
-	private final Iterable<SparkRow> rights;
+	private final Iterator<LocatedRow> lefts;
+	private final Iterable<LocatedRow> rights;
     List<ExecRow> currentRights = new ArrayList<ExecRow>();
     byte[] currentRightHash;
     Pair<ExecRow,Iterator<ExecRow>> nextBatch;
@@ -29,7 +27,7 @@ public class SparkMergeSortJoinRows implements IJoinRowsIterator<ExecRow> {
     private int rightRowsSeen;
 
 
-    public SparkMergeSortJoinRows(Tuple2<Iterable<SparkRow>, Iterable<SparkRow>> source){
+    public SparkMergeSortJoinRows(Tuple2<Iterable<LocatedRow>, Iterable<LocatedRow>> source){
         this.lefts = source._1().iterator();
 		this.rights = source._2();
     }

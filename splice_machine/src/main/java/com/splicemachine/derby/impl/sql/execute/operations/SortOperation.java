@@ -467,13 +467,13 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
     }
 
     @Override
-    public JavaRDD<SparkRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-        JavaRDD<SparkRow> rdd = source.getRDD(spliceRuntimeContext, source);
+    public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+        JavaRDD<LocatedRow> rdd = source.getRDD(spliceRuntimeContext, source);
         if (distinct) {
             rdd = rdd.distinct();
         }
-        JavaPairRDD<ExecRow, SparkRow> keyed = RDDUtils.getKeyedRDD(rdd, keyColumns);
-        JavaPairRDD<ExecRow, SparkRow> sorted = keyed.sortByKey(new RowComparator(descColumns));
+        JavaPairRDD<ExecRow, LocatedRow> keyed = RDDUtils.getKeyedRDD(rdd, keyColumns);
+        JavaPairRDD<ExecRow, LocatedRow> sorted = keyed.sortByKey(new RowComparator(descColumns));
         return sorted.values();
     }
 

@@ -10,7 +10,7 @@ import java.util.concurrent.Callable;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.sql.execute.operations.EmptyJobStats;
-import com.splicemachine.derby.impl.sql.execute.operations.SparkRow;
+import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.job.SimpleJobResults;
@@ -23,28 +23,26 @@ import org.apache.hadoop.hbase.util.Pair;
 import org.apache.spark.api.java.JavaRDD;
 
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.job.JobResults;
 
 public class RDDRowProvider implements RowProvider, Serializable {
 
     private SpliceRuntimeContext spliceRuntimeContext;
 
     // TODO missing activation for shuffle of rows for operations higher up
-    public RDDRowProvider(JavaRDD<SparkRow> javaRDD, SpliceRuntimeContext spliceRuntimeContext) {
+    public RDDRowProvider(JavaRDD<LocatedRow> javaRDD, SpliceRuntimeContext spliceRuntimeContext) {
         this.rdd = javaRDD;
         this.spliceRuntimeContext = spliceRuntimeContext;
     }
 
     private static final long serialVersionUID = -6767694441802309601L;
-    protected transient Iterator<SparkRow> iterator;
+    protected transient Iterator<LocatedRow> iterator;
     protected ExecRow currentRow;
     private HBaseRowLocation currentRowLocation;
-    protected JavaRDD<SparkRow> rdd;
+    protected JavaRDD<LocatedRow> rdd;
 
     @Override
     public boolean hasNext() throws StandardException, IOException {
@@ -102,7 +100,7 @@ public class RDDRowProvider implements RowProvider, Serializable {
         return 0;
     }
 
-    public JavaRDD<SparkRow> getRDD() {
+    public JavaRDD<LocatedRow> getRDD() {
         return rdd;
     }
 

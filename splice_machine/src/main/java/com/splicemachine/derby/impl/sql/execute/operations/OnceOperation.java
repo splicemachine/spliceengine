@@ -258,9 +258,9 @@ public class OnceOperation extends SpliceBaseOperation {
 		}
 
     private static class IteratorRowSource implements RowSource {
-        private final Iterator<SparkRow> iterator;
+        private final Iterator<LocatedRow> iterator;
 
-        public IteratorRowSource(Iterator<SparkRow> iterator) {
+        public IteratorRowSource(Iterator<LocatedRow> iterator) {
             this.iterator = iterator;
         }
 
@@ -424,20 +424,20 @@ public class OnceOperation extends SpliceBaseOperation {
 				return row;
 		}
 
-    public JavaRDD<SparkRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-        JavaRDD<SparkRow> raw = source.getRDD(spliceRuntimeContext, top);
+    public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+        JavaRDD<LocatedRow> raw = source.getRDD(spliceRuntimeContext, top);
         if (pushedToServer()) {
             // we want to avoid re-applying the OnceOp if it has already been executed in HBase
             return raw;
         }
-        final Iterator<SparkRow> iterator = raw.toLocalIterator();
+        final Iterator<LocatedRow> iterator = raw.toLocalIterator();
         ExecRow result;
         try {
             result = validateNextRow(new IteratorRowSource(iterator), false);
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
-        return SpliceSpark.getContext().parallelize(Lists.newArrayList(new SparkRow(result)));
+        return SpliceSpark.getContext().parallelize(Lists.newArrayList(new LocatedRow(result)));
     }
 
     @Override
@@ -458,7 +458,7 @@ public class OnceOperation extends SpliceBaseOperation {
 
     @Override
     public SpliceNoPutResultSet executeRDD(SpliceRuntimeContext runtimeContext) throws StandardException {
-        JavaRDD<SparkRow> rdd = getRDD(runtimeContext, this);
+        JavaRDD<LocatedRow> rdd = getRDD(runtimeContext, this);
         if (LOG.isInfoEnabled()) {
             LOG.info("RDD for operation " + this + " :\n " + rdd.toDebugString());
         }
