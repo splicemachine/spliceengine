@@ -4,7 +4,9 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.pipeline.exception.ErrorState;
 
+import com.splicemachine.test.Transactions;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -15,6 +17,7 @@ import java.sql.SQLException;
  * @author Scott Fines
  * Date: 9/25/14
  */
+@Category({Transactions.class})
 public class SchemaTransactionIT {
     public static final SpliceWatcher classWatcher = new SpliceWatcher();
     @ClassRule

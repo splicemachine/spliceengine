@@ -2,7 +2,9 @@ package com.splicemachine.derby.transactions;
 
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.test.Transactions;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -12,6 +14,7 @@ import org.junit.rules.TestRule;
  * @author Scott Fines
  * Date: 9/4/14
  */
+@Category({Transactions.class})
 public class TransactionAdminIT {
 
     public static final SpliceWatcher classWatcher = new SpliceWatcher();
