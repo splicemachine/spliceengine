@@ -535,7 +535,7 @@
 				<module>cdh5.3.0</module>
 				<module>hdp2.1.5</module>
 				<module>hdp2.2.0</module>
-				<module>mapr4.0</module>
+				<module>mapr0.98.4</module>
 			</modules>
 		</profile>
 		<profile>
@@ -870,9 +870,9 @@
 			</modules>
 		</profile>
 		<profile>
-			<id>mapr4.0</id>
+			<id>mapr0.98.4</id>
 			<modules>
-				<module>mapr4.0</module>
+				<module>mapr0.98.4</module>
 			</modules>
 		</profile>
 	</profiles>
