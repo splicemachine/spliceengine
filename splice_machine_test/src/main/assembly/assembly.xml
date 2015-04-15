@@ -23,6 +23,7 @@
 				<!-- splice artifacts -->
 				<include>com.splicemachine:asynchbase</include>
 				<include>com.splicemachine:utilities</include>
+				<include>com.splicemachine:stats</include>
 				<include>com.splicemachine:splice_constants-${envClassifier}</include>
 				<include>com.splicemachine:splice_si-${envClassifier}</include>
 				<include>com.splicemachine:splice_si_adapter_9*-${envClassifier}</include>
