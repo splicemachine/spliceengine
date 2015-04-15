@@ -60,6 +60,7 @@ public class SingleDistinctScalarAggregateIterator extends AbstractStandardItera
 				initialize(currentRow);
 				boolean shouldContinue = true;
 				do{
+                        rowsRead++;
 						SpliceBaseOperation.checkInterrupt(rowsRead, SpliceConstants.interruptLoopCheck);
 						nextRow = source.next(spliceRuntimeContext);
 						shouldContinue = nextRow!=null;
