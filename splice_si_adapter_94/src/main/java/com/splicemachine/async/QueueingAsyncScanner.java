@@ -100,14 +100,15 @@ public class QueueingAsyncScanner extends BaseAsyncScanner{
             if(arg==null || arg.size()<=0){
                 done=true;
             }else {
-                for (int i = 0; i < arg.size(); i++) {
-                    buffer.offer(arg.get(i));
+                for(ArrayList<KeyValue> anArg : arg){
+                    buffer.offer(anArg);
                 }
                 SpliceLogUtils.trace(LOG, "Added %d rows to buffer", arg.size());
             }
 
             //indicate we are ready for the next submission
-            outstandingRequest = null;
+            if(!closed)
+                outstandingRequest = null;
             return null;
         }
     };
