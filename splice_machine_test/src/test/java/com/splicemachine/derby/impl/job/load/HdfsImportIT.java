@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.job.load;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.splicemachine.constants.SpliceConstants;
@@ -7,10 +8,11 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-
 import com.splicemachine.test.SlowTest;
+
 import org.junit.*;
 import org.junit.experimental.categories.Category;
+import org.junit.rules.ExpectedException;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TemporaryFolder;
 import org.junit.rules.TestRule;
@@ -43,6 +45,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 	protected static String TABLE_15 = "O";	
 	protected static String TABLE_16 = "P";	
 	protected static String TABLE_17 = "Q";	
+	protected static String TABLE_18 = "R";
 	private static final String AUTO_INCREMENT_TABLE = "INCREMENT";
 
 	
@@ -71,6 +74,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 							"SdR_cReAtE_dAtE tImEsTaMp wItH DeFaUlT CuRrEnT_tImEsTaMp, SdR_uPdAtE_dAtE TimEstAmp With deFauLT cuRRent_tiMesTamP,Dw_srcC_ExtrC_DttM TimEStamP WitH DefAulT CurrEnt_TimesTamp)");
 	protected static SpliceTableWatcher spliceTableWatcher16 = new SpliceTableWatcher(TABLE_16,spliceSchemaWatcher.schemaName,"(id int, description varchar(1000), name varchar(10))");
 	protected static SpliceTableWatcher spliceTableWatcher17 = new SpliceTableWatcher(TABLE_17,spliceSchemaWatcher.schemaName,"(name varchar(40), title varchar(40), age int,PRIMARY KEY(name))");
+	protected static SpliceTableWatcher spliceTableWatcher18 = new SpliceTableWatcher(TABLE_18,spliceSchemaWatcher.schemaName,"(name varchar(40), title varchar(40), age int)");
 
 
 	
@@ -98,12 +102,15 @@ public class HdfsImportIT extends SpliceUnitTest {
 						.around(spliceTableWatcher15)
 						.around(spliceTableWatcher16)
 						.around(spliceTableWatcher17)
+						.around(spliceTableWatcher18)
 						.around(autoIncTableWatcher);
 
-    @Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
-	@Rule
-	public TemporaryFolder baddir = new TemporaryFolder();
+    @Rule
+    public SpliceWatcher methodWatcher = new SpliceWatcher();
 
+    @Rule
+	public TemporaryFolder baddir = new TemporaryFolder();
+	
 //    @After
 //    public void tearDownTest() throws Exception{
 //        rule.dropTables();
@@ -654,6 +661,70 @@ public class HdfsImportIT extends SpliceUnitTest {
 			Assert.assertNotNull("Title is null!", title);
 			Assert.assertNotNull("Age is null!",age);
 			results.add(String.format("name:%s,title:%s,age:%d",name,title,age));
+		}
+		Assert.assertTrue("Incorrect number of rows imported", results.size() == importCount);
+	}
+
+	/**
+	 * Tests an import scenario where a quoted column is missing the end quote and the EOF is
+	 * reached before the maximum number of lines in a quoted column is exceeded.
+	 *
+	 * @throws Exception
+	 */
+	@Test
+	public void testMissingEndQuoteForQuotedColumnEOF() throws Exception {
+		/*
+		 * PLEASE NOTE:
+		 * I do not like this test.  It is nasty to fetch the root cause's message and substring match parts of it.
+		 * However, since Derby and Splice wrap the exceptions so many times, I don't see any option to determine whether
+		 * the correct exception is being thrown.
+		 * I also do not see an expectRootCause method and the junit team has rejected the request for it a couple times:
+		 *     https://github.com/junit-team/junit/issues/714
+		 *     https://github.com/junit-team/junit/pull/778
+		 */
+		try {
+			testMissingEndQuoteForQuotedColumn(
+					spliceSchemaWatcher.schemaName, TABLE_18, getResourceDirectory() + "import/missing-end-quote/employees.csv", "NAME,TITLE,AGE", baddir.newFolder().getCanonicalPath(), 0, 6);
+		} catch (Throwable t) {
+			String expectedMessage1 = "unexpected end of file";
+			String expectedMessage2 = "org.supercsv.exception.SuperCsvException";
+			String rootCauseMessage = Throwables.getRootCause(t).getMessage();
+			Assert.assertTrue(
+					String.format("Root cause message does not contain '%s' and '%s'.  Actual root cause message is '%s'.", expectedMessage1, expectedMessage2, rootCauseMessage),
+					rootCauseMessage.contains(expectedMessage1) && rootCauseMessage.contains(expectedMessage2));
+		}
+	}
+
+	/**
+	 * Worker method for import tests related to CSV files that are missing the end quote for a quoted column.
+	 *
+	 * @param schemaName
+	 * @param tableName
+	 * @param location
+	 * @param colList
+	 * @param badDir
+	 * @param failErrorCount
+	 * @param importCount
+	 * @throws Exception
+	 */
+	private void testMissingEndQuoteForQuotedColumn(
+			String schemaName, String tableName, String location, String colList, String badDir, int failErrorCount, int importCount)
+					throws Exception {
+		methodWatcher.executeUpdate("delete from " + schemaName + "." + tableName);
+		PreparedStatement ps = methodWatcher.prepareStatement(
+				format("call SYSCS_UTIL.IMPORT_DATA('%s','%s','%s','%s',',',null,null,null,null,%d,'%s')",
+				schemaName, tableName, colList, location, failErrorCount, badDir));
+		ps.execute();
+		ResultSet rs = methodWatcher.executeQuery(format("select * from %s.%s", schemaName, tableName));
+		List<String> results = Lists.newArrayList();
+		while(rs.next()){
+			String name = rs.getString(1);
+			String title = rs.getString(2);
+			int age = rs.getInt(3);
+			Assert.assertTrue("age was null!", !rs.wasNull());
+			Assert.assertNotNull("name is null!", name);
+			Assert.assertNotNull("title is null!", title);
+			results.add(String.format("name:%s,title:%s,age:%d", name, title, age));
 		}
 		Assert.assertTrue("Incorrect number of rows imported", results.size() == importCount);
 	}
