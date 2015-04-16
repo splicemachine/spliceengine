@@ -1,15 +1,20 @@
-package com.splicemachine.derby.impl.sql.execute.altertable;
+package com.splicemachine.derby.ddl;
 
+import java.io.Externalizable;
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 
-import com.google.common.io.Closeables;
+import org.apache.hadoop.hbase.util.Bytes;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.impl.sql.execute.altertable.AlterTableRowTransformer;
 import com.splicemachine.derby.utils.marshall.BareKeyHash;
 import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.derby.utils.marshall.EntryDataDecoder;
@@ -25,64 +30,91 @@ import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.RowTransformer;
+import com.splicemachine.pipeline.api.WriteHandler;
+import com.splicemachine.pipeline.ddl.TransformingDDLDescriptor;
 import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.pipeline.writehandler.altertable.AlterTableInterceptWriteHandler;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.uuid.UUIDGenerator;
 
 /**
- * Used by add column write interceptor to map rows written to old table to new table with default
- * values for new column.
+ * Add constraint descriptor
  */
-public class AddColumnRowTransformer implements RowTransformer {
+public class TentativeAddConstraintDesc implements TransformingDDLDescriptor, Externalizable{
+    private String tableVersion;
+    private long newConglomId;
+    private long oldConglomId;
+    private int[] columnOrdering;
+    private ColumnInfo[] columnInfos;
 
-    private final ExecRow oldRow;
-    private final ExecRow newRow;
-    private final EntryDataDecoder rowDecoder;
-    private final KeyHashDecoder keyDecoder;
-    private final PairEncoder entryEncoder;
+    public TentativeAddConstraintDesc() {}
 
-    private AddColumnRowTransformer(ExecRow oldRow,
-                                   ExecRow newRow,
-                                   KeyHashDecoder keyDecoder,
-                                   EntryDataDecoder rowDecoder,
-                                   PairEncoder entryEncoder) {
-        this.oldRow = oldRow;
-        this.newRow = newRow;
-        this.rowDecoder = rowDecoder;
-        this.keyDecoder = keyDecoder;
-        this.entryEncoder = entryEncoder;
-    }
-
-    public KVPair transform(KVPair kvPair) throws StandardException, IOException {
-        // Decode a row
-        oldRow.resetRowArray();
-        if (oldRow.nColumns() > 0) {
-            keyDecoder.set(kvPair.getRowKey(), 0, kvPair.getRowKey().length);
-            keyDecoder.decode(oldRow);
-
-            rowDecoder.set(kvPair.getValue(), 0, kvPair.getValue().length);
-            rowDecoder.decode(oldRow);
-        }
-
-        // encode the result
-        KVPair newPair = entryEncoder.encode(newRow);
-
-        // preserve the same row key
-        newPair.setKey(kvPair.getRowKey());
-        return newPair;
+    public TentativeAddConstraintDesc(String tableVersion,
+                                      long newConglomId,
+                                      long oldConglomId,
+                                      int[] columnOrdering,
+                                      ColumnInfo[] columnInfos) {
+        this.tableVersion = tableVersion;
+        this.newConglomId = newConglomId;
+        this.oldConglomId = oldConglomId;
+        this.columnOrdering = columnOrdering;
+        this.columnInfos = columnInfos;
     }
 
     @Override
-    public void close() {
-        Closeables.closeQuietly(keyDecoder);
-        Closeables.closeQuietly(rowDecoder);
-        Closeables.closeQuietly(entryEncoder);
+    public long getBaseConglomerateNumber() {
+        return oldConglomId;
     }
 
-    public static RowTransformer create(String tableVersion, int[] columnOrdering, ColumnInfo[] columnInfos)
+    @Override
+    public long getConglomerateNumber() {
+        return newConglomId;
+    }
+
+    @Override
+    public RowTransformer createRowTransformer() throws IOException {
+        return create(tableVersion, columnOrdering, columnInfos);
+    }
+
+    @Override
+    public WriteHandler createWriteHandler(RowTransformer transformer) throws IOException {
+        return new AlterTableInterceptWriteHandler(transformer, Bytes.toBytes(String.valueOf(newConglomId)));
+
+    }
+
+    public ColumnInfo[] getColumnInfos() {
+        return columnInfos;
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        out.writeObject(tableVersion);
+        out.writeLong(newConglomId);
+        out.writeLong(oldConglomId);
+        ArrayUtil.writeIntArray(out, columnOrdering);
+        out.writeInt(columnInfos.length);
+        for (ColumnInfo col:columnInfos) {
+            out.writeObject(col);
+        }
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        tableVersion = (String) in.readObject();
+        newConglomId = in.readLong();
+        oldConglomId = in.readLong();
+        columnOrdering = ArrayUtil.readIntArray(in);
+        int size = in.readInt();
+        columnInfos = new ColumnInfo[size];
+        for (int i = 0; i < size; ++i) {
+            columnInfos[i] = (ColumnInfo)in.readObject();
+        }
+    }
+
+    private static RowTransformer create(String tableVersion, int[] columnOrdering, ColumnInfo[] columnInfos)
         throws IOException {
         // template rows
-        ExecRow oldRow = new ValueRow(columnInfos.length-1);
+        ExecRow oldRow = new ValueRow(columnInfos.length);
         ExecRow newRow = new ValueRow(columnInfos.length);
 
         try {
@@ -140,6 +172,7 @@ public class AddColumnRowTransformer implements RowTransformer {
         DataHash rowHash = new EntryDataHash(columns, null,newSerializers);
         PairEncoder rowEncoder = new PairEncoder(encoder,rowHash, KVPair.Type.INSERT);
 
-        return new AddColumnRowTransformer(oldRow, newRow, keyDecoder, rowDecoder, rowEncoder);
+        return new AlterTableRowTransformer(oldRow, newRow, keyDecoder, rowDecoder, rowEncoder);
     }
+
 }

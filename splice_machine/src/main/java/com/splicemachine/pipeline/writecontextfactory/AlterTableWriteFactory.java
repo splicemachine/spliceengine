@@ -20,12 +20,13 @@ public class AlterTableWriteFactory implements LocalWriteFactory {
     }
 
     public static AlterTableWriteFactory create(DDLChange ddlChange) {
-        if (ddlChange.getChangeType() != DDLChangeType.ADD_COLUMN &&
-            ddlChange.getChangeType() != DDLChangeType.DROP_COLUMN) {
-            return null;
+        DDLChangeType changeType = ddlChange.getChangeType();
+        if (changeType == DDLChangeType.ADD_COLUMN ||
+            changeType == DDLChangeType.ADD_PRIMARY_KEY ||
+            changeType == DDLChangeType.DROP_COLUMN) {
+            return new AlterTableWriteFactory(ddlChange);
         }
-
-        return new AlterTableWriteFactory(ddlChange);
+        return null;
     }
 
     @Override

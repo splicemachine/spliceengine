@@ -34,29 +34,59 @@ public class DataDictionaryUtils {
         return null;
     }
 
-    // Get 0-based columnOrdering from a table with primary key
-    public static int[] getColumnOrdering(TxnView txn, UUID tableId) {
+    /**
+     * Get 0-based columnOrdering from a table with primary key when you need to
+     * look up the TableDescriptor.
+     * @param txn current txn
+     * @param tableId the UUID of the table for which to get the column ordering
+     * @return Zero-based column ordering.
+     * @throws StandardException
+     */
+    public static int[] getColumnOrdering(TxnView txn, UUID tableId) throws StandardException {
 
         int[] columnOrdering = null;
+        SpliceTransactionResourceImpl impl;
         try {
-            SpliceTransactionResourceImpl impl = new SpliceTransactionResourceImpl();
+            impl = new SpliceTransactionResourceImpl();
             impl.marshallTransaction(txn);
-            LanguageConnectionContext lcc = impl.getLcc();
+        } catch (SQLException e) {
+            throw Exceptions.parseException(e);
+        }
+        LanguageConnectionContext lcc = impl.getLcc();
 
-            DataDictionary dd = lcc.getDataDictionary();
-            TableDescriptor td = dd.getTableDescriptor(tableId);
-            ConstraintDescriptorList cdl = dd.getConstraintDescriptors(td);
-            ReferencedKeyConstraintDescriptor keyDescriptor = cdl.getPrimaryKey();
+        DataDictionary dd = lcc.getDataDictionary();
+        TableDescriptor td = dd.getTableDescriptor(tableId);
+        ConstraintDescriptorList cdl = dd.getConstraintDescriptors(td);
+        ReferencedKeyConstraintDescriptor keyDescriptor = cdl.getPrimaryKey();
 
-            if (keyDescriptor != null) {
-                int[] pkCols = keyDescriptor.getReferencedColumns();
-                columnOrdering = new int[pkCols.length];
-                for (int i = 0; i < pkCols.length; ++i) {
-                    columnOrdering[i] = pkCols[i] - 1;
-                }
+        if (keyDescriptor != null) {
+            int[] pkCols = keyDescriptor.getReferencedColumns();
+            columnOrdering = new int[pkCols.length];
+            for (int i = 0; i < pkCols.length; ++i) {
+                columnOrdering[i] = pkCols[i] - 1;
             }
-        } catch (Exception e) {
-            // TODO: handle exceptions
+        }
+        return columnOrdering;
+    }
+
+    /**
+     * Get 0-based columnOrdering from a table with primary key when you have a TableDescriptor.
+     * @param tableDescriptor the TableDescriptor for which to get the column ordering
+     * @param dd DataDictionary to gather info
+     * @return Zero-based column ordering
+     * @throws StandardException
+     */
+    public static int[] getColumnOrdering(TableDescriptor tableDescriptor, DataDictionary dd) throws StandardException {
+        int[] columnOrdering = null;
+        ConstraintDescriptorList cdl = dd.getConstraintDescriptors(tableDescriptor);
+        ReferencedKeyConstraintDescriptor keyDescriptor = cdl.getPrimaryKey();
+
+        if (keyDescriptor != null) {
+            int[] pkCols = keyDescriptor.getReferencedColumns();
+            columnOrdering = new int[pkCols.length];
+            for (int i = 0; i < pkCols.length; ++i) {
+                columnOrdering[i] = pkCols[i] - 1;
+            }
         }
         return columnOrdering;
     }

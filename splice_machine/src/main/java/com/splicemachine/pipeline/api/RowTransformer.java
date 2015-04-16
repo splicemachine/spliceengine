@@ -12,5 +12,5 @@ import com.splicemachine.hbase.KVPair;
  *
  */
 public interface RowTransformer extends Closeable  {
-	public KVPair transform(KVPair kv) throws StandardException, SQLException, IOException;
+	KVPair transform(KVPair kv) throws StandardException, SQLException, IOException;
 }
