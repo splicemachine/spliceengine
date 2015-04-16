@@ -88,7 +88,7 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
         PipelineWriteContext context = new PipelineWriteContext(indexSharedCallBuffer, txn, rce, env);
         BatchConstraintChecker checker = buildConstraintChecker();
         context.addLast(new RegionWriteHandler(rce, tableWriteLatch, checker));
-        addIndexAndForeignKeyWriteHandlers(1000, context);
+        addWriteHandlerFactories(1000, context);
         return context;
     }
 
@@ -99,7 +99,7 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
         PipelineWriteContext context = new PipelineWriteContext(indexSharedCallBuffer, txn, region, env);
         BatchConstraintChecker checker = buildConstraintChecker();
         context.addLast(new RegionWriteHandler(region, tableWriteLatch, checker));
-        addIndexAndForeignKeyWriteHandlers(expectedWrites, context);
+        addWriteHandlerFactories(expectedWrites, context);
         return context;
     }
 
@@ -132,7 +132,7 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
         }
     }
 
-    private void addIndexAndForeignKeyWriteHandlers(int expectedWrites, PipelineWriteContext context) throws IOException, InterruptedException {
+    private void addWriteHandlerFactories(int expectedWrites, PipelineWriteContext context) throws IOException, InterruptedException {
         isInitialized(context.getTxn());
         //only add constraints and indices when we are in a RUNNING state
         if (state.get() == State.RUNNING) {
@@ -178,7 +178,7 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
     @Override
     public WriteContext createPassThrough(IndexCallBufferFactory indexSharedCallBuffer, TxnView txn, TransactionalRegion region, int expectedWrites, RegionCoprocessorEnvironment env) throws IOException, InterruptedException {
         PipelineWriteContext context = new PipelineWriteContext(indexSharedCallBuffer, txn, region, env);
-        addIndexAndForeignKeyWriteHandlers(expectedWrites, context);
+        addWriteHandlerFactories(expectedWrites, context);
         return context;
     }
 
@@ -268,6 +268,7 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
                 switch (ddlChangeType) {
                     case DROP_COLUMN:
                     case ADD_COLUMN:
+                    case ADD_PRIMARY_KEY:
                         alterTableWriteFactories.add(AlterTableWriteFactory.create(ddlChange));
                         break;
                     default:
@@ -446,6 +447,7 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
                         break;
                     case DROP_COLUMN:
                     case ADD_COLUMN:
+                    case ADD_PRIMARY_KEY:
                         if (ddlDesc.getBaseConglomerateNumber() == conglomId)
                             alterTableWriteFactories.add(AlterTableWriteFactory.create(ddlChange));
                         break;

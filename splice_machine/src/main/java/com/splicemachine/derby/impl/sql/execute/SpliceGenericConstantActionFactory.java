@@ -145,7 +145,7 @@ public class SpliceGenericConstantActionFactory extends GenericConstantActionFac
 //                    columnInfo,constraintActions,lockGranularity,
 //                    behavior,sequential,
 //                    updateStatistics,updateStatisticsAll,dropStatistics,dropStatisticsAll,indexNameForStatistics);
-        }else if(columnInfo!=null){
+        }else if(columnInfo!=null && columnInfo.length > 0){
             return new ModifyColumnConstantOperation(sd,tableName,tableId,
                     tableConglomerateId,columnInfo,constraintActions,
                     lockGranularity,behavior, indexNameForStatistics);

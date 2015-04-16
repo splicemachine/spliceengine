@@ -315,12 +315,11 @@ public class AddColumnTransactionIT {
         ps.setString(1, "Fred");ps.setInt(2, 20); ps.setString(3, "121212"); ps.setInt(4, 123); ps.execute();
         conn2.commit();
 
-        String query = "select * from " + addedTable4;
-        TestUtils.printResult(query, conn1.query(query), System.out);
-        query = "select * from " + addedTable4 + " where id is not null";
-        TestUtils.printResult(query, conn1.query(query), System.out);
-        query = "select * from " + addedTable4 + " where id = 123";
-        TestUtils.printResult(query, conn1.query(query), System.out);
+        long count = conn1.count("select * from " + addedTable4 + " where id = 123");
+        Assert.assertEquals("incorrect row count!", 1, count);
+
+        count = conn1.count("select * from " + addedTable4 + " where id is not null");
+        Assert.assertEquals("incorrect row count!", 1, count);
     }
 
 }

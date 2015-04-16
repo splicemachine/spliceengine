@@ -68,7 +68,7 @@ public class AlterTableTask extends ZkTask {
 
     @Override
     public RegionTask getClone() {
-        throw new UnsupportedOperationException("Should not clone AddColumnTasks!");
+        throw new UnsupportedOperationException("Should not clone AlterTableTasks!");
     }
 
     @Override

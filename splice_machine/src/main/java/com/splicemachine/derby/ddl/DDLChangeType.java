@@ -12,6 +12,7 @@ public enum DDLChangeType {
     CREATE_INDEX(true),
     ADD_NOT_NULL(true),
     ADD_COLUMN(true),
+    ADD_PRIMARY_KEY(true),
     DROP_COLUMN(true),
     DROP_TABLE(true),
     DROP_SCHEMA(true),

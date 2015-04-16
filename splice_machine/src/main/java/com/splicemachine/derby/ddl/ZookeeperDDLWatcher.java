@@ -337,6 +337,7 @@ public class ZookeeperDDLWatcher implements DDLWatcher, Watcher {
             case CREATE_INDEX:
             case DROP_COLUMN:
             case ADD_COLUMN:
+            case ADD_PRIMARY_KEY:
             case DROP_INDEX:
                 tentativeDDLs.put(changeId, ddlChange);
                 break;
