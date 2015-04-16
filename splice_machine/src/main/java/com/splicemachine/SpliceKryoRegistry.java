@@ -838,7 +838,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(CreateFkTask.class, EXTERNALIZABLE_SERIALIZER,229);
         instance.register(CreateIncrementalBackupTask.class, EXTERNALIZABLE_SERIALIZER,230);
         instance.register(AlterTableTask.class, EXTERNALIZABLE_SERIALIZER,231);
-        instance.register(TentativeDropColumnDesc.class,EXTERNALIZABLE_SERIALIZER,232);
+        instance.register(TentativeAddConstraintDesc.class,EXTERNALIZABLE_SERIALIZER,232);
         instance.register(TentativeAddColumnDesc.class,EXTERNALIZABLE_SERIALIZER,233);
         instance.register(PopulateConglomerateTask.class,EXTERNALIZABLE_SERIALIZER,234);
         instance.register(StatisticsTask.class, EXTERNALIZABLE_SERIALIZER,235);
