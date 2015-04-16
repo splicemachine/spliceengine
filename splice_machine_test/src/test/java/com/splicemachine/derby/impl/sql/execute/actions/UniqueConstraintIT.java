@@ -4,6 +4,7 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 
@@ -27,7 +28,7 @@ public class UniqueConstraintIT {
      * Bug DB-552
      * Should not be able to alter table to create a unique constraint with non-unique values already in column
      */
-    @Test
+    @Test @Ignore("DB-1755: alter table. Need unique constraints for this test.")
     public void testNotNullAlterTableCreateUniqueConstraintWithDuplicate() throws Exception {
         methodWatcher.executeUpdate("create table ZONING0 (PARCELID INTEGER NOT NULL, ADDRESS VARCHAR(15), BOARDDEC VARCHAR(11), EXSZONE VARCHAR(8), PRPZONE VARCHAR(8), HEARDATE DATE)");
         methodWatcher.getStatement().execute("CREATE UNIQUE INDEX ZONING0 ON ZONING0 (PARCELID, HEARDATE)");
@@ -53,7 +54,7 @@ public class UniqueConstraintIT {
      * The only difference between this test and the one immediately above is that the unique index column
      * is NOT created with NOT NULL criteria.
      */
-    @Test
+    @Test @Ignore("DB-1755: alter table. Need unique constraints for this test.")
     public void testAlterTableCreateUniqueConstraintWithDuplicate() throws Exception {
         String tableName = "ZONING1";
         methodWatcher.executeUpdate("create table " + tableName + "(PARCELID INTEGER, ADDRESS VARCHAR(15), BOARDDEC VARCHAR(11), EXSZONE VARCHAR(8), PRPZONE VARCHAR(8), HEARDATE DATE)");
@@ -93,7 +94,7 @@ public class UniqueConstraintIT {
      * Should be able to alter table to create a unique constraint with non-unique NULL values already in column
      * Table NOT created with NOT NULL criteria.
      */
-    @Test
+    @Test @Ignore("DB-1755: alter table. Need unique constraints for this test.")
     public void testAlterTableCreateUniqueConstraintWithDuplicateNulls() throws Exception {
         String tableName = "ZONING7";
         methodWatcher.executeUpdate("create table " + tableName + "(PARCELID INTEGER, ADDRESS VARCHAR(15), BOARDDEC VARCHAR(11), EXSZONE VARCHAR(8), PRPZONE VARCHAR(8), HEARDATE DATE)");
@@ -146,7 +147,7 @@ public class UniqueConstraintIT {
      * Bug DB-552
      * Should not be able to insert a record with a duplicate key after unique constraint added
      */
-    @Test
+    @Test @Ignore("DB-1755: alter table. Need unique constraints for this test.")
     public void testAlterTableCreateUniqueConstraintInsertDupe() throws Exception {
         String tableName = "ZONING2";
         methodWatcher.executeUpdate("create table " + tableName + "(PARCELID INTEGER NOT NULL, ADDRESS VARCHAR(15), BOARDDEC VARCHAR(11), EXSZONE VARCHAR(8), PRPZONE VARCHAR(8), HEARDATE DATE)");
@@ -175,7 +176,7 @@ public class UniqueConstraintIT {
      * The difference between this test and the one above immediately above is that the
      * alter table column is NOT defined with NOT NULL criteria.
      */
-    @Test
+    @Test @Ignore("DB-1755: alter table. Need unique constraints for this test.")
     public void testCreateUniqueIndexAlterTableCreateUniqueConstraint() throws Exception {
         String tableName = "ZONING5";
         methodWatcher.executeUpdate("create table " + tableName + "(PARCELID INTEGER, ADDRESS VARCHAR(15), BOARDDEC VARCHAR(11), EXSZONE VARCHAR(8), PRPZONE VARCHAR(8), HEARDATE DATE)");
@@ -199,7 +200,7 @@ public class UniqueConstraintIT {
      * The difference between this test and the one above immediately above is that the
      * alter table column is defined as NOT NULL.
      */
-    @Test
+    @Test @Ignore("DB-1755: alter table. Need unique constraints for this test.")
     public void tesNotNullCreateUniqueIndexAlterTableCreateUniqueConstraint() throws Exception {
         String tableName = "ZONING6";
         methodWatcher.executeUpdate("create table " + tableName + "(PARCELID INTEGER NOT NULL, ADDRESS VARCHAR(15), BOARDDEC VARCHAR(11), EXSZONE VARCHAR(8), PRPZONE VARCHAR(8), HEARDATE DATE)");

@@ -12,6 +12,7 @@ import com.esotericsoftware.kryo.serializers.MapSerializer;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.ddl.TentativeAddColumnDesc;
+import com.splicemachine.derby.ddl.TentativeAddConstraintDesc;
 import com.splicemachine.derby.ddl.TentativeDropColumnDesc;
 import com.splicemachine.derby.ddl.TentativeIndexDesc;
 import com.splicemachine.derby.hbase.ActivationSerializer;
@@ -657,5 +658,6 @@ public class SpliceSparkKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(AlterTableTask.class,EXTERNALIZABLE_SERIALIZER,191);
         instance.register(PopulateConglomerateTask.class,EXTERNALIZABLE_SERIALIZER,192);
         instance.register(TentativeAddColumnDesc.class,new FieldSerializer(instance,TentativeAddColumnDesc.class),193);
+        instance.register(TentativeAddConstraintDesc.class,new FieldSerializer(instance,TentativeAddConstraintDesc.class),194);
     }
 }

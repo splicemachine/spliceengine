@@ -118,17 +118,11 @@ public class TentativeAddConstraintDesc implements TransformingDDLDescriptor, Ex
         ExecRow newRow = new ValueRow(columnInfos.length);
 
         try {
-            for (int i=0; i<columnInfos.length-1; i++) {
+            for (int i=0; i<columnInfos.length; i++) {
                 DataValueDescriptor dvd = columnInfos[i].dataType.getNull();
                 oldRow.setColumn(i+1,dvd);
                 newRow.setColumn(i+1,dvd);
             }
-            // set default value if given
-            DataValueDescriptor newColDefaultValue = columnInfos[columnInfos.length-1].defaultValue;
-            newRow.setColumn(columnInfos.length,
-                             (newColDefaultValue != null ?
-                                 newColDefaultValue :
-                                 columnInfos[columnInfos.length-1].dataType.getNull()));
         } catch (StandardException e) {
             throw Exceptions.getIOException(e);
         }

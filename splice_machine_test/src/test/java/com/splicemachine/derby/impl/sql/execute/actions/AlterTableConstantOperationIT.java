@@ -31,6 +31,7 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
     public static final String TABLE_NAME_9 = "I";
     public static final String TABLE_NAME_10 = "J";
     public static final String TABLE_NAME_11 = "K";
+    public static final String TABLE_NAME_12 = "l";
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
     private static String tableDef = "(TaskId INT NOT NULL, empId Varchar(3) NOT NULL, StartedAt INT NOT NULL, FinishedAt INT NOT NULL)";
@@ -48,6 +49,8 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
             "(num varchar(4) not null, name char(20), " +
                     "grade decimal(4) not null check (grade in (100,150,200)), city char(15), " +
                     "primary key (grade,num))");
+    protected static SpliceTableWatcher spliceTableWatcher12 = new SpliceTableWatcher(TABLE_NAME_12,CLASS_NAME,
+            "(name char(14) not null, age int)");
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -55,14 +58,15 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
             .around(spliceTableWatcher1)
             .around(spliceTableWatcher2)
             .around(spliceTableWatcher3)
-            .around(spliceTableWatcher4)
+                                            .around(spliceTableWatcher4)
             .around(spliceTableWatcher5)
             .around(spliceTableWatcher6)
             .around(spliceTableWatcher7)
             .around(spliceTableWatcher8)
             .around(spliceTableWatcher9)
             .around(spliceTableWatcher10)
-            .around(spliceTableWatcher11);
+            .around(spliceTableWatcher11)
+            .around(spliceTableWatcher12);
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
@@ -240,7 +244,8 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
     @Test
     public void testTruncateWithIndex() throws Exception {
         Connection connection1 = methodWatcher.createConnection();
-        connection1.createStatement().execute(String.format("create index trunc_idx on %s (i)", this.getTableReference(TABLE_NAME_8)));
+        connection1.createStatement().execute(String.format("create index trunc_idx on %s (i)", this
+            .getTableReference(TABLE_NAME_8)));
         try {
             connection1.createStatement().execute(String.format("insert into %s values 1,2,3", this.getTableReference(TABLE_NAME_8)));
 
@@ -344,11 +349,46 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
         connection.commit();
 
         connection.createStatement().execute(String.format("insert into %s values ('01', 'Jeff', 100, " +
-                        "'St. Louis')",
-                spliceTableWatcher11));
+                                                               "'St. Louis')",
+                                                           spliceTableWatcher11));
 
         long count = connection.count(String.format("select * from %s", spliceTableWatcher11));
         Assert.assertEquals("incorrect row count!", 1, count);
 
+    }
+
+    @Test @Ignore("DB-1755: alter table - add PK constraint. Still problems with PK row encoding/decoding during populate.")
+    public void testAddPrimaryKeyIsolation() throws Exception {
+        Connection connection1 = methodWatcher.createConnection();
+        connection1.createStatement().execute(String.format("insert into %s values ('Bob',20)",
+                                                            this.getTableReference(TABLE_NAME_12)));
+        connection1.createStatement().execute(String.format("insert into %s values ('Mary',21)",
+                                                            this.getTableReference(TABLE_NAME_12)));
+
+        PreparedStatement ps = connection1.prepareStatement(String.format("select * from %s",
+                                                                          this.getTableReference(TABLE_NAME_12)));
+        ResultSet resultSet = ps.executeQuery();
+        Assert.assertEquals("Should have 2 rows.", 2, resultSetSize(resultSet));
+
+        Connection connection2 = methodWatcher.createConnection();
+        connection2.setAutoCommit(false);
+        connection2.createStatement().execute(String.format("alter table %s add constraint name_pk_t1  primary key " +
+                                                                "(name)",
+                                                            this.getTableReference(TABLE_NAME_12)));
+
+        connection1.createStatement().execute(String.format("insert into %s values ('Joe',22)",
+                                                            this.getTableReference(TABLE_NAME_12)));
+        connection1.createStatement().execute(String.format("insert into %s values ('Fred',23)",
+                                                            this.getTableReference(TABLE_NAME_12)));
+
+        ps = connection1.prepareStatement(String.format("select * from %s", this.getTableReference(TABLE_NAME_12)));
+        resultSet = ps.executeQuery();
+        Assert.assertEquals("Should have 4 rows.", 4, resultSetSize(resultSet));
+
+        connection2.commit();
+
+        ps = connection2.prepareStatement(String.format("select * from %s", this.getTableReference(TABLE_NAME_12)));
+        resultSet = ps.executeQuery();
+        Assert.assertEquals("Should have 4 rows.", 4, resultSetSize(resultSet));
     }
 }
