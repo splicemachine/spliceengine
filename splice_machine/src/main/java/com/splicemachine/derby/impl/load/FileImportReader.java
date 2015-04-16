@@ -76,8 +76,12 @@ public class FileImportReader implements ImportReader{
 								}
 
 								/*
-								 * SuperCSV creates less objects than OpenCSV, but there is still room for improvement.
-								 * TODO: Fork SuperCSV and reduce the object creation even further.
+								 * This is unfortunate that we need to convert from a List to an array.
+								 * However, the object creation and tokenization is better with SuperCSV
+								 * which is showing a small 5-10% improvement in import tests over OpenCSV.
+								 * Changing from an array to a list has a cascading effect on the code
+								 * as you would imagine causing a number of interfaces to change.
+								 * Leaving as is for now and will monitor the performance.
 								 */
 								next = new String[nextList.size()];
 								nextList.toArray(next);
@@ -133,12 +137,17 @@ public class FileImportReader implements ImportReader{
     }
 
     private CsvListReader getCsvReader(Reader reader, ImportContext importContext) {
+    	/*
+    	 * TODO: [DB-2425] Uncomment the last argument to the builder after the Splice version of super-csv is being built or
+    	 * the super-csv main github repo has pulled in our changes.
+    	 */
     	return new CsvListReader(
     			reader,
     			new CsvPreference.Builder(
     					importContext.getQuoteChar().charAt(0),
     					importContext.getColumnDelimiter().charAt(0),
-    					"\n").build());
+    					"\n"/*,
+    					SpliceConstants.importMaxQuotedColumnLines*/).build());
     }
 
 		@Override
