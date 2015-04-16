@@ -119,6 +119,7 @@ public class SYSCOLUMNSTATISTICSRowFactory extends CatalogRowFactory {
             "t.tableid = c.tableid " +
             "and t.schemaid = s.schemaid " +
             "and c.conglomeratenumber = cs.conglom_id " +
+            "and c.isindex = false " + //strip out index column data
             "and co.referenceid = t.tableid " +
             "and co.columnnumber = cs.column_id " +
             "and PARTITION_EXISTS(cs.conglom_id,partition_id) " +
