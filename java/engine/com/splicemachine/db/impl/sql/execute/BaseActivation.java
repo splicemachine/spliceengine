@@ -92,10 +92,10 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 	private	LanguageConnectionContext	lcc;
 	protected ContextManager			cm;
 	protected DataValueFactory dvf;
-    public enum DataSetProcessor {
-        SPARK, CONTROL
+    public enum DataSetProcessorType {
+        SPARK, CONTROL, LEGACY
     }
-    protected DataSetProcessor dataSetProcessor;
+    protected DataSetProcessorType dataSetProcessorType;
 
 
 
@@ -1899,11 +1899,11 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
         isTraced = traced;
     }
 
-    public void setDataSetProcessor(DataSetProcessor dataSetProcessor) {
-        this.dataSetProcessor = dataSetProcessor;
+    public void setDataSetProcessorType(DataSetProcessorType dataSetProcessorType) {
+        this.dataSetProcessorType = dataSetProcessorType;
     }
 
-    public DataSetProcessor getDataSetProcessor() {
-        return this.dataSetProcessor;
+    public DataSetProcessorType getDataSetProcessorType() {
+        return this.dataSetProcessorType;
     }
 }
