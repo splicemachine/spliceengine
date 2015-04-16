@@ -317,35 +317,57 @@ public class StatisticsAdmin {
                                              List<ColumnDescriptor> columnsToCollect,
                                              TxnView baseTxn) throws StandardException{
         ExecRow indexRow = irg.getIndexRowTemplate();
-        int[] fieldLengths = new int[indexRow.nColumns()];
-        int[] keyBasePositionMap = new int[indexRow.nColumns()];
-
         int[] baseColumnPositions = irg.baseColumnPositions();
         int keyCols = indexRow.nColumns();
         if(irg.isUnique())keyCols--;
+
+        int[] fieldLengths = new int[indexRow.nColumns()];
+        int[] keyBasePositionMap = new int[indexRow.nColumns()];
+
         int[] keyTypes = new int[keyCols];
         int[] keyEncodingOrder = new int[keyCols];
         boolean[] keySortOrder = new boolean[keyCols];
         System.arraycopy(irg.isAscending(),0,keySortOrder,0,irg.isAscending().length);
         int[] keyDecodingMap =IntArrays.count(keyCols);
         int nextColPos = 1;
-        for(ColumnDescriptor cd:columnsToCollect){
-            int colPos = cd.getPosition();
-            for(int keyColumn:baseColumnPositions){
-                if(keyColumn==colPos){
-                    //we have an index column! hooray! put it in the next position in the row
+        for(int keyColumn:baseColumnPositions){
+            for(ColumnDescriptor cd:columnsToCollect){
+                int colPos = cd.getPosition();
+                if(colPos==keyColumn){
+                    /*
+                     * We have the column information for this position in the row, so fill
+                     * the value
+                     */
                     DataTypeDescriptor type=cd.getType();
                     DataValueDescriptor val=type.getNull();
                     indexRow.setColumn(nextColPos,val);
                     keyTypes[nextColPos-1] = val.getTypeFormatId();
                     keyEncodingOrder[nextColPos-1] = colPos-1;
-                    keyBasePositionMap[nextColPos-1] = colPos;
                     fieldLengths[nextColPos] = type.getMaximumWidth();
+                    keyBasePositionMap[nextColPos-1] = colPos;
                     nextColPos++;
                     break;
                 }
             }
         }
+//        int nextColPos = 1;
+//        for(ColumnDescriptor cd:columnsToCollect){
+//            int colPos = cd.getPosition();
+//            for(int keyColumn:baseColumnPositions){
+//                if(keyColumn==colPos){
+//                    //we have an index column! hooray! put it in the next position in the row
+//                    DataTypeDescriptor type=cd.getType();
+//                    DataValueDescriptor val=type.getNull();
+//                    indexRow.setColumn(nextColPos,val);
+//                    keyTypes[nextColPos-1] = val.getTypeFormatId();
+//                    keyEncodingOrder[nextColPos-1] = colPos-1;
+//                    keyBasePositionMap[nextColPos-1] = colPos;
+//                    fieldLengths[nextColPos] = type.getMaximumWidth();
+//                    nextColPos++;
+//                    break;
+//                }
+//            }
+//        }
         HBaseRowLocation value=new HBaseRowLocation();
         indexRow.setColumn(indexRow.nColumns(),value);
 
@@ -482,6 +504,12 @@ public class StatisticsAdmin {
         return schemaDescriptor;
     }
 
+    private static final Comparator<ColumnDescriptor> order = new Comparator<ColumnDescriptor>(){
+        @Override
+        public int compare(ColumnDescriptor o1,ColumnDescriptor o2){
+            return o1.getPosition()-o2.getPosition();
+        }
+    };
     private static List<ColumnDescriptor> getCollectedColumns(TableDescriptor td) throws StandardException {
         ColumnDescriptorList columnDescriptorList = td.getColumnDescriptorList();
         List<ColumnDescriptor> toCollect = new ArrayList<>(columnDescriptorList.size());
@@ -517,6 +545,7 @@ public class StatisticsAdmin {
                 }
             }
         }
+        Collections.sort(toCollect,order); //sort the columns into adjacent position order
         return toCollect;
     }
 
