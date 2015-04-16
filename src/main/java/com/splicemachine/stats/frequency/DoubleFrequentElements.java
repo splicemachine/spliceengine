@@ -186,7 +186,7 @@ public abstract class DoubleFrequentElements implements FrequentElements<Double>
                 size++;
             }
         }
-        elements = rebuild(other.totalCount+totalCount,all);
+        elements = rebuild(other.totalCount+totalCount,all,size);
         totalCount +=other.totalCount;
         return this;
     }
@@ -200,7 +200,7 @@ public abstract class DoubleFrequentElements implements FrequentElements<Double>
         return total;
     }
 
-    protected abstract NavigableSet<DoubleFrequencyEstimate> rebuild(long totalCount, DoubleFrequencyEstimate[] all);
+    protected abstract NavigableSet<DoubleFrequencyEstimate> rebuild(long totalCount, DoubleFrequencyEstimate[] all,int allSize);
 
     protected abstract DoubleFrequentElements getNew(long totalCount, Collection<DoubleFrequencyEstimate> copy);
 
@@ -224,10 +224,10 @@ public abstract class DoubleFrequentElements implements FrequentElements<Double>
         }
 
         @Override
-        protected NavigableSet<DoubleFrequencyEstimate> rebuild(long totalCount, DoubleFrequencyEstimate[] all) {
-            Arrays.sort(all,frequencyComparator);
+        protected NavigableSet<DoubleFrequencyEstimate> rebuild(long totalCount, DoubleFrequencyEstimate[] all,int allSize) {
+            Arrays.sort(all,0,allSize,frequencyComparator);
 
-            int k = Math.min(this.k,all.length);
+            int k = Math.min(this.k,allSize);
             NavigableSet<DoubleFrequencyEstimate> newTree = new TreeSet<>(naturalComparator);
             //noinspection ManualArrayToCollectionCopy
             for(int i=0;i<k;i++){
@@ -252,11 +252,11 @@ public abstract class DoubleFrequentElements implements FrequentElements<Double>
 
 
         @Override
-        protected NavigableSet<DoubleFrequencyEstimate> rebuild(long totalCount, DoubleFrequencyEstimate[] all) {
+        protected NavigableSet<DoubleFrequencyEstimate> rebuild(long totalCount, DoubleFrequencyEstimate[] all,int allSize) {
             NavigableSet<DoubleFrequencyEstimate> result = new TreeSet<>(naturalComparator);
             long threshold = (long)(totalCount*support);
             //noinspection ForLoopReplaceableByForEach
-            for(int i=0;i< all.length;i++){
+            for(int i=0;i< allSize;i++){
                 DoubleFrequencyEstimate est = all[i];
                 if(est.count()>threshold)
                     result.add(est);

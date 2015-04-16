@@ -162,7 +162,7 @@ public abstract class ObjectFrequentElements<T> implements FrequentElements<T>,M
             }
         }
         this.totalCount+=oE.totalCount;
-        this.elements = rebuild(totalCount,topK);
+        this.elements = rebuild(totalCount,topK,size);
 
         return this;
     }
@@ -186,7 +186,7 @@ public abstract class ObjectFrequentElements<T> implements FrequentElements<T>,M
         return total;
     }
 
-    protected abstract NavigableSet<FrequencyEstimate<T>> rebuild(long mergedCount,FrequencyEstimate<T>[] topK);
+    protected abstract NavigableSet<FrequencyEstimate<T>> rebuild(long mergedCount,FrequencyEstimate<T>[] topK,int topKSize);
 
     protected abstract FrequentElements<T> getNew(long totalCount, Collection<FrequencyEstimate<T>> copy,Comparator<? super T> comparator);
 
@@ -201,9 +201,9 @@ public abstract class ObjectFrequentElements<T> implements FrequentElements<T>,M
         }
 
         @Override
-        protected NavigableSet<FrequencyEstimate<E>> rebuild(long mergedCount, FrequencyEstimate<E>[] topK) {
-            Arrays.sort(topK,frequencyComparator);
-            int k = Math.min(this.k,topK.length);
+        protected NavigableSet<FrequencyEstimate<E>> rebuild(long mergedCount, FrequencyEstimate<E>[] topK,int topKSize) {
+            Arrays.sort(topK,0,topKSize,frequencyComparator); //sort only the known full elements
+            int k = Math.min(this.k,topKSize);
             NavigableSet<FrequencyEstimate<E>> newElements = new TreeSet<>(naturalComparator);
             //noinspection ManualArrayToCollectionCopy
             for(int i=0;i<k;i++){
@@ -226,11 +226,11 @@ public abstract class ObjectFrequentElements<T> implements FrequentElements<T>,M
         }
 
         @Override
-        protected NavigableSet<FrequencyEstimate<E>> rebuild(long mergedCount, FrequencyEstimate<E>[] topK) {
+        protected NavigableSet<FrequencyEstimate<E>> rebuild(long mergedCount, FrequencyEstimate<E>[] topK,int topKSize) {
             NavigableSet<FrequencyEstimate<E>> result = new TreeSet<>(naturalComparator);
             long threshold = (long)(mergedCount*support);
             //noinspection ForLoopReplaceableByForEach
-            for(int i=0;i< topK.length;i++){
+            for(int i=0;i< topKSize;i++){
                 FrequencyEstimate<E> est = topK[i];
                 if(est.count()>threshold)
                     result.add(est);

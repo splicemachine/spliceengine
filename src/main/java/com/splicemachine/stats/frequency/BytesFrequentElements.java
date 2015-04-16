@@ -282,12 +282,12 @@ public abstract class BytesFrequentElements implements FrequentElements<ByteBuff
             }
         }
         this.totalCount+=other.totalCount;
-        this.elements = rebuild(totalCount,topK);
+        this.elements = rebuild(totalCount,topK,size);
 
         return this;
     }
 
-    protected abstract NavigableSet<BytesFrequencyEstimate> rebuild(long mergedCount,BytesFrequencyEstimate[] topK);
+    protected abstract NavigableSet<BytesFrequencyEstimate> rebuild(long mergedCount,BytesFrequencyEstimate[] topK,int size);
 
     static Encoder<BytesFrequentElements> newEncoder(ByteComparator byteComparator) {
         return new EncoderDecoder(byteComparator);
@@ -313,10 +313,10 @@ public abstract class BytesFrequentElements implements FrequentElements<ByteBuff
         }
 
         @Override
-        protected NavigableSet<BytesFrequencyEstimate> rebuild(long ignored,BytesFrequencyEstimate[] topK) {
-            Arrays.sort(topK,frequencyComparator);
+        protected NavigableSet<BytesFrequencyEstimate> rebuild(long ignored,BytesFrequencyEstimate[] topK,int size) {
+            Arrays.sort(topK,0,size,frequencyComparator);
             NavigableSet<BytesFrequencyEstimate> result = new TreeSet<>(naturalComparator);
-            int min = Math.min(k, topK.length);
+            int min = Math.min(k, size);
             //noinspection ManualArrayToCollectionCopy
             for(int i=0;i< min;i++){
                 result.add(topK[i]);
@@ -342,11 +342,11 @@ public abstract class BytesFrequentElements implements FrequentElements<ByteBuff
         }
 
         @Override
-        protected NavigableSet<BytesFrequencyEstimate> rebuild(long totalCount,BytesFrequencyEstimate[] topK) {
+        protected NavigableSet<BytesFrequencyEstimate> rebuild(long totalCount,BytesFrequencyEstimate[] topK,int size) {
             NavigableSet<BytesFrequencyEstimate> result = new TreeSet<>(naturalComparator);
             long threshold = (long)(totalCount*support);
             //noinspection ForLoopReplaceableByForEach
-            for(int i=0;i< topK.length;i++){
+            for(int i=0;i< size;i++){
                 BytesFrequencyEstimate est = topK[i];
                 if(est.count()>threshold)
                     result.add(est);

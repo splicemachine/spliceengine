@@ -176,7 +176,7 @@ public abstract class IntFrequentElements implements FrequentElements<Integer> {
             }
         }
         this.totalCount+=other.totalCount;
-        this.elements = rebuild(totalCount,topK);
+        this.elements = rebuild(totalCount,topK,size);
 
         return this;
     }
@@ -206,7 +206,7 @@ public abstract class IntFrequentElements implements FrequentElements<Integer> {
 
     protected abstract IntFrequentElements getNew(long totalCount, Collection<IntFrequencyEstimate> ests);
 
-    protected abstract NavigableSet<IntFrequencyEstimate> rebuild(long mergedCount,IntFrequencyEstimate[] topK);
+    protected abstract NavigableSet<IntFrequencyEstimate> rebuild(long mergedCount,IntFrequencyEstimate[] topK,int topKSize);
 
     /* ****************************************************************************************************************/
     /*private helper methods*/
@@ -234,9 +234,9 @@ public abstract class IntFrequentElements implements FrequentElements<Integer> {
 
 
         @Override
-        protected NavigableSet<IntFrequencyEstimate> rebuild(long mergedCount, IntFrequencyEstimate[] topK) {
-            Arrays.sort(topK,frequencyComparator);
-            int k = Math.min(this.k,topK.length);
+        protected NavigableSet<IntFrequencyEstimate> rebuild(long mergedCount, IntFrequencyEstimate[] topK,int topKSize) {
+            Arrays.sort(topK,0,topKSize,frequencyComparator);
+            int k = Math.min(this.k,topKSize);
             NavigableSet<IntFrequencyEstimate> newElements = new TreeSet<>(naturalComparator);
             //noinspection ManualArrayToCollectionCopy
             for(int i=0;i<k;i++){
@@ -259,11 +259,11 @@ public abstract class IntFrequentElements implements FrequentElements<Integer> {
         }
 
         @Override
-        protected NavigableSet<IntFrequencyEstimate> rebuild(long mergedCount, IntFrequencyEstimate[] topK) {
+        protected NavigableSet<IntFrequencyEstimate> rebuild(long mergedCount, IntFrequencyEstimate[] topK,int topKSize) {
             NavigableSet<IntFrequencyEstimate> result = new TreeSet<>(naturalComparator);
             long threshold = (long)(mergedCount*support);
             //noinspection ForLoopReplaceableByForEach
-            for(int i=0;i< topK.length;i++){
+            for(int i=0;i< topKSize;i++){
                 IntFrequencyEstimate est = topK[i];
                 if(est.count()>threshold)
                     result.add(est);

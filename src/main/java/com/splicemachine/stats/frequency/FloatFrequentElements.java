@@ -177,7 +177,7 @@ public abstract class FloatFrequentElements implements FrequentElements<Float> {
             }
         }
         this.totalCount+=other.totalCount;
-        this.elements = rebuild(totalCount,topK);
+        this.elements = rebuild(totalCount,topK,size);
 
         return this;
     }
@@ -201,7 +201,7 @@ public abstract class FloatFrequentElements implements FrequentElements<Float> {
         return total;
     }
 
-    protected abstract NavigableSet<FloatFrequencyEstimate> rebuild(long mergedCount,FloatFrequencyEstimate[] topK);
+    protected abstract NavigableSet<FloatFrequencyEstimate> rebuild(long mergedCount,FloatFrequencyEstimate[] topK,int size);
 
     protected abstract FloatFrequentElements getNew(long totalCount, Collection<FloatFrequencyEstimate> ests);
 
@@ -225,9 +225,9 @@ public abstract class FloatFrequentElements implements FrequentElements<Float> {
         }
 
         @Override
-        protected NavigableSet<FloatFrequencyEstimate> rebuild(long mergedCount, FloatFrequencyEstimate[] topK) {
-            Arrays.sort(topK,frequencyComparator);
-            int k = Math.min(this.k,topK.length);
+        protected NavigableSet<FloatFrequencyEstimate> rebuild(long mergedCount, FloatFrequencyEstimate[] topK,int size) {
+            Arrays.sort(topK,0,size,frequencyComparator);
+            int k = Math.min(this.k,size);
             NavigableSet<FloatFrequencyEstimate> newElements = new TreeSet<>(naturalComparator);
             //noinspection ManualArrayToCollectionCopy
             for(int i=0;i<k;i++){
@@ -252,11 +252,11 @@ public abstract class FloatFrequentElements implements FrequentElements<Float> {
         }
 
         @Override
-        protected NavigableSet<FloatFrequencyEstimate> rebuild(long mergedCount, FloatFrequencyEstimate[] topK) {
+        protected NavigableSet<FloatFrequencyEstimate> rebuild(long mergedCount, FloatFrequencyEstimate[] topK,int size) {
             NavigableSet<FloatFrequencyEstimate> result = new TreeSet<>(naturalComparator);
             long threshold = (long)(mergedCount*support);
             //noinspection ForLoopReplaceableByForEach
-            for(int i=0;i< topK.length;i++){
+            for(int i=0;i< size;i++){
                 FloatFrequencyEstimate est = topK[i];
                 if(est.count()>threshold)
                     result.add(est);

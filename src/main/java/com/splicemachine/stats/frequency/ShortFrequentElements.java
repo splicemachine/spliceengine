@@ -176,7 +176,7 @@ public abstract class ShortFrequentElements implements FrequentElements<Short> {
             }
         }
         this.totalCount+=other.totalCount;
-        this.elements = rebuild(totalCount,topK);
+        this.elements = rebuild(totalCount,topK,size);
 
         return this;
     }
@@ -203,7 +203,7 @@ public abstract class ShortFrequentElements implements FrequentElements<Short> {
         return total;
     }
 
-    protected abstract NavigableSet<ShortFrequencyEstimate> rebuild(long mergedCount,ShortFrequencyEstimate[] topK);
+    protected abstract NavigableSet<ShortFrequencyEstimate> rebuild(long mergedCount,ShortFrequencyEstimate[] topK,int size);
 
     protected abstract ShortFrequentElements getNew(long totalCount, Collection<ShortFrequencyEstimate> ests);
 
@@ -227,9 +227,9 @@ public abstract class ShortFrequentElements implements FrequentElements<Short> {
         }
 
         @Override
-        protected NavigableSet<ShortFrequencyEstimate> rebuild(long mergedCount, ShortFrequencyEstimate[] topK) {
-            Arrays.sort(topK,frequencyComparator);
-            int k = Math.min(this.k,topK.length);
+        protected NavigableSet<ShortFrequencyEstimate> rebuild(long mergedCount, ShortFrequencyEstimate[] topK,int size) {
+            Arrays.sort(topK,0,size,frequencyComparator);
+            int k = Math.min(this.k,size);
             NavigableSet<ShortFrequencyEstimate> newElements = new TreeSet<>(naturalComparator);
             //noinspection ManualArrayToCollectionCopy
             for(int i=0;i<k;i++){
@@ -252,11 +252,11 @@ public abstract class ShortFrequentElements implements FrequentElements<Short> {
         }
 
         @Override
-        protected NavigableSet<ShortFrequencyEstimate> rebuild(long mergedCount, ShortFrequencyEstimate[] topK) {
+        protected NavigableSet<ShortFrequencyEstimate> rebuild(long mergedCount, ShortFrequencyEstimate[] topK,int size) {
             NavigableSet<ShortFrequencyEstimate> result = new TreeSet<>(naturalComparator);
             long threshold = (long)(mergedCount*support);
             //noinspection ForLoopReplaceableByForEach
-            for(int i=0;i< topK.length;i++){
+            for(int i=0;i< size;i++){
                 ShortFrequencyEstimate est = topK[i];
                 if(est.count()>threshold)
                     result.add(est);
