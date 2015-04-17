@@ -49,6 +49,7 @@ import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.impl.sql.catalog.SYSUSERSRowFactory;
 
 import java.lang.reflect.Modifier;
+import java.sql.SQLWarning;
 import java.util.*;
 
 // Temporary until user override for disposable stats has been removed.
@@ -1267,8 +1268,18 @@ public class FromBaseTable extends FromTable{
          */
         if(!costEstimate.isRealCost()){
             CompilerContext compilerContext=getCompilerContext();
-            compilerContext.addWarning(StandardException.newWarning(SQLState.STATISTICS_UNAVAILABLE,
-                    cd.getConglomerateName()));
+            boolean addWarning = true;
+            @SuppressWarnings("ThrowableResultOfMethodCallIgnored") SQLWarning warning=compilerContext.getWarnings();
+            if(warning!=null){
+                do{
+                    if(SQLState.STATISTICS_UNAVAILABLE.equals(warning.getSQLState())){
+                        addWarning = false;
+                        break;
+                    }
+                }while((warning=warning.getNextWarning())!=null);
+            }
+            if(addWarning)
+            compilerContext.addWarning(StandardException.newWarning(SQLState.STATISTICS_UNAVAILABLE));
         }
         return costEstimate;
     }
