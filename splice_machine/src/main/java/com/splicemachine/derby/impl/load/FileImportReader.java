@@ -132,7 +132,7 @@ public class FileImportReader implements ImportReader{
     					importContext.getQuoteChar().charAt(0),
     					importContext.getColumnDelimiter().charAt(0),
     					"\n",
-    					SpliceConstants.importMaxQuotedColumnLines).build());
+    					SpliceConstants.importMaxQuotedColumnLines).useNullForEmptyColumns(false).build());
     }
 
 		@Override
