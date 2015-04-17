@@ -5,6 +5,7 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.si.api.*;
+import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.filter.Filter;
@@ -40,9 +41,9 @@ public class SimpleTxnFilterTest {
 
         ReadResolver noopResolver = mock(ReadResolver.class);
         DataStore ds = getMockDataStore();
-
+        final IgnoreTxnCacheSupplier ignoreTxnCacheSupplier = new IgnoreTxnCacheSupplier();
         TxnView myTxn = new InheritingTxnView(Txn.ROOT_TRANSACTION, 2l, 2l, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE);
-        SimpleTxnFilter filterState = new SimpleTxnFilter(baseStore, myTxn,
+        SimpleTxnFilter filterState = new SimpleTxnFilter(null,baseStore, ignoreTxnCacheSupplier, myTxn,
                 noopResolver, ds);
 
         KeyValue testCommitKv = new KeyValue(Encoding.encode("1"), SpliceConstants.DEFAULT_FAMILY_BYTES,
@@ -63,7 +64,7 @@ public class SimpleTxnFilterTest {
     public void testCannotSeeRolledBackRow() throws Exception {
         final Map<Long, TxnView> txnMap = Maps.newHashMap();
         TxnSupplier baseStore = getMapStore(txnMap);
-
+        final IgnoreTxnCacheSupplier ignoreTxnCacheSupplier = new IgnoreTxnCacheSupplier();
         //add a rolledBack transaction to the map
         TxnView rolledBack = getMockRolledBackTxn(0l, null);
         txnMap.put(0l, rolledBack);
@@ -71,7 +72,7 @@ public class SimpleTxnFilterTest {
         DataStore ds = getMockDataStore();
 
         TxnView myTxn = new InheritingTxnView(Txn.ROOT_TRANSACTION, 2l, 2l, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.State.ACTIVE);
-        SimpleTxnFilter filterState = new SimpleTxnFilter(baseStore, myTxn,
+        SimpleTxnFilter filterState = new SimpleTxnFilter(null,baseStore, ignoreTxnCacheSupplier, myTxn,
                 mock(ReadResolver.class), ds);
 
         KeyValue testDataKv = new KeyValue(Encoding.encode("1"), SpliceConstants.DEFAULT_FAMILY_BYTES,
@@ -301,8 +302,8 @@ public class SimpleTxnFilterTest {
 
         final Pair<ByteSlice, Long> rolledBackTs = new Pair<ByteSlice, Long>();
         ReadResolver resolver = getRollBackReadResolver(rolledBackTs);
-
-        SimpleTxnFilter filter = new SimpleTxnFilter(baseStore, myTxn, resolver, ds);
+        final IgnoreTxnCacheSupplier ignoreTxnCacheSupplier = new IgnoreTxnCacheSupplier();
+        SimpleTxnFilter filter = new SimpleTxnFilter(null,baseStore, ignoreTxnCacheSupplier, myTxn, resolver, ds);
 
         KeyValue testDataKv = getKeyValue(rolledBackTxn);
 
@@ -324,8 +325,8 @@ public class SimpleTxnFilterTest {
 
         final Pair<ByteSlice, Pair<Long, Long>> committedTs = new Pair<ByteSlice, Pair<Long, Long>>();
         ReadResolver resolver = getCommitReadResolver(committedTs, baseStore);
-
-        SimpleTxnFilter filter = new SimpleTxnFilter(baseStore, myTxn, resolver, ds);
+        final IgnoreTxnCacheSupplier ignoreTxnCacheSupplier = new IgnoreTxnCacheSupplier();
+        SimpleTxnFilter filter = new SimpleTxnFilter(null,baseStore, ignoreTxnCacheSupplier, myTxn, resolver, ds);
 
         KeyValue testDataKv = getKeyValue(committed);
 
@@ -347,10 +348,10 @@ public class SimpleTxnFilterTest {
     private void assertActive(TxnSupplier baseStore, TxnView active, long readTs) throws IOException {
         DataStore ds = getMockDataStore();
         Txn myTxn = new ReadOnlyTxn(readTs, readTs, Txn.IsolationLevel.SNAPSHOT_ISOLATION, Txn.ROOT_TRANSACTION, mock(TxnLifecycleManager.class), false);
-
+        final IgnoreTxnCacheSupplier ignoreTxnCacheSupplier = new IgnoreTxnCacheSupplier();
         ReadResolver resolver = getActiveReadResolver();
 
-        SimpleTxnFilter filter = new SimpleTxnFilter(baseStore, myTxn, resolver, ds);
+        SimpleTxnFilter filter = new SimpleTxnFilter(null, baseStore, ignoreTxnCacheSupplier, myTxn, resolver, ds);
 
         KeyValue testDataKv = getKeyValue(active);
 

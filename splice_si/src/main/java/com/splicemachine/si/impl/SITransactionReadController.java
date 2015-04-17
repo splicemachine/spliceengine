@@ -3,6 +3,7 @@ package com.splicemachine.si.impl;
 import com.google.common.collect.Lists;
 import com.splicemachine.si.api.*;
 import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 //import org.apache.hadoop.hbase.KeyValue;
@@ -26,13 +27,16 @@ public class SITransactionReadController<Data,
 		private final DataStore dataStore;
 		private final SDataLib dataLib;
 		private final TxnSupplier txnSupplier;
+        private final IgnoreTxnCacheSupplier ignoreTxnCacheSupplier;
 
     public SITransactionReadController(DataStore dataStore,
                                        SDataLib dataLib,
-                                       TxnSupplier txnSupplier) {
+                                       TxnSupplier txnSupplier,
+                                       IgnoreTxnCacheSupplier ignoreTxnCacheSupplier) {
 				this.dataStore = dataStore;
 				this.dataLib = dataLib;
 				this.txnSupplier = txnSupplier;
+                this.ignoreTxnCacheSupplier = ignoreTxnCacheSupplier;
 		}
 
 		@Override
@@ -75,7 +79,7 @@ public class SITransactionReadController<Data,
 
 		@Override
 		public TxnFilter newFilterState(ReadResolver readResolver, Txn txn) throws IOException {
-				return new SimpleTxnFilter(txnSupplier,txn,readResolver,dataStore);
+				return new SimpleTxnFilter(null, txnSupplier,ignoreTxnCacheSupplier,txn,readResolver,dataStore);
 		}
 
 		@Override

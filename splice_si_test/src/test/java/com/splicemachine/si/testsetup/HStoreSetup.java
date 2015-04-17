@@ -17,6 +17,7 @@ import com.splicemachine.si.data.hbase.HTableReader;
 import com.splicemachine.si.data.hbase.HTableWriter;
 import com.splicemachine.si.impl.*;
 import com.splicemachine.si.impl.store.CompletedTxnCacheSupplier;
+import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 import com.splicemachine.si.impl.txnclient.CoprocessorTxnStore;
 import com.splicemachine.utils.SpliceUtilities;
 import com.splicemachine.utils.ZkUtils;
@@ -45,6 +46,7 @@ public class HStoreSetup implements StoreSetup {
     private Clock clock = new SystemClock();
     private HBaseTestingUtility testCluster;
     private TxnStore baseStore;
+    private IgnoreTxnCacheSupplier ignoreTxnStore;
     private TimestampSource timestampSource;
 
     private static int getNextBasePort() {
@@ -102,6 +104,7 @@ public class HStoreSetup implements StoreSetup {
         txnS.setCache(new CompletedTxnCacheSupplier(txnS, SIConstants.activeTransactionCacheSize, 16));
         baseStore = txnS;
         TransactionStorage.setTxnStore(baseStore);
+        ignoreTxnStore = TransactionStorage.getIgnoreTxnSupplier();
         //TODO -sf- add CompletedTxnCache to it
 
         STableReader<IHTable, Get, Scan> rawReader = new HTableReader(tableSource1);
@@ -152,6 +155,11 @@ public class HStoreSetup implements StoreSetup {
     @Override
     public TxnStore getTxnStore() {
         return baseStore;
+    }
+
+    @Override
+    public IgnoreTxnCacheSupplier getIgnoreTxnStore() {
+        return ignoreTxnStore;
     }
 
     @Override

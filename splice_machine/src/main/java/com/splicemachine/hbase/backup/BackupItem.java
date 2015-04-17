@@ -47,6 +47,7 @@ public class BackupItem implements InternalTable {
 	private Timestamp backupItemEndTimestamp;
     private String snapshotName;
     private String lastSnapshotName;
+    private List<Pair<Long, Long>> ignoreTxnList;
 
     private List<RegionInfo> regionInfoList = new ArrayList<RegionInfo>();
 
@@ -174,6 +175,22 @@ public class BackupItem implements InternalTable {
             HRegionInfo regionInfo = derbyFactory.loadRegionInfoFileContent(fs, stat.getPath());
             addRegionInfo(new RegionInfo(regionInfo, getFamilyPaths(fs, stat.getPath())));
         };
+    }
+
+    public List<Pair<Long, Long>> getIgnoreTxns () {
+        return ignoreTxnList;
+    }
+
+    public void addIgnoreTxn() {
+        if (ignoreTxnList == null) {
+            ignoreTxnList = new ArrayList<>();
+        }
+        Backup backup = getBackup();
+        ignoreTxnList.add(Pair.newPair(backup.getBackupId(), backup.getTimestampSource()));
+    }
+
+    public void addIgnoreTxn(Pair<Long, Long> p) {
+        ignoreTxnList.add(p);
     }
 
     private List<Pair<byte[],String>> getFamilyPaths(FileSystem fs, Path root) throws IOException {

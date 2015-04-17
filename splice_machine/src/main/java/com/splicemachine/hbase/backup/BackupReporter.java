@@ -35,11 +35,6 @@ import java.io.IOException;
 public class BackupReporter extends TransactionalSysTableWriter<Backup>  {
 
     private static Logger LOG = Logger.getLogger(BackupReporter.class);
-
-    private DataValueDescriptor[] dvds;
-    private DescriptorSerializer[] serializers;
-    private EntryDecoder entryDecoder;
-    private static final SDataLib dataLib = SIFactoryDriver.siFactory.getDataLib();
     private int totalLength = 9;
 
     public BackupReporter() {

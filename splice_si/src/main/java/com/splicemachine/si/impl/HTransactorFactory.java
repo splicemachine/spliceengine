@@ -1,6 +1,7 @@
 package com.splicemachine.si.impl;
 
 import com.splicemachine.constants.SIConstants;
+import com.splicemachine.si.api.SIFactory;
 import com.splicemachine.si.api.TransactionReadController;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.api.TxnLifecycleManager;
@@ -64,12 +65,14 @@ public class HTransactorFactory extends SIConstants {
 
             if(readController==null)
                 readController = new SITransactionReadController<KeyValue,
-                        Get,Scan,Delete,Put>(ds,dataLib, SIFactoryDriver.siFactory.getTxnSupplier());
+                        Get,Scan,Delete,Put>(ds,dataLib, SIFactoryDriver.siFactory.getTxnSupplier(),
+                        SIFactoryDriver.siFactory.getIgnoreTxnSupplier());
             Transactor transactor = new SITransactor.Builder()
                     .dataLib(dataLib)
                     .dataWriter(writer)
                     .dataStore(ds)
                     .txnStore(SIFactoryDriver.siFactory.getTxnSupplier())
+                    .ignoreTxnStore(SIFactoryDriver.siFactory.getIgnoreTxnSupplier())
                     .build();
             builderTransactor.setTransactor(transactor);
             if(managedTransactor==null)

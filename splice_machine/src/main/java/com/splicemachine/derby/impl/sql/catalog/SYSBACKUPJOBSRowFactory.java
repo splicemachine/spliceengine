@@ -20,7 +20,7 @@ import java.sql.Types;
 /**
  * Created by jyuan on 3/24/15.
  */
-public class BACKUPJOBSRowFactory extends CatalogRowFactory {
+public class SYSBACKUPJOBSRowFactory extends CatalogRowFactory {
     private static final String TABLENAME_STRING = "SYSBACKUPJOBS";
     private static final int BACKUPJOBS_COLUMN_COUNT = 5;
 
@@ -35,7 +35,7 @@ public class BACKUPJOBSRowFactory extends CatalogRowFactory {
             "691df6e2-de85-4311-827b-8e00e38d7aab"
     };
 
-    public BACKUPJOBSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf) {
+    public SYSBACKUPJOBSRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf) {
         super(uuidf, ef, dvf);
         initInfo(BACKUPJOBS_COLUMN_COUNT, TABLENAME_STRING, null, null, uuids);
     }

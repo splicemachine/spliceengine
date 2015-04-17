@@ -71,8 +71,6 @@ public class Backup implements InternalTable {
     
     private static Logger LOG = Logger.getLogger(Backup.class);
 
-    public static final String DEFAULT_SCHEMA = "SYS";
-    public static final String DEFAULT_TABLE = "SYSBACKUP";
     public static final String BACKUP_BASE_FOLDER = "BACKUP";
     public static final String BACKUP_TEMP_BASE_FOLDER = "BACKUP_TEMP";
     public static final String BACKUP_OLD_BASE_FOLDER = "BACKUP_OLD";
@@ -82,8 +80,6 @@ public class Backup implements InternalTable {
     public static final String BACKUP_VERSION = "1";
     public static final String BACKUP_LOG_FILE_NAME = "backupStatus.log";
     public static final long   BACKUP_TPUT_PER_NODE = 30*1024*1024; // modest 30MB per node
-
-    private long timestampSource;
 
     private boolean temporaryBaseFolder; // true if not using default base folder
 
@@ -105,14 +101,10 @@ public class Backup implements InternalTable {
      *
      */
     public static enum BackupStatus {S,F,I}
-
-    public static final String RUNNING_CHECK = "select backup_id from %s.%s where status = ?";
-    public static final String QUERY_PARENT_BACKUP_DIRECTORY = "select filesystem from %s.%s where backup_id = ?";
-
-    public static final String VERSION_FILE = "version";
-    public static final String BACKUP_TIMESTAMP_FILE = "backupTimestamp";
+    private static final String VERSION_FILE = "version";
+    private static final String BACKUP_TIMESTAMP_FILE = "backupTimestamp";
     public static final String TIMESTAMP_SOURCE_FILE = "timestampSource";
-    public static final String CONGLOMERATE_SEQUENCE_FILE = "conglomerateSequence";
+    private static final String CONGLOMERATE_SEQUENCE_FILE = "conglomerateSequence";
     public static final String PARENT_BACKUP_FILE = "parentBackup";
 
     private Txn backupTransaction;
@@ -131,6 +123,9 @@ public class Backup implements InternalTable {
     private int totalBackuped = 0;
     private long backupStartTime;
     private int actualBackupCount = 0;
+    private String backupVersion;
+    private long timestampSource;
+
 
     public long getBackupId() {
         return backupId;
@@ -152,7 +147,9 @@ public class Backup implements InternalTable {
         this.backupTimestamp = backupTimestamp;
     }
 
-    private String backupVersion;
+    public long getTimestampSource() {
+        return timestampSource;
+    }
 
     public HashMap<String, BackupItem> getBackupItems() {
         return backupItems;
@@ -455,6 +452,7 @@ public class Backup implements InternalTable {
             item.setBackup(this);
             item.setBackupItem(stat.getPath().getName());
             item.readDescriptorFromFileSystem();
+            item.addIgnoreTxn();
             addBackupItem(item);
         };
     }
@@ -604,10 +602,26 @@ public class Backup implements InternalTable {
         out.close();
     }
 
+    public void setIgnoreTxns() throws IOException{
+
+        FileSystem fileSystem = FileSystem.get(URI.create(getBackupFilesystem()),SpliceConstants.config);
+        FSDataInputStream in = fileSystem.open(new Path(getMetaBackupFilesystemAsPath(), BACKUP_TIMESTAMP_FILE));
+        int len = in.readInt();
+        byte[] value = new byte[len];
+        in.readFully(value);
+        backupTimestamp = Bytes.toLong(value);
+        in.close();
+
+        in = fileSystem.open(new Path(getMetaBackupFilesystemAsPath(), TIMESTAMP_SOURCE_FILE));
+        len = in.readInt();
+        value = new byte[len];
+        in.readFully(value);
+        timestampSource = Bytes.toLong(value);
+        in.close();
+    }
 
     public void restoreMetadata() throws StandardException, IOException {
         FileSystem fileSystem = FileSystem.get(URI.create(getBackupFilesystem()),SpliceConstants.config);
-
         FSDataInputStream in = fileSystem.open(new Path(getMetaBackupFilesystemAsPath(), VERSION_FILE));
         int len = in.readInt();
         byte[] value = new byte[len];

@@ -7,6 +7,7 @@ import com.splicemachine.si.api.TimestampSource;
 import com.splicemachine.si.api.TxnStore;
 import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.impl.store.CompletedTxnCacheSupplier;
+import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 import com.splicemachine.si.impl.txnclient.CoprocessorTxnStore;
 
 /**
@@ -36,6 +37,9 @@ public class TransactionStorage {
 		 * consider accessing the baseStore instead.
 		 */
 		private static volatile @ThreadSafe CompletedTxnCacheSupplier cachedTransactionSupplier;
+
+        private static volatile IgnoreTxnCacheSupplier ignoreTxnCacheSupplier;
+
     private static volatile TxnStoreManagement storeManagement;
 
     public static TxnSupplier getTxnSupplier(){
@@ -46,6 +50,15 @@ public class TransactionStorage {
 				lazyInitialize();
 				return cachedTransactionSupplier;
 		}
+
+        public static IgnoreTxnCacheSupplier getIgnoreTxnSupplier(){
+            IgnoreTxnCacheSupplier supply = ignoreTxnCacheSupplier;
+            //only do 2 volatile reads the very first few calls
+            if(supply!=null) return supply;
+
+            lazyInitialize();
+            return ignoreTxnCacheSupplier;
+        }
 
 		public static @ThreadSafe TxnStore getTxnStore(){
 				TxnStore store = baseStore;
@@ -66,6 +79,7 @@ public class TransactionStorage {
                     SIConstants.completedTransactionCacheSize,
                     SIConstants.completedTransactionConcurrency);
             storeManagement = new TxnStoreManagement();
+                    ignoreTxnCacheSupplier = new IgnoreTxnCacheSupplier();
 				}
 		}
 
@@ -73,25 +87,28 @@ public class TransactionStorage {
 				/*
 				 * We use this to initialize our transaction stores
 				 */
-				synchronized (lock){
-						if(baseStore==null){
-								TimestampSource tsSource = TransactionTimestamps.getTimestampSource();
-								CoprocessorTxnStore txnStore = new CoprocessorTxnStore(new SpliceHTableFactory(true),tsSource,null);
-								//TODO -sf- configure these fields separately
-								if(cachedTransactionSupplier==null){
-                    cachedTransactionSupplier = new CompletedTxnCacheSupplier(txnStore,
+            synchronized (lock){
+                if(baseStore==null){
+                    TimestampSource tsSource = TransactionTimestamps.getTimestampSource();
+                    CoprocessorTxnStore txnStore = new CoprocessorTxnStore(new SpliceHTableFactory(true),tsSource,null);
+                    //TODO -sf- configure these fields separately
+                    if(cachedTransactionSupplier==null){
+                        cachedTransactionSupplier = new CompletedTxnCacheSupplier(txnStore,
+                                SIConstants.completedTransactionCacheSize,
+                                SIConstants.completedTransactionConcurrency);
+                    }
+                    txnStore.setCache(cachedTransactionSupplier);
+                    baseStore = txnStore;
+                }else if (cachedTransactionSupplier==null){
+                    cachedTransactionSupplier = new CompletedTxnCacheSupplier(baseStore,
                             SIConstants.completedTransactionCacheSize,
                             SIConstants.completedTransactionConcurrency);
                 }
-								txnStore.setCache(cachedTransactionSupplier);
-								baseStore = txnStore;
-						}else if (cachedTransactionSupplier==null){
-                cachedTransactionSupplier = new CompletedTxnCacheSupplier(baseStore,
-                        SIConstants.completedTransactionCacheSize,
-                        SIConstants.completedTransactionConcurrency);
-						}
-            storeManagement = new TxnStoreManagement();
-				}
+                storeManagement = new TxnStoreManagement();
+
+                if (ignoreTxnCacheSupplier == null)
+                    ignoreTxnCacheSupplier = new IgnoreTxnCacheSupplier();
+            }
 		}
 
     public static TxnStoreManagement getTxnStoreManagement() {

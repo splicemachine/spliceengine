@@ -6,30 +6,40 @@ package com.splicemachine.hbase.backup;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.derby.utils.SpliceAdmin;
-import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.impl.job.JobInfo;
+import com.splicemachine.derby.impl.storage.TempSplit;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
+import com.splicemachine.job.JobFuture;
+import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.impl.TransactionLifecycle;
 
 import java.io.IOException;
 import java.net.URI;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.*;
-import com.splicemachine.hbase.backup.BackupItem.RegionInfo;
+import java.util.concurrent.CancellationException;
+import com.google.common.io.Closeables;
+
+import com.splicemachine.utils.SpliceUtilities;
 import org.apache.hadoop.fs.FSDataInputStream;
-import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.protobuf.generated.HBaseProtos;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
+import org.apache.log4j.Logger;
 
 public class Restore {
-    Txn restoreTransaction;
+    private static Logger LOG = Logger.getLogger(Restore.class);
+    private Txn restoreTransaction;
     private List<Backup> backups;
-    Map<String, BackupItem> backupItems;
+    private Map<String, BackupItem> backupItems;
+    private String restoreItemConglomId;
 
     public Restore() {
     }
@@ -74,6 +84,87 @@ public class Restore {
         return restore;
     }
 
+    public void restore() throws StandardException {
+
+        HBaseAdmin admin = null;
+
+        try {
+            admin = SpliceUtilities.getAdmin();
+
+            // recreate tables
+            for (HTableDescriptor table : admin.listTables()) {
+                // TODO keep old tables around in case something goes wrong
+                //if (table.getNameAsString().compareToIgnoreCase(restoreItemConglomId)!= 0) {
+                    admin.disableTable(table.getName());
+                    admin.deleteTable(table.getName());
+                //}
+            }
+
+            Map<String, BackupItem> backUpItems = getBackupItems();
+            for (String key : backUpItems.keySet()) {
+                BackupItem backupItem = backUpItems.get(key);
+                backupItem.recreateItem(admin);
+            }
+
+            JobFuture future = null;
+            JobInfo info = null;
+            long start = System.currentTimeMillis();
+            int totalItems = backUpItems.size();
+            int completedItems = 0;
+            // bulk import the regions
+            for (String key : backUpItems.keySet()) {
+                BackupItem backupItem = backUpItems.get(key);
+                HTableInterface table = SpliceAccessManager.getHTable(backupItem.getBackupItemBytes());
+                RestoreBackupJob job = new RestoreBackupJob(backupItem, table);
+                future = SpliceDriver.driver().getJobScheduler().submit(job);
+                info = new JobInfo(job.getJobId(), future.getNumTasks(), start);
+                info.setJobFuture(future);
+                try {
+                    future.completeAll(info);
+                } catch (CancellationException ce) {
+                    throw Exceptions.parseException(ce);
+                } catch (Throwable t) {
+                    info.failJob();
+                    throw t;
+                }
+                completedItems++;
+                LOG.info(String.format("Restore progress: %d of %d items restored", completedItems, totalItems));
+            }
+
+            // purge transactions
+            Backup lastBackup = getLastBackup();
+            PurgeTransactionsJob job = new PurgeTransactionsJob(getRestoreTransaction(),
+                    lastBackup.getBackupTimestamp(),
+                    SpliceAccessManager.getHTable(SpliceConstants.TRANSACTION_TABLE_BYTES));
+            future = SpliceDriver.driver().getJobScheduler().submit(job);
+            info = new JobInfo(job.getJobId(), future.getNumTasks(), start);
+            info.setJobFuture(future);
+            try {
+                future.completeAll(info);
+            } catch (CancellationException ce) {
+                throw Exceptions.parseException(ce);
+            } catch (Throwable t) {
+                info.failJob();
+                throw t;
+            }
+
+            // DB-3089
+            restoreTempTable();
+            populateRestoreItemsTable(admin);
+            deleteSnapshots(admin);
+            restoreTransaction.commit();
+        } catch (Exception e) {
+            try {
+                restoreTransaction.rollback();
+            } catch (Exception ex) {
+                throw StandardException.newException(ex.getMessage());
+            }
+            throw StandardException.newException(e.getMessage());
+        }
+        finally {
+            Closeables.closeQuietly(admin);
+        }
+    }
     /**
      * Returns the last incremental or full backup.
      * @return
@@ -119,6 +210,11 @@ public class Restore {
                     if (!fallsInto) {
                         regionInfoList2.add(regionInfo1);
                     }
+                }
+
+                List<Pair<Long, Long>> ignoreTxns = item1.getIgnoreTxns();
+                for (Pair<Long, Long> ignoreTxn : ignoreTxns) {
+                    item2.addIgnoreTxn(ignoreTxn);
                 }
             }
         }
@@ -261,11 +357,12 @@ public class Restore {
                 backup.setBackupScope(Backup.BackupScope.D);
                 backup.setBackupStatus(Backup.BackupStatus.I);
                 backup.setBackupFilesystem(directory);
+                backup.setIgnoreTxns();
                 backupList.add(backup);
-
                 if (parentBackupId > 0) {
                     directory = in.readUTF();
                     backupId = parentBackupId;
+
                 } else {
                     directory = null;
                 }
@@ -274,6 +371,35 @@ public class Restore {
         }
         catch (Exception e) {
             throw StandardException.newException(e.getMessage());
+        }
+    }
+
+    private static void restoreTempTable() throws SQLException {
+        TempSplit.SYSCS_SPLIT_TEMP();
+    }
+
+    private void populateRestoreItemsTable(HBaseAdmin admin) throws StandardException{
+
+        try {
+            for (Backup backup : backups) {
+                HashMap<String, BackupItem> backupItems = backup.getBackupItems();
+                for (BackupItem backupItem : backupItems.values()) {
+                    if (backupItem.getBackupItem().compareToIgnoreCase(SpliceConstants.RESTORE_TABLE_NAME) != 0) {
+                        RestoreItem restoreItem = new RestoreItem(backupItem.getBackupItem(),
+                                backup.getBackupTimestamp(), backup.getTimestampSource());
+                        BackupSystemProcedures.restoreItemReporter.report(restoreItem);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            throw StandardException.newException(e.getMessage());
+        }
+    }
+
+    private void deleteSnapshots(HBaseAdmin admin) throws IOException{
+        List<HBaseProtos.SnapshotDescription> snapshots = admin.listSnapshots();
+        for (HBaseProtos.SnapshotDescription s : snapshots){
+            admin.deleteSnapshot(s.getName());
         }
     }
 }

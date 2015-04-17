@@ -355,7 +355,9 @@ public class BackupUtils {
      * @param fileName name of HFile
      * @return
      */
-    public static BackupFileSet getFileSet(String tableName, String encodedRegionName, String fileName) {
+    public static BackupFileSet getFileSet(String tableName,
+                                           String encodedRegionName,
+                                           String fileName) throws StandardException{
 
         BackupFileSetReporter backupFileSetReporter = null;
         BackupFileSet backupFileSet = null;
@@ -367,7 +369,7 @@ public class BackupUtils {
                 }
             }
         } catch (Exception e) {
-            SpliceLogUtils.warn(LOG, "BackupUtils.getFileSet: %s", e.getMessage());
+            throw StandardException.newException(e.getMessage());
         } finally {
             backupFileSetReporter.closeScanner();
         }

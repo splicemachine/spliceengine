@@ -4,17 +4,13 @@ import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.db.jdbc.ClientDriver;
 import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.impl.job.JobInfo;
-import com.splicemachine.derby.impl.storage.TempSplit;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.SpliceAdmin;
-import com.splicemachine.job.JobFuture;
 import com.splicemachine.pipeline.ddl.DDLChange;
-import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -33,9 +29,7 @@ import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.protobuf.generated.HBaseProtos;
 import org.apache.log4j.Logger;
 import org.apache.hadoop.fs.Path;
@@ -64,6 +58,7 @@ public class BackupSystemProcedures {
     public static BackupItemReporter backupItemReporter;
     public static BackupJobReporter backupJobReporter;
     public static BackupFileSetReporter backupFileSetReporter;
+    public static RestoreItemReporter restoreItemReporter;
 
     static {
         ThreadFactory backupFactory = new ThreadFactoryBuilder().setDaemon(true)
@@ -74,7 +69,7 @@ public class BackupSystemProcedures {
         backupItemReporter = new BackupItemReporter();
         backupJobReporter = new BackupJobReporter();
         backupFileSetReporter = new BackupFileSetReporter();
-
+        restoreItemReporter = new RestoreItemReporter();
     }
     /**
      * Entry point for system procedure SYSCS_UTIL.SYSCS_BACKUP_DATABASE
@@ -145,14 +140,12 @@ public class BackupSystemProcedures {
      * @throws SQLException
      */
     public static void SYSCS_RESTORE_DATABASE(String directory, long backupId, ResultSet[] resultSets) throws StandardException, SQLException {
-        HBaseAdmin admin = null;
         String changeId = null;
         LanguageConnectionContext lcc = null;
         Connection conn = null;
         IteratorNoPutResultSet inprs = null;
 
         try {
-            admin = SpliceUtilities.getAdmin();
 
             conn = SpliceAdmin.getDefaultConn();
             lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
@@ -167,63 +160,7 @@ public class BackupSystemProcedures {
             DDLChange change = new DDLChange(restore.getRestoreTransaction(), DDLChangeType.ENTER_RESTORE_MODE);
             changeId = DDLCoordinationFactory.getController().notifyMetadataChange(change);
 
-            // recreate tables
-            for (HTableDescriptor table : admin.listTables()) {
-                // TODO keep old tables around in case something goes wrong
-                admin.disableTable(table.getName());
-                admin.deleteTable(table.getName());
-            }
-
-            Map<String, BackupItem> backUpItems = restore.getBackupItems();
-            for (String key : backUpItems.keySet()) {
-                BackupItem backupItem = backUpItems.get(key);
-                backupItem.recreateItem(admin);
-            }
-
-            JobFuture future = null;
-            JobInfo info = null;
-            long start = System.currentTimeMillis();
-            int totalItems = backUpItems.size();
-            int completedItems = 0;
-            // bulk import the regions
-            for (String key : backUpItems.keySet()) {
-                BackupItem backupItem = backUpItems.get(key);
-                HTableInterface table = SpliceAccessManager.getHTable(backupItem.getBackupItemBytes());
-                RestoreBackupJob job = new RestoreBackupJob(backupItem, table);
-                future = SpliceDriver.driver().getJobScheduler().submit(job);
-                info = new JobInfo(job.getJobId(),future.getNumTasks(), start);
-                info.setJobFuture(future);
-                try{
-                    future.completeAll(info);
-                }catch(CancellationException ce){
-                    throw Exceptions.parseException(ce);
-                }catch(Throwable t){
-                    info.failJob();
-                    throw t;
-                }
-                completedItems++;
-                LOG.info(String.format("Restore progress: %d of %d items restored", completedItems, totalItems));
-            }
-
-            // purge transactions
-            Backup lastBackup = restore.getLastBackup();
-            PurgeTransactionsJob job = new PurgeTransactionsJob(restore.getRestoreTransaction(),
-                    lastBackup.getBackupTimestamp(),
-                    SpliceAccessManager.getHTable(SpliceConstants.TRANSACTION_TABLE_BYTES) );
-            future = SpliceDriver.driver().getJobScheduler().submit(job);
-            info = new JobInfo(job.getJobId(),future.getNumTasks(), start);
-            info.setJobFuture(future);
-            try{
-                future.completeAll(info);
-            }catch(CancellationException ce){
-                throw Exceptions.parseException(ce);
-            }catch(Throwable t){
-                info.failJob();
-                throw t;
-            }
-
-            // DB-3089
-            restoreTempTable();
+            restore.restore();
 
             // Print reboot statement
             ResultColumnDescriptor[] rcds = new ResultColumnDescriptor[]{
@@ -262,13 +199,8 @@ public class BackupSystemProcedures {
                 SpliceLogUtils.error(LOG, "Error recovering backup", e);
             }
             resultSets[0] = new EmbedResultSet40(conn.unwrap(EmbedConnection.class),inprs,false,null,true);
-            Closeables.closeQuietly(admin);
         }
     }
-
-    private static void restoreTempTable() throws SQLException {
-    	TempSplit.SYSCS_SPLIT_TEMP();
-	}
 
 	/**
      * Entry point for system procedure SYSCS_SCHEDULE_DAILY_BACKUP. Submit a scheduled job to back up database
@@ -492,13 +424,45 @@ public class BackupSystemProcedures {
             SpliceLogUtils.error(LOG, "Cancel daily backup error", t);
             resultSets[0] = new EmbedResultSet40(conn.unwrap(EmbedConnection.class), inprs, false, null, true);
         }
+    }
 
+    public static void SYSCS_DUMP_RESTORE_ITEMS(ResultSet[] resultSets) throws StandardException, IOException, SQLException {
+
+        IteratorNoPutResultSet inprs = null;
+        LanguageConnectionContext lcc = null;
+        Connection conn = SpliceAdmin.getDefaultConn();
+        try {
+            lcc = conn.unwrap(EmbedConnection.class).getLanguageConnection();
+            restoreItemReporter.openScanner();
+            RestoreItem restoreItem = null;
+            ExecRow template = new ValueRow(3);
+            template.setRowArray(new DataValueDescriptor[]{new SQLVarchar(), new SQLLongint(), new SQLLongint()});
+            List<ExecRow> rows = Lists.newArrayList();
+            while((restoreItem = restoreItemReporter.next()) != null) {
+                template.resetRowArray();
+                DataValueDescriptor[] dvds = template.getRowArray();
+                dvds[0].setValue(restoreItem.getItem());
+                dvds[1].setValue(restoreItem.getBeginTransactionId());
+                dvds[2].setValue(restoreItem.getCommitTransactionId());
+                rows.add(template.getClone());
+            }
+            restoreItemReporter.closeScanner();
+            ResultColumnDescriptor[] columns = new ResultColumnDescriptor[3];
+            columns[0] = new GenericColumnDescriptor("Item",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.VARCHAR, 32));
+            columns[1] = new GenericColumnDescriptor("Begin_Transaction_Id",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+            columns[2] = new GenericColumnDescriptor("End_Transaction_Id",DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BIGINT));
+            inprs = new IteratorNoPutResultSet(rows, columns, lcc.getLastActivation());
+            inprs.openCore();
+            resultSets[0] = new EmbedResultSet40(conn.unwrap(EmbedConnection.class), inprs, false, null, true);
+        } catch (Exception e) {
+            throw StandardException.newException(e.getMessage());
+        }
 
     }
-    /*******************************************************************************************************************
-     *       Private methods
-     * *****************************************************************************************************************
-     */
+        /*******************************************************************************************************************
+         *       Private methods
+         * *****************************************************************************************************************
+         */
 
     private static void backup(String backupDir, long parentBackupId)
             throws SQLException, IOException, KeeperException, InterruptedException, StandardException{
@@ -506,10 +470,6 @@ public class BackupSystemProcedures {
         Backup backup = null;
         Set<String> newSnapshotNameSet = new HashSet<>();
         try {
-            backup = Backup.createBackup(backupDir, Backup.BackupScope.D, parentBackupId);
-            backup.registerBackup();
-            backup.createBaseBackupDirectory();
-
             // Get existing snapshot
             admin = SpliceUtilities.getAdmin();
             List<HBaseProtos.SnapshotDescription> snapshots = admin.listSnapshots();
@@ -518,6 +478,14 @@ public class BackupSystemProcedures {
                 snapshotNameSet.add(s.getName());
             }
 
+            // If there is not snapshot, force a full backup
+            if (snapshotNameSet.size() == 0) {
+                parentBackupId = -1;
+            }
+
+            backup = Backup.createBackup(backupDir, Backup.BackupScope.D, parentBackupId);
+            backup.registerBackup();
+            backup.createBaseBackupDirectory();
             backup.createBackupItems(admin, snapshotNameSet, newSnapshotNameSet);
             backup.createProperties();
             HashMap<String, BackupItem> backupItems = backup.getBackupItems();

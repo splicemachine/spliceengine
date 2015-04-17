@@ -1,7 +1,7 @@
 package com.splicemachine.si.api;
 
 import com.splicemachine.utils.ByteSlice;
-
+import org.apache.hadoop.hbase.regionserver.HRegion;
 /**
  * Interface for notifying other systems that a read was resolved.
  *
@@ -33,5 +33,4 @@ public interface ReadResolver {
      * @param txnId the transaction id (version) of the row to resolve.
      */
     void resolve(ByteSlice rowKey, long txnId);
-
 }

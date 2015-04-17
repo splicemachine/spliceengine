@@ -2,6 +2,7 @@ package com.splicemachine.si.impl.readresolve;
 
 import com.splicemachine.si.api.ReadResolver;
 import com.splicemachine.utils.ByteSlice;
+import org.apache.hadoop.hbase.regionserver.HRegion;
 
 /**
  * @author Scott Fines

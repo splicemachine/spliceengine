@@ -221,7 +221,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     private TabInfoImpl getBackupTable() throws StandardException{
         if(backupTable==null){
-            backupTable=new TabInfoImpl(new BACKUPRowFactory(uuidFactory,exFactory,dvf));
+            backupTable=new TabInfoImpl(new SYSBACKUPRowFactory(uuidFactory,exFactory,dvf));
         }
         initSystemIndexVariables(backupTable);
         return backupTable;
@@ -229,7 +229,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     private TabInfoImpl getBackupItemsTable() throws StandardException{
         if(backupItemsTable==null){
-            backupItemsTable=new TabInfoImpl(new BACKUPITEMSRowFactory(uuidFactory,exFactory,dvf));
+            backupItemsTable=new TabInfoImpl(new SYSBACKUPITEMSRowFactory(uuidFactory,exFactory,dvf));
         }
         initSystemIndexVariables(backupItemsTable);
         return backupItemsTable;
@@ -237,20 +237,19 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     private TabInfoImpl getBackupStatesTable() throws StandardException{
         if(backupStatesTable==null){
-            backupStatesTable=new TabInfoImpl(new BACKUPFILESETRowFactory(uuidFactory,exFactory,dvf));
+            backupStatesTable=new TabInfoImpl(new SYSBACKUPFILESETRowFactory(uuidFactory,exFactory,dvf));
         }
         initSystemIndexVariables(backupStatesTable);
         return backupStatesTable;
     }
 
-    private TabInfoImpl getBackupJobsTable() throws StandardException{
-        if(backupJobsTable==null){
-            backupJobsTable=new TabInfoImpl(new BACKUPJOBSRowFactory(uuidFactory,exFactory,dvf));
+    private TabInfoImpl getBackupJobsTable() throws StandardException {
+        if (backupJobsTable == null) {
+            backupJobsTable = new TabInfoImpl(new SYSBACKUPJOBSRowFactory(uuidFactory, exFactory, dvf));
         }
         initSystemIndexVariables(backupJobsTable);
         return backupJobsTable;
     }
-
 
     public void createLassenTables(TransactionController tc) throws StandardException{
         SchemaDescriptor systemSchemaDescriptor = getSystemSchemaDescriptor();
@@ -258,37 +257,61 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         // Create BACKUP table
         TabInfoImpl backupTabInfo = getBackupTable();
         if (getTableDescriptor(backupTabInfo.getTableName(), systemSchemaDescriptor, tc) == null ) {
-            if (LOG.isTraceEnabled()) LOG.trace(String.format("Creating system table %s.%s", systemSchemaDescriptor.getSchemaName(), backupTabInfo.getTableName()));
+            if (LOG.isTraceEnabled()) {
+                LOG.trace(String.format("Creating system table %s.%s",
+                        systemSchemaDescriptor.getSchemaName(), backupTabInfo.getTableName()));
+            }
             makeCatalog(backupTabInfo, systemSchemaDescriptor, tc);
         } else {
-            if (LOG.isTraceEnabled()) LOG.trace(String.format("Skipping table creation since system table %s.%s already exists.", systemSchemaDescriptor.getSchemaName(), backupTabInfo.getTableName()));
+            if (LOG.isTraceEnabled()) {
+                LOG.trace(String.format("Skipping table creation since system table %s.%s already exists.",
+                        systemSchemaDescriptor.getSchemaName(), backupTabInfo.getTableName()));
+            }
         }
 
         // Create BACKUPITEMS
         TabInfoImpl backupItemsTabInfo = getBackupItemsTable();
         if (getTableDescriptor(backupItemsTabInfo.getTableName(), systemSchemaDescriptor, tc) == null ) {
-            if (LOG.isTraceEnabled()) LOG.trace(String.format("Creating system table %s.%s", systemSchemaDescriptor.getSchemaName(), backupItemsTabInfo.getTableName()));
+            if (LOG.isTraceEnabled()) {
+                LOG.trace(String.format("Creating system table %s.%s", systemSchemaDescriptor.getSchemaName(),
+                        backupItemsTabInfo.getTableName()));
+            }
             makeCatalog(backupItemsTabInfo, systemSchemaDescriptor, tc);
         } else {
-            if (LOG.isTraceEnabled()) LOG.trace(String.format("Skipping table creation since system table %s.%s already exists.", systemSchemaDescriptor.getSchemaName(), backupItemsTabInfo.getTableName()));
+            if (LOG.isTraceEnabled()) {
+                LOG.trace(String.format("Skipping table creation since system table %s.%s already exists.",
+                        systemSchemaDescriptor.getSchemaName(), backupItemsTabInfo.getTableName()));
+            }
         }
 
         // Create BACKUPFILESET
         TabInfoImpl backupStatesTabInfo = getBackupStatesTable();
         if (getTableDescriptor(backupStatesTabInfo.getTableName(), systemSchemaDescriptor, tc) == null ) {
-            if (LOG.isTraceEnabled()) LOG.trace(String.format("Creating system table %s.%s", systemSchemaDescriptor.getSchemaName(), backupStatesTabInfo.getTableName()));
+            if (LOG.isTraceEnabled()) {
+                LOG.trace(String.format("Creating system table %s.%s", systemSchemaDescriptor.getSchemaName(),
+                        backupStatesTabInfo.getTableName()));
+            }
             makeCatalog(backupStatesTabInfo, systemSchemaDescriptor, tc);
         } else {
-            if (LOG.isTraceEnabled()) LOG.trace(String.format("Skipping table creation since system table %s.%s already exists.", systemSchemaDescriptor.getSchemaName(), backupStatesTabInfo.getTableName()));
+            if (LOG.isTraceEnabled()) {
+                LOG.trace(String.format("Skipping table creation since system table %s.%s already exists.",
+                        systemSchemaDescriptor.getSchemaName(), backupStatesTabInfo.getTableName()));
+            }
         }
 
         // Create BACKUPJOBS
         TabInfoImpl backupJobsTabInfo = getBackupJobsTable();
         if (getTableDescriptor(backupJobsTabInfo.getTableName(), systemSchemaDescriptor, tc) == null ) {
-            if (LOG.isTraceEnabled()) LOG.trace(String.format("Creating system table %s.%s", systemSchemaDescriptor.getSchemaName(), backupJobsTabInfo.getTableName()));
+            if (LOG.isTraceEnabled()) {
+                LOG.trace(String.format("Creating system table %s.%s", systemSchemaDescriptor.getSchemaName(),
+                        backupJobsTabInfo.getTableName()));
+            }
             makeCatalog(backupJobsTabInfo, systemSchemaDescriptor, tc);
         } else {
-            if (LOG.isTraceEnabled()) LOG.trace(String.format("Skipping table creation since system table %s.%s already exists.", systemSchemaDescriptor.getSchemaName(), backupJobsTabInfo.getTableName()));
+            if (LOG.isTraceEnabled()) {
+                LOG.trace(String.format("Skipping table creation since system table %s.%s already exists.",
+                        systemSchemaDescriptor.getSchemaName(), backupJobsTabInfo.getTableName()));
+            }
         }
     }
 

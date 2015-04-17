@@ -21,7 +21,7 @@ import org.joda.time.DateTime;
 
 import java.sql.Types;
 
-public class BACKUPRowFactory extends CatalogRowFactory {
+public class SYSBACKUPRowFactory extends CatalogRowFactory {
     private static final String TABLENAME_STRING = "SYSBACKUP";
     private static final int BACKUP_COLUMN_COUNT = 9;
 
@@ -40,7 +40,7 @@ public class BACKUPRowFactory extends CatalogRowFactory {
             "6e205c88-4c1b-464a-b0ab-865d64b3279d"
     };
 
-    public BACKUPRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf) {
+    public SYSBACKUPRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf) {
         super(uuidf, ef, dvf);
         initInfo(BACKUP_COLUMN_COUNT, TABLENAME_STRING, null, null, uuids);
     }

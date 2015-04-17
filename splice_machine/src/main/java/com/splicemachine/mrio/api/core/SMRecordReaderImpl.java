@@ -141,7 +141,8 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 			this.hregion = splitRegionScanner.getRegion();
 			this.mrs = new SimpleMeasuredRegionScanner(splitRegionScanner,Metrics.noOpMetricFactory());
 			TxnRegion localRegion = new TxnRegion(hregion, NoopRollForward.INSTANCE,NoOpReadResolver.INSTANCE, 
-				TransactionStorage.getTxnSupplier(), TxnDataStore.getDataStore(), HTransactorFactory.getTransactor());	
+				TransactionStorage.getTxnSupplier(), TransactionStorage.getIgnoreTxnSupplier(),
+                    TxnDataStore.getDataStore(), HTransactorFactory.getTransactor());
 			ExecRow template = SMSQLUtil.getExecRow(builder.getExecRowTypeFormatIds());
 			builder.tableVersion("2.0").region(localRegion).template(template).scanner(mrs).scan(scan).metricFactory(Metrics.noOpMetricFactory());		
 			if (LOG.isTraceEnabled())

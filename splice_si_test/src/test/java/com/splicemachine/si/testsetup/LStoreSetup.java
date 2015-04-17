@@ -11,6 +11,7 @@ import com.splicemachine.si.data.light.IncrementingClock;
 import com.splicemachine.si.data.light.LDataLib;
 import com.splicemachine.si.data.light.LStore;
 import com.splicemachine.si.impl.InMemoryTxnStore;
+import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 
 public class LStoreSetup implements StoreSetup {
@@ -22,6 +23,7 @@ public class LStoreSetup implements StoreSetup {
     private Clock clock;
     private TimestampSource source;
     private TxnStore txnStore;
+    private IgnoreTxnCacheSupplier ignoreTxnStore;
 
     public LStoreSetup() {
         this.dataLib = new LDataLib();
@@ -31,6 +33,7 @@ public class LStoreSetup implements StoreSetup {
         this.writer = store;
         this.source = new SimpleTimestampSource();
         this.txnStore = new InMemoryTxnStore(source, SIConstants.transactionTimeout);
+        this.ignoreTxnStore = new IgnoreTxnCacheSupplier();
     }
 
     @Override
@@ -71,6 +74,11 @@ public class LStoreSetup implements StoreSetup {
     @Override
     public TxnStore getTxnStore() {
         return txnStore;
+    }
+
+    @Override
+    public IgnoreTxnCacheSupplier getIgnoreTxnStore() {
+        return ignoreTxnStore;
     }
 
     @Override

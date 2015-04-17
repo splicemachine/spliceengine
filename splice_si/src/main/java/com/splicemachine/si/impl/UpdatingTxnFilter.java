@@ -4,16 +4,19 @@ import com.splicemachine.si.api.ReadResolver;
 import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.rollforward.SegmentedRollForward;
+import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 
 public class UpdatingTxnFilter<RowLock,Data> extends SimpleTxnFilter<RowLock,Data> {
     private final SegmentedRollForward.Context context;
 
-    public UpdatingTxnFilter(TxnSupplier transactionStore,
+    public UpdatingTxnFilter(String tableName,
+                             TxnSupplier transactionStore,
+                             IgnoreTxnCacheSupplier ignoreTxnCacheSupplier,
                              TxnView myTxn,
                              ReadResolver readResolver,
                              DataStore dataStore,
                              SegmentedRollForward.Context context) {
-        super(transactionStore, myTxn, readResolver, dataStore);
+        super(tableName, transactionStore, ignoreTxnCacheSupplier, myTxn, readResolver, dataStore);
         this.context = context;
     }
 
