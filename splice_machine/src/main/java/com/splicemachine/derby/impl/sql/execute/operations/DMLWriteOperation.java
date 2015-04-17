@@ -1,18 +1,28 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.base.Strings;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.impl.storage.SingleScanRowProvider;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.stats.TaskStats;
+import com.splicemachine.derby.utils.marshall.DataHash;
+import com.splicemachine.derby.utils.marshall.KeyEncoder;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
+import com.splicemachine.derby.utils.marshall.PairEncoder;
+import com.splicemachine.hbase.KVPair;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.metrics.IOStats;
 import com.splicemachine.metrics.Metrics;
+import com.splicemachine.pipeline.api.RecordingCallBuffer;
 import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.pipeline.impl.WriteCoordinator;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import com.splicemachine.db.iapi.error.StandardException;
@@ -28,12 +38,14 @@ import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
+import org.apache.spark.api.java.JavaRDD;
 
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Callable;
 
@@ -447,4 +459,55 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 
     }
 
+	@Override
+	public boolean providesRDD() {
+		return source.providesRDD();
+	}
+
+	@Override
+	public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+		JavaRDD<LocatedRow> rdd = source.getRDD(spliceRuntimeContext, top);
+
+		final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this, spliceRuntimeContext);
+		rdd.mapPartitions(new DMLWriteSparkOp(this, soi)).collect();
+		return SpliceSpark.getContext().parallelize(Collections.<LocatedRow>emptyList(), 1);
+	}
+
+	public static final class DMLWriteSparkOp extends SparkFlatMapOperation<DMLWriteOperation, Iterator<LocatedRow>, LocatedRow> {
+
+		public DMLWriteSparkOp() {
+		}
+
+		public DMLWriteSparkOp(DMLWriteOperation spliceOperation, SpliceObserverInstructions soi) {
+			super(spliceOperation, soi);
+		}
+
+		@Override
+		public Iterable<LocatedRow> call(Iterator<LocatedRow> locatedRowIterator) throws Exception {
+			KeyEncoder keyEncoder = op.getKeyEncoder(soi.getSpliceRuntimeContext());
+			DataHash rowHash = op.getRowHash(soi.getSpliceRuntimeContext());
+
+
+			KVPair.Type dataType = op instanceof UpdateOperation ? KVPair.Type.UPDATE : KVPair.Type.INSERT;
+			dataType = op instanceof DeleteOperation ? KVPair.Type.DELETE : dataType;
+			TxnView txn = soi.getTxn();
+			WriteCoordinator writeCoordinator = SpliceDriver.driver().getTableWriter();
+			RecordingCallBuffer<KVPair> bufferToTransform = writeCoordinator.writeBuffer(op.getDestinationTable(), txn, soi.getSpliceRuntimeContext());
+			RecordingCallBuffer<KVPair> writeBuffer = op.transformWriteBuffer(bufferToTransform);
+			PairEncoder encoder = new PairEncoder(keyEncoder, rowHash, dataType);
+
+			while(locatedRowIterator.hasNext()) {
+				ExecRow row = locatedRowIterator.next().getRow();
+				if (row == null) continue;
+
+				KVPair encode = encoder.encode(row);
+				writeBuffer.add(encode);
+			}
+
+			writeBuffer.flushBuffer();
+			writeBuffer.close();
+
+			return Collections.<LocatedRow>emptyList();
+		}
+	}
 }

@@ -7,6 +7,8 @@ import java.util.Collections;
 import java.util.List;
 
 import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
+import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.metrics.Counter;
 import com.splicemachine.pipeline.exception.Exceptions;
@@ -27,6 +29,7 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.storage.RowProviders;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.spark.api.java.JavaRDD;
 
 
 public class RowOperation extends SpliceBaseOperation {
@@ -301,4 +304,13 @@ public class RowOperation extends SpliceBaseOperation {
 				return false;
 		}
 
+		@Override
+		public boolean providesRDD() {
+			return true;
+		}
+
+		@Override
+		public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+			return SpliceSpark.getContext().parallelize(Lists.newArrayList(new LocatedRow(getRow())), 1);
+		}
 }

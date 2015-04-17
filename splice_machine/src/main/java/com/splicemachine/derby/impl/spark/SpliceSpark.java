@@ -23,7 +23,6 @@ public class SpliceSpark {
     static JavaSparkContext ctx;
     static boolean initialized = false;
     static final boolean active = Boolean.parseBoolean(System.getProperty("splice.spark.enabled", "false"));
-    ;
     static volatile JavaSparkContext localContext = null;
     static boolean spliceStaticComponentsSetup = false;
 
