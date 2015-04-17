@@ -3,6 +3,7 @@ package com.splicemachine.si.api;
 import java.io.IOException;
 import java.util.List;
 
+import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 
 import com.splicemachine.async.KeyValue;
@@ -29,7 +30,8 @@ public interface SIFactory<Transaction> {
     public DataStore getDataStore();
     public STableReader getTableReader();
     public TxnStore getTxnStore();
-    public TxnSupplier getTxnSupplier();	
+    public TxnSupplier getTxnSupplier();
+    public IgnoreTxnCacheSupplier getIgnoreTxnSupplier();
     public TransactionalRegion getTransactionalRegion(HRegion region);
 	Transaction getTransaction(long txnId, long beginTimestamp, long parentTxnId,
 			long commitTimestamp, long globalCommitTimestamp,

@@ -124,26 +124,25 @@ public class AsyncReadResolver  {
 
         @Override
         public void resolve(ByteSlice rowKey, long txnId) {
-            if(stopped) return; //we aren't running, so do nothing
+            if (stopped) return; //we aren't running, so do nothing
             long sequence;
             try {
                 sequence = ringBuffer.tryNext();
             } catch (InsufficientCapacityException e) {
-                if(LOG.isTraceEnabled())
+                if (LOG.isTraceEnabled())
                     LOG.trace("Unable to submit for read resolution");
                 return;
             }
 
-            try{
+            try {
                 ResolveEvent event = ringBuffer.get(sequence);
                 event.region = region;
                 event.txnId = txnId;
                 event.rowKey.set(rowKey.getByteCopy());
                 event.rollForward = rollForward;
-            }finally{
+            } finally {
                 ringBuffer.publish(sequence);
             }
         }
-
-		}
+	}
 }

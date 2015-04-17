@@ -17,6 +17,7 @@ import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.api.SRowLock;
 import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
+import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.Increment;
@@ -61,17 +62,20 @@ public class SITransactor<Data, Table,
     private final DataStore<SRowLock, Data, Mutation, Put, Delete, Get, Scan, Table> dataStore;
     private final TxnOperationFactory operationFactory;
     private final TxnSupplier transactionStore;
+    private final IgnoreTxnCacheSupplier ignoreTransactionStore;
 
     private SITransactor(SDataLib dataLib,
                          STableWriter dataWriter,
                          DataStore dataStore,
                          final TxnOperationFactory operationFactory,
-                         final TxnSupplier transactionStore) {
+                         final TxnSupplier transactionStore,
+                         final IgnoreTxnCacheSupplier ignoreTransactionStore) {
         this.dataLib = dataLib;
         this.dataWriter = dataWriter;
         this.dataStore = dataStore;
         this.operationFactory = operationFactory;
         this.transactionStore = transactionStore;
+        this.ignoreTransactionStore = ignoreTransactionStore;
     }
 
     // Operation pre-processing. These are to be called "server-side" when we are about to process an operation.
@@ -276,7 +280,7 @@ public class SITransactor<Data, Table,
         Pair<KVPair, SRowLock>[] lockPairs = new Pair[mutations.size()];
         TxnFilter constraintState = null;
         if (constraintChecker != null)
-            constraintState = new SimpleTxnFilter(transactionStore, txn, NoOpReadResolver.INSTANCE, dataStore);
+            constraintState = new SimpleTxnFilter(null, transactionStore, ignoreTransactionStore, txn, NoOpReadResolver.INSTANCE, dataStore);
         @SuppressWarnings("unchecked") final LongOpenHashSet[] conflictingChildren = new LongOpenHashSet[mutations.size()];
         try {
             lockRows(table, mutations, lockPairs, finalStatus);
@@ -656,6 +660,7 @@ public class SITransactor<Data, Table,
         private DataStore<SRowLock, Data, Mutation, Put, Delete, Get, Scan, Table> dataStore;
         private TxnSupplier txnStore;
         private TxnOperationFactory operationFactory;
+        private IgnoreTxnCacheSupplier ignoreTxnStore;
 
         public Builder() {
         }
@@ -689,9 +694,14 @@ public class SITransactor<Data, Table,
             return this;
         }
 
+        public Builder ignoreTxnStore(IgnoreTxnCacheSupplier ignoreTxnCacheStore) {
+            this.ignoreTxnStore = ignoreTxnStore;
+            return this;
+        }
+
         public SITransactor<Data, Table, Mutation, Put, Delete, Get, Scan> build() {
             assert txnStore != null : "No TxnStore set!";
-            return new SITransactor<>(dataLib, dataWriter, dataStore, operationFactory, txnStore);
+            return new SITransactor<>(dataLib, dataWriter, dataStore, operationFactory, txnStore, ignoreTxnStore);
         }
 
     }

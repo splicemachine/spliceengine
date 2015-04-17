@@ -9,6 +9,7 @@ import com.splicemachine.si.data.api.IHTable;
 import com.splicemachine.si.data.api.SRowLock;
 import com.splicemachine.si.data.hbase.HRowAccumulator;
 import com.splicemachine.si.data.hbase.HbRegion;
+import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.ByteSlice;
@@ -31,9 +32,11 @@ public class TxnRegion implements TransactionalRegion {
 		private final RollForward rollForward;
 		private final ReadResolver readResolver;
 		private final TxnSupplier txnSupplier;
+        private final IgnoreTxnCacheSupplier ignoreTxnCacheSupplier;
 		private final DataStore dataStore;
 		private final Transactor transactor;
 		private final IHTable hbRegion;
+        private final String tableName;
 
 		private final boolean transactionalWrites; //if false, then will use straightforward writes
 
@@ -41,22 +44,24 @@ public class TxnRegion implements TransactionalRegion {
                      RollForward rollForward,
                      ReadResolver readResolver,
                      TxnSupplier txnSupplier,
+                     IgnoreTxnCacheSupplier ignoreTxnCacheSupplier,
                      DataStore dataStore,
                      Transactor transactor) {
 				this.region = region;
 				this.rollForward = rollForward;
 				this.readResolver = readResolver;
 				this.txnSupplier = txnSupplier;
+                this.ignoreTxnCacheSupplier = ignoreTxnCacheSupplier;
 				this.dataStore = dataStore;
 				this.transactor = transactor;
 				this.hbRegion = new HbRegion(region);
-
+                this.tableName = region.getTableDesc().getNameAsString();
 				this.transactionalWrites = SIObserver.doesTableNeedSI(region.getTableDesc().getNameAsString());
 		}
 
 		@Override
 		public TxnFilter unpackedFilter(TxnView txn) throws IOException {
-				return new SimpleTxnFilter(txnSupplier,txn,readResolver,dataStore);
+				return new SimpleTxnFilter(tableName,txnSupplier,ignoreTxnCacheSupplier,txn,readResolver,dataStore);
 		}
 
 		@Override

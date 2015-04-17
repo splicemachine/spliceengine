@@ -12,6 +12,7 @@ import com.splicemachine.si.data.light.LTuple;
 import com.splicemachine.si.impl.*;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.store.CompletedTxnCacheSupplier;
+import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 import com.splicemachine.si.jmx.ManagedTransactor;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
@@ -46,6 +47,7 @@ public class TestTransactionSetup {
     public ManualKeepAliveScheduler keepAliveScheduler;
     public final TxnStore txnStore;
     public final TxnSupplier txnSupplier;
+    public final IgnoreTxnCacheSupplier ignoreTxnSupplier;
     public TxnLifecycleManager txnLifecycleManager;
     public ReadResolver readResolver = NoOpReadResolver.INSTANCE; //test read-resolvers through different mechanisms
 
@@ -71,6 +73,7 @@ public class TestTransactionSetup {
             ((InMemoryTxnStore) txnStore).setLifecycleManager(lfManager);
         }
         txnSupplier = new CompletedTxnCacheSupplier(txnStore, 100, 16);
+        ignoreTxnSupplier = new IgnoreTxnCacheSupplier();
         lfManager.setStore(txnStore);
         txnLifecycleManager = lfManager;
 
@@ -93,7 +96,7 @@ public class TestTransactionSetup {
         keepAliveScheduler = new ManualKeepAliveScheduler(txnStore);
         ((ClientTxnLifecycleManager) txnLifecycleManager).setKeepAliveScheduler(keepAliveScheduler);
 
-        readController = new SITransactionReadController(dataStore, dataLib, txnStore);
+        readController = new SITransactionReadController(dataStore, dataLib, txnStore, ignoreTxnSupplier);
 
         SITransactor.Builder builder = new SITransactor.Builder()
                 .dataLib(dataLib)

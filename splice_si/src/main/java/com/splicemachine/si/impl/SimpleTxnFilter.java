@@ -8,11 +8,13 @@ import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.data.api.IHTable;
 import com.splicemachine.si.impl.store.ActiveTxnCacheSupplier;
+import com.splicemachine.si.impl.store.ActiveIgnoreTxnCacheSupplier;
+import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 import com.splicemachine.utils.ByteSlice;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.hadoop.hbase.filter.Filter;
-import java.io.IOException;
 
+import java.io.IOException;
 /**
  * Transaction filter which performs basic transactional filtering (i.e. row visibility, tombstones,
  * anti-tombstones, etc.)
@@ -21,7 +23,7 @@ import java.io.IOException;
  * Date: 6/23/14
  */
 public class SimpleTxnFilter<RowLock,Data> implements TxnFilter<Data> {
-		private final TxnSupplier transactionStore;
+    	private final TxnSupplier transactionStore;
 		private final TxnView myTxn;
 		private final DataStore<RowLock,Data,Mutation,Put,Delete,Get,Scan,IHTable> dataStore;
 		private final ReadResolver readResolver;
@@ -30,6 +32,9 @@ public class SimpleTxnFilter<RowLock,Data> implements TxnFilter<Data> {
 		private final LongArrayList tombstonedTxnRows = new LongArrayList(1); //usually, there are very few deletes
 		private final LongArrayList antiTombstonedTxnRows = new LongArrayList(1);
 		private final ByteSlice rowKey = new ByteSlice();
+
+        private final ActiveIgnoreTxnCacheSupplier ignoreTxnCache;
+        private final String tableName;
 
     /*
      * The most common case for databases is insert-only--that is, that there
@@ -44,15 +49,19 @@ public class SimpleTxnFilter<RowLock,Data> implements TxnFilter<Data> {
     private TxnView currentTxn;
 
 		@SuppressWarnings("unchecked")
-		public SimpleTxnFilter(TxnSupplier transactionStore,
-													 TxnView myTxn,
-													 ReadResolver readResolver,
-													 DataStore dataStore) {
-				this.transactionStore = new ActiveTxnCacheSupplier(transactionStore, SIConstants.activeTransactionCacheSize); //cache active transactions, but only on this thread
+		public SimpleTxnFilter(String tableName,
+                               TxnSupplier transactionStore,
+                               IgnoreTxnCacheSupplier ignoreTxnStore,
+							   TxnView myTxn,
+	   				           ReadResolver readResolver,
+							   DataStore dataStore) {
+			    this.tableName = tableName;
+                this.transactionStore = new ActiveTxnCacheSupplier(transactionStore, SIConstants.activeTransactionCacheSize); //cache active transactions, but only on this thread
 				this.myTxn = myTxn;
 				assert readResolver != null && dataStore != null;
 				this.readResolver = readResolver;
 				this.dataStore = dataStore;
+                this.ignoreTxnCache = new ActiveIgnoreTxnCacheSupplier(ignoreTxnStore);
 		}
 
 		@Override
@@ -216,10 +225,10 @@ public class SimpleTxnFilter<RowLock,Data> implements TxnFilter<Data> {
 				}
 		}
 
-		private void ensureTransactionIsCached(Data data) {
-			long txnId = this.dataStore.getDataLib().getTimestamp(data);
+    private void ensureTransactionIsCached(Data data) throws IOException {
+        long txnId = this.dataStore.getDataLib().getTimestamp(data);
         visitedTxnIds.add(txnId);
-				if(!transactionStore.transactionCached(txnId)){
+        if(!transactionStore.transactionCached(txnId)){
 						/*
 						 * We do not have a cache entry for this transaction, so we want
 						 * to add it in. We have two possible scenarios:
@@ -237,21 +246,21 @@ public class SimpleTxnFilter<RowLock,Data> implements TxnFilter<Data> {
 						 * a failure, so we have to check for it.
 						 */
             TxnView toCache;
-						if(dataStore.isSIFail(data)){
-								//use the current read-resolver to remove the entry
+            if(dataStore.isSIFail(data) || ignoreTxnCache.shouldIgnore(tableName,txnId)){
+                //use the current read-resolver to remove the entry
                 doResolve(data, dataStore.getDataLib().getTimestamp(data));
                 toCache = new RolledBackTxn(txnId);
-						}else{
-								long commitTs = dataStore.getDataLib().getValueToLong(data);
+            }else{
+                long commitTs = dataStore.getDataLib().getValueToLong(data);
                 toCache = new CommittedTxn(txnId, commitTs);//since we don't care about the begin timestamp, just use the TxnId
-						}
+            }
             transactionStore.cache(toCache);
             currentTxn = toCache;
-				}
-		}
+        }
+    }
 
-		@Override
-		public DataStore getDataStore() {
-			return dataStore;
-		}
+    @Override
+    public DataStore getDataStore() {
+        return dataStore;
+    }
 }

@@ -43,7 +43,7 @@ public abstract class TransactionalSysTableWriter<T> {
     private static Logger LOG = Logger.getLogger(TransactionalSysTableWriter.class);
 
     private final String tableName;
-    private volatile String conglomIdString;
+    protected volatile String conglomIdString;
 
     protected ResultScanner resultScanner = null;
     protected DataValueDescriptor[] dvds;
@@ -123,7 +123,7 @@ public abstract class TransactionalSysTableWriter<T> {
         }
     }
 
-    protected String getConglomIdString(TxnView txn) throws IOException {
+    public String getConglomIdString(TxnView txn) throws IOException {
         String conglom = conglomIdString;
         if(conglom==null){
             synchronized (this){

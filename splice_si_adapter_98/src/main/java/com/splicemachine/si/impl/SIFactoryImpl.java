@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
+import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -115,6 +116,11 @@ public class SIFactoryImpl implements SIFactory<TxnMessage.Txn> {
 	public TxnSupplier getTxnSupplier() {
 		return TransactionStorage.getTxnSupplier();
 	}
+
+    @Override
+    public IgnoreTxnCacheSupplier getIgnoreTxnSupplier () {
+        return TransactionStorage.getIgnoreTxnSupplier();
+    }
 
 	@Override
 	public TransactionalRegion getTransactionalRegion(HRegion region) {

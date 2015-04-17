@@ -72,6 +72,7 @@ public class TransactionalRegions {
                 NoopRollForward.INSTANCE,
                 NoOpReadResolver.INSTANCE,
                 TransactionStorage.getTxnSupplier(),
+                TransactionStorage.getIgnoreTxnSupplier(),
                 TxnDataStore.getDataStore(),
                 HTransactorFactory.getTransactor());
     }
@@ -85,6 +86,7 @@ public class TransactionalRegions {
                 rollForward,
                 resolver,
                 TransactionStorage.getTxnSupplier(),
+                TransactionStorage.getIgnoreTxnSupplier(),
                 TxnDataStore.getDataStore(),
                 HTransactorFactory.getTransactor());
     }

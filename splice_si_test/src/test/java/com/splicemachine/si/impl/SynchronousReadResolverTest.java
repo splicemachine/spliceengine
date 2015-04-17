@@ -4,6 +4,7 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.impl.MockRegionUtils;
+import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 import com.splicemachine.si.testsetup.SimpleTimestampSource;
 import com.splicemachine.si.api.ReadResolver;
 import com.splicemachine.si.api.Txn;
@@ -26,6 +27,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.ignoreStubs;
 import static org.mockito.Mockito.mock;
 
 /**
@@ -42,7 +44,7 @@ public class SynchronousReadResolverTest {
 
         final TxnStore store = new InMemoryTxnStore(new SimpleTimestampSource(),Long.MAX_VALUE);
 				ReadResolver resolver = SynchronousReadResolver.getResolver(region,store,new RollForwardStatus(), control, false);
-
+        final IgnoreTxnCacheSupplier ignoreTxnCacheSupplier = new IgnoreTxnCacheSupplier();
         TxnLifecycleManager tc = mock(TxnLifecycleManager.class);
         doAnswer(new Answer<Void>() {
             @Override
@@ -66,7 +68,7 @@ public class SynchronousReadResolverTest {
 
 				Txn readTxn = ReadOnlyTxn.createReadOnlyTransaction(2l,Txn.ROOT_TRANSACTION,2l,
 								Txn.IsolationLevel.SNAPSHOT_ISOLATION, false,mock(TxnLifecycleManager.class));
-				SimpleTxnFilter filter = new SimpleTxnFilter(store,readTxn,resolver,TxnTestUtils.getMockDataStore());
+				SimpleTxnFilter filter = new SimpleTxnFilter(null,store,ignoreTxnCacheSupplier,readTxn,resolver,TxnTestUtils.getMockDataStore());
 
 				Result result = region.get(new Get(rowKey));
 				Assert.assertEquals("Incorrect result size", 1, result.size());
@@ -88,7 +90,7 @@ public class SynchronousReadResolverTest {
         final SimpleTimestampSource commitTsGenerator = new SimpleTimestampSource();
         final TxnStore store = new InMemoryTxnStore(commitTsGenerator,Long.MAX_VALUE);
 				ReadResolver resolver = SynchronousReadResolver.getResolver(region,store,new RollForwardStatus(),GreenLight.INSTANCE,false);
-
+        final IgnoreTxnCacheSupplier ignoreTxnCacheSupplier = new IgnoreTxnCacheSupplier();
         TxnLifecycleManager tc = mock(TxnLifecycleManager.class);
         doAnswer(new Answer<Long>() {
             @Override
@@ -112,7 +114,7 @@ public class SynchronousReadResolverTest {
 
 				Txn readTxn = ReadOnlyTxn.createReadOnlyTransaction(3l,Txn.ROOT_TRANSACTION,3l,
 								Txn.IsolationLevel.SNAPSHOT_ISOLATION, false,mock(TxnLifecycleManager.class));
-				SimpleTxnFilter filter = new SimpleTxnFilter(store,readTxn,resolver,TxnTestUtils.getMockDataStore());
+				SimpleTxnFilter filter = new SimpleTxnFilter(null,store,ignoreTxnCacheSupplier,readTxn,resolver,TxnTestUtils.getMockDataStore());
 
 				Result result = region.get(new Get(rowKey));
 				Assert.assertEquals("Incorrect result size", 1, result.size());
@@ -136,6 +138,7 @@ public class SynchronousReadResolverTest {
 				HRegion region = MockRegionUtils.getMockRegion();
 
         SimpleTimestampSource timestampSource = new SimpleTimestampSource();
+        final IgnoreTxnCacheSupplier ignoreTxnCacheSupplier = new IgnoreTxnCacheSupplier();
         TxnStore store = new InMemoryTxnStore(timestampSource,Long.MAX_VALUE);
 				ReadResolver resolver = SynchronousReadResolver.getResolver(region,store,new RollForwardStatus(),GreenLight.INSTANCE,false);
 
@@ -157,7 +160,7 @@ public class SynchronousReadResolverTest {
 				childTxn.commit();
 
 				Txn readTxn = tc.beginTransaction(); //a read-only transaction with SI semantics
-				SimpleTxnFilter filter = new SimpleTxnFilter(store,readTxn,resolver,TxnTestUtils.getMockDataStore());
+				SimpleTxnFilter filter = new SimpleTxnFilter(null,store,ignoreTxnCacheSupplier,readTxn,resolver,TxnTestUtils.getMockDataStore());
 
 				Result result = region.get(new Get(rowKey));
 				Assert.assertEquals("Incorrect result size", 1, result.size());

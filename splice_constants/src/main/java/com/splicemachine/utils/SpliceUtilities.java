@@ -253,6 +253,12 @@ public class SpliceUtilities extends SIConstants {
 						+ " created");
 			}
 
+            if (!admin.tableExists(SpliceConstants.RESTORE_TABLE_NAME_BYTES)) {
+                HTableDescriptor td = generateNonSITable(RESTORE_TABLE_NAME);
+                admin.createTable(td);
+                SpliceLogUtils.info(LOG, SpliceConstants.RESTORE_TABLE_NAME
+                        + " created");
+            }
 			return true;
 		} catch (Exception e) {
 			SpliceLogUtils.error(LOG, "Unable to set up HBase Tables", e);

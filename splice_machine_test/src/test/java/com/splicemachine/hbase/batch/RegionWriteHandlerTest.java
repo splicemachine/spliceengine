@@ -19,6 +19,7 @@ import com.splicemachine.pipeline.impl.WriteResult;
 import com.splicemachine.pipeline.writecontext.PipelineWriteContext;
 import com.splicemachine.pipeline.writehandler.RegionWriteHandler;
 
+import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
@@ -43,12 +44,13 @@ public class RegionWriteHandlerTest {
         final ObjectArrayList<Mutation> successfulPuts = ObjectArrayList.newInstance();
         HRegion testRegion = MockRegion.getMockRegion(MockRegion.getSuccessOnlyAnswer(successfulPuts));
 
-				TxnSupplier supplier = mock(TxnSupplier.class);
+		TxnSupplier supplier = mock(TxnSupplier.class);
+        IgnoreTxnCacheSupplier ignoreTxnCacheSupplier = mock(IgnoreTxnCacheSupplier.class);
 				//TODO -sf- make this simpler
         RegionCoprocessorEnvironment env = mock(RegionCoprocessorEnvironment.class);
         when(env.getRegion()).thenReturn(testRegion);
-				TransactionalRegion txnRegion = new TxnRegion(testRegion, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
-								supplier,mock(DataStore.class), mock(Transactor.class));
+		TransactionalRegion txnRegion = new TxnRegion(testRegion, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
+								supplier,ignoreTxnCacheSupplier,mock(DataStore.class), mock(Transactor.class));
         PipelineWriteContext testContext = new PipelineWriteContext(new IndexCallBufferFactory(),new ActiveWriteTxn(1l,1l),txnRegion, env);
         testContext.addLast(new RegionWriteHandler(txnRegion,new ResettableCountDownLatch(0), null));
 
@@ -110,10 +112,11 @@ public class RegionWriteHandlerTest {
         RegionCoprocessorEnvironment rce = mock(RegionCoprocessorEnvironment.class);
         when(rce.getRegion()).thenReturn(testRegion);
 
-				TxnSupplier supplier = mock(TxnSupplier.class);
+		TxnSupplier supplier = mock(TxnSupplier.class);
+        IgnoreTxnCacheSupplier ignoreTxnCacheSupplier = mock(IgnoreTxnCacheSupplier.class);
 				//TODO -sf- make this simpler
-				TransactionalRegion txnRegion = new TxnRegion(testRegion, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
-								supplier,mock(DataStore.class), mock(Transactor.class));
+		TransactionalRegion txnRegion = new TxnRegion(testRegion, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
+								supplier,ignoreTxnCacheSupplier,mock(DataStore.class), mock(Transactor.class));
 
 
         RegionCoprocessorEnvironment env = mock(RegionCoprocessorEnvironment.class);
@@ -144,10 +147,11 @@ public class RegionWriteHandlerTest {
         HRegion testRegion = MockRegion.getMockRegion(MockRegion.getSuccessOnlyAnswer(results));
         when(testRegion.isClosed()).thenReturn(true);
 
-				TxnSupplier supplier = mock(TxnSupplier.class);
-				//TODO -sf- make this simpler
-				TransactionalRegion txnRegion = new TxnRegion(testRegion, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
-								supplier,mock(DataStore.class), mock(Transactor.class));
+		TxnSupplier supplier = mock(TxnSupplier.class);
+        IgnoreTxnCacheSupplier ignoreTxnCacheSupplier = mock(IgnoreTxnCacheSupplier.class);
+		//TODO -sf- make this simpler
+		TransactionalRegion txnRegion = new TxnRegion(testRegion, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
+								supplier,ignoreTxnCacheSupplier,mock(DataStore.class), mock(Transactor.class));
 
         RegionCoprocessorEnvironment env = mock(RegionCoprocessorEnvironment.class);
         when(env.getRegion()).thenReturn(testRegion);
@@ -179,10 +183,11 @@ public class RegionWriteHandlerTest {
         HRegionInfo info = testRegion.getRegionInfo();
         when(info.getEndKey()).thenReturn(Bytes.toBytes(11));
 
-				TxnSupplier supplier = mock(TxnSupplier.class);
-				//TODO -sf- make this simpler
-				TransactionalRegion txnRegion = new TxnRegion(testRegion, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
-								supplier,mock(DataStore.class), mock(Transactor.class));
+		TxnSupplier supplier = mock(TxnSupplier.class);
+        IgnoreTxnCacheSupplier ignoreTxnCacheSupplier = mock(IgnoreTxnCacheSupplier.class);
+		//TODO -sf- make this simpler
+		TransactionalRegion txnRegion = new TxnRegion(testRegion, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
+								supplier,ignoreTxnCacheSupplier,mock(DataStore.class), mock(Transactor.class));
 
         RegionCoprocessorEnvironment env = mock(RegionCoprocessorEnvironment.class);
         when(env.getRegion()).thenReturn(testRegion);
@@ -251,10 +256,11 @@ public class RegionWriteHandlerTest {
 
         HRegion testRegion = MockRegion.getMockRegion(MockRegion.getSuccessOnlyAnswer(results));
 
-				TxnSupplier supplier = mock(TxnSupplier.class);
-				//TODO -sf- make this simpler
-				TransactionalRegion txnRegion = new TxnRegion(testRegion, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
-								supplier,mock(DataStore.class), mock(Transactor.class));
+		TxnSupplier supplier = mock(TxnSupplier.class);
+        IgnoreTxnCacheSupplier ignoreTxnCacheSupplier = mock(IgnoreTxnCacheSupplier.class);
+		//TODO -sf- make this simpler
+		TransactionalRegion txnRegion = new TxnRegion(testRegion, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
+								supplier,ignoreTxnCacheSupplier,mock(DataStore.class), mock(Transactor.class));
         RegionCoprocessorEnvironment env = mock(RegionCoprocessorEnvironment.class);
         when(env.getRegion()).thenReturn(testRegion);
         PipelineWriteContext testContext = new PipelineWriteContext(new IndexCallBufferFactory(),new ActiveWriteTxn(1l,1l),txnRegion, env);

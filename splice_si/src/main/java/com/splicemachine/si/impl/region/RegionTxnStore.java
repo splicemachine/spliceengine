@@ -302,6 +302,8 @@ public class RegionTxnStore<TxnInfo,Transaction,TableBuffer,Data,Put extends Ope
 				SpliceLogUtils.trace(LOG, "recordRollback txnId=%d",txnId);
 			org.apache.hadoop.hbase.client.Put put = new org.apache.hadoop.hbase.client.Put(TxnUtils.getRowKey(txnId));
 				put.add(FAMILY,AbstractV2TxnDecoder.STATE_QUALIFIER_BYTES, Txn.State.ROLLEDBACK.encode());
+                put.add(FAMILY,AbstractV2TxnDecoder.COMMIT_QUALIFIER_BYTES,Encoding.encode(-1));
+                put.add(FAMILY,AbstractV2TxnDecoder.GLOBAL_COMMIT_QUALIFIER_BYTES,Encoding.encode(-1));
 				region.put(put);
 		}
 

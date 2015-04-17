@@ -21,7 +21,7 @@ import java.sql.Types;
 /**
  * Created by jyuan on 2/6/15.
  */
-public class BACKUPFILESETRowFactory extends CatalogRowFactory {
+public class SYSBACKUPFILESETRowFactory extends CatalogRowFactory {
 
     private static final String TABLENAME_STRING = "SYSBACKUPFILESET";
     private static final int BACKUPFILESET_COLUMN_COUNT = 4;
@@ -36,7 +36,7 @@ public class BACKUPFILESETRowFactory extends CatalogRowFactory {
             "cb4d2219-fd7a-4003-9e42-beff555a365c"
     };
 
-    public BACKUPFILESETRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf) {
+    public SYSBACKUPFILESETRowFactory(UUIDFactory uuidf, ExecutionFactory ef, DataValueFactory dvf) {
         super(uuidf, ef, dvf);
         initInfo(BACKUPFILESET_COLUMN_COUNT, TABLENAME_STRING, null, null, uuids);
     }
