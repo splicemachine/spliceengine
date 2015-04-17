@@ -12,7 +12,7 @@
 		<hbase.version>0.98.0-hdp2.1.7-splice1.0.2-SNAPSHOT</hbase.version>
 		<hive.version>0.13.0.2.1.7.0-784</hive.version>
 		<zookeeper.version>3.4.5.2.1.7.0-784</zookeeper.version>
-		<spark-assembly-id>spark-assembly-hadoop2.4.0.2.1.7.0-748</spark-assembly-id>
+		<spark-assembly-id>spark-assembly-hadoop2.4.0.2.1.7.0-784</spark-assembly-id>
 	</properties>
 	<parent>
 		<artifactId>spliceengine-parent</artifactId>
