@@ -185,7 +185,7 @@
 		</dependency>
 		<dependency>
 			<groupId>org.apache.spark</groupId>
-			<artifactId>spark-assembly-hadoop2.4.1-mapr-1408</artifactId>
+			<artifactId>${spark-assembly-id}</artifactId>
 			<version>1.2.0</version>
 		</dependency>
 	</dependencies>

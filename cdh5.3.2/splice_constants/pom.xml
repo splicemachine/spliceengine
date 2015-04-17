@@ -186,7 +186,7 @@
 		</dependency>
 		<dependency>
 			<groupId>org.apache.spark</groupId>
-			<artifactId>spark-assembly-hadoop2.5.0-cdh5.3.2</artifactId>
+			<artifactId>${spark-assembly-id}</artifactId>
 			<version>1.2.0</version>
 		</dependency>
 	</dependencies>
