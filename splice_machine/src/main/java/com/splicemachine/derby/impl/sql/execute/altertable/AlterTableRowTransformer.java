@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.altertable;
 
 import java.io.IOException;
-import java.sql.SQLException;
 
 import com.google.common.io.Closeables;
 
@@ -14,23 +13,27 @@ import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.RowTransformer;
 
 /**
- * Used by alter table write interceptors to map rows written to old table to new
- * table with default values for new column.
+ * Used by alter table write interceptors to map rows written in src table to new
+ * target table.
+ * <p/>
+ * This class is driven by its exec row definitions and its encoder/decoder.<br/>
+ * These are created for a specific alter table action in specific TransformingDDLDescriptors
+ * specializations.
  */
 public class AlterTableRowTransformer implements RowTransformer {
-    private final ExecRow oldRow;
-    private final ExecRow newRow;
+    private final ExecRow srcRow;
+    private final ExecRow targetRow;
     private final EntryDataDecoder rowDecoder;
     private final KeyHashDecoder keyDecoder;
     private final PairEncoder entryEncoder;
 
-    public AlterTableRowTransformer(ExecRow oldRow,
-                            ExecRow newRow,
+    public AlterTableRowTransformer(ExecRow srcRow,
+                            ExecRow targetRow,
                             KeyHashDecoder keyDecoder,
                             EntryDataDecoder rowDecoder,
                             PairEncoder entryEncoder) {
-        this.oldRow = oldRow;
-        this.newRow = newRow;
+        this.srcRow = srcRow;
+        this.targetRow = targetRow;
         this.rowDecoder = rowDecoder;
         this.keyDecoder = keyDecoder;
         this.entryEncoder = entryEncoder;
@@ -38,20 +41,17 @@ public class AlterTableRowTransformer implements RowTransformer {
 
     public KVPair transform(KVPair kvPair) throws StandardException, IOException {
         // Decode a row
-        oldRow.resetRowArray();
-        if (oldRow.nColumns() > 0) {
+        srcRow.resetRowArray();
+        if (srcRow.nColumns() > 0) {
             keyDecoder.set(kvPair.getRowKey(), 0, kvPair.getRowKey().length);
-            keyDecoder.decode(oldRow);
+            keyDecoder.decode(srcRow);
 
             rowDecoder.set(kvPair.getValue(), 0, kvPair.getValue().length);
-            rowDecoder.decode(oldRow);
+            rowDecoder.decode(srcRow);
         }
 
         // encode the result
-        KVPair newPair = entryEncoder.encode(newRow);
-
-        // preserve the same row key
-        newPair.setKey(kvPair.getRowKey());
+        KVPair newPair = entryEncoder.encode(targetRow);
         return newPair;
     }
 
