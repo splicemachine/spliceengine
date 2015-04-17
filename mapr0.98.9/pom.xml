@@ -13,6 +13,7 @@
 		<hive.version>0.13.0-mapr-1501-protobuf250</hive.version>
 		<zookeeper.version>3.4.5-mapr-1503</zookeeper.version>
 		<maprfs.version>4.0.1-mapr</maprfs.version>
+		<spark-assembly-id>spark-assembly-hadoop2.5.1-mapr-1503</spark-assembly-id>
 	</properties>
 	<parent>
 		<artifactId>spliceengine-parent</artifactId>

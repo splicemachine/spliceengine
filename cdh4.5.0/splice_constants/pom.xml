@@ -160,7 +160,7 @@
 		</dependency>
 		<dependency>
 			<groupId>org.apache.spark</groupId>
-			<artifactId>spark-assembly-hadoop2.0.0-cdh4.5.0</artifactId>
+			<artifactId>${spark-assembly-id}</artifactId>
 			<version>1.2.0</version>
 		</dependency>
 	</dependencies>
