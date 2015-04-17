@@ -698,7 +698,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
             if (LOG.isInfoEnabled()) {
                 LOG.info("RDD for operation " + this + " :\n " + rdd.toDebugString());
             }
-            return new SpliceNoPutResultSet(getActivation(), this, new RDDRowProvider(rdd, runtimeContext));
+            return new SpliceNoPutResultSet(getActivation(), this, new RDDRowProvider(rdd, runtimeContext), !(this instanceof DMLWriteOperation));
         }
 
         public class XplainOperationChainInfo {
