@@ -44,7 +44,8 @@ public class TentativeAddConstraintDesc implements TransformingDDLDescriptor, Ex
     private String tableVersion;
     private long newConglomId;
     private long oldConglomId;
-    private int[] columnOrdering;
+    private int[] srcColumnOrdering;
+    private int[] targetColumnOrdering;
     private ColumnInfo[] columnInfos;
 
     public TentativeAddConstraintDesc() {}
@@ -52,12 +53,14 @@ public class TentativeAddConstraintDesc implements TransformingDDLDescriptor, Ex
     public TentativeAddConstraintDesc(String tableVersion,
                                       long newConglomId,
                                       long oldConglomId,
-                                      int[] columnOrdering,
+                                      int[] srcColumnOrdering,
+                                      int[] targetColumnOrdering,
                                       ColumnInfo[] columnInfos) {
         this.tableVersion = tableVersion;
         this.newConglomId = newConglomId;
         this.oldConglomId = oldConglomId;
-        this.columnOrdering = columnOrdering;
+        this.srcColumnOrdering = srcColumnOrdering;
+        this.targetColumnOrdering = targetColumnOrdering;
         this.columnInfos = columnInfos;
     }
 
@@ -73,7 +76,7 @@ public class TentativeAddConstraintDesc implements TransformingDDLDescriptor, Ex
 
     @Override
     public RowTransformer createRowTransformer() throws IOException {
-        return create(tableVersion, columnOrdering, columnInfos);
+        return create(tableVersion, srcColumnOrdering, targetColumnOrdering, columnInfos);
     }
 
     @Override
@@ -91,7 +94,8 @@ public class TentativeAddConstraintDesc implements TransformingDDLDescriptor, Ex
         out.writeObject(tableVersion);
         out.writeLong(newConglomId);
         out.writeLong(oldConglomId);
-        ArrayUtil.writeIntArray(out, columnOrdering);
+        ArrayUtil.writeIntArray(out, srcColumnOrdering);
+        ArrayUtil.writeIntArray(out, targetColumnOrdering);
         out.writeInt(columnInfos.length);
         for (ColumnInfo col:columnInfos) {
             out.writeObject(col);
@@ -103,7 +107,8 @@ public class TentativeAddConstraintDesc implements TransformingDDLDescriptor, Ex
         tableVersion = (String) in.readObject();
         newConglomId = in.readLong();
         oldConglomId = in.readLong();
-        columnOrdering = ArrayUtil.readIntArray(in);
+        srcColumnOrdering = ArrayUtil.readIntArray(in);
+        targetColumnOrdering = ArrayUtil.readIntArray(in);
         int size = in.readInt();
         columnInfos = new ColumnInfo[size];
         for (int i = 0; i < size; ++i) {
@@ -111,62 +116,73 @@ public class TentativeAddConstraintDesc implements TransformingDDLDescriptor, Ex
         }
     }
 
-    private static RowTransformer create(String tableVersion, int[] columnOrdering, ColumnInfo[] columnInfos)
+    private static RowTransformer create(String tableVersion,
+                                         int[] sourceKeyOrdering,
+                                         int[] targetKeyOrdering,
+                                         ColumnInfo[] columnInfos)
         throws IOException {
-        // template rows
-        ExecRow oldRow = new ValueRow(columnInfos.length);
-        ExecRow newRow = new ValueRow(columnInfos.length);
+        // template rows : 1-1 when not dropping/adding columns
+        ExecRow srcRow = new ValueRow(columnInfos.length);
+        ExecRow targetRow = new ValueRow(columnInfos.length);
 
+        // Set the types on each column
         try {
             for (int i=0; i<columnInfos.length; i++) {
                 DataValueDescriptor dvd = columnInfos[i].dataType.getNull();
-                oldRow.setColumn(i+1,dvd);
-                newRow.setColumn(i+1,dvd);
+                srcRow.setColumn(i + 1, dvd);
+                targetRow.setColumn(i + 1, dvd);
             }
         } catch (StandardException e) {
             throw Exceptions.getIOException(e);
         }
 
-        // key decoder
+        // Key decoder
         KeyHashDecoder keyDecoder;
-        if(columnOrdering!=null && columnOrdering.length>0){
-            DescriptorSerializer[] oldDenseSerializers =
-                VersionedSerializers.forVersion(tableVersion, false).getSerializers(oldRow);
-            keyDecoder = BareKeyHash.decoder(columnOrdering, null, oldDenseSerializers);
+        if(sourceKeyOrdering!=null && sourceKeyOrdering.length>0){
+            // We'll need src table key column order when we have keys (PK, unique) on src table
+            // Must use dense encodings in the key serializer (sparse = false)
+            DescriptorSerializer[] denseSerializers =
+                VersionedSerializers.forVersion(tableVersion, false).getSerializers(srcRow);
+            keyDecoder = BareKeyHash.decoder(sourceKeyOrdering, null, denseSerializers);
         }else{
+            // Just use the no-op key decoder for old rows when no key in src table
             keyDecoder = NoOpDataHash.instance().getDecoder();
         }
 
-        // row decoder
+        // Row decoder
         DescriptorSerializer[] oldSerializers =
-            VersionedSerializers.forVersion(tableVersion, true).getSerializers(oldRow);
-        EntryDataDecoder rowDecoder = new EntryDataDecoder(IntArrays.count(oldRow.nColumns()),null,oldSerializers);
+            VersionedSerializers.forVersion(tableVersion, true).getSerializers(srcRow);
+        EntryDataDecoder rowDecoder = new EntryDataDecoder(IntArrays.count(srcRow.nColumns()),null,oldSerializers);
 
         // Row encoder
         KeyEncoder encoder;
         DescriptorSerializer[] newSerializers =
-            VersionedSerializers.forVersion(tableVersion, true).getSerializers(newRow);
-        if(columnOrdering !=null&& columnOrdering.length>0){
-            //must use dense encodings in the key
+            VersionedSerializers.forVersion(tableVersion, true).getSerializers(targetRow);
+        if(targetKeyOrdering !=null&& targetKeyOrdering.length>0){
+            // We'll need target table key column order when we have keys (PK, unique) on target table
+            // Must use dense encodings in the key serializer (sparse = false)
             DescriptorSerializer[] denseSerializers =
-                VersionedSerializers.forVersion(tableVersion, false).getSerializers(newRow);
-            encoder = new KeyEncoder(NoOpPrefix.INSTANCE, BareKeyHash.encoder(columnOrdering, null,
+                VersionedSerializers.forVersion(tableVersion, false).getSerializers(targetRow);
+            encoder = new KeyEncoder(NoOpPrefix.INSTANCE, BareKeyHash.encoder(targetKeyOrdering, null,
                                                                               denseSerializers), NoOpPostfix.INSTANCE);
         } else {
+            // Just use the no-op key decoder for new rows when no key in target table
             UUIDGenerator uuidGenerator = SpliceDriver.driver().getUUIDGenerator().newGenerator(100);
             encoder = new KeyEncoder(new SaltedPrefix(uuidGenerator), NoOpDataHash.INSTANCE,NoOpPostfix.INSTANCE);
         }
-        int[] columns = IntArrays.count(newRow.nColumns());
 
-        if (columnOrdering != null && columnOrdering.length > 0) {
-            for (int col: columnOrdering) {
-                columns[col] = -1;
+        // Column ordering mask for all columns. Keys will be masked from the value row.
+        int[] columnOrdering = IntArrays.count(targetRow.nColumns());
+        if (targetKeyOrdering != null && targetKeyOrdering.length > 0) {
+            for (int col: targetKeyOrdering) {
+                columnOrdering[col] = -1;
             }
         }
-        DataHash rowHash = new EntryDataHash(columns, null,newSerializers);
+        DataHash rowHash = new EntryDataHash(columnOrdering, null,newSerializers);
         PairEncoder rowEncoder = new PairEncoder(encoder,rowHash, KVPair.Type.INSERT);
 
-        return new AlterTableRowTransformer(oldRow, newRow, keyDecoder, rowDecoder, rowEncoder);
+        // Create and return the row transformer
+        return new AlterTableRowTransformer(srcRow, targetRow, keyDecoder, rowDecoder, rowEncoder);
     }
 
 }

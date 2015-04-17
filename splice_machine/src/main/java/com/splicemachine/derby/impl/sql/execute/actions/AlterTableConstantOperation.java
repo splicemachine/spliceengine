@@ -365,13 +365,18 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         //     column in table.
         ExecRow template = com.splicemachine.db.impl.sql.execute.RowUtil.getEmptyValueRow(columnDescriptorList.size(), lcc);
 
+        TxnView parentTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
 
+        // How were the columns ordered before?
+        int[] oldColumnOrdering = DataDictionaryUtils.getColumnOrdering(parentTxn, tableId);
+
+        // We're adding a PK. Column sort order will change.
         int[] collation_ids = new int[nColumns];
-        ColumnOrdering[] newColumnOrdering = new IndexColumnOrder[pkColumnNames.size()];
+        ColumnOrdering[] columnSortOrder = new IndexColumnOrder[pkColumnNames.size()];
         for (int ix = 0; ix < nColumns; ix++) {
             ColumnDescriptor col_info = columnDescriptorList.get(ix);
             if (pkColumnNames.contains(col_info.getColumnName())) {
-                newColumnOrdering[ix] = new IndexColumnOrder(ix);
+                columnSortOrder[ix] = new IndexColumnOrder(ix);
             }
             // Get a template value for each column
             if (col_info.getDefaultValue() != null) {
@@ -414,7 +419,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         long newCongNum = tc.createConglomerate(
             "heap", // we're requesting a heap conglomerate
             template.getRowArray(), // row template
-            newColumnOrdering, //column sort order - not required for heap
+            columnSortOrder, //column sort order - not required for heap
             collation_ids,
             properties, // properties
             tableType == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE ?
@@ -436,7 +441,6 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         newConstraint.executeConstantAction(activation);
 
         // Start a tentative txn to demarcate the DDL change
-        TxnView parentTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
         Txn tentativeTransaction;
         try {
             TxnLifecycleManager lifecycleManager = TransactionLifecycle.getLifecycleManager();
@@ -447,13 +451,14 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
             throw Exceptions.parseException(e);
         }
         String tableVersion = DataDictionaryUtils.getTableVersion(lcc, tableId);
-        int[] columnOrdering = DataDictionaryUtils.getColumnOrdering(parentTxn, tableId);
+        int[] newColumnOrdering = DataDictionaryUtils.getColumnOrdering(parentTxn, tableId);
         ColumnInfo[] newColumnInfo = DataDictionaryUtils.getColumnInfo(tableDescriptor);
         TransformingDDLDescriptor interceptColumnDesc = new TentativeAddConstraintDesc(tableVersion,
-                                                                                newCongNum,
-                                                                                oldCongNum,
-                                                                                columnOrdering,
-                                                                                newColumnInfo);
+                                                                                       newCongNum,
+                                                                                       oldCongNum,
+                                                                                       oldColumnOrdering,
+                                                                                       newColumnOrdering,
+                                                                                       newColumnInfo);
 
         DDLChange ddlChange = new DDLChange(tentativeTransaction, DDLChangeType.ADD_PRIMARY_KEY);
         // set descriptor on the ddl change
@@ -1194,6 +1199,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
             DataDictionary dd = lcc.getDataDictionary();
             DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
 
+            // get the column positions for the new PK
             int [] pkColumns =
                 ((CreateConstraintConstantOperation)constraintAction).genColumnPositions(tableDescriptor, true);
             boolean[] ascending = new boolean[pkColumns.length];
@@ -1204,12 +1210,14 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
             // We invalidate all statements that use the old conglomerates
             dd.getDependencyManager().invalidateFor(tableDescriptor, DependencyManager.ALTER_TABLE, lcc);
 
+            // Replace old table conglomerate with new one with the new PK conglomerate
             ConglomerateDescriptorList conglomerateList = tableDescriptor.getConglomerateDescriptorList();
             ConglomerateDescriptor conglomerate =
                 conglomerateList.getConglomerateDescriptor(tableDescriptor.getHeapConglomerateId());
             dd.dropConglomerateDescriptor(conglomerate, tc);
             conglomerateList.dropConglomerateDescriptor(tableDescriptor.getUUID(), conglomerate);
 
+            // create the PK IndexDescriptor and new conglomerate
             IndexDescriptor indexDescriptor =
                 new IndexDescriptorImpl("PRIMARYKEY",true,false,pkColumns,ascending,pkColumns.length);
             IndexRowGenerator irg = new IndexRowGenerator(indexDescriptor);
@@ -1226,6 +1234,8 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
             // add the newly crated conglomerate to the table descriptor
             conglomerateList.add(cgd);
 
+            // update the conglomerate in the data dictionary so that, when asked for TableDescriptor,
+            // it's built with the new PK conglomerate
             ConglomerateDescriptor[] conglomerateArray = conglomerateList.getConglomerateDescriptors(newConglomNum);
             dd.updateConglomerateDescriptor(conglomerateArray, newConglomNum, tc);
         }

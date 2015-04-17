@@ -357,7 +357,7 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
 
     }
 
-    @Test @Ignore("DB-1755: alter table - add PK constraint. Still problems with PK row encoding/decoding during populate.")
+    @Test
     public void testAddPrimaryKeyIsolation() throws Exception {
         Connection connection1 = methodWatcher.createConnection();
         connection1.createStatement().execute(String.format("insert into %s values ('Bob',20)",
@@ -385,10 +385,20 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
         resultSet = ps.executeQuery();
         Assert.assertEquals("Should have 4 rows.", 4, resultSetSize(resultSet));
 
+        ps = connection2.prepareStatement(String.format("select * from %s", this.getTableReference(TABLE_NAME_12)));
+        resultSet = ps.executeQuery();
+        Assert.assertEquals("Should have 2 rows.", 2, resultSetSize(resultSet));
+
         connection2.commit();
 
         ps = connection2.prepareStatement(String.format("select * from %s", this.getTableReference(TABLE_NAME_12)));
         resultSet = ps.executeQuery();
         Assert.assertEquals("Should have 4 rows.", 4, resultSetSize(resultSet));
+
+        ps = connection1.prepareStatement(String.format("select * from %s where age = 21", this.getTableReference(TABLE_NAME_12)));
+        resultSet = ps.executeQuery();
+        while (resultSet.next()) {
+            Assert.assertEquals("Expecting Mary.", "Mary", resultSet.getString(1).trim());
+        }
     }
 }
