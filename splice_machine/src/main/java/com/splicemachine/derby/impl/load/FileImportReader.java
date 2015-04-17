@@ -25,7 +25,7 @@ import java.util.List;
  * Created on: 9/30/13
  */
 public class FileImportReader implements ImportReader{
-    private CsvListReader csvReader;
+    private SpliceCsvReader csvReader;
     private InputStream stream;
 
 		private Timer timer;
@@ -69,22 +69,11 @@ public class FileImportReader implements ImportReader{
 				boolean shouldContinue;
 				BATCH: for(int i=0;i<lines.length;i++){
 						do{
-							List<String> nextList = csvReader.read();
-								if(nextList==null) {
+								next = csvReader.readAsStringArray();
+								if(next==null) {
 										Arrays.fill(lines, i, lines.length, null);
 										break BATCH;
 								}
-
-								/*
-								 * This is unfortunate that we need to convert from a List to an array.
-								 * However, the object creation and tokenization is better with SuperCSV
-								 * which is showing a small 5-10% improvement in import tests over OpenCSV.
-								 * Changing from an array to a list has a cascading effect on the code
-								 * as you would imagine causing a number of interfaces to change.
-								 * Leaving as is for now and will monitor the performance.
-								 */
-								next = new String[nextList.size()];
-								nextList.toArray(next);
 
 								shouldContinue = next.length==0||(next.length==1&&(next[0]==null||next[0].length()==0));
 						}while(shouldContinue);
@@ -136,18 +125,14 @@ public class FileImportReader implements ImportReader{
         //nothing to write
     }
 
-    private CsvListReader getCsvReader(Reader reader, ImportContext importContext) {
-    	/*
-    	 * TODO: [DB-2425] Uncomment the last argument to the builder after the Splice version of super-csv is being built or
-    	 * the super-csv main github repo has pulled in our changes.
-    	 */
-    	return new CsvListReader(
+    private SpliceCsvReader getCsvReader(Reader reader, ImportContext importContext) {
+    	return new SpliceCsvReader(
     			reader,
     			new CsvPreference.Builder(
     					importContext.getQuoteChar().charAt(0),
     					importContext.getColumnDelimiter().charAt(0),
-    					"\n"/*,
-    					SpliceConstants.importMaxQuotedColumnLines*/).build());
+    					"\n",
+    					SpliceConstants.importMaxQuotedColumnLines).build());
     }
 
 		@Override
