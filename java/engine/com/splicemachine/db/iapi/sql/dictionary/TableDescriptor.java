@@ -21,6 +21,8 @@
 
 package com.splicemachine.db.iapi.sql.dictionary;
 
+import java.util.List;
+
 import com.splicemachine.db.catalog.Dependable;
 import com.splicemachine.db.catalog.DependableFinder;
 import com.splicemachine.db.catalog.Statistics;
@@ -42,9 +44,6 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.util.IdUtil;
-
-import java.util.Iterator;
-import java.util.List;
 
 /**
  * This class represents a table descriptor. The external interface to this
@@ -336,12 +335,17 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
      */
     public long getHeapConglomerateId() throws StandardException{
 
-		/* If we've already cached the heap conglomerate number, then
-         * simply return it.
-		 */
-        if(heapConglomNumber!=-1){
-            return heapConglomNumber;
-        }
+		// If we've already cached the heap conglomerate number, then
+        // simply return it.
+        //
+        // Doesn't make sense to cache the conglom number when alter
+        // table DDL will be mucking w/ congloms. We could invalidate (set back to -1)
+        // if we added/removed congloms thru this object, but that's done thru
+        // the conglom list. Instead, we invalidate any time a conglom or the
+        // conglom list is requested in getters below.
+		if (heapConglomNumber != -1) {
+			return heapConglomNumber;
+		}
 
         ConglomerateDescriptor[] cds=getConglomerateDescriptors();
 
@@ -537,6 +541,8 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
      * @return The conglomerate descriptor list for this table descriptor
      */
     public ConglomerateDescriptorList getConglomerateDescriptorList(){
+        // since, caller can change congloms in list (alter table), then reset the conglom number
+        this.heapConglomNumber = -1;
         return conglomerateDescriptorList;
     }
 
@@ -942,7 +948,9 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
      * @throws StandardException on error
      */
     public void removeConglomerateDescriptor(ConglomerateDescriptor cd) throws StandardException{
-        conglomerateDescriptorList.dropConglomerateDescriptor(getUUID(),cd);
+        conglomerateDescriptorList.dropConglomerateDescriptor(getUUID(), cd);
+        // since, caller can change congloms in list (alter table), then reset the conglom number
+        this.heapConglomNumber = -1;
     }
 
     /**
@@ -987,6 +995,10 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
         int size=conglomerateDescriptorList.size();
         ConglomerateDescriptor[] cdls=new ConglomerateDescriptor[size];
         conglomerateDescriptorList.toArray(cdls);
+        if (size > 0) {
+            // since, caller can change congloms in list (alter table), then reset the conglom number
+            this.heapConglomNumber = -1;
+        }
         return cdls;
     }
 
@@ -1000,6 +1012,8 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
      * @throws StandardException Thrown on failure
      */
     public ConglomerateDescriptor getConglomerateDescriptor(long conglomerateNumber) throws StandardException{
+        // since, caller can change congloms in list (alter table), then reset the conglom number
+        this.heapConglomNumber = -1;
         return conglomerateDescriptorList.getConglomerateDescriptor(conglomerateNumber);
     }
 
@@ -1015,6 +1029,8 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
      * @throws StandardException Thrown on failure
      */
     public ConglomerateDescriptor[] getConglomerateDescriptors(long conglomerateNumber) throws StandardException{
+        // since, caller can change congloms in list (alter table), then reset the conglom number
+        this.heapConglomNumber = -1;
         return conglomerateDescriptorList.getConglomerateDescriptors(conglomerateNumber);
     }
 
@@ -1029,6 +1045,8 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
      * @throws StandardException Thrown on failure
      */
     public ConglomerateDescriptor getConglomerateDescriptor(UUID conglomerateUUID) throws StandardException{
+        // since, caller can change congloms in list (alter table), then reset the conglom number
+        this.heapConglomNumber = -1;
         return conglomerateDescriptorList.getConglomerateDescriptor(conglomerateUUID);
     }
 
@@ -1044,6 +1062,8 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
      * @throws StandardException Thrown on failure
      */
     public ConglomerateDescriptor[] getConglomerateDescriptors(UUID conglomerateUUID) throws StandardException{
+        // since, caller can change congloms in list (alter table), then reset the conglom number
+        this.heapConglomNumber = -1;
         return conglomerateDescriptorList.getConglomerateDescriptors(conglomerateUUID);
     }
 
