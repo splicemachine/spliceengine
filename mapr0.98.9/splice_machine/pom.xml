@@ -1,26 +1,31 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
-	<artifactId>splice_si_test-mapr0.98.4</artifactId>
 	<packaging>jar</packaging>
+	<artifactId>splice_machine-mapr0.98.9</artifactId>
 	<name>${project.artifactId}</name>
-	<description>Splice SI Test</description>
+	<description>Splice Machine Database Engine</description>
 	<parent>
-		<artifactId>spliceengine-mapr0.98.4</artifactId>
+		<artifactId>spliceengine-mapr0.98.9</artifactId>
 		<groupId>com.splicemachine</groupId>
 		<version>1.1.1-SNAPSHOT</version>
 	</parent>
 	<dependencies>
 		<dependency>
 			<groupId>com.splicemachine</groupId>
-			<artifactId>splice_si_adapter_98-mapr0.98.4</artifactId>
+			<artifactId>splice_si_adapter_98-mapr0.98.9</artifactId>
 			<version>1.1.1-SNAPSHOT</version>
+			<exclusions>
+				<exclusion>
+					<artifactId>dbnet</artifactId>
+					<groupId>com.splicemachine</groupId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
-			<groupId>com.splicemachine</groupId>
-			<artifactId>splice_si_adapter_98-mapr0.98.4</artifactId>
-			<version>1.1.1-SNAPSHOT</version>
-			<classifier>tests</classifier>
+			<groupId>org.scala-lang</groupId>
+			<artifactId>scala-library</artifactId>
+			<version>2.10.4</version>
 		</dependency>
 	</dependencies>
 </project>
