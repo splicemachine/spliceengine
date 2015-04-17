@@ -2,16 +2,16 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 	<packaging>pom</packaging>
-	<artifactId>spliceengine-hdp2.1.5</artifactId>
+	<artifactId>spliceengine-hdp2.1.7</artifactId>
 	<name>${project.artifactId}</name>
-	<description>Splice Engine Parent POM for hdp2.1.5</description>
+	<description>Splice Engine Parent POM for hdp2.1.7</description>
 	<properties>
-		<envClassifier>hdp2.1.5</envClassifier>
+		<envClassifier>hdp2.1.7</envClassifier>
 		<!-- platform component versions -->
-		<hadoop.version>2.4.0.2.1.5.0-695</hadoop.version>
-		<hbase.version>0.98.0-hdp2.1.5-splice1.0.2-SNAPSHOT</hbase.version>
-		<hive.version>0.13.0.2.1.5.0-695</hive.version>
-		<zookeeper.version>3.4.5.2.1.5.0-695</zookeeper.version>
+		<hadoop.version>2.4.0.2.1.7.0-784</hadoop.version>
+		<hbase.version>0.98.0-hdp2.1.7-splice1.0.2-SNAPSHOT</hbase.version>
+		<hive.version>0.13.0.2.1.7.0-784</hive.version>
+		<zookeeper.version>3.4.5.2.1.7.0-784</zookeeper.version>
 	</properties>
 	<parent>
 		<artifactId>spliceengine-parent</artifactId>
