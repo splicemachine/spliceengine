@@ -40,9 +40,17 @@ public abstract class BaseDistribution<T> implements Distribution<T> {
 
     @Override
     public long rangeSelectivity(T start, T stop, boolean includeStart, boolean includeStop) {
-        assert comparator.compare(start,stop)<=0: "Cannot compute selectivity: start occurs after stop!";
         T distributionMin = columnStats.minValue();
         T distributionMax = columnStats.maxValue();
+        if(distributionMin==null||distributionMax==null){
+            /*
+             * The only way a distribution min or max can be null is if the entire partition is null.
+             * In that case, we have to do special checks to determine whether or not null is included
+             * in the range. In order for that that happen, both elements must be null
+             */
+            if(start==null && stop==null) return columnStats.nullCount();
+            else return 0;
+        }
         if(start==null){
             if(stop==null)
                 return columnStats.nullCount()+columnStats.nonNullCount(); //asking for entire range
@@ -51,6 +59,7 @@ public abstract class BaseDistribution<T> implements Distribution<T> {
         }else if(stop==null){
             return rangeSelectivity(start, distributionMax,includeStart,true); //asking for everything after start
         }else{
+            assert comparator.compare(start,stop)<=0: "Cannot compute selectivity: start occurs after stop!";
             if(start.equals(stop)&&(!includeStart ||!includeStop)) return 0l; //empty set has no data
             //adjust for situations in which we are outside the range
             int compare = comparator.compare(distributionMin,stop);

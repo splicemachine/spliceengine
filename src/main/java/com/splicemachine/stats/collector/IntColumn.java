@@ -51,8 +51,8 @@ class IntColumn implements IntColumnStatsCollector {
 
     @Override public void updateSize(int size) { totalBytes+=size; }
     @Override public void updateNull() { updateNull(1l); }
-    @Override public void update(int item) { update(item,1l); }
-    @Override public void update(Integer item) { update(item,count); }
+    @Override public void update(int item) {  update(item,1l);  }
+    @Override public void update(Integer item) { update(item,1l); }
 
     @Override
     public void updateNull(long count) {

@@ -30,14 +30,14 @@ public abstract class BaseColumnStatistics<T extends Comparable<T>> implements C
         return (int)(totalBytes/totalCount);
     }
 
-    @Override public long nonNullCount() { return totalCount-nullCount; }
+    @Override public long nonNullCount() { return totalCount; }
     @Override public long nullCount() { return nullCount; }
     @Override public long minCount() { return minCount; }
 
     @Override
     public float nullFraction() {
         if(totalCount<=0) return 0f;
-        return ((float)nullCount)/totalCount;
+        return ((float)nullCount+totalCount)/totalCount;
     }
 
     protected static void write(ColumnStatistics<?> item,DataOutput output) throws IOException {

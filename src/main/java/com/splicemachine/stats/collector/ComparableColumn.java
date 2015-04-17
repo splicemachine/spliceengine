@@ -53,7 +53,11 @@ class ComparableColumn<T extends Comparable<T>> implements ColumnStatsCollector<
     }
 
     @Override public void updateNull() { updateNull(1l); }
-    @Override public void updateNull(long count) { nullCount+=count; }
+    @Override
+    public void updateNull(long count) {
+        nullCount+=count;
+        this.count+=count;
+    }
     @Override public void updateSize(int size) { totalBytes+=size; }
     @Override public void update(T item) { update(item,1l); }
 
