@@ -201,6 +201,10 @@ public class PlanPrinter extends AbstractSpliceVisitor {
             pushExplain(((TableOperatorNode)rsn).getRightResultSet(),rightBuilder);
             pushExplain(((TableOperatorNode)rsn).getLeftResultSet(),builder);
             builder.pushTableOperator(rsn.getClass().getSimpleName().replace("Node",""),rsNum,ce,rightBuilder);
+        } else if(rsn instanceof FromVTI){
+            FromVTI vti = (FromVTI)rsn;
+            String tableName = vti.getName();
+            builder.addBaseTable(rsNum,ce,"VTI:"+tableName,null,null);
         }
 
         //collect subqueries
