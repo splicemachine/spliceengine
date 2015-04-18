@@ -31,7 +31,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
  * Rows in execution's ResultSets.
  *
  */
-public interface ExecRow extends Row, KeyableRow {
+public interface ExecRow extends Row {
 
 	/**
 	 * Clone the Row and its contents.

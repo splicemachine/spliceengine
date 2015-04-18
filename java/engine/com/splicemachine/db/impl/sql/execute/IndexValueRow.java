@@ -164,13 +164,4 @@ public class IndexValueRow implements ExecIndexRow {
 
         return true;
     }
-    @Override
-    public ExecRow getKeyedExecRow(int[] keyColumns) throws StandardException {
-        ValueRow key = new ValueRow(keyColumns.length);
-        int position = 1;
-        for (int keyColumn : keyColumns) {
-            key.setColumn(position++, getColumn(keyColumn + 1));
-        }
-        return key;
-    }
 }
