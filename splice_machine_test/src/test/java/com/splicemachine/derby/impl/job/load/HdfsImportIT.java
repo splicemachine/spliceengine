@@ -684,9 +684,51 @@ public class HdfsImportIT extends SpliceUnitTest {
 		 */
 		try {
 			testMissingEndQuoteForQuotedColumn(
-					spliceSchemaWatcher.schemaName, TABLE_18, getResourceDirectory() + "import/missing-end-quote/employees.csv", "NAME,TITLE,AGE", baddir.newFolder().getCanonicalPath(), 0, 6);
+					spliceSchemaWatcher.schemaName,
+					TABLE_18,
+					getResourceDirectory() + "import/missing-end-quote/employees.csv",
+					"NAME,TITLE,AGE",
+					baddir.newFolder().getCanonicalPath(),
+					0,
+					6);
 		} catch (Throwable t) {
 			String expectedMessage1 = "unexpected end of file";
+			String expectedMessage2 = "org.supercsv.exception.SuperCsvException";
+			String rootCauseMessage = Throwables.getRootCause(t).getMessage();
+			Assert.assertTrue(
+					String.format("Root cause message does not contain '%s' and '%s'.  Actual root cause message is '%s'.", expectedMessage1, expectedMessage2, rootCauseMessage),
+					rootCauseMessage.contains(expectedMessage1) && rootCauseMessage.contains(expectedMessage2));
+		}
+	}
+
+	/**
+	 * Tests an import scenario where a quoted column is missing the end quote and the
+	 * maximum number of lines in a quoted column is exceeded.
+	 *
+	 * @throws Exception
+	 */
+	@Test
+	public void testMissingEndQuoteForQuotedColumnMax() throws Exception {
+		/*
+		 * PLEASE NOTE:
+		 * I do not like this test.  It is nasty to fetch the root cause's message and substring match parts of it.
+		 * However, since Derby and Splice wrap the exceptions so many times, I don't see any option to determine whether
+		 * the correct exception is being thrown.
+		 * I also do not see an expectRootCause method and the junit team has rejected the request for it a couple times:
+		 *     https://github.com/junit-team/junit/issues/714
+		 *     https://github.com/junit-team/junit/pull/778
+		 */
+		try {
+			testMissingEndQuoteForQuotedColumn(
+					spliceSchemaWatcher.schemaName,
+					TABLE_18,
+					getResourceDirectory() + "import/missing-end-quote/employees11000.csv",
+					"NAME,TITLE,AGE",
+					baddir.newFolder().getCanonicalPath(),
+					0,
+					11000);
+		} catch (Throwable t) {
+			String expectedMessage1 = "Quoted column beginning on line";
 			String expectedMessage2 = "org.supercsv.exception.SuperCsvException";
 			String rootCauseMessage = Throwables.getRootCause(t).getMessage();
 			Assert.assertTrue(
