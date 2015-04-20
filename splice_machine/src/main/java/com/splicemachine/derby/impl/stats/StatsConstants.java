@@ -87,7 +87,7 @@ public class StatsConstants extends SpliceConstants {
         partitionCacheExpiration = config.getLong(PARTITION_CACHE_EXPIRATION,DEFAULT_PARTITION_CACHE_EXPIRATION);
 
         int ifs = config.getInt(INDEX_FETCH_SAMPLE_SIZE,DEFAULT_INDEX_FETCH_SAMPLE_SIZE);
-        int i = 1;
+        int i = 8; //we want to fetch at least a FEW rows
         while(i<ifs)
             i<<=1;
         fetchSampleSize = i;

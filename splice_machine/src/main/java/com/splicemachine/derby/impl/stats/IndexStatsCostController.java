@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.stats;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
@@ -13,8 +14,6 @@ import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.TxnView;
-import com.splicemachine.stats.ColumnStatistics;
-import com.splicemachine.stats.TableStatistics;
 
 import java.util.concurrent.ExecutionException;
 
@@ -61,24 +60,94 @@ public class IndexStatsCostController extends StatsStoreCostController {
 
     @Override
     public void getFetchFromRowLocationCost(FormatableBitSet heapColumns,int access_type,CostEstimate cost) throws StandardException{
-        //start with the remote read latency
-        double scale = conglomerateStatistics.remoteReadLatency();
+        double rowsToFetch=cost.rowCount();
+        if(rowsToFetch==0d) return; //we don't expect to see any rows, so we won't perform a lookup either
+        /*
+         * Index lookups are done as follows:
+         *
+         * 1. read data from conglomerate until batch is filled.
+         * 2. Asynchronously perform a MULTI-GET to fetch a batch of rows
+         * 3. When either the scan is out of rows, or a configurable number of buffers are outstanding,
+         * the index lookup waits until a block is completed.
+         *
+         * The intent of the asynchrony is to reduce the overall latency of the scan when performing
+         * an index lookup. Unfortunately, it makes estimating the overall processing cost somewhat difficult--
+         * we have to take into account where and when the lookup performs a blocking call, and when it
+         * performs asynchronous adjustment.
+         *
+         */
+
+        //start with the base latency to read a single base row
+        double baseLookupLatency = baseTableStatistics.remoteReadLatency()
+                +baseTableStatistics.openScannerLatency()
+                +baseTableStatistics.closeScannerLatency();
 
         //scale by the column size factor of the heap columns
-        scale *=super.columnSizeFactor(baseTableStatistics,
-                totalColumns,
-                baseTableKeyColumns,
-                heapColumns);
+        double colSizeFactor=super.columnSizeFactor(baseTableStatistics,totalColumns,baseTableKeyColumns,heapColumns);
+        baseLookupLatency *=colSizeFactor;
 
         /*
-         * scale is the cost to read the heap rows over the network, but we have
-         * to read them over the network twice (once to the region, then once more to the control
-         * side). Thus, we multiple the base scale by 2 before multiplying the row count.
-         *
-         * TODO -sf- when we include control side, consider the possibility that we are doing
-         * a control-side access, in which case we don't scale by 2 here.
+         * We now know that baseLookupLatency is the cost to read a single base row. We now use it
+         * to determine the latency to read a block of rows. Because we are performing a MULTI-GET, we
+         * add the open and close scanner latency once per block, rather than once per row as we might expect
          */
-        double heapRemoteCost = 2*scale*cost.rowCount();
+        int lookupsPerBlock =SpliceConstants.indexBatchSize;
+        long numBlocks = (long)Math.ceil(rowsToFetch/lookupsPerBlock); //we need at least one block
+
+        double blockLookupLatency = baseLookupLatency*lookupsPerBlock;
+        /*
+         * To encompass the ansynchrony, we note that while the first block lookup is ongoing, the second
+         * block is being filled. Thus, we incorporate the amount of time necessary to fill a block (which is
+         * (cost.localCost()/cost.rowCount())*lookupsPerBlock). Then we take that number, and we estimate
+         * how many blocks will be filled before the first block is returned. If that number is < the
+         * maximum number of blocks AND the number of blocks exceeds that amount, then we add zero latency
+         * for that block.
+         *
+         *
+         * Take the following example:
+         * Suppose that we perform 3 block calls before blocking, and each block call takes 100ms to complete,
+         * and 10ms to fill. Then we know the following math:
+         *
+         * blockLookupLatency = 100ms
+         * fillBlockCost = 10ms
+         *
+         * The first block will then fill in 10ms (already factored into the cost), then the lookup will be
+         * submitted. Then two more blocks will be filled and submitted before we are forced to pause. The time
+         * spent waiting for the first block is then (blockLookupLatency-2*fillBlockCost). At this point the
+         * second block becomes the first, as we will busily fill another block while we wait, so the
+         * latency is blockLookupLatency-2*fillBlockCost. At some point, we will run out of blocks--once that happens,
+         * we pause on the last block.
+         *
+         */
+        double fillBlockCost = (cost.localCost()/rowsToFetch)*lookupsPerBlock;
+        int blocksBeforePausing = SpliceConstants.indexLookupBlocks;
+
+        //fillToLookupRatio = how long it takes to fill the next block/the cost to perform this block's lookup
+        double largeBlockLatency = blockLookupLatency-(blocksBeforePausing-1)*fillBlockCost;
+
+        int specialBlocks = blocksBeforePausing-(int)(numBlocks %blocksBeforePausing);
+        long nBlocks = numBlocks-specialBlocks;
+
+        double latency = nBlocks*largeBlockLatency;
+
+        //we have some leftover blocks, so we have to deal with those
+        while(specialBlocks>0){
+            largeBlockLatency +=fillBlockCost;
+            latency+=largeBlockLatency;
+            specialBlocks--;
+        }
+
+        /*
+         * We need to add in the cost to read the added number of rows across the network
+         * for the final time. This is simply the cost to read the resulting data points across
+         * the network.
+         *
+         * Note that we don't incorporate the cost to open the scanner here. That's because
+         * IndexLookup doesn't open the underlying scanner, the underlying table scan performs
+         * that activity.
+         */
+        double heapRemoteCost = rowsToFetch*colSizeFactor*baseTableStatistics.remoteReadLatency();
+        long outputHeapSize = (long)(rowsToFetch*colSizeFactor*baseTableStatistics.avgRowWidth());
 
         /*
          * we've already accounted for the remote cost of reading the index columns,
@@ -86,7 +155,9 @@ public class IndexStatsCostController extends StatsStoreCostController {
          */
 
         //but the read latency from the index table
+        cost.setLocalCost(cost.localCost()+latency);
         cost.setRemoteCost(cost.remoteCost()+heapRemoteCost);
+        cost.setEstimatedHeapSize(cost.getEstimatedHeapSize()+outputHeapSize);
     }
 
     @Override

@@ -80,15 +80,9 @@ public class IndexStatisticsCollector extends StatisticsCollector {
                              int[] fieldLengths,
                              ExecRow row) throws StandardException, IOException {
         super.updateRow(scanner,dvdCollectors,fieldLengths,row);
-        if(!isSampled()) return;
-
-        RowLocation rl = (RowLocation)row.getColumn(row.nColumns());
-        byte[] rowLocation = rl.getBytes();
-        Get get = TransactionOperations.getOperationFactory().newGet(txn,rowLocation);
-        fetchTimer.startTiming();
-        baseTable.get(get);
-        fetchTimer.tick(1);
+//        sampledGet(row);
     }
+
 
     @Override
     protected void closeResources(){
@@ -115,23 +109,6 @@ public class IndexStatisticsCollector extends StatisticsCollector {
         return columnStats;
     }
 
-    @Override
-    protected long getOpenScannerTimeMicros(){
-        return (long)getLatency();
-    }
-
-    @Override
-    protected long getCloseScannerTimeMicros(){
-        return (long)getLatency(); //TODO -sf- is this correct?
-    }
-
-    @Override
-    protected long getRemoteReadTime(long rowCount) {
-        double latency=getLatency();
-        double est = latency*rowCount;
-        return Math.round(est);
-    }
-
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private double getLatency(){
@@ -155,7 +132,18 @@ public class IndexStatisticsCollector extends StatisticsCollector {
         }
 
         numStarts++;
-        long pos = (long)randomGenerator.nextDouble()*numStarts;
+        long pos = (long)(randomGenerator.nextDouble()*numStarts);
         return pos < sampleSize;
+    }
+
+    private void sampledGet(ExecRow row) throws StandardException, IOException{
+        if(!isSampled()) return;
+
+        RowLocation rl = (RowLocation)row.getColumn(row.nColumns());
+        byte[] rowLocation = rl.getBytes();
+        Get get = TransactionOperations.getOperationFactory().newGet(txn,rowLocation);
+        fetchTimer.startTiming();
+        baseTable.get(get);
+        fetchTimer.tick(1);
     }
 }
