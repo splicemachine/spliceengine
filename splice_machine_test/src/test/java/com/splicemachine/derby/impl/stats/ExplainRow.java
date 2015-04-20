@@ -130,11 +130,11 @@ public class ExplainRow{
 
             m = localCostP.matcher(cost);
             Assert.assertTrue("No Local cost found!",m.find());
-            double lc = Double.parseDouble(m.group().substring("localCost=".length()));
+            double lc = Double.parseDouble(m.group().substring("processingCost=".length()));
 
             m = remoteCostP.matcher(cost);
             Assert.assertTrue("No Remote cost found!",m.find());
-            double rc = Double.parseDouble(m.group().substring("remoteCost=".length()));
+            double rc = Double.parseDouble(m.group().substring("networkCost=".length()));
 
             m = outputRowsP.matcher(cost);
             Assert.assertTrue("No Output Rows found!",m.find());
