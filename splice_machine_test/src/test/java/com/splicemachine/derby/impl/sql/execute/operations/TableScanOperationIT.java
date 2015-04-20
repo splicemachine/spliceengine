@@ -270,6 +270,33 @@ public class TableScanOperationIT {
         assertEquals(10, i);
     }
 
+    /*
+     * Char columns are a special case. Values are padded as stored in hbase and we must account for this when
+     * evaluating qualifiers or constructing scan start/stop keys.
+     */
+    @Test
+    public void testScanChar() throws Exception {
+        methodWatcher.executeUpdate("create table char_table(a char(9), b char(9), c char(9), primary key(a))");
+        methodWatcher.executeUpdate("create unique index char_table_index on char_table(c)");
+        methodWatcher.executeUpdate("insert into char_table values('aaa', 'aaa', 'aaa'),('aa', 'aa', 'aa'),('a', 'a', 'a'),('', '', '')");
+        assertEquals(4L, methodWatcher.query("select count(*) from char_table"));
+
+        // where char column IS primary key
+        assertEquals(1L, methodWatcher.query("select count(*) from char_table where a = 'aaa'"));
+        assertEquals(1L, methodWatcher.query("select count(*) from char_table where a = 'aaa      '"));
+        assertEquals(1L, methodWatcher.query("select count(*) from char_table where 'aaa' = a"));
+
+        // where char column is not primary key
+        assertEquals(1L, methodWatcher.query("select count(*) from char_table where b = 'aaa'"));
+        assertEquals(1L, methodWatcher.query("select count(*) from char_table where b = 'aaa      '"));
+        assertEquals(1L, methodWatcher.query("select count(*) from char_table where 'aaa' = b"));
+
+        // where char column is unique index
+        assertEquals(1L, methodWatcher.query("select count(*) from char_table --splice-properties index=char_table_index\n where c = 'aaa'"));
+        assertEquals(1L, methodWatcher.query("select count(*) from char_table --splice-properties index=char_table_index\n where c = 'aaa      '"));
+        assertEquals(1L, methodWatcher.query("select count(*) from char_table --splice-properties index=char_table_index\n where 'aaa' = c"));
+    }
+
     @Test
     public void testScanIntWithLessThanOperator() throws Exception {
         ResultSet rs = methodWatcher.executeQuery("select  sd from A where sd < 5");
