@@ -32,6 +32,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.store.access.ScanController;
 import org.apache.hadoop.hbase.client.Scan;
+
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -45,7 +46,7 @@ import java.util.concurrent.ExecutionException;
  * @author Scott Fines
  *         Created on: 10/1/13
  */
-public class DerbyScanInformation implements ScanInformation<ExecRow>,Externalizable {
+public class DerbyScanInformation implements ScanInformation<ExecRow>, Externalizable {
     private static final long serialVersionUID = 1l;
     //fields marked transient as a documentation tool, so we know which fields aren't set
     private transient GenericStorablePreparedStatement gsps;
@@ -73,21 +74,22 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
     private SpliceConglomerate conglomerate;
     private int colRefItem;
     private int indexColItem;
-	private String tableVersion;
+    private String tableVersion;
 
-		public static final Cache<Long,String> tableVersionCache = CacheBuilder.newBuilder()
-						.maximumSize(4096)
-						.build();
-    public static final Cache<Long,String> tableNameCache = CacheBuilder.newBuilder()
+    public static final Cache<Long, String> tableVersionCache = CacheBuilder.newBuilder()
+            .maximumSize(4096)
+            .build();
+    public static final Cache<Long, String> tableNameCache = CacheBuilder.newBuilder()
             .maximumSize(4096)
             .build();
     private String tableName;
 
     @SuppressWarnings("UnusedDeclaration")
     @Deprecated
-    public DerbyScanInformation() { }
+    public DerbyScanInformation() {
+    }
 
-    public DerbyScanInformation( String resultRowAllocatorMethodName,
+    public DerbyScanInformation(String resultRowAllocatorMethodName,
                                 String startKeyGetterMethodName,
                                 String stopKeyGetterMethodName,
                                 String scanQualifiersField,
@@ -96,7 +98,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
                                 int indexColItem,
                                 boolean sameStartStopPosition,
                                 int startSearchOperator,
-                                int stopSearchOperator){
+                                int stopSearchOperator) {
         this.resultRowAllocatorMethodName = resultRowAllocatorMethodName;
         this.startKeyGetterMethodName = startKeyGetterMethodName;
         this.stopKeyGetterMethodName = stopKeyGetterMethodName;
@@ -114,17 +116,17 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
         this.gsps = opContext.getPreparedStatement();
         this.activation = opContext.getActivation();
 
-				if(tableVersion==null){
-						try {
-								this.tableVersion = fetchTableVersion(conglomId,activation.getLanguageConnectionContext());
-						} catch (ExecutionException e) {
-								throw Exceptions.parseException(e);
-						}
-				}
+        if (tableVersion == null) {
+            try {
+                this.tableVersion = fetchTableVersion(conglomId, activation.getLanguageConnectionContext());
+            } catch (ExecutionException e) {
+                throw Exceptions.parseException(e);
+            }
+        }
     }
 
-    public static String fetchTableVersion(final long conglomerateId,final LanguageConnectionContext lcc) throws ExecutionException {
-        return tableVersionCache.get(conglomerateId,new Callable<String>() {
+    public static String fetchTableVersion(final long conglomerateId, final LanguageConnectionContext lcc) throws ExecutionException {
+        return tableVersionCache.get(conglomerateId, new Callable<String>() {
             @Override
             public String call() throws Exception {
                 DataDictionary dataDictionary = lcc.getDataDictionary();
@@ -137,35 +139,38 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
 
     @Override
     public ExecRow getResultRow() throws StandardException {
-        if(resultRowAllocator==null)
-            resultRowAllocator = new SpliceMethod<ExecRow>(resultRowAllocatorMethodName,activation);
+        if (resultRowAllocator == null)
+            resultRowAllocator = new SpliceMethod<>(resultRowAllocatorMethodName, activation);
         return resultRowAllocator.invoke();
     }
 
     @Override
     public boolean isKeyed() throws StandardException {
-        return  getConglomerate().getTypeFormatId()== IndexConglomerate.FORMAT_NUMBER;
+        return getConglomerate().getTypeFormatId() == IndexConglomerate.FORMAT_NUMBER;
     }
 
     public SpliceConglomerate getConglomerate() throws StandardException {
-        if(conglomerate==null)
-            conglomerate = (SpliceConglomerate)((SpliceTransactionManager)activation.getTransactionController()).findConglomerate(conglomId);
+        if (conglomerate == null)
+            conglomerate = (SpliceConglomerate) ((SpliceTransactionManager) activation.getTransactionController()).findConglomerate(conglomId);
         return conglomerate;
     }
 
-		@Override public String getTableVersion() throws StandardException { return tableVersion; }
+    @Override
+    public String getTableVersion() throws StandardException {
+        return tableVersion;
+    }
 
     @Override
     public String getTableName() throws StandardException {
-        if(tableName==null){
+        if (tableName == null) {
             try {
-                tableName = tableNameCache.get(conglomId,new Callable<String>() {
+                tableName = tableNameCache.get(conglomId, new Callable<String>() {
                     @Override
                     public String call() throws Exception {
                         DataDictionary dataDictionary = activation.getLanguageConnectionContext().getDataDictionary();
                         UUID tableID = dataDictionary.getConglomerateDescriptor(conglomId).getTableID();
                         TableDescriptor td = dataDictionary.getTableDescriptor(tableID);
-                        return td.getSchemaName()+"."+td.getName();
+                        return td.getSchemaName() + "." + td.getName();
                     }
                 });
             } catch (ExecutionException e) {
@@ -177,12 +182,12 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
 
     @Override
     public FormatableBitSet getAccessedColumns() throws StandardException {
-        if(accessedCols==null){
-            if(colRefItem==-1) {
+        if (accessedCols == null) {
+            if (colRefItem == -1) {
                 // accessed all columns
                 accessedCols = null;
-            }else{
-                accessedCols = (FormatableBitSet)gsps.getSavedObject(colRefItem);
+            } else {
+                accessedCols = (FormatableBitSet) gsps.getSavedObject(colRefItem);
                 accessedCols.grow(getConglomerate().getFormat_ids().length);
             }
         }
@@ -192,40 +197,40 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
 
     @Override
     public FormatableBitSet getAccessedPkColumns() throws StandardException {
-        if(accessedPkCols == null) {
-						int[] keyColumnEncodingOrder = getColumnOrdering();
-						if(keyColumnEncodingOrder==null) return null; //no keys to decode
+        if (accessedPkCols == null) {
+            int[] keyColumnEncodingOrder = getColumnOrdering();
+            if (keyColumnEncodingOrder == null) return null; //no keys to decode
 
-						FormatableBitSet accessedColumns = getAccessedColumns();
-						FormatableBitSet accessedKeyCols = new FormatableBitSet(keyColumnEncodingOrder.length);
-						if(accessedColumns==null){
-								/*
-								 * We need to access every column in the key
-								 */
-								for(int i=0;i<keyColumnEncodingOrder.length;i++){
-										accessedKeyCols.set(i);
-								}
-						}else{
-								/*
-								 * accessedColumns is the list of columns IN THE ENTIRE row
-								 * which are being accessed. So if the row looks like (a,b,c,d) and
-								 * I want (a,c) then accessColumns = {0,2}.
-								 *
-								 * I need to turn that into the columns which are present in the key,
-						 		 * with reference to their position IN THE KEY(not in the entire row).
-						 		 */
-								for(int i=0;i<keyColumnEncodingOrder.length;i++){
-										int keyColumn = keyColumnEncodingOrder[i];
-										if(accessedColumns.get(keyColumn))
-												accessedKeyCols.set(i);
-								}
-						}
-						accessedPkCols = accessedKeyCols;
+            FormatableBitSet accessedColumns = getAccessedColumns();
+            FormatableBitSet accessedKeyCols = new FormatableBitSet(keyColumnEncodingOrder.length);
+            if (accessedColumns == null) {
+                /*
+                 * We need to access every column in the key
+                 */
+                for (int i = 0; i < keyColumnEncodingOrder.length; i++) {
+                    accessedKeyCols.set(i);
+                }
+            } else {
+                /*
+                 * accessedColumns is the list of columns IN THE ENTIRE row
+                 * which are being accessed. So if the row looks like (a,b,c,d) and
+                 * I want (a,c) then accessColumns = {0,2}.
+                 *
+                 * I need to turn that into the columns which are present in the key,
+                  * with reference to their position IN THE KEY(not in the entire row).
+                 */
+                for (int i = 0; i < keyColumnEncodingOrder.length; i++) {
+                    int keyColumn = keyColumnEncodingOrder[i];
+                    if (accessedColumns.get(keyColumn))
+                        accessedKeyCols.set(i);
+                }
+            }
+            accessedPkCols = accessedKeyCols;
         }
         return accessedPkCols;
     }
 
-		@Override
+    @Override
     public FormatableBitSet getAccessedNonPkColumns() throws StandardException {
         if (accessedNonPkCols == null) {
             FormatableBitSet cols = getAccessedColumns();
@@ -249,7 +254,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
             return cols;
         } else {
             FormatableBitSet result = new FormatableBitSet(cols);
-            for(int col:columnOrdering) {
+            for (int col : columnOrdering) {
                 result.clear(col);
             }
             return result;
@@ -268,7 +273,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
         SerializationUtils.writeNullableString(scanQualifiersField, out);
         SerializationUtils.writeNullableString(startKeyGetterMethodName, out);
         SerializationUtils.writeNullableString(stopKeyGetterMethodName, out);
-				out.writeUTF(tableVersion);
+        out.writeUTF(tableVersion);
     }
 
     @Override
@@ -283,16 +288,16 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
         scanQualifiersField = SerializationUtils.readNullableString(in);
         startKeyGetterMethodName = SerializationUtils.readNullableString(in);
         stopKeyGetterMethodName = SerializationUtils.readNullableString(in);
-				this.tableVersion = in.readUTF();
+        this.tableVersion = in.readUTF();
     }
 
     @Override
     public Scan getScan(TxnView txn) throws StandardException {
-        return getScan(txn, null,null);
+        return getScan(txn, null, null);
     }
 
     @Override
-    public Scan getScan(TxnView txn, ExecRow startKeyOverride,int[] keyDecodingMap) throws StandardException {
+    public Scan getScan(TxnView txn, ExecRow startKeyOverride, int[] keyDecodingMap) throws StandardException {
         boolean sameStartStop = startKeyOverride == null && sameStartStopPosition;
         ExecIndexRow startPosition = getStartPosition();
         ExecIndexRow stopPosition = sameStartStop ? startPosition : getStopPosition();
@@ -305,11 +310,11 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
          * to scan between the start and stop keys and pull back the values which are greater than
          * or equals to the start (e.g. leave startSearchOperator alone).
          */
-        if(sameStartStop){
+        if (sameStartStop) {
             startSearchOperator = ScanController.NA;
         }
 
-        if (startKeyOverride != null){
+        if (startKeyOverride != null) {
             startSearchOperator = ScanController.GE;
         }
 
@@ -317,20 +322,19 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
 
         getConglomerate();
         return Scans.setupScan(
-                overriddenStartPos == null ?
-                            null : overriddenStartPos.getRowArray(),
+                overriddenStartPos == null ? null : overriddenStartPos.getRowArray(),
                 startSearchOperator,
                 stopPosition == null ? null : stopPosition.getRowArray(),
                 stopSearchOperator,
                 qualifiers,
                 conglomerate.getAscDescInfo(),
                 getAccessedNonPkColumns(),
-                txn,sameStartStop,
+                txn, sameStartStop,
                 conglomerate.getFormat_ids(),
-								keyDecodingMap,
-								getColumnOrdering(),
-								activation.getDataValueFactory(),
-								tableVersion);
+                keyDecodingMap,
+                getColumnOrdering(),
+                activation.getDataValueFactory(),
+                tableVersion);
     }
 
     @Override
@@ -344,20 +348,20 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
     }
 
     public String printStartPosition(int numOpens) throws StandardException {
-        return printPosition(startSearchOperator, startKeyGetter, getStartPosition(),numOpens);
+        return printPosition(startSearchOperator, startKeyGetter, getStartPosition(), numOpens);
     }
 
     public String printStopPosition(int numOpens) throws StandardException {
         if (sameStartStopPosition)
-            return printPosition(stopSearchOperator, startKeyGetter, getStartPosition(),numOpens);
+            return printPosition(stopSearchOperator, startKeyGetter, getStartPosition(), numOpens);
         else
-            return printPosition(stopSearchOperator, stopKeyGetter, getStopPosition(),numOpens);
+            return printPosition(stopSearchOperator, stopKeyGetter, getStopPosition(), numOpens);
     }
 
     protected Qualifier[][] populateQualifiers() throws StandardException {
 
         Qualifier[][] scanQualifiers = null;
-        if (scanQualifiersField != null){
+        if (scanQualifiersField != null) {
             try {
                 scanQualifiers = (Qualifier[][]) activation.getClass().getField(scanQualifiersField).get(activation);
             } catch (Exception e) {
@@ -365,9 +369,9 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
             }
         }
         //convert types of filters against column type
-        if(scanQualifiers!=null){
+        if (scanQualifiers != null) {
             Qualifier[][] qualCopy = new Qualifier[scanQualifiers.length][];
-            for(int i=0;i<scanQualifiers.length;i++){
+            for (int i = 0; i < scanQualifiers.length; i++) {
                 Qualifier[] scanQualifier = scanQualifiers[i];
                 qualCopy[i] = Arrays.copyOf(scanQualifier, scanQualifier.length);
             }
@@ -379,32 +383,32 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
 
     private void adjustQualifiers(Qualifier[][] scanQualifiers) throws StandardException {
         int[] format_ids = getConglomerate().getFormat_ids();
-        for(Qualifier[] qualifiers:scanQualifiers){
-            for(int qualPos=0;qualPos<qualifiers.length;qualPos++){
+        for (Qualifier[] qualifiers : scanQualifiers) {
+            for (int qualPos = 0; qualPos < qualifiers.length; qualPos++) {
                 Qualifier qualifier = qualifiers[qualPos];
                 qualifier.clearOrderableCache();
                 int columnFormat = format_ids[qualifier.getColumnId()];
                 DataValueDescriptor dvd = qualifier.getOrderable();
-                if (dvd==null)
+                if (dvd == null)
                     continue;
-                if(dvd.getTypeFormatId()!=columnFormat){
+                if (dvd.getTypeFormatId() != columnFormat) {
                     //we need to convert the types to match
                     qualifier = QualifierUtils.adjustQualifier(qualifier, columnFormat, activation.getDataValueFactory());
                     qualifiers[qualPos] = qualifier;
                 }
                 //make sure that SQLChar qualifiers strip out \u0000 padding
-                if(dvd.getTypeFormatId()== StoredFormatIds.SQL_CHAR_ID){
+                if (dvd.getTypeFormatId() == StoredFormatIds.SQL_CHAR_ID) {
                     String value = dvd.getString();
-                    if(value!=null){
+                    if (value != null) {
                         char[] valChars = value.toCharArray();
                         int finalPosition = valChars.length;
-                        for(int i=valChars.length-1;i>=0;i--){
-                            if(valChars[i]!='\u0000'){
-                                finalPosition=i+1;
+                        for (int i = valChars.length - 1; i >= 0; i--) {
+                            if (valChars[i] != '\u0000') {
+                                finalPosition = i + 1;
                                 break;
                             }
                         }
-                        value = value.substring(0,finalPosition);
+                        value = value.substring(0, finalPosition);
 
                         dvd.setValue(value);
                     }
@@ -414,19 +418,19 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
     }
 
     protected ExecIndexRow getStopPosition() throws StandardException {
-        if(sameStartStopPosition)
+        if (sameStartStopPosition)
             return null;
-        if(stopKeyGetter==null &&stopKeyGetterMethodName!=null)
-            stopKeyGetter = new SpliceMethod<ExecIndexRow>(stopKeyGetterMethodName,activation);
+        if (stopKeyGetter == null && stopKeyGetterMethodName != null)
+            stopKeyGetter = new SpliceMethod<>(stopKeyGetterMethodName, activation);
 
-        return stopKeyGetter==null?null: stopKeyGetter.invoke();
+        return stopKeyGetter == null ? null : stopKeyGetter.invoke();
     }
 
     protected ExecIndexRow getStartPosition() throws StandardException {
-        if(startKeyGetter==null &&startKeyGetterMethodName!=null)
-            startKeyGetter = new SpliceMethod<ExecIndexRow>(startKeyGetterMethodName,activation);
+        if (startKeyGetter == null && startKeyGetterMethodName != null)
+            startKeyGetter = new SpliceMethod<>(startKeyGetterMethodName, activation);
 
-        if(startKeyGetter!=null)
+        if (startKeyGetter != null)
             return startKeyGetter.invoke();
         return null;
     }
@@ -440,14 +444,12 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
     private String printPosition(int searchOperator,
                                  SpliceMethod<ExecIndexRow> positionGetter,
                                  ExecIndexRow positioner,
-                                 int numOpens)
-    {
+                                 int numOpens) {
         String output = "";
         if (positionGetter == null)
             return "\t" + MessageService.getTextMessage(SQLState.LANG_NONE) + "\n";
 
-        if (positioner == null)
-        {
+        if (positioner == null) {
             if (numOpens == 0)
                 return "\t" + MessageService.getTextMessage(
                         SQLState.LANG_POSITION_NOT_AVAIL) +
@@ -464,8 +466,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
             return "\t" + MessageService.getTextMessage(SQLState.LANG_NONE) + "\n";
         String searchOp;
 
-        switch (searchOperator)
-        {
+        switch (searchOperator) {
             case ScanController.GE:
                 searchOp = ">=";
                 break;
@@ -494,43 +495,41 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>,Externaliz
                         SQLState.LANG_ORDERED_NULL_SEMANTICS) +
                 "\n";
         boolean colSeen = false;
-        for (int position = 0; position < positioner.nColumns(); position++)
-        {
-            if (positioner.areNullsOrdered(position))
-            {
+        for (int position = 0; position < positioner.nColumns(); position++) {
+            if (positioner.areNullsOrdered(position)) {
                 output = output + position + " ";
                 colSeen = true;
             }
 
             if (colSeen && position == positioner.nColumns() - 1)
-                output = output +  "\n";
+                output = output + "\n";
         }
 
         return output;
     }
 
-	@Override
-	public List<Scan> getScans(TxnView txn, ExecRow startKeyOverride, Activation activation, SpliceOperation top,SpliceRuntimeContext spliceRuntimeContext) throws StandardException  {
-		throw new RuntimeException("getScans is not supported");
-	}
+    @Override
+    public List<Scan> getScans(TxnView txn, ExecRow startKeyOverride, Activation activation, SpliceOperation top, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        throw new RuntimeException("getScans is not supported");
+    }
 
     @Override
-    public int[] getColumnOrdering() throws StandardException{
+    public int[] getColumnOrdering() throws StandardException {
         return getConglomerate().getColumnOrdering();
     }
 
-	@Override
-	public int[] getIndexToBaseColumnMap() throws StandardException {
-		if (this.indexColItem == -1)
-			return Empty_Array;		
-        FormatableArrayHolder fah = (FormatableArrayHolder)activation.getPreparedStatement().getSavedObject(indexColItem);
-        FormatableIntHolder[] fihArray = (FormatableIntHolder[])fah.getArray(FormatableIntHolder.class);
+    @Override
+    public int[] getIndexToBaseColumnMap() throws StandardException {
+        if (this.indexColItem == -1)
+            return Empty_Array;
+        FormatableArrayHolder fah = (FormatableArrayHolder) activation.getPreparedStatement().getSavedObject(indexColItem);
+        FormatableIntHolder[] fihArray = (FormatableIntHolder[]) fah.getArray(FormatableIntHolder.class);
         int[] keyColumns = new int[fihArray.length];
-        for(int index=0;index<fihArray.length;index++){
-            keyColumns[index] = fihArray[index].getInt()-1; // 1 based to 0 based
+        for (int index = 0; index < fihArray.length; index++) {
+            keyColumns[index] = fihArray[index].getInt() - 1; // 1 based to 0 based
         }
-		return keyColumns;
-		
-	}
-	
+        return keyColumns;
+
+    }
+
 }
