@@ -533,8 +533,10 @@
 				<module>cdh4.5.0</module>
 				<module>cdh5.2.1</module>
 				<module>cdh5.2.4</module>
+				<!--module>cdh5.2.5</module-->
 				<module>cdh5.3.0</module>
 				<module>cdh5.3.2</module>
+				<!--module>cdh5.3.3</module-->
 				<!--module>cdh5.4.0</module-->
 				<module>hdp2.1.5</module>
 				<module>hdp2.1.7</module>
@@ -865,6 +867,12 @@
 			</modules>
 		</profile>
 		<profile>
+			<id>cdh5.2.5</id>
+			<modules>
+				<module>cdh5.2.5</module>
+			</modules>
+		</profile>
+		<profile>
 			<id>cdh5.3.0</id>
 			<modules>
 				<module>cdh5.3.0</module>
@@ -874,6 +882,12 @@
 			<id>cdh5.3.2</id>
 			<modules>
 				<module>cdh5.3.2</module>
+			</modules>
+		</profile>
+		<profile>
+			<id>cdh5.3.3</id>
+			<modules>
+				<module>cdh5.3.3</module>
 			</modules>
 		</profile>
 		<!--profile>
