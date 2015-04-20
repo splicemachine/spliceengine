@@ -530,7 +530,6 @@
 		<profile>
 			<id>all</id>
 			<modules>
-				<module>cdh4.5.0</module>
 				<module>cdh5.2.1</module>
 				<module>cdh5.2.4</module>
 				<!--module>cdh5.2.5</module-->
@@ -847,12 +846,6 @@
 				<obfuscate.si>obfuscated</obfuscate.si>
 				<obfuscate.si.tag>-obfuscated</obfuscate.si.tag>
 			</properties>
-		</profile>
-		<profile>
-			<id>cdh4.5.0</id>
-			<modules>
-				<module>cdh4.5.0</module>
-			</modules>
 		</profile>
 		<profile>
 			<id>cdh5.2.1</id>
