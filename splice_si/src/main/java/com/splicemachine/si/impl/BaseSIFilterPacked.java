@@ -96,7 +96,7 @@ public class BaseSIFilterPacked<Data> extends FilterBase implements HasPredicate
 				} catch (IOException e) {
 						throw new RuntimeException(e);
 				}
-				if (!filterRow())
+				if (!filterRow()&&keyValues.size()>0)
 						keyValues.remove(0);
 				final Data accumulatedValue = filterState.produceAccumulatedKeyValue();
 				if (accumulatedValue != null) {
