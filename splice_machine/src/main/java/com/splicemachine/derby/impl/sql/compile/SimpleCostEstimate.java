@@ -109,8 +109,8 @@ public class SimpleCostEstimate implements CostEstimate{
         df.setGroupingUsed(false);
 
         return "(overallCost="+df.format(getEstimatedCost())
-                +",localCost="+df.format(localCost())
-                +",remoteCost="+df.format(remoteCost())
+                +",processingCost="+df.format(localCost())
+                +",networkCost="+df.format(remoteCost())
                 +",outputRows="+getEstimatedRowCount()
                 +",outputHeapSize="+getEstimatedHeapSize()+
                 ",partitions="+partitionCount()+")";
@@ -119,8 +119,8 @@ public class SimpleCostEstimate implements CostEstimate{
     @Override
     public String toString(){
         return "(overallCost="+getEstimatedCost()
-                +",localCost="+localCost()
-                +",remoteCost="+remoteCost()
+                +",processingCost="+localCost()
+                +",networkCost="+remoteCost()
                 +",outputRows="+getEstimatedRowCount()
                 +",outputHeapSize="+getEstimatedHeapSize()+
                 ",partitions="+partitionCount()+")";
