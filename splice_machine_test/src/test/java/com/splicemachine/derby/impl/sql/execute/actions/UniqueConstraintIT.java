@@ -60,7 +60,8 @@ public class UniqueConstraintIT {
         methodWatcher.executeUpdate("create table " + tableName + "(PARCELID INTEGER, ADDRESS VARCHAR(15), BOARDDEC VARCHAR(11), EXSZONE VARCHAR(8), PRPZONE VARCHAR(8), HEARDATE DATE)");
         methodWatcher.getStatement().execute(format("CREATE UNIQUE INDEX %s ON %s (PARCELID, HEARDATE)", tableName, tableName));
         methodWatcher.getStatement().execute(format("insert into %s values (1,'550 BOLYSTON','COND','M-1','M-4','1989-11-12')", tableName));
-        methodWatcher.getStatement().execute(format("insert into %s values (1,'550 BOLYSTON','COND','M-1','M-8','1989-04-12')", tableName));
+        methodWatcher.getStatement().execute(format("insert into %s values (1,'550 BOLYSTON','COND','M-1','M-8'," +
+                                                        "'1989-04-12')", tableName));
 
         String query = format("select * from %s", tableName);
         ResultSet rs = methodWatcher.getStatement().executeQuery(query);
@@ -212,7 +213,8 @@ public class UniqueConstraintIT {
         System.out.println(fr.toString());
 
         methodWatcher.getStatement().execute(format("insert into %s values (1,'550 BOLYSTON','COND','M-1','M-4','1989-11-12')", tableName));
-        methodWatcher.getStatement().execute(format("insert into %s values (1,'550 BOLYSTON','COND','M-1','M-8','1989-04-12')", tableName));
+        methodWatcher.getStatement().execute(format("insert into %s values (1,'550 BOLYSTON','COND','M-1','M-8','1989" +
+                                                        "-04-12')", tableName));
 
         String query = format("select * from %s", tableName);
         rs = methodWatcher.getStatement().executeQuery(query);

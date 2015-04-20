@@ -290,7 +290,10 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
                         }
                         break;
                     case DataDictionary.UNIQUE_CONSTRAINT:
-                        // TODO: JC
+
+                        // create the unique constraint
+                        createUniqueConstraint(activation, cca);
+
                         break;
                     case DataDictionary.FOREIGNKEY_CONSTRAINT:
                         // Do everything but FK constraints first, then FK constraints on 2nd pass.
@@ -345,6 +348,167 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         return new ConstraintConstantOperation[0];
     }
 
+    private void createUniqueConstraint(Activation activation,
+                                            CreateConstraintConstantOperation newConstraint) throws StandardException {
+        List<String> uniqueColumnNames = Arrays.asList(newConstraint.columnNames);
+        if (uniqueColumnNames.isEmpty()) {
+            return;
+        }
+
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        DataDictionary dd = lcc.getDataDictionary();
+        TransactionController tc = lcc.getTransactionExecute();
+        TableDescriptor tableDescriptor = activation.getDDLTableDescriptor();
+        ColumnDescriptorList columnDescriptorList = tableDescriptor.getColumnDescriptorList();
+        int nColumns = columnDescriptorList.size();
+
+        //   o create row template to tell the store what type of rows this
+        //     table holds.
+        //   o create array of collation id's to tell collation id of each
+        //     column in table.
+        ExecRow template = com.splicemachine.db.impl.sql.execute.RowUtil.getEmptyValueRow(columnDescriptorList.size(), lcc);
+
+        TxnView parentTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
+
+        // How were the columns ordered before?
+        int[] oldColumnOrdering = DataDictionaryUtils.getColumnOrdering(parentTxn, tableId);
+
+        // We're adding a UK. Column sort order will change.
+        int[] collation_ids = new int[nColumns];
+        ColumnOrdering[] columnSortOrder = new IndexColumnOrder[uniqueColumnNames.size()];
+        int j = 0;
+        for (int ix = 0; ix < nColumns; ix++) {
+            ColumnDescriptor col_info = columnDescriptorList.get(ix);
+            if (uniqueColumnNames.contains(col_info.getColumnName())) {
+                columnSortOrder[j++] = new IndexColumnOrder(ix);
+            }
+            // Get a template value for each column
+            if (col_info.getDefaultValue() != null) {
+            /* If there is a default value, use it, otherwise use null */
+                template.setColumn(ix + 1, col_info.getDefaultValue());
+            }
+            else {
+                template.setColumn(ix + 1, col_info.getType().getNull());
+            }
+            // get collation info for each column.
+            collation_ids[ix] = col_info.getType().getCollationType();
+        }
+
+        /*
+         * Inform the data dictionary that we are about to write to it.
+         * There are several calls to data dictionary "get" methods here
+         * that might be done in "read" mode in the data dictionary, but
+         * it seemed safer to do this whole operation in "write" mode.
+         *
+         * We tell the data dictionary we're done writing at the end of
+         * the transaction.
+         */
+        dd.startWriting(lcc);
+
+        // Get the properties on the old heap
+        long oldCongNum = tableDescriptor.getHeapConglomerateId();
+        ConglomerateController compressHeapCC =
+            tc.openConglomerate(
+                oldCongNum,
+                false,
+                TransactionController.OPENMODE_FORUPDATE,
+                TransactionController.MODE_TABLE,
+                TransactionController.ISOLATION_SERIALIZABLE);
+
+        Properties properties = new Properties();
+        compressHeapCC.getInternalTablePropertySet(properties);
+        compressHeapCC.close();
+
+        int tableType = tableDescriptor.getTableType();
+        long newCongNum = tc.createConglomerate(
+            "heap", // we're requesting a heap conglomerate
+            template.getRowArray(), // row template
+            columnSortOrder, //column sort order
+            collation_ids,
+            properties, // properties
+            tableType == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE ?
+                (TransactionController.IS_TEMPORARY | TransactionController.IS_KEPT) :
+                TransactionController.IS_DEFAULT);
+
+        /*
+         * modify the conglomerate descriptor with the new conglomId
+         */
+        updateTableConglomerateDescriptor(tableDescriptor,
+                                          newCongNum,
+                                          sd,
+                                          lcc,
+                                          newConstraint);
+        // refresh the activation's TableDescriptor now that we've modified it
+        activation.setDDLTableDescriptor(tableDescriptor);
+
+        // follow thru with remaining constraint actions, create, store, etc.
+        newConstraint.executeConstantAction(activation);
+
+        // Start a tentative txn to demarcate the DDL change
+        Txn tentativeTransaction;
+        try {
+            TxnLifecycleManager lifecycleManager = TransactionLifecycle.getLifecycleManager();
+            tentativeTransaction =
+                lifecycleManager.beginChildTransaction(parentTxn, Bytes.toBytes(Long.toString(oldCongNum)));
+        } catch (IOException e) {
+            LOG.error("Couldn't start transaction for tentative Add Constraint operation");
+            throw Exceptions.parseException(e);
+        }
+        String tableVersion = DataDictionaryUtils.getTableVersion(lcc, tableId);
+        int[] newColumnOrdering = DataDictionaryUtils.getColumnOrdering(parentTxn, tableId);
+        ColumnInfo[] newColumnInfo = DataDictionaryUtils.getColumnInfo(tableDescriptor);
+        TransformingDDLDescriptor interceptColumnDesc = new TentativeAddConstraintDesc(tableVersion,
+                                                                                       newCongNum,
+                                                                                       oldCongNum,
+                                                                                       oldColumnOrdering,
+                                                                                       newColumnOrdering,
+                                                                                       newColumnInfo);
+
+        DDLChange ddlChange = new DDLChange(tentativeTransaction, DDLChangeType.ADD_PRIMARY_KEY);
+        // set descriptor on the ddl change
+        ddlChange.setTentativeDDLDesc(interceptColumnDesc);
+
+        // Initiate the copy from old conglomerate to new conglomerate and the interception
+        // from old schema writes to new table with new column appended
+        try {
+            String schemaName = tableDescriptor.getSchemaName();
+            String tableName = tableDescriptor.getName();
+            HTableInterface hTable = SpliceAccessManager.getHTable(Long.toString(oldCongNum).getBytes());
+
+            //Add a handler to intercept writes to old schema on all regions and forward them to new
+            startCoprocessorJob(activation,
+                                "Add Primary Key",
+                                schemaName,
+                                tableName,
+                                uniqueColumnNames,
+                                new AlterTableJob(hTable, ddlChange),
+                                parentTxn);
+
+            //wait for all past txns to complete
+            Txn populateTxn = getChainedTransaction(tc, tentativeTransaction, oldCongNum, "AddPrimaryKey(" +
+                uniqueColumnNames + ")");
+
+            // Populate new table with additional column with data from old table
+            CoprocessorJob populateJob = new PopulateConglomerateJob(hTable,
+                                                                     tableDescriptor.getNumberOfColumns(),
+                                                                     populateTxn.getBeginTimestamp(),
+                                                                     ddlChange);
+            startCoprocessorJob(activation,
+                                "Add Primary Key",
+                                schemaName,
+                                tableName,
+                                uniqueColumnNames,
+                                populateJob,
+                                parentTxn);
+            populateTxn.commit();
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
+
+        //notify other servers of the change
+        notifyMetadataChangeAndWait(ddlChange);
+    }
+
     private void createPrimaryKeyConstraint(Activation activation,
                                             CreateConstraintConstantOperation newConstraint) throws StandardException {
         List<String> pkColumnNames = Arrays.asList(newConstraint.columnNames);
@@ -373,10 +537,11 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         // We're adding a PK. Column sort order will change.
         int[] collation_ids = new int[nColumns];
         ColumnOrdering[] columnSortOrder = new IndexColumnOrder[pkColumnNames.size()];
+        int j=0;
         for (int ix = 0; ix < nColumns; ix++) {
             ColumnDescriptor col_info = columnDescriptorList.get(ix);
             if (pkColumnNames.contains(col_info.getColumnName())) {
-                columnSortOrder[ix] = new IndexColumnOrder(ix);
+                columnSortOrder[j++] = new IndexColumnOrder(ix);
             }
             // Get a template value for each column
             if (col_info.getDefaultValue() != null) {
@@ -1083,16 +1248,16 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         int			   numRows = 0;
 
         ScanController sc = tc.openScan(td.getHeapConglomerateId(),
-                false,	// hold
-                0,	    // open read only
-                TransactionController.MODE_TABLE,
-                TransactionController.ISOLATION_SERIALIZABLE,
-                RowUtil.EMPTY_ROW_BITSET, // scanColumnList
-                null,	// start position
-                ScanController.GE,      // startSearchOperation
-                null, // scanQualifier
-                null, //stop position - through last row
-                ScanController.GT);     // stopSearchOperation
+                                        false,    // hold
+                                        0,        // open read only
+                                        TransactionController.MODE_TABLE,
+                                        TransactionController.ISOLATION_SERIALIZABLE,
+                                        RowUtil.EMPTY_ROW_BITSET, // scanColumnList
+                                        null,    // start position
+                                        ScanController.GE,      // startSearchOperation
+                                        null, // scanQualifier
+                                        null, //stop position - through last row
+                                        ScanController.GT);     // stopSearchOperation
 
         while (sc.next()) {
             numRows++;
@@ -1107,7 +1272,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
     }
 
     protected static void executeUpdate(LanguageConnectionContext lcc, String updateStmt) throws StandardException {
-        SpliceLogUtils.trace(LOG, "executeUpdate with statement {%s}",updateStmt);
+        SpliceLogUtils.trace(LOG, "executeUpdate with statement {%s}", updateStmt);
         PreparedStatement ps = lcc.prepareInternalStatement(updateStmt);
 
         // This is a substatement; for now, we do not set any timeout
@@ -1194,7 +1359,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
                                                      LanguageConnectionContext lcc,
                                                      ConstraintConstantOperation constraintAction) throws StandardException {
 
-        if(constraintAction.getConstraintType()== DataDictionary.PRIMARYKEY_CONSTRAINT) {
+        if (constraintAction.getConstraintType()== DataDictionary.PRIMARYKEY_CONSTRAINT) {
             TransactionController tc = lcc.getTransactionExecute();
             DataDictionary dd = lcc.getDataDictionary();
             DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
@@ -1238,6 +1403,8 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
             // it's built with the new PK conglomerate
             ConglomerateDescriptor[] conglomerateArray = conglomerateList.getConglomerateDescriptors(newConglomNum);
             dd.updateConglomerateDescriptor(conglomerateArray, newConglomNum, tc);
+        } else if (constraintAction.getConstraintType()== DataDictionary.UNIQUE_CONSTRAINT) {
+
         }
     }
 

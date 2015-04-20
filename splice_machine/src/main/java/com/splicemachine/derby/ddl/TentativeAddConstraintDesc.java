@@ -159,6 +159,7 @@ public class TentativeAddConstraintDesc implements TransformingDDLDescriptor, Ex
         DescriptorSerializer[] newSerializers =
             VersionedSerializers.forVersion(tableVersion, true).getSerializers(targetRow);
         if(targetKeyOrdering !=null&& targetKeyOrdering.length>0){
+            // FIXME: JC - does this work for unique constraint AND PK?
             // We'll need target table key column order when we have keys (PK, unique) on target table
             // Must use dense encodings in the key serializer (sparse = false)
             DescriptorSerializer[] denseSerializers =
