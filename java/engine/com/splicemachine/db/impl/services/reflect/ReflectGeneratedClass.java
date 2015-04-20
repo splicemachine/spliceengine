@@ -35,7 +35,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public final class ReflectGeneratedClass extends LoadedGeneratedClass {
 
-	private final ConcurrentHashMap methodCache;
+	private final ConcurrentHashMap<String, GeneratedMethod> methodCache;
 	private static final GeneratedMethod[] directs;
 
 
@@ -51,7 +51,7 @@ public final class ReflectGeneratedClass extends LoadedGeneratedClass {
 
 	public ReflectGeneratedClass(ClassFactory cf, Class jvmClass, Class factoryClass) {
 		super(cf, jvmClass);
-		methodCache = new ConcurrentHashMap();
+		methodCache = new ConcurrentHashMap<>();
 		this.factoryClass = factoryClass;
 	}
 
@@ -66,15 +66,11 @@ public final class ReflectGeneratedClass extends LoadedGeneratedClass {
 			try {
 				factory =  (GCInstanceFactory) factoryClass.newInstance();
 				t = null;
-			} catch (InstantiationException ie) {
+			} catch (InstantiationException | LinkageError | IllegalAccessException ie) {
 				t = ie;
-			} catch (IllegalAccessException iae) {
-				t = iae;
-			} catch (LinkageError le) {
-				t = le;
 			}
 
-			if (t != null)
+            if (t != null)
 				throw StandardException.newException(SQLState.GENERATED_CLASS_INSTANCE_ERROR, t, getName());
 		}
 
@@ -89,7 +85,7 @@ public final class ReflectGeneratedClass extends LoadedGeneratedClass {
 	public GeneratedMethod getMethod(String simpleName)
 		throws StandardException {
 
-		GeneratedMethod rm = (GeneratedMethod) methodCache.get(simpleName);
+		GeneratedMethod rm = methodCache.get(simpleName);
 		if (rm != null)
 			return rm;
 

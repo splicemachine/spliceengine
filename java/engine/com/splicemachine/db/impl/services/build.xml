@@ -34,10 +34,10 @@
 
 <!-- Targets -->
 
-  <target name="compile_impl_services_169">
+  <target name="compile_impl_services">
     <javac
-      source="1.5"
-      target="1.5"
+      source="1.7"
+      target="1.7"
       bootclasspath="${empty}"
       nowarn="on"
       debug="${debug}"
@@ -52,65 +52,8 @@
         <pathelement path="${compile.classpath}"/>
       </classpath>
       <include name="${splice.package}/impl/services/**"/>
-      <exclude name="${splice.package}/impl/services/reflect/Java5*"/>
-      <exclude name="${splice.package}/impl/services/jce/**"/>
-      <exclude name="${splice.package}/impl/services/locks/Concurrent*.java"/>
-      <exclude name="${splice.package}/impl/services/cache/Concurrent*.java"/>
-      <exclude name="${splice.package}/impl/services/cache/CacheEntry.java"/>
-      <exclude name="${splice.package}/impl/services/cache/*Policy.java"/>
-      <exclude name="${splice.package}/impl/services/cache/BackgroundCleaner.java"/>
-      <exclude name="${splice.package}/impl/services/jmx/**"/>
     </javac>
  </target>
- 
- <target name="compile_impl_services_jdk15"
-         depends="compile_impl_services_169">
-   <javac
-      source="1.5"
-      target="1.5"
-      bootclasspath="${empty}"
-      nowarn="on"
-      debug="${debug}"
-      depend="${depend}"
-      deprecation="${deprecation}"
-      optimize="${optimize}"
-      proceed="${proceed}"
-      verbose="${verbose}"
-      srcdir="${derby.engine.src.dir}"
-      destdir="${out.dir}">
-     <classpath>
-       <pathelement path="${java15compile.classpath}"/>
-     </classpath>
-     <include name="${splice.package}/impl/services/reflect/Java5*"/>
-     <include name="${splice.package}/impl/services/locks/Concurrent*.java"/>
-     <include name="${splice.package}/impl/services/cache/Concurrent*.java"/>
-     <include name="${splice.package}/impl/services/cache/CacheEntry.java"/>
-     <include name="${splice.package}/impl/services/cache/*Policy.java"/>
-     <include name="${splice.package}/impl/services/cache/BackgroundCleaner.java"/>
-   	 <include name="${splice.package}/impl/services/jmx/**"/>
-   </javac>
- </target>
-
- <target name="compile_impl_services" depends="compile_impl_services_jdk15">
-    <javac
-      source="1.4"
-      target="1.4"
-      bootclasspath="${empty}"
-      nowarn="on"
-      debug="${debug}"
-      depend="${depend}"
-      deprecation="${deprecation}"
-      optimize="${optimize}"
-      proceed="${proceed}"
-      verbose="${verbose}"
-      srcdir="${derby.engine.src.dir}"
-      destdir="${out.dir}">
-      <classpath>
-        <pathelement path="${java15compile.classpath}"/>
-      </classpath>
-      <include name="${splice.package}/impl/services/jce/**"/>
-    </javac>
-  </target>
 
 </project>
 

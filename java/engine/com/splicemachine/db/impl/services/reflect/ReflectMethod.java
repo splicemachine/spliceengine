@@ -30,7 +30,7 @@ import java.lang.reflect.InvocationTargetException;
 
 public class ReflectMethod implements GeneratedMethod {
 
-	private final Method	realMethod;
+	private final Method realMethod;
 
 	ReflectMethod(Method m) {
 		super();
@@ -45,13 +45,9 @@ public class ReflectMethod implements GeneratedMethod {
 		try {
 			return realMethod.invoke(ref, null);
 
-		} catch (IllegalAccessException iae) {
+		} catch (IllegalAccessException | IllegalArgumentException iae) {
 
 			t = iae;
-
-		} catch (IllegalArgumentException iae2) {
-
-			t = iae2;
 
 		} catch (InvocationTargetException ite) {
 

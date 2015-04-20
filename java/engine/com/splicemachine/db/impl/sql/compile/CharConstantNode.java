@@ -73,13 +73,10 @@ public final class CharConstantNode extends ConstantNode
 	 *
 	 * @exception StandardException
 	 */
-	public void init(
-					Object newValue, 
-					Object newLength)
-		throws StandardException
+	public void init(Object newValue, Object newLength) throws StandardException
 	{
 		String val = (String) newValue;
-		int newLen = ((Integer) newLength).intValue();
+		int newLen = (Integer) newLength;
 
 		super.init(
 			 TypeId.CHAR_ID,
@@ -91,7 +88,7 @@ public final class CharConstantNode extends ConstantNode
 			throw StandardException.newException(SQLState.LANG_STRING_TRUNCATION, "CHAR", val, String.valueOf(newLen));
 		}
 
-		// Blank pad the string if necessesary
+		// Blank pad the string if necessary
 		while (val.length() < newLen)
 		{
 			val = val + ' ';

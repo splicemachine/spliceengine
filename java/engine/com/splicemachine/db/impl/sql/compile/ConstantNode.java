@@ -78,8 +78,8 @@ public abstract class ConstantNode extends ValueNode
 		throws StandardException
 	{
         setType((TypeId) typeId,
-                ((Boolean) nullable).booleanValue(),
-                ((Integer) maximumWidth).intValue());
+                (Boolean) nullable,
+                (Integer) maximumWidth);
 
 	}
 
@@ -114,7 +114,7 @@ public abstract class ConstantNode extends ValueNode
 	 *
 	 * @return	This object as a String
 	 */
-
+    @Override
 	public String toString()
 	{
 		if (SanityManager.DEBUG)

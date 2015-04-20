@@ -467,7 +467,7 @@ public class SQLChar
 
         try 
         {
-            return new Float(getString().trim()).floatValue();
+            return new Float(getString().trim());
         } 
         catch (NumberFormatException nfe) 
         {
@@ -493,7 +493,7 @@ public class SQLChar
 
         try 
         {
-            return new Double(getString().trim()).doubleValue();
+            return new Double(getString().trim());
         } 
         catch (NumberFormatException nfe) 
         {
@@ -722,8 +722,7 @@ public class SQLChar
         if (tmpString == null) {
             return 0;
         } else {
-            int clobLength = tmpString.length();
-            return clobLength;
+            return tmpString.length();
         }
     }
 
@@ -827,7 +826,7 @@ public class SQLChar
     {
         if (isNull())
         {
-            return (char[])null;
+            return null;
         }
         else if (rawLength != -1)
         {
@@ -1990,7 +1989,6 @@ public class SQLChar
             */
             setValue(getString().substring(0, desiredWidth));
         }
-        return;
     }
 
     /**
@@ -2432,7 +2430,7 @@ public class SQLChar
             throw StandardException.newException(
                     SQLState.LANG_INVALID_PARAMETER_FOR_SEARCH_POSITION, 
                     getString(), mySearchFrom,
-                    new Integer(startVal));
+                    startVal);
         }
         
         if( mySearchFor.length() == 0 )

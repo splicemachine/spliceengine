@@ -119,7 +119,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 	private GeneratedClass gc;	// my Generated class object.
 
 	private boolean checkRowCounts;
-	private HashSet rowCountsCheckedThisExecution = new HashSet(4, 0.9f);
+	private HashSet<Integer> rowCountsCheckedThisExecution = new HashSet<>(4, 0.9f);
 
 	private static final long MAX_SQRT = (long) Math.sqrt(Long.MAX_VALUE);
 
@@ -951,7 +951,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 						** This ResultSet has been seen - has the row count
 						** changed significantly?
 						*/
-						long n1 = firstRowCount.longValue();
+						long n1 = firstRowCount;
 
 						if (currentRowCount != n1)
 						{
@@ -1033,7 +1033,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 					}
 					else
 					{
-						firstRowCount = new Long(currentRowCount);
+						firstRowCount = currentRowCount;
 						rowCountCheckVector.setElementAt(
 														firstRowCount,
 														resultSetNumber
@@ -1587,7 +1587,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 		if(maxMemoryPerTable<=0)
 			return rs;
 		rs.openCore();
-		List rowCache = new LinkedList();
+		List<ExecRow> rowCache = new LinkedList<>();
 		ExecRow aRow;
 		int cacheSize = 0;
 		FormatableBitSet toClone = null;
@@ -1627,16 +1627,17 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 
 	// maintain hash table of parent result set vector
 	// a table can have more than one parent source.
-	protected Hashtable parentResultSets;
+	protected Hashtable<String, Vector<TemporaryRowHolder>> parentResultSets;
+
 	public void setParentResultSet(TemporaryRowHolder rs, String resultSetId)
 	{
-		Vector  rsVector;
+		Vector<TemporaryRowHolder> rsVector;
 		if(parentResultSets == null)
-			parentResultSets = new Hashtable();
-		rsVector = (Vector) parentResultSets.get(resultSetId);
+			parentResultSets = new Hashtable<>();
+		rsVector = parentResultSets.get(resultSetId);
 		if(rsVector == null)
 		{
-			rsVector = new Vector();
+			rsVector = new Vector<>();
 			rsVector.addElement(rs);
 		}else
 		{
