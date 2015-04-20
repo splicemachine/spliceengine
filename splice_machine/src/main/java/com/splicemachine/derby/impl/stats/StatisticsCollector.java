@@ -174,37 +174,44 @@ public class StatisticsCollector {
          * and then use that to estimate how long it would take to read us remotely
          */
         //TODO -sf- randomize this a bit so we don't hotspot a region
+        int fetchSampleSize=StatsConstants.fetchSampleSize;
+        Timer remoteReadTimer = Metrics.newWallTimer();
+        Scan scan =TransactionOperations.getOperationFactory().newScan(txn);
+        scan.setStartRow(HConstants.EMPTY_START_ROW);
+        scan.setStopRow(HConstants.EMPTY_END_ROW);
+        int n =2;
+        long totalOpenTime = 0;
+        long totalCloseTime = 0;
+        int iterations = 0;
         try(HTableInterface table =SpliceAccessManager.getHTable(tableConglomerateId)){
-            Scan scan =TransactionOperations.getOperationFactory().newScan(txn);
-            scan.setStartRow(HConstants.EMPTY_START_ROW);
-            scan.setStopRow(HConstants.EMPTY_END_ROW);
-            int fetchSampleSize=StatsConstants.fetchSampleSize;
-            scan.setCaching(fetchSampleSize);
-            scan.setBatch(fetchSampleSize);
-            Timer remoteReadTimer = Metrics.newWallTimer();
-            long openTime = System.nanoTime();
-            long closeTime;
-            try(ResultScanner scanner = table.getScanner(scan)){
-                openTime = System.nanoTime()-openTime;
-                int pos = 0;
-                remoteReadTimer.startTiming();
-                Result result;
-                while(pos<fetchSampleSize && (result = scanner.next())!=null){
-                    pos++;
+            while(n<fetchSampleSize){
+                scan.setBatch(n);
+                scan.setCaching(n);
+                long openTime=System.nanoTime();
+                long closeTime;
+                try(ResultScanner scanner=table.getScanner(scan)){
+                    totalOpenTime+=(System.nanoTime()-openTime);
+                    int pos=0;
+                    remoteReadTimer.startTiming();
+                    Result result;
+                    while(pos<n && (result=scanner.next())!=null){
+                        pos++;
+                    }
+                    remoteReadTimer.tick(pos);
+                    closeTime=System.nanoTime();
                 }
-                remoteReadTimer.tick(pos);
-                closeTime = System.nanoTime();
+                totalCloseTime+=(System.nanoTime()-closeTime);
+                iterations++;
+                n<<=1;
             }
-            closeTime = System.nanoTime()-closeTime;
-
-            //stash the scanner open and scanner close times
-            openScannerTimeMicros = openTime/1000;
-            closeScannerTimeMicros = closeTime/1000;
-            double latency = ((double)remoteReadTimer.getTime().getWallClockTime())/remoteReadTimer.getNumEvents();
-            return Math.round(latency*rowCount);
         }catch(IOException e){
             throw new ExecutionException(e);
         }
+        //stash the scanner open and scanner close times
+        openScannerTimeMicros=totalOpenTime/(1000*iterations);
+        closeScannerTimeMicros=totalCloseTime/(1000*iterations);
+        double latency=((double)remoteReadTimer.getTime().getWallClockTime())/remoteReadTimer.getNumEvents();
+        return Math.round(latency*rowCount);
     }
 
     protected List<ColumnStatistics> getFinalColumnStats(ColumnStatsCollector<DataValueDescriptor>[] dvdCollectors) {

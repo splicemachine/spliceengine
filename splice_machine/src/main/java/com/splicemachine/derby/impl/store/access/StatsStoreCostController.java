@@ -288,7 +288,7 @@ public class StatsStoreCostController extends GenericController implements Store
         long numRows = 0l;
         long bytes = 0l;
         double localCost = 0d;
-        double remoteCost = 0d;
+        double remoteCost = stats.openScannerLatency()+stats.closeScannerLatency(); //always the cost to open a scanner
         int numPartitions = 0;
         for(PartitionStatistics pStats:partitionStatistics){
             long partRc=partitionColumnSelectivity(pStats,startKeyValue,includeStart,stopKeyValue,includeStop,keyMap);
