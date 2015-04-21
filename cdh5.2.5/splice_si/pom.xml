@@ -270,6 +270,7 @@
 								<option>-keep public class com.splicemachine.si.impl.region.AbstractV1TxnDecoder { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.region.AbstractV2TxnDecoder { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.region.ActiveTxnFilter { public *; }</option>
+                                <option>-keep public class com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.region.BaseActiveTxnFilter { public *; protected long afterTs; protected long beforeTs; }</option>
 								<option>-keep public class com.splicemachine.si.impl.region.HTransactionLib { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.region.STransactionLib { public *; }</option>
