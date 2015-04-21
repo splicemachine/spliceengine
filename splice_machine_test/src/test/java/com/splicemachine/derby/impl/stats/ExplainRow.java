@@ -110,8 +110,8 @@ public class ExplainRow{
 
     public static class Cost{
         private static Pattern overallCostP=Pattern.compile("overallCost=[0-9]+\\.?[0-9]*");
-        private static Pattern localCostP=Pattern.compile("localCost=[0-9]+\\.?[0-9]*");
-        private static Pattern remoteCostP=Pattern.compile("remoteCost=[0-9]+\\.?[0-9]*");
+        private static Pattern localCostP=Pattern.compile("processingCost=[0-9]+\\.?[0-9]*");
+        private static Pattern remoteCostP=Pattern.compile("networkCost=[0-9]+\\.?[0-9]*");
         private static Pattern outputRowsP=Pattern.compile("outputRows=[0-9]+");
         private static Pattern outputHeapP=Pattern.compile("outputHeapSize=[0-9]+");
         private static Pattern partitionsP=Pattern.compile("partitions=[0-9]+");
