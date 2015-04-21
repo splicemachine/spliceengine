@@ -17,7 +17,7 @@ import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.junit.runner.Description;
 
 import static java.lang.String.format;
-@Category(value = {SerialTest.class})
+@Category(value = {SerialTest.class, SlowTest.class})
 public class BackupIT extends SpliceUnitTest {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final String CLASS_NAME = BackupIT.class.getSimpleName().toUpperCase();
