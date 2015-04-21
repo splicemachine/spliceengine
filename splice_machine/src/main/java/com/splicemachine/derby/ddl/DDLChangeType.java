@@ -13,6 +13,7 @@ public enum DDLChangeType {
     ADD_NOT_NULL(true),
     ADD_COLUMN(true),
     ADD_PRIMARY_KEY(true),
+    ADD_UNIQUE_CONSTRAINT(true),
     DROP_COLUMN(true),
     DROP_TABLE(true),
     DROP_SCHEMA(true),

@@ -296,8 +296,12 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         // calculate column order for new table
         TxnView parentTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
         int[] oldColumnOrder = DataDictionaryUtils.getColumnOrdering(parentTxn, tableId);
-        boolean newColumnHasConstraint = columnHasIndexableConstraint(colInfo.name, constraintActions);
-        int size = (oldColumnOrder == null ? 0 : oldColumnOrder.length) + (newColumnHasConstraint ? 1 : 0);
+        boolean newColumnHasPKConstraint = columnHasPrimaryKeyConstraint(colInfo.name, constraintActions);
+        // If new column will be part of a PK, we need to increase the new conglom's column ordering size
+        // so that the new column will be part of column ordering.
+        // Note that other (unique) constraint columns will get indexes created for them
+        // as part of constraint handling later.
+        int size = (oldColumnOrder == null ? 0 : oldColumnOrder.length) + (newColumnHasPKConstraint ? 1 : 0);
         ColumnOrdering[] newColumnOrdering = null;
         if (oldColumnOrder != null && size > 0) {
             newColumnOrdering = new IndexColumnOrder[size];
@@ -306,7 +310,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                 newColumnOrdering[i] = new IndexColumnOrder(oldColumnOrder[i]);
             }
             if (size > oldColumnOrder.length) {
-                // if new column has an index generating constraint, the new IndexColumnOrder position
+                // if new column has an PK constraint, the new IndexColumnOrder position
                 // (zero-based) is the same as the new (appended) column.
                 newColumnOrdering[i] = new IndexColumnOrder(colNumber);
             }
@@ -447,14 +451,12 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         notifyMetadataChangeAndWait(ddlChange);
     }
 
-    private static boolean columnHasIndexableConstraint(String columnName, ConstantAction[] actions) {
+    private static boolean columnHasPrimaryKeyConstraint(String columnName, ConstantAction[] actions) {
         if (actions != null && actions.length > 0) {
             for (ConstantAction action : actions) {
                 if (action instanceof CreateConstraintConstantOperation) {
                     int constraintType = ((CreateConstraintConstantOperation) action).getConstraintType();
-                    if (constraintType == DataDictionary.PRIMARYKEY_CONSTRAINT ||
-                        constraintType == DataDictionary.UNIQUE_CONSTRAINT) {
-                        // TODO: JC - are these the only constraint types that will be "indexable"?
+                    if (constraintType == DataDictionary.PRIMARYKEY_CONSTRAINT) {
                         if (contains(((CreateConstraintConstantOperation) action).columnNames, columnName)) {
                             return true;
                         }

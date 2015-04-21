@@ -23,6 +23,7 @@ public class AlterTableWriteFactory implements LocalWriteFactory {
         DDLChangeType changeType = ddlChange.getChangeType();
         if (changeType == DDLChangeType.ADD_COLUMN ||
             changeType == DDLChangeType.ADD_PRIMARY_KEY ||
+            changeType == DDLChangeType.ADD_UNIQUE_CONSTRAINT ||
             changeType == DDLChangeType.DROP_COLUMN) {
             return new AlterTableWriteFactory(ddlChange);
         }
