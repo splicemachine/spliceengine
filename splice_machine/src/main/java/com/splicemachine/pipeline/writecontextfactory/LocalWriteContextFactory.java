@@ -269,6 +269,7 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
                     case DROP_COLUMN:
                     case ADD_COLUMN:
                     case ADD_PRIMARY_KEY:
+                    case ADD_UNIQUE_CONSTRAINT:
                         alterTableWriteFactories.add(AlterTableWriteFactory.create(ddlChange));
                         break;
                     default:
@@ -448,6 +449,7 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
                     case DROP_COLUMN:
                     case ADD_COLUMN:
                     case ADD_PRIMARY_KEY:
+                    case ADD_UNIQUE_CONSTRAINT:
                         if (ddlDesc.getBaseConglomerateNumber() == conglomId)
                             alterTableWriteFactories.add(AlterTableWriteFactory.create(ddlChange));
                         break;

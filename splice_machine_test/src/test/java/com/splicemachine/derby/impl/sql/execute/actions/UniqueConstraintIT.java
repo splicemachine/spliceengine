@@ -28,7 +28,7 @@ public class UniqueConstraintIT {
      * Bug DB-552
      * Should not be able to alter table to create a unique constraint with non-unique values already in column
      */
-    @Test @Ignore("DB-1755: alter table. Need unique constraints for this test.")
+    @Test
     public void testNotNullAlterTableCreateUniqueConstraintWithDuplicate() throws Exception {
         methodWatcher.executeUpdate("create table ZONING0 (PARCELID INTEGER NOT NULL, ADDRESS VARCHAR(15), BOARDDEC VARCHAR(11), EXSZONE VARCHAR(8), PRPZONE VARCHAR(8), HEARDATE DATE)");
         methodWatcher.getStatement().execute("CREATE UNIQUE INDEX ZONING0 ON ZONING0 (PARCELID, HEARDATE)");
@@ -54,14 +54,13 @@ public class UniqueConstraintIT {
      * The only difference between this test and the one immediately above is that the unique index column
      * is NOT created with NOT NULL criteria.
      */
-    @Test @Ignore("DB-1755: alter table. Need unique constraints for this test.")
+    @Test
     public void testAlterTableCreateUniqueConstraintWithDuplicate() throws Exception {
         String tableName = "ZONING1";
         methodWatcher.executeUpdate("create table " + tableName + "(PARCELID INTEGER, ADDRESS VARCHAR(15), BOARDDEC VARCHAR(11), EXSZONE VARCHAR(8), PRPZONE VARCHAR(8), HEARDATE DATE)");
         methodWatcher.getStatement().execute(format("CREATE UNIQUE INDEX %s ON %s (PARCELID, HEARDATE)", tableName, tableName));
         methodWatcher.getStatement().execute(format("insert into %s values (1,'550 BOLYSTON','COND','M-1','M-4','1989-11-12')", tableName));
-        methodWatcher.getStatement().execute(format("insert into %s values (1,'550 BOLYSTON','COND','M-1','M-8'," +
-                                                        "'1989-04-12')", tableName));
+        methodWatcher.getStatement().execute(format("insert into %s values (1,'550 BOLYSTON','COND','M-1','M-8','1989-04-12')", tableName));
 
         String query = format("select * from %s", tableName);
         ResultSet rs = methodWatcher.getStatement().executeQuery(query);
@@ -95,7 +94,7 @@ public class UniqueConstraintIT {
      * Should be able to alter table to create a unique constraint with non-unique NULL values already in column
      * Table NOT created with NOT NULL criteria.
      */
-    @Test @Ignore("DB-1755: alter table. Need unique constraints for this test.")
+    @Test
     public void testAlterTableCreateUniqueConstraintWithDuplicateNulls() throws Exception {
         String tableName = "ZONING7";
         methodWatcher.executeUpdate("create table " + tableName + "(PARCELID INTEGER, ADDRESS VARCHAR(15), BOARDDEC VARCHAR(11), EXSZONE VARCHAR(8), PRPZONE VARCHAR(8), HEARDATE DATE)");
@@ -148,7 +147,7 @@ public class UniqueConstraintIT {
      * Bug DB-552
      * Should not be able to insert a record with a duplicate key after unique constraint added
      */
-    @Test @Ignore("DB-1755: alter table. Need unique constraints for this test.")
+    @Test
     public void testAlterTableCreateUniqueConstraintInsertDupe() throws Exception {
         String tableName = "ZONING2";
         methodWatcher.executeUpdate("create table " + tableName + "(PARCELID INTEGER NOT NULL, ADDRESS VARCHAR(15), BOARDDEC VARCHAR(11), EXSZONE VARCHAR(8), PRPZONE VARCHAR(8), HEARDATE DATE)");
@@ -177,7 +176,7 @@ public class UniqueConstraintIT {
      * The difference between this test and the one above immediately above is that the
      * alter table column is NOT defined with NOT NULL criteria.
      */
-    @Test @Ignore("DB-1755: alter table. Need unique constraints for this test.")
+    @Test
     public void testCreateUniqueIndexAlterTableCreateUniqueConstraint() throws Exception {
         String tableName = "ZONING5";
         methodWatcher.executeUpdate("create table " + tableName + "(PARCELID INTEGER, ADDRESS VARCHAR(15), BOARDDEC VARCHAR(11), EXSZONE VARCHAR(8), PRPZONE VARCHAR(8), HEARDATE DATE)");
@@ -201,7 +200,7 @@ public class UniqueConstraintIT {
      * The difference between this test and the one above immediately above is that the
      * alter table column is defined as NOT NULL.
      */
-    @Test @Ignore("DB-1755: alter table. Need unique constraints for this test.")
+    @Test
     public void tesNotNullCreateUniqueIndexAlterTableCreateUniqueConstraint() throws Exception {
         String tableName = "ZONING6";
         methodWatcher.executeUpdate("create table " + tableName + "(PARCELID INTEGER NOT NULL, ADDRESS VARCHAR(15), BOARDDEC VARCHAR(11), EXSZONE VARCHAR(8), PRPZONE VARCHAR(8), HEARDATE DATE)");
@@ -213,8 +212,7 @@ public class UniqueConstraintIT {
         System.out.println(fr.toString());
 
         methodWatcher.getStatement().execute(format("insert into %s values (1,'550 BOLYSTON','COND','M-1','M-4','1989-11-12')", tableName));
-        methodWatcher.getStatement().execute(format("insert into %s values (1,'550 BOLYSTON','COND','M-1','M-8','1989" +
-                                                        "-04-12')", tableName));
+        methodWatcher.getStatement().execute(format("insert into %s values (1,'550 BOLYSTON','COND','M-1','M-8','1989-04-12')", tableName));
 
         String query = format("select * from %s", tableName);
         rs = methodWatcher.getStatement().executeQuery(query);

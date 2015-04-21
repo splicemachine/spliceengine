@@ -285,7 +285,7 @@ public class AddColumnTransactionIT {
         Assert.assertEquals("Incorrect returned row count",1,count);
     }
 
-    @Test @Ignore("DB-1755: alter table. Need unique constraints for this test.")
+    @Test
     public void testAddUniqueColumnToTableWithPrimaryKey() throws Exception {
         // test DB-3113: NPE when adding column to table with primary key
 

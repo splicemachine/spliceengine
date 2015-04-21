@@ -449,9 +449,8 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
 
         Connection connection2 = methodWatcher.createConnection();
         connection2.setAutoCommit(false);
-        connection2.createStatement().execute(String.format("alter table %s add constraint name_pk_t1_after  primary " +
-                                                                "key " +
-                                                                "(name)", tableRef));
+        connection2.createStatement().execute(String.format("alter table %s add constraint name_pk_t1_after primary " +
+                                                                "key (name)", tableRef));
 
         count = connection1.count(String.format("select * from %s where name = 'Mary'",tableRef));
         Assert.assertEquals("incorrect row count!", 1, count);
@@ -469,7 +468,8 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
     public void testUniqueConstraint() throws Exception {
         String tableName = "fred".toUpperCase();
         String tableRef = this.getTableReference(tableName);
-        methodWatcher.executeUpdate(String.format("create table %s (name char(14) not null constraint NAME_PK1 primary key, age int)",tableRef));
+        methodWatcher.executeUpdate(String.format("create table %s (name char(14) not null constraint NAME_PK1 " +
+                                                      "primary key, age int)", tableRef));
         methodWatcher.getStatement().execute(String.format("alter table %s add column id int constraint uid unique", tableRef));
 
         // Prints the index (unique constraint) info
@@ -479,10 +479,6 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
 
         methodWatcher.getStatement().execute(String.format("insert into %s values ('Bob',20,1)", tableRef));
         methodWatcher.getStatement().execute(String.format("insert into %s values ('Mary',22,2)", tableRef));
-
-        // DEBUG
-        rs = methodWatcher.getStatement().executeQuery(String.format("select * from %s",tableRef));
-        TestUtils.printResult("1", rs, System.out);
 
         rs = methodWatcher.getStatement().executeQuery(String.format("select * from %s",tableRef));
         while (rs.next()) {
