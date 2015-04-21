@@ -68,7 +68,7 @@ public class SnapshotUtilsImpl implements SnapshotUtils{
         	  boolean isReference = storeFile.hasReference();
 
               String regionName = regionInfo.getEncodedName();
-              if(isCurrentRegion(region, regionInfo) == false){
+              if(region!= null && isCurrentRegion(region, regionInfo) == false){
             	  // If not current return
             	  return;
               }
@@ -252,7 +252,7 @@ public class SnapshotUtilsImpl implements SnapshotUtils{
 	
     /**
      * Returns column family name from store file path
-     * @param path
+     * @param link
      * @return column family name (as byte array)
      */
     public byte[] getColumnFamily(HFileLink link)
