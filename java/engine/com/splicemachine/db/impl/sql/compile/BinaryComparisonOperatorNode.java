@@ -23,12 +23,14 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 
+import com.splicemachine.db.iapi.types.SQLChar;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.util.StringUtil;
 
 import java.util.List;
 
@@ -213,6 +215,15 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
                 }
             }
         }
+        /* Are we a SQLChar-constant to SQLChar-column-reference binary comparison?  If so go ahead and pad the constant
+         * value to match the width of the column type (SQLChar columns have fixed width and and are stored in splice
+         * right padded with space characters). Before this fix the start/stop scan keys from derby, for
+         * TableScanOperation, would be wrong (missing space padding).*/
+        if ((leftOperand instanceof ColumnReference) && leftTypeId.isFixedStringTypeId() && (rightOperand instanceof CharConstantNode)) {
+            rightPadCharConstantNode((CharConstantNode) rightOperand, (ColumnReference) leftOperand);
+        } else if ((rightOperand instanceof ColumnReference) && rightTypeId.isFixedStringTypeId() && (leftOperand instanceof CharConstantNode)) {
+            rightPadCharConstantNode((CharConstantNode) leftOperand, (ColumnReference) rightOperand);
+        }
 
 		/* Test type compatibility and set type info for this node */
 		bindComparisonOperator();
@@ -220,8 +231,14 @@ public abstract class BinaryComparisonOperatorNode extends BinaryOperatorNode
 		return this;
 	}
 
+    private static void rightPadCharConstantNode(CharConstantNode constantNode, ColumnReference columnReference) throws StandardException {
+        String stringConstant = constantNode.getString();
+        int maxSize = columnReference.getTypeServices().getMaximumWidth();
+        constantNode.setValue(new SQLChar(StringUtil.padRight(stringConstant, SQLChar.PAD, maxSize)));
+    }
 
-	/**
+
+    /**
 	 * Test the type compatability of the operands and set the type info
 	 * for this node.  This method is useful both during binding and
 	 * when we generate nodes within the language module outside of the parser.

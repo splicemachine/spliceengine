@@ -410,7 +410,7 @@ public class StringUtil{
      * of any single quotes inside the string
      */
     public static String quoteStringLiteral(String string){
-        return quoteString(string,'\'');
+        return quoteString(string, '\'');
     }
 
 
@@ -552,6 +552,29 @@ public class StringUtil{
             }
         }
         return sb.toString();
+    }
+
+    /**
+     * String padding method. Pads on the right side.  Does not truncate.
+     *
+     * @param message     The message part of the resulting string.
+     * @param padChar     The character used for padding.
+     * @param sizeWithPad Desired size of the resulting string, including padding.
+     */
+    public static String padRight(String message, char padChar, int sizeWithPad) {
+        StringBuilder result = new StringBuilder(sizeWithPad);
+        if (message == null) {
+            return null;
+        }
+        int inLength = message.length();
+        if (inLength >= sizeWithPad) {
+            return message;
+        }
+        result.append(message);
+        for (int i = inLength; i < sizeWithPad; i++) {
+            result.append(padChar);
+        }
+        return result.toString();
     }
 }
 

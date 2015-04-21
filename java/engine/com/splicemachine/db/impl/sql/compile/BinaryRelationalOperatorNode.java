@@ -1117,7 +1117,7 @@ public class BinaryRelationalOperatorNode
     private ValueNode newBool(boolean b) throws StandardException {
         return (ValueNode) getNodeFactory().getNode(
                 C_NodeTypes.BOOLEAN_CONSTANT_NODE,
-                Boolean.valueOf(b),
+                b,
                 getContextManager());
     }
 	

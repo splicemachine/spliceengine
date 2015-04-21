@@ -108,7 +108,7 @@ public class SQLChar
     /**
      * The pad character (space).
      */
-    private static final char PAD = '\u0020';
+    public static final char PAD = '\u0020';
 
     /**
      * threshold, that decides when we return space back to the VM
