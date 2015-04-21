@@ -20,26 +20,29 @@ import static java.lang.String.format;
 @Category(value = {SerialTest.class, SlowTest.class})
 public class BackupIT extends SpliceUnitTest {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-    public static final String CLASS_NAME = BackupIT.class.getSimpleName().toUpperCase();
-    protected static String TABLE_NAME = "A";
+    protected static String TABLE_NAME1 = "A";
+    protected static String TABLE_NAME2 = "B";
     private static final String SCHEMA_NAME = BackupIT.class.getSimpleName().toUpperCase();
     protected static File backupDir;
 
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
-    protected static SpliceTableWatcher spliceTableWatcher =
-            new SpliceTableWatcher(TABLE_NAME, SCHEMA_NAME, "(I INT, D DOUBLE)");
+    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA_NAME);
+    protected static SpliceTableWatcher spliceTableWatcher1 =
+            new SpliceTableWatcher(TABLE_NAME1, SCHEMA_NAME, "(I INT, D DOUBLE)");
+
+    protected static SpliceTableWatcher spliceTableWatcher2 =
+            new SpliceTableWatcher(TABLE_NAME2, SCHEMA_NAME, "(I INT, D DOUBLE)");
 
     protected Connection connection;
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(spliceSchemaWatcher)
-            .around(spliceTableWatcher).around(new SpliceDataWatcher() {
+            .around(spliceTableWatcher1).around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
                     PreparedStatement ps;
                     try {
-                        ps = spliceClassWatcher.prepareStatement(format("insert into %s.%s (i, d) values (?, ?)", SCHEMA_NAME, TABLE_NAME));
+                        ps = spliceClassWatcher.prepareStatement(format("insert into %s.%s (i, d) values (?, ?)", SCHEMA_NAME, TABLE_NAME1));
                         for (int j = 0; j < 100; ++j) {
                             for (int i = 0; i < 10; i++) {
                                 ps.setInt(1, i);
@@ -51,7 +54,7 @@ public class BackupIT extends SpliceUnitTest {
                         throw new RuntimeException(e);
                     }
                 }
-            });
+            }).around(spliceTableWatcher2);
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher();
 
@@ -72,7 +75,7 @@ public class BackupIT extends SpliceUnitTest {
         long backupId1 = getBackupId();
         int backupItems1 = getBackupItems(backupId1);
 
-        insertData();
+        insertData(TABLE_NAME1);
         backup("incremental");
 
         // verify incremental backup did not backup all tables
@@ -81,28 +84,31 @@ public class BackupIT extends SpliceUnitTest {
         Assert.assertTrue(backupItems1 > backupItems2);
 
         // Verify incremental backup include changes for table 'A'
-        long conglomerateNumber = getConglomerateNumber(spliceSchemaWatcher.schemaName, TABLE_NAME);
-        verifyIncrementalBackup(backupId2, conglomerateNumber, true);
+        long conglomerateNumber1 = getConglomerateNumber(spliceSchemaWatcher.schemaName, TABLE_NAME1);
+        long conglomerateNumber2 = getConglomerateNumber(spliceSchemaWatcher.schemaName, TABLE_NAME2);
+        verifyIncrementalBackup(backupId2, conglomerateNumber1, true);
 
         // Compact table 'A', and verify it's not in next incremental backup
         HBaseAdmin admin = SpliceUtilities.getAdmin();
-        admin.flush((new Long(conglomerateNumber)).toString());
-        admin.majorCompact((new Long(conglomerateNumber)).toString());
+        admin.flush((new Long(conglomerateNumber1)).toString());
+        admin.majorCompact((new Long(conglomerateNumber1)).toString());
         Thread.sleep(10000);
 
         //Split table 'A', and verify it is not in next incremental backup
-        spliceClassWatcher.splitTable(TABLE_NAME, SCHEMA_NAME, 250);
-        spliceClassWatcher.splitTable(TABLE_NAME, SCHEMA_NAME, 500);
-        spliceClassWatcher.splitTable(TABLE_NAME, SCHEMA_NAME, 750);
+        //spliceClassWatcher.splitTable(TABLE_NAME1, SCHEMA_NAME, 250);
+        spliceClassWatcher.splitTable(TABLE_NAME1, SCHEMA_NAME, 500);
+        //spliceClassWatcher.splitTable(TABLE_NAME1, SCHEMA_NAME, 750);
         Thread.sleep(10000);
+        insertData(TABLE_NAME2);
         backup("incremental");
-        verifyIncrementalBackup(getBackupId(), conglomerateNumber, false);
+        verifyIncrementalBackup(getBackupId(), conglomerateNumber1, false);
+        verifyIncrementalBackup(getBackupId(), conglomerateNumber2, true);
     }
 
-    private void insertData() throws Exception {
+    private void insertData(String tableName) throws Exception {
         PreparedStatement ps;
         try {
-            ps = connection.prepareStatement(format("insert into %s.%s (i, d) values (?, ?)", SCHEMA_NAME, TABLE_NAME));
+            ps = connection.prepareStatement(format("insert into %s.%s (i, d) values (?, ?)", SCHEMA_NAME, tableName));
             for (int j = 0; j < 100; ++j) {
                 for (int i = 0; i < 10; i++) {
                     ps.setInt(1, i);
@@ -127,7 +133,7 @@ public class BackupIT extends SpliceUnitTest {
 
     private int count() throws Exception{
         PreparedStatement ps = connection.prepareStatement(
-                format("select * from %s.%s", spliceSchemaWatcher.schemaName,TABLE_NAME));
+                format("select * from %s.%s", spliceSchemaWatcher.schemaName,TABLE_NAME1));
         ResultSet rs = ps.executeQuery();
         int count = 0;
         while(rs.next()) {
