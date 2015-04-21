@@ -34,12 +34,10 @@
 
 <!-- Targets -->
 
-  <target name="compile" depends="compile_iapi_sql_jsr169"/>
-
-  <target name="compile_iapi_sql_jsr169">
+  <target name="compile">
     <javac
-      source="1.4"
-      target="1.4"
+      source="1.7"
+      target="1.7"
       bootclasspath="${empty}"
       nowarn="on"
       debug="${debug}"

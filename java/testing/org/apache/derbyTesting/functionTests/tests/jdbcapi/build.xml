@@ -146,7 +146,6 @@
       <!--exclude name=""/-->
       <include name="${this.dir}/AutoGenJDBC30Test.java"/>
       <include name="${this.dir}/dbMetaDataJdbc30.java"/>
-      <include name="${this.dir}/savepointJdbc30_JSR169.java"/>
       <include name="${this.dir}/savepointJdbc30_XA.java"/>
       <include name="${this.dir}/ParameterMetaDataJdbc30Test.java"/>
       <include name="${this.dir}/ResultSetJDBC30Test.java"/>

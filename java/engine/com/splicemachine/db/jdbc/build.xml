@@ -37,33 +37,10 @@
 
 <!-- build targets which need jdbc2.0 libs in the end-->
 <!-- first build all non-special (non jdbc2.0) targets-->
-  <target name="compile_jsr169">
-    <javac
-      source="1.4"
-      target="1.4"
-      bootclasspath="${empty}"
-      nowarn="on"
-      debug="${debug}"
-      depend="${depend}"
-      deprecation="${deprecation}"
-      optimize="${optimize}"
-      proceed="${proceed}"
-      verbose="${verbose}"
-      srcdir="${derby.engine.src.dir}"
-      destdir="${out.dir}">
-      <classpath>
-        <pathelement path="${compile.classpath}"/>
-      </classpath>
-      <include name="${splice.package}/jdbc/InternalDriver.java"/>
-      <include name="${splice.package}/jdbc/Driver169.java"/>
-    </javac>
- 
-  </target>
-	
-  <target name="compile_jdbc2" depends="compile_jsr169">
-    <javac
-						source="${compilerLevel16}"
-						target="${compilerLevel16}"
+
+  <target name="compile_jdbc2">
+    <javac source="${compilerLevel16}"
+           target="${compilerLevel16}"
       bootclasspath="${empty}"
       nowarn="on"
       debug="${debug}"
@@ -84,13 +61,14 @@
       <include name="${splice.package}/jdbc/EmbeddedConnectionPoolDataSource.java"/>
       <include name="${splice.package}/jdbc/EmbedPooledConnection.java"/>
 	  <include name="${splice.package}/jdbc/Driver20.java"/>
+      <include name="${splice.package}/jdbc/InternalDriver.java"/>
     </javac>
  </target>
 
  <target name="compile_jdbc3">
     <javac
-						source="${compilerLevel16}"
-						target="${compilerLevel16}"
+            source="${compilerLevel16}"
+			target="${compilerLevel16}"
       bootclasspath="${empty}"
       nowarn="on"
       debug="${debug}"
@@ -110,9 +88,9 @@
       <include name="${splice.package}/jdbc/XATransactionState.java"/>
       <include name="${splice.package}/jdbc/XAStatementControl.java"/>
       <include name="${splice.package}/jdbc/ResourceAdapterImpl.java"/>
-   </javac>  
+   </javac>
   </target>
-  
+
   <target name="compile_jdbc4" >
     <javac
       source="${compilerLevel16}"
@@ -133,6 +111,6 @@
         <include name="${splice.package}/jdbc/*40.java"/>
     </javac>
 
-  </target> 
+  </target>
 </project>
 
