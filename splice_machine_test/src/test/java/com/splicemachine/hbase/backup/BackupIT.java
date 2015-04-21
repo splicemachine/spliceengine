@@ -65,12 +65,6 @@ public class BackupIT extends SpliceUnitTest {
         System.out.println(backupDir.getAbsolutePath());
     }
 
-    @After
-    public void tearDown() throws Exception
-    {
-        backupDir.deleteOnExit();
-    }
-
     @Test
     public void testBackup() throws Exception{
 
