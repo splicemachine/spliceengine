@@ -5,12 +5,14 @@ import com.splicemachine.db.iapi.error.StandardException;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.Ignore;
 
 import java.lang.reflect.Method;
 
 /**
  * Created by jyuan on 3/20/15.
  */
+@Ignore
 public class RestoreTest {
 
     @Test
