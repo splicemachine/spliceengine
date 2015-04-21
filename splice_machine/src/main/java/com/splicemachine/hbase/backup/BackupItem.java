@@ -30,6 +30,7 @@ public class BackupItem implements InternalTable {
 
     private static Logger LOG = Logger.getLogger(BackupItem.class);
 
+    private static int SNAPSHOT_MAX_RETRY = 10;
 	public static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
 
     public BackupItem () {
@@ -296,7 +297,8 @@ public class BackupItem implements InternalTable {
         return count > 0;
     }
 
-    public void createSnapshot(HBaseAdmin admin, long snapId, Set<String> snapshotNameSet) throws StandardException {
+    public void createSnapshot(HBaseAdmin admin, long snapId, Set<String> snapshotNameSet, int retry) throws StandardException {
+
         try {
             long start = System.currentTimeMillis();
             snapshotName = tableDescriptor.getNameAsString() + "_" + snapId;
@@ -305,7 +307,18 @@ public class BackupItem implements InternalTable {
             LOG.info("Snapshot: " + tableDescriptor.getNameAsString() + " done in " + (System.currentTimeMillis() - start) + "ms");
         }
         catch (Exception e) {
-            throw StandardException.newException(e.getMessage());
+            retry++;
+            if (retry > SNAPSHOT_MAX_RETRY) {
+                throw Exceptions.parseException(e);
+            }
+            else {
+                try {
+                    Thread.sleep(10000);
+                } catch (Exception ex) {
+                    throw Exceptions.parseException(ex);
+                }
+                createSnapshot(admin, snapId, snapshotNameSet, retry);
+            }
         }
     }
 

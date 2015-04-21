@@ -465,7 +465,7 @@ public class Backup implements InternalTable {
         	// DB-3089
         	if(isTempTable(descriptor) || isTemporaryTable(descriptor.getNameAsString())) continue;
             BackupItem item = new BackupItem(descriptor,this);
-            item.createSnapshot(admin, backupTransaction.getBeginTimestamp(), newSnapshotNameSet);
+            item.createSnapshot(admin, backupTransaction.getBeginTimestamp(), newSnapshotNameSet, 0);
             item.setLastSnapshotName(snapshotNameSet);
             addBackupItem(item);
         }
