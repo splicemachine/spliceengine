@@ -1503,15 +1503,11 @@
     
 <!-- - - - - - - - - - - - db testing jar target - - - - - - - - - - -->
 
-  <target name="derbytestingjar" depends="initjars,ckderbytesting" if="derbyTesting.available">
-    <zip destfile="${derby.jar.dir}/derbyTesting.jar" filesonly="true" compress="true">
-      <fileset dir="${out.dir}" includes="org/apache/derbyTesting/**,SimpleApp*,org/apache/derby/impl/tools/ij/mt*.class,org/apache/derby/impl/tools/ij/SimpleCharStream.class,org/apache/derby/impl/drda/TestProto.class,org/apache/derby/impl/store/access/conglomerate/QualifierUtil.class,org/apache/derby/loc/m*_qq_PP_testOnly*"/>
+  <target name="derbytestingjar" depends="initjars">
+      <zip destfile="${derby.jar.dir}/derbyTesting.jar" filesonly="true" compress="true">
+      <fileset dir="${out.dir}"
+               includes="com/splicemachine/dbTesting/**,SimpleApp*,com/splicemachine/db/impl/tools/ij/mt*.class,com/splicemachine/db/impl/tools/ij/SimpleCharStream.class,com/splicemachine/db/impl/drda/TestProto.class,com/splicemachine/db/impl/store/access/conglomerate/QualifierUtil.class,com/splicemachine/db/loc/m*_qq_PP_testOnly*"/>
     </zip>
-  </target>
-
-  <target name="ckderbytesting">
-    <available file="${out.dir}/org/apache/derbyTesting"
-               property="derbyTesting.available"/>
   </target>
 
 <!-- - - - - - - - - - - -  jar build helper targets  - - - - - - - - - -->
