@@ -42,6 +42,8 @@ public abstract class BaseClientSideRegionScanner<T> implements RegionScanner {
 	protected boolean flushed;
 	protected HTable table;
 	SDataLib dataLib = HTransactorFactory.getTransactor().getDataLib();
+	private List<T> nextResults = new ArrayList<>();
+	private boolean nextResponse;
 	
 	
 	public BaseClientSideRegionScanner(HTable htable, Configuration conf, FileSystem fs,
@@ -98,12 +100,30 @@ public abstract class BaseClientSideRegionScanner<T> implements RegionScanner {
 	}
 	
 	public boolean nextInternalRaw(List<T> result) throws IOException {
+		boolean res = nextMerged(result, true);
+		return updateTopCell(res,result);
+	}
+
+	private boolean nextMerged(List<T> result, boolean recurse) throws IOException {
+		if (!nextResults.isEmpty()) {
+			result.addAll(nextResults);
+			nextResults.clear();
+			return nextResponse;
+		}
 		boolean res = dataLib.regionScannerNextRaw(scanner, result);
 		if (matchingFamily(result,MRConstants.HOLD)) {
 			result.clear();
-			return nextInternalRaw(result);			
+			return nextMerged(result, recurse);
 		}
-		return updateTopCell(res,result);
+		if (res && recurse) {
+			nextResponse = nextMerged(nextResults, false);
+			if (!nextResults.isEmpty() && dataLib.matchingRowKeyValue(nextResults.get(0), result.get(0))) {
+				result.addAll(nextResults);
+				nextResults.clear();
+			}
+			return nextResponse;
+		}
+		return res;
 	}
 
 	private boolean updateTopCell(boolean response, List<T> results) throws IOException {
