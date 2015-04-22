@@ -22,8 +22,7 @@
  */
 package com.splicemachine.db.impl.jdbc;
 
-import com.splicemachine.db.impl.jdbc.*;
-import org.apache.derbyTesting.junit.BaseTestCase;
+import com.splicemachine.dbTesting.junit.BaseTestCase;
 
 import junit.framework.Test;
 import junit.framework.TestSuite;

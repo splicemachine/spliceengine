@@ -1712,25 +1712,25 @@
       <!-- Use the system property below to debug lacking java security permissions -->
 <!--      <sysproperty key="java.security.debug" value="access:failure"/> -->
       <formatter type="xml"/>
-<test name="org.apache.derbyTesting.junit.EnvTest"
+<test name="com.splicemachine.dbTesting.junit.EnvTest"
     todir="junit_${derby.junit.timestamp}"/>  	 	
-<test name="org.apache.derbyTesting.functionTests.tests.derbynet._Suite"
+<test name="com.splicemachine.dbTesting.functionTests.tests.derbynet._Suite"
 	todir="junit_${derby.junit.timestamp}"/>
-<test name="org.apache.derbyTesting.functionTests.tests.tools._Suite"
+<test name="com.splicemachine.dbTesting.functionTests.tests.tools._Suite"
   	todir="junit_${derby.junit.timestamp}"/>
-<test name="org.apache.derbyTesting.functionTests.tests.lang._Suite"
+<test name="com.splicemachine.dbTesting.functionTests.tests.lang._Suite"
 	todir="junit_${derby.junit.timestamp}"/>
-<test name="org.apache.derbyTesting.functionTests.tests.jdbcapi._Suite"
+<test name="com.splicemachine.dbTesting.functionTests.tests.jdbcapi._Suite"
 	todir="junit_${derby.junit.timestamp}"/>
-<test name="org.apache.derbyTesting.functionTests.tests.store._Suite"
+<test name="com.splicemachine.dbTesting.functionTests.tests.store._Suite"
 	todir="junit_${derby.junit.timestamp}"/>
-<test name="org.apache.derbyTesting.functionTests.tests.engine._Suite"
+<test name="com.splicemachine.dbTesting.functionTests.tests.engine._Suite"
 	todir="junit_${derby.junit.timestamp}"/>
-<test name="org.apache.derbyTesting.unitTests.junit._Suite"
+<test name="com.splicemachine.dbTesting.unitTests.junit._Suite"
     todir="junit_${derby.junit.timestamp}"/>
-<test name="org.apache.derbyTesting.functionTests.tests.upgradeTests._Suite"
+<test name="com.splicemachine.dbTesting.functionTests.tests.upgradeTests._Suite"
   	todir="junit_${derby.junit.timestamp}"/>
-<test name="org.apache.derbyTesting.functionTests.suites.EncryptionSuite"
+<test name="com.splicemachine.dbTesting.functionTests.suites.EncryptionSuite"
 	todir="junit_${derby.junit.timestamp}"/>
 
       <classpath>
@@ -1764,7 +1764,7 @@
                failureproperty="tests.failed">
           <formatter type="xml"/>
 
-    <test name="org.apache.derbyTesting.system.oe.test.OETest"
+    <test name="com.splicemachine.dbTesting.system.oe.test.OETest"
         todir="junit_${derby.junit.timestamp}"/>
           <classpath>
                <fileset dir="${derby.junit.test.jars}" includes="*.jar"/>
@@ -1792,7 +1792,7 @@
   	       failureproperty="tests.failed">
       <formatter type="xml"/>
   	 	
-      <test name="org.apache.derbyTesting.functionTests.tests.jdbc4._Suite"
+      <test name="com.splicemachine.dbTesting.functionTests.tests.jdbc4._Suite"
       	todir="junit_${derby.junit.timestamp}"/>
         <classpath>
             <fileset dir="${derby.junit.test.jars}" includes="*.jar"/>
@@ -1815,7 +1815,7 @@
   	       failureproperty="tests.failed">
       <formatter type="xml"/>
   	 	
-      <test name="org.apache.derbyTesting.functionTests.tests.memory._Suite"
+      <test name="com.splicemachine.dbTesting.functionTests.tests.memory._Suite"
       	todir="junit_${derby.junit.timestamp}"/>
         <classpath>
             <fileset dir="${derby.junit.test.jars}" includes="*.jar"/>
@@ -1836,7 +1836,7 @@
             failureproperty="tests.failed">
         <formatter type="xml"/>
 
-        <test name="org.apache.derbyTesting.functionTests.tests.management._Suite"
+        <test name="com.splicemachine.dbTesting.functionTests.tests.management._Suite"
               todir="junit_${derby.junit.timestamp}"/>
 
         <classpath>

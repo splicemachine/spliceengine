@@ -22,8 +22,8 @@
  */
 package com.splicemachine.db.impl.jdbc;
 
-import org.apache.derbyTesting.functionTests.util.streams.CharAlphabet;
-import org.apache.derbyTesting.functionTests.util.streams.LoopingAlphabetReader;
+import com.splicemachine.dbTesting.functionTests.util.streams.CharAlphabet;
+import com.splicemachine.dbTesting.functionTests.util.streams.LoopingAlphabetReader;
 
 import junit.framework.Test;
 import junit.framework.TestCase;

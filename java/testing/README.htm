@@ -26,7 +26,7 @@
 </head>
 <body dir="ltr" lang="en-US">
 <h1><a name="mozTocId934928"></a>Derby Functional Tests</h1>
-<h2><a name="mozTocId504000"></a>Package: org.apache.derbyTesting<!--mozToc h1 1 h2 2 h3 3 h4 4 h5 5 h6 6--></h2>
+<h2><a name="mozTocId504000"></a>Package: com.splicemachine.dbTesting<!--mozToc h1 1 h2 2 h3 3 h4 4 h5 5 h6 6--></h2>
 <p><font size="2"><br>
 </font></p>
 <ul>
@@ -124,12 +124,12 @@ host</a></li>
   </li>
   <li>
     <p><a
- href="./org/apache/derbyTesting/functionTests/tests/junitTests/compatibility/README.html">5.
+ href="com/splicemachine/dbTesting/functionTests/tests/junitTests/compatibility/README.html">5.
 Compatibility Tests</a></p>
   </li>
   <li>
     <p><a
- href="./org/apache/derbyTesting/functionTests/tests/jdbc4/README.html">6.
+ href="com/splicemachine/dbTesting/functionTests/tests/jdbc4/README.html">6.
 JDBC4 Tests</a></p>
   </li>
 </ul>
@@ -159,7 +159,7 @@ and conversion of existing tests.
 Please also consult <a href="http://wiki.apache.org/db-derby/DerbyTesting">http://wiki.apache.org/db-derby/DerbyTesting</a> for more information on Derby testing.
 <h2><a name="intro"></a>1. Introduction</h2>
 <p>This document describes functionality of the derby functional
-testing package org.apache.derbyTesting. This package is based on the
+testing package com.splicemachine.dbTesting. This package is based on the
 functional tests in use at IBM for testing the Cloudscape product
 before its contribution to ASF.</p>
 <p>In the following, instructions are geared towards a unix
@@ -283,8 +283,8 @@ CLASSPATH="$jardir/derbyrun.jar:$jardir/derbyTesting.jar:$tstjardir/jakarta-oro-
       <td>
       <p>syntax:<br>
 &nbsp;&nbsp;&nbsp; <font size="2">java -D&lt;testproperty&gt;
-org.apache.derbyTesting.functionTests.harness.RunTest
-&lt;testdir&gt;/&lt;testname&gt;</font><br>
+              com.splicemachine.dbTesting.functionTests.harness.RunTest
+              &lt;testdir&gt;/&lt;testname&gt;</font><br>
       <font size="2">where </font> </p>
       <ul>
         <li>
@@ -305,7 +305,7 @@ actual name of the test</font> </p>
       <p><font size="2">examples:<br>
 to run the test supersimple against the embedded driver:<br>
       </font>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <font size="2">java
-org.apache.derbyTesting.functionTests.harness.RunTest
+com.splicemachine.dbTesting.functionTests.harness.RunTest
 lang/supersimple.sql<br>
       <br>
 To run a test with network server, using the derbyclient driver, add
@@ -314,7 +314,7 @@ network server at port 1527 or connect to a running one, run the test,
 and stop network server thereafter.<br>
 for example:<br>
 &nbsp;&nbsp;&nbsp; &nbsp;&nbsp;&nbsp; java -Dframework=DerbyNetClient
-org.apache.derbyTesting.functionTests.harness.RunTest
+com.splicemachine.dbTesting.functionTests.harness.RunTest
 lang/supersimple.sql</font></p>
       </td>
     </tr>
@@ -332,8 +332,8 @@ actual result.</p>
       <td>
       <p>syntax:<br>
 &nbsp; <font size="2">java -D&lt;testproperty&gt;
-org.apache.derbyTesting.functionTests.harness.RunSuite&nbsp;
-&lt;testsuite&gt;</font><br>
+              com.splicemachine.dbTesting.functionTests.harness.RunSuite&nbsp;
+              &lt;testsuite&gt;</font><br>
       <font size="2">where </font> </p>
       <ul>
         <li>
@@ -349,7 +349,7 @@ the suites under org/apache/derbyTesting/functionTests/suites</font> </p>
       <p><font size="2">for example for running&nbsp; the suite
 derbylang:<br>
       </font>&nbsp;&nbsp; <font size="2">java -Dverbose=true
-org.apache.derbyTesting.functionTests.harness.RunSuite derbylang</font></p>
+          com.splicemachine.dbTesting.functionTests.harness.RunSuite derbylang</font></p>
       </td>
     </tr>
   </tbody>
@@ -372,7 +372,7 @@ syntax:<br>
 -Dij.dataSource=com.splicemachine.db.jdbc.EmbeddedSimpleDataSource <br>
 -Djvmflags="-Dij.dataSource=com.splicemachine.db.jdbc.EmbeddedSimpleDataSource"
       <br>
-org.apache.derbyTesting.functionTests.harness.RunSuite&nbsp;
+com.splicemachine.dbTesting.functionTests.harness.RunSuite&nbsp;
 &lt;testsuite&gt;</font><br>
       <font size="2">where </font> </p>
       <ul>
@@ -398,7 +398,7 @@ derbyall:<br>
 -Dij.dataSource=com.splicemachine.db.jdbc.EmbeddedSimpleDataSource <br>
 -Djvmflags="-Dij.dataSource=com.splicemachine.db.jdbc.EmbeddedSimpleDataSource"
       <br>
-org.apache.derbyTesting.functionTests.harness.RunSuite derbyall</font></p>
+com.splicemachine.dbTesting.functionTests.harness.RunSuite derbyall</font></p>
       </td>
     </tr>
   </tbody>
@@ -856,9 +856,9 @@ extra information is appended to the log:&nbsp;</p>
     <tr>
       <td>
       <p><font size="2">java -Dframework=DerbyNetClient
--DtestSpecialProps=derby.infolog.append=true&nbsp;
-org.apache.derbyTesting.functionTests.harness.RunTest
-lang/supersimple.sql</font></p>
+          -DtestSpecialProps=derby.infolog.append=true&nbsp;
+          com.splicemachine.dbTesting.functionTests.harness.RunTest
+          lang/supersimple.sql</font></p>
       </td>
     </tr>
   </tbody>
@@ -1004,7 +1004,7 @@ clean directory. </p>
     <tr>
       <td>
       <p><font size="1">c:&gt; $ java
-org.apache.derbyTesting.functionTests.harness.RunSuite derbylang<br>
+com.splicemachine.dbTesting.functionTests.harness.RunSuite derbylang<br>
 Top suite: derbylang<br>
 Suite to run: derbylang:derbylang<br>
 Now do RunList<br>
@@ -1015,7 +1015,7 @@ Execute command: java -DjavaCmd=java
 -Dtopsuitedir=C:\derbyt1\derbylang -Dtopreportdir=C:\derbyt1\derbylang
 -Drundir=C:\derbyt1 -Dsuitename=derbylang:derbylang
 -Dtopsuitename=derbylang
-org.apache.derbyTesting.functionTests.harness.RunTest
+com.splicemachine.dbTesting.functionTests.harness.RunTest
 lang/arithmetic.sql<br>
 ...(.more tests)....<br>
 Generated report: derbylang_report.txt</font></p>
@@ -1308,15 +1308,15 @@ this is added to copyfiles.ant.</p>
 <ul>
   <li>
     <p>ensure the test cleans up any testobjects created. This is
-important for running the tests in suites with a remote server, or with
-useprocess=false, because
-in those cases, tests run against databases in the same
-directory.&nbsp; Even if you do not anticipate your test to run in
-those configurations, it makes good practice.&nbsp;You may also want to
-protect your test from other tests leaving things behind by removing
-them before running also. The class
-org.apache.derbyTesting.functionTests.util.TestUtil has a cleanUpTest
-method that may be useful.</p>
+        important for running the tests in suites with a remote server, or with
+        useprocess=false, because
+        in those cases, tests run against databases in the same
+        directory.&nbsp; Even if you do not anticipate your test to run in
+        those configurations, it makes good practice.&nbsp;You may also want to
+        protect your test from other tests leaving things behind by removing
+        them before running also. The class
+        com.splicemachine.dbTesting.functionTests.util.TestUtil has a cleanUpTest
+        method that may be useful.</p>
   </li>
   <li>
     <p>ensure that connections can be made with all supported jvms.
@@ -1436,10 +1436,10 @@ class j9_foundation11</font></p>
   </tbody>
 </table>
 <p>The classes above are subclasses of
-org.apache.derbyTesting.functionTests.harness.jvm. The name at the
-front is just a convention.</p>
+    com.splicemachine.dbTesting.functionTests.harness.jvm. The name at the
+    front is just a convention.</p>
 <p>To run a test with a jvm that does not have a matching class under
-org.apache.derbyTesting.functionTests.harness, do the following:</p>
+    com.splicemachine.dbTesting.functionTests.harness, do the following:</p>
 <ul>
   <li>
     <p style="margin-bottom: 0in;">just run the tests as if there is a
@@ -1453,8 +1453,8 @@ differences, do the following: </p>
     <ul>
       <li>
         <p style="margin-bottom: 0in;">create a subclass of
-org.apache.derbyTesting.functionTests.harness.jvm. In this class,
-specify any jvm specific property settings required </p>
+            com.splicemachine.dbTesting.functionTests.harness.jvm. In this class,
+            specify any jvm specific property settings required </p>
       </li>
       <li>
         <p style="margin-bottom: 0in;">compile the new jvm class and
@@ -1578,14 +1578,14 @@ class: </p>
         <li>framework - specifies which framework to run with. For
 example:<br>
 java -Dframework=DerbyNetClient
-org.apache.derbyTesting.functionTests.harness.RunTest <br>
+com.splicemachine.dbTesting.functionTests.harness.RunTest <br>
           <br>
 lang/supersimple.sql<br>
         </li>
         <li>verbose - Shows more detailed output if set to "true". For
 example:<br>
           <small>java -Dverbose=true
-org.apache.derbyTesting.functionTests.harness.RunTest lang/arithmetic.sql</small><br>
+              com.splicemachine.dbTesting.functionTests.harness.RunTest lang/arithmetic.sql</small><br>
           <br>
         </li>
         <li>keepfiles - Indicates to not clean up any of the files if
@@ -1599,7 +1599,7 @@ be set using
 -DtestSpecialProps=&lt;prop-1&gt;=&lt;value-1&gt;^
 ... ^&lt;prop-n&gt;=&lt;value-n&gt;. For example:<br>
           <small>java -DTestSpecialProps=derby.infolog.append=true
-org.apache.derbyTesting.functionTests.harness.RunTest lang/arithmetic.sql</small>
+              com.splicemachine.dbTesting.functionTests.harness.RunTest lang/arithmetic.sql</small>
           <br>
           <br>
         </li>
@@ -1616,7 +1616,7 @@ because the 'highest' level properties are passed to the jvm last. Setting this 
 for a test that runs with useprocess=false cannot have any effect.
 Example: <br>
           <small>java -Djvmflags=-Xms32M^-Xmx128M
-org.apache.derbyTesting.functionTests.harness.RunTest lang/concateTests.java</small><br>
+              com.splicemachine.dbTesting.functionTests.harness.RunTest lang/concateTests.java</small><br>
           <br>
         </li>
         <li>excludeJCC -
@@ -1658,9 +1658,9 @@ a different
 encoding. Only supported with jdk15. Example: <br>
           <br>
 &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<small> java
--DderbyTesting.encoding=UTF-16
-org.apache.derbyTesting.functionTests.harness.RunTest
-jdbcapi/resultset.java</small><br>
+                -DderbyTesting.encoding=UTF-16
+                com.splicemachine.dbTesting.functionTests.harness.RunTest
+                jdbcapi/resultset.java</small><br>
           <br>
         </li>
         <li>generateUTF8Out - copies the test .out into UTF-8 encoding.
@@ -1697,8 +1697,8 @@ If the Derby 10.1 jars for upgrade testing reside in
 tests to complete would include the following:<br>
           <br>
           <small>java
--Djvmflags=-DderbyTesting.jar.path=/opt/testing/derby
-org.apache.derbyTesting.functionTests.harness.RunSuite upgrade</small><br>
+              -Djvmflags=-DderbyTesting.jar.path=/opt/testing/derby
+              com.splicemachine.dbTesting.functionTests.harness.RunSuite upgrade</small><br>
           <br>
 Please note that if you change the value of derbyTesting.jar.path you
 will need to remove the file <small>org/apache/derbyTesting/functionTests/tests/upgradeTests/Upgrade_10_1_10_2.properties</small>
@@ -1875,7 +1875,7 @@ hostName, like so:</li>
     <tr>
       <td style="vertical-align: top;">java
 -DhostName=favorite.remotehost.com
-org.apache.derbyTesting.functionTests.harness.RunSuite
+com.splicemachine.dbTesting.functionTests.harness.RunSuite
 derbynetclientmats<br>
       <small>where favorite.remotehost.com is the host name or ip
 address.</small><br>
@@ -1915,7 +1915,7 @@ tests can use the TestUtil.cleanUp method to drop any database object
 without any output being reflected. Test writers need to ensure that
 the objects are in fact getting dropped or the test needs to be
 excluded from running remotely. To facilitate cleanup, a method was
-added to org.apache.derbyTesting.functionTests.util.TestUtil,
+added to com.splicemachine.dbTesting.functionTests.util.TestUtil,
 cleanUpTest(Statement, testObjects[]). This method drops anything
 passed in the array of strings and disregards any SQLExceptions. The
 benefit of this is that a possible failure of drop does not stop the
@@ -1987,7 +1987,7 @@ to run a specific .java test one time only with
     <tr>
       <td style="vertical-align: top;">java
 -DderbyTesting.encoding=UTF-16
-org.apache.derbyTesting.functionTests.harness.RunTest
+com.splicemachine.dbTesting.functionTests.harness.RunTest
 jdbcapi/lobStreams.java<small><br>
       </small></td>
     </tr>
@@ -2055,9 +2055,9 @@ ascii mode may try to convert the file).<br>
       <tbody>
         <tr>
           <td style="vertical-align: top;">java
--DgenerateUTF8Out=true
-org.apache.derbyTesting.functionTests.harness.RunTest
-lang/supersimple.sql</td>
+              -DgenerateUTF8Out=true
+              com.splicemachine.dbTesting.functionTests.harness.RunTest
+              lang/supersimple.sql</td>
         </tr>
       </tbody>
     </table>

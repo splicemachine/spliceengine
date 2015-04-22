@@ -28,9 +28,9 @@ import com.splicemachine.db.client.am.stmtcache.JDBCStatementCache;
 import com.splicemachine.db.client.am.stmtcache.StatementKey;
 import com.splicemachine.db.client.am.stmtcache.StatementKeyFactory;
 
-import org.apache.derbyTesting.junit.BaseJDBCTestCase;
-import org.apache.derbyTesting.junit.JDBC;
-import org.apache.derbyTesting.junit.TestConfiguration;
+import com.splicemachine.dbTesting.junit.BaseJDBCTestCase;
+import com.splicemachine.dbTesting.junit.JDBC;
+import com.splicemachine.dbTesting.junit.TestConfiguration;
 
 /**
  * Tests for the handling of logical statements.

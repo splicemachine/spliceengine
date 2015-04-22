@@ -93,7 +93,7 @@ touch ExcludeFromZip
 
 # Example minimal test suite list:
 echo "derbyall"                                          > testlist
-echo "org.apache.derbyTesting.functionTests.suites.All" >> testlist
+echo "com.splicemachine.dbTesting.functionTests.suites.All" >> testlist
 echo ""
 echo "testlist: "
 cat testlist

@@ -29,10 +29,9 @@ import java.util.ArrayList;
 import java.util.List;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.Resetable;
-import com.splicemachine.db.impl.jdbc.InternalClob;
-import org.apache.derbyTesting.functionTests.util.streams.ByteAlphabet;
-import org.apache.derbyTesting.functionTests.util.streams.LoopingAlphabetStream;
-import org.apache.derbyTesting.junit.BaseJDBCTestCase;
+import com.splicemachine.dbTesting.functionTests.util.streams.ByteAlphabet;
+import com.splicemachine.dbTesting.functionTests.util.streams.LoopingAlphabetStream;
+import com.splicemachine.dbTesting.junit.BaseJDBCTestCase;
 
 import java.io.IOException;
 import java.io.BufferedReader;

@@ -35,9 +35,9 @@ import junit.framework.TestSuite;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.StringDataValue;
-import org.apache.derbyTesting.functionTests.util.streams.LoopingAlphabetReader;
-import org.apache.derbyTesting.junit.BaseJDBCTestCase;
-import org.apache.derbyTesting.junit.CleanDatabaseTestSetup;
+import com.splicemachine.dbTesting.functionTests.util.streams.LoopingAlphabetReader;
+import com.splicemachine.dbTesting.junit.BaseJDBCTestCase;
+import com.splicemachine.dbTesting.junit.CleanDatabaseTestSetup;
 
 /**
  * Tests {@code UTF8Reader} using package-private classes/methods.

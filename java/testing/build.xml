@@ -93,9 +93,4 @@
   	<ant dir="${derby.testing.src.dir}/${derby.testing.perf.dir}"/> 
   </target>
 
-<!--             ============= End Targets ==============                -->
-
-<!--             ============= End Project ==============                -->
-
 </project>
-

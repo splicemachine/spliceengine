@@ -238,12 +238,12 @@ do
   date +%H:%M:%S > ${TESTLOG_PLATF_DIR}/suiteStart.txt
   # ---------------
   # The test suite is run here:
-  JUNIT=`echo ${suite} | grep org.apache.derbyTesting`
+  JUNIT=`echo ${suite} | grep com.splicemachine.dbTesting`
   if [ "${JUNIT}" == "" ]
   then
-    echo "java ${VERBOSE} ${USEDERBYNET} org.apache.derbyTesting.functionTests.harness.RunSuite ${suite}"
+    echo "java ${VERBOSE} ${USEDERBYNET} com.splicemachine.dbTesting.functionTests.harness.RunSuite ${suite}"
     echo -n "Start: ${suiteStart}	End: "
-    java ${VERBOSE} ${USEDERBYNET} org.apache.derbyTesting.functionTests.harness.RunSuite ${suite} > out.log 2>out.err
+    java ${VERBOSE} ${USEDERBYNET} com.splicemachine.dbTesting.functionTests.harness.RunSuite ${suite} > out.log 2>out.err
   else
     echo "java junit.textui.TestRunner ${suite}"
     echo -n "Start: ${suiteStart}	End: "

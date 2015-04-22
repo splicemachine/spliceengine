@@ -24,7 +24,7 @@ import com.splicemachine.db.impl.jdbc._Suite;
 import junit.framework.Test;
 import junit.framework.TestSuite;
 
-import org.apache.derbyTesting.junit.BaseTestCase;
+import com.splicemachine.dbTesting.junit.BaseTestCase;
 
 public class PackagePrivateTestSuite
     extends BaseTestCase {

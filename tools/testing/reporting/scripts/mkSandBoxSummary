@@ -51,9 +51,9 @@ ${TOOLDIR}/platformsFailCount ${REVISION} "${DETAILS}" derbyall >> ${SUMMARY}
 ## ${TOOLDIR}/platformsDurPrcnt ${REVISION} "${DETAILS}" derbyall >> ${SUMMARY}
 
 echo ", suites.All: " >> ${SUMMARY}
-${TOOLDIR}/platformsFailCount ${REVISION} "${DETAILS}" org.apache.derbyTesting.functionTests.suites.All >> ${SUMMARY}
+${TOOLDIR}/platformsFailCount ${REVISION} "${DETAILS}" com.splicemachine.dbTesting.functionTests.suites.All >> ${SUMMARY}
 ## echo "/" >> ${SUMMARY}
-## ${TOOLDIR}/platformsDurPrcnt ${REVISION} "${DETAILS}" org.apache.derbyTesting.functionTests.suites.All >> ${SUMMARY}
+## ${TOOLDIR}/platformsDurPrcnt ${REVISION} "${DETAILS}" com.splicemachine.dbTesting.functionTests.suites.All >> ${SUMMARY}
 
 chmod go+r ${SUMMARY}
 

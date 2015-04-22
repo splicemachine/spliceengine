@@ -136,13 +136,13 @@ do
       gawk '{ sub("\r$", ""); print }' ${FAILFILE} > FAILFILE$$
       FAILFILE="FAILFILE$$"
       # echo "FAILFILE: ${FAILFILE}"
-      JUNIT=`echo ${SUITE} | grep 'org.apache.derbyTesting.'`
+      JUNIT=`echo ${SUITE} | grep 'com.splicemachine.dbTesting.'`
       if [ "${JUNIT}" == "" ]
       then
         LINES=`grep : ${FAILFILE}`
       else
-        # LINES=`grep "^.*) " ${FAILFILE} | sed -e 's/^[1-9]).//' | sed -e 's/org.apache.derbyTesting/../' | sed -e 's/).*: /) /'`
-        LINES=`grep "^.*) " ${FAILFILE} | sed -e 's/^[1-9]).//' | sed -e 's/org.apache.derbyTesting/../' | sed -e 's/).*: /) /' | gawk '{ print $1 }'`
+        # LINES=`grep "^.*) " ${FAILFILE} | sed -e 's/^[1-9]).//' | sed -e 's/com.splicemachine.dbTesting/../' | sed -e 's/).*: /) /'`
+        LINES=`grep "^.*) " ${FAILFILE} | sed -e 's/^[1-9]).//' | sed -e 's/com.splicemachine.dbTesting/../' | sed -e 's/).*: /) /' | gawk '{ print $1 }'`
       fi
       # Better go via file to really have LINES be a set of lines which may contain blanks.
       # The way it stands now each "word" is treated as a LINE.
