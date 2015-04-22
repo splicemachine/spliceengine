@@ -262,7 +262,7 @@ public class Scans extends SpliceUtils {
                         generateStartKey = false; // if any null encountered, don't make a start key
                         break;
                     }
-                    if(ArrayUtils.isNotEmpty(keyTablePositionMap)) {
+                    if(!ArrayUtils.isEmpty(keyTablePositionMap)) {
                         int targetColFormatId = columnTypes[keyTablePositionMap[i]];
                         if (startDesc.getTypeFormatId() != targetColFormatId) {
                             startKeyValue[i] = QualifierUtils.adjustDataValueDescriptor(startDesc, targetColFormatId, dataValueFactory);
@@ -278,7 +278,7 @@ public class Scans extends SpliceUtils {
                         generateStopKey = false; // if any null encountered, don't make a stop key
                         break;
                     }
-                    if(ArrayUtils.isNotEmpty(keyTablePositionMap)) {
+                    if(!ArrayUtils.isEmpty(keyTablePositionMap)) {
                         int targetColFormatId = columnTypes[keyTablePositionMap[i]];
                         if (stopDesc.getTypeFormatId() != targetColFormatId) {
                             stopKeyValue[i] = QualifierUtils.adjustDataValueDescriptor(stopDesc, targetColFormatId, dataValueFactory);
