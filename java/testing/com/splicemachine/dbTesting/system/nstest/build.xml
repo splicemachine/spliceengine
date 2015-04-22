@@ -36,8 +36,7 @@
   <property file="${properties.dir}/derbytesting.properties"/>
 
   <!-- Compiler settings -->
-  <property file="${properties.dir}/defaultcompiler.properties"/>
-  <property file="${properties.dir}/${build.compiler}.properties"/>
+  <property file="${properties.dir}/modern.properties"/>
 
   <!-- Parser properties -->
   <property file="${properties.dir}/parser.properties"/>
@@ -56,8 +55,8 @@
   <target name="nstest"
           description="N/W server system test">
     <javac
-      source="1.4"
-      target="1.4"
+      source="1.7"
+      target="1.7"
       bootclasspath="${empty}"
       nowarn="on"
       debug="true"
@@ -69,7 +68,7 @@
       srcdir="${derby.testing.src.dir}"
       destdir="${out.dir}">
       <classpath>
-        <pathelement path="${java15compile.classpath}"/>
+        <pathelement path="${main.classpath}"/>
         <pathelement path="${junit}"/>
       </classpath>
       <include name="${derby.testing.system.dir}/nstest/**/*.java"/>

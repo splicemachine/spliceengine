@@ -37,11 +37,9 @@
     <!-- Significant dirs -->
     <property file="${properties.dir}/dirs.properties"/>
     <!-- Compiler settings -->
-    <property file="${properties.dir}/defaultcompiler.properties"/>
-    <property file="${properties.dir}/${build.compiler}.properties"/>
+    <property file="${properties.dir}/modern.properties"/>
     <!-- Compile-time classpath properties files -->
     <property file="${properties.dir}/extrapath.properties"/>
-    <property file="${properties.dir}/compilepath.properties"/>
 
     <!-- Targets -->
 
@@ -66,15 +64,15 @@
                 srcdir="${derby.engine.src.dir}"
                 destdir="${out.dir}">
             <classpath>
-                <pathelement path="${log4j};${joda-time};${xmlApis};${java15compile.classpath}"/>
+                <pathelement path="${log4j};${joda-time};${xmlApis};${main.classpath}"/>
                 <path refid="lib.path.id"/>
             </classpath>
             <include name="${splice.package}/iapi/types/SqlXmlUtil.java"/>
         </javac>
 
         <javac
-                source="1.6"
-                target="1.6"
+                source="1.7"
+                target="1.7"
                 bootclasspath="${empty}"
                 nowarn="on"
                 debug="${debug}"
@@ -86,7 +84,7 @@
                 srcdir="${derby.engine.src.dir}"
                 destdir="${out.dir}">
             <classpath>
-                <pathelement path="${log4j};${joda-time};${compile.classpath}"/>
+                <pathelement path="${log4j};${joda-time};${main.classpath}"/>
                 <path refid="lib.path.id"/>
             </classpath>
             <include name="${splice.package}/iapi/types/*.java"/>
@@ -96,8 +94,8 @@
         </javac>
 
         <javac
-                source="1.6"
-                target="1.6"
+                source="1.7"
+                target="1.7"
                 bootclasspath="${empty}"
                 nowarn="on"
                 debug="${debug}"
@@ -109,7 +107,7 @@
                 srcdir="${derby.engine.src.dir}"
                 destdir="${out.dir}">
             <classpath>
-                <pathelement path="${log4j};${joda-time};${java15compile.classpath}"/>
+                <pathelement path="${log4j};${joda-time};${main.classpath}"/>
                 <path refid="lib.path.id"/>
             </classpath>
             <include name="${splice.package}/iapi/types/SQLDecimal.java"/>

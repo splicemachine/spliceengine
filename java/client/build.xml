@@ -11,22 +11,17 @@
   <property file="${properties.dir}/dirs.properties"/>
 
   <!-- Compiler settings -->
-  <property file="${properties.dir}/defaultcompiler.properties"/>
-  <property file="${properties.dir}/${build.compiler}.properties"/>
+  <property file="${properties.dir}/modern.properties"/>
 
 
   <!-- Compile-time classpath properties files -->
   <property file="${properties.dir}/extrapath.properties"/>
-  <property file="${properties.dir}/compilepath.properties"/>
-
-  <!-- Release and Version info -->
-  <property file="${properties.dir}/release.properties"/>
 
 <!-- compile classes  -->
 <target name="compile">
     <javac
-						source="${compilerLevel16}"
-						target="${compilerLevel16}"
+						source="1.7"
+						target="1.7"
       bootclasspath="${empty}"
       nowarn="on"
       debug="${debug}"
@@ -39,15 +34,15 @@
       excludes="**/*40.java" 
       destdir="${out.dir}">
       <classpath>
-          <pathelement path="${java16compile.classpath}"/>
+          <pathelement path="${main.classpath}"/>
       </classpath>
     </javac>
 </target>
 
 <target name="compile_jdbc4">
     <javac
-      source="${compilerLevel16}"
-      target="${compilerLevel16}"
+      source="1.7"
+      target="1.7"
       bootclasspath="${empty}"
       nowarn="on"
       debug="${debug}"
@@ -60,7 +55,7 @@
       includes="**/*40.java" 
       destdir="${out.dir}">
       <classpath>
-        <pathelement path="${java16compile.classpath}"/>
+        <pathelement path="${main.classpath}"/>
       </classpath>
       <compilerarg value="-Xlint"/>
    </javac>

@@ -143,7 +143,7 @@
 
   <property name="FULL_TRUNK" value="${SERVER_TRUNK};${CLIENT_TRUNK}"/>
 
-  <property name="CLASSPATH_TRUNK" value="${basedir}/classes;${compile.classpath}"/>
+  <property name="CLASSPATH_TRUNK" value="${basedir}/classes;${main.classpath}"/>
 
   <property name="VM_DEFAULT" value="${VM_1.4}"/>
 

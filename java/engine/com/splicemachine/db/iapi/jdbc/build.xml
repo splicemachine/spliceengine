@@ -6,11 +6,9 @@
   <!-- Significant dirs -->
   <property file="${properties.dir}/dirs.properties"/>
   <!-- Compiler settings -->
-  <property file="${properties.dir}/defaultcompiler.properties"/>
-  <property file="${properties.dir}/${build.compiler}.properties"/>
+  <property file="${properties.dir}/modern.properties"/>
   <!-- Compile-time classpath properties files -->
   <property file="${properties.dir}/extrapath.properties"/>
-  <property file="${properties.dir}/compilepath.properties"/>
 
   <property name="cur.dir" value="iapi/jdbc"/>
 
@@ -18,8 +16,8 @@
 
   <target name="compile_iapi_jdbc_jsr169">
 	    <javac
-							source="${compilerLevel16}"
-							target="${compilerLevel16}"
+							source="1.7"
+							target="1.7"
       bootclasspath="${empty}"
       nowarn="on"
       debug="${debug}"
@@ -31,7 +29,7 @@
       srcdir="${derby.engine.src.dir}"
       destdir="${out.dir}">
       <classpath>
-        <pathelement path="${compile.classpath}"/>
+        <pathelement path="${main.classpath}"/>
       </classpath>
       <include name="${splice.package}/iapi/jdbc/DRDAServerStarter.java"/>
       <exclude name="${splice.package}/${cur.dir}/BrokeredConnection.java"/>
@@ -54,8 +52,8 @@
 
   <target name="compile_iapi_jdbc_jdbc2" depends="compile_iapi_jdbc_stmt,compile_iapi_jdbc_jsr169">
       <javac
-							source="${compilerLevel16}"
-							target="${compilerLevel16}"
+							source="1.7"
+							target="1.7"
       bootclasspath="${empty}"
       nowarn="on"
       debug="${debug}"
@@ -67,7 +65,7 @@
       srcdir="${derby.engine.src.dir}"
       destdir="${out.dir}">
       <classpath>
-        <pathelement path="${java16compile.classpath}"/>
+        <pathelement path="${main.classpath}"/>
       </classpath>
 	  <include name="${splice.package}/${cur.dir}/BrokeredConnection.java"/>
 	  <include name="${splice.package}/${cur.dir}/BrokeredPreparedStatement.java"/>
@@ -77,8 +75,8 @@
 
   <target name="compile_iapi_jdbc_stmt">
       <javac
-							source="${compilerLevel16}"
-							target="${compilerLevel16}"
+							source="1.7"
+							target="1.7"
       bootclasspath="${empty}"
       nowarn="on"
       debug="${debug}"
@@ -90,7 +88,7 @@
       srcdir="${derby.engine.src.dir}"
       destdir="${out.dir}">
       <classpath>
-        <pathelement path="${java16compile.classpath}"/>
+        <pathelement path="${main.classpath}"/>
       </classpath>
 	  <include name="${splice.package}/${cur.dir}/BrokeredStatement.java"/>
     </javac>
@@ -98,8 +96,8 @@
 
   <target name="compile_iapi_jdbc_jdbc3" depends="compile_iapi_jdbc_jdbc2">
       <javac
-							source="${compilerLevel16}"
-							target="${compilerLevel16}"
+							source="1.7"
+							target="1.7"
       bootclasspath="${empty}"
       nowarn="on"
       debug="${debug}"
@@ -111,7 +109,7 @@
       srcdir="${derby.engine.src.dir}"
       destdir="${out.dir}">
       <classpath>
-        <pathelement path="${java16compile.classpath}"/>
+        <pathelement path="${main.classpath}"/>
       </classpath>
 	  <include name="${splice.package}/${cur.dir}/BrokeredConnection30.java"/>
 	  <include name="${splice.package}/${cur.dir}/BrokeredPreparedStatement30.java"/>
@@ -123,8 +121,8 @@
 
   <target name="compile_jdbc4" >
       <javac
-          source="${compilerLevel16}"
-          target="${compilerLevel16}"
+          source="1.7"
+          target="1.7"
           bootclasspath="${empty}"
           nowarn="on"
           debug="${debug}"
@@ -136,7 +134,7 @@
           srcdir="${derby.engine.src.dir}"
           destdir="${out.dir}">
           <classpath>
-              <pathelement path="${java16compile.classpath}"/>
+              <pathelement path="${main.classpath}"/>
           </classpath>
           <include name="${splice.package}/${cur.dir}/BrokeredConnection40.java"/>
           <include name="${splice.package}/${cur.dir}/BrokeredStatement40.java"/>

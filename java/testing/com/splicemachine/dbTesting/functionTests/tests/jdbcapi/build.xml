@@ -38,18 +38,13 @@
 
   <!-- Compiler settings -->
   <property file="${properties.dir}/sane${sanity}.properties"/>
-  <property file="${properties.dir}/defaultcompiler.properties"/>
-  <property file="${properties.dir}/${build.compiler}.properties"/>
+  <property file="${properties.dir}/modern.properties"/>
 
   <!-- Parser properties -->
   <!--property file="${properties.dir}/parser.properties"/-->
 
   <!-- Compile-time classpath properties files -->
   <property file="${properties.dir}/extrapath.properties"/>
-  <property file="${properties.dir}/compilepath.properties"/>
-
-  <!-- Release and Version info -->
-  <property file="${properties.dir}/release.properties"/>
 
   <!-- db testing specific properties files -->
   <property file="${ant.home}/properties/derbytesting.properties"/>
@@ -67,8 +62,8 @@
 
 	  <target name="compileSuite" depends="compilet2">
 	    <javac
-	      source="1.4"
-	      target="1.4"
+	      source="1.7"
+	      target="1.7"
 	      bootclasspath="${empty}"
 	      nowarn="on"
 	      debug="true"
@@ -81,7 +76,7 @@
 	      destdir="${out.dir}">
 	      <classpath>
 	        <!--pathelement location="${oro}"/-->
-	        <pathelement path="${compile.classpath}"/>
+	        <pathelement path="${main.classpath}"/>
 			<pathelement path="${junit}"/>
 	      </classpath>
 	      <include name="${this.dir}/_Suite.java"/>
@@ -90,8 +85,8 @@
 	
   <target name="compilet1">
     <javac
-						source="${compilerLevel16}"
-						target="${compilerLevel16}"
+						source="1.7"
+						target="1.7"
       bootclasspath="${empty}"
       nowarn="on"
       debug="true"
@@ -104,7 +99,7 @@
       destdir="${out.dir}">
       <classpath>
         <!--pathelement location="${oro}"/-->
-        <pathelement path="${java16compile.classpath}"/>
+        <pathelement path="${main.classpath}"/>
 		<pathelement path="${junit}"/>
       </classpath>
       <include name="${this.dir}/*.java"/>
@@ -127,8 +122,8 @@
 
   <target name="compilet2" depends="compilet1,compilex">
     <javac
-						source="${compilerLevel16}"
-						target="${compilerLevel16}"
+						source="1.7"
+						target="1.7"
       bootclasspath="${empty}"
       nowarn="on"
       debug="true"
@@ -140,7 +135,7 @@
       srcdir="${derby.testing.src.dir}"
       destdir="${out.dir}">
       <classpath>
-        <pathelement path="${java16compile.classpath}"/>
+        <pathelement path="${main.classpath}"/>
         <pathelement path="${junit}"/>
       </classpath>
       <!--exclude name=""/-->
@@ -161,8 +156,8 @@
 
   <target name="compilex">
     <javac
-						source="${compilerLevel16}"
-						target="${compilerLevel16}"
+						source="1.7"
+						target="1.7"
       bootclasspath="${empty}"
       nowarn="on"
       debug="true"
@@ -174,7 +169,7 @@
       srcdir="${derby.testing.src.dir}"
       destdir="${out.dir}">
       <classpath>
-        <pathelement path="${java16compile.classpath}"/>
+        <pathelement path="${main.classpath}"/>
         <pathelement location="${oro}"/>
       </classpath>
       <!--exclude name=""/-->

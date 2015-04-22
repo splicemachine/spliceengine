@@ -24,9 +24,9 @@ package com.splicemachine.db.catalog;
 import com.splicemachine.db.iapi.db.Factory;
 import com.splicemachine.db.iapi.db.TriggerExecutionContext;
 
-import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
-import java.sql.SQLException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.sql.*;
 
 /**
  * Provides information about about a a set of new rows created by a
@@ -83,8 +83,98 @@ public final class TriggerNewTransitionRows extends com.splicemachine.db.vti.Upd
     {
         return resultSet.getMetaData();
     }
-    
-   public ResultSet executeQuery() throws SQLException {
+
+    @Override
+    public void setRowId(int parameterIndex, RowId x) throws SQLException {
+
+    }
+
+    @Override
+    public void setNString(int parameterIndex, String value) throws SQLException {
+
+    }
+
+    @Override
+    public void setNCharacterStream(int parameterIndex, Reader value, long length) throws SQLException {
+
+    }
+
+    @Override
+    public void setNClob(int parameterIndex, NClob value) throws SQLException {
+
+    }
+
+    @Override
+    public void setClob(int parameterIndex, Reader reader, long length) throws SQLException {
+
+    }
+
+    @Override
+    public void setBlob(int parameterIndex, InputStream inputStream, long length) throws SQLException {
+
+    }
+
+    @Override
+    public void setNClob(int parameterIndex, Reader reader, long length) throws SQLException {
+
+    }
+
+    @Override
+    public void setSQLXML(int parameterIndex, SQLXML xmlObject) throws SQLException {
+
+    }
+
+    @Override
+    public void setAsciiStream(int parameterIndex, InputStream x, long length) throws SQLException {
+
+    }
+
+    @Override
+    public void setBinaryStream(int parameterIndex, InputStream x, long length) throws SQLException {
+
+    }
+
+    @Override
+    public void setCharacterStream(int parameterIndex, Reader reader, long length) throws SQLException {
+
+    }
+
+    @Override
+    public void setAsciiStream(int parameterIndex, InputStream x) throws SQLException {
+
+    }
+
+    @Override
+    public void setBinaryStream(int parameterIndex, InputStream x) throws SQLException {
+
+    }
+
+    @Override
+    public void setCharacterStream(int parameterIndex, Reader reader) throws SQLException {
+
+    }
+
+    @Override
+    public void setNCharacterStream(int parameterIndex, Reader value) throws SQLException {
+
+    }
+
+    @Override
+    public void setClob(int parameterIndex, Reader reader) throws SQLException {
+
+    }
+
+    @Override
+    public void setBlob(int parameterIndex, InputStream inputStream) throws SQLException {
+
+    }
+
+    @Override
+    public void setNClob(int parameterIndex, Reader reader) throws SQLException {
+
+    }
+
+    public ResultSet executeQuery() throws SQLException {
 	   //DERBY-4095. Need to reinititialize ResultSet on 
        //executeQuery, in case it was closed in a NESTEDLOOP join.
        return initializeResultSet();
@@ -93,8 +183,43 @@ public final class TriggerNewTransitionRows extends com.splicemachine.db.vti.Upd
    public int getResultSetConcurrency() {
         return ResultSet.CONCUR_READ_ONLY;
    }
-   
-   public void close() throws SQLException {
+
+    @Override
+    public boolean isClosed() throws SQLException {
+        return false;
+    }
+
+    @Override
+    public void setPoolable(boolean poolable) throws SQLException {
+
+    }
+
+    @Override
+    public boolean isPoolable() throws SQLException {
+        return false;
+    }
+
+    @Override
+    public void closeOnCompletion() throws SQLException {
+
+    }
+
+    @Override
+    public boolean isCloseOnCompletion() throws SQLException {
+        return false;
+    }
+
+    public void close() throws SQLException {
        resultSet.close();
    }
+
+    @Override
+    public <T> T unwrap(Class<T> iface) throws SQLException {
+        return null;
+    }
+
+    @Override
+    public boolean isWrapperFor(Class<?> iface) throws SQLException {
+        return false;
+    }
 }

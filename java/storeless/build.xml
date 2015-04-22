@@ -27,18 +27,13 @@
     <property file="${properties.dir}/dirs.properties"/>
 
     <!-- Compiler settings -->
-    <property file="${properties.dir}/defaultcompiler.properties"/>
-    <property file="${properties.dir}/${build.compiler}.properties"/>
+    <property file="${properties.dir}/modern.properties"/>
 
     <!-- Parser properties -->
     <property file="${properties.dir}/parser.properties"/>
 
     <!-- Compile-time classpath properties files -->
     <property file="${properties.dir}/extrapath.properties"/>
-    <property file="${properties.dir}/compilepath.properties"/>
-
-    <!-- Release and Version info -->
-    <property file="${properties.dir}/release.properties"/>
 
     <target name="storeless" description="Build storeless engine support code">
 
@@ -51,8 +46,8 @@
         </copy>
 
         <javac
-                source="1.5"
-                target="1.5"
+                source="1.7"
+                target="1.7"
                 bootclasspath="${empty}"
                 nowarn="on"
                 debug="${debug}"
@@ -65,7 +60,7 @@
                 destdir="${out.storeless.dir}">
             <classpath>
                 <pathelement path="${out.dir}"/>
-                <pathelement path="${java15compile.classpath}"/>
+                <pathelement path="${main.classpath}"/>
             </classpath>
         </javac>
     </target>

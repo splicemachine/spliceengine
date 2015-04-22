@@ -26,11 +26,9 @@
   <!-- Significant dirs -->
   <property file="${properties.dir}/dirs.properties"/>
   <!-- Compiler settings -->
-  <property file="${properties.dir}/defaultcompiler.properties"/>
-  <property file="${properties.dir}/${build.compiler}.properties"/>
+  <property file="${properties.dir}/modern.properties"/>
   <!-- Compile-time classpath properties files -->
   <property file="${properties.dir}/extrapath.properties"/>
-  <property file="${properties.dir}/compilepath.properties"/>
 
 <!-- Targets -->
   <target name="jdbc" depends="compile_jdbc2,compile_jdbc3,compile_jdbc4"/>
@@ -39,8 +37,8 @@
 <!-- first build all non-special (non jdbc2.0) targets-->
 
   <target name="compile_jdbc2">
-    <javac source="${compilerLevel16}"
-           target="${compilerLevel16}"
+    <javac source="1.7"
+           target="1.7"
       bootclasspath="${empty}"
       nowarn="on"
       debug="${debug}"
@@ -52,7 +50,7 @@
       srcdir="${derby.engine.src.dir}"
       destdir="${out.dir}">
       <classpath>
-        <pathelement path="${java16compile.classpath}"/>
+        <pathelement path="${main.classpath}"/>
       </classpath>
       <include name="${splice.package}/jdbc/AutoloadedDriver.java"/>
       <include name="${splice.package}/jdbc/EmbeddedDriver.java"/>
@@ -67,8 +65,8 @@
 
  <target name="compile_jdbc3">
     <javac
-            source="${compilerLevel16}"
-			target="${compilerLevel16}"
+            source="1.7"
+			target="1.7"
       bootclasspath="${empty}"
       nowarn="on"
       debug="${debug}"
@@ -80,7 +78,7 @@
       srcdir="${derby.engine.src.dir}"
       destdir="${out.dir}">
       <classpath>
-        <pathelement path="${java15compile.classpath}"/>
+        <pathelement path="${main.classpath}"/>
       </classpath>
       <include name="${splice.package}/jdbc/Driver30.java"/>
       <include name="${splice.package}/jdbc/EmbedXAConnection.java"/>
@@ -93,8 +91,8 @@
 
   <target name="compile_jdbc4" >
     <javac
-      source="${compilerLevel16}"
-      target="${compilerLevel16}"
+      source="1.7"
+      target="1.7"
         bootclasspath="${empty}"
         nowarn="on"
         debug="${debug}"
@@ -106,7 +104,7 @@
         srcdir="${derby.engine.src.dir}"
         destdir="${out.dir}">
         <classpath>
-            <pathelement path="${java16compile.classpath}"/>
+            <pathelement path="${main.classpath}"/>
         </classpath>
         <include name="${splice.package}/jdbc/*40.java"/>
     </javac>

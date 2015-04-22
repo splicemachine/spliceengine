@@ -57,11 +57,9 @@
   <!-- Significant dirs -->
   <property file="${properties.dir}/dirs.properties"/>
   <!-- Compiler settings -->
-  <property file="${properties.dir}/defaultcompiler.properties"/>
-  <property file="${properties.dir}/${build.compiler}.properties"/>
+  <property file="${properties.dir}/modern.properties"/>
   <!-- Compile-time classpath properties files -->
   <property file="${properties.dir}/extrapath.properties"/>
-  <property file="${properties.dir}/compilepath.properties"/>
 
   <property name="cur.dir" value="impl/sql"/>
 
@@ -126,7 +124,7 @@
       srcdir="${derby.engine.src.dir}:${generated.engine.dir}"
       destdir="${out.dir}">
       <classpath>
-        <pathelement path="${log4j};${joda-time};${compile.classpath}"/>
+        <pathelement path="${log4j};${joda-time};${main.classpath}"/>
       	<path refid="lib.path.id"/>
       </classpath>
       <include name="${splice.package}/${cur.dir}/**"/>

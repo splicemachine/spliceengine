@@ -26,11 +26,9 @@
   <!-- Significant dirs -->
   <property file="${properties.dir}/dirs.properties"/>
   <!-- Compiler settings -->
-<property file="${properties.dir}/defaultcompiler.properties"/> 
-  <property file="${properties.dir}/${build.compiler}.properties"/>
+  <property file="${properties.dir}/modern.properties"/>
   <!-- Compile-time classpath properties files -->
   <property file="${properties.dir}/extrapath.properties"/>
-  <property file="${properties.dir}/compilepath.properties"/>
 
 <!-- Targets -->
   <target name="vti" depends="compile_vti"/>
@@ -38,8 +36,8 @@
   <target name="compile_vti">
 
     <javac
-						source="${compilerLevel16}"
-						target="${compilerLevel16}"
+						source="1.7"
+						target="1.7"
       bootclasspath="${empty}"
       nowarn="on"
       debug="${debug}"
@@ -51,7 +49,7 @@
       srcdir="${derby.engine.src.dir}"
       destdir="${out.dir}">
       <classpath>
-        <pathelement path="${compile.classpath}"/>
+        <pathelement path="${main.classpath}"/>
       </classpath>
       <include name="${splice.package}/vti/*.java"/>
       <exclude name="${splice.package}/vti/UpdatableVTITemplate.java"/>
@@ -61,8 +59,8 @@
 
     </javac>
     <javac
-      source="1.4"
-      target="1.4"
+      source="1.7"
+      target="1.7"
       bootclasspath="${empty}"
       nowarn="on"
       debug="${debug}"
@@ -74,7 +72,7 @@
       srcdir="${derby.engine.src.dir}"
       destdir="${out.dir}">
       <classpath>
-        <pathelement path="${java15compile.classpath}"/>
+        <pathelement path="${main.classpath}"/>
       </classpath>
     	<include name="${splice.package}/vti/UpdatableVTITemplate.java"/>
     	<include name="${splice.package}/vti/VTITemplate.java"/>

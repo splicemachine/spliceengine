@@ -38,18 +38,13 @@
 
   <!-- Compiler settings -->
   <property file="${properties.dir}/sane${sanity}.properties"/>
-  <property file="${properties.dir}/defaultcompiler.properties"/>
-  <property file="${properties.dir}/${build.compiler}.properties"/>
+  <property file="${properties.dir}/modern.properties"/>
 
   <!-- Parser properties -->
   <!--property file="${properties.dir}/parser.properties"/-->
 
   <!-- Compile-time classpath properties files -->
   <property file="${properties.dir}/extrapath.properties"/>
-  <property file="${properties.dir}/compilepath.properties"/>
-
-  <!-- Release and Version info -->
-  <property file="${properties.dir}/release.properties"/>
 
   <!-- db testing specific properties files -->
   <property file="${ant.home}/properties/derbytesting.properties"/>
@@ -67,8 +62,8 @@
 
   <target name="compilet1" >
     <javac
-						source="${compilerLevel16}"
-						target="${compilerLevel16}"
+						source="1.7"
+						target="1.7"
       bootclasspath="${empty}"
       nowarn="on"
       debug="true"
@@ -81,7 +76,7 @@
       destdir="${out.dir}">
       <classpath>
         <!--pathelement location="${oro}"/-->
-        <pathelement path="${java16compile.classpath}"/>
+        <pathelement path="${main.classpath}"/>
       	<pathelement path="${junit}"/>
       </classpath>
       <include name="${this.dir}/*.java"/>
@@ -103,8 +98,8 @@
   </target>
   <target name="compilet2" depends="compilet1">
     <javac
-						source="${compilerLevel16}"
-						target="${compilerLevel16}"
+						source="1.7"
+						target="1.7"
       bootclasspath="${empty}"
       nowarn="on"
       debug="true"
@@ -116,7 +111,7 @@
       srcdir="${derby.testing.src.dir}"
       destdir="${out.dir}">
       <classpath>
-        <pathelement path="${java16compile.classpath}"/>
+        <pathelement path="${main.classpath}"/>
         <pathelement path="${junit}"/>
       </classpath>
       <include name="${this.dir}/holdCursorJavaReflection.java"/>
@@ -131,8 +126,8 @@
 	
   <target name="compilet3" depends="compilet2">
     <javac
-						source="${compilerLevel16}"
-						target="${compilerLevel16}"
+						source="1.7"
+						target="1.7"
       bootclasspath="${empty}"
       nowarn="on"
       debug="true"
@@ -144,15 +139,15 @@
       srcdir="${derby.testing.src.dir}"
       destdir="${out.dir}">
       <classpath>
-        <pathelement path="${java16compile.classpath}"/>
+        <pathelement path="${main.classpath}"/>
       </classpath>
       <include name="${this.dir}/declareGlobalTempTableJavaJDBC30.java"/>
     </javac>
   </target> 
 	<target name="compilet3.1" depends="compilet3">
 	    <javac
-							source="${compilerLevel16}"
-							target="${compilerLevel16}"
+							source="1.7"
+							target="1.7"
 	      bootclasspath="${empty}"
 	      nowarn="on"
 	      debug="true"
@@ -164,7 +159,7 @@
 	      srcdir="${derby.testing.src.dir}"
 	      destdir="${out.dir}">
 	      <classpath>
-	        <pathelement path="${java16compile.classpath}"/>
+	        <pathelement path="${main.classpath}"/>
 	      </classpath>
 	      <include name="${this.dir}/FullName.java"/>
 	      <include name="${this.dir}/GenericMode.java"/>
@@ -179,8 +174,8 @@
 	base level -->
 	<target name="compilett4" depends="compilet3.1" >
     <javac
-						source="${compilerLevel16}"
-						target="${compilerLevel16}"
+						source="1.7"
+						target="1.7"
       bootclasspath="${empty}"
       nowarn="on"
       debug="true"
@@ -192,7 +187,7 @@
       srcdir="${derby.testing.src.dir}"
       destdir="${out.dir}">
       <classpath>
-        <pathelement path="${compile.classpath}"/>
+        <pathelement path="${main.classpath}"/>
       	<pathelement path="${junit}"/>
       </classpath>
 
@@ -221,7 +216,7 @@
           dir="${lang-test-dir}" fork="true">
       <classpath>
         <pathelement path="${out.dir}"/>
-        <pathelement path="${compile.classpath}"/>
+        <pathelement path="${main.classpath}"/>
       </classpath>
       <arg value="${lang-test-dir}/nast_init.sql"/>
     </java>

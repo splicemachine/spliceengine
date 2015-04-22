@@ -26,18 +26,16 @@
   <!-- Significant dirs -->
   <property file="${properties.dir}/dirs.properties"/>
   <!-- Compiler settings -->
-<property file="${properties.dir}/defaultcompiler.properties"/> 
-  <property file="${properties.dir}/${build.compiler}.properties"/>
+  <property file="${properties.dir}/modern.properties"/>
   <!-- Compile-time classpath properties files -->
   <property file="${properties.dir}/extrapath.properties"/>
-  <property file="${properties.dir}/compilepath.properties"/>
 
 <!-- Targets -->
 
   <target name="compile_impl_store">
     <javac
-      source="1.4"
-      target="1.4"
+      source="1.7"
+      target="1.7"
       bootclasspath="${empty}"
       nowarn="on"
       debug="${debug}"
@@ -49,7 +47,7 @@
       srcdir="${derby.engine.src.dir}"
       destdir="${out.dir}">
       <classpath>
-        <pathelement path="${joda-time};${java15compile.classpath}"/>
+        <pathelement path="${joda-time};${main.classpath}"/>
       </classpath>
       <include name="${splice.package}/impl/store/**"/>
       <exclude name="${splice.package}/impl/store/raw/data/RAFContainer4.java"/>
@@ -61,8 +59,8 @@
 
   <target name="compile_impl_store_14" depends="compile_impl_store">
       <javac
-        source="1.4"
-        target="1.4"
+        source="1.7"
+        target="1.7"
       bootclasspath="${empty}"
       nowarn="on"
       debug="${debug}"
@@ -74,7 +72,7 @@
       srcdir="${derby.engine.src.dir}"
       destdir="${out.dir}">
       <classpath>
-        <pathelement path="${joda-time};${java15compile.classpath}"/>
+        <pathelement path="${joda-time};${main.classpath}"/>
       </classpath>
       <include name="${splice.package}/impl/store/raw/data/RAFContainer4.java"/>
       <include name="${splice.package}/impl/store/raw/data/BaseDataFileFactoryJ4.java"/>
@@ -83,8 +81,8 @@
 
   <target name="compile_impl_store_15" depends="compile_impl_store_14">
       <javac
-        source="1.5"
-        target="1.5"
+        source="1.7"
+        target="1.7"
       bootclasspath="${empty}"
       nowarn="on"
       debug="${debug}"
@@ -96,7 +94,7 @@
       srcdir="${derby.engine.src.dir}"
       destdir="${out.dir}">
       <classpath>
-        <pathelement path="${joda-time};${java15compile.classpath}"/>
+        <pathelement path="${joda-time};${main.classpath}"/>
       </classpath>
       <include name="${splice.package}/impl/store/raw/xact/ConcurrentTransactionMapFactory.java"/>
       <include name="${splice.package}/impl/store/raw/xact/ConcurrentXactFactory.java"/>
