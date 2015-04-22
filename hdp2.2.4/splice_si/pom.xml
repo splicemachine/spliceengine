@@ -278,8 +278,8 @@
 								<option>-keep public class com.splicemachine.si.impl.rollforward.RollForwardManagement { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.rollforward.RollForwardStatus { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.store.ActiveTxnCacheSupplier { public *; }</option>
-                                <option>-keep public class com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.store.CompletedTxnCacheSupplier { public *; }</option>
+                                <option>-keep public class com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.store.LazyTxnSupplier { public *; }</option>
 								<option>-keep public class com.splicemachine.si.txn.JtaXAResource { public *; }</option>
 								<option>-keep public class com.splicemachine.si.txn.ZooKeeperStatTimestampSource { public *; }</option>
