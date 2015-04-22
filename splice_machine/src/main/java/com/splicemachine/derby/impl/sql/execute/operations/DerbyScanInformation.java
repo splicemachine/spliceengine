@@ -4,6 +4,7 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.SQLChar;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -396,14 +397,15 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
                     qualifier = QualifierUtils.adjustQualifier(qualifier, columnFormat, activation.getDataValueFactory());
                     qualifiers[qualPos] = qualifier;
                 }
-                //make sure that SQLChar qualifiers strip out \u0000 padding
+                // For SQLChar qualifiers strip trailing character 0 and 32 (space).  Not sure why we strip trailing
+                // character 0 here, as 32 (space) is used as padding when we persist SQLChar values.
                 if (dvd.getTypeFormatId() == StoredFormatIds.SQL_CHAR_ID) {
                     String value = dvd.getString();
                     if (value != null) {
                         char[] valChars = value.toCharArray();
                         int finalPosition = valChars.length;
                         for (int i = valChars.length - 1; i >= 0; i--) {
-                            if (valChars[i] != '\u0000') {
+                            if (valChars[i] != '\u0000' && valChars[i] != SQLChar.PAD) {
                                 finalPosition = i + 1;
                                 break;
                             }
