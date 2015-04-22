@@ -262,10 +262,34 @@ public class SnapshotUtilsImpl implements SnapshotUtils {
     	p = new Path(p, parts[0]);
     	return p;
     }
-    
+
+    private String getTableName(Path refFilePath) {
+        Path p = refFilePath.getParent().getParent().getParent();
+        return p.getName();
+    }
+
+    private String getColumnFamilyName(Path refFilePath) {
+        Path p = refFilePath.getParent();
+        return p.getName();
+    }
+
+    private String getRegionName(Path refFilePath) {
+        String[] parts = refFilePath.getName().split("\\.");
+        return parts[1];
+    }
+
+    private String getFileName(Path refFilePath) {
+        String[] parts = refFilePath.getName().split("\\.");
+        return parts[0];
+    }
+
     public HFileLink getReferredFileLink(HFileLink ref) throws IOException
     {
-    	return new HFileLink(SpliceConstants.config, getReferredFile(ref.getOriginPath()));
+        return HFileLink.create(SpliceConstants.config,
+                TableName.valueOf(getTableName(ref.getOriginPath()).getBytes()),
+                getRegionName(ref.getOriginPath()),
+                getColumnFamilyName(ref.getOriginPath()),
+                getFileName(ref.getOriginPath()));
     }
     /**
      * Checks if region info for the current region.
