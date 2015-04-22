@@ -71,14 +71,22 @@ public class RestoreBackupTask extends ZkTask {
     public void doExecute() throws ExecutionException, InterruptedException {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, String.format("executing %S backup on region %s", backupItem.getBackup().isIncrementalBackup() ? "incremental" : "full", region.toString()));
+        List<Pair<byte[], String>> copyPaths = null;
+        FileSystem fs = region.getFilesystem();
         try {
             BackupItem.RegionInfo regionInfo = getRegionInfo();
             if (regionInfo == null) {
                 return;
             }
             List<Pair<byte[], String>> famPaths = regionInfo.getFamPaths();
-            List<Pair<byte[], String>> copyPaths = copyStoreFiles(famPaths);
+            copyPaths = copyStoreFiles(famPaths);
             derbyFactory.bulkLoadHFiles(region, copyPaths);
+            if (copyPaths != null) {
+                for (Pair<byte[], String> p : copyPaths) {
+                    String path = p.getSecond();
+                    fs.delete(new Path(path), true);
+                }
+            }
         } catch (IOException e) {
             SpliceLogUtils.error(LOG, "Couldn't recover region " + region, e);
             throw new ExecutionException("Failed recovery of region " + region, e);
