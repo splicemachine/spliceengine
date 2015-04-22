@@ -119,22 +119,33 @@ public class IndexStatsCostController extends StatsStoreCostController {
          * we pause on the last block.
          *
          */
+        double latency;
         double fillBlockCost = (cost.localCost()/rowsToFetch)*lookupsPerBlock;
-        int blocksBeforePausing = SpliceConstants.indexLookupBlocks;
+        if(fillBlockCost>blockLookupLatency){
+            /*
+             * We are in a situation where the cost to perform the lookup is less than the cost
+             * to fill the next block. In this scenario, the algorithm will never pause, and the overall
+             * lookup cost is just the cost to wait for the *FINAL* block to return, which is
+             * a single lookupsPerBlock
+             */
+            latency = blockLookupLatency;
+        }else{
+            int blocksBeforePausing=SpliceConstants.indexLookupBlocks;
 
-        //fillToLookupRatio = how long it takes to fill the next block/the cost to perform this block's lookup
-        double largeBlockLatency = blockLookupLatency-(blocksBeforePausing-1)*fillBlockCost;
+            //fillToLookupRatio = how long it takes to fill the next block/the cost to perform this block's lookup
+            double largeBlockLatency=blockLookupLatency-(blocksBeforePausing-1)*fillBlockCost;
 
-        int specialBlocks = blocksBeforePausing-(int)(numBlocks %blocksBeforePausing);
-        long nBlocks = numBlocks-specialBlocks;
+            int specialBlocks=blocksBeforePausing-(int)(numBlocks%blocksBeforePausing);
+            long nBlocks=numBlocks-specialBlocks;
 
-        double latency = nBlocks*largeBlockLatency;
+            latency=nBlocks*largeBlockLatency;
 
-        //we have some leftover blocks, so we have to deal with those
-        while(specialBlocks>0){
-            largeBlockLatency +=fillBlockCost;
-            latency+=largeBlockLatency;
-            specialBlocks--;
+            //we have some leftover blocks, so we have to deal with those
+            while(specialBlocks>0){
+                largeBlockLatency+=fillBlockCost;
+                latency+=largeBlockLatency;
+                specialBlocks--;
+            }
         }
 
         /*
