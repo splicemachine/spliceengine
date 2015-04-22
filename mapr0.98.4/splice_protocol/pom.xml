@@ -34,7 +34,7 @@
 				<artifactId>maven-protoc-plugin</artifactId>
 				<configuration>
 					<protocExecutable>protoc</protocExecutable>
-					<protoSourceRoot>${project.basedir}/../../splice_protocol/src/main/protobuf</protoSourceRoot>
+					<protoSourceRoot>${project.basedir}/src/main/protobuf</protoSourceRoot>
 				</configuration>
 				<executions>
 					<execution>

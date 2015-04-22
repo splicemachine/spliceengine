@@ -563,6 +563,7 @@
 								<argument>-Xmx5g</argument>
 								<argument>-Xms1g</argument>
 								<argument>-XX:MaxPermSize=256M</argument>
+								<argument>-enableassertions</argument>
 								<argument>-XX:+CMSClassUnloadingEnabled</argument>
 								<argument>-Xrunjdwp:transport=dt_socket,server=y,suspend=n,address=4004</argument>
 								<argument>org.apache.spark.deploy.worker.Worker</argument>
