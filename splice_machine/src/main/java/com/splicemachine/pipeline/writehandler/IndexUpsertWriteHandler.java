@@ -96,12 +96,26 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
 
     @Override
     public boolean updateIndex(KVPair mutation, WriteContext ctx) {
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "updateIndex with %s", mutation);
-
         ensureBufferReader(mutation, ctx);
 
-        return upsert(mutation, ctx);
+        if (mutation.getType().isUpdateOrUpsert() && doUpdate(mutation, ctx)) {
+            // The doUpdate() method either updated the index or determined that it doesn't need to be updated.
+            return false;
+        }
+
+        // If we arrive here we are an INSERT or an UPDATE/UPSERT that has not yet updated the index.
+
+        try {
+            KVPair indexPair = transformer.translate(mutation);
+            if(keepState) {
+                this.indexToMainMutationMap.put(indexPair, mutation);
+            }
+            indexBuffer.add(indexPair);
+        } catch (Exception e) {
+            failed = true;
+            ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName() + ":" + e.getMessage()));
+        }
+        return true;
     }
 
     @Override
@@ -118,29 +132,6 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
                 failed = true;
             }
         }
-    }
-
-    private boolean upsert(KVPair mutation, WriteContext ctx) {
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "upsert %s", mutation);
-        KVPair put = update(mutation, ctx);
-        if (put == null) {
-            return false; //we updated the table, and the index during the update process
-        }
-
-        try {
-            KVPair indexPair = transformer.translate(mutation);
-        	if (LOG.isTraceEnabled())
-        		SpliceLogUtils.trace(LOG, "performing upsert on row %s", BytesUtil.toHex(indexPair.getRowKey()));
-
-            if(keepState)
-                this.indexToMainMutationMap.put(indexPair,mutation);
-            indexBuffer.add(indexPair);
-        } catch (Exception e) {
-            failed = true;
-            ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName() + ":" + e.getMessage()));
-        }
-        return true;
     }
 
     private MultiFieldDecoder createKeyDecoder() {
@@ -183,19 +174,12 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
         }
     }
 
-    private KVPair update(KVPair mutation, WriteContext ctx) {
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "update mutation=%s", BytesUtil.toHex(mutation.getRowKey()));
-        switch (mutation.getType()) {
-            case UPDATE:
-            case UPSERT:
-                return doUpdate(mutation, ctx);
-            default:
-                return mutation;
-        }
-    }
-
-    private KVPair doUpdate(KVPair mutation, WriteContext ctx) {
+    /**
+     * @return TRUE if we update the index or otherwise determine that no further mutation of the index is necessary.
+     * If this returns FALSE then we are indicating that the original mutation should be transformed and written to the
+     * index as it is.
+     */
+    private boolean doUpdate(KVPair mutation, WriteContext ctx) {
         if (newPutDecoder == null) {
             newPutDecoder = new EntryDecoder();
         }
@@ -224,7 +208,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
                 SpliceLogUtils.trace(LOG, "update mutation, index does not need updating");
             //nothing in the index has changed, whoo!
             ctx.sendUpstream(mutation);
-            return null;
+            return true;
         }
 
         /*
@@ -251,10 +235,10 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
                 /*
                  * There is no entry in the main table, so this is an insert, regardless of what it THINKS it is
                  */
-                return mutation;
+                return false;
             } else if (mutation.getType() == KVPair.Type.UPSERT && !needsIndexUpdating) {
                 //we didn't change the index, and the row exists, we can skip!
-                return null;
+                return true;
             }
 
             ByteEntryAccumulator newKeyAccumulator = transformer.getKeyAccumulator();
@@ -350,7 +334,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
              */
             if (newKeyAccumulator.fieldsMatch(oldKeyAccumulator)) {
                 //our fields match exactly, nothing to update! don't insert into the index either
-                return null;
+                return true;
             }
 
             //bummer, we have to update the index--specifically, we have to delete the old row, then
@@ -384,14 +368,14 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             indexBuffer.add(newPut);
 
             ctx.sendUpstream(mutation);
-            return null;
+            return true;
         } catch (Exception e) {
             failed = true;
             ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName() + ":" + e.getMessage()));
         }
 
         //if we get an exception, then return null so we don't try and insert anything
-        return null;
+        return true;
     }
 
     private void occupy(EntryAccumulator accumulator, DataValueDescriptor dvd, int position) {
