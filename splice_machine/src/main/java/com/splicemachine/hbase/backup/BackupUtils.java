@@ -5,16 +5,20 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 
+import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.utils.SpliceUtilities;
 import com.splicemachine.utils.ZkUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.io.HFileLink;
 import org.apache.hadoop.hbase.regionserver.*;
 
@@ -24,6 +28,7 @@ import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
 import com.splicemachine.si.api.TxnView;
 import org.apache.zookeeper.KeeperException;
+import org.apache.hadoop.hbase.protobuf.generated.HBaseProtos;
 
 public class BackupUtils {
 
@@ -156,10 +161,6 @@ public class BackupUtils {
         return backup != null;
     }
 
-    public static String getSnapshotName(String tableName, long backupId) {
-        return tableName + "_" + backupId;
-    }
-
     /**
      * Get last snapshot name.
      * @param tableName
@@ -168,16 +169,41 @@ public class BackupUtils {
     public static String getLastSnapshotName(String tableName) {
 
         String snapshotName = null;
+        HBaseAdmin admin = null;
         try {
-            long backupId = BackupUtils.getLastBackupId();
-            if (backupId > 0) {
-                snapshotName = getSnapshotName(tableName, backupId);
+            admin = SpliceUtilities.getAdmin();
+            long creationTime = 0;
+            List<HBaseProtos.SnapshotDescription> snapshotDescriptionList = admin.listSnapshots(tableName+"_\\d+$");
+            for (HBaseProtos.SnapshotDescription snapshotDescription : snapshotDescriptionList) {
+                if(snapshotDescription.getCreationTime() > creationTime) {
+                    snapshotName = snapshotDescription.getName();
+                }
             }
+        } catch (IOException e) {
+          return null;
+        } finally {
+        Closeables.closeQuietly(admin);
+    }
+        return snapshotName;
+    }
+
+    public static long getBackupId(String snapshotName) {
+        String s[] = snapshotName.split("_");
+        return new Long(s[1]);
+    }
+
+    public static Backup getBackup(long backupId) throws StandardException{
+        Txn txn = null;
+        Backup backup = null;
+        try {
+            txn = TransactionLifecycle.getLifecycleManager()
+                    .beginTransaction();
+            backup = BackupSystemProcedures.backupReporter.getBackup(backupId, txn);
         } catch (Exception e) {
-            SpliceLogUtils.warn(LOG, "BackupUtils.getSnapshotName: %s", e.getMessage());
+            throw Exceptions.parseException(e);
         }
 
-        return snapshotName;
+        return backup;
     }
 
     /**

@@ -29,6 +29,7 @@ import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 
 import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.protobuf.generated.HBaseProtos;
 import org.apache.log4j.Logger;
@@ -490,6 +491,7 @@ public class BackupSystemProcedures {
             backup.createProperties();
             HashMap<String, BackupItem> backupItems = backup.getBackupItems();
             backup.start();
+
             for (String key : backupItems.keySet()) {
                 BackupItem backupItem =  backupItems.get(key);
                 boolean backedUp = backupItem.doBackup();
