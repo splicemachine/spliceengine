@@ -296,11 +296,11 @@ class DenseCompressedBitIndex implements BitIndex {
 
     @Override
     public String toString() {
-        return "{" +
+        return "{bitSet=" +
                 bitSet +
-                "," + scalarFields +
-                "," + floatFields +
-                "," + doubleFields +
+                ", scalarFields=" + scalarFields +
+                ", floatFields=" + floatFields +
+                ", doubleFields=" + doubleFields +
                 '}';
     }
 

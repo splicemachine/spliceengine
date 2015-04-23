@@ -30,6 +30,8 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
+ * Intercepts UPDATE/UPSERT/INSERT mutations to a base table and sends corresponding mutations to the index table.
+ *
  * @author Scott Fines
  *         Created on: 5/1/13
  */
@@ -97,15 +99,14 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "updateIndex with %s", mutation);
 
-        if (mutation.getType() == KVPair.Type.DELETE) {
-            if (LOG.isTraceEnabled())
-                SpliceLogUtils.trace(LOG, "updateIndex ignore delete %s", mutation);
-            return true; //send upstream without acting on it
-        }
-
         ensureBufferReader(mutation, ctx);
 
         return upsert(mutation, ctx);
+    }
+
+    @Override
+    protected boolean isHandledMutationType(KVPair.Type type) {
+        return type == KVPair.Type.UPDATE || type == KVPair.Type.INSERT || type == KVPair.Type.UPSERT;
     }
 
     private void ensureBufferReader(KVPair mutation, WriteContext ctx) {
@@ -131,7 +132,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             KVPair indexPair = transformer.translate(mutation);
         	if (LOG.isTraceEnabled())
         		SpliceLogUtils.trace(LOG, "performing upsert on row %s", BytesUtil.toHex(indexPair.getRowKey()));
-            
+
             if(keepState)
                 this.indexToMainMutationMap.put(indexPair,mutation);
             indexBuffer.add(indexPair);
@@ -241,7 +242,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
         try{
             byte[] row = mutation.getRowKey();
             Get oldGet = SpliceUtils.createGet(ctx.getTxn(), row);
-            //TODO -sf- when it comes time to add additional (non-indexed data) to the index, you'll need to add more fields than just what's in indexedColumns
+            // TODO -sf- when it comes time to add additional (non-indexed data) to the index, you'll need to add more fields than just what's in indexedColumns
             EntryPredicateFilter filter = new EntryPredicateFilter(indexedColumns, new ObjectArrayList<Predicate>(), true);
             oldGet.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL, filter.toBytes());
 
