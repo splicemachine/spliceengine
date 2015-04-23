@@ -83,9 +83,6 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
 
     @Override
 	public boolean updateIndex(KVPair mutation, WriteContext ctx) {
-    	if (LOG.isTraceEnabled())
-    		SpliceLogUtils.trace(LOG, "updateIndex with %s", mutation);
-        if(mutation.getType()!= KVPair.Type.DELETE) return true;
         if(indexBuffer==null){
             try{
                 indexBuffer = getWriteBuffer(ctx,expectedWrites);
@@ -97,6 +94,11 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
 
         delete(mutation,ctx);
         return !failed;
+    }
+
+    @Override
+    protected boolean isHandledMutationType(KVPair.Type type) {
+        return type == KVPair.Type.DELETE;
     }
 
     @Override

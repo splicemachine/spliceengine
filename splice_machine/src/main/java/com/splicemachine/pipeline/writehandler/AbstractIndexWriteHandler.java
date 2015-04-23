@@ -64,8 +64,9 @@ public abstract class AbstractIndexWriteHandler implements WriteHandler {
         if (failed)
             ctx.notRun(mutation);
         else {
-            boolean sendUp = updateIndex(mutation, ctx);
-            if (sendUp) {
+            if (!isHandledMutationType(mutation.getType())) {
+                ctx.sendUpstream(mutation);
+            } else if (updateIndex(mutation, ctx)) {
                 ctx.sendUpstream(mutation);
             }
         }
@@ -108,6 +109,8 @@ public abstract class AbstractIndexWriteHandler implements WriteHandler {
             } else throw new IOException(e); //something unexpected went bad, need to propagate
         }
     }
+
+    protected abstract boolean isHandledMutationType(KVPair.Type type);
 
     protected abstract boolean updateIndex(KVPair mutation, WriteContext ctx);
 
