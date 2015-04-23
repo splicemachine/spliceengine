@@ -14,7 +14,11 @@ import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.TxnView;
+import com.splicemachine.stats.ColumnStatistics;
+import com.splicemachine.stats.PartitionStatistics;
+import org.apache.log4j.Logger;
 
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -22,6 +26,7 @@ import java.util.concurrent.ExecutionException;
  *         Date: 3/10/15
  */
 public class IndexStatsCostController extends StatsStoreCostController {
+    private static final Logger LOG=Logger.getLogger(IndexStatsCostController.class);
     private final int totalColumns;
     private OverheadManagedTableStatistics baseTableStatistics;
     private int[] indexColToHeapColMap;
@@ -45,16 +50,13 @@ public class IndexStatsCostController extends StatsStoreCostController {
         long heapConglomerateId = indexConglomerate.getIndexConglomerate();
         int[] baseColumnPositions = cd.getIndexDescriptor().baseColumnPositions();
         this.indexColToHeapColMap = new int[baseColumnPositions.length];
-        for(int i=0;i<indexColToHeapColMap.length;i++){
-            this.indexColToHeapColMap[i] = baseColumnPositions[i];
-        }
-        this.isUnique = cd.getIndexDescriptor().isUnique();
+        System.arraycopy(baseColumnPositions,0,this.indexColToHeapColMap,0,indexColToHeapColMap.length);
         try {
             this.baseTableStatistics = StatisticsStorage.getPartitionStore().getStatistics(txn, heapConglomerateId);
         } catch (ExecutionException e) {
             throw Exceptions.parseException(e);
         }
-        totalColumns = cd.getColumnNames().length;
+        totalColumns = ((SpliceConglomerate)heapConglomerate).getFormat_ids().length;
         this.baseTableKeyColumns = ((SpliceConglomerate)heapConglomerate).getColumnOrdering();
     }
 
