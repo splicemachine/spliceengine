@@ -1,27 +1,28 @@
 package com.splicemachine.derby.impl.store.access.base;
 
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.SyncFailedException;
 
+import org.apache.hadoop.fs.FSDataOutputStream;
+
 import com.splicemachine.db.io.StorageFactory;
 
 /**
- * A FileResource implementation for writing and reading JAR files to and from the local file system.
+ * A FileResource implementation for writing and reading JAR files to and from the Hadoop distributed file system (HDFS).
  *
  * @author dwinters
  */
 
-public class SpliceLocalFileResource extends SpliceBaseFileResource {
+public class SpliceHdfsFileResource extends SpliceBaseFileResource {
 
-	public SpliceLocalFileResource(StorageFactory storageFactory) {
+	public SpliceHdfsFileResource(StorageFactory storageFactory) {
 		super(storageFactory);
 	}
 
 	@Override
 	protected void syncOutputStream(OutputStream os)
 			throws SyncFailedException, IOException {
-		((FileOutputStream) os).getFD().sync();
+		((FSDataOutputStream) os).hsync();
 	}
 }
