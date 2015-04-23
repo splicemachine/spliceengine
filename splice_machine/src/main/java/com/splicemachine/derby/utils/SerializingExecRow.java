@@ -122,4 +122,9 @@ public class SerializingExecRow implements ExecRow, Externalizable  {
             }
         }
     }
+
+    @Override
+    public ExecRow getKeyedExecRow(int[] ints) throws StandardException {
+        return delegate.getKeyedExecRow(ints);
+    }
 }

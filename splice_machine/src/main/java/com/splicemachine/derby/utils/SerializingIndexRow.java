@@ -125,4 +125,9 @@ public class SerializingIndexRow implements ExecIndexRow,Externalizable {
             ((SerializingExecRow)valueRow).populateNulls(dvf);
         }
     }
+
+    @Override
+    public ExecRow getKeyedExecRow(int[] ints) throws StandardException {
+        return valueRow.getKeyedExecRow(ints);
+    }
 }
