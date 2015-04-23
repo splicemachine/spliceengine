@@ -1,12 +1,14 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.sql.execute.KeyableRow;
 import com.splicemachine.db.iapi.types.RowLocation;
 
 /**
  * Created by dgomezferro on 4/14/15.
  */
-public class LocatedRow {
+public class LocatedRow implements KeyableRow {
     private RowLocation rowLocation;
     private ExecRow row;
 
@@ -50,5 +52,15 @@ public class LocatedRow {
     @Override
     public int hashCode() {
         return row.hashCode();
+    }
+
+    @Override
+    public ExecRow getKeyedExecRow(int[] ints) throws StandardException {
+        return row.getKeyedExecRow(ints);
+    }
+
+    @Override
+    public String toString() {
+        return String.format("LocatedRow {rowLocation=%s, row=%s}",rowLocation,row);
     }
 }
