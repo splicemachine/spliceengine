@@ -184,32 +184,33 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             newPutDecoder = new EntryDecoder();
         }
 
+        // This gives us the non-primary-key columns that this mutation modifies.
         newPutDecoder.set(mutation.getValue());
-
         BitIndex updateIndex = newPutDecoder.getCurrentIndex();
-        boolean needsIndexUpdating = false;
+
+        boolean nonPrimaryKeyIndexColumnUpdated = false;
         for (int i = updateIndex.nextSetBit(0); i >= 0; i = updateIndex.nextSetBit(i + 1)) {
             if (indexedColumns.get(i)) {
-                needsIndexUpdating = true;
+                nonPrimaryKeyIndexColumnUpdated = true;
                 break;
             }
         }
-        /*
-         * We would normally love to say that the index hasn't changed--however,
-         * we can't do that in the case of an upsert, because the record may not
-         * exist. In that case, we'll do a local check--if the record already
-         * exists locally, THEN we can say that the index hasn't changed.
-         *
-         * If we are an UPDATE, then we know that the record MUST exist, so
-         * we can skip even the local fetch.
-         */
-        if (mutation.getType() != KVPair.Type.UPSERT && !needsIndexUpdating) {
-            if (LOG.isTraceEnabled())
-                SpliceLogUtils.trace(LOG, "update mutation, index does not need updating");
-            //nothing in the index has changed, whoo!
+
+        if (!nonPrimaryKeyIndexColumnUpdated) {
+            /*
+             * This is an UPDATE or an UPSERT and we have ONLY updated primary key columns.  Return and send the mutation
+             * to the index as it is.  The old value will have been deleted by the UpdateOperation which sends
+             * a delete mutation when it sees that primary keys have changed.
+             */
             ctx.sendUpstream(mutation);
-            return true;
+            return false;
         }
+
+        // If we get here:
+        //
+        // (1) We are an UPDATE or UPSERT
+        // (2) We are modifying non-primary keys.
+        // (3) WE MAY-BE modifying primary keys.
 
         /*
          * To update the index now, we must find the old index row and delete it, then
@@ -232,13 +233,10 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
 
             Result r = ctx.getRegion().get(oldGet);
             if (r == null || r.isEmpty()) {
-                /*
-                 * There is no entry in the main table, so this is an insert, regardless of what it THINKS it is
-                 */
+                /* There is no entry in the main table, with this primary key. This is probably because this mutation
+                 * modifies primary keys and non-primary keys (ie the row key has changed).  Return and treat it like
+                 * an insert. The old index value will have been deleted by UpdateOperation. */
                 return false;
-            } else if (mutation.getType() == KVPair.Type.UPSERT && !needsIndexUpdating) {
-                //we didn't change the index, and the row exists, we can skip!
-                return true;
             }
 
             ByteEntryAccumulator newKeyAccumulator = transformer.getKeyAccumulator();
