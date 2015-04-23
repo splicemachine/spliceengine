@@ -7,6 +7,10 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.stream.DataSet;
+import com.splicemachine.derby.stream.DataSetProcessor;
+import com.splicemachine.derby.stream.StreamUtils;
+import com.splicemachine.derby.stream.function.SpliceFunction;
 import com.splicemachine.derby.stream.spark.RDDUtils;
 import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.impl.storage.RowProviders;
@@ -19,6 +23,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.function.Function;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -36,19 +41,22 @@ public class CachedOperation extends SpliceBaseOperation {
 
     private static Logger LOG = Logger.getLogger(CachedOperation.class);
     private final List<NodeType> nodeTypes = Collections.singletonList(NodeType.MAP);
-    protected static final String NAME = CachedOperation.class.getSimpleName().replaceAll("Operation","");
+    protected static final String NAME = CachedOperation.class.getSimpleName().replaceAll("Operation", "");
 
-	@Override
-	public String getName() {
-			return NAME;
-	}
+    @Override
+    public String getName() {
+        return NAME;
+    }
 
-    
+
     int size;
     int position = 0;
     List<ExecRow> rows;
 
-    public CachedOperation(){};
+    public CachedOperation() {
+    }
+
+    ;
 
     public CachedOperation(Activation activation, List<ExecRow> rows, int resultSetNumber) throws StandardException {
         super(activation, resultSetNumber, 0, 0);
@@ -70,14 +78,14 @@ public class CachedOperation extends SpliceBaseOperation {
 
     @Override
     public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-        if(timer==null){
+        if (timer == null) {
             timer = spliceRuntimeContext.newTimer();
         }
         timer.startTiming();
 
         ExecRow row;
 
-        if (position < size){
+        if (position < size) {
             row = rows.get(position);
             position++;
             timer.tick(1);
@@ -92,15 +100,15 @@ public class CachedOperation extends SpliceBaseOperation {
 
     @Override
     public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
-				try {
-						return new SpliceNoPutResultSet(activation, this, getMapRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext), runtimeContext));
-				} catch (IOException e) {
-						throw Exceptions.parseException(e);
-				}
-		}
+        try {
+            return new SpliceNoPutResultSet(activation, this, getMapRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext), runtimeContext));
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
+    }
 
     @Override
-		public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+    public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         top.init(SpliceOperationContext.newContext(activation));
 
         //make sure the runtime context knows it can be merged
@@ -109,15 +117,15 @@ public class CachedOperation extends SpliceBaseOperation {
     }
 
     @Override
-		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException, IOException {
-				return getMapRowProvider(top, rowDecoder, spliceRuntimeContext);
-		}
+    public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException, IOException {
+        return getMapRowProvider(top, rowDecoder, spliceRuntimeContext);
+    }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
         size = in.readInt();
-        rows = (List<ExecRow>)in.readObject();
+        rows = (List<ExecRow>) in.readObject();
     }
 
     @Override
@@ -153,7 +161,7 @@ public class CachedOperation extends SpliceBaseOperation {
         return new StringBuilder("CachedOp")
                 .append(indent).append("resultSetNumber:").append(resultSetNumber)
                 .append(indent).append("rowsCached:").append(size)
-                .append(indent).append("first 10:").append(rows.subList(0,10))
+                .append(indent).append("first 10:").append(rows.subList(0, 10))
                 .toString();
     }
 
@@ -165,5 +173,16 @@ public class CachedOperation extends SpliceBaseOperation {
     @Override
     public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
         return RDDUtils.toSparkRows(SpliceSpark.getContext().parallelize(rows));
+    }
+
+    @Override
+    public DataSet<SpliceOperation, LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+        DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
+        return dsp.createDataSet(rows).map(new SpliceFunction<SpliceOperation, ExecRow, LocatedRow>() {
+            @Override
+            public LocatedRow call(ExecRow execRow) throws Exception {
+                return new LocatedRow(execRow);
+            }
+        });
     }
 }

@@ -64,8 +64,8 @@ public class ControlDataSet<Op extends SpliceOperation,V> implements DataSet<Op,
     }
 
     @Override
-    public DataSet<Op,V> map(SpliceFunction<Op,V,V> function) {
-        return new ControlDataSet<Op,V>(Iterables.transform(iterable,function));
+    public <U> DataSet<Op,U> map(SpliceFunction<Op,V,U> function) {
+        return new ControlDataSet<Op,U>(Iterables.transform(iterable,function));
     }
 
     @Override
