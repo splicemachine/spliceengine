@@ -5,6 +5,11 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.impl.sql.compile.Predicate;
+import com.splicemachine.db.impl.sql.compile.PredicateList;
+import org.apache.log4j.Logger;
+
+import java.util.Arrays;
 
 public class BroadcastJoinStrategy extends BaseCostedHashableJoinStrategy {
     public BroadcastJoinStrategy() { }
@@ -66,15 +71,30 @@ public class BroadcastJoinStrategy extends BaseCostedHashableJoinStrategy {
         if(!hashFeasible) return false;
 		TableDescriptor td = innerTable.getTableDescriptor();
         if(td==null) return false;
-        ConglomerateDescriptor[] cd = td.getConglomerateDescriptors();
-        if(cd==null || cd.length<1) return false;
 
         /* Currently BroadcastJoin does not work with a right side IndexRowToBaseRowOperation */
         if(JoinStrategyUtil.isNonCoveringIndex(innerTable)) {
             return false;
         }
 
-        CostEstimate baseEstimate = innerTable.estimateCost(predList,cd[0],optimizer.newCostEstimate(),optimizer,null);
+        ConglomerateDescriptor innerCd = innerTable.getCurrentAccessPath().getConglomerateDescriptor();
+        /*
+         * Filter out join predicates from the predicate list, since they aren't applied on the right side
+         * anyway
+         */
+        OptimizablePredicateList nonJoinPredicates = new PredicateList();
+        int s = predList.size();
+        for(int i=0;i<s;i++){
+            OptimizablePredicate op = predList.getOptPredicate(i);
+            if(!(op instanceof Predicate)) continue;
+            Predicate pred = (Predicate)op;
+            if(!pred.isJoinPredicate()){
+                //push it down
+                nonJoinPredicates.addOptPredicate(pred);
+            }
+        }
+
+        CostEstimate baseEstimate = innerTable.estimateCost(nonJoinPredicates,innerCd,optimizer.newCostEstimate(),optimizer,null);
         double estimatedMemoryMB = baseEstimate.getEstimatedHeapSize()/1024d/1024d;
         return estimatedMemoryMB<SpliceConstants.broadcastRegionMBThreshold;
 	}
