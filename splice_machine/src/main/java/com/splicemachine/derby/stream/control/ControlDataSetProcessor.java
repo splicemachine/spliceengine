@@ -34,7 +34,7 @@ public class ControlDataSetProcessor<Op extends SpliceOperation,K,V> implements 
     @Override
     public DataSet<Op, V> getTableScanner(Op spliceOperation, TableScannerBuilder siTableBuilder, String tableName,SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         TxnRegion localRegion = new TxnRegion(null, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
-                TransactionStorage.getTxnSupplier(), TxnDataStore.getDataStore(), HTransactorFactory.getTransactor());
+                TransactionStorage.getTxnSupplier(), TransactionStorage.getIgnoreTxnSupplier(), TxnDataStore.getDataStore(), HTransactorFactory.getTransactor());
                 siTableBuilder
                         .scanner(new ControlMeasuredRegionScanner(Bytes.toBytes(tableName),siTableBuilder.getScan()))
                         .region(localRegion);

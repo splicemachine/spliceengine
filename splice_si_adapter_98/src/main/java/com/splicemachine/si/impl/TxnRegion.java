@@ -35,8 +35,8 @@ public class TxnRegion implements TransactionalRegion {
         private final IgnoreTxnCacheSupplier ignoreTxnCacheSupplier;
 		private final DataStore dataStore;
 		private final Transactor transactor;
-		private final IHTable hbRegion;
-        private final String tableName;
+		private IHTable hbRegion;
+        private String tableName;
 
 		private boolean transactionalWrites; //if false, then will use straightforward writes
 
