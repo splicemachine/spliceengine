@@ -8,7 +8,10 @@ import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.impl.spark.RDDUtils;
+import com.splicemachine.derby.stream.DataSet;
+import com.splicemachine.derby.stream.DataSetProcessor;
+import com.splicemachine.derby.stream.StreamUtils;
+import com.splicemachine.derby.stream.spark.RDDUtils;
 import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
@@ -125,7 +128,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
                 optimizerEstimatedRowCount,
                 optimizerEstimatedCost);
         this.hashKeyItem = hashKeyItem;
-        this.tableName = tableName;
+        this.tableName = Long.toString(scanInformation.getConglomerateId());
         this.indexName = indexName;
 				try {
 						init(SpliceOperationContext.newContext(activation));
@@ -412,6 +415,44 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
     public boolean providesRDD() {
         return true;
     }
+
+
+    public DataSet<TableScanOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+        assert currentTemplate != null: "Current Template Cannot Be Null";
+        int[] execRowTypeFormatIds = new int[currentTemplate.nColumns()];
+        for (int i = 0; i< currentTemplate.nColumns(); i++) {
+            execRowTypeFormatIds[i] = currentTemplate.getColumn(i+1).getTypeFormatId();
+        }
+        FormatableBitSet cols = scanInformation.getAccessedColumns();
+        int[] colMap;
+        if(cols!=null){
+            colMap = new int[cols.getLength()];
+            Arrays.fill(colMap,-1);
+            for(int i=cols.anySetBit(),pos=0;i>=0;i=cols.anySetBit(i),pos++){
+                colMap[i] = pos;
+            }
+        } else {
+            colMap = keyColumns;
+        }
+        TableScannerBuilder tsb = new TableScannerBuilder()
+                .transaction(operationInformation.getTransaction())
+                .scan(getNonSIScan(spliceRuntimeContext))
+                .template(currentRow)
+                .metricFactory(spliceRuntimeContext)
+                .tableVersion(scanInformation.getTableVersion())
+                .indexName(indexName)
+                .keyColumnEncodingOrder(scanInformation.getColumnOrdering())
+                .keyColumnSortOrder(scanInformation.getConglomerate().getAscDescInfo())
+                .keyColumnTypes(getKeyFormatIds())
+                .execRowTypeFormatIds(execRowTypeFormatIds)
+                .accessedKeyColumns(scanInformation.getAccessedPkColumns())
+                .keyDecodingMap(getKeyDecodingMap())
+                .rowDecodingMap(colMap);
+        DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
+        return dsp.getTableScanner(this,tsb,tableName,spliceRuntimeContext).distinct();
+    }
+
+
 
     @Override
     public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {

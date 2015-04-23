@@ -12,6 +12,7 @@ import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.db.jdbc.EmbeddedDriver;
 
+import com.splicemachine.derby.stream.spark.SpliceMachineSource;
 import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -76,6 +77,7 @@ public class SpliceSpark {
                     driver.loadUUIDGenerator(1); // Need to get Spark Port? TODO JL
                 }
                 spliceStaticComponentsSetup = true;
+                SpliceMachineSource.register();
             }
         } catch (RuntimeException e) {
             LOG.error("Unexpected error setting up Splice components", e);
@@ -101,6 +103,7 @@ public class SpliceSpark {
         String extraClassPath = System.getProperty("splice.spark.extraClassPath", "");
         String shuffleMemory = System.getProperty("splice.spark.shuffleMemory", "0.5");
 
+
         LOG.warn("Initializing Spark with:\n master " + master + "\n home " + home + "\n jars " + jars + "\n environment " + environment);
         Map<String, String> properties = Splitter.on(';').omitEmptyStrings().withKeyValueSeparator(Splitter.on('=')).split(environment);
         String[] files = getJarFiles(jars);
@@ -108,7 +111,10 @@ public class SpliceSpark {
         SparkConf conf = new SparkConf();
         conf.setAppName("SpliceMachine");
         conf.setMaster(master);
+        conf.set("spark.scheduler.mode", "FAIR");
         conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
+        conf.set("executor.source.splice-machine.class","com.splicemachine.derby.stream.spark.SpliceMachineSource");
+        conf.set("driver.source.splice-machine.class","com.splicemachine.derby.stream.spark.SpliceMachineSource");
         conf.set("spark.kryo.registrator", "com.splicemachine.derby.impl.spark.SpliceSparkKryoRegistrator");
         // conf.set("spark.serializer", SparkCustomSerializer.class.getName());
         conf.set("spark.executor.memory", "8G");

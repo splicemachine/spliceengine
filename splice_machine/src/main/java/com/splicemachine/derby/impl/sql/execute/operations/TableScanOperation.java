@@ -12,6 +12,8 @@ import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerB
 import com.splicemachine.derby.impl.storage.AsyncClientScanProvider;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
+import com.splicemachine.derby.stream.*;
+import com.splicemachine.derby.stream.function.SpliceFunction;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.derby.utils.marshall.*;
@@ -387,6 +389,31 @@ public class TableScanOperation extends ScanOperation {
             return true;
         }
 
+
+        public DataSet<TableScanOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+            assert currentTemplate != null: "Current Template Cannot Be Null";
+            int[] execRowTypeFormatIds = new int[currentTemplate.nColumns()];
+            for (int i = 0; i< currentTemplate.nColumns(); i++) {
+                execRowTypeFormatIds[i] = currentTemplate.getColumn(i+1).getTypeFormatId();
+            }
+            TableScannerBuilder tsb = new TableScannerBuilder()
+                    .transaction(operationInformation.getTransaction())
+                    .scan(getNonSIScan(spliceRuntimeContext))
+                    .template(currentRow)
+                    .metricFactory(spliceRuntimeContext)
+                    .tableVersion(scanInformation.getTableVersion())
+                    .indexName(indexName)
+                    .keyColumnEncodingOrder(scanInformation.getColumnOrdering())
+                    .keyColumnSortOrder(scanInformation.getConglomerate().getAscDescInfo())
+                    .keyColumnTypes(getKeyFormatIds())
+                    .execRowTypeFormatIds(execRowTypeFormatIds)
+                    .accessedKeyColumns(scanInformation.getAccessedPkColumns())
+                    .keyDecodingMap(getKeyDecodingMap())
+                    .rowDecodingMap(baseColumnMap);
+            DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
+            return dsp.getTableScanner(this,tsb,tableName,spliceRuntimeContext);
+        }
+
         @Override
         public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
         	assert currentTemplate != null: "Current Template Cannot Be Null";        	
@@ -406,7 +433,7 @@ public class TableScanOperation extends ScanOperation {
 								.execRowTypeFormatIds(execRowTypeFormatIds)
 								.accessedKeyColumns(scanInformation.getAccessedPkColumns())
 								.keyDecodingMap(getKeyDecodingMap())
-								.rowDecodingMap(baseColumnMap);        	
+								.rowDecodingMap(baseColumnMap);
             JavaSparkContext ctx = SpliceSpark.getContext();
             Configuration conf = new Configuration(SIConstants.config);
             conf.set(MRConstants.SPLICE_CONGLOMERATE, tableName);

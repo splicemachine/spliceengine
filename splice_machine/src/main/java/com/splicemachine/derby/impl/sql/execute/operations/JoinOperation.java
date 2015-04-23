@@ -329,7 +329,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 				}
 		}
 
-    protected Restriction getRestriction() {
+    public Restriction getRestriction() {
         Restriction mergeRestriction = Restriction.noOpRestriction;
         if (restriction != null) {
             mergeRestriction = new Restriction() {

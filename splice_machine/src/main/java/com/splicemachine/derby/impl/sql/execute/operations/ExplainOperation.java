@@ -16,10 +16,16 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.ast.ExplainTree;
 import com.splicemachine.derby.impl.ast.PlanPrinter;
 import com.splicemachine.derby.impl.storage.RowProviders;
+import com.splicemachine.derby.stream.DataSet;
+import com.splicemachine.derby.stream.DataSetProcessor;
+import com.splicemachine.derby.stream.StreamUtils;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
+import org.sparkproject.guava.common.base.Function;
+import org.sparkproject.guava.common.collect.Iterables;
 
+import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;
 
@@ -34,21 +40,19 @@ public class ExplainOperation extends SpliceBaseOperation {
     protected static List<NodeType> nodeTypes;
     protected ExecRow currentTemplate;
     private int pos = 0;
-//    private Pair<String,Integer>[] plan;
-    protected static final String NAME = ExplainOperation.class.getSimpleName().replaceAll("Operation","");
-//    private static final Pattern pattern = Pattern.compile("n=[0-9]+");
+    protected static final String NAME = ExplainOperation.class.getSimpleName().replaceAll("Operation", "");
     private Iterator<String> explainStringIter;
 
-	@Override
-	public String getName() {
-			return NAME;
-	}
-	
+    @Override
+    public String getName() {
+        return NAME;
+    }
+
     static {
         nodeTypes = Arrays.asList(NodeType.MAP, NodeType.SCAN);
     }
 
-    public ExplainOperation(SpliceOperation source, Activation activation, int resultSetNumber) throws StandardException{
+    public ExplainOperation(SpliceOperation source, Activation activation, int resultSetNumber) throws StandardException {
         super(activation, resultSetNumber, 0, 0);
         this.activation = activation;
         this.source = source;
@@ -75,7 +79,7 @@ public class ExplainOperation extends SpliceBaseOperation {
     @Override
     public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 
-        if(!this.explainStringIter.hasNext()){
+        if (!this.explainStringIter.hasNext()) {
             clearState();
             return null;
         }
@@ -88,8 +92,8 @@ public class ExplainOperation extends SpliceBaseOperation {
         return currentTemplate;
     }
 
-    protected void clearState(){
-        Map<String, ExplainTree> m=PlanPrinter.planMap.get();
+    protected void clearState() {
+        Map<String, ExplainTree> m = PlanPrinter.planMap.get();
         String sql = activation.getPreparedStatement().getSource();
         m.remove(sql);
     }
@@ -115,12 +119,12 @@ public class ExplainOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException{
+    public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
         SpliceLogUtils.trace(LOG, "executeScan");
         try {
             RowProvider rowProvider = getMapRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext), runtimeContext);
             return new SpliceNoPutResultSet(activation, this, rowProvider);
-        }catch(IOException e) {
+        } catch (IOException e) {
             throw StandardException.newException(e.toString());
         }
     }
@@ -140,17 +144,49 @@ public class ExplainOperation extends SpliceBaseOperation {
         return currentTemplate;
     }
 
-    @Override public void close() throws StandardException,IOException { }
+    @Override
+    public void close() throws StandardException, IOException {
+    }
 
     @SuppressWarnings("unchecked")
-    private void getPlanInformation(){
-        Map<String,ExplainTree> m = PlanPrinter.planMap.get();
+    private void getPlanInformation() {
+        Map<String, ExplainTree> m = PlanPrinter.planMap.get();
         String sql = activation.getPreparedStatement().getSource();
         ExplainTree opPlanMap = m.get(sql);
-        if(opPlanMap!=null){
+        if (opPlanMap != null) {
             explainStringIter = opPlanMap.treeToString();
-        }else
-            explainStringIter =Iterators.emptyIterator();
+        } else
+            explainStringIter = Iterators.emptyIterator();
     }
+
+    public DataSet<TableScanOperation, LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+        try {
+            DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
+            return dsp.createDataSet(Iterables.transform(new Iterable<String>() {
+                                                             @Override
+                                                             public Iterator<String> iterator() {
+                                                                 return explainStringIter;
+                                                             }
+                                                         }, new Function<String, LocatedRow>() {
+                                                             @Nullable
+                                                             @Override
+                                                             public LocatedRow apply(@Nullable String n) {
+                                                                 try {
+                                                                     currentTemplate.resetRowArray();
+                                                                     DataValueDescriptor[] dvds = currentTemplate.getRowArray();
+                                                                     dvds[0].setValue(n);
+                                                                     return new LocatedRow(currentTemplate);
+                                                                 } catch (Exception e) {
+                                                                     throw new RuntimeException(e);
+                                                                 }
+                                                             }
+                                                         }
+                    )
+            );
+        } finally {
+            clearState();
+        }
+    }
+
 
 }

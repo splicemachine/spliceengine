@@ -1,18 +1,20 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.OperationResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
+import com.splicemachine.derby.stream.DataSetProcessor;
+import com.splicemachine.derby.stream.OperationContext;
+import com.splicemachine.derby.stream.StreamUtils;
+import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.metrics.IOStats;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.metrics.*;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -22,7 +24,6 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.function.Function;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -354,9 +355,10 @@ public class NestedLoopJoinOperation extends JoinOperation {
 
     @Override
     public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+        DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
         JavaRDD<LocatedRow> left = leftResultSet.getRDD(spliceRuntimeContext, leftResultSet);
-        final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this, spliceRuntimeContext);
-        return left.flatMap(new NLJSparkOperation(this, soi)).map(new Function<ExecRow, LocatedRow>() {
+        OperationContext<SpliceOperation> operationContext = dsp.createOperationContext(this,spliceRuntimeContext);
+        return left.flatMap(new NLJSparkOperation(operationContext)).map(new Function<ExecRow, LocatedRow>() {
             @Override
             public LocatedRow call(ExecRow execRow) throws Exception {
                 return new LocatedRow(execRow);
@@ -365,15 +367,19 @@ public class NestedLoopJoinOperation extends JoinOperation {
     }
 
 
-    public static final class NLJSparkOperation extends SparkFlatMapOperation<NestedLoopJoinOperation, LocatedRow, ExecRow> {
+    public static final class NLJSparkOperation extends SpliceFlatMapFunction<SpliceOperation, LocatedRow, ExecRow> {
         private NestedLoopIterator nestedLoopIterator;
         private byte[] rightResultSetUniqueSequenceID;
+        protected NestedLoopJoinOperation op;
+        protected SpliceRuntimeContext spliceRuntimeContext;
 
         public NLJSparkOperation() {
         }
 
-        public NLJSparkOperation(NestedLoopJoinOperation spliceOperation, SpliceObserverInstructions soi) {
-            super(spliceOperation, soi);
+        public NLJSparkOperation(OperationContext<SpliceOperation> operationContext) {
+            super(operationContext);
+            op = (NestedLoopJoinOperation) operationContext.getOperation();
+            spliceRuntimeContext = operationContext.getSpliceRuntimeContext();
         }
 
         @Override
@@ -385,7 +391,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
             if (rightResultSetUniqueSequenceID == null) {
                 rightResultSetUniqueSequenceID = op.rightResultSet.getUniqueSequenceID();
             }
-            nestedLoopIterator = op.createNestedLoopIterator(sourceRow.getRow(), op.isHash, soi.getSpliceRuntimeContext(), false, true);
+            nestedLoopIterator = op.createNestedLoopIterator(sourceRow.getRow(), op.isHash, spliceRuntimeContext, false, true);
             return nestedLoopIterator;
         }
     }

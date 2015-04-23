@@ -6,7 +6,8 @@ import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.impl.spark.RDDRowProvider;
+import com.splicemachine.derby.stream.DataSetRowProvider;
+import com.splicemachine.derby.stream.spark.RDDRowProvider;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.pipeline.exception.Exceptions;
@@ -55,10 +56,10 @@ public class OperationTree {
                                                    boolean useProbe)
             throws StandardException, IOException {
         // enable Spark if the whole stack supports it
-        if (root.expectsRDD()) {
-            ctx.setUseSpark(true);
+        if (true) {
+//            ctx.setUseSpark(true);
             return new SpliceNoPutResultSet(root.getActivation(), root,
-                    new RDDRowProvider(root.getRDD(ctx, root), ctx));
+                    new DataSetRowProvider(root.getDataSet(ctx, root), ctx));
         }
         sink(root, ctx);
         return useProbe ? root.executeProbeScan() : root.executeScan(ctx);

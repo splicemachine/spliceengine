@@ -10,7 +10,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.job.JobInfo;
-import com.splicemachine.derby.impl.spark.RDDRowProvider;
+import com.splicemachine.derby.stream.spark.RDDRowProvider;
 import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.derby.metrics.OperationMetric;

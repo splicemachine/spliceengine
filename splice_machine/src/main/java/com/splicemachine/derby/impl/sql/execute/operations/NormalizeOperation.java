@@ -9,17 +9,20 @@ import java.util.List;
 
 import com.google.common.base.Strings;
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
+import com.splicemachine.derby.stream.DataSet;
+import com.splicemachine.derby.stream.DataSetProcessor;
+import com.splicemachine.derby.stream.OperationContext;
+import com.splicemachine.derby.stream.StreamUtils;
+import com.splicemachine.derby.stream.function.SpliceFunction;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.utils.IntArrays;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -30,7 +33,6 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
@@ -361,18 +363,6 @@ public class NormalizeOperation extends SpliceBaseOperation {
 				return this.source;
 		}
 
-//	@Override
-//	public long getTimeSpent(int type)
-//	{
-//		long totTime = constructorTime + openTime + nextTime + closeTime;
-//
-//		if (type == NoPutResultSet.CURRENT_RESULTSET_ONLY)
-//			return	totTime - source.getTimeSpent(ENTIRE_RESULTSET_TREE);
-//		else
-//			return totTime;
-//	}
-
-
 		@Override
 		public String prettyPrint(int indentLevel) {
 				String indent = "\n"+ Strings.repeat("\t", indentLevel);
@@ -391,16 +381,22 @@ public class NormalizeOperation extends SpliceBaseOperation {
         return source.providesRDD();
     }
 
-    @Override
+    public DataSet<SpliceOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+        DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
+        return source.getDataSet(spliceRuntimeContext,top).
+                map(new NormalizeSparkFunction(dsp.createOperationContext(this, spliceRuntimeContext)));
+    }
+
+
+        @Override
     public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
         JavaRDD<LocatedRow> raw = source.getRDD(spliceRuntimeContext, top);
         if (pushedToServer()) {
             // we want to avoid re-applying the PR if it has already been executed in HBase
             return raw;
         }
-        final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this, spliceRuntimeContext);
-        JavaRDD<LocatedRow> normalized = raw.map(new NormalizeSparkOperation(this, soi));
-        return normalized;
+        DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
+        return raw.map(new NormalizeSparkFunction(dsp.createOperationContext(this,spliceRuntimeContext)));
     }
 
     @Override
@@ -409,26 +405,28 @@ public class NormalizeOperation extends SpliceBaseOperation {
     }
 
 
-    public static final class NormalizeSparkOperation extends SparkOperation<NormalizeOperation, LocatedRow, LocatedRow> {
-
+    public static final class NormalizeSparkFunction extends SpliceFunction<SpliceOperation, LocatedRow, LocatedRow> {
         private static final long serialVersionUID = 7780564699906451370L;
 
-        public NormalizeSparkOperation() {
+        public NormalizeSparkFunction() {
         }
 
         @Override
         public LocatedRow call(LocatedRow sourceRow) throws Exception {
-            op.source.setCurrentRow(sourceRow.getRow());
+
+            NormalizeOperation normalize = (NormalizeOperation) operationContext.getOperation();
+            normalize.source.setCurrentRow(sourceRow.getRow());
             ExecRow normalized = null;
             if (sourceRow != null) {
-                normalized = op.normalizeRow(sourceRow.getRow(), true);
+                normalized = normalize.normalizeRow(sourceRow.getRow(), true);
             }
-            activation.setCurrentRow(normalized, op.resultSetNumber);
+            SpliceLogUtils.trace(LOG,"normalized row %s", sourceRow);
+            getActivation().setCurrentRow(normalized, normalize.resultSetNumber);
             return new LocatedRow(sourceRow.getRowLocation(), normalized);
         }
 
-        public NormalizeSparkOperation(NormalizeOperation normalizeOperation, SpliceObserverInstructions soi) {
-            super(normalizeOperation, soi);
+        public NormalizeSparkFunction(OperationContext<SpliceOperation> operationContext) {
+            super(operationContext);
         }
 
 

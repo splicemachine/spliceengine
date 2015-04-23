@@ -6,7 +6,12 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.impl.spark.RDDUtils;
+import com.splicemachine.derby.stream.DataSet;
+import com.splicemachine.derby.stream.DataSetProcessor;
+import com.splicemachine.derby.stream.OperationContext;
+import com.splicemachine.derby.stream.StreamUtils;
+import com.splicemachine.derby.stream.function.Keyer;
+import com.splicemachine.derby.stream.spark.RDDUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SourceIterator;
 import com.splicemachine.derby.impl.sql.execute.operations.sort.DistinctSortAggregateBuffer;
@@ -39,10 +44,7 @@ import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
 
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.io.Serializable;
+import java.io.*;
 import java.util.*;
 
 public class SortOperation extends SpliceBaseOperation implements SinkingOperation {
@@ -467,6 +469,18 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
     }
 
     @Override
+    public DataSet<SpliceOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+        DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
+        DataSet dataSet = source.getDataSet(spliceRuntimeContext,top);
+        OperationContext operationContext = dsp.createOperationContext(top,spliceRuntimeContext);
+        if (distinct)
+            dataSet = dataSet.distinct();
+        return dataSet.keyBy(new Keyer(operationContext, keyColumns))
+                .sortByKey(new RowComparator(descColumns)).values();
+    }
+
+
+        @Override
     public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
         JavaRDD<LocatedRow> rdd = source.getRDD(spliceRuntimeContext, source);
         if (distinct) {
@@ -477,13 +491,29 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
         return sorted.values();
     }
 
-    private class RowComparator implements Comparator<ExecRow>, Serializable {
+    /*TODO JLEACH Serialize values*/
+    private class RowComparator implements Comparator<ExecRow>, Serializable, Externalizable {
 
         private static final long serialVersionUID = -7005014411999208729L;
         private boolean[] descColumns; //descColumns[i] = false => column[i] sorted descending, else sorted ascending
 
         public RowComparator(boolean[] descColumns) {
             this.descColumns = descColumns;
+        }
+
+        @Override
+        public void writeExternal(ObjectOutput out) throws IOException {
+            out.writeInt(descColumns.length);
+            for (int i =0; i<descColumns.length; i++)
+                out.writeBoolean(descColumns[i]);
+        }
+
+        @Override
+        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+            descColumns = new boolean[in.readInt()];
+            for (int i =0; i<descColumns.length; i++)
+                descColumns[i] = in.readBoolean();
+
         }
 
         @Override

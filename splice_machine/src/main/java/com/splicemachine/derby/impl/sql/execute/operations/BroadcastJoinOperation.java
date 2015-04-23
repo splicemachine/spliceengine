@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.carrotsearch.sizeof.RamUsageEstimator;
 import com.google.common.base.Function;
+import com.google.common.base.Optional;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.RemovalListener;
@@ -10,7 +11,9 @@ import com.google.common.collect.*;
 import com.splicemachine.concurrent.SameThreadExecutorService;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.*;
-import com.splicemachine.derby.impl.spark.RDDUtils;
+import com.splicemachine.derby.stream.*;
+import com.splicemachine.derby.stream.function.*;
+import com.splicemachine.derby.stream.spark.RDDUtils;
 import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
@@ -390,7 +393,23 @@ public class BroadcastJoinOperation extends JoinOperation {
         return leftResultSet.providesRDD() && rightResultSet.providesRDD();
     }
 
-    @Override
+    public DataSet<SpliceOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+        DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
+        OperationContext operationContext = dsp.createOperationContext(this, spliceRuntimeContext);
+        PairDataSet<SpliceOperation,ExecRow,LocatedRow> leftDataSet = leftResultSet.getDataSet(spliceRuntimeContext,top).keyBy(new Keyer<LocatedRow>(operationContext, leftHashKeys));
+        PairDataSet<SpliceOperation,ExecRow,LocatedRow> rightDataSet = rightResultSet.getDataSet(spliceRuntimeContext,top).keyBy(new Keyer<LocatedRow>(operationContext, rightHashKeys));
+        if (isOuterJoin) {
+            PairDataSet<SpliceOperation, ExecRow, Tuple2<LocatedRow, Optional<LocatedRow>>> joinedDataSet = leftDataSet.<LocatedRow>broadcastLeftOuterJoin(rightDataSet);
+            return joinedDataSet.map(new OuterJoinFunction(operationContext, wasRightOuterJoin, getEmptyRow())).filter(new JoinRestrictionPredicateFunction(operationContext));
+        }
+        else {
+            PairDataSet<SpliceOperation, ExecRow, Tuple2<LocatedRow, LocatedRow>> joinedDataSet = leftDataSet.<LocatedRow>broadcastJoin(rightDataSet);
+            return joinedDataSet.map(new InnerJoinFunction(operationContext, wasRightOuterJoin)).filter(new JoinRestrictionPredicateFunction(operationContext));
+        }
+    }
+
+
+        @Override
     public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
         JavaRDD<LocatedRow> left = leftResultSet.getRDD(spliceRuntimeContext, top);
         if (pushedToServer()) {
@@ -408,7 +427,8 @@ public class BroadcastJoinOperation extends JoinOperation {
         }
         Broadcast<List<Tuple2<ExecRow, ExecRow>>> broadcast = SpliceSpark.getContext().broadcast(keyedRight.collect());
         final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this, spliceRuntimeContext);
-        return left.mapPartitions(new BroadcastSparkOperation(this, soi, broadcast));
+        DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
+        return left.mapPartitions(new BroadcastSparkOperation(dsp.createOperationContext(this,spliceRuntimeContext), broadcast));
     }
 
 
@@ -417,18 +437,21 @@ public class BroadcastJoinOperation extends JoinOperation {
         return leftResultSet.pushedToServer() && rightResultSet.pushedToServer();
     }
 
-    public static final class BroadcastSparkOperation extends SparkFlatMapOperation<BroadcastJoinOperation, Iterator<LocatedRow>, LocatedRow> {
+
+        public static final class BroadcastSparkOperation extends SpliceFlatMapFunction<SpliceOperation, Iterator<LocatedRow>, LocatedRow> {
         private Broadcast<List<Tuple2<ExecRow, ExecRow>>> right;
         private Multimap<ExecRow, ExecRow> rightMap;
         private Joiner joiner;
+        protected BroadcastJoinOperation op;
 
         public BroadcastSparkOperation() {
         }
 
-        public BroadcastSparkOperation(BroadcastJoinOperation spliceOperation, SpliceObserverInstructions soi,
+        public BroadcastSparkOperation(OperationContext<SpliceOperation> operationContext,
                                        Broadcast<List<Tuple2<ExecRow, ExecRow>>> right) {
-            super(spliceOperation, soi);
+            super(operationContext);
             this.right = right;
+            this.op = (BroadcastJoinOperation) operationContext.getOperation();
         }
 
         private Multimap<ExecRow, ExecRow> collectAsMap(List<Tuple2<ExecRow, ExecRow>> collected) {
@@ -445,7 +468,7 @@ public class BroadcastJoinOperation extends JoinOperation {
                 joiner = initJoiner(sourceRows);
                 joiner.open();
             }
-            return RDDUtils.toSparkRowsIterable(new SparkJoinerIterator(joiner, soi));
+            return RDDUtils.toSparkRowsIterable(new SparkJoinerIterator(joiner, operationContext.getSpliceRuntimeContext()));
         }
 
         private Joiner initJoiner(final Iterator<LocatedRow> sourceRows) throws StandardException {
@@ -472,7 +495,7 @@ public class BroadcastJoinOperation extends JoinOperation {
             return new Joiner(new BroadCastJoinRows(StandardIterators.wrap(RDDUtils.toExecRowsIterator(sourceRows)), lookup),
                     op.getExecRowDefinition(), op.getRestriction(), op.isOuterJoin,
                     op.wasRightOuterJoin, op.leftNumCols, op.rightNumCols,
-                    op.oneRowRightSide, op.notExistsRightSide, false, emptyRowSupplier, soi.getSpliceRuntimeContext());
+                    op.oneRowRightSide, op.notExistsRightSide, false, emptyRowSupplier, operationContext.getSpliceRuntimeContext());
         }
 
         @Override

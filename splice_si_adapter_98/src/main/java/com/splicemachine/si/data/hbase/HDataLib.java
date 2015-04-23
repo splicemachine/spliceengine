@@ -216,7 +216,8 @@ public class HDataLib implements SDataLib<Cell,Put, Delete, Get, Scan> {
             }
         }
         if (columns != null) {
-            for (List<byte[]> c : columns) {
+            for (List<byte[]> c : columns)
+            {
                 scan.addColumn(c.get(0), c.get(1));
             }
         }

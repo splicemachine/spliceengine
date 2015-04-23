@@ -9,6 +9,11 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.storage.RowProviders;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
+import com.splicemachine.derby.stream.DataSet;
+import com.splicemachine.derby.stream.DataSetProcessor;
+import com.splicemachine.derby.stream.OperationContext;
+import com.splicemachine.derby.stream.StreamUtils;
+import com.splicemachine.derby.stream.function.Keyer;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.pipeline.exception.Exceptions;
 
@@ -261,6 +266,8 @@ public class UnionOperation extends SpliceBaseOperation {
         return firstResultSet.providesRDD() && secondResultSet.providesRDD();
     }
 
+
+
     public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
         SpliceRuntimeContext left = spliceRuntimeContext.copy();
         SpliceRuntimeContext right = spliceRuntimeContext.copy();
@@ -273,4 +280,19 @@ public class UnionOperation extends SpliceBaseOperation {
 //        RDDUtils.printRDD("Union result", result);
         return result;
     }
+
+
+    @Override
+    public DataSet<SpliceOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+        DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
+        SpliceRuntimeContext left = spliceRuntimeContext.copy();
+        SpliceRuntimeContext right = spliceRuntimeContext.copy();
+        left.addPath(resultSetNumber, SpliceRuntimeContext.Side.LEFT);
+        right.addPath(resultSetNumber, SpliceRuntimeContext.Side.RIGHT);
+        DataSet firstDS = firstResultSet.getDataSet(spliceRuntimeContext, top);
+        DataSet secondDS = secondResultSet.getDataSet(spliceRuntimeContext, top);
+        return firstDS.union(secondDS);
+    }
+
+
 }

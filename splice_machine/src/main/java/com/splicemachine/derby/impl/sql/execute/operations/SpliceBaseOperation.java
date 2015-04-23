@@ -7,10 +7,11 @@ import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.impl.spark.RDDRowProvider;
+import com.splicemachine.derby.stream.spark.RDDRowProvider;
 import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
+import com.splicemachine.derby.stream.DataSet;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.SerializerMap;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
@@ -754,4 +755,10 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
     protected void setRowsSunk(long rowsSunk) {
         this.rowsSunk = rowsSunk;
     }
+
+    public <Op extends SpliceOperation> DataSet<Op,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+        throw new RuntimeException(String.format("Data Set Not Implemented for class=%s",this.getClass()));
+    }
+
+
 }

@@ -3,7 +3,7 @@ package com.splicemachine.derby.iapi.sql.execute;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.impl.spark.RDDRowProvider;
+import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
@@ -12,7 +12,10 @@ import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.management.OperationInfo;
 import com.splicemachine.derby.management.StatementInfo;
-import com.splicemachine.derby.utils.WarningState;
+import com.splicemachine.derby.stream.DataSetProcessor;
+import com.splicemachine.derby.stream.DataSetRowProvider;
+import com.splicemachine.derby.stream.StreamUtils;
+import com.splicemachine.derby.stream.spark.RDDRowProvider;
 import com.splicemachine.metrics.IOStats;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -78,6 +81,7 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
                               SpliceOperation topOperation){
         this.activation = activation;
         this.topOperation = topOperation;
+        System.out.println(String.format("OperationResultSet with activation=%s, topOperation=%s",activation,topOperation));
     }
 
     public SpliceOperation getTopOperation() {
@@ -127,13 +131,16 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 	}
 
     public void open(boolean useProbe) throws StandardException, IOException{
+        SpliceLogUtils.trace(LOG, "open useProbe=%s",useProbe);
         boolean showStatementInfo = !(topOperation instanceof ExplainOperation || topOperation instanceof ExportOperation);
         open(useProbe, showStatementInfo);
     }
 
     public void executeScan(boolean useProbe, SpliceRuntimeContext context) throws StandardException {
+        SpliceLogUtils.trace(LOG, "executeScan with topOperation=%s",topOperation);
         try{
-            if (context.useSpark()) {
+            DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
+            if (true) {
                 OperationInformation info = topOperation.getOperationInformation();
                 Activation activation = topOperation.getActivation();
                 int resultSetNumber = info.getResultSetNumber();
@@ -141,13 +148,15 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
                 long txnId = ((SpliceTransactionManager)activation.getTransactionController()).getRawTransaction().getTxnInformation().getTxnId();
                 String jobName = topOperation.getName() + " rs "+resultSetNumber + " <" + txnId + ">";
                 String jobDescription = statementInfo != null ? statementInfo.getSql() : null;
-                SpliceSpark.getContext().setJobGroup(jobName, jobDescription);
-                delegate = topOperation.executeRDD(context);
+                dsp.setJobGroup(jobName,jobDescription);
+                RowProvider dss = new DataSetRowProvider(topOperation.getDataSet(context,topOperation),context);
+                boolean returnsRows = !(topOperation instanceof DMLWriteOperation || topOperation instanceof CallStatementOperation
+                || topOperation instanceof MiscOperation);
+                delegate = new SpliceNoPutResultSet(activation, topOperation, dss,returnsRows);
             } else {
                 delegate = useProbe ? topOperation.executeProbeScan() : topOperation.executeScan(context);
             }
             delegate.setScrollId(scrollUuid);
-            delegate.openCore();
         }catch(RuntimeException re){
             throw Exceptions.parseException(re);
         }
@@ -158,7 +167,7 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 
     public SpliceRuntimeContext sinkOpen(TxnView txn,boolean showStatementInfo) throws StandardException, IOException {
         this.txn = txn;
-        SpliceLogUtils.trace(LOG,"openCore");
+        SpliceLogUtils.trace(LOG,"sinkOpen");
         closed=false;
         if(delegate!=null) delegate.close();
         SpliceRuntimeContext runtimeContext = new SpliceRuntimeContext(txn);
@@ -199,14 +208,6 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
             if (taskChain != null && taskChain.size() > 0){
                 runtimeContext.setParentTaskId(taskChain.get(taskChain.size() - 1));
             }
-
-            // enable Spark if the whole stack supports it
-            if (topOperation.expectsRDD() && !topOperation.pushedToServer()) {
-                runtimeContext.setUseSpark(true);
-            } else {
-                OperationTree.sink(topOperation, runtimeContext);
-            }
-
             return runtimeContext;
         }catch(RuntimeException e){
             throw Exceptions.parseException(e);
@@ -291,6 +292,7 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 
     @Override
     public ExecRow getNextRowCore() throws StandardException {
+        SpliceLogUtils.trace(LOG, "getNextRowCore");
         checkDelegate();
         return delegate.getNextRowCore();
     }
@@ -451,6 +453,7 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 
     @Override
     public void close() throws StandardException {
+        SpliceLogUtils.trace(LOG, "close()");
         if(statementInfo!=null){
             statementInfo.markCompleted();
             try {

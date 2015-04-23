@@ -11,6 +11,12 @@ import com.splicemachine.derby.impl.storage.SingleScanRowProvider;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.stats.TaskStats;
+import com.splicemachine.derby.stream.DataSet;
+import com.splicemachine.derby.stream.DataSetProcessor;
+import com.splicemachine.derby.stream.OperationContext;
+import com.splicemachine.derby.stream.StreamUtils;
+import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
+import com.splicemachine.derby.stream.spark.SpliceMachineSource;
 import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.derby.utils.marshall.KeyEncoder;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
@@ -37,7 +43,9 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hive.ql.io.orc.OrcProto;
 import org.apache.log4j.Logger;
+import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaRDD;
 
 import java.io.IOException;
@@ -464,49 +472,57 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 		return source.providesRDD();
 	}
 
-	@Override
+    public DataSet<TableScanOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+        DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
+        DataSet set = source.getDataSet(spliceRuntimeContext,top);
+        Thread.dumpStack();
+        set.mapPartitions(new DMLWriteSparkOp(dsp.createOperationContext(this,spliceRuntimeContext))).collect();
+        return dsp.getEmpty();
+    }
+
+        @Override
 	public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
 		JavaRDD<LocatedRow> rdd = source.getRDD(spliceRuntimeContext, top);
-
-		final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this, spliceRuntimeContext);
-		rdd.mapPartitions(new DMLWriteSparkOp(this, soi)).collect();
+        DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
+        // This is not quite right. JL
+		rdd.mapPartitions(new DMLWriteSparkOp(dsp.createOperationContext(this,spliceRuntimeContext))).collect();
 		return SpliceSpark.getContext().parallelize(Collections.<LocatedRow>emptyList(), 1);
 	}
 
-	public static final class DMLWriteSparkOp extends SparkFlatMapOperation<DMLWriteOperation, Iterator<LocatedRow>, LocatedRow> {
-
+	public static final class DMLWriteSparkOp extends SpliceFlatMapFunction<SpliceOperation, Iterator<LocatedRow>, LocatedRow> {
 		public DMLWriteSparkOp() {
 		}
 
-		public DMLWriteSparkOp(DMLWriteOperation spliceOperation, SpliceObserverInstructions soi) {
-			super(spliceOperation, soi);
+		public DMLWriteSparkOp(OperationContext<SpliceOperation> operationContext) {
+			super(operationContext);
 		}
+
+
 
 		@Override
 		public Iterable<LocatedRow> call(Iterator<LocatedRow> locatedRowIterator) throws Exception {
-			KeyEncoder keyEncoder = op.getKeyEncoder(soi.getSpliceRuntimeContext());
-			DataHash rowHash = op.getRowHash(soi.getSpliceRuntimeContext());
-
-
+            DMLWriteOperation op = (DMLWriteOperation) getOperation();
+			KeyEncoder keyEncoder = op.getKeyEncoder(operationContext.getSpliceRuntimeContext());
+			DataHash rowHash = op.getRowHash(operationContext.getSpliceRuntimeContext());
 			KVPair.Type dataType = op instanceof UpdateOperation ? KVPair.Type.UPDATE : KVPair.Type.INSERT;
 			dataType = op instanceof DeleteOperation ? KVPair.Type.DELETE : dataType;
-			TxnView txn = soi.getTxn();
+			TxnView txn = operationContext.getTxn();
 			WriteCoordinator writeCoordinator = SpliceDriver.driver().getTableWriter();
-			RecordingCallBuffer<KVPair> bufferToTransform = writeCoordinator.writeBuffer(op.getDestinationTable(), txn, soi.getSpliceRuntimeContext());
+            operationContext.recordWrite();
+            // Add metrics?
+			RecordingCallBuffer<KVPair> bufferToTransform = writeCoordinator.writeBuffer(op.getDestinationTable(), txn, Metrics.noOpMetricFactory());
 			RecordingCallBuffer<KVPair> writeBuffer = op.transformWriteBuffer(bufferToTransform);
 			PairEncoder encoder = new PairEncoder(keyEncoder, rowHash, dataType);
-
+            int i = 0;
 			while(locatedRowIterator.hasNext()) {
 				ExecRow row = locatedRowIterator.next().getRow();
 				if (row == null) continue;
-
 				KVPair encode = encoder.encode(row);
 				writeBuffer.add(encode);
+                i++;
 			}
-
 			writeBuffer.flushBuffer();
 			writeBuffer.close();
-
 			return Collections.<LocatedRow>emptyList();
 		}
 	}
