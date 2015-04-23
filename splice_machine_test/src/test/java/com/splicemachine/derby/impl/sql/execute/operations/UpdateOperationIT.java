@@ -310,6 +310,33 @@ public class UpdateOperationIT {
         assertEquals("verify using index", expected, TestUtils.FormattedResult.ResultFactory.toString(rs2));
     }
 
+    /* Test for DB-3160 */
+    @Test
+    public void testUpdateCompoundPrimaryKeyWithMatchingCompoundIndex() throws Exception {
+        methodWatcher.executeUpdate("create table tab4 (c1 int, c2 int, c3 int, c4 int, primary key(c1, c2, c3))");
+        methodWatcher.executeUpdate("create index tab4_idx on tab4 (c1,c2,c3)");
+        methodWatcher.executeUpdate("insert into tab4 values (10,10,10,10),(20,20,20,20),(30,30,30,30)");
+
+        int rows = methodWatcher.executeUpdate("update tab4 set c2=88, c3=888, c4=8888 where c1=10 or c1 = 20");
+
+        assertEquals("incorrect num rows updated!", 2L, rows);
+        assertEquals("incorrect num rows present!", 3L, methodWatcher.query("select count(*) from tab4"));
+        assertEquals("incorrect num rows present!", 3L, methodWatcher.query("select count(*) from tab4 --SPLICE-PROPERTIES index=tab4_idx"));
+        assertEquals("expected this row to be deleted from index", 0L, methodWatcher.query("select count(*) from tab4 --SPLICE-PROPERTIES index=tab4_idx\n where c2=10"));
+
+        ResultSet rs1 = methodWatcher.executeQuery("select * from tab4 where c1=10 or c1 = 20");
+        ResultSet rs2 = methodWatcher.executeQuery("select * from tab4 --SPLICE-PROPERTIES index=tab4_idx \n where c1=10 or c1 = 20");
+
+        String expected = "" +
+                "C1 |C2 |C3  | C4  |\n" +
+                "-------------------\n" +
+                "10 |88 |888 |8888 |\n" +
+                "20 |88 |888 |8888 |";
+
+        assertEquals("verify without index", expected, TestUtils.FormattedResult.ResultFactory.toString(rs1));
+        assertEquals("verify using index", expected, TestUtils.FormattedResult.ResultFactory.toString(rs2));
+    }
+
     @Test
     public void updateColumnWhichIsDescendingInIndexAndIsAlsoPrimaryKey() throws Exception {
         new TableCreator(methodWatcher.getOrCreateConnection())
