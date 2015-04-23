@@ -27,6 +27,7 @@ import com.splicemachine.si.impl.TransactionalRegions;
 import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.utils.SpliceLogUtils;
 
+import com.splicemachine.utils.ZkUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -39,7 +40,9 @@ import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import com.splicemachine.hbase.backup.BackupFileSet;
+import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
+import org.apache.zookeeper.KeeperException;
 
 import java.io.IOException;
 import java.util.*;
@@ -499,7 +502,20 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
 				throw new IOException(e1);
 			}
 		}
+        try {
+            waitForBackupToComplete();
+        }
+        catch (Exception e) {
+            throw new IOException(e);
+        }
 	}
+
+    public void waitForBackupToComplete() throws InterruptedException, KeeperException{
+        RecoverableZooKeeper zooKeeper = ZkUtils.getRecoverableZooKeeper();
+        while (zooKeeper.exists(SpliceConstants.DEFAULT_BACKUP_PATH, false) != null) {
+            Thread.sleep(1000);
+        }
+    }
 
 	public void preCompact() throws IOException {
 		while (true) {
@@ -515,6 +531,12 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
 				throw new IOException(e1);
 			}
 		}
+        try {
+            waitForBackupToComplete();
+        }
+        catch (Exception e) {
+            throw new IOException(e);
+        }
 	}
 
 	public void postCompact() {

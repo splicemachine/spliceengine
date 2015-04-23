@@ -50,8 +50,8 @@ public class SnapshotUtilsImpl implements SnapshotUtils {
      */
     public List<Object> getSnapshotFilesForRegion(final HRegion reg, final Configuration conf,
         final FileSystem fs, final Path snapshotDir) throws IOException {
-        final String regionName = reg.getRegionNameAsString();
-      SnapshotDescription snapshotDesc = SnapshotDescriptionUtils.readSnapshotInfo(fs, snapshotDir);
+        final String regionName = (reg != null) ? reg.getRegionNameAsString() : null;
+        SnapshotDescription snapshotDesc = SnapshotDescriptionUtils.readSnapshotInfo(fs, snapshotDir);
 
       final List<Object> files = new ArrayList<Object>();
       final String table = snapshotDesc.getTable();
