@@ -1262,25 +1262,6 @@ public class FromBaseTable extends FromTable{
 		/* Put the base predicates back in the predicate list */
         currentJoinStrategy.putBasePredicates(predList, baseTableRestrictionList);
 
-        /*
-         * If the returned cost estimate is fake, add a compile-time warning so that users
-         * know bad things are going to happen
-         */
-        if(!costEstimate.isRealCost()){
-            CompilerContext compilerContext=getCompilerContext();
-            boolean addWarning = true;
-            @SuppressWarnings("ThrowableResultOfMethodCallIgnored") SQLWarning warning=compilerContext.getWarnings();
-            if(warning!=null){
-                do{
-                    if(SQLState.STATISTICS_UNAVAILABLE.equals(warning.getSQLState())){
-                        addWarning = false;
-                        break;
-                    }
-                }while((warning=warning.getNextWarning())!=null);
-            }
-            if(addWarning)
-            compilerContext.addWarning(StandardException.newWarning(SQLState.STATISTICS_UNAVAILABLE));
-        }
         return costEstimate;
     }
 
