@@ -123,7 +123,9 @@ public class IndexStatsCostController extends StatsStoreCostController {
          */
         double latency;
         double fillBlockCost = (cost.localCost()/rowsToFetch)*lookupsPerBlock;
-        if(fillBlockCost>blockLookupLatency){
+        int blocksBeforePausing=SpliceConstants.indexLookupBlocks;
+        double largeBlockCost = (blocksBeforePausing-1)*fillBlockCost;
+        if(largeBlockCost>blockLookupLatency){
             /*
              * We are in a situation where the cost to perform the lookup is less than the cost
              * to fill the next block. In this scenario, the algorithm will never pause, and the overall
@@ -132,10 +134,8 @@ public class IndexStatsCostController extends StatsStoreCostController {
              */
             latency = blockLookupLatency;
         }else{
-            int blocksBeforePausing=SpliceConstants.indexLookupBlocks;
-
             //fillToLookupRatio = how long it takes to fill the next block/the cost to perform this block's lookup
-            double largeBlockLatency=blockLookupLatency-(blocksBeforePausing-1)*fillBlockCost;
+            double largeBlockLatency=blockLookupLatency-largeBlockCost;
 
             int specialBlocks=blocksBeforePausing-(int)(numBlocks%blocksBeforePausing);
             long nBlocks=numBlocks-specialBlocks;
