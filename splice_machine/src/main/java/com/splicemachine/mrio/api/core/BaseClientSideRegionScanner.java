@@ -51,7 +51,7 @@ public abstract class BaseClientSideRegionScanner<T> implements RegionScanner {
 		if (LOG.isDebugEnabled())
 			SpliceLogUtils.debug(LOG, "init for regionInfo=%s, scan=%s", hri,scan);
 		this.table = htable;
-		scan.setIsolationLevel(IsolationLevel.READ_UNCOMMITTED); 
+		scan.setIsolationLevel(IsolationLevel.READ_UNCOMMITTED);
 		this.conf = conf;
 		this.fs = fs;
 		this.rootDir = rootDir;

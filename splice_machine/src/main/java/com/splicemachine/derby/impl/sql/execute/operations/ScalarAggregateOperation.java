@@ -7,7 +7,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.impl.spark.RDDUtils;
+import com.splicemachine.derby.stream.spark.RDDUtils;
 import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.scalar.ScalarAggregateScan;
@@ -15,6 +15,11 @@ import com.splicemachine.derby.impl.sql.execute.operations.scalar.ScalarAggregat
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
+import com.splicemachine.derby.stream.DataSet;
+import com.splicemachine.derby.stream.DataSetProcessor;
+import com.splicemachine.derby.stream.OperationContext;
+import com.splicemachine.derby.stream.StreamUtils;
+import com.splicemachine.derby.stream.function.SpliceFunction2;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.*;
@@ -321,6 +326,21 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
     }
 
     @Override
+    public DataSet<SpliceOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+        DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
+        LocatedRow result = source.getDataSet(spliceRuntimeContext, top)
+                .fold(null,new SparkAggregator(dsp.createOperationContext(this,spliceRuntimeContext)));
+        if (result==null)
+            return dsp.singleRowDataSet(new LocatedRow(getExecRowDefinition()));
+        if (!(result.getRow() instanceof ExecIndexRow)) {
+            sourceExecIndexRow.execRowToExecIndexRow(result.getRow());
+            initializeVectorAggregation(result.getRow());
+        }
+        finishAggregation(result.getRow());
+        return dsp.singleRowDataSet(new LocatedRow(result.getRow()));
+    }
+
+        @Override
     public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
         JavaRDD<LocatedRow> rdd = source.getRDD(spliceRuntimeContext, this);
         final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this, spliceRuntimeContext);
@@ -328,7 +348,8 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
         if (LOG.isInfoEnabled()) {
             LOG.info("RDD for operation " + this + " :\n " + rdd.toDebugString());
         }
-        LocatedRow result = rdd.fold(null, new SparkAggregator(this, soi));
+        DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
+        LocatedRow result = rdd.fold(null, new SparkAggregator(dsp.createOperationContext(this,spliceRuntimeContext)));
         if (result == null) {
             return SpliceSpark.getContext().parallelize(Lists.newArrayList(new LocatedRow(getExecRowDefinition())));
         }
@@ -341,19 +362,20 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
         return SpliceSpark.getContext().parallelize(Lists.newArrayList(new LocatedRow(result.getRow())), 1);
     }
 
-    private static final class SparkAggregator extends SparkOperation2<ScalarAggregateOperation, LocatedRow, LocatedRow, LocatedRow> {
+    private static final class SparkAggregator extends SpliceFunction2<SpliceOperation, LocatedRow, LocatedRow, LocatedRow> {
         private static final long serialVersionUID = -4150499166764796082L;
-
 
         public SparkAggregator() {
         }
 
-        public SparkAggregator(ScalarAggregateOperation spliceOperation, SpliceObserverInstructions soi) {
-            super(spliceOperation, soi);
+        public SparkAggregator(OperationContext<SpliceOperation> operationContext) {
+            super(operationContext);
         }
 
         @Override
         public LocatedRow call(LocatedRow t1, LocatedRow t2) throws Exception {
+            operationContext.recordRead();
+            ScalarAggregateOperation op = (ScalarAggregateOperation) getOperation();
             if (t2 == null) {
                 return t1;
             }
@@ -375,6 +397,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
         }
 
         private void aggregate(ExecRow next, ExecIndexRow agg) throws StandardException {
+            ScalarAggregateOperation op = (ScalarAggregateOperation) getOperation();
             if (next instanceof ExecIndexRow) {
                 if (RDDUtils.LOG.isDebugEnabled()) {
                     RDDUtils.LOG.debug(String.format("Merging %s with %s", next, agg));
@@ -388,7 +411,6 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
                     RDDUtils.LOG.debug(String.format("Aggregating %s to %s", next, agg));
                 }
                 for (SpliceGenericAggregator aggregate : op.aggregates) {
-//					aggregate.initialize(next);
                     aggregate.accumulate(next, agg);
                 }
             }

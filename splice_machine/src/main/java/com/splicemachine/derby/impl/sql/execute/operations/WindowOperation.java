@@ -15,6 +15,7 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.derby.stream.DataSet;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
@@ -358,6 +359,37 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
         return row;
     }
 
+    @Override
+    public DataSet<SpliceOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+
+        /*
+
+        dataSet -> pairDataSet (Partition Columns, Row)
+        * partition the data
+        * map sort columns
+        * sort the data
+        *
+
+
+
+         */
+
+        /*
+        DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
+        SparkRow result = source.getDataSet(spliceRuntimeContext, top)
+                .fold(null,new SparkAggregator(this, soi));
+        if (result==null)
+            return dsp.singleRowDataSet(new SparkRow(getExecRowDefinition()));
+        if (!(result.getRow() instanceof ExecIndexRow)) {
+            sourceExecIndexRow.execRowToExecIndexRow(result.getRow());
+            initializeVectorAggregation(result.getRow());
+        }
+        finishAggregation(result.getRow());
+        return dsp.singleRowDataSet(new SparkRow(result.getRow()));
+        */
+        return null;
+    }
+
     private WindowFunctionIterator createFrameIterator(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         // Pass in a region aware scanner to make sure the region scanner handles rows of one partition that
         // "overflow" to another region
@@ -367,6 +399,7 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
         spliceRuntimeContext.setFirstStepInMultistep(true);
         rowDecoder = getTempDecoder(spliceRuntimeContext);
         spliceRuntimeContext.setFirstStepInMultistep(false);
+
 
         PartitionAwareIterator<ExecRow> iterator =
             StandardIterators.wrap(step2Scanner, rowDecoder, windowContext.getPartitionColumns(), templateRow.getRowArray());

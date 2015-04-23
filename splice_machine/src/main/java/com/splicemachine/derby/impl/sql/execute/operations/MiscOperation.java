@@ -2,9 +2,13 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.job.JobInfo;
+import com.splicemachine.derby.stream.DataSet;
+import com.splicemachine.derby.stream.DataSetProcessor;
+import com.splicemachine.derby.stream.StreamUtils;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobResults;
@@ -166,4 +170,12 @@ public class MiscOperation extends NoRowsOperation
 		public boolean isReferencingTable(long tableNumber) {
 				return false;
 		}
+
+        public DataSet<TableScanOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+            DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
+            setup();
+            activation.getConstantAction().executeConstantAction(activation);
+            return dsp.getEmpty();
+        }
+
 }

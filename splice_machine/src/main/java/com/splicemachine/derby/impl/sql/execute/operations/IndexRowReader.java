@@ -97,152 +97,6 @@ class IndexRowReader {
 				this.table =table;
 		}
 
-//		IndexRowReader(ExecutorService lookupService,
-//									 HTableInterface table,
-//									 SpliceOperation sourceOperation,
-//									 int batchSize,
-//									 int numBlocks,
-//									 ExecRow template,
-//									 String txnId,
-//									 int[] indexCols,
-//									 long mainTableConglomId,
-//									 int[] rowDecodingMap,
-//									 byte[] predicateFilterBytes,
-//									 SpliceRuntimeContext runtimeContext,
-//									 int[] mainTableKeyColumnEncodingOrder,
-//									 boolean[] mainTableKeyColumnSortOrder,
-//									 int[] mainTableKeyColumnDecodingMap,
-//									 int[] mainTableKeyFormatIds,
-//									 FormatableBitSet mainTableAccessedKeys,
-//									 String tableVersion) throws StandardException{
-//				this.lookupService = lookupService;
-//				this.sourceOperation = sourceOperation;
-//				this.batchSize = batchSize;
-//				this.numBlocks = numBlocks;
-//				this.outputTemplate = template;
-//				this.txnId = txnId;
-//				this.indexCols = indexCols;
-//				this.mainTableConglomId = mainTableConglomId;
-//				this.resultFutures = Lists.newArrayListWithExpectedSize(numBlocks);
-//				this.table = table;
-//				this.runtimeContext = runtimeContext;
-//
-//				this.predicateFilterBytes = predicateFilterBytes;
-//				if(runtimeContext.shouldRecordTraceMetrics()){
-//						metricFactory = Metrics.atomicTimer();
-//				}else
-//						metricFactory = Metrics.noOpMetricFactory();
-//
-//				DescriptorSerializer[] serializers = VersionedSerializers.forVersion(tableVersion,true).getSerializers(template);
-//				if(mainTableKeyColumnDecodingMap==null||mainTableKeyColumnDecodingMap.length<=0)
-//						keyDecoder = KeyDecoder.noOpDecoder();
-//				else{
-//
-//						KeyHashDecoder hashDecoder = SkippingKeyDecoder.decoder(VersionedSerializers.typesForVersion(tableVersion),
-//										serializers,
-//										mainTableKeyColumnEncodingOrder,
-//										mainTableKeyFormatIds,
-//										mainTableKeyColumnSortOrder,mainTableKeyColumnDecodingMap,mainTableAccessedKeys);
-//						keyDecoder = new KeyDecoder(hashDecoder,0);
-//				}
-//				rowDecoder = new EntryDataDecoder(rowDecodingMap,null, serializers);
-//		}
-//
-//		IndexRowReader(ExecutorService lookupService,
-//									 HTableInterface table,
-//									 SpliceOperation sourceOperation,
-//									 int batchSize,
-//									 int numBlocks,
-//									 ExecRow template,
-//									 String txnId,
-//									 int[] indexCols,
-//									 long mainTableConglomId,
-//									 int[] adjustedBaseColumnMap,
-//									 byte[] predicateFilterBytes,
-//									 SpliceRuntimeContext runtimeContext,
-//									 int[] mainTablePkCols,
-//									 String tableVersion) throws StandardException{
-//				this.lookupService = lookupService;
-//				this.sourceOperation = sourceOperation;
-//				this.batchSize = batchSize;
-//				this.numBlocks = numBlocks;
-//				this.outputTemplate = template;
-//				this.txnId = txnId;
-//				this.indexCols = indexCols;
-//				this.mainTableConglomId = mainTableConglomId;
-//				this.resultFutures = Lists.newArrayListWithExpectedSize(numBlocks);
-//				this.table = table;
-//				this.runtimeContext = runtimeContext;
-//
-//        this.predicateFilterBytes = predicateFilterBytes;
-//        if(runtimeContext.shouldRecordTraceMetrics()){
-//            metricFactory = Metrics.atomicTimer();
-//        }else
-//            metricFactory = Metrics.noOpMetricFactory();
-//
-//				DescriptorSerializer[] serializers = VersionedSerializers.forVersion(tableVersion,true).getSerializers(template);
-//				if(mainTablePkCols==null||mainTablePkCols.length<=0)
-//						keyDecoder = KeyDecoder.noOpDecoder();
-//				else
-//						keyDecoder = KeyDecoder.bareDecoder(mainTablePkCols, serializers);
-//				rowDecoder = new EntryDataDecoder(adjustedBaseColumnMap,null, serializers);
-//    }
-//
-//    IndexRowReader(ExecutorService lookupService,
-//									 SpliceOperation sourceOperation,
-//									 int batchSize,
-//									 int numBlocks,
-//									 ExecRow template,
-//									 String txnId,
-//									 int[] indexCols,
-//									 long mainTableConglomId,
-//									 int[] adjustedBaseColumnMap,
-//									 byte[] predicateFilterBytes,
-//									 SpliceRuntimeContext runtimeContext,
-//									 int[] columnOrdering,
-//									 String tableVersion) throws StandardException{
-//        this(lookupService,null,sourceOperation,batchSize,numBlocks,template,
-//             txnId,indexCols,mainTableConglomId,adjustedBaseColumnMap,
-//             predicateFilterBytes,runtimeContext, columnOrdering,tableVersion);
-//    }
-//
-//    public static IndexRowReader create(SpliceOperation sourceOperation,
-//                                        long mainTableConglomId,
-//                                        ExecRow template,
-//                                        String txnId,
-//                                        int[] indexCols,
-//                                        int[] adjustedBaseColumnMap,
-//                                        FormatableBitSet heapOnlyCols,
-//										SpliceRuntimeContext runtimeContext,
-//                                        int[] columnOrdering,
-//                                        int[] format_ids,
-//																				String tableVersion) throws StandardException{
-//        int numBlocks = SpliceConstants.indexLookupBlocks;
-//        int batchSize = SpliceConstants.indexBatchSize;
-//
-//        ThreadFactoryBuilder factoryBuilder = new ThreadFactoryBuilder();
-//        ThreadFactory factory = factoryBuilder.setNameFormat("index-lookup-%d").build();
-//        ExecutorService backgroundService = new ThreadPoolExecutor(numBlocks,numBlocks,60,TimeUnit.SECONDS,
-//                new SynchronousQueue<Runnable>(),factory,new ThreadPoolExecutor.CallerRunsPolicy());
-//
-//        BitSet fieldsToReturn = new BitSet(heapOnlyCols.getNumBitsSet());
-//        for(int i=heapOnlyCols.anySetBit();i>=0;i=heapOnlyCols.anySetBit(i)){
-//            fieldsToReturn.set(i);
-//        }
-//        EntryPredicateFilter epf = new EntryPredicateFilter(fieldsToReturn, new ObjectArrayList<Predicate>());
-//        byte[] predicateFilterBytes = epf.toBytes();
-//        return new IndexRowReader(backgroundService,
-//                sourceOperation,
-//                batchSize,numBlocks,
-//                template,txnId,
-//                indexCols,mainTableConglomId,
-//                adjustedBaseColumnMap,predicateFilterBytes,
-//                runtimeContext,
-//                columnOrdering,
-//								tableVersion
-//				);
-//    }
-
     public void close() throws IOException {
 				Closeables.closeQuietly(this.rowDecoder);
 				Closeables.closeQuietly(this.keyDecoder);
@@ -357,7 +211,7 @@ class IndexRowReader {
             else throw Exceptions.parseException(t);
         }
     }
-
+    /** TODO REMOVE JLEACH */
     static class RowAndLocation{
         ExecRow row;
         byte[] rowLocation;
@@ -405,17 +259,13 @@ class IndexRowReader {
 						for(RowAndLocation sourceRow:sourceRows){
 								byte[] row = sourceRow.rowLocation;
 								Get get = SpliceUtils.createGet(txn,row);
-//								get.setAttribute(SIConstants.SI_NEEDED,SIConstants.TRUE_BYTES);
-//								get.setAttribute(SIConstants.SI_TRANSACTION_ID_KEY,Bytes.toBytes(tx));
 								get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilterBytes);
 								gets.add(get);
 						}
-
 						timer.startTiming();
 						Result[] results = table.get(gets);
 						timer.tick(results.length);
 						HBaseStatUtils.countBytes(bytesCounter, results);
-
 						int i=0;
 						List<Pair<RowAndLocation,Result>> locations = Lists.newArrayListWithCapacity(sourceRows.size());
 						for(RowAndLocation sourceRow:sourceRows){

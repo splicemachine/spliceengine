@@ -10,7 +10,7 @@ import org.apache.hadoop.hbase.client.ResultScanner;
  */
 public interface MeasuredResultScanner extends ResultScanner {
 
-    TimeView getRemoteReadTime();
+        TimeView getRemoteReadTime();
 		long getRemoteBytesRead();
 		long getRemoteRowsRead();
 

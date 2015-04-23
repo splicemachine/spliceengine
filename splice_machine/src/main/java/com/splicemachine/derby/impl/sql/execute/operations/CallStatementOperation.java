@@ -2,21 +2,22 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.iapi.sql.execute.OperationResultSet;
-import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.storage.SingleScanRowProvider;
 import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
+import com.splicemachine.derby.stream.DataSet;
+import com.splicemachine.derby.stream.DataSetProcessor;
+import com.splicemachine.derby.stream.StreamUtils;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.metrics.BaseIOStats;
 import com.splicemachine.metrics.IOStats;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.TimeView;
+import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import com.splicemachine.db.iapi.error.StandardException;
@@ -47,7 +48,7 @@ public class CallStatementOperation extends NoRowsOperation {
 
     // TODO: remove all the subsqueryTrackingArrayStuff? Carried over from Derby and not used here.
 
-    private static Logger LOG = Logger.getLogger(CallStatementOperation.class);
+        private static Logger LOG = Logger.getLogger(CallStatementOperation.class);
 		private String methodName;
 		private SpliceMethod<Object> methodCall;
 
@@ -264,5 +265,18 @@ public class CallStatementOperation extends NoRowsOperation {
 		public String prettyPrint(int indentLevel) {
 				return "CallStatement"+super.prettyPrint(indentLevel);
 		}
-}
+
+    @Override
+    public String toString() {
+        return "CallStatement";
+    }
+
+    @Override
+        public DataSet<SpliceOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+            DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
+            callableRowProvider.open();
+            callableRowProvider.close();
+            return dsp.getEmpty();
+        }
+    }
 

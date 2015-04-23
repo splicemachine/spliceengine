@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.spark;
+package com.splicemachine.derby.stream.spark;
 
 import java.io.IOException;
 import java.io.Serializable;

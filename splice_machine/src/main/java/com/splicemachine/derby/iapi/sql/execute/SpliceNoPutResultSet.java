@@ -51,7 +51,8 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 		public SpliceNoPutResultSet(Activation activation,
 																SpliceOperation topOperation,
 																RowProvider rowProvider, boolean returnsRows){
-				SpliceLogUtils.trace(LOG, "instantiate with rowProvider %s",rowProvider);
+				SpliceLogUtils.trace(LOG, "instantiate with topOperation=%s, rowProvider %s, returnRows=%s",topOperation,rowProvider,returnsRows);
+                System.out.println("class="+topOperation.getClass());
 				this.activation = activation;
 				if(activation!=null)
 						this.resultDescription = activation.getPreparedStatement().getResultDescription();
@@ -62,7 +63,7 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 
 		@Override
 		public boolean returnsRows() {
-				SpliceLogUtils.trace(LOG, "returnsRows");
+				SpliceLogUtils.trace(LOG, "returnsRows %s",returnsRows);
 				return returnsRows;
 		}
 
@@ -194,17 +195,17 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
                     // abstraction, but it was not intended to handle the life cycle of
                     // operations.
                     //
-                    topOperation.close();
+                  //  topOperation.close();
                     // get rid of the following if redundant
-						JobResults jobResults = topOperation.getJobResults();
-						if(jobResults!=null)
-								jobResults.cleanup();
+				//		JobResults jobResults = topOperation.getJobResults();
+				//		if(jobResults!=null)
+				//				jobResults.cleanup();
 				}catch(RuntimeException r){
 						throw Exceptions.parseException(r);
 				}
-				catch (IOException e) {
-						throw Exceptions.parseException(e);
-				}
+//				catch (IOException e) {
+//						throw Exceptions.parseException(e);
+//				}
 				boolean xplain = activation.isTraced();
 				if(xplain){
 						String xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();

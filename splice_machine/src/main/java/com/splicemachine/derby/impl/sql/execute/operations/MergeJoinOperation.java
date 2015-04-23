@@ -3,9 +3,14 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.*;
-import com.splicemachine.derby.impl.spark.RDDUtils;
+import com.splicemachine.derby.stream.spark.RDDUtils;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
+import com.splicemachine.derby.stream.DataSetProcessor;
+import com.splicemachine.derby.stream.OperationContext;
+import com.splicemachine.derby.stream.StreamUtils;
+import com.splicemachine.derby.stream.function.SpliceFlatMap2Function;
+import com.splicemachine.derby.stream.SparkJoinerIterator;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.derby.utils.marshall.BareKeyHash;
 import com.splicemachine.derby.utils.marshall.DataHash;
@@ -260,7 +265,8 @@ public class MergeJoinOperation extends JoinOperation {
         }
 
         final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this, spliceRuntimeContext);
-        return partitionedLeftRDD.zipPartitions(partitionedRightRDD, new SparkJoiner(this, soi, true));
+        DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
+        return partitionedLeftRDD.zipPartitions(partitionedRightRDD, new SparkJoiner(dsp.createOperationContext(this,spliceRuntimeContext), true));
     }
 
     private Partitioner getPartitioner(int[] formatIds, Partition[] partitions) {
@@ -350,16 +356,18 @@ public class MergeJoinOperation extends JoinOperation {
     }
 
 
-    private static final class SparkJoiner extends SparkFlatMap2Operation<MergeJoinOperation, Iterator<LocatedRow>, Iterator<LocatedRow>, LocatedRow> {
+    private static final class SparkJoiner extends SpliceFlatMap2Function<SpliceOperation, Iterator<LocatedRow>, Iterator<LocatedRow>, LocatedRow> {
         boolean outer;
         private Joiner joiner;
+        private MergeJoinOperation op;
 
         public SparkJoiner() {
         }
 
-        public SparkJoiner(MergeJoinOperation spliceOperation, SpliceObserverInstructions soi, boolean outer) {
-            super(spliceOperation, soi);
+        public SparkJoiner(OperationContext<SpliceOperation> operationContext, boolean outer) {
+            super(operationContext);
             this.outer = outer;
+            this.op = (MergeJoinOperation) operationContext.getOperation();
         }
 
         private Joiner initJoiner(final Iterator<ExecRow> left, Iterator<ExecRow> right) throws StandardException {
@@ -391,7 +399,7 @@ public class MergeJoinOperation extends JoinOperation {
 
             return new Joiner(mergedRowSource, op.getExecRowDefinition(), op.getRestriction(),
                     op.isOuterJoin, op.wasRightOuterJoin, op.leftNumCols, op.rightNumCols,
-                    op.oneRowRightSide, op.notExistsRightSide, false, emptyRowSupplier, soi.getSpliceRuntimeContext());
+                    op.oneRowRightSide, op.notExistsRightSide, false, emptyRowSupplier, operationContext.getSpliceRuntimeContext());
         }
 
         @Override
@@ -401,7 +409,8 @@ public class MergeJoinOperation extends JoinOperation {
         }
 
         @Override
-        public void readExternalInContext(ObjectInput in) throws IOException, ClassNotFoundException {
+        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+            super.readExternal(in);
             outer = in.readBoolean();
         }
 
@@ -411,7 +420,7 @@ public class MergeJoinOperation extends JoinOperation {
                 joiner = initJoiner(RDDUtils.toExecRowsIterator(left), RDDUtils.toExecRowsIterator(right));
                 joiner.open();
             }
-            return RDDUtils.toSparkRowsIterable(new SparkJoinerIterator(joiner, soi));
+            return RDDUtils.toSparkRowsIterable(new SparkJoinerIterator(joiner, operationContext.getSpliceRuntimeContext()));
         }
     }
 }

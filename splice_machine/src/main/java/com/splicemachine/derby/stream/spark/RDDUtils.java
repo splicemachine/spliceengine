@@ -1,4 +1,4 @@
-package com.splicemachine.derby.impl.spark;
+package com.splicemachine.derby.stream.spark;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;

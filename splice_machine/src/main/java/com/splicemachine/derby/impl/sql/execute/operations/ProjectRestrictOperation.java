@@ -3,21 +3,17 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.List;
-
+import java.util.*;
 import com.google.common.base.Strings;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
-import com.splicemachine.derby.hbase.SpliceObserverInstructions;
-import com.splicemachine.derby.impl.spark.RDDUtils;
+import com.splicemachine.derby.stream.spark.RDDUtils;
 import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
+import com.splicemachine.derby.stream.*;
+import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.utils.marshall.*;
-
 import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
@@ -26,7 +22,6 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -407,7 +402,15 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 								+ "source:" + source.prettyPrint(indentLevel + 1);
 		}
 
-    public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+    public DataSet<SpliceOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+        DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
+        if (alwaysFalse) {
+            return dsp.getEmpty();
+        }
+        return source.getDataSet(spliceRuntimeContext, top).mapPartitions(new ProjectRestrictSparkOp(dsp.createOperationContext(this,spliceRuntimeContext)));
+    }
+
+        public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
         if (alwaysFalse) {
             return SpliceSpark.getContext().parallelize(Collections.<LocatedRow>emptyList());
         }
@@ -416,8 +419,8 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
             // we want to avoid re-applying the PR if it has already been executed in HBase
             return raw;
         }
-        final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this, spliceRuntimeContext);
-        JavaRDD<LocatedRow> projected = raw.mapPartitions(new ProjectRestrictSparkOp(this, soi));
+            DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
+            JavaRDD<LocatedRow> projected = raw.mapPartitions(new ProjectRestrictSparkOp(dsp.createOperationContext(this,spliceRuntimeContext)));
         return projected;
     }
 
@@ -431,17 +434,18 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
         return source.pushedToServer();
     }
 
-    public static final class ProjectRestrictSparkOp extends SparkFlatMapOperation<ProjectRestrictOperation, Iterator<LocatedRow>, LocatedRow> {
+    public static final class ProjectRestrictSparkOp extends SpliceFlatMapFunction<SpliceOperation, Iterator<LocatedRow>, LocatedRow> {
         public ProjectRestrictSparkOp() {
         }
 
-        public ProjectRestrictSparkOp(ProjectRestrictOperation spliceOperation, SpliceObserverInstructions soi) {
-            super(spliceOperation, soi);
+        public ProjectRestrictSparkOp(OperationContext operationContext) {
+            super(operationContext);
         }
 
         public LocatedRow project(LocatedRow sourceRow) throws Exception {
+            operationContext.recordRead();
             ExecRow result;
-
+            ProjectRestrictOperation op = (ProjectRestrictOperation) getOperation();
             op.source.setCurrentRow(sourceRow.getRow());
             op.source.setCurrentRowLocation(sourceRow.getRowLocation());
 
@@ -453,8 +457,10 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
                 if (RDDUtils.LOG.isDebugEnabled()) {
                     RDDUtils.LOG.debug("restricted row " + sourceRow + ": " + restrict);
                 }
-                if (!restrict)
+                if (!restrict) {
+                    operationContext.recordFilter();
                     return null; // filter out this row
+                }
             }
 
             if (op.projection != null) {
@@ -480,7 +486,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
                     result.setColumn(index + 1, dvd);
                 }
             }
-            activation.setCurrentRow(result, op.resultSetNumber);
+            getActivation().setCurrentRow(result, op.resultSetNumber);
             if (RDDUtils.LOG.isDebugEnabled()) {
                 RDDUtils.LOG.debug("Projected " + sourceRow + " into " + result);
             }
@@ -516,7 +522,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
                     return true;
                 try {
                     if (!prepared) {
-                        impl.prepareContextManager();
+                        prepare();
                         prepared = true;
                     }
                     next = null;
@@ -527,14 +533,14 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
                 } catch (Exception e) {
                     if (prepared) {
                         closed = true;
-                        impl.resetContextManager();
+                        reset();
                     }
                     throw new RuntimeException(e);
                 }
                 populated = next != null;
                 if (!populated) {
                     closed = true;
-                    impl.resetContextManager();
+                    reset();
                 }
                 return populated;
             }

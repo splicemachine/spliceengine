@@ -9,6 +9,9 @@ import java.util.List;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.impl.spark.SpliceSpark;
+import com.splicemachine.derby.stream.DataSet;
+import com.splicemachine.derby.stream.DataSetProcessor;
+import com.splicemachine.derby.stream.StreamUtils;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.metrics.Counter;
 import com.splicemachine.pipeline.exception.Exceptions;
@@ -313,4 +316,9 @@ public class RowOperation extends SpliceBaseOperation {
 		public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
 			return SpliceSpark.getContext().parallelize(Lists.newArrayList(new LocatedRow(getRow())), 1);
 		}
+       @Override
+        public DataSet<SpliceOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+            DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
+            return dsp.singleRowDataSet(new LocatedRow(getRow()));
+        }
 }

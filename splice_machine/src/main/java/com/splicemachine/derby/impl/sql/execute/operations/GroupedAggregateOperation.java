@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.db.iapi.sql.execute.KeyableRow;
 import com.splicemachine.db.impl.sql.execute.IndexValueRow;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
@@ -11,7 +12,8 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.iapi.storage.ScanBoundary;
-import com.splicemachine.derby.impl.spark.RDDUtils;
+import com.splicemachine.derby.stream.function.Keyer;
+import com.splicemachine.derby.stream.spark.RDDUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.EmptyRowSupplier;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SourceIterator;
@@ -22,6 +24,9 @@ import com.splicemachine.derby.impl.temp.TempTable;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.stats.TaskStats;
+import com.splicemachine.derby.stream.*;
+import com.splicemachine.derby.stream.function.SpliceFunction;
+import com.splicemachine.derby.stream.function.SpliceFunction2;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
@@ -591,28 +596,41 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         return ((SpliceOperation) source).providesRDD();
     }
 
+    @Override
+    public DataSet<SpliceOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+        DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
+        OperationContext<SpliceOperation> operationContext = dsp.createOperationContext(this,spliceRuntimeContext);
+        return source.getDataSet(spliceRuntimeContext, top)
+                        .keyBy(new Keyer(operationContext,groupedAggregateContext.getGroupingKeys()))
+                        .reduceByKey(new AggregatorFunction(operationContext))
+                        .values()
+                        .map(new FinisherFunction(operationContext));
+    }
+
+
     public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+        DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
         JavaRDD<LocatedRow> rdd = source.getRDD(spliceRuntimeContext, this);
         int[] groupByCols = groupedAggregateContext.getGroupingKeys();
         JavaPairRDD<ExecRow, LocatedRow> keyedRDD = RDDUtils.getKeyedRDD(rdd, groupByCols);
-        final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this, spliceRuntimeContext);
-        JavaPairRDD<ExecRow, LocatedRow> resultRDD = keyedRDD.reduceByKey(new Aggregator(this, soi));
+        OperationContext<SpliceOperation> context = dsp.createOperationContext(this,spliceRuntimeContext);
+        JavaPairRDD<ExecRow, LocatedRow> resultRDD = keyedRDD.reduceByKey(new AggregatorFunction(context));
         JavaRDD<LocatedRow> keylessRDD = resultRDD.values();
-        JavaRDD<LocatedRow> finished = keylessRDD.map(new Finisher(this, soi));
-
-        return finished;
+        return keylessRDD.map(new FinisherFunction(context));
     }
 
-    private static final class Finisher extends SparkOperation<GroupedAggregateOperation, LocatedRow, LocatedRow> {
-        public Finisher() {
+    private static final class FinisherFunction extends SpliceFunction<SpliceOperation, LocatedRow, LocatedRow> {
+        public FinisherFunction() {
+            super();
         }
 
-        public Finisher(GroupedAggregateOperation spliceOperation, SpliceObserverInstructions soi) {
-            super(spliceOperation, soi);
+        public FinisherFunction(OperationContext<SpliceOperation> operationContext) {
+            super(operationContext);
         }
 
         @Override
         public LocatedRow call(LocatedRow locatedRow) throws Exception {
+            GroupedAggregateOperation op = (GroupedAggregateOperation) this.getOperation();
             ExecRow row = locatedRow.getRow();
             if (!(row instanceof ExecIndexRow)) {
                 op.sourceExecIndexRow.execRowToExecIndexRow(row);
@@ -627,21 +645,26 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 
     }
 
-    private static final class Aggregator extends SparkOperation2<GroupedAggregateOperation, LocatedRow, LocatedRow, LocatedRow> {
+    private static final class AggregatorFunction extends SpliceFunction2<SpliceOperation, LocatedRow, LocatedRow, LocatedRow> {
         private static final long serialVersionUID = -4879775024011078994L;
-
-        public Aggregator() {
+        public AggregatorFunction() {
         }
 
-        public Aggregator(GroupedAggregateOperation spliceOperation, SpliceObserverInstructions soi) {
-            super(spliceOperation, soi);
+        public AggregatorFunction (OperationContext<SpliceOperation> operationContext) {
+            super(operationContext);
         }
 
         @Override
         public LocatedRow call(LocatedRow t1, LocatedRow t2) throws Exception {
+            GroupedAggregateOperation op = (GroupedAggregateOperation) this.getOperation();
             if (RDDUtils.LOG.isDebugEnabled()) {
                 RDDUtils.LOG.debug(String.format("Reducing %s and %s", t1, t2));
             }
+            if (t1 ==null)
+                return t2;
+            if (t2 == null)
+                return t1;
+
             ExecRow r1 = t1.getRow();
             if (!(r1 instanceof ExecIndexRow)) {
                 r1 = new IndexValueRow(r1);
@@ -654,6 +677,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         }
 
         private void aggregate(ExecRow next, ExecIndexRow agg) throws StandardException {
+            GroupedAggregateOperation op = (GroupedAggregateOperation) this.getOperation();
             if (op.isInitialized(next)) {
                 if (RDDUtils.LOG.isDebugEnabled()) {
                     RDDUtils.LOG.debug(String.format("Merging %s with %s", next, agg));

@@ -38,7 +38,7 @@ public class TxnRegion implements TransactionalRegion {
 		private final IHTable hbRegion;
         private final String tableName;
 
-		private final boolean transactionalWrites; //if false, then will use straightforward writes
+		private boolean transactionalWrites; //if false, then will use straightforward writes
 
 		public TxnRegion(HRegion region,
                      RollForward rollForward,
@@ -47,16 +47,18 @@ public class TxnRegion implements TransactionalRegion {
                      IgnoreTxnCacheSupplier ignoreTxnCacheSupplier,
                      DataStore dataStore,
                      Transactor transactor) {
-				this.region = region;
-				this.rollForward = rollForward;
-				this.readResolver = readResolver;
-				this.txnSupplier = txnSupplier;
-                this.ignoreTxnCacheSupplier = ignoreTxnCacheSupplier;
-				this.dataStore = dataStore;
-				this.transactor = transactor;
-				this.hbRegion = new HbRegion(region);
+            this.region = region;
+            this.rollForward = rollForward;
+            this.readResolver = readResolver;
+            this.txnSupplier = txnSupplier;
+            this.ignoreTxnCacheSupplier = ignoreTxnCacheSupplier;
+            this.dataStore = dataStore;
+            this.transactor = transactor;
+            if (region != null) {
+                this.hbRegion = new HbRegion(region);
                 this.tableName = region.getTableDesc().getNameAsString();
-				this.transactionalWrites = SIObserver.doesTableNeedSI(region.getTableDesc().getNameAsString());
+                this.transactionalWrites = SIObserver.doesTableNeedSI(region.getTableDesc().getNameAsString());
+            }
 		}
 
 		@Override

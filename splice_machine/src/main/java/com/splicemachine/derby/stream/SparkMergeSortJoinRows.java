@@ -1,9 +1,11 @@
-package com.splicemachine.derby.impl.sql.execute.operations;
+package com.splicemachine.derby.stream;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.impl.spark.RDDUtils;
+import com.splicemachine.derby.stream.spark.RDDUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.derby.impl.sql.execute.operations.IJoinRowsIterator;
+import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import org.apache.hadoop.hbase.util.Pair;
 import scala.Tuple2;
 

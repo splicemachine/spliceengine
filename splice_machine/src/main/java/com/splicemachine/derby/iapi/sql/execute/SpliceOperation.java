@@ -4,10 +4,10 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 
 import java.io.IOException;
 import java.util.List;
-
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationInformation;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
+import com.splicemachine.derby.stream.DataSet;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -244,6 +244,8 @@ public interface SpliceOperation extends StandardCloseable {
     public boolean expectsRDD();
 
     public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException;
+
+    public <Op extends SpliceOperation> DataSet<Op,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException;
 
     /**
      *
