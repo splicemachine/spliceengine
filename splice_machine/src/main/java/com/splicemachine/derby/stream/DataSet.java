@@ -36,7 +36,7 @@ public interface DataSet<Op extends SpliceOperation,V> {
     /**
      * Apply map function.
      */
-    DataSet<Op,V> map(SpliceFunction<Op,V,V> function);
+    <U> DataSet<Op,U> map(SpliceFunction<Op,V,U> function);
 
     <K> PairDataSet<Op,K,V> keyBy(SpliceFunction<Op,V,K> function);
 

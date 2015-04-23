@@ -5,6 +5,7 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
 import com.google.common.base.Strings;
@@ -13,6 +14,10 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
+import com.splicemachine.derby.stream.DataSet;
+import com.splicemachine.derby.stream.DataSetProcessor;
+import com.splicemachine.derby.stream.StreamUtils;
+import com.splicemachine.derby.stream.function.SpliceFunction;
 import com.splicemachine.derby.stream.spark.RDDRowProvider;
 import com.splicemachine.derby.impl.storage.RowProviders;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
@@ -234,6 +239,16 @@ public class AnyOperation extends SpliceBaseOperation {
     }
 
     @Override
+    public DataSet<SpliceOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+        DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
+        Iterator<LocatedRow> iterator = source.getDataSet(spliceRuntimeContext,top).toLocalIterator();
+        if (iterator.hasNext())
+                return dsp.singleRowDataSet(new LocatedRow(iterator.next().getRow()));
+        return dsp.singleRowDataSet(new LocatedRow(getRowWithNulls()));
+    }
+
+
+        @Override
     public SpliceNoPutResultSet executeRDD(SpliceRuntimeContext runtimeContext) throws StandardException {
         JavaRDD<LocatedRow> rdd = getRDD(runtimeContext, this);
         if (LOG.isInfoEnabled()) {
@@ -254,4 +269,7 @@ public class AnyOperation extends SpliceBaseOperation {
                     }
                 });
     }
+
+
+
 }

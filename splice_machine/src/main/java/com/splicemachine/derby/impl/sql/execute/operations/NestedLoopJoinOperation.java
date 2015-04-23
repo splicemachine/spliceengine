@@ -7,6 +7,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
+import com.splicemachine.derby.stream.DataSet;
 import com.splicemachine.derby.stream.DataSetProcessor;
 import com.splicemachine.derby.stream.OperationContext;
 import com.splicemachine.derby.stream.StreamUtils;
@@ -353,7 +354,12 @@ public class NestedLoopJoinOperation extends JoinOperation {
         return leftResultSet.providesRDD();
     }
 
-    @Override
+    public DataSet<SpliceOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+        throw new RuntimeException("not implemented");
+    }
+
+
+        @Override
     public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
         DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
         JavaRDD<LocatedRow> left = leftResultSet.getRDD(spliceRuntimeContext, leftResultSet);

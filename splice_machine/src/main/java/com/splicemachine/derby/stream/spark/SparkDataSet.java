@@ -51,7 +51,7 @@ public class SparkDataSet<Op extends SpliceOperation,V> implements DataSet<Op,V>
     }
 
     @Override
-    public DataSet<Op,V> map(SpliceFunction function) {
+    public <U> DataSet<Op,U> map(SpliceFunction<Op,V,U> function) {
         return null;
     }
 
