@@ -184,8 +184,8 @@ public class IntersectOrExceptNode extends SetOperatorNode
                 intermediateOrderByColumns[i] = i;
             }
         }
-        pushOrderingDown( leftResultSet);
-        pushOrderingDown( rightResultSet);
+        //pushOrderingDown( leftResultSet);
+        //pushOrderingDown( rightResultSet);
 
         return super.preprocess( numTables, gbl, fromList);
     } // end of preprocess
