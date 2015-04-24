@@ -72,5 +72,5 @@ public interface DataSet<Op extends SpliceOperation,V> {
 
     DataSet<Op,V> subtract(DataSet<Op,V> dataSet);
 
-
+    boolean isEmpty();
  }

@@ -24,7 +24,8 @@ import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.stream.*;
 import com.splicemachine.derby.stream.function.Keyer;
-import com.splicemachine.derby.stream.function.SpliceFunction2;
+import com.splicemachine.derby.stream.function.MergeAllAggregatesFunction;
+import com.splicemachine.derby.stream.function.MergeNonDistinctAggregatesFunction;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.ScanIterator;
 import com.splicemachine.derby.utils.Scans;
@@ -55,7 +56,6 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.io.Serializable;
 
 /**
  *
@@ -514,106 +514,13 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation 
     }
 
     public DataSet<SpliceOperation, LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-        DataSet<SpliceOperation,LocatedRow> dataSet = source.getDataSet(spliceRuntimeContext,top);
+        DataSet<SpliceOperation, LocatedRow> dataSet = source.getDataSet(spliceRuntimeContext, top);
         DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
-        OperationContext operationContext = dsp.createOperationContext(top,spliceRuntimeContext);
+        OperationContext operationContext = dsp.createOperationContext(top, spliceRuntimeContext);
         LocatedRow finalRow = (LocatedRow) dataSet.keyBy(new Keyer(operationContext, keyColumns))
-                .reduceByKey(new MergeNonDistinctAggregatesFunction(operationContext,aggregates)).values()
-                .fold(null,new MergeAllAggregatesFunction(operationContext,aggregates));
-        return dsp.singleRowDataSet(finish(finalRow!=null?finalRow:new LocatedRow(new EmptyRowSupplier(aggregateContext).get()),aggregates));
-    }
-
-
-    public class MergeNonDistinctAggregatesFunction<Op extends SpliceOperation> extends SpliceFunction2<Op,LocatedRow,LocatedRow,LocatedRow> implements Serializable {
-        protected SpliceGenericAggregator[] aggregates;
-        public MergeNonDistinctAggregatesFunction() {
-        }
-
-        public MergeNonDistinctAggregatesFunction (OperationContext<Op> operationContext, SpliceGenericAggregator[] aggregates) {
-            super(operationContext);
-            this.aggregates = aggregates;
-        }
-
-        @Override
-        public void writeExternal(ObjectOutput out) throws IOException {
-            super.writeExternal(out);
-            out.writeInt(aggregates.length);
-            for (int i = 0; i<aggregates.length;i++) {
-                out.writeObject(aggregates[i]);
-            }
-        }
-
-        @Override
-        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-            super.readExternal(in);
-            aggregates = new SpliceGenericAggregator[in.readInt()];
-            for (int i = 0; i<aggregates.length;i++) {
-                aggregates[i] = (SpliceGenericAggregator) in.readObject();
-            }
-        }
-
-        @Override
-        public LocatedRow call(LocatedRow locatedRow1, LocatedRow locatedRow2) throws Exception {
-           if (locatedRow1 == null) return locatedRow2;
-           if (locatedRow2 == null) return locatedRow1;
-            for(SpliceGenericAggregator aggregator:aggregates) {
-                if (!aggregator.isDistinct()) {
-                    if (!aggregator.isInitialized(locatedRow1.getRow())) {
-                        aggregator.initializeAndAccumulateIfNeeded(locatedRow1.getRow(),locatedRow1.getRow());
-                    }
-                    if (!aggregator.isInitialized(locatedRow2.getRow())) {
-                        aggregator.initializeAndAccumulateIfNeeded(locatedRow2.getRow(), locatedRow2.getRow());
-                    }
-                    aggregator.merge(locatedRow2.getRow(), locatedRow1.getRow());
-                }
-            }
-            return locatedRow1;
-        }
-    }
-
-    public class MergeAllAggregatesFunction<Op extends com.splicemachine.derby.iapi.sql.execute.SpliceOperation> extends SpliceFunction2<Op,LocatedRow,LocatedRow,LocatedRow> implements Serializable {
-        protected SpliceGenericAggregator[] aggregates;
-        public MergeAllAggregatesFunction() {
-        }
-
-        public MergeAllAggregatesFunction (OperationContext<Op> operationContext,SpliceGenericAggregator[] aggregates) {
-            super(operationContext);
-            this.aggregates = aggregates;
-        }
-
-        @Override
-        public void writeExternal(ObjectOutput out) throws IOException {
-            super.writeExternal(out);
-            out.writeInt(aggregates.length);
-            for (int i = 0; i<aggregates.length;i++) {
-                out.writeObject(aggregates[i]);
-            }
-        }
-
-        @Override
-        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-            super.readExternal(in);
-            aggregates = new SpliceGenericAggregator[in.readInt()];
-            for (int i = 0; i<aggregates.length;i++) {
-                aggregates[i] = (SpliceGenericAggregator) in.readObject();
-            }
-        }
-
-        @Override
-        public LocatedRow call(LocatedRow locatedRow1, LocatedRow locatedRow2) throws Exception {
-            if (locatedRow1 == null) return locatedRow2;
-            if (locatedRow2 == null) return locatedRow1;
-            for(SpliceGenericAggregator aggregator:aggregates) {
-                if (!aggregator.isInitialized(locatedRow1.getRow())) {
-                    aggregator.initializeAndAccumulateIfNeeded(locatedRow1.getRow(), locatedRow1.getRow());
-                }
-                if (!aggregator.isInitialized(locatedRow2.getRow())) {
-                    aggregator.initializeAndAccumulateIfNeeded(locatedRow2.getRow(), locatedRow2.getRow());
-                }
-                aggregator.merge(locatedRow2.getRow(),locatedRow1.getRow());
-            }
-            return locatedRow1;
-        }
+                .reduceByKey(new MergeNonDistinctAggregatesFunction(operationContext, aggregates)).values()
+                .fold(null, new MergeAllAggregatesFunction(operationContext, aggregates));
+        return dsp.singleRowDataSet(finish(finalRow != null ? finalRow : new LocatedRow(new EmptyRowSupplier(aggregateContext).get()), aggregates));
     }
 
     public LocatedRow finish (LocatedRow locatedRow, SpliceGenericAggregator[] aggregates) throws StandardException {

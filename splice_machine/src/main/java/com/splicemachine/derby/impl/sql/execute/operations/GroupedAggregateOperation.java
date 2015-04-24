@@ -2,7 +2,6 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.db.iapi.sql.execute.KeyableRow;
 import com.splicemachine.db.impl.sql.execute.IndexValueRow;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
@@ -12,12 +11,9 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.iapi.storage.ScanBoundary;
-import com.splicemachine.derby.stream.function.Keyer;
+import com.splicemachine.derby.impl.sql.execute.operations.framework.*;
+import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.spark.RDDUtils;
-import com.splicemachine.derby.impl.sql.execute.operations.framework.EmptyRowSupplier;
-import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
-import com.splicemachine.derby.impl.sql.execute.operations.framework.SourceIterator;
-import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.*;
 import com.splicemachine.derby.impl.storage.*;
 import com.splicemachine.derby.impl.temp.TempTable;
@@ -25,8 +21,6 @@ import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.stream.*;
-import com.splicemachine.derby.stream.function.SpliceFunction;
-import com.splicemachine.derby.stream.function.SpliceFunction2;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
@@ -43,7 +37,6 @@ import com.splicemachine.metrics.TimeView;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.pipeline.exception.Exceptions;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
@@ -51,12 +44,12 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaRDD;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -600,11 +593,28 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
     public DataSet<SpliceOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
         DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
         OperationContext<SpliceOperation> operationContext = dsp.createOperationContext(this,spliceRuntimeContext);
-        return source.getDataSet(spliceRuntimeContext, top)
-                        .keyBy(new Keyer(operationContext,groupedAggregateContext.getGroupingKeys()))
-                        .reduceByKey(new AggregatorFunction(operationContext))
-                        .values()
-                        .map(new FinisherFunction(operationContext));
+        DataSet set;
+        if (groupedAggregateContext.getNonGroupedUniqueColumns()!=null &&
+                groupedAggregateContext.getNonGroupedUniqueColumns().length > 0) {
+            // Distinct Aggregate Path
+            int[] allKeys = ArrayUtils.addAll(groupedAggregateContext.getGroupingKeys(),groupedAggregateContext.getNonGroupedUniqueColumns());
+            return source.getDataSet(spliceRuntimeContext, top)
+                    .keyBy(new Keyer(operationContext, allKeys))
+                    .reduceByKey(new MergeNonDistinctAggregatesFunction(operationContext, aggregates))
+                    .values()
+                    .keyBy(new Keyer(operationContext, groupedAggregateContext.getGroupingKeys()))
+                    .reduceByKey(new MergeAllAggregatesFunction(operationContext, aggregates))
+                    .values()
+                    .map(new AggregateFinisherFunction(operationContext,aggregates));
+
+        } else {
+            // Regular Group by Path
+            return source.getDataSet(spliceRuntimeContext, top)
+                    .keyBy(new Keyer(operationContext, groupedAggregateContext.getGroupingKeys()))
+                    .reduceByKey(new MergeAllAggregatesFunction(operationContext, aggregates))
+                    .values()
+                    .map(new AggregateFinisherFunction(operationContext, aggregates));
+        }
     }
 
 
