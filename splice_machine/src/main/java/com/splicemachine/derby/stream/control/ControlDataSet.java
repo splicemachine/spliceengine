@@ -112,5 +112,8 @@ public class ControlDataSet<Op extends SpliceOperation,V> implements DataSet<Op,
         return new ControlDataSet<>(Sets.difference(Sets.newHashSet(iterable),Sets.newHashSet(((ControlDataSet) dataSet).iterable)));
     }
 
-
+    @Override
+    public boolean isEmpty() {
+        return Iterables.isEmpty(iterable);
+    }
 }

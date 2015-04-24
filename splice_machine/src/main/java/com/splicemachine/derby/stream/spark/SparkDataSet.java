@@ -90,4 +90,9 @@ public class SparkDataSet<Op extends SpliceOperation,V> implements DataSet<Op,V>
     public DataSet<Op, V> subtract(DataSet<Op, V> dataSet) {
         return new SparkDataSet<>(rdd.subtract( ((SparkDataSet) dataSet).rdd));
     }
+
+    @Override
+    public boolean isEmpty() {
+        return rdd.take(1).isEmpty();
+    }
 }
