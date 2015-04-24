@@ -178,4 +178,18 @@ public class DataDictionaryUtils {
         return backingIndexConglomerateIds;
     }
 
+    /**
+     * Given a constraint (primary key, unique index) return a zero based array of referenced column ids.
+     */
+    public static int[] getColumnOrdering(ConstraintDescriptor cDescriptor) {
+        int[] referencedColumns = cDescriptor.getReferencedColumns();
+        int[] columnOrdering = null;
+        if (referencedColumns != null && referencedColumns.length > 0) {
+            columnOrdering = new int[referencedColumns.length];
+            for (int i = 0; i < referencedColumns.length; ++i) {
+                columnOrdering[i] = referencedColumns[i] - 1;
+            }
+        }
+        return columnOrdering;
+    }
 }

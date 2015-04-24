@@ -9,7 +9,10 @@ import java.io.IOException;
 import java.util.Set;
 
 /**
- * A Unique Constraint
+ * A Unique Constraint.
+ *
+ * Used as part of the bulk write pipeline this class just verifies uniqueness among the newly written values only.
+ * Uniqueness relative to the existing persistent values is handled by UniqueConstraintChecker and related classes.
  *
  * @author Scott Fines
  *         Created on: 2/28/13
@@ -63,4 +66,8 @@ public class UniqueConstraint implements Constraint {
         return constraintContext.hashCode();
     }
 
+    @Override
+    public String toString() {
+        return "{" + constraintContext + "}";
+    }
 }

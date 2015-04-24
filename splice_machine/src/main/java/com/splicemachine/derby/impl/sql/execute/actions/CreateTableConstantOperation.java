@@ -81,7 +81,8 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         }
     }
 
-    public	String	toString() {
+    @Override
+    public String toString() {
         if (tableType == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE)
             return constructToString("DECLARE GLOBAL TEMPORARY TABLE ", tableName);
         else
@@ -96,6 +97,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
      *
      * @exception StandardException		Thrown on failure
      */
+    @Override
     public void executeConstantAction( Activation activation ) throws StandardException {
         SpliceLogUtils.trace(LOG, "executeConstantAction");
 

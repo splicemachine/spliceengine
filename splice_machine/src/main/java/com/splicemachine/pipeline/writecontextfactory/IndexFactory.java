@@ -14,6 +14,9 @@ import com.splicemachine.db.catalog.IndexDescriptor;
 
 import java.io.IOException;
 
+/**
+ * Creates WriteHandlers that intercept writes to base tables and send transformed writes to corresponding index tables.
+ */
 class IndexFactory implements LocalWriteFactory {
     private final long indexConglomId;
     private final byte[] indexConglomBytes;
@@ -158,5 +161,10 @@ class IndexFactory implements LocalWriteFactory {
 
     public static IndexFactory wrap(long indexConglomId) {
         return new IndexFactory(indexConglomId);
+    }
+
+    @Override
+    public String toString() {
+        return "indexConglomId=" + indexConglomId + " isUnique=" + isUnique + " isUniqueWithDuplicateNulls=" + isUniqueWithDuplicateNulls;
     }
 }
