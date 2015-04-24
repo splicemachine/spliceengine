@@ -27,7 +27,6 @@ public class RestoreIT extends SpliceUnitTest {
     @After
     public void tearDown() throws Exception
     {
-        connection = methodWatcher.createConnection();
         String tmpDir = System.getProperty("java.io.tmpdir");
         File backupDir = new File(tmpDir, "backup");
         backupDir.delete();
