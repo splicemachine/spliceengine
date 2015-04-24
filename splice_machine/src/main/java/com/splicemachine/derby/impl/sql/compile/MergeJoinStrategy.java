@@ -6,6 +6,8 @@ import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 import com.splicemachine.db.impl.sql.compile.*;
 
+import java.util.BitSet;
+
 public class MergeJoinStrategy extends BaseCostedHashableJoinStrategy{
 
     public MergeJoinStrategy(){
@@ -73,7 +75,7 @@ public class MergeJoinStrategy extends BaseCostedHashableJoinStrategy{
         IndexRowGenerator innerRowGen=currentCd.getIndexDescriptor();
         return innerRowGen!=null
                 && innerRowGen.getIndexDescriptor()!=null
-                && isMergeable(outerRowOrdering,innerRowGen,predList,innerTable);
+                && mergeable(outerRowOrdering,innerRowGen,predList,innerTable);
     }
 
 
@@ -177,62 +179,46 @@ public class MergeJoinStrategy extends BaseCostedHashableJoinStrategy{
 
     /* ****************************************************************************************************************/
     /*private helper methods*/
-    private boolean isMergeable(RowOrdering outerRowOrdering,
+    private boolean mergeable(RowOrdering outerRowOrdering,
                                 IndexRowGenerator innerRowGenerator,
                                 OptimizablePredicateList predList,
                                 Optimizable innerTable) throws StandardException{
-        /*
-         * We need to ensure that the sort order of both the inner and outer tables
-         * contains all join predicates *AND* that the join predicates on the inner table
-         * are sorted in contiguous order (e.g. that we can build start and stop keys off
-         * of the predicates)
-         */
-        //map from index key position -> column number (e.g. key column 0 is column key[0], etc.)
         int[] keyColumnPositionMap = innerRowGenerator.baseColumnPositions();
         boolean[] keyAscending = innerRowGenerator.isAscending();
 
-        boolean foundZerothKey = false;
-        for(int i=0;i<predList.size();i++){
-            Predicate p = (Predicate)predList.getOptPredicate(i);
-            if(!p.isJoinPredicate()) continue; //ignore non-join predicates
-            RelationalOperator relop=p.getRelop();
-            assert relop instanceof BinaryRelationalOperatorNode:
-                    "Programmer error: RelationalOperator of type "+ relop.getClass()+" detected";
+        for(int i=0;i<keyColumnPositionMap.length;i++){
+            int innerColumnPosition = keyColumnPositionMap[i];
+            boolean ascending = keyAscending[i];
+            for(int p=0;p<predList.size();p++){
+                Predicate pred = (Predicate)predList.getOptPredicate(p);
+                if(!pred.isJoinPredicate()) continue;
+                RelationalOperator relop=pred.getRelop();
+                assert relop instanceof BinaryRelationalOperatorNode:
+                        "Programmer error: RelationalOperator of type "+ relop.getClass()+" detected";
 
-            BinaryRelationalOperatorNode bron = (BinaryRelationalOperatorNode)relop;
-            ColumnReference innerColumn=relop.getColumnOperand(innerTable);
-            int innerColumnNumber = innerColumn.getColumnNumber();
-            boolean found = false;
-            int keyPos = 0;
-            boolean ascending = false;
-            for(int keyColumn:keyColumnPositionMap){
-                if(innerColumnNumber==keyColumn){
-                    found = true;
-                    ascending = keyAscending[keyPos];
-                    break;
+                BinaryRelationalOperatorNode bron = (BinaryRelationalOperatorNode)relop;
+                ColumnReference innerColumn=relop.getColumnOperand(innerTable);
+                int innerColumnNumber = innerColumn.getColumnNumber();
+                if(innerColumnNumber==innerColumnPosition){
+                    ColumnReference outerColumn = (ColumnReference)bron.getRightOperand();
+                    if(outerColumn==innerColumn)
+                        outerColumn = (ColumnReference)bron.getLeftOperand();
+
+                    //TODO -sf- is this correct?
+                    int outerTableNum=outerColumn.getTableNumber();
+                    int outerColNum=outerColumn.getColumnNumber();
+                    if(ascending){
+                        if(!outerRowOrdering.orderedOnColumn(RowOrdering.ASCENDING,i,outerTableNum,outerColNum))
+                            return false;
+                    }else{
+                        if(!outerRowOrdering.orderedOnColumn(RowOrdering.DESCENDING,i,outerTableNum,outerColNum))
+                            return false;
+
+                    }
                 }
-                keyPos++;
-            }
-            if(!found) return false; //we are not sorted according to this join predicate
-            foundZerothKey = foundZerothKey || keyPos==0;
-
-            ColumnReference outerColumn = (ColumnReference)bron.getRightOperand();
-            if(outerColumn==innerColumn)
-                outerColumn = (ColumnReference)bron.getLeftOperand();
-
-            //TODO -sf- is this correct?
-            int outerTableNum=outerColumn.getTableNumber();
-            int outerColNum=outerColumn.getColumnNumber();
-            if(ascending){
-                if(!outerRowOrdering.orderedOnColumn(RowOrdering.ASCENDING,outerTableNum,outerColNum))
-                    return false;
-            }else{
-                if(!outerRowOrdering.orderedOnColumn(RowOrdering.DESCENDING,outerTableNum,outerColNum))
-                    return false;
-
             }
         }
-        return foundZerothKey;
+        return true;
     }
 
 }
