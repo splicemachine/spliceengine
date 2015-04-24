@@ -80,4 +80,14 @@ public class SparkDataSet<Op extends SpliceOperation,V> implements DataSet<Op,V>
     public DataSet<Op, V> filter(SplicePredicateFunction<Op, V> f) {
         return new SparkDataSet<>(rdd.filter(f));
     }
+
+    @Override
+    public DataSet<Op, V> intersect(DataSet<Op, V> dataSet) {
+        return new SparkDataSet<>(rdd.intersection( ((SparkDataSet) dataSet).rdd));
+    }
+
+    @Override
+    public DataSet<Op, V> subtract(DataSet<Op, V> dataSet) {
+        return new SparkDataSet<>(rdd.subtract( ((SparkDataSet) dataSet).rdd));
+    }
 }

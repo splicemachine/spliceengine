@@ -68,4 +68,9 @@ public interface DataSet<Op extends SpliceOperation,V> {
      */
     DataSet<Op,V> filter (SplicePredicateFunction<Op,V> f);
 
+    DataSet<Op,V> intersect(DataSet<Op,V> dataSet);
+
+    DataSet<Op,V> subtract(DataSet<Op,V> dataSet);
+
+
  }

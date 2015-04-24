@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute;
 
 import java.util.List;
 
+import com.splicemachine.derby.impl.sql.execute.operations.*;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 
 import com.splicemachine.db.iapi.error.StandardException;
@@ -22,47 +23,7 @@ import com.splicemachine.derby.iapi.sql.execute.ConversionResultSet;
 import com.splicemachine.derby.iapi.sql.execute.ConvertedResultSet;
 import com.splicemachine.derby.iapi.sql.execute.OperationResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.AnyOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.BroadcastJoinOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.BroadcastLeftOuterJoinOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.BulkTableScanOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.CachedOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.CallStatementOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.DeleteOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.DependentOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.DistinctGroupedAggregateOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.DistinctScalarAggregateOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.DistinctScanOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.GroupedAggregateOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.HashNestedLoopJoinOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.HashNestedLoopLeftOuterJoinOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.HashTableOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.IndexRowToBaseRowOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.LastIndexKeyOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.MergeJoinOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.MergeLeftOuterJoinOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.MergeSortJoinOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.MergeSortLeftOuterJoinOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.MiscOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.MultiProbeTableScanOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.NestedLoopJoinOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.NestedLoopLeftOuterJoinOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.NormalizeOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.OnceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.ProjectRestrictOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.rowcount.RowCountOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.RowOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.ScalarAggregateOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.SetTransactionOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.SortOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.TableScanOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.UnionOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.UpdateOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.VTIOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.WindowOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.ExplainOperation;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -73,6 +34,37 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
     public SpliceGenericResultSetFactory() {
         super();
         SpliceLogUtils.trace(LOG, "instantiating SpliceGenericResultSetFactory");
+    }
+
+    public NoPutResultSet getSetOpResultSet( NoPutResultSet leftSource,
+                                             NoPutResultSet rightSource,
+                                             Activation activation,
+                                             int resultSetNumber,
+                                             long optimizerEstimatedRowCount,
+                                             double optimizerEstimatedCost,
+                                             int opType,
+                                             boolean all,
+                                             int intermediateOrderByColumnsSavedObject,
+                                             int intermediateOrderByDirectionSavedObject,
+                                             int intermediateOrderByNullsLowSavedObject)
+            throws StandardException
+    {
+        ConvertedResultSet left = (ConvertedResultSet)leftSource;
+        ConvertedResultSet right = (ConvertedResultSet)rightSource;
+        SetOpOperation setOp = new SetOpOperation( left.getOperation(),
+                right.getOperation(),
+                activation,
+                resultSetNumber,
+                optimizerEstimatedRowCount,
+                optimizerEstimatedCost,
+                opType,
+                all,
+                intermediateOrderByColumnsSavedObject,
+                intermediateOrderByDirectionSavedObject,
+                intermediateOrderByNullsLowSavedObject);
+        OperationResultSet operationResultSet =  new OperationResultSet(activation,setOp);
+        return operationResultSet;
+
     }
 
     @Override
