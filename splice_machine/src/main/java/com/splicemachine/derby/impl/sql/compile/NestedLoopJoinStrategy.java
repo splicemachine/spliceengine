@@ -227,7 +227,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
 
     @Override
     public String toString(){
-        return getName();
+        return "NestedLoopJoin";
     }
 
     @Override
@@ -249,7 +249,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         }
         //set the base costs for the join
         innerCost.setBase(innerCost.cloneMe());
-        outerCost.setBase(outerCost.cloneMe());
+//        outerCost.setBase(outerCost.cloneMe());
 
         /*
          * NestedLoopJoins are very simple. For each outer row, we create a new scan of the inner
