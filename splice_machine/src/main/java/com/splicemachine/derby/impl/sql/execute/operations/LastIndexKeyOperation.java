@@ -10,6 +10,8 @@ import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerB
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
+import com.splicemachine.derby.stream.DataSet;
+import com.splicemachine.derby.stream.DataSetProcessor;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.hbase.BufferedRegionScanner;
@@ -315,4 +317,12 @@ public class LastIndexKeyOperation extends ScanOperation {
         return currentTemplate;
     }
 
+    @Override
+    public <Op extends SpliceOperation> DataSet<Op, LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
+        throw new RuntimeException("not implemented");
+    }
+
+
 }
+
+

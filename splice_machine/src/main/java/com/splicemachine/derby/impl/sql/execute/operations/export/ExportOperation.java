@@ -6,12 +6,15 @@ import com.google.common.collect.ImmutableList;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.UpdateOperation;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.stats.TaskStats;
+import com.splicemachine.derby.stream.DataSet;
+import com.splicemachine.derby.stream.DataSetProcessor;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.pipeline.exception.Exceptions;
@@ -242,5 +245,11 @@ public class ExportOperation extends SpliceBaseOperation implements SinkingOpera
             out.writeObject(sourceColumnDescriptors[i]);
         }
     }
+
+    @Override
+    public <Op extends SpliceOperation> DataSet<Op, LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
+        throw new RuntimeException("not implemented");
+    }
+
 
 }

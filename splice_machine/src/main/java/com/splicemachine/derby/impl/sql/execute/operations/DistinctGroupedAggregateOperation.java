@@ -57,8 +57,4 @@ public class DistinctGroupedAggregateOperation extends GroupedAggregateOperation
 				return uniqueSequenceID;
 		}
 
-    @Override
-    public boolean providesRDD() {
-        return false;
-    }
 }

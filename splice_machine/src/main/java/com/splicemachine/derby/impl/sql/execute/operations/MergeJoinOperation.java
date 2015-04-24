@@ -3,14 +3,11 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.*;
+import com.splicemachine.derby.stream.*;
 import com.splicemachine.derby.stream.spark.RDDUtils;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
-import com.splicemachine.derby.stream.DataSetProcessor;
-import com.splicemachine.derby.stream.OperationContext;
-import com.splicemachine.derby.stream.StreamUtils;
 import com.splicemachine.derby.stream.function.SpliceFlatMap2Function;
-import com.splicemachine.derby.stream.SparkJoinerIterator;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.derby.utils.marshall.BareKeyHash;
 import com.splicemachine.derby.utils.marshall.DataHash;
@@ -235,12 +232,7 @@ public class MergeJoinOperation extends JoinOperation {
         if (joiner != null) joiner.close();
     }
 
-    @Override
-    public boolean providesRDD() {
-        return leftResultSet.providesRDD() && rightResultSet.providesRDD();
-    }
-
-    @Override
+/*    @Override
     public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
 
 
@@ -268,6 +260,7 @@ public class MergeJoinOperation extends JoinOperation {
         DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
         return partitionedLeftRDD.zipPartitions(partitionedRightRDD, new SparkJoiner(dsp.createOperationContext(this,spliceRuntimeContext), true));
     }
+*/
 
     private Partitioner getPartitioner(int[] formatIds, Partition[] partitions) {
         List<byte[]> splits = new ArrayList<>();
@@ -284,10 +277,6 @@ public class MergeJoinOperation extends JoinOperation {
         return new CustomPartitioner(splits, formatIds);
     }
 
-    @Override
-    public boolean pushedToServer() {
-        return leftResultSet.pushedToServer() && rightResultSet.pushedToServer();
-    }
 
     private static class CustomPartitioner extends Partitioner implements Externalizable {
         List<byte[]> splits;
@@ -422,5 +411,10 @@ public class MergeJoinOperation extends JoinOperation {
             }
             return RDDUtils.toSparkRowsIterable(new SparkJoinerIterator(joiner, operationContext.getSpliceRuntimeContext()));
         }
+    }
+
+    @Override
+    public <Op extends SpliceOperation> DataSet<Op, LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
+        throw new RuntimeException("Not Implemented");
     }
 }

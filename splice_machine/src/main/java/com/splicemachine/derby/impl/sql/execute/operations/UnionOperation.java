@@ -262,29 +262,7 @@ public class UnionOperation extends SpliceBaseOperation {
 		}
 
     @Override
-    public boolean providesRDD() {
-        return firstResultSet.providesRDD() && secondResultSet.providesRDD();
-    }
-
-
-
-    public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-        SpliceRuntimeContext left = spliceRuntimeContext.copy();
-        SpliceRuntimeContext right = spliceRuntimeContext.copy();
-        left.addPath(resultSetNumber, SpliceRuntimeContext.Side.LEFT);
-        right.addPath(resultSetNumber, SpliceRuntimeContext.Side.RIGHT);
-        JavaRDD<LocatedRow> firstRDD = firstResultSet.getRDD(spliceRuntimeContext, top);
-        JavaRDD<LocatedRow> secondRDD = secondResultSet.getRDD(spliceRuntimeContext, top);
-
-        JavaRDD<LocatedRow> result = firstRDD.union(secondRDD);
-//        RDDUtils.printRDD("Union result", result);
-        return result;
-    }
-
-
-    @Override
-    public DataSet<SpliceOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-        DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
+    public DataSet<SpliceOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
         SpliceRuntimeContext left = spliceRuntimeContext.copy();
         SpliceRuntimeContext right = spliceRuntimeContext.copy();
         left.addPath(resultSetNumber, SpliceRuntimeContext.Side.LEFT);

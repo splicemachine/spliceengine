@@ -9,22 +9,15 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.stream.DataSet;
 import com.splicemachine.derby.stream.DataSetProcessor;
-import com.splicemachine.derby.stream.StreamUtils;
 import com.splicemachine.derby.stream.function.SpliceFunction;
-import com.splicemachine.derby.stream.spark.RDDUtils;
-import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.impl.storage.RowProviders;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.pipeline.exception.Exceptions;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.function.Function;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -166,18 +159,7 @@ public class CachedOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public boolean providesRDD() {
-        return true;
-    }
-
-    @Override
-    public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-        return RDDUtils.toSparkRows(SpliceSpark.getContext().parallelize(rows));
-    }
-
-    @Override
-    public DataSet<SpliceOperation, LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-        DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
+    public DataSet<SpliceOperation, LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
         return dsp.createDataSet(rows).map(new SpliceFunction<SpliceOperation, ExecRow, LocatedRow>() {
             @Override
             public LocatedRow call(ExecRow execRow) throws Exception {

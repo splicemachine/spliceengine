@@ -159,9 +159,8 @@ public class ExplainOperation extends SpliceBaseOperation {
             explainStringIter = Iterators.emptyIterator();
     }
 
-    public DataSet<TableScanOperation, LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+    public DataSet<TableScanOperation, LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
         try {
-            DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
             return dsp.createDataSet(Iterables.transform(new Iterable<String>() {
                                                              @Override
                                                              public Iterator<String> iterator() {

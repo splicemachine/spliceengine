@@ -189,19 +189,7 @@ public class SetOpOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public boolean providesRDD() {
-        throw new RuntimeException("Not Implemented");
-    }
-
-    @Override
-    public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-        throw new RuntimeException("Not Implemented");
-    }
-
-    @Override
-    public DataSet<SpliceOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-        DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
-
+    public DataSet<SpliceOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
         if (this.opType==IntersectOrExceptNode.INTERSECT_OP) {
             return leftSource.getDataSet(spliceRuntimeContext,top).intersect(
                     rightSource.getDataSet(spliceRuntimeContext,top));
@@ -215,11 +203,6 @@ public class SetOpOperation extends SpliceBaseOperation {
 
     }
 
-
-    @Override
-    public SpliceNoPutResultSet executeRDD(SpliceRuntimeContext runtimeContext) throws StandardException {
-        throw new RuntimeException("Not Implemented");
-    }
 
 
 

@@ -16,6 +16,8 @@ import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.stream.DataSet;
+import com.splicemachine.derby.stream.DataSetProcessor;
 
 import java.util.Arrays;
 import java.util.List;
@@ -173,4 +175,10 @@ public class HashTableOperation extends SpliceBaseOperation  {
                 .append(indent).append("source:").append(((SpliceOperation)source).prettyPrint(indentLevel+1))
                 .toString();
     }
+    @Override
+    public <Op extends SpliceOperation> DataSet<Op, LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
+        throw new RuntimeException("not implemented");
+    }
+
+
 }

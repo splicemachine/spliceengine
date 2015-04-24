@@ -52,7 +52,7 @@ public class SparkDataSet<Op extends SpliceOperation,V> implements DataSet<Op,V>
 
     @Override
     public <U> DataSet<Op,U> map(SpliceFunction<Op,V,U> function) {
-        return null;
+        return new SparkDataSet<>(rdd.map(function));
     }
 
 
@@ -94,5 +94,10 @@ public class SparkDataSet<Op extends SpliceOperation,V> implements DataSet<Op,V>
     @Override
     public boolean isEmpty() {
         return rdd.take(1).isEmpty();
+    }
+
+    @Override
+    public <U> DataSet<Op, U> flatMap(SpliceFlatMapFunction<Op, V, U> f) {
+        return new SparkDataSet<>(rdd.flatMap(f));
     }
 }

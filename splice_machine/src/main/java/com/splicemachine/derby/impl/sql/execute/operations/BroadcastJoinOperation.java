@@ -9,12 +9,9 @@ import com.google.common.cache.RemovalListener;
 import com.google.common.cache.RemovalNotification;
 import com.google.common.collect.*;
 import com.splicemachine.concurrent.SameThreadExecutorService;
-import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.stream.*;
 import com.splicemachine.derby.stream.function.*;
-import com.splicemachine.derby.stream.spark.RDDUtils;
-import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.StandardIterators;
@@ -27,19 +24,13 @@ import com.splicemachine.metrics.*;
 import com.splicemachine.metrics.Timer;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-import org.apache.spark.api.java.JavaPairRDD;
-import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.function.PairFunction;
-import org.apache.spark.broadcast.Broadcast;
 import scala.Tuple2;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -387,14 +378,8 @@ public class BroadcastJoinOperation extends JoinOperation {
         ));
     }
 
-    @Override
-    public boolean providesRDD() {
-        // Only when this operation isn't above a Sink
-        return leftResultSet.providesRDD() && rightResultSet.providesRDD();
-    }
 
-    public DataSet<SpliceOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-        DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
+    public DataSet<SpliceOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
         OperationContext operationContext = dsp.createOperationContext(this, spliceRuntimeContext);
         PairDataSet<SpliceOperation,ExecRow,LocatedRow> leftDataSet = leftResultSet.getDataSet(spliceRuntimeContext,top).keyBy(new Keyer<LocatedRow>(operationContext, leftHashKeys));
         PairDataSet<SpliceOperation,ExecRow,LocatedRow> rightDataSet = rightResultSet.getDataSet(spliceRuntimeContext,top).keyBy(new Keyer<LocatedRow>(operationContext, rightHashKeys));
@@ -406,109 +391,5 @@ public class BroadcastJoinOperation extends JoinOperation {
             PairDataSet<SpliceOperation, ExecRow, Tuple2<LocatedRow, LocatedRow>> joinedDataSet = leftDataSet.<LocatedRow>broadcastJoin(rightDataSet);
             return joinedDataSet.map(new InnerJoinFunction(operationContext, wasRightOuterJoin)).filter(new JoinRestrictionPredicateFunction(operationContext));
         }
-    }
-
-
-        @Override
-    public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-        JavaRDD<LocatedRow> left = leftResultSet.getRDD(spliceRuntimeContext, top);
-        if (pushedToServer()) {
-            return left;
-        }
-        JavaRDD<LocatedRow> right = rightResultSet.getRDD(spliceRuntimeContext, rightResultSet);
-        JavaPairRDD<ExecRow, ExecRow> keyedRight = RDDUtils.getKeyedRDD(right, rightHashKeys).mapToPair(new PairFunction<Tuple2<ExecRow,LocatedRow>, ExecRow, ExecRow>() {
-            @Override
-            public Tuple2<ExecRow, ExecRow> call(Tuple2<ExecRow, LocatedRow> t) throws Exception {
-                return new Tuple2(t._1(), t._2().getRow());
-            }
-        });
-        if (LOG.isDebugEnabled()) {
-            LOG.debug("RDD for operation " + this + " :\n " + keyedRight.toDebugString());
-        }
-        Broadcast<List<Tuple2<ExecRow, ExecRow>>> broadcast = SpliceSpark.getContext().broadcast(keyedRight.collect());
-        final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this, spliceRuntimeContext);
-        DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
-        return left.mapPartitions(new BroadcastSparkOperation(dsp.createOperationContext(this,spliceRuntimeContext), broadcast));
-    }
-
-
-    @Override
-    public boolean pushedToServer() {
-        return leftResultSet.pushedToServer() && rightResultSet.pushedToServer();
-    }
-
-
-        public static final class BroadcastSparkOperation extends SpliceFlatMapFunction<SpliceOperation, Iterator<LocatedRow>, LocatedRow> {
-        private Broadcast<List<Tuple2<ExecRow, ExecRow>>> right;
-        private Multimap<ExecRow, ExecRow> rightMap;
-        private Joiner joiner;
-        protected BroadcastJoinOperation op;
-
-        public BroadcastSparkOperation() {
-        }
-
-        public BroadcastSparkOperation(OperationContext<SpliceOperation> operationContext,
-                                       Broadcast<List<Tuple2<ExecRow, ExecRow>>> right) {
-            super(operationContext);
-            this.right = right;
-            this.op = (BroadcastJoinOperation) operationContext.getOperation();
-        }
-
-        private Multimap<ExecRow, ExecRow> collectAsMap(List<Tuple2<ExecRow, ExecRow>> collected) {
-            Multimap<ExecRow, ExecRow> result = ArrayListMultimap.create();
-            for (Tuple2<ExecRow, ExecRow> e : collected) {
-                result.put(e._1(), e._2());
-            }
-            return result;
-        }
-
-        @Override
-        public Iterable<LocatedRow> call(Iterator<LocatedRow> sourceRows) throws Exception {
-            if (joiner == null) {
-                joiner = initJoiner(sourceRows);
-                joiner.open();
-            }
-            return RDDUtils.toSparkRowsIterable(new SparkJoinerIterator(joiner, operationContext.getSpliceRuntimeContext()));
-        }
-
-        private Joiner initJoiner(final Iterator<LocatedRow> sourceRows) throws StandardException {
-            rightMap = collectAsMap(right.getValue());
-            Function<ExecRow, List<ExecRow>> lookup = new Function<ExecRow, List<ExecRow>>() {
-                @Override
-                public List<ExecRow> apply(ExecRow leftRow) {
-                    try {
-                        ExecRow key = RDDUtils.getKey(leftRow, op.leftHashKeys);
-                        Collection<ExecRow> rightRows = rightMap.get(key);
-                        return Lists.newArrayList(rightRows);
-                    } catch (Exception e) {
-                        throw new RuntimeException(String.format("Unable to lookup %s in" +
-                                " Broadcast map", leftRow), e);
-                    }
-                }
-            };
-            StandardSupplier<ExecRow> emptyRowSupplier = new StandardSupplier<ExecRow>() {
-                @Override
-                public ExecRow get() throws StandardException {
-                    return op.getEmptyRow();
-                }
-            };
-            return new Joiner(new BroadCastJoinRows(StandardIterators.wrap(RDDUtils.toExecRowsIterator(sourceRows)), lookup),
-                    op.getExecRowDefinition(), op.getRestriction(), op.isOuterJoin,
-                    op.wasRightOuterJoin, op.leftNumCols, op.rightNumCols,
-                    op.oneRowRightSide, op.notExistsRightSide, false, emptyRowSupplier, operationContext.getSpliceRuntimeContext());
-        }
-
-        @Override
-        public void writeExternal(ObjectOutput out) throws IOException {
-            super.writeExternal(out);
-            out.writeObject(right);
-        }
-
-        @Override
-        public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-            super.readExternal(in);
-            this.right = (Broadcast<List<Tuple2<ExecRow, ExecRow>>>) in.readObject();
-        }
-
     }
 }
