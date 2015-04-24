@@ -319,17 +319,10 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 				return "Scalar"+super.prettyPrint(indentLevel);
 		}
 
-
     @Override
-    public boolean providesRDD() {
-        return ((SpliceOperation) source).providesRDD();
-    }
-
-    @Override
-    public DataSet<SpliceOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-        DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
+    public DataSet<SpliceOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top,DataSetProcessor dsp) throws StandardException {
         LocatedRow result = source.getDataSet(spliceRuntimeContext, top)
-                .fold(null,new SparkAggregator(dsp.createOperationContext(this,spliceRuntimeContext)));
+                .fold(null,new ScalarAggregatorFunction(dsp.createOperationContext(this,spliceRuntimeContext)));
         if (result==null)
             return dsp.singleRowDataSet(new LocatedRow(getExecRowDefinition()));
         if (!(result.getRow() instanceof ExecIndexRow)) {
@@ -340,35 +333,13 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
         return dsp.singleRowDataSet(new LocatedRow(result.getRow()));
     }
 
-        @Override
-    public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-        JavaRDD<LocatedRow> rdd = source.getRDD(spliceRuntimeContext, this);
-        final SpliceObserverInstructions soi = SpliceObserverInstructions.create(activation, this, spliceRuntimeContext);
-
-        if (LOG.isInfoEnabled()) {
-            LOG.info("RDD for operation " + this + " :\n " + rdd.toDebugString());
-        }
-        DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
-        LocatedRow result = rdd.fold(null, new SparkAggregator(dsp.createOperationContext(this,spliceRuntimeContext)));
-        if (result == null) {
-            return SpliceSpark.getContext().parallelize(Lists.newArrayList(new LocatedRow(getExecRowDefinition())));
-        }
-
-        if (!(result.getRow() instanceof ExecIndexRow)) {
-            sourceExecIndexRow.execRowToExecIndexRow(result.getRow());
-            initializeVectorAggregation(result.getRow());
-        }
-        finishAggregation(result.getRow());
-        return SpliceSpark.getContext().parallelize(Lists.newArrayList(new LocatedRow(result.getRow())), 1);
-    }
-
-    private static final class SparkAggregator extends SpliceFunction2<SpliceOperation, LocatedRow, LocatedRow, LocatedRow> {
+    private static final class ScalarAggregatorFunction extends SpliceFunction2<SpliceOperation, LocatedRow, LocatedRow, LocatedRow> {
         private static final long serialVersionUID = -4150499166764796082L;
 
-        public SparkAggregator() {
+        public ScalarAggregatorFunction() {
         }
 
-        public SparkAggregator(OperationContext<SpliceOperation> operationContext) {
+        public ScalarAggregatorFunction(OperationContext<SpliceOperation> operationContext) {
             super(operationContext);
         }
 

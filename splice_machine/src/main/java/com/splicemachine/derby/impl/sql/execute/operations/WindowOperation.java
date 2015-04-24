@@ -16,6 +16,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.stream.DataSet;
+import com.splicemachine.derby.stream.DataSetProcessor;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
@@ -613,5 +614,11 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
             return spreadBucket.bucket(hashFunction.hash(hashBytes, offset, keyLength));
         }
     }
+
+    @Override
+    public <Op extends SpliceOperation> DataSet<Op, LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
+        throw new RuntimeException("not implemented");
+    }
+
 
 }

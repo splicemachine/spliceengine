@@ -584,14 +584,9 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         return "Grouped" + super.prettyPrint(indentLevel);
     }
 
-    @Override
-    public boolean providesRDD() {
-        return ((SpliceOperation) source).providesRDD();
-    }
 
     @Override
-    public DataSet<SpliceOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-        DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
+    public DataSet<SpliceOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
         OperationContext<SpliceOperation> operationContext = dsp.createOperationContext(this,spliceRuntimeContext);
         DataSet set;
         if (groupedAggregateContext.getNonGroupedUniqueColumns()!=null &&
@@ -617,98 +612,4 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         }
     }
 
-
-    public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-        DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
-        JavaRDD<LocatedRow> rdd = source.getRDD(spliceRuntimeContext, this);
-        int[] groupByCols = groupedAggregateContext.getGroupingKeys();
-        JavaPairRDD<ExecRow, LocatedRow> keyedRDD = RDDUtils.getKeyedRDD(rdd, groupByCols);
-        OperationContext<SpliceOperation> context = dsp.createOperationContext(this,spliceRuntimeContext);
-        JavaPairRDD<ExecRow, LocatedRow> resultRDD = keyedRDD.reduceByKey(new AggregatorFunction(context));
-        JavaRDD<LocatedRow> keylessRDD = resultRDD.values();
-        return keylessRDD.map(new FinisherFunction(context));
-    }
-
-    private static final class FinisherFunction extends SpliceFunction<SpliceOperation, LocatedRow, LocatedRow> {
-        public FinisherFunction() {
-            super();
-        }
-
-        public FinisherFunction(OperationContext<SpliceOperation> operationContext) {
-            super(operationContext);
-        }
-
-        @Override
-        public LocatedRow call(LocatedRow locatedRow) throws Exception {
-            GroupedAggregateOperation op = (GroupedAggregateOperation) this.getOperation();
-            ExecRow row = locatedRow.getRow();
-            if (!(row instanceof ExecIndexRow)) {
-                op.sourceExecIndexRow.execRowToExecIndexRow(row);
-                row = new IndexValueRow(row);
-            }
-            if (!op.isInitialized(row)) {
-                op.initializeVectorAggregation(row);
-            }
-            op.finishAggregation(row);
-            return locatedRow;
-        }
-
-    }
-
-    private static final class AggregatorFunction extends SpliceFunction2<SpliceOperation, LocatedRow, LocatedRow, LocatedRow> {
-        private static final long serialVersionUID = -4879775024011078994L;
-        public AggregatorFunction() {
-        }
-
-        public AggregatorFunction (OperationContext<SpliceOperation> operationContext) {
-            super(operationContext);
-        }
-
-        @Override
-        public LocatedRow call(LocatedRow t1, LocatedRow t2) throws Exception {
-            GroupedAggregateOperation op = (GroupedAggregateOperation) this.getOperation();
-            if (RDDUtils.LOG.isDebugEnabled()) {
-                RDDUtils.LOG.debug(String.format("Reducing %s and %s", t1, t2));
-            }
-            if (t1 ==null)
-                return t2;
-            if (t2 == null)
-                return t1;
-
-            ExecRow r1 = t1.getRow();
-            if (!(r1 instanceof ExecIndexRow)) {
-                r1 = new IndexValueRow(r1);
-            }
-            if (!op.isInitialized(r1)) {
-                op.initializeVectorAggregation(r1);
-            }
-            aggregate(t2.getRow(), (ExecIndexRow) r1);
-            return new LocatedRow(r1);
-        }
-
-        private void aggregate(ExecRow next, ExecIndexRow agg) throws StandardException {
-            GroupedAggregateOperation op = (GroupedAggregateOperation) this.getOperation();
-            if (op.isInitialized(next)) {
-                if (RDDUtils.LOG.isDebugEnabled()) {
-                    RDDUtils.LOG.debug(String.format("Merging %s with %s", next, agg));
-                }
-                for (SpliceGenericAggregator aggregate : op.aggregates) {
-                    aggregate.merge(next, agg);
-                }
-            } else {
-                next = new IndexValueRow(next);
-                if (RDDUtils.LOG.isDebugEnabled()) {
-                    RDDUtils.LOG.debug(String.format("Aggregating %s to %s", next, agg));
-                }
-                for (SpliceGenericAggregator aggregate : op.aggregates) {
-                    aggregate.initialize(next);
-                    aggregate.accumulate(next, agg);
-                }
-                if (RDDUtils.LOG.isDebugEnabled()) {
-                    RDDUtils.LOG.debug(String.format("Result %s", agg));
-                }
-            }
-        }
-
-    }
 }

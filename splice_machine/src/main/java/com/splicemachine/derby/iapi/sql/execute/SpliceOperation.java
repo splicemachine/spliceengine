@@ -8,6 +8,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationInformation;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.stream.DataSet;
+import com.splicemachine.derby.stream.DataSetProcessor;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -233,31 +234,8 @@ public interface SpliceOperation extends StandardCloseable {
 
     double getEstimatedRowCount();
 
-    /**
-     * @return true if this operation can provide an RDD that could be operated on using Spark
-     */
-    public boolean providesRDD();
-
-    /**
-     * @return true if this top operation expects the results as a Spark RDD
-     */
-    public boolean expectsRDD();
-
-    public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException;
-
     public <Op extends SpliceOperation> DataSet<Op,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException;
 
-    /**
-     *
-     * @return true if this is pushed and run serverside
-     */
-    public boolean pushedToServer();
-
-
-    /**
-     *
-     * Executes a scan operation from a node that has either a SCROLL node type or that is called from another node.
-     */
-    public SpliceNoPutResultSet executeRDD(SpliceRuntimeContext runtimeContext) throws StandardException;
+    public <Op extends SpliceOperation> DataSet<Op,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException;
 
 }

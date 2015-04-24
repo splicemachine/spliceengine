@@ -116,4 +116,9 @@ public class ControlDataSet<Op extends SpliceOperation,V> implements DataSet<Op,
     public boolean isEmpty() {
         return Iterables.isEmpty(iterable);
     }
+
+    @Override
+    public <U> DataSet<Op, U> flatMap(SpliceFlatMapFunction<Op, V, U> f) {
+        throw new RuntimeException("not implemented");
+    }
 }

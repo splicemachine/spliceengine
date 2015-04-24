@@ -14,7 +14,7 @@ public abstract class SpliceFlatMapFunction<Op extends SpliceOperation, From, To
 	public SpliceFlatMapFunction() {
 	}
 
-	protected SpliceFlatMapFunction(OperationContext<Op> operationContext) {
+	public SpliceFlatMapFunction(OperationContext<Op> operationContext) {
         super(operationContext);
 	}
 

@@ -13,6 +13,8 @@ import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
+import com.splicemachine.derby.stream.DataSet;
+import com.splicemachine.derby.stream.DataSetProcessor;
 import com.splicemachine.metrics.IOStats;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.storage.AndPredicate;
@@ -589,5 +591,10 @@ public class HashNestedLoopJoinOperation extends JoinOperation{
         public void set(Scan newScan) throws StandardException, IOException {
             scanOp.setScan(newScan);
         }
+    }
+
+    @Override
+    public <Op extends SpliceOperation> DataSet<Op, LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
+        throw new RuntimeException("not implemented");
     }
 }

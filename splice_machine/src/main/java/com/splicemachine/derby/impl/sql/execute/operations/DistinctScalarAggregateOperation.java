@@ -513,9 +513,8 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation 
         return String.format("DistinctScalarAggregateOperation {resultSetNumber=%d, source=%s}", resultSetNumber, source);
     }
 
-    public DataSet<SpliceOperation, LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+    public DataSet<SpliceOperation, LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
         DataSet<SpliceOperation, LocatedRow> dataSet = source.getDataSet(spliceRuntimeContext, top);
-        DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
         OperationContext operationContext = dsp.createOperationContext(top, spliceRuntimeContext);
         LocatedRow finalRow = (LocatedRow) dataSet.keyBy(new Keyer(operationContext, keyColumns))
                 .reduceByKey(new MergeNonDistinctAggregatesFunction(operationContext, aggregates)).values()

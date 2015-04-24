@@ -7,6 +7,8 @@ import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.stream.DataSetProcessor;
+import com.splicemachine.derby.stream.StreamUtils;
 import com.splicemachine.derby.stream.spark.RDDRowProvider;
 import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.metrics.OperationMetric;
@@ -670,38 +672,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
         public String getInfo() {return info;}
 
-        @Override
-        public boolean providesRDD() {
-            return false;
-        }
-
-        @Override
-        public boolean pushedToServer() {
-            return false;
-        }
-
-        @Override
-        public boolean expectsRDD() {
-            return SpliceSpark.sparkActive() && providesRDD();
-        }
-
-        @Override
-        public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public SpliceNoPutResultSet executeRDD(SpliceRuntimeContext runtimeContext) throws StandardException {
-            if (!providesRDD()) {
-                throw new UnsupportedOperationException();
-            }
-            JavaRDD<LocatedRow> rdd = getRDD(runtimeContext, this);
-            if (LOG.isInfoEnabled()) {
-                LOG.info("RDD for operation " + this + " :\n " + rdd.toDebugString());
-            }
-            return new SpliceNoPutResultSet(getActivation(), this, new RDDRowProvider(rdd, runtimeContext), !(this instanceof DMLWriteOperation));
-        }
-
         public class XplainOperationChainInfo {
 
             private long statementId;
@@ -757,8 +727,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
     }
 
     public <Op extends SpliceOperation> DataSet<Op,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-        throw new RuntimeException(String.format("Data Set Not Implemented for class=%s",this.getClass()));
+            DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
+            return getDataSet(spliceRuntimeContext,top,dsp);
     }
-
-
 }

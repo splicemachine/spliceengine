@@ -402,37 +402,13 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 								+ "source:" + source.prettyPrint(indentLevel + 1);
 		}
 
-    public DataSet<SpliceOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-        DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
+    public DataSet<SpliceOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
         if (alwaysFalse) {
             return dsp.getEmpty();
         }
         return source.getDataSet(spliceRuntimeContext, top).mapPartitions(new ProjectRestrictSparkOp(dsp.createOperationContext(this,spliceRuntimeContext)));
     }
 
-        public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-        if (alwaysFalse) {
-            return SpliceSpark.getContext().parallelize(Collections.<LocatedRow>emptyList());
-        }
-        JavaRDD<LocatedRow> raw = source.getRDD(spliceRuntimeContext, top);
-        if (pushedToServer()) {
-            // we want to avoid re-applying the PR if it has already been executed in HBase
-            return raw;
-        }
-            DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
-            JavaRDD<LocatedRow> projected = raw.mapPartitions(new ProjectRestrictSparkOp(dsp.createOperationContext(this,spliceRuntimeContext)));
-        return projected;
-    }
-
-    @Override
-    public boolean providesRDD() {
-        return source.providesRDD();
-    }
-
-    @Override
-    public boolean pushedToServer() {
-        return source.pushedToServer();
-    }
 
     public static final class ProjectRestrictSparkOp extends SpliceFlatMapFunction<SpliceOperation, Iterator<LocatedRow>, LocatedRow> {
         public ProjectRestrictSparkOp() {

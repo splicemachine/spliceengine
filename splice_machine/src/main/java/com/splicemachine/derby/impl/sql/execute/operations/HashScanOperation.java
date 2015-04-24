@@ -6,6 +6,8 @@ import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.storage.ClientScanProvider;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.derby.stream.DataSet;
+import com.splicemachine.derby.stream.DataSetProcessor;
 import com.splicemachine.derby.utils.FormatableBitSetUtils;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -291,4 +293,10 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 
 				return scanProperties;
 		}
+    @Override
+    public <Op extends SpliceOperation> DataSet<Op, LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
+        throw new RuntimeException("not implemented");
+    }
+
+
 }

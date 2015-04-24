@@ -24,10 +24,10 @@ import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 import com.splicemachine.db.vti.IFastPath;
 import com.splicemachine.db.vti.VTIEnvironment;
 import com.splicemachine.db.vti.Restriction;
-
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-
+import com.splicemachine.derby.stream.DataSet;
+import com.splicemachine.derby.stream.DataSetProcessor;
 import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -642,5 +642,10 @@ public class VTIOperation extends SpliceBaseOperation implements VTIEnvironment 
     @Override
     public String prettyPrint(int indentLevel) {
         return "VTIOperation";
+    }
+
+    @Override
+    public <Op extends SpliceOperation> DataSet<Op, LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
+        throw new RuntimeException("VTI Not Supported");
     }
 }

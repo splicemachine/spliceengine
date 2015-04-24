@@ -349,16 +349,21 @@ public class NestedLoopJoinOperation extends JoinOperation {
         }
     }
 
-    @Override
-    public boolean providesRDD() {
-        return leftResultSet.providesRDD();
+
+    public DataSet<SpliceOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
+/*        DataSet<SpliceOperation,LocatedRow> left = leftResultSet.getDataSet(spliceRuntimeContext, leftResultSet);
+        OperationContext<SpliceOperation> operationContext = dsp.createOperationContext(this,spliceRuntimeContext);
+        return left.flatMap(new NLJSparkOperation(operationContext)).map(new Function<ExecRow, LocatedRow>() {
+            @Override
+            public LocatedRow call(ExecRow execRow) throws Exception {
+                return new LocatedRow(execRow);
+            }
+        });
+*/ return null;
+
     }
 
-    public DataSet<SpliceOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-        throw new RuntimeException("not implemented");
-    }
-
-
+/*
         @Override
     public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
         DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
@@ -371,7 +376,7 @@ public class NestedLoopJoinOperation extends JoinOperation {
             }
         });
     }
-
+*/
 
     public static final class NLJSparkOperation extends SpliceFlatMapFunction<SpliceOperation, LocatedRow, ExecRow> {
         private NestedLoopIterator nestedLoopIterator;

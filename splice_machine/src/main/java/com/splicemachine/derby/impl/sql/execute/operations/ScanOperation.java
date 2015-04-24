@@ -396,8 +396,4 @@ public abstract class ScanOperation extends SpliceBaseOperation {
         this.scanSet = true;
     }
 
-    @Override
-    public boolean pushedToServer() {
-        return false;
-    }
 }

@@ -9,9 +9,7 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.stream.DataSet;
 import com.splicemachine.derby.stream.DataSetProcessor;
 import com.splicemachine.derby.stream.OperationContext;
-import com.splicemachine.derby.stream.StreamUtils;
 import com.splicemachine.derby.stream.function.Keyer;
-import com.splicemachine.derby.stream.spark.RDDUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SourceIterator;
 import com.splicemachine.derby.impl.sql.execute.operations.sort.DistinctSortAggregateBuffer;
@@ -31,7 +29,6 @@ import com.splicemachine.metrics.TimeView;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
@@ -41,9 +38,6 @@ import com.splicemachine.db.iapi.store.access.ColumnOrdering;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
-import org.apache.spark.api.java.JavaPairRDD;
-import org.apache.spark.api.java.JavaRDD;
-
 import java.io.*;
 import java.util.*;
 
@@ -464,31 +458,13 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 
 
     @Override
-    public boolean providesRDD() {
-        return ((SpliceOperation)source).providesRDD();
-    }
-
-    @Override
-    public DataSet<SpliceOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-        DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
+    public DataSet<SpliceOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
         DataSet dataSet = source.getDataSet(spliceRuntimeContext,top);
         OperationContext operationContext = dsp.createOperationContext(top,spliceRuntimeContext);
         if (distinct)
             dataSet = dataSet.distinct();
         return dataSet.keyBy(new Keyer(operationContext, keyColumns))
                 .sortByKey(new RowComparator(descColumns)).values();
-    }
-
-
-        @Override
-    public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-        JavaRDD<LocatedRow> rdd = source.getRDD(spliceRuntimeContext, source);
-        if (distinct) {
-            rdd = rdd.distinct();
-        }
-        JavaPairRDD<ExecRow, LocatedRow> keyed = RDDUtils.getKeyedRDD(rdd, keyColumns);
-        JavaPairRDD<ExecRow, LocatedRow> sorted = keyed.sortByKey(new RowComparator(descColumns));
-        return sorted.values();
     }
 
     /*TODO JLEACH Serialize values*/

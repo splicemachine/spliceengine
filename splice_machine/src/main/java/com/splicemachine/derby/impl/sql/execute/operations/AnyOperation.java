@@ -229,47 +229,11 @@ public class AnyOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public boolean providesRDD() {
-        return source.providesRDD();
-    }
-
-    @Override
-    public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-        return source.getRDD(spliceRuntimeContext, top);
-    }
-
-    @Override
-    public DataSet<SpliceOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-        DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
+    public DataSet<SpliceOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
         Iterator<LocatedRow> iterator = source.getDataSet(spliceRuntimeContext,top).toLocalIterator();
         if (iterator.hasNext())
                 return dsp.singleRowDataSet(new LocatedRow(iterator.next().getRow()));
         return dsp.singleRowDataSet(new LocatedRow(getRowWithNulls()));
     }
-
-
-        @Override
-    public SpliceNoPutResultSet executeRDD(SpliceRuntimeContext runtimeContext) throws StandardException {
-        JavaRDD<LocatedRow> rdd = getRDD(runtimeContext, this);
-        if (LOG.isInfoEnabled()) {
-            LOG.info("RDD for operation " + this + " :\n " + rdd.toDebugString());
-        }
-        return new SpliceNoPutResultSet(getActivation(), this,
-                new RDDRowProvider(rdd, runtimeContext) {
-                    @Override
-                    public boolean hasNext() throws StandardException {
-                        return true;
-                    }
-
-                    @Override
-                    public ExecRow next() throws StandardException {
-                        ExecRow result = iterator.hasNext() ? iterator.next().getRow() : getRowWithNulls();
-                        setCurrentRow(result);
-                        return result;
-                    }
-                });
-    }
-
-
 
 }

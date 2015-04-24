@@ -5,17 +5,11 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Collections;
 import java.util.List;
-
 import com.google.common.base.Strings;
-import com.google.common.collect.Lists;
-import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.stream.DataSet;
 import com.splicemachine.derby.stream.DataSetProcessor;
-import com.splicemachine.derby.stream.StreamUtils;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
-import com.splicemachine.metrics.Counter;
 import com.splicemachine.pipeline.exception.Exceptions;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -23,7 +17,6 @@ import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -32,7 +25,6 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.storage.RowProviders;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.spark.api.java.JavaRDD;
 
 
 public class RowOperation extends SpliceBaseOperation {
@@ -307,18 +299,8 @@ public class RowOperation extends SpliceBaseOperation {
 				return false;
 		}
 
-		@Override
-		public boolean providesRDD() {
-			return true;
-		}
-
-		@Override
-		public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-			return SpliceSpark.getContext().parallelize(Lists.newArrayList(new LocatedRow(getRow())), 1);
-		}
        @Override
-        public DataSet<SpliceOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-            DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
+        public DataSet<SpliceOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
             return dsp.singleRowDataSet(new LocatedRow(getRow()));
         }
 }

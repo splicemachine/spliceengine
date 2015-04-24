@@ -10,6 +10,8 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
+import com.splicemachine.derby.stream.DataSet;
+import com.splicemachine.derby.stream.DataSetProcessor;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -20,13 +22,13 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
 	protected NoPutResultSet source;
 	protected boolean scrollable;
 	private static Logger LOG = Logger.getLogger(ScrollInsensitiveOperation.class);
-	protected static List<NodeType> nodeTypes; 
+	protected static List<NodeType> nodeTypes;
 	static {
 		nodeTypes = new ArrayList<NodeType>();
 		nodeTypes.add(NodeType.SCROLL);
-		nodeTypes.add(NodeType.MAP);		
+		nodeTypes.add(NodeType.MAP);
 	}
-	
+
     protected static final String NAME = ScrollInsensitiveOperation.class.getSimpleName().replaceAll("Operation","");
 
 	@Override
@@ -34,7 +36,7 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
 			return NAME;
 	}
 
-	
+
     public ScrollInsensitiveOperation () {
     	super();
     }
@@ -48,7 +50,7 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
 		this.sourceRowWidth = sourceRowWidth;
 		this.source = source;
 		this.scrollable = scrollable;
-		recordConstructorTime(); 
+		recordConstructorTime();
 	}
 
 	@Override
@@ -68,7 +70,7 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
 		out.writeInt(sourceRowWidth);
 		out.writeBoolean(scrollable);
 	}
-	
+
 	@Override
 	public List<SpliceOperation> getSubOperations() {
 		if (LOG.isTraceEnabled())
@@ -77,7 +79,7 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
 		operations.add((SpliceOperation) source);
 		return operations;
 	}
-	
+
 	@Override
 	public SpliceOperation getLeftOperation() {
 		if (LOG.isTraceEnabled())
@@ -112,4 +114,10 @@ public class ScrollInsensitiveOperation extends SpliceBaseOperation {
 	public NoPutResultSet getSource() {
 		return this.source;
 	}
+
+    @Override
+    public <Op extends SpliceOperation> DataSet<Op, LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
+        throw new RuntimeException("not implemented");
+    }
+
 }

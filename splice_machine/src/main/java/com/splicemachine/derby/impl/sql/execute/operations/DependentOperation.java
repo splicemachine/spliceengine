@@ -27,6 +27,8 @@ import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.IndexRow;
+import com.splicemachine.derby.stream.DataSet;
+import com.splicemachine.derby.stream.DataSetProcessor;
 
 /**
  * 
@@ -687,6 +689,13 @@ public class DependentOperation extends ScanOperation {
 	{
 		return constructorTime + openTime + nextTime + closeTime;
 	}
+
+    @Override
+    public <Op extends SpliceOperation> DataSet<Op, LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
+        throw new RuntimeException("Not Implemented");
+        // TODO KEITH Need to implement this for spark based deletes etc.
+        // ? JL Do we even use this or coprocess based?
+    }
 }
 
 

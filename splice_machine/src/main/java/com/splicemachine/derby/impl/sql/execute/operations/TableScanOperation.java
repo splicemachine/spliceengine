@@ -367,8 +367,6 @@ public class TableScanOperation extends ScanOperation {
 				return scanProperties;
 		}
 
-
-
 		@Override
 		public int[] getAccessedNonPkColumns() throws StandardException{
 				FormatableBitSet accessedNonPkColumns = scanInformation.getAccessedNonPkColumns();
@@ -385,12 +383,7 @@ public class TableScanOperation extends ScanOperation {
 		}
 
         @Override
-        public boolean providesRDD() {
-            return true;
-        }
-
-
-        public DataSet<TableScanOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+        public DataSet<TableScanOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top,DataSetProcessor dsp) throws StandardException {
             assert currentTemplate != null: "Current Template Cannot Be Null";
             int[] execRowTypeFormatIds = new int[currentTemplate.nColumns()];
             for (int i = 0; i< currentTemplate.nColumns(); i++) {
@@ -410,48 +403,7 @@ public class TableScanOperation extends ScanOperation {
                     .accessedKeyColumns(scanInformation.getAccessedPkColumns())
                     .keyDecodingMap(getKeyDecodingMap())
                     .rowDecodingMap(baseColumnMap);
-            DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
             return dsp.getTableScanner(this,tsb,tableName,spliceRuntimeContext);
-        }
-
-        @Override
-        public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-        	assert currentTemplate != null: "Current Template Cannot Be Null";        	
-        	int[] execRowTypeFormatIds = new int[currentTemplate.nColumns()];
-        	for (int i = 0; i< currentTemplate.nColumns(); i++) {
-        		execRowTypeFormatIds[i] = currentTemplate.getColumn(i+1).getTypeFormatId();
-        	}        	
-        	TableScannerBuilder tsb = new TableScannerBuilder()
-            .transaction(operationInformation.getTransaction())
-								.scan(getNonSIScan(spliceRuntimeContext))
-								.template(currentRow)
-								.tableVersion(scanInformation.getTableVersion())
-								.indexName(indexName)
-								.keyColumnEncodingOrder(scanInformation.getColumnOrdering())
-								.keyColumnSortOrder(scanInformation.getConglomerate().getAscDescInfo())
-								.keyColumnTypes(getKeyFormatIds())
-								.execRowTypeFormatIds(execRowTypeFormatIds)
-								.accessedKeyColumns(scanInformation.getAccessedPkColumns())
-								.keyDecodingMap(getKeyDecodingMap())
-								.rowDecodingMap(baseColumnMap);
-            JavaSparkContext ctx = SpliceSpark.getContext();
-            Configuration conf = new Configuration(SIConstants.config);
-            conf.set(MRConstants.SPLICE_CONGLOMERATE, tableName);
-            conf.set(MRConstants.SPLICE_JDBC_STR, "jdbc:derby://localhost:1527/splicedb;create=true;user=splice;password=admin");            
-            try {
-				conf.set(MRConstants.SPLICE_SCAN_INFO, tsb.getTableScannerBuilderBase64String());
-			} catch (IOException ioe) {
-				throw StandardException.unexpectedUserException(ioe);
-			}
-
-            JavaPairRDD<RowLocation, ExecRow> rawRDD = ctx.newAPIHadoopRDD(conf, SMInputFormat.class,
-                    RowLocation.class, ExecRow.class);
-            return rawRDD.map(new Function<Tuple2<RowLocation, ExecRow>, LocatedRow>() {
-                @Override
-                public LocatedRow call(Tuple2<RowLocation, ExecRow> tuple) throws Exception {
-                    return new LocatedRow(tuple._1(), tuple._2());
-                }
-            });
         }
 
 }

@@ -9,6 +9,8 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
+import com.splicemachine.derby.stream.DataSet;
+import com.splicemachine.derby.stream.DataSetProcessor;
 import com.splicemachine.derby.stream.spark.RDDRowProvider;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationUtils;
@@ -362,10 +364,12 @@ public class RowCountOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public boolean providesRDD() {
-        return source.providesRDD();
+    public <Op extends SpliceOperation> DataSet<Op, LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
+        throw new RuntimeException("not implemented");
     }
 
+
+    /*
     @Override
     public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
         return source.getRDD(spliceRuntimeContext, source);
@@ -384,4 +388,5 @@ public class RowCountOperation extends SpliceBaseOperation {
                     }
                 });
     }
+    */
 }

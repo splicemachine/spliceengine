@@ -73,4 +73,6 @@ public interface DataSet<Op extends SpliceOperation,V> {
     DataSet<Op,V> subtract(DataSet<Op,V> dataSet);
 
     boolean isEmpty();
+
+   <U> DataSet<Op,U> flatMap(SpliceFlatMapFunction<Op,V, U> f);
  }

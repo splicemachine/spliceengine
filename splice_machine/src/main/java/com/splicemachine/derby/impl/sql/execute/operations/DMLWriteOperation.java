@@ -1,12 +1,10 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.base.Strings;
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.impl.storage.SingleScanRowProvider;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
@@ -16,7 +14,6 @@ import com.splicemachine.derby.stream.DataSetProcessor;
 import com.splicemachine.derby.stream.OperationContext;
 import com.splicemachine.derby.stream.StreamUtils;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
-import com.splicemachine.derby.stream.spark.SpliceMachineSource;
 import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.derby.utils.marshall.KeyEncoder;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
@@ -30,7 +27,6 @@ import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.pipeline.impl.WriteCoordinator;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -43,11 +39,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hive.ql.io.orc.OrcProto;
 import org.apache.log4j.Logger;
-import org.apache.spark.SparkContext;
-import org.apache.spark.api.java.JavaRDD;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -467,27 +459,12 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 
     }
 
-	@Override
-	public boolean providesRDD() {
-		return source.providesRDD();
-	}
-
-    public DataSet<TableScanOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-        DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
+    public DataSet<TableScanOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
         DataSet set = source.getDataSet(spliceRuntimeContext,top);
         Thread.dumpStack();
         set.mapPartitions(new DMLWriteSparkOp(dsp.createOperationContext(this,spliceRuntimeContext))).collect();
         return dsp.getEmpty();
     }
-
-        @Override
-	public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-		JavaRDD<LocatedRow> rdd = source.getRDD(spliceRuntimeContext, top);
-        DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
-        // This is not quite right. JL
-		rdd.mapPartitions(new DMLWriteSparkOp(dsp.createOperationContext(this,spliceRuntimeContext))).collect();
-		return SpliceSpark.getContext().parallelize(Collections.<LocatedRow>emptyList(), 1);
-	}
 
 	public static final class DMLWriteSparkOp extends SpliceFlatMapFunction<SpliceOperation, Iterator<LocatedRow>, LocatedRow> {
 		public DMLWriteSparkOp() {

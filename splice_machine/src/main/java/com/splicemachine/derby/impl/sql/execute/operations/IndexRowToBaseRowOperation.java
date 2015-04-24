@@ -15,6 +15,8 @@ import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
+import com.splicemachine.derby.stream.DataSet;
+import com.splicemachine.derby.stream.DataSetProcessor;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.pipeline.exception.Exceptions;
@@ -562,4 +564,9 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
             }
             return nonPkCols;
         }
+    @Override
+    public <Op extends SpliceOperation> DataSet<Op, LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
+        throw new RuntimeException("not implemented");
+    }
+
 }

@@ -10,6 +10,8 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.job.JobInfo;
+import com.splicemachine.derby.stream.DataSet;
+import com.splicemachine.derby.stream.DataSetProcessor;
 import com.splicemachine.derby.stream.spark.RDDRowProvider;
 import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.pipeline.exception.Exceptions;
@@ -424,6 +426,11 @@ public class OnceOperation extends SpliceBaseOperation {
 				return row;
 		}
 
+    @Override
+    public <Op extends SpliceOperation> DataSet<Op, LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
+        throw new RuntimeException("Not Supported");
+    }
+    /*
     public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
         JavaRDD<LocatedRow> raw = source.getRDD(spliceRuntimeContext, top);
         if (pushedToServer()) {
@@ -441,21 +448,10 @@ public class OnceOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public boolean providesRDD() {
-        return source.providesRDD();
-    }
-
-
-    @Override
-    public boolean pushedToServer() {
-        return source.pushedToServer();
-    }
-
-    @Override
     public String toString() {
         return String.format("OnceOperation {source=%s,resultSetNumber=%d}",source,resultSetNumber);
     }
-
+/*
     @Override
     public SpliceNoPutResultSet executeRDD(SpliceRuntimeContext runtimeContext) throws StandardException {
         JavaRDD<LocatedRow> rdd = getRDD(runtimeContext, this);
@@ -478,11 +474,13 @@ public class OnceOperation extends SpliceBaseOperation {
 						 * Also, conceptually, that makes sense--this is a verification node--it verifies output, it doesn't
 						 * produce it's own (not really, anyway). Thus, it really shouldn't be part of the output itself.
 						 */
-                        currentRow = validateNextRow(new IteratorRowSource(iterator), true);
+
+/*                        currentRow = validateNextRow(new IteratorRowSource(iterator), true);
 
                         // OnceOp always has another row…
                         return true;
                     }
                 });
     }
+                        */
 }

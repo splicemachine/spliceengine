@@ -6,7 +6,6 @@ import java.io.ObjectOutput;
 import java.sql.Types;
 import java.util.Collections;
 import java.util.List;
-
 import com.google.common.base.Strings;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.storage.RowProvider;
@@ -15,7 +14,6 @@ import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.stream.DataSet;
 import com.splicemachine.derby.stream.DataSetProcessor;
 import com.splicemachine.derby.stream.OperationContext;
-import com.splicemachine.derby.stream.StreamUtils;
 import com.splicemachine.derby.stream.function.SpliceFunction;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.derby.utils.StandardSupplier;
@@ -37,7 +35,6 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.spark.api.java.JavaRDD;
 
 public class NormalizeOperation extends SpliceBaseOperation {
 		private static final long serialVersionUID = 2l;
@@ -376,33 +373,13 @@ public class NormalizeOperation extends SpliceBaseOperation {
 								.toString();
 		}
 
-    @Override
-    public boolean providesRDD() {
-        return source.providesRDD();
-    }
-
-    public DataSet<SpliceOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-        DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
+    public DataSet<SpliceOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
         return source.getDataSet(spliceRuntimeContext,top).
                 map(new NormalizeSparkFunction(dsp.createOperationContext(this, spliceRuntimeContext)));
     }
 
 
-        @Override
-    public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-        JavaRDD<LocatedRow> raw = source.getRDD(spliceRuntimeContext, top);
-        if (pushedToServer()) {
-            // we want to avoid re-applying the PR if it has already been executed in HBase
-            return raw;
-        }
-        DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
-        return raw.map(new NormalizeSparkFunction(dsp.createOperationContext(this,spliceRuntimeContext)));
-    }
 
-    @Override
-    public boolean pushedToServer() {
-        return source.pushedToServer();
-    }
 
 
     public static final class NormalizeSparkFunction extends SpliceFunction<SpliceOperation, LocatedRow, LocatedRow> {
