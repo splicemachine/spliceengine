@@ -102,4 +102,15 @@ public class ControlDataSet<Op extends SpliceOperation,V> implements DataSet<Op,
         return new ControlDataSet<>(Iterables.filter(iterable,f));
     }
 
+    @Override
+    public DataSet<Op, V> intersect(DataSet<Op, V> dataSet) {
+        return new ControlDataSet<>(Sets.intersection(Sets.newHashSet(iterable),Sets.newHashSet(((ControlDataSet) dataSet).iterable)));
+    }
+
+    @Override
+    public DataSet<Op, V> subtract(DataSet<Op, V> dataSet) {
+        return new ControlDataSet<>(Sets.difference(Sets.newHashSet(iterable),Sets.newHashSet(((ControlDataSet) dataSet).iterable)));
+    }
+
+
 }
