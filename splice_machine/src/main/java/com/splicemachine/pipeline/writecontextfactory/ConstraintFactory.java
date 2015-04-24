@@ -39,4 +39,9 @@ class ConstraintFactory {
     public int hashCode() {
         return localConstraint.hashCode();
     }
+
+    @Override
+    public String toString() {
+        return "ConstraintFactory{localConstraint=" + localConstraint + "}";
+    }
 }
