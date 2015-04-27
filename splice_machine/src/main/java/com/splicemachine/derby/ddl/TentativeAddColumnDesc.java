@@ -34,6 +34,7 @@ import com.splicemachine.pipeline.api.WriteHandler;
 import com.splicemachine.pipeline.ddl.TransformingDDLDescriptor;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.pipeline.writehandler.altertable.AlterTableInterceptWriteHandler;
+import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.uuid.UUIDGenerator;
 
@@ -82,8 +83,9 @@ public class TentativeAddColumnDesc implements TransformingDDLDescriptor, Extern
 
     }
 
-    public ColumnInfo[] getColumnInfos() {
-        return columnInfos;
+    @Override
+    public int[] getKeyColumnPositions() {
+        return columnOrdering;
     }
 
     @Override
@@ -133,9 +135,10 @@ public class TentativeAddColumnDesc implements TransformingDDLDescriptor, Extern
             throw Exceptions.getIOException(e);
         }
 
-        // key decoder
+        // Key decoder
         KeyHashDecoder keyDecoder;
         if(columnOrdering!=null && columnOrdering.length>0){
+            //must use dense encodings in the key if there's a column ordering
             DescriptorSerializer[] oldDenseSerializers =
                 VersionedSerializers.forVersion(tableVersion, false).getSerializers(oldRow);
             keyDecoder = BareKeyHash.decoder(columnOrdering, null, oldDenseSerializers);
@@ -143,36 +146,36 @@ public class TentativeAddColumnDesc implements TransformingDDLDescriptor, Extern
             keyDecoder = NoOpDataHash.instance().getDecoder();
         }
 
-        // row decoder
+        // Value decoder
         DescriptorSerializer[] oldSerializers =
             VersionedSerializers.forVersion(tableVersion, true).getSerializers(oldRow);
-        EntryDataDecoder rowDecoder = new EntryDataDecoder(IntArrays.count(oldRow.nColumns()),null,oldSerializers);
+        EntryDataDecoder valueDecoder = new EntryDataDecoder(IntArrays.count(oldRow.nColumns()),null,oldSerializers);
 
-        // Row encoder
-        KeyEncoder encoder;
-        DescriptorSerializer[] newSerializers =
-            VersionedSerializers.forVersion(tableVersion, true).getSerializers(newRow);
-        if(columnOrdering !=null&& columnOrdering.length>0){
-            //must use dense encodings in the key
+        // Key encoder
+        KeyEncoder keyEncoder;
+        if(columnOrdering !=null && columnOrdering.length>0){
+            //must use dense encodings in the key if there's a column ordering
             DescriptorSerializer[] denseSerializers =
                 VersionedSerializers.forVersion(tableVersion, false).getSerializers(newRow);
-            encoder = new KeyEncoder(NoOpPrefix.INSTANCE, BareKeyHash.encoder(columnOrdering, null,
+            keyEncoder = new KeyEncoder(NoOpPrefix.INSTANCE, BareKeyHash.encoder(columnOrdering, null,
                                                                               denseSerializers), NoOpPostfix.INSTANCE);
         } else {
             UUIDGenerator uuidGenerator = SpliceDriver.driver().getUUIDGenerator().newGenerator(100);
-            encoder = new KeyEncoder(new SaltedPrefix(uuidGenerator), NoOpDataHash.INSTANCE,NoOpPostfix.INSTANCE);
+            keyEncoder = new KeyEncoder(new SaltedPrefix(uuidGenerator), NoOpDataHash.INSTANCE,NoOpPostfix.INSTANCE);
         }
-        int[] columns = IntArrays.count(newRow.nColumns());
 
+        // Row Encoder
+        int[] columns = IntArrays.count(newRow.nColumns());
         if (columnOrdering != null && columnOrdering.length > 0) {
             for (int col: columnOrdering) {
                 columns[col] = -1;
             }
         }
-        DataHash rowHash = new EntryDataHash(columns, null,newSerializers);
-        PairEncoder rowEncoder = new PairEncoder(encoder,rowHash, KVPair.Type.INSERT);
+        DescriptorSerializer[] newSerializers = VersionedSerializers.forVersion(tableVersion, true).getSerializers(newRow);
+        DataHash rowEncoder = new EntryDataHash(columns, null,newSerializers);
+        PairEncoder pairEncoder = new PairEncoder(keyEncoder,rowEncoder, KVPair.Type.INSERT);
 
-        return new AlterTableRowTransformer(oldRow, newRow, keyDecoder, rowDecoder, rowEncoder);
+        return new AlterTableRowTransformer(oldRow, newRow, keyDecoder, valueDecoder, pairEncoder);
     }
 
 }

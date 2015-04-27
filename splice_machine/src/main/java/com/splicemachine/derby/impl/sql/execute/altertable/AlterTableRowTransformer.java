@@ -11,6 +11,7 @@ import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.derby.utils.marshall.PairEncoder;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.RowTransformer;
+import com.splicemachine.storage.EntryDecoder;
 
 /**
  * Used by alter table write interceptors to map rows written in src table to new

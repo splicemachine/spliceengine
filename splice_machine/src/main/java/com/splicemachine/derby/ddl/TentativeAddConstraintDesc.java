@@ -34,6 +34,7 @@ import com.splicemachine.pipeline.api.WriteHandler;
 import com.splicemachine.pipeline.ddl.TransformingDDLDescriptor;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.pipeline.writehandler.altertable.AlterTableInterceptWriteHandler;
+import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.uuid.UUIDGenerator;
 
@@ -85,8 +86,9 @@ public class TentativeAddConstraintDesc implements TransformingDDLDescriptor, Ex
 
     }
 
-    public ColumnInfo[] getColumnInfos() {
-        return columnInfos;
+    @Override
+    public int[] getKeyColumnPositions() {
+        return srcColumnOrdering;
     }
 
     @Override
