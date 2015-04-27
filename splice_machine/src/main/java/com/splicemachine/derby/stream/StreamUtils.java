@@ -11,9 +11,19 @@ import com.splicemachine.derby.stream.spark.SparkDataSetProcessor;
  * Created by jleach on 4/16/15.
  */
 public class StreamUtils {
+    public static final DataSetProcessor controlDataSetProcessor = new ControlDataSetProcessor();
+    public static final DataSetProcessor sparkDataSetProcessor = new SparkDataSetProcessor();
+
+    public static DataSetProcessor getControlDataSetProcessor() {
+        return controlDataSetProcessor;
+    }
+
+    public static DataSetProcessor getSparkDataSetProcessor() {
+        return sparkDataSetProcessor;
+    }
 
     public static <Op extends SpliceOperation> DataSetProcessor<Op,RowLocation,ExecRow> getDataSetProcessorFromActivation(Activation activation) {
-        return new ControlDataSetProcessor<>(); //TODO JLEACH : Split
+        return controlDataSetProcessor; //TODO JLEACH : Split
 //        return new SparkDataSetProcessor<>(); //TODO JLEACH : Split
     }
 

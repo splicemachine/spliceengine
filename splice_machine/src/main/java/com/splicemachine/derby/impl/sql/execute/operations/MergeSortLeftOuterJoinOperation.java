@@ -76,7 +76,7 @@ public class MergeSortLeftOuterJoinOperation extends MergeSortJoinOperation {
 		}
 
     @Override
-    protected ExecRow getEmptyRow() throws StandardException {
+    public ExecRow getEmptyRow() throws StandardException {
         if (emptyRow == null)
             emptyRow = emptyRowFun.invoke();
         return emptyRow;

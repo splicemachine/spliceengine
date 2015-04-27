@@ -75,4 +75,21 @@ public interface DataSet<Op extends SpliceOperation,V> {
     boolean isEmpty();
 
    <U> DataSet<Op,U> flatMap(SpliceFlatMapFunction<Op,V, U> f);
+
+    /**
+     * Release any resources of the dataset
+     *
+     */
+    void close();
+
+    /**
+     * Perform a fetch with offset
+     *
+     * @param offset
+     * @param fetch
+     * @return
+     */
+    DataSet<Op,V> fetchWithOffset(int offset, int fetch);
+
+
  }

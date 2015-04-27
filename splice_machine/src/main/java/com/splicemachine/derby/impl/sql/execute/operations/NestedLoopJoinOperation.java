@@ -10,7 +10,7 @@ import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.stream.DataSet;
 import com.splicemachine.derby.stream.DataSetProcessor;
 import com.splicemachine.derby.stream.OperationContext;
-import com.splicemachine.derby.stream.StreamUtils;
+import com.splicemachine.derby.stream.function.NLJFunction;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.metrics.IOStats;
 import com.splicemachine.pipeline.exception.Exceptions;
@@ -23,8 +23,6 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.function.Function;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -351,32 +349,10 @@ public class NestedLoopJoinOperation extends JoinOperation {
 
 
     public DataSet<SpliceOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
-/*        DataSet<SpliceOperation,LocatedRow> left = leftResultSet.getDataSet(spliceRuntimeContext, leftResultSet);
+        DataSet<SpliceOperation,LocatedRow> left = leftResultSet.getDataSet(spliceRuntimeContext, leftResultSet);
         OperationContext<SpliceOperation> operationContext = dsp.createOperationContext(this,spliceRuntimeContext);
-        return left.flatMap(new NLJSparkOperation(operationContext)).map(new Function<ExecRow, LocatedRow>() {
-            @Override
-            public LocatedRow call(ExecRow execRow) throws Exception {
-                return new LocatedRow(execRow);
-            }
-        });
-*/ return null;
-
+        return left.flatMap(new NLJFunction<SpliceOperation>(operationContext,rightResultSet));
     }
-
-/*
-        @Override
-    public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-        DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
-        JavaRDD<LocatedRow> left = leftResultSet.getRDD(spliceRuntimeContext, leftResultSet);
-        OperationContext<SpliceOperation> operationContext = dsp.createOperationContext(this,spliceRuntimeContext);
-        return left.flatMap(new NLJSparkOperation(operationContext)).map(new Function<ExecRow, LocatedRow>() {
-            @Override
-            public LocatedRow call(ExecRow execRow) throws Exception {
-                return new LocatedRow(execRow);
-            }
-        });
-    }
-*/
 
     public static final class NLJSparkOperation extends SpliceFlatMapFunction<SpliceOperation, LocatedRow, ExecRow> {
         private NestedLoopIterator nestedLoopIterator;

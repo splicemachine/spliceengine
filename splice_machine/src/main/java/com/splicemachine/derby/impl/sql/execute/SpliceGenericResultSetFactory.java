@@ -242,45 +242,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                                                double optimizerEstimatedCost) throws StandardException {
         SpliceLogUtils.trace(LOG, "getHashScanResultSet");
         throw new UnsupportedOperationException("HashScan operation shouldn't be called");
-//        try{
-//            StaticCompiledOpenConglomInfo scoci = (StaticCompiledOpenConglomInfo)(activation.getPreparedStatement().
-//                    getSavedObject(scociItem));
-//
-//            SpliceOperation op = new HashScanOperation(
-//                    conglomId,
-//                    scoci,
-//                    activation,
-//                    resultRowAllocator,
-//                    resultSetNumber,
-//                    startKeyGetter,
-//                    startSearchOperator,
-//                    stopKeyGetter,
-//                    stopSearchOperator,
-//                    sameStartStopPosition,
-//                    scanQualifiersField,
-//                    nextQualifierField,
-//                    initialCapacity,
-//                    loadFactor,
-//                    maxCapacity,
-//                    hashKeyColumn,
-//                    tableName,
-//                    userSuppliedOptimizerOverrides,
-//                    indexName,
-//                    isConstraint,
-//                    forUpdate,
-//                    colRefItem,
-//                    lockMode,
-//                    tableLocked,
-//                    isolationLevel,
-//                    true,		// Skip rows with 1 or more null key columns
-//                    optimizerEstimatedRowCount,
-//                    optimizerEstimatedCost);
-//
-//            return new OperationResultSet(activation,op);
-//        }catch(Exception e){
-//            throw Exceptions.parseException(e);
-//        }
-    }
+   }
 
     @Override
     public NoPutResultSet getNestedLoopLeftOuterJoinResultSet(
@@ -456,33 +418,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                     oneRowScan,
                     optimizerEstimatedRowCount,
                     optimizerEstimatedCost);
-//            SpliceOperation op =  new TableScanOperation(
-//                    conglomId,
-//                    scoci,
-//                    activation,
-//                    resultRowAllocator,
-//                    resultSetNumber,
-//                    startKeyGetter,
-//                    startSearchOperator,
-//                    stopKeyGetter,
-//                    stopSearchOperator,
-//                    sameStartStopPosition,
-//                    qualifiersField,
-//                    tableName,
-//                    userSuppliedOptimizerOverrides,
-//                    indexName,
-//                    isConstraint,
-//                    forUpdate,
-//                    colRefItem,
-//                    indexColItem,
-//                    lockMode,
-//                    tableLocked,
-//                    isolationLevel,
-//                    rowsPerRead,
-//                    disableForHoldable,
-//                    oneRowScan,
-//                    optimizerEstimatedRowCount,
-//                    optimizerEstimatedCost);
+
 
             return new OperationResultSet(activation,op);
         }catch(Exception e){
