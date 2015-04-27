@@ -29,13 +29,13 @@ import org.apache.log4j.Logger;
 import com.splicemachine.si.api.TxnView;
 import org.apache.zookeeper.KeeperException;
 import org.apache.hadoop.hbase.protobuf.generated.HBaseProtos;
+import com.splicemachine.db.iapi.error.ShutdownException;
 
 public class BackupUtils {
 
     private static final Logger LOG = Logger.getLogger(BackupUtils.class);
-
-    public static final String BACKUP_FILESET_TABLE = "SYSBACKUPFILESET";
     public static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
+    private static final int MAX_RETRIES = 30;
 
     public static String isBackupRunning() throws KeeperException, InterruptedException {
         RecoverableZooKeeper zooKeeper = ZkUtils.getRecoverableZooKeeper();
@@ -43,7 +43,6 @@ public class BackupUtils {
             long id = BytesUtil.bytesToLong(zooKeeper.getData(SpliceConstants.DEFAULT_BACKUP_PATH, false, null), 0);
             return String.format("A concurrent backup with id of %d is running.", id);
         }
-
         return null;
     }
 
@@ -122,9 +121,9 @@ public class BackupUtils {
             try {
                 txn.rollback();
             } catch (Exception ex) {
-                throw StandardException.newException(ex.getMessage());
+                throw Exceptions.parseException(ex);
             }
-            throw StandardException.newException(e.getMessage());
+            throw Exceptions.parseException(e);
         }
         return backupId;
     }
@@ -134,7 +133,7 @@ public class BackupUtils {
      * @param status Back up status, "S", "I", or "F"
      * @return true if there exists an entry with the specified status
      */
-    public static boolean existBackupWithStatus(String status) throws StandardException{
+    public static boolean existBackupWithStatus(String status, int retries) throws StandardException{
 
         Txn txn = null;
         Backup backup = null;
@@ -147,15 +146,23 @@ public class BackupUtils {
                 backup = BackupSystemProcedures.backupReporter.next();
             } while (backup != null && status.compareToIgnoreCase(backup.getBackupStatus().toString()) != 0);
             BackupSystemProcedures.backupReporter.closeScanner();
-            txn.commit();
+        }
+        catch (ShutdownException e) {
+            retries++;
+            if (retries < MAX_RETRIES) {
+                try {
+                    Thread.sleep(500);
+                } catch (Exception ex) {
+                    throw Exceptions.parseException(ex);
+                }
+                return existBackupWithStatus(status, retries);
+            }
+            else {
+                throw Exceptions.parseException(e);
+            }
         }
         catch (Exception e) {
-            try {
-                txn.rollback();
-            } catch (Exception ex) {
-                throw StandardException.newException(ex.getMessage());
-            }
-            throw StandardException.newException(e.getMessage());
+            throw Exceptions.parseException(e);
         }
 
         return backup != null;
@@ -234,8 +241,14 @@ public class BackupUtils {
         String snapshotName = BackupUtils.getLastSnapshotName(tableName);
         Set<String> pathSet = new HashSet<>();
         if (snapshotName != null) {
+            if (LOG.isTraceEnabled()) {
+                SpliceLogUtils.trace(LOG, "checking snapshot: " + snapshotName);
+            }
             List<Path> pathList = getSnapshotHFileLinksForRegion(snapshotUtils, null, conf, fs, snapshotName);
             for (Path path : pathList) {
+                if (LOG.isTraceEnabled()) {
+                    SpliceLogUtils.trace(LOG, "snapshot contains file " + path.toString());
+                }
                 pathSet.add(path.getName());
             }
         }
@@ -244,7 +257,7 @@ public class BackupUtils {
             // If the referenced file appears in last snapshot, this file should be excluded for next incremental
             // backup
             if (LOG.isTraceEnabled()) {
-                SpliceLogUtils.info(LOG, "snapshot contains file " + s[0]);
+                SpliceLogUtils.trace(LOG, "snapshot contains file " + s[0]);
             }
             return true;
         }
@@ -252,7 +265,7 @@ public class BackupUtils {
         if (shouldExclude(tableName, encodedRegionName, fileName)) {
             // Check BACKUP.BACKUP_FILESET whether this file should be excluded
             if (LOG.isTraceEnabled()) {
-                SpliceLogUtils.info(LOG, "Find an entry in Backup.Backup_fileset for table = " + tableName +
+                SpliceLogUtils.trace(LOG, "Find an entry in Backup.Backup_fileset for table = " + tableName +
                         " region = " + s[1] + " file = " + s[0]);
             }
             return true;
@@ -286,7 +299,7 @@ public class BackupUtils {
                 }
             }
         } catch (Exception e) {
-            throw StandardException.newException(e.getMessage());
+            throw Exceptions.parseException(e);
         } finally {
             backupFileSetReporter.closeScanner();
         }
@@ -312,6 +325,10 @@ public class BackupUtils {
                     .elevateToWritable("backup".getBytes());
             BackupFileSet backupFileSet = new BackupFileSet(tableName, encodedRegionName, fileName, include);
             BackupSystemProcedures.backupFileSetReporter.report(backupFileSet, txn);
+            if (LOG.isTraceEnabled()) {
+                String record = String.format("(%s, %s, %s, %s)", tableName, encodedRegionName, fileName, include);
+                LOG.trace("inserted " + record + " to sys.sysbackupfileset");
+            }
             txn.commit();
         }
         catch (Exception e) {
@@ -319,9 +336,9 @@ public class BackupUtils {
                 txn.rollback();
             }
             catch (Exception ex) {
-                throw StandardException.newException(ex.getMessage());
+                throw Exceptions.parseException(ex);
             }
-            throw StandardException.newException(e.getMessage());
+            throw Exceptions.parseException(e);
         }
     }
 
@@ -339,7 +356,7 @@ public class BackupUtils {
                     .beginTransaction();
             BackupSystemProcedures.backupFileSetReporter.openScanner(txn, tableName, encodedRegionName);
         } catch (Exception e) {
-            throw StandardException.newException(e.getMessage());
+            throw Exceptions.parseException(e);
         }
         return BackupSystemProcedures.backupFileSetReporter;
     }
@@ -362,15 +379,19 @@ public class BackupUtils {
                     .elevateToWritable("backup".getBytes());
             BackupFileSet backupFileSet = new BackupFileSet(tableName, encodedRegionName, fileName, include);
             BackupSystemProcedures.backupFileSetReporter.remove(backupFileSet, txn);
+            if (LOG.isTraceEnabled()) {
+                String record = String.format("(%s, %s, %s, %s)", tableName, encodedRegionName, fileName, include);
+                LOG.trace("removed " + record + " from sys.sysbackupfileset");
+            }
             txn.commit();
         }
         catch (Exception e) {
             try {
                 txn.rollback();
             }catch(Exception ex) {
-                throw StandardException.newException(ex.getMessage());
+                throw Exceptions.parseException(ex);
             }
-            throw StandardException.newException(e.getMessage());
+            throw Exceptions.parseException(e);
         }
     }
 
@@ -395,7 +416,7 @@ public class BackupUtils {
                 }
             }
         } catch (Exception e) {
-            throw StandardException.newException(e.getMessage());
+            throw Exceptions.parseException(e);
         } finally {
             backupFileSetReporter.closeScanner();
         }
