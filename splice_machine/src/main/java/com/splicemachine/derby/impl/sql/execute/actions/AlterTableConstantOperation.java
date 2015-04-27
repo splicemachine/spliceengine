@@ -253,8 +253,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
     }
 
     protected void executeConstraintActions(Activation activation, int numRows) throws StandardException {
-        if(constraintActions==null) return; //no constraints to apply, so nothing to do
-        ConstraintConstantOperation[] newConstraints = getConstraintConstantOperations(constraintActions);
+        if(constraintActions==null || constraintActions.length == 0) return; //no constraints to apply, so nothing to do
         TransactionController tc = activation.getTransactionController();
         DataDictionary dd = activation.getLanguageConnectionContext().getDataDictionary();
         TableDescriptor td = activation.getDDLTableDescriptor();
@@ -262,8 +261,8 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         if(numRows<0)
             numRows = 0;
 
-        List<CreateConstraintConstantOperation> fkConstraints = new ArrayList<>(newConstraints.length);
-        for (ConstantAction ca : newConstraints) {
+        List<CreateConstraintConstantOperation> fkConstraints = new ArrayList<>(constraintActions.length);
+        for (ConstantAction ca : constraintActions) {
             if (ca instanceof CreateConstraintConstantOperation) {
                 CreateConstraintConstantOperation cca = (CreateConstraintConstantOperation) ca;
                 int constraintType = cca.getConstraintType();
@@ -316,10 +315,17 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
             } else {
                 if (SanityManager.DEBUG) {
                     if (!(ca instanceof DropConstraintConstantOperation)) {
+                        if (ca == null) {
+                            SanityManager.THROWASSERT("constraintAction expected to be instanceof " +
+                                                          "DropConstraintConstantOperation not null.");
+                        }
                         SanityManager.THROWASSERT("constraintAction expected to be instanceof " +
                                 "DropConstraintConstantOperation not " +ca.getClass().getName());
                     }
                 }
+
+                // Handle drop constraint
+                executeDropConstraint(activation, "DropConstraint", ca);
             }
         }
 
@@ -330,18 +336,12 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
 
    }
 
-    protected static ConstraintConstantOperation[] getConstraintConstantOperations(ConstantAction[] constraintActions) {
-        if (constraintActions != null && constraintActions.length > 0) {
-            ConstraintConstantOperation[] ccas = new ConstraintConstantOperation[constraintActions.length];
-            int i = 0;
-            for (ConstantAction ca : constraintActions) {
-                if (ca instanceof CreateConstraintConstantOperation) {
-                    ccas[i++] = (CreateConstraintConstantOperation)ca;
-                }
-            }
-            return ccas;
+    private void executeDropConstraint(Activation activation, String changeMsg, ConstantAction ca) throws
+        StandardException {
+        if (! (ca instanceof DropConstraintConstantOperation)) {
+            return;
         }
-        return new ConstraintConstantOperation[0];
+        ca.executeConstantAction(activation);
     }
 
     private void createUniquenessConstraint(Activation activation,

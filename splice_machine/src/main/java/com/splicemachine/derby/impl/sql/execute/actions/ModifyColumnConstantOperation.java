@@ -445,7 +445,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         // we should invalidate all statements that use the old conglomerates
         dd.getDependencyManager().invalidateFor(tableDescriptor, DependencyManager.ALTER_TABLE, lcc);
         // refresh the activation's TableDescriptor
-        activation.setDDLTableDescriptor(getTableDescriptor(lcc));
+        activation.setDDLTableDescriptor(tableDescriptor);
 
         //notify other servers of the change
         notifyMetadataChangeAndWait(ddlChange);
@@ -841,11 +841,8 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
             }
         }
 
-        int cascadedDrops = cascadedDroppedColumns.size();
-        int sizeAfterCascadedDrops = tableDescriptor.getColumnDescriptorList().size() - cascadedDrops;
-
         // can NOT drop a column if it is the only one in the table
-        if (sizeAfterCascadedDrops == 1) {
+        if ((tableDescriptor.getColumnDescriptorList().size() - cascadedDroppedColumns.size()) == 1) {
             throw ErrorState.LANG_PROVIDER_HAS_DEPENDENT_OBJECT.newException(
                     dm.getActionString(DependencyManager.DROP_COLUMN),
                     "THE *LAST* COLUMN " + columnName,"TABLE",tableDescriptor.getQualifiedName());
@@ -883,7 +880,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         toDrop.set(droppedColumnPosition);
         tableDescriptor.setReferencedColumnMap(toDrop);
 
-        dm.invalidateFor(tableDescriptor, (cascade ? DependencyManager.DROP_COLUMN: DependencyManager.DROP_COLUMN_RESTRICT),lcc);
+//        dm.invalidateFor(tableDescriptor, (cascade ? DependencyManager.DROP_COLUMN: DependencyManager.DROP_COLUMN_RESTRICT),lcc);
 
         // If column has a default we drop the default and any dependencies
         if (columnDescriptor.getDefaultInfo() != null) {
@@ -925,7 +922,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
 
         // Create new table without column, map current rows and ongoing txns
         // to the new table
-        performColumnDrop(activation,tableDescriptor,lcc, tc,droppedColumnPosition, columnName);
+        DDLChange ddlChange = performColumnDrop(activation,tableDescriptor,lcc, tc,droppedColumnPosition, columnName);
 
         ColumnDescriptorList tab_cdl = tableDescriptor.getColumnDescriptorList();
 
@@ -1033,6 +1030,38 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         // list in case we were called recursively in order to cascade-drop a
         // dependent generated column.
         tab_cdl.remove( tableDescriptor.getColumnDescriptor( columnName ) );
+
+        /*
+        ** Inform the data dictionary that we are about to write to it.
+        ** There are several calls to data dictionary "get" methods here
+        ** that might be done in "read" mode in the data dictionary, but
+        ** it seemed safer to do this whole operation in "write" mode.
+        **
+        ** We tell the data dictionary we're done writing at the end of
+        ** the transaction.
+        */
+//        DataDictionary dd = lcc.getDataDictionary();
+//        dd.startWriting(lcc);
+
+        // Update the DataDictionary
+        // Get the ConglomerateDescriptor for the heap
+        long oldHeapConglom = tableDescriptor.getHeapConglomerateId();
+        ConglomerateDescriptor cd =
+            tableDescriptor.getConglomerateDescriptor(oldHeapConglom);
+
+        // Update sys.sysconglomerates with new conglomerate #
+        dd.updateConglomerateDescriptor(cd, ddlChange.getTentativeDDLDesc().getConglomerateNumber(), tc);
+
+        // Now that the updated information is available in the system tables,
+        // we should invalidate all statements that use the old conglomerates
+        dd.getDependencyManager().invalidateFor(tableDescriptor,
+                                                (cascade ? DependencyManager.DROP_COLUMN: DependencyManager.DROP_COLUMN_RESTRICT),
+                                                lcc);
+        // refresh the activation's TableDescriptor
+        activation.setDDLTableDescriptor(tableDescriptor);
+
+        //notify other servers of the change
+        notifyMetadataChangeAndWait(ddlChange);
     }
 
     private List<ConstantAction> handleConstraints(Activation activation,
@@ -1529,16 +1558,12 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         }
     }
 
-    private void performColumnDrop(Activation activation,
+    private DDLChange performColumnDrop(Activation activation,
                                    TableDescriptor tableDescriptor,
                                    LanguageConnectionContext lcc, TransactionController tc,
                                    int droppedColumnPosition,
                                    String columnName) throws StandardException {
-        Properties properties = new Properties();
-
-        ExecRow emptyHeapRow  = tableDescriptor.getEmptyExecRow();
-        int[]   collation_ids = tableDescriptor.getColumnCollationIds();
-
+        final long oldCongNum = tableDescriptor.getHeapConglomerateId();
         ConglomerateController compressHeapCC =
                 tc.openConglomerate(
                         tableDescriptor.getHeapConglomerateId(),
@@ -1549,6 +1574,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
 
 
         // Get the properties on the old heap
+        Properties properties = new Properties();
         compressHeapCC.getInternalTablePropertySet(properties);
         compressHeapCC.close();
 
@@ -1560,6 +1586,8 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         // Get an array of RowLocation template
         // must be a drop column, thus the number of columns in the
         // new template row and the collation template is one less.
+        ExecRow emptyHeapRow  = tableDescriptor.getEmptyExecRow();
+        int[]   collation_ids = tableDescriptor.getColumnCollationIds();
         ExecRow newRow = activation.getExecutionFactory().getValueRow(emptyHeapRow.nColumns() - 1);
 
         int[] new_collation_ids = new int[collation_ids.length - 1];
@@ -1576,14 +1604,11 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                             (i < droppedColumnPosition - 1) ? i : (i + 1)];
         }
 
-        emptyHeapRow = newRow;
-        collation_ids = new_collation_ids;
-
         // calculate column order for new table
         TxnView parentTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
         int[] oldColumnOrder = DataDictionaryUtils.getColumnOrdering(parentTxn, tableId);
         int[] newColumnOrder = DataDictionaryUtils.getColumnOrderingAfterDropColumn(oldColumnOrder, droppedColumnPosition);
-        IndexColumnOrder[] columnOrdering = null;
+        ColumnOrdering[] columnOrdering = null;
         if (newColumnOrder != null && newColumnOrder.length > 0) {
             columnOrdering = new IndexColumnOrder[newColumnOrder.length];
             for (int i = 0; i < newColumnOrder.length; ++i) {
@@ -1591,13 +1616,17 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
             }
         }
         // Create a new table -- use createConglomerate() to avoid confusing calls to createAndLoad()
-        long newHeapConglom = tc.createConglomerate("heap", emptyHeapRow.getRowArray(),
-                                                          columnOrdering, collation_ids,
-                                                          properties, TransactionController.IS_DEFAULT);
+        long newHeapConglom = tc.createConglomerate("heap", newRow.getRowArray(),
+                                                    columnOrdering, new_collation_ids,
+                                                    properties, TransactionController.IS_DEFAULT);
 
+
+        // Update all indexes
+        if (compressIRGs.length > 0) {
+            updateAllIndexes(activation, newHeapConglom, tableDescriptor,tc);
+        }
 
         // Start a tentative txn to demarcate the DDL change
-        final long oldCongNum = tableDescriptor.getHeapConglomerateId();
         Txn tentativeTransaction;
         try {
             TxnLifecycleManager lifecycleManager = TransactionLifecycle.getLifecycleManager();
@@ -1624,7 +1653,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
 
             //Add a handler to intercept writes to old schema on all regions and forward them to new
             startCoprocessorJob(activation,
-                                "Drop Column",
+                                "DropColumn",
                                 schemaName,
                                 tableName,
                                 Arrays.asList(columnName),
@@ -1640,7 +1669,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                                                                      populateTxn.getBeginTimestamp(),
                                                                      ddlChange);
             startCoprocessorJob(activation,
-                                "Add Column",
+                                "DropColumn",
                                 schemaName,
                                 tableName,
                                 Arrays.asList(columnName),
@@ -1650,38 +1679,6 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
-
-        /*
-        ** Inform the data dictionary that we are about to write to it.
-        ** There are several calls to data dictionary "get" methods here
-        ** that might be done in "read" mode in the data dictionary, but
-        ** it seemed safer to do this whole operation in "write" mode.
-        **
-        ** We tell the data dictionary we're done writing at the end of
-        ** the transaction.
-        */
-        DataDictionary dd = lcc.getDataDictionary();
-        dd.startWriting(lcc);
-
-        // Update all indexes
-        if (compressIRGs.length > 0) {
-            updateAllIndexes(activation, newHeapConglom, tableDescriptor,tc);
-        }
-
-        // Update the DataDictionary
-        // Get the ConglomerateDescriptor for the heap
-        long oldHeapConglom = tableDescriptor.getHeapConglomerateId();
-        ConglomerateDescriptor cd =
-                tableDescriptor.getConglomerateDescriptor(oldHeapConglom);
-
-        // Update sys.sysconglomerates with new conglomerate #
-        dd.updateConglomerateDescriptor(cd, newHeapConglom, tc);
-
-        // Now that the updated information is available in the system tables,
-        // we should invalidate all statements that use the old conglomerates
-        dd.getDependencyManager().invalidateFor(tableDescriptor, DependencyManager.DROP_COLUMN, lcc);
-
-        //notify other servers of the change
-        notifyMetadataChangeAndWait(ddlChange);
+        return ddlChange;
     }
 }

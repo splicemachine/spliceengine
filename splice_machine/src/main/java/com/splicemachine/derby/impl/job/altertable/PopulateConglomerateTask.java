@@ -6,10 +6,12 @@ import java.io.ObjectOutput;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
+import com.carrotsearch.hppc.BitSet;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 
@@ -33,17 +35,22 @@ import com.splicemachine.pipeline.api.RecordingCallBuffer;
 import com.splicemachine.pipeline.api.RowTransformer;
 import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.pipeline.ddl.TransformingDDLDescriptor;
+import com.splicemachine.si.api.RowAccumulator;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.data.hbase.HRowAccumulator;
 import com.splicemachine.si.impl.DDLTxnView;
-import com.splicemachine.si.impl.HTransactorFactory;
+import com.splicemachine.si.impl.PackedTxnFilter;
 import com.splicemachine.si.impl.SIFactoryDriver;
 import com.splicemachine.si.impl.SIFilter;
 import com.splicemachine.si.impl.TransactionalRegions;
 import com.splicemachine.si.impl.TxnFilter;
+import com.splicemachine.storage.ByteEntryAccumulator;
+import com.splicemachine.storage.EntryDecoder;
+import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 
@@ -115,7 +122,7 @@ public class PopulateConglomerateTask extends ZkTask {
         long numRecordsRead = 0l;
 
         try {
-            try (MeasuredRegionScanner brs = getRegionScanner(Metrics.noOpMetricFactory())) {
+            try (MeasuredRegionScanner scanner = getRegionScanner(Metrics.noOpMetricFactory())) {
 
                 try {
                     // scanning the old table
@@ -124,9 +131,11 @@ public class PopulateConglomerateTask extends ZkTask {
                     while (shouldContinue) {
                         SpliceBaseOperation.checkInterrupt(numRecordsRead, SpliceConstants.interruptLoopCheck);
                         nextRow.clear();
-                        shouldContinue = brs.internalNextRaw(nextRow);
-                        numRecordsRead++;
-                        transformResults(nextRow, getTransformer(), getWriteBuffer());
+                        shouldContinue = scanner.internalNextRaw(nextRow);
+                        if (shouldContinue) {
+                            numRecordsRead++;
+                            transformResults(nextRow, getTransformer(), getWriteBuffer());
+                        }
                     }
                 } finally {
                     if (writeBuffer != null) {
@@ -151,23 +160,42 @@ public class PopulateConglomerateTask extends ZkTask {
         scan.setStartRow(scanStart);
         scan.setStopRow(scanStop);
         scan.setCacheBlocks(false);
+        // DEBUG:
+        scan.setMaxVersions();
 
         try(TransactionalRegion transactionalRegion = TransactionalRegions.get(region)){
-            TxnFilter txnFilter=transactionalRegion.unpackedFilter(new DDLTxnView(getTxn(),this.demarcationTimestamp));
+            TxnFilter txnFilter = transactionalRegion.unpackedFilter(new DDLTxnView(getTxn(), this.demarcationTimestamp));
+//            // FIXME: JC - not getting all versions of a given row...
+//            ByteEntryAccumulator accumulator =
+//                new ByteEntryAccumulator(EntryPredicateFilter.emptyPredicate(), null);
+//            HRowAccumulator hRowAccumulator = new HRowAccumulator(dataLib,EntryPredicateFilter.emptyPredicate(),
+//                                                                  new EntryDecoder(),
+//                                                                  accumulator, false);
+//
+//            scan.setFilter(new SIFilter(new PopulateConglomerateFilter(txnFilter, hRowAccumulator)));
             scan.setFilter(new SIFilter(txnFilter));
-        }
+        } // end try with resources
 
         RegionScanner regionScanner = region.getScanner(scan);
 
         return SpliceConstants.useReadAheadScanner ?
-            new ReadAheadRegionScanner(region, SpliceConstants.DEFAULT_CACHE_SIZE, regionScanner,metricFactory, HTransactorFactory.getTransactor().getDataLib())
-            : new BufferedRegionScanner(region,regionScanner,scan,SpliceConstants.DEFAULT_CACHE_SIZE,SpliceConstants.DEFAULT_CACHE_SIZE,metricFactory,HTransactorFactory.getTransactor().getDataLib());
+            new ReadAheadRegionScanner(region,
+                                       SpliceConstants.DEFAULT_CACHE_SIZE,
+                                       regionScanner,metricFactory,
+                                       dataLib)
+            : new BufferedRegionScanner(region,
+                                        regionScanner,
+                                        scan,
+                                        SpliceConstants.DEFAULT_CACHE_SIZE,
+                                        SpliceConstants.DEFAULT_CACHE_SIZE,
+                                        metricFactory,
+                                        dataLib);
     }
 
     private void transformResults(List result,
                                   RowTransformer transformer,
                                   CallBuffer<KVPair> writeBuffer) throws Exception {
-        //we know that there is only one KeyValue for each row
+        // there may be more than one version for the same row
         for(Object kv:result){
             //ignore SI CF
             if (dataLib.getDataQualifierBuffer(kv)[dataLib.getDataQualifierOffset(kv)] != SIConstants.PACKED_COLUMN_BYTES[0])
@@ -226,5 +254,22 @@ public class PopulateConglomerateTask extends ZkTask {
         expectedScanReadWidth = in.readInt();
         demarcationTimestamp = in.readLong();
         ddlChange = (DDLChange) in.readObject();
+    }
+
+    private static final class PopulateConglomerateFilter extends PackedTxnFilter {
+
+        public PopulateConglomerateFilter(TxnFilter simpleFilter,
+                               RowAccumulator accumulator) {
+            super(simpleFilter, accumulator);
+        }
+        @Override
+        public Filter.ReturnCode doAccumulate(Object dataKeyValue) throws IOException {
+            if (!accumulator.isFinished() && accumulator.isOfInterest(dataKeyValue)) {
+                if (!accumulator.accumulate(dataKeyValue)) {
+                    return Filter.ReturnCode.NEXT_ROW;
+                }
+                return Filter.ReturnCode.INCLUDE;
+            }else return Filter.ReturnCode.INCLUDE;
+        }
     }
 }

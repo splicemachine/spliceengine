@@ -45,8 +45,8 @@ public class TentativeDropColumnDesc implements TransformingDDLDescriptor, Exter
     private long conglomerateNumber;
     private long baseConglomerateNumber;
     private String tableVersion;
-    private int[] oldColumnOrdering;
-    private int[] newColumnOrdering;
+    private int[] srcColumnOrdering;
+    private int[] targetColumnOrdering;
     private ColumnInfo[] columnInfos;
     private int droppedColumnPosition;
 
@@ -55,15 +55,15 @@ public class TentativeDropColumnDesc implements TransformingDDLDescriptor, Exter
     public TentativeDropColumnDesc(long baseConglomerateNumber,
                                    long conglomerateNumber,
                                    String tableVersion,
-                                   int[] oldColumnOrdering,
-                                   int[] newColumnOrdering,
+                                   int[] srcColumnOrdering,
+                                   int[] targetColumnOrdering,
                                    ColumnInfo[] columnInfos,
                                    int droppedColumnPosition) {
         this.conglomerateNumber = conglomerateNumber;
         this.baseConglomerateNumber = baseConglomerateNumber;
         this.tableVersion = tableVersion;
-        this.oldColumnOrdering = oldColumnOrdering;
-        this.newColumnOrdering = newColumnOrdering;
+        this.srcColumnOrdering = srcColumnOrdering;
+        this.targetColumnOrdering = targetColumnOrdering;
         this.columnInfos = columnInfos;
         this.droppedColumnPosition = droppedColumnPosition;
 
@@ -81,7 +81,7 @@ public class TentativeDropColumnDesc implements TransformingDDLDescriptor, Exter
 
     @Override
     public RowTransformer createRowTransformer() throws IOException {
-        return create(tableVersion, oldColumnOrdering, newColumnOrdering, columnInfos, droppedColumnPosition);
+        return create(tableVersion, srcColumnOrdering, targetColumnOrdering, columnInfos, droppedColumnPosition);
     }
 
     @Override
@@ -90,13 +90,18 @@ public class TentativeDropColumnDesc implements TransformingDDLDescriptor, Exter
     }
 
     @Override
+    public int[] getKeyColumnPositions() {
+        return srcColumnOrdering;
+    }
+
+    @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeLong(conglomerateNumber);
         out.writeLong(baseConglomerateNumber);
         out.writeInt(droppedColumnPosition);
         out.writeObject(tableVersion);
-        ArrayUtil.writeIntArray(out, oldColumnOrdering);
-        ArrayUtil.writeIntArray(out, newColumnOrdering);
+        ArrayUtil.writeIntArray(out, srcColumnOrdering);
+        ArrayUtil.writeIntArray(out, targetColumnOrdering);
         int size = columnInfos.length;
         out.writeInt(size);
         for (ColumnInfo col:columnInfos) {
@@ -110,8 +115,8 @@ public class TentativeDropColumnDesc implements TransformingDDLDescriptor, Exter
         baseConglomerateNumber = in.readLong();
         droppedColumnPosition = in.readInt();
         tableVersion = (String) in.readObject();
-        oldColumnOrdering = ArrayUtil.readIntArray(in);
-        newColumnOrdering = ArrayUtil.readIntArray(in);
+        srcColumnOrdering = ArrayUtil.readIntArray(in);
+        targetColumnOrdering = ArrayUtil.readIntArray(in);
         int size = in.readInt();
         columnInfos = new ColumnInfo[size];
         for (int i = 0; i < size; ++i) {
@@ -142,9 +147,10 @@ public class TentativeDropColumnDesc implements TransformingDDLDescriptor, Exter
             throw Exceptions.getIOException(e);
         }
 
-        // key decoder
+        // Key decoder
         KeyHashDecoder keyDecoder;
         if(oldColumnOrdering!=null && oldColumnOrdering.length>0){
+            //must use dense encodings in the key if there's a column ordering
             DescriptorSerializer[] oldDenseSerializers =
                 VersionedSerializers.forVersion(tableVersion, false).getSerializers(oldRow);
             keyDecoder = BareKeyHash.decoder(oldColumnOrdering, null, oldDenseSerializers);
@@ -152,35 +158,35 @@ public class TentativeDropColumnDesc implements TransformingDDLDescriptor, Exter
             keyDecoder = NoOpDataHash.instance().getDecoder();
         }
 
-        // row decoder
+        // Value decoder
         DescriptorSerializer[] oldSerializers =
             VersionedSerializers.forVersion(tableVersion, true).getSerializers(oldRow);
-        EntryDataDecoder rowDecoder = new EntryDataDecoder(IntArrays.count(oldRow.nColumns()),null,oldSerializers);
+        EntryDataDecoder valueDecoder = new EntryDataDecoder(IntArrays.count(oldRow.nColumns()),null,oldSerializers);
 
-        // Row encoder
-        KeyEncoder encoder;
-        DescriptorSerializer[] newSerializers =
-            VersionedSerializers.forVersion(tableVersion, true).getSerializers(newRow);
-        if(newColumnOrdering !=null&& newColumnOrdering.length>0){
-            //must use dense encodings in the key
+        // Key encoder
+        KeyEncoder keyEncoder;
+        if(newColumnOrdering !=null && newColumnOrdering.length>0){
+            //must use dense encodings in the key if there's a column ordering
             DescriptorSerializer[] denseSerializers =
                 VersionedSerializers.forVersion(tableVersion, false).getSerializers(newRow);
-            encoder = new KeyEncoder(NoOpPrefix.INSTANCE, BareKeyHash.encoder(newColumnOrdering, null,
+            keyEncoder = new KeyEncoder(NoOpPrefix.INSTANCE, BareKeyHash.encoder(newColumnOrdering, null,
                                                                               denseSerializers), NoOpPostfix.INSTANCE);
         } else {
             UUIDGenerator uuidGenerator = SpliceDriver.driver().getUUIDGenerator().newGenerator(100);
-            encoder = new KeyEncoder(new SaltedPrefix(uuidGenerator), NoOpDataHash.INSTANCE,NoOpPostfix.INSTANCE);
+            keyEncoder = new KeyEncoder(new SaltedPrefix(uuidGenerator), NoOpDataHash.INSTANCE,NoOpPostfix.INSTANCE);
         }
-        int[] columns = IntArrays.count(newRow.nColumns());
 
-        if (oldColumnOrdering != null && oldColumnOrdering.length > 0) {
-            for (int col: oldColumnOrdering) {
+        // Row Encoder
+        int[] columns = IntArrays.count(newRow.nColumns());
+        if (newColumnOrdering != null && newColumnOrdering.length > 0) {
+            for (int col: newColumnOrdering) {
                 columns[col] = -1;
             }
         }
-        DataHash rowHash = new EntryDataHash(columns, null,newSerializers);
-        PairEncoder rowEncoder = new PairEncoder(encoder,rowHash, KVPair.Type.INSERT);
+        DescriptorSerializer[] newSerializers = VersionedSerializers.forVersion(tableVersion, true).getSerializers(newRow);
+        DataHash rowEncoder = new EntryDataHash(columns, null,newSerializers);
+        PairEncoder pairEncoder = new PairEncoder(keyEncoder,rowEncoder, KVPair.Type.INSERT);
 
-        return new AlterTableRowTransformer(oldRow, newRow, keyDecoder, rowDecoder, rowEncoder);
+        return new AlterTableRowTransformer(oldRow, newRow, keyDecoder, valueDecoder, pairEncoder);
     }
 }
