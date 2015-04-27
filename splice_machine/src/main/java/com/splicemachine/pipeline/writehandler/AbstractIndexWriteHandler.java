@@ -1,19 +1,18 @@
 package com.splicemachine.pipeline.writehandler;
 
+import java.io.IOException;
+
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
+import org.apache.log4j.Logger;
+
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.CallBuffer;
 import com.splicemachine.pipeline.api.WriteContext;
 import com.splicemachine.pipeline.api.WriteHandler;
 import com.splicemachine.pipeline.impl.WriteFailedException;
 import com.splicemachine.pipeline.impl.WriteResult;
-import com.splicemachine.storage.EntryAccumulator;
-import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.log4j.Logger;
-
-import java.io.IOException;
 
 /**
  * @author Scott Fines
@@ -121,16 +120,4 @@ public abstract class AbstractIndexWriteHandler implements WriteHandler {
     protected CallBuffer<KVPair> getWriteBuffer(final WriteContext ctx, int expectedSize) throws Exception {
         return ctx.getSharedWriteBuffer(indexConglomBytes, indexToMainMutationMap, expectedSize * 2 + 10, true, ctx.getTxn()); //make sure we don't flush before we can
     }
-
-    protected void accumulate(EntryAccumulator newKeyAccumulator, BitIndex updateIndex, int newPos, byte[] data, int offset, int length) {
-        if (updateIndex.isScalarType(newPos))
-            newKeyAccumulator.addScalar(mainColToIndexPosMap[newPos], data, offset, length);
-        else if (updateIndex.isFloatType(newPos))
-            newKeyAccumulator.addFloat(mainColToIndexPosMap[newPos], data, offset, length);
-        else if (updateIndex.isDoubleType(newPos))
-            newKeyAccumulator.addDouble(mainColToIndexPosMap[newPos], data, offset, length);
-        else
-            newKeyAccumulator.add(mainColToIndexPosMap[newPos], data, offset, length);
-    }
-
 }
