@@ -1,10 +1,7 @@
 package com.splicemachine.derby.stream.control;
 
-import com.clearspring.analytics.util.Lists;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.stream.function.*;
-import com.splicemachine.derby.stream.spark.SparkDataSet;
 import org.sparkproject.guava.common.collect.Iterables;
 import org.sparkproject.guava.common.collect.Multimaps;
 import org.sparkproject.guava.common.collect.Sets;
@@ -119,6 +116,16 @@ public class ControlDataSet<Op extends SpliceOperation,V> implements DataSet<Op,
 
     @Override
     public <U> DataSet<Op, U> flatMap(SpliceFlatMapFunction<Op, V, U> f) {
-        throw new RuntimeException("not implemented");
+        return new ControlDataSet(FluentIterable.from(iterable).transformAndConcat(f));
+    }
+
+    @Override
+    public void close() {
+
+    }
+
+    @Override
+    public DataSet<Op, V> fetchWithOffset(int offset, int fetch) {
+        return new ControlDataSet<>(Iterables.limit(Iterables.skip(iterable,offset),fetch));
     }
 }

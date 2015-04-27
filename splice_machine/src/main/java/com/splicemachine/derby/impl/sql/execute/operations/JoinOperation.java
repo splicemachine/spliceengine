@@ -31,8 +31,8 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 		private static Logger LOG = Logger.getLogger(JoinOperation.class);
 		protected int leftNumCols;
 		protected int rightNumCols;
-		protected boolean oneRowRightSide;
-		protected boolean notExistsRightSide;
+		public boolean oneRowRightSide;
+		public boolean notExistsRightSide;
 		protected String userSuppliedOptimizerOverrides;
 		protected String restrictionMethodName;
 		protected SpliceOperation rightResultSet;
@@ -40,7 +40,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 		protected SpliceMethod<DataValueDescriptor> restriction;
 		protected ExecRow leftRow;
 		protected ExecRow rightRow;
-		protected ExecRow mergedRow;
+		public ExecRow mergedRow;
 		protected int leftResultSetNumber;
 
 		public int rowsSeenLeft;
@@ -56,8 +56,8 @@ public abstract class JoinOperation extends SpliceBaseOperation {
         protected ExecRow rightTemplate;
     protected ExecRow mergedRowTemplate;
     protected String emptyRowFunMethodName;
-    protected boolean wasRightOuterJoin = false;
-    protected boolean isOuterJoin = false;
+    public boolean wasRightOuterJoin = false;
+    public boolean isOuterJoin = false;
 
     public JoinOperation() {
 				super();
@@ -344,7 +344,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
         return mergeRestriction;
     }
 
-    protected ExecRow getEmptyRow() throws StandardException {
+    public ExecRow getEmptyRow() throws StandardException {
         return rightTemplate;
     }
 }

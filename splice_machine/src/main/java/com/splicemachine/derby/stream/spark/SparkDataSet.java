@@ -1,14 +1,10 @@
 package com.splicemachine.derby.stream.spark;
 
+import com.google.common.collect.Iterables;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.stream.*;
 import com.splicemachine.derby.stream.function.*;
-import org.apache.spark.Accumulator;
 import org.apache.spark.api.java.JavaRDD;
-import org.apache.spark.api.java.function.Function;
-import org.apache.spark.api.java.function.VoidFunction;
-
 import java.io.Serializable;
 import java.util.Iterator;
 import java.util.List;
@@ -20,7 +16,15 @@ import java.util.List;
  */
 public class SparkDataSet<Op extends SpliceOperation,V> implements DataSet<Op,V>, Serializable {
     public JavaRDD<V> rdd;
+    public int offset = -1;
+    public int fetch = -1;
     public SparkDataSet(JavaRDD<V> rdd) {
+        this.rdd = rdd;
+    }
+
+    public SparkDataSet(JavaRDD<V> rdd, int offset, int fetch) {
+        this.offset = offset;
+        this.fetch = fetch;
         this.rdd = rdd;
     }
 
@@ -58,7 +62,14 @@ public class SparkDataSet<Op extends SpliceOperation,V> implements DataSet<Op,V>
 
     @Override
     public Iterator<V> toLocalIterator() {
-        return rdd.toLocalIterator();
+        if (offset ==-1)
+            return rdd.toLocalIterator();
+        return Iterables.limit(Iterables.skip(new Iterable() {
+            @Override
+            public Iterator iterator() {
+                return rdd.toLocalIterator();
+            }
+        },offset), fetch).iterator();
     }
 
     @Override
@@ -100,4 +111,17 @@ public class SparkDataSet<Op extends SpliceOperation,V> implements DataSet<Op,V>
     public <U> DataSet<Op, U> flatMap(SpliceFlatMapFunction<Op, V, U> f) {
         return new SparkDataSet<>(rdd.flatMap(f));
     }
+
+    @Override
+    public void close() {
+
+    }
+
+    @Override
+    public DataSet<Op, V> fetchWithOffset(int offset, int fetch) {
+        this.offset = offset;
+        this.fetch = fetch;
+        return this;
+    }
+
 }

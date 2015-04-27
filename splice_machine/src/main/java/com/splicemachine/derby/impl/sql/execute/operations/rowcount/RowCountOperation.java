@@ -56,32 +56,22 @@ public class RowCountOperation extends SpliceBaseOperation {
 
     private static final long serialVersionUID = 1l;
     private static final List<NodeType> NODE_TYPES = ImmutableList.of(NodeType.SCAN);
-
     /* When the reduce scan is sequential this operation adds this column to the results to indicate
      * how many rows have been skipped in the current region. */
     protected static final byte[] OFFSET_RESULTS_COL = Encoding.encode(-1000);
-
     private String offsetMethodName;
     private String fetchFirstMethodName;
-
     private SpliceMethod<DataValueDescriptor> offsetMethod;
     private SpliceMethod<DataValueDescriptor> fetchFirstMethod;
     private boolean hasJDBCLimitClause;
-
     private SpliceOperation source;
-
     private long offset;
     private long fetchLimit;
-
     private boolean runTimeStatsOn;
-
     private boolean firstTime;
-
     private long rowsFetched;
     private SpliceBaseOperationRegionScanner spliceScanner;
-
     private long rowsSkipped;
-
     /* If true then we do not implement offsets (row skipping) on each region, in the nextRow() method of this class, but
      * instead expect the reduce row provider to implement the offset. */
     private boolean parallelReduceScan;
@@ -364,8 +354,10 @@ public class RowCountOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public <Op extends SpliceOperation> DataSet<Op, LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
-        throw new RuntimeException("not implemented");
+    public DataSet<SpliceOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
+        final long fetchLimit = getFetchLimit();
+        final long offset = getTotalOffset();
+        return source.getDataSet(spliceRuntimeContext,top).fetchWithOffset((int)offset,fetchLimit > 0 ? (int) fetchLimit : Integer.MAX_VALUE);
     }
 
 

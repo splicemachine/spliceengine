@@ -20,7 +20,6 @@ import com.splicemachine.metrics.TimeView;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.impl.HTransactorFactory;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -32,7 +31,6 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -220,26 +218,7 @@ public class LastIndexKeyOperation extends ScanOperation {
 										currentRowLocation.setValue(tableScanner.getCurrentRowLocation());
 								}
 						}while(shouldContinue);
-//						currentRow = tableScanner.next(spliceRuntimeContext);
-////								currentRow = nextFromRegionScanner(tentativeScanner);
-////						}
-//						if (currentRow == null) {
-//								// If we didn't find any suitable row starting from the end, scan the whole region
-//								currentRow = tableScanner.next(spliceRuntimeContext);
-////								currentRow = nextFromRegionScanner(regionScanner);
-//						}
-//						if (currentRow != null) {
-//								if (indexName != null && currentRow.nColumns() > 0 && currentRow.getColumn(currentRow.nColumns()).getTypeFormatId() == StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID) {
-//                    /*
-//                     * If indexName !=null, then we are currently scanning an index,
-//                     *so our RowLocation should point to the main table, and not to the
-//                     * index (that we're actually scanning)
-//                     */
-//										currentRowLocation = (RowLocation) currentRow.getColumn(currentRow.nColumns());
-//								} else {
-//										currentRowLocation.setValue(keyValues.get(0).getRow());
-//								}
-//						}
+
 
             returnedRow = true;
             setCurrentRow(currentRow);
