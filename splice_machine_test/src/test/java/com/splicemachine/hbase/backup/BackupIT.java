@@ -88,6 +88,8 @@ public class BackupIT extends SpliceUnitTest {
         long conglomerateNumber2 = getConglomerateNumber(spliceSchemaWatcher.schemaName, TABLE_NAME2);
         verifyIncrementalBackup(backupId2, conglomerateNumber1, true);
 
+        insertData(TABLE_NAME2);
+
         // Compact table 'A', and verify it's not in next incremental backup
         HBaseAdmin admin = SpliceUtilities.getAdmin();
         admin.flush((new Long(conglomerateNumber1)).toString());
@@ -95,11 +97,10 @@ public class BackupIT extends SpliceUnitTest {
         Thread.sleep(10000);
 
         //Split table 'A', and verify it is not in next incremental backup
-        //spliceClassWatcher.splitTable(TABLE_NAME1, SCHEMA_NAME, 250);
+        spliceClassWatcher.splitTable(TABLE_NAME1, SCHEMA_NAME, 250);
         spliceClassWatcher.splitTable(TABLE_NAME1, SCHEMA_NAME, 500);
-        //spliceClassWatcher.splitTable(TABLE_NAME1, SCHEMA_NAME, 750);
+        spliceClassWatcher.splitTable(TABLE_NAME1, SCHEMA_NAME, 750);
         Thread.sleep(10000);
-        insertData(TABLE_NAME2);
         backup("incremental");
         verifyIncrementalBackup(getBackupId(), conglomerateNumber1, false);
         verifyIncrementalBackup(getBackupId(), conglomerateNumber2, true);
