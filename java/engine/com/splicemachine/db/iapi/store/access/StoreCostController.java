@@ -393,6 +393,17 @@ public interface StoreCostController extends RowCountable{
     double cardinalityFraction(int columnNumber);
 
     /**
+     * @return the total number of rows in the store (including null and non-null)
+     */
+    double rowCount();
+
+    /**
+     * @return the total number of non-null rows in the store for the specified column
+     * @param columnNumber the column of interest (indexed from 1);
+     */
+    double nonNullCount(int columnNumber);
+
+    /**
      * Get the selectivity fraction for {@code null} entries for the specified column.
      *
      * @param columnNumber the id of the column to estimate (indexed from 1)

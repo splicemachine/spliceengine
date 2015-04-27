@@ -28,6 +28,7 @@ import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.iapi.sql.compile.OptimizablePredicate;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
@@ -241,6 +242,11 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
     @Override
     public double selectivity(Optimizable optTable) throws StandardException{
         return andNode.getLeftOperand().selectivity(optTable);
+    }
+
+    @Override
+    public double selectivity(Optimizable table,ConglomerateDescriptor cd) throws StandardException{
+        return andNode.getLeftOperand().selectivity(table,cd);
     }
 
     /**

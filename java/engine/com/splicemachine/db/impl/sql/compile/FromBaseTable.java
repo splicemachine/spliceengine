@@ -430,7 +430,7 @@ public class FromBaseTable extends FromTable{
         // cost field of this FBT's current access path.  So that's the
         // cost we want to return here.
         CostEstimate costEstimate=getCurrentAccessPath().getCostEstimate();
-        costEstimate.setRowOrdering(rowOrdering);
+//        costEstimate.setRowOrdering(rowOrdering);
         return costEstimate;
     }
 

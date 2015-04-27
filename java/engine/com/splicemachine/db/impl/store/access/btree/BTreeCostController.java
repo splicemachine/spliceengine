@@ -66,9 +66,7 @@ query while another query is optimizing.
 
 **/
 
-public class BTreeCostController extends OpenBTree 
-    implements StoreCostController
-{
+public class BTreeCostController extends OpenBTree  implements StoreCostController {
 
     // 1.5 numbers on mikem old machine:
     //
@@ -669,5 +667,15 @@ public class BTreeCostController extends OpenBTree
 		// Not Implemented...
         throw StandardException.newException(
                 SQLState.BTREE_UNIMPLEMENTED_FEATURE);
-	};
+	}
+
+    @Override
+    public double rowCount(){
+        return num_rows;
+    }
+
+    @Override
+    public double nonNullCount(int columnNumber){
+        return num_rows;
+    }
 }

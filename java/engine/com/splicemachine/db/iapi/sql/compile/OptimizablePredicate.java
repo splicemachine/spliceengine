@@ -23,6 +23,7 @@ package com.splicemachine.db.iapi.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
 
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
 import com.splicemachine.db.iapi.util.JBitSet;
@@ -134,8 +135,9 @@ public interface OptimizablePredicate
 	 *
 	 * @param optTable	The Optimizable that this predicate restricts
 	 */
-	double selectivity(Optimizable optTable)
-	throws StandardException;
+	double selectivity(Optimizable optTable) throws StandardException;
+
+	double selectivity(Optimizable table,ConglomerateDescriptor cd) throws StandardException;
 
 	/**
 	 * Get the position of the index column that this predicate restricts.
