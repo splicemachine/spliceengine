@@ -118,7 +118,7 @@ public class SparkDataSet<V> implements DataSet<V>, Serializable {
     }
 
     @Override
-    public DataSet<Op, V> fetchWithOffset(int offset, int fetch) {
+    public DataSet<V> fetchWithOffset(int offset, int fetch) {
         this.offset = offset;
         this.fetch = fetch;
         return this;

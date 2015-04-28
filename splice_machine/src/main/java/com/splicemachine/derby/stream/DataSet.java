@@ -75,7 +75,7 @@ public interface DataSet<V> {
 
     boolean isEmpty();
 
-   <Op extends SpliceOperation, U> DataSet<Op,U> flatMap(SpliceFlatMapFunction<Op,V, U> f);
+   <Op extends SpliceOperation, U> DataSet<U> flatMap(SpliceFlatMapFunction<Op,V, U> f);
 
     /**
      * Release any resources of the dataset
