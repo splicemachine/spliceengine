@@ -19,6 +19,7 @@ import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
 import com.splicemachine.derby.management.StatementManager;
 import com.splicemachine.derby.management.XplainTaskReporter;
+import com.splicemachine.derby.utils.DatabasePropertyManagementImpl;
 import com.splicemachine.derby.utils.ErrorReporter;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -478,6 +479,8 @@ public class SpliceDriver {
             mbs.registerMBean(TransactionStorage.getTxnStoreManagement(), txnStoreName);
 
             ImportTaskManagementStats.getInstance().registerJMX(mbs);
+
+            DatabasePropertyManagementImpl.registerJMX(mbs);
 
         } catch (MalformedObjectNameException | NotCompliantMBeanException | InstanceAlreadyExistsException | MBeanRegistrationException e) {
             //we want to log the message, but this shouldn't affect startup

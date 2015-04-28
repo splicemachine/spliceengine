@@ -775,6 +775,29 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .numResultSets(1)
                             .ownerClass(BackupSystemProcedures.class.getCanonicalName())
                             .build());
+
+                    /*
+                     * Procedure to get a database property on all region servers in the cluster.
+                     */
+                    procedures.add(Procedure.newBuilder().name("SYSCS_GET_GLOBAL_DATABASE_PROPERTY")
+                    		.numOutputParams(0)
+                    		.numResultSets(1)
+                    		.ownerClass(SpliceAdmin.class.getCanonicalName())
+                    		.sqlControl(RoutineAliasInfo.READS_SQL_DATA).returnType(null).isDeterministic(false)
+                    		.catalog("KEY")
+                    		.build());
+
+                    /*
+                     * Procedure to set a database property on all region servers in the cluster.
+                     */
+                    procedures.add(Procedure.newBuilder().name("SYSCS_SET_GLOBAL_DATABASE_PROPERTY")
+                    		.numOutputParams(0)
+                    		.numResultSets(0)
+                    		.ownerClass(SpliceAdmin.class.getCanonicalName())
+                    		.sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
+                    		.catalog("KEY")
+                    		.varchar("VALUE", Limits.DB2_VARCHAR_MAXWIDTH)
+                    		.build());
                 }
 
             } // End iteration through map keys (schema UUIDs)
