@@ -68,9 +68,14 @@ public class ComparableColumnStatistics<T extends Comparable<T>> extends BaseCol
         ComparableColumnStatistics<T> o = (ComparableColumnStatistics<T>)other;
         cardinalityEstimator = cardinalityEstimator.merge(o.cardinalityEstimator);
         frequentElements = frequentElements.merge(o.frequentElements);
-        if(o.min.compareTo(min)>0)
+        /*
+         * We need to check for null here, because it's possible that an entire partition consists
+         * of nothing but null values. It's unlikely, but hey! you never know, and when it happens,
+         * we don't want a NullPointer to be thrown.
+         */
+        if(min==null || (o.min!=null && o.min.compareTo(min)>0))
             min = o.min;
-        if(o.max.compareTo(max)<0)
+        if(max==null || (o.max !=null && o.max.compareTo(max)<0))
             max = o.max;
         totalBytes+=o.totalBytes;
         totalCount+=o.totalCount;
