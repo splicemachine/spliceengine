@@ -1,6 +1,8 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 
+import com.carrotsearch.hppc.BitSet;
+import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.base.Strings;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
@@ -10,6 +12,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
@@ -17,9 +20,17 @@ import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.stream.DataSet;
 import com.splicemachine.derby.stream.DataSetProcessor;
+import com.splicemachine.derby.stream.OperationContext;
+import com.splicemachine.derby.stream.function.SpliceFunction;
+import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.storage.EntryDecoder;
+import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.storage.Predicate;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.yammer.metrics.core.MetricName;
 import com.yammer.metrics.core.Timer;
@@ -39,6 +50,10 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.GenericPreparedStatement;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Result;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -324,6 +339,29 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
             return format_ids;
         }
 
+		private EntryDataDecoder getRowDecoder() throws StandardException {
+			DescriptorSerializer[] templateSerializers = VersionedSerializers.forVersion(mainTableVersion,true).getSerializers(compactRow);
+
+			return new EntryDataDecoder(operationInformation.getBaseColumnMap(),null,templateSerializers);
+		}
+
+		private KeyDecoder getKeyDecoder() throws StandardException {
+			DescriptorSerializer[] templateSerializers = VersionedSerializers.forVersion(mainTableVersion,true).getSerializers(compactRow);
+			KeyHashDecoder keyDecoder;
+			if(getColumnOrdering()==null || getMainTableAccessedKeyColumns()==null||getMainTableAccessedKeyColumns().getNumBitsSet()<=0)
+				keyDecoder = NoOpKeyHashDecoder.INSTANCE;
+			else{
+				keyDecoder = SkippingKeyDecoder.decoder(VersionedSerializers.typesForVersion(mainTableVersion),
+						templateSerializers,
+						getColumnOrdering(),
+						getKeyColumnTypes(),
+						getConglomerate().getAscDescInfo(),
+						getMainTableKeyDecodingMap(),
+						getMainTableAccessedKeyColumns());
+			}
+			return new KeyDecoder(keyDecoder,0);
+		}
+
 		@Override
 		public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 				if(timer==null)
@@ -565,8 +603,57 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
             return nonPkCols;
         }
     @Override
-    public <Op extends SpliceOperation> DataSet<Op, LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
-        throw new RuntimeException("not implemented");
+    public DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
+		return source.getDataSet(spliceRuntimeContext, top).map(new BaseRowFetchFunction(dsp.createOperationContext(this, spliceRuntimeContext)));
     }
 
+	private static class BaseRowFetchFunction extends SpliceFunction<IndexRowToBaseRowOperation, LocatedRow, LocatedRow> {
+
+		private HTableInterface table;
+		private byte[] predicateFilterBytes;
+		private EntryDataDecoder rowDecoder;
+		private KeyDecoder keyDecoder;
+
+		public BaseRowFetchFunction(OperationContext operationContext) {
+			super(operationContext);
+		}
+
+		@Override
+		public LocatedRow call(LocatedRow locatedRow) throws Exception {
+			if(table==null)
+				table = SpliceAccessManager.getHTable(operationContext.getOperation().conglomId);
+			if(predicateFilterBytes==null) {
+				FormatableBitSet mainTableAccessedRowColumns = operationContext.getOperation().getMainTableRowColumns();
+				BitSet rowFieldsToReturn = new BitSet(mainTableAccessedRowColumns.getNumBitsSet());
+				for(int i=mainTableAccessedRowColumns.anySetBit();i>=0;i=mainTableAccessedRowColumns.anySetBit(i)){
+					rowFieldsToReturn.set(i);
+				}
+				EntryPredicateFilter epf = new EntryPredicateFilter(rowFieldsToReturn, ObjectArrayList.<Predicate>newInstanceWithCapacity(0));
+				predicateFilterBytes = epf.toBytes();
+			}
+
+			ExecRow row = locatedRow.getRow();
+			byte[] rowLocation = row.getColumn(row.nColumns()).getBytes();
+			Get get = SpliceUtils.createGet(operationContext.getTxn(), rowLocation);
+			get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL, predicateFilterBytes);
+			Result result = table.get(get);
+
+			if (keyDecoder==null) {
+				keyDecoder = operationContext.getOperation().getKeyDecoder();
+			}
+			if (rowDecoder == null) {
+				rowDecoder = operationContext.getOperation().getRowDecoder();
+			}
+
+			ExecRow outpuRow = operationContext.getOperation().getExecRowDefinition();
+
+			for(KeyValue kv:result.raw()){
+				byte[] buffer = kv.getBuffer();
+				keyDecoder.decode(buffer,kv.getRowOffset(),kv.getRowLength(),row);
+				rowDecoder.set(buffer,kv.getValueOffset(),kv.getValueLength());
+				rowDecoder.decode(outpuRow);
+			}
+			return new LocatedRow(outpuRow);
+		}
+	}
 }
