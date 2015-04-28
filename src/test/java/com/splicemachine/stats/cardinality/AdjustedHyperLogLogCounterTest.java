@@ -15,6 +15,7 @@ import java.util.Random;
  * Date: 3/27/14
  */
 @RunWith(Parameterized.class)
+@Ignore
 public class AdjustedHyperLogLogCounterTest {
 
 		@Parameterized.Parameters
