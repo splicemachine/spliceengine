@@ -114,8 +114,7 @@ public abstract class DatabaseClasses
 		}
 
 		if (classpath != null) {
-			applicationLoader = new UpdateLoader(classpath, this, true,
-                                                 true);
+			applicationLoader = UpdateLoader.getInstance(classpath, this, true, true);
 		}
 
 		javaFactory = (JavaFactory) com.splicemachine.db.iapi.services.monitor.Monitor.startSystemModule(Module.JavaFactory);
