@@ -4,7 +4,6 @@ import java.io.IOException;
 
 import com.splicemachine.pipeline.api.RowTransformer;
 import com.splicemachine.pipeline.api.WriteHandler;
-import com.splicemachine.storage.EntryDecoder;
 
 /**
  * Interface describing descriptors used for DDL operations that enforce transactionality
@@ -35,7 +34,4 @@ public interface TransformingDDLDescriptor extends TentativeDDLDesc {
      * @throws IOException
      */
     WriteHandler createWriteHandler(RowTransformer transformer) throws IOException;
-
-
-    int[] getKeyColumnPositions();
 }

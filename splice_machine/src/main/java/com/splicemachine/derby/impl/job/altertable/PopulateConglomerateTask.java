@@ -3,15 +3,17 @@ package com.splicemachine.derby.impl.job.altertable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
-import com.carrotsearch.hppc.BitSet;
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 
@@ -35,22 +37,16 @@ import com.splicemachine.pipeline.api.RecordingCallBuffer;
 import com.splicemachine.pipeline.api.RowTransformer;
 import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.pipeline.ddl.TransformingDDLDescriptor;
-import com.splicemachine.si.api.RowAccumulator;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.data.api.SDataLib;
-import com.splicemachine.si.data.hbase.HRowAccumulator;
 import com.splicemachine.si.impl.DDLTxnView;
-import com.splicemachine.si.impl.PackedTxnFilter;
 import com.splicemachine.si.impl.SIFactoryDriver;
 import com.splicemachine.si.impl.SIFilter;
 import com.splicemachine.si.impl.TransactionalRegions;
 import com.splicemachine.si.impl.TxnFilter;
-import com.splicemachine.storage.ByteEntryAccumulator;
-import com.splicemachine.storage.EntryDecoder;
-import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 
@@ -69,7 +65,7 @@ public class PopulateConglomerateTask extends ZkTask {
     private RowTransformer transformer;
 
     //performance improvement
-    private KVPair mainPair;
+    private Comparator<KeyValue> comparator;
 
     private byte[] scanStart;
     private byte[] scanStop;
@@ -160,19 +156,10 @@ public class PopulateConglomerateTask extends ZkTask {
         scan.setStartRow(scanStart);
         scan.setStopRow(scanStop);
         scan.setCacheBlocks(false);
-        // DEBUG:
         scan.setMaxVersions();
 
         try(TransactionalRegion transactionalRegion = TransactionalRegions.get(region)){
             TxnFilter txnFilter = transactionalRegion.unpackedFilter(new DDLTxnView(getTxn(), this.demarcationTimestamp));
-//            // FIXME: JC - not getting all versions of a given row...
-//            ByteEntryAccumulator accumulator =
-//                new ByteEntryAccumulator(EntryPredicateFilter.emptyPredicate(), null);
-//            HRowAccumulator hRowAccumulator = new HRowAccumulator(dataLib,EntryPredicateFilter.emptyPredicate(),
-//                                                                  new EntryDecoder(),
-//                                                                  accumulator, false);
-//
-//            scan.setFilter(new SIFilter(new PopulateConglomerateFilter(txnFilter, hRowAccumulator)));
             scan.setFilter(new SIFilter(txnFilter));
         } // end try with resources
 
@@ -195,22 +182,52 @@ public class PopulateConglomerateTask extends ZkTask {
     private void transformResults(List result,
                                   RowTransformer transformer,
                                   CallBuffer<KVPair> writeBuffer) throws Exception {
-        // there may be more than one version for the same row
-        for(Object kv:result){
+        // If result list has more than 1 member, there's more than one version
+        // for the same row - sort by timestamp so they can be merged.
+        List<KVPair> mergedResults = sortResults(result, dataLib, getResultComparitor());
+        KVPair pair = transformer.transform(mergedResults);
+
+        writeBuffer.add(pair);
+    }
+
+    private List<KVPair> sortResults(List<KeyValue> results, SDataLib dataLib, Comparator<KeyValue> comparitor) {
+        Collections.sort(results, comparitor);
+        List<KVPair> sortedResults = new ArrayList<>(results.size());
+        for (KeyValue kv : results) {
             //ignore SI CF
             if (dataLib.getDataQualifierBuffer(kv)[dataLib.getDataQualifierOffset(kv)] != SIConstants.PACKED_COLUMN_BYTES[0])
                 continue;
             byte[] row = dataLib.getDataRow(kv);
             byte[] data = dataLib.getDataValue(kv);
-            if(mainPair==null)
-                mainPair = new KVPair(row,data);
-            else {
-                mainPair.setKey(row);
-                mainPair.setValue(data);
-            }
-            KVPair pair = transformer.transform(mainPair);
+            sortedResults.add(new KVPair(row, data));
+        }
+        return sortedResults;
+    }
 
-            writeBuffer.add(pair);
+    private Comparator<KeyValue> getResultComparitor() {
+        if (comparator == null) {
+            comparator = new TSComparator();
+        }
+        return comparator;
+    }
+
+    private static class TSComparator implements Comparator<KeyValue> {
+        @Override
+        public int compare(KeyValue o1, KeyValue o2) {
+            if (o1 == null) {
+                if (o2 == null) return 0;
+                else return -1; // null ranked low
+            }
+
+            if (o2 == null) {
+                return 1;   // null ranked low
+            }
+
+            long ts1 = o1.getTimestamp();
+            long ts2 = o2.getTimestamp();
+            if (ts1 < ts2) return -1;
+            if (ts1 > ts2) return 1;
+            return 0; // they're equal
         }
     }
 
@@ -254,22 +271,5 @@ public class PopulateConglomerateTask extends ZkTask {
         expectedScanReadWidth = in.readInt();
         demarcationTimestamp = in.readLong();
         ddlChange = (DDLChange) in.readObject();
-    }
-
-    private static final class PopulateConglomerateFilter extends PackedTxnFilter {
-
-        public PopulateConglomerateFilter(TxnFilter simpleFilter,
-                               RowAccumulator accumulator) {
-            super(simpleFilter, accumulator);
-        }
-        @Override
-        public Filter.ReturnCode doAccumulate(Object dataKeyValue) throws IOException {
-            if (!accumulator.isFinished() && accumulator.isOfInterest(dataKeyValue)) {
-                if (!accumulator.accumulate(dataKeyValue)) {
-                    return Filter.ReturnCode.NEXT_ROW;
-                }
-                return Filter.ReturnCode.INCLUDE;
-            }else return Filter.ReturnCode.INCLUDE;
-        }
     }
 }

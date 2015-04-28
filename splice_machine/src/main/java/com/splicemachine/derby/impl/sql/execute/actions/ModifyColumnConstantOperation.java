@@ -2,7 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 
@@ -343,18 +343,15 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
 
         // Add the column to syscolumns.
         // Column ids in system tables are 1-based
-        columnDescriptor =
-                new ColumnDescriptor(
-                        colInfo.name,
-                        colNumber + 1,
-                        colInfo.dataType,
-                        colInfo.defaultValue,
-                        colInfo.defaultInfo,
-                        tableDescriptor,
-                        defaultUUID,
-                        colInfo.autoincStart,
-                        colInfo.autoincInc
-                );
+        columnDescriptor =  new ColumnDescriptor(colInfo.name,
+                                                 colNumber + 1,
+                                                 colInfo.dataType,
+                                                 colInfo.defaultValue,
+                                                 colInfo.defaultInfo,
+                                                 tableDescriptor,
+                                                 defaultUUID,
+                                                 colInfo.autoincStart,
+                                                 colInfo.autoincInc);
 
         dd.addDescriptor(columnDescriptor, tableDescriptor, DataDictionary.SYSCOLUMNS_CATALOG_NUM, false, tc);
 
@@ -362,7 +359,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         tableDescriptor.getColumnDescriptorList().add(columnDescriptor);
 
         if (columnDescriptor.isAutoincrement()) {
-            // TODO: JC - remove this call when we get txn correct
+            // TODO: JC - is there a better way to do autoinc?
             updateNewAutoincrementColumn(lcc,tableDescriptor,colInfo);
         }
 
@@ -396,10 +393,10 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         int[] columnOrdering = DataDictionaryUtils.getColumnOrdering(parentTxn, tableId);
         ColumnInfo[] newColumnInfo = DataDictionaryUtils.getColumnInfo(tableDescriptor);
         TransformingDDLDescriptor interceptColumnDesc = new TentativeAddColumnDesc(tableVersion,
-                                                                                newCongNum,
-                                                                                oldCongNum,
-                                                                                columnOrdering,
-                                                                                newColumnInfo);
+                                                                                   newCongNum,
+                                                                                   oldCongNum,
+                                                                                   columnOrdering,
+                                                                                   newColumnInfo);
 
         DDLChange ddlChange = new DDLChange(tentativeTransaction, DDLChangeType.ADD_COLUMN);
         // set descriptor on the ddl change
@@ -417,7 +414,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                                 "Add Column",
                                 schemaName,
                                 tableName,
-                                Arrays.asList(colInfo.name),
+                                Collections.singletonList(colInfo.name),
                                 new AlterTableJob(hTable, ddlChange),
                                 parentTxn);
 
@@ -433,7 +430,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                                 "Add Column",
                                 schemaName,
                                 tableName,
-                                Arrays.asList(colInfo.name),
+                                Collections.singletonList(colInfo.name),
                                 populateJob,
                                 parentTxn);
             populateTxn.commit();
@@ -1656,7 +1653,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                                 "DropColumn",
                                 schemaName,
                                 tableName,
-                                Arrays.asList(columnName),
+                                Collections.singletonList(columnName),
                                 new AlterTableJob(hTable, ddlChange),
                                 parentTxn);
 
@@ -1672,7 +1669,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                                 "DropColumn",
                                 schemaName,
                                 tableName,
-                                Arrays.asList(columnName),
+                                Collections.singletonList(columnName),
                                 populateJob,
                                 parentTxn);
             populateTxn.commit();

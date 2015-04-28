@@ -375,10 +375,8 @@ public class DropColumnTransactionIT {
         conn.createStatement().execute(String.format("insert into %s (Field1,Field2,Field3) VALUES (3,'hij',5.6)", tableRef));
 
         conn.createStatement().execute(String.format("alter table %s add column Field4 BIGINT", tableRef));
-        // updates hose the table
+        // updates hose the table (DB-3202)
         conn.createStatement().execute(String.format("update %s set Field4 = 11", tableRef));
-        // inserts are ok
-//        conn.createStatement().execute(String.format("insert into %s (Field1,Field2,Field3,Field4) VALUES (4,'klm',7.8,22)", tableRef));
 
         String query = String.format("select Field1, Field2, Field3, Field4 from %s", tableRef);
         ResultSet rs = methodWatcher.getStatement().executeQuery(query);
