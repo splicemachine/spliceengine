@@ -546,6 +546,37 @@ public class ForeignKey_Check_IT {
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //
+    // FK is UNIQUE in child table -- this is a very distinct case because we will reuse the unique index in the
+    //                                child table rather than creating a new non-unique backing index for the FK
+    //                                constraint.
+    //
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @Test
+    public void uniqueConstraintOnForeignKeyConstraintCols() throws Exception {
+        new TableCreator(connection())
+                .withCreate("create table P (a varchar(10), b int, primary key(a))")
+                .withInsert("insert into P values(?,?)")
+                .withRows(rows(row("A", 100), row("B", 200), row("C", 300))).create();
+
+        new TableCreator(connection())
+                .withCreate("create table C (a varchar(10), b int, CONSTRAINT c_fk_1 FOREIGN KEY(a) REFERENCES P, CONSTRAINT c_u_idx UNIQUE(a))")
+                .withInsert("insert into C values(?,?)")
+                .withRows(rows(row("A", 100), row("B", 200), row("C", 300))).create();
+
+        assertEquals(3L, methodWatcher.query("select count(*) from P"));
+        assertEquals(3L, methodWatcher.query("select count(*) from C"));
+
+        assertQueryFail("insert into C values('D', 200)", "Operation on table 'C' caused a violation of foreign key constraint 'C_FK_1' for key (A).  The statement has been rolled back.");
+        assertQueryFail("update C set a='Z' where a='A'", "Operation on table 'C' caused a violation of foreign key constraint 'C_FK_1' for key (A).  The statement has been rolled back.");
+
+        // verify that the unique constraint is enforced, DB-3100
+        assertQueryFail("insert into C values('B', 200)", "The statement was aborted because it would have caused a duplicate key value in a unique or primary key constraint or unique index identified by 'C_U_IDX' defined on 'C'.");
+    }
+
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    //
     // helper methods
     //
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
