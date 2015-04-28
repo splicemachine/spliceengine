@@ -1302,30 +1302,28 @@ public class BinaryRelationalOperatorNode
         int colId=colRef.getSource().getColumnPosition();
         double rowCount=storeCostController.nonNullCount(colId);
         if(rowCount==0d) return 1d; //nothing to select
+
+        double selectivity = 1d;
         switch(operatorType){
             case RelationalOperator.EQUALS_RELOP:
-                return storeCostController.cardinalityFraction(colId);
+                selectivity*=storeCostController.cardinalityFraction(colId);
+                break;
             case RelationalOperator.NOT_EQUALS_RELOP:
-                return 1-storeCostController.cardinalityFraction(colId);
+                selectivity*= 1-storeCostController.cardinalityFraction(colId);
+                break;
             case RelationalOperator.LESS_THAN_RELOP:
             case RelationalOperator.LESS_EQUALS_RELOP:
-                return 0.5d; //TODO -sf- make this more accurate
+                selectivity*= 0.5d; //TODO -sf- make this more accurate
             case RelationalOperator.GREATER_THAN_RELOP:
             case RelationalOperator.GREATER_EQUALS_RELOP:
-                return 0.33d; //TODO -sf- make this more accurate
-            default:
-                return 1d; //shouldn't happen, but just in case
+                selectivity*= 0.33d; //TODO -sf- make this more accurate
         }
+
+        return selectivity;
     }
 
-    /**
-     * @see RelationalOperator#getTransitiveSearchClause
-     */
     public RelationalOperator getTransitiveSearchClause(ColumnReference otherCR) throws StandardException{
-        return (RelationalOperator)getNodeFactory().getNode(getNodeType(),
-                otherCR,
-                rightOperand,
-                getContextManager());
+        return (RelationalOperator)getNodeFactory().getNode(getNodeType(), otherCR, rightOperand, getContextManager());
     }
 
     public boolean equalsComparisonWithConstantExpression(Optimizable optTable){
@@ -1333,7 +1331,6 @@ public class BinaryRelationalOperatorNode
             return false;
 
         boolean retval=false;
-        ValueNode comparand=null;
 
         int side=columnOnOneSide(optTable);
         if(side==LEFT){
@@ -1360,8 +1357,7 @@ public class BinaryRelationalOperatorNode
 		 * it as an "equals operator"; it's actually a disguised IN-list
 		 * operator.
 		 */
-        return !isInListProbeNode() &&
-                (operatorType==RelationalOperator.EQUALS_RELOP);
+        return !isInListProbeNode() && (operatorType==RelationalOperator.EQUALS_RELOP);
     }
 
     /**
