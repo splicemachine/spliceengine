@@ -22,7 +22,6 @@ import com.splicemachine.si.api.TxnView;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.PartitionStatistics;
 import com.splicemachine.stats.TableStatistics;
-import com.splicemachine.stats.estimate.Distribution;
 
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -374,13 +373,25 @@ public class StatsStoreCostController extends GenericController implements Store
          */
         int columnSize = 0;
         int adjAvgRowWidth = getAdjustedRowSize(partStats);
+        double unknownColumnWidth = -1;
         if(adjAvgRowWidth==0){
             assert partStats.rowCount()==0: "No row width exists, but there is a positive row count!";
             return 0d;
         }
         if(scanColumnList!=null && scanColumnList.getNumBitsSet()!=totalColumns){
             for(int i=scanColumnList.anySetBit();i>=0;i=scanColumnList.anySetBit(i)){
-                columnSize +=getColumnSize(partStats,totalColumns,i,adjAvgRowWidth);
+                ColumnStatistics<DataValueDescriptor> cStats = partStats.columnStatistics(i);
+                if(cStats!=null)
+                    columnSize+=cStats.avgColumnWidth();
+                else{
+                    /*
+                     * There are no statistics for this column, so use the average column width
+                     */
+                    if(unknownColumnWidth<0){
+                        unknownColumnWidth = getUnknownColumnWidth(partStats,totalColumns);
+                    }
+                    columnSize+=unknownColumnWidth;
+                }
             }
         }else {
             columnSize = adjAvgRowWidth; //we are fetching everything, so this ratio is 1:1
@@ -388,31 +399,39 @@ public class StatsStoreCostController extends GenericController implements Store
         return ((double)columnSize)/adjAvgRowWidth;
     }
 
-    private int getColumnSize(PartitionStatistics pStats,int totalColumnCount,int columnId,int adjustedRowSize){
-        ColumnStatistics<DataValueDescriptor> cStats = pStats.columnStatistics(columnId);
-        int colWidth;
-        if(cStats!=null){
-            colWidth = cStats.avgColumnWidth();
-        }else{
-            /*
-             * We don't have statistics for this column, so fill it in with an "unknownRowWidth".
-             */
-            colWidth = (int)getUnknownRowWidth(pStats,totalColumnCount,adjustedRowSize);
-        }
-        return colWidth;
-    }
-
-    private double getUnknownRowWidth(PartitionStatistics pStats,int totalColumnCount,int adjustedRowSize){
+    private double getUnknownColumnWidth(PartitionStatistics pStats,int totalColumnCount){
         List<ColumnStatistics> columnStats=pStats.columnStatistics();
-        int avgRowWidth = adjustedRowSize;
+        int avgRowWidth = pStats.avgRowWidth();
+        int tcc = totalColumnCount;
         for(ColumnStatistics cStats:columnStats){
-            avgRowWidth-=cStats.avgColumnWidth();
-            totalColumnCount--;
+            int colWidth=cStats.avgColumnWidth();
+            avgRowWidth-=colWidth;
+            tcc--;
         }
-        return ((double)avgRowWidth)/totalColumnCount;
+        if(tcc<=0){
+            /*
+             * This should never happen, because we should guard against it. Still, we want to be careful
+             * and not end up with a divide-by-0 goofiness. In this scenario, we just return an "Average"
+             */
+            return pStats.avgRowWidth()/totalColumnCount;
+        } else if(avgRowWidth<0){
+            /*
+             * This is another weird situation that PROBABLY should never happen, where we somehow
+             * mis-compute the average width of a row relative to the average width of all the columns, and we
+             * end up with a case where the sum of the average column widths is > the average row width as
+             * computed overall.
+             *
+             * This shouldn't happen ever, because we include SI columns and other overhead when we compute
+             * the average row width, but in the spirit of extra safety, we include this check here. When
+             * this happens, we just delegate to the average
+             */
+            return pStats.avgRowWidth()/totalColumnCount;
+        }else
+            return ((double)avgRowWidth)/totalColumnCount;
     }
 
     private int getAdjustedRowSize(PartitionStatistics pStats){
+
         return pStats.avgRowWidth();
     }
 }
