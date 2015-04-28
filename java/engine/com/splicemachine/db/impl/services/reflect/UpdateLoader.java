@@ -108,7 +108,7 @@ public final class UpdateLoader implements LockOwner {
 	 *
 	 * @throws StandardException
 	 */
-	public static UpdateLoader getInstance(String classpath, DatabaseClasses parent, boolean verbose, boolean normalizeToUpper) 
+	public static synchronized UpdateLoader getInstance(String classpath, DatabaseClasses parent, boolean verbose, boolean normalizeToUpper) 
 			throws StandardException {
 
 		if (instance == null) {
