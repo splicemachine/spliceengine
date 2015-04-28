@@ -4,11 +4,13 @@ import com.carrotsearch.hppc.BitSet;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
 import com.splicemachine.derby.impl.temp.TempTable;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.marshall.BareKeyHash;
@@ -146,7 +148,8 @@ public class InsertOperationTest {
         DMLWriteInfo writeInfo = mock(DMLWriteInfo.class);
         when(writeInfo.getPkColumnMap()).thenReturn(usePks? primaryKeys:null);
         when(writeInfo.getPkColumns()).thenReturn(usePks? DerbyDMLWriteInfo.fromIntArray(primaryKeys):null);
-				when(writeInfo.getTableVersion()).thenReturn("2.0");
+        when(writeInfo.getTableVersion()).thenReturn("2.0");
+        when(writeInfo.getConstantAction()).thenReturn(mock(InsertConstantOperation.class));
 
         final List<ExecRow> rowsToWrite = Lists.newArrayList(correctOutputRows);
 

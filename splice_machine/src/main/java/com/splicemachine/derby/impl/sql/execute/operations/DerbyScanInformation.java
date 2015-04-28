@@ -5,6 +5,7 @@ import com.google.common.cache.CacheBuilder;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLChar;
+import com.splicemachine.db.impl.sql.GenericPreparedStatement;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -50,7 +51,7 @@ import java.util.concurrent.ExecutionException;
 public class DerbyScanInformation implements ScanInformation<ExecRow>, Externalizable {
     private static final long serialVersionUID = 1l;
     //fields marked transient as a documentation tool, so we know which fields aren't set
-    private transient GenericStorablePreparedStatement gsps;
+    private transient GenericPreparedStatement gsps;
     private transient Activation activation;
     public static int[] Empty_Array = new int[0];
     //serialized fields

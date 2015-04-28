@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations.framework;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.db.impl.sql.GenericPreparedStatement;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.db.impl.sql.execute.AggregatorInfo;
 import com.splicemachine.db.impl.sql.execute.AggregatorInfoList;
@@ -46,7 +47,7 @@ public class DerbyAggregateContext implements AggregateContext {
     @Override
     public void init(SpliceOperationContext context) throws StandardException {
         this.activation = context.getActivation();
-        GenericStorablePreparedStatement statement = context.getPreparedStatement();
+        GenericPreparedStatement statement = context.getPreparedStatement();
         LanguageConnectionContext lcc = context.getLanguageConnectionContext();
         AggregatorInfoList aggInfoList = (AggregatorInfoList)statement.getSavedObject(aggregateItem);
         this.aggregates = buildAggregates(aggInfoList,false,lcc);

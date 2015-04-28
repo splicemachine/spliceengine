@@ -9,6 +9,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.impl.sql.GenericPreparedStatement;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.db.impl.sql.execute.WindowFunctionInfo;
 import com.splicemachine.db.impl.sql.execute.WindowFunctionInfoList;
@@ -47,7 +48,7 @@ public class DerbyWindowContext implements WindowContext {
     public void init(SpliceOperationContext context) throws StandardException {
         this.activation = context.getActivation();
 
-        GenericStorablePreparedStatement statement = context.getPreparedStatement();
+        GenericPreparedStatement statement = context.getPreparedStatement();
 
         this.windowAggregators = buildWindowAggregators((WindowFunctionInfoList)statement.getSavedObject(aggregateItem),
                                                         context.getLanguageConnectionContext().getLanguageConnectionFactory().getClassFactory());

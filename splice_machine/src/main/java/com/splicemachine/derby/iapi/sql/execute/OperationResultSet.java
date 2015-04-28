@@ -2,6 +2,7 @@ package com.splicemachine.derby.iapi.sql.execute;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
+import com.splicemachine.db.impl.sql.GenericPreparedStatement;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.spark.RDDRowProvider;
 import com.splicemachine.derby.impl.spark.SpliceSpark;
@@ -460,7 +461,7 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
                 throw Exceptions.parseException(e);
             }
             statementInfo = null; //remove the field in case we call close twice
-            ((GenericStorablePreparedStatement)activation.getPreparedStatement()).clearWarnings();
+            ((GenericPreparedStatement)activation.getPreparedStatement()).clearWarnings();
         }
         if(delegate!=null)delegate.close();
         closed=true;
