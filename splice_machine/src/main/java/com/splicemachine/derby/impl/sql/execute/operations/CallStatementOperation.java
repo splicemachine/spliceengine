@@ -272,7 +272,7 @@ public class CallStatementOperation extends NoRowsOperation {
     }
 
     @Override
-        public DataSet<SpliceOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
+        public DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
             callableRowProvider.open();
             callableRowProvider.close();
             return dsp.getEmpty();

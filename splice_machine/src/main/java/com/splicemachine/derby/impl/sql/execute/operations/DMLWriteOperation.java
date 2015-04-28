@@ -459,7 +459,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 
     }
 
-    public DataSet<TableScanOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
+    public DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
         DataSet set = source.getDataSet(spliceRuntimeContext,top);
         Thread.dumpStack();
         set.mapPartitions(new DMLWriteSparkOp(dsp.createOperationContext(this,spliceRuntimeContext))).collect();

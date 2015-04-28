@@ -16,25 +16,25 @@ import java.util.*;
 /**
  * Created by jleach on 4/13/15.
  */
-public class ControlPairDataSet<Op extends SpliceOperation,K,V> implements PairDataSet<Op,K,V> {
+public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     public Multimap<K,V> source;
     public ControlPairDataSet(Multimap<K,V> source) {
         this.source = source;
     }
 
     @Override
-    public DataSet<Op,V> values() {
+    public DataSet<V> values() {
         return new ControlDataSet(source.values());
     }
 
     @Override
-    public DataSet<Op,K> keys() {
+    public DataSet<K> keys() {
         return new ControlDataSet(source.keys());
     }
 
     @Override
-    public PairDataSet<Op,K, V> reduceByKey(final SpliceFunction2<Op,V, V, V> function2) {
-        return new ControlPairDataSet<Op,K,V>(Multimaps.forMap(Maps.transformValues(source.asMap(),new Function<Collection<V>, V>() {
+    public <Op extends SpliceOperation> PairDataSet<K, V> reduceByKey(final SpliceFunction2<Op,V, V, V> function2) {
+        return new ControlPairDataSet<K,V>(Multimaps.forMap(Maps.transformValues(source.asMap(),new Function<Collection<V>, V>() {
             @Override
             public V apply(@Nullable Collection<V> vs) {
                 try {
@@ -51,8 +51,8 @@ public class ControlPairDataSet<Op extends SpliceOperation,K,V> implements PairD
     }
 
     @Override
-    public <U> DataSet<Op,U> map(final SpliceFunction<Op,Tuple2<K, V>, U> function) {
-        return new ControlDataSet<Op,U>(Multimaps.transformEntries(source,new Maps.EntryTransformer<K,V,U>(){
+    public <Op extends SpliceOperation, U> DataSet<U> map(final SpliceFunction<Op,Tuple2<K, V>, U> function) {
+        return new ControlDataSet<U>(Multimaps.transformEntries(source,new Maps.EntryTransformer<K,V,U>(){
             @Override
             public U transformEntry(@Nullable K k, @Nullable V v) {
                 try {
@@ -65,7 +65,7 @@ public class ControlPairDataSet<Op extends SpliceOperation,K,V> implements PairD
     }
 
     @Override
-    public PairDataSet<Op, K, V> sortByKey(Comparator<K> comparator) {
+    public PairDataSet<K, V> sortByKey(Comparator<K> comparator) {
         Multimap<K,V> newSource = Multimaps.newListMultimap(
                 new TreeMap<K, Collection<V>>(comparator),
                 new Supplier<List<V>>() {
@@ -78,7 +78,7 @@ public class ControlPairDataSet<Op extends SpliceOperation,K,V> implements PairD
     }
 
     @Override
-    public <W> PairDataSet<Op, K, Tuple2<V, Optional<W>>> hashLeftOuterJoin(final PairDataSet<Op, K, W> rightDataSet) {
+    public <W> PairDataSet< K, Tuple2<V, Optional<W>>> hashLeftOuterJoin(final PairDataSet< K, W> rightDataSet) {
         // Initialize the left side
         Multimap<K, Tuple2<V, Optional<W>>> newMap = ArrayListMultimap.<K, Tuple2<V, Optional<W>>>create();
         // Materializes the right side
@@ -93,17 +93,17 @@ public class ControlPairDataSet<Op extends SpliceOperation,K,V> implements PairD
             } else
                 newMap.put(entry.getKey(),new Tuple2<V, Optional<W>>(entry.getValue(),Optional.<W>absent()));
         }
-        return new ControlPairDataSet<Op, K, Tuple2<V, Optional<W>>>(newMap);
+        return new ControlPairDataSet< K, Tuple2<V, Optional<W>>>(newMap);
     }
 
     @Override
-    public <W> PairDataSet<Op, K, Tuple2<Optional<V>, W>> hashRightOuterJoin(PairDataSet<Op, K, W> rightDataSet) {
+    public <W> PairDataSet< K, Tuple2<Optional<V>, W>> hashRightOuterJoin(PairDataSet< K, W> rightDataSet) {
         // Initialize the right side
         Multimap<K, Tuple2<Optional<V>, W>> newMap = ArrayListMultimap.<K, Tuple2<Optional<V>, W>>create();
         // Materializes the left side
         Multimap<K,V> leftSide = ArrayListMultimap.<K,V>create();
         leftSide.putAll(source);
-        for (Map.Entry<K,W> entry : ((ControlPairDataSet<Op,K,W>) rightDataSet).source.entries()) {
+        for (Map.Entry<K,W> entry : ((ControlPairDataSet<K,W>) rightDataSet).source.entries()) {
             if (leftSide.containsKey(entry.getKey())) {
                 for (V leftValue: leftSide.get(entry.getKey())) {
                     newMap.put(entry.getKey(),new Tuple2<Optional<V>, W>(Optional.<V>of(leftValue),entry.getValue()));
@@ -111,11 +111,11 @@ public class ControlPairDataSet<Op extends SpliceOperation,K,V> implements PairD
             } else
                 newMap.put(entry.getKey(),new Tuple2<Optional<V>, W>(Optional.<V>absent(),entry.getValue()));
         }
-        return new ControlPairDataSet<Op, K, Tuple2<Optional<V>, W>>(newMap);
+        return new ControlPairDataSet< K, Tuple2<Optional<V>, W>>(newMap);
     }
 
     @Override
-    public <W> PairDataSet<Op, K, Tuple2<V, W>> hashJoin(PairDataSet<Op, K, W> rightDataSet) {
+    public <W> PairDataSet< K, Tuple2<V, W>> hashJoin(PairDataSet< K, W> rightDataSet) {
         // Initialize the left side
         Multimap<K, Tuple2<V, W>> newMap = ArrayListMultimap.<K, Tuple2<V, W>>create();
         // Materializes the right side
@@ -126,26 +126,26 @@ public class ControlPairDataSet<Op extends SpliceOperation,K,V> implements PairD
             if (right.size() > 0)
                 newMap.put(entry.getKey(),new Tuple2<V, W>(entry.getValue(),right.iterator().next()));
         }
-        return new ControlPairDataSet<Op, K, Tuple2<V, W>>(newMap);
+        return new ControlPairDataSet< K, Tuple2<V, W>>(newMap);
     }
 
     @Override
-    public <W> PairDataSet<Op, K, Tuple2<V, Optional<W>>> broadcastLeftOuterJoin(PairDataSet<Op, K, W> rightDataSet) {
+    public <W> PairDataSet< K, Tuple2<V, Optional<W>>> broadcastLeftOuterJoin(PairDataSet< K, W> rightDataSet) {
         return hashLeftOuterJoin(rightDataSet);
     }
 
     @Override
-    public <W> PairDataSet<Op, K, Tuple2<Optional<V>, W>> broadcastRightOuterJoin(PairDataSet<Op, K, W> rightDataSet) {
+    public <W> PairDataSet< K, Tuple2<Optional<V>, W>> broadcastRightOuterJoin(PairDataSet< K, W> rightDataSet) {
         return hashRightOuterJoin(rightDataSet);
     }
 
     @Override
-    public <W> PairDataSet<Op, K, Tuple2<V, W>> broadcastJoin(PairDataSet<Op, K, W> rightDataSet) {
+    public <W> PairDataSet< K, Tuple2<V, W>> broadcastJoin(PairDataSet< K, W> rightDataSet) {
         return hashJoin(rightDataSet);
     }
 
     @Override
-    public <W> PairDataSet<Op, K, V> subtract(PairDataSet<Op, K, W> rightDataSet) {
+    public <W> PairDataSet< K, V> subtract(PairDataSet< K, W> rightDataSet) {
  /*       // Initialize the left side
         Multimap<K, Tuple2<V, W>> newMap = ArrayListMultimap.<K, Tuple2<V, W>>create();
         // Materializes the right side
@@ -157,7 +157,7 @@ public class ControlPairDataSet<Op extends SpliceOperation,K,V> implements PairD
                 newMap.put(entry.getKey(),new Tuple2<V, W>(entry.getValue(),rightValue));
             }
         }
-        return new ControlPairDataSet<Op, K, Tuple2<V, W>>(newMap);
+        return new ControlPairDataSet< K, Tuple2<V, W>>(newMap);
         */
         throw new RuntimeException("Not Implemented");
     }

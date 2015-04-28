@@ -21,14 +21,14 @@ public class ControlDataSetTest extends BaseStreamTest{
 
     @Test
     public void testDistinct() {
-        DataSet<SpliceOperation,ExecRow> control = new ControlDataSet<>(tenRowsTwoDuplicateRecords);
+        DataSet<ExecRow> control = new ControlDataSet<>(tenRowsTwoDuplicateRecords);
         Assert.assertEquals("Duplicate Rows Not Filtered", 10, control.distinct().collect().size());
     }
 
     @Test
     public void testMap() throws StandardException {
-        DataSet<SpliceOperation,ExecRow> control = new ControlDataSet<>(tenRowsTwoDuplicateRecords);
-        DataSet<SpliceOperation,ExecRow> mapppedDataSet = control.map(new SpliceFunction<SpliceOperation,ExecRow,ExecRow>() {
+        DataSet<ExecRow> control = new ControlDataSet<>(tenRowsTwoDuplicateRecords);
+        DataSet<ExecRow> mapppedDataSet = control.map(new SpliceFunction<SpliceOperation,ExecRow,ExecRow>() {
             @Override
             public ExecRow call(ExecRow execRow) throws Exception {
                 ExecRow clone = execRow.getClone();
@@ -44,7 +44,7 @@ public class ControlDataSetTest extends BaseStreamTest{
     @Test
     public void testLocalIterator() {
         int numElements = 0;
-        DataSet<SpliceOperation,ExecRow> control = new ControlDataSet<>(tenRowsTwoDuplicateRecords);
+        DataSet<ExecRow> control = new ControlDataSet<>(tenRowsTwoDuplicateRecords);
         Iterator<ExecRow> it = control.toLocalIterator();
         while (it.hasNext() && it.next() !=null)
             numElements++;
@@ -53,7 +53,7 @@ public class ControlDataSetTest extends BaseStreamTest{
 
     @Test
     public void testFold() throws StandardException {
-        DataSet<SpliceOperation,ExecRow> control = new ControlDataSet<>(tenRowsTwoDuplicateRecords);
+        DataSet<ExecRow> control = new ControlDataSet<>(tenRowsTwoDuplicateRecords);
         ExecRow execRow = control.fold(null, new SpliceFunction2<SpliceOperation,ExecRow,ExecRow,ExecRow>() {
             @Override
             public ExecRow call(ExecRow execRow, ExecRow execRow2) throws Exception {
@@ -71,8 +71,8 @@ public class ControlDataSetTest extends BaseStreamTest{
 
     @Test
     public void testIndex() throws Exception {
-        DataSet<SpliceOperation,ExecRow> control = new ControlDataSet<>(tenRowsTwoDuplicateRecords);
-        PairDataSet<SpliceOperation,ExecRow,ExecRow> pairDataSet = control.index(new SplicePairFunction<SpliceOperation,ExecRow, ExecRow>() {
+        DataSet<ExecRow> control = new ControlDataSet<>(tenRowsTwoDuplicateRecords);
+        PairDataSet<ExecRow,ExecRow> pairDataSet = control.index(new SplicePairFunction<SpliceOperation,ExecRow, ExecRow>() {
             @Override
             public ExecRow internalCall(@Nullable ExecRow execRow) {
                 try {

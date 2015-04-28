@@ -16,7 +16,7 @@ public class ControlPairDataSetTest extends BaseStreamTest {
 
     @Test
     public void testValues() {
-        PairDataSet<SpliceOperation,ExecRow,ExecRow> pairDataSet = new ControlPairDataSet<SpliceOperation,ExecRow,ExecRow>(tenRows);
+        PairDataSet<ExecRow,ExecRow> pairDataSet = new ControlPairDataSet<ExecRow,ExecRow>(tenRows);
         Iterator<ExecRow> it = pairDataSet.values().toLocalIterator();
         int i = 0;
         while (it.hasNext()) {
@@ -28,7 +28,7 @@ public class ControlPairDataSetTest extends BaseStreamTest {
 
     @Test
     public void testKeys() {
-        PairDataSet<SpliceOperation,ExecRow,ExecRow> pairDataSet = new ControlPairDataSet<SpliceOperation,ExecRow,ExecRow>(tenRows);
+        PairDataSet<ExecRow,ExecRow> pairDataSet = new ControlPairDataSet<ExecRow,ExecRow>(tenRows);
         Iterator<ExecRow> it = pairDataSet.keys().toLocalIterator();
         int i = 0;
         while (it.hasNext()) {
@@ -41,8 +41,8 @@ public class ControlPairDataSetTest extends BaseStreamTest {
 
     @Test
     public void testReduceByKey() throws StandardException {
-        PairDataSet<SpliceOperation,ExecRow,ExecRow> pairDataSet = new ControlPairDataSet<SpliceOperation,ExecRow,ExecRow>(tenRows);
-        PairDataSet<SpliceOperation,ExecRow,ExecRow> transformedDS = pairDataSet.reduceByKey(new SpliceFunction2<SpliceOperation,ExecRow, ExecRow, ExecRow>() {
+        PairDataSet<ExecRow,ExecRow> pairDataSet = new ControlPairDataSet<ExecRow,ExecRow>(tenRows);
+        PairDataSet<ExecRow,ExecRow> transformedDS = pairDataSet.reduceByKey(new SpliceFunction2<SpliceOperation,ExecRow, ExecRow, ExecRow>() {
             @Override
             public ExecRow call(ExecRow execRow, ExecRow execRow2) throws Exception {
                 if (execRow == null || execRow2 == null)

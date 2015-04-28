@@ -373,7 +373,7 @@ public class NormalizeOperation extends SpliceBaseOperation {
 								.toString();
 		}
 
-    public DataSet<SpliceOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
+    public DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
         return source.getDataSet(spliceRuntimeContext,top).
                 map(new NormalizeSparkFunction(dsp.createOperationContext(this, spliceRuntimeContext)));
     }

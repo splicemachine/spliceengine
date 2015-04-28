@@ -32,7 +32,7 @@ import java.util.Iterator;
 public class ControlDataSetProcessor<Op extends SpliceOperation,K,V> implements DataSetProcessor<Op,K,V> {
     private static final Logger LOG = Logger.getLogger(ControlDataSetProcessor.class);
     @Override
-    public DataSet<Op, V> getTableScanner(Op spliceOperation, TableScannerBuilder siTableBuilder, String tableName,SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    public DataSet< V> getTableScanner(Op spliceOperation, TableScannerBuilder siTableBuilder, String tableName,SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         TxnRegion localRegion = new TxnRegion(null, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
                 TransactionStorage.getTxnSupplier(), TransactionStorage.getIgnoreTxnSupplier(), TxnDataStore.getDataStore(), HTransactorFactory.getTransactor());
                 siTableBuilder
@@ -42,12 +42,12 @@ public class ControlDataSetProcessor<Op extends SpliceOperation,K,V> implements 
     }
 
     @Override
-    public DataSet<Op, V> getEmpty() {
+    public DataSet< V> getEmpty() {
         return new ControlDataSet<>(Collections.<V>emptyList());
     }
 
     @Override
-    public DataSet<Op, V> singleRowDataSet(V value) {
+    public DataSet< V> singleRowDataSet(V value) {
         return new ControlDataSet<>(Lists.newArrayList(value));
     }
 
@@ -121,7 +121,7 @@ public class ControlDataSetProcessor<Op extends SpliceOperation,K,V> implements 
     }
 
     @Override
-    public DataSet<Op, V> createDataSet(Iterable<V> value) {
+    public DataSet< V> createDataSet(Iterable<V> value) {
         return new ControlDataSet<>(value);
     }
 }

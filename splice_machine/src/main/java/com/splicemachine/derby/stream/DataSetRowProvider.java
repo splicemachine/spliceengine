@@ -31,11 +31,11 @@ public class DataSetRowProvider implements RowProvider, Serializable {
     protected transient Iterator<LocatedRow> iterator;
     protected ExecRow currentRow;
     private HBaseRowLocation currentRowLocation;
-    protected DataSet<SpliceOperation,LocatedRow> dataSet;
+    protected DataSet<LocatedRow> dataSet;
     private SpliceRuntimeContext spliceRuntimeContext;
 
     // TODO missing activation for shuffle of rows for operations higher up
-    public DataSetRowProvider(DataSet<SpliceOperation,LocatedRow> dataSet, SpliceRuntimeContext spliceRuntimeContext) {
+    public DataSetRowProvider(DataSet<LocatedRow> dataSet, SpliceRuntimeContext spliceRuntimeContext) {
         this.dataSet = dataSet;
         this.spliceRuntimeContext = spliceRuntimeContext;
         iterator = dataSet.toLocalIterator();
@@ -99,7 +99,7 @@ public class DataSetRowProvider implements RowProvider, Serializable {
         return 0;
     }
 
-    public DataSet<SpliceOperation,LocatedRow> getDataSet() {
+    public DataSet<LocatedRow> getDataSet() {
         return dataSet;
     }
 
