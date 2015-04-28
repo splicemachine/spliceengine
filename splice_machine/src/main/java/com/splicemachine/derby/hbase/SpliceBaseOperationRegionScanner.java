@@ -2,6 +2,7 @@ package com.splicemachine.derby.hbase;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.db.impl.sql.GenericPreparedStatement;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -44,7 +45,7 @@ import java.util.List;
 
 public abstract class SpliceBaseOperationRegionScanner<Data> implements RegionScanner {
 		private static Logger LOG = Logger.getLogger(SpliceBaseOperationRegionScanner.class);
-		protected GenericStorablePreparedStatement statement;
+		protected GenericPreparedStatement statement;
 		private SpliceTransactionResourceImpl impl;
 		protected SpliceOperation topOperation;
 		protected RegionScanner regionScanner;
