@@ -586,7 +586,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 
 
     @Override
-    public DataSet<SpliceOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
+    public DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
         OperationContext<SpliceOperation> operationContext = dsp.createOperationContext(this,spliceRuntimeContext);
         DataSet set;
         if (groupedAggregateContext.getNonGroupedUniqueColumns()!=null &&

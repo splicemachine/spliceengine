@@ -458,7 +458,7 @@ public class SortOperation extends SpliceBaseOperation implements SinkingOperati
 
 
     @Override
-    public DataSet<SpliceOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
+    public DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
         DataSet dataSet = source.getDataSet(spliceRuntimeContext,top);
         OperationContext operationContext = dsp.createOperationContext(top,spliceRuntimeContext);
         if (distinct)

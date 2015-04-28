@@ -645,7 +645,7 @@ public class VTIOperation extends SpliceBaseOperation implements VTIEnvironment 
     }
 
     @Override
-    public <Op extends SpliceOperation> DataSet<Op, LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
+    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
         throw new RuntimeException("VTI Not Supported");
     }
 }

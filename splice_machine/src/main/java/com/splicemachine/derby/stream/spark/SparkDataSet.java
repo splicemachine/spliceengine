@@ -14,7 +14,7 @@ import java.util.List;
  * Datat Implementation using spark.
  *
  */
-public class SparkDataSet<Op extends SpliceOperation,V> implements DataSet<Op,V>, Serializable {
+public class SparkDataSet<V> implements DataSet<V>, Serializable {
     public JavaRDD<V> rdd;
     public int offset = -1;
     public int fetch = -1;
@@ -34,28 +34,28 @@ public class SparkDataSet<Op extends SpliceOperation,V> implements DataSet<Op,V>
     }
 
     @Override
-    public <U> DataSet<Op,U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f) {
-        return new SparkDataSet<Op,U>(rdd.mapPartitions(f));
+    public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f) {
+        return new SparkDataSet<U>(rdd.mapPartitions(f));
     }
 
     @Override
-    public DataSet<Op,V> distinct() {
+    public DataSet<V> distinct() {
         return new SparkDataSet(rdd.distinct());
     }
 
     @Override
-    public V fold(V zeroValue, SpliceFunction2<Op,V, V, V> function2) {
+    public <Op extends SpliceOperation> V fold(V zeroValue, SpliceFunction2<Op,V, V, V> function2) {
         return rdd.fold(zeroValue,function2);
     }
 
     @Override
-    public <K> PairDataSet<Op,K,V> index(SplicePairFunction<Op,K,V> function) {
+    public <Op extends SpliceOperation, K> PairDataSet<K,V> index(SplicePairFunction<Op,K,V> function) {
         return new SparkPairDataSet(
                 rdd.mapToPair(function));
     }
 
     @Override
-    public <U> DataSet<Op,U> map(SpliceFunction<Op,V,U> function) {
+    public <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function) {
         return new SparkDataSet<>(rdd.map(function));
     }
 
@@ -73,7 +73,7 @@ public class SparkDataSet<Op extends SpliceOperation,V> implements DataSet<Op,V>
     }
 
     @Override
-    public <K> PairDataSet<Op, K, V> keyBy(SpliceFunction<Op, V, K> f) {
+    public <Op extends SpliceOperation, K> PairDataSet< K, V> keyBy(SpliceFunction<Op, V, K> f) {
         return new SparkPairDataSet(rdd.keyBy(f));
     }
 
@@ -83,22 +83,22 @@ public class SparkDataSet<Op extends SpliceOperation,V> implements DataSet<Op,V>
     }
 
     @Override
-    public DataSet<Op, V> union(DataSet<Op, V> dataSet) {
+    public DataSet< V> union(DataSet< V> dataSet) {
         return new SparkDataSet<>(rdd.union(((SparkDataSet) dataSet).rdd));
     }
 
     @Override
-    public DataSet<Op, V> filter(SplicePredicateFunction<Op, V> f) {
+    public <Op extends SpliceOperation> DataSet< V> filter(SplicePredicateFunction<Op, V> f) {
         return new SparkDataSet<>(rdd.filter(f));
     }
 
     @Override
-    public DataSet<Op, V> intersect(DataSet<Op, V> dataSet) {
+    public DataSet< V> intersect(DataSet< V> dataSet) {
         return new SparkDataSet<>(rdd.intersection( ((SparkDataSet) dataSet).rdd));
     }
 
     @Override
-    public DataSet<Op, V> subtract(DataSet<Op, V> dataSet) {
+    public DataSet< V> subtract(DataSet< V> dataSet) {
         return new SparkDataSet<>(rdd.subtract( ((SparkDataSet) dataSet).rdd));
     }
 
@@ -108,7 +108,7 @@ public class SparkDataSet<Op extends SpliceOperation,V> implements DataSet<Op,V>
     }
 
     @Override
-    public <U> DataSet<Op, U> flatMap(SpliceFlatMapFunction<Op, V, U> f) {
+    public <Op extends SpliceOperation, U> DataSet< U> flatMap(SpliceFlatMapFunction<Op, V, U> f) {
         return new SparkDataSet<>(rdd.flatMap(f));
     }
 

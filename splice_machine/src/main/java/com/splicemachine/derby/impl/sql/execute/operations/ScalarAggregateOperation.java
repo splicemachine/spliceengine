@@ -320,7 +320,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 		}
 
     @Override
-    public DataSet<SpliceOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top,DataSetProcessor dsp) throws StandardException {
+    public DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top,DataSetProcessor dsp) throws StandardException {
         LocatedRow result = source.getDataSet(spliceRuntimeContext, top)
                 .fold(null,new ScalarAggregatorFunction(dsp.createOperationContext(this,spliceRuntimeContext)));
         if (result==null)

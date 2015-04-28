@@ -691,7 +691,7 @@ public class DependentOperation extends ScanOperation {
 	}
 
     @Override
-    public <Op extends SpliceOperation> DataSet<Op, LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
+    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
         throw new RuntimeException("Not Implemented");
         // TODO KEITH Need to implement this for spark based deletes etc.
         // ? JL Do we even use this or coprocess based?

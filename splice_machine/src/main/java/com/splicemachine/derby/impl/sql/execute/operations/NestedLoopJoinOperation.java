@@ -348,8 +348,8 @@ public class NestedLoopJoinOperation extends JoinOperation {
     }
 
 
-    public DataSet<SpliceOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
-        DataSet<SpliceOperation,LocatedRow> left = leftResultSet.getDataSet(spliceRuntimeContext, leftResultSet);
+    public DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
+        DataSet<LocatedRow> left = leftResultSet.getDataSet(spliceRuntimeContext, leftResultSet);
         OperationContext<SpliceOperation> operationContext = dsp.createOperationContext(this,spliceRuntimeContext);
         return left.flatMap(new NLJFunction<SpliceOperation>(operationContext,rightResultSet));
     }

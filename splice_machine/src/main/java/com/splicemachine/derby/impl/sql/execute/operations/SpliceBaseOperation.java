@@ -726,7 +726,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
         this.rowsSunk = rowsSunk;
     }
 
-    public <Op extends SpliceOperation> DataSet<Op,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
             DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
             return getDataSet(spliceRuntimeContext,top,dsp);
     }

@@ -14,7 +14,7 @@ import java.util.List;
 /**
  * Created by jleach on 4/13/15.
  */
-public class ControlDataSet<Op extends SpliceOperation,V> implements DataSet<Op,V> {
+public class ControlDataSet<V> implements DataSet<V> {
     protected Iterable<V> iterable;
     public ControlDataSet(Iterable<V> iterable) {
         this.iterable = iterable;
@@ -30,7 +30,7 @@ public class ControlDataSet<Op extends SpliceOperation,V> implements DataSet<Op,
     }
 
     @Override
-    public <U> DataSet<Op,U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f) {
+    public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f) {
         try {
             return new ControlDataSet<>(f.call(FluentIterable.from(iterable).iterator()));
         } catch (Exception e) {
@@ -39,12 +39,12 @@ public class ControlDataSet<Op extends SpliceOperation,V> implements DataSet<Op,
     }
 
     @Override
-    public DataSet<Op,V> distinct() {
+    public DataSet<V> distinct() {
         return new ControlDataSet(Sets.newHashSet(iterable));
     }
 
     @Override
-    public V fold(V zeroValue, SpliceFunction2<Op,V, V, V> function2) {
+    public <Op extends SpliceOperation> V fold(V zeroValue, SpliceFunction2<Op,V, V, V> function2) {
         try {
             for (V v : iterable) {
                 zeroValue = function2.call(zeroValue, v);
@@ -56,13 +56,13 @@ public class ControlDataSet<Op extends SpliceOperation,V> implements DataSet<Op,
     }
 
     @Override
-    public <K>PairDataSet<Op,K, V> index(SplicePairFunction<Op,K,V> function) {
-        return new ControlPairDataSet<Op,K,V>(Multimaps.index(iterable,function));
+    public <Op extends SpliceOperation, K>PairDataSet<K, V> index(SplicePairFunction<Op,K,V> function) {
+        return new ControlPairDataSet<K,V>(Multimaps.index(iterable,function));
     }
 
     @Override
-    public <U> DataSet<Op,U> map(SpliceFunction<Op,V,U> function) {
-        return new ControlDataSet<Op,U>(Iterables.transform(iterable,function));
+    public <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function) {
+        return new ControlDataSet<U>(Iterables.transform(iterable,function));
     }
 
     @Override
@@ -72,9 +72,9 @@ public class ControlDataSet<Op extends SpliceOperation,V> implements DataSet<Op,
 
 
     @Override
-    public <K> PairDataSet<Op, K, V> keyBy(SpliceFunction<Op, V, K> function) {
+    public <Op extends SpliceOperation, K> PairDataSet< K, V> keyBy(SpliceFunction<Op, V, K> function) {
 
-        return new ControlPairDataSet<Op,K,V>(Multimaps.index(iterable,function));
+        return new ControlPairDataSet<K,V>(Multimaps.index(iterable,function));
     }
 
     @Override
@@ -90,22 +90,22 @@ public class ControlDataSet<Op extends SpliceOperation,V> implements DataSet<Op,
     }
 
     @Override
-    public DataSet<Op, V> union(DataSet<Op, V> dataSet) {
+    public DataSet< V> union(DataSet< V> dataSet) {
         return new ControlDataSet(Iterables.concat(iterable, ((ControlDataSet) dataSet).iterable));
     }
 
     @Override
-    public DataSet<Op, V> filter(SplicePredicateFunction<Op, V> f) {
+    public <Op extends SpliceOperation> DataSet< V> filter(SplicePredicateFunction<Op, V> f) {
         return new ControlDataSet<>(Iterables.filter(iterable,f));
     }
 
     @Override
-    public DataSet<Op, V> intersect(DataSet<Op, V> dataSet) {
+    public DataSet< V> intersect(DataSet< V> dataSet) {
         return new ControlDataSet<>(Sets.intersection(Sets.newHashSet(iterable),Sets.newHashSet(((ControlDataSet) dataSet).iterable)));
     }
 
     @Override
-    public DataSet<Op, V> subtract(DataSet<Op, V> dataSet) {
+    public DataSet< V> subtract(DataSet< V> dataSet) {
         return new ControlDataSet<>(Sets.difference(Sets.newHashSet(iterable),Sets.newHashSet(((ControlDataSet) dataSet).iterable)));
     }
 
@@ -115,7 +115,7 @@ public class ControlDataSet<Op extends SpliceOperation,V> implements DataSet<Op,
     }
 
     @Override
-    public <U> DataSet<Op, U> flatMap(SpliceFlatMapFunction<Op, V, U> f) {
+    public <Op extends SpliceOperation,U> DataSet<U> flatMap(SpliceFlatMapFunction<Op, V, U> f) {
         return new ControlDataSet(FluentIterable.from(iterable).transformAndConcat(f));
     }
 
@@ -125,7 +125,7 @@ public class ControlDataSet<Op extends SpliceOperation,V> implements DataSet<Op,
     }
 
     @Override
-    public DataSet<Op, V> fetchWithOffset(int offset, int fetch) {
+    public DataSet<V> fetchWithOffset(int offset, int fetch) {
         return new ControlDataSet<>(Iterables.limit(Iterables.skip(iterable,offset),fetch));
     }
 }

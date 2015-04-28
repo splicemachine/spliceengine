@@ -361,7 +361,7 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
     }
 
     @Override
-    public DataSet<SpliceOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+    public DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
 
         /*
 
@@ -616,7 +616,7 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
     }
 
     @Override
-    public <Op extends SpliceOperation> DataSet<Op, LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
+    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
         throw new RuntimeException("not implemented");
     }
 

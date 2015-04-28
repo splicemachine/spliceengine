@@ -17,54 +17,54 @@ import java.util.Comparator;
 /**
  * Created by jleach on 4/13/15.
  */
-public class SparkPairDataSet<Op extends SpliceOperation,K,V> implements PairDataSet<Op,K,V> {
+public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
     public JavaPairRDD<K,V> rdd;
     public SparkPairDataSet(JavaPairRDD<K,V> rdd) {
         this.rdd = rdd;
     }
 
     @Override
-    public DataSet<Op,V> values() {
-        return new SparkDataSet<Op,V>(rdd.values());
+    public DataSet<V> values() {
+        return new SparkDataSet<V>(rdd.values());
     }
 
     @Override
-    public DataSet<Op,K> keys() {
-        return new SparkDataSet<Op,K>(rdd.keys());
+    public DataSet<K> keys() {
+        return new SparkDataSet<K>(rdd.keys());
     }
 
     @Override
-    public PairDataSet<Op,K, V> reduceByKey(SpliceFunction2<Op,V, V, V> function2) {
+    public <Op extends SpliceOperation> PairDataSet<K, V> reduceByKey(SpliceFunction2<Op,V, V, V> function2) {
         return new SparkPairDataSet<>(rdd.reduceByKey(function2));
     }
 
     @Override
-    public <U> DataSet<Op,U> map(SpliceFunction<Op,Tuple2<K, V>, U> function) {
-        return new SparkDataSet<Op,U>(rdd.map(function));
+    public <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,Tuple2<K, V>, U> function) {
+        return new SparkDataSet<U>(rdd.map(function));
     }
 
     @Override
-    public PairDataSet<Op, K, V> sortByKey(Comparator<K> comparator) {
+    public PairDataSet< K, V> sortByKey(Comparator<K> comparator) {
         return new SparkPairDataSet<>(rdd.sortByKey(comparator));
     }
 
     @Override
-    public <W> PairDataSet<Op, K, Tuple2<V, Optional<W>>> hashLeftOuterJoin(PairDataSet<Op, K, W> rightDataSet) {
+    public <W> PairDataSet< K, Tuple2<V, Optional<W>>> hashLeftOuterJoin(PairDataSet< K, W> rightDataSet) {
         return new SparkPairDataSet(rdd.leftOuterJoin( ((SparkPairDataSet) rightDataSet).rdd));
     }
 
     @Override
-    public <W> PairDataSet<Op, K, Tuple2<Optional<V>, W>> hashRightOuterJoin(PairDataSet<Op, K, W> rightDataSet) {
+    public <W> PairDataSet< K, Tuple2<Optional<V>, W>> hashRightOuterJoin(PairDataSet< K, W> rightDataSet) {
         return new SparkPairDataSet(rdd.rightOuterJoin(((SparkPairDataSet) rightDataSet).rdd));
     }
 
     @Override
-    public <W> PairDataSet<Op, K, Tuple2<V, W>> hashJoin(PairDataSet<Op, K, W> rightDataSet) {
+    public <W> PairDataSet< K, Tuple2<V, W>> hashJoin(PairDataSet< K, W> rightDataSet) {
         return new SparkPairDataSet(rdd.join(((SparkPairDataSet) rightDataSet).rdd));
     }
 
     @Override
-    public <W> PairDataSet<Op, K, Tuple2<V, Optional<W>>> broadcastLeftOuterJoin(PairDataSet<Op, K, W> rightDataSet) {
+    public <W> PairDataSet< K, Tuple2<V, Optional<W>>> broadcastLeftOuterJoin(PairDataSet< K, W> rightDataSet) {
         JavaPairRDD<K,W> rightPairDataSet = ((SparkPairDataSet) rightDataSet).rdd;
         JavaSparkContext context = SpliceSpark.getContext();
         Broadcast<JavaPairRDD<K,W>> broadcast = context.broadcast(rightPairDataSet);
@@ -72,7 +72,7 @@ public class SparkPairDataSet<Op extends SpliceOperation,K,V> implements PairDat
     }
 
     @Override
-    public <W> PairDataSet<Op, K, Tuple2<Optional<V>, W>> broadcastRightOuterJoin(PairDataSet<Op, K, W> rightDataSet) {
+    public <W> PairDataSet< K, Tuple2<Optional<V>, W>> broadcastRightOuterJoin(PairDataSet< K, W> rightDataSet) {
         JavaPairRDD<K,W> rightPairDataSet = ((SparkPairDataSet) rightDataSet).rdd;
         JavaSparkContext context = SpliceSpark.getContext();
         Broadcast<JavaPairRDD<K,W>> broadcast = context.broadcast(rightPairDataSet);
@@ -80,7 +80,7 @@ public class SparkPairDataSet<Op extends SpliceOperation,K,V> implements PairDat
     }
 
     @Override
-    public <W> PairDataSet<Op, K, Tuple2<V, W>> broadcastJoin(PairDataSet<Op, K, W> rightDataSet) {
+    public <W> PairDataSet< K, Tuple2<V, W>> broadcastJoin(PairDataSet< K, W> rightDataSet) {
         JavaPairRDD<K,W> rightPairDataSet = ((SparkPairDataSet) rightDataSet).rdd;
         JavaSparkContext context = SpliceSpark.getContext();
         Broadcast<JavaPairRDD<K,W>> broadcast = context.broadcast(rightPairDataSet);
@@ -88,7 +88,7 @@ public class SparkPairDataSet<Op extends SpliceOperation,K,V> implements PairDat
     }
 
     @Override
-    public <W> PairDataSet<Op, K, V> subtract(PairDataSet<Op, K, W> rightDataSet) {
+    public <W> PairDataSet< K, V> subtract(PairDataSet< K, W> rightDataSet) {
         return new SparkPairDataSet(rdd.subtract( ((SparkPairDataSet) rightDataSet).rdd));
     }
 

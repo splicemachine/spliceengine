@@ -39,7 +39,7 @@ public class SparkDataSetProcessor <Op extends SpliceOperation,K,V> implements D
     }
 
     @Override
-    public DataSet<Op, V> getTableScanner(final Op spliceOperation, TableScannerBuilder siTableBuilder, String tableName, final SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    public DataSet< V> getTableScanner(final Op spliceOperation, TableScannerBuilder siTableBuilder, String tableName, final SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         JavaSparkContext ctx = SpliceSpark.getContext();
         Configuration conf = new Configuration(SIConstants.config);
         conf.set(com.splicemachine.mrio.MRConstants.SPLICE_CONGLOMERATE, tableName);
@@ -57,12 +57,12 @@ public class SparkDataSetProcessor <Op extends SpliceOperation,K,V> implements D
     }
 
     @Override
-    public DataSet<Op,V> getEmpty() {
+    public DataSet<V> getEmpty() {
         return new SparkDataSet(SpliceSpark.getContext().parallelize(Collections.<V>emptyList(),1));
     }
 
     @Override
-    public DataSet<Op,V>  singleRowDataSet(V value) {
+    public DataSet<V>  singleRowDataSet(V value) {
         return new SparkDataSet(SpliceSpark.getContext().parallelize(Collections.<V>singletonList(value),1));
     }
 
@@ -77,7 +77,7 @@ public class SparkDataSetProcessor <Op extends SpliceOperation,K,V> implements D
     }
 
     @Override
-    public DataSet<Op, V> createDataSet(Iterable<V> value) {
+    public DataSet< V> createDataSet(Iterable<V> value) {
         return new SparkDataSet(SpliceSpark.getContext().parallelize(Lists.newArrayList(value)));
     }
 }

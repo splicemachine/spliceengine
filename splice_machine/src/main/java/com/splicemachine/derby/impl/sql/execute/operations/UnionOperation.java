@@ -262,7 +262,7 @@ public class UnionOperation extends SpliceBaseOperation {
 		}
 
     @Override
-    public DataSet<SpliceOperation,LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
+    public DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
         SpliceRuntimeContext left = spliceRuntimeContext.copy();
         SpliceRuntimeContext right = spliceRuntimeContext.copy();
         left.addPath(resultSetNumber, SpliceRuntimeContext.Side.LEFT);

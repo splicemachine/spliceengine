@@ -12,10 +12,10 @@ import java.io.Externalizable;
  * Created by jleach on 4/13/15.
  */
 public interface DataSetProcessor<Op extends SpliceOperation,K,V> {
-    DataSet<Op,V> getTableScanner(Op spliceOperation,TableScannerBuilder siTableBuilder, String tableName, SpliceRuntimeContext spliceRuntimContext) throws StandardException;
-    DataSet<Op,V> getEmpty();
-    DataSet<Op,V> singleRowDataSet(V value);
-    DataSet<Op,V> createDataSet(Iterable<V> value);
+    DataSet<V> getTableScanner(Op spliceOperation,TableScannerBuilder siTableBuilder, String tableName, SpliceRuntimeContext spliceRuntimContext) throws StandardException;
+    DataSet<V> getEmpty();
+    DataSet<V> singleRowDataSet(V value);
+    DataSet<V> createDataSet(Iterable<V> value);
     OperationContext<Op> createOperationContext(Op spliceOperation, SpliceRuntimeContext spliceRuntimeContext);
     void setJobGroup(String jobName, String jobDescription);
 

@@ -159,7 +159,7 @@ public class CachedOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public DataSet<SpliceOperation, LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
+    public DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
         return dsp.createDataSet(rows).map(new SpliceFunction<SpliceOperation, ExecRow, LocatedRow>() {
             @Override
             public LocatedRow call(ExecRow execRow) throws Exception {

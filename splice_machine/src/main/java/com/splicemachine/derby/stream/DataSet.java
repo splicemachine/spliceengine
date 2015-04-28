@@ -1,6 +1,7 @@
 package com.splicemachine.derby.stream;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.stream.function.*;
 
 import java.util.Iterator;
@@ -11,7 +12,7 @@ import java.util.List;
  * Representation of a stream of data
  *
  */
-public interface DataSet<Op extends SpliceOperation,V> {
+public interface DataSet<V> {
     /**
      * Transform the dataset into a list of items.
      */
@@ -19,26 +20,26 @@ public interface DataSet<Op extends SpliceOperation,V> {
     /**
      * Apply a flatmapfunction to entire partitions of data.
      */
-    <U> DataSet<Op,U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f);
+    <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<V>, U> f);
     /**
      * Remove duplicates from dataset
      */
-    DataSet<Op,V> distinct();
+    DataSet<V> distinct();
     /**
      * Iterate over all values and produce a single value.
      */
-    V fold(V zeroValue, SpliceFunction2<Op,V,V,V> function2);
+    <Op extends SpliceOperation> V fold(V zeroValue, SpliceFunction2<Op,V,V,V> function2);
     /**
      * Apply function to dataset to produce an indexed dataset.  Does not require
      * uniqueness on the left values.
      */
-    <K> PairDataSet<Op,K,V> index(SplicePairFunction<Op,K,V> function);
+    <Op extends SpliceOperation, K> PairDataSet<K,V> index(SplicePairFunction<Op,K,V> function);
     /**
      * Apply map function.
      */
-    <U> DataSet<Op,U> map(SpliceFunction<Op,V,U> function);
+    <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function);
 
-    <K> PairDataSet<Op,K,V> keyBy(SpliceFunction<Op,V,K> function);
+    <Op extends SpliceOperation, K> PairDataSet<K,V> keyBy(SpliceFunction<Op,V,K> function);
 
     /**
      * Returns a localiterator for computation.
@@ -58,7 +59,7 @@ public interface DataSet<Op extends SpliceOperation,V> {
      * @param dataSet
      * @return
      */
-    DataSet<Op,V> union (DataSet<Op,V> dataSet);
+    DataSet<V> union (DataSet<V> dataSet);
 
     /**
      * Apply a filter to the results, possible removing a row.
@@ -66,15 +67,15 @@ public interface DataSet<Op extends SpliceOperation,V> {
      * @param f
      * @return
      */
-    DataSet<Op,V> filter (SplicePredicateFunction<Op,V> f);
+    <Op extends SpliceOperation> DataSet<V> filter (SplicePredicateFunction<Op,V> f);
 
-    DataSet<Op,V> intersect(DataSet<Op,V> dataSet);
+    DataSet<V> intersect(DataSet<V> dataSet);
 
-    DataSet<Op,V> subtract(DataSet<Op,V> dataSet);
+    DataSet<V> subtract(DataSet<V> dataSet);
 
     boolean isEmpty();
 
-   <U> DataSet<Op,U> flatMap(SpliceFlatMapFunction<Op,V, U> f);
+   <Op extends SpliceOperation, U> DataSet<Op,U> flatMap(SpliceFlatMapFunction<Op,V, U> f);
 
     /**
      * Release any resources of the dataset
@@ -89,7 +90,5 @@ public interface DataSet<Op extends SpliceOperation,V> {
      * @param fetch
      * @return
      */
-    DataSet<Op,V> fetchWithOffset(int offset, int fetch);
-
-
+    DataSet<V> fetchWithOffset(int offset, int fetch);
  }
