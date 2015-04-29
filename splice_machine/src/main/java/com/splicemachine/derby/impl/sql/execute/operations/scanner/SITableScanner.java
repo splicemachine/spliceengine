@@ -21,10 +21,8 @@ import com.splicemachine.derby.utils.marshall.dvd.TypeProvider;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.hbase.MeasuredRegionScanner;
-import com.splicemachine.metrics.Counter;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.TimeView;
-import com.splicemachine.metrics.Timer;
 import com.splicemachine.si.api.SIFilter;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.TxnView;
@@ -51,8 +49,8 @@ import java.util.List;
  */
 public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoCloseable{
     private static Logger LOG = Logger.getLogger(SITableScanner.class);
-    private final Timer timer;
-    private final Counter filterCounter;
+//    private final Timer timer;
+//    private final Counter filterCounter;
     private MeasuredRegionScanner<Data> regionScanner;
     private final TransactionalRegion region;
     private final Scan scan;
@@ -102,8 +100,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
         this.rowDecodingMap = rowDecodingMap;
         this.keyColumnSortOrder = keyColumnSortOrder;
         this.indexName = indexName;
-        this.timer = metricFactory.newTimer();
-        this.filterCounter = metricFactory.newCounter();
+//        this.filterCounter = metricFactory.newCounter();
         this.regionScanner = scanner;
         this.keyDecodingMap = keyDecodingMap;
         this.accessedKeys = accessedPks;
@@ -163,12 +160,12 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
                 if(template.nColumns()>0){
                     if(!filterRowKey(currentKeyValue)||!filterRow(filter)){
                         //filter the row first, then filter the row key
-                        filterCounter.increment();
+                        //filterCounter.increment();
                         continue;
                     }
                 }else if(!filterRow(filter)){
                     //still need to filter rows to deal with transactional issues
-                    filterCounter.increment();
+                    //filterCounter.increment();
                     continue;
                 } else {
                     if (LOG.isTraceEnabled())
@@ -220,7 +217,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
     }
 
     public long getRowsFiltered(){
-        return filterCounter.getTotal();
+        return 0;
     }
 
     public long getRowsVisited() {

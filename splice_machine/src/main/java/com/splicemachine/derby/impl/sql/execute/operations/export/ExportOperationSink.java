@@ -13,7 +13,6 @@ import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import org.apache.log4j.Logger;
 import org.supercsv.io.CsvListWriter;
-
 import java.io.IOException;
 import java.io.OutputStream;
 
@@ -45,7 +44,7 @@ public class ExportOperationSink implements OperationSink {
         try {
             totalTimer.startTiming();
             ExecRow row;
-            while ((row = operation.getNextSinkRow(spliceRuntimeContext)) != null) {
+            while ((row = operation.getNextRowCore()) != null) {
                 SpliceBaseOperation.checkInterrupt(rowsRead, SpliceConstants.interruptLoopCheck);
                 rowsRead++;
                 rowWriter.writeRow(row, resultColumnDescriptors);

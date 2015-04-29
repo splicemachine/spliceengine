@@ -23,6 +23,7 @@ import java.util.concurrent.Callable;
  *  a small collection of rows). To alleviate this issue, while still providing for
  * a mechanism for when Scans <em>are</em> useable, This interface exists.
  */
+@Deprecated
 public interface RowProvider extends RowProviderIterator<ExecRow>  {
 
 	/**
@@ -75,11 +76,4 @@ public interface RowProvider extends RowProviderIterator<ExecRow>  {
      */
     SpliceRuntimeContext getSpliceRuntimeContext();
 
-    void reportStats(long statementId,
-                     long operationId,
-                     long taskId,
-                     String xplainSchema,
-                     String regionName) throws IOException;
-
-	IOStats getIOStats();
 }

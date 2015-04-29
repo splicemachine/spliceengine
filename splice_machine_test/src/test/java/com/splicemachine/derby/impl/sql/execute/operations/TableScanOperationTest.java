@@ -145,7 +145,7 @@ public class TableScanOperationTest {
         SpliceRuntimeContext runtimeContext = new SpliceRuntimeContext();
         ExecRow nextRow;
         do{
-            nextRow = tableScanOp.nextRow(runtimeContext);
+            nextRow = tableScanOp.getNextRowCore();
             if(nextRow!=null)
                 deserializedRows.add(nextRow.getClone());
         }while(nextRow!=null);

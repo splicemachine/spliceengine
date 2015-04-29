@@ -2,7 +2,6 @@ package com.splicemachine.derby.stream.iterator;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.NestedLoopJoinOperation;
@@ -25,8 +24,7 @@ public class NestedLoopIterator implements Iterator<LocatedRow>, Iterable<Locate
 
 
     public NestedLoopIterator(LocatedRow leftRow, NestedLoopJoinOperation operation,
-                              Iterator<LocatedRow> rightSideIterator,
-                       SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
+                              Iterator<LocatedRow> rightSideIterator) throws StandardException, IOException {
         SpliceLogUtils.trace(LOG, "NestedLoopIterator instantiated with leftRow %s", leftRow);
         this.leftRow = leftRow;
         this.operation = operation;

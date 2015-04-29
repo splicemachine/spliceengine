@@ -2,42 +2,27 @@ package com.splicemachine.derby.impl.storage;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
-import com.splicemachine.derby.hbase.SpliceOperationRegionObserver;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.job.JobInfo;
-import com.splicemachine.derby.impl.job.operation.MultiScanOperationJob;
 import com.splicemachine.derby.impl.job.scheduler.JobFutureFromResults;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationSink;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationSinkFactory;
-import com.splicemachine.derby.management.StatementInfo;
-import com.splicemachine.derby.management.XplainTaskReporter;
-import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.stats.TaskStats;
-import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.*;
-import com.splicemachine.metrics.IOStats;
-import com.splicemachine.metrics.Metrics;
-import com.splicemachine.metrics.MultiStatsView;
-import com.splicemachine.pipeline.api.WriteStats;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
-import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.Callable;
@@ -182,84 +167,6 @@ public class RowProviders {
 				}
 		}
 
-		public static Pair<JobFuture,JobInfo> submitMultiScanJob(List<Scan> scans, final HTableInterface table,
-																														 SpliceObserverInstructions instructions,
-																														 SpliceRuntimeContext runtimeContext) throws StandardException {
-				instructions.setSpliceRuntimeContext(runtimeContext);
-				JobFuture jobFuture = null;
-				JobInfo info = null;
-				StatementInfo stmtInfo = instructions.getSpliceRuntimeContext().getStatementInfo();
-				try {
-						long startTimeMs = System.currentTimeMillis();
-						MultiScanOperationJob job = getMultiJob(table,instructions,scans);
-						jobFuture = SpliceDriver.driver().getJobScheduler().submit(job);
-						info = new JobInfo(job.getJobId(), jobFuture.getNumTasks(), startTimeMs);
-						info.setJobFuture(jobFuture);
-						info.tasksRunning(jobFuture.getAllTaskIds());
-						if(stmtInfo!=null){
-								stmtInfo.addRunningJob(Bytes.toLong(instructions.getTopOperation().getUniqueSequenceID()),info);
-								jobFuture.addCleanupTask(StatementInfo.completeOnClose(stmtInfo, info));
-						}
-						//TODO -sf- close this earlier
-						jobFuture.addIntermediateCleanupTask(new Callable<Void>() {
-								@Override
-								public Void call() throws Exception {
-										table.close();
-										return null;
-								}
-						});
-
-						return Pair.newPair(jobFuture, info);
-
-				} catch (ExecutionException e) {
-                        SpliceLogUtils.error(LOG, org.apache.commons.lang.exception.ExceptionUtils.getStackTrace(e));
-						LOG.error(e);
-						if (info != null){
-								info.failJob();
-						}
-						if (jobFuture != null){
-								try {
-										jobFuture.cleanup();
-								} catch (ExecutionException ee){
-										LOG.error("Error cleaning up Scan Job future", ee);
-								}
-						}
-						throw Exceptions.parseException(e.getCause());
-				}
-
-		}
-		public static Pair<JobFuture,JobInfo> submitScanJob(Scan scan, HTableInterface table,
-																												SpliceObserverInstructions instructions,
-																												SpliceRuntimeContext runtimeContext) throws StandardException {
-				return submitMultiScanJob(Collections.singletonList(scan),table,instructions, runtimeContext);
-		}
-
-		private static MultiScanOperationJob getMultiJob(HTableInterface table, SpliceObserverInstructions instructions,List<Scan> scans){
-				for(Scan scan:scans){
-						if (scan.getAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS) == null)
-								SpliceUtils.setInstructions(scan, instructions);
-				}
-//				boolean readOnly = !(instructions.getTopOperation() instanceof DMLWriteOperation);
-//				StatementInfo info = instructions.getSpliceRuntimeContext().getStatementInfo();
-
-//				long statementId = info!=null? info.getStatementUuid(): -1l;
-//				Activation activation = instructions.getTopOperation().getActivation();
-//				LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-				return new MultiScanOperationJob(scans, instructions, table,instructions.getTxn(), SpliceConstants.operationTaskPriority);
-		}
-
-//		private static OperationJob getJob(HTableInterface table, SpliceObserverInstructions instructions, Scan scan) {
-//				if (scan.getAttribute(SpliceOperationRegionObserver.SPLICE_OBSERVER_INSTRUCTIONS) == null)
-//						SpliceUtils.setInstructions(scan, instructions);
-//				boolean readOnly = !(instructions.getTopOperation() instanceof DMLWriteOperation);
-//				StatementInfo info = instructions.getSpliceRuntimeContext().getStatementInfo();
-//
-//				long statementId = info!=null? info.getStatementUuid(): -1l;
-//				Activation activation = instructions.getTopOperation().getActivation();
-//				LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
-//				return new OperationJob(scan, instructions, table, readOnly,lcc.getRunTimeStatisticsMode(),statementId,lcc.getXplainSchema());
-//		}
-
     /**
      * A RowProvider that implements all methods by delegating to the passed RowProvider.  Extending is a
      * convenient way to change the behavior of just a few methods of the delegate without proxying.
@@ -320,16 +227,6 @@ public class RowProviders {
         @Override
         public String toString() {
             return String.format("DelegatingRowProvider { provider=%s } ", provider);
-        }
-
-        @Override
-        public void reportStats(long statementId, long operationId, long taskId, String xplainSchema, String regionName) throws IOException {
-            provider.reportStats(statementId, operationId, taskId, xplainSchema, regionName);
-        }
-
-        @Override
-        public IOStats getIOStats() {
-            return provider.getIOStats();
         }
 
         @Override
@@ -399,8 +296,8 @@ public class RowProviders {
 				@Override
 				public boolean hasNext() {
 						try {
-								nextEntry = source.nextRow(spliceRuntimeContext);
-						} catch (StandardException | IOException e) {
+								nextEntry = source.getNextRow();
+						} catch (StandardException e) {
                             SpliceLogUtils.error(LOG, org.apache.commons.lang.exception.ExceptionUtils.getStackTrace(e));
 								SpliceLogUtils.logAndThrowRuntime(log,e);
 						}
@@ -422,23 +319,6 @@ public class RowProviders {
 						return String.format("SourceRowProvider { source=%s } ",source);
 				}
 
-				@Override
-				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) throws IOException {
-						if(taskId==-1l) taskId = SpliceDriver.driver().getUUIDGenerator().nextUUID();
-						List<OperationRuntimeStats> opStats = OperationRuntimeStats.getOperationStats(
-										source, taskId, statementId, WriteStats.NOOP_WRITE_STATS, Metrics.noOpTimeView(), spliceRuntimeContext);
-						XplainTaskReporter taskReporter = SpliceDriver.driver().getTaskReporter();
-						String hostName = SpliceUtils.getHostName();
-						for(OperationRuntimeStats opStat:opStats){
-								opStat.setHostName(hostName);
-								taskReporter.report(opStat,spliceRuntimeContext.getTxn());
-						}
-				}
-
-				@Override
-				public IOStats getIOStats() {
-						return Metrics.noOpIOStats(); //don't record stats, since the operation will do it itself
-				}
 		}
 
 		/*
@@ -536,19 +416,6 @@ public class RowProviders {
 						return String.format("CombinedRowProvider { firstRowProvider=%s, secondRowProvider=%s } ",firstRowProvider, secondRowProvider);
 				}
 
-				@Override
-				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) throws IOException {
-						firstRowProvider.reportStats(statementId,operationId,taskId,xplainSchema,regionName);
-						secondRowProvider.reportStats(statementId,operationId,taskId,xplainSchema,regionName);
-				}
-
-				@Override
-				public IOStats getIOStats() {
-						MultiStatsView stats = new MultiStatsView(Metrics.multiTimeView());
-						stats.merge(firstRowProvider.getIOStats());
-						stats.merge(secondRowProvider.getIOStats());
-						return stats;
-				}
 		}
 
 		/*

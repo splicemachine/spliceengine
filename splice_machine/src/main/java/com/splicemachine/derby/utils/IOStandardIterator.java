@@ -7,6 +7,4 @@ import com.splicemachine.metrics.IOStats;
  *         Date: 5/13/14
  */
 public interface IOStandardIterator<T> extends StandardIterator<T> {
-
-		IOStats getStats();
 }

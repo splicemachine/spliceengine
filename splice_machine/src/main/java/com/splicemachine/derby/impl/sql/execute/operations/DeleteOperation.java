@@ -46,13 +46,13 @@ public class DeleteOperation extends DMLWriteOperation {
 
 	@Override
 	public void init(SpliceOperationContext context) throws StandardException, IOException {
-		SpliceLogUtils.trace(LOG,"DeleteOperation init with regionScanner %s",regionScanner);
+		SpliceLogUtils.trace(LOG,"DeleteOperation init");
 		super.init(context);
 		heapConglom = writeInfo.getConglomerateId();
 	}
 
 		@Override
-		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+		public KeyEncoder getKeyEncoder() throws StandardException {
 				return new KeyEncoder(NoOpPrefix.INSTANCE,new DataHash<ExecRow>(){
 						private ExecRow currentRow;
 
@@ -76,7 +76,7 @@ public class DeleteOperation extends DMLWriteOperation {
 		}
 
 		@Override
-		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+		public DataHash getRowHash() throws StandardException {
             return EMPTY_VALUES_ENCODER;
 		}
 

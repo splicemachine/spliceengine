@@ -4,19 +4,14 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
-
 import com.google.common.base.Strings;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
-
-import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
@@ -24,7 +19,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.framework.DerbyAggreg
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.utils.SpliceLogUtils;
 
-public abstract class GenericAggregateOperation extends SpliceBaseOperation implements SinkingOperation {
+public abstract class GenericAggregateOperation extends SpliceBaseOperation {
 		private static final long serialVersionUID = 1l;
 		private static Logger LOG = Logger.getLogger(GenericAggregateOperation.class);
 		protected SpliceOperation source;
@@ -33,15 +28,8 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation impl
 		protected SpliceMethod<ExecRow> rowAllocator;
 		protected ExecIndexRow sourceExecIndexRow;
 		protected ExecIndexRow sortTemplateRow;
-		protected static List<NodeType> nodeTypes;
-		protected Scan reduceScan;
 		protected boolean serializeSource = true;
 
-		protected long rowsInput;
-
-		static {
-				nodeTypes = Arrays.asList(NodeType.REDUCE,NodeType.SINK);
-		}
 		public GenericAggregateOperation () {
 				super();
 				SpliceLogUtils.trace(LOG, "instantiated");
@@ -96,11 +84,6 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation impl
 				if(serializeSource)
 						out.writeObject(source);
 		}
-		@Override
-		public List<NodeType> getNodeTypes() {
-				SpliceLogUtils.trace(LOG, "getNodeTypes");
-				return nodeTypes;
-		}
 
 		@Override
 		public List<SpliceOperation> getSubOperations() {
@@ -148,12 +131,6 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation impl
         return 0l; //TODO -sf- implement
 		}
 
-		@Override
-		public void open() throws StandardException, IOException {
-				super.open();
-				if(source!=null)source.open();
-		}
-
     @Override
     public String toString() {
         return String.format("GenericAggregateOperation {resultSetNumber=%d, source=%s}", resultSetNumber, source);
@@ -184,17 +161,6 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation impl
 				return source.isReferencingTable(tableNumber);
 		}
 
-		@Override
-		public byte[] getUniqueSequenceId() {
-				return uniqueSequenceID;
-		}
-
-    @Override
-    public void close() throws StandardException, IOException {
-        super.close();
-        // TODO: subclasses also do this - check if redundant
-        if (source != null) source.close();
-    }
     protected void initializeVectorAggregation(ExecRow aggResult) throws StandardException{
         for(SpliceGenericAggregator aggregator:aggregates){
             aggregator.initialize(aggResult);

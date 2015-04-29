@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations.framework;
 
 import java.io.IOException;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.constants.SpliceConstants;
@@ -34,7 +33,7 @@ public class SourceIterator implements StandardIterator<ExecRow> {
          */
         @Override
         public ExecRow next(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-            ExecRow execRow= source.nextRow(spliceRuntimeContext);
+            ExecRow execRow= source.getNextRowCore();
             rowsRead++;
 			SpliceBaseOperation.checkInterrupt(rowsRead,SpliceConstants.interruptLoopCheck);
             return execRow;

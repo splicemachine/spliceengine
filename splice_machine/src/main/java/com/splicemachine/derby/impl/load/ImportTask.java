@@ -7,14 +7,10 @@ import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
-import com.splicemachine.derby.metrics.OperationMetric;
-import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.metrics.IOStats;
 import com.splicemachine.metrics.Metrics;
-import com.splicemachine.metrics.TimeView;
 import com.splicemachine.metrics.Timer;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnLifecycleManager;
@@ -22,20 +18,17 @@ import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 import com.splicemachine.uuid.UUIDGenerator;
-import com.splicemachine.pipeline.api.WriteStats;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -196,8 +189,6 @@ public class ImportTask extends ZkTask{
 										stopTime = System.currentTimeMillis();
 								}
 								totalTimer.stopTiming();
-								//don't report stats if there's an error
-								reportStats(startTime, stopTime,importer.getTotalTime(),totalTimer.getTime());
 								TaskStats stats = new TaskStats(stopTime-startTime,rowsRead,
 												rowsRead-errorReporter.errorsReported());
 								getTaskStatus().setStats(stats);
@@ -278,37 +269,6 @@ public class ImportTask extends ZkTask{
 				Path badLogFile = new Path(directory,"_BAD_"+importContext.getFilePath().getName()+"_"+Bytes.toLong(taskId));
 
 				return new FileErrorLogger(fileSystem,badLogFile,128);
-		}
-
-		protected void reportStats(long startTimeMs, long stopTimeMs,TimeView processTime,TimeView totalTimeView) throws IOException {
-				if(importContext.shouldRecordStats()){
-						OperationRuntimeStats runtimeStats = new OperationRuntimeStats(statementId, operationId,
-										Bytes.toLong(getTaskId()),region.getRegionNameAsString(),12);
-
-						IOStats readStats = reader.getStats();
-						TimeView readView = readStats.getTime();
-						runtimeStats.addMetric(OperationMetric.START_TIMESTAMP,startTimeMs);
-						runtimeStats.addMetric(OperationMetric.STOP_TIMESTAMP,stopTimeMs);
-						runtimeStats.addMetric(OperationMetric.TOTAL_WALL_TIME, totalTimeView.getWallClockTime());
-						runtimeStats.addMetric(OperationMetric.TOTAL_CPU_TIME, totalTimeView.getCpuTime());
-						runtimeStats.addMetric(OperationMetric.TOTAL_USER_TIME, totalTimeView.getUserTime());
-						runtimeStats.addMetric(OperationMetric.TASK_QUEUE_WAIT_WALL_TIME,waitTimeNs);
-
-						runtimeStats.addMetric(OperationMetric.REMOTE_SCAN_BYTES,readStats.bytesSeen());
-						runtimeStats.addMetric(OperationMetric.REMOTE_SCAN_ROWS,readStats.elementsSeen());
-						runtimeStats.addMetric(OperationMetric.REMOTE_SCAN_WALL_TIME,readView.getWallClockTime());
-						runtimeStats.addMetric(OperationMetric.REMOTE_SCAN_CPU_TIME,readView.getCpuTime());
-						runtimeStats.addMetric(OperationMetric.REMOTE_SCAN_USER_TIME,readView.getUserTime());
-
-						runtimeStats.addMetric(OperationMetric.PROCESSING_WALL_TIME,processTime.getWallClockTime());
-						runtimeStats.addMetric(OperationMetric.PROCESSING_CPU_TIME,processTime.getCpuTime());
-						runtimeStats.addMetric(OperationMetric.PROCESSING_USER_TIME,processTime.getUserTime());
-
-						WriteStats writeStats = importer.getWriteStats();
-						OperationRuntimeStats.addWriteStats(writeStats, runtimeStats);
-
-						SpliceDriver.driver().getTaskReporter().report(runtimeStats,getTxn());
-				}
 		}
 
 		protected Importer getImporter(ExecRow row,ImportErrorReporter errorReporter) throws ExecutionException {

@@ -7,20 +7,11 @@ import java.sql.Types;
 import java.util.Collections;
 import java.util.List;
 import com.google.common.base.Strings;
-import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.metrics.OperationMetric;
-import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.stream.DataSet;
 import com.splicemachine.derby.stream.DataSetProcessor;
 import com.splicemachine.derby.stream.OperationContext;
 import com.splicemachine.derby.stream.function.SpliceFunction;
 import com.splicemachine.pipeline.exception.Exceptions;
-import com.splicemachine.derby.utils.StandardSupplier;
-import com.splicemachine.derby.utils.marshall.*;
-import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
-import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
-import com.splicemachine.utils.IntArrays;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -33,7 +24,6 @@ import com.splicemachine.db.shared.common.reference.SQLState;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public class NormalizeOperation extends SpliceBaseOperation {
@@ -66,13 +56,13 @@ public class NormalizeOperation extends SpliceBaseOperation {
 		}
 
 		public NormalizeOperation(SpliceOperation source,
-															Activation activaation,
+															Activation activation,
 															int resultSetNumber,
 															int erdNumber,
 															double optimizerEstimatedRowCount,
 															double optimizerEstimatedCost,
 															boolean forUpdate) throws StandardException{
-				super(activaation,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
+				super(activation,resultSetNumber,optimizerEstimatedRowCount,optimizerEstimatedCost);
 				this.source = source;
 				this.erdNumber = erdNumber;
 				this.forUpdate = forUpdate;
@@ -111,30 +101,12 @@ public class NormalizeOperation extends SpliceBaseOperation {
 				normalizedRow = activation.getExecutionFactory().getValueRow(numCols);
 				cachedDestinations = new DataValueDescriptor[numCols];
 				startCol = computeStartColumn(forUpdate,resultDescription);
-				startExecutionTime = System.currentTimeMillis();
-		}
-
-		@Override
-		public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-				return source.getMapRowProvider(top, decoder, spliceRuntimeContext);
-		}
-
-
-		@Override
-		public RowProvider getReduceRowProvider(SpliceOperation top,
-																						PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException, IOException {
-				return source.getReduceRowProvider(top, decoder, spliceRuntimeContext, returnDefaultValue);
 		}
 
 		private int computeStartColumn(boolean forUpdate,
 																	 ResultDescription resultDescription) {
 				int count = resultDescription.getColumnCount();
 				return forUpdate ? ((count-1)/2)+1 : 1;
-		}
-
-		@Override
-		public List<NodeType> getNodeTypes() {
-				return Collections.singletonList(NodeType.MAP);
 		}
 
 		@Override
@@ -166,69 +138,6 @@ public class NormalizeOperation extends SpliceBaseOperation {
 		public boolean isReferencingTable(long tableNumber) {
 				return source.isReferencingTable(tableNumber);
 		}
-
-		@Override
-		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-			/*
-			 * We only ask for this KeyEncoder if we are the top of a RegionScan.
-			 * In this case, we encode with either the current row location or a
-			 * random UUID (if the current row location is null).
-			 *
-			 * Note (-sf-): I believe that this method is never actually called, because
-			 * Normalize doesn't really make sense unless it is underneath another operation
-			 * like Union
-			 */
-				DataHash hash = new SuppliedDataHash(new StandardSupplier<byte[]>() {
-						@Override
-						public byte[] get() throws StandardException {
-								if(currentRowLocation!=null)
-										return currentRowLocation.getBytes();
-								return SpliceDriver.driver().getUUIDGenerator().nextUUIDBytes();
-						}
-				});
-
-				return new KeyEncoder(NoOpPrefix.INSTANCE,hash,NoOpPostfix.INSTANCE);
-		}
-
-		@Override
-		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-				ExecRow defnRow = getExecRowDefinition();
-				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(defnRow);
-				return BareKeyHash.encoder(IntArrays.count(defnRow.nColumns()),null,serializers);
-		}
-
-		@Override
-		public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-				ExecRow sourceRow;
-				ExecRow result = null;
-
-				if(timer==null)
-						timer = spliceRuntimeContext.newTimer();
-
-				timer.startTiming();
-				sourceRow = source.nextRow(spliceRuntimeContext);
-				if(sourceRow!=null){
-						result = normalizeRow(sourceRow,true);
-				}
-				setCurrentRow(result);
-				if(result==null){
-						timer.stopTiming();
-						stopExecutionTime = System.currentTimeMillis();
-				}else{
-						timer.tick(1);
-				}
-				return result;
-		}
-
-		@Override
-		protected void updateStats(OperationRuntimeStats stats) {
-				if(timer!=null) {
-                    stats.addMetric(OperationMetric.INPUT_ROWS, timer.getNumEvents());
-                    stats.addMetric(OperationMetric.OUTPUT_ROWS, timer.getNumEvents());
-                }
-		}
-
-		@Override protected int getNumMetrics() { return super.getNumMetrics()+1; }
 
 		private ExecRow normalizeRow(ExecRow sourceRow,boolean requireNotNull) throws StandardException {
 				int colCount = resultDescription.getColumnCount();
@@ -344,18 +253,6 @@ public class NormalizeOperation extends SpliceBaseOperation {
         return String.format("NormalizeOperation {resultSetNumber=%d, source=%s}", resultSetNumber, source);
     }
 
-		@Override
-		public void open() throws StandardException, IOException {
-				super.open();
-				if(source!=null) source.open();
-		}
-
-    @Override
-    public void close() throws StandardException, IOException {
-        super.close();
-        if(source!=null) source.close();
-    }
-
 		public SpliceOperation getSource() {
 				return this.source;
 		}
@@ -373,9 +270,9 @@ public class NormalizeOperation extends SpliceBaseOperation {
 								.toString();
 		}
 
-    public DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, DataSetProcessor dsp) throws StandardException {
-        return source.getDataSet(spliceRuntimeContext).
-                map(new NormalizeSparkFunction(dsp.createOperationContext(this, spliceRuntimeContext)));
+    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+        return source.getDataSet().
+                map(new NormalizeSparkFunction(dsp.createOperationContext(this)));
     }
 
 

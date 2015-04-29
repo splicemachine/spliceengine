@@ -52,9 +52,4 @@ public class DistinctGroupedAggregateOperation extends GroupedAggregateOperation
 		recordConstructorTime();
     }
 
-		@Override
-		public byte[] getUniqueSequenceId() {
-				return uniqueSequenceID;
-		}
-
 }

@@ -12,15 +12,11 @@ import com.splicemachine.derby.impl.job.scheduler.*;
 import com.splicemachine.derby.impl.load.ImportTaskManagementStats;
 import com.splicemachine.derby.impl.sql.execute.sequence.AbstractSequenceKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
-import com.splicemachine.derby.impl.stats.StatisticsStorage;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.temp.TempTable;
-import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
 import com.splicemachine.derby.management.StatementManager;
-import com.splicemachine.derby.management.XplainTaskReporter;
 import com.splicemachine.derby.utils.ErrorReporter;
-import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.SpliceMetrics;
 import com.splicemachine.hbase.backup.BackupHFileCleaner;
@@ -47,7 +43,6 @@ import com.splicemachine.db.drda.NetworkServerControl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.HColumnDescriptor;
@@ -61,9 +56,7 @@ import org.apache.hadoop.hbase.regionserver.RegionCoprocessorHost;
 import org.apache.hadoop.hbase.regionserver.RegionServerServices;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import javax.management.*;
-
 import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.net.InetAddress;
@@ -106,7 +99,6 @@ public class SpliceDriver {
     private RegionServerServices regionServerServices;
     private JmxReporter metricsReporter;
     private Connection connection;
-    private XplainTaskReporter taskReporter;
 
     private volatile NetworkServerControl server;
     private volatile Snowflake snowflake;
@@ -175,9 +167,6 @@ public class SpliceDriver {
         hfileCleaners.add(BackupHFileCleaner.class.getName());
         c.setStrings(HFileCleaner.MASTER_HFILE_CLEANER_PLUGINS,
                 hfileCleaners.toArray(new String[hfileCleaners.size()]));
-    }
-    public XplainTaskReporter getTaskReporter() {
-        return taskReporter;
     }
 
     /**
@@ -294,7 +283,6 @@ public class SpliceDriver {
                             return null;
                         }
 
-                        taskReporter = new XplainTaskReporter();
                         statementManager = new StatementManager();
                         logging = new LogManager();
                         SpliceLogUtils.debug(LOG, "Finished Booting Database");

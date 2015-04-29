@@ -16,7 +16,6 @@ import com.splicemachine.derby.stream.derby.DataSetNoPutResultSet;
 import com.splicemachine.metrics.IOStats;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.uuid.Snowflake;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -91,7 +90,7 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
         topOperation.markAsTopResultSet();
     }
 
-    private StatementInfo initStatmentInfo(TxnView txn,StatementInfo stmtInfo, SpliceOperationContext opCtx) throws StandardException {
+    /*private StatementInfo initStatmentInfo(TxnView txn,StatementInfo stmtInfo, SpliceOperationContext opCtx) throws StandardException {
         if (stmtInfo != null){
             // if statementInfo already created for this ResultSet, don't create again nor add
             // to StatementManager
@@ -122,6 +121,7 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 
         return stmtInfo;
     }
+    */
 
 	public DataSetNoPutResultSet getDelegate(){
 		return delegate;
@@ -147,7 +147,7 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
             dsp.setJobGroup(jobName,jobDescription);
             boolean returnsRows = !(topOperation instanceof DMLWriteOperation || topOperation instanceof CallStatementOperation
                 || topOperation instanceof MiscOperation);
-            delegate = new DataSetNoPutResultSet(activation, topOperation, topOperation.getDataSet(context),returnsRows);
+            delegate = new DataSetNoPutResultSet(activation, topOperation, topOperation.getDataSet(),returnsRows);
             delegate.setScrollId(scrollUuid);
             delegate.openCore();
         }catch(RuntimeException re){
@@ -159,52 +159,14 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
     }
 
     public SpliceRuntimeContext sinkOpen(TxnView txn,boolean showStatementInfo) throws StandardException, IOException {
-        this.txn = txn;
-        SpliceLogUtils.trace(LOG,"sinkOpen");
-        closed=false;
-        if(delegate!=null) delegate.close();
-        SpliceRuntimeContext runtimeContext = new SpliceRuntimeContext(txn);
+        throw new RuntimeException("no Sinks now");
+    }
 
-        try {
-            List<SpliceBaseOperation.XplainOperationChainInfo> operationChain = SpliceBaseOperation.operationChain.get();
-            if (operationChain != null && operationChain.size() > 0) {
-                operationChainInfo = operationChain.get(operationChain.size()-1);
-                runtimeContext.recordTraceMetrics();
-                if(parentOperationID==-1l)
-                    parentOperationID = operationChainInfo.getOperationId();
-                statementId = operationChainInfo.getStatementId();
-            }
-
-            SpliceOperationContext operationContext = SpliceOperationContext.newContext(activation,txn);
-            topOperation.init(operationContext);
-            topOperation.open();
-            if(showStatementInfo){
-                statementInfo = initStatmentInfo(txn,statementInfo, operationContext);
-//                if(activation.isTraced()){
-//                    SQLWarning w = StandardException.newWarning(WarningState.XPLAIN_STATEMENT_ID.getSqlState(), statementInfo.getStatementUuid());
-//                    ((GenericStorablePreparedStatement)activation.getPreparedStatement()).addWarning(w);
-//                }
-            }
-        } catch (IOException e) {
-            throw Exceptions.parseException(e);
-        }
-
-        try{
-
-            if(showStatementInfo)
-                runtimeContext.setStatementInfo(statementInfo);
-            if(activation.isTraced()){
-                runtimeContext.recordTraceMetrics();
-            }
-
-            List<byte[]> taskChain = TableOperationSink.taskChain.get();
-            if (taskChain != null && taskChain.size() > 0){
-                runtimeContext.setParentTaskId(taskChain.get(taskChain.size() - 1));
-            }
-            return runtimeContext;
-        }catch(RuntimeException e){
-            throw Exceptions.parseException(e);
-        }
+    public TxnView getCurrentTransaction() throws StandardException {
+        if(topOperation instanceof DMLWriteOperation || activation.isTraced()){
+            return elevateTransaction();
+        }else
+           return getTransaction();
     }
 
     public SpliceRuntimeContext sinkOpen(boolean useProbe, boolean showStatementInfo) throws StandardException, IOException {

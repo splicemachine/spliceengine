@@ -1,17 +1,13 @@
 package com.splicemachine.hbase.backup;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
-import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.hadoop.hbase.util.Pair;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -26,7 +22,7 @@ public class PurgeTransactionsTask extends ZkTask {
     }
 
     public PurgeTransactionsTask(long backupTimestamp, String jobId) {
-        super(jobId, OperationJob.operationTaskPriority);
+        super(jobId, SpliceConstants.operationTaskPriority);
         this.backupTimestamp = backupTimestamp;
     }
 

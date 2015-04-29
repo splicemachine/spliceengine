@@ -7,18 +7,14 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
-import com.splicemachine.derby.metrics.OperationMetric;
-import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.StandardIterator;
-import com.splicemachine.derby.utils.StandardIterators;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
@@ -26,8 +22,6 @@ import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.metrics.Counter;
-import com.splicemachine.metrics.MetricFactory;
-import com.splicemachine.metrics.TimeView;
 import com.splicemachine.metrics.Timer;
 import com.splicemachine.pipeline.api.RecordingCallBuffer;
 import com.splicemachine.pipeline.callbuffer.ForwardRecordingCallBuffer;
@@ -37,7 +31,6 @@ import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
@@ -52,7 +45,6 @@ import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 
 /**
@@ -90,6 +82,7 @@ public class UpdateOperation extends DMLWriteOperation{
         recordConstructorTime();
     }
 
+    /*
     @Override
     public ExecRow getNextSinkRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
         if(noOpRowSkipper == null) {
@@ -103,24 +96,24 @@ public class UpdateOperation extends DMLWriteOperation{
         return nextSinkRow;
     }
 
+*/
     @Override
 		public void init(SpliceOperationContext context) throws StandardException, IOException {
-				SpliceLogUtils.trace(LOG,"init with regionScanner %s",regionScanner);
+				SpliceLogUtils.trace(LOG,"init");
 				super.init(context);
 				heapConglom = writeInfo.getConglomerateId();
 
 				pkCols = writeInfo.getPkColumnMap();
-        pkColumns = writeInfo.getPkColumns();
+            pkColumns = writeInfo.getPkColumns();
 
-        SpliceConglomerate conglomerate = (SpliceConglomerate)((SpliceTransactionManager)activation.getTransactionController()).findConglomerate(heapConglom);
-        int[] format_ids = conglomerate.getFormat_ids();
-        int[] columnOrdering = conglomerate.getColumnOrdering();
-        kdvds = new DataValueDescriptor[columnOrdering.length];
-        for (int i = 0; i < columnOrdering.length; ++i) {
-            kdvds[i] = LazyDataValueFactory.getLazyNull(format_ids[columnOrdering[i]]);
-        }
+            SpliceConglomerate conglomerate = (SpliceConglomerate)((SpliceTransactionManager)activation.getTransactionController()).findConglomerate(heapConglom);
+            int[] format_ids = conglomerate.getFormat_ids();
+            int[] columnOrdering = conglomerate.getColumnOrdering();
+            kdvds = new DataValueDescriptor[columnOrdering.length];
+            for (int i = 0; i < columnOrdering.length; ++i) {
+                kdvds[i] = LazyDataValueFactory.getLazyNull(format_ids[columnOrdering[i]]);
+            }
 
-				startExecutionTime = System.currentTimeMillis();
 		}
 
     private int[] getColumnPositionMap(FormatableBitSet heapList) {
@@ -160,7 +153,7 @@ public class UpdateOperation extends DMLWriteOperation{
     }
 
 		@Override
-		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+		public KeyEncoder getKeyEncoder() throws StandardException {
 				DataHash hash;
 				FormatableBitSet heapList = getHeapList();
 				if(!modifiedPrimaryKeys(heapList)){
@@ -192,7 +185,7 @@ public class UpdateOperation extends DMLWriteOperation{
 		}
 
 		@Override
-		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+		public DataHash getRowHash() throws StandardException {
 				FormatableBitSet heapList = getHeapList();
 				boolean modifiedPrimaryKeys = modifiedPrimaryKeys(heapList);
 
@@ -207,7 +200,7 @@ public class UpdateOperation extends DMLWriteOperation{
 
 				int[] finalPkColumns = getFinalPkColumns(colPositionMap);
 
-				resultSupplier = new ResultSupplier(new BitSet(),spliceRuntimeContext);
+				resultSupplier = new ResultSupplier(new BitSet());
 				return new PkRowHash(finalPkColumns,null,heapList,colPositionMap,resultSupplier,serializers);
 		}
 
@@ -274,24 +267,6 @@ public class UpdateOperation extends DMLWriteOperation{
 		}
 
 		@Override
-		protected void updateStats(OperationRuntimeStats stats) {
-				if(resultSupplier!=null){
-						//add supplier metrics
-						Timer timer = resultSupplier.getTimer;
-						stats.addMetric(OperationMetric.REMOTE_GET_ROWS,timer.getNumEvents());
-						stats.addMetric(OperationMetric.REMOTE_GET_BYTES, resultSupplier.getBytes.getTotal());
-						TimeView getView = timer.getTime();
-						stats.addMetric(OperationMetric.REMOTE_GET_WALL_TIME,getView.getWallClockTime());
-						stats.addMetric(OperationMetric.REMOTE_GET_CPU_TIME,getView.getCpuTime());
-						stats.addMetric(OperationMetric.REMOTE_GET_USER_TIME,getView.getUserTime());
-				}
-				if(timer!=null){
-						//same number of inputs as outputs
-						stats.addMetric(OperationMetric.INPUT_ROWS,timer.getNumEvents());
-				}
-		}
-
-		@Override
 		public String toString() {
 				return "Update{destTable="+heapConglom+",source=" + source + "}";
 		}
@@ -317,12 +292,10 @@ public class UpdateOperation extends DMLWriteOperation{
 				private Timer getTimer;
 				public Counter getBytes;
 
-				private ResultSupplier(BitSet interestedFields,MetricFactory metricFactory) {
+				private ResultSupplier(BitSet interestedFields) {
 						//we need the index so that we can transform data without the information necessary to decode it
 						EntryPredicateFilter predicateFilter = new EntryPredicateFilter(interestedFields,new ObjectArrayList<Predicate>(),true);
 						this.filterBytes = predicateFilter.toBytes();
-						this.getTimer = metricFactory.newTimer();
-						this.getBytes = metricFactory.newCounter();
 				}
 
 				public void setLocation(byte[] location){
@@ -573,17 +546,5 @@ public class UpdateOperation extends DMLWriteOperation{
                 return NoOpKeyHashDecoder.INSTANCE;
             }
         }
-
-    /**
-     * StandardIterator for providing sink rows from super class.
-     */
-    private class SuperSinkRowStandardIterator extends StandardIterators.BaseStandardIterator<ExecRow> {
-        @Override
-        public ExecRow next(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-            return UpdateOperation.super.getNextSinkRow(spliceRuntimeContext);
-        }
-    }
-
-
 
 }

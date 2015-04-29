@@ -1,19 +1,17 @@
 package com.splicemachine.derby.stream.spark;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stream.OperationContext;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-import org.apache.spark.AccumulableParam;
 import org.apache.spark.Accumulator;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -27,7 +25,6 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
         public SpliceTransactionResourceImpl impl;
         public Activation activation;
         public SpliceOperationContext context;
-        public SpliceRuntimeContext spliceRuntimeContext;
         public Op op;
         public TxnView txn;
         public Accumulator<Integer> rowsRead;
@@ -37,11 +34,14 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
         public SparkOperationContext() {
         }
 
-        protected SparkOperationContext(Op spliceOperation, SpliceRuntimeContext spliceRuntimeContext) {
-            this.spliceRuntimeContext = spliceRuntimeContext;
+        protected SparkOperationContext(Op spliceOperation)  {
             this.op = spliceOperation;
             this.activation = op.getActivation();
-            this.txn = spliceRuntimeContext.getTxn();
+            try {
+                this.txn = spliceOperation.getCurrentTransaction();
+            } catch (StandardException se) {
+                throw new RuntimeException(se);
+            }
             this.rowsRead = SpliceSpark.getContext().accumulator(0, op.getName()+" rows read");
             this.rowsFiltered = SpliceSpark.getContext().accumulator(0, op.getName()+" rows filtered");
             this.rowsWritten = SpliceSpark.getContext().accumulator(0, op.getName()+" rows written");
@@ -53,7 +53,7 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
         @Override
         public void writeExternal(ObjectOutput out) throws IOException {
             if (soi == null)
-                soi = SpliceObserverInstructions.create(op.getActivation(), op, spliceRuntimeContext);
+                soi = SpliceObserverInstructions.create(op.getActivation(), op);
             out.writeObject(soi);
             out.writeObject(op);
             out.writeObject(rowsRead);
@@ -108,11 +108,6 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
     @Override
     public Activation getActivation() {
         return activation;
-    }
-
-    @Override
-    public SpliceRuntimeContext getSpliceRuntimeContext() {
-        return spliceRuntimeContext;
     }
 
     @Override

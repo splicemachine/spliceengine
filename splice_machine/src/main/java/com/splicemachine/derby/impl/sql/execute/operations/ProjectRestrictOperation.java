@@ -8,28 +8,20 @@ import com.google.common.base.Strings;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.derby.stream.spark.RDDUtils;
-import com.splicemachine.derby.metrics.OperationMetric;
-import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.stream.*;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
-import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.pipeline.exception.Exceptions;
-import com.splicemachine.utils.SpliceLogUtils;
 
 public class ProjectRestrictOperation extends SpliceBaseOperation {
 
@@ -46,16 +38,10 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		protected boolean[] cloneMap;
 		protected boolean shortCircuitOpen;
 		protected SpliceOperation source;
-		protected static List<NodeType> nodeTypes;
 		private boolean alwaysFalse;
 		protected SpliceMethod<DataValueDescriptor> restriction;
 		protected SpliceMethod<ExecRow> projection;
         private ExecRow projectionResult;
-
-		static {
-				nodeTypes = Collections.singletonList(NodeType.MAP);
-		}
-
 		public NoPutResultSet[] subqueryTrackingArray;
 		private ExecRow execRowDefinition;
 
@@ -172,11 +158,6 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 				return source;
 		}
 
-		@Override
-		public List<NodeType> getNodeTypes() {
-				return nodeTypes;
-		}
-
 		private ExecRow doProjection(ExecRow sourceRow) throws StandardException {
 				ExecRow result;
 				if (projection != null) {
@@ -200,109 +181,6 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 	    /* We need to reSet the current row after doing the projection */
 				setCurrentRow(result);
         /* Remember the result if reusing it */
-				return result;
-		}
-
-		@Override
-		public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
-				try {
-						RowProvider provider = getReduceRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext),runtimeContext, true);
-						SpliceNoPutResultSet rs =  new SpliceNoPutResultSet(activation,this, provider);
-						nextTime += getCurrentTimeMillis() - beginTime;
-						return rs;
-				} catch (IOException e) {
-						throw Exceptions.parseException(e);
-				}
-		}
-
-		@Override
-		public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-				return source.getMapRowProvider(top, decoder, spliceRuntimeContext);
-		}
-
-		@Override
-		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException, IOException {
-				return source.getReduceRowProvider(top, decoder, spliceRuntimeContext, returnDefaultValue);
-		}
-
-
-		@Override
-		public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-				if(alwaysFalse){
-						return null;
-				}
-				if(timer==null){
-						timer = spliceRuntimeContext.newTimer();
-						timer.startTiming();
-				}
-
-				ExecRow candidateRow;
-				ExecRow result = null;
-				boolean restrict = false;
-				DataValueDescriptor restrictBoolean;
-
-				do {
-						candidateRow = source.nextRow(spliceRuntimeContext);
-						if (LOG.isTraceEnabled())
-								SpliceLogUtils.trace(LOG, ">>>   ProjectRestrictOp[%d]: Candidate: %s", Bytes.toLong(uniqueSequenceID), candidateRow);
-						if (candidateRow != null) {
-								inputRows++;
-								/* If restriction is null, then all rows qualify */
-								if (restriction == null) {
-										restrict = true;
-								} else {
-                                        if (activation.isTraced()) {
-                                            // Push the operation Id
-                                            addToOperationChain(spliceRuntimeContext, "Subquery:" + restrictionMethodName, uniqueSequenceID);
-                                        }
-										setCurrentRow(candidateRow);
-										try {
-											restrictBoolean = restriction.invoke();
-										} catch (Exception e) {
-											System.out.println(candidateRow);
-											throw new IOException(e);
-										}
-										// if the result is null, we make it false --
-										// so the row won't be returned.
-										restrict = ((! restrictBoolean.isNull()) && restrictBoolean.getBoolean());
-										if (!restrict) {
-												if (LOG.isTraceEnabled())
-														SpliceLogUtils.trace(LOG, ">>>   ProjectRestrictOp[%d]: Candidate Filtered: %s",Bytes.toLong(uniqueSequenceID), candidateRow);
-												rowsFiltered++;
-										}
-                                        if(candidateRow != null && !restrict && activation.isTraced()) {
-                                            removeFromOperationChain();
-                                        }
-								}
-						}
-				} while ( (candidateRow != null) && (!restrict) );
-				if (candidateRow != null)  {
-						result = doProjection(candidateRow);
-						if (LOG.isTraceEnabled())
-								SpliceLogUtils.trace(LOG, ">>>   ProjectRestrictOp[%d] Result: %s",Bytes.toLong(uniqueSequenceID), result);
-				} else {
-					/* Clear the current row, if null */
-						clearCurrentRow();
-				}
-				currentRow = result;
-				setCurrentRow(currentRow);
-				if (statisticsTimingOn) {
-						/*if (! isTopResultSet) {
-								// This is simply for RunTimeStats
-								//TODO: need to getStatementContext() from somewhere
-								if (activation.getLanguageConnectionContext().getStatementContext() == null)
-										SpliceLogUtils.trace(LOG, "Cannot get StatementContext from Activation's lcc");
-								else
-										subqueryTrackingArray = activation.getLanguageConnectionContext().getStatementContext().getSubqueryTrackingArray();
-						}*/
-                    // Remove the last emelemt in the chain since this operation is exiting
-                    removeFromOperationChain();
-                    nextTime += getElapsedMillis(beginTime);
-				}
-				if(result ==null){
-						timer.stopTiming();
-						stopExecutionTime = System.currentTimeMillis();
-				}
 				return result;
 		}
 
@@ -359,35 +237,6 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 				return this.source;
 		}
 
-		@Override protected int getNumMetrics() { return 1; }
-
-		@Override
-		protected void updateStats(OperationRuntimeStats stats) {
-				stats.addMetric(OperationMetric.FILTERED_ROWS,rowsFiltered);
-				stats.addMetric(OperationMetric.INPUT_ROWS,inputRows);
-            stats.addMetric(OperationMetric.OUTPUT_ROWS,inputRows-rowsFiltered);
-		}
-
-		@Override
-		public void open() throws StandardException, IOException {
-				super.open();
-				if (LOG.isTraceEnabled())
-						SpliceLogUtils.trace(LOG,">>>   ProjectRestrictOp: Opening ",(source != null ? source.getClass().getSimpleName() : "null source"));
-				if(source!=null)source.open();
-		}
-
-		@Override
-		public void	close() throws StandardException, IOException {
-				SpliceLogUtils.trace(LOG, "close in ProjectRestrict");
-        operationChain.remove(); //we are done here
-				/* Nothing to do if open was short circuited by false constant expression */
-				if (LOG.isTraceEnabled())
-						SpliceLogUtils.trace(LOG, ">>>   ProjectRestrictOp: Closing ", (source != null ? source.getClass().getSimpleName() : "null source"));
-				super.close();
-				source.close();
-				closeTime += getElapsedMillis(beginTime);
-		}
-
 		@Override
 		public String prettyPrint(int indentLevel) {
 				String indent = "\n"+ Strings.repeat("\t",indentLevel);
@@ -400,11 +249,11 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 								+ "source:" + source.prettyPrint(indentLevel + 1);
 		}
 
-    public DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, DataSetProcessor dsp) throws StandardException {
+    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         if (alwaysFalse) {
             return dsp.getEmpty();
         }
-        return source.getDataSet(spliceRuntimeContext).mapPartitions(new ProjectRestrictSparkOp(dsp.createOperationContext(this,spliceRuntimeContext)));
+        return source.getDataSet().mapPartitions(new ProjectRestrictSparkOp(dsp.createOperationContext(this)));
     }
 
 

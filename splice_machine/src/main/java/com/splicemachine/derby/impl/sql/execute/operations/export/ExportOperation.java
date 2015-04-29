@@ -2,30 +2,17 @@ package com.splicemachine.derby.impl.sql.execute.operations.export;
 
 
 import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableList;
-import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.*;
-import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
-import com.splicemachine.derby.impl.sql.execute.operations.OperationUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.UpdateOperation;
-import com.splicemachine.derby.metrics.OperationMetric;
-import com.splicemachine.derby.metrics.OperationRuntimeStats;
-import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.stream.DataSet;
 import com.splicemachine.derby.stream.DataSetProcessor;
-import com.splicemachine.derby.utils.marshall.PairDecoder;
-import com.splicemachine.job.JobResults;
 import com.splicemachine.pipeline.exception.Exceptions;
-import com.splicemachine.si.api.TxnView;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -35,11 +22,9 @@ import java.util.List;
 /**
  * Export the results of an arbitrary SELECT query to HDFS.
  */
-public class ExportOperation extends SpliceBaseOperation implements SinkingOperation {
+public class ExportOperation extends SpliceBaseOperation {
 
     private static final long serialVersionUID = 0L;
-
-    protected static List<NodeType> NODE_TYPES = ImmutableList.of(NodeType.REDUCE);
 
     private SpliceOperation source;
     private ResultColumnDescriptor[] sourceColumnDescriptors;
@@ -89,11 +74,6 @@ public class ExportOperation extends SpliceBaseOperation implements SinkingOpera
     }
 
     @Override
-    public List<NodeType> getNodeTypes() {
-        return NODE_TYPES;
-    }
-
-    @Override
     public SpliceOperation getLeftOperation() {
         return source;
     }
@@ -104,87 +84,8 @@ public class ExportOperation extends SpliceBaseOperation implements SinkingOpera
     }
 
     @Override
-    public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
-        long totalTimeMillis = System.currentTimeMillis() - this.startExecutionTime;
-        ExportRowProvider rowProvider = new ExportRowProvider(runtimeContext, this.rowsSunk, totalTimeMillis);
-        return new SpliceNoPutResultSet(activation, this, rowProvider, true);
-    }
-
-    @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-        return source.getMapRowProvider(top, decoder, spliceRuntimeContext);
-    }
-
-    @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException, IOException {
-        return source.getReduceRowProvider(top, decoder, spliceRuntimeContext, returnDefaultValue);
-    }
-
-    @Override
-    protected JobResults doShuffle(SpliceRuntimeContext runtimeContext) throws StandardException, IOException {
-        long start = System.currentTimeMillis();
-        PairDecoder pairDecoder = OperationUtils.getPairDecoder(this, runtimeContext);
-        RowProvider rowProvider = getMapRowProvider(this, pairDecoder, runtimeContext);
-        nextTime += System.currentTimeMillis() - start;
-        SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(), this, runtimeContext);
-        jobResults = rowProvider.shuffleRows(soi, OperationUtils.cleanupSubTasks(this));
-        this.rowsSunk = TaskStats.sumTotalRowsWritten(jobResults.getJobStats().getTaskStats());
-        new ExportFailedTaskCleanup().cleanup(this.jobResults, this.exportParams);
-        return jobResults;
-    }
-
-    @Override
-    public void open() throws StandardException, IOException {
-        super.open();
-        if (source != null) {
-            source.open();
-        }
-    }
-
-    @Override
-    public void close() throws StandardException, IOException {
-        super.close();
-        source.close();
-    }
-
-    @Override
-    public byte[] getUniqueSequenceId() {
-        return uniqueSequenceID;
-    }
-
-    @Override
     public ExecRow getExecRowDefinition() throws StandardException {
         return currentTemplate;
-    }
-
-    @Override
-    public ExecRow getNextSinkRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-        if (timer == null) {
-            timer = spliceRuntimeContext.newTimer();
-        }
-
-        timer.startTiming();
-        ExecRow row = source.nextRow(spliceRuntimeContext);
-        if (row != null) {
-            timer.tick(1);
-            currentRow = row;
-        } else {
-            timer.stopTiming();
-            stopExecutionTime = System.currentTimeMillis();
-        }
-        return row;
-    }
-
-    @Override
-    public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-        throw new UnsupportedOperationException("Export Operation does not produce rows.");
-    }
-
-    @Override
-    protected void updateStats(OperationRuntimeStats stats) {
-        if (timer != null) {
-            stats.addMetric(OperationMetric.INPUT_ROWS, timer.getNumEvents());
-        }
     }
 
     @Override
@@ -247,7 +148,7 @@ public class ExportOperation extends SpliceBaseOperation implements SinkingOpera
     }
 
     @Override
-    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, DataSetProcessor dsp) throws StandardException {
+    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         throw new RuntimeException("not implemented");
     }
 

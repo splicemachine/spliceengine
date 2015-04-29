@@ -3,12 +3,9 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.google.common.base.Strings;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.storage.EntryDecoder;
@@ -98,18 +95,6 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 				this.scanInformation = scanInformation;
 		}
 
-		protected MultiFieldDecoder getKeyDecoder() {
-				if (keyDecoder == null)
-						keyDecoder = MultiFieldDecoder.create();
-				return keyDecoder;
-		}
-
-		protected EntryDecoder getRowDecoder() {
-				if(rowDecoder==null)
-						rowDecoder = new EntryDecoder();
-				return rowDecoder;
-		}
-
 		protected int[] getColumnOrdering() throws StandardException{
 				if (columnOrdering == null) {
 						columnOrdering = scanInformation.getColumnOrdering();
@@ -146,13 +131,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 						currentTemplate = currentRow.getClone();
 						if (currentRowLocation == null)
 								currentRowLocation = new HBaseRowLocation();
-
-            this.txnRegion = context.getTransactionalRegion();
-                        if(shouldRecordStats()) {
-                            if(scanQualifiersField != null ) {
-                                getScanQualifiersInStringFormat();
-                            }
-                        }
+                        this.txnRegion = context.getTransactionalRegion();
 				} catch (Exception e) {
 						SpliceLogUtils.logAndThrowRuntime(LOG, "Operation Init Failed!", e);
 				}
@@ -185,15 +164,6 @@ public abstract class ScanOperation extends SpliceBaseOperation {
                 }
             }
         }
-		@Override
-		public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
-				SpliceLogUtils.trace(LOG, "executeScan");
-				try {
-						return new SpliceNoPutResultSet(activation,this, getMapRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext), runtimeContext));
-				} catch (IOException e) {
-						throw Exceptions.parseException(e);
-				}
-		}
 
 		@Override
 		public SpliceOperation getLeftOperation() {
@@ -204,13 +174,14 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 				SpliceLogUtils.trace(LOG, "initIsolationLevel");
 		}
 
-		public Scan getNonSIScan(SpliceRuntimeContext spliceRuntimeContext) {
+		public Scan getNonSIScan() {
 				/*
 				 * Intended to get a scan which does NOT set up SI underneath us (since
 				 * we are doing it ourselves).
 				 */
-				Scan scan = buildScan(spliceRuntimeContext);
+				Scan scan = buildScan();
 				if (oneRowScan) {
+                    scan.setSmall(true);
 					scan.setCaching(1); // Limit the batch size for performance
 				}
 				deSiify(scan);
@@ -283,9 +254,9 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 				}
 		}
 
-		protected Scan buildScan(SpliceRuntimeContext ctx) {
+		protected Scan buildScan() {
 				try{
-						return getScan(ctx);
+						return getScan();
 				} catch (StandardException e) {
 						SpliceLogUtils.logAndThrowRuntime(LOG,e);
 				}
@@ -293,8 +264,8 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 		}
 
 
-		protected Scan getScan(SpliceRuntimeContext ctx) throws StandardException {
-				return scanInformation.getScan(operationInformation.getTransaction(), ctx.getScanStartOverride(),getKeyDecodingMap());
+		protected Scan getScan() throws StandardException {
+				return scanInformation.getScan(operationInformation.getTransaction(),null,getKeyDecodingMap());
 		}
 
 		@Override
@@ -352,13 +323,6 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 		public String getIndexName() {
 				return this.indexName;
 		}
-
-		@Override
-		public void close() throws StandardException, IOException {
-				SpliceLogUtils.trace(LOG, "closing");
-				super.close();
-		}
-
 		public String printStartPosition() {
 				try {
 						return scanInformation.printStartPosition(numOpens);

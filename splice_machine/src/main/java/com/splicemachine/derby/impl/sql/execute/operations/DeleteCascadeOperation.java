@@ -19,7 +19,10 @@ import com.splicemachine.db.impl.sql.execute.FKInfo;
  * We can not depend on mainNodeTable Flag to fire actions on dependents,
  * it should be done based on whether the resultset has dependent resultsets or not.
  *
+ * This is not used for Splice Machine and should be removed once Keith's work is done.
+ *
  */
+@Deprecated
 public class DeleteCascadeOperation extends DeleteOperation
 {
 

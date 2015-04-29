@@ -6,7 +6,6 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobResults;
-import com.splicemachine.metrics.IOStats;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
@@ -14,7 +13,6 @@ import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.iapi.types.SQLLongint;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import org.apache.hadoop.hbase.util.Pair;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.Callable;
@@ -92,15 +90,6 @@ class ExportRowProvider implements RowProvider {
     @Override
     public SpliceRuntimeContext getSpliceRuntimeContext() {
         return spliceRuntimeContext;
-    }
-
-    @Override
-    public void reportStats(long statementId, long operationId, long taskId, String xplainSchema, String regionName) throws IOException {
-    }
-
-    @Override
-    public IOStats getIOStats() {
-        return null;
     }
 
     @Override

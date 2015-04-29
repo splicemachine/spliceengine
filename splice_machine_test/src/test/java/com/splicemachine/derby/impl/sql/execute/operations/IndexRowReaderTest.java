@@ -141,7 +141,7 @@ public class IndexRowReaderTest {
         });
 
         SpliceOperation mockSource = mock(SpliceOperation.class);
-        when(mockSource.nextRow(any(SpliceRuntimeContext.class))).thenAnswer(new Answer<ExecRow>() {
+        when(mockSource.getNextRowCore()).thenAnswer(new Answer<ExecRow>() {
             @Override
             public ExecRow answer(InvocationOnMock invocation) throws Throwable {
                 return inputIndexRows.size() > 0 ? inputIndexRows.remove(0) : null;

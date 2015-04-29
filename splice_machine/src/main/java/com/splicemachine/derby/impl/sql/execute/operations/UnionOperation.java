@@ -1,17 +1,10 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.base.Strings;
-import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.impl.storage.RowProviders;
-import com.splicemachine.derby.metrics.OperationMetric;
-import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.stream.DataSet;
 import com.splicemachine.derby.stream.DataSetProcessor;
-import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -37,7 +30,6 @@ import java.util.List;
  */
 public class UnionOperation extends SpliceBaseOperation {
 		private static final long serialVersionUID = 1l;
-
 		/* Pull rows from firstResultSet, then secondResultSet*/
 		public SpliceOperation firstResultSet;
 		public SpliceOperation secondResultSet;
@@ -45,8 +37,6 @@ public class UnionOperation extends SpliceBaseOperation {
 		public int rowsSeenRight = 0;
 		public int rowsReturned= 0;
 		private Boolean isLeft = null;
-		private static List<NodeType> sequentialNodeTypes = Arrays.asList(NodeType.SCAN);
-
 	    protected static final String NAME = UnionOperation.class.getSimpleName().replaceAll("Operation","");
 
 		@Override
@@ -104,38 +94,9 @@ public class UnionOperation extends SpliceBaseOperation {
 		}
 
 		@Override
-		public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
-				SpliceRuntimeContext spliceLeftRuntimeContext = runtimeContext.copy();
-				spliceLeftRuntimeContext.addLeftRuntimeContext(resultSetNumber);
-				SpliceRuntimeContext spliceRightRuntimeContext = runtimeContext.copy();
-				spliceRightRuntimeContext.addRightRuntimeContext(resultSetNumber);
-				try {
-						RowProvider leftProvider =firstResultSet.getMapRowProvider(this, OperationUtils.getPairDecoder(firstResultSet, spliceLeftRuntimeContext),spliceLeftRuntimeContext);
-						RowProvider rightProvider = secondResultSet.getMapRowProvider(this, OperationUtils.getPairDecoder(secondResultSet, spliceRightRuntimeContext),spliceRightRuntimeContext);
-						return new SpliceNoPutResultSet(activation,this,RowProviders.combine(leftProvider, rightProvider));
-				} catch (IOException e) {
-						throw Exceptions.parseException(e);
-				}
-		}
-
-		@Override
 		public SpliceOperation getRightOperation() {
 				return secondResultSet;
 		}
-
-		@Override
-		public void open() throws StandardException, IOException {
-				super.open();
-				firstResultSet.open();
-				secondResultSet.open();
-		}
-
-        @Override
-        public void close() throws StandardException, IOException {
-            super.close();
-            if (firstResultSet != null) firstResultSet.close();
-            if (secondResultSet != null) secondResultSet.close();
-        }
 
 		@Override
 		public void init(SpliceOperationContext context) throws StandardException, IOException {
@@ -146,80 +107,8 @@ public class UnionOperation extends SpliceBaseOperation {
 		}
 
 		@Override
-		public List<NodeType> getNodeTypes() {
-				return sequentialNodeTypes;
-		}
-
-		@Override
 		public List<SpliceOperation> getSubOperations() {
 				return Arrays.asList(firstResultSet,secondResultSet);
-		}
-
-		@Override
-		public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-				ExecRow row;
-				SpliceRuntimeContext.Side side = spliceRuntimeContext.getPathSide(resultSetNumber);
-				if(timer==null)
-						timer = spliceRuntimeContext.newTimer();
-
-				timer.startTiming();
-				switch (side) {
-						case LEFT:
-								row = firstResultSet.nextRow(spliceRuntimeContext);
-								break;
-						case RIGHT:
-								row = secondResultSet.nextRow(spliceRuntimeContext);
-								break;
-						case MERGED:
-								row = firstResultSet.nextRow(spliceRuntimeContext);
-								if(row==null)
-										row = secondResultSet.nextRow(spliceRuntimeContext);
-								break;
-						default:
-								throw new IllegalStateException("Unknown side state "+ side);
-				}
-				setCurrentRow(row);
-				if(row!=null){
-						timer.tick(1);
-				}else{
-						timer.stopTiming();
-						stopExecutionTime = System.currentTimeMillis();
-				}
-				return row;
-		}
-
-		@Override
-		protected void updateStats(OperationRuntimeStats stats) {
-				if(timer!=null){
-						stats.addMetric(OperationMetric.INPUT_ROWS,timer.getNumEvents());
-				}
-		}
-
-		@Override
-		protected int getNumMetrics() {
-				return super.getNumMetrics()+1;
-		}
-
-		@Override
-		public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-				if(OperationUtils.isInMemory(this)){
-//				if(firstResultSet instanceof RowOperation && secondResultSet instanceof RowOperation){
-						spliceRuntimeContext.addPath(resultSetNumber, SpliceRuntimeContext.Side.MERGED);
-						return firstResultSet.getMapRowProvider(top,decoder,spliceRuntimeContext);
-				}
-
-				SpliceRuntimeContext left = spliceRuntimeContext.copy();
-				SpliceRuntimeContext right = spliceRuntimeContext.copy();
-				left.addPath(resultSetNumber, SpliceRuntimeContext.Side.LEFT);
-				right.addPath(resultSetNumber, SpliceRuntimeContext.Side.RIGHT);
-				RowProvider firstProvider = firstResultSet.getMapRowProvider(top,decoder,left);
-				RowProvider secondProvider = secondResultSet.getMapRowProvider(top,decoder,right);
-				return RowProviders.combine(firstProvider, secondProvider);
-		}
-
-		@Override
-		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException, IOException {
-				return getMapRowProvider(top,decoder,spliceRuntimeContext);
 		}
 
 		@Override
@@ -256,15 +145,8 @@ public class UnionOperation extends SpliceBaseOperation {
 		}
 
     @Override
-    public DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, DataSetProcessor dsp) throws StandardException {
-        SpliceRuntimeContext left = spliceRuntimeContext.copy();
-        SpliceRuntimeContext right = spliceRuntimeContext.copy();
-        left.addPath(resultSetNumber, SpliceRuntimeContext.Side.LEFT);
-        right.addPath(resultSetNumber, SpliceRuntimeContext.Side.RIGHT);
-        DataSet firstDS = firstResultSet.getDataSet(spliceRuntimeContext);
-        DataSet secondDS = secondResultSet.getDataSet(spliceRuntimeContext);
-        return firstDS.union(secondDS);
+    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+        return firstResultSet.getDataSet().union(secondResultSet.getDataSet());
     }
-
 
 }

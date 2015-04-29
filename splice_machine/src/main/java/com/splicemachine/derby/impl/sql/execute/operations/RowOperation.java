@@ -8,7 +8,6 @@ import java.util.List;
 import com.google.common.base.Strings;
 import com.splicemachine.derby.stream.DataSet;
 import com.splicemachine.derby.stream.DataSetProcessor;
-import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
@@ -17,13 +16,9 @@ import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
 import org.apache.log4j.Logger;
-import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
-import com.splicemachine.derby.impl.storage.RowProviders;
 import com.splicemachine.utils.SpliceLogUtils;
 
 
@@ -98,7 +93,6 @@ public class RowOperation extends SpliceBaseOperation {
 						if (rowMethodName != null)
 								this.row = new SpliceMethod<ExecRow>(rowMethodName, activation);
 				}
-				startExecutionTime = System.currentTimeMillis();
 		}
 
 		@Override
@@ -123,34 +117,6 @@ public class RowOperation extends SpliceBaseOperation {
 				}
 		}
 
-		@Override
-		public void	open() throws StandardException  {
-				try {
-						super.open();
-				} catch (IOException e) {
-						throw Exceptions.parseException(e);
-				}
-				next = false;
-		}
-
-		@Override
-		public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-				SpliceLogUtils.trace(LOG, "nextRow, next=%s, cachedRow=%s",next,cachedRow);
-
-				if(timer==null){
-						timer = spliceRuntimeContext.newTimer();
-				}
-				timer.startTiming();
-                currentRow = getRow();
-				if(currentRow!=null) {
-                    rowReturned = true;
-                    timer.tick(1);
-                } else {
-                    timer.stopTiming();
-                    stopExecutionTime = System.currentTimeMillis();
-				}
-				return currentRow;
-		}
 
 		private ExecRow getRow() throws StandardException {
             if (!next) {
@@ -201,11 +167,6 @@ public class RowOperation extends SpliceBaseOperation {
 		}
 
 		@Override
-		public List<NodeType> getNodeTypes() {
-				return Collections.singletonList(NodeType.SCAN);
-		}
-
-		@Override
 		public List<SpliceOperation> getSubOperations() {
 				return Collections.emptyList();
 		}
@@ -222,31 +183,6 @@ public class RowOperation extends SpliceBaseOperation {
 		}
 
 		@Override
-		public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
-				SpliceLogUtils.trace(LOG, "executeScan");
-				try {
-						return new SpliceNoPutResultSet(activation,this, getMapRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext),runtimeContext));
-				} catch (IOException e) {
-						throw Exceptions.parseException(e);
-				}
-		}
-
-		@Override
-		public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-				SpliceLogUtils.trace(LOG, "getMapRowProvider,top=%s",top);
-				top.init(SpliceOperationContext.newContext(activation));
-
-				//make sure the runtime context knows it can be merged
-				spliceRuntimeContext.addPath(resultSetNumber, SpliceRuntimeContext.Side.MERGED);
-				return RowProviders.openedSourceProvider(top, LOG, spliceRuntimeContext);
-		}
-
-		@Override
-		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException, IOException {
-				return getMapRowProvider(top,rowDecoder,spliceRuntimeContext);
-		}
-
-		@Override
 		public ExecRow getExecRowDefinition() throws StandardException {
             if (rowDefinition == null) {
                 ExecRow templateRow = getRow();
@@ -260,15 +196,6 @@ public class RowOperation extends SpliceBaseOperation {
 
 		public int getRowsReturned() {
 				return this.rowsReturned;
-		}
-
-		@Override
-		public void	close() throws StandardException, IOException {
-				SpliceLogUtils.trace(LOG,"close in RowOp");
-				beginTime = getCurrentTimeMillis();
-				super.close();
-				next = false;
-				closeTime += getElapsedMillis(beginTime);
 		}
 
 		@Override
@@ -300,7 +227,7 @@ public class RowOperation extends SpliceBaseOperation {
 		}
 
        @Override
-        public DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, DataSetProcessor dsp) throws StandardException {
+        public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
             return dsp.singleRowDataSet(new LocatedRow(getRow()));
         }
 }

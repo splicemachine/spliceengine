@@ -6,17 +6,14 @@ import java.io.ObjectOutput;
 import java.net.URI;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.io.HFileLink;
-
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
-import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.io.IOUtils;
@@ -61,7 +58,7 @@ public class CreateBackupTask extends ZkTask {
     public CreateBackupTask() { }
 
     public CreateBackupTask(BackupItem backupItem, String jobId, String backupFileSystem) {
-        super(jobId, OperationJob.operationTaskPriority);
+        super(jobId, SpliceConstants.operationTaskPriority);
         this.backupItem = backupItem;
         this.backupFileSystem = backupFileSystem;
         

@@ -77,7 +77,6 @@ public interface DerbyFactory<Transaction> {
 		BulkWritesInvoker.Factory getBulkWritesInvoker(HConnection connection, byte[] tableName);
 		long computeRowCount(Logger LOG, String tableName,SortedSet<Pair<HRegionInfo, ServerName>> baseRegions, Scan scan);
 		void setMaxCardinalityBasedOnRegionLoad(String tableName, LanguageConnectionContext lcc);
-		Filter getSuccessFilter(List<byte[]> failedTasks);
 		int getRegionsSizeMB(String tableName);
 		Filter getHBaseEntryPredicateFilter(EntryPredicateFilter epf);
 		Filter getSkippingScanFilter(List<Pair<byte[], byte[]>> startStopKeys, List<byte[]> predicates);
