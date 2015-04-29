@@ -8,7 +8,6 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
-import com.splicemachine.db.iapi.sql.compile.JoinStrategy;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
@@ -183,7 +182,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
             pushExplain(((ScrollInsensitiveResultSetNode)rsn).getChildResult(),builder);
         }else if(rsn instanceof JoinNode){
             JoinNode j  = (JoinNode)rsn;
-            JoinStrategy joinStrategy = RSUtils.ap(j).getJoinStrategy();
+            String joinStrategy = RSUtils.ap(j).getJoinStrategy().getName();
             List<String> joinPreds =  Lists.transform(PredicateUtils.PLtoList(j.joinPredicates),PredicateUtils.predToString);
             ExplainTree.Builder rightBuilder = new ExplainTree.Builder();
             pushExplain(j.getRightResultSet(),rightBuilder);
