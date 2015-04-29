@@ -176,5 +176,10 @@ public class BroadcastJoinStrategy extends BaseCostedHashableJoinStrategy {
         innerCost.setEstimatedHeapSize((long)totalHeapSize);
         innerCost.setSingleScanRowCount(joinSelectivity*outerCost.singleScanRowCount());
     }
+
+    @Override
+    public String toString(){
+        return "BroadcastJoin";
+    }
 }
 
