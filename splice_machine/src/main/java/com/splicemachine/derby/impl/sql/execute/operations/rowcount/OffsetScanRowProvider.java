@@ -132,7 +132,8 @@ class OffsetScanRowProvider extends AbstractScanProvider {
     @Override
     public void close() throws StandardException {
         try {
-            table.close();
+            if(table!=null)
+                table.close();
         } catch (IOException e) {
             throw new RuntimeException(e);
         } finally {

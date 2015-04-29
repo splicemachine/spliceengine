@@ -5,6 +5,7 @@ import com.google.common.io.Files;
 import com.google.common.io.PatternFilenameFilter;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.test_tools.TableCreator;
 import org.apache.commons.io.FileUtils;
 import org.apache.commons.io.IOUtils;
@@ -15,6 +16,7 @@ import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.sql.CallableStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.zip.GZIPInputStream;
@@ -41,7 +43,8 @@ public class ExportOperationIT {
     @Test
     public void export() throws Exception {
 
-        new TableCreator(methodWatcher.getOrCreateConnection())
+        TestConnection conn=methodWatcher.getOrCreateConnection();
+        new TableCreator(conn)
                 .withCreate("create table export_test(\n" +
                         "a smallint,\n" +
                         "b integer,\n" +
@@ -71,7 +74,7 @@ public class ExportOperationIT {
 
         String exportSQL = buildExportSQL("select * from export_test");
 
-        exportAndAssertExportResults(exportSQL, 8);
+        exportAndAssertExportResults(exportSQL,8);
         File[] files = temporaryFolder.getRoot().listFiles(new PatternFilenameFilter(".*csv"));
         assertEquals(1, files.length);
         assertEquals("" +
@@ -84,6 +87,12 @@ public class ExportOperationIT {
                         "31,1000000000,2000000000000000,3.14159,3.14159,2,2.34,varchar,c,2014-10-01,14:30:20\n" +
                         "32,1000000000,2000000000000000,3.14159,3.14159,2,2.34,varchar,c,2014-10-01,14:30:20\n",
                 Files.toString(files[0], Charsets.UTF_8));
+
+        try(CallableStatement cs = conn.prepareCall("call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS(?,false)")){
+            cs.setString(1,SCHEMA_WATCHER.schemaName);
+            cs.execute();
+        }
+
     }
 
     @Test

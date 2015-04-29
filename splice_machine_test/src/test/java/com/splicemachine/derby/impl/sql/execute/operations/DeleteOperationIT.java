@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.test_tools.TableCreator;
@@ -11,6 +12,7 @@ import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 
+import java.sql.CallableStatement;
 import java.sql.SQLException;
 
 import static com.splicemachine.test_tools.Rows.row;
@@ -27,35 +29,41 @@ public class DeleteOperationIT {
 
     @BeforeClass
     public static void createSharedTables() throws Exception {
-        new TableCreator(spliceClassWatcher.getOrCreateConnection())
+        TestConnection connection=spliceClassWatcher.getOrCreateConnection();
+        new TableCreator(connection)
                 .withCreate("create table T (v1 int primary key, v2 int, v3 int unique)")
                 .withInsert("insert into T values(?,?,?)")
                 .withRows(rows(row(1, 10, 100), row(2, 20, 200), row(3, 30, 300))).create();
 
-        new TableCreator(spliceClassWatcher.getOrCreateConnection())
+        new TableCreator(connection)
                 .withCreate("create table a_test (c1 smallint)")
                 .withInsert("insert into a_test values(?)")
                 .withRows(rows(row(32767))).create();
 
-        new TableCreator(spliceClassWatcher.getOrCreateConnection())
+        new TableCreator(connection)
                 .withCreate("create table customer1 (cust_id int, status boolean)")
                 .withInsert("insert into customer1 values(?,?)")
                 .withRows(rows(row(1, true), row(2, true), row(3, true), row(4, true), row(5, true))).create();
 
-        new TableCreator(spliceClassWatcher.getOrCreateConnection())
+        new TableCreator(connection)
                 .withCreate("create table customer2 (cust_id int, status boolean)")
                 .withInsert("insert into customer2 values(?,?)")
                 .withRows(rows(row(1, true), row(2, true), row(3, true), row(4, true), row(5, true))).create();
 
-        new TableCreator(spliceClassWatcher.getOrCreateConnection())
+        new TableCreator(connection)
                 .withCreate("create table shipment (cust_id int)")
                 .withInsert("insert into shipment values(?)")
                 .withRows(rows(row(2), row(4))).create();
 
-        new TableCreator(spliceClassWatcher.getOrCreateConnection())
+        new TableCreator(connection)
                 .withCreate("create table tdelete (a smallint)")
                 .withInsert("insert into tdelete values(?)")
                 .withRows(rows(row((short) 1), row(Short.MAX_VALUE))).create();
+
+        try(CallableStatement cs = connection.prepareCall("call SYSCS_UTIl.COLLECT_SCHEMA_STATISTICS(?,false)")){
+            cs.setString(1,spliceSchemaWatcher.schemaName);
+            cs.execute();
+        }
 
     }
 

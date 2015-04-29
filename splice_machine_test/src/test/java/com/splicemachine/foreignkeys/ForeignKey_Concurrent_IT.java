@@ -14,9 +14,9 @@ import org.junit.experimental.categories.Category;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
@@ -117,9 +117,9 @@ public class ForeignKey_Concurrent_IT {
      */
     @Test(timeout =10000)
     public void largerNumberOfConcurrentThreads() throws Exception {
-        final int THREADS = 8;
+        final int THREADS = 4;
         final int CHILD_ROWS_PER_THREAD = 5;
-        final CountDownLatch countDownLatch = new CountDownLatch(THREADS + 1);
+        final CountDownLatch countDownLatch = new CountDownLatch(1);
 
         // get a new parent id
         long parentId = RandomUtils.nextLong();
@@ -128,58 +128,63 @@ public class ForeignKey_Concurrent_IT {
         {
             Connection conn = newNoAutoCommitConnection();
             // insert parent id
-            conn.createStatement().executeUpdate("insert into P values(" + parentId + "," + parentId + ")");
+            conn.createStatement().executeUpdate("insert into P values("+parentId+","+parentId+")");
             // commit
             conn.commit();
         }
 
         // create and start threads
-        List<T> threads = Lists.newArrayList();
-        for (int i = 0; i < THREADS; i++) {
-            T t = new T(newNoAutoCommitConnection(), countDownLatch, parentId, CHILD_ROWS_PER_THREAD);
-            t.start();
-            threads.add(t);
-        }
-
-        // release the hounds
-        countDownLatch.countDown();
-
-        // Somewhere in the middle of work of threads, delete reference to parent.  Sometimes this will happen
-        // before any child row is inserted, in which case it will succeed.  Sometimes it will happen after
-        // at least one child row has been inserted in which case it will fail.
-        Connection deleteParentConn = newNoAutoCommitConnection();
-        try {
-            deleteParentConn.createStatement().execute("delete from p where a=" + parentId);
-        } catch (SQLException e) {
-            if (!e.getMessage().startsWith("Write Conflict") && !e.getMessage().startsWith("Operation on table 'P' caused a violation of foreign key constraint 'FK1'")) {
-                fail("We expect Write Conflict or FK violation here sometimes, but not anything else: " + e.getMessage());
+        ExecutorService executor = Executors.newFixedThreadPool(THREADS);
+        try{
+            List<Future<Void>> futures=Lists.newArrayList();
+            for(int i=0;i<THREADS;i++){
+                Callable<Void> t=new T(newNoAutoCommitConnection(),countDownLatch,parentId,CHILD_ROWS_PER_THREAD);
+                futures.add(executor.submit(t));
             }
+
+            // release the hounds
+            countDownLatch.countDown();
+
+            // Somewhere in the middle of work of threads, delete reference to parent.  Sometimes this will happen
+            // before any child row is inserted, in which case it will succeed.  Sometimes it will happen after
+            // at least one child row has been inserted in which case it will fail.
+            Connection deleteParentConn=newNoAutoCommitConnection();
+            try{
+                Statement statement=deleteParentConn.createStatement();
+                statement.setQueryTimeout(5);
+                statement.execute("delete from p where a="+parentId);
+            }catch(SQLException e){
+                if(!e.getMessage().startsWith("Write Conflict") && !e.getMessage().startsWith("Operation on table 'P' caused a violation of foreign key constraint 'FK1'")){
+                    fail("We expect Write Conflict or FK violation here sometimes, but not anything else: "+e.getMessage());
+                }
+            }
+
+            // Wait for threads to finish
+            for(Future<Void> future:futures){
+                future.get(); //make sure we don't throw any errors
+            }
+
+            deleteParentConn.commit();
+
+            // finally verify DB is in a consistent state.
+
+            // to be sure we are using a connection/transaction that starts after commit above.
+            methodWatcher.closeAll();
+
+            long parentCount=methodWatcher.query("select count(*) from P where a="+parentId);
+            long childCount=methodWatcher.query("select count(*) from C where a="+parentId);
+            System.out.printf("parentCount=%,d, childCount=%,d \n",parentCount,childCount);
+            assertTrue(
+                    String.format("parentCount=%,d, childCount=%,d",parentCount,childCount),
+                    (parentCount==0 && childCount==0) ||
+                            (parentCount==1 && childCount==THREADS*CHILD_ROWS_PER_THREAD)
+            );
+        }finally{
+            executor.shutdownNow();
         }
-
-        // Wait for threads to finish
-        for (T t : threads) {
-            t.join(30_000);
-            assertNull(t.throwable);
-        }
-
-        deleteParentConn.commit();
-
-        // finally verify DB is in a consistent state.
-
-        // to be sure we are using a connection/transaction that starts after commit above.
-        methodWatcher.closeAll();
-
-        long parentCount = methodWatcher.query("select count(*) from P where a=" + parentId);
-        long childCount = methodWatcher.query("select count(*) from C where a=" + parentId);
-        System.out.printf("parentCount=%,d, childCount=%,d \n", parentCount, childCount);
-        assertTrue(
-                String.format("parentCount=%,d, childCount=%,d", parentCount, childCount),
-                (parentCount == 0 && childCount == 0) ||
-                        (parentCount == 1 && childCount == THREADS * CHILD_ROWS_PER_THREAD)
-        );
     }
 
-    private static class T extends Thread {
+    private static class T implements Callable<Void>{
 
         CountDownLatch countDownLatch;
         Connection connection;
@@ -197,28 +202,20 @@ public class ForeignKey_Concurrent_IT {
         }
 
         @Override
-        public void run() {
-            try {
-                countDownLatch.countDown();
-                countDownLatch.await();
-                Threads.sleep(RandomUtils.nextInt(100), TimeUnit.MILLISECONDS);
-                PreparedStatement preparedStatement = connection.prepareStatement("insert into C values(?,?)");
-                for (int i = 1; i <= childRowsPerThread; i++) {
-                    preparedStatement.setLong(1, parentId);
-                    preparedStatement.setLong(2, myId);
-                    preparedStatement.execute();
-                }
-            } catch (Throwable e) {
-                if (!e.getMessage().startsWith("Operation on table 'C' caused a violation of foreign key constraint 'FK1'")) {
-                    this.throwable = e;
-                }
-            } finally {
-                try {
-                    connection.commit();
-                } catch (SQLException e) {
-                    throwable = e;
-                }
+        public Void call() throws Exception {
+            countDownLatch.await();
+//            Threads.sleep(RandomUtils.nextInt(100),TimeUnit.MILLISECONDS);
+            PreparedStatement preparedStatement = connection.prepareStatement("insert into C values(?,?)");
+            preparedStatement.setQueryTimeout(5);
+            for (int i = 1; i <= childRowsPerThread; i++) {
+                if(Thread.currentThread().isInterrupted())
+                    throw new InterruptedException(); //blow up if we've been cancelled
+                preparedStatement.setLong(1, parentId);
+                preparedStatement.setLong(2, myId);
+                preparedStatement.execute();
             }
+            connection.commit();
+            return null;
         }
 
     }
@@ -237,7 +234,9 @@ public class ForeignKey_Concurrent_IT {
 
     private void assertQueryFail(Connection connection, String sql, String expectedExceptionMessage) {
         try {
-            connection.createStatement().executeUpdate(sql);
+            Statement statement=connection.createStatement();
+            statement.setQueryTimeout(5);
+            statement.executeUpdate(sql);
             fail("query did not fail: " + sql);
         } catch (Exception e) {
             assertTrue("expected message=" + expectedExceptionMessage + "actual message=" + e.getMessage(),

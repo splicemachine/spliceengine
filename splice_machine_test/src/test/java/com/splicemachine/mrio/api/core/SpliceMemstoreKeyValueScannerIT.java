@@ -31,6 +31,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.si.impl.SIFactoryImpl;
 
+@Ignore
 public class SpliceMemstoreKeyValueScannerIT extends BaseMRIOTest{
     private static final Logger LOG = Logger.getLogger(SpliceMemstoreKeyValueScannerIT.class);
     protected static String SCHEMA_NAME=SpliceMemstoreKeyValueScannerIT.class.getSimpleName();

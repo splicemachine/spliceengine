@@ -67,6 +67,7 @@ public class RowCountOperationIT {
         spliceClassWatcher.splitTable("A", SCHEMA, 4);
         spliceClassWatcher.splitTable("A", SCHEMA, 8);
         spliceClassWatcher.splitTable("A", SCHEMA, 12);
+
     }
 
     @Rule
