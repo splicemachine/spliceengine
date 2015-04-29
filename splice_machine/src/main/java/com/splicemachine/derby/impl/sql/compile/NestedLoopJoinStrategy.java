@@ -245,9 +245,6 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
              * the left side of the join). When this happens, the outer cost is still unitialized, so there's
              * nothing to do in this method;
              */
-            RowOrdering ro = outerCost.getRowOrdering();
-            if(ro!=null)
-                outerCost.setRowOrdering(ro); //force a cloning
             return;
         }
         //set the base costs for the join
@@ -274,7 +271,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
          *
          * Note,however, that some join predicates may be start and stop predicates, which will reduce
          * the number of rows we have to touch during the inner scan. As a result, we have to keep
-         * 2 selectivities: the "output join selectivity" and the "input join selectivity". This adjusts the formulas
+         * 2 selectivies: the "output join selectivity" and the "input join selectivity". This adjusts the formulas
          * to be:
          *
          * innerScan.outputRows = outputJoinSelectivity*innerCost.outputRows
@@ -315,7 +312,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
 
         /*
          * if the outer table claims to have no rows return, then
-         * we are in a bit of a dilemma. On the one hand, maybe nothing
+         * we are in a bit of a dilema. On the one hand, maybe nothing
          * comes back, in which case that's correct. Or maybe there are no
          * statistics, and we are just screwed anyway.
          *
@@ -334,7 +331,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         double innerSingleScanRowCount = innerCost.singleScanRowCount();
         if(innerCost.getEstimatedRowCount()!=1l){
             double inputJoinSelectivity=getStartStopSelectivity(innerTable,cd,allPreds);
-            double outputJoinSelectivity = estimateJoinSelectivity(innerTable,cd,allPreds);
+            double outputJoinSelectivity = estimateJoinSelectivity(innerTable,allPreds);
 
             innerScanLocalCost *= inputJoinSelectivity;
             innerScanRemoteCost *= outputJoinSelectivity;
@@ -357,9 +354,8 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         double totalHeapSize=outerCost.getEstimatedHeapSize()+outerCost.rowCount()*innerScanHeapSize;
 
         double perRowRemoteCost = outerCost.remoteCost()/outerRowCount;
-        if(innerScanOutputRows>0){
-            perRowRemoteCost+=innerCost.remoteCost()/innerCost.rowCount();
-        }
+        if(innerScanOutputRows>0)
+            perRowRemoteCost+=innerCost.remoteCost()/innerScanOutputRows;
         double totalRemoteCost=totalOutputRows*perRowRemoteCost;
 
         /*
@@ -464,24 +460,24 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
                 int keySpot=cd.getIndexDescriptor().getKeyColumnPosition(columnOperand.getColumnNumber());
                 if(keySpot<startKeySelectivityStop){
                     //we can apply this selectivity!
-                    selectivity*=estimateSelectivityOfJoinPredicate(innerTable,cd,startKey);
+                    selectivity*=estimateSelectivityOfJoinPredicate(innerTable,startKey);
                 }
             }
         }
         return selectivity;
     }
 
-    private double estimateSelectivityOfJoinPredicate(Optimizable innerTable,ConglomerateDescriptor cd,Predicate predicate) throws StandardException{
+    private double estimateSelectivityOfJoinPredicate(Optimizable innerTable,Predicate predicate) throws StandardException{
         //TODO -sf- make this more accurate based on cardinalities etc.
-        return predicate.selectivity(innerTable,cd);
+        return predicate.selectivity(innerTable);
     }
 
-    private double estimateJoinSelectivity(Optimizable innerTable,ConglomerateDescriptor cd,List<Predicate> predicates) throws StandardException{
+    private double estimateJoinSelectivity(Optimizable innerTable,List<Predicate> predicates) throws StandardException{
         double selectivity=1.0d;
         for(Predicate predicate : predicates){
             //ignore join predicates, because FromBaseTable takes those into account
             if(!predicate.isJoinPredicate()) continue;
-            selectivity*=estimateSelectivityOfJoinPredicate(innerTable,cd,predicate);
+            selectivity*=estimateSelectivityOfJoinPredicate(innerTable,predicate);
         }
         return selectivity;
     }

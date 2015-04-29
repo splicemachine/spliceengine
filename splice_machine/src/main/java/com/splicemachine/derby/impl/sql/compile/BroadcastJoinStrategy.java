@@ -128,9 +128,6 @@ public class BroadcastJoinStrategy extends BaseCostedHashableJoinStrategy {
          * to account for the final scan of data to the control node.
          */
         if(outerCost.isUninitialized() ||(outerCost.localCost()==0d && outerCost.getEstimatedRowCount()==1.0d)){
-            RowOrdering ro = outerCost.getRowOrdering();
-            if(ro!=null)
-                outerCost.setRowOrdering(ro); //force a cloning
             return; //actually a scan, don't do anything
         }
         innerCost.setBase(innerCost.cloneMe());
@@ -170,7 +167,6 @@ public class BroadcastJoinStrategy extends BaseCostedHashableJoinStrategy {
         innerCost.setNumPartitions(totalPartitionCount);
         innerCost.setLocalCost(totalLocalCost);
         innerCost.setRemoteCost(totalRemoteCost);
-//        innerCost.setRowOrdering(null);
         innerCost.setRowOrdering(outerCost.getRowOrdering());
         innerCost.setRowCount(totalOutputRows);
         innerCost.setEstimatedHeapSize((long)totalHeapSize);

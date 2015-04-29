@@ -95,9 +95,6 @@ public class MergeJoinStrategy extends BaseCostedHashableJoinStrategy{
              * the left side of the join). When this happens, the outer cost is still unitialized, so there's
              * nothing to do in this method;
              */
-            RowOrdering ro = outerCost.getRowOrdering();
-            if(ro!=null)
-                outerCost.setRowOrdering(ro); //force a cloning
             return;
         }
         //preserve the underlying CostEstimate for the inner table
@@ -189,11 +186,9 @@ public class MergeJoinStrategy extends BaseCostedHashableJoinStrategy{
         int[] keyColumnPositionMap = innerRowGenerator.baseColumnPositions();
         boolean[] keyAscending = innerRowGenerator.isAscending();
 
-        BitSet matchingColumns = new BitSet(keyColumnPositionMap.length);
         for(int i=0;i<keyColumnPositionMap.length;i++){
             int innerColumnPosition = keyColumnPositionMap[i];
             boolean ascending = keyAscending[i];
-
             for(int p=0;p<predList.size();p++){
                 Predicate pred = (Predicate)predList.getOptPredicate(p);
                 if(!pred.isJoinPredicate()) continue;
@@ -209,6 +204,7 @@ public class MergeJoinStrategy extends BaseCostedHashableJoinStrategy{
                     if(outerColumn==innerColumn)
                         outerColumn = (ColumnReference)bron.getLeftOperand();
 
+                    //TODO -sf- is this correct?
                     int outerTableNum=outerColumn.getTableNumber();
                     int outerColNum=outerColumn.getColumnNumber();
                     if(ascending){
@@ -217,21 +213,11 @@ public class MergeJoinStrategy extends BaseCostedHashableJoinStrategy{
                     }else{
                         if(!outerRowOrdering.orderedOnColumn(RowOrdering.DESCENDING,i,outerTableNum,outerColNum))
                             return false;
+
                     }
-                    matchingColumns.set(i);
                 }
             }
         }
-        /*
-         * Either all predicates match, or none of them apply. We want to ensure that the join occurs
-         * as long as the first N keys match for both sides--e.g. that there is a contiguous range of sorted
-         * keys. It doesn't have to be ENTIRELY contiguous, but it DOES need to be contiguous to a point
-         */
-        if(matchingColumns.cardinality()<=0) return false; //we have no matching join predicates, so we can't work
-        for(int i=0;i<matchingColumns.cardinality();i++){
-            if(!matchingColumns.get(i)) return false;
-        }
-
         return true;
     }
 

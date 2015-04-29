@@ -72,12 +72,8 @@ public class MergeSortJoinStrategy extends BaseCostedHashableJoinStrategy {
                              CostEstimate outerCost,
                              Optimizer optimizer,
                              CostEstimate innerCost) throws StandardException{
-        if(outerCost.isUninitialized() ||(outerCost.localCost()==0d && outerCost.getEstimatedRowCount()==1.0d)){
-            RowOrdering ro=outerCost.getRowOrdering();
-            if(ro!=null)
-                outerCost.setRowOrdering(ro); //force a cloning
+        if(outerCost.isUninitialized() ||(outerCost.localCost()==0d && outerCost.getEstimatedRowCount()==1.0d))
             return; //actually a scan, don't change the cost
-        }
 
         //set the base costing so that we don't lose the underlying table costs
         innerCost.setBase(innerCost.cloneMe());
@@ -206,7 +202,6 @@ public class MergeSortJoinStrategy extends BaseCostedHashableJoinStrategy {
          * of the data.
          */
         innerCost.setRowOrdering(null);
-        outerCost.setRowOrdering(null);
     }
 
 }
