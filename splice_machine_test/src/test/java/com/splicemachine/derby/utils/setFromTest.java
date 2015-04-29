@@ -46,7 +46,7 @@ public class setFromTest {
         Timestamp ts;
         DataValueDescriptor des;
         SQLDate test;
-        for(int i=0;i<100000;i++){
+        for(int i=0;i<50000;i++){  // reduce from 100000 since we don't go that high yet on dates
             test = new SQLDate();
             Calendar c = Calendar.getInstance();
                 c.add(Calendar.DAY_OF_YEAR,i);
