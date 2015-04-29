@@ -1,9 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import java.math.BigDecimal;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.Types;
+import java.sql.*;
 import java.util.List;
 
 import com.google.common.collect.Lists;
@@ -134,6 +132,16 @@ public class TableScanOperationIT {
                     }
                 }
 
+            }).around(new SpliceDataWatcher(){
+                @Override
+                protected void starting(Description description){
+                    try(CallableStatement cs = spliceClassWatcher.prepareCall("call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS(?,false)")){
+                        cs.setString(1,"SYS");
+                        cs.execute();
+                    }catch(Exception e){
+                        throw new RuntimeException(e);
+                    }
+                }
             });
 
     @Rule

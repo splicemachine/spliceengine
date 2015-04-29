@@ -77,7 +77,17 @@ public class StatisticsDataTypeIT {
             .around(datePkReversed)
             .around(timePkReversed)
             .around(timestampPkReversed)
-            .around(new SpliceDataWatcher() {
+            .around(new SpliceDataWatcher(){
+                @Override
+                protected void starting(Description description){
+                    try(CallableStatement cs=classWatcher.prepareCall("call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS(?,false)")){
+                        cs.setString(1,"SYS");
+                        cs.execute();
+                    }catch(Exception e){
+                        throw new RuntimeException(e);
+                    }
+                }
+            }).around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description){
                     try(TestDataBuilder tdBuilder = new TestDataBuilder(schema.schemaName,INSERTION_SCHEMA,classWatcher.getOrCreateConnection(),size/8)){
