@@ -11,16 +11,16 @@ public class MergeJoinStrategy extends BaseCostedHashableJoinStrategy{
     public MergeJoinStrategy(){
     }
 
-    @Override
+    /**
+     * @see JoinStrategy#getName
+     */
     public String getName(){
         return "MERGE";
     }
 
-    @Override
-    public String toString(){
-        return "MergeJoin";
-    }
-
+    /**
+     * @see JoinStrategy#resultSetMethodName
+     */
     @Override
     public String resultSetMethodName(boolean bulkFetch,boolean multiprobe){
         if(bulkFetch)
@@ -31,16 +31,24 @@ public class MergeJoinStrategy extends BaseCostedHashableJoinStrategy{
             return "getTableScanResultSet";
     }
 
+    /**
+     * @see JoinStrategy#joinResultSetMethodName
+     */
     @Override
     public String joinResultSetMethodName(){
         return "getMergeJoinResultSet";
     }
 
-    @Override
+    /**
+     * @see JoinStrategy#multiplyBaseCostByOuterRows
+     */
     public boolean multiplyBaseCostByOuterRows(){
         return true;
     }
 
+    /**
+     * @see JoinStrategy#halfOuterJoinResultSetMethodName
+     */
     @Override
     public String halfOuterJoinResultSetMethodName(){
         return "getMergeLeftOuterJoinResultSet";

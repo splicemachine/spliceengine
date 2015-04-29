@@ -29,11 +29,6 @@ public class HashNestedLoopJoinStrategy extends HashableJoinStrategy {
     }
 
     @Override
-    public String toString(){
-        return "Hash";
-    }
-
-    @Override
     public String resultSetMethodName(boolean bulkFetch, boolean multiprobe) {
         if (bulkFetch)
             return "getBulkTableScanResultSet";
