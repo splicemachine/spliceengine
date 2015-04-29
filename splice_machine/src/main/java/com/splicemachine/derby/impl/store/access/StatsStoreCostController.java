@@ -47,7 +47,18 @@ public class StatsStoreCostController extends GenericController implements Store
         } catch (ExecutionException e) {
             throw Exceptions.parseException(e);
         }
+    }
+    @Override
+    public double rowCount(){
+        return conglomerateStatistics.rowCount();
+    }
 
+    @Override
+    public double nonNullCount(int columnNumber){
+        ColumnStatistics<Object> statistics=conglomerateStatistics.columnStatistics(columnNumber);
+        if(statistics!=null)
+            return statistics.nonNullCount();
+        return rowCount();
     }
 
     @Override public void close() throws StandardException {  }
@@ -174,8 +185,10 @@ public class StatsStoreCostController extends GenericController implements Store
     @Override
     public double cardinalityFraction(int columnNumber){
         ColumnStatistics<DataValueDescriptor> colStats=getColumnStats(columnNumber);
-        if(colStats!=null)
-            return ((double)colStats.cardinality())/conglomerateStatistics.rowCount();
+        if(colStats!=null){
+            long c = colStats.cardinality();
+            return c>0?1d/c:0d;
+        }
         /*
          * If we can't find any statistics for this column, then use a fallback number--arbitrary
          * numbers are better than no numbers at all (although that is somewhat debatable in practice)

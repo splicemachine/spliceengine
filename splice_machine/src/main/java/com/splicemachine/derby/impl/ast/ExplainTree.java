@@ -213,7 +213,7 @@ public class ExplainTree{
             sb = sb.append(spaceToLevel())
                     .append(className).append("(")
                     .append("n=").append(resultSetNumber)
-                    .append(",cost=").append(cost.prettyString());
+                    .append(",").append(cost.prettyString());
             String extras = getExtraInformation();
             if(extras!=null)
                 sb = sb.append(",").append(extras);
@@ -366,25 +366,26 @@ public class ExplainTree{
                          List<String> predicateStrings,
                          String tableName,
                          String indexName){
-            super(getClassName(indexName),resultSetNUmber,cost,predicateStrings);
+            super(getClassName(tableName,indexName),resultSetNUmber,cost,predicateStrings);
             this.tableName=tableName;
             this.indexName=indexName;
         }
 
-        private static String getClassName(String indexName){
-            if(indexName!=null) return "IndexScan";
-            return "TableScan";
+        private static String getClassName(String tableName,String indexName){
+            String cName;
+            if(indexName!=null){
+                cName = "IndexScan["+indexName+"]";
+            }else{
+               cName = "TableScan["+tableName+"]";
+            }
+            return cName;
         }
 
         @Override
         protected String getExtraInformation(){
             StringBuilder sb = new StringBuilder();
-            if(tableName!=null)
-                sb = sb.append("table=").append(tableName);
             if(indexName!=null){
-                if(tableName!=null)
-                    sb = sb.append(",");
-                sb=sb.append("using-index=").append(indexName);
+                sb=sb.append("baseTable=").append(tableName);
             }
 
             String superInfo = super.getExtraInformation();
