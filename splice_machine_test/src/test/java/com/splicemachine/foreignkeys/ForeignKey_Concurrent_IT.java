@@ -4,10 +4,12 @@ import com.google.common.collect.Lists;
 import com.splicemachine.concurrent.Threads;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_dao.TableDAO;
 import com.splicemachine.test_tools.TableCreator;
 import org.apache.commons.lang.math.RandomUtils;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -23,6 +25,7 @@ import static org.junit.Assert.*;
 /**
  * Foreign key tests for concurrent transactions deleting parent rows and inserting child rows.
  */
+@Category(SerialTest.class)
 public class ForeignKey_Concurrent_IT {
 
     private static final String SCHEMA = ForeignKey_Concurrent_IT.class.getSimpleName();

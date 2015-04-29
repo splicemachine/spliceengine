@@ -2,8 +2,10 @@ package com.splicemachine.foreignkeys;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_dao.TableDAO;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 
 import java.sql.Connection;
 import java.sql.SQLIntegrityConstraintViolationException;
@@ -19,6 +21,7 @@ import static org.junit.Assert.fail;
  * ON DELETE SET NULL
  * ON UPDATE NO ACTION
  */
+@Category(SerialTest.class)
 public class ForeignKey_Action_IT {
 
     private static final String SCHEMA = ForeignKey_Action_IT.class.getSimpleName();
