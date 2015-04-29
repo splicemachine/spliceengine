@@ -24,54 +24,45 @@ package com.splicemachine.db.iapi.sql.dictionary;
 import com.splicemachine.db.catalog.UUID;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 
-public class GenericDescriptorList extends ArrayList
-{
-	private boolean scanned;
+public class GenericDescriptorList<T extends UniqueTupleDescriptor> extends ArrayList<T> {
+    private boolean scanned;
 
-	/**
-	 * Mark whether or not the underlying system table has
-	 * been scanned.  (If a table does not have any
-	 * constraints then the size of its CDL will always
-	 * be 0.  We used these get/set methods to determine
-	 * when we need to scan the table.
-	 *
-	 * @param scanned	Whether or not the underlying system table has been scanned.
-	 */
-	public void setScanned(boolean scanned)
-	{
-		this.scanned = scanned;
-	}
+    /**
+     * Mark whether or not the underlying system table has
+     * been scanned.  (If a table does not have any
+     * constraints then the size of its CDL will always
+     * be 0.  We used these get/set methods to determine
+     * when we need to scan the table.
+     *
+     * @param scanned Whether or not the underlying system table has been scanned.
+     */
+    public void setScanned(boolean scanned) {
+        this.scanned = scanned;
+    }
 
-	/**
-	 * Return whether or not the underlying system table has been scanned.
-	 *
-	 * @return		Where or not the underlying system table has been scanned.
-	 */
-	public boolean getScanned()
-	{
-		return scanned;
-	}
+    /**
+     * Return whether or not the underlying system table has been scanned.
+     *
+     * @return Where or not the underlying system table has been scanned.
+     */
+    public boolean getScanned() {
+        return scanned;
+    }
 
-	/**
-	 * Get the UniqueTupleDescriptor that matches the 
-	 * input uuid.
-	 *
-	 * @param uuid		The UUID for the object
-	 *
-	 * @return The matching UniqueTupleDescriptor.
-	 */
-	public UniqueTupleDescriptor getUniqueTupleDescriptor(UUID uuid)
-	{
-		for (Iterator iterator = iterator(); iterator.hasNext(); )
-		{
-			UniqueTupleDescriptor ud = (UniqueTupleDescriptor) iterator.next();
-			if (ud.getUUID().equals(uuid))
-			{
-				return ud;
-			}
-		}
-		return null;
-	}
+    /**
+     * Get the UniqueTupleDescriptor that matches the
+     * input uuid.
+     *
+     * @param uuid The UUID for the object
+     * @return The matching UniqueTupleDescriptor.
+     */
+    public UniqueTupleDescriptor getUniqueTupleDescriptor(UUID uuid) {
+        for (UniqueTupleDescriptor ud : this) {
+            if (ud.getUUID().equals(uuid)) {
+                return ud;
+            }
+        }
+        return null;
+    }
 }

@@ -263,7 +263,7 @@ class InsertResultSet extends DMLWriteResultSet implements TargetResultSet,HasIn
 			// Possibly dead code-- if there are triggers we don't do bulk insert.
 			rowHolder.truncate();
 			rowHolder.insert(execRow);
-			triggerActivator.notifyEvent(TriggerEvents.BEFORE_INSERT,
+			triggerActivator.notifyEvent(TriggerEvent.BEFORE_INSERT,
 											(CursorResultSet)null,
 											rowHolder.getResultSet(), 
 											(int[])null);
@@ -385,7 +385,7 @@ class InsertResultSet extends DMLWriteResultSet implements TargetResultSet,HasIn
 				*/
 				if (triggerInfo != null)
 				{
-					TriggerDescriptor td = triggerInfo.getTriggerArray()[0];
+					TriggerDescriptor td = triggerInfo.getTriggerDescriptors()[0];
 					throw StandardException.newException(SQLState.LANG_NO_BULK_INSERT_REPLACE_WITH_TRIGGER_DURING_EXECUTION, constants.getTableName(), td.getName());
 				}
 			}
@@ -460,7 +460,7 @@ class InsertResultSet extends DMLWriteResultSet implements TargetResultSet,HasIn
 				tableScan = getTableScanResultSet(baseTableConglom); 
 
 				// fire BEFORE trigger, do this before checking constraints
-				triggerActivator.notifyEvent(TriggerEvents.BEFORE_INSERT, 
+				triggerActivator.notifyEvent(TriggerEvent.BEFORE_INSERT,
 												(CursorResultSet)null,
 												tableScan, 
 												(int[])null);
@@ -496,7 +496,7 @@ class InsertResultSet extends DMLWriteResultSet implements TargetResultSet,HasIn
 				(triggerInfo.hasTrigger(false, true) ||
 				 triggerInfo.hasTrigger(false, false))) 
 			{
-				triggerActivator.notifyEvent(TriggerEvents.AFTER_INSERT,
+				triggerActivator.notifyEvent(TriggerEvent.AFTER_INSERT,
 										(CursorResultSet)null,
 										getTableScanResultSet(baseTableConglom), 
 										(int[])null); 
@@ -1144,7 +1144,7 @@ class InsertResultSet extends DMLWriteResultSet implements TargetResultSet,HasIn
 				}
 
 				// fire BEFORE trigger, do this before checking constraints
-				triggerActivator.notifyEvent(TriggerEvents.BEFORE_INSERT, 
+				triggerActivator.notifyEvent(TriggerEvent.BEFORE_INSERT,
 												(CursorResultSet)null,
 												rowHolder.getResultSet(), 
 												(int[])null);
@@ -1193,7 +1193,7 @@ class InsertResultSet extends DMLWriteResultSet implements TargetResultSet,HasIn
 			// fire AFTER trigger
 			if (triggerActivator != null)
 			{
-				triggerActivator.notifyEvent(TriggerEvents.AFTER_INSERT, 
+				triggerActivator.notifyEvent(TriggerEvent.AFTER_INSERT,
 										(CursorResultSet)null,
 										rowHolder.getResultSet(), 
 										(int[])null);

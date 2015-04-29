@@ -28,103 +28,73 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.Activation;
 
 /**
- * A row trigger executor is an object that executes
- * a row trigger.  It is instantiated at execution time.
+ * A row trigger executor is an object that executes a row trigger.  It is instantiated at execution time.
  * There is one per row trigger.
  */
-public class RowTriggerExecutor extends GenericTriggerExecutor
-{
-	/**
-	 * Constructor
-	 *
-	 * @param tec the execution context
-	 * @param triggerd the trigger descriptor
-	 * @param activation the activation
-	 * @param lcc the lcc
-	 */
-	RowTriggerExecutor
-	(
-		InternalTriggerExecutionContext tec, 
-		TriggerDescriptor 				triggerd,
-		Activation						activation,
-		LanguageConnectionContext		lcc
-	)
-	{
-		super(tec, triggerd, activation, lcc);
-	}
+public class RowTriggerExecutor extends GenericTriggerExecutor {
+    /**
+     * Constructor
+     *
+     * @param tec        the execution context
+     * @param triggerd   the trigger descriptor
+     * @param activation the activation
+     * @param lcc        the lcc
+     */
+    RowTriggerExecutor(InternalTriggerExecutionContext tec, TriggerDescriptor triggerd, Activation activation, LanguageConnectionContext lcc) {
+        super(tec, triggerd, activation, lcc);
+    }
 
-	/**
-	 * Fire the trigger based on the event.
-	 *
-	 * @param event the trigger event
-	 * @param brs   the before result set
-	 * @param ars   the after result set
-	 * @param colsReadFromTable   columns required from the trigger table
-	 *   by the triggering sql
-	 *
-	 * @exception StandardExcetion on error or general trigger
-	 *	exception
-	 */
-	void fireTrigger 
-	(
-		TriggerEvent 		event, 
-		CursorResultSet 	brs, 
-		CursorResultSet 	ars,
-		int[]	colsReadFromTable
-	) throws StandardException
-	{
-		tec.setTrigger(triggerd);
-		
-		try
-		{
-			while (true)
-			{
-				if (brs != null)
-				{
-					if (brs.getNextRow() == null)	
-						break;
-				}
-	
-				if (ars != null)
-				{
-					if (ars.getNextRow() == null)	
-						break;
-				}
-	
-				tec.setBeforeResultSet(brs == null ? 
-						null : 
-						TemporaryRowHolderResultSet.
-						   getNewRSOnCurrentRow(triggerd, activation, brs, colsReadFromTable));
-					
-				tec.setAfterResultSet(ars == null ? 
-									  null : 
-									  TemporaryRowHolderResultSet.
-									  getNewRSOnCurrentRow(triggerd, activation, ars, colsReadFromTable));
+    /**
+     * Fire the trigger based on the event.
+     *
+     * @param event             the trigger event
+     * @param brs               the before result set
+     * @param ars               the after result set
+     * @param colsReadFromTable columns required from the trigger table by the triggering sql
+     */
+    @Override
+    void fireTrigger(TriggerEvent event, CursorResultSet brs, CursorResultSet ars, int[] colsReadFromTable) throws StandardException {
+        tec.setTrigger(triggerd);
 
-				/* 	
-					This is the key to handling autoincrement values that might
-					be seen by insert triggers. For an AFTER ROW trigger, update
-					the autoincrement counters before executing the SPS for the
-					trigger.
-				*/
-				if (event.isAfter()) 
-					tec.updateAICounters();
+        try {
+            while (true) {
+                if (brs != null && brs.getNextRow() == null) {
+                    break;
+                }
+                if (ars != null && ars.getNextRow() == null) {
+                    break;
+                }
 
-				executeSPS(getAction());
-				
-				/*
-				  For BEFORE ROW triggers, update the ai values after the SPS
-				  has been executed. This way the SPS will see ai values from
-				  the previous row.
-				*/
-				if (event.isBefore())
-					tec.updateAICounters();
-			}
-		} 
-		finally
-		{
-			clearSPS();
-			tec.clearTrigger();
-		}
-	}
+                tec.setBeforeResultSet(brs == null ? null :
+                        TemporaryRowHolderResultSet.getNewRSOnCurrentRow(triggerd, activation, brs, colsReadFromTable));
+
+                tec.setAfterResultSet(ars == null ? null :
+                        TemporaryRowHolderResultSet.getNewRSOnCurrentRow(triggerd, activation, ars, colsReadFromTable));
+
+                /*     
+                    This is the key to handling autoincrement values that might
+                    be seen by insert triggers. For an AFTER ROW trigger, update
+                    the autoincrement counters before executing the SPS for the
+                    trigger.
+                */
+                if (event.isAfter()) {
+                    tec.updateAICounters();
+                }
+
+                executeSPS(getAction());
+
+                /*
+                  For BEFORE ROW triggers, update the ai values after the SPS
+                  has been executed. This way the SPS will see ai values from
+                  the previous row.
+                */
+                if (event.isBefore()) {
+                    tec.updateAICounters();
+                }
+            }
+        } finally {
+            clearSPS();
+            tec.clearTrigger();
+        }
+    }
 }

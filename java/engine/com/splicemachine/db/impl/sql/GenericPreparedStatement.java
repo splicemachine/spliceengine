@@ -989,17 +989,14 @@ recompileOutOfDatePlan:
 			}
 		}
 		isValid = true;
-
-		return;
 	}
 
-	public GeneratedClass getActivationClass()
-		throws StandardException
-	{
+    @Override
+	public GeneratedClass getActivationClass() throws StandardException {
 		return activationClass;
 	}
 
-	void setActivationClass(GeneratedClass ac)
+	public void setActivationClass(GeneratedClass ac)
 	{
 		activationClass = ac;
 	}

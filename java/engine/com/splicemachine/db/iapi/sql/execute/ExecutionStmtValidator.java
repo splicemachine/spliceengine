@@ -24,28 +24,17 @@ package com.splicemachine.db.iapi.sql.execute;
 import com.splicemachine.db.iapi.error.StandardException;
 
 /**
- * An ExecutionStatementValidator is an object that is
- * handed a ConstantAction and asked whether it is ok for
- * this result set to execute.  When something like
- * a trigger is executing, one of these gets pushed.
- * Before execution, each validator that has been pushed
- * is invoked on the result set that we are about to
- * execution.  It is up to the validator to look at
- * the result set and either complain (throw an exception)
+ * An ExecutionStatementValidator is an object that is handed a ConstantAction and asked whether it is ok for
+ * this result set to execute.  When something like a trigger is executing, one of these gets pushed.
+ * Before execution, each validator that has been pushed is invoked on the result set that we are about to
+ * execution.  It is up to the validator to look at the result set and either complain (throw an exception)
  * or let it through.
- *
  */
-public interface ExecutionStmtValidator
-{
-	/**
-	 * Validate the statement.
-	 *
-	 * @param constantAction The constant action that we are about to execute.  
-	 *
-	 * @exception StandardException on error
-	 *
-	 * @see ConstantAction
-	 */
-	public void validateStatement(ConstantAction constantAction)
-		throws StandardException;
+public interface ExecutionStmtValidator {
+    /**
+     * Validate the statement.
+     *
+     * @param constantAction The constant action that we are about to execute.
+     */
+    void validateStatement(ConstantAction constantAction) throws StandardException;
 }
