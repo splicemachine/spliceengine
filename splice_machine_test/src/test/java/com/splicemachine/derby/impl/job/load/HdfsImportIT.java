@@ -722,11 +722,11 @@ public class HdfsImportIT extends SpliceUnitTest {
 			testMissingEndQuoteForQuotedColumn(
 					spliceSchemaWatcher.schemaName,
 					TABLE_18,
-					getResourceDirectory() + "import/missing-end-quote/employees11000.csv",
+					getResourceDirectory() + "import/missing-end-quote/employeesMaxQuotedColumnLines.csv",
 					"NAME,TITLE,AGE",
 					baddir.newFolder().getCanonicalPath(),
 					0,
-					11000);
+					201000);
 		} catch (Throwable t) {
 			String expectedMessage1 = "Quoted column beginning on line";
 			String expectedMessage2 = "org.supercsv.exception.SuperCsvException";
@@ -768,6 +768,6 @@ public class HdfsImportIT extends SpliceUnitTest {
 			Assert.assertNotNull("title is null!", title);
 			results.add(String.format("name:%s,title:%s,age:%d", name, title, age));
 		}
-		Assert.assertTrue("Incorrect number of rows imported", results.size() == importCount);
+		Assert.assertEquals("Incorrect number of rows imported", importCount, results.size());
 	}
 }
