@@ -994,16 +994,6 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                                     .getJavaColumn("DATA", "com.splicemachine.stats.ColumnStatistics", false)
                                     .getType().getCatalogType())
                             .build(),
-                    Procedure.newBuilder().name("STATS_COL_WIDTH")
-                            .numOutputParams(0)
-                            .numResultSets(0)
-                            .sqlControl(RoutineAliasInfo.NO_SQL)
-                            .returnType(DataTypeDescriptor.getCatalogType(Types.INTEGER))
-                            .isDeterministic(true).ownerClass(StatisticsFunctions.class.getCanonicalName())
-                            .arg("SOURCE", SystemColumnImpl
-                                    .getJavaColumn("DATA", "com.splicemachine.stats.ColumnStatistics", false)
-                                    .getType().getCatalogType())
-                            .build(),
                     Procedure.newBuilder().name("PARTITION_EXISTS")
                             .numOutputParams(0)
                             .numResultSets(0)

@@ -20,11 +20,6 @@ import java.util.concurrent.ExecutionException;
  */
 public class StatisticsFunctions {
 
-    public static int STATS_COL_WIDTH(ColumnStatistics columnStatistics){
-        if(columnStatistics==null) return 0;
-        return columnStatistics.avgColumnWidth();
-    }
-
     public static long STATS_CARDINALITY(ColumnStatistics columnStatistics){
         if(columnStatistics==null) return 0;
         return columnStatistics.cardinality();
