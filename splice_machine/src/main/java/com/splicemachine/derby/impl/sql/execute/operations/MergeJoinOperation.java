@@ -1,9 +1,10 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.stream.*;
+import com.splicemachine.derby.stream.derby.DataSetNoPutResultSet;
+import com.splicemachine.derby.stream.iterator.SparkJoinerIterator;
 import com.splicemachine.derby.stream.spark.RDDUtils;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
@@ -31,7 +32,6 @@ import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.log4j.Logger;
 import org.apache.spark.Partition;
 import org.apache.spark.Partitioner;
-import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.rdd.NewHadoopPartition;
 
 import java.io.Externalizable;
@@ -172,8 +172,8 @@ public class MergeJoinOperation extends JoinOperation {
         ors = new OperationResultSet(activation,rightResultSet);
         ors.sinkOpen(spliceRuntimeContext.getTxn(),true);
         ors.executeScan(false,ctxWithOverride);
-        SpliceNoPutResultSet resultSet = ors.getDelegate();
-        rightRows = StandardIterators.ioIterator(resultSet);
+        DataSetNoPutResultSet resultSet = ors.getDelegate();
+        rightRows = null;//StandardIterators.ioIterator(resultSet);
         rightRows.open();
         IJoinRowsIterator<ExecRow> mergedRowSource = new MergeJoinRows(leftPushBack, rightRows, leftHashKeys, rightHashKeys);
         StandardSupplier<ExecRow> emptyRowSupplier = new StandardSupplier<ExecRow>() {
@@ -414,7 +414,7 @@ public class MergeJoinOperation extends JoinOperation {
     }
 
     @Override
-    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
+    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, DataSetProcessor dsp) throws StandardException {
         throw new RuntimeException("Not Implemented");
     }
 }

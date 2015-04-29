@@ -159,7 +159,7 @@ public class ExplainOperation extends SpliceBaseOperation {
             explainStringIter = Iterators.emptyIterator();
     }
 
-    public DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
+    public DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, DataSetProcessor dsp) throws StandardException {
         try {
             return dsp.createDataSet(Iterables.transform(new Iterable<String>() {
                                                              @Override

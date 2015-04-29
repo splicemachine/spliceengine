@@ -9,6 +9,8 @@ import com.splicemachine.derby.impl.sql.execute.operations.NestedLoopJoinOperati
 import com.splicemachine.derby.stream.DataSet;
 import com.splicemachine.derby.stream.OperationContext;
 import com.splicemachine.derby.stream.StreamUtils;
+import com.splicemachine.derby.stream.iterator.NestedLoopIterator;
+
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -44,20 +46,26 @@ public class NLJFunction<Op extends SpliceOperation> extends SpliceFlatMapFuncti
 
     @Override
     public Iterable<LocatedRow> call(LocatedRow from) throws Exception {
+        System.out.println("fromRow " + from);
         NestedLoopJoinOperation operation = (NestedLoopJoinOperation) getOperation();
         operation.setCurrentRow(from.getRow());
-        DataSet dataSet = rightOperation.getDataSet(this.operationContext.getSpliceRuntimeContext(), rightOperation, StreamUtils.controlDataSetProcessor);
+        DataSet dataSet = rightOperation.getDataSet(this.operationContext.getSpliceRuntimeContext(), StreamUtils.controlDataSetProcessor);
         Iterator<LocatedRow> rightSideNLJ = dataSet.toLocalIterator();
 
         // Nothing Returned (Outside Iterator)
         if (!rightSideNLJ.hasNext()) {
+            System.out.println("nothing on right side");
             if (notExistsRightSide || operation.isOuterJoin) { // Outer Join or Not Exists Evaluation
                 ExecRow mergedRow = getNewMergedRow(operation.getRightNumCols(), operation.getLeftNumCols());
                 mergedRow = JoinUtils.getMergedRow(from.getRow(), operation.getEmptyRow(), operation.wasRightOuterJoin, operation.getRightNumCols(), operation.getLeftNumCols(), operation.mergedRow);
-                if (!operation.getRestriction().apply(mergedRow))
+                if (!operation.getRestriction().apply(mergedRow)) {
+                    System.out.println("restricted");
                     return Collections.<LocatedRow>emptyList();
-                else
+                }
+                else {
+                    getOperation().setCurrentRow(mergedRow);
                     return Lists.newArrayList(new LocatedRow(mergedRow)); // Not Exists Passed
+                }
             } else { // Inner Join: Miss
                 return Collections.<LocatedRow>emptyList();
             }

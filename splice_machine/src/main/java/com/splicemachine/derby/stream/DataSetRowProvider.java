@@ -96,7 +96,16 @@ public class DataSetRowProvider implements RowProvider, Serializable {
 
     @Override
     public int getModifiedRowCount() {
-        return 0;
+        try {
+            int modifiedRowCount = 0;
+            while (iterator.hasNext()) {
+                modifiedRowCount += iterator.next().getRow().getColumn(1).getInt();
+            }
+            return modifiedRowCount;
+        } catch (StandardException se) {
+                throw new RuntimeException(se);
+         }
+
     }
 
     public DataSet<LocatedRow> getDataSet() {

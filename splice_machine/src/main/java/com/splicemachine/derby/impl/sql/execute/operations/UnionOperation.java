@@ -11,17 +11,11 @@ import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.stream.DataSet;
 import com.splicemachine.derby.stream.DataSetProcessor;
-import com.splicemachine.derby.stream.OperationContext;
-import com.splicemachine.derby.stream.StreamUtils;
-import com.splicemachine.derby.stream.function.Keyer;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.pipeline.exception.Exceptions;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import org.apache.spark.api.java.JavaRDD;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -262,13 +256,13 @@ public class UnionOperation extends SpliceBaseOperation {
 		}
 
     @Override
-    public DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
+    public DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, DataSetProcessor dsp) throws StandardException {
         SpliceRuntimeContext left = spliceRuntimeContext.copy();
         SpliceRuntimeContext right = spliceRuntimeContext.copy();
         left.addPath(resultSetNumber, SpliceRuntimeContext.Side.LEFT);
         right.addPath(resultSetNumber, SpliceRuntimeContext.Side.RIGHT);
-        DataSet firstDS = firstResultSet.getDataSet(spliceRuntimeContext, top);
-        DataSet secondDS = secondResultSet.getDataSet(spliceRuntimeContext, top);
+        DataSet firstDS = firstResultSet.getDataSet(spliceRuntimeContext);
+        DataSet secondDS = secondResultSet.getDataSet(spliceRuntimeContext);
         return firstDS.union(secondDS);
     }
 

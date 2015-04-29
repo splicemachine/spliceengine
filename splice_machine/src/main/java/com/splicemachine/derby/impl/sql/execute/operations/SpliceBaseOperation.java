@@ -9,8 +9,6 @@ import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.stream.DataSetProcessor;
 import com.splicemachine.derby.stream.StreamUtils;
-import com.splicemachine.derby.stream.spark.RDDRowProvider;
-import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.stream.DataSet;
@@ -28,7 +26,6 @@ import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.SIFactoryDriver;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.i18n.MessageService;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -44,8 +41,6 @@ import com.splicemachine.db.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-import org.apache.spark.api.java.JavaRDD;
-
 import java.io.*;
 import java.sql.SQLWarning;
 import java.util.ArrayList;
@@ -726,8 +721,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
         this.rowsSunk = rowsSunk;
     }
 
-    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
             DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
-            return getDataSet(spliceRuntimeContext,top,dsp);
+            return getDataSet(spliceRuntimeContext,dsp);
     }
 }

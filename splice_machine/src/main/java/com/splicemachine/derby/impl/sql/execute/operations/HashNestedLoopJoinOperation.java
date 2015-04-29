@@ -15,6 +15,7 @@ import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.stream.DataSet;
 import com.splicemachine.derby.stream.DataSetProcessor;
+import com.splicemachine.derby.stream.derby.DataSetNoPutResultSet;
 import com.splicemachine.metrics.IOStats;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.storage.AndPredicate;
@@ -398,7 +399,7 @@ public class HashNestedLoopJoinOperation extends JoinOperation{
         //execute the scan
         rightRs.executeScan(false,context);
 
-        SpliceNoPutResultSet nprs = rightRs.getDelegate();
+        DataSetNoPutResultSet nprs = rightRs.getDelegate();
         try{
             ExecRow rightRow = nprs.getNextRow();
             while(rightRow!=null){
@@ -594,7 +595,7 @@ public class HashNestedLoopJoinOperation extends JoinOperation{
     }
 
     @Override
-    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
+    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, DataSetProcessor dsp) throws StandardException {
         throw new RuntimeException("not implemented");
     }
 }

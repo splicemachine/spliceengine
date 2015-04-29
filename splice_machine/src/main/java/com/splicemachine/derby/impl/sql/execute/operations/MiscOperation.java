@@ -171,7 +171,8 @@ public class MiscOperation extends NoRowsOperation
 				return false;
 		}
 
-        public DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
+        @Override
+        public DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, DataSetProcessor dsp) throws StandardException {
             setup();
             activation.getConstantAction().executeConstantAction(activation);
             return dsp.getEmpty();

@@ -59,7 +59,7 @@ public class OperationTree {
         if (true) {
 //            ctx.setUseSpark(true);
             return new SpliceNoPutResultSet(root.getActivation(), root,
-                    new DataSetRowProvider(root.getDataSet(ctx, root), ctx));
+                    new DataSetRowProvider(root.getDataSet(ctx), ctx));
         }
         sink(root, ctx);
         return useProbe ? root.executeProbeScan() : root.executeScan(ctx);

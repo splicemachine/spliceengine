@@ -2,7 +2,6 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.db.impl.sql.execute.IndexValueRow;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
@@ -13,7 +12,6 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.iapi.storage.ScanBoundary;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.*;
 import com.splicemachine.derby.stream.function.*;
-import com.splicemachine.derby.stream.spark.RDDUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.*;
 import com.splicemachine.derby.impl.storage.*;
 import com.splicemachine.derby.impl.temp.TempTable;
@@ -41,15 +39,12 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import org.apache.commons.lang.ArrayUtils;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
-import org.apache.spark.api.java.JavaPairRDD;
-import org.apache.spark.api.java.JavaRDD;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -586,14 +581,14 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 
 
     @Override
-    public DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
+    public DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, DataSetProcessor dsp) throws StandardException {
         OperationContext<SpliceOperation> operationContext = dsp.createOperationContext(this,spliceRuntimeContext);
         DataSet set;
         if (groupedAggregateContext.getNonGroupedUniqueColumns()!=null &&
                 groupedAggregateContext.getNonGroupedUniqueColumns().length > 0) {
             // Distinct Aggregate Path
             int[] allKeys = ArrayUtils.addAll(groupedAggregateContext.getGroupingKeys(),groupedAggregateContext.getNonGroupedUniqueColumns());
-            return source.getDataSet(spliceRuntimeContext, top)
+            return source.getDataSet(spliceRuntimeContext)
                     .keyBy(new Keyer(operationContext, allKeys))
                     .reduceByKey(new MergeNonDistinctAggregatesFunction(operationContext, aggregates))
                     .values()
@@ -604,7 +599,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 
         } else {
             // Regular Group by Path
-            return source.getDataSet(spliceRuntimeContext, top)
+            return source.getDataSet(spliceRuntimeContext)
                     .keyBy(new Keyer(operationContext, groupedAggregateContext.getGroupingKeys()))
                     .reduceByKey(new MergeAllAggregatesFunction(operationContext, aggregates))
                     .values()

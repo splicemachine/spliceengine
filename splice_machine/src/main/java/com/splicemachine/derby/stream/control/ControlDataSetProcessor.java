@@ -38,7 +38,7 @@ public class ControlDataSetProcessor<Op extends SpliceOperation,K,V> implements 
                 siTableBuilder
                         .scanner(new ControlMeasuredRegionScanner(Bytes.toBytes(tableName),siTableBuilder.getScan()))
                         .region(localRegion);
-        return new ControlDataSet(new TableScannerIterator(siTableBuilder,spliceRuntimeContext));
+        return new ControlDataSet(new TableScannerIterator(siTableBuilder,spliceRuntimeContext,spliceOperation));
     }
 
     @Override
@@ -66,9 +66,12 @@ public class ControlDataSetProcessor<Op extends SpliceOperation,K,V> implements 
         boolean slotted;
         boolean hasNext;
         int rows = 0;
-        public TableScannerIterator(TableScannerBuilder siTableBuilder, SpliceRuntimeContext spliceRuntimeContext) {
+        protected SpliceOperation operation;
+
+        public TableScannerIterator(TableScannerBuilder siTableBuilder, SpliceRuntimeContext spliceRuntimeContext, SpliceOperation operation) {
             this.siTableBuilder = siTableBuilder;
             this.spliceRuntimeContext = spliceRuntimeContext;
+            this.operation = operation;
         }
 
         @Override
@@ -106,6 +109,8 @@ public class ControlDataSetProcessor<Op extends SpliceOperation,K,V> implements 
             slotted = false;
             rows++;
             LocatedRow locatedRow = new LocatedRow(tableScanner.getCurrentRowLocation(),execRow.getClone());
+            operation.setCurrentRow(locatedRow.getRow());
+            operation.setCurrentRowLocation(locatedRow.getRowLocation());
             return locatedRow;
         }
 

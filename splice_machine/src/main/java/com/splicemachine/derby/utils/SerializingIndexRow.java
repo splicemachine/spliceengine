@@ -130,4 +130,15 @@ public class SerializingIndexRow implements ExecIndexRow,Externalizable {
     public ExecRow getKeyedExecRow(int[] ints) throws StandardException {
         return valueRow.getKeyedExecRow(ints);
     }
+
+    @Override
+    public int hashCode(int[] ints) {
+        return valueRow.hashCode(ints);
+    }
+
+    @Override
+    public int compareTo(int[] ints, ExecRow execRow) {
+        return valueRow.compareTo(ints,execRow);
+    }
+
 }

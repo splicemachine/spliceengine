@@ -354,10 +354,10 @@ public class RowCountOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
+    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, DataSetProcessor dsp) throws StandardException {
         final long fetchLimit = getFetchLimit();
         final long offset = getTotalOffset();
-        return source.getDataSet(spliceRuntimeContext,top).fetchWithOffset((int)offset,fetchLimit > 0 ? (int) fetchLimit : Integer.MAX_VALUE);
+        return source.getDataSet(spliceRuntimeContext).fetchWithOffset((int)offset,fetchLimit > 0 ? (int) fetchLimit : Integer.MAX_VALUE);
     }
 
 
