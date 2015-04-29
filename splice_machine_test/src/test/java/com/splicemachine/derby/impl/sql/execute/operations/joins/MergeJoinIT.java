@@ -17,6 +17,7 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
+import java.sql.CallableStatement;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -167,7 +168,17 @@ public class MergeJoinIT extends SpliceUnitTest {
                             "  ('REG AIR', 5)," +
                             "  ('SHIP', 6)," +
                             "  ('TRUCK', 7);",
-                    CLASS_NAME));
+                    CLASS_NAME)).around(new SpliceDataWatcher(){
+                @Override
+                protected void starting(Description description){
+                    try(CallableStatement cs = spliceClassWatcher.prepareCall("call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS(?,false)")){
+                       cs.setString(1,spliceSchemaWatcher.schemaName);
+                        cs.execute();
+                    }catch(Exception e){
+                        throw new RuntimeException(e);
+                    }
+                }
+            });
 
 
     @Rule

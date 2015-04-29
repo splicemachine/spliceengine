@@ -12,10 +12,7 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.math.BigDecimal;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.Statement;
+import java.sql.*;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
@@ -57,7 +54,7 @@ public class UpdateOperationIT {
         new TableCreator(connection)
                 .withCreate("create table SHIPMENT (cust_id int)")
                 .withInsert("insert into SHIPMENT values(?)")
-                .withRows(rows(row(102), row(104)))
+                .withRows(rows(row(102),row(104)))
                 .create();
 
         new TableCreator(connection)
@@ -75,6 +72,11 @@ public class UpdateOperationIT {
         new TableCreator(connection)
                 .withCreate("create table NULL_TABLE2 (col1 varchar(50), col2 char(5), col3 int)")
                 .create();
+
+        try(CallableStatement cs = connection.prepareCall("call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS(?,false)")){
+            cs.setString(1,SCHEMA);
+            cs.execute();
+        }
     }
 
     /*regression test for DB-2204*/

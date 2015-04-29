@@ -134,10 +134,12 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
 		}
 
 
-		public void setStatementInfo(StatementInfo statementInfo){
-				this.statementInfo = statementInfo;
-                this.statementId = statementInfo.getStatementUuid();
+	public void setStatementInfo(StatementInfo statementInfo){
+		this.statementInfo = statementInfo;
+		if(statementInfo!=null){
+			this.statementId=statementInfo.getStatementUuid();
 		}
+	}
 
     public void addPath(int resultSetNumber, int state) {
     	paths.put(resultSetNumber, state);

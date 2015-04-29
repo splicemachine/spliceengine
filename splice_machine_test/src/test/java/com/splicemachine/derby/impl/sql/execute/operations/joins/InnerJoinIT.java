@@ -16,9 +16,7 @@ import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
 import java.math.BigDecimal;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.*;
 
 import static com.splicemachine.homeless.TestUtils.o;
@@ -112,7 +110,18 @@ public class InnerJoinIT extends SpliceUnitTest {
 						}).around(TestUtils.createFileDataWatcher(spliceClassWatcher, "small_msdatasample/startup.sql", CLASS_NAME))
 						.around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/employee.sql", CLASS_NAME))
 						.around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/hits.sql", CLASS_NAME))
-						.around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/basic_join_dataset.sql", CLASS_NAME));
+						.around(TestUtils.createFileDataWatcher(spliceClassWatcher, "test_data/basic_join_dataset.sql", CLASS_NAME))
+				.around(new SpliceDataWatcher(){
+					@Override
+					protected void starting(Description description){
+						try(CallableStatement cs = spliceClassWatcher.prepareCall("call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS(?,false)")){
+							cs.setString(1,spliceSchemaWatcher.schemaName);
+							cs.execute();
+						}catch(Exception e){
+							throw new RuntimeException(e);
+						}
+					}
+				});
 
 		@Rule public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 

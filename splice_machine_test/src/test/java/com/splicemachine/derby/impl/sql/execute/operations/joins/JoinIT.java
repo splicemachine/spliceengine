@@ -1,13 +1,12 @@
 package com.splicemachine.derby.impl.sql.execute.operations.joins;
 
-import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.derby.test.framework.SpliceDataWatcher;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
+
+import java.sql.CallableStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Arrays;
 import java.util.List;
 
@@ -79,6 +78,16 @@ public class JoinIT extends SpliceUnitTest {
                     } finally {
                         spliceClassWatcher.closeAll();
                     }
+                }
+            }).around(new SpliceDataWatcher(){
+                @Override
+                protected void starting(Description description){
+                   try(CallableStatement cs = spliceClassWatcher.prepareCall("call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS(?,false)")){
+                       cs.setString(1,schemaWatcher.schemaName);
+                       cs.execute();
+                   }catch(Exception e){
+                       throw new RuntimeException(e);
+                   }
                 }
             });
 
@@ -253,19 +262,23 @@ public class JoinIT extends SpliceUnitTest {
             String tableName1 = String.valueOf(RandomStringUtils.randomAlphabetic(9));
             String tableName2 = String.valueOf(RandomStringUtils.randomAlphabetic(9));
 
-            new TableCreator(methodWatcher.getOrCreateConnection())
-                    .withCreate("create table %s (c1 int, c2 int, c3 int)").withTableName(tableName1).create();
+            TestConnection connection=methodWatcher.getOrCreateConnection();
+            new TableCreator(connection).withCreate("create table %s (c1 int, c2 int, c3 int)")
+                    .withTableName(schemaWatcher.schemaName+"."+tableName1).create();
 
-            new TableCreator(methodWatcher.getOrCreateConnection())
-                    .withCreate("create table %s (c1 int, c2 int, c3 int)").withTableName(tableName2).create();
+            new TableCreator(connection).withCreate("create table %s (c1 int, c2 int, c3 int)")
+                    .withTableName(schemaWatcher.schemaName+"."+tableName2).create();
+            connection.collectStats(schemaWatcher.schemaName,tableName1);
+            connection.collectStats(schemaWatcher.schemaName,tableName2);
 
-            String sql = "select * from %s a --SPLICE-PROPERTIES joinStrategy=BROADCAST \n join %s b on a.c1=b.c2 ";
+            String sql = "select * from %1$s.%2$s a --SPLICE-PROPERTIES joinStrategy=BROADCAST \n join %1$s.%2$s b on a.c1=b.c2 ";
 
-            ResultSet rs = methodWatcher.prepareStatement(String.format(sql, tableName1, tableName2)).executeQuery();
+            ResultSet rs = methodWatcher.prepareStatement(String.format(sql,schemaWatcher.schemaName, tableName1, tableName2)).executeQuery();
 
             Assert.assertFalse(rs.next());
         }
 
     }
+
 
 }
