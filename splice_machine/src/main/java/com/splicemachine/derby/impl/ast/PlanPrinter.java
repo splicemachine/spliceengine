@@ -32,8 +32,6 @@ public class PlanPrinter extends AbstractSpliceVisitor {
     public static Logger PLAN_LOG = Logger.getLogger(PlanPrinter.class.getName() + ".JSONLog");
 
     public static final String spaces = "  ";
-    private static final Logger COST_LOG=Logger.getLogger(PlanPrinter.class.getName()+".CostLog");
-
     private boolean explain = false;
     public static ThreadLocal<Map<String,ExplainTree>> planMap = new ThreadLocal<Map<String,ExplainTree>>(){
         @Override
@@ -155,16 +153,10 @@ public class PlanPrinter extends AbstractSpliceVisitor {
 
     private void pushExplain(ResultSetNode rsn,ExplainTree.Builder builder) throws StandardException{
         CostEstimate ce = rsn.getFinalCostEstimate().getBase();
-        if(COST_LOG.isTraceEnabled()){
-            COST_LOG.trace("RowOrdering for node "+ rsn.getClass().getSimpleName()+" is "+ ce.getRowOrdering());
-        }
         int rsNum = rsn.getResultSetNumber();
 
         if(rsn instanceof FromBaseTable){
             FromBaseTable fbt=(FromBaseTable)rsn;
-            if(COST_LOG.isTraceEnabled()){
-                COST_LOG.trace(fbt.getTableName()+":"+fbt.getTableNumber());
-            }
             TableDescriptor tableDescriptor=fbt.getTableDescriptor();
             String tableName = String.format("%s(%s)",tableDescriptor.getName(),tableDescriptor.getHeapConglomerateId());
 

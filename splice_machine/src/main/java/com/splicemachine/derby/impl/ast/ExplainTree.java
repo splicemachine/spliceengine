@@ -213,7 +213,7 @@ public class ExplainTree{
             sb = sb.append(spaceToLevel())
                     .append(className).append("(")
                     .append("n=").append(resultSetNumber)
-                    .append(",").append(cost.prettyString());
+                    .append(",cost=").append(cost.prettyString());
             String extras = getExtraInformation();
             if(extras!=null)
                 sb = sb.append(",").append(extras);
@@ -366,32 +366,31 @@ public class ExplainTree{
                          List<String> predicateStrings,
                          String tableName,
                          String indexName){
-            super(getClassName(tableName,indexName),resultSetNUmber,cost,predicateStrings);
+            super(getClassName(indexName),resultSetNUmber,cost,predicateStrings);
             this.tableName=tableName;
             this.indexName=indexName;
         }
 
-        private static String getClassName(String tableName,String indexName){
-            String cName;
-            if(indexName!=null){
-                cName = "IndexScan["+indexName+"]";
-            }else{
-               cName = "TableScan["+tableName+"]";
-            }
-            return cName;
+        private static String getClassName(String indexName){
+            if(indexName!=null) return "IndexScan";
+            return "TableScan";
         }
 
         @Override
         protected String getExtraInformation(){
             StringBuilder sb = new StringBuilder();
+            if(tableName!=null)
+                sb = sb.append("table=").append(tableName);
             if(indexName!=null){
-                sb=sb.append("baseTable=").append(tableName);
+                if(tableName!=null)
+                    sb = sb.append(",");
+                sb=sb.append("using-index=").append(indexName);
             }
 
             String superInfo = super.getExtraInformation();
             if(superInfo==null) return sb.toString();
-            if(indexName!=null) sb = sb.append(",");
-            sb = sb.append(superInfo);
+
+            sb = sb.append(",").append(super.getExtraInformation());
             return sb.toString();
         }
     }
