@@ -83,7 +83,6 @@ import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
-import com.splicemachine.derby.impl.job.operation.SuccessFilter;
 import com.splicemachine.derby.impl.job.scheduler.BaseJobControl;
 import com.splicemachine.derby.impl.job.scheduler.JobControl;
 import com.splicemachine.derby.impl.job.scheduler.JobMetrics;
@@ -258,11 +257,7 @@ public class DerbyFactoryImpl implements DerbyFactory<TxnMessage.TxnInfo> {
 		          lcc.getStatementContext().setMaxCardinality(regionLoads.size());
 		      }			
 		}
-		@Override
-		public Filter getSuccessFilter(List<byte[]> failedTasks) {
-			return new SuccessFilter(failedTasks);
-		}
-		
+
 		@Override
 		public int getRegionsSizeMB(String tableName) {
 			int regionSizeMB = -1;
