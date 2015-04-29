@@ -1,21 +1,17 @@
 package com.splicemachine.derby.iapi.sql.execute;
 
-import com.splicemachine.derby.iapi.storage.RowProvider;
-
+import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import java.io.IOException;
 import java.util.List;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationInformation;
-import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.stream.DataSet;
 import com.splicemachine.derby.stream.DataSetProcessor;
-import com.splicemachine.derby.utils.marshall.*;
-import com.splicemachine.job.JobResults;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
-import org.apache.spark.api.java.JavaRDD;
+import com.splicemachine.si.api.TxnView;
 
 /**
  * 
@@ -25,7 +21,7 @@ import org.apache.spark.api.java.JavaRDD;
  *
  */
 
-public interface SpliceOperation extends StandardCloseable {
+public interface SpliceOperation extends StandardCloseable, NoPutResultSet, ConvertedResultSet {
 
     RowLocation getCurrentRowLocation();
 
@@ -36,27 +32,7 @@ public interface SpliceOperation extends StandardCloseable {
      */
     String getName();
 
-    /**
-     * @return true if statistics recording is enabled.
-     */
-    boolean shouldRecordStats();
-
-	 JobResults getJobResults();
-
     OperationInformation getOperationInformation();
-
-    /**
-	 * 
-	 * Enumeration with the following types:
-	 * 
-	 * 	SCAN 	: Accesses HBase storage.
-	 *  MAP		: Can be pushed to either the scan or the reduce Operation below it on the left hand side.
-	 *  REDUCE	: The node needs to run the reduce steps after the sink.
-	 *  SINK	: 
-	 *  SCROLL	: The node returns a scrollable set of data to the client.
-	 *  
-	 */
-	public enum NodeType { SCAN, MAP, REDUCE, SINK, SCROLL}
 
     public int modifiedRowCount();
 
@@ -64,79 +40,33 @@ public interface SpliceOperation extends StandardCloseable {
 
     public void clearCurrentRow();
 
-    public void close() throws StandardException,IOException;
-
     public void markAsTopResultSet();
 
-    public void open() throws StandardException,IOException;
+    public void open() throws StandardException;
 
     public int resultSetNumber();
 
     public void setCurrentRow(ExecRow row);
-
-    public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException,IOException;
-
-	/**
-	 * Get the mechanism for providing Rows to the SpliceNoPutResultSet
-	 * @return the mechanism for providing Rows to the SpliceNoPutResultSet
-	 */
-	public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException;
-	
-	/**
-	 * Get the mechanism for providing Rows to the SpliceNoPutResultSet
-	 * @return the mechanism for providing Rows to the SpliceNoPutResultSet
-	 */
-	public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException, IOException;
-
-		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException;
-
-		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException;
 
 	/**
 	 * Initializes the node with the statement and the language context from the SpliceEngine.
 	 * 
 	 * @throws StandardException
 	 */
-	public void init(SpliceOperationContext operationContext) throws IOException, StandardException;
-
-	/**
-	 * List of Node Types that determine the Operation's behaviour pattern.
-	 * 
-	 */
-	public List<NodeType> getNodeTypes();
+	public void init(SpliceOperationContext context) throws IOException, StandardException;
 
 	/**
 	 * Set of operations for a node.
 	 * 
 	 */
-	public List<SpliceOperation> getSubOperations();
+//	public List<SpliceOperation> getSubOperations();
 
 	/**
 	 * Unique node sequence id.  Should move from Zookeeper to uuid generator.
 	 * 
 	 */
 	public byte[] getUniqueSequenceID();
-	/**
-	 * Execute a sink operation.  Must be a sink node.  This operation will be called from the OperationTree. 
-	 * 
-	 * @see com.splicemachine.derby.impl.sql.execute.operations.OperationTree
-	 */
-	public void executeShuffle(SpliceRuntimeContext runtimeContext) throws StandardException, IOException;
-	/**
-	 * 
-	 * Executes a scan operation from a node that has either a SCROLL node type or that is called from another node.
-	 * 
-	 * @return
-	 */
-	public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException;
 
-	/**
-	 * 
-	 * Probe scan for hash joins.  This may not belong in the interface and is just a once off.
-	 * 
-	 * @return
-	 */
-	public SpliceNoPutResultSet executeProbeScan() throws StandardException;
 	/**
 	 * 
 	 * Gets the left Operation for a Operation.  They can be named different things in different operations (Source, LeftResultSet, etc.).  
@@ -206,16 +136,6 @@ public interface SpliceOperation extends StandardCloseable {
      * @return a pretty-printed string representation of this operation.
      */
     String prettyPrint(int indentLevel);
-
-    /**
-     * Get the recorded metrics for the Operation. This should only be called when trace
-     * metrics gathering is enabled.
-     *
-     * @return the metrics recorded by this operation. Return {@code null} if no
-     * metrics have been collected.
-     */
-    OperationRuntimeStats getMetrics(long statementId,long taskId, boolean isTopOperation);
-
     /**
      * @return -1l if no statementId has been set on this operation, or the statement
      * id if one has. Generally, a statementId is only set on the top operation
@@ -234,8 +154,13 @@ public interface SpliceOperation extends StandardCloseable {
 
     double getEstimatedRowCount();
 
-    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext) throws StandardException;
+    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet() throws StandardException;
 
-    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, DataSetProcessor dsp) throws StandardException;
+    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException;
+
+    public TxnView getCurrentTransaction() throws StandardException;
+
+    public List<SpliceOperation> getSubOperations();
+
 
 }

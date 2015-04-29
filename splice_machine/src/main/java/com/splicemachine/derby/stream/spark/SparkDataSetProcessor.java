@@ -5,26 +5,17 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.spark.SpliceSpark;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
-import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.DataSet;
 import com.splicemachine.derby.stream.DataSetProcessor;
 import com.splicemachine.derby.stream.OperationContext;
-import com.splicemachine.derby.stream.PairDataSet;
-import com.splicemachine.derby.stream.function.SpliceFunction;
 import com.splicemachine.derby.stream.function.TableScanTupleFunction;
 import com.splicemachine.mrio.api.core.SMInputFormat;
 import com.splicemachine.db.iapi.types.RowLocation;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.spark.Accumulator;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
-import scala.Tuple2;
-
-import java.io.Externalizable;
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Collections;
@@ -39,7 +30,7 @@ public class SparkDataSetProcessor <Op extends SpliceOperation,K,V> implements D
     }
 
     @Override
-    public DataSet< V> getTableScanner(final Op spliceOperation, TableScannerBuilder siTableBuilder, String tableName, final SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    public DataSet< V> getTableScanner(final Op spliceOperation, TableScannerBuilder siTableBuilder, String tableName) throws StandardException {
         JavaSparkContext ctx = SpliceSpark.getContext();
         Configuration conf = new Configuration(SIConstants.config);
         conf.set(com.splicemachine.mrio.MRConstants.SPLICE_CONGLOMERATE, tableName);
@@ -53,7 +44,7 @@ public class SparkDataSetProcessor <Op extends SpliceOperation,K,V> implements D
                 RowLocation.class, ExecRow.class);
 
         return new SparkDataSet(rawRDD.map(
-                new TableScanTupleFunction<Op>(createOperationContext(spliceOperation,spliceRuntimeContext))));
+                new TableScanTupleFunction<Op>(createOperationContext(spliceOperation))));
     }
 
     @Override
@@ -67,8 +58,8 @@ public class SparkDataSetProcessor <Op extends SpliceOperation,K,V> implements D
     }
 
     @Override
-    public OperationContext<Op> createOperationContext(Op spliceOperation, SpliceRuntimeContext spliceRuntimeContext) {
-        return new SparkOperationContext<Op>(spliceOperation,spliceRuntimeContext);
+    public OperationContext<Op> createOperationContext(Op spliceOperation) {
+        return new SparkOperationContext<Op>(spliceOperation);
     }
 
     @Override

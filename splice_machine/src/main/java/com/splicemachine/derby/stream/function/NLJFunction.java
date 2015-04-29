@@ -49,7 +49,7 @@ public class NLJFunction<Op extends SpliceOperation> extends SpliceFlatMapFuncti
         System.out.println("fromRow " + from);
         NestedLoopJoinOperation operation = (NestedLoopJoinOperation) getOperation();
         operation.setCurrentRow(from.getRow());
-        DataSet dataSet = rightOperation.getDataSet(this.operationContext.getSpliceRuntimeContext(), StreamUtils.controlDataSetProcessor);
+        DataSet dataSet = rightOperation.getDataSet(StreamUtils.controlDataSetProcessor);
         Iterator<LocatedRow> rightSideNLJ = dataSet.toLocalIterator();
 
         // Nothing Returned (Outside Iterator)
@@ -70,7 +70,7 @@ public class NLJFunction<Op extends SpliceOperation> extends SpliceFlatMapFuncti
                 return Collections.<LocatedRow>emptyList();
             }
         }
-        return new NestedLoopIterator(from,operation,rightSideNLJ,this.operationContext.getSpliceRuntimeContext());
+        return new NestedLoopIterator(from,operation,rightSideNLJ);
     }
 
     private ExecRow getNewMergedRow(int leftNumCols, int rightNumCols) {

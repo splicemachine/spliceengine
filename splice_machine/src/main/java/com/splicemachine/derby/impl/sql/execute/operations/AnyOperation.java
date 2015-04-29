@@ -4,20 +4,13 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import com.google.common.base.Strings;
-import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.stream.DataSet;
 import com.splicemachine.derby.stream.DataSetProcessor;
-import com.splicemachine.derby.impl.storage.RowProviders;
-import com.splicemachine.derby.utils.marshall.PairDecoder;
-import com.splicemachine.metrics.IOStats;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
@@ -35,7 +28,6 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
  */
 public class AnyOperation extends SpliceBaseOperation {
 	private static Logger LOG = Logger.getLogger(AnyOperation.class);
-    private static final List<NodeType> nodeTypes = Collections.singletonList(NodeType.SCAN);
     protected static final String NAME = AnyOperation.class.getSimpleName().replaceAll("Operation","");
 
 	@Override
@@ -86,28 +78,8 @@ public class AnyOperation extends SpliceBaseOperation {
 		}
 
     @Override
-    public List<NodeType> getNodeTypes() {
-        return nodeTypes;
-    }
-
-    @Override
-    public List<SpliceOperation> getSubOperations() {
-        return Arrays.asList(source);
-    }
-
-    @Override
     public SpliceOperation getLeftOperation() {
         return source;
-    }
-
-    @Override
-    public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-        // We don't think this method will get called, as we don't believe AnyOperation will get pushed out to HBase.
-        // Leaving the implementation, which mimics our DelegatingRowProvider.next() below, in case we're wrong.
-        ExecRow candidateRow = source.nextRow(spliceRuntimeContext);
-        ExecRow result = candidateRow != null ? candidateRow : getRowWithNulls();
-        setCurrentRow(result);
-        return result;
     }
 
     @Override
@@ -125,18 +97,6 @@ public class AnyOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public void open() throws StandardException, IOException {
-        super.open();
-        source.open();
-    }
-
-    @Override
-    public void close() throws StandardException, IOException {
-        super.close();
-        if (source != null) source.close();
-    }
-
-    @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
         super.init(context);
         source.init(context);
@@ -150,15 +110,9 @@ public class AnyOperation extends SpliceBaseOperation {
         }
         return rowWithNulls;
     }
-
     @Override
-    public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
-				try {
-						RowProvider provider = getReduceRowProvider(source, OperationUtils.getPairDecoder(this, runtimeContext),runtimeContext, false);
-						return new SpliceNoPutResultSet(activation,this,provider);
-				} catch (IOException e) {
-						throw Exceptions.parseException(e);
-				}
+    public List<SpliceOperation> getSubOperations() {
+        return Arrays.asList(source);
     }
 
     @Override
@@ -171,35 +125,6 @@ public class AnyOperation extends SpliceBaseOperation {
                 .append(indent).append("subqueryNumber:").append(subqueryNumber)
                 .toString();
     }
-
-		@Override
-		public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder,SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-				return source.getMapRowProvider(top,decoder,spliceRuntimeContext);
-		}
-
-		@Override
-		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException, IOException {
-				return new RowProviders.DelegatingRowProvider(source.getReduceRowProvider(top,decoder,spliceRuntimeContext, returnDefaultValue)) {
-						@Override
-						public boolean hasNext() throws StandardException {
-								// AnyOperation should never return null; it signals end-of-stream with a special empty ExecRow (see next())
-								return true;
-						}
-
-						@Override
-						public ExecRow next() throws StandardException, IOException {
-								ExecRow result = provider.hasNext() ? provider.next() : getRowWithNulls();
-								setCurrentRow(result);
-								return result;
-						}
-
-						@Override
-						public IOStats getIOStats() {
-								return provider.getIOStats();
-						}
-
-				};
-		}
 
     @Override
     public ExecRow getExecRowDefinition() throws StandardException {
@@ -222,8 +147,8 @@ public class AnyOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, DataSetProcessor dsp) throws StandardException {
-        Iterator<LocatedRow> iterator = source.getDataSet(spliceRuntimeContext).toLocalIterator();
+    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+        Iterator<LocatedRow> iterator = source.getDataSet().toLocalIterator();
         if (iterator.hasNext())
                 return dsp.singleRowDataSet(new LocatedRow(iterator.next().getRow()));
         return dsp.singleRowDataSet(new LocatedRow(getRowWithNulls()));

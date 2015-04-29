@@ -1,30 +1,27 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.sql.conn.StatementContext;
+import com.splicemachine.db.iapi.sql.execute.*;
+import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
+import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.hbase.DerbyFactory;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
-import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.*;
-import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.stream.DataSetProcessor;
 import com.splicemachine.derby.stream.StreamUtils;
-import com.splicemachine.derby.metrics.OperationMetric;
-import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.stream.DataSet;
-import com.splicemachine.derby.utils.marshall.*;
-import com.splicemachine.derby.utils.marshall.dvd.SerializerMap;
-import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.hbase.MeasuredRegionScanner;
-import com.splicemachine.job.JobResults;
-import com.splicemachine.job.JobStatsUtils;
-import com.splicemachine.metrics.TimeView;
 import com.splicemachine.metrics.Timer;
 import com.splicemachine.pipeline.api.RecordingCallBuffer;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.SIFactoryDriver;
-import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.i18n.MessageService;
@@ -32,21 +29,16 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.ResultSet;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.Orderable;
 import com.splicemachine.db.iapi.types.RowLocation;
-import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import java.io.*;
 import java.sql.SQLWarning;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.LinkedList;
-import java.util.List;
+import java.sql.Timestamp;
+import java.util.*;
 import com.google.common.collect.Lists;
 
 public abstract class SpliceBaseOperation implements SpliceOperation, Externalizable {
@@ -70,47 +62,28 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		public long nextTime;
 		public long closeTime;
 		protected boolean statisticsTimingOn;
-		protected HRegion region;
-
+        protected Iterator<LocatedRow> locatedRowIterator;
 		protected Activation activation;
-
 		protected Timer timer;
 		protected long stopExecutionTime;
 		protected double optimizerEstimatedRowCount;
 		protected double optimizerEstimatedCost;
         protected String info;
-
 		protected boolean isTopResultSet = false;
 		protected volatile byte[] uniqueSequenceID;
 		protected ExecRow currentRow;
 		protected RowLocation currentRowLocation;
-		protected List<SpliceOperation> leftOperationStack;
-
 		protected boolean executed = false;
 		protected DataValueDescriptor[] sequence;
-		protected MeasuredRegionScanner regionScanner;
-		protected long rowsSunk;
-
 		protected boolean isOpen = true;
-
-    /*
-     * held locally to ensure that Task statistics reporting doesn't
-     * attempt to write the same data from the same operation multiple
-     * times with the same taskid;
-     */
-		private transient long reportedTaskId = -1l;
-
-		/*
-		 * Used to indicate rows which should be excluded from TEMP because their backing operation task
-		 * failed and was retried for some reasons. will be null for tasks which do not make use of the TEMP
-		 * table.
-		 */
-		protected List<byte[]> failedTasks = Collections.emptyList();
-
 		protected int resultSetNumber;
 		protected OperationInformation operationInformation;
-		protected transient JobResults jobResults;
 		protected long statementId = -1l; //default value if the statementId isn't set
+        protected LocatedRow locatedRow;
+        protected StatementContext statementContext;
+
+        protected NoPutResultSet[] subqueryTrackingArray;
+        protected List<SpliceOperation> leftOperationStack;
 
 		public SpliceBaseOperation() {
 				super();
@@ -192,17 +165,10 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 				if(sub!=null) sub.setStatementId(statementId);
 		}
 
-		@Override
-		public JobResults getJobResults() {
-				return jobResults;
-		}
-
     @Override
     public OperationInformation getOperationInformation() {
         return operationInformation;
     }
-
-    @Override public boolean shouldRecordStats() { return statisticsTimingOn; }
 
 		@Override
 		public SpliceOperation getLeftOperation() {
@@ -211,7 +177,14 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
 		@Override
 		public int modifiedRowCount() {
-				return 0;
+            try {
+                int modifiedRowCount = 0;
+                while (locatedRowIterator.hasNext())
+                    modifiedRowCount += locatedRowIterator.next().getRow().getColumn(1).getInt();
+                return modifiedRowCount;
+            } catch (StandardException se) {
+                throw new RuntimeException(se);
+            }
 		}
 
 		@Override
@@ -238,14 +211,10 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
     }
 
     @Override
-    public void close() throws StandardException, IOException {
+    public void close() throws StandardException {
         if (LOG_CLOSE.isTraceEnabled())
-            LOG_CLOSE.trace(String.format("closing operation %s: %s", jobResults != null ? "and cleaning results" : "", this));
-
+            LOG_CLOSE.trace(String.format("closing operation %s",this));
         clearCurrentRow();
-
-        if (jobResults != null)
-            jobResults.cleanup();
     }
 
 		//	@Override
@@ -263,9 +232,11 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 				this.isTopResultSet = true;
 		}
 		@Override
-		public void open() throws StandardException, IOException {
-				this.uniqueSequenceID = operationInformation.getUUIDGenerator().nextBytes();
-//        init(SpliceOperationContext.newContext(activation));
+		public void open() throws StandardException {
+            if (LOG.isTraceEnabled())
+                LOG.trace(String.format("open operation %s",this));
+            openCore();
+            this.uniqueSequenceID = operationInformation.getUUIDGenerator().nextBytes();
 		}
 		//	@Override
 		public double getEstimatedRowCount() {
@@ -320,12 +291,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 				this.resultSetNumber = operationInformation.getResultSetNumber();
 				sequence = new DataValueDescriptor[1];
 				sequence[0] = operationInformation.getSequenceField(uniqueSequenceID);
-				try {
-						this.regionScanner = context.getScanner();
-						this.region = context.getRegion();
-				} catch (IOException e) {
-						SpliceLogUtils.logAndThrowRuntime(LOG,"Unable to get Scanner",e);
-				}
 		}
 
 		@Override
@@ -333,84 +298,22 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 				return uniqueSequenceID;
 		}
 
+/*
 		@Override
 		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-			/*
-			 * We only ask for this KeyEncoder if we are the top of a RegionScan.
-			 * In this case, we encode with either the current row location or a
-			 * random UUID (if the current row location is null).
-			 */
 				return new KeyEncoder(NoOpPrefix.INSTANCE,NoOpDataHash.INSTANCE,NoOpPostfix.INSTANCE);
 		}
-
+*/
+/*
 		@Override
 		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
 				ExecRow defnRow = getExecRowDefinition();
 				SerializerMap serializerMap = VersionedSerializers.latestVersion(false);
 				return BareKeyHash.encoder(IntArrays.count(defnRow.nColumns()),null,serializerMap.getSerializers(defnRow));
 		}
-
+*/
 		public RecordingCallBuffer<KVPair> transformWriteBuffer(RecordingCallBuffer<KVPair> bufferToTransform) throws StandardException {
 				return bufferToTransform;
-		}
-
-		/**
-		 * Called during the executeShuffle() phase, for the execution of parallel operations.
-		 *
-		 * If the operation does a transformation (e.g. ProjectRestrict, Normalize, IndexRowToBaseRow), then
-		 * this should delegate to the operation's source.
-		 *
-		 *
-		 * @param top the top operation to be executed
-		 * @param decoder the decoder to use
-		 * @return a MapRowProvider
-		 * @throws StandardException if something goes wrong
-		 */
-		@Override
-		public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-				throw new UnsupportedOperationException("MapRowProviders not implemented for this node: "+ this.getClass());
-		}
-
-		/**
-		 * Called during the executeScan() phase, for the execution of sequential operations.
-		 *
-		 * If the operation does a transformation (e.g. ProjectRestrict, Normalize, IndexRowToBaseRow), then
-		 * this should delegate to the operation's source.
-		 *
-		 *
-		 *
-		 * @param top the top operation to be executed
-		 * @param decoder the decoder to use
-		 * @param returnDefaultValue
-		 * @return a ReduceRowProvider
-		 * @throws StandardException if something goes wrong
-		 */
-		@Override
-		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException, IOException {
-				throw new UnsupportedOperationException("ReduceRowProviders not implemented for this node: "+ this.getClass());
-		}
-
-		@Override
-		public final void executeShuffle(SpliceRuntimeContext runtimeContext) throws StandardException, IOException {
-        /*
-         * Marked final so that subclasses don't accidentally screw up their error-handling of the
-         * TEMP table by forgetting to deal with failedTasks/statistics/whatever else needs to be handled.
-         */
-				jobResults = doShuffle(runtimeContext);
-				JobStatsUtils.logStats(jobResults.getJobStats());
-				failedTasks = new ArrayList<byte[]>(jobResults.getJobStats().getFailedTasks());
-            if (LOG.isDebugEnabled())
-                SpliceLogUtils.debug(LOG,"%d tasks failed", failedTasks.size());
-		}
-
-		protected JobResults doShuffle(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-				long start = System.currentTimeMillis();
-				final RowProvider rowProvider = getMapRowProvider(this, OperationUtils.getPairDecoder(this, spliceRuntimeContext),spliceRuntimeContext);
-
-				nextTime+= System.currentTimeMillis()-start;
-				SpliceObserverInstructions soi = SpliceObserverInstructions.create(getActivation(), this,spliceRuntimeContext);
-				jobResults = rowProvider.shuffleRows(soi,OperationUtils.cleanupSubTasks(this));
-				return jobResults;
 		}
 
 		protected ExecRow getFromResultDescription(ResultDescription resultDescription) throws StandardException {
@@ -423,51 +326,10 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		}
 
 		@Override
-		public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
-				throw new RuntimeException("Execute Scan Not Implemented for this node " + this.getClass());
-		}
-
-		@Override
-		public SpliceNoPutResultSet executeProbeScan() {
-				throw new RuntimeException("Execute Probe Scan Not Implemented for this node " + this.getClass());
-		}
-
-		@Override
 		public ExecRow getExecRowDefinition() throws StandardException {
 				throw new RuntimeException("No ExecRow Definition for this node " + this.getClass());
 		}
 
-
-		@Override
-		public void generateLeftOperationStack(List<SpliceOperation> operations) {
-//		SpliceLogUtils.trace(LOG, "generateLeftOperationStack");
-				OperationUtils.generateLeftOperationStack(this, operations);
-		}
-
-		protected List<SpliceOperation> getOperationStack(){
-				if(leftOperationStack==null){
-						leftOperationStack = new LinkedList<SpliceOperation>();
-						generateLeftOperationStack(leftOperationStack);
-				}
-				return leftOperationStack;
-		}
-		public void generateRightOperationStack(boolean initial,List<SpliceOperation> operations) {
-				SpliceLogUtils.trace(LOG, "generateRightOperationStack");
-				SpliceOperation op;
-				if (initial)
-						op = getRightOperation();
-				else
-						op = getLeftOperation();
-				if(op !=null && !op.getNodeTypes().contains(NodeType.REDUCE)){
-						op.generateRightOperationStack(initial,operations);
-				}else if(op!=null)
-						operations.add(op);
-				operations.add(this);
-		}
-
-        public void generateAllOperationStack(List<SpliceOperation> operations) {
-            OperationUtils.generateAllOperationStack(this, operations);
-        }
 		@Override
 		public SpliceOperation getRightOperation() {
 				return null;
@@ -570,24 +432,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 				return constructorTime + openTime + nextTime + closeTime;
 		}
 
-//		protected Transaction getTrans() {
-//				return (activation.getTransactionController() == null) ? null : ((SpliceTransactionManager) activation.getTransactionController()).getRawStoreXact();
-//		}
-
-//		public void clearChildTransactionID() {
-//				this.childTransactionID = null;
-//		}
-
-//		public String getTransactionID() {
-//				if (childTransactionID != null) {
-//						return childTransactionID;
-//				} else if (activation == null) {
-//						return transactionID;
-//				} else {
-//						return (getTrans() == null) ? null : activation.getTransactionController().getActiveStateTxIdString();
-//				}
-//		}
-
 		@Override
 		public RowLocation getCurrentRowLocation() {
 				return currentRowLocation;
@@ -601,38 +445,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		public int getResultSetNumber() {
 				return resultSetNumber;
 		}
-
-		@Override
-		public final OperationRuntimeStats getMetrics(long statementId,long taskId,boolean isTopOperation) {
-				if(reportedTaskId==taskId) return null;
-				else reportedTaskId = taskId;
-
-				String regionName = region!=null?region.getRegionNameAsString():"Local";
-				OperationRuntimeStats stats = new OperationRuntimeStats(statementId,
-								Bytes.toLong(uniqueSequenceID),taskId,regionName,getNumMetrics()+5);
-				updateStats(stats);
-				stats.addMetric(OperationMetric.START_TIMESTAMP,startExecutionTime);
-				stats.addMetric(OperationMetric.STOP_TIMESTAMP,stopExecutionTime);
-				if(timer!=null){
-						TimeView view = timer.getTime();
-						stats.addMetric(OperationMetric.TOTAL_WALL_TIME,view.getWallClockTime());
-						stats.addMetric(OperationMetric.TOTAL_CPU_TIME,view.getCpuTime());
-						stats.addMetric(OperationMetric.TOTAL_USER_TIME,view.getUserTime());
-				}
-
-				return stats;
-		}
-
-		protected void updateStats(OperationRuntimeStats stats) {
-			/*
-			 * subclasses should use this to set operation-specified stats on the metrics
-			 */
-		}
-
-		protected int getNumMetrics() {
-				return 0;
-		}
-
 
 		public double getEstimatedCost() {
 				return operationInformation.getEstimatedCost();
@@ -717,12 +529,327 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
             }
         }
 
-    protected void setRowsSunk(long rowsSunk) {
-        this.rowsSunk = rowsSunk;
+    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet() throws StandardException {
+            DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
+            return getDataSet(dsp);
     }
 
-    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-            DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
-            return getDataSet(spliceRuntimeContext,dsp);
+    @Override
+    public void openCore() throws StandardException {
+        if (LOG.isTraceEnabled())
+            LOG.trace(String.format("openCore %s",this));
+        isOpen = true;
+        this.locatedRowIterator = getDataSet().toLocalIterator();
     }
+
+    @Override
+    public void reopenCore() throws StandardException {
+        if (LOG.isTraceEnabled())
+            LOG.trace(String.format("reopenCore %s",this));
+        openCore();
+    }
+
+    @Override
+    public ExecRow getNextRowCore() throws StandardException {
+           while (locatedRowIterator.hasNext()) {
+               locatedRow = locatedRowIterator.next();
+               if (LOG.isTraceEnabled())
+                   SpliceLogUtils.trace(LOG,"getNextRowCore %s locatedRow=%s",this, locatedRow);
+               return locatedRow.getRow();
+           }
+            locatedRow = null;
+            if (LOG.isTraceEnabled())
+                SpliceLogUtils.trace(LOG,"getNextRowCore %s locatedRow=%s",this, locatedRow);
+            return null;
+    }
+
+    @Override
+    public int getPointOfAttachment() {
+        return 0;
+    }
+
+    @Override
+    public int getScanIsolationLevel() {
+        return 0;
+    }
+
+    @Override
+    public void setTargetResultSet(TargetResultSet targetResultSet) {
+
+    }
+
+    @Override
+    public void setNeedsRowLocation(boolean b) {
+
+    }
+
+    @Override
+    public boolean requiresRelocking() {
+        return false;
+    }
+
+    @Override
+    public boolean isForUpdate() {
+        return false;
+    }
+
+    @Override
+    public void updateRow(ExecRow execRow, RowChanger rowChanger) throws StandardException {
+        // I suspect this is for cursors, might get interesting...
+        throw new RuntimeException("Not Implemented");
+    }
+
+    @Override
+    public void markRowAsDeleted() throws StandardException {
+
+    }
+
+    @Override
+    public void positionScanAtRowLocation(RowLocation rowLocation) throws StandardException {
+
+    }
+
+    @Override
+    public boolean returnsRows() {
+        return !(this instanceof DMLWriteOperation || this instanceof CallStatementOperation
+                || this instanceof MiscOperation);
+    }
+
+    @Override
+    public ResultDescription getResultDescription() {
+        return activation.getPreparedStatement().getResultDescription();
+    }
+
+    @Override
+    public ExecRow getAbsoluteRow(int i) throws StandardException {
+        throw new RuntimeException("ScrollInsensitiveResultSet Should Handle this");
+    }
+
+    @Override
+    public ExecRow getRelativeRow(int i) throws StandardException {
+        throw new RuntimeException("ScrollInsensitiveResultSet Should Handle this");
+    }
+
+    @Override
+    public ExecRow setBeforeFirstRow() throws StandardException {
+        throw new RuntimeException("ScrollInsensitiveResultSet Should Handle this");
+    }
+
+    @Override
+    public ExecRow getFirstRow() throws StandardException {
+        throw new RuntimeException("ScrollInsensitiveResultSet Should Handle this");
+    }
+
+    @Override
+    public ExecRow getNextRow() throws StandardException {
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG,"getNextRow");
+        if ( ! isOpen )
+            throw StandardException.newException(SQLState.LANG_RESULT_SET_NOT_OPEN, NEXT);
+        attachStatementContext();
+        return getNextRowCore();
+    }
+
+    @Override
+    public ExecRow getPreviousRow() throws StandardException {
+        throw new RuntimeException("ScrollInsensitiveResultSet Should Handle this");
+    }
+
+    @Override
+    public ExecRow getLastRow() throws StandardException {
+        throw new RuntimeException("ScrollInsensitiveResultSet Should Handle this");
+    }
+
+    @Override
+    public ExecRow setAfterLastRow() throws StandardException {
+        throw new RuntimeException("ScrollInsensitiveResultSet Should Handle this");
+    }
+
+    @Override
+    public boolean checkRowPosition(int i) throws StandardException {
+        throw new RuntimeException("ScrollInsensitiveResultSet Should Handle this");
+    }
+
+    @Override
+    public int getRowNumber() {
+        return 0;
+    }
+
+    @Override
+    public void cleanUp() throws StandardException {
+
+    }
+
+    @Override
+    public boolean isClosed() {
+        return false;
+    }
+
+    @Override
+    public void finish() throws StandardException {
+
+    }
+
+    @Override
+    public Timestamp getBeginExecutionTimestamp() {
+        return null;
+    }
+
+    @Override
+    public Timestamp getEndExecutionTimestamp() {
+        return null;
+    }
+
+    @Override
+    public NoPutResultSet[] getSubqueryTrackingArray(int numSubqueries) {
+            SpliceLogUtils.trace(LOG,"getSubqueryTrackingArray with numSubqueries %d",numSubqueries);
+            if (subqueryTrackingArray == null)
+                subqueryTrackingArray = new NoPutResultSet[numSubqueries];
+            return subqueryTrackingArray;
+    }
+
+    @Override
+    public ResultSet getAutoGeneratedKeysResultset() {
+        return null;
+    }
+
+    @Override
+    public String getCursorName() {
+        return activation.getCursorName();
+    }
+
+    @Override
+    public boolean needsRowLocation() {
+        return false;
+    }
+
+    @Override
+    public void rowLocation(RowLocation rowLocation) throws StandardException {
+
+    }
+
+    @Override
+    public DataValueDescriptor[] getNextRowFromRowSource() throws StandardException {
+
+        return new DataValueDescriptor[0];
+    }
+
+    @Override
+    public boolean needsToClone() {
+        return false;
+    }
+
+    @Override
+    public FormatableBitSet getValidColumns() {
+        return null;
+    }
+
+    @Override
+    public void closeRowSource() {
+
+    }
+
+    public TxnView getCurrentTransaction() throws StandardException {
+        if(this instanceof DMLWriteOperation || activation.isTraced()){
+            return elevateTransaction();
+        }else
+            return getTransaction();
+    }
+
+    private TxnView elevateTransaction() throws StandardException {
+				/*
+				 * Elevate the current transaction to make sure that we are writable
+				 */
+        TransactionController transactionExecute = activation.getLanguageConnectionContext().getTransactionExecute();
+        Transaction rawStoreXact = ((TransactionManager) transactionExecute).getRawStoreXact();
+        BaseSpliceTransaction rawTxn = (BaseSpliceTransaction) rawStoreXact;
+        TxnView currentTxn = rawTxn.getActiveStateTxn();
+        if(this instanceof DMLWriteOperation)
+            return ((SpliceTransaction)rawTxn).elevate(((DMLWriteOperation) this).getDestinationTable());
+        else if (activation.isTraced()){
+            if(!currentTxn.allowsWrites())
+                return ((SpliceTransaction)rawTxn).elevate("xplain".getBytes());
+            else
+                return currentTxn; //no need to elevate, since we're already elevated with better information
+        }else
+            throw new IllegalStateException("Programmer error: " +
+                    "attempting to elevate an operation txn without specifying a destination table");
+    }
+
+    private TxnView getTransaction() throws StandardException {
+        TransactionController transactionExecute = activation.getLanguageConnectionContext().getTransactionExecute();
+        Transaction rawStoreXact = ((TransactionManager) transactionExecute).getRawStoreXact();
+        return ((BaseSpliceTransaction) rawStoreXact).getActiveStateTxn();
+    }
+
+    @Override
+    public void generateLeftOperationStack(List<SpliceOperation> operations) {
+//		SpliceLogUtils.trace(LOG, "generateLeftOperationStack");
+        OperationUtils.generateLeftOperationStack(this, operations);
+    }
+
+    protected List<SpliceOperation> getOperationStack(){
+        if(leftOperationStack==null){
+            leftOperationStack = new LinkedList<SpliceOperation>();
+            generateLeftOperationStack(leftOperationStack);
+        }
+        return leftOperationStack;
+    }
+    public void generateRightOperationStack(boolean initial,List<SpliceOperation> operations) {
+        SpliceLogUtils.trace(LOG, "generateRightOperationStack");
+        SpliceOperation op;
+        if (initial)
+            op = getRightOperation();
+        else
+            op = getLeftOperation();
+        if(op !=null){
+            op.generateRightOperationStack(initial,operations);
+        }else if(op!=null)
+            operations.add(op);
+        operations.add(this);
+    }
+
+    public void generateAllOperationStack(List<SpliceOperation> operations) {
+        OperationUtils.generateAllOperationStack(this, operations);
+    }
+
+    /**
+     *	Attach this result set to the top statement context on the stack.
+     *	Result sets can be directly read from the JDBC layer. The JDBC layer
+     * will push and pop a statement context around each ResultSet.getNext().
+     * There's no guarantee that the statement context used for the last
+     * getNext() will be the context used for the current getNext(). The
+     * last statement context may have been popped off the stack and so
+     *	will not be available for cleanup if an error occurs. To make sure
+     *	that we will be cleaned up, we always attach ourselves to the top
+     *	context.
+     *
+     *	The fun and games occur in nested contexts: using JDBC result sets inside
+     * user code that is itself invoked from queries or CALL statements.
+     *
+     *
+     * @exception StandardException thrown if cursor finished.
+     */
+    protected	void	attachStatementContext() throws StandardException {
+        if (isTopResultSet) {
+            if (statementContext == null || !statementContext.onStack() ) {
+                statementContext = activation.getLanguageConnectionContext().getStatementContext();
+            }
+            statementContext.setTopResultSet(this, subqueryTrackingArray);
+            // Pick up any materialized subqueries
+            if (subqueryTrackingArray == null) {
+                subqueryTrackingArray = statementContext.getSubqueryTrackingArray();
+            }
+            statementContext.setActivation(activation);
+        }
+    }
+
+    @Override
+    public SpliceOperation getOperation() {
+        return this;
+    }
+
+
+
+
 }

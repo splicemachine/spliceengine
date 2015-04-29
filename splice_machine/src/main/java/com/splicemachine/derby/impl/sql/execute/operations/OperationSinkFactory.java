@@ -2,10 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperationSink;
 import com.splicemachine.si.api.TxnView;
-
 import java.io.IOException;
 
 /**
@@ -18,19 +15,7 @@ public class OperationSinkFactory {
                                        TxnView txn,
                                        long statementId,
                                        long waitTimeNs) throws IOException {
-
-        //
-        // ExportOperationSink. Does not have a destination table.
-        //
-        if (operation instanceof ExportOperation) {
-            return new ExportOperationSink((ExportOperation) operation, taskId);
-        }
-
-        //
-        // TableOperationSink, writes to temp table or operation-specific destination table (DML).
-        //
-        byte[] destinationTable = getDestinationTableBytes(operation);
-        return new TableOperationSink(taskId, operation, SpliceDriver.driver().getTableWriter(), txn, statementId, waitTimeNs, destinationTable);
+        throw new IOException("Should not run...");
     }
 
     private static byte[] getDestinationTableBytes(SinkingOperation operation) {

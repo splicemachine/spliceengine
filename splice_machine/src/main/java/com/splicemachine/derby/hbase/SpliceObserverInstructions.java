@@ -6,10 +6,6 @@ import com.esotericsoftware.kryo.io.Output;
 import com.splicemachine.derby.iapi.sql.execute.ConversionResultSet;
 import com.splicemachine.derby.iapi.sql.execute.ConvertedResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.si.api.TransactionOperations;
-import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.kryo.KryoObjectInput;
@@ -24,7 +20,6 @@ import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.impl.sql.GenericActivationHolder;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import org.apache.log4j.Logger;
-
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -50,8 +45,6 @@ public class SpliceObserverInstructions implements Externalizable {
 		private ActivationContext activationContext;
 		protected SchemaDescriptor defaultSchemaDescriptor;
 		protected String sessionUserName;
-		protected SpliceRuntimeContext spliceRuntimeContext;
-
 
 		public SpliceObserverInstructions() {
 				super();
@@ -62,19 +55,17 @@ public class SpliceObserverInstructions implements Externalizable {
 		public SpliceObserverInstructions(GenericStorablePreparedStatement statement,
                                       SpliceOperation topOperation,
                                       ActivationContext activationContext,
-                                      String sessionUserName, SchemaDescriptor defaultSchemaDescriptor,
-                                      SpliceRuntimeContext spliceRuntimeContext) {
+                                      String sessionUserName, SchemaDescriptor defaultSchemaDescriptor) {
 				SpliceLogUtils.trace(LOG, "instantiated with statement %s", statement);
 				this.statement = statement;
 				this.topOperation = topOperation;
 				this.activationContext = activationContext;
 				this.sessionUserName = sessionUserName;
 				this.defaultSchemaDescriptor = defaultSchemaDescriptor;
-				this.spliceRuntimeContext = spliceRuntimeContext;
 		}
 
-		public TxnView getTxn(){
-        return spliceRuntimeContext.getTxn();
+		public TxnView getTxn() throws StandardException {
+        return topOperation.getCurrentTransaction();
 		}
 
 		@Override
@@ -86,7 +77,6 @@ public class SpliceObserverInstructions implements Externalizable {
 
 				this.sessionUserName = in.readUTF();
 				this.defaultSchemaDescriptor = (SchemaDescriptor) in.readObject();
-				this.spliceRuntimeContext = (SpliceRuntimeContext) in .readObject();
 		}
 
 		@Override
@@ -97,16 +87,6 @@ public class SpliceObserverInstructions implements Externalizable {
 				out.writeObject(activationContext);
 				out.writeUTF(sessionUserName);
 				out.writeObject(defaultSchemaDescriptor);
-				out.writeObject(spliceRuntimeContext);
-		}
-
-
-		public SpliceRuntimeContext getSpliceRuntimeContext() {
-				return spliceRuntimeContext;
-		}
-
-		public void setSpliceRuntimeContext(SpliceRuntimeContext spliceRuntimeContext) {
-				this.spliceRuntimeContext = spliceRuntimeContext;
 		}
 
 		public GenericStorablePreparedStatement getStatement() {
@@ -130,15 +110,14 @@ public class SpliceObserverInstructions implements Externalizable {
 		}
 
 		public static SpliceObserverInstructions create(Activation activation,
-                                                        SpliceOperation topOperation,
-														SpliceRuntimeContext spliceRuntimeContext){
+                                                        SpliceOperation topOperation){
 				ActivationContext activationContext = ActivationContext.create(activation, topOperation);
 
 				return new SpliceObserverInstructions(
 								(GenericStorablePreparedStatement) activation.getPreparedStatement(),
 								topOperation,activationContext,
                 activation.getLanguageConnectionContext().getSessionUserId(),
-								activation.getLanguageConnectionContext().getDefaultSchema(),spliceRuntimeContext);
+								activation.getLanguageConnectionContext().getDefaultSchema());
 		}
 
 		/*
@@ -312,10 +291,6 @@ public class SpliceObserverInstructions implements Externalizable {
 
     public String getSessionUserName() {
 				return sessionUserName;
-		}
-
-    public void setTxn(Txn txn){
-        this.spliceRuntimeContext.setTxn(txn);
 		}
 
 }

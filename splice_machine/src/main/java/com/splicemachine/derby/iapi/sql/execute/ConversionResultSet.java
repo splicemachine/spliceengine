@@ -4,7 +4,6 @@ import com.splicemachine.derby.impl.sql.execute.operations.NoRowsOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.UpdateOperation;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.si.api.TxnView;
-import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -64,11 +63,7 @@ public class ConversionResultSet implements NoPutResultSet,CursorResultSet,Exter
         TxnView txn = spliceRuntimeContext.getTxn();
         if(txn ==null)
             spliceRuntimeContext.setTxn(((SpliceTransactionManager)activation.getTransactionController()).getActiveStateTxn());
-        try {
             topOperation.open();
-        } catch (IOException e) {
-            throw Exceptions.parseException(e);
-        }
     }
 
     @Override
@@ -78,11 +73,7 @@ public class ConversionResultSet implements NoPutResultSet,CursorResultSet,Exter
 
     @Override
     public ExecRow getNextRowCore() throws StandardException {
-        try {
-            return topOperation.nextRow(spliceRuntimeContext);
-        } catch (IOException e) {
-            throw Exceptions.parseException(e);
-        }
+        return topOperation.getNextRowCore();
     }
 
     @Override
@@ -167,11 +158,7 @@ public class ConversionResultSet implements NoPutResultSet,CursorResultSet,Exter
 
     @Override
     public void open() throws StandardException {
-        try {
             topOperation.open();
-        } catch (IOException e) {
-            throw Exceptions.parseException(e);
-        }
     }
 
     @Override
@@ -231,11 +218,7 @@ public class ConversionResultSet implements NoPutResultSet,CursorResultSet,Exter
 
     @Override
     public void close() throws StandardException {
-        try {
             topOperation.close();
-        } catch (IOException e) {
-            throw Exceptions.parseException(e);
-        }
     }
 
     @Override

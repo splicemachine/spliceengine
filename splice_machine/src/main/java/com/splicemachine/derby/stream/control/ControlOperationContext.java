@@ -1,12 +1,10 @@
 package com.splicemachine.derby.stream.control;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.stream.OperationContext;
 import com.splicemachine.si.api.TxnView;
-import org.apache.spark.Accumulator;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -16,14 +14,12 @@ import java.io.ObjectOutput;
  */
 public class ControlOperationContext<Op extends SpliceOperation> implements OperationContext<Op> {
         protected Op spliceOperation;
-        protected SpliceRuntimeContext spliceRuntimeContext;
 
         public ControlOperationContext() {
         }
 
-        protected ControlOperationContext(Op spliceOperation, SpliceRuntimeContext spliceRuntimeContext) {
+        protected ControlOperationContext(Op spliceOperation) {
             this.spliceOperation = spliceOperation;
-            this.spliceRuntimeContext = spliceRuntimeContext;
         }
 
         public void readExternalInContext(ObjectInput in) throws IOException, ClassNotFoundException
@@ -61,13 +57,12 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
     }
 
     @Override
-    public SpliceRuntimeContext getSpliceRuntimeContext() {
-        return spliceRuntimeContext;
-    }
-
-    @Override
     public TxnView getTxn() {
-        return spliceRuntimeContext.getTxn();
+        try {
+            return spliceOperation.getCurrentTransaction();
+        } catch (StandardException se) {
+            throw new RuntimeException(se);
+        }
     }
 
 

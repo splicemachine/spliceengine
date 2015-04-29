@@ -2,21 +2,13 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
-import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.stream.DataSet;
 import com.splicemachine.derby.stream.DataSetProcessor;
 import com.splicemachine.derby.stream.function.SpliceFunction;
-import com.splicemachine.derby.impl.storage.RowProviders;
-import com.splicemachine.derby.utils.marshall.PairDecoder;
-import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -33,14 +25,12 @@ import java.util.List;
 public class CachedOperation extends SpliceBaseOperation {
 
     private static Logger LOG = Logger.getLogger(CachedOperation.class);
-    private final List<NodeType> nodeTypes = Collections.singletonList(NodeType.MAP);
     protected static final String NAME = CachedOperation.class.getSimpleName().replaceAll("Operation", "");
 
     @Override
     public String getName() {
         return NAME;
     }
-
 
     int size;
     int position = 0;
@@ -58,60 +48,9 @@ public class CachedOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public void open() throws StandardException, IOException {
-        uniqueSequenceID = Bytes.toBytes(-1L);
-        position = 0;
-    }
-
-    @Override
     public ExecRow getExecRowDefinition() throws StandardException {
         // TODO pjt: revisit is we're always size > 0?
         return size > 0 ? rows.get(0).getClone() : null;
-    }
-
-    @Override
-    public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-        if (timer == null) {
-            timer = spliceRuntimeContext.newTimer();
-        }
-        timer.startTiming();
-
-        ExecRow row;
-
-        if (position < size) {
-            row = rows.get(position);
-            position++;
-            timer.tick(1);
-        } else {
-            row = null;
-            timer.stopTiming();
-            stopExecutionTime = System.currentTimeMillis();
-        }
-        setCurrentRow(row);
-        return row;
-    }
-
-    @Override
-    public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
-        try {
-            return new SpliceNoPutResultSet(activation, this, getMapRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext), runtimeContext));
-        } catch (IOException e) {
-            throw Exceptions.parseException(e);
-        }
-    }
-
-    @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-        top.init(SpliceOperationContext.newContext(activation));
-
-        //make sure the runtime context knows it can be merged
-        spliceRuntimeContext.addPath(resultSetNumber, SpliceRuntimeContext.Side.MERGED);
-        return RowProviders.openedSourceProvider(top, LOG, spliceRuntimeContext);
-    }
-
-    @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException, IOException {
-        return getMapRowProvider(top, rowDecoder, spliceRuntimeContext);
     }
 
     @Override
@@ -126,11 +65,6 @@ public class CachedOperation extends SpliceBaseOperation {
         super.writeExternal(out);
         out.writeInt(size);
         out.writeObject(rows);
-    }
-
-    @Override
-    public List<NodeType> getNodeTypes() {
-        return nodeTypes;
     }
 
     @Override
@@ -159,7 +93,7 @@ public class CachedOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, DataSetProcessor dsp) throws StandardException {
+    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         return dsp.createDataSet(rows).map(new SpliceFunction<SpliceOperation, ExecRow, LocatedRow>() {
             @Override
             public LocatedRow call(ExecRow execRow) throws Exception {

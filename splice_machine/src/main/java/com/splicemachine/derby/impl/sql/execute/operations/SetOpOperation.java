@@ -6,14 +6,10 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.sql.compile.IntersectOrExceptNode;
-import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.stream.DataSet;
 import com.splicemachine.derby.stream.DataSetProcessor;
-import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.pipeline.exception.Exceptions;
 import org.apache.log4j.Logger;
 import java.io.IOException;
@@ -28,11 +24,6 @@ import java.util.List;
 public class SetOpOperation extends SpliceBaseOperation {
     private static Logger LOG = Logger.getLogger(AnyOperation.class);
     protected static final String NAME = SetOpOperation.class.getSimpleName().replaceAll("Operation", "");
-    protected static List<NodeType> nodeTypes;
-
-    static {
-        nodeTypes = Arrays.asList(NodeType.SCAN);
-    }
 
     @Override
     public String getName() {
@@ -84,11 +75,6 @@ public class SetOpOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public List<NodeType> getNodeTypes() {
-        return nodeTypes;
-    }
-
-    @Override
     public List<SpliceOperation> getSubOperations() {
         return Arrays.asList(leftSource,rightSource);
     }
@@ -96,11 +82,6 @@ public class SetOpOperation extends SpliceBaseOperation {
     @Override
     public SpliceOperation getLeftOperation() {
         return leftSource;
-    }
-
-    @Override
-    public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-        throw new RuntimeException("Not Implemented");
     }
 
     @Override
@@ -120,30 +101,12 @@ public class SetOpOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public void open() throws StandardException, IOException {
-        super.open();
-        leftSource.open();
-        rightSource.open();
-    }
-
-    @Override
-    public void close() throws StandardException, IOException {
-        super.close();
-    }
-
-    @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
         super.init(context);
         leftSource.init(context);
         rightSource.init(context);
         this.leftInputRow = leftSource.getExecRowDefinition();
         this.rightInputRow = rightSource.getExecRowDefinition();
-    }
-
-
-    @Override
-    public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
-        throw new RuntimeException("Not Implemented");
     }
 
     @Override
@@ -154,16 +117,6 @@ public class SetOpOperation extends SpliceBaseOperation {
                 .append(indent).append("LeftSource:").append(leftSource.prettyPrint(indentLevel+1))
                 .append(indent).append("RightSource:").append(rightSource.prettyPrint(indentLevel+1))
                 .toString();
-    }
-
-    @Override
-    public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder,SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-        throw new RuntimeException("Not Implemented");
-    }
-
-    @Override
-    public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException, IOException {
-        throw new RuntimeException("Not Implemented");
     }
 
     @Override
@@ -187,21 +140,17 @@ public class SetOpOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, DataSetProcessor dsp) throws StandardException {
+    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         if (this.opType==IntersectOrExceptNode.INTERSECT_OP) {
-            return leftSource.getDataSet(spliceRuntimeContext).intersect(
-                    rightSource.getDataSet(spliceRuntimeContext));
+            return leftSource.getDataSet().intersect(
+                    rightSource.getDataSet());
         }
         else if (this.opType==IntersectOrExceptNode.EXCEPT_OP) {
-            return leftSource.getDataSet(spliceRuntimeContext).subtract(
-                    rightSource.getDataSet(spliceRuntimeContext));
+            return leftSource.getDataSet().subtract(
+                    rightSource.getDataSet());
         } else {
             throw new RuntimeException("Operation Type not Supported "+opType);
         }
 
     }
-
-
-
-
 }

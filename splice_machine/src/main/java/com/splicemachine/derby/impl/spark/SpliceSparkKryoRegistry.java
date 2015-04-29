@@ -23,7 +23,6 @@ import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.altertable.PopulateConglomerateTask;
 import com.splicemachine.derby.impl.job.index.CreateIndexTask;
 import com.splicemachine.derby.impl.job.index.PopulateIndexTask;
-import com.splicemachine.derby.impl.job.operation.SinkTask;
 import com.splicemachine.derby.impl.load.ColumnContext;
 import com.splicemachine.derby.impl.load.FileImportReader;
 import com.splicemachine.derby.impl.load.ImportContext;
@@ -530,7 +529,7 @@ public class SpliceSparkKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(ActivationSerializer.OperationResultSetStorage.class,EXTERNALIZABLE_SERIALIZER,155);
         instance.register(ByteSlice.class,EXTERNALIZABLE_SERIALIZER,156);
 				instance.register(ZkTask.class,EXTERNALIZABLE_SERIALIZER,157);
-				instance.register(SinkTask.class,EXTERNALIZABLE_SERIALIZER,158);
+				//instance.register(SinkTask.class,EXTERNALIZABLE_SERIALIZER,158);
 				instance.register(CreateIndexTask.class,EXTERNALIZABLE_SERIALIZER,159);
 				instance.register(PopulateIndexTask.class,EXTERNALIZABLE_SERIALIZER,160);
 				instance.register(ImportTask.class,EXTERNALIZABLE_SERIALIZER,161);

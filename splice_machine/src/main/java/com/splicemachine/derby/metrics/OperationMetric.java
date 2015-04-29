@@ -1,7 +1,5 @@
 package com.splicemachine.derby.metrics;
 
-import com.splicemachine.db.iapi.sql.dictionary.SystemColumn;
-
 /**
  * @author Scott Fines
  * Date: 1/16/14

@@ -5,20 +5,17 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
-
 import com.google.common.base.Throwables;
 import com.google.common.collect.Lists;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
-
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
-import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -74,7 +71,7 @@ public class PopulateConglomerateTask extends ZkTask {
                                     int expectedScanReadWidth,
                                     long demarcationTimestamp,
                                     DDLChange ddlChange) {
-        super(jobId, OperationJob.operationTaskPriority,null);
+        super(jobId, SpliceConstants.operationTaskPriority,null);
         this.expectedScanReadWidth = expectedScanReadWidth;
         this.demarcationTimestamp = demarcationTimestamp;
         this.ddlChange = ddlChange;

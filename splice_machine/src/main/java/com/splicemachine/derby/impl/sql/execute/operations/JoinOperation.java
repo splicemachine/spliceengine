@@ -5,24 +5,16 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.List;
-import java.lang.reflect.Method;
-
 import com.google.common.base.Strings;
 import com.splicemachine.derby.iapi.sql.execute.*;
-import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
-import com.splicemachine.derby.utils.marshall.PairDecoder;
-
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.FormatableIntHolder;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import org.apache.log4j.Logger;
-
-import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 
 public abstract class JoinOperation extends SpliceBaseOperation {
@@ -177,17 +169,6 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 						mergedRow = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
                 if (rightTemplate == null)
                     rightTemplate = rightRow.getClone();
-                if (shouldRecordStats() && restriction != null && info == null) {
-                    String restrictionToStringMethodName = restrictionMethodName + "ToString";
-                    try {
-                        Method method = activation.getClass().getMethod(restrictionToStringMethodName, null);
-                        String joinClause = "Join Condition:" + method.invoke(activation, null);
-                        info = (info == null) ? joinClause : info + joinClause;
-                    }catch (Exception e) {
-                        SpliceLogUtils.logAndThrow(LOG, "error during JoinOperation init",
-                                StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e));
-                    }
-                }
 		}
 
 		protected int[] generateHashKeys(int hashKeyItem) {
@@ -242,25 +223,6 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 		public String toString() {
 				return String.format("JoinOperation {resultSetNumber=%d,optimizerEstimatedCost=%f,optimizerEstimatedRowCount=%f,left=%s,right=%s}",operationInformation.getResultSetNumber(),optimizerEstimatedCost,optimizerEstimatedRowCount,leftResultSet,rightResultSet);
 		}
-		@Override
-		public void	close() throws StandardException, IOException {
-				super.close();
-				if(leftResultSet!=null)
-						leftResultSet.close();
-				if(rightResultSet!=null)
-						rightResultSet.close();
-
-				leftRow = null;
-				rightRow = null;
-				mergedRow = null;
-		}
-
-		@Override
-		public void open() throws StandardException,IOException {
-				super.open();
-				leftResultSet.open();
-				rightResultSet.open();
-		}
 
 		@Override
 		public int[] getRootAccessedCols(long tableNumber) throws StandardException {
@@ -300,16 +262,6 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 		}
 
 		@Override
-		public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-				return leftResultSet.getMapRowProvider(top, rowDecoder, spliceRuntimeContext);
-		}
-
-		@Override
-		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException, IOException {
-				return leftResultSet.getReduceRowProvider(top, rowDecoder, spliceRuntimeContext, returnDefaultValue);
-		}
-
-		@Override
         public ExecRow getExecRowDefinition() throws StandardException {
             if (mergedRowTemplate == null) {
                 mergedRowTemplate = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
@@ -318,16 +270,6 @@ public abstract class JoinOperation extends SpliceBaseOperation {
             }
             return mergedRowTemplate;
         }
-
-		@Override
-		public SpliceNoPutResultSet executeScan(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-				SpliceLogUtils.trace(LOG, "executeScan");
-				try {
-						return new SpliceNoPutResultSet(activation,this, getReduceRowProvider(this, OperationUtils.getPairDecoder(this, spliceRuntimeContext), spliceRuntimeContext, true));
-				} catch (IOException e) {
-						throw Exceptions.parseException(e);
-				}
-		}
 
     public Restriction getRestriction() {
         Restriction mergeRestriction = Restriction.noOpRestriction;

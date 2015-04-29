@@ -8,7 +8,6 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.sql.execute.StandardCloseable;
 import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.iapi.storage.RowProviderIterator;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.SIFactoryDriver;
@@ -25,8 +24,6 @@ import org.apache.hadoop.hbase.util.Bytes;
 import com.splicemachine.derby.impl.storage.SpliceResultScanner;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.metrics.IOStats;
-import com.splicemachine.metrics.Metrics;
 
 /**
  * @author Scott Fines
@@ -104,10 +101,6 @@ public class StandardIterators {
             return delegate.next();
         }
 
-        @Override
-        public IOStats getStats() {
-            return Metrics.noOpIOStats();
-        }
     }
 
     private static class SpliceOpStandardIterator implements StandardIterator<ExecRow> {
@@ -125,7 +118,7 @@ public class StandardIterators {
         @Override
         public ExecRow next(SpliceRuntimeContext ctx) throws StandardException,
                 IOException {
-            return op.nextRow(ctx);
+            return op.getNextRowCore();
         }
 
         @Override
@@ -159,10 +152,6 @@ public class StandardIterators {
             noPut.close();
         }
 
-        @Override
-        public IOStats getStats() {
-            return noPut.getStats();
-        }
     }
 
     private static class ResultSetStandardIterator implements StandardIterator<ExecRow> {

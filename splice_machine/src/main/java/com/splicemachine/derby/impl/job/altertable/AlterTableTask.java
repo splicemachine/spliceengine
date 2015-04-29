@@ -4,12 +4,10 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.concurrent.ExecutionException;
-
 import com.google.common.base.Throwables;
-
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
-import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.pipeline.ddl.TentativeDDLDesc;
@@ -30,7 +28,7 @@ public class AlterTableTask extends ZkTask {
     public AlterTableTask() {}
 
     public AlterTableTask(String jobId, DDLChange ddlChange) {
-        super(jobId, OperationJob.operationTaskPriority, null);
+        super(jobId, SpliceConstants.operationTaskPriority, null);
         this.ddlChange = ddlChange;
     }
 

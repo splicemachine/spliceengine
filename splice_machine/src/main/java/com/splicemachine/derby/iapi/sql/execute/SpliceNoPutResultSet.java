@@ -1,9 +1,6 @@
 package com.splicemachine.derby.iapi.sql.execute;
 
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.job.JobResults;
-import com.splicemachine.metrics.IOStats;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -15,9 +12,7 @@ import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.iapi.sql.execute.*;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-import java.io.IOException;
 import java.sql.SQLWarning;
 import java.sql.Timestamp;
 
@@ -206,18 +201,6 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 //				catch (IOException e) {
 //						throw Exceptions.parseException(e);
 //				}
-				boolean xplain = activation.isTraced();
-				if(xplain){
-						String xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
-						long statementId = topOperation.getStatementId();
-						if(scrollId==-1l) scrollId = Bytes.toLong(topOperation.getUniqueSequenceID());
-						if(taskId==-1l) taskId = SpliceDriver.driver().getUUIDGenerator().nextUUID();
-            try {
-                rowProvider.reportStats(statementId,scrollId,taskId,xplainSchema,regionName);
-            } catch (IOException e) {
-                throw Exceptions.parseException(e);
-            }
-        }
 				closed =true;
 		}
 
@@ -460,7 +443,4 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 				this.regionName = regionName;
 		}
 
-		public IOStats getStats() {
-				return rowProvider.getIOStats();
-		}
 }

@@ -3,15 +3,11 @@ package com.splicemachine.derby.impl.storage;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.splicemachine.async.*;
-import com.splicemachine.derby.impl.job.operation.BaseSuccessFilter;
-
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
-
 import javax.annotation.Nullable;
-
 import java.util.List;
 import java.util.Map;
 
@@ -21,6 +17,7 @@ import java.util.Map;
  * @author Scott Fines
  * Date: 7/15/14
  */
+@Deprecated
 public class AsyncScannerUtils {
 
     private static final Function<? super com.splicemachine.async.KeyValue, ? extends org.apache.hadoop.hbase.KeyValue> toHBaseKvFunction
@@ -73,11 +70,6 @@ public class AsyncScannerUtils {
     }
 
     private static ScanFilter convertFilter(Filter filter) {
-        if(filter instanceof BaseSuccessFilter){
-        	BaseSuccessFilter sf = (BaseSuccessFilter)filter;
-            return new AsyncSuccessFilter(sf.getTaskList());
-        }
-
         throw new IllegalArgumentException("Unknown Filter of type "+ filter.getClass());
     }
 

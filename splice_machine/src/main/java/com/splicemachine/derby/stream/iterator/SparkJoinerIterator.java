@@ -1,25 +1,21 @@
 package com.splicemachine.derby.stream.iterator;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.derby.hbase.SpliceObserverInstructions;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.operations.Joiner;
-
 import java.util.Iterator;
 
 /**
 * Created by dgomezferro on 4/7/15.
+ *
+ * XXX-TODO FIX JL
 */
 public class SparkJoinerIterator implements Iterator<ExecRow>, Iterable<ExecRow> {
     ExecRow next = null;
     boolean consumed = false;
     boolean iterated = false;
     private Joiner joiner;
-    private SpliceRuntimeContext runtimeContext;
-
-    public SparkJoinerIterator(Joiner joiner, SpliceRuntimeContext runtimeContext) {
+    public SparkJoinerIterator(Joiner joiner) {
         this.joiner = joiner;
-        this.runtimeContext = runtimeContext;
     }
 
     @Override
@@ -37,7 +33,7 @@ public class SparkJoinerIterator implements Iterator<ExecRow>, Iterable<ExecRow>
         if (consumed) return false;
         try {
             if (next == null) {
-                next = joiner.nextRow(runtimeContext);
+                next = joiner.nextRow(null);
             }
             if (next == null) {
                 consumed = true;

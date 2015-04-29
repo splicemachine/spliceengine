@@ -3,22 +3,16 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.stream.*;
-import com.splicemachine.derby.stream.derby.DataSetNoPutResultSet;
 import com.splicemachine.derby.stream.iterator.SparkJoinerIterator;
 import com.splicemachine.derby.stream.spark.RDDUtils;
-import com.splicemachine.derby.metrics.OperationMetric;
-import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.stream.function.SpliceFlatMap2Function;
 import com.splicemachine.derby.utils.*;
 import com.splicemachine.derby.utils.marshall.BareKeyHash;
 import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
-import com.splicemachine.metrics.TimeView;
-import com.splicemachine.metrics.IOStats;
 import com.splicemachine.mrio.api.core.SMSplit;
 import com.splicemachine.derby.utils.StandardIterators;
-import com.splicemachine.derby.utils.StandardPushBackIterator;
 import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.IntArrays;
@@ -27,13 +21,11 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-
 import org.apache.hadoop.mapreduce.InputSplit;
 import org.apache.log4j.Logger;
 import org.apache.spark.Partition;
 import org.apache.spark.Partitioner;
 import org.apache.spark.rdd.NewHadoopPartition;
-
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -45,18 +37,12 @@ import java.util.*;
  *         Date: 18/11/2013
  */
 public class MergeJoinOperation extends JoinOperation {
-
     private static final Logger LOG = Logger.getLogger(MergeJoinOperation.class);
-
-    static List<NodeType> nodeTypes = Arrays.asList(NodeType.MAP);
     private int leftHashKeyItem;
     private int rightHashKeyItem;
     int[] leftHashKeys;
     int[] rightHashKeys;
     Joiner joiner;
-    private OperationResultSet ors;
-
-
     // for overriding
     protected boolean wasRightOuterJoin = false;
     private IOStandardIterator<ExecRow> rightRows;
@@ -102,11 +88,6 @@ public class MergeJoinOperation extends JoinOperation {
     }
 
     @Override
-    public List<NodeType> getNodeTypes() {
-        return nodeTypes;
-    }
-    
-    @Override
     public void init(SpliceOperationContext context) throws StandardException, IOException {
     	super.init(context);
         leftHashKeys = generateHashKeys(leftHashKeyItem);
@@ -132,92 +113,7 @@ public class MergeJoinOperation extends JoinOperation {
         rightHashKeyItem = in.readInt();
     }
 
-    @Override
-    public ExecRow nextRow(SpliceRuntimeContext ctx) throws StandardException, IOException {
-        if (joiner == null) {
-            // Upon first call, init up the joined rows source
-            joiner = initJoiner(ctx);
-            timer = ctx.newTimer();
-            timer.startTiming();
-        }
-
-        ExecRow next = joiner.nextRow(ctx);
-        setCurrentRow(next);
-        if (next == null) {
-            timer.tick(joiner.getLeftRowsSeen());
-            ors.close();
-            removeFromOperationChain();
-            joiner.close();
-            stopExecutionTime = System.currentTimeMillis();
-        }
-        return next;
-    }
-
-    private Joiner initJoiner(final SpliceRuntimeContext<ExecRow> spliceRuntimeContext)
-            throws StandardException, IOException {
-        StandardPushBackIterator<ExecRow> leftPushBack =
-                new StandardPushBackIterator<ExecRow>(StandardIterators.wrap(leftResultSet));
-        ExecRow firstLeft = leftPushBack.next(spliceRuntimeContext);
-        SpliceRuntimeContext<ExecRow> ctxWithOverride = spliceRuntimeContext.copy();
-        ctxWithOverride.unMarkAsSink();
-        if (firstLeft != null) {
-            firstLeft = firstLeft.getClone();
-            ctxWithOverride.addScanStartOverride(getKeyRow(firstLeft, leftHashKeys));
-            leftPushBack.pushBack(firstLeft);
-        }
-
-        if (shouldRecordStats()) {
-            addToOperationChain(spliceRuntimeContext, null, rightResultSet.getUniqueSequenceID());
-        }
-        ors = new OperationResultSet(activation,rightResultSet);
-        ors.sinkOpen(spliceRuntimeContext.getTxn(),true);
-        ors.executeScan(false,ctxWithOverride);
-        DataSetNoPutResultSet resultSet = ors.getDelegate();
-        rightRows = null;//StandardIterators.ioIterator(resultSet);
-        rightRows.open();
-        IJoinRowsIterator<ExecRow> mergedRowSource = new MergeJoinRows(leftPushBack, rightRows, leftHashKeys, rightHashKeys);
-        StandardSupplier<ExecRow> emptyRowSupplier = new StandardSupplier<ExecRow>() {
-            @Override
-            public ExecRow get() throws StandardException {
-                return getEmptyRow();
-            }
-        };
-
-        return new Joiner(mergedRowSource, getExecRowDefinition(), getRestriction(),
-                             isOuterJoin, wasRightOuterJoin, leftNumCols, rightNumCols,
-                             oneRowRightSide, notExistsRightSide, true, emptyRowSupplier,spliceRuntimeContext);
-    }
-
-    @Override
-    protected void updateStats(OperationRuntimeStats stats) {
-        if (LOG.isDebugEnabled())
-            SpliceLogUtils.debug(LOG, "updateStats");
-        if (joiner != null) {
-            long leftRowsSeen = joiner.getLeftRowsSeen();
-            stats.addMetric(OperationMetric.INPUT_ROWS, leftRowsSeen);
-            TimeView time = timer.getTime();
-            stats.addMetric(OperationMetric.OUTPUT_ROWS, timer.getNumEvents());
-            stats.addMetric(OperationMetric.TOTAL_WALL_TIME,time.getWallClockTime());
-            stats.addMetric(OperationMetric.TOTAL_CPU_TIME,time.getCpuTime());
-            stats.addMetric(OperationMetric.TOTAL_USER_TIME, time.getUserTime());
-            stats.addMetric(OperationMetric.FILTERED_ROWS, joiner.getRowsFiltered());
-        }
-
-        if (rightRows != null) {
-            IOStats rightSideStats = rightRows.getStats();
-            TimeView remoteView = rightSideStats.getTime();
-            stats.addMetric(OperationMetric.REMOTE_SCAN_WALL_TIME,remoteView.getWallClockTime());
-            stats.addMetric(OperationMetric.REMOTE_SCAN_CPU_TIME,remoteView.getCpuTime());
-            stats.addMetric(OperationMetric.REMOTE_SCAN_USER_TIME,remoteView.getUserTime());
-            stats.addMetric(OperationMetric.REMOTE_SCAN_ROWS,rightSideStats.elementsSeen());
-            stats.addMetric(OperationMetric.REMOTE_SCAN_BYTES,rightSideStats.bytesSeen());
-        }
-        if (LOG.isDebugEnabled())
-            SpliceLogUtils.debug(LOG, "leftRows %d, rightRows %d, rowsFiltered=%d",joiner.getLeftRowsSeen(), joiner.getRightRowsSeen(),joiner.getRowsFiltered());
-
-        super.updateStats(stats);
-    }
-
+/*
     private ExecRow getKeyRow(ExecRow row, int[] keyIndexes) throws StandardException {
         ExecRow keyRow = activation.getExecutionFactory().getValueRow(keyIndexes.length);
         for (int i = 0; i < keyIndexes.length; i++) {
@@ -225,13 +121,7 @@ public class MergeJoinOperation extends JoinOperation {
         }
         return keyRow;
     }
-
-    @Override
-    public void close() throws StandardException, IOException {
-        super.close();
-        if (joiner != null) joiner.close();
-    }
-
+*/
 /*    @Override
     public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
 
@@ -386,9 +276,12 @@ public class MergeJoinOperation extends JoinOperation {
                 }
             };
 
-            return new Joiner(mergedRowSource, op.getExecRowDefinition(), op.getRestriction(),
+            return null;
+            // To Do Fix Merge...
+/*            return new Joiner(mergedRowSource, op.getExecRowDefinition(), op.getRestriction(),
                     op.isOuterJoin, op.wasRightOuterJoin, op.leftNumCols, op.rightNumCols,
-                    op.oneRowRightSide, op.notExistsRightSide, false, emptyRowSupplier, operationContext.getSpliceRuntimeContext());
+                    op.oneRowRightSide, op.notExistsRightSide, false, emptyRowSupplier);
+                    */
         }
 
         @Override
@@ -409,12 +302,12 @@ public class MergeJoinOperation extends JoinOperation {
                 joiner = initJoiner(RDDUtils.toExecRowsIterator(left), RDDUtils.toExecRowsIterator(right));
                 joiner.open();
             }
-            return RDDUtils.toSparkRowsIterable(new SparkJoinerIterator(joiner, operationContext.getSpliceRuntimeContext()));
+            return RDDUtils.toSparkRowsIterable(new SparkJoinerIterator(joiner));
         }
     }
 
     @Override
-    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, DataSetProcessor dsp) throws StandardException {
+    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         throw new RuntimeException("Not Implemented");
     }
 }

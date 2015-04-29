@@ -25,10 +25,8 @@ import com.splicemachine.db.vti.IFastPath;
 import com.splicemachine.db.vti.VTIEnvironment;
 import com.splicemachine.db.vti.Restriction;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.stream.DataSet;
 import com.splicemachine.derby.stream.DataSetProcessor;
-import java.io.IOException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -149,11 +147,6 @@ public class VTIOperation extends SpliceBaseOperation implements VTIEnvironment 
 	//
 
 
-    @Override
-    public void open() throws StandardException, IOException {
-        super.open();
-    }
-
     /**
      * Clone the restriction for a Restricted VTI, filling in parameter values
      * as necessary.
@@ -254,7 +247,7 @@ public class VTIOperation extends SpliceBaseOperation implements VTIEnvironment 
 	 * @see NoPutResultSet#openCore
 	 * @exception StandardException thrown if cursor finished.
 	 */
-	public void reopenCore() throws StandardException, IOException {
+	public void reopenCore() throws StandardException {
 		if (reuseablePs)
 		{
 			/* close the user ResultSet.
@@ -283,18 +276,6 @@ public class VTIOperation extends SpliceBaseOperation implements VTIEnvironment 
             open();
 		}
 	}
-
-	/**
-     * If open and not returned yet, returns the row
-     * after plugging the parameters into the expressions.
-	 *
-	 * @exception StandardException thrown on failure.
-     */
-	@Override
-	public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-		throw new RuntimeException("Not Implemented Yet");
-	}
-
 	
 
 	/**
@@ -614,11 +595,6 @@ public class VTIOperation extends SpliceBaseOperation implements VTIEnvironment 
     }
 
 	@Override
-	public List<NodeType> getNodeTypes() {
-		throw new RuntimeException("Not Implemented Yet");
-	}
-
-	@Override
 	public List<SpliceOperation> getSubOperations() {
 		throw new RuntimeException("Not Implemented Yet");
 	}
@@ -645,7 +621,7 @@ public class VTIOperation extends SpliceBaseOperation implements VTIEnvironment 
     }
 
     @Override
-    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, DataSetProcessor dsp) throws StandardException {
+    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         throw new RuntimeException("VTI Not Supported");
     }
 }

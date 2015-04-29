@@ -6,18 +6,12 @@ import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.base.Strings;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
-import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.metrics.OperationMetric;
-import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.stream.DataSet;
 import com.splicemachine.derby.stream.DataSetProcessor;
 import com.splicemachine.derby.stream.OperationContext;
@@ -26,7 +20,6 @@ import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
-import com.splicemachine.metrics.TimeView;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
@@ -46,14 +39,12 @@ import com.splicemachine.db.iapi.store.access.DynamicCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.GenericPreparedStatement;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -92,7 +83,6 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 		protected int heapOnlyColRefItem;
 		protected int indexColMapItem;
 		private ExecRow compactRow;
-		RowLocation baseRowLocation = null;
 		int[] columnOrdering;
         int[] format_ids;
 		SpliceConglomerate conglomerate;
@@ -281,35 +271,8 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 		}
 
 		@Override
-		public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
-				try {
-						RowProvider provider = getReduceRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext),runtimeContext, true);
-						SpliceNoPutResultSet rs =  new SpliceNoPutResultSet(activation,this, provider);
-						nextTime += getCurrentTimeMillis() - beginTime;
-						return rs;
-				} catch (IOException e) {
-						throw Exceptions.parseException(e);
-				}
-		}
-
-		@Override
-		public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder,SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-				return source.getMapRowProvider(top, decoder, spliceRuntimeContext);
-		}
-
-		@Override
-		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException, IOException {
-				return source.getReduceRowProvider(top, decoder, spliceRuntimeContext, returnDefaultValue);
-		}
-
-		@Override
 		public SpliceOperation getLeftOperation() {
 				return this.source;
-		}
-
-		@Override
-		public List<NodeType> getNodeTypes() {
-				return Collections.singletonList(NodeType.SCAN);
 		}
 
 		@Override
@@ -358,91 +321,6 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 						getMainTableAccessedKeyColumns());
 			}
 			return new KeyDecoder(keyDecoder,0);
-		}
-
-		@Override
-		public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-				if(timer==null)
-						timer = spliceRuntimeContext.newTimer();
-
-				SpliceLogUtils.trace(LOG,"<%s> nextRow",indexName);
-				ExecRow sourceRow;
-				ExecRow retRow = null;
-				boolean restrict;
-				DataValueDescriptor restrictBoolean;
-
-				if(reader==null){
-						reader = new IndexRowReaderBuilder()
-										.source(source)
-										.mainTableConglomId(conglomId)
-										.outputTemplate(compactRow)
-                    .transaction(operationInformation.getTransaction())
-										.indexColumns(indexCols)
-										.mainTableKeyColumnEncodingOrder(getColumnOrdering())
-										.mainTableKeyColumnTypes(getKeyColumnTypes())
-										.mainTableKeyColumnSortOrder(getConglomerate().getAscDescInfo())
-										.mainTableKeyDecodingMap(getMainTableKeyDecodingMap())
-										.mainTableAccessedKeyColumns(getMainTableAccessedKeyColumns())
-										.runtimeContext(spliceRuntimeContext)
-										.mainTableVersion(mainTableVersion)
-										.mainTableRowDecodingMap(operationInformation.getBaseColumnMap())
-										.mainTableAccessedRowColumns(getMainTableRowColumns())
-										.numConcurrentLookups(SpliceConstants.indexLookupBlocks)
-										.lookupBatchSize(SpliceConstants.indexBatchSize)
-										.build();
-
-				}
-
-				timer.startTiming();
-				do{
-						IndexRowReader.RowAndLocation roLoc = reader.next();
-						boolean rowExists = roLoc!=null;
-						if(!rowExists){
-								//No Rows remaining
-								clearCurrentRow();
-								baseRowLocation= null;
-								retRow = null;
-								if(reader!=null){
-										try {
-												reader.close();
-										} catch (IOException e) {
-												SpliceLogUtils.warn(LOG,"Unable to close IndexRowReader");
-										}
-								}
-								break;
-						}
-						sourceRow = roLoc.row;
-						if(baseRowLocation==null)
-								baseRowLocation = new HBaseRowLocation();
-
-						baseRowLocation.setValue(roLoc.rowLocation);
-
-						SpliceLogUtils.trace(LOG,"<%s> retrieved index row %s",indexName,sourceRow);
-						SpliceLogUtils.trace(LOG, "<%s>compactRow=%s", indexName,compactRow);
-						setCurrentRow(sourceRow);
-						currentRowLocation = baseRowLocation;
-						restrictBoolean = ((restriction == null) ? null: restriction.invoke());
-						restrict = (restrictBoolean ==null) ||
-										((!restrictBoolean.isNull()) && restrictBoolean.getBoolean());
-
-						if(!restrict||!rowExists){
-								clearCurrentRow();
-								baseRowLocation=null;
-								currentRowLocation=null;
-								rowsFiltered++;
-						}else{
-								retRow = sourceRow;
-								setCurrentRow(sourceRow);
-								currentRowLocation = baseRowLocation;
-								source.setCurrentRowLocation(baseRowLocation);
-						}
-				}while(!restrict);
-				if(retRow==null){
-						timer.tick(0);
-						stopExecutionTime = System.currentTimeMillis();
-				}else
-						timer.tick(1);
-				return retRow;
 		}
 
 		private FormatableBitSet getMainTableAccessedKeyColumns() throws StandardException {
@@ -503,15 +381,6 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 		}
 
 		@Override
-		public void close() throws StandardException, IOException {
-				SpliceLogUtils.trace(LOG, "close in IndexRowToBaseRow");
-				beginTime = getCurrentTimeMillis();
-				source.close();
-				super.close();
-				closeTime += getElapsedMillis(beginTime);
-		}
-
-		@Override
 		public ExecRow getExecRowDefinition() {
 				return compactRow.getClone();
 		}
@@ -539,34 +408,9 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 		}
 
 		@Override
-		protected void updateStats(OperationRuntimeStats stats) {
-				if(reader==null) return;
-				TimeView timing = reader.getTimeInfo();
-				long bytesRead = reader.getBytesFetched();
-				long rowsRead = reader.getTotalRows();
-				stats.addMetric(OperationMetric.REMOTE_GET_BYTES,bytesRead);
-				stats.addMetric(OperationMetric.REMOTE_GET_ROWS,rowsRead);
-				stats.addMetric(OperationMetric.REMOTE_GET_WALL_TIME,timing.getWallClockTime());
-				stats.addMetric(OperationMetric.REMOTE_GET_CPU_TIME,timing.getCpuTime());
-				stats.addMetric(OperationMetric.REMOTE_GET_USER_TIME,timing.getUserTime());
-				stats.addMetric(OperationMetric.FILTERED_ROWS,rowsFiltered);
-				//for Index lookups, same number of input rows as output rows
-				stats.addMetric(OperationMetric.INPUT_ROWS,rowsRead);
-                stats.addMetric(OperationMetric.OUTPUT_ROWS,rowsRead);
-		}
-
-		@Override protected int getNumMetrics() { return 6; }
-
-		@Override
 		public String toString() {
 				return String.format("IndexRowToBaseRow {source=%s,indexName=%s,conglomId=%d,resultSetNumber=%d}",
 								source,indexName,conglomId,resultSetNumber);
-		}
-
-		@Override
-		public void open() throws StandardException, IOException {
-				super.open();
-				if(source!=null)source.open();;
 		}
 
 		@Override
@@ -601,8 +445,8 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
             return nonPkCols;
         }
     @Override
-    public DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, DataSetProcessor dsp) throws StandardException {
-		return source.getDataSet(spliceRuntimeContext).map(new BaseRowFetchFunction(dsp.createOperationContext(this, spliceRuntimeContext)));
+    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+		return source.getDataSet().map(new BaseRowFetchFunction(dsp.createOperationContext(this)));
     }
 
 	private static class BaseRowFetchFunction extends SpliceFunction<IndexRowToBaseRowOperation, LocatedRow, LocatedRow> {

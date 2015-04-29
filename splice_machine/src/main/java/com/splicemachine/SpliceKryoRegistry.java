@@ -20,11 +20,9 @@ import com.splicemachine.hbase.backup.CreateBackupTask;
 import com.splicemachine.hbase.backup.CreateIncrementalBackupTask;
 import com.splicemachine.hbase.backup.PurgeTransactionsTask;
 import com.splicemachine.hbase.backup.RestoreBackupTask;
-
 import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.TxnView;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
-
 import com.splicemachine.db.catalog.types.AggregateAliasInfo;
 import com.splicemachine.db.catalog.types.BaseTypeIdImpl;
 import com.splicemachine.db.catalog.types.DecimalTypeIdImpl;
@@ -57,7 +55,6 @@ import com.splicemachine.derby.impl.job.altertable.PopulateConglomerateTask;
 import com.splicemachine.derby.impl.job.coprocessor.SizedInterval;
 import com.splicemachine.derby.impl.job.index.CreateIndexTask;
 import com.splicemachine.derby.impl.job.index.PopulateIndexTask;
-import com.splicemachine.derby.impl.job.operation.SinkTask;
 import com.splicemachine.derby.impl.load.ColumnContext;
 import com.splicemachine.derby.impl.load.FileImportReader;
 import com.splicemachine.derby.impl.load.ImportContext;
@@ -761,8 +758,8 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
 				},161);
 
         instance.register(WindowOperation.class,EXTERNALIZABLE_SERIALIZER,179);
-        instance.register(HashNestedLoopJoinOperation.class,EXTERNALIZABLE_SERIALIZER,180);
-        instance.register(HashNestedLoopLeftOuterJoinOperation.class,EXTERNALIZABLE_SERIALIZER,181);
+       // instance.register(HashNestedLoopJoinOperation.class,EXTERNALIZABLE_SERIALIZER,180);
+       // instance.register(HashNestedLoopLeftOuterJoinOperation.class,EXTERNALIZABLE_SERIALIZER,181);
         instance.register(MergeLeftOuterJoinOperation.class, EXTERNALIZABLE_SERIALIZER,182);
         instance.register(SizedInterval.class,EXTERNALIZABLE_SERIALIZER,183);
         instance.register(DerbyWindowContext.class,EXTERNALIZABLE_SERIALIZER,184);
@@ -818,7 +815,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(WriteResult.class, EXTERNALIZABLE_SERIALIZER,209);
         instance.register(ConstraintContext.class, EXTERNALIZABLE_SERIALIZER,210);                
         instance.register(WritableTxn.class, EXTERNALIZABLE_SERIALIZER,211);  
-        instance.register(SinkTask.class, EXTERNALIZABLE_SERIALIZER,212); 
+       // instance.register(SinkTask.class, EXTERNALIZABLE_SERIALIZER,212);
         instance.register(ImportTask.class, EXTERNALIZABLE_SERIALIZER,213);    
         instance.register(ImportContext.class, EXTERNALIZABLE_SERIALIZER,214);  
         instance.register(ColumnContext.class, EXTERNALIZABLE_SERIALIZER,215);          

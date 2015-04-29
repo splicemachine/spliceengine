@@ -2,14 +2,13 @@ package com.splicemachine.derby.impl.job.fk;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
-import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.pipeline.writecontextfactory.WriteContextFactory;
 import com.splicemachine.pipeline.writecontextfactory.WriteContextFactoryManager;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -39,7 +38,7 @@ public class CreateFkTask extends ZkTask {
     }
 
     public CreateFkTask(String jobId, int[] backingIndexFormatIds, long referencedConglomerateId, long referencingConglomerateId, String referencedTableName) {
-        super(jobId, OperationJob.operationTaskPriority, null);
+        super(jobId, SpliceConstants.operationTaskPriority, null);
         this.backingIndexFormatIds = backingIndexFormatIds;
         this.referencedConglomerateId = referencedConglomerateId;
         this.referencingConglomerateId = referencingConglomerateId;

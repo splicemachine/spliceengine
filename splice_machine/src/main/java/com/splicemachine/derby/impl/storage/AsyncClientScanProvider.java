@@ -3,20 +3,13 @@ package com.splicemachine.derby.impl.storage;
 import com.splicemachine.async.*;
 import com.splicemachine.async.AsyncScanner;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.metrics.OperationMetric;
-import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.hbase.regioninfocache.HBaseRegionCache;
 import com.splicemachine.hbase.regioninfocache.RegionCache;
 import com.splicemachine.hbase.ScanDivider;
-import com.splicemachine.metrics.BaseIOStats;
-import com.splicemachine.metrics.IOStats;
-import com.splicemachine.metrics.TimeView;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.ServerName;
@@ -24,11 +17,9 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.util.List;
 import java.util.SortedSet;
-import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -84,21 +75,8 @@ public class AsyncClientScanProvider extends AbstractAsyncScanProvider {
             } else {
                 List<Scanner> scanners = DerbyAsyncScannerUtils.convertScanners(ScanDivider.divide(scan, regions), this.tableName, hbaseClient, true);
                 scanner = new SortedMultiScanner(scanners,SpliceConstants.DEFAULT_CACHE_SIZE*3,Bytes.BYTES_COMPARATOR,spliceRuntimeContext);
-//                scanner = SortedGatheringScanner.newScanner(
-//                        SpliceConstants.DEFAULT_CACHE_SIZE,
-//                        this.getSpliceRuntimeContext(),
-//                        DerbyAsyncScannerUtils.convertFunction(this.tableName,hbaseClient),
-//                        ScanDivider.divide(scan,regions),
-//                        Bytes.BYTES_COMPARATOR,
-//                        null);
-
-//                scanner = GatheringScanner.newScanner(
-//                        SpliceConstants.DEFAULT_CACHE_SIZE,
-//                        this.getSpliceRuntimeContext(),
-//                        DerbyAsyncScannerUtils.convertFunction(this.tableName, hbaseClient),
-//                        ScanDivider.divide(scan, regions));
             }
-//            scanner.open();
+
         } catch (IOException | ExecutionException e) {
             SpliceLogUtils.logAndThrowRuntime(LOG, "unable to open table " + Bytes.toString(tableName), e);
         }
@@ -124,30 +102,4 @@ public class AsyncClientScanProvider extends AbstractAsyncScanProvider {
         return tableName;
     }
 
-    @Override
-    public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) throws IOException {
-        if(regionName==null)
-            regionName="ControlRegion";
-        OperationRuntimeStats stats = new OperationRuntimeStats(statementId,operationId,taskId,regionName,8);
-        stats.addMetric(OperationMetric.REMOTE_SCAN_BYTES,scanner.getRemoteBytesRead());
-        stats.addMetric(OperationMetric.REMOTE_SCAN_ROWS,scanner.getRemoteRowsRead());
-        TimeView remoteView = scanner.getRemoteReadTime();
-        stats.addMetric(OperationMetric.REMOTE_SCAN_WALL_TIME,remoteView.getWallClockTime());
-        stats.addMetric(OperationMetric.REMOTE_SCAN_CPU_TIME,remoteView.getCpuTime());
-        stats.addMetric(OperationMetric.REMOTE_SCAN_USER_TIME,remoteView.getUserTime());
-        stats.addMetric(OperationMetric.TOTAL_WALL_TIME,remoteView.getWallClockTime());
-        stats.addMetric(OperationMetric.TOTAL_CPU_TIME,remoteView.getCpuTime());
-        stats.addMetric(OperationMetric.TOTAL_USER_TIME,remoteView.getUserTime());
-        stats.addMetric(OperationMetric.OUTPUT_ROWS,scanner.getRemoteRowsRead());
-        stats.addMetric(OperationMetric.INPUT_ROWS,scanner.getRemoteRowsRead());
-        stats.addMetric(OperationMetric.START_TIMESTAMP,startExecutionTime);
-        stats.addMetric(OperationMetric.STOP_TIMESTAMP,stopExecutionTime);
-
-        SpliceDriver.driver().getTaskReporter().report(stats,spliceRuntimeContext.getTxn());
-    }
-
-    @Override
-    public IOStats getIOStats() {
-        return new BaseIOStats(scanner.getRemoteReadTime(),scanner.getRemoteBytesRead(),scanner.getRemoteRowsRead());
-    }
 }

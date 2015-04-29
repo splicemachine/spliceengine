@@ -7,11 +7,9 @@ import com.splicemachine.derby.hbase.DerbyFactory;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
-import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.io.IOUtils;
-
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.regionserver.Store;
 import org.apache.hadoop.conf.Configuration;
@@ -22,7 +20,6 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.util.FSUtils;
 import org.apache.hadoop.hbase.util.HFileArchiveUtil;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -62,7 +59,7 @@ public class CreateIncrementalBackupTask extends ZkTask {
                                        String backupFileSystem,
                                        String snapshotName,
                                        String lastSnapshotName) {
-        super(jobId, OperationJob.operationTaskPriority);
+        super(jobId, SpliceConstants.operationTaskPriority);
         this.backupItem = backupItem;
         this.backupFileSystem = backupFileSystem;
         this.snapshotName = snapshotName;

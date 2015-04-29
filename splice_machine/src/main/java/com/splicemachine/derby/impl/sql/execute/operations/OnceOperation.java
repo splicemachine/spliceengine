@@ -1,23 +1,12 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.base.Strings;
-import com.splicemachine.derby.hbase.SpliceObserverInstructions;
-import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
-import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.stream.DataSet;
 import com.splicemachine.derby.stream.DataSetProcessor;
 import com.splicemachine.pipeline.exception.Exceptions;
-import com.splicemachine.derby.metrics.OperationMetric;
-import com.splicemachine.derby.metrics.OperationRuntimeStats;
-import com.splicemachine.derby.utils.marshall.PairDecoder;
-import com.splicemachine.job.JobFuture;
-import com.splicemachine.job.JobResults;
-import com.splicemachine.metrics.IOStats;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -26,18 +15,14 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
-import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
-import java.util.concurrent.Callable;
 
 public class OnceOperation extends SpliceBaseOperation {
 		private static final long serialversionUID = 1l;
@@ -46,10 +31,8 @@ public class OnceOperation extends SpliceBaseOperation {
 		public static final int NO_CARDINALITY_CHECK		= 2;
 		public static final int UNIQUE_CARDINALITY_CHECK	= 3;
 		private ExecRow rowWithNulls;
-
 		/* Used to cache the StatementContext */
 		private StatementContext statementContext;
-
 		// set in constructor and not altered during
 		// life of object.
 		public SpliceOperation source;
@@ -58,7 +41,6 @@ public class OnceOperation extends SpliceBaseOperation {
 		private int cardinalityCheck;
 		public int subqueryNumber;
 		public int pointOfAttachment;
-
 		private RowSource rowSource;
 
 	    protected static final String NAME = OnceOperation.class.getSimpleName().replaceAll("Operation","");
@@ -67,7 +49,6 @@ public class OnceOperation extends SpliceBaseOperation {
 		public String getName() {
 				return NAME;
 		}
-
 		
 		@Deprecated
 		public OnceOperation(){}
@@ -124,67 +105,8 @@ public class OnceOperation extends SpliceBaseOperation {
 		public void init(SpliceOperationContext context) throws StandardException, IOException {
 				super.init(context);
 				source.init(context);
-
 				if(emptyRowFun == null) {
 						emptyRowFun = new SpliceMethod<ExecRow>(emptyRowFunMethodName, activation);
-				}
-		}
-
-		@Override
-		public ExecRow nextRow(final SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-
-                if (timer == null) {
-                    timer = spliceRuntimeContext.newTimer();
-                }
-                timer.startTiming();
-                if(rowSource==null){
-						rowSource = new RowSource(){
-
-								@Override
-								public ExecRow next() throws StandardException, IOException {
-										return source.nextRow(spliceRuntimeContext);
-								}
-						};
-				}
-
-				ExecRow next = validateNextRow(rowSource,false);
-
-				//do null-filling on the other side of the serialization barrier
-				setCurrentRow(next);
-                if (next == null) {
-                    timer.tick(0);
-                }
-                else {
-                    timer.tick(1);
-                }
-                timer.stopTiming();
-				return next;
-		}
-
-        @Override
-        protected void updateStats(OperationRuntimeStats stats) {
-            stats.addMetric(OperationMetric.INPUT_ROWS, timer.getNumEvents());
-            stats.addMetric(OperationMetric.OUTPUT_ROWS, timer.getNumEvents());
-        }
-
-		@Override
-		public void close() throws StandardException, IOException {
-				source.close();
-				super.close();
-		}
-
-		@Override
-		public SpliceNoPutResultSet executeScan(SpliceRuntimeContext runtimeContext) throws StandardException {
-				SpliceLogUtils.trace(LOG, "executeScan");
-				final List<SpliceOperation> operationStack =getOperationStack();
-				SpliceLogUtils.trace(LOG, "operationStack=%s",operationStack);
-				SpliceOperation regionOperation = operationStack.get(0);
-				SpliceLogUtils.trace(LOG,"regionOperation=%s",regionOperation);
-				try {
-						RowProvider provider = getReduceRowProvider(this, OperationUtils.getPairDecoder(source, runtimeContext),runtimeContext, true);
-						return new SpliceNoPutResultSet(activation,this, provider);
-				} catch (IOException e) {
-						throw Exceptions.parseException(e);
 				}
 		}
 
@@ -204,24 +126,6 @@ public class OnceOperation extends SpliceBaseOperation {
 		}
 
 		@Override
-		public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-				SpliceLogUtils.trace(LOG, "getMapRowProvider");
-				return source.getMapRowProvider(top,rowDecoder,spliceRuntimeContext);
-		}
-
-		@Override
-		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder rowDecoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException, IOException {
-				SpliceLogUtils.trace(LOG, "getReduceRowProvider");
-				return new OnceRowProvider(source.getReduceRowProvider(top,rowDecoder, spliceRuntimeContext, returnDefaultValue));
-		}
-
-		@Override
-		public List<NodeType> getNodeTypes() {
-				SpliceLogUtils.trace(LOG, "getNodeTypes");
-				return Collections.singletonList(NodeType.SCAN);
-		}
-
-		@Override
 		public List<SpliceOperation> getSubOperations() {
 				SpliceLogUtils.trace(LOG, "getSubOperations");
 				List<SpliceOperation> operations = new ArrayList<SpliceOperation>();
@@ -235,23 +139,6 @@ public class OnceOperation extends SpliceBaseOperation {
             return source.getAccessedNonPkColumns();
         }
 
-//	@Override
-//	public long getTimeSpent(int type)
-//	{
-//		long totTime = constructorTime + openTime + nextTime + closeTime;
-//
-//		if (type == NoPutResultSet.CURRENT_RESULTSET_ONLY)
-//			return	totTime - source.getTimeSpent(ENTIRE_RESULTSET_TREE);
-//		else
-//			return totTime;
-//	}
-
-
-		@Override
-		public void open() throws StandardException, IOException {
-				super.open();
-				if(source!=null)source.open();
-		}
 
     private static class IteratorRowSource implements RowSource {
         private final Iterator<LocatedRow> iterator;
@@ -269,82 +156,6 @@ public class OnceOperation extends SpliceBaseOperation {
             }
         }
     }
-
-    private class OnceRowProvider implements RowProvider {
-				private final RowProvider delegate;
-				private ExecRow nextRow;
-				private final RowSource rowSource;
-
-				public OnceRowProvider(final RowProvider delegate) {
-						this.delegate = delegate;
-						this.rowSource = new RowSource() {
-								@Override
-								public ExecRow next() throws StandardException, IOException {
-										return delegate.hasNext()? delegate.next(): null;
-								}
-						};
-				}
-
-				@Override public void open() throws StandardException {
-						delegate.open();
-				}
-				@Override public void close() throws StandardException { delegate.close(); }
-				@Override public RowLocation getCurrentRowLocation() { return delegate.getCurrentRowLocation(); }
-				@Override public byte[] getTableName() { return delegate.getTableName(); }
-				@Override public int getModifiedRowCount() { return delegate.getModifiedRowCount(); }
-
-				@Override
-				public JobResults shuffleRows(SpliceObserverInstructions instructions, Callable<Void>... postCompleteTasks) throws StandardException, IOException {
-						return delegate.shuffleRows(instructions,postCompleteTasks);
-				}
-
-				@Override
-				public List<Pair<JobFuture,JobInfo>> asyncShuffleRows(SpliceObserverInstructions instructions) throws StandardException, IOException {
-						return delegate.asyncShuffleRows(instructions);
-				}
-
-				@Override
-				public JobResults finishShuffle(List<Pair<JobFuture, JobInfo>> jobFutures, Callable<Void>... intermediateCleanupTasks) throws StandardException {
-						return delegate.finishShuffle(jobFutures,intermediateCleanupTasks);
-				}
-
-				@Override
-				public boolean hasNext() throws StandardException, IOException {
-						/*
-						 * We have to do our cardinality checks here
-						 *
-						 * The reason for this is simple. Suppose you have a Union all as the source for this. That
-						 * union will return rows from multiple tables, which will require multiple serialization points (1
-						 * for each table). If we serialize this operation over to the table responsible, then we will
-						 * serialize twice, and each table will only see 1 row, in which case we will pass a query when we shouldn't.
-						 *
-						 * Also, conceptually, that makes sense--this is a verification node--it verifies output, it doesn't
-						 * produce it's own (not really, anyway). Thus, it really shouldn't be part of the output itself.
-						 */
-						nextRow = validateNextRow(rowSource,true);
-
-						// OnceOp always has another row…
-						return true;
-				}
-
-				@Override
-				public ExecRow next() throws StandardException {
-						return nextRow;
-				}
-
-				@Override
-				public SpliceRuntimeContext getSpliceRuntimeContext() {
-						return delegate.getSpliceRuntimeContext();
-				}
-
-
-				@Override
-				public void reportStats(long statementId, long operationId, long taskId, String xplainSchema,String regionName) throws IOException {
-					delegate.reportStats(statementId,operationId,taskId,xplainSchema,regionName);
-				}
-
-				@Override public IOStats getIOStats() { return delegate.getIOStats(); }
-		}
 
 		@Override
 		public String prettyPrint(int indentLevel) {
@@ -421,16 +232,9 @@ public class OnceOperation extends SpliceBaseOperation {
 		}
 
     @Override
-    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext,  DataSetProcessor dsp) throws StandardException {
-        throw new RuntimeException("Not Supported");
-    }
-    /*
-    public JavaRDD<LocatedRow> getRDD(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
-        JavaRDD<LocatedRow> raw = source.getRDD(spliceRuntimeContext, top);
-        if (pushedToServer()) {
-            // we want to avoid re-applying the OnceOp if it has already been executed in HBase
-            return raw;
-        }
+    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+        // Not Lazy?
+        DataSet<LocatedRow> raw = source.getDataSet(dsp);
         final Iterator<LocatedRow> iterator = raw.toLocalIterator();
         ExecRow result;
         try {
@@ -438,43 +242,7 @@ public class OnceOperation extends SpliceBaseOperation {
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
-        return SpliceSpark.getContext().parallelize(Lists.newArrayList(new LocatedRow(result)));
+        return dsp.singleRowDataSet(new LocatedRow(result));
     }
 
-    @Override
-    public String toString() {
-        return String.format("OnceOperation {source=%s,resultSetNumber=%d}",source,resultSetNumber);
-    }
-/*
-    @Override
-    public SpliceNoPutResultSet executeRDD(SpliceRuntimeContext runtimeContext) throws StandardException {
-        JavaRDD<LocatedRow> rdd = getRDD(runtimeContext, this);
-        if (LOG.isInfoEnabled()) {
-            LOG.info("RDD for operation " + this + " :\n " + rdd.toDebugString());
-        }
-        return new SpliceNoPutResultSet(getActivation(), this,
-                new RDDRowProvider(rdd, runtimeContext){
-
-                    @Override
-                    public boolean hasNext() throws StandardException, IOException {
-                        /*
-						 * We have to do our cardinality checks here
-						 *
-						 * The reason for this is simple. Suppose you have a Union all as the source for this. That
-						 * union will return rows from multiple tables, which will require multiple serialization points (1
-						 * for each table). If we serialize this operation over to the table responsible, then we will
-						 * serialize twice, and each table will only see 1 row, in which case we will pass a query when we shouldn't.
-						 *
-						 * Also, conceptually, that makes sense--this is a verification node--it verifies output, it doesn't
-						 * produce it's own (not really, anyway). Thus, it really shouldn't be part of the output itself.
-						 */
-
-/*                        currentRow = validateNextRow(new IteratorRowSource(iterator), true);
-
-                        // OnceOp always has another row…
-                        return true;
-                    }
-                });
-    }
-                        */
 }

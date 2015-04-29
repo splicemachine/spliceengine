@@ -1,15 +1,14 @@
 package com.splicemachine.derby.impl.job.index;
 
 import com.google.common.base.Throwables;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.ddl.TentativeIndexDesc;
 import com.splicemachine.pipeline.writecontextfactory.WriteContextFactoryManager;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
-import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.pipeline.writecontextfactory.WriteContextFactory;
 import com.splicemachine.pipeline.ddl.DDLChange;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -24,7 +23,7 @@ public class ForbidPastWritesTask extends ZkTask {
 
     public ForbidPastWritesTask(String jobId,
                                 DDLChange ddlChange) {
-        super(jobId, OperationJob.operationTaskPriority,null);
+        super(jobId, SpliceConstants.operationTaskPriority,null);
         this.ddlChange = ddlChange;
     }
 

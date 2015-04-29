@@ -1,35 +1,19 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
-import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
-import com.splicemachine.derby.impl.storage.ClientScanProvider;
-import com.splicemachine.derby.metrics.OperationMetric;
-import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.stream.DataSet;
 import com.splicemachine.derby.stream.DataSetProcessor;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.MeasuredRegionScanner;
-import com.splicemachine.metrics.TimeView;
 import com.splicemachine.pipeline.exception.Exceptions;
-import com.splicemachine.si.impl.HTransactorFactory;
-import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.RowLocation;
-import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.regionserver.RegionScanner;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -41,8 +25,7 @@ import java.util.List;
 public class LastIndexKeyOperation extends ScanOperation {
 
     private static Logger LOG = Logger.getLogger(LastIndexKeyOperation.class);
-		private int[] baseColumnMap;
-    protected static List<NodeType> nodeTypes;
+	private int[] baseColumnMap;
     private boolean returnedRow;
     private Scan contextScan;
     private MeasuredRegionScanner tentativeScanner;
@@ -56,18 +39,11 @@ public class LastIndexKeyOperation extends ScanOperation {
 				return NAME;
 		}
 
-		
-    static {
-        nodeTypes = Arrays.asList(NodeType.MAP, NodeType.SCAN);
-    }
-
-
 		public LastIndexKeyOperation() {
         super();
     }
 
-    public LastIndexKeyOperation
-            (
+        public LastIndexKeyOperation (
                     Activation activation,
                     int resultSetNumber,
                     GeneratedMethod resultRowAllocator,
@@ -82,11 +58,11 @@ public class LastIndexKeyOperation extends ScanOperation {
                     double optimizerEstimatedRowCount,
                     double optimizerEstimatedCost
             ) throws StandardException {
-        super(conglomId, activation, resultSetNumber, null, -1, null, -1,
+            super(conglomId, activation, resultSetNumber, null, -1, null, -1,
                 true, null, resultRowAllocator, lockMode, tableLocked, isolationLevel,
                 colRefItem, -1, false,optimizerEstimatedRowCount, optimizerEstimatedCost);
-        this.tableName = Long.toString(scanInformation.getConglomerateId());
-        this.indexName = indexName;
+            this.tableName = Long.toString(scanInformation.getConglomerateId());
+            this.indexName = indexName;
 				try {
 						init(SpliceOperationContext.newContext(activation));
 				} catch (IOException e) {
@@ -111,6 +87,7 @@ public class LastIndexKeyOperation extends ScanOperation {
     }
 
     private BufferedRegionScanner getTentativeScanner(Scan contextScan, SpliceRuntimeContext spliceRuntimeContext) throws IOException {
+        /*
         if(region==null)return null;
         byte[] endKey = region.getRegionInfo().getEndKey();
         if (endKey.length == 0) {
@@ -147,18 +124,15 @@ public class LastIndexKeyOperation extends ScanOperation {
             baseScanner = region.getScanner(scan);
         }
         return new BufferedRegionScanner(region,baseScanner,scan, SpliceConstants.DEFAULT_CACHE_SIZE, spliceRuntimeContext,HTransactorFactory.getTransactor().getDataLib());
+        */
+        return null;
     }
 
     @Override
     public List<SpliceOperation> getSubOperations() {
         return Collections.emptyList();
     }
-
-    @Override
-    public List<NodeType> getNodeTypes() {
-        return nodeTypes;
-    }
-
+/*
 		@Override
 		public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 				if (returnedRow) {
@@ -170,7 +144,8 @@ public class LastIndexKeyOperation extends ScanOperation {
 						ExecRow currentRow = getExecRowDefinition();
 						tentativeScanner = getTentativeScanner(contextScan, spliceRuntimeContext);
 						if(tableScanner==null){
-								MeasuredRegionScanner scanner = tentativeScanner!=null? tentativeScanner: regionScanner;
+// JL								MeasuredRegionScanner scanner = tentativeScanner!=null? tentativeScanner: regionScanner;
+ 								MeasuredRegionScanner scanner = tentativeScanner;
 								tableScanner = new TableScannerBuilder()
 												.scanner(scanner)
                         .region(txnRegion)
@@ -202,7 +177,7 @@ public class LastIndexKeyOperation extends ScanOperation {
 										if(currentRow!=null){
 												shouldContinue=false;
 										}else if(isTentative){
-												tableScanner.setRegionScanner(regionScanner);
+												// JL tableScanner.setRegionScanner(regionScanner);
 												isTentative=false;
 												shouldContinue=true;
 										}
@@ -228,34 +203,7 @@ public class LastIndexKeyOperation extends ScanOperation {
         }
         return currentRow;
     }
-
-    @Override
-    public void close() throws StandardException, IOException {
-        super.close();
-
-        if(tentativeScanner!=null)
-            tentativeScanner.close();
-    }
-
-		@Override
-		public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-        SpliceLogUtils.trace(LOG, "getMapRowProvider");
-        beginTime = System.currentTimeMillis();
-
-        Scan scan = getNonSIScan(spliceRuntimeContext);
-
-        SpliceUtils.setInstructions(scan, activation, top, spliceRuntimeContext);
-        ClientScanProvider provider = new ClientScanProvider("LastIndexKey", Bytes.toBytes(tableName), scan,
-                OperationUtils.getPairDecoder(this, spliceRuntimeContext), spliceRuntimeContext);
-        nextTime += System.currentTimeMillis() - beginTime;
-        return provider;
-    }
-
-    @Override
-		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException, IOException {
-				return getMapRowProvider(top, decoder, spliceRuntimeContext);
-		}
-
+*/
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
@@ -274,30 +222,12 @@ public class LastIndexKeyOperation extends ScanOperation {
     }
 
     @Override
-    protected int getNumMetrics() {
-        return super.getNumMetrics() + 5;
-    }
-
-    @Override
-    protected void updateStats(OperationRuntimeStats stats) {
-
-        MeasuredRegionScanner scanner = tentativeScanner!=null? tentativeScanner: regionScanner;
-        stats.addMetric(OperationMetric.LOCAL_SCAN_ROWS, scanner.getRowsOutput());
-        stats.addMetric(OperationMetric.LOCAL_SCAN_BYTES, scanner.getBytesOutput());
-        TimeView localScanTime = scanner.getReadTime();
-        stats.addMetric(OperationMetric.LOCAL_SCAN_WALL_TIME, localScanTime.getWallClockTime());
-        stats.addMetric(OperationMetric.LOCAL_SCAN_CPU_TIME, localScanTime.getCpuTime());
-        stats.addMetric(OperationMetric.LOCAL_SCAN_USER_TIME, localScanTime.getUserTime());
-        stats.addMetric(OperationMetric.FILTERED_ROWS, rowsFiltered);
-    }
-
-    @Override
     public ExecRow getExecRowDefinition() {
         return currentTemplate;
     }
 
     @Override
-    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, DataSetProcessor dsp) throws StandardException {
+    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         throw new RuntimeException("not implemented");
     }
 

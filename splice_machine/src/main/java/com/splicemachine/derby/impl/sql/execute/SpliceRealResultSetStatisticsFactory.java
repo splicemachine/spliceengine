@@ -36,12 +36,7 @@ import com.splicemachine.db.impl.sql.execute.rts.RealAnyResultSetStatistics;
 import com.splicemachine.db.impl.sql.execute.rts.RealDeleteCascadeResultSetStatistics;
 import com.splicemachine.db.impl.sql.execute.rts.RealDeleteResultSetStatistics;
 import com.splicemachine.db.impl.sql.execute.rts.RealDistinctScalarAggregateStatistics;
-import com.splicemachine.db.impl.sql.execute.rts.RealDistinctScanStatistics;
 import com.splicemachine.db.impl.sql.execute.rts.RealGroupedAggregateStatistics;
-import com.splicemachine.db.impl.sql.execute.rts.RealHashJoinStatistics;
-import com.splicemachine.db.impl.sql.execute.rts.RealHashLeftOuterJoinStatistics;
-import com.splicemachine.db.impl.sql.execute.rts.RealHashScanStatistics;
-import com.splicemachine.db.impl.sql.execute.rts.RealHashTableStatistics;
 import com.splicemachine.db.impl.sql.execute.rts.RealIndexRowToBaseRowStatistics;
 import com.splicemachine.db.impl.sql.execute.rts.RealInsertResultSetStatistics;
 import com.splicemachine.db.impl.sql.execute.rts.RealMergeSortJoinStatistics;
@@ -63,19 +58,12 @@ import com.splicemachine.db.impl.sql.execute.rts.RealVTIStatistics;
 import com.splicemachine.db.impl.sql.execute.rts.RealWindowResultSetStatistics;
 import com.splicemachine.db.impl.sql.execute.rts.RunTimeStatisticsImpl;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.AnyOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.DeleteCascadeOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.DeleteOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.DependentOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.DistinctScalarAggregateOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.DistinctScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.GroupedAggregateOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.HashJoinOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.HashLeftOuterJoinOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.HashScanOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.HashTableOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.IndexRowToBaseRowOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.MergeSortJoinOperation;
@@ -406,8 +394,8 @@ public class SpliceRealResultSetStatisticsFactory
 											srs.nextTime,
 											srs.closeTime,
 											srs.getResultSetNumber(),
-											(int)srs.getRowsInput(),
-											(int)srs.getRowsOutput(),
+											0,
+											0,
 											srs.needsDistinct(),
 											false,//srs.isInSortedOrder,
 											srs.getSortProperties(),
@@ -592,89 +580,6 @@ public class SpliceRealResultSetStatisticsFactory
                     tsrs.getEstimatedCost());
 		}
 
-		/*else if (rs instanceof LastIndexKeyResultSet )
-		{
-			LastIndexKeyResultSet lrs = (LastIndexKeyResultSet) rs;
-			String isolationLevel =  null;
-			String lockRequestString = null;
-
-			switch (lrs.isolationLevel)
-			{
-				case TransactionController.ISOLATION_SERIALIZABLE:
-					isolationLevel = 
-                        MessageService.getTextMessage(
-                            SQLState.LANG_SERIALIZABLE);
-					break;
-
-				case TransactionController.ISOLATION_REPEATABLE_READ:
-					isolationLevel = 
-                        MessageService.getTextMessage(
-                            SQLState.LANG_REPEATABLE_READ);
-					break;
-
-				case TransactionController.ISOLATION_READ_COMMITTED_NOHOLDLOCK:
-				case TransactionController.ISOLATION_READ_COMMITTED:
-					isolationLevel = MessageService.getTextMessage(
-												SQLState.LANG_READ_COMMITTED);
-					break;
-
-				case TransactionController.ISOLATION_READ_UNCOMMITTED:
-					isolationLevel = MessageService.getTextMessage(
-												SQLState.LANG_READ_UNCOMMITTED);
-                    break;
-			}
-
-			switch (lrs.lockMode)
-			{
-				case TransactionController.MODE_TABLE:
-					lockRequestString = MessageService.getTextMessage(
-													SQLState.LANG_SHARE_TABLE);
-					break;
-
-				case TransactionController.MODE_RECORD:
-					lockRequestString = MessageService.getTextMessage(
-													SQLState.LANG_SHARE_ROW);
-					break;
-			}
-
-			return new RealLastIndexKeyScanStatistics(
-											lrs.numOpens,
-											lrs.constructorTime,
-											lrs.openTime,
-											lrs.nextTime,
-											lrs.closeTime,
-											lrs.getResultSetNumber(),
-											lrs.tableName,
-											lrs.indexName,
-											isolationLevel,
-											lockRequestString,
-											lrs.getEstimatedRowCount(),
-											lrs.getEstimatedCost());
-		}*/
-		else if (rs instanceof HashLeftOuterJoinOperation)
-		{
-			HashLeftOuterJoinOperation hlojrs = (HashLeftOuterJoinOperation) rs;
-
-			return new RealHashLeftOuterJoinStatistics(
-											hlojrs.numOpens,
-											hlojrs.inputRows,
-											hlojrs.rowsFiltered,
-											hlojrs.constructorTime,
-											hlojrs.openTime,
-											hlojrs.nextTime,
-											hlojrs.closeTime,
-											hlojrs.getResultSetNumber(),
-											hlojrs.getLeftNumCols(),
-											hlojrs.getRightNumCols(),
-											hlojrs.rowsReturned,
-											hlojrs.restrictionTime,
-											hlojrs.getEstimatedRowCount(),
-											hlojrs.getEstimatedCost(),
-											hlojrs.getUserSuppliedOptimizerOverrides(),
-											getResultSetStatistics(hlojrs.getLeftResultSet()),
-											getResultSetStatistics(hlojrs.getRightResultSet()),
-											hlojrs.emptyRightRowsReturned);
-		}
 		else if (rs instanceof NestedLoopLeftOuterJoinOperation)
 		{
 			NestedLoopLeftOuterJoinOperation nllojrs =
@@ -700,31 +605,7 @@ public class SpliceRealResultSetStatisticsFactory
 											getResultSetStatistics(nllojrs.getRightResultSet()),
 											nllojrs.emptyRightRowsReturned);
 		}
-		else if (rs instanceof HashJoinOperation)
-		{
-			HashJoinOperation hjrs = (HashJoinOperation) rs;
 
-			return new RealHashJoinStatistics(
-											hjrs.numOpens,
-											hjrs.inputRows,
-											hjrs.rowsFiltered,
-											hjrs.constructorTime,
-											hjrs.openTime,
-											hjrs.nextTime,
-											hjrs.closeTime,
-											hjrs.getResultSetNumber(),
-											hjrs.getLeftNumCols(),
-											hjrs.getRightNumCols(),
-											hjrs.rowsReturned,
-											hjrs.restrictionTime,
-											hjrs.isOneRowRightSide(),
-											hjrs.getEstimatedRowCount(),
-											hjrs.getEstimatedCost(),
-											hjrs.getUserSuppliedOptimizerOverrides(),
-											getResultSetStatistics(hjrs.getLeftResultSet()),
-											getResultSetStatistics(hjrs.getRightResultSet())
-											);
-		}
 		else if (rs instanceof NestedLoopJoinOperation)
 		{
 			NestedLoopJoinOperation nljrs = (NestedLoopJoinOperation) rs;
@@ -997,206 +878,6 @@ public class SpliceRealResultSetStatisticsFactory
 											getResultSetStatistics(sirs.getSource())
 											);
 		}
-		/*else if (rs instanceof CurrentOfResultSet)
-		{
-			CurrentOfResultSet cors = (CurrentOfResultSet) rs;
-
-			return new RealCurrentOfStatistics(
-											cors.numOpens,
-											cors.inputRows,
-											cors.rowsFiltered,
-											cors.constructorTime,
-											cors.openTime,
-											cors.nextTime,
-											cors.closeTime,
-											cors.getResultSetNumber()
-											);
-		}*/
-		else if (rs instanceof HashScanOperation)
-		{
-			boolean instantaneousLocks = false;
-			HashScanOperation hsrs = (HashScanOperation) rs;
-			String startPosition = null;
-			String stopPosition = null;
-			String isolationLevel =  null;
-			String lockString = null;
-
-			switch (hsrs.isolationLevel)
-			{
-				case TransactionController.ISOLATION_SERIALIZABLE:
-					isolationLevel = 
-                        MessageService.getTextMessage(
-                            SQLState.LANG_SERIALIZABLE);
-					break;
-
-				case TransactionController.ISOLATION_REPEATABLE_READ:
-					isolationLevel = 
-                        MessageService.getTextMessage(
-                            SQLState.LANG_REPEATABLE_READ);
-					break;
-
-				case TransactionController.ISOLATION_READ_COMMITTED_NOHOLDLOCK:
-					instantaneousLocks = true;
-					//fall through
-				case TransactionController.ISOLATION_READ_COMMITTED:
-					isolationLevel = MessageService.getTextMessage(
-												SQLState.LANG_READ_COMMITTED);
-					break;
-
-			}
-
-			if (hsrs.forUpdate)
-			{
-				lockString = MessageService.getTextMessage(
-													SQLState.LANG_EXCLUSIVE);
-			}
-			else
-			{
-				if (instantaneousLocks)
-				{
-					lockString = MessageService.getTextMessage(
-											SQLState.LANG_INSTANTANEOUS_SHARE);
-				}
-				else
-				{
-					lockString = MessageService.getTextMessage(
-														SQLState.LANG_SHARE);
-				}
-			}
-
-			switch (hsrs.lockMode)
-			{
-				case TransactionController.MODE_TABLE:
-					// RESOLVE: Not sure this will really work, as we
-					// are tacking together English words to make a phrase.
-					// Will this work in other languages?
-					lockString = lockString + " " +
-									MessageService.getTextMessage(
-														SQLState.LANG_TABLE);
-					break;
-
-				case TransactionController.MODE_RECORD:
-					// RESOLVE: Not sure this will really work, as we
-					// are tacking together English words to make a phrase.
-					// Will this work in other languages?
-					lockString = lockString + " " +
-									MessageService.getTextMessage(
-															SQLState.LANG_ROW);
-					break;
-			}
-
-			if (hsrs.getIndexName() != null)
-			{
-				/* Start and stop position strings will be non-null
-			 	* if the HSRS has been closed.  Otherwise, we go off
-			 	* and build the strings now.
-			 	*/
-				startPosition = hsrs.printStartPosition();
-				stopPosition = hsrs.printStopPosition();
-			}
-			
-			// DistinctScanResultSet is simple sub-class of
-			// HashScanResultSet
-			if (rs instanceof DistinctScanOperation)
-			{
-				return new RealDistinctScanStatistics(
-											hsrs.numOpens,
-											hsrs.inputRows,
-											hsrs.rowsFiltered,
-											hsrs.constructorTime,
-											hsrs.openTime,
-											hsrs.nextTime,
-											hsrs.closeTime,
-											hsrs.getResultSetNumber(),
-											hsrs.getTableName(),
-											hsrs.getIndexName(),
-											hsrs.isConstraint,
-											0,//hsrs.hashtableSize,
-											hsrs.getKeyColumns(),
-											SpliceBaseOperation.printQualifiers(hsrs.getScanQualifiers()),
-											SpliceBaseOperation.printQualifiers(hsrs.getNextQualifier()),
-											hsrs.getScanProperties(),
-											startPosition,
-											stopPosition,
-											isolationLevel,
-											lockString,
-											hsrs.getEstimatedRowCount(),
-											hsrs.getEstimatedCost()
-											);
-			}
-			else
-			{
-				return new RealHashScanStatistics(
-											hsrs.numOpens,
-											hsrs.inputRows,
-											hsrs.rowsFiltered,
-											hsrs.constructorTime,
-											hsrs.openTime,
-											hsrs.nextTime,
-											hsrs.closeTime,
-											hsrs.getResultSetNumber(),
-											hsrs.getTableName(),
-											hsrs.getIndexName(),
-											hsrs.isConstraint,
-											0,//hsrs.hashtableSize,
-											hsrs.getKeyColumns(),
-											SpliceBaseOperation.printQualifiers(hsrs.getScanQualifiers()),
-											SpliceBaseOperation.printQualifiers(hsrs.getNextQualifier()),
-											hsrs.getScanProperties(),
-											startPosition,
-											stopPosition,
-											isolationLevel,
-											lockString,
-											hsrs.getEstimatedRowCount(),
-											hsrs.getEstimatedCost()
-											);
-			}
-		}
-		else if (rs instanceof HashTableOperation)
-		{
-			HashTableOperation htrs = (HashTableOperation) rs;
-			int subqueryTrackingArrayLength =
-				(htrs.subqueryTrackingArray == null) ? 0 :
-					htrs.subqueryTrackingArray.length;
-			ResultSetStatistics[] subqueryTrackingArray =
-				new ResultSetStatistics[subqueryTrackingArrayLength];
-			boolean anyAttached = false;
-			for (int index = 0; index < subqueryTrackingArrayLength; index++)
-			{
-				if (htrs.subqueryTrackingArray[index] != null &&
-					htrs.subqueryTrackingArray[index].getPointOfAttachment() == htrs.getResultSetNumber())
-				{
-					subqueryTrackingArray[index] = getResultSetStatistics(
-											htrs.subqueryTrackingArray[index]);
-					anyAttached = true;
-				}
-			}
-			if (! anyAttached)
-			{
-				subqueryTrackingArray = null;
-			}
-
-			return new 
-                RealHashTableStatistics(
-                    htrs.numOpens,
-                    htrs.inputRows,
-                    htrs.rowsFiltered,
-                    htrs.constructorTime,
-                    htrs.openTime,
-                    htrs.nextTime,
-                    htrs.closeTime,
-                    htrs.getResultSetNumber(),
-                    htrs.hashtableSize,
-                    htrs.keyColumns,
-                    HashScanOperation.printQualifiers(
-                        htrs.nextQualifiers),
-                    htrs.scanProperties,
-                    htrs.getEstimatedRowCount(),
-                    htrs.getEstimatedCost(),
-                    subqueryTrackingArray,
-                    getResultSetStatistics(htrs.source)
-                    );
-		}
 		else if (rs instanceof VTIOperation)
 		{
 			VTIOperation vtirs = (VTIOperation) rs;
@@ -1214,126 +895,6 @@ public class SpliceRealResultSetStatisticsFactory
 										vtirs.getEstimatedRowCount(),
 										vtirs.getEstimatedCost()
 										);
-		}
-
-		else if (rs instanceof DependentOperation)
-		{
-			boolean instantaneousLocks = false;
-			DependentOperation dsrs = (DependentOperation) rs;
-			String startPosition = null;
-			String stopPosition = null;
-			String isolationLevel =  null;
-			String lockString = null;
-			String lockRequestString = null;
-
-			switch (dsrs.isolationLevel)
-			{
-				case TransactionController.ISOLATION_SERIALIZABLE:
-					isolationLevel = 
-                        MessageService.getTextMessage(
-                            SQLState.LANG_SERIALIZABLE);
-					break;
-
-				case TransactionController.ISOLATION_REPEATABLE_READ:
-					isolationLevel = 
-                        MessageService.getTextMessage(
-                            SQLState.LANG_REPEATABLE_READ);
-					break;
-
-				case TransactionController.ISOLATION_READ_COMMITTED_NOHOLDLOCK:
-					instantaneousLocks = true;
-					//fall through
-				case TransactionController.ISOLATION_READ_COMMITTED:
-					isolationLevel = MessageService.getTextMessage(
-												SQLState.LANG_READ_COMMITTED);
-					break;
-
-				case TransactionController.ISOLATION_READ_UNCOMMITTED:
-					isolationLevel = 
-                        MessageService.getTextMessage(
-                            SQLState.LANG_READ_UNCOMMITTED);
-					break;
-			}
-
-			if (dsrs.forUpdate)
-			{
-				lockString = MessageService.getTextMessage(
-												SQLState.LANG_EXCLUSIVE);
-			}
-			else
-			{
-				if (instantaneousLocks)
-				{
-					lockString = MessageService.getTextMessage(
-											SQLState.LANG_INSTANTANEOUS_SHARE);
-				}
-				else
-				{
-					lockString = MessageService.getTextMessage(
-														SQLState.LANG_SHARE);
-				}
-			}
-
-			switch (dsrs.lockMode)
-			{
-				case TransactionController.MODE_TABLE:
-					// RESOLVE: Not sure this will really work, as we
-					// are tacking together English words to make a phrase.
-					// Will this work in other languages?
-					lockRequestString = lockString + " " +
-										MessageService.getTextMessage(
-											SQLState.LANG_TABLE);
-					break;
-
-				case TransactionController.MODE_RECORD:
-					// RESOLVE: Not sure this will really work, as we
-					// are tacking together English words to make a phrase.
-					// Will this work in other languages?
-					lockRequestString = lockString + " " +
-										MessageService.getTextMessage(
-											SQLState.LANG_ROW);
-					break;
-			}
-
-			/* Start and stop position strings will be non-null
-			 * if the dSRS has been closed.  Otherwise, we go off
-			 * and build the strings now.
-			 */
-			startPosition = dsrs.startPositionString;
-			if (startPosition == null)
-			{
-				startPosition = dsrs.printStartPosition();
-			}
-			stopPosition = dsrs.stopPositionString;
-			if (stopPosition == null)
-			{
-				stopPosition = dsrs.printStopPosition();
-			}
-		
-			return new 
-                RealTableScanStatistics(
-                    dsrs.numOpens,
-                    dsrs.inputRows,
-                    dsrs.rowsFiltered,
-                    dsrs.constructorTime,
-                    dsrs.openTime,
-                    dsrs.nextTime,
-                    dsrs.closeTime,
-                    dsrs.getResultSetNumber(),
-                    dsrs.tableName,
-					null,
-                    dsrs.indexName,
-                    dsrs.isConstraint,
-                    dsrs.printQualifiers(),
-                    dsrs.getScanProperties(),
-                    startPosition,
-                    stopPosition,
-                    isolationLevel,
-                    lockRequestString,
-                    dsrs.rowsPerRead,
-                    dsrs.coarserLock,
-                    dsrs.getEstimatedRowCount(),
-                    dsrs.getEstimatedCost());
 		}
 		else
 		{

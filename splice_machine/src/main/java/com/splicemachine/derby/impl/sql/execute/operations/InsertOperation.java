@@ -4,7 +4,6 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceIdentityColumnKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
@@ -16,7 +15,6 @@ import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -26,7 +24,6 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -93,7 +90,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 		}
 
 		@Override
-		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+		public KeyEncoder getKeyEncoder() throws StandardException {
 				HashPrefix prefix;
 				DataHash dataHash;
 				KeyPostfix postfix = NoOpPostfix.INSTANCE;
@@ -108,7 +105,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 						prefix = NoOpPrefix.INSTANCE;
 						ExecRow row = getExecRowDefinition();
 						DescriptorSerializer[] serializers = VersionedSerializers.forVersion(writeInfo.getTableVersion(),true).getSerializers(row);
-						dataHash = BareKeyHash.encoder(keyColumns,null, spliceRuntimeContext.getKryoPool(),serializers);
+						dataHash = BareKeyHash.encoder(keyColumns,null, SpliceDriver.driver().getKryoPool(),serializers);
 				}
 
 				return new KeyEncoder(prefix,dataHash,postfix);
@@ -126,7 +123,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
             return columns;
         }
 		@Override
-		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+		public DataHash getRowHash() throws StandardException {
 				//get all columns that are being set
 				ExecRow defnRow = getExecRowDefinition();
 				int[] columns = getEncodingColumns(defnRow.nColumns(),pkCols);
@@ -180,7 +177,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 		}
 
 		@Override
-		public void close() throws StandardException, IOException {
+		public void close() throws StandardException {
 				super.close();
 				if(sysColumnTable!=null){
 						try{
@@ -236,8 +233,5 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 				out.writeObject(autoIncrementRowLocationArray[i]);
 			}
 		}
-		
-		
-	    
 	    
 }

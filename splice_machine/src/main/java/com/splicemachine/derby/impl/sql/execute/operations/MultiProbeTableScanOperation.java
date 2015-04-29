@@ -1,12 +1,7 @@
 
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.impl.storage.MultiProbeClientScanProvider;
-import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -15,15 +10,12 @@ import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.compile.RowOrdering;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.util.Bytes;
 // These are for javadoc "@see" tags.
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.List;
 
 /**
  * Result set that fetches rows from a scan by "probing" the underlying
@@ -201,7 +193,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
         return "MultiProbe"+super.toString();
     }
     
-	@Override
+/*	@Override // Broken FIX JL
 	public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
 		beginTime = System.currentTimeMillis();
 			List<Scan> scans = scanInformation.getScans(operationInformation.getTransaction(), null, activation, top, spliceRuntimeContext);
@@ -219,5 +211,6 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
 		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException, IOException {
 				return getMapRowProvider(top, decoder, spliceRuntimeContext);
 		}
+		*/
         
 }
