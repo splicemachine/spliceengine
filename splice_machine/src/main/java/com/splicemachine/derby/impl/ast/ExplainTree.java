@@ -398,10 +398,14 @@ public class ExplainTree{
             }
 
             String superInfo = super.getExtraInformation();
-            if(superInfo==null) return sb.toString();
-
-            sb = sb.append(",").append(super.getExtraInformation());
-            return sb.toString();
+            if(superInfo!=null){
+                if(indexName!=null) sb=sb.append(",");
+                sb=sb.append(superInfo);
+            }
+            if(sb.length()>0)
+                return sb.toString();
+            else
+                return null;
         }
     }
 }
