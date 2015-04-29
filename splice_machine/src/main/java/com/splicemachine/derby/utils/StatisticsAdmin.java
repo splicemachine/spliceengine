@@ -39,6 +39,7 @@ import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Pair;
+import org.apache.log4j.Logger;
 
 import java.sql.*;
 import java.util.*;
@@ -49,7 +50,7 @@ import java.util.concurrent.ExecutionException;
  *         Date: 2/26/15
  */
 public class StatisticsAdmin {
-
+    private static final Logger LOG=Logger.getLogger(StatisticsAdmin.class);
 
     @SuppressWarnings("UnusedDeclaration")
     public static void DISABLE_COLUMN_STATISTICS(String schema,
@@ -145,13 +146,25 @@ public class StatisticsAdmin {
             TransactionController transactionExecute = lcc.getTransactionExecute();
             transactionExecute.elevate("statistics");
             TxnView txn = ((SpliceTransactionManager) transactionExecute).getRawTransaction().getActiveStateTxn();
+            long start = System.nanoTime();
             for(TableDescriptor td:tds){
                 submitStatsCollection(td,txn,templateOutputRow,conn,staleOnly,jobs);
             }
+            long end = System.nanoTime();
+            if(LOG.isTraceEnabled()){
+                double timeMicros = (end-start)/1000d;
+                LOG.trace(String.format("Took %.3f micros to submit %d collections",timeMicros,jobs.size()));
+            }
 
+            start = System.nanoTime();
             List<ExecRow> rows = new ArrayList<>(jobs.size());
             for(StatsJob row:jobs){
                 rows.add(row.completeJob());
+            }
+            end = System.nanoTime();
+            if(LOG.isTraceEnabled()){
+                double timeMicros = (end-start)/1000d;
+                LOG.trace(String.format("Took %.3f micros to complete %d collections",timeMicros,jobs.size()));
             }
 
             IteratorNoPutResultSet results = wrapResults(conn,rows);
@@ -214,15 +227,15 @@ public class StatisticsAdmin {
 
     private static void submitStatsCollection(TableDescriptor table,
                                               TxnView txn,
-                                                ExecRow templateOutputRow,
-                                                EmbedConnection conn,
-                                                boolean staleOnly,
-                                                List<StatsJob> outputJobs) throws StandardException, ExecutionException{
+                                              ExecRow templateOutputRow,
+                                              EmbedConnection conn,
+                                              boolean staleOnly,
+                                              List<StatsJob> outputJobs) throws StandardException, ExecutionException{
         List<ColumnDescriptor> colsToCollect = getCollectedColumns(table);
-        if(colsToCollect.size()<=0){
+//        if(colsToCollect.size()<=0){
              //There are no columns to collect for this table. Issue a warning, but proceed anyway
             //TODO -sf- make this a warning
-        }
+//        }
 
         DataValueDescriptor[] dvds = templateOutputRow.getRowArray();
         dvds[0].setValue(table.getSchemaName());
@@ -249,6 +262,7 @@ public class StatisticsAdmin {
 
         //submit all index collection jobs
         if(indexGenerators.length>0) {
+            long start = System.nanoTime();
             //we know this is safe because we've actually already checked for it
             @SuppressWarnings("ConstantConditions") long[] indexConglomIds = indexLister.getDistinctIndexConglomerateNumbers();
             String[] distinctIndexNames = indexLister.getDistinctIndexNames();
@@ -261,6 +275,11 @@ public class StatisticsAdmin {
                 JobFuture future = jobScheduler.submit(indexJob);
                 templateOutputRow.getColumn(2).setValue(distinctIndexNames[i]);
                 outputJobs.add(new StatsJob(templateOutputRow.getClone(),future,indexJob));
+            }
+            long end = System.nanoTime();
+            if(LOG.isTraceEnabled()){
+                double timeMicros = (end-start)/1000d;
+                LOG.trace(String.format("Took %.3f micros to submit %d index jobs",timeMicros,indexConglomIds.length));
             }
         }
     }

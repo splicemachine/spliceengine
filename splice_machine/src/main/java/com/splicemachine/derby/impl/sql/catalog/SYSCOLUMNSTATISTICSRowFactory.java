@@ -109,10 +109,10 @@ public class SYSCOLUMNSTATISTICSRowFactory extends CatalogRowFactory {
             ",STATS_MIN(STATS_MERGE(data)) as MIN_VALUE" +
             ",STATS_MAX(STATS_MERGE(data)) as MAX_VALUE" +
             ",STATS_TOP_K(STATS_MERGE(data)) as TOP_K " +
-            "from " +
+            "from --SPLICE-PROPERTIES joinOrder=FIXED" +
             "sys.syscolumnstats cs" +
-            ",sys.systables t" +
-            ",sys.sysschemas s" +
+            ",sys.sysschemas s --SPLICE-PROPERTIES joinStrategy=BROADCAST" +
+            ",sys.systables t " +
             ",sys.sysconglomerates c" +
             ",sys.syscolumns co" +
             " where " +
