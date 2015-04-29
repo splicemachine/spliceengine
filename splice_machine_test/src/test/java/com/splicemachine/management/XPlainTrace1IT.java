@@ -11,8 +11,10 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
+import java.sql.CallableStatement;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.Deque;
 import java.util.regex.Pattern;
 
@@ -83,6 +85,16 @@ public class XPlainTrace1IT extends BaseXplainIT {
                         ps.execute();
                         ps.close();
                     } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }).around(new SpliceDataWatcher(){
+                @Override
+                protected void starting(Description description){
+                    try(CallableStatement cs = spliceClassWatcher.prepareCall("call SYSCS_UTIl.COLLECT_SCHEMA_STATISTICS(?,false)")){
+                        cs.setString(1,spliceSchemaWatcher.schemaName);
+                        cs.execute();
+                    }catch(Exception e){
                         throw new RuntimeException(e);
                     }
                 }
@@ -221,7 +233,7 @@ public class XPlainTrace1IT extends BaseXplainIT {
 
     @Test
     public void testRepeatedTableScan() throws Exception{
-        for(int i=0;i<1000;i++){
+        for(int i=0;i<100;i++){
             testTableScan();
         }
     }
