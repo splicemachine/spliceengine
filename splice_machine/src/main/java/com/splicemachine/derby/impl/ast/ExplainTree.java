@@ -5,6 +5,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterators;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
+import com.splicemachine.db.iapi.sql.compile.JoinStrategy;
 
 import java.util.*;
 
@@ -42,7 +43,7 @@ public class ExplainTree{
 
         public Builder pushJoin(int rsNum,
                                 CostEstimate ce,
-                                String joinStrategy,
+                                JoinStrategy joinStrategy,
                                 List<String> predicates,
                                 Builder rightSide){
             JoinNode jn = new JoinNode(rsNum,ce,predicates,joinStrategy);
@@ -306,23 +307,12 @@ public class ExplainTree{
 
     }
     private static class JoinNode extends TwoChildPredicatedNode{
-        private String joinStrategy;
 
         public JoinNode(int resultSetNUmber,
                         CostEstimate cost,
                         List<String> predicateStrings,
-                        String joinStrategy){
-            super("Join",resultSetNUmber,cost,predicateStrings);
-            this.joinStrategy=joinStrategy;
-        }
-
-        @Override
-        protected String getExtraInformation(){
-            StringBuilder sb = new StringBuilder();
-            sb = sb.append("exe=").append(joinStrategy)
-                    .append(",").append(super.getExtraInformation());
-
-            return sb.toString();
+                        JoinStrategy joinStrategy){
+            super(joinStrategy.toString(),resultSetNUmber,cost,predicateStrings);
         }
     }
 
