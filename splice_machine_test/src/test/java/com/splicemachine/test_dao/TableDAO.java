@@ -1,5 +1,7 @@
 package com.splicemachine.test_dao;
 
+import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
@@ -32,13 +34,15 @@ public class TableDAO {
      */
     public void drop(String schemaName, String tableName, boolean isView) {
         try {
-            DatabaseMetaData metaData = jdbcTemplate.getConnection().getMetaData();
-            ResultSet rs = metaData.getTables(null, schemaName.toUpperCase(), tableName.toUpperCase(), null);
-            if (rs.next()) {
-                if (isView) {
-                    jdbcTemplate.executeUpdate(format("drop view %s.%s", schemaName, tableName));
-                } else {
-                    jdbcTemplate.executeUpdate(format("drop table if exists %s.%s", schemaName, tableName));
+            synchronized(SpliceTableWatcher.class){ //TODO -sf- synchronize on something else, or remove the need
+                DatabaseMetaData metaData=jdbcTemplate.getConnection().getMetaData();
+                ResultSet rs=metaData.getTables(null,schemaName.toUpperCase(),tableName.toUpperCase(),null);
+                if(rs.next()){
+                    if(isView){
+                        jdbcTemplate.executeUpdate(format("drop view %s.%s",schemaName,tableName));
+                    }else{
+                        jdbcTemplate.executeUpdate(format("drop table if exists %s.%s",schemaName,tableName));
+                    }
                 }
             }
         } catch (Exception e) {

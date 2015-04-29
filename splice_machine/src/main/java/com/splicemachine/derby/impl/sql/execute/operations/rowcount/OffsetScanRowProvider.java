@@ -114,13 +114,13 @@ class OffsetScanRowProvider extends AbstractScanProvider {
 
     @Override
     public void open() {
-        table = SpliceAccessManager.getHTable(getTableName());
-        try {
-            splitScansAroundRegionBarriers();
-        } catch (ExecutionException e) {
-            throw new RuntimeException(e);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
+        if(getTableName()!=null){
+            table=SpliceAccessManager.getHTable(getTableName());
+            try{
+                splitScansAroundRegionBarriers();
+            }catch(ExecutionException|IOException e){
+                throw new RuntimeException(e);
+            }
         }
     }
 

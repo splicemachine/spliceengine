@@ -10,6 +10,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_dao.TableDAO;
 import com.splicemachine.test_tools.TableCreator;
 
@@ -19,6 +20,7 @@ import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
@@ -29,6 +31,7 @@ import org.junit.runner.Description;
  * @author Jeff Cunningham
  * Date: 6/10/13
  */
+@Category(SerialTest.class)
 public class ConstraintConstantOperationIT {
     private static final String SCHEMA = ConstraintConstantOperationIT.class.getSimpleName().toUpperCase();
 

@@ -131,12 +131,14 @@ public class SpliceTableWatcher extends TestWatcher {
         Statement statement = null;
         ResultSet rs;
         Connection connection;
-        try {
-            connection = (userName == null)?SpliceNetConnection.getConnection():SpliceNetConnection.getConnectionAs(userName,password);
-            rs = connection.getMetaData().getTables(null, schemaName, tableName, null);
-        }catch(Exception e){
-            error("Error when fetching metadata",e);
-            throw new RuntimeException(e);
+        synchronized(SpliceTableWatcher.class){
+            try{
+                connection=(userName==null)?SpliceNetConnection.getConnection():SpliceNetConnection.getConnectionAs(userName,password);
+                rs=connection.getMetaData().getTables(null,schemaName,tableName,null);
+            }catch(Exception e){
+                error("Error when fetching metadata",e);
+                throw new RuntimeException(e);
+            }
         }
         TableDAO tableDAO = new TableDAO(connection);
 

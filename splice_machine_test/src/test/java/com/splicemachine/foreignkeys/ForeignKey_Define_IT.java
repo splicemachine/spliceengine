@@ -2,9 +2,11 @@ package com.splicemachine.foreignkeys;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_dao.TableDAO;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.ExpectedException;
 
 import java.sql.Connection;
@@ -18,6 +20,7 @@ import static org.junit.Assert.*;
 /**
  * Foreign Key tests for *defining* FK constraints.
  */
+@Category(SerialTest.class)
 public class ForeignKey_Define_IT {
 
     private static final String SCHEMA = ForeignKey_Define_IT.class.getSimpleName();
