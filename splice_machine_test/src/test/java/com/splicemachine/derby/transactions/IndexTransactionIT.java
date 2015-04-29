@@ -20,7 +20,7 @@ import java.sql.SQLException;
  * @author Scott Fines
  * Date: 8/27/14
  */
-@Category({Transactions.class,SerialTest.class})
+@Category({Transactions.class})
 public class IndexTransactionIT {
 
     public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(IndexTransactionIT.class.getSimpleName().toUpperCase());

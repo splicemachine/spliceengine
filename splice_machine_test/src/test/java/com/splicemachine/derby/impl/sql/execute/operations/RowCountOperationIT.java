@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_tools.TableCreator;
 import org.junit.BeforeClass;
@@ -37,7 +38,7 @@ public class RowCountOperationIT {
 
     @BeforeClass
     public static void createdSharedTables() throws Exception {
-        Connection conn = spliceClassWatcher.getOrCreateConnection();
+        TestConnection conn = spliceClassWatcher.getOrCreateConnection();
 
         List<Iterable<Object>> tableARows = Lists.newArrayList(
                 row(10), row(11), row(12), row(13), row(14), row(15),
@@ -67,6 +68,8 @@ public class RowCountOperationIT {
         spliceClassWatcher.splitTable("A", SCHEMA, 4);
         spliceClassWatcher.splitTable("A", SCHEMA, 8);
         spliceClassWatcher.splitTable("A", SCHEMA, 12);
+
+        conn.collectStats(spliceSchemaWatcher.schemaName,"A");
 
     }
 
@@ -427,6 +430,13 @@ public class RowCountOperationIT {
     @Test
     public void overJoin_offset_and_limit() throws Exception {
         validateUnOrdered(7, "select A.a from A join B on A.a=B.a offset 4 rows fetch next 7 row only");
+    }
+
+    @Test
+    @Ignore
+    public void overJoin_offset_and_limit_MergeSort() throws Exception {
+        validateUnOrdered(7, "select A.a from A join B --SPLICE-PROPERTIES joinStrategy=SORTMERGE \n" +
+                "on A.a=B.a offset 4 rows fetch next 7 row only");
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
