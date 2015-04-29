@@ -1084,32 +1084,6 @@ public class FromBaseTable extends FromTable{
                         if(rps==null){
                             rps = new LinkedList<>();
                             rp = new RangePredicate();
-                            rp.stop = p;
-                            rps.add(rp);
-                            startStopPredicates.put(columnNumber,rps);
-                        }else{
-                            boolean found = false;
-                            for(RangePredicate r : rps){
-                                if(r.stop==null){
-                                    r.stop=p;
-                                    found= true;
-                                    break;
-                                }
-                            }
-                            if(!found){
-                                rp = new RangePredicate();
-                                rp.stop = p;
-                                rps.add(rp);
-                            }
-                        }
-                        break;
-                    case RelationalOperator.LESS_EQUALS_RELOP:
-                    case RelationalOperator.LESS_THAN_RELOP:
-                        //see if there's an equivalent operator already found. If so, add to start in that position
-
-                        if(rps==null){
-                            rps = new LinkedList<>();
-                            rp = new RangePredicate();
                             rp.start = p;
                             rps.add(rp);
                             startStopPredicates.put(columnNumber,rps);
@@ -1125,6 +1099,32 @@ public class FromBaseTable extends FromTable{
                             if(!found){
                                 rp = new RangePredicate();
                                 rp.start = p;
+                                rps.add(rp);
+                            }
+                        }
+                        break;
+                    case RelationalOperator.LESS_EQUALS_RELOP:
+                    case RelationalOperator.LESS_THAN_RELOP:
+                        //see if there's an equivalent operator already found. If so, add to start in that position
+
+                        if(rps==null){
+                            rps = new LinkedList<>();
+                            rp = new RangePredicate();
+                            rp.stop = p;
+                            rps.add(rp);
+                            startStopPredicates.put(columnNumber,rps);
+                        }else{
+                            boolean found = false;
+                            for(RangePredicate r : rps){
+                                if(r.stop==null){
+                                    r.stop=p;
+                                    found= true;
+                                    break;
+                                }
+                            }
+                            if(!found){
+                                rp = new RangePredicate();
+                                rp.stop = p;
                                 rps.add(rp);
                             }
                         }
