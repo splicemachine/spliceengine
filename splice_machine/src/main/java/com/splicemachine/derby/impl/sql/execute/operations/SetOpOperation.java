@@ -13,11 +13,9 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.stream.DataSet;
 import com.splicemachine.derby.stream.DataSetProcessor;
-import com.splicemachine.derby.stream.StreamUtils;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.pipeline.exception.Exceptions;
 import org.apache.log4j.Logger;
-import org.apache.spark.api.java.JavaRDD;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -189,14 +187,14 @@ public class SetOpOperation extends SpliceBaseOperation {
     }
 
     @Override
-    public DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
+    public DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, DataSetProcessor dsp) throws StandardException {
         if (this.opType==IntersectOrExceptNode.INTERSECT_OP) {
-            return leftSource.getDataSet(spliceRuntimeContext,top).intersect(
-                    rightSource.getDataSet(spliceRuntimeContext,top));
+            return leftSource.getDataSet(spliceRuntimeContext).intersect(
+                    rightSource.getDataSet(spliceRuntimeContext));
         }
         else if (this.opType==IntersectOrExceptNode.EXCEPT_OP) {
-            return leftSource.getDataSet(spliceRuntimeContext,top).subtract(
-                    rightSource.getDataSet(spliceRuntimeContext,top));
+            return leftSource.getDataSet(spliceRuntimeContext).subtract(
+                    rightSource.getDataSet(spliceRuntimeContext));
         } else {
             throw new RuntimeException("Operation Type not Supported "+opType);
         }

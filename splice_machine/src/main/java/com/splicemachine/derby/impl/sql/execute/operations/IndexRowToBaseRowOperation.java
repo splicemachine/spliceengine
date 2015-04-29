@@ -28,13 +28,11 @@ import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.pipeline.exception.Exceptions;
-import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.yammer.metrics.core.MetricName;
 import com.yammer.metrics.core.Timer;
-
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -603,8 +601,8 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
             return nonPkCols;
         }
     @Override
-    public DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
-		return source.getDataSet(spliceRuntimeContext, top).map(new BaseRowFetchFunction(dsp.createOperationContext(this, spliceRuntimeContext)));
+    public DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, DataSetProcessor dsp) throws StandardException {
+		return source.getDataSet(spliceRuntimeContext).map(new BaseRowFetchFunction(dsp.createOperationContext(this, spliceRuntimeContext)));
     }
 
 	private static class BaseRowFetchFunction extends SpliceFunction<IndexRowToBaseRowOperation, LocatedRow, LocatedRow> {
@@ -653,6 +651,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 				rowDecoder.set(buffer,kv.getValueOffset(),kv.getValueLength());
 				rowDecoder.decode(outpuRow);
 			}
+            operationContext.getOperation().setCurrentRow(outpuRow);
 			return new LocatedRow(outpuRow);
 		}
 	}

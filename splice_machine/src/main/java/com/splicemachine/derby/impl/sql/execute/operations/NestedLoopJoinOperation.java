@@ -11,7 +11,6 @@ import com.splicemachine.derby.stream.DataSet;
 import com.splicemachine.derby.stream.DataSetProcessor;
 import com.splicemachine.derby.stream.OperationContext;
 import com.splicemachine.derby.stream.function.NLJFunction;
-import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.metrics.IOStats;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.metrics.*;
@@ -348,38 +347,9 @@ public class NestedLoopJoinOperation extends JoinOperation {
     }
 
 
-    public DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
-        DataSet<LocatedRow> left = leftResultSet.getDataSet(spliceRuntimeContext, leftResultSet);
+    public DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, DataSetProcessor dsp) throws StandardException {
+        DataSet<LocatedRow> left = leftResultSet.getDataSet(spliceRuntimeContext);
         OperationContext<SpliceOperation> operationContext = dsp.createOperationContext(this,spliceRuntimeContext);
         return left.flatMap(new NLJFunction<SpliceOperation>(operationContext,rightResultSet));
-    }
-
-    public static final class NLJSparkOperation extends SpliceFlatMapFunction<SpliceOperation, LocatedRow, ExecRow> {
-        private NestedLoopIterator nestedLoopIterator;
-        private byte[] rightResultSetUniqueSequenceID;
-        protected NestedLoopJoinOperation op;
-        protected SpliceRuntimeContext spliceRuntimeContext;
-
-        public NLJSparkOperation() {
-        }
-
-        public NLJSparkOperation(OperationContext<SpliceOperation> operationContext) {
-            super(operationContext);
-            op = (NestedLoopJoinOperation) operationContext.getOperation();
-            spliceRuntimeContext = operationContext.getSpliceRuntimeContext();
-        }
-
-        @Override
-        public Iterable<ExecRow> call(LocatedRow sourceRow) throws Exception {
-            if (sourceRow == null) {
-                return null;
-            }
-            op.leftResultSet.setCurrentRow(sourceRow.getRow());
-            if (rightResultSetUniqueSequenceID == null) {
-                rightResultSetUniqueSequenceID = op.rightResultSet.getUniqueSequenceID();
-            }
-            nestedLoopIterator = op.createNestedLoopIterator(sourceRow.getRow(), op.isHash, spliceRuntimeContext, false, true);
-            return nestedLoopIterator;
-        }
     }
 }

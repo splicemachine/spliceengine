@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.base.Strings;
+import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.*;
@@ -12,7 +13,6 @@ import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.stream.DataSet;
 import com.splicemachine.derby.stream.DataSetProcessor;
 import com.splicemachine.derby.stream.OperationContext;
-import com.splicemachine.derby.stream.StreamUtils;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.derby.utils.marshall.KeyEncoder;
@@ -459,11 +459,9 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 
     }
 
-    public DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
-        DataSet set = source.getDataSet(spliceRuntimeContext,top);
-        Thread.dumpStack();
-        set.mapPartitions(new DMLWriteSparkOp(dsp.createOperationContext(this,spliceRuntimeContext))).collect();
-        return dsp.getEmpty();
+    public DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, DataSetProcessor dsp) throws StandardException {
+        DataSet set = source.getDataSet(spliceRuntimeContext);
+        return set.mapPartitions(new DMLWriteSparkOp(dsp.createOperationContext(this,spliceRuntimeContext)));
     }
 
 	public static final class DMLWriteSparkOp extends SpliceFlatMapFunction<SpliceOperation, Iterator<LocatedRow>, LocatedRow> {
@@ -500,7 +498,9 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 			}
 			writeBuffer.flushBuffer();
 			writeBuffer.close();
-			return Collections.<LocatedRow>emptyList();
+            ValueRow valueRow = new ValueRow(1);
+            valueRow.setColumn(1,new SQLInteger(i));
+			return Collections.singletonList(new LocatedRow(valueRow));
 		}
 	}
 }

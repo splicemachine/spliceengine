@@ -214,5 +214,6 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation impl
         for(SpliceGenericAggregator aggregator:aggregates){
             aggregator.finish(row);
         }
+        this.setCurrentRow(row);
     }
 }

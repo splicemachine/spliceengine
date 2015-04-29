@@ -8,7 +8,6 @@ import com.google.common.base.Strings;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.derby.stream.spark.RDDUtils;
-import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.stream.*;
@@ -31,7 +30,6 @@ import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.spark.api.java.JavaRDD;
 
 public class ProjectRestrictOperation extends SpliceBaseOperation {
 
@@ -402,11 +400,11 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 								+ "source:" + source.prettyPrint(indentLevel + 1);
 		}
 
-    public DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
+    public DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, DataSetProcessor dsp) throws StandardException {
         if (alwaysFalse) {
             return dsp.getEmpty();
         }
-        return source.getDataSet(spliceRuntimeContext, top).mapPartitions(new ProjectRestrictSparkOp(dsp.createOperationContext(this,spliceRuntimeContext)));
+        return source.getDataSet(spliceRuntimeContext).mapPartitions(new ProjectRestrictSparkOp(dsp.createOperationContext(this,spliceRuntimeContext)));
     }
 
 
@@ -464,7 +462,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
             }
             getActivation().setCurrentRow(result, op.resultSetNumber);
             if (RDDUtils.LOG.isDebugEnabled()) {
-                RDDUtils.LOG.debug("Projected " + sourceRow + " into " + result);
+                RDDUtils.LOG.debug("Projected "+op.resultSetNumber + " : " + sourceRow + " into " + result);
             }
             return new LocatedRow(sourceRow.getRowLocation(), result);
         }
@@ -527,6 +525,8 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
                     populated = false;
                     LocatedRow result = next;
                     next = null;
+                    operationContext.getOperation().setCurrentRow(result.getRow());
+                    operationContext.getOperation().setCurrentRowLocation(result.getRowLocation());
                     return result;
                 }
                 return null;

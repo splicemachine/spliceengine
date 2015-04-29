@@ -1,4 +1,4 @@
-package com.splicemachine.derby.stream;
+package com.splicemachine.derby.stream.iterator;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;

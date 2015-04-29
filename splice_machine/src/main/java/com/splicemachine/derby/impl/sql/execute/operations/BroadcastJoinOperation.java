@@ -11,6 +11,7 @@ import com.google.common.collect.*;
 import com.splicemachine.concurrent.SameThreadExecutorService;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.stream.*;
+import com.splicemachine.derby.stream.derby.DataSetNoPutResultSet;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
@@ -317,7 +318,7 @@ public class BroadcastJoinOperation extends JoinOperation {
             OperationResultSet ors = new OperationResultSet(activation,rightResultSet);
             ors.sinkOpen(runtimeContext.getTxn(),true);
             ors.executeScan(false,ctxNoSink);
-            SpliceNoPutResultSet resultSet = ors.getDelegate();
+            DataSetNoPutResultSet resultSet = ors.getDelegate();
             DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(rightTemplate);
             KeyEncoder keyEncoder = new KeyEncoder(NoOpPrefix.INSTANCE,
                                                       BareKeyHash.encoder(rightHashKeys, null, serializers),
@@ -379,10 +380,10 @@ public class BroadcastJoinOperation extends JoinOperation {
     }
 
 
-    public DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
+    public DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, DataSetProcessor dsp) throws StandardException {
         OperationContext operationContext = dsp.createOperationContext(this, spliceRuntimeContext);
-        PairDataSet<ExecRow,LocatedRow> leftDataSet = leftResultSet.getDataSet(spliceRuntimeContext,top).keyBy(new Keyer<LocatedRow>(operationContext, leftHashKeys));
-        PairDataSet<ExecRow,LocatedRow> rightDataSet = rightResultSet.getDataSet(spliceRuntimeContext,top).keyBy(new Keyer<LocatedRow>(operationContext, rightHashKeys));
+        PairDataSet<ExecRow,LocatedRow> leftDataSet = leftResultSet.getDataSet(spliceRuntimeContext).keyBy(new Keyer<LocatedRow>(operationContext, leftHashKeys));
+        PairDataSet<ExecRow,LocatedRow> rightDataSet = rightResultSet.getDataSet(spliceRuntimeContext).keyBy(new Keyer<LocatedRow>(operationContext, rightHashKeys));
         if (isOuterJoin) {
             PairDataSet<ExecRow, Tuple2<LocatedRow, Optional<LocatedRow>>> joinedDataSet = leftDataSet.<LocatedRow>broadcastLeftOuterJoin(rightDataSet);
             return joinedDataSet.map(new OuterJoinFunction(operationContext, wasRightOuterJoin, getEmptyRow())).filter(new JoinRestrictionPredicateFunction(operationContext));

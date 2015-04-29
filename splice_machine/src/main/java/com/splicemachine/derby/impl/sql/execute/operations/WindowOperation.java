@@ -6,13 +6,10 @@ import java.io.ObjectOutput;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
 import com.google.common.base.Strings;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.stream.DataSet;
@@ -20,7 +17,6 @@ import com.splicemachine.derby.stream.DataSetProcessor;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.hbase.SpliceDriver;
@@ -361,7 +357,8 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
     }
 
     @Override
-    public DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top) throws StandardException {
+    public DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, DataSetProcessor dsp) throws StandardException {
+        throw new RuntimeException("not implemented");
 
         /*
 
@@ -388,7 +385,6 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
         finishAggregation(result.getRow());
         return dsp.singleRowDataSet(new SparkRow(result.getRow()));
         */
-        return null;
     }
 
     private WindowFunctionIterator createFrameIterator(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
@@ -614,11 +610,5 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
             return spreadBucket.bucket(hashFunction.hash(hashBytes, offset, keyLength));
         }
     }
-
-    @Override
-    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
-        throw new RuntimeException("not implemented");
-    }
-
 
 }

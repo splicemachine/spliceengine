@@ -176,7 +176,7 @@ public class HashTableOperation extends SpliceBaseOperation  {
                 .toString();
     }
     @Override
-    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
+    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, DataSetProcessor dsp) throws StandardException {
         throw new RuntimeException("not implemented");
     }
 

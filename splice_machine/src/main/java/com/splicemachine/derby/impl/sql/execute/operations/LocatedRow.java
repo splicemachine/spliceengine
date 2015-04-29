@@ -63,4 +63,14 @@ public class LocatedRow implements KeyableRow {
     public String toString() {
         return String.format("LocatedRow {rowLocation=%s, row=%s}",rowLocation,row);
     }
+
+    @Override
+    public int hashCode(int[] ints) {
+        return row.hashCode(ints);
+    }
+
+    @Override
+    public int compareTo(int[] ints, ExecRow execRow) {
+        return row.compareTo(ints,execRow);
+    }
 }

@@ -300,7 +300,7 @@ public class RowOperation extends SpliceBaseOperation {
 		}
 
        @Override
-        public DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
+        public DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, DataSetProcessor dsp) throws StandardException {
             return dsp.singleRowDataSet(new LocatedRow(getRow()));
         }
 }

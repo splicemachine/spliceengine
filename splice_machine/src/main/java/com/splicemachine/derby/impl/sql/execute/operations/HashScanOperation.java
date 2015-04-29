@@ -294,7 +294,7 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 				return scanProperties;
 		}
     @Override
-    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
+    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, DataSetProcessor dsp) throws StandardException {
         throw new RuntimeException("not implemented");
     }
 

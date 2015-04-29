@@ -10,7 +10,6 @@ import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.stream.*;
 import com.splicemachine.derby.stream.function.*;
-import com.splicemachine.derby.stream.spark.RDDUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils.JoinSide;
 import com.splicemachine.derby.impl.storage.DistributedClientScanProvider;
 import com.splicemachine.derby.impl.storage.RowProviders;
@@ -28,27 +27,19 @@ import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.hash.HashFunctions;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLInteger;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
-import org.apache.spark.api.java.JavaPairRDD;
-import org.apache.spark.api.java.JavaRDD;
-
 import scala.Tuple2;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
 
 
@@ -456,10 +447,10 @@ public class MergeSortJoinOperation extends JoinOperation implements SinkingOper
         return scanner;
     }
     @Override
-    public DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, SpliceOperation top, DataSetProcessor dsp) throws StandardException {
+    public DataSet<LocatedRow> getDataSet(SpliceRuntimeContext spliceRuntimeContext, DataSetProcessor dsp) throws StandardException {
         OperationContext operationContext = dsp.createOperationContext(this, spliceRuntimeContext);
-        PairDataSet<ExecRow,LocatedRow> leftDataSet = leftResultSet.getDataSet(spliceRuntimeContext,top).keyBy(new Keyer<LocatedRow>(operationContext, leftHashKeys));
-        PairDataSet<ExecRow,LocatedRow> rightDataSet = rightResultSet.getDataSet(spliceRuntimeContext,top).keyBy(new Keyer<LocatedRow>(operationContext, rightHashKeys));
+        PairDataSet<ExecRow,LocatedRow> leftDataSet = leftResultSet.getDataSet(spliceRuntimeContext).keyBy(new Keyer<LocatedRow>(operationContext, leftHashKeys));
+        PairDataSet<ExecRow,LocatedRow> rightDataSet = rightResultSet.getDataSet(spliceRuntimeContext).keyBy(new Keyer<LocatedRow>(operationContext, rightHashKeys));
         if (isOuterJoin) {
             PairDataSet<ExecRow, Tuple2<LocatedRow, Optional<LocatedRow>>> joinedDataSet = leftDataSet.<LocatedRow>hashLeftOuterJoin(rightDataSet);
             return joinedDataSet.map(new OuterJoinFunction(operationContext, wasRightOuterJoin, getEmptyRow())).filter(new JoinRestrictionPredicateFunction(operationContext));

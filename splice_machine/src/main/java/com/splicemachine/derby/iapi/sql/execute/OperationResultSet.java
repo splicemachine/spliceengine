@@ -3,8 +3,6 @@ package com.splicemachine.derby.iapi.sql.execute;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
@@ -13,9 +11,8 @@ import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.management.OperationInfo;
 import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.derby.stream.DataSetProcessor;
-import com.splicemachine.derby.stream.DataSetRowProvider;
 import com.splicemachine.derby.stream.StreamUtils;
-import com.splicemachine.derby.stream.spark.RDDRowProvider;
+import com.splicemachine.derby.stream.derby.DataSetNoPutResultSet;
 import com.splicemachine.metrics.IOStats;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -62,7 +59,7 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
     private static Logger PLAN_LOG = Logger.getLogger("com.splicemachine.queryPlan");
     private Activation activation;
     private SpliceOperation topOperation;
-    private SpliceNoPutResultSet delegate;
+    private DataSetNoPutResultSet delegate;
     private boolean closed = false;
     private long parentOperationID = -1l;
     private long statementId;
@@ -76,12 +73,12 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 			// no-op
 		}
 
-		
 		public OperationResultSet(Activation activation,
                               SpliceOperation topOperation){
         this.activation = activation;
         this.topOperation = topOperation;
-        System.out.println(String.format("OperationResultSet with activation=%s, topOperation=%s",activation,topOperation));
+         if (LOG.isTraceEnabled())
+             SpliceLogUtils.trace(LOG,"OperationResultSet with activation=%s, topOperation=%s",activation,topOperation);
     }
 
     public SpliceOperation getTopOperation() {
@@ -126,7 +123,7 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
         return stmtInfo;
     }
 
-	public SpliceNoPutResultSet getDelegate(){
+	public DataSetNoPutResultSet getDelegate(){
 		return delegate;
 	}
 
@@ -140,23 +137,19 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
         SpliceLogUtils.trace(LOG, "executeScan with topOperation=%s",topOperation);
         try{
             DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
-            if (true) {
-                OperationInformation info = topOperation.getOperationInformation();
-                Activation activation = topOperation.getActivation();
-                int resultSetNumber = info.getResultSetNumber();
-                StatementInfo statementInfo = context.getStatementInfo();
-                long txnId = ((SpliceTransactionManager)activation.getTransactionController()).getRawTransaction().getTxnInformation().getTxnId();
-                String jobName = topOperation.getName() + " rs "+resultSetNumber + " <" + txnId + ">";
-                String jobDescription = statementInfo != null ? statementInfo.getSql() : null;
-                dsp.setJobGroup(jobName,jobDescription);
-                RowProvider dss = new DataSetRowProvider(topOperation.getDataSet(context,topOperation),context);
-                boolean returnsRows = !(topOperation instanceof DMLWriteOperation || topOperation instanceof CallStatementOperation
+            OperationInformation info = topOperation.getOperationInformation();
+            Activation activation = topOperation.getActivation();
+            int resultSetNumber = info.getResultSetNumber();
+            StatementInfo statementInfo = context.getStatementInfo();
+            long txnId = ((SpliceTransactionManager)activation.getTransactionController()).getRawTransaction().getTxnInformation().getTxnId();
+            String jobName = topOperation.getName() + " rs "+resultSetNumber + " <" + txnId + ">";
+            String jobDescription = statementInfo != null ? statementInfo.getSql() : null;
+            dsp.setJobGroup(jobName,jobDescription);
+            boolean returnsRows = !(topOperation instanceof DMLWriteOperation || topOperation instanceof CallStatementOperation
                 || topOperation instanceof MiscOperation);
-                delegate = new SpliceNoPutResultSet(activation, topOperation, dss,returnsRows);
-            } else {
-                delegate = useProbe ? topOperation.executeProbeScan() : topOperation.executeScan(context);
-            }
+            delegate = new DataSetNoPutResultSet(activation, topOperation, topOperation.getDataSet(context),returnsRows);
             delegate.setScrollId(scrollUuid);
+            delegate.openCore();
         }catch(RuntimeException re){
             throw Exceptions.parseException(re);
         }
