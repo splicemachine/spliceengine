@@ -94,7 +94,7 @@ public final class UpdateLoader implements LockOwner {
 
 	private boolean needReload;
 	private JarReader jarReader;
-	private static UpdateLoader instance = null;
+	private static volatile UpdateLoader instance = null;
 
 	/**
 	 * Singleton factory method.
