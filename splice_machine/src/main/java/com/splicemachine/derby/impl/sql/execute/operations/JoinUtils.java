@@ -10,8 +10,7 @@ public class JoinUtils {
     public static enum JoinSide {RIGHT, LEFT} ;
 
     public static ExecRow getMergedRow(ExecRow leftRow, ExecRow rightRow,
-                                       boolean wasRightOuterJoin, int rightNumCols,
-                                       int leftNumCols, ExecRow mergedRow) {
+                                       boolean wasRightOuterJoin, ExecRow mergedRow) {
         if (mergedRow == null) {
             return null;
         }

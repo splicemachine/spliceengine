@@ -4,9 +4,9 @@ import com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
-import com.splicemachine.derby.stream.DataSet;
-import com.splicemachine.derby.stream.DataSetProcessor;
-import com.splicemachine.derby.stream.OperationContext;
+import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iterator.TableScannerIterator;
 import com.splicemachine.si.impl.HTransactorFactory;
 import com.splicemachine.si.impl.TransactionStorage;
@@ -17,7 +17,6 @@ import com.splicemachine.si.impl.rollforward.NoopRollForward;
 import org.apache.hadoop.hbase.util.*;
 import org.apache.log4j.Logger;
 
-import javax.annotation.concurrent.NotThreadSafe;
 import java.util.Collections;
 
 /**

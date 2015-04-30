@@ -3,8 +3,9 @@ package com.splicemachine.derby.stream.spark;
 import com.google.common.base.Optional;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.spark.SpliceSpark;
-import com.splicemachine.derby.stream.DataSet;
-import com.splicemachine.derby.stream.PairDataSet;
+import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.PairDataSet;
+import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.function.SpliceFunction;
 import com.splicemachine.derby.stream.function.SpliceFunction2;
 import org.apache.spark.api.java.JavaPairRDD;
@@ -15,7 +16,9 @@ import scala.Tuple2;
 import java.util.Comparator;
 
 /**
- * Created by jleach on 4/13/15.
+ *
+ *
+ * @see org.apache.spark.api.java.JavaPairRDD
  */
 public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
     public JavaPairRDD<K,V> rdd;
@@ -88,8 +91,21 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
     }
 
     @Override
-    public <W> PairDataSet< K, V> subtract(PairDataSet< K, W> rightDataSet) {
-        return new SparkPairDataSet(rdd.subtract( ((SparkPairDataSet) rightDataSet).rdd));
+    public <W> PairDataSet< K, V> subtractByKey(PairDataSet< K, W> rightDataSet) {
+        return new SparkPairDataSet(rdd.subtractByKey(((SparkPairDataSet) rightDataSet).rdd));
+    }
+
+    @Override
+    public <Op extends SpliceOperation, U> DataSet<U> flatmap(SpliceFlatMapFunction<Op, Tuple2<K, V>, U> f) {
+        return new SparkDataSet<U>(rdd.flatMap(f));
+    }
+
+    @Override
+    public <W> PairDataSet<K, V> broadcastSubtractByKey(PairDataSet<K, W> rightDataSet) {
+        JavaPairRDD<K,W> rightPairDataSet = ((SparkPairDataSet) rightDataSet).rdd;
+        JavaSparkContext context = SpliceSpark.getContext();
+        Broadcast<JavaPairRDD<K,W>> broadcast = context.broadcast(rightPairDataSet);
+        return new SparkPairDataSet(rdd.subtractByKey(broadcast.value()));
     }
 
     @Override

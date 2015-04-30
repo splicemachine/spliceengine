@@ -59,6 +59,8 @@ import com.splicemachine.utils.SpliceLogUtils;
  * @see com.splicemachine.derby.impl.sql.execute.operations.MergeLeftOuterJoinOperation
  * @see com.splicemachine.derby.impl.sql.execute.operations.NestedLoopLeftOuterJoinOperation
  *
+ *
+ *
  */
 public abstract class JoinOperation extends SpliceBaseOperation {
 		private static final long serialVersionUID = 2l;

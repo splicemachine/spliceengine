@@ -76,7 +76,7 @@ public class Joiner {
     }
 
     private ExecRow getMergedRow(ExecRow left, ExecRow right) {
-        return JoinUtils.getMergedRow(left, right, wasRightOuterJoin, rightNumCols, leftNumCols, mergedRowTemplate);
+        return JoinUtils.getMergedRow(left, right, wasRightOuterJoin, mergedRowTemplate);
     }
 
     protected boolean shouldMergeEmptyRow(boolean recordsFound) {

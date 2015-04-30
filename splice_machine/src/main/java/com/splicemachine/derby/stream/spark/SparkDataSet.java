@@ -2,8 +2,9 @@ package com.splicemachine.derby.stream.spark;
 
 import com.google.common.collect.Iterables;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.stream.*;
 import com.splicemachine.derby.stream.function.*;
+import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.PairDataSet;
 import org.apache.spark.api.java.JavaRDD;
 import java.io.Serializable;
 import java.util.Iterator;
@@ -11,7 +12,10 @@ import java.util.List;
 
 /**
  *
- * Datat Implementation using spark.
+ * DataSet Implementation for Spark.
+ *
+ * @see com.splicemachine.derby.stream.iapi.DataSet
+ * @see java.io.Serializable
  *
  */
 public class SparkDataSet<V> implements DataSet<V>, Serializable {

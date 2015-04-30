@@ -2,19 +2,25 @@ package com.splicemachine.derby.stream.control;
 
 import com.google.common.base.Optional;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.function.SpliceFunction;
 import com.splicemachine.derby.stream.function.SpliceFunction2;
 import org.sparkproject.guava.common.base.Function;
 import org.sparkproject.guava.common.base.Supplier;
 import org.sparkproject.guava.common.collect.*;
-import com.splicemachine.derby.stream.DataSet;
-import com.splicemachine.derby.stream.PairDataSet;
+import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.PairDataSet;
 import scala.Tuple2;
 import javax.annotation.Nullable;
 import java.util.*;
 
 /**
- * Created by jleach on 4/13/15.
+ *
+ *
+ * @see org.sparkproject.guava.common.collect.Multimap
+ * @see org.sparkproject.guava.common.collect.Multimaps
+ * @see org.sparkproject.guava.common.collect.Iterables
+ *
  */
 public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     public Multimap<K,V> source;
@@ -145,21 +151,18 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     }
 
     @Override
-    public <W> PairDataSet< K, V> subtract(PairDataSet< K, W> rightDataSet) {
- /*       // Initialize the left side
-        Multimap<K, Tuple2<V, W>> newMap = ArrayListMultimap.<K, Tuple2<V, W>>create();
+    public <W> PairDataSet< K, V> subtractByKey(PairDataSet< K, W> rightDataSet) {
+        // Initialize the left side
+        Multimap<K,V> newMap = ArrayListMultimap.<K,V>create();
         // Materializes the right side
         Multimap<K,W> rightSide = ArrayListMultimap.<K,W>create();
         rightSide.putAll(((ControlPairDataSet) rightDataSet).source);
-
         for (Map.Entry<K,V> entry : source.entries()) {
-            for (W rightValue: rightSide.get(entry.getKey())) {
-                newMap.put(entry.getKey(),new Tuple2<V, W>(entry.getValue(),rightValue));
-            }
+            Collection<W> right = rightSide.get(entry.getKey());
+            if (right.size() == 0)
+                newMap.put(entry.getKey(),entry.getValue());
         }
-        return new ControlPairDataSet< K, Tuple2<V, W>>(newMap);
-        */
-        throw new RuntimeException("Not Implemented");
+        return new ControlPairDataSet< K, V>(newMap);
     }
 
     @Override
@@ -175,5 +178,21 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
         return sb.toString();
     }
 
+    @Override
+    public <Op extends SpliceOperation, U> DataSet<U> flatmap(SpliceFlatMapFunction<Op, Tuple2<K, V>, U> function) {
+        try {
+            Iterable<U> iterable = new ArrayList<U>(0);
+            for (Map.Entry<K, V> entry : source.entries()) {
+                iterable = Iterables.concat(iterable, function.call(new Tuple2<K, V>(entry.getKey(), entry.getValue())));
+            }
+            return new ControlDataSet<>(iterable);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
 
+    @Override
+    public <W> PairDataSet<K, V> broadcastSubtractByKey(PairDataSet<K, W> rightDataSet) {
+        return subtractByKey(rightDataSet);
+    }
 }

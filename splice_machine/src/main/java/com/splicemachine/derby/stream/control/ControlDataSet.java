@@ -2,10 +2,11 @@ package com.splicemachine.derby.stream.control;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.function.*;
+import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.PairDataSet;
 import org.sparkproject.guava.common.collect.Iterables;
 import org.sparkproject.guava.common.collect.Multimaps;
 import org.sparkproject.guava.common.collect.Sets;
-import com.splicemachine.derby.stream.*;
 import org.sparkproject.guava.common.collect.FluentIterable;
 import java.util.ArrayList;
 import java.util.Iterator;

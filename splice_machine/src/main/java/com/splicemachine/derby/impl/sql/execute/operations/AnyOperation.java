@@ -9,8 +9,8 @@ import java.util.List;
 import com.google.common.base.Strings;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
-import com.splicemachine.derby.stream.DataSet;
-import com.splicemachine.derby.stream.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
@@ -153,5 +153,7 @@ public class AnyOperation extends SpliceBaseOperation {
                 return dsp.singleRowDataSet(new LocatedRow(iterator.next().getRow()));
         return dsp.singleRowDataSet(new LocatedRow(getRowWithNulls()));
     }
+
+
 
 }

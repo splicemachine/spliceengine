@@ -1,7 +1,7 @@
 package com.splicemachine.derby.stream.function;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.stream.OperationContext;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import org.apache.spark.api.java.function.FlatMapFunction;
 import org.sparkproject.guava.common.base.Function;
 import javax.annotation.Nullable;

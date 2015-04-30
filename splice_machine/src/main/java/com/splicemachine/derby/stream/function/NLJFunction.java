@@ -6,9 +6,9 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.NestedLoopJoinOperation;
-import com.splicemachine.derby.stream.DataSet;
-import com.splicemachine.derby.stream.OperationContext;
-import com.splicemachine.derby.stream.StreamUtils;
+import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.derby.stream.iterator.NestedLoopIterator;
 
 import java.io.IOException;
@@ -57,7 +57,7 @@ public class NLJFunction<Op extends SpliceOperation> extends SpliceFlatMapFuncti
             System.out.println("nothing on right side");
             if (notExistsRightSide || operation.isOuterJoin) { // Outer Join or Not Exists Evaluation
                 ExecRow mergedRow = getNewMergedRow(operation.getRightNumCols(), operation.getLeftNumCols());
-                mergedRow = JoinUtils.getMergedRow(from.getRow(), operation.getEmptyRow(), operation.wasRightOuterJoin, operation.getRightNumCols(), operation.getLeftNumCols(), operation.mergedRow);
+                mergedRow = JoinUtils.getMergedRow(from.getRow(), operation.getEmptyRow(), operation.wasRightOuterJoin, operation.mergedRow);
                 if (!operation.getRestriction().apply(mergedRow)) {
                     System.out.println("restricted");
                     return Collections.<LocatedRow>emptyList();

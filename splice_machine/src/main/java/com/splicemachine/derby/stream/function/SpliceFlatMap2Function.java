@@ -1,8 +1,7 @@
 package com.splicemachine.derby.stream.function;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.stream.OperationContext;
-import com.splicemachine.derby.stream.function.AbstractSpliceFunction;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import org.apache.spark.api.java.function.FlatMapFunction2;
 
 import java.io.Externalizable;
