@@ -1,5 +1,6 @@
 package com.splicemachine.derby.iapi.sql.execute;
 
+import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
 import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import java.io.IOException;
 import java.util.List;
@@ -21,7 +22,7 @@ import com.splicemachine.si.api.TxnView;
  *
  */
 
-public interface SpliceOperation extends StandardCloseable, NoPutResultSet, ConvertedResultSet {
+public interface SpliceOperation extends StandardCloseable, NoPutResultSet, ConvertedResultSet, CursorResultSet {
 
     RowLocation getCurrentRowLocation();
 
