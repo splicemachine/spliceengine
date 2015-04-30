@@ -37,19 +37,15 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 
 		public int rowsSeenLeft;
 		public int rowsSeenRight;
-        public int bytesReadRight;
-        public long remoteScanWallTime;
-        public long remoteScanCpuTime;
-        public long remoteScanUserTime;
 		public long restrictionTime;
 		public int rowsReturned;
 		protected boolean serializeLeftResultSet = true;
 		protected boolean serializeRightResultSet = true;
         protected ExecRow rightTemplate;
-    protected ExecRow mergedRowTemplate;
-    protected String emptyRowFunMethodName;
-    public boolean wasRightOuterJoin = false;
-    public boolean isOuterJoin = false;
+        protected ExecRow mergedRowTemplate;
+        protected String emptyRowFunMethodName;
+        public boolean wasRightOuterJoin = false;
+        public boolean isOuterJoin = false;
 
     public JoinOperation() {
 				super();

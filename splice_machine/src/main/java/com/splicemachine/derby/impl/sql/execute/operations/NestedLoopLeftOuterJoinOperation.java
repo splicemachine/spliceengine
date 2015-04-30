@@ -39,6 +39,7 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 				SpliceLogUtils.trace(LOG, "instantiate");
 				this.emptyRowFunMethodName = (emptyRowFun == null) ? null : emptyRowFun.getMethodName();
 				this.wasRightOuterJoin = wasRightOuterJoin;
+                this.isOuterJoin = true;
 				try {
 						init(SpliceOperationContext.newContext(activation));
 				} catch (IOException e) {
