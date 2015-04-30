@@ -473,7 +473,8 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
 
     private double estimateSelectivityOfJoinPredicate(Optimizable innerTable,ConglomerateDescriptor cd,Predicate predicate) throws StandardException{
         //TODO -sf- make this more accurate based on cardinalities etc.
-        return predicate.selectivity(innerTable,cd);
+//        return predicate.selectivity(innerTable,cd);
+        return predicate.selectivity(innerTable);
     }
 
     private double estimateJoinSelectivity(Optimizable innerTable,ConglomerateDescriptor cd,List<Predicate> predicates) throws StandardException{
