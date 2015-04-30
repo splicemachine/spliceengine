@@ -336,7 +336,7 @@ public class HdfsImport {
             BaseSpliceTransaction txn = ((SpliceTransactionManager)activation.getTransactionController()).getRawTransaction();
             try {
                 if(schemaName==null)
-                    schemaName = "APP";
+                    schemaName = SpliceConstants.SPLICE_USER;
                 if(tableName==null)
                     throw PublicAPI.wrapStandardException(ErrorState.TABLE_NAME_CANNOT_BE_NULL.newException());
 
