@@ -1,6 +1,7 @@
 package com.splicemachine.derby.utils;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.DerbyFactory;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.hbase.SpliceDriver;
@@ -980,7 +981,7 @@ public class SpliceAdmin extends BaseAdminProcedures {
         List<Long> conglomIDs = new ArrayList<Long>();
         if (schemaName == null)
             // default schema
-            schemaName = "APP";
+            schemaName = SpliceConstants.SPLICE_USER;
 
         String allTablesInSchema =  "SELECT C.CONGLOMERATENUMBER FROM SYS.SYSCONGLOMERATES C, SYS.SYSTABLES T, SYS.SYSSCHEMAS S " +
                 "WHERE T.TABLEID = C.TABLEID AND T.SCHEMAID = S.SCHEMAID AND S.SCHEMANAME = ?";
