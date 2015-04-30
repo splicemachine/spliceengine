@@ -173,4 +173,27 @@ public class IndexValueRow implements ExecIndexRow {
         }
         return key;
     }
+
+    @Override
+    public int hashCode(int[] keysToHash) {
+        try {
+            final int prime = 31;
+            int result = 1;
+            if (getRowArray() == null)
+                return 0;
+            for (int hashKey : keysToHash) {
+                result = 31 * result + (getColumn(hashKey) == null ? 0 : getColumn(hashKey).hashCode());
+            }
+            result = prime * result + keysToHash.length;
+            return result;
+        } catch (StandardException se) {
+            throw new RuntimeException(se);
+        }
+    }
+
+    @Override
+    public int compareTo(int[] compareKeys, ExecRow row) {
+        return valueRow.compareTo(compareKeys,row);
+    }
+
 }

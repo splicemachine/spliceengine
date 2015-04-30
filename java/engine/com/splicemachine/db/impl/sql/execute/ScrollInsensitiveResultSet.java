@@ -1238,6 +1238,8 @@ public class ScrollInsensitiveResultSet extends NoPutResultSetImpl
 		return false;
 	}
 
+
+
 	public boolean isForUpdate() {
 		return source.isForUpdate();
 	}

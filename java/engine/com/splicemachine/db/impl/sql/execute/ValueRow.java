@@ -273,6 +273,26 @@ public class ValueRow implements ExecRow, Externalizable, Comparable<ExecRow> {
 		return 0;
 	}
 
+    @Override
+    public int compareTo(int[] compareKeys, ExecRow row) {
+        if (row == null)
+            return -1;
+        if (ncols != row.nColumns())
+            return -1;
+        int compare;
+        for (int i = 0; i < compareKeys.length; i++ ) {
+            try {
+                compare = getColumn(compareKeys[i]).compare(row.getColumn(compareKeys[i]));
+                if (compare != 0)
+                    return compare;
+            } catch (StandardException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+        }
+        return 0;
+    }
+
 
 	@Override
 	public void writeExternal(ObjectOutput out) throws IOException {
@@ -323,4 +343,18 @@ public class ValueRow implements ExecRow, Externalizable, Comparable<ExecRow> {
         }
         return key;
     }
+
+    @Override
+    public int hashCode(int[] keysToHash) {
+        final int prime = 31;
+        int result = 1;
+        if (column == null)
+            return 0;
+        for (int hashKey: keysToHash) {
+            result = 31 * result + (column[hashKey] == null ? 0 : column[hashKey].hashCode());
+        }
+        result = prime * result + keysToHash.length;
+        return result;
+    }
+
 }
