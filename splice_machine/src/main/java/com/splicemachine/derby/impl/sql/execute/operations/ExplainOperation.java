@@ -14,6 +14,7 @@ import com.splicemachine.derby.impl.ast.ExplainTree;
 import com.splicemachine.derby.impl.ast.PlanPrinter;
 import com.splicemachine.derby.stream.DataSet;
 import com.splicemachine.derby.stream.DataSetProcessor;
+import com.splicemachine.pipeline.exception.Exceptions;
 import org.apache.log4j.Logger;
 import org.sparkproject.guava.common.base.Function;
 import org.sparkproject.guava.common.collect.Iterables;
@@ -43,6 +44,11 @@ public class ExplainOperation extends SpliceBaseOperation {
         super(activation, resultSetNumber, 0, 0);
         this.activation = activation;
         this.source = source;
+        try {
+            init(SpliceOperationContext.newContext(activation));
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
     }
 
     @Override
@@ -51,12 +57,18 @@ public class ExplainOperation extends SpliceBaseOperation {
         activation.setTraced(false);
         currentTemplate = new ValueRow(1);
         currentTemplate.setRowArray(new DataValueDescriptor[]{new SQLVarchar()});
-        getPlanInformation();
     }
 
     @Override
-    public void open() throws StandardException {
+    public void openCore() throws StandardException {
+        getPlanInformation();
+        super.openCore();
+    }
 
+    @Override
+    public void close() throws StandardException {
+        clearState();
+        super.close();
     }
 
     protected void clearState() {
@@ -102,7 +114,6 @@ public class ExplainOperation extends SpliceBaseOperation {
     }
 
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        try {
             return dsp.createDataSet(Iterables.transform(new Iterable<String>() {
                                                              @Override
                                                              public Iterator<String> iterator() {
@@ -124,9 +135,6 @@ public class ExplainOperation extends SpliceBaseOperation {
                                                          }
                     )
             );
-        } finally {
-            clearState();
-        }
     }
 
 
