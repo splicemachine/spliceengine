@@ -849,7 +849,13 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
         return this;
     }
 
+    @Override
+    public RowLocation getRowLocation() throws StandardException {
+        return this.currentRowLocation;
+    }
 
-
-
+    @Override
+    public ExecRow getCurrentRow() throws StandardException {
+        return this.currentRow;
+    }
 }
