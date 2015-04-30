@@ -11,4 +11,9 @@ public interface KeyableRow {
      * Get an ExecRow representing each keyed value
      */
     public ExecRow getKeyedExecRow (int[] keyColumns) throws StandardException;
+
+    public int hashCode(int[] keysToHash);
+
+    public int compareTo(int[] keysToCompare,ExecRow compareRow);
+
 }

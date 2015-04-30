@@ -2495,7 +2495,7 @@ throws SQLException
 	      <CURSOR> qi=qualifiedIdentifier() <AS> s=<STRING>
 	{
 	    // TODO: remove this when CURSOR is supported
-	    return new ijUnsupportedCommandResult("CURSOR");
+	    //return new ijUnsupportedCommandResult("CURSOR");
 
 		sVal = stringValue(s.image);
 		try {
@@ -2581,7 +2581,7 @@ throws SQLException
 	<ABSOLUTE> row = intLiteral() qi=qualifiedIdentifier()
 	{
 		// TODO: remove this when ABSOLUTE is supported
-		return new ijUnsupportedCommandResult("ABSOLUTE"); 
+		//return new ijUnsupportedCommandResult("ABSOLUTE");
 		// Verify that we have JDBC 2.0
 		ResultSet rs = findCursor(qi);
 		return utilInstance.absolute(rs, row);
@@ -2600,7 +2600,7 @@ throws SQLException
 	<RELATIVE> row = intLiteral() qi=qualifiedIdentifier()
 	{
 		// TODO: remove this when RELATIVE is supported
-		return new ijUnsupportedCommandResult("RELATIVE");
+		//return new ijUnsupportedCommandResult("RELATIVE");
 		// Verify that we have JDBC 2.0
 		ResultSet rs = findCursor(qi);
 		return utilInstance.relative(rs, row);
@@ -2618,7 +2618,7 @@ throws SQLException
 	<BEFORE> <FIRST> qi=qualifiedIdentifier()
 	{
 		// TODO: remove this when BEFORE FIRST is supported
-		return new ijUnsupportedCommandResult("BEFORE FIRST");
+		//return new ijUnsupportedCommandResult("BEFORE FIRST");
 		// Verify that we have JDBC 2.0
 		ResultSet rs = findCursor(qi);
 		return utilInstance.beforeFirst(rs);
@@ -2636,7 +2636,7 @@ throws SQLException
 	<FIRST> qi=qualifiedIdentifier()
 	{
 	    // TODO: remove this when FIRST is supported
-		return new ijUnsupportedCommandResult("FIRST");
+		//return new ijUnsupportedCommandResult("FIRST");
 		// Verify that we have JDBC 2.0
 		ResultSet rs = findCursor(qi);
 		return utilInstance.first(rs);
@@ -2654,7 +2654,7 @@ throws SQLException
 	<NEXT> qi=qualifiedIdentifier()
 	{
 	    // TODO: remove this when NEXT is supported
-		return new ijUnsupportedCommandResult("NEXT");
+		//return new ijUnsupportedCommandResult("NEXT");
 		// Verify that we have JDBC 2.0
 		ResultSet rs = findCursor(qi);
 		return new ijRowResult(rs, rs.next());
@@ -2672,7 +2672,7 @@ throws SQLException
 	<AFTER> <LAST> qi=qualifiedIdentifier()
 	{
 		// TODO: remove this when AFTER LAST is supported
-		return new ijUnsupportedCommandResult("AFTER LAST");
+		//return new ijUnsupportedCommandResult("AFTER LAST");
 		// Verify that we have JDBC 2.0
 		ResultSet rs = findCursor(qi);
 		return utilInstance.afterLast(rs);
@@ -2690,7 +2690,7 @@ throws SQLException
 	<LAST> qi=qualifiedIdentifier()
 	{
 		// TODO: remove this when LAST is supported
-		return new ijUnsupportedCommandResult("LAST");
+		//return new ijUnsupportedCommandResult("LAST");
 		// Verify that we have JDBC 2.0
 		ResultSet rs = findCursor(qi);
 		return utilInstance.last(rs);
@@ -2708,7 +2708,7 @@ throws SQLException
 	<PREVIOUS> qi=qualifiedIdentifier()
 	{
 		// TODO: remove this when PREVIOUS is supported
-		return new ijUnsupportedCommandResult("PREVIOUS");
+		//return new ijUnsupportedCommandResult("PREVIOUS");
 		// Verify that we have JDBC 2.0
 		ResultSet rs = findCursor(qi);
 		return utilInstance.previous(rs);
@@ -2726,7 +2726,7 @@ throws SQLException
 	<GETCURRENTROWNUMBER> qi=qualifiedIdentifier()
 	{
 		// TODO: remove this when GETCURRENTROWNUMBER is supported
-		return new ijUnsupportedCommandResult("GETCURRENTROWNUMBER");
+		//return new ijUnsupportedCommandResult("GETCURRENTROWNUMBER");
 		// Verify that we have JDBC 2.0
 		ResultSet rs = findCursor(qi);
 		return new ijVectorResult(utilInstance.getCurrentRowNumber(rs), null);
@@ -2745,7 +2745,7 @@ throws SQLException
 	<CLOSE> qi=qualifiedIdentifier()
 	{
 	    // TODO: remove this when CLOSE is supported
-		return new ijUnsupportedCommandResult("CLOSE");
+		//return new ijUnsupportedCommandResult("CLOSE");
 		Session sn = findSession(qi.getSessionName());
 		
 		ResultSet rs = sn.getCursor(qi.getLocalName());
