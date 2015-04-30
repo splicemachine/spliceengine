@@ -50,7 +50,7 @@ public class AuthenticationConstants extends SpliceConstants{
     // In this particular instance, there are Splice beta customers with AnA disabled and they want to
     // switch to using native AnA.  So we allow a manual override here.  See DB-2088 for more details.
     @Parameter public static final String AUTHENTICATION_NATIVE_CREATE_CREDENTIALS_DATABASE = "splice.authentication.native.create.credentials.database";
-    @DefaultValue(AUTHENTICATION_NATIVE_CREATE_CREDENTIALS_DATABASE) public static final boolean DEFAULT_AUTHENTICATION_NATIVE_CREATE_CREDENTIALS_DATABASE = false;
+    @DefaultValue(AUTHENTICATION_NATIVE_CREATE_CREDENTIALS_DATABASE) public static final boolean DEFAULT_AUTHENTICATION_NATIVE_CREATE_CREDENTIALS_DATABASE = true;
     public static boolean authenticationNativeCreateCredentialsDatabase;
 
     @Parameter public static final String AUTHENTICATION_CUSTOM_PROVIDER = "splice.authentication.custom.provider";
