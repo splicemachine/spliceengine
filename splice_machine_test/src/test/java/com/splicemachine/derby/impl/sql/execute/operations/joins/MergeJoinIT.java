@@ -205,63 +205,6 @@ public class MergeJoinIT extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore
-    public void test3WayJoinOverAllStrategyPairs() throws Exception {
-        methodWatcher.executeUpdate("create index proj_pnum on proj (pnum)");
-
-        List<Pair<String,String>> strategyPairs = Lists.newLinkedList();
-        for (String s1 : STRATEGIES){
-            for (String s2: STRATEGIES){
-                strategyPairs.add(Pair.newPair(s1, s2));
-            }
-        }
-
-        final List<Object[]> expected = Arrays.asList(
-                o("P1", "E1", "P1"),
-                o("P1", "E2", "P1"),
-                o("P2", "E1", "P2"),
-                o("P2", "E2", "P2"),
-                o("P2", "E3", "P2"),
-                o("P2", "E4", "P2"),
-                o("P3", "E1", "P3"),
-                o("P4", "E1", "P4"),
-                o("P4", "E4", "P4"),
-                o("P5", "E1", "P5"),
-                o("P5", "E4", "P5"),
-                o("P6", "E1", "P6"));
-
-        try {
-            String query = "select w.pnum, w.empnum, p2.pnum " +
-                    "from --splice-properties joinOrder=fixed\n" +
-                    "         (select empnum, pnum from works order by pnum) w " +
-                    "            inner join proj p --splice-properties index=proj_pnum, joinStrategy=%s\n" +
-                    "               on w.pnum = p.pnum" +
-                    "     inner join proj p2  --splice-properties index=proj_pnum, joinStrategy=%s\n" +
-                    "            on p.pnum = p2.pnum " +
-                    " order by w.pnum, w.empnum, p2.pnum";
-
-            for (Pair<String,String> pair : strategyPairs){
-                try {
-                    ResultSet rs = methodWatcher.executeQuery(String.format(query,
-                            pair.getFirst(),
-                            pair.getSecond()));
-                    List<Object[]> results = TestUtils.resultSetToArrays(rs);
-                    Assert.assertArrayEquals(String.format("%s over %s produces incorrect results",
-                                    pair.getSecond(), pair.getFirst()),
-                            expected.toArray(),
-                            results.toArray());
-                } catch (Exception e) {
-                    Assert.fail(String.format("%s failed with exception %s", pair, e));
-                }
-            }
-
-
-        } finally {
-            methodWatcher.executeUpdate("drop index proj_pnum");
-        }
-    }
-
-    @Test
     public void testSimpleJoinOn2Columns() throws Exception {
         List<Object[]> expected = Arrays.asList(
                 o("adam",1),
@@ -339,30 +282,6 @@ public class MergeJoinIT extends SpliceUnitTest {
 
         } finally {
             methodWatcher.executeUpdate("drop index lineitem_ordered");
-        }
-    }
-
-    @Test
-    @Ignore("No longer valid since plan is not feasible")
-    public void testThrowIfNonCoveringIndex() throws Exception {
-        methodWatcher.executeUpdate("create index staff_ordered on staff (empnum)");
-        methodWatcher.executeUpdate("create index works_ordered on works (empnum)");
-
-        try {
-            ResultSet rs = methodWatcher.executeQuery("select s.empnum, s.empname " +
-                    "from works w --splice-properties index=works_ordered \n" +
-                    ", staff s --splice-properties index=staff_ordered, " +
-                    "joinStrategy=merge \n" +
-                    "where s.empnum = w.empnum " +
-                    "order by s.empnum");
-            List<Object[]> merge = TestUtils.resultSetToArrays(rs);
-        } catch (SQLException e){
-            Assert.assertTrue("Non-covering index not allowed on right",
-                    e.getNextException().getMessage().contains("non-covering index"));
-
-        } finally {
-            methodWatcher.executeUpdate("drop index staff_ordered");
-            methodWatcher.executeUpdate("drop index works_ordered");
         }
     }
 
