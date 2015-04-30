@@ -12,14 +12,8 @@ import javax.management.MalformedObjectNameException;
 import javax.management.NotCompliantMBeanException;
 import javax.management.ObjectName;
 
-import com.splicemachine.db.iapi.error.PublicAPI;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.property.PropertyUtil;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.impl.jdbc.EmbedConnection;
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.hbase.jmx.JMXUtils;
+import com.splicemachine.tools.EmbedConnectionMaker;
 
 /**
  * Implementation of wrapper class for JMX management statistics of Database Properties.
@@ -51,7 +45,7 @@ public class DatabasePropertyManagementImpl implements DatabasePropertyManagemen
 
 	@Override
 	public String getDatabaseProperty(String key) throws SQLException {
-		Connection dbConn = SpliceDriver.driver().getInternalConnection();
+		Connection dbConn = getConnection();
 		CallableStatement stmt = dbConn.prepareCall("VALUES SYSCS_UTIL.SYSCS_GET_DATABASE_PROPERTY(?)");
 		ResultSet rs = null;
 		String value = null;
@@ -70,7 +64,7 @@ public class DatabasePropertyManagementImpl implements DatabasePropertyManagemen
 
 	@Override
 	public void setDatabaseProperty(String key, String value) throws SQLException {
-		Connection dbConn = SpliceDriver.driver().getInternalConnection();
+		Connection dbConn = getConnection();
 		CallableStatement stmt = dbConn.prepareCall("CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY(?, ?)");
 		try {
 			stmt.setString(1, key);
@@ -80,5 +74,17 @@ public class DatabasePropertyManagementImpl implements DatabasePropertyManagemen
 			stmt.close();
 		}
 		dbConn.commit();
+	}
+
+	/**
+	 * Return a connection to the Splice database.
+	 *
+	 * @return a connection to the Splice database
+	 *
+	 * @throws SQLException
+	 */
+	private Connection getConnection() throws SQLException {
+		EmbedConnectionMaker connMaker = new EmbedConnectionMaker();
+		return connMaker.createNew();
 	}
 }
