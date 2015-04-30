@@ -17,6 +17,49 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
 
+/**
+ *
+ * There are 6 different relational processing paths for joins determined by the different valid combinations of these boolean
+ * fields.
+ *
+ *  1.  isOuterJoin: True for outer join and false for inner join
+ *      - True (outer): select * from foo left outer join foo2 on foo.col1 = foo2.col1;
+ *      - False (inner): select * from foo inner join foo2 on foo.col1 = foo2.col1;
+ *
+ *  2.  antiJoin(notExistsRightSide): True if the right side creates an antijoin or false if it does not.
+ *      - True (antiJoin): select * from foo where not exists (select * from foo2 where foo.col1 = foo2.col1);
+ *      - False (join): select * from foo where exists (select * from foo2 where foo.col1 = foo2.col1);
+ *
+ *  3.  hasRestriction: True if the join has a restriction and false if it does not.
+ *      - True (restriction): select * from foo, foo2 where foo.col1 = foo2.col1 and foo.col1+foo.col2 > 10;
+ *      - False (no restriction): select * from foo, foo2 where foo.col1 = foo2.col1 and foo.col2 = foo2.col2;
+ *
+ * 2^3 would mean there are 8 permutations, however antiJoin cannot be used with an outerjoin which removes 2 permutations.
+ *
+ * The valid combinations would be the following based on true values represented in the set:
+ *
+ * (inner,join,no restriction)
+ * (inner,join,restriction)
+ * (inner,antiJoin,restriction)
+ * (inner,antiJoin,no restriction)
+ * (outer,join,no restriction)
+ * (outer,join,restriction)
+ *
+ * Each Implementation of joins will provide an explanation of how they implement each of the 6 processing paths.
+ *
+ * @see com.splicemachine.derby.impl.sql.execute.operations.BroadcastJoinOperation
+ * @see com.splicemachine.derby.impl.sql.execute.operations.MergeSortJoinOperation
+ * @see com.splicemachine.derby.impl.sql.execute.operations.MergeJoinOperation
+ * @see com.splicemachine.derby.impl.sql.execute.operations.NestedLoopJoinOperation
+ *
+ * These implementations contain the processing logic for these placeholder operations.
+ *
+ * @see com.splicemachine.derby.impl.sql.execute.operations.BroadcastLeftOuterJoinOperation
+ * @see com.splicemachine.derby.impl.sql.execute.operations.MergeSortLeftOuterJoinOperation
+ * @see com.splicemachine.derby.impl.sql.execute.operations.MergeLeftOuterJoinOperation
+ * @see com.splicemachine.derby.impl.sql.execute.operations.NestedLoopLeftOuterJoinOperation
+ *
+ */
 public abstract class JoinOperation extends SpliceBaseOperation {
 		private static final long serialVersionUID = 2l;
 
@@ -262,7 +305,7 @@ public abstract class JoinOperation extends SpliceBaseOperation {
             if (mergedRowTemplate == null) {
                 mergedRowTemplate = activation.getExecutionFactory().getValueRow(leftNumCols + rightNumCols);
                 JoinUtils.getMergedRow(leftResultSet.getExecRowDefinition(), rightResultSet.getExecRowDefinition(),
-                                          wasRightOuterJoin, rightNumCols, leftNumCols, mergedRowTemplate);
+                                          wasRightOuterJoin, mergedRowTemplate);
             }
             return mergedRowTemplate;
         }
