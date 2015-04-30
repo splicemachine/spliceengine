@@ -9,6 +9,8 @@ import com.splicemachine.derby.stream.*;
 import com.splicemachine.derby.stream.function.SpliceFunction;
 import com.splicemachine.derby.stream.function.SpliceFunction2;
 import com.splicemachine.derby.stream.function.SplicePairFunction;
+import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.derby.utils.test.TestingDataType;
 import org.junit.*;
 import javax.annotation.Nullable;

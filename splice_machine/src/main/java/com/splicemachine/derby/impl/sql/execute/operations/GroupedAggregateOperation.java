@@ -4,7 +4,9 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.*;
-import com.splicemachine.derby.stream.*;
+import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
@@ -162,10 +164,10 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
             // Distinct Aggregate Path
             int[] allKeys = ArrayUtils.addAll(groupedAggregateContext.getGroupingKeys(),groupedAggregateContext.getNonGroupedUniqueColumns());
             return source.getDataSet()
-                    .keyBy(new Keyer(operationContext, allKeys))
+                    .keyBy(new KeyerFunction(operationContext, allKeys))
                     .reduceByKey(new MergeNonDistinctAggregatesFunction(operationContext, aggregates))
                     .values()
-                    .keyBy(new Keyer(operationContext, groupedAggregateContext.getGroupingKeys()))
+                    .keyBy(new KeyerFunction(operationContext, groupedAggregateContext.getGroupingKeys()))
                     .reduceByKey(new MergeAllAggregatesFunction(operationContext, aggregates))
                     .values()
                     .map(new AggregateFinisherFunction(operationContext,aggregates));
@@ -173,7 +175,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
         } else {
             // Regular Group by Path
             return source.getDataSet()
-                    .keyBy(new Keyer(operationContext, groupedAggregateContext.getGroupingKeys()))
+                    .keyBy(new KeyerFunction(operationContext, groupedAggregateContext.getGroupingKeys()))
                     .reduceByKey(new MergeAllAggregatesFunction(operationContext, aggregates))
                     .values()
                     .map(new AggregateFinisherFunction(operationContext, aggregates));

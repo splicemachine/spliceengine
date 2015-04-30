@@ -1,6 +1,7 @@
 package com.splicemachine.derby.stream.iterator;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.stream.iapi.PartitionAwareIterator;
 
 /**
  * Created by jleach on 4/28/15.

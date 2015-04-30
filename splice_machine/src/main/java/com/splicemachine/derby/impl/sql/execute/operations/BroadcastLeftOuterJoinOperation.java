@@ -1,20 +1,14 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 
@@ -22,8 +16,6 @@ public class BroadcastLeftOuterJoinOperation extends BroadcastJoinOperation {
 	private static Logger LOG = Logger.getLogger(BroadcastLeftOuterJoinOperation.class);
 	protected SpliceMethod<ExecRow> emptyRowFun;
 	protected ExecRow emptyRow;
-
-    { isOuterJoin = true; }
 
 	public BroadcastLeftOuterJoinOperation() {
 		super();
@@ -52,7 +44,8 @@ public class BroadcastLeftOuterJoinOperation extends BroadcastJoinOperation {
 				SpliceLogUtils.trace(LOG, "instantiate");
 				emptyRowFunMethodName = (emptyRowFun == null) ? null : emptyRowFun.getMethodName();
 				this.wasRightOuterJoin = wasRightOuterJoin;
-			try {
+                this.isOuterJoin = true;
+        try {
 					init(SpliceOperationContext.newContext(activation));
 			} catch (IOException e) {
 					throw Exceptions.parseException(e);

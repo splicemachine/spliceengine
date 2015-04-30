@@ -2,7 +2,9 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.iapi.sql.execute.*;
-import com.splicemachine.derby.stream.*;
+import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iterator.SparkJoinerIterator;
 import com.splicemachine.derby.stream.spark.RDDUtils;
 import com.splicemachine.derby.stream.function.SpliceFlatMap2Function;

@@ -1,20 +1,83 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.google.common.base.Optional;
 import com.splicemachine.derby.iapi.sql.execute.*;
-import com.splicemachine.derby.stream.*;
 import com.splicemachine.derby.stream.function.*;
+import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-import scala.Tuple2;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.*;
+
+/**
+ *
+ * BroadcastJoinOperation
+ *
+ * There are 6 different relational processing paths determined by the different valid combinations of these boolean
+ * fields (isOuterJoin, antiJoin, hasRestriction).  For more detail on these paths please check out:
+ *
+ * @see com.splicemachine.derby.impl.sql.execute.operations.JoinOperation
+ *
+ * Before determining the different paths, each operation retrieves its left and right datasets and keys them by a Keyer Function.
+ *
+ * @see com.splicemachine.derby.iapi.sql.execute.SpliceOperation#getDataSet()
+ * @see com.splicemachine.derby.stream.iapi.DataSet
+ * @see DataSet#keyBy(com.splicemachine.derby.stream.function.SpliceFunction)
+ * @see com.splicemachine.derby.stream.function.KeyerFunction
+ *
+ * Once each dataset is keyed, the following logic is performed for the appropriate processing path.
+ *
+ * 1. (inner,join,no restriction)
+ *     Flow:  leftDataSet -> broadcastJoin (rightDataSet) -> map (InnerJoinFunction)
+ *
+ * @see com.splicemachine.derby.stream.iapi.PairDataSet#broadcastJoin(com.splicemachine.derby.stream.iapi.PairDataSet)
+ * @see com.splicemachine.derby.stream.function.InnerJoinFunction
+ *
+ * 2. (inner,join,restriction)
+ *     Flow:  leftDataSet -> broadcastLeftOuterJoin (RightDataSet)
+ *     -> map (OuterJoinPairFunction) - filter (JoinRestrictionPredicateFunction)
+ *
+ * @see com.splicemachine.derby.stream.iapi.PairDataSet#broadcastLeftOuterJoin(com.splicemachine.derby.stream.iapi.PairDataSet)
+ * @see com.splicemachine.derby.stream.function.OuterJoinPairFunction
+ * @see com.splicemachine.derby.stream.function.JoinRestrictionPredicateFunction
+ *
+ * 3. (inner,antijoin,no restriction)
+ *     Flow:  leftDataSet -> broadcastSubtractByKey (rightDataSet) -> map (AntiJoinFunction)
+ *
+ * @see com.splicemachine.derby.stream.iapi.PairDataSet#broadcastSubtractByKey(com.splicemachine.derby.stream.iapi.PairDataSet)
+ * @see com.splicemachine.derby.stream.function.AntiJoinFunction
+ *
+ * 4. (inner,antijoin,restriction)
+ *     Flow:  leftDataSet -> broadcastLeftOuterJoin (rightDataSet) -> map (AntiJoinRestrictionFlatMapFunction)
+ *
+ * @see com.splicemachine.derby.stream.iapi.PairDataSet#broadcastLeftOuterJoin(com.splicemachine.derby.stream.iapi.PairDataSet)
+ * @see com.splicemachine.derby.stream.function.AntiJoinRestrictionFlatMapFunction
+ *
+ * 5. (outer,join,no restriction)
+ *     Flow:  leftDataSet -> broadcastLeftOuterJoin (rightDataSet) -> map (OuterJoinPairFunction)
+ *
+ * @see com.splicemachine.derby.stream.iapi.PairDataSet#broadcastLeftOuterJoin(com.splicemachine.derby.stream.iapi.PairDataSet)
+ * @see com.splicemachine.derby.stream.function.OuterJoinPairFunction
+ *
+ * 6. (outer,join,restriction)
+ *     Flow:  leftDataSet -> broadcastLeftOuterJoin (rightDataSet) -> map (OuterJoinPairFunction)
+ *     -> Filter (JoinRestrictionPredicateFunction)
+ *
+ * @see com.splicemachine.derby.stream.iapi.PairDataSet#broadcastLeftOuterJoin(com.splicemachine.derby.stream.iapi.PairDataSet)
+ * @see com.splicemachine.derby.stream.function.OuterJoinPairFunction
+ * @see com.splicemachine.derby.stream.function.JoinRestrictionPredicateFunction
+ *
+ *
+ */
 
 public class BroadcastJoinOperation extends JoinOperation {
     private static final long serialVersionUID = 2l;
@@ -91,15 +154,40 @@ public class BroadcastJoinOperation extends JoinOperation {
 
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         OperationContext operationContext = dsp.createOperationContext(this);
-        PairDataSet<ExecRow,LocatedRow> leftDataSet = leftResultSet.getDataSet().keyBy(new Keyer<LocatedRow>(operationContext, leftHashKeys));
-        PairDataSet<ExecRow,LocatedRow> rightDataSet = rightResultSet.getDataSet().keyBy(new Keyer<LocatedRow>(operationContext, rightHashKeys));
-        if (isOuterJoin) {
-            PairDataSet<ExecRow, Tuple2<LocatedRow, Optional<LocatedRow>>> joinedDataSet = leftDataSet.<LocatedRow>broadcastLeftOuterJoin(rightDataSet);
-            return joinedDataSet.map(new OuterJoinFunction(operationContext, wasRightOuterJoin, getEmptyRow())).filter(new JoinRestrictionPredicateFunction(operationContext));
+        PairDataSet<ExecRow,LocatedRow> leftDataSet = leftResultSet.getDataSet().keyBy(new KeyerFunction<LocatedRow>(operationContext, leftHashKeys));
+        PairDataSet<ExecRow,LocatedRow> rightDataSet = rightResultSet.getDataSet().keyBy(new KeyerFunction<LocatedRow>(operationContext, rightHashKeys));
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "getDataSet Performing MergeSortJoin type=%s, antiJoin=%s, hasRestriction=%s",
+                    isOuterJoin ? "outer" : "inner", notExistsRightSide, restriction != null);
+        if (isOuterJoin) { // Outer Join
+            if (restriction!=null) { // Restriction
+                return leftDataSet.<LocatedRow>broadcastLeftOuterJoin(rightDataSet)
+                        .map(new OuterJoinPairFunction(operationContext))
+                        .filter(new JoinRestrictionPredicateFunction(operationContext));
+            } else { // No Restriction
+                return leftDataSet.<LocatedRow>broadcastLeftOuterJoin(rightDataSet)
+                        .map(new OuterJoinPairFunction(operationContext));
+
+            }
         }
         else {
-            PairDataSet<ExecRow, Tuple2<LocatedRow, LocatedRow>> joinedDataSet = leftDataSet.<LocatedRow>broadcastJoin(rightDataSet);
-            return joinedDataSet.map(new InnerJoinFunction(operationContext, wasRightOuterJoin)).filter(new JoinRestrictionPredicateFunction(operationContext));
+            if (this.notExistsRightSide) { // antijoin
+                if (restriction !=null) { // with restriction
+                    return leftDataSet.<LocatedRow>broadcastLeftOuterJoin(rightDataSet)
+                            .flatmap(new AntiJoinRestrictionFlatMapFunction(operationContext));
+                } else { // No Restriction
+                    return leftDataSet.<LocatedRow>broadcastSubtractByKey(rightDataSet)
+                            .map(new AntiJoinFunction(operationContext));
+                }
+            } else { // Inner Join
+                if (restriction !=null) { // with restriction
+                    return leftDataSet.<LocatedRow>broadcastLeftOuterJoin(rightDataSet)
+                            .flatmap(new InnerJoinRestrictionFlatMapFunction(operationContext));
+                } else { // No Restriction
+                    return leftDataSet.broadcastJoin(rightDataSet)
+                            .map(new InnerJoinFunction<SpliceOperation>(operationContext));
+                }
+            }
         }
     }
 }

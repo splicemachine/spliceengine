@@ -7,10 +7,12 @@ import com.splicemachine.derby.impl.sql.execute.operations.distinctscalar.Distin
 import com.splicemachine.derby.impl.sql.execute.operations.distinctscalar.SingleDistinctScalarAggregateIterator;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.*;
 import com.splicemachine.derby.impl.storage.SpliceResultScanner;
-import com.splicemachine.derby.stream.*;
-import com.splicemachine.derby.stream.function.Keyer;
+import com.splicemachine.derby.stream.function.KeyerFunction;
 import com.splicemachine.derby.stream.function.MergeAllAggregatesFunction;
 import com.splicemachine.derby.stream.function.MergeNonDistinctAggregatesFunction;
+import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -154,7 +156,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation 
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         DataSet<LocatedRow> dataSet = source.getDataSet();
         OperationContext operationContext = dsp.createOperationContext(this);
-        LocatedRow finalRow = (LocatedRow) dataSet.keyBy(new Keyer(operationContext, keyColumns))
+        LocatedRow finalRow = (LocatedRow) dataSet.keyBy(new KeyerFunction(operationContext, keyColumns))
                 .reduceByKey(new MergeNonDistinctAggregatesFunction(operationContext, aggregates)).values()
                 .fold(null, new MergeAllAggregatesFunction(operationContext, aggregates));
         return dsp.singleRowDataSet(finish(finalRow != null ? finalRow : new LocatedRow(new EmptyRowSupplier(aggregateContext).get()), aggregates));

@@ -13,12 +13,13 @@ import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
-import com.splicemachine.derby.stream.DataSetProcessor;
-import com.splicemachine.derby.stream.StreamUtils;
-import com.splicemachine.derby.stream.DataSet;
+import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.utils.StreamUtils;
+import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.metrics.Timer;
 import com.splicemachine.pipeline.api.RecordingCallBuffer;
+import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.SIFactoryDriver;
@@ -536,10 +537,14 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
     @Override
     public void openCore() throws StandardException {
-        if (LOG.isTraceEnabled())
-            LOG.trace(String.format("openCore %s",this));
-        isOpen = true;
-        this.locatedRowIterator = getDataSet().toLocalIterator();
+        try {
+            if (LOG.isTraceEnabled())
+                LOG.trace(String.format("openCore %s", this));
+            isOpen = true;
+            this.locatedRowIterator = getDataSet().toLocalIterator();
+        } catch (Exception e) { // This catches all the iterator errors for things that are not lazy.
+            throw Exceptions.parseException(e);
+        }
     }
 
     @Override
@@ -551,16 +556,20 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
     @Override
     public ExecRow getNextRowCore() throws StandardException {
-           while (locatedRowIterator.hasNext()) {
-               locatedRow = locatedRowIterator.next();
-               if (LOG.isTraceEnabled())
-                   SpliceLogUtils.trace(LOG,"getNextRowCore %s locatedRow=%s",this, locatedRow);
-               return locatedRow.getRow();
-           }
-            locatedRow = null;
-            if (LOG.isTraceEnabled())
-                SpliceLogUtils.trace(LOG,"getNextRowCore %s locatedRow=%s",this, locatedRow);
-            return null;
+            try {
+                while (locatedRowIterator.hasNext()) {
+                    locatedRow = locatedRowIterator.next();
+                    if (LOG.isTraceEnabled())
+                        SpliceLogUtils.trace(LOG, "getNextRowCore %s locatedRow=%s", this, locatedRow);
+                    return locatedRow.getRow();
+                }
+                locatedRow = null;
+                if (LOG.isTraceEnabled())
+                    SpliceLogUtils.trace(LOG, "getNextRowCore %s locatedRow=%s", this, locatedRow);
+                return null;
+            } catch (Exception e) {
+                throw Exceptions.parseException(e);
+            }
     }
 
     @Override

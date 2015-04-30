@@ -3,10 +3,10 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.base.Strings;
 import com.splicemachine.derby.iapi.sql.execute.*;
-import com.splicemachine.derby.stream.DataSet;
-import com.splicemachine.derby.stream.DataSetProcessor;
-import com.splicemachine.derby.stream.OperationContext;
-import com.splicemachine.derby.stream.function.Keyer;
+import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.function.KeyerFunction;
 import com.splicemachine.derby.impl.sql.execute.operations.sort.DistinctSortAggregateBuffer;
 import com.splicemachine.derby.impl.sql.execute.operations.sort.SinkSortIterator;
 import com.splicemachine.derby.stream.function.RowComparator;
@@ -200,7 +200,7 @@ public class SortOperation extends SpliceBaseOperation {
         OperationContext operationContext = dsp.createOperationContext(this);
         if (distinct)
             dataSet = dataSet.distinct();
-        return dataSet.keyBy(new Keyer(operationContext, keyColumns))
+        return dataSet.keyBy(new KeyerFunction(operationContext, keyColumns))
                 .sortByKey(new RowComparator(descColumns)).values();
     }
 }

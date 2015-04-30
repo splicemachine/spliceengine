@@ -1,7 +1,7 @@
 package com.splicemachine.derby.stream.iterator;
 
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
-import com.splicemachine.derby.stream.IteratorWithContext;
+import com.splicemachine.derby.stream.iapi.IteratorWithContext;
 
 import java.util.Iterator;
 

@@ -1,9 +1,8 @@
 package com.splicemachine.derby.stream.function;
 
-import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
-import com.splicemachine.derby.stream.OperationContext;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 
 import java.io.IOException;
 import java.io.ObjectInput;

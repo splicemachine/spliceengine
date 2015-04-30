@@ -4,7 +4,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.BaseStreamTest;
-import com.splicemachine.derby.stream.PairDataSet;
+import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.derby.stream.function.SpliceFunction2;
 import org.junit.*;
 import java.util.Iterator;

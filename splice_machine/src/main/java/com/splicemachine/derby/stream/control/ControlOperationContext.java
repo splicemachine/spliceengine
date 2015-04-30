@@ -3,7 +3,7 @@ package com.splicemachine.derby.stream.control;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.stream.OperationContext;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.si.api.TxnView;
 import java.io.IOException;
 import java.io.ObjectInput;

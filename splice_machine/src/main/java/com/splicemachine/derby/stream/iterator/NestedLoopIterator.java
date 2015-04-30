@@ -5,7 +5,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.NestedLoopJoinOperation;
-import com.splicemachine.derby.stream.DataSet;
+import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import java.io.IOException;
@@ -54,7 +54,7 @@ public class NestedLoopIterator implements Iterator<LocatedRow>, Iterable<Locate
                     SpliceLogUtils.debug(LOG, ">>> NestedLoopIterator notExistsRightSide");
                 while (rightSideIterator.hasNext() && (rightSideRow = rightSideIterator.next()) != null) {
                     ExecRow mergedRow = operation.getActivation().getExecutionFactory().getValueRow(totalColumns);
-                    mergedRow = JoinUtils.getMergedRow(leftRow.getRow(),rightSideRow.getRow(),operation.wasRightOuterJoin,operation.getLeftNumCols(),operation.getRightNumCols(),mergedRow);
+                    mergedRow = JoinUtils.getMergedRow(leftRow.getRow(),rightSideRow.getRow(),operation.wasRightOuterJoin,mergedRow);
                     if (!operation.getRestriction().apply(mergedRow)) {// Row is filtered, keep iterating
                         if (LOG.isDebugEnabled())
                             SpliceLogUtils.debug(LOG, ">>> NestedLoopIterator notExists restriction removed left=%s, right=%s",leftRow.getRow(),rightSideRow.getRow());
@@ -69,7 +69,7 @@ public class NestedLoopIterator implements Iterator<LocatedRow>, Iterable<Locate
                     }
                 }
                 ExecRow mergedRow = operation.getActivation().getExecutionFactory().getValueRow(totalColumns);
-                populatedRow = new LocatedRow(JoinUtils.getMergedRow(leftRow.getRow(),operation.getEmptyRow(),operation.wasRightOuterJoin,operation.getLeftNumCols(),operation.getRightNumCols(),mergedRow));
+                populatedRow = new LocatedRow(JoinUtils.getMergedRow(leftRow.getRow(),operation.getEmptyRow(),operation.wasRightOuterJoin,mergedRow));
                 populated=true;
                 return true;
             }
@@ -83,7 +83,7 @@ public class NestedLoopIterator implements Iterator<LocatedRow>, Iterable<Locate
                     return false;
                 }
                 ExecRow mergedRow = operation.getActivation().getExecutionFactory().getValueRow(totalColumns);
-                populatedRow = new LocatedRow(JoinUtils.getMergedRow(leftRow.getRow(),rightSideRow.getRow(),operation.wasRightOuterJoin,operation.getLeftNumCols(),operation.getRightNumCols(),mergedRow));
+                populatedRow = new LocatedRow(JoinUtils.getMergedRow(leftRow.getRow(),rightSideRow.getRow(),operation.wasRightOuterJoin,mergedRow));
                 if (!operation.getRestriction().apply(populatedRow.getRow())) {
                     if (LOG.isDebugEnabled())
                         SpliceLogUtils.debug(LOG, ">>> NestedLoopIterator restriction removed left=%s, right=%s",leftRow.getRow(),rightSideRow.getRow());
