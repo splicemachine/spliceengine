@@ -248,17 +248,17 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
 		 * sorted.
 		 */
         if (genInListVals) {
-            numArgs = 26;
+            numArgs = 27;
         }
         else if (bulkFetch > 1) {
             // Bulk-fetch uses TableScanResultSet arguments plus two
             // additional arguments: 1) bulk fetch size, and 2) whether the
             // table contains LOB columns (used at runtime to decide if
             // bulk fetch is safe DERBY-1511).
-            numArgs = 26;
+            numArgs = 27;
         }
         else {
-            numArgs = 24 ;
+            numArgs = 25 ;
         }
         // Splice: our Hashable joins (MSJ, Broadcast) don't have a notion of store vs. non-store
         // filters, so include any nonStoreRestrictions in the storeRestrictionList

@@ -330,4 +330,5 @@ public interface OptimizablePredicateList {
 	 */
 	void adjustForSortElimination(RequiredRowOrdering ordering) throws StandardException;
 
+    boolean isRowIdScan();
 }

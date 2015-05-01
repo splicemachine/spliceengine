@@ -283,8 +283,12 @@ public class BinaryRelationalOperatorNode
 			** The left operand is a column reference.
 			** Is it the correct column?
 			*/
-            cr=(ColumnReference)leftOperand;
-            if(valNodeReferencesOptTable(cr,ft,false,walkSubtree)){
+			cr = (ColumnReference) leftOperand;
+            if (cr.getColumnName().compareToIgnoreCase("ROWID") == 0) {
+                return rightOperand;
+            }
+			if (valNodeReferencesOptTable(cr, ft, false, walkSubtree))
+			{
 				/*
 				** The table is correct, how about the column position?
 				*/
@@ -304,8 +308,12 @@ public class BinaryRelationalOperatorNode
 			** The right operand is a column reference.
 			** Is it the correct column?
 			*/
-            cr=(ColumnReference)rightOperand;
-            if(valNodeReferencesOptTable(cr,ft,false,walkSubtree)){
+			cr = (ColumnReference) rightOperand;
+            if (cr.getColumnName().compareToIgnoreCase("ROWID") == 0) {
+                return leftOperand;
+            }
+			if (valNodeReferencesOptTable(cr, ft, false, walkSubtree))
+			{
 				/*
 				** The table is correct, how about the column position?
 				*/
@@ -1806,4 +1814,20 @@ public class BinaryRelationalOperatorNode
         return;
     }
 
+    public boolean hasRowId() {
+        boolean ret = false;
+        if (leftOperand instanceof ColumnReference) {
+            ColumnReference cr = (ColumnReference) leftOperand;
+            if (cr.getColumnName().compareToIgnoreCase("ROWID") == 0) {
+                ret = true;
+            }
+        }
+        else if (rightOperand instanceof ColumnReference) {
+            ColumnReference cr = (ColumnReference) rightOperand;
+            if (cr.getColumnName().compareToIgnoreCase("ROWID") == 0) {
+                ret = true;
+            }
+        }
+        return ret;
+    }
 }

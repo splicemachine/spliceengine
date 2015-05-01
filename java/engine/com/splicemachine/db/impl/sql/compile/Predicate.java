@@ -52,6 +52,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
     int indexPosition;
     protected boolean startKey;
     protected boolean stopKey;
+    protected boolean rowId;
     protected boolean isQualifier;
     private boolean pulled;
 
@@ -124,6 +125,20 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
      */
     public void markStartKey(){
         startKey=true;
+    }
+
+    /**
+     * @see OptimizablePredicate#isStartKey
+     */
+    public boolean isRowId(){
+        return rowId;
+    }
+
+    /**
+     * @see OptimizablePredicate#markStartKey
+     */
+    public void markRowId(){
+        rowId=true;
     }
 
     /**

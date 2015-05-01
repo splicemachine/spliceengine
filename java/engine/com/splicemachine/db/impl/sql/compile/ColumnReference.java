@@ -650,6 +650,7 @@ public class ColumnReference extends ValueNode {
 			   ( (source.getExpression() instanceof ColumnReference) ||
 			     (source.getExpression() instanceof VirtualColumnNode) ||
 				 (source.getExpression() instanceof ConstantNode) ||
+                 (source.getExpression() instanceof CurrentRowLocationNode) ||
                  (source.getExpression() instanceof CastNode));
 	}
 

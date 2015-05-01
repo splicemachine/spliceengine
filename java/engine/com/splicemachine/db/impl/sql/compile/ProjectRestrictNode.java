@@ -456,6 +456,20 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         }
     }
 
+    public void pullRowIdPredicates(OptimizablePredicateList optimizablePredicates) throws StandardException{
+        // pull up rowid predicates that are not marked as start or stop key
+        if (restrictionList != null) {
+            for (int i = restrictionList.size() - 1; i >= 0; i--) {
+                OptimizablePredicate optPred = restrictionList.getOptPredicate(i);
+                if (optPred.isRowId()) {
+                    if (!optPred.isStartKey() && !optPred.isStopKey()) {
+                        optimizablePredicates.addOptPredicate(optPred);
+                        restrictionList.removeOptPredicate(i);
+                    }
+                }
+            }
+        }
+    }
     @Override
     public Optimizable modifyAccessPath(JBitSet outerTables) throws StandardException{
         boolean origChildOptimizable=true;
@@ -1216,7 +1230,8 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         // if there is no restriction, we just want to pass null.
         if(restriction==null){
             mb.pushNull(ClassName.GeneratedMethod);
-        }else{
+        }
+        else {
             // this sets up the method and the static field.
             // generates:
             // 	Object userExprFun { }

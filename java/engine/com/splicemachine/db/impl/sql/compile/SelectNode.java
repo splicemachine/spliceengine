@@ -1147,6 +1147,8 @@ public class SelectNode extends ResultSetNode{
             eliminateSort=gbn.getIsInSortedOrder();
         }
 
+        // Pull up rowId predicates that are not start or top keys
+        pullRowIdPredicates((ProjectRestrictNode)prnRSN);
         if(windowNodeList!=null){
 
             // Now we add a window result set wrapped in a PRN on top of what
@@ -2279,5 +2281,13 @@ public class SelectNode extends ResultSetNode{
         }
 
         return table;
+    }
+
+    private void pullRowIdPredicates(ProjectRestrictNode prn) throws StandardException{
+        ResultSetNode rsn = prn.getChildResult();
+        if (rsn instanceof ProjectRestrictNode) {
+            ProjectRestrictNode child = (ProjectRestrictNode) rsn;
+            child.pullRowIdPredicates(prn.getRestrictionList());
+        }
     }
 }
