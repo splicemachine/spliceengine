@@ -178,11 +178,24 @@ public class BackupIT extends SpliceUnitTest {
     private void verifyIncrementalBackup(long backupId, long backupItem, boolean expectedValue) throws Exception {
 
         PreparedStatement ps = connection.prepareStatement(
-                "select * from sys.sysbackupitems where backup_id=? and item=?");
+                "select item from sys.sysbackupitems where backup_id=? and item=?");
         ps.setLong(1, backupId);
         ps.setString(2, (new Long(backupItem)).toString());
         ResultSet rs = ps.executeQuery();
-        Assert.assertTrue(rs.next() == expectedValue);
+        boolean hasNext = rs.next();
+        String output = null;
+        if (hasNext) {
+            output ="item = " + rs.getString(1) + "\n";
+            rs.close();
+            ps = connection.prepareStatement(
+                    "select backup_item, region_name, file_name, include from sys.sysbackupfileset where backup_item=?");
+            ps.setString(1, (new Long(backupItem)).toString());
+            rs = ps.executeQuery();
+            while(rs.next()) {
+                output += rs.getString(1) + " | " + rs.getString(2) + " | " + rs.getString(3) + " | " + rs.getString(4) + "\n";
+            }
+        }
+        Assert.assertTrue(output, hasNext == expectedValue);
     }
 
     private void restore(long backupId) throws Exception

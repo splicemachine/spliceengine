@@ -114,6 +114,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
                 null,
                 -1,
                 true,
+                false,
                 null,
                 resultRowAllocator,
                 lockMode,

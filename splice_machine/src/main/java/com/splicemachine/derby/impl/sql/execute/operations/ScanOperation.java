@@ -61,6 +61,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 													GeneratedMethod startKeyGetter, int startSearchOperator,
 													GeneratedMethod stopKeyGetter, int stopSearchOperator,
 													boolean sameStartStopPosition,
+                                                    boolean rowIdKey,
 													String scanQualifiersField,
 													GeneratedMethod resultRowAllocator,
 													int lockMode, boolean tableLocked, int isolationLevel,
@@ -84,7 +85,8 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 								indexColItem,
 								sameStartStopPosition,
 								startSearchOperator,
-								stopSearchOperator
+								stopSearchOperator,
+                                rowIdKey
 				);
 		}
 

@@ -86,6 +86,7 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 															GeneratedMethod startKeyGetter, int startSearchOperator,
 															GeneratedMethod stopKeyGetter, int stopSearchOperator,
 															boolean sameStartStopPosition,
+                                                            boolean rowIdKey,
 															String scanQualifiersField,
 															String nextQualifierField,
 															int initialCapacity,
@@ -104,7 +105,7 @@ public class HashScanOperation extends ScanOperation implements SinkingOperation
 															boolean skipNullKeyColumns,
 															double optimizerEstimatedRowCount,
 															double optimizerEstimatedCost) throws StandardException {
-				super(conglomId,activation,resultSetNumber,startKeyGetter,startSearchOperator,stopKeyGetter,stopSearchOperator,sameStartStopPosition,scanQualifiersField,
+				super(conglomId,activation,resultSetNumber,startKeyGetter,startSearchOperator,stopKeyGetter,stopSearchOperator,sameStartStopPosition,rowIdKey,scanQualifiersField,
 								resultRowAllocator,lockMode,tableLocked,isolationLevel,colRefItem, -1,false, optimizerEstimatedRowCount,optimizerEstimatedCost);
 				SpliceLogUtils.trace(LOG, "scan operation instantiated for " + tableName);
 				this.tableName = "" + conglomId;

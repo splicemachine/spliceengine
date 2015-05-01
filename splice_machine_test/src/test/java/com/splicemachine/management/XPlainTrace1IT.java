@@ -370,4 +370,6 @@ public class XPlainTrace1IT extends BaseXplainIT {
     protected TestConnection getNewConnection() throws Exception {
         return methodWatcher.createConnection();
     }
+
+
 }

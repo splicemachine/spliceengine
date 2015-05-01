@@ -57,15 +57,18 @@ public class DerbyBytesUtil {
     }
 
 
-    public static byte[] generateIndexKey(DataValueDescriptor[] descriptors, boolean[] sortOrder, String tableVersion) throws IOException, StandardException {
+    public static byte[] generateIndexKey(DataValueDescriptor[] descriptors, boolean[] sortOrder, String tableVersion, boolean rowIdKey) throws IOException, StandardException {
         MultiFieldEncoder encoder = MultiFieldEncoder.create(descriptors.length);
         DescriptorSerializer[] serializers = VersionedSerializers.forVersion(tableVersion, false).getSerializers(descriptors);
         DescriptorSerializer rowLocSerializer = VersionedSerializers.forVersion(tableVersion, false).getSerializer(StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID);
         try {
-        /*
-         * The last entry is a RowLocation (for indices). They must be sortable, but the default encoding
-         * for RowLocations is unsorted. Thus, we have to be careful to encode any RowLocation values differently
-         */
+            if (rowIdKey) {
+                return descriptors[0].getBytes();
+            }
+            /*
+             * The last entry is a RowLocation (for indices). They must be sortable, but the default encoding
+             * for RowLocations is unsorted. Thus, we have to be careful to encode any RowLocation values differently
+             */
             for (int i = 0; i < descriptors.length; i++) {
                 DataValueDescriptor dvd = descriptors[i];
                 boolean desc = sortOrder != null && !sortOrder[i];
@@ -86,14 +89,16 @@ public class DerbyBytesUtil {
 
     public static byte[] generateScanKeyForIndex(DataValueDescriptor[] startKeyValue,
                                                  int startSearchOperator,
-                                                 boolean[] sortOrder, String tableVersion) throws IOException, StandardException {
+                                                 boolean[] sortOrder,
+                                                 String tableVersion,
+                                                 boolean rowIdKey) throws IOException, StandardException {
         if (startKeyValue == null) return null;
         switch (startSearchOperator) { // public static final int GT = -1;
             case ScanController.NA:
             case ScanController.GE:
-                return generateIndexKey(startKeyValue, sortOrder, tableVersion);
+                return generateIndexKey(startKeyValue, sortOrder, tableVersion, rowIdKey);
             case ScanController.GT:
-                byte[] indexKey = generateIndexKey(startKeyValue, sortOrder, tableVersion);
+                byte[] indexKey = generateIndexKey(startKeyValue, sortOrder, tableVersion, rowIdKey);
                 /*
                  * For a GT operation we want the next row in sorted order, and that's the row plus a
                  * trailing 0x0 byte

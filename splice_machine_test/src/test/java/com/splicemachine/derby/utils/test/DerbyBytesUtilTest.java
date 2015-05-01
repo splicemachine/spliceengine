@@ -37,18 +37,18 @@ public class DerbyBytesUtilTest {
 		@Test
 	public void generateIndexKeyTest() throws Exception {
 		byte[] indexKey1 = DerbyBytesUtil.generateIndexKey(
-				generateDataValueDescriptors("John", "Leach", 1l), null,null);
+				generateDataValueDescriptors("John", "Leach", 1l), null,null, false);
 		byte[] indexKey2 = DerbyBytesUtil.generateIndexKey(
-				generateDataValueDescriptors("John", "Leach", 2l), null,null);
+				generateDataValueDescriptors("John", "Leach", 2l), null,null,false);
 		Assert.assertTrue(Bytes.compareTo(indexKey1, indexKey2) < 0);
 		byte[] indexKey3 = DerbyBytesUtil.generateIndexKey(
-				generateDataValueDescriptors("John", "Leach", 1l), null,null);
+				generateDataValueDescriptors("John", "Leach", 1l), null,null,false);
 		byte[] indexKey4 = DerbyBytesUtil.generateIndexKey(
-				generateDataValueDescriptors("Monte", "Alpine"), null,null);
+				generateDataValueDescriptors("Monte", "Alpine"), null,null,false);
 		byte[] indexKey5 = DerbyBytesUtil.generateScanKeyForIndex(
-				generateDataValueDescriptors("John", "Leach", 1l), 1, null,null);
+				generateDataValueDescriptors("John", "Leach", 1l), 1, null,null,false);
 		byte[] indexKey6 = DerbyBytesUtil.generateScanKeyForIndex(
-				generateDataValueDescriptors("John", "Leach", 1l), -1, null,null);
+				generateDataValueDescriptors("John", "Leach", 1l), -1, null,null,false);
 		Assert.assertTrue(Bytes.compareTo(indexKey3, indexKey4) < 0);
 		Assert.assertTrue(Bytes.compareTo(indexKey5, indexKey6) < 0);
 
@@ -58,14 +58,14 @@ public class DerbyBytesUtilTest {
 	public void generateScanKeyForStringIndex() throws IOException,
 			StandardException {
 			DataValueDescriptor[] descriptors = generateDataValueDescriptors("John", "Leach");
-			byte[] correct = DerbyBytesUtil.generateIndexKey(descriptors, null,null);
+			byte[] correct = DerbyBytesUtil.generateIndexKey(descriptors, null,null,false);
 			Assert.assertTrue(Bytes.compareTo(correct,
-				DerbyBytesUtil.generateScanKeyForIndex( descriptors, ScanController.GE, null,null)) == 0);
-		Assert.assertTrue(Bytes.compareTo(correct, DerbyBytesUtil.generateScanKeyForIndex(descriptors, ScanController.GT, null,null)) < 0);
+				DerbyBytesUtil.generateScanKeyForIndex( descriptors, ScanController.GE, null,null,false)) == 0);
+		Assert.assertTrue(Bytes.compareTo(correct, DerbyBytesUtil.generateScanKeyForIndex(descriptors, ScanController.GT, null,null,false)) < 0);
 		Assert.assertTrue(Bytes.compareTo(correct,
-				DerbyBytesUtil.generateScanKeyForIndex( descriptors, ScanController.GE, null,null)) == 0);
+				DerbyBytesUtil.generateScanKeyForIndex( descriptors, ScanController.GE, null,null,false)) == 0);
 		Assert.assertTrue(Bytes.compareTo(correct,
-				DerbyBytesUtil.generateScanKeyForIndex( descriptors, ScanController.GT, null,null)) < 0);
+				DerbyBytesUtil.generateScanKeyForIndex( descriptors, ScanController.GT, null,null,false)) < 0);
 	}
 
 //	@Test
@@ -128,9 +128,9 @@ public class DerbyBytesUtilTest {
 				"8a80808d3b1be321013b1be3430a000d".getBytes());
 		descArray[0].setValue("a094c023-013b-1be3-2066-000004b061d8");
 		descArray[1].setValue("D");
-		byte[] beginKey = DerbyBytesUtil.generateScanKeyForIndex(descArray, 1, null,null);
-		byte[] endKey = DerbyBytesUtil.generateScanKeyForIndex(descArray, -1, null,null);
-		byte[] baseline = DerbyBytesUtil.generateIndexKey(descArray, null,null);
+		byte[] beginKey = DerbyBytesUtil.generateScanKeyForIndex(descArray, 1, null,null,false);
+		byte[] endKey = DerbyBytesUtil.generateScanKeyForIndex(descArray, -1, null,null,false);
+		byte[] baseline = DerbyBytesUtil.generateIndexKey(descArray, null,null,false);
 		Assert.assertTrue(Bytes.compareTo(beginKey, baseline) == 0);
 		Assert.assertTrue(Bytes.compareTo(beginKey, endKey) < 0);
 	}
