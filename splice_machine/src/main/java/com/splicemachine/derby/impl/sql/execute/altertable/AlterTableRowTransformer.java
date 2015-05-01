@@ -47,6 +47,7 @@ public class AlterTableRowTransformer implements RowTransformer {
     public KVPair transform(KVPair kvPair) throws StandardException, IOException {
         // Decode a row
         ExecRow mergedRow = templateRow.getClone();
+        srcRow.resetRowArray();
         if (srcRow.nColumns() > 0) {
             keyDecoder.set(kvPair.getRowKey(), 0, kvPair.getRowKey().length);
             keyDecoder.decode(srcRow);
@@ -61,16 +62,11 @@ public class AlterTableRowTransformer implements RowTransformer {
         }
         // encode the result
         KVPair newPair = entryEncoder.encode(mergedRow);
-        srcRow.resetRowArray();
         return newPair;
     }
 
     @Override
     public KVPair transform(List<KVPair> kvPairs) throws StandardException, IOException {
-        if (kvPairs.size() == 1) {
-            // optimization - if only one version, don't require going thru each column
-            return transform(kvPairs.get(0));
-        }
         // merge the columns - the template row will have default values, if there are any
         // (i.e., when adding column)
         ExecRow mergedRow = templateRow.getClone();
@@ -97,7 +93,6 @@ public class AlterTableRowTransformer implements RowTransformer {
         }
         // encode the result
         KVPair newPair = entryEncoder.encode(mergedRow);
-        srcRow.resetRowArray();
         return newPair;
     }
 
