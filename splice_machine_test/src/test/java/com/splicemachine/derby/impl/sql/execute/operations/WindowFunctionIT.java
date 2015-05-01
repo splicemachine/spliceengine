@@ -1823,31 +1823,58 @@ public class WindowFunctionIT extends SpliceUnitTest {
         rs.close();
     }
 
+
+    @Test
+    @Ignore("DB-3226")
+    public void testConstMinusAvg1ReversedJoinOrder() throws Exception {
+        String sqlText = String.format("SELECT %2$s.Salario - AVG(%2$s.Salario) OVER(PARTITION BY " +
+                        "%1$s.Nome_Dep) \"Diferença de Salário\" FROM --SPLICE-PROPERTIES joinOrder=FIXED\n" +
+                        "%1$s INNER JOIN %2$s " +
+                        "ON %2$s.ID_Dep = %1$s.ID",
+                this.getTableReference(TABLE5a_NAME), this.getTableReference(TABLE5b_NAME));
+
+        try(ResultSet rs = methodWatcher.executeQuery(sqlText)){
+
+            String expected=
+                    "Diferença de Salário |\n"+
+                            "----------------------\n"+
+                            "     -9166.3333      |\n"+
+                            "      9333.6666      |\n"+
+                            "      -167.3333      |\n"+
+                            "     -2500.0000      |\n"+
+                            "     -2000.0000      |\n"+
+                            "      4500.0000      |\n"+
+                            "     -3499.6666      |\n"+
+                            "     -2999.6666      |\n"+
+                            "      6499.3333      |";
+            assertEquals("\n"+sqlText+"\n",expected,TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
     @Test
     public void testConstMinusAvg1() throws Exception {
         // DB-2124
         String sqlText = String.format("SELECT %2$s.Salario - AVG(%2$s.Salario) OVER(PARTITION BY " +
-                        "%1$s.Nome_Dep) \"Diferença de Salário\" FROM %2$s " +
-                        "INNER JOIN %1$s " +
+                        "%1$s.Nome_Dep) \"Diferença de Salário\" FROM --SPLICE-PROPERTIES joinOrder=FIXED\n" +
+                        "%2$s INNER JOIN %1$s " +
                         "ON %2$s.ID_Dep = %1$s.ID",
                 this.getTableReference(TABLE5a_NAME), this.getTableReference(TABLE5b_NAME));
 
-        ResultSet rs = methodWatcher.executeQuery(sqlText);
+        try(ResultSet rs = methodWatcher.executeQuery(sqlText)){
 
-        String expected =
-                "Diferença de Salário |\n" +
-                        "----------------------\n" +
-                        "     -9166.3333      |\n" +
-                        "      9333.6666      |\n" +
-                        "      -167.3333      |\n" +
-                        "     -2500.0000      |\n" +
-                        "     -2000.0000      |\n" +
-                        "      4500.0000      |\n" +
-                        "     -3499.6666      |\n" +
-                        "     -2999.6666      |\n" +
-                        "      6499.3333      |";
-        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
-        rs.close();
+            String expected=
+                    "Diferença de Salário |\n"+
+                            "----------------------\n"+
+                            "     -9166.3333      |\n"+
+                            "      9333.6666      |\n"+
+                            "      -167.3333      |\n"+
+                            "     -2500.0000      |\n"+
+                            "     -2000.0000      |\n"+
+                            "      4500.0000      |\n"+
+                            "     -3499.6666      |\n"+
+                            "     -2999.6666      |\n"+
+                            "      6499.3333      |";
+            assertEquals("\n"+sqlText+"\n",expected,TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
     }
 
     @Test
