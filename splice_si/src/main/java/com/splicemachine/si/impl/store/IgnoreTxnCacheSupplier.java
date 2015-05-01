@@ -46,27 +46,29 @@ public class IgnoreTxnCacheSupplier {
         return ignoreTxnList;
     }
 
-    private List<Pair<Long, Long>> getIgnoreTxnListFromStore(String tableName) throws IOException {
+    private synchronized List<Pair<Long, Long>> getIgnoreTxnListFromStore(String tableName) throws IOException {
         List<Pair<Long, Long>> ignoreTxnList = new ArrayList<>();
 
         if (entryDecoder == null)
             entryDecoder = new EntryDecoder();
+        try {
+            openScanner(tableName);
+            Result r = null;
 
-        openScanner(tableName);
-        Result r = null;
-
-        while((r = resultScanner.next()) != null) {
-            byte[] buffer = dataLib.getDataValueBuffer(dataLib.matchDataColumn(r));
-            int offset = dataLib.getDataValueOffset(dataLib.matchDataColumn(r));
-            int length = dataLib.getDataValuelength(dataLib.matchDataColumn(r));
-            entryDecoder.set(buffer, offset, length);
-            MultiFieldDecoder decoder = entryDecoder.getEntryDecoder();
-            String item = decoder.decodeNextString();
-            long startTxnId = decoder.decodeNextLong();
-            long endTxnId = decoder.decodeNextLong();
-            ignoreTxnList.add(new Pair<Long, Long>(startTxnId, endTxnId));
+            while ((r = resultScanner.next()) != null) {
+                byte[] buffer = dataLib.getDataValueBuffer(dataLib.matchDataColumn(r));
+                int offset = dataLib.getDataValueOffset(dataLib.matchDataColumn(r));
+                int length = dataLib.getDataValuelength(dataLib.matchDataColumn(r));
+                entryDecoder.set(buffer, offset, length);
+                MultiFieldDecoder decoder = entryDecoder.getEntryDecoder();
+                String item = decoder.decodeNextString();
+                long startTxnId = decoder.decodeNextLong();
+                long endTxnId = decoder.decodeNextLong();
+                ignoreTxnList.add(new Pair<Long, Long>(startTxnId, endTxnId));
+            }
+        } finally {
+            resultScanner.close();
         }
-
         return ignoreTxnList;
     }
 
