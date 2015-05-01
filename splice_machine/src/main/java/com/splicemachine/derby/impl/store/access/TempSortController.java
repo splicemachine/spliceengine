@@ -57,7 +57,7 @@ public class TempSortController implements SortCostController{
         baseCost.setLocalCost(parallelCost);
 
         //since we execute in parallel, clear out our underlying remote cost
-        baseCost.getBase().setRemoteCost(0);
+//        baseCost.getBase().setRemoteCost(0);
 
     }
 }
