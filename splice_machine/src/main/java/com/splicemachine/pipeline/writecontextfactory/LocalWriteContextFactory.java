@@ -1,37 +1,8 @@
 package com.splicemachine.pipeline.writecontextfactory;
 
-import com.google.common.base.Optional;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
-import com.splicemachine.concurrent.ResettableCountDownLatch;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.ddl.DDLChangeType;
-import com.splicemachine.derby.ddl.DDLCoordinationFactory;
-import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
-import com.splicemachine.derby.utils.DataDictionaryUtils;
-import com.splicemachine.pipeline.api.WriteContext;
-import com.splicemachine.pipeline.constraint.*;
-import com.splicemachine.pipeline.ddl.DDLChange;
-import com.splicemachine.pipeline.ddl.TentativeDDLDesc;
-import com.splicemachine.pipeline.exception.IndexNotSetUpException;
-import com.splicemachine.pipeline.writecontext.PipelineWriteContext;
-import com.splicemachine.pipeline.writehandler.IndexCallBufferFactory;
-import com.splicemachine.pipeline.writehandler.RegionWriteHandler;
-import com.splicemachine.si.api.TransactionalRegion;
-import com.splicemachine.si.api.TxnView;
-import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.db.catalog.IndexDescriptor;
-import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.context.ContextManager;
-import com.splicemachine.db.iapi.services.context.ContextService;
-import com.splicemachine.db.iapi.sql.dictionary.*;
-import org.apache.hadoop.hbase.DoNotRetryIOException;
-import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.log4j.Logger;
+import static com.splicemachine.pipeline.writecontextfactory.ConglomerateDescriptors.isIndex;
+import static com.splicemachine.pipeline.writecontextfactory.ConglomerateDescriptors.isUniqueIndex;
+import static com.splicemachine.pipeline.writecontextfactory.ConglomerateDescriptors.numberFunction;
 
 import java.io.IOException;
 import java.sql.SQLException;
@@ -44,9 +15,51 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 
-import static com.splicemachine.pipeline.writecontextfactory.ConglomerateDescriptors.isIndex;
-import static com.splicemachine.pipeline.writecontextfactory.ConglomerateDescriptors.isUniqueIndex;
-import static com.splicemachine.pipeline.writecontextfactory.ConglomerateDescriptors.numberFunction;
+import com.google.common.base.Optional;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
+import org.apache.hadoop.hbase.DoNotRetryIOException;
+import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
+
+import com.splicemachine.concurrent.ResettableCountDownLatch;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.db.catalog.IndexDescriptor;
+import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.services.context.ContextService;
+import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptorList;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptorList;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.ForeignKeyConstraintDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.ReferencedKeyConstraintDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.derby.ddl.DDLChangeType;
+import com.splicemachine.derby.ddl.DDLCoordinationFactory;
+import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
+import com.splicemachine.derby.utils.DataDictionaryUtils;
+import com.splicemachine.pipeline.api.WriteContext;
+import com.splicemachine.pipeline.constraint.BatchConstraintChecker;
+import com.splicemachine.pipeline.constraint.ChainConstraintChecker;
+import com.splicemachine.pipeline.constraint.Constraint;
+import com.splicemachine.pipeline.constraint.ConstraintContext;
+import com.splicemachine.pipeline.constraint.PrimaryKeyConstraint;
+import com.splicemachine.pipeline.constraint.UniqueConstraint;
+import com.splicemachine.pipeline.ddl.DDLChange;
+import com.splicemachine.pipeline.ddl.TentativeDDLDesc;
+import com.splicemachine.pipeline.exception.IndexNotSetUpException;
+import com.splicemachine.pipeline.writecontext.PipelineWriteContext;
+import com.splicemachine.pipeline.writehandler.IndexCallBufferFactory;
+import com.splicemachine.pipeline.writehandler.RegionWriteHandler;
+import com.splicemachine.si.api.TransactionalRegion;
+import com.splicemachine.si.api.TxnView;
+import com.splicemachine.utils.SpliceLogUtils;
 
 /**
  * One instance of this class will exist per conglomerate number per JVM.  Holds state about whether its conglomerate
@@ -297,6 +310,7 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
                     case ADD_COLUMN:
                     case ADD_PRIMARY_KEY:
                     case ADD_UNIQUE_CONSTRAINT:
+                    case DROP_PRIMARY_KEY:
                         alterTableWriteFactories.add(AlterTableWriteFactory.create(ddlChange));
                         break;
                     default:
@@ -458,7 +472,7 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
         //
         if(isIndexTableContext) {
             // we are an index, so just map a constraint rather than an attached index
-            addIndexConstraint(td, cd);
+            addUniqueIndexConstraint(td, cd);
             // safe to clear here because we don't chain indices -- we don't send index writes to other index tables.
             indexFactories.clear();
         }
@@ -514,6 +528,7 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
                     case ADD_COLUMN:
                     case ADD_PRIMARY_KEY:
                     case ADD_UNIQUE_CONSTRAINT:
+                    case DROP_PRIMARY_KEY:
                         if (ddlDesc.getBaseConglomerateNumber() == conglomId)
                             alterTableWriteFactories.add(AlterTableWriteFactory.create(ddlChange));
                         break;
@@ -563,12 +578,13 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
         constraintFactories.add(new ConstraintFactory(new UniqueConstraint(cc)));
     }
 
-    private void addIndexConstraint(TableDescriptor td, ConglomerateDescriptor conglomDesc) {
+    private void addUniqueIndexConstraint(TableDescriptor td, ConglomerateDescriptor conglomDesc) {
         IndexDescriptor indexDescriptor = conglomDesc.getIndexDescriptor().getIndexDescriptor();
         if (indexDescriptor.isUnique()) {
             //make sure it's not already in the constraintFactories
             for (ConstraintFactory constraintFactory : constraintFactories) {
                 if (constraintFactory.getLocalConstraint().getType() == Constraint.Type.UNIQUE) {
+                    // TODO: JC-  Do we need this check anymore since we're no longer calling method inside of a loop?
                     return; //we've found a local unique constraint, don't need to add it more than once
                 }
             }
