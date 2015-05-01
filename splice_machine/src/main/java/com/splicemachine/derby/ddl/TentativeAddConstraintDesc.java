@@ -25,6 +25,7 @@ public class TentativeAddConstraintDesc extends AlterTableDDLDescriptor implemen
     private String tableVersion;
     private long newConglomId;
     private long oldConglomId;
+    private long indexConglomerateId;
     private int[] srcColumnOrdering;
     private int[] targetColumnOrdering;
     private ColumnInfo[] columnInfos;
@@ -34,12 +35,14 @@ public class TentativeAddConstraintDesc extends AlterTableDDLDescriptor implemen
     public TentativeAddConstraintDesc(String tableVersion,
                                       long newConglomId,
                                       long oldConglomId,
+                                      long indexConglomerateId,
                                       int[] srcColumnOrdering,
                                       int[] targetColumnOrdering,
                                       ColumnInfo[] columnInfos) {
         this.tableVersion = tableVersion;
         this.newConglomId = newConglomId;
         this.oldConglomId = oldConglomId;
+        this.indexConglomerateId = indexConglomerateId;
         this.srcColumnOrdering = srcColumnOrdering;
         this.targetColumnOrdering = targetColumnOrdering;
         this.columnInfos = columnInfos;
@@ -71,6 +74,7 @@ public class TentativeAddConstraintDesc extends AlterTableDDLDescriptor implemen
         out.writeObject(tableVersion);
         out.writeLong(newConglomId);
         out.writeLong(oldConglomId);
+        out.writeLong(indexConglomerateId);
         ArrayUtil.writeIntArray(out, srcColumnOrdering);
         ArrayUtil.writeIntArray(out, targetColumnOrdering);
         out.writeInt(columnInfos.length);
@@ -84,6 +88,7 @@ public class TentativeAddConstraintDesc extends AlterTableDDLDescriptor implemen
         tableVersion = (String) in.readObject();
         newConglomId = in.readLong();
         oldConglomId = in.readLong();
+        indexConglomerateId = in.readLong();
         srcColumnOrdering = ArrayUtil.readIntArray(in);
         targetColumnOrdering = ArrayUtil.readIntArray(in);
         int size = in.readInt();
@@ -91,6 +96,10 @@ public class TentativeAddConstraintDesc extends AlterTableDDLDescriptor implemen
         for (int i = 0; i < size; ++i) {
             columnInfos[i] = (ColumnInfo)in.readObject();
         }
+    }
+
+    public long getIndexConglomerateId() {
+        return indexConglomerateId;
     }
 
     private static RowTransformer create(String tableVersion,
@@ -122,5 +131,4 @@ public class TentativeAddConstraintDesc extends AlterTableDDLDescriptor implemen
                                     srcRow,
                                     templateRow);
     }
-
 }

@@ -126,7 +126,7 @@ public class SpliceGenericConstantActionFactory extends GenericConstantActionFac
                                                       boolean dropStatisticsAll, String indexNameForStatistics) {
         SpliceLogUtils.trace(LOG, "getAlterTableConstantAction for {%s.%s} with columnInfo {%s}",(sd==null?"none":sd.getSchemaName()),tableName, Arrays.toString(columnInfo));
         if(truncateTable){
-            return new TruncateTableConstantOperation(sd,tableName,tableId,tableConglomerateId,
+            return new TruncateTableConstantOperation(sd,tableName,tableId,
                     lockGranularity,behavior, indexNameForStatistics);
 //        }        else if(compressTable){
 //            if(purge){
@@ -147,10 +147,10 @@ public class SpliceGenericConstantActionFactory extends GenericConstantActionFac
 //                    updateStatistics,updateStatisticsAll,dropStatistics,dropStatisticsAll,indexNameForStatistics);
         }else if(columnInfo!=null && columnInfo.length > 0){
             return new ModifyColumnConstantOperation(sd,tableName,tableId,
-                    tableConglomerateId,columnInfo,constraintActions,
+                    columnInfo,constraintActions,
                     lockGranularity,behavior, indexNameForStatistics);
         } else{
-            return new	AlterTableConstantOperation( sd, tableName, tableId, tableConglomerateId,
+            return new	AlterTableConstantOperation( sd, tableName, tableId,
                     columnInfo, constraintActions,
                     lockGranularity,
                     behavior,

@@ -35,7 +35,6 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
      * @param sd                     descriptor for the table's schema.
      * @param tableName              Name of table.
      * @param tableId                UUID of table
-     * @param tableConglomerateId    heap conglomerate number of table
      * @param lockGranularity        The lock granularity.
      * @param behavior               drop behavior for dropping column
      * @param indexNameForStatistics Will name the index whose statistics
@@ -43,11 +42,10 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
     public TruncateTableConstantOperation(SchemaDescriptor sd,
                                           String tableName,
                                           UUID tableId,
-                                          long tableConglomerateId,
                                           char lockGranularity,
                                           int behavior,
                                           String indexNameForStatistics) {
-        super(sd,tableName,tableId,tableConglomerateId,null,null,lockGranularity,behavior,indexNameForStatistics);
+        super(sd,tableName,tableId,null,null,lockGranularity,behavior,indexNameForStatistics);
     }
 
 

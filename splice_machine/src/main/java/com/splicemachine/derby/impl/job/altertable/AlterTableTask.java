@@ -7,6 +7,8 @@ import java.util.concurrent.ExecutionException;
 
 import com.google.common.base.Throwables;
 
+import com.splicemachine.derby.ddl.DDLChangeType;
+import com.splicemachine.derby.ddl.TentativeAddConstraintDesc;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
@@ -41,7 +43,13 @@ public class AlterTableTask extends ZkTask {
             WriteContextFactory contextFactory =
                 WriteContextFactoryManager.getWriteContext(tentativeAddColumnDesc.getBaseConglomerateNumber());
             try {
-                contextFactory.addDDLChange(ddlChange);
+                if (ddlChange.getChangeType() == DDLChangeType.DROP_CONSTRAINT) {
+                    // For drop constraint task, we just need to remove the constraint index
+                    long indexConglomId = ((TentativeAddConstraintDesc)ddlChange.getTentativeDDLDesc()).getIndexConglomerateId();
+                    contextFactory.dropIndex(indexConglomId, ddlChange.getTxn());
+                } else {
+                    contextFactory.addDDLChange(ddlChange);
+                }
             } finally {
                 contextFactory.close();
             }

@@ -87,7 +87,6 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
      * @param sd                     descriptor for the table's schema.
      * @param tableName              Name of table.
      * @param tableId                UUID of table
-     * @param tableConglomerateId    heap conglomerate number of table
      * @param columnInfo             Information on all the columns in the table.
      * @param constraintActions      ConstraintConstantAction[] for constraints
      * @param lockGranularity        The lock granularity.
@@ -95,11 +94,10 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
      * @param indexNameForStatistics Will name the index whose statistics
      */
     public ModifyColumnConstantOperation(SchemaDescriptor sd, String tableName, UUID tableId,
-                                         long tableConglomerateId,
                                          ColumnInfo[] columnInfo, ConstantAction[] constraintActions,
                                          char lockGranularity, int behavior,
                                          String indexNameForStatistics) {
-        super(sd, tableName, tableId, tableConglomerateId,
+        super(sd, tableName, tableId,
                 columnInfo, constraintActions,
                 lockGranularity, behavior, indexNameForStatistics);
     }

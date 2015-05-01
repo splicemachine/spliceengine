@@ -24,10 +24,15 @@ public class AlterTableWriteFactory implements LocalWriteFactory {
         if (changeType == DDLChangeType.ADD_COLUMN ||
             changeType == DDLChangeType.ADD_PRIMARY_KEY ||
             changeType == DDLChangeType.ADD_UNIQUE_CONSTRAINT ||
+            changeType == DDLChangeType.DROP_CONSTRAINT ||
+            changeType == DDLChangeType.DROP_PRIMARY_KEY ||
             changeType == DDLChangeType.DROP_COLUMN) {
             return new AlterTableWriteFactory(ddlChange);
+        } else {
+            // should only happen when implementing a new DDLChangeType but
+            // forgetting to add it here
+            throw new RuntimeException("Unknown DDLChangeType: "+changeType);
         }
-        return null;
     }
 
     @Override

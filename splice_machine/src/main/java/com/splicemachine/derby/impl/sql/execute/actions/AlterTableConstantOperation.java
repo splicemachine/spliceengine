@@ -61,6 +61,7 @@ import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.job.altertable.AlterTableJob;
 import com.splicemachine.derby.impl.job.altertable.PopulateConglomerateJob;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
+import com.splicemachine.derby.impl.sql.execute.AbstractDropIndexConstantOperation;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
@@ -117,7 +118,6 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
      * @param sd              descriptor for the table's schema.
      *  @param tableName          Name of table.
      * @param tableId            UUID of table
-     * @param tableConglomerateId  heap conglomerate number of table
      * @param columnInfo          Information on all the columns in the table.
      * @param constraintActions  ConstraintConstantAction[] for constraints
      * @param lockGranularity      The lock granularity.
@@ -128,7 +128,6 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
             SchemaDescriptor sd,
             String tableName,
             UUID tableId,
-            long tableConglomerateId,
             ColumnInfo[] columnInfo,
             ConstantAction[] constraintActions,
             char lockGranularity,
@@ -286,6 +285,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
                         break;
                     case DataDictionary.UNIQUE_CONSTRAINT:
 
+                        // FIXME: JC - validate constraint first!
                         // create the unique constraint
                         createUniquenessConstraint(activation, DDLChangeType.ADD_UNIQUE_CONSTRAINT, "AddUniqueConstraint", cca);
 
@@ -313,19 +313,29 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
                         break;
                 }
             } else {
+                // It's a DropConstraintConstantOperation (there are only two types)
                 if (SanityManager.DEBUG) {
                     if (!(ca instanceof DropConstraintConstantOperation)) {
                         if (ca == null) {
                             SanityManager.THROWASSERT("constraintAction expected to be instanceof " +
                                                           "DropConstraintConstantOperation not null.");
                         }
+                        assert ca != null;
                         SanityManager.THROWASSERT("constraintAction expected to be instanceof " +
                                 "DropConstraintConstantOperation not " +ca.getClass().getName());
                     }
                 }
+                @SuppressWarnings("ConstantConditions") DropConstraintConstantOperation dcc = (DropConstraintConstantOperation)ca;
 
-                // Handle drop constraint
-                executeDropConstraint(activation, "DropConstraint", ca);
+                if (dcc.getConstraintName() == null) {
+                    // Sadly, constraintName == null is the only way to know if constraint op is drop PK
+                    // Handle dropping Primary Key
+                    executeDropPrimaryKey(activation, DDLChangeType.DROP_PRIMARY_KEY, "DropPrimaryKey", dcc);
+                } else {
+                    // Handle drop constraint
+                    //noinspection ConstantConditions
+                    executeDropConstraint(activation, DDLChangeType.DROP_CONSTRAINT, "DropConstraint", dcc);
+                }
             }
         }
 
@@ -336,12 +346,262 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
 
    }
 
-    private void executeDropConstraint(Activation activation, String changeMsg, ConstantAction ca) throws
-        StandardException {
-        if (! (ca instanceof DropConstraintConstantOperation)) {
-            return;
+    private void executeDropPrimaryKey(Activation activation, DDLChangeType changeType, String changeMsg,
+                                       DropConstraintConstantOperation constraint) throws StandardException {
+        // FIXME: JC - drop constraint has no columns
+        List<String> constraintColumnNames = Collections.emptyList();
+
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        DataDictionary dd = lcc.getDataDictionary();
+        TransactionController tc = lcc.getTransactionExecute();
+        TableDescriptor tableDescriptor = activation.getDDLTableDescriptor();
+        ColumnDescriptorList columnDescriptorList = tableDescriptor.getColumnDescriptorList();
+        int nColumns = columnDescriptorList.size();
+
+        //   o create row template to tell the store what type of rows this
+        //     table holds.
+        //   o create array of collation id's to tell collation id of each
+        //     column in table.
+        ExecRow template = com.splicemachine.db.impl.sql.execute.RowUtil.getEmptyValueRow(columnDescriptorList.size(), lcc);
+
+        TxnView parentTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
+
+        // How were the columns ordered before?
+        int[] oldColumnOrdering = DataDictionaryUtils.getColumnOrdering(parentTxn, tableId);
+
+        // We're adding a uniqueness constraint. Column sort order will change.
+        int[] collation_ids = new int[nColumns];
+        ColumnOrdering[] columnSortOrder = new IndexColumnOrder[constraintColumnNames.size()];
+        int j=0;
+        for (int ix = 0; ix < nColumns; ix++) {
+            ColumnDescriptor col_info = columnDescriptorList.get(ix);
+            if (constraintColumnNames.contains(col_info.getColumnName())) {
+                columnSortOrder[j++] = new IndexColumnOrder(ix);
+            }
+            // Get a template value for each column
+            if (col_info.getDefaultValue() != null) {
+            /* If there is a default value, use it, otherwise use null */
+                template.setColumn(ix + 1, col_info.getDefaultValue());
+            }
+            else {
+                template.setColumn(ix + 1, col_info.getType().getNull());
+            }
+            // get collation info for each column.
+            collation_ids[ix] = col_info.getType().getCollationType();
         }
-        ca.executeConstantAction(activation);
+
+        /*
+         * Inform the data dictionary that we are about to write to it.
+         * There are several calls to data dictionary "get" methods here
+         * that might be done in "read" mode in the data dictionary, but
+         * it seemed safer to do this whole operation in "write" mode.
+         *
+         * We tell the data dictionary we're done writing at the end of
+         * the transaction.
+         */
+        dd.startWriting(lcc);
+
+        // Get the properties on the old heap
+        long oldCongNum = tableDescriptor.getHeapConglomerateId();
+        ConglomerateController compressHeapCC =
+            tc.openConglomerate(
+                oldCongNum,
+                false,
+                TransactionController.OPENMODE_FORUPDATE,
+                TransactionController.MODE_TABLE,
+                TransactionController.ISOLATION_SERIALIZABLE);
+
+        Properties properties = new Properties();
+        compressHeapCC.getInternalTablePropertySet(properties);
+        compressHeapCC.close();
+
+        int tableType = tableDescriptor.getTableType();
+        long newCongNum = tc.createConglomerate(
+            "heap", // we're requesting a heap conglomerate
+            template.getRowArray(), // row template
+            columnSortOrder, //column sort order - not required for heap
+            collation_ids,
+            properties, // properties
+            tableType == TableDescriptor.GLOBAL_TEMPORARY_TABLE_TYPE ?
+                (TransactionController.IS_TEMPORARY | TransactionController.IS_KEPT) :
+                TransactionController.IS_DEFAULT);
+
+        /*
+         * modify the conglomerate descriptor with the new conglomId
+         */
+        updateTableConglomerateDescriptor(tableDescriptor,
+                                          newCongNum,
+                                          sd,
+                                          lcc,
+                                          constraint);
+        // refresh the activation's TableDescriptor now that we've modified it
+        activation.setDDLTableDescriptor(tableDescriptor);
+
+        // follow thru with remaining constraint actions, create, store, etc.
+        constraint.executeConstantAction(activation);
+
+        // Start a tentative txn to demarcate the DDL change
+        Txn tentativeTransaction;
+        try {
+            TxnLifecycleManager lifecycleManager = TransactionLifecycle.getLifecycleManager();
+            tentativeTransaction =
+                lifecycleManager.beginChildTransaction(parentTxn, Bytes.toBytes(Long.toString(oldCongNum)));
+        } catch (IOException e) {
+            LOG.error("Couldn't start transaction for tentative Add Constraint operation");
+            throw Exceptions.parseException(e);
+        }
+        String tableVersion = DataDictionaryUtils.getTableVersion(lcc, tableId);
+        int[] newColumnOrdering = DataDictionaryUtils.getColumnOrdering(parentTxn, tableId);
+        ColumnInfo[] newColumnInfo = DataDictionaryUtils.getColumnInfo(tableDescriptor);
+        TransformingDDLDescriptor interceptColumnDesc = new TentativeAddConstraintDesc(tableVersion,
+                                                                                       newCongNum,
+                                                                                       oldCongNum,
+                                                                                       -1l,
+                                                                                       oldColumnOrdering,
+                                                                                       newColumnOrdering,
+                                                                                       newColumnInfo);
+
+        DDLChange ddlChange = new DDLChange(tentativeTransaction, changeType);
+        // set descriptor on the ddl change
+        ddlChange.setTentativeDDLDesc(interceptColumnDesc);
+
+        // Initiate the copy from old conglomerate to new conglomerate and the interception
+        // from old schema writes to new table with new column appended
+        try {
+            String schemaName = tableDescriptor.getSchemaName();
+            String tableName = tableDescriptor.getName();
+            HTableInterface hTable = SpliceAccessManager.getHTable(Long.toString(oldCongNum).getBytes());
+
+            //Add a handler to intercept writes to old schema on all regions and forward them to new
+            startCoprocessorJob(activation,
+                                changeMsg,
+                                schemaName,
+                                tableName,
+                                constraintColumnNames,
+                                new AlterTableJob(hTable, ddlChange),
+                                parentTxn);
+
+            //wait for all past txns to complete
+            Txn populateTxn = getChainedTransaction(tc, tentativeTransaction, oldCongNum, changeMsg+"(" +
+                constraintColumnNames + ")");
+
+            // Populate new table with additional column with data from old table
+            CoprocessorJob populateJob = new PopulateConglomerateJob(hTable,
+                                                                     tableDescriptor.getNumberOfColumns(),
+                                                                     populateTxn.getBeginTimestamp(),
+                                                                     ddlChange);
+            startCoprocessorJob(activation,
+                                changeMsg,
+                                schemaName,
+                                tableName,
+                                constraintColumnNames,
+                                populateJob,
+                                parentTxn);
+            populateTxn.commit();
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
+
+        //notify other servers of the change
+        notifyMetadataChangeAndWait(ddlChange);
+
+    }
+
+    private void executeDropConstraint(Activation activation,
+                                       DDLChangeType changeType,
+                                       String changeMsg,
+                                       DropConstraintConstantOperation constraint) throws StandardException {
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        DataDictionary dd = lcc.getDataDictionary();
+        TransactionController tc = lcc.getTransactionExecute();
+        TableDescriptor tableDescriptor = activation.getDDLTableDescriptor();
+        ColumnDescriptorList columnDescriptorList = tableDescriptor.getColumnDescriptorList();
+        int nColumns = columnDescriptorList.size();
+
+        //   o create row template to tell the store what type of rows this
+        //     table holds.
+        //   o create array of collation id's to tell collation id of each
+        //     column in table.
+        ExecRow template = com.splicemachine.db.impl.sql.execute.RowUtil.getEmptyValueRow(columnDescriptorList.size(), lcc);
+
+        TxnView parentTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
+
+        // How were the columns ordered before?
+        int[] oldColumnOrdering = DataDictionaryUtils.getColumnOrdering(parentTxn, tableId);
+
+        /*
+         * Inform the data dictionary that we are about to write to it.
+         * There are several calls to data dictionary "get" methods here
+         * that might be done in "read" mode in the data dictionary, but
+         * it seemed safer to do this whole operation in "write" mode.
+         *
+         * We tell the data dictionary we're done writing at the end of
+         * the transaction.
+         */
+        dd.startWriting(lcc);
+
+        // Get the properties on the old heap
+        long oldCongNum = tableDescriptor.getHeapConglomerateId();
+
+        // refresh the activation's TableDescriptor now that we've modified it
+        activation.setDDLTableDescriptor(tableDescriptor);
+
+        // follow thru with remaining constraint actions, create, store, etc.
+        constraint.executeConstantAction(activation);
+        long indexConglomerateId = constraint.getIndexConglomerateId();
+
+        // Start a tentative txn to demarcate the DDL change
+        Txn tentativeTransaction;
+        try {
+            TxnLifecycleManager lifecycleManager = TransactionLifecycle.getLifecycleManager();
+            tentativeTransaction =
+                lifecycleManager.beginChildTransaction(parentTxn, Bytes.toBytes(Long.toString(oldCongNum)));
+        } catch (IOException e) {
+            LOG.error("Couldn't start transaction for tentative Add Constraint operation");
+            throw Exceptions.parseException(e);
+        }
+        String tableVersion = DataDictionaryUtils.getTableVersion(lcc, tableId);
+        int[] newColumnOrdering = DataDictionaryUtils.getColumnOrdering(parentTxn, tableId);
+        ColumnInfo[] newColumnInfo = DataDictionaryUtils.getColumnInfo(tableDescriptor);
+        TransformingDDLDescriptor interceptColumnDesc = new TentativeAddConstraintDesc(tableVersion,
+                                                                                       oldCongNum, //newCongNum,
+                                                                                       oldCongNum,
+                                                                                       indexConglomerateId,
+                                                                                       oldColumnOrdering,
+                                                                                       newColumnOrdering,
+                                                                                       newColumnInfo);
+
+        DDLChange ddlChange = new DDLChange(tentativeTransaction, changeType);
+        // set descriptor on the ddl change
+        ddlChange.setTentativeDDLDesc(interceptColumnDesc);
+
+        // Initiate the copy from old conglomerate to new conglomerate and the interception
+        // from old schema writes to new table with new column appended
+        try {
+            String schemaName = tableDescriptor.getSchemaName();
+            String tableName = tableDescriptor.getName();
+            HTableInterface hTable = SpliceAccessManager.getHTable(Long.toString(oldCongNum).getBytes());
+
+            //Add a handler to intercept writes to old schema on all regions and forward them to new
+            startCoprocessorJob(activation,
+                                changeMsg,
+                                schemaName,
+                                tableName,
+                                // FIXME: JC - drop constraint doesn't have column names. We don't need em.
+                                Collections.singletonList("ALL"),
+                                new AlterTableJob(hTable, ddlChange),
+                                parentTxn);
+
+            // wait for all in-flight txns to complete
+            // FIXME: JC - just commit tentative txn after wait
+            Txn populateTxn = getChainedTransaction(tc, tentativeTransaction, oldCongNum, changeMsg+"(ALL)");
+            populateTxn.commit();
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
+
+        //notify other servers of the change
+        notifyMetadataChangeAndWait(ddlChange);
     }
 
     private void createUniquenessConstraint(Activation activation,
@@ -458,6 +718,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         TransformingDDLDescriptor interceptColumnDesc = new TentativeAddConstraintDesc(tableVersion,
                                                                                        newCongNum,
                                                                                        oldCongNum,
+                                                                                       -1l,
                                                                                        oldColumnOrdering,
                                                                                        newColumnOrdering,
                                                                                        newColumnInfo);
@@ -1190,15 +1451,22 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         return returnValue;
     }
 
-    protected void updateTableConglomerateDescriptor(TableDescriptor tableDescriptor,
+    protected ConglomerateDescriptor updateTableConglomerateDescriptor(TableDescriptor tableDescriptor,
                                                      long newConglomNum,
                                                      SchemaDescriptor sd,
                                                      LanguageConnectionContext lcc,
                                                      ConstraintConstantOperation constraintAction) throws StandardException {
 
+        // We invalidate all statements that use the old conglomerates
+        DataDictionary dd = lcc.getDataDictionary();
+        dd.getDependencyManager().invalidateFor(tableDescriptor, DependencyManager.ALTER_TABLE, lcc);
+
+        ConglomerateDescriptorList conglomerateList = tableDescriptor.getConglomerateDescriptorList();
+        ConglomerateDescriptor modifiedConglomerateDescriptor =
+            conglomerateList.getConglomerateDescriptor(tableDescriptor.getHeapConglomerateId());
+
         if(constraintAction.getConstraintType()== DataDictionary.PRIMARYKEY_CONSTRAINT) {
             TransactionController tc = lcc.getTransactionExecute();
-            DataDictionary dd = lcc.getDataDictionary();
             DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
 
             // get the column positions for the new PK
@@ -1208,16 +1476,9 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
             for(int i=0;i<ascending.length;i++){
                 ascending[i] = true;
             }
-
-            // We invalidate all statements that use the old conglomerates
-            dd.getDependencyManager().invalidateFor(tableDescriptor, DependencyManager.ALTER_TABLE, lcc);
-
             // Replace old table conglomerate with new one with the new PK conglomerate
-            ConglomerateDescriptorList conglomerateList = tableDescriptor.getConglomerateDescriptorList();
-            ConglomerateDescriptor conglomerate =
-                conglomerateList.getConglomerateDescriptor(tableDescriptor.getHeapConglomerateId());
-            dd.dropConglomerateDescriptor(conglomerate, tc);
-            conglomerateList.dropConglomerateDescriptor(tableDescriptor.getUUID(), conglomerate);
+            dd.dropConglomerateDescriptor(modifiedConglomerateDescriptor, tc);
+            conglomerateList.dropConglomerateDescriptor(tableDescriptor.getUUID(), modifiedConglomerateDescriptor);
 
             // create the PK IndexDescriptor and new conglomerate
             IndexDescriptor indexDescriptor =
@@ -1243,7 +1504,10 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         } else //noinspection StatementWithEmptyBody
             if (constraintAction.getConstraintType()== DataDictionary.UNIQUE_CONSTRAINT) {
             // do nothing for unique constraint. let index creation handle
+        } else if (constraintAction.getConstraintType() == DataDictionary.DROP_CONSTRAINT) {
+                // TODO: JC - need to do something here?
         }
+        return modifiedConglomerateDescriptor;
     }
 
     protected void startCoprocessorJob(Activation activation,
