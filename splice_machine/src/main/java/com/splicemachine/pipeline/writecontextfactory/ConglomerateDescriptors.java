@@ -11,7 +11,7 @@ import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 public class ConglomerateDescriptors {
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    // Factory methods for functions
+    // Factory methods for predicates
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     public static Predicate<ConglomerateDescriptor> isUniqueIndex() {

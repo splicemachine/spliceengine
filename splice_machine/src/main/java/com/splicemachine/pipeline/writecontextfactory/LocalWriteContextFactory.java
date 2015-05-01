@@ -66,7 +66,7 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
      * table. */
     private final long conglomId;
 
-    /* These factories crate WriteHandlers that intercept writes to the htable for this context (a base table)
+    /* These factories create WriteHandlers that intercept writes to the htable for this context (a base table)
      * transform them, and send them to a remote index table.. */
     private final List<LocalWriteFactory> indexFactories = new CopyOnWriteArrayList<>();
 
@@ -446,7 +446,7 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
         // table.  Consequently we can only account for them by considering conglomerates, as we do here.
         // One last bit of derby weirdness is that multiple conglomerate descriptors can exist for the
         // same conglomerate number (multiple rows in sys.sysconglomerates for the same conglomerate
-        // number.  This happens, for example, a new FK constraint re-uses an existing unique or non
+        // number.  This happens, for example, when a new FK constraint re-uses an existing unique or non-
         // unique index.
         // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
