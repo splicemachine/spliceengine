@@ -3,7 +3,6 @@ package com.splicemachine.derby.stream.function;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-
 import java.io.*;
 import java.util.Comparator;
 
@@ -13,6 +12,10 @@ import java.util.Comparator;
 public class RowComparator implements Comparator<ExecRow>, Serializable, Externalizable {
     private static final long serialVersionUID = -7005014411999208729L;
     private boolean[] descColumns; //descColumns[i] = false => column[i] sorted descending, else sorted ascending
+
+    public RowComparator() {
+
+    }
 
     public RowComparator(boolean[] descColumns) {
         this.descColumns = descColumns;
@@ -47,7 +50,7 @@ public class RowComparator implements Comparator<ExecRow>, Serializable, Externa
                 throw new RuntimeException(e);
             }
             if (result != 0) {
-                return descColumns[i] ? result : -result;
+                return descColumns==null ||descColumns[i] ? result : -result;
             }
         }
         return 0;

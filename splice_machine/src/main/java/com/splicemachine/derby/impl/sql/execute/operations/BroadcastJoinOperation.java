@@ -173,16 +173,16 @@ public class BroadcastJoinOperation extends JoinOperation {
         else {
             if (this.notExistsRightSide) { // antijoin
                 if (restriction !=null) { // with restriction
-                    return leftDataSet.<LocatedRow>broadcastLeftOuterJoin(rightDataSet)
-                            .flatmap(new AntiJoinRestrictionFlatMapFunction(operationContext));
+                    return leftDataSet.<LocatedRow>broadcastCogroup(rightDataSet)
+                            .flatmap(new CogroupAntiJoinRestrictionFlatMapFunction(operationContext));
                 } else { // No Restriction
                     return leftDataSet.<LocatedRow>broadcastSubtractByKey(rightDataSet)
                             .map(new AntiJoinFunction(operationContext));
                 }
             } else { // Inner Join
                 if (restriction !=null) { // with restriction
-                    return leftDataSet.<LocatedRow>broadcastLeftOuterJoin(rightDataSet)
-                            .flatmap(new InnerJoinRestrictionFlatMapFunction(operationContext));
+                    return leftDataSet.<LocatedRow>broadcastCogroup(rightDataSet)
+                            .flatmap(new CogroupInnerJoinRestrictionFlatMapFunction(operationContext));
                 } else { // No Restriction
                     return leftDataSet.broadcastJoin(rightDataSet)
                             .map(new InnerJoinFunction<SpliceOperation>(operationContext));

@@ -1,8 +1,9 @@
 package com.splicemachine.derby.stream.function;
 
-import com.google.common.base.Optional;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import scala.Tuple2;
@@ -14,12 +15,12 @@ import java.util.Iterator;
  * Created by jleach on 4/22/15.
  */
 @NotThreadSafe
-public class InnerJoinRestrictionFlatMapFunction<Op extends SpliceOperation> extends SpliceFlatMapFunction<Op,Iterator<Tuple2<LocatedRow,Optional<LocatedRow>>>,LocatedRow> {
-    protected OuterJoinFunction<Op> outerJoin = null;
-    protected JoinRestrictionPredicateFunction<Op> joinRestriction = null;
+public class InnerJoinRestrictionFlatMapFunction<Op extends SpliceOperation> extends SpliceFlatMapFunction<Op,Tuple2<LocatedRow,Iterator<LocatedRow>>,LocatedRow> {
     protected JoinOperation op = null;
-    protected Tuple2<LocatedRow, Optional<LocatedRow>> tuple = null;
     protected boolean initialized = false;
+    protected LocatedRow leftRow;
+    protected LocatedRow rightRow;
+    protected ExecRow mergedRow;
     public InnerJoinRestrictionFlatMapFunction() {
         super();
     }
@@ -29,19 +30,19 @@ public class InnerJoinRestrictionFlatMapFunction<Op extends SpliceOperation> ext
     }
 
     @Override
-    public Iterable<LocatedRow> call(Iterator<Tuple2<LocatedRow, Optional<LocatedRow>>> tuple2Iterator) throws Exception {
-        assert tuple2Iterator.hasNext():"InnerJoinRestrictionFlatMapFunction should always have at least one record in iterator";
+    public Iterable<LocatedRow> call(Tuple2<LocatedRow, Iterator<LocatedRow>> tuple) throws Exception {
         if (!initialized) { // Initialize the sub functions
             op = (JoinOperation) operationContext.getOperation();
-            outerJoin = new OuterJoinFunction<>(operationContext);
-            joinRestriction = new JoinRestrictionPredicateFunction(operationContext);
             initialized = true;
         }
-        while (tuple2Iterator.hasNext()) {
-            tuple = tuple2Iterator.next();
-            LocatedRow locatedRow = outerJoin.call(tuple);
-            if (joinRestriction.call(locatedRow)) // Has Row, return
-                return Collections.singletonList(locatedRow);
+        leftRow = tuple._1();
+        while (tuple._2.hasNext()) {
+            rightRow = tuple._2.next();
+            mergedRow = JoinUtils.getMergedRow(leftRow.getRow(),
+                    rightRow.getRow(), op.wasRightOuterJoin, op.getExecRowDefinition());
+            op.setCurrentRow(mergedRow);
+            if (op.getRestriction().apply(mergedRow)) // Has Row, abandon
+                return Collections.singletonList(new LocatedRow(rightRow.getRowLocation(),mergedRow));
         }
         return Collections.EMPTY_LIST;
     }

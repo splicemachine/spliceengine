@@ -179,11 +179,11 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     }
 
     @Override
-    public <Op extends SpliceOperation, U> DataSet<U> flatmap(SpliceFlatMapFunction<Op, Tuple2<K, V>, U> function) {
+    public <Op extends SpliceOperation, U> DataSet<U> flatmap(SpliceFlatMapFunction<Op, Tuple2<K,V>, U> function) {
         try {
             Iterable<U> iterable = new ArrayList<U>(0);
             for (Map.Entry<K, V> entry : source.entries()) {
-                iterable = Iterables.concat(iterable, function.call(new Tuple2<K, V>(entry.getKey(), entry.getValue())));
+                iterable = Iterables.concat(iterable, function.call(new Tuple2<K, V>(entry.getKey(),entry.getValue())));
             }
             return new ControlDataSet<>(iterable);
         } catch (Exception e) {
@@ -194,5 +194,20 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     @Override
     public <W> PairDataSet<K, V> broadcastSubtractByKey(PairDataSet<K, W> rightDataSet) {
         return subtractByKey(rightDataSet);
+    }
+
+    @Override
+    public <W> PairDataSet<K, Tuple2<Iterator<V>, Iterator<W>>> cogroup(PairDataSet<K, W> rightDataSet) {
+        Multimap<K, Tuple2<Iterator<V>, Iterator<W>>> newMap = ArrayListMultimap.create();
+        Multimap<K,W> rightSide = ((ControlPairDataSet) rightDataSet).source;
+        Sets.union(source.keySet(),rightSide.keySet());
+        for (K key: Sets.union(source.keySet(),rightSide.keySet()))
+            newMap.put(key, new Tuple2(source.get(key).iterator(), rightSide.get(key).iterator()));
+        return new ControlPairDataSet<>(newMap);
+    }
+
+    @Override
+    public <W> PairDataSet<K, Tuple2<Iterator<V>, Iterator<W>>> broadcastCogroup(PairDataSet<K, W> rightDataSet) {
+        return cogroup(rightDataSet);
     }
 }
