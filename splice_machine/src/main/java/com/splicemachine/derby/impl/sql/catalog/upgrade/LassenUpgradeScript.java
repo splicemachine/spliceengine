@@ -10,6 +10,7 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.SQLBoolean;
 import com.splicemachine.derby.impl.sql.catalog.SpliceDataDictionary;
+import com.splicemachine.utils.SpliceUtilities;
 
 import java.sql.Types;
 
@@ -28,6 +29,8 @@ public class LassenUpgradeScript extends UpgradeScriptBase {
         addStatsColumnToSysColumns(tc);
 
         sdd.createStatisticsTables(tc);
+        sdd.createLassenTables(tc);
+        SpliceUtilities.createRestoreTableIfNecessary();
     }
 
 

@@ -89,6 +89,7 @@ class SpliceMasterObserverInitAction {
                 try {
                     if (ZkUtils.isSpliceLoaded()) {
                         SpliceLogUtils.info(LOG, "Splice Machine has already been initialized");
+                        SpliceUtilities.createRestoreTableIfNecessary();
                         // Boot up the Splice data dictionary to trigger the upgrade process if it is needed.
                         // We don't want the region servers to attempt an upgrade since we could end up in a race condition
                         // between the region servers when the system tables are being updated.  See DB-2011 for more details.

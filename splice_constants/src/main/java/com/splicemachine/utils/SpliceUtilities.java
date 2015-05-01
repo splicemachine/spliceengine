@@ -253,12 +253,7 @@ public class SpliceUtilities extends SIConstants {
 						+ " created");
 			}
 
-            if (!admin.tableExists(SpliceConstants.RESTORE_TABLE_NAME_BYTES)) {
-                HTableDescriptor td = generateNonSITable(RESTORE_TABLE_NAME);
-                admin.createTable(td);
-                SpliceLogUtils.info(LOG, SpliceConstants.RESTORE_TABLE_NAME
-                        + " created");
-            }
+            createRestoreTableIfNecessary();
 			return true;
 		} catch (Exception e) {
 			SpliceLogUtils.error(LOG, "Unable to set up HBase Tables", e);
@@ -268,6 +263,22 @@ public class SpliceUtilities extends SIConstants {
 		}
 	}
 
+    public static void createRestoreTableIfNecessary() {
+        HBaseAdmin admin = null;
+        try {
+            admin = getAdmin();
+            if (!admin.tableExists(SpliceConstants.RESTORE_TABLE_NAME_BYTES)) {
+                HTableDescriptor td = generateNonSITable(RESTORE_TABLE_NAME);
+                admin.createTable(td);
+                SpliceLogUtils.info(LOG, SpliceConstants.RESTORE_TABLE_NAME
+                        + " created");
+            }
+        } catch (Exception e) {
+            SpliceLogUtils.error(LOG, "Unable to set up HBase Tables", e);
+        } finally {
+            Closeables.closeQuietly(admin);
+        }
+    }
 	public static void createTempTable(HBaseAdmin admin) throws IOException {
 		HTableDescriptor td = generateTempTable(TEMP_TABLE);
 		// td.setMaxFileSize(SpliceConstants.tempTableMaxFileSize);
