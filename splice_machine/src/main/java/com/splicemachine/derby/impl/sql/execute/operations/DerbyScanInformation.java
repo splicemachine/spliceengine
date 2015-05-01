@@ -62,6 +62,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
     private long conglomId;
     protected int startSearchOperator;
     protected int stopSearchOperator;
+    protected boolean rowIdKey;
 
 
     //fields which are cached for performance
@@ -99,7 +100,8 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
                                 int indexColItem,
                                 boolean sameStartStopPosition,
                                 int startSearchOperator,
-                                int stopSearchOperator) {
+                                int stopSearchOperator,
+                                boolean rowIdKey) {
         this.resultRowAllocatorMethodName = resultRowAllocatorMethodName;
         this.startKeyGetterMethodName = startKeyGetterMethodName;
         this.stopKeyGetterMethodName = stopKeyGetterMethodName;
@@ -110,6 +112,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
         this.startSearchOperator = startSearchOperator;
         this.scanQualifiersField = scanQualifiersField;
         this.stopSearchOperator = stopSearchOperator;
+        this.rowIdKey = rowIdKey;
     }
 
     @Override
@@ -335,7 +338,8 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
                 keyDecodingMap,
                 getColumnOrdering(),
                 activation.getDataValueFactory(),
-                tableVersion);
+                tableVersion,
+                rowIdKey);
     }
 
     @Override
@@ -388,11 +392,18 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
             for (int qualPos = 0; qualPos < qualifiers.length; qualPos++) {
                 Qualifier qualifier = qualifiers[qualPos];
                 qualifier.clearOrderableCache();
-                int columnFormat = format_ids[qualifier.getColumnId()];
+                int columnFormat;
+                if (rowIdKey) {
+                    // This is a qualifier for rowid
+                    columnFormat =StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID;
+                }
+                else{
+                    columnFormat = format_ids[qualifier.getColumnId()];
+                }
                 DataValueDescriptor dvd = qualifier.getOrderable();
                 if (dvd == null)
                     continue;
-                if (dvd.getTypeFormatId() != columnFormat) {
+                if (dvd.getTypeFormatId() != columnFormat && !rowIdKey) {
                     //we need to convert the types to match
                     qualifier = QualifierUtils.adjustQualifier(qualifier, columnFormat, activation.getDataValueFactory());
                     qualifiers[qualPos] = qualifier;
@@ -533,5 +544,4 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
         return keyColumns;
 
     }
-
 }

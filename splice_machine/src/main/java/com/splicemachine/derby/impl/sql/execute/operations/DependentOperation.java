@@ -144,7 +144,7 @@ public class DependentOperation extends ScanOperation {
 		  //REPEATABLE READ irrespective what the user level isolation
 		  //level is.
 		super(conglomId,activation, resultSetNumber,startKeyGetter, startSearchOperator,
-				stopKeyGetter, stopSearchOperator, sameStartStopPosition, qualifiersField,
+				stopKeyGetter, stopSearchOperator, sameStartStopPosition, false, qualifiersField,
 			 resultRowAllocator,lockMode, tableLocked,
 			  TransactionController.ISOLATION_REPEATABLE_READ,
               colRefItem, -1, false, // Add Index Ref: This is junk JL

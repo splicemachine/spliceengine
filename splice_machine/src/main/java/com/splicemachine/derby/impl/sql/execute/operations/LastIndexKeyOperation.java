@@ -83,7 +83,7 @@ public class LastIndexKeyOperation extends ScanOperation {
                     double optimizerEstimatedCost
             ) throws StandardException {
         super(conglomId, activation, resultSetNumber, null, -1, null, -1,
-                true, null, resultRowAllocator, lockMode, tableLocked, isolationLevel,
+                true, false, null, resultRowAllocator, lockMode, tableLocked, isolationLevel,
                 colRefItem, -1, false,optimizerEstimatedRowCount, optimizerEstimatedCost);
         this.tableName = Long.toString(scanInformation.getConglomerateId());
         this.indexName = indexName;
