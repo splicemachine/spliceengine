@@ -36,7 +36,7 @@ import com.splicemachine.utils.SpliceLogUtils;
  *
  * 2^3 would mean there are 8 permutations, however antiJoin cannot be used with an outerjoin which removes 2 permutations.
  *
- * The valid combinations would be the following based on true values represented in the set:
+ * The valid combinations would be the following:
  *
  * (inner,join,no restriction)
  * (inner,join,restriction)

@@ -14,6 +14,7 @@ import org.apache.spark.broadcast.Broadcast;
 import scala.Tuple2;
 
 import java.util.Comparator;
+import java.util.Iterator;
 
 /**
  *
@@ -96,7 +97,7 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
     }
 
     @Override
-    public <Op extends SpliceOperation, U> DataSet<U> flatmap(SpliceFlatMapFunction<Op, Tuple2<K, V>, U> f) {
+    public <Op extends SpliceOperation, U> DataSet<U> flatmap(SpliceFlatMapFunction<Op, Tuple2<K,V>, U> f) {
         return new SparkDataSet<U>(rdd.flatMap(f));
     }
 
@@ -106,6 +107,19 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
         JavaSparkContext context = SpliceSpark.getContext();
         Broadcast<JavaPairRDD<K,W>> broadcast = context.broadcast(rightPairDataSet);
         return new SparkPairDataSet(rdd.subtractByKey(broadcast.value()));
+    }
+
+    @Override
+    public <W> PairDataSet<K, Tuple2<Iterator<V>, Iterator<W>>> cogroup(PairDataSet<K, W> rightDataSet) {
+        return new SparkPairDataSet(rdd.cogroup(((SparkPairDataSet) rightDataSet).rdd));
+    }
+
+    @Override
+    public <W> PairDataSet<K, Tuple2<Iterator<V>, Iterator<W>>> broadcastCogroup(PairDataSet<K, W> rightDataSet) {
+        JavaPairRDD<K,W> rightPairDataSet = ((SparkPairDataSet) rightDataSet).rdd;
+        JavaSparkContext context = SpliceSpark.getContext();
+        Broadcast<JavaPairRDD<K,W>> broadcast = context.broadcast(rightPairDataSet);
+        return new SparkPairDataSet(rdd.cogroup(broadcast.value()));
     }
 
     @Override

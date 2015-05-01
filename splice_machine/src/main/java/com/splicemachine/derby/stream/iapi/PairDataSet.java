@@ -2,12 +2,14 @@ package com.splicemachine.derby.stream.iapi;
 
 import com.google.common.base.Optional;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.function.SpliceFunction;
 import com.splicemachine.derby.stream.function.SpliceFunction2;
 import scala.Tuple2;
 
 import java.util.Comparator;
+import java.util.Iterator;
 
 /**
  * Stream of data acting on a key/values.
@@ -27,6 +29,8 @@ public interface PairDataSet<K,V> {
     public <W> PairDataSet<K,Tuple2<V,W>> broadcastJoin(PairDataSet<K,W> rightDataSet);
     public <W> PairDataSet<K,V> subtractByKey(PairDataSet<K,W> rightDataSet);
     public <W> PairDataSet<K,V> broadcastSubtractByKey(PairDataSet<K,W> rightDataSet);
+    public <W> PairDataSet<K,Tuple2<Iterator<V>, Iterator<W>>> cogroup(PairDataSet<K,W> rightDataSet);
+    public <W> PairDataSet<K,Tuple2<Iterator<V>, Iterator<W>>> broadcastCogroup(PairDataSet<K,W> rightDataSet);
     public String toString();
 
 /*    public <W> PairDataSet<K,Tuple2<V,Optional<W>>> nestedLoopLeftOuterJoin(PairDataSet<K,W> rightDataSet); ?
