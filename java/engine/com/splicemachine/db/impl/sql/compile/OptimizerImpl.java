@@ -1466,7 +1466,11 @@ public class OptimizerImpl implements Optimizer{
             if(joinPosition==0) break;
         }
         currentCost.setCost(0.0d,0.0d,0.0d);
+        currentCost.setBase(null);
+        currentCost.setRowOrdering(null);
         currentSortAvoidanceCost.setCost(0.0d,0.0d,0.0d);
+        currentSortAvoidanceCost.setBase(null);
+        currentSortAvoidanceCost.setRowOrdering(null);
         assignedTableMap.clearAll();
     }
 
@@ -1841,6 +1845,7 @@ public class OptimizerImpl implements Optimizer{
         currentCost.setRemoteCost(newRemoteCost);
         currentCost.setRowCount(prevRowCount);
         currentCost.setSingleScanRowCount(prevSingleScanRowCount);
+        currentCost.setBase(null);
 
 		/*
 		** Subtract from the sort avoidance cost if there is a
@@ -1907,6 +1912,7 @@ public class OptimizerImpl implements Optimizer{
                 currentSortAvoidanceCost.setRemoteCost(prevRemoteCost);
                 currentSortAvoidanceCost.setRowCount(prevRowCount);
                 currentSortAvoidanceCost.setSingleScanRowCount(prevSingleScanRowCount);
+                currentSortAvoidanceCost.setBase(null);
 
 				/*
 				** Remove the table from the best row ordering.
