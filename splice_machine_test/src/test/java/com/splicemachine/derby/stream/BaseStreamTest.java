@@ -17,14 +17,18 @@ import java.util.List;
 public class BaseStreamTest {
     public static List<ExecRow> tenRowsTwoDuplicateRecords;
     public static Multimap<ExecRow,ExecRow> tenRows;
+    public static Multimap<ExecRow,ExecRow> evenRows;
 
     static {
         ClassSize.setDummyCatalog();
         tenRowsTwoDuplicateRecords = new ArrayList<ExecRow>(10);
         tenRows = ArrayListMultimap.create();
+        evenRows = ArrayListMultimap.create();
         for (int i = 0; i< 10; i++) {
             tenRowsTwoDuplicateRecords.add(getExecRow(i));
             tenRows.put(getExecRow(i%2,1),getExecRow(i,10));
+            if (i%2==0)
+                evenRows.put(getExecRow(i%2,1),getExecRow(i,10));
             if (i==2)
                 tenRowsTwoDuplicateRecords.add(getExecRow(i));
         }
