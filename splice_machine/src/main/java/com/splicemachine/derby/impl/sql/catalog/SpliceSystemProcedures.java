@@ -5,6 +5,7 @@ import com.splicemachine.derby.impl.db.SpliceDatabase;
 import com.splicemachine.derby.impl.load.HdfsImport;
 import com.splicemachine.derby.impl.storage.TableSplit;
 import com.splicemachine.derby.impl.storage.TempSplit;
+
 import java.sql.Types;
 import java.util.Arrays;
 import java.util.List;
@@ -13,7 +14,6 @@ import java.util.Map;
 import com.splicemachine.encoding.debug.DataType;
 import com.splicemachine.hbase.backup.BackupSystemProcedures;
 import com.splicemachine.derby.utils.*;
-
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -828,7 +828,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
     static{
         try {
             SYSFUN_PROCEDURES = new ArrayList<>();
-            SYSFUN_PROCEDURES.addAll(Arrays.asList(//
+            SYSFUN_PROCEDURES.addAll(Arrays.asList(
                     Procedure.newBuilder().name("INSTR")
                             .numOutputParams(0)
                             .numResultSets(0)
@@ -854,7 +854,18 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .isDeterministic(true).ownerClass(SpliceStringFunctions.class.getCanonicalName())
                             .varchar("ARG1", Limits.DB2_VARCHAR_MAXWIDTH)
                             .varchar("ARG2", Limits.DB2_VARCHAR_MAXWIDTH)
-                            .build()));
+                            .build(),
+                    Procedure.newBuilder().name("REGEXP_LIKE")
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .sqlControl(RoutineAliasInfo.NO_SQL)
+                            .returnType(DataTypeDescriptor.getCatalogType(Types.BOOLEAN))
+                            .isDeterministic(true).ownerClass(SpliceStringFunctions.class.getCanonicalName())
+                            .varchar("S", Limits.DB2_VARCHAR_MAXWIDTH)
+                            .varchar("REGEXP", Limits.DB2_VARCHAR_MAXWIDTH)
+                            .build()
+            		)
+            );
             SYSFUN_PROCEDURES.addAll(Arrays.asList(
                     //
                     // Date functions
