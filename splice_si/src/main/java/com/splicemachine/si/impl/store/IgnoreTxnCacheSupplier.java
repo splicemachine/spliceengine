@@ -38,15 +38,20 @@ public class IgnoreTxnCacheSupplier {
         List<Pair<Long, Long>> ignoreTxnList = cache.get(table);
 
         if (ignoreTxnList == null) {
-            // It's not in cache yet, load from SPLICE_RESTORE table
-            ignoreTxnList = getIgnoreTxnListFromStore(table);
+            synchronized (this) {
+                ignoreTxnList = cache.get(table);
+                if (ignoreTxnList == null) {
+                    // It's not in cache yet, load from SPLICE_RESTORE table
+                    ignoreTxnList = getIgnoreTxnListFromStore(table);
+                }
+            }
             cache.put(table, ignoreTxnList);
         }
 
         return ignoreTxnList;
     }
 
-    private synchronized List<Pair<Long, Long>> getIgnoreTxnListFromStore(String tableName) throws IOException {
+    private List<Pair<Long, Long>> getIgnoreTxnListFromStore(String tableName) throws IOException {
         List<Pair<Long, Long>> ignoreTxnList = new ArrayList<>();
 
         if (entryDecoder == null)
