@@ -816,7 +816,7 @@
   </target>
 
 
-<!-- - - - - - - - - - - - - - - db.jar target - - - - - - - - - - - -->
+<!-- - - - - - - - - - - - - - - derbyjar target - - - - - - - - - - - -->
 
   <target name="derbyjar" depends="initjars">
 
@@ -844,22 +844,9 @@
 
     <echo level="info" message=" creating derby.jar class list "/>
 
-    <java classname="com.splicemachine.derbyBuild.classlister" fork="yes">
-      <jvmarg value="-DcloudscapeOnly=true"/>
-      <jvmarg value="-Doutputfile=${derby.jar.dir}/lists/derby.list"/>
-      <arg value="${derby.jar.dir}/lists/otherDerbyClasses.properties"/> 
-      <arg value="${derby.jar.dir}/lists/${splice.package}/modules.properties"/>
-      <classpath>
-        <pathelement path="${out.dir}"/> 
-      </classpath>
-    </java>
-
     <!-- This next antcall generates a new properties file for the build.  -->
-    <!-- If a changenumber is passed into the build via a property file or -->
-    <!-- on the command line, the build number will be inserted into the   -->
-    <!-- build at this point.                                              -->
- 
-    <echo level="info" message=" creating new DBMS.properties file"/>
+
+    <echo level="info" message="creating new DBMS.properties file"/>
     <antcall target="infowriter">
       <param name="info.iname" value="Apache Derby Embedded Engine"/>
       <param name="info.ename" value="Apache Derby"/>
@@ -881,21 +868,15 @@
     </antcall>
 
     <jar destfile     = "${derby.jar.dir}/derby.jar"
-         basedir      = "${out.dir}"
-	     includesfile = "${derby.jar.dir}/lists/derby.list"
          compress     = "true"
          filesonly    = "true"
          manifest     = "${derby.jar.dir}/lists/smf.mf">
-      <fileset dir="${out.dir}"
-               includes="${splice.package}/loc/m?_en.properties,
-                         ${splice.package}/loc/m??_en.properties,
-                         ${splice.package}/loc/sysinfoMessages.properties,
-                         ${splice.package}/loc/toolsmessages.properties,
-                         ${splice.package}/impl/jdbc/metadata.properties,
-                         ${splice.package}/impl/sql/catalog/metadata_net.properties,
-                         ${splice.package}/info/DBMS.properties"/>
-
-        <fileset dir="${derby.jar.dir}/lists" includes="META-INF/**,${splice.package}/modules.properties"/>
+      <fileset dir="${out.dir}">
+          <exclude name="doc/**"/>
+          <exclude name="**/dbTesting/**"/>
+          <exclude name="**/derbyBuild/**"/>
+      </fileset>
+      <fileset dir="${derby.jar.dir}/lists" includes="META-INF/**,${splice.package}/modules.properties"/>
     </jar>
 
   </target>
