@@ -45,7 +45,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 		protected MultiFieldDecoder keyDecoder;
 		protected EntryPredicateFilter predicateFilter;
 		protected int[] keyDecodingMap;
-    protected TransactionalRegion txnRegion;
+        protected TransactionalRegion txnRegion;
         protected Scan scan;
         protected boolean scanSet = false;
         protected String scanQualifiersField;

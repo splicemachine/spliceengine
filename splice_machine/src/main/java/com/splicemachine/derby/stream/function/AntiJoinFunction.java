@@ -1,5 +1,6 @@
 package com.splicemachine.derby.stream.function;
 
+import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils;
@@ -12,10 +13,10 @@ import java.io.ObjectOutput;
 /**
  * Created by jleach on 4/22/15.
  */
-public class AntiJoinFunction<Op extends SpliceOperation> extends SpliceFunction<Op, LocatedRow, LocatedRow> {
-    protected JoinOperation operation = null;
-    protected boolean initialized = false;
+public class AntiJoinFunction<Op extends SpliceOperation> extends SpliceJoinFunction<Op, LocatedRow, LocatedRow> {
     private static final long serialVersionUID = 3988079974858059941L;
+    protected int numberOfColumns = 0;
+
     public AntiJoinFunction() {
     }
 
@@ -35,13 +36,10 @@ public class AntiJoinFunction<Op extends SpliceOperation> extends SpliceFunction
 
     @Override
     public LocatedRow call(LocatedRow inputRow) throws Exception {
-        if (!initialized) {
-            operation = (JoinOperation) this.getOperation();
-            initialized = true;
-        }
+        checkInit();
         LocatedRow lr = new LocatedRow(inputRow.getRowLocation(),JoinUtils.getMergedRow(inputRow.getRow(),
-                operation.getEmptyRow(), operation.wasRightOuterJoin,operation.getExecRowDefinition()));
-        operation.setCurrentRow(lr.getRow());
+                op.getEmptyRow(), op.wasRightOuterJoin,executionFactory.getValueRow(numberOfColumns)));
+        op.setCurrentLocatedRow(lr);
         return lr;
     }
 

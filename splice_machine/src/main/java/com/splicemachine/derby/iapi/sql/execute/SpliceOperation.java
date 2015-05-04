@@ -3,6 +3,7 @@ package com.splicemachine.derby.iapi.sql.execute;
 import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
 import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
 import java.io.IOException;
+import java.util.Iterator;
 import java.util.List;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationInformation;
@@ -27,6 +28,8 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
     RowLocation getCurrentRowLocation();
 
     void setCurrentRowLocation(RowLocation rowLocation);
+
+    void setCurrentLocatedRow(LocatedRow locatedRow);
 
     /**
      * @return a descriptive name for this operation. Used for reporting information.
@@ -163,5 +166,10 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
 
     public List<SpliceOperation> getSubOperations();
 
+    Iterator<LocatedRow> getLocatedRowIterator();
+
+    public void openCore(DataSetProcessor dsp) throws StandardException;
+
+    public void registerCloseable(AutoCloseable closeable) throws StandardException;
 
 }

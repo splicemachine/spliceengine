@@ -43,9 +43,7 @@ public class KeyerFunction<T extends KeyableRow> extends SpliceFunction<SpliceOp
 
     @Override
      public ExecRow call(T row) throws Exception {
-        System.out.println("row " + row);
         ExecRow returnRow = row.getKeyedExecRow(keyColumns);
-        System.out.println("returnedRow " + returnRow);
         return returnRow;
     }
 }

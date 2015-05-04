@@ -82,7 +82,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		protected long statementId = -1l; //default value if the statementId isn't set
         protected LocatedRow locatedRow;
         protected StatementContext statementContext;
-
+        protected List<AutoCloseable> closeables;
         protected NoPutResultSet[] subqueryTrackingArray;
         protected List<SpliceOperation> leftOperationStack;
 
@@ -195,27 +195,27 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
     @Override
     public void clearCurrentRow() {
-        //
-        // DO NOT call activation.clearCurrentRow here.
-        // Even when closing a top operation, certain queries
-        // (such as the one in TPCH20) need the activation
-        // with its state intact. Resolving DB-2136 exposed
-        // this hole, which had previously been masked.
-        //
-//			    if(activation!=null){
-//						int resultSetNumber = operationInformation.getResultSetNumber();
-//						if(resultSetNumber!=-1)
-//								activation.clearCurrentRow(resultSetNumber);
-//				}
-
+        if(activation!=null){
+            int resultSetNumber = operationInformation.getResultSetNumber();
+            if(resultSetNumber!=-1)
+                activation.clearCurrentRow(resultSetNumber);
+		    }
         currentRow = null;
     }
 
     @Override
     public void close() throws StandardException {
-        if (LOG_CLOSE.isTraceEnabled())
-            LOG_CLOSE.trace(String.format("closing operation %s",this));
-        clearCurrentRow();
+        try {
+            if (LOG_CLOSE.isTraceEnabled())
+                LOG_CLOSE.trace(String.format("closing operation %s", this));
+            if (closeables != null) {
+                for (AutoCloseable closeable : closeables)
+                    closeable.close();
+            }
+            clearCurrentRow();
+        } catch (Exception e) {
+            throw Exceptions.parseException(e);
+        }
     }
 
 		//	@Override
@@ -299,20 +299,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 				return uniqueSequenceID;
 		}
 
-/*
-		@Override
-		public KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-				return new KeyEncoder(NoOpPrefix.INSTANCE,NoOpDataHash.INSTANCE,NoOpPostfix.INSTANCE);
-		}
-*/
-/*
-		@Override
-		public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-				ExecRow defnRow = getExecRowDefinition();
-				SerializerMap serializerMap = VersionedSerializers.latestVersion(false);
-				return BareKeyHash.encoder(IntArrays.count(defnRow.nColumns()),null,serializerMap.getSerializers(defnRow));
-		}
-*/
+
 		public RecordingCallBuffer<KVPair> transformWriteBuffer(RecordingCallBuffer<KVPair> bufferToTransform) throws StandardException {
 				return bufferToTransform;
 		}
@@ -535,16 +522,20 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
             return getDataSet(dsp);
     }
 
-    @Override
-    public void openCore() throws StandardException {
+    public void openCore(DataSetProcessor dsp) throws StandardException {
         try {
             if (LOG.isTraceEnabled())
                 LOG.trace(String.format("openCore %s", this));
             isOpen = true;
-            this.locatedRowIterator = getDataSet().toLocalIterator();
+            this.locatedRowIterator = getDataSet(dsp).toLocalIterator();
         } catch (Exception e) { // This catches all the iterator errors for things that are not lazy.
             throw Exceptions.parseException(e);
         }
+    }
+
+    @Override
+    public void openCore() throws StandardException {
+        openCore(StreamUtils.getDataSetProcessorFromActivation(activation));
     }
 
     @Override
@@ -866,5 +857,22 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
     @Override
     public ExecRow getCurrentRow() throws StandardException {
         return this.currentRow;
+    }
+
+    @Override
+    public void setCurrentLocatedRow(LocatedRow locatedRow) {
+        setCurrentRow(locatedRow.getRow());
+        setCurrentRowLocation(locatedRow.getRowLocation());
+    }
+
+    @Override
+    public Iterator<LocatedRow> getLocatedRowIterator() {
+        return locatedRowIterator;
+    }
+
+    public void registerCloseable(AutoCloseable closeable) throws StandardException {
+        if (closeables == null)
+            closeables = new ArrayList(1);
+        closeables.add(closeable);
     }
 }

@@ -7,11 +7,10 @@ import java.util.*;
 import com.google.common.base.Strings;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
+import com.splicemachine.derby.stream.function.ProjectRestrictFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.stream.spark.RDDUtils;
-import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
@@ -35,15 +34,15 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		protected int cloneMapItem;
 		protected boolean reuseResult;
 		protected boolean doesProjection;
-		protected int[] projectMapping;
-		protected ExecRow mappedResultRow;
-		protected boolean[] cloneMap;
+		public int[] projectMapping;
+		public ExecRow mappedResultRow;
+		public boolean[] cloneMap;
 		protected boolean shortCircuitOpen;
 		protected SpliceOperation source;
 		private boolean alwaysFalse;
-		protected SpliceMethod<DataValueDescriptor> restriction;
-		protected SpliceMethod<ExecRow> projection;
-        private ExecRow projectionResult;
+		public SpliceMethod<DataValueDescriptor> restriction;
+		public SpliceMethod<ExecRow> projection;
+        public ExecRow projectionResult;
 		public NoPutResultSet[] subqueryTrackingArray;
 		private ExecRow execRowDefinition;
 
@@ -160,8 +159,9 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 				return source;
 		}
 
-		private ExecRow doProjection(ExecRow sourceRow) throws StandardException {
-				ExecRow result;
+		public ExecRow doProjection(ExecRow sourceRow) throws StandardException {
+            source.setCurrentRow(sourceRow);
+            ExecRow result;
 				if (projection != null) {
 						result = projection.invoke();
 				} else {
@@ -179,9 +179,6 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 								result.setColumn(index + 1, dvd);
 						}
 				}
-
-	    /* We need to reSet the current row after doing the projection */
-				setCurrentRow(result);
         /* Remember the result if reusing it */
 				return result;
 		}
@@ -198,15 +195,16 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		 */
 		@Override
 		public ExecRow getExecRowDefinition() throws StandardException {
+
 				if(execRowDefinition==null){
 						ExecRow def = source.getExecRowDefinition();
 						ExecRow clone = def !=null? def.getClone(): null;
 						// Set the default values to 1.  This is to avoid division by zero if any of the projected columns have
 						// division or modulus operators.  The delegate classes will need to reset the values to 0.
-						if(clone!=null) SpliceUtils.populateDefaultValues(clone.getRowArray(),1);
 						source.setCurrentRow(clone);
 						execRowDefinition = doProjection(clone);
-				}
+                    }
+                    SpliceUtils.resultValuesToNull(execRowDefinition.getRowArray());
 				return execRowDefinition;
 		}
 
@@ -251,143 +249,38 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 								+ "source:" + source.prettyPrint(indentLevel + 1);
 		}
 
+    public Restriction getRestriction() {
+        Restriction mergeRestriction = Restriction.noOpRestriction;
+        if (restriction != null) {
+            mergeRestriction = new Restriction() {
+                @Override
+                public boolean apply(ExecRow row) throws StandardException {
+                    activation.setCurrentRow(row, resultSetNumber);
+                    DataValueDescriptor shouldKeep = restriction.invoke();
+                    return !shouldKeep.isNull() && shouldKeep.getBoolean();
+                }
+            };
+        }
+        return mergeRestriction;
+    }
+
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         if (alwaysFalse) {
             return dsp.getEmpty();
         }
-        return source.getDataSet().mapPartitions(new ProjectRestrictSparkOp(dsp.createOperationContext(this)));
+        OperationContext operationContext = dsp.createOperationContext(this);
+        return source.getDataSet().flatMap(new ProjectRestrictFlatMapFunction<SpliceOperation>(operationContext));
     }
 
 
-    public static final class ProjectRestrictSparkOp extends SpliceFlatMapFunction<SpliceOperation, Iterator<LocatedRow>, LocatedRow> {
-        public ProjectRestrictSparkOp() {
+    public static ExecRow copyProjectionToNewRow(ExecRow projectedRow, ExecRow newRow) {
+        if (newRow == null) {
+            return null;
         }
-
-        public ProjectRestrictSparkOp(OperationContext operationContext) {
-            super(operationContext);
-        }
-
-        public LocatedRow project(LocatedRow sourceRow) throws Exception {
-            operationContext.recordRead();
-            ExecRow result;
-            ProjectRestrictOperation op = (ProjectRestrictOperation) getOperation();
-            op.source.setCurrentRow(sourceRow.getRow());
-            op.source.setCurrentRowLocation(sourceRow.getRowLocation());
-
-            if (op.restriction != null) {
-                DataValueDescriptor restrictBoolean = (DataValueDescriptor) op.restriction.invoke();
-                // if the result is null, we make it false --
-                // so the row won't be returned.
-                boolean restrict = ((! restrictBoolean.isNull()) && restrictBoolean.getBoolean());
-                if (RDDUtils.LOG.isDebugEnabled()) {
-                    RDDUtils.LOG.debug("restricted row " + sourceRow + ": " + restrict);
-                }
-                if (!restrict) {
-                    operationContext.recordFilter();
-                    return null; // filter out this row
-                }
-            }
-
-            if (op.projection != null) {
-                ExecRow tmp = (ExecRow) op.projection.invoke();
-                if (op.projectionResult == null || tmp == op.projectionResult) {
-                    result = tmp.getClone();
-                } else {
-                    result = tmp;
-                }
-                op.projectionResult = tmp;
-            } else {
-                result = op.mappedResultRow.getNewNullRow();
-            }
-            // Copy any mapped columns from the source
-            for (int index = 0; index < op.projectMapping.length; index++) {
-                if (sourceRow != null && op.projectMapping[index] != -1) {
-                    DataValueDescriptor dvd = sourceRow.getRow().getColumn(op.projectMapping[index]);
-                    // See if the column has been marked for cloning.
-                    // If the value isn't a stream, don't bother cloning it.
-                    if (op.cloneMap[index] && dvd.hasStream()) {
-                        dvd = dvd.cloneValue(false);
-                    }
-                    result.setColumn(index + 1, dvd);
-                }
-            }
-            getActivation().setCurrentRow(result, op.resultSetNumber);
-            if (RDDUtils.LOG.isDebugEnabled()) {
-                RDDUtils.LOG.debug("Projected "+op.resultSetNumber + " : " + sourceRow + " into " + result);
-            }
-            return new LocatedRow(sourceRow.getRowLocation(), result);
-        }
-
-        @Override
-        public Iterable<LocatedRow> call(Iterator<LocatedRow> source) throws Exception {
-            return new IteratorWithContext(source);
-        }
-
-        private class IteratorWithContext implements Iterable<LocatedRow>, Iterator<LocatedRow> {
-            private final Iterator<LocatedRow> source;
-            private boolean populated;
-            private LocatedRow next;
-            private boolean prepared = false;
-            private boolean closed = false;
-
-            public IteratorWithContext(Iterator<LocatedRow> source) {
-                this.source = source;
-            }
-
-            @Override
-            public Iterator<LocatedRow> iterator() {
-                return this;
-            }
-
-            @Override
-            public boolean hasNext() {
-                if (closed)
-                    return false;
-                if (populated)
-                    return true;
-                try {
-                    if (!prepared) {
-                        prepare();
-                        prepared = true;
-                    }
-                    next = null;
-                    while(next == null && source.hasNext()) {
-                        LocatedRow r = source.next();
-                        next = project(r);
-                    }
-                } catch (Exception e) {
-                    if (prepared) {
-                        closed = true;
-                        reset();
-                    }
-                    throw new RuntimeException(e);
-                }
-                populated = next != null;
-                if (!populated) {
-                    closed = true;
-                    reset();
-                }
-                return populated;
-            }
-
-            @Override
-            public LocatedRow next() {
-                if (hasNext())  {
-                    populated = false;
-                    LocatedRow result = next;
-                    next = null;
-                    operationContext.getOperation().setCurrentRow(result.getRow());
-                    operationContext.getOperation().setCurrentRowLocation(result.getRowLocation());
-                    return result;
-                }
-                return null;
-            }
-
-            @Override
-            public void remove() {
-                throw new UnsupportedOperationException();
-            }
-        }
+        DataValueDescriptor[] projectRowArray = projectedRow.getRowArray();
+        DataValueDescriptor[] rightRowArray = newRow.getRowArray();
+        System.arraycopy(projectRowArray, 0, rightRowArray, 0, projectRowArray.length);
+        return newRow;
     }
 
 }

@@ -162,8 +162,7 @@ public class BroadcastJoinOperation extends JoinOperation {
         if (isOuterJoin) { // Outer Join
             if (restriction!=null) { // Restriction
                 return leftDataSet.<LocatedRow>broadcastLeftOuterJoin(rightDataSet)
-                        .map(new OuterJoinPairFunction(operationContext))
-                        .filter(new JoinRestrictionPredicateFunction(operationContext));
+                        .map(new OuterJoinPairFunction(operationContext));
             } else { // No Restriction
                 return leftDataSet.<LocatedRow>broadcastLeftOuterJoin(rightDataSet)
                         .map(new OuterJoinPairFunction(operationContext));

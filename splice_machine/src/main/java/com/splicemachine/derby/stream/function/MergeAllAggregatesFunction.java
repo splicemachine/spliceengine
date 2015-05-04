@@ -1,5 +1,8 @@
 package com.splicemachine.derby.stream.function;
 
+import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.impl.sql.execute.IndexValueRow;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -45,16 +48,23 @@ public class MergeAllAggregatesFunction<Op extends com.splicemachine.derby.iapi.
     public LocatedRow call(LocatedRow locatedRow1, LocatedRow locatedRow2) throws Exception {
         if (locatedRow1 == null) return locatedRow2;
         if (locatedRow2 == null) return locatedRow1;
-        for(SpliceGenericAggregator aggregator:aggregates) {
-            if (!aggregator.isInitialized(locatedRow1.getRow())) {
-                aggregator.initializeAndAccumulateIfNeeded(locatedRow1.getRow(), locatedRow1.getRow());
-            }
-            if (!aggregator.isInitialized(locatedRow2.getRow())) {
-                aggregator.initializeAndAccumulateIfNeeded(locatedRow2.getRow(), locatedRow2.getRow());
-            }
-            aggregator.merge(locatedRow2.getRow(), locatedRow1.getRow());
+        ExecRow r1 = locatedRow1.getRow();
+        ExecRow r2 = locatedRow2.getRow();
+
+        if (!(r1 instanceof ExecIndexRow)) {
+            r1 = new IndexValueRow(r1.getClone());
         }
-        return locatedRow1;
+
+        for(SpliceGenericAggregator aggregator:aggregates) {
+            if (!aggregator.isInitialized(r1)) {
+                aggregator.initializeAndAccumulateIfNeeded(r1, r1);
+            }
+            if (!aggregator.isInitialized(r2)) {
+                aggregator.initializeAndAccumulateIfNeeded(r2, r2);
+            }
+            aggregator.merge(r2, r1);
+        }
+        return new LocatedRow(locatedRow1.getRowLocation(),r1);
 
     }
 

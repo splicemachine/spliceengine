@@ -159,6 +159,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation 
         LocatedRow finalRow = (LocatedRow) dataSet.keyBy(new KeyerFunction(operationContext, keyColumns))
                 .reduceByKey(new MergeNonDistinctAggregatesFunction(operationContext, aggregates)).values()
                 .fold(null, new MergeAllAggregatesFunction(operationContext, aggregates));
+        setCurrentLocatedRow(finalRow);
         return dsp.singleRowDataSet(finish(finalRow != null ? finalRow : new LocatedRow(new EmptyRowSupplier(aggregateContext).get()), aggregates));
     }
 
