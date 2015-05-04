@@ -25,7 +25,7 @@
 
   <target
       name="buildsource"
-      depends="init,prebuild,setCompilerProperties,engine,storeless,tools,drda,client,build,versioninfo,optlocaleinfo"
+      depends="init,setCompilerProperties,engine,storeless,tools,drda,client,build,versioninfo,optlocaleinfo"
       description="Compile the product source (does not build the tests)."
   />
   <target
@@ -297,7 +297,7 @@
   </target>
 
   <!-- Set the ant variables which identify the compiler classpaths. -->
-  <target name="setCompilerProperties" unless="compilerPropsAlreadySet" depends="prebuild">
+  <target name="setCompilerProperties" unless="compilerPropsAlreadySet">
 
     <property file="${properties.dir}/modern.properties"/>
     <property file="${properties.dir}/extrapath.properties"/>
@@ -552,11 +552,6 @@
 
   <target name="client" depends="engine,shared">
     <ant dir="${derby.client.src.dir}"/>
-  </target>
-
-  <target name="prebuild">
-    <mkdir dir="${out.dir}"/>
-    <ant dir="${derby.build.src.dir}/com/splicemachine/derbyPreBuild"/>
   </target>
 
   <target name="build">
