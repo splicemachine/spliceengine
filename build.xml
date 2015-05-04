@@ -25,7 +25,7 @@
 
   <target
       name="buildsource"
-      depends="init,prebuild,setCompilerProperties,engine,storeless,tools,drda,client,build,versioninfo,optlocaleinfo,binscripts"
+      depends="init,prebuild,setCompilerProperties,engine,storeless,tools,drda,client,build,versioninfo,optlocaleinfo"
       description="Compile the product source (does not build the tests)."
   />
   <target
@@ -691,59 +691,6 @@
     </uptodate>
   </target>
 
-
-<!-- =================================================================== -->
-<!--                     Build the Unix shell scripts under bin          -->
-<!-- =================================================================== -->
-
-<target name="binscripts" depends="check-binscripts" unless="binscripts.done">
-  <antcall target="makebinscript">
-    <param name="script" value="dblook"/>
-  </antcall>
-
-  <antcall target="makebinscript">
-    <param name="script" value="ij"/>
-  </antcall>
-
-  <antcall target="makebinscript">
-    <param name="script" value="sysinfo"/>
-  </antcall>
-
-  <antcall target="makebinscript">
-    <param name="script" value="NetworkServerControl"/>
-  </antcall>
-
-  <antcall target="makebinscript">
-    <param name="script" value="startNetworkServer"/>
-  </antcall>
-
-  <antcall target="makebinscript">
-    <param name="script" value="stopNetworkServer"/>
-  </antcall>
-
-  <!-- All the scripts should be executable. -->
-  <chmod perm="+x" dir="${generated.bin.dir}" includes="*"/>
-
-</target>
-
-<target name="makebinscript">
-  <concat destfile="${generated.bin.dir}/${script}">
-    <fileset file="bin/templates/derby_common.sh"/>
-    <fileset file="bin/templates/${script}"/>
-  </concat>
-</target>
-
-<target name="check-binscripts">
-  <dependset>
-    <srcfileset file="bin/templates/derby_common.sh"/>
-    <targetfileset dir="${generated.bin.dir}"/>
-  </dependset>
-  <uptodate property="binscripts.done">
-    <srcfiles dir="bin/templates" excludes="derby_common.sh"/>
-    <globmapper from="*" to="${generated.bin.dir}/*"/>
-  </uptodate>
-
-</target>
 
 <!-- =================================================================== -->
 <!--                     Remove generated message files                   -->
