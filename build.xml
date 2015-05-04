@@ -25,7 +25,7 @@
 
   <target
       name="buildsource"
-      depends="init,prebuild,setCompilerProperties,jdbc4stubs,felixStubs,engine,storeless,tools,drda,client,build,versioninfo,optlocaleinfo,binscripts"
+      depends="init,prebuild,setCompilerProperties,felixStubs,engine,storeless,tools,drda,client,build,versioninfo,optlocaleinfo,binscripts"
       description="Compile the product source (does not build the tests)."
   />
   <target
@@ -692,32 +692,6 @@
   </target>
 
 
-<!-- =================================================================== -->
-<!--                     Build the stub implementation of JDBC4                  -->
-<!-- =================================================================== -->
-  <target name="jdbc4stubs">
-    <mkdir dir="${out.stubs.dir}"/>
-    <mkdir dir="${out.jdbc4.dir}"/>
-
-    <javac
-      source="1.7"
-      target="1.7"
-      bootclasspath="${empty}"
-      nowarn="on"
-      debug="${debug}"
-      depend="${depend}"
-      deprecation="${deprecation}"
-      optimize="${optimize}"
-      proceed="${proceed}"
-      verbose="${verbose}"
-      srcdir="${derby.jdbc4.src.dir}"
-      destdir="${out.jdbc4.dir}">
-      <classpath>
-        <pathelement path="${main.classpath}"/>
-      </classpath>
-     </javac>
-
-  </target>
 
 <!-- =================================================================== -->
 <!--                     Build the stub FELIX (OSGI) implementation                 -->
