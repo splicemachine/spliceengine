@@ -37,7 +37,7 @@ public abstract class BaseColumnStatistics<T extends Comparable<T>> implements C
     @Override
     public float nullFraction() {
         if(totalCount<=0) return 0f;
-        return ((float)nullCount+totalCount)/totalCount;
+        return ((float)nullCount)/totalCount;
     }
 
     protected static void write(ColumnStatistics<?> item,DataOutput output) throws IOException {

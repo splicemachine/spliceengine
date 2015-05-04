@@ -56,9 +56,20 @@ import java.util.Set;
 public class UniformStringDistribution extends BaseDistribution<String> {
     protected final int strLen;
 
+    private final BigDecimal a;
+    private final BigDecimal b;
+
     public UniformStringDistribution(ColumnStatistics<String> columnStats, int strLen) {
         super(columnStats, ComparableComparator.<String>newComparator());
         this.strLen = strLen;
+
+        BigDecimal at = BigDecimal.valueOf(columnStats.nonNullCount()-columnStats.minCount());
+        BigDecimal maxPosition=computePosition(columnStats.maxValue());
+        BigDecimal overallDistance = maxPosition.subtract(computePosition(columnStats.minValue()));
+        at = at.divide(overallDistance,MathContext.DECIMAL64);
+
+        this.a = at;
+        this.b = BigDecimal.valueOf(columnStats.nonNullCount()).subtract(a.multiply(maxPosition));
     }
 
     @Override
@@ -66,34 +77,32 @@ public class UniformStringDistribution extends BaseDistribution<String> {
         BigDecimal startPos = computePosition(start);
         BigDecimal stopPos = computePosition(stop);
 
-        BigDecimal dist = stopPos.subtract(startPos);
-        BigDecimal maxDist = computePosition(columnStats.maxValue()).subtract(computePosition(columnStats.minValue()));
-        BigDecimal scale = dist.divide(maxDist, MathContext.DECIMAL64);
+        BigDecimal baseE = a.multiply(stopPos).add(b).subtract(a.multiply(startPos).add(b));
 
-        long actualCardinality = columnStats.cardinality();
-        BigDecimal adjCard = scale.multiply(BigDecimal.valueOf(actualCardinality));
-        //since dist<maxDist, adjCard < cardinality, so it fits in a long
-        long countPerEntry = getAdjustedRowCount()/actualCardinality;
-        long baseEstimate = adjCard.longValue()*countPerEntry;
+        long rowsPerEntry = getPerRowCount();
 
+        /*
+         * This is safe, because the linear function we used has a max of maxValue on the range [minValue,maxValue),
+         * with a maximum value of rowCount (we built the linear function to do this). Since rowCount is a long,
+         * the value of baseE *MUST* fit within a long (and therefore, within a double).
+         */
+        double baseEstimate = baseE.doubleValue();
         if(!includeStart){
-            baseEstimate-=countPerEntry;
-        }else if(isMin){
-            baseEstimate-=countPerEntry;
-            baseEstimate+=columnStats.minCount();
+            baseEstimate-=rowsPerEntry;
         }
         if(includeStop)
-            baseEstimate+=countPerEntry;
+            baseEstimate+=rowsPerEntry;
+
 
         FrequentElements<String> fe = columnStats.topK();
         //if we are the min value, don't include the start key in frequent elements
         includeStart = includeStart &&!isMin;
         Set<? extends FrequencyEstimate<String>> estimates = fe.frequentElementsBetween(start, stop, includeStart, includeStop);
-        baseEstimate-=countPerEntry*estimates.size();
+        baseEstimate-=rowsPerEntry*estimates.size();
         for(FrequencyEstimate<String> est:estimates){
             baseEstimate+=est.count();
         }
-        return baseEstimate;
+        return (long)baseEstimate;
     }
 
     /**
@@ -174,5 +183,9 @@ public class UniformStringDistribution extends BaseDistribution<String> {
             pos = pos.multiply(scale);
         }
         return pos;
+    }
+
+    private long getPerRowCount() {
+        return getAdjustedRowCount()/columnStats.cardinality();
     }
 }

@@ -59,7 +59,13 @@ public abstract class BaseDistribution<T> implements Distribution<T> {
         }else if(stop==null){
             return rangeSelectivity(start, distributionMax,includeStart,true); //asking for everything after start
         }else{
-            assert comparator.compare(start,stop)<=0: "Cannot compute selectivity: start occurs after stop!";
+            int valueCompare = comparator.compare(start,stop);
+            assert valueCompare<=0: "Cannot compute selectivity: start occurs after stop!";
+            if(valueCompare==0){
+                if(!includeStart || !includeStop) return 0l; //empty set has no data
+                else
+                    return selectivity(start); //match the equals clause
+            }
             if(start.equals(stop)&&(!includeStart ||!includeStop)) return 0l; //empty set has no data
             //adjust for situations in which we are outside the range
             int compare = comparator.compare(distributionMin,stop);

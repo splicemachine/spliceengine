@@ -12,8 +12,17 @@ import java.util.Set;
  *         Date: 3/5/15
  */
 public class UniformShortDistribution extends BaseDistribution<Short> implements ShortDistribution {
+    private final double a;
+    private final double b;
+
     public UniformShortDistribution(ShortColumnStatistics columnStats) {
         super(columnStats, ComparableComparator.<Short>newComparator());
+
+        double at = columnStats.nonNullCount()-columnStats.minCount();
+        at/=(columnStats.max()-columnStats.min());
+
+        this.a = at;
+        this.b = columnStats.nonNullCount()-a*columnStats.max();
     }
 
     @Override
@@ -80,15 +89,12 @@ public class UniformShortDistribution extends BaseDistribution<Short> implements
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private long rangeSelectivity(short start, short stop, boolean includeStart, boolean includeStop, boolean isMin) {
+        double baseEstimate = a*stop+b;
+        baseEstimate-=a*start+b;
         long perRowCount = getPerRowCount();
-        long baseEstimate = perRowCount*(stop-start);
         if(!includeStart){
             baseEstimate-=perRowCount;
-        }else if(isMin){
-            baseEstimate-=perRowCount;
-            baseEstimate+=columnStats.minCount();
         }
-
         if(includeStop)
             baseEstimate+=perRowCount;
 
@@ -101,7 +107,7 @@ public class UniformShortDistribution extends BaseDistribution<Short> implements
         for(ShortFrequencyEstimate est:shortFrequencyEstimates){
             baseEstimate+=est.count();
         }
-        return baseEstimate;
+        return (long)baseEstimate;
     }
 
     private long getPerRowCount() {

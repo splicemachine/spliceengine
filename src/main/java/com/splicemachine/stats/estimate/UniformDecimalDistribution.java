@@ -13,35 +13,35 @@ import java.util.Set;
  *         Date: 3/5/15
  */
 public class UniformDecimalDistribution extends BaseDistribution<BigDecimal> {
+    private final BigDecimal a;
+    private final BigDecimal b;
+
     public UniformDecimalDistribution(ColumnStatistics<BigDecimal> columnStats) {
         super(columnStats, ComparableComparator.<BigDecimal>newComparator());
+
+        BigDecimal at = BigDecimal.valueOf(columnStats.nonNullCount()-columnStats.minCount());
+        at = at.divide(columnStats.maxValue().subtract(columnStats.minValue()),MathContext.DECIMAL64);
+
+        this.a = at;
+        this.b = BigDecimal.valueOf(columnStats.nonNullCount()).subtract(a.multiply(columnStats.maxValue()));
     }
 
     @Override
     protected long estimateRange(BigDecimal start, BigDecimal stop, boolean includeStart, boolean includeStop, boolean isMin) {
-        long actualCardinality = columnStats.cardinality();
-        BigDecimal dist = stop.subtract(start);
-        BigDecimal card = BigDecimal.valueOf(actualCardinality);
-        BigDecimal maxDist = columnStats.maxValue().subtract(columnStats.minValue());
-        BigDecimal adjustedCardinality = dist.divide(maxDist,MathContext.DECIMAL64).multiply(card);
-
+        BigDecimal baseE = a.multiply(stop).add(b).subtract(a.multiply(start).add(b));
+        long rowsPerEntry = getPerRowCount();
         /*
-         * By definition, dist < maxDist, so dist/maxDist < 1. This means that adjustedCardinality < cardinality,
-         * which is a long. Therefore, we can take a long here to determine how many elements to use
+         * This is safe, because the linear function we used has a max of maxValue on the range [minValue,maxValue),
+         * with a maximum value of rowCount (we built the linear function to do this). Since rowCount is a long,
+         * the value of baseE *MUST* fit within a long (and therefore, within a double).
          */
-        long adjCard = adjustedCardinality.longValue();
-        long rowsPerEntry = getAdjustedRowCount()/actualCardinality;
-
-        long baseEstimate = rowsPerEntry*adjCard;
-
-        if(!includeStart)
+        double baseEstimate = baseE.doubleValue();
+        if(!includeStart){
             baseEstimate-=rowsPerEntry;
-        else if(isMin){
-            baseEstimate-=rowsPerEntry;
-            baseEstimate+=rowsPerEntry;
         }
         if(includeStop)
             baseEstimate+=rowsPerEntry;
+
 
         //if we are the min value, don't include the start key in frequent elements
         includeStart = includeStart &&!isMin;
@@ -51,6 +51,10 @@ public class UniformDecimalDistribution extends BaseDistribution<BigDecimal> {
         for(FrequencyEstimate<BigDecimal> est:fe){
             baseEstimate+=est.count();
         }
-        return baseEstimate;
+        return (long)baseEstimate;
+    }
+
+    private long getPerRowCount() {
+        return getAdjustedRowCount()/columnStats.cardinality();
     }
 }

@@ -12,9 +12,17 @@ import java.util.Set;
  *         Date: 3/5/15
  */
 public class UniformFloatDistribution extends BaseDistribution<Float> implements FloatDistribution {
+    private final double a;
+    private final double b;
 
     public UniformFloatDistribution(FloatColumnStatistics columnStats) {
         super(columnStats, ComparableComparator.<Float>newComparator());
+
+        double at = columnStats.nonNullCount()-columnStats.minCount();
+        at/=(columnStats.max()-columnStats.min());
+
+        this.a = at;
+        this.b = columnStats.nonNullCount()-a*columnStats.max();
     }
 
     @Override
@@ -81,25 +89,27 @@ public class UniformFloatDistribution extends BaseDistribution<Float> implements
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private long rangeSelectivity(float start, float stop, boolean includeStart, boolean includeStop,boolean isMin) {
-        long perEntryCount = getAdjustedRowCount()/columnStats.cardinality();
-        long baseEstimate = (long)(perEntryCount*(stop-start));
+        double baseEstimate = a*stop+b;
+        baseEstimate-=a*start+b;
+        long perRowCount = getPerRowCount();
         if(!includeStart){
-            baseEstimate-=perEntryCount;
-        }else if(isMin){
-            baseEstimate-=perEntryCount;
-            baseEstimate+=columnStats.minCount();
+            baseEstimate-=perRowCount;
         }
         if(includeStop)
-            baseEstimate+=perEntryCount;
+            baseEstimate+=perRowCount;
 
         FloatFrequentElements ife = (FloatFrequentElements)columnStats.topK();
         //if we are the min value, don't include the start key in frequent elements
         includeStart = includeStart &&!isMin;
         Set<FloatFrequencyEstimate> ffe = ife.frequentBetween(start, stop, includeStart, includeStop);
-        baseEstimate-=perEntryCount*ffe.size();
+        baseEstimate-=perRowCount*ffe.size();
         for(FloatFrequencyEstimate est:ffe){
             baseEstimate+=est.count();
         }
-        return baseEstimate;
+        return (long)baseEstimate;
+    }
+
+    private long getPerRowCount() {
+        return getAdjustedRowCount()/columnStats.cardinality();
     }
 }

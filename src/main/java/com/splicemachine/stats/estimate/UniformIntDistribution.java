@@ -12,8 +12,17 @@ import java.util.Set;
  *         Date: 3/5/15
  */
 public class UniformIntDistribution extends BaseDistribution<Integer> implements IntDistribution {
+    private final double a;
+    private final double b;
+
     public UniformIntDistribution(IntColumnStatistics columnStats) {
         super(columnStats, ComparableComparator.<Integer>newComparator());
+
+        double at = columnStats.nonNullCount()-columnStats.minCount();
+        at/=(columnStats.max()-columnStats.min());
+
+        this.a = at;
+        this.b = columnStats.nonNullCount()-a*columnStats.max();
     }
 
     @Override
@@ -77,15 +86,11 @@ public class UniformIntDistribution extends BaseDistribution<Integer> implements
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private long rangeSelectivity(int start, int stop, boolean includeStart, boolean includeStop,boolean isMin) {
-
-        long perRowCount = getAdjustedRowCount()/columnStats.cardinality();
-        long baseEstimate = perRowCount*(start-stop);
-
+        double baseEstimate = a*stop+b;
+        baseEstimate-=a*start+b;
+        long perRowCount = getPerRowCount();
         if(!includeStart){
-            baseEstimate-= perRowCount;
-        }else if(isMin){
             baseEstimate-=perRowCount;
-            baseEstimate+=columnStats.minCount();
         }
         if(includeStop)
             baseEstimate+=perRowCount;
@@ -99,6 +104,10 @@ public class UniformIntDistribution extends BaseDistribution<Integer> implements
         for(IntFrequencyEstimate estimate: intFrequencyEstimates){
             baseEstimate+=estimate.count();
         }
-        return baseEstimate;
+        return (long)baseEstimate;
+    }
+
+    private long getPerRowCount() {
+        return getAdjustedRowCount()/columnStats.cardinality();
     }
 }
