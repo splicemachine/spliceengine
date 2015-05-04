@@ -29,7 +29,6 @@
   	<ant dir="${derby.engine.dir}/agg"/>
     <ant dir="${derby.engine.dir}/impl"/>
     <ant dir="${derby.engine.dir}/jdbc"/>
-    <ant dir="${derby.engine.dir}/osgi"/>
     <ant dir="${derby.engine.dir}/catalog"/>
 
     <ant dir="${derby.engine.dir}/diag"/>
