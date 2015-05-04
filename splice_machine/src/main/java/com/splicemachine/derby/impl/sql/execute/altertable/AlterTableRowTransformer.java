@@ -29,6 +29,7 @@ public class AlterTableRowTransformer implements RowTransformer {
     private final KeyHashDecoder keyDecoder;
     private final PairEncoder entryEncoder;
     private final int[] columnMapping;
+    private final int copyLen;
 
     public AlterTableRowTransformer(ExecRow srcRow,
                                     int[] columnMapping,
@@ -42,24 +43,23 @@ public class AlterTableRowTransformer implements RowTransformer {
         this.rowDecoder = rowDecoder;
         this.keyDecoder = keyDecoder;
         this.entryEncoder = entryEncoder;
+        // arraycopy must use the smaller of the two lengths -
+        // for drop column, templateRow will be shorter.
+        // for add column, srcRow will be shorter.
+        this.copyLen = Math.min(srcRow.nColumns(), templateRow.nColumns());
     }
 
     public KVPair transform(KVPair kvPair) throws StandardException, IOException {
         // Decode a row
         ExecRow mergedRow = templateRow.getClone();
         srcRow.resetRowArray();
-        if (srcRow.nColumns() > 0) {
-            keyDecoder.set(kvPair.getRowKey(), 0, kvPair.getRowKey().length);
-            keyDecoder.decode(srcRow);
+        decodeRow(kvPair, srcRow, keyDecoder, rowDecoder);
 
-            rowDecoder.set(kvPair.getValue(), 0, kvPair.getValue().length);
-            rowDecoder.decode(srcRow);
-        }
+        DataValueDescriptor[] srcArray = srcRow.getRowArray();
+        DataValueDescriptor[] mergedArray = mergedRow.getRowArray();
+        System.arraycopy(srcArray, 0, mergedArray, 0, copyLen);
+        mergedRow.setRowArray(mergedArray);
 
-        int i = 1;
-        for (DataValueDescriptor dvd : srcRow.getRowArray()) {
-            mergedRow.setColumn(i++, dvd);
-        }
         // encode the result
         KVPair newPair = entryEncoder.encode(mergedRow);
         return newPair;
@@ -72,13 +72,8 @@ public class AlterTableRowTransformer implements RowTransformer {
         ExecRow mergedRow = templateRow.getClone();
         for (KVPair kvPair : kvPairs) {
             srcRow.resetRowArray();
-            if (srcRow.nColumns() > 0) {
-                keyDecoder.set(kvPair.getRowKey(), 0, kvPair.getRowKey().length);
-                keyDecoder.decode(srcRow);
+            decodeRow(kvPair, srcRow, keyDecoder, rowDecoder);
 
-                rowDecoder.set(kvPair.getValue(), 0, kvPair.getValue().length);
-                rowDecoder.decode(srcRow);
-            }
             for (int i = 0; i < columnMapping.length; i++) {
                 int targetIndex = columnMapping[i];
                 if (targetIndex != 0) {
@@ -94,6 +89,17 @@ public class AlterTableRowTransformer implements RowTransformer {
         // encode the result
         KVPair newPair = entryEncoder.encode(mergedRow);
         return newPair;
+    }
+
+    private static void decodeRow(KVPair kvPair, ExecRow srcRow, KeyHashDecoder keyDecoder, EntryDataDecoder
+        rowDecoder) throws StandardException {
+        if (srcRow.nColumns() > 0) {
+            keyDecoder.set(kvPair.getRowKey(), 0, kvPair.getRowKey().length);
+            keyDecoder.decode(srcRow);
+
+            rowDecoder.set(kvPair.getValue(), 0, kvPair.getValue().length);
+            rowDecoder.decode(srcRow);
+        }
     }
 
     @Override
