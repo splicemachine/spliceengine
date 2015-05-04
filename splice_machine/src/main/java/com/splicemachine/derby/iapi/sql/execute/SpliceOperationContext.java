@@ -1,7 +1,6 @@
 package com.splicemachine.derby.iapi.sql.execute;
 
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.db.impl.sql.GenericPreparedStatement;
 import com.splicemachine.derby.hbase.SpliceBaseOperationRegionScanner;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.hbase.BufferedRegionScanner;
@@ -34,7 +33,7 @@ import java.io.IOException;
 public class SpliceOperationContext {
     static final Logger LOG = Logger.getLogger(SpliceOperationContext.class);
 
-    private final GenericPreparedStatement preparedStatement;
+    private final GenericStorablePreparedStatement preparedStatement;
     private final HRegion region;
     private final Activation activation;
     private final Scan scan;
@@ -53,7 +52,7 @@ public class SpliceOperationContext {
                                   TransactionalRegion txnRegion,
                                   Scan scan,
                                   Activation activation,
-                                  GenericPreparedStatement preparedStatement,
+                                  GenericStorablePreparedStatement preparedStatement,
                                   LanguageConnectionContext lcc,boolean isSink,SpliceOperation topOperation,
                                   SpliceRuntimeContext spliceRuntimeContext,
 																	TxnView txn){
@@ -75,7 +74,7 @@ public class SpliceOperationContext {
                                   TransactionalRegion txnRegion,
                                   Scan scan,
                                   Activation activation,
-                                  GenericPreparedStatement preparedStatement,
+                                  GenericStorablePreparedStatement preparedStatement,
                                   LanguageConnectionContext lcc,
                                   boolean isSink,SpliceOperation topOperation,
                                   SpliceRuntimeContext spliceRuntimeContext,
@@ -173,7 +172,7 @@ public class SpliceOperationContext {
         }
     }
 
-    public GenericPreparedStatement getPreparedStatement() {
+    public GenericStorablePreparedStatement getPreparedStatement() {
         return preparedStatement;
     }
 
@@ -194,7 +193,7 @@ public class SpliceOperationContext {
 				}
         return new SpliceOperationContext(null,null,null,
                 a,
-                (GenericPreparedStatement)a.getPreparedStatement(),
+                (GenericStorablePreparedStatement)a.getPreparedStatement(),
                 null,false,null, new SpliceRuntimeContext(txn),txn);
     }
 

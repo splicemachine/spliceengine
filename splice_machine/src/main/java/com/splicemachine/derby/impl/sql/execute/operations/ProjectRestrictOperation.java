@@ -10,7 +10,6 @@ import java.util.List;
 
 import com.google.common.base.Strings;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.impl.sql.GenericPreparedStatement;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.impl.spark.RDDUtils;
@@ -146,7 +145,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 				super.init(context);
 				source.init(context);
 
-				GenericPreparedStatement statement = context.getPreparedStatement();
+				GenericStorablePreparedStatement statement = context.getPreparedStatement();
 				projectMapping = ((ReferencedColumnsDescriptorImpl) statement.getSavedObject(mapRefItem)).getReferencedColumnPositions();
 				if (projectionMethodName == null) {
 						mappedResultRow = activation.getExecutionFactory().getValueRow(projectMapping.length);
