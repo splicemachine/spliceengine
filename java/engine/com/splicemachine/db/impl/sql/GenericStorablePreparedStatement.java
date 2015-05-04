@@ -13,6 +13,7 @@ import com.splicemachine.db.iapi.sql.Statement;
 import com.splicemachine.db.iapi.sql.StorablePreparedStatement;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
+import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.util.ByteArray;
 
@@ -100,6 +101,14 @@ public class GenericStorablePreparedStatement extends GenericPreparedStatement
         setActivationClass(gc);
     }
 
+    @Override
+    public ExecPreparedStatement getClone() throws StandardException {
+        GenericStorablePreparedStatement clone = new GenericStorablePreparedStatement(statement);
+        shallowClone(clone);
+        clone.className = this.className;
+        clone.byteCode = this.byteCode;
+        return clone;
+    }
 
     /////////////////////////////////////////////////////////////
     //

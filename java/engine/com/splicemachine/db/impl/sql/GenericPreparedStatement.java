@@ -1052,9 +1052,13 @@ public class GenericPreparedStatement implements ExecPreparedStatement {
      */
     @Override
     public ExecPreparedStatement getClone() throws StandardException {
-
         GenericPreparedStatement clone = new GenericPreparedStatement(statement);
+        shallowClone(clone);
+        return clone;
+    }
 
+    /* Clone logic shared with sub classes */
+    protected void shallowClone(GenericPreparedStatement clone) throws StandardException {
         clone.activationClass = getActivationClass();
         clone.resultDesc = resultDesc;
         clone.paramTypeDescriptors = paramTypeDescriptors;
@@ -1071,8 +1075,6 @@ public class GenericPreparedStatement implements ExecPreparedStatement {
         clone.updateColumns = updateColumns;
         clone.updateMode = updateMode;
         clone.needsSavepoint = needsSavepoint;
-
-        return clone;
     }
 
     // cache holder stuff.
