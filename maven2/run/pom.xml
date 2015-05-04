@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.splicemachine</groupId>
         <artifactId>db-project</artifactId>
-        <version>1.1.0.1-SNAPSHOT</version>
+        <version>1.1.1-SNAPSHOT</version>
     </parent>
     <artifactId>dbrun</artifactId>
     <name>Apache Derby Network Server Java Command</name>
@@ -18,7 +18,7 @@
         <dependency>
             <groupId>com.splicemachine</groupId>
             <artifactId>db</artifactId>
-            <version>1.1.0.1-SNAPSHOT</version>
+            <version>1.1.1-SNAPSHOT</version>
             <optional>false</optional>
         </dependency>
     </dependencies>
