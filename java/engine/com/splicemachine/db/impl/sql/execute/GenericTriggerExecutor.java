@@ -150,8 +150,7 @@ public abstract class GenericTriggerExecutor {
                 // This is a substatement; for now, we do not set any timeout
                 // for it. We might change this behaviour later, by linking
                 // timeout to its parent statement's timeout settings.
-                ResultSet rs = ps.executeSubStatement
-                        (activation, spsActivation, false, 0L);
+                ResultSet rs = ps.executeSubStatement(activation, spsActivation, false, 0L);
                 if (rs.returnsRows()) {
                     // Fetch all the data to ensure that functions in the select list or values statement will
                     // be evaluated and side effects will happen. Why else would the trigger action return

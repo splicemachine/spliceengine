@@ -1,78 +1,69 @@
 package com.splicemachine.db.impl.sql.conn;
 
+import com.splicemachine.db.iapi.services.cache.Cacheable;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.impl.sql.GenericStatement;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 
-import com.splicemachine.db.iapi.services.cache.Cacheable;
-
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
-
 /**
-*/
+ */
 public class CachedStatement implements Cacheable {
 
-	private GenericStorablePreparedStatement ps;
-	private Object identity;
+    private GenericStorablePreparedStatement ps;
+    private Object identity;
 
-	public CachedStatement() {
-	}
+    public CachedStatement() {
+    }
 
-	/**
-	 * Get the PreparedStatement that is associated with this Cacheable
-	 */
-	public GenericStorablePreparedStatement getPreparedStatement() {
-		return ps;
-	}
+    /**
+     * Get the PreparedStatement that is associated with this Cacheable
+     */
+    public GenericStorablePreparedStatement getPreparedStatement() {
+        return ps;
+    }
 
-	/* Cacheable interface */
+    @Override
+    public void clean(boolean forRemove) {
+    }
 
-	/**
+    @Override
+    public Cacheable setIdentity(Object key) {
 
-	    @see Cacheable#clean
-	*/
-	public void clean(boolean forRemove) {
-	}
+        identity = key;
+        ps = new GenericStorablePreparedStatement((GenericStatement) key);
+        ps.setCacheHolder(this);
 
-	/**
-	*/
-	public Cacheable setIdentity(Object key) {
+        return this;
+    }
 
-		identity = key;
-		ps = new GenericStorablePreparedStatement((GenericStatement) key);
-		ps.setCacheHolder(this);
+    @Override
+    public Cacheable createIdentity(Object key, Object createParameter) {
+        if (SanityManager.DEBUG)
+            SanityManager.THROWASSERT("Not expecting any create() calls");
 
-		return this;
-	}
+        return null;
 
-	/** @see Cacheable#createIdentity */
-	public Cacheable createIdentity(Object key, Object createParameter) {
-		if (SanityManager.DEBUG)
-			SanityManager.THROWASSERT("Not expecting any create() calls");
+    }
 
-		return null;
+    @Override
+    public void clearIdentity() {
 
-	}
+        if (SanityManager.DEBUG)
+            SanityManager.DEBUG("StatementCacheInfo", "CLEARING IDENTITY: " + ps.getSource());
+        ps.setCacheHolder(null);
 
-	/** @see Cacheable#clearIdentity */
-	public void clearIdentity() {
+        identity = null;
+        ps = null;
+    }
 
-		if (SanityManager.DEBUG)
-			SanityManager.DEBUG("StatementCacheInfo","CLEARING IDENTITY: "+ps.getSource());
-		ps.setCacheHolder(null);
+    @Override
+    public Object getIdentity() {
+        return identity;
+    }
 
-		identity = null;
-		ps = null;
-	}
+    @Override
+    public boolean isDirty() {
+        return false;
+    }
 
-	/** @see Cacheable#getIdentity */
-	public Object getIdentity() {
-		return identity;
-	}
-
-	/** @see Cacheable#isDirty */
-	public boolean isDirty() {
-		return false;
-	}
-
-	/* Cacheable interface */
 }
