@@ -99,8 +99,8 @@ class SpliceTestPlatformConfig {
         //
         // Threads, timeouts
         //
-        config.setLong("hbase.rpc.timeout", MINUTES.toMillis(2));
-        config.setLong("hbase.regionserver.lease.period", MINUTES.toMillis(2));
+        config.setLong("hbase.rpc.timeout", MINUTES.toMillis(6));
+        config.setLong("hbase.regionserver.lease.period", MINUTES.toMillis(6));
         config.setLong("hbase.regionserver.handler.count", 200);
         config.setLong("hbase.regionserver.msginterval", 1000);
         config.setLong("hbase.master.event.waiting.time", 20);
