@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.db.impl.sql.GenericPreparedStatement;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.operations.AggregateContext;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
@@ -42,7 +41,7 @@ public class DerbyGroupedAggregateContext implements GroupedAggregateContext {
                      AggregateContext genericAggregateContext) throws StandardException {
         this.activation = context.getActivation();
 
-        GenericPreparedStatement statement = context.getPreparedStatement();
+        GenericStorablePreparedStatement statement = context.getPreparedStatement();
         ColumnOrdering[] orderings = (ColumnOrdering[])
                 ((FormatableArrayHolder) (statement.getSavedObject(orderingItem))).getArray(ColumnOrdering.class);
 

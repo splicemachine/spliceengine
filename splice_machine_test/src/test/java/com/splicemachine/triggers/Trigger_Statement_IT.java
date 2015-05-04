@@ -3,6 +3,7 @@ package com.splicemachine.triggers;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.test_dao.TriggerBuilder;
+import com.splicemachine.test_dao.TriggerDAO;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -35,6 +36,7 @@ public class Trigger_Statement_IT {
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
 
     private TriggerBuilder tb = new TriggerBuilder();
+    private TriggerDAO triggerDAO = new TriggerDAO(methodWatcher.getOrCreateConnection());
 
     //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //
@@ -141,7 +143,7 @@ public class Trigger_Statement_IT {
 
         assertQueryFails("update T set b = b * 2 where a <= 4", "Attempt to divide by zero.");
 
-        methodWatcher.executeUpdate("drop trigger beforeUpdateTrig");
+        triggerDAO.drop("beforeUpdateTrig");
     }
 
     @Test
@@ -151,7 +153,7 @@ public class Trigger_Statement_IT {
 
         assertQueryFails("insert into T select * from T", "Attempt to divide by zero.");
 
-        methodWatcher.executeUpdate("drop trigger beforeInsertTrig");
+        triggerDAO.drop("beforeInsertTrig");
     }
 
     @Test
@@ -161,7 +163,36 @@ public class Trigger_Statement_IT {
 
         assertQueryFails("delete from T where a = 1", "Attempt to divide by zero.");
 
-        methodWatcher.executeUpdate("drop trigger beforeDeleteTrig");
+        triggerDAO.drop("beforeDeleteTrig");
+    }
+
+    //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    //
+    // Recursive triggers.  Currently recursive statement triggers will always fail.  This won't be the case when
+    //                      we implement restrictions.  For now assert the failure semantics: triggering statement
+    //                      is rolled back.
+    //
+    //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @Test
+    public void afterDeleteRecursive() throws Exception {
+        long originalRowCount = methodWatcher.query("select count(*) from T");
+
+        methodWatcher.executeUpdate(tb.named("deleteTrigRecursive").after().delete().on("T").statement()
+                .then("delete from T").build());
+        methodWatcher.executeUpdate(tb.named("updateTrigRecursive").after().update().on("T").statement()
+                .then("update T set c = c +1").build());
+        methodWatcher.executeUpdate(tb.named("insertTrigRecursive").after().insert().on("T").statement()
+                .then("insert into T values(1,1,1)").build());
+
+        // trigger fires on single delete
+        assertQueryFails("delete from T", "Maximum depth of nested triggers was exceeded.");
+        assertQueryFails("update T set b = b +1", "Maximum depth of nested triggers was exceeded.");
+        assertQueryFails("insert into T values(1,1,1)", "Maximum depth of nested triggers was exceeded.");
+
+        assertEquals(originalRowCount, (long) methodWatcher.query("select count(*) from T"));
+
+        triggerDAO.drop("deleteTrigRecursive", "updateTrigRecursive", "insertTrigRecursive");
     }
 
     private void assertQueryFails(String query, String expectedError) {

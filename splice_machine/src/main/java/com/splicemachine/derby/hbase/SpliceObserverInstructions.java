@@ -3,7 +3,6 @@ package com.splicemachine.derby.hbase;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
-import com.splicemachine.db.impl.sql.GenericPreparedStatement;
 import com.splicemachine.derby.iapi.sql.execute.ConversionResultSet;
 import com.splicemachine.derby.iapi.sql.execute.ConvertedResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -46,7 +45,7 @@ import java.util.Map;
 public class SpliceObserverInstructions implements Externalizable {
 		private static final long serialVersionUID = 4l;
 		private static Logger LOG = Logger.getLogger(SpliceObserverInstructions.class);
-		protected GenericPreparedStatement statement;
+		protected GenericStorablePreparedStatement statement;
 		protected SpliceOperation topOperation;
 		private ActivationContext activationContext;
 		protected SchemaDescriptor defaultSchemaDescriptor;
@@ -60,7 +59,7 @@ public class SpliceObserverInstructions implements Externalizable {
 		}
 
 
-		public SpliceObserverInstructions(GenericPreparedStatement statement,
+		public SpliceObserverInstructions(GenericStorablePreparedStatement statement,
                                       SpliceOperation topOperation,
                                       ActivationContext activationContext,
                                       String sessionUserName, SchemaDescriptor defaultSchemaDescriptor,
@@ -110,7 +109,7 @@ public class SpliceObserverInstructions implements Externalizable {
 				this.spliceRuntimeContext = spliceRuntimeContext;
 		}
 
-		public GenericPreparedStatement getStatement() {
+		public GenericStorablePreparedStatement getStatement() {
 				return statement;
 		}
 
@@ -136,7 +135,7 @@ public class SpliceObserverInstructions implements Externalizable {
 				ActivationContext activationContext = ActivationContext.create(activation, topOperation);
 
 				return new SpliceObserverInstructions(
-								(GenericPreparedStatement) activation.getPreparedStatement(),
+								(GenericStorablePreparedStatement) activation.getPreparedStatement(),
 								topOperation,activationContext,
                 activation.getLanguageConnectionContext().getSessionUserId(),
 								activation.getLanguageConnectionContext().getDefaultSchema(),spliceRuntimeContext);
@@ -268,7 +267,7 @@ public class SpliceObserverInstructions implements Externalizable {
 						in.readFully(activationData);
 				}
 
-				public Activation populateActivation(Activation activation,GenericPreparedStatement statement,SpliceOperation topOperation) throws StandardException {
+				public Activation populateActivation(Activation activation,GenericStorablePreparedStatement statement,SpliceOperation topOperation) throws StandardException {
 						try{
 								Kryo kryo = SpliceDriver.getKryoPool().get();
 								try{
