@@ -125,7 +125,6 @@ public class ReleaseNotesGenerator extends GeneratorBase {
     private static  final   String  JDK14_HEADLINE = "JDK 1.4";
     private static  final   String  JSR169_HEADLINE = "JSR 169";
     private static  final   String  MACHINE_HEADLINE = "Machine";
-    private static  final   String  OSGI_HEADLINE = "OSGi";
 
     // tags in summary xml
     private static  final   String  SUM_ANT_VERSION = "antVersion";
@@ -135,7 +134,6 @@ public class ReleaseNotesGenerator extends GeneratorBase {
     private static  final   String  SUM_JSR169 = "jsr169";
     private static  final   String  SUM_MACHINE = "machine";
     private static  final   String  SUM_NEW_FEATURES = "newFeatures";
-    private static  final   String  SUM_OSGI = "osgi";
     private static  final   String  SUM_OVERVIEW = "overview";
     private static  final   String  SUM_RELEASE_VERIFICATION = "releaseVerification";
 

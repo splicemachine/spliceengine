@@ -837,6 +837,7 @@
     </concat>
 
     <mkdir dir="${derby.jar.dir}/lists/${splice.package}"/>
+
     <java classname="com.splicemachine.derbyBuild.propertyconfig" fork="yes">
       <arg value="${out.dir}/${splice.package}/modules.properties"/>
       <arg value="derby"/>
@@ -847,6 +848,7 @@
     </java>
 
     <echo level="info" message=" creating derby.jar class list "/>
+
     <java classname="com.splicemachine.derbyBuild.classlister" fork="yes">
       <jvmarg value="-DcloudscapeOnly=true"/>
       <jvmarg value="-Doutputfile=${derby.jar.dir}/lists/derby.list"/>
@@ -883,21 +885,12 @@
       <param name="manifest.file" value="${derby.jar.dir}/lists/smf.mf"/>
     </antcall>
 
-    <!-- add extra osgi bits to manifest -->
-
-    <manifest file="${derby.jar.dir}/lists/smf.mf"  mode="update">
-      <attribute name="Bundle-Activator" value="com.splicemachine.db.osgi.EmbeddedActivator"/>
-      <attribute name="Bundle-SymbolicName" value="derby"/>
-      <attribute name="DynamicImport-Package" value="*"/>
-      <attribute name="Export-Package" value="com.splicemachine.db.authentication,com.splicemachine.derdbtabase,com.splicemachine.derdb,com.splicemachine.derdbbc,com.splicemachine.derdbi"/>
-    </manifest> 
-
-    <jar destfile="${derby.jar.dir}/derby.jar"
-         basedir="${out.dir}"
-	 includesfile="${derby.jar.dir}/lists/derby.list"
-         compress="true"
-         filesonly="true"
-         manifest="${derby.jar.dir}/lists/smf.mf">
+    <jar destfile     = "${derby.jar.dir}/derby.jar"
+         basedir      = "${out.dir}"
+	     includesfile = "${derby.jar.dir}/lists/derby.list"
+         compress     = "true"
+         filesonly    = "true"
+         manifest     = "${derby.jar.dir}/lists/smf.mf">
       <fileset dir="${out.dir}"
                includes="${splice.package}/loc/m?_en.properties,
                          ${splice.package}/loc/m??_en.properties,
@@ -906,9 +899,8 @@
                          ${splice.package}/impl/jdbc/metadata.properties,
                          ${splice.package}/impl/sql/catalog/metadata_net.properties,
                          ${splice.package}/info/DBMS.properties"/>
-      <fileset dir="${derby.jar.dir}/lists"
-               includes="META-INF/**,
-                         ${splice.package}/modules.properties"/>
+
+        <fileset dir="${derby.jar.dir}/lists" includes="META-INF/**,${splice.package}/modules.properties"/>
     </jar>
 
   </target>
@@ -1132,18 +1124,6 @@
     <antcall target="make-core-derbyjar-manifest">
       <param name="manifest.file" value="${derby.jar.dir}/lists/smfclient.mf"/>
     </antcall>
-
-    <!-- add extra osgi bits to manifest -->
-
-    <manifest file="${derby.jar.dir}/lists/smfclient.mf"  mode="update">
-      <attribute name="Bundle-SymbolicName" value="derbyclient"/>
-      <attribute name="DynamicImport-Package" value="*"/>
-      <attribute name="Export-Package" value="com.splicemachine.db.jdbc"/>
-      <!-- See DERBY-4669. -->
-      <section name="${splice.package}/shared/common/sanity/">
-        <attribute name="Sealed" value="false"/>
-      </section>
-    </manifest> 
 
     <!-- declare the client driver for autoloading by the JDBC 4 DriverManager -->
     <antcall target="declare-autoloadable-driver">
