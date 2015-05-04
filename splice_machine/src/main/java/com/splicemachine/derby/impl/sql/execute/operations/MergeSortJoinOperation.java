@@ -175,13 +175,12 @@ public class MergeSortJoinOperation extends JoinOperation {
         PairDataSet<ExecRow,LocatedRow> leftDataSet = leftResultSet.getDataSet().keyBy(new KeyerFunction<LocatedRow>(operationContext, leftHashKeys));
         PairDataSet<ExecRow,LocatedRow> rightDataSet = rightResultSet.getDataSet().keyBy(new KeyerFunction<LocatedRow>(operationContext, rightHashKeys));
         if (LOG.isDebugEnabled())
-            SpliceLogUtils.debug(LOG,"getDataSet Performing MergeSortJoin type=%s, antiJoin=%s, hasRestriction=%s",
-                    isOuterJoin?"outer":"inner",notExistsRightSide,restriction!=null);
+            SpliceLogUtils.debug(LOG, "getDataSet Performing MergeSortJoin type=%s, antiJoin=%s, hasRestriction=%s",
+                    isOuterJoin ? "outer" : "inner", notExistsRightSide, restriction != null);
         if (isOuterJoin) { // Outer Join
             if (restriction!=null) { // Restriction
                 return leftDataSet.<LocatedRow>hashLeftOuterJoin(rightDataSet)
-                        .map(new OuterJoinPairFunction(operationContext))
-                        .filter(new JoinRestrictionPredicateFunction(operationContext));
+                        .map(new OuterJoinPairFunction(operationContext));
             } else { // No Restriction
                 return leftDataSet.<LocatedRow>hashLeftOuterJoin(rightDataSet)
                         .map(new OuterJoinPairFunction(operationContext));
@@ -191,16 +190,16 @@ public class MergeSortJoinOperation extends JoinOperation {
         else {
             if (this.notExistsRightSide) { // antijoin
                 if (restriction !=null) { // with restriction
-                    return leftDataSet.<LocatedRow>hashLeftOuterJoin(rightDataSet)
-                            .flatmap(new AntiJoinRestrictionFlatMapFunction(operationContext));
+                    return leftDataSet.<LocatedRow>cogroup(rightDataSet)
+                            .flatmap(new CogroupAntiJoinRestrictionFlatMapFunction(operationContext));
                 } else { // No Restriction
-                        return leftDataSet.<LocatedRow>subtractByKey(rightDataSet)
-                                .map(new AntiJoinFunction(operationContext));
+                    return leftDataSet.<LocatedRow>subtractByKey(rightDataSet)
+                            .map(new AntiJoinFunction(operationContext));
                 }
             } else { // Inner Join
                 if (restriction !=null) { // with restriction
-                    return leftDataSet.<LocatedRow>hashLeftOuterJoin(rightDataSet)
-                            .flatmap(new InnerJoinRestrictionFlatMapFunction(operationContext));
+                    return leftDataSet.<LocatedRow>cogroup(rightDataSet)
+                            .flatmap(new CogroupInnerJoinRestrictionFlatMapFunction(operationContext));
                 } else { // No Restriction
                     return leftDataSet.hashJoin(rightDataSet)
                             .map(new InnerJoinFunction<SpliceOperation>(operationContext));

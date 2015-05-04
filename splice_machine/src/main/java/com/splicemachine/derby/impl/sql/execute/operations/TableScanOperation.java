@@ -210,7 +210,7 @@ public class TableScanOperation extends ScanOperation {
             TableScannerBuilder tsb = new TableScannerBuilder()
                     .transaction(operationInformation.getTransaction())
                     .scan(getNonSIScan())
-                    .template(currentRow)
+                    .template(currentTemplate)
                     .tableVersion(scanInformation.getTableVersion())
                     .indexName(indexName)
                     .keyColumnEncodingOrder(scanInformation.getColumnOrdering())

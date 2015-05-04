@@ -73,4 +73,8 @@ public class LocatedRow implements KeyableRow {
     public int compareTo(int[] ints, ExecRow execRow) {
         return row.compareTo(ints,execRow);
     }
+
+    public LocatedRow getClone() throws CloneNotSupportedException {
+        return new LocatedRow(getRowLocation(),getRow());
+    }
 }

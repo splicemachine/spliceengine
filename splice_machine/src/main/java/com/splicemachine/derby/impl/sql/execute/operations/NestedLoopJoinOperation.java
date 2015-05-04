@@ -2,10 +2,12 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.stream.function.NLJAntiJoinFunction;
+import com.splicemachine.derby.stream.function.NLJInnerJoinFunction;
+import com.splicemachine.derby.stream.function.NLJOuterJoinFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.stream.function.NLJFunction;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
@@ -84,6 +86,13 @@ public class NestedLoopJoinOperation extends JoinOperation {
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         DataSet<LocatedRow> left = leftResultSet.getDataSet();
         OperationContext<SpliceOperation> operationContext = dsp.createOperationContext(this);
-        return left.flatMap(new NLJFunction<SpliceOperation>(operationContext,rightResultSet));
+        if (isOuterJoin)
+            return left.flatMap(new NLJOuterJoinFunction<SpliceOperation>(operationContext));
+        else {
+            if (notExistsRightSide)
+                return left.flatMap(new NLJAntiJoinFunction<SpliceOperation>(operationContext));
+            else
+                return left.flatMap(new NLJInnerJoinFunction<SpliceOperation>(operationContext));
+        }
     }
 }

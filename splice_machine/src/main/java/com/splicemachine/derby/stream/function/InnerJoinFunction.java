@@ -1,6 +1,7 @@
 package com.splicemachine.derby.stream.function;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils;
@@ -14,13 +15,11 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
 /**
- * Created by jleach on 4/22/15.
+ *
  */
 @NotThreadSafe
-public class InnerJoinFunction<Op extends SpliceOperation> extends SpliceFunction<Op, Tuple2<ExecRow,Tuple2<LocatedRow,LocatedRow>>, LocatedRow> {
+public class InnerJoinFunction<Op extends SpliceOperation> extends SpliceJoinFunction<Op, Tuple2<ExecRow,Tuple2<LocatedRow,LocatedRow>>, LocatedRow> {
     private static final long serialVersionUID = 3988079974858059941L;
-    protected JoinOperation operation;
-    protected boolean initialized = false;
     public InnerJoinFunction() {
     }
 
@@ -40,12 +39,9 @@ public class InnerJoinFunction<Op extends SpliceOperation> extends SpliceFunctio
 
     @Override
     public LocatedRow call(Tuple2<ExecRow, Tuple2<LocatedRow, LocatedRow>> tuple) throws Exception {
-        if (!initialized) {
-            operation = (JoinOperation) this.getOperation();
-            initialized = true;
-        }
-        ExecRow execRow = JoinUtils.getMergedRow(tuple._2()._1().getRow(),tuple._2()._2().getRow(),operation.wasRightOuterJoin,operation.getExecRowDefinition());
-        operation.setCurrentRow(execRow);
+        ExecRow execRow = JoinUtils.getMergedRow(tuple._2()._1().getRow(),tuple._2()._2().getRow(),
+                op.wasRightOuterJoin,executionFactory.getValueRow(numberOfColumns));
+        op.setCurrentRow(execRow);
         return new LocatedRow(execRow);
     }
 }

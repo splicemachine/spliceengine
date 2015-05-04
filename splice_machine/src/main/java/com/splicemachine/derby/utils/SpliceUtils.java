@@ -93,6 +93,32 @@ public class SpliceUtils extends SpliceUtilities {
         }
     }
 
+    public static void resultValuesToNull(DataValueDescriptor[] dvds) throws StandardException{
+        for(DataValueDescriptor dvd:dvds){
+            if(dvd != null){
+                switch(dvd.getTypeFormatId()){
+                    case StoredFormatIds.SQL_DOUBLE_ID:
+                        dvd.restoreToNull();
+                        break;
+                    case StoredFormatIds.SQL_SMALLINT_ID:
+                    case StoredFormatIds.SQL_INTEGER_ID:
+                        dvd.restoreToNull();
+                        break;
+                    case StoredFormatIds.SQL_BOOLEAN_ID:
+                        dvd.restoreToNull();
+                        break;
+                    case StoredFormatIds.SQL_LONGINT_ID:
+                        dvd.restoreToNull();
+                    case StoredFormatIds.SQL_REAL_ID:
+                        dvd.restoreToNull();
+                    default:
+                        //no op, this doesn't have a useful default value
+                }
+            }
+        }
+    }
+
+
     public static Scan createScan(Txn txn) {
         return createScan(txn,false);
     }

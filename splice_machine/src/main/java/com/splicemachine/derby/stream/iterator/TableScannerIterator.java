@@ -6,10 +6,12 @@ import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import javax.annotation.concurrent.NotThreadSafe;
+import java.io.Closeable;
+import java.io.IOException;
 import java.util.Iterator;
 
 /**
- * Created by jleach on 4/29/15.
+ *
  */
 @NotThreadSafe
 public class TableScannerIterator implements Iterable<LocatedRow>, Iterator<LocatedRow> {
@@ -41,6 +43,17 @@ public class TableScannerIterator implements Iterable<LocatedRow>, Iterator<Loca
             if (!initialized) {
                 tableScanner = siTableBuilder.build();
                 tableScanner.open();
+                operation.registerCloseable(new Closeable() {
+                    @Override
+                    public void close() throws IOException {
+                        try {
+                            if (tableScanner != null && initialized)
+                                tableScanner.close();
+                        } catch (Exception e) {
+                            throw new IOException(e);
+                        }
+                    }
+                });
             }
             execRow = tableScanner.next(null);
             if (execRow==null) {
@@ -62,8 +75,7 @@ public class TableScannerIterator implements Iterable<LocatedRow>, Iterator<Loca
         slotted = false;
         rows++;
         LocatedRow locatedRow = new LocatedRow(tableScanner.getCurrentRowLocation(),execRow.getClone());
-        operation.setCurrentRow(locatedRow.getRow());
-        operation.setCurrentRowLocation(locatedRow.getRowLocation());
+        operation.setCurrentLocatedRow(locatedRow);
         return locatedRow;
     }
 

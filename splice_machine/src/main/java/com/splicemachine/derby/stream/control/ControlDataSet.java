@@ -49,6 +49,7 @@ public class ControlDataSet<V> implements DataSet<V> {
         try {
             for (V v : iterable) {
                 zeroValue = function2.call(zeroValue, v);
+                System.out.println("zeroValue " + zeroValue);
             }
             return zeroValue;
         } catch (Exception e) {

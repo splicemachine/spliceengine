@@ -2,13 +2,10 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.stream.spark.RDDUtils;
-import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.scalar.ScalarAggregator;
+import com.splicemachine.derby.stream.function.ScalarAggregateFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
-import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.stream.function.SpliceFunction2;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -16,7 +13,6 @@ import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.impl.sql.execute.IndexValueRow;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -119,7 +115,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         LocatedRow result = source.getDataSet()
-                .fold(null,new ScalarAggregatorFunction(dsp.createOperationContext(this)));
+                .fold(null,new ScalarAggregateFunction(dsp.createOperationContext(this)));
         if (result==null)
             return dsp.singleRowDataSet(new LocatedRow(getExecRowDefinition()));
         if (!(result.getRow() instanceof ExecIndexRow)) {
@@ -129,62 +125,5 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
         finishAggregation(result.getRow());
         return dsp.singleRowDataSet(new LocatedRow(result.getRow()));
     }
-
-    private static final class ScalarAggregatorFunction extends SpliceFunction2<SpliceOperation, LocatedRow, LocatedRow, LocatedRow> {
-        private static final long serialVersionUID = -4150499166764796082L;
-
-        public ScalarAggregatorFunction() {
-        }
-
-        public ScalarAggregatorFunction(OperationContext<SpliceOperation> operationContext) {
-            super(operationContext);
-        }
-
-        @Override
-        public LocatedRow call(LocatedRow t1, LocatedRow t2) throws Exception {
-            operationContext.recordRead();
-            ScalarAggregateOperation op = (ScalarAggregateOperation) getOperation();
-            if (t2 == null) {
-                return t1;
-            }
-            if (t1 == null) {
-                return t2;
-            }
-            if (RDDUtils.LOG.isDebugEnabled()) {
-                RDDUtils.LOG.debug(String.format("Reducing %s and %s", t1, t2));
-            }
-            ExecRow r1 = t1.getRow();
-            if (!(r1 instanceof ExecIndexRow)) {
-                r1 = new IndexValueRow(r1);
-            }
-            if (!op.isInitialized(r1)) {
-                op.initializeVectorAggregation(r1);
-            }
-            aggregate(t2.getRow(), (ExecIndexRow) r1);
-            return new LocatedRow(r1);
-        }
-
-        private void aggregate(ExecRow next, ExecIndexRow agg) throws StandardException {
-            ScalarAggregateOperation op = (ScalarAggregateOperation) getOperation();
-            if (next instanceof ExecIndexRow) {
-                if (RDDUtils.LOG.isDebugEnabled()) {
-                    RDDUtils.LOG.debug(String.format("Merging %s with %s", next, agg));
-                }
-                for (SpliceGenericAggregator aggregate : op.aggregates) {
-                    aggregate.merge(next, agg);
-                }
-            } else {
-                next = new IndexValueRow(next);
-                if (RDDUtils.LOG.isDebugEnabled()) {
-                    RDDUtils.LOG.debug(String.format("Aggregating %s to %s", next, agg));
-                }
-                for (SpliceGenericAggregator aggregate : op.aggregates) {
-                    aggregate.accumulate(next, agg);
-                }
-            }
-        }
-
-    }
-
 
 }

@@ -24,7 +24,7 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation {
 		private static Logger LOG = Logger.getLogger(GenericAggregateOperation.class);
 		protected SpliceOperation source;
 		protected AggregateContext aggregateContext;
-		protected SpliceGenericAggregator[] aggregates;
+		public SpliceGenericAggregator[] aggregates;
 		protected SpliceMethod<ExecRow> rowAllocator;
 		protected ExecIndexRow sourceExecIndexRow;
 		protected ExecIndexRow sortTemplateRow;
@@ -161,14 +161,14 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation {
 				return source.isReferencingTable(tableNumber);
 		}
 
-    protected void initializeVectorAggregation(ExecRow aggResult) throws StandardException{
+    public void initializeVectorAggregation(ExecRow aggResult) throws StandardException{
         for(SpliceGenericAggregator aggregator:aggregates){
             aggregator.initialize(aggResult);
             aggregator.accumulate(aggResult,aggResult);
         }
     }
 
-    protected boolean isInitialized(ExecRow aggResult) throws StandardException{
+    public boolean isInitialized(ExecRow aggResult) throws StandardException{
         for(SpliceGenericAggregator aggregator:aggregates){
             if (!aggregator.isInitialized(aggResult))
                 return false;
@@ -176,7 +176,7 @@ public abstract class GenericAggregateOperation extends SpliceBaseOperation {
         return true;
     }
 
-    protected void finishAggregation(ExecRow row) throws StandardException {
+    public void finishAggregation(ExecRow row) throws StandardException {
         for(SpliceGenericAggregator aggregator:aggregates){
             aggregator.finish(row);
         }
