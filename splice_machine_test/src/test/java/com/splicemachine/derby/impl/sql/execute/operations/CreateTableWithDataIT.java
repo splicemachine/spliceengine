@@ -81,6 +81,7 @@ public class CreateTableWithDataIT {
 
 						ResultSet rs = methodWatcher.executeQuery("select * from "+spliceSchemaWatcher.schemaName+".t2");
 						Assert.assertFalse("Rows returned by no data!",rs.next());
+                        rs.close();
 				}finally{
 						methodWatcher.executeUpdate("drop table "+spliceSchemaWatcher.schemaName+".t2");
 				}
@@ -103,6 +104,7 @@ public class CreateTableWithDataIT {
 								count++;
 						}
 						Assert.assertEquals("Incorrect row count",10,count);
+                    rs.close();
 				}finally{
 						methodWatcher.executeUpdate("drop table "+spliceSchemaWatcher.schemaName+".t3");
 				}
@@ -124,6 +126,7 @@ public class CreateTableWithDataIT {
                     count++;
                 }
                 Assert.assertEquals("Incorrect row count",10,count);
+                rs.close();
             }finally{
                 methodWatcher.executeUpdate("drop table "+spliceSchemaWatcher.schemaName+".t4");
             }
