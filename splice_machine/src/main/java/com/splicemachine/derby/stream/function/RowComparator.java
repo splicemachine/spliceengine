@@ -12,13 +12,14 @@ import java.util.Comparator;
 public class RowComparator implements Comparator<ExecRow>, Serializable, Externalizable {
     private static final long serialVersionUID = -7005014411999208729L;
     private boolean[] descColumns; //descColumns[i] = false => column[i] sorted descending, else sorted ascending
+    private boolean nullsOrderedLow;
 
     public RowComparator() {
 
     }
-
-    public RowComparator(boolean[] descColumns) {
+    public RowComparator(boolean[] descColumns, boolean nullsOrderedLow) {
         this.descColumns = descColumns;
+        this.nullsOrderedLow = nullsOrderedLow;
     }
 
     @Override
@@ -26,14 +27,16 @@ public class RowComparator implements Comparator<ExecRow>, Serializable, Externa
         out.writeInt(descColumns.length);
         for (int i =0; i<descColumns.length; i++)
             out.writeBoolean(descColumns[i]);
+        out.writeBoolean(nullsOrderedLow);
+
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         descColumns = new boolean[in.readInt()];
-        for (int i =0; i<descColumns.length; i++)
+        for (int i = 0; i < descColumns.length; i++)
             descColumns[i] = in.readBoolean();
-
+         nullsOrderedLow = in.readBoolean();
     }
 
     @Override
@@ -45,7 +48,7 @@ public class RowComparator implements Comparator<ExecRow>, Serializable, Externa
             DataValueDescriptor c2 = a2[i];
             int result;
             try {
-                result = c1.compare(c2);
+                result = c1.compare(c2,nullsOrderedLow);
             } catch (StandardException e) {
                 throw new RuntimeException(e);
             }
