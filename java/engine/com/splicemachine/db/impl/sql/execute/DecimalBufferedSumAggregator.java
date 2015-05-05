@@ -48,9 +48,15 @@ public class DecimalBufferedSumAggregator extends SumAggregator {
             if (other.isNull){
                return;
             }
-				BigDecimal otherSum = other.sum;
-				buffer[position] = otherSum;
-				incrementPosition();
+
+            if (other.sum != BigDecimal.ZERO) {
+                buffer[position] = other.sum;
+                incrementPosition();
+            }
+            for (int i = 0; i< other.position;i++) {
+                buffer[position] = other.buffer[i];
+                incrementPosition();
+            }
 		}
 
 		@Override

@@ -48,9 +48,15 @@ public class FloatBufferedSumAggregator extends SumAggregator {
             if (other.isNull){
                return;
             }
-				float otherSum = other.sum;
-				buffer[position] = otherSum;
-				incrementPosition();
+
+            if (other.sum != 0f) {
+                buffer[position] = other.sum;
+                incrementPosition();
+            }
+            for (int i = 0; i< other.position;i++) {
+                buffer[position] = other.buffer[i];
+                incrementPosition();
+            }
 		}
 
 		@Override

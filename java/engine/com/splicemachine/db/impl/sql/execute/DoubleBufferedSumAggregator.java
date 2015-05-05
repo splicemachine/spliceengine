@@ -54,9 +54,15 @@ public class DoubleBufferedSumAggregator extends SumAggregator{
             if (other.isNull){
                return;
             }
-				double otherSum = other.sum;
-				buffer[position] = otherSum;
-				incrementPosition();
+
+            if (other.sum != 0d) {
+                buffer[position] = other.sum;
+                incrementPosition();
+            }
+            for (int i = 0; i< other.position;i++) {
+                buffer[position] = other.buffer[i];
+                incrementPosition();
+            }
 		}
 
 		@Override
