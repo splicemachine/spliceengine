@@ -108,11 +108,14 @@ public class SimpleCostEstimate implements CostEstimate{
         df.setMaximumFractionDigits(3);
         df.setGroupingUsed(false);
 
-        return "totalCost="+df.format(getEstimatedCost())
-                +",processingCost="+df.format(localCost())
-                +",transferCost="+df.format(remoteCost())
+        long estHeap = getEstimatedHeapSize();
+        double estHeapMb = estHeap/1024d/1024d;
+
+        return "totalCost="+df.format(getEstimatedCost()/1000)
+                +",processingCost="+df.format(localCost()/1000)
+                +",transferCost="+df.format(remoteCost()/1000)
                 +",outputRows="+getEstimatedRowCount()
-                +",outputHeapSize="+getEstimatedHeapSize()+
+                +",outputHeapSize="+df.format(estHeapMb)+
                 ",partitions="+partitionCount();
     }
 
