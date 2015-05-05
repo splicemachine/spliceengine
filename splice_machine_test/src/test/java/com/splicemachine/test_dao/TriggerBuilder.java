@@ -5,11 +5,21 @@ import com.google.common.base.Joiner;
 import static com.google.common.base.Preconditions.checkState;
 import static org.apache.commons.lang.StringUtils.isNotBlank;
 
+/**
+ * Example create trigger SQL:
+ * <p/>
+ * <pre>
+ *  name:                 CREATE TRIGGER trig1
+ *  when:                 AFTER
+ *  event:                UPDATE
+ *  target columns:       OF a,b,c
+ *  target table:         ON t1
+ *  referencing clause:   REFERENCING OLD AS OLD_ROW
+ *  type:                 FOR EACH ROW
+ *  action:               INSERT INTO trigger_count VALUES('afterUpdate_' || OLD_ROW.b );
+ * </pre>
+ */
 public class TriggerBuilder {
-
-    enum Type {
-        STATEMENT, ROW
-    }
 
     enum When {
         BEFORE, AFTER
@@ -19,24 +29,21 @@ public class TriggerBuilder {
         INSERT, UPDATE, DELETE
     }
 
-    private Type type;
+    enum Type {
+        STATEMENT, ROW
+    }
+
+    private String triggerName;
     private When when;
     private Event event;
-    private String triggerName;
+    /* Name of the table upon which the trigger is defined */
     private String tableName;
+    /* Name of the table columns upon which the trigger is defined (optional) */
     private String[] targetColumnNames;
+    /* For example: 'REFERENCING NEW AS NEW_ROW' */
+    private String referencingClause;
+    private Type type;
     private String triggerAction;
-
-    public TriggerBuilder reset() {
-        type = null;
-        when = null;
-        event = null;
-        tableName = null;
-        triggerAction = null;
-        triggerName = null;
-        targetColumnNames = null;
-        return this;
-    }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     // when
@@ -109,6 +116,10 @@ public class TriggerBuilder {
         return this;
     }
 
+    public TriggerBuilder referencing(String referencingClause) {
+        this.referencingClause = referencingClause;
+        return this;
+    }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //
@@ -123,7 +134,7 @@ public class TriggerBuilder {
         b.append(" ");
         b.append(triggerName);
         b.append(" ");
-        b.append(when == When.BEFORE ? "NO CASCADE BEFORE" : "AFTER");
+        b.append(when);
         b.append(" ");
         b.append(event);
         b.append(" ");
@@ -133,6 +144,10 @@ public class TriggerBuilder {
         }
         b.append("ON " + tableName);
         b.append(" ");
+        if (referencingClause != null) {
+            b.append("REFERENCING " + referencingClause);
+            b.append(" ");
+        }
         b.append(type == Type.STATEMENT ? "FOR EACH STATEMENT" : "FOR EACH ROW");
         b.append(" ");
         b.append(triggerAction);
