@@ -154,6 +154,4 @@ public class AnyOperation extends SpliceBaseOperation {
         return dsp.singleRowDataSet(new LocatedRow(getRowWithNulls()));
     }
 
-
-
 }
