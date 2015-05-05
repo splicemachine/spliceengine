@@ -21,7 +21,7 @@ import com.splicemachine.utils.SpliceLogUtils;
  *
  * There are 6 different relational processing paths for joins determined by the different valid combinations of these boolean
  * fields.
- *expl
+ *
  *  1.  isOuterJoin: True for outer join and false for inner join
  *      - True (outer): select * from foo left outer join foo2 on foo.col1 = foo2.col1;
  *      - False (inner): select * from foo inner join foo2 on foo.col1 = foo2.col1;
