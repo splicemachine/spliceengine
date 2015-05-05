@@ -50,7 +50,7 @@
 
     </properties>
 
-    <!-- Necessarity to find parent pom on machines where repository is not in .m2/setting.xml (jenkins) -->
+    <!-- Necessary to find parent pom on machines where repository is not in ~/.m2/setting.xml (jenkins) -->
     <repositories>
         <repository>
             <id>splicemachine</id>
