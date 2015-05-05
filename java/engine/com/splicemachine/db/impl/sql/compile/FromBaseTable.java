@@ -748,6 +748,7 @@ public class FromBaseTable extends FromTable{
 
         //get a BitSet representing the column positions of interest
         FormatableBitSet scanColumnList = null;
+        FormatableBitSet indexLookupList = null;
         ResultColumnList rcl = templateColumns;
         if(rcl!=null&&rcl.size()>0){
             scanColumnList = new FormatableBitSet(rcl.size());
@@ -756,7 +757,31 @@ public class FromBaseTable extends FromTable{
                 scanColumnList.grow(columnPosition+1);
                 scanColumnList.set(columnPosition);
             }
+            /*
+             * It's possible that we are scanning an index. In that case, we don't necessarily
+             * have access to all the columns in the scanColumnList. Thus, we go through
+             * the index baseColumnPositions, and remove everything else
+             */
+            if(cd.isIndex() && !isCoveringIndex(cd)){
+                int[] baseColumnPositions = cd.getIndexDescriptor().baseColumnPositions();
+                indexLookupList = new FormatableBitSet();
+                for(int i=scanColumnList.anySetBit();i>=0;i=scanColumnList.anySetBit(i)){
+                    boolean found = false;
+                    for(int j=0;j<baseColumnPositions.length;j++){
+                        if(i==j){
+                           found = true;
+                            break;
+                        }
+                    }
+                    if(!found){
+                        indexLookupList.grow(i+1);
+                        indexLookupList.set(i);
+                        scanColumnList.clear(i);
+                    }
+                }
+            }
         }
+
         if(currentJoinStrategy.allowsJoinPredicatePushdown() && isOneRowResultSet(cd,baseTableRestrictionList)){ // Retrieving only one row...
              /*
               * The conglomerate matches at most one row (i.e. lookup on primary key or index key). In
@@ -1236,17 +1261,7 @@ public class FromBaseTable extends FromTable{
 		 ** beetle 4787.
 		 */
         if(cd.isIndex() && (!isCoveringIndex(cd))){
-            FormatableBitSet heapCols = null;
-            if(scanColumnList!=null){
-                heapCols=new FormatableBitSet(scanColumnList);
-                int[] indexColumns=cd.getIndexDescriptor().baseColumnPositions();
-                for(int indexColumn : indexColumns){
-                    if(heapCols.size()>indexColumn){
-                        heapCols.clear(indexColumn);
-                    }
-                }
-            }
-            scc.getFetchFromRowLocationCost(heapCols,0,costEstimate);
+            scc.getFetchFromRowLocationCost(indexLookupList,0,costEstimate);
             tracer.trace(OptimizerFlag.COST_OF_NONCOVERING_INDEX,tableNumber,0,0d,costEstimate);
         }
         costEstimate.setSingleScanRowCount(singleScanRowCount);
