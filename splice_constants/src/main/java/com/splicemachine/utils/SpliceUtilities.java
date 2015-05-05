@@ -3,13 +3,13 @@ package com.splicemachine.utils;
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.constants.bytes.BytesUtil;
 
 import java.io.IOException;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.io.compress.*;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HColumnDescriptor;
@@ -18,10 +18,6 @@ import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTableInterface;
-// Leave these imports so both 94 and 98 work:JL
-import org.apache.hadoop.hbase.io.hfile.*;
-import org.apache.hadoop.hbase.regionserver.StoreFile;
-import org.apache.hadoop.hbase.regionserver.StoreFile.*;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
@@ -136,8 +132,7 @@ public class SpliceUtilities extends SIConstants {
 	}
 
 	public static HTableDescriptor generateTransactionTable() {
-		HTableDescriptor desc = new HTableDescriptor(
-				SpliceConstants.TRANSACTION_TABLE_BYTES);
+		HTableDescriptor desc = new HTableDescriptor(TableName.valueOf(SpliceConstants.TRANSACTION_TABLE_BYTES));
 		HColumnDescriptor columnDescriptor = new HColumnDescriptor(
 				DEFAULT_FAMILY_BYTES);
 		columnDescriptor.setMaxVersions(5);

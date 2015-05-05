@@ -50,11 +50,7 @@ import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.CoprocessorEnvironment;
-import org.apache.hadoop.hbase.HColumnDescriptor;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.HTableDescriptor;
-import org.apache.hadoop.hbase.PleaseHoldException;
+import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.master.cleaner.HFileCleaner;
 import org.apache.hadoop.hbase.regionserver.HRegion;
@@ -362,7 +358,7 @@ public class SpliceDriver {
         try {
             // The HBaseAdmin creates a connection to the ZooKeeper ensemble and thereafter into the HBase cluster.
             admin = SpliceUtilities.getAdmin(SpliceConstants.config);
-            HTableDescriptor desc = new HTableDescriptor(SpliceMasterObserver.INIT_TABLE);
+            HTableDescriptor desc = new HTableDescriptor(TableName.valueOf(SpliceMasterObserver.INIT_TABLE));
             desc.addFamily(new HColumnDescriptor(Bytes.toBytes("FOO")));
             // Create the special "SPLICE_INIT" table which triggers the creation of the SpliceMasterObserver and ultimately
             // triggers the creation of the "SPLICE_*" HBase tables.  This is an asynchronous call and so we "loop" via a

@@ -7,6 +7,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseTestingUtility;
 import org.apache.hadoop.hbase.HColumnDescriptor;
 import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.util.Bytes;
 
@@ -43,7 +44,7 @@ public class TestHTableSource implements HTableSource {
         byte[][] familyBytes = getFamilyBytes(families);
 
         Preconditions.checkArgument(!hTables.containsKey(tableName), "Table already exists");
-        HTableDescriptor descriptor = new HTableDescriptor(Bytes.toBytes(tableName));
+        HTableDescriptor descriptor = new HTableDescriptor(TableName.valueOf(tableName));
         descriptor.addCoprocessor(SIObserver.class.getName());
         for (byte[] familyName : familyBytes) {
             HColumnDescriptor family = new HColumnDescriptor(familyName);
