@@ -43,7 +43,7 @@ public class AntiJoinRestrictionFlatMapFunction<Op extends SpliceOperation> exte
         LocatedRow returnRow = new LocatedRow(leftRow.getRowLocation(),JoinUtils.getMergedRow(leftRow.getRow(),
                 op.getEmptyRow(), op.wasRightOuterJoin,
                 executionFactory.getValueRow(numberOfColumns)));
-        op.setCurrentRow(returnRow.getRow());
+        op.setCurrentLocatedRow(returnRow);
         return Collections.singletonList(returnRow);
     }
 }

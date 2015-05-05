@@ -129,8 +129,9 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
         rightSide.putAll(((ControlPairDataSet) rightDataSet).source);
         for (Map.Entry<K,V> entry : source.entries()) {
             Collection<W> right = rightSide.get(entry.getKey());
-            if (right.size() > 0)
-                newMap.put(entry.getKey(),new Tuple2<V, W>(entry.getValue(),right.iterator().next()));
+            for (W w: right) {
+                newMap.put(entry.getKey(),new Tuple2<V, W>(entry.getValue(),w));
+            }
         }
         return new ControlPairDataSet< K, Tuple2<V, W>>(newMap);
     }

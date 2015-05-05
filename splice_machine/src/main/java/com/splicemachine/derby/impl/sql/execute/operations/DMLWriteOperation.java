@@ -217,7 +217,9 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 			PairEncoder encoder = new PairEncoder(keyEncoder, rowHash, dataType);
             int i = 0;
 			while(locatedRowIterator.hasNext()) {
-				ExecRow row = locatedRowIterator.next().getRow();
+                LocatedRow lr = locatedRowIterator.next();
+				ExecRow row = lr.getRow();
+                operationContext.getOperation().setCurrentLocatedRow(lr);
 				if (row == null) continue;
 				KVPair encode = encoder.encode(row);
 				writeBuffer.add(encode);

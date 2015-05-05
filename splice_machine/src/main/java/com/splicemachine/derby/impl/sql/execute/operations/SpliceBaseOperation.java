@@ -550,6 +550,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
             try {
                 while (locatedRowIterator.hasNext()) {
                     locatedRow = locatedRowIterator.next();
+//                    System.out.println(this.getClass() + "#getNextRowCore --> " + locatedRow);
                     if (LOG.isTraceEnabled())
                         SpliceLogUtils.trace(LOG, "getNextRowCore %s locatedRow=%s", this, locatedRow);
                     return locatedRow.getRow();
@@ -557,6 +558,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
                 locatedRow = null;
                 if (LOG.isTraceEnabled())
                     SpliceLogUtils.trace(LOG, "getNextRowCore %s locatedRow=%s", this, locatedRow);
+//                System.out.println(this.getClass() + "#getNextRowCore --> " + locatedRow);
                 return null;
             } catch (Exception e) {
                 throw Exceptions.parseException(e);
@@ -861,8 +863,10 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
     @Override
     public void setCurrentLocatedRow(LocatedRow locatedRow) {
-        setCurrentRow(locatedRow.getRow());
-        setCurrentRowLocation(locatedRow.getRowLocation());
+        if (locatedRow != null) {
+            setCurrentRow(locatedRow.getRow());
+            setCurrentRowLocation(locatedRow.getRowLocation());
+        }
     }
 
     @Override

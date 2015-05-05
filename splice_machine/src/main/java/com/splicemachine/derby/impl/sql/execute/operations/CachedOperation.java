@@ -97,8 +97,10 @@ public class CachedOperation extends SpliceBaseOperation {
         return dsp.createDataSet(rows).map(new SpliceFunction<SpliceOperation, ExecRow, LocatedRow>() {
             @Override
             public LocatedRow call(ExecRow execRow) throws Exception {
+                setCurrentRow(execRow);
                 return new LocatedRow(execRow);
             }
         });
     }
+
 }

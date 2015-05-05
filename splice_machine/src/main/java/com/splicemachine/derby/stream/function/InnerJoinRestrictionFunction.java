@@ -1,9 +1,7 @@
 package com.splicemachine.derby.stream.function;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.JoinOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -18,12 +16,12 @@ import java.io.ObjectOutput;
  *
  */
 @NotThreadSafe
-public class InnerJoinFunction<Op extends SpliceOperation> extends SpliceJoinFunction<Op, Tuple2<ExecRow,Tuple2<LocatedRow,LocatedRow>>, LocatedRow> {
+public class InnerJoinRestrictionFunction<Op extends SpliceOperation> extends SpliceJoinFunction<Op, Tuple2<ExecRow,Tuple2<LocatedRow,LocatedRow>>, LocatedRow> {
     private static final long serialVersionUID = 3988079974858059941L;
-    public InnerJoinFunction() {
+    public InnerJoinRestrictionFunction() {
     }
 
-    public InnerJoinFunction(OperationContext<Op> operationContext) {
+    public InnerJoinRestrictionFunction(OperationContext<Op> operationContext) {
         super(operationContext);
     }
 

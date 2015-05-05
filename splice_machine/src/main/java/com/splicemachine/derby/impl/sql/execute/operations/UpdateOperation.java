@@ -289,9 +289,6 @@ public class UpdateOperation extends DMLWriteOperation{
 
 				private HTableInterface htable;
 
-				private Timer getTimer;
-				public Counter getBytes;
-
 				private ResultSupplier(BitSet interestedFields) {
 						//we need the index so that we can transform data without the information necessary to decode it
 						EntryPredicateFilter predicateFilter = new EntryPredicateFilter(interestedFields,new ObjectArrayList<Predicate>(),true);
@@ -310,7 +307,7 @@ public class UpdateOperation extends DMLWriteOperation{
 										htable = SpliceAccessManager.getFlushableHTable(Bytes.toBytes(Long.toString(heapConglom)));
 								}
 
-								getTimer.startTiming();
+//								getTimer.startTiming();
 								Get remoteGet = SpliceUtils.createGet(operationInformation.getTransaction(),location);
 								remoteGet.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,SpliceConstants.PACKED_COLUMN_BYTES);
 								remoteGet.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,filterBytes);
@@ -319,14 +316,13 @@ public class UpdateOperation extends DMLWriteOperation{
 								//we assume that r !=null, because otherwise, what are we updating?
 								KeyValue[] rawKvs = r.raw();
 								for(KeyValue kv:rawKvs){
-										getBytes.add(kv.getLength());
 										if(kv.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,SpliceConstants.PACKED_COLUMN_BYTES)){
 												result = kv;
 												break;
 										}
 								}
 								//we also assume that PACKED_COLUMN_KEY is properly set by the time we get here
-								getTimer.tick(1);
+//								getTimer.tick(1);
 						}
 						decoder.set(result.getBuffer(),result.getValueOffset(),result.getValueLength());
 				}
