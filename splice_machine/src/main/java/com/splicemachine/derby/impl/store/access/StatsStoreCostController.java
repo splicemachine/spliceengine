@@ -378,7 +378,7 @@ public class StatsStoreCostController extends GenericController implements Store
             assert partStats.rowCount()==0: "No row width exists, but there is a positive row count!";
             return 0d;
         }
-        if(scanColumnList!=null && scanColumnList.getNumBitsSet()!=totalColumns){
+        if(scanColumnList!=null && scanColumnList.getNumBitsSet()>0 && scanColumnList.getNumBitsSet()!=totalColumns){
             for(int i=scanColumnList.anySetBit();i>=0;i=scanColumnList.anySetBit(i)){
                 ColumnStatistics<DataValueDescriptor> cStats = partStats.columnStatistics(i);
                 if(cStats!=null)
