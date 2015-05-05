@@ -151,7 +151,7 @@ public class DistinctScanOperationIT extends SpliceUnitTest {
 		private static final double ERROR = Math.pow(1, -12);
 		@Test
 		public void testSelectDistinctWorksForAllFields() throws Exception {
-				ResultSet rs = methodWatcher.executeQuery("select distinct i,d from " + spliceTableWatcher3.toString());
+				ResultSet rs = methodWatcher.executeQuery("select distinct i,d from " + spliceTableWatcher3.toString() + " order by i,d");
 
 				int i = 0;
 				while(rs.next()){
