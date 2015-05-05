@@ -137,7 +137,7 @@ public class DistinctScanOperationIT extends SpliceUnitTest {
 
 		@Test
 		public void testSelectDistinctWorks() throws Exception {
-				ResultSet rs = methodWatcher.executeQuery("select distinct i from " + spliceTableWatcher3.toString());
+				ResultSet rs = methodWatcher.executeQuery("select distinct i from " + spliceTableWatcher3.toString() + " order by i");
 				int i = 0;
 				while(rs.next()){
 						int val = rs.getInt(1);
