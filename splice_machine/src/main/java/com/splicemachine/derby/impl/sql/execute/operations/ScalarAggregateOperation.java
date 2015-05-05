@@ -123,7 +123,9 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
             initializeVectorAggregation(result.getRow());
         }
         finishAggregation(result.getRow());
-        return dsp.singleRowDataSet(new LocatedRow(result.getRow()));
+        LocatedRow lr = new LocatedRow(result.getRowLocation(),result.getRow());
+        setCurrentLocatedRow(lr);
+        return dsp.singleRowDataSet(lr);
     }
 
 }

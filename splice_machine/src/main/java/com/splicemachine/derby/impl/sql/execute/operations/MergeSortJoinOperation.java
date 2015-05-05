@@ -198,8 +198,9 @@ public class MergeSortJoinOperation extends JoinOperation {
                 }
             } else { // Inner Join
                 if (restriction !=null) { // with restriction
-                    return leftDataSet.<LocatedRow>cogroup(rightDataSet)
-                            .flatmap(new CogroupInnerJoinRestrictionFlatMapFunction(operationContext));
+                    return leftDataSet.hashJoin(rightDataSet)
+                            .map(new InnerJoinFunction<SpliceOperation>(operationContext))
+                            .filter(new JoinRestrictionPredicateFunction<SpliceOperation>(operationContext));
                 } else { // No Restriction
                     return leftDataSet.hashJoin(rightDataSet)
                             .map(new InnerJoinFunction<SpliceOperation>(operationContext));

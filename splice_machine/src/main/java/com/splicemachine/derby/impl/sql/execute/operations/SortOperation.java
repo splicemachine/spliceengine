@@ -3,15 +3,14 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.base.Strings;
 import com.splicemachine.derby.iapi.sql.execute.*;
+import com.splicemachine.derby.stream.function.SetCurrentLocatedRowFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.function.KeyerFunction;
 import com.splicemachine.derby.impl.sql.execute.operations.sort.DistinctSortAggregateBuffer;
-import com.splicemachine.derby.impl.sql.execute.operations.sort.SinkSortIterator;
 import com.splicemachine.derby.stream.function.RowComparator;
 import com.splicemachine.derby.utils.marshall.*;
-import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -20,7 +19,6 @@ import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
-import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 import java.io.*;
 import java.util.*;
@@ -28,19 +26,14 @@ import java.util.*;
 public class SortOperation extends SpliceBaseOperation {
 		private static final long serialVersionUID = 2l;
 		private static Logger LOG = Logger.getLogger(SortOperation.class);
-		private SinkSortIterator aggregator;
 		protected SpliceOperation source;
 		protected boolean distinct;
 		protected int orderingItem;
 		protected int[] keyColumns;
 		protected boolean[] descColumns; //descColumns[i] = false => column[i] sorted descending, else sorted ascending
-		private ExecRow sortResult;
 		private int numColumns;
-		private Scan reduceScan;
 		private ExecRow execRowDefinition = null;
 		private Properties sortProperties = new Properties();
-		private MultiFieldDecoder decoder;
-		private long rowsRead;
         protected static final String NAME = SortOperation.class.getSimpleName().replaceAll("Operation","");
 		@Override
 		public String getName() {
@@ -82,7 +75,6 @@ public class SortOperation extends SpliceBaseOperation {
 						throw Exceptions.parseException(e);
 				}
 				recordConstructorTime();
-				aggregator = null;
 		}
 
 		@Override
@@ -201,6 +193,7 @@ public class SortOperation extends SpliceBaseOperation {
         if (distinct)
             dataSet = dataSet.distinct();
         return dataSet.keyBy(new KeyerFunction(operationContext, keyColumns))
-                .sortByKey(new RowComparator(descColumns)).values();
+                .sortByKey(new RowComparator(descColumns)).values()
+                .map(new SetCurrentLocatedRowFunction(operationContext));
     }
 }

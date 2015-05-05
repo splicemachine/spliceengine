@@ -28,11 +28,10 @@ public class RowOperation extends SpliceBaseOperation {
 		protected int rowsReturned;
 		protected boolean canCacheRow;
 		protected boolean next = false;
-		protected SpliceMethod<ExecRow> row;
+		protected SpliceMethod<ExecRow> rowMethod;
 		protected ExecRow cachedRow;
 		private ExecRow rowDefinition;
 		private String rowMethodName; //name of the row method for
-        private boolean rowReturned;
 
         protected static final String NAME = RowOperation.class.getSimpleName().replaceAll("Operation","");
 
@@ -89,9 +88,9 @@ public class RowOperation extends SpliceBaseOperation {
 		@Override
 		public void init(SpliceOperationContext context) throws StandardException, IOException {
 				super.init(context);
-				if (row == null && rowMethodName != null) {
+				if (rowMethod == null && rowMethodName != null) {
 						if (rowMethodName != null)
-								this.row = new SpliceMethod<ExecRow>(rowMethodName, activation);
+								this.rowMethod = new SpliceMethod<ExecRow>(rowMethodName, activation);
 				}
 		}
 
@@ -111,34 +110,26 @@ public class RowOperation extends SpliceBaseOperation {
 				super.writeExternal(out);
 				out.writeBoolean(canCacheRow);
 				out.writeBoolean(next);
-				out.writeBoolean(row!=null);
-				if(row!=null){
+				out.writeBoolean(rowMethod!=null);
+				if(rowMethod!=null){
 						out.writeUTF(rowMethodName);
 				}
 		}
 
 
 		private ExecRow getRow() throws StandardException {
-            if (!next) {
-                next = true;
                 if (cachedRow != null) {
                     SpliceLogUtils.trace(LOG, "getRow,cachedRow=%s", cachedRow);
                     return cachedRow;
                 }
 
-                if (row != null) {
-                    currentRow = row.invoke();
+                if (rowMethod != null) {
+                    currentRow = rowMethod.invoke();
                     if (canCacheRow) {
                         cachedRow = currentRow;
                     }
                 }
-            }
-            else {
-                if (rowReturned) {
-                    currentRow = null;
-                }
-            }
-            return currentRow;
+                return currentRow;
 		}
 		/**
 		 * This is not operating against a stored table,

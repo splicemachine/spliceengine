@@ -1,5 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.db.iapi.types.SQLInteger;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.pipeline.exception.Exceptions;
@@ -7,7 +9,6 @@ import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import org.apache.log4j.Logger;
-
 
 /**
  * This is a wrapper class which invokes the Execution-time logic for
@@ -59,9 +60,8 @@ public class MiscOperation extends NoRowsOperation {
             }
 
             isOpen = false;
-            // Cannot Close Activation!
-//            if (activation.isSingleExecution())
-//                activation.close();
+            if (activation.isSingleExecution())
+                activation.close();
         } catch (Exception e) {
             SpliceLogUtils.error(LOG, e);
             throw Exceptions.parseException(e);
@@ -92,7 +92,10 @@ public class MiscOperation extends NoRowsOperation {
         public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
             setup();
             activation.getConstantAction().executeConstantAction(activation);
-            return dsp.getEmpty();
+
+            ValueRow valueRow = new ValueRow(1);
+            valueRow.setColumn(1,new SQLInteger((int) activation.getRowsSeen()));
+            return dsp.singleRowDataSet(new LocatedRow(valueRow));
         }
 
 }

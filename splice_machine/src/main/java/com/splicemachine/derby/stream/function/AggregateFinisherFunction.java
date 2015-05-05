@@ -13,9 +13,11 @@ import java.io.ObjectOutput;
  */
 public class AggregateFinisherFunction extends SpliceFunction<SpliceOperation, LocatedRow, LocatedRow> {
         protected SpliceGenericAggregator[] aggregates;
+        protected SpliceOperation op;
         public AggregateFinisherFunction() {
             super();
         }
+        protected boolean initialized = false;
 
         public AggregateFinisherFunction(OperationContext<SpliceOperation> operationContext, SpliceGenericAggregator[] aggregates) {
             super(operationContext);
@@ -40,12 +42,17 @@ public class AggregateFinisherFunction extends SpliceFunction<SpliceOperation, L
         }
         @Override
         public LocatedRow call(LocatedRow locatedRow) throws Exception {
+            if (!initialized) {
+                op = (SpliceOperation) getOperation();
+                initialized = true;
+            }
             for(SpliceGenericAggregator aggregator:aggregates){
                 if (!aggregator.isInitialized(locatedRow.getRow())) {
                     aggregator.initializeAndAccumulateIfNeeded(locatedRow.getRow(), locatedRow.getRow());
                 }
                 aggregator.finish(locatedRow.getRow());
             }
+            op.setCurrentLocatedRow(locatedRow);
             return locatedRow;
         }
 }

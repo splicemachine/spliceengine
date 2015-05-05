@@ -34,13 +34,15 @@ public class ProjectRestrictFlatMapFunction<Op extends SpliceOperation> extends 
             executionFactory = op.getExecutionFactory();
             numberOfColumns = op.getExecRowDefinition().nColumns();
         }
+        op.source.setCurrentRow(from.getRow());
         if (!op.getRestriction().apply(from.getRow())) {
             operationContext.recordFilter();
             return Collections.EMPTY_LIST;
         }
         ExecRow execRow = executionFactory.getValueRow(numberOfColumns);
+        ExecRow preCopy = op.doProjection(from.getRow()).getClone();
         LocatedRow locatedRow = new LocatedRow(from.getRowLocation(),
-                ProjectRestrictOperation.copyProjectionToNewRow(op.doProjection(from.getRow()).getClone(), execRow));
+                ProjectRestrictOperation.copyProjectionToNewRow(preCopy, execRow));
         op.setCurrentLocatedRow(locatedRow);
         return Collections.singletonList(locatedRow);
     }

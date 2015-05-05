@@ -238,7 +238,7 @@ public class OnceOperation extends SpliceBaseOperation {
         final Iterator<LocatedRow> iterator = raw.toLocalIterator();
         ExecRow result;
         try {
-            result = validateNextRow(new IteratorRowSource(iterator), false);
+            result = validateNextRow(new IteratorRowSource(iterator), true);
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }

@@ -36,8 +36,11 @@ public class InnerJoinRestrictionFlatMapFunction<Op extends SpliceOperation> ext
                     rightRow.getRow(), op.wasRightOuterJoin,
                     executionFactory.getValueRow(numberOfColumns));
             op.setCurrentRow(mergedRow);
-            if (op.getRestriction().apply(mergedRow)) // Has Row, abandon
-                return Collections.singletonList(new LocatedRow(rightRow.getRowLocation(),mergedRow));
+            if (op.getRestriction().apply(mergedRow)) { // Has Row, abandon
+                LocatedRow lr = new LocatedRow(rightRow.getRowLocation(),mergedRow);
+                op.setCurrentLocatedRow(lr);
+                return Collections.singletonList(lr);
+            }
         }
         return Collections.EMPTY_LIST;
     }

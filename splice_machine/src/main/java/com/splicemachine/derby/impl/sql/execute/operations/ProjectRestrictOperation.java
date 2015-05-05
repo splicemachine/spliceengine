@@ -38,7 +38,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 		public ExecRow mappedResultRow;
 		public boolean[] cloneMap;
 		protected boolean shortCircuitOpen;
-		protected SpliceOperation source;
+		public SpliceOperation source;
 		private boolean alwaysFalse;
 		public SpliceMethod<DataValueDescriptor> restriction;
 		public SpliceMethod<ExecRow> projection;
@@ -180,7 +180,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 						}
 				}
         /* Remember the result if reusing it */
-				return result;
+				return result.getClone(); // Do We Need This?
 		}
 
 		/**

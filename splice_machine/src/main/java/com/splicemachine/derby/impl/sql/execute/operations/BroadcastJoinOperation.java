@@ -179,9 +179,11 @@ public class BroadcastJoinOperation extends JoinOperation {
                             .map(new AntiJoinFunction(operationContext));
                 }
             } else { // Inner Join
+
                 if (restriction !=null) { // with restriction
-                    return leftDataSet.<LocatedRow>broadcastCogroup(rightDataSet)
-                            .flatmap(new CogroupInnerJoinRestrictionFlatMapFunction(operationContext));
+                    return leftDataSet.broadcastJoin(rightDataSet)
+                            .map(new InnerJoinFunction<SpliceOperation>(operationContext))
+                            .filter(new JoinRestrictionPredicateFunction<SpliceOperation>(operationContext));
                 } else { // No Restriction
                     return leftDataSet.broadcastJoin(rightDataSet)
                             .map(new InnerJoinFunction<SpliceOperation>(operationContext));
