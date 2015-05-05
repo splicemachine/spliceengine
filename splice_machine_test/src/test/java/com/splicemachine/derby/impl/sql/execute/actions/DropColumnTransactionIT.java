@@ -345,14 +345,23 @@ public class DropColumnTransactionIT {
         conn.createStatement().execute(String.format("insert into %s (Field1,Field2,Field3) VALUES (2,'efg',3.4)", tableRef));
         conn.createStatement().execute(String.format("insert into %s (Field1,Field2,Field3) VALUES (3,'hij',5.6)", tableRef));
 
+        String query = String.format("select Field1, Field2, Field3 from %s", tableRef);
+        ResultSet rs = methodWatcher.getStatement().executeQuery(query);
+        TestUtils.printResult(query, rs, System.out);
+
         conn.createStatement().execute(String.format("alter table %s add column Field4 BIGINT", tableRef));
+
+        query = String.format("select Field1, Field2, Field3, Field4 from %s", tableRef);
+        rs = methodWatcher.getStatement().executeQuery(query);
+        TestUtils.printResult(query, rs, System.out);
+
         // updates hose the table
         conn.createStatement().execute(String.format("update %s set Field4 = 11", tableRef));
         // inserts are ok
 //        conn.createStatement().execute(String.format("insert into %s (Field1,Field2,Field3,Field4) VALUES (4,'klm',7.8,22)", tableRef));
 
-        String query = String.format("select Field1, Field2, Field3, Field4 from %s", tableRef);
-        ResultSet rs = methodWatcher.getStatement().executeQuery(query);
+        query = String.format("select Field1, Field2, Field3, Field4 from %s", tableRef);
+        rs = methodWatcher.getStatement().executeQuery(query);
         TestUtils.printResult(query, rs, System.out);
 
         conn.createStatement().execute(String.format("alter table %s drop column Field3", tableRef));

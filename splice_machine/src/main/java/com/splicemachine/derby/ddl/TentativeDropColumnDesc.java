@@ -9,9 +9,11 @@ import org.apache.hadoop.hbase.util.Bytes;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.pipeline.api.RowTransformer;
 import com.splicemachine.pipeline.api.WriteHandler;
 import com.splicemachine.pipeline.ddl.TransformingDDLDescriptor;
@@ -70,6 +72,24 @@ public class TentativeDropColumnDesc extends AlterTableDDLDescriptor implements 
     }
 
     @Override
+    public TableScannerBuilder setScannerBuilderProperties(TableScannerBuilder builder) throws IOException {
+        ExecRow templateRow = createSourceTemplate();
+        int nColumns = templateRow.nColumns();
+        int[] baseColumnOrder = getRowDecodingMap(nColumns);
+        int[] keyColumnEncodingOrder = srcColumnOrdering;
+        FormatableBitSet accessedPKColumns = getAccessedKeyColumns(keyColumnEncodingOrder);
+
+        builder.template(templateRow).tableVersion(tableVersion)
+               .rowDecodingMap(baseColumnOrder).keyColumnEncodingOrder(keyColumnEncodingOrder)
+               .keyColumnSortOrder(getKeyColumnSortOrder(nColumns))
+               .keyColumnTypes(getKeyColumnTypes(templateRow, keyColumnEncodingOrder))
+               .accessedKeyColumns(getAccessedKeyColumns(keyColumnEncodingOrder))
+               .keyDecodingMap(getKeyDecodingMap(accessedPKColumns, baseColumnOrder, keyColumnEncodingOrder));
+
+        return builder;
+    }
+
+    @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeLong(conglomerateNumber);
         out.writeLong(baseConglomerateNumber);
@@ -97,6 +117,18 @@ public class TentativeDropColumnDesc extends AlterTableDDLDescriptor implements 
         for (int i = 0; i < size; ++i) {
             columnInfos[i] = (ColumnInfo)in.readObject();
         }
+    }
+
+    private ExecRow createSourceTemplate() throws IOException {
+        ExecRow srcRow = new ValueRow(columnInfos.length);
+        try {
+            for (int i=0; i<columnInfos.length; i++) {
+                srcRow.setColumn(i+1, columnInfos[i].dataType.getNull());
+            }
+        } catch (StandardException e) {
+            throw Exceptions.getIOException(e);
+        }
+        return srcRow;
     }
 
     private static RowTransformer create(String tableVersion,

@@ -49,6 +49,21 @@ public class AlterTableRowTransformer implements RowTransformer {
         this.copyLen = Math.min(srcRow.nColumns(), templateRow.nColumns());
     }
 
+    @Override
+    public KVPair transform(ExecRow row) throws StandardException, IOException {
+        ExecRow mergedRow = templateRow.getClone();
+
+        for (int i = 0; i < columnMapping.length; i++) {
+            int targetIndex = columnMapping[i];
+            if (targetIndex != 0) {
+                mergedRow.setColumn(targetIndex, row.cloneColumn(i+1));
+            }
+        }
+        // encode the result
+        KVPair newPair = entryEncoder.encode(mergedRow);
+        return newPair;
+    }
+
     public KVPair transform(KVPair kvPair) throws StandardException, IOException {
         // Decode a row
         ExecRow mergedRow = templateRow.getClone();
@@ -60,32 +75,6 @@ public class AlterTableRowTransformer implements RowTransformer {
         System.arraycopy(srcArray, 0, mergedArray, 0, copyLen);
         mergedRow.setRowArray(mergedArray);
 
-        // encode the result
-        KVPair newPair = entryEncoder.encode(mergedRow);
-        return newPair;
-    }
-
-    @Override
-    public KVPair transform(List<KVPair> kvPairs) throws StandardException, IOException {
-        // merge the columns - the template row will have default values, if there are any
-        // (i.e., when adding column)
-        ExecRow mergedRow = templateRow.getClone();
-        for (KVPair kvPair : kvPairs) {
-            srcRow.resetRowArray();
-            decodeRow(kvPair, srcRow, keyDecoder, rowDecoder);
-
-            for (int i = 0; i < columnMapping.length; i++) {
-                int targetIndex = columnMapping[i];
-                if (targetIndex != 0) {
-                    DataValueDescriptor clone = srcRow.cloneColumn(i+1);
-                    if (! clone.isNull()) {
-                        // if the src row col val is null, then it's an updated row - don't
-                        // set null col value
-                        mergedRow.setColumn(targetIndex, clone);
-                    }
-                }
-            }
-        }
         // encode the result
         KVPair newPair = entryEncoder.encode(mergedRow);
         return newPair;
