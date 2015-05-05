@@ -41,7 +41,7 @@ public class Trigger_Create_IT {
     private TriggerDAO triggerDAO = new TriggerDAO(methodWatcher.getOrCreateConnection());
 
     @Test
-    public void create() throws Exception {
+    public void create_statementTriggers() throws Exception {
         // given: AFTER STATEMENT
         createTrigger(tb.on("T").named("trig01").after().update().statement().then("INSERT INTO R VALUES(1)"));
         createTrigger(tb.on("T").named("trig02").after().delete().statement().then("INSERT INTO R VALUES(1)"));
@@ -50,22 +50,56 @@ public class Trigger_Create_IT {
         createTrigger(tb.on("T").named("trig04").before().update().statement().then("SELECT * FROM sys.systables"));
         createTrigger(tb.on("T").named("trig05").before().delete().statement().then("SELECT * FROM sys.systables"));
         createTrigger(tb.on("T").named("trig06").before().insert().statement().then("SELECT * FROM sys.systables"));
-        // given: AFTER ROW
-        createTrigger(tb.on("T").named("trig07").after().update().row().then("INSERT INTO R VALUES(1)"));
-        createTrigger(tb.on("T").named("trig08").after().delete().row().then("INSERT INTO R VALUES(1)"));
-        createTrigger(tb.on("T").named("trig09").after().insert().row().then("INSERT INTO R VALUES(1)"));
-        // given: BEFORE ROW
-        createTrigger(tb.on("T").named("trig10").before().update().row().then("SELECT * FROM sys.systables"));
-        createTrigger(tb.on("T").named("trig11").before().delete().row().then("SELECT * FROM sys.systables"));
-        createTrigger(tb.on("T").named("trig12").before().insert().row().then("SELECT * FROM sys.systables"));
 
-        triggerDAO.assertTriggerExists("trig01", "trig02", "trig03", "trig04", "trig05", "trig06", "trig07", "trig08", "trig09", "trig10", "trig11", "trig12");
+        triggerDAO.assertTriggerExists("trig01", "trig02", "trig03", "trig04", "trig05", "trig06");
 
         // when - drop trigger
-        triggerDAO.drop("trig01", "trig02", "trig03", "trig04", "trig05", "trig06", "trig07", "trig08", "trig09", "trig10", "trig11", "trig12");
+        triggerDAO.drop("trig01", "trig02", "trig03", "trig04", "trig05", "trig06");
 
         // then - gone
-        triggerDAO.assertTriggerGone("trig01", "trig02", "trig03", "trig04", "trig05", "trig06", "trig07", "trig08", "trig09", "trig10", "trig11", "trig12");
+        triggerDAO.assertTriggerGone("trig01", "trig02", "trig03", "trig04", "trig05", "trig06");
+    }
+
+    @Test
+    public void create_rowTriggers() throws Exception {
+        // given: AFTER ROW
+        createTrigger(tb.on("T").named("rTrig01").after().update().row().then("INSERT INTO R VALUES(1)"));
+        createTrigger(tb.on("T").named("rTrig02").after().delete().row().then("INSERT INTO R VALUES(1)"));
+        createTrigger(tb.on("T").named("rTrig03").after().insert().row().then("INSERT INTO R VALUES(1)"));
+        // given: BEFORE ROW
+        createTrigger(tb.on("T").named("rTrig04").before().update().row().then("SELECT * FROM sys.systables"));
+        createTrigger(tb.on("T").named("rTrig05").before().delete().row().then("SELECT * FROM sys.systables"));
+        createTrigger(tb.on("T").named("rTrig06").before().insert().row().then("SELECT * FROM sys.systables"));
+
+        triggerDAO.assertTriggerExists("rTrig01", "rTrig02", "rTrig03", "rTrig04", "rTrig05", "rTrig06");
+
+        // when - drop trigger
+        triggerDAO.drop("rTrig01", "rTrig02", "rTrig03", "rTrig04", "rTrig05", "rTrig06");
+
+        // then - gone
+        triggerDAO.assertTriggerGone("rTrig01", "rTrig02", "rTrig03", "rTrig04", "rTrig05", "rTrig06");
+    }
+
+    @Test
+    public void create_rowTriggersReferencing() throws Exception {
+        // UPDATE AFTER
+        createTrigger(tb.on("T").named("t1").after().update().referencing("NEW AS N").then("select N.a from sys.systables"));
+        createTrigger(tb.on("T").named("t2").after().update().referencing("OLD AS O").then("select O.a from sys.systables"));
+        createTrigger(tb.on("T").named("t3").after().update().referencing("NEW AS N OLD AS O").then("select N.a,O.a from sys.systables"));
+        // UPDATE BEFORE
+        createTrigger(tb.on("T").named("t4").before().update().referencing("NEW AS N").then("select N.a from sys.systables"));
+        createTrigger(tb.on("T").named("t5").before().update().referencing("OLD AS O").then("select O.a from sys.systables"));
+        createTrigger(tb.on("T").named("t6").before().update().referencing("NEW AS N OLD AS O").then("select N.a,O.a from sys.systables"));
+
+        // INSERT AFTER
+        createTrigger(tb.on("T").named("t7").after().insert().referencing("NEW AS N").then("select N.a from sys.systables"));
+        // INSERT BEFORE
+        createTrigger(tb.on("T").named("t8").before().insert().referencing("NEW AS N").then("select N.a from sys.systables"));
+
+        // DELETE AFTER
+        createTrigger(tb.on("T").named("t9").after().delete().referencing("OLD AS O").then("select O.a from sys.systables"));
+        // DELETE BEFORE
+        createTrigger(tb.on("T").named("t10").before().delete().referencing("OLD AS O").then("select O.a from sys.systables"));
     }
 
     @Test
@@ -79,6 +113,13 @@ public class Trigger_Create_IT {
         } catch (SQLException e) {
             assertEquals("The name '" + triggerNameBad.toUpperCase() + "' is too long. The maximum length is '128'.", e.getMessage());
         }
+    }
+
+    @Test
+    public void create_illegal_statementTriggersCannotHaveReferencingClause() throws Exception {
+        verifyTriggerCreateFails(
+                tb.on("T").named("t1").before().delete().referencing("NEW AS N").statement().then("select * from sys.systables"),
+                "STATEMENT triggers may only reference table transition variables/tables.");
     }
 
     @Test
@@ -103,6 +144,21 @@ public class Trigger_Create_IT {
         verifyTriggerCreateFails(tb.on("T").named("trig").before().delete().row().then("INSERT INTO R VALUES(1)"),
                 "'INSERT' statements are not allowed in 'BEFORE' triggers.");
 
+    }
+
+    @Test
+    public void create_illegal_invalidTransitionVariables() throws Exception {
+        // INSERT row triggers cannot reference an OLD row
+        verifyTriggerCreateFails(tb.on("T").named("t1").before().insert().referencing("OLD as OLD_ROW").row().then("select OLD_ROW.a from sys.systables"),
+                "INSERT triggers may only reference new transition variables/tables.");
+        verifyTriggerCreateFails(tb.on("T").named("t1").after().insert().referencing("OLD as OLD_ROW").row().then("select OLD_ROW.a from sys.systables"),
+                "INSERT triggers may only reference new transition variables/tables.");
+
+        // DELETE row triggers cannot reference a NEW row
+        verifyTriggerCreateFails(tb.on("T").named("t1").before().delete().referencing("NEW as NEW_ROW").row().then("select NEW_ROW.a from sys.systables"),
+                "DELETE triggers may only reference old transition variables/tables.");
+        verifyTriggerCreateFails(tb.on("T").named("t1").after().delete().referencing("NEW as NEW_ROW").row().then("select NEW_ROW.a from sys.systables"),
+                "DELETE triggers may only reference old transition variables/tables.");
     }
 
     @Test
