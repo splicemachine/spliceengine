@@ -32,8 +32,6 @@ public class ScalarAggregateFunction extends SpliceFunction2<SpliceOperation, Lo
             initialized = true;
         }
         operationContext.recordRead();
-        System.out.println("t1 -> " + t1);
-        System.out.println("t2 -> " + t2);
         if (t2 == null) return t1;
         if (t1 == null) return t2;
         if (RDDUtils.LOG.isDebugEnabled())
@@ -51,7 +49,6 @@ public class ScalarAggregateFunction extends SpliceFunction2<SpliceOperation, Lo
             op.initializeVectorAggregation(r2);
         }
         aggregate(t2.getRow(), (ExecIndexRow) r1);
-        System.out.println("r1 -> " + r1);
         return new LocatedRow(r1);
     }
 
