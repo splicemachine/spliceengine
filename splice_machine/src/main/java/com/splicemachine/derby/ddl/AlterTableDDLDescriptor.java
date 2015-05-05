@@ -1,6 +1,15 @@
 package com.splicemachine.derby.ddl;
 
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.concurrent.ExecutionException;
+
+import com.google.common.base.Throwables;
+
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.execute.altertable.AlterTableRowTransformer;
 import com.splicemachine.derby.utils.marshall.BareKeyHash;
@@ -105,4 +114,82 @@ public abstract class AlterTableDDLDescriptor implements TransformingDDLDescript
         return new AlterTableRowTransformer(srcRow, columnMapping, templateRow, keyDecoder, rowDecoder, rowEncoder);
 
     }
+
+
+    protected static FormatableBitSet getAccessedKeyColumns(int[] columnOrdering) {
+        if (columnOrdering == null) return null; //no keys to decode
+
+        FormatableBitSet accessedKeyCols = new FormatableBitSet(columnOrdering.length);
+        /*
+         * We need to access every column in the key
+         */
+        for (int i = 0; i < columnOrdering.length; i++) {
+            accessedKeyCols.set(i);
+        }
+        return accessedKeyCols;
+    }
+
+    protected static int[] getKeyDecodingMap(FormatableBitSet pkCols, int[] baseColumnMap, int[] keyColumnEncodingOrder) {
+        if (keyColumnEncodingOrder == null) {
+            return new int[0];
+        }
+
+        int[] kDecoderMap = new int[keyColumnEncodingOrder.length];
+        Arrays.fill(kDecoderMap, -1);
+        for(int i=0;i<keyColumnEncodingOrder.length;i++){
+            int baseKeyColumnPosition = keyColumnEncodingOrder[i]; //the position of the column in the base row
+            if(pkCols.get(i)) {
+                kDecoderMap[i] = baseColumnMap[baseKeyColumnPosition];
+                baseColumnMap[baseKeyColumnPosition] = -1;
+            } else {
+                kDecoderMap[i] = -1;
+            }
+        }
+        return kDecoderMap;
+    }
+
+    protected static int[] getKeyColumnTypes(ExecRow templateRow, int[] keyColumnEncodingOrder) throws IOException {
+        if(keyColumnEncodingOrder==null) return null; //no keys to worry about
+        int[] allFormatIds = new int[0];
+        try {
+            allFormatIds = getFormatIds(templateRow);
+        } catch (StandardException e) {
+            new ExecutionException(Throwables.getRootCause(e));
+        }
+        int[] keyFormatIds = new int[keyColumnEncodingOrder.length];
+        for(int i=0,pos=0;i<keyColumnEncodingOrder.length;i++){
+            int keyColumnPosition = keyColumnEncodingOrder[i];
+            if(keyColumnPosition>=0){
+                keyFormatIds[pos] = allFormatIds[keyColumnPosition];
+                pos++;
+            }
+        }
+        return keyFormatIds;
+    }
+
+    protected static int[] getFormatIds(ExecRow templateRow) throws StandardException {
+        int[] formatIds = new int[templateRow.nColumns()];
+        for (int i=0; i<templateRow.nColumns(); i++) {
+            formatIds[i] = templateRow.getColumn(i+1).getTypeFormatId();
+        }
+        return formatIds;
+    }
+
+    protected static boolean[] getKeyColumnSortOrder(int len) {
+        boolean[] keySortOrders = new boolean[len];
+        for (int i=0; i<len; i++) {
+            // FIXME: JC - sorting ascending always
+            keySortOrders[i] = true;
+        }
+        return keySortOrders;
+    }
+
+    protected static int[] getRowDecodingMap(int len) {
+        int[] rowDecodingMap = new int[len];
+        for (int i=0; i<len; i++) {
+            rowDecodingMap[i] = i;
+        }
+        return rowDecodingMap;
+    }
+
 }

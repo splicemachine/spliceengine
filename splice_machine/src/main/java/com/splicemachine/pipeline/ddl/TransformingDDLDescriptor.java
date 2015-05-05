@@ -2,6 +2,8 @@ package com.splicemachine.pipeline.ddl;
 
 import java.io.IOException;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.pipeline.api.RowTransformer;
 import com.splicemachine.pipeline.api.WriteHandler;
 
@@ -34,4 +36,6 @@ public interface TransformingDDLDescriptor extends TentativeDDLDesc {
      * @throws IOException
      */
     WriteHandler createWriteHandler(RowTransformer transformer) throws IOException;
+
+    TableScannerBuilder setScannerBuilderProperties(TableScannerBuilder builder) throws IOException;
 }

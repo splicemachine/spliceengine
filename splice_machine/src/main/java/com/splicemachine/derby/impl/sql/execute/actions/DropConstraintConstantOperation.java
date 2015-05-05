@@ -152,7 +152,9 @@ public class DropConstraintConstantOperation extends ConstraintConstantOperation
 						errorName,
 						td.getQualifiedName());
 		}
-        this.indexConglomerateId = getIndexConglomerateId(conDesc, td, dd);
+        if (conDesc instanceof ReferencedKeyConstraintDescriptor) {
+            this.indexConglomerateId = getIndexConglomerateId((ReferencedKeyConstraintDescriptor)conDesc, td, dd);
+        }
 
         switch( verifyType)
         {
@@ -228,8 +230,9 @@ public class DropConstraintConstantOperation extends ConstraintConstantOperation
      * @return the index conglomerate number associated with the given index constraint or -1 if not found.
      * @throws StandardException
      */
-    private long getIndexConglomerateId(ConstraintDescriptor indexConstraint, TableDescriptor tableDescriptor, DataDictionary dd) throws StandardException {
-        ConglomerateDescriptor indexConglomerate = ((ReferencedKeyConstraintDescriptor) indexConstraint).getIndexConglomerateDescriptor(dd);
+    private long getIndexConglomerateId(ReferencedKeyConstraintDescriptor indexConstraint,
+                                        TableDescriptor tableDescriptor, DataDictionary dd) throws StandardException {
+        ConglomerateDescriptor indexConglomerate = indexConstraint.getIndexConglomerateDescriptor(dd);
         String indexName = indexConglomerate.getConglomerateName();
         if (indexName != null) {
             for (ConglomerateDescriptor conglomerateDescriptor : tableDescriptor.getConglomerateDescriptorList()) {
