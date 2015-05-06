@@ -137,9 +137,10 @@ public class DropConstraintConstantOperation extends ConstraintConstantOperation
 		 * in order to ensure that no one else compiles against the
 		 * index.
 		 */
-		if (constraintName == null)  // this means "alter table drop primary key"
-			conDesc = dd.getConstraintDescriptors(td).getPrimaryKey();
-		else
+        conDesc = dd.getConstraintDescriptors(td).getPrimaryKey();
+        // non-null means "alter table drop primary key"
+        // FIXME: JC - what if we're dropping a UK constraint on a table that has a PK?
+        if (conDesc == null)
 			conDesc = dd.getConstraintDescriptorByName(td, constraintSd, constraintName, true);
 
 		// Error if constraint doesn't exist
