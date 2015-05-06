@@ -137,7 +137,7 @@ public class StatisticsCollector {
 
     protected long getCloseScannerEvents(){ return 1l; }
 
-    protected long getOpenScannerTimeMicros(){ return openScannerTimeMicros; }
+    protected long getOpenScannerTimeMicros() throws ExecutionException{ return openScannerTimeMicros; }
     protected long  getCloseScannerTimeMicros(){ return closeScannerTimeMicros; }
 
     protected long getOpenScannerEvents(){ return 1l; }

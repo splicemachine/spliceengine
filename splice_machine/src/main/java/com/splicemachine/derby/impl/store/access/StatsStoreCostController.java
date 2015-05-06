@@ -266,6 +266,8 @@ public class StatsStoreCostController extends GenericController implements Store
         return rc/stats.rowCount();
     }
 
+
+
     @SuppressWarnings("unchecked")
     protected void estimateCost(OverheadManagedTableStatistics stats,
                                 int totalColumns, //the total number of columns in the store
@@ -310,8 +312,9 @@ public class StatsStoreCostController extends GenericController implements Store
 
                 localCost+=pStats.localReadLatency()*partRc;
                 double colSizeAdjustment=columnSizeFactor(totalColumns,scanColumnList,pStats,keyMap);
+                double remoteLatency = pStats.remoteReadLatency();
                 double size = partRc*colSizeAdjustment;
-                remoteCost+=pStats.remoteReadLatency()*size;
+                remoteCost+=remoteLatency*size;
                 bytes+=(colSizeAdjustment*pStats.avgRowWidth())*partRc;
             }
         }

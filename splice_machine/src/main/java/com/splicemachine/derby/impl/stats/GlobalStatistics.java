@@ -49,6 +49,24 @@ public class GlobalStatistics implements OverheadManagedTableStatistics {
     }
 
     @Override
+    public long numOpenEvents(){
+        long opens = 0l;
+        for(OverheadManagedPartitionStatistics stats:partitionStatistics){
+            opens+=stats.numOpenEvents();
+        }
+        return opens;
+    }
+
+    @Override
+    public long numCloseEvents(){
+        long opens = 0l;
+        for(OverheadManagedPartitionStatistics stats:partitionStatistics){
+            opens+=stats.numCloseEvents();
+        }
+        return opens;
+    }
+
+    @Override
     public long rowCount() {
         long rc = 0;
         for(PartitionStatistics statistics: partitionStatistics)

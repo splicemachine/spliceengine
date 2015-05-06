@@ -14,11 +14,7 @@ import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.TxnView;
-import com.splicemachine.stats.ColumnStatistics;
-import com.splicemachine.stats.PartitionStatistics;
-import org.apache.log4j.Logger;
 
-import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -26,12 +22,10 @@ import java.util.concurrent.ExecutionException;
  *         Date: 3/10/15
  */
 public class IndexStatsCostController extends StatsStoreCostController {
-    private static final Logger LOG=Logger.getLogger(IndexStatsCostController.class);
     private final int totalColumns;
-    private OverheadManagedTableStatistics baseTableStatistics;
+    private final IndexTableStatistics indexStats;
     private int[] indexColToHeapColMap;
     private int[] baseTableKeyColumns;
-    private boolean isUnique;
 
     public IndexStatsCostController(ConglomerateDescriptor cd,
                                     OpenSpliceConglomerate indexConglomerate,
@@ -52,7 +46,9 @@ public class IndexStatsCostController extends StatsStoreCostController {
         this.indexColToHeapColMap = new int[baseColumnPositions.length];
         System.arraycopy(baseColumnPositions,0,this.indexColToHeapColMap,0,indexColToHeapColMap.length);
         try {
-            this.baseTableStatistics = StatisticsStorage.getPartitionStore().getStatistics(txn, heapConglomerateId);
+            OverheadManagedTableStatistics baseTableStatistics = StatisticsStorage.getPartitionStore().getStatistics(txn, heapConglomerateId);
+            indexStats = new IndexTableStatistics(conglomerateStatistics,baseTableStatistics);
+            this.conglomerateStatistics = indexStats;
         } catch (ExecutionException e) {
             throw Exceptions.parseException(e);
         }
@@ -80,12 +76,10 @@ public class IndexStatsCostController extends StatsStoreCostController {
          */
 
         //start with the base latency to read a single base row
-        double baseLookupLatency = baseTableStatistics.remoteReadLatency()
-                +baseTableStatistics.openScannerLatency()
-                +baseTableStatistics.closeScannerLatency();
+        double baseLookupLatency = indexStats.multiGetLatency();
 
         //scale by the column size factor of the heap columns
-        double colSizeFactor=super.columnSizeFactor(baseTableStatistics,totalColumns,baseTableKeyColumns,heapColumns);
+        double colSizeFactor=super.columnSizeFactor(indexStats,totalColumns,baseTableKeyColumns,heapColumns);
         baseLookupLatency *=colSizeFactor;
 
         /*
@@ -159,8 +153,8 @@ public class IndexStatsCostController extends StatsStoreCostController {
          * IndexLookup doesn't open the underlying scanner, the underlying table scan performs
          * that activity.
          */
-        double heapRemoteCost = rowsToFetch*colSizeFactor*baseTableStatistics.remoteReadLatency();
-        long outputHeapSize = (long)(rowsToFetch*colSizeFactor*baseTableStatistics.avgRowWidth());
+        double heapRemoteCost = rowsToFetch*colSizeFactor*conglomerateStatistics.remoteReadLatency();
+        long outputHeapSize = (long)(rowsToFetch*colSizeFactor*conglomerateStatistics.avgRowWidth());
 
         /*
          * we've already accounted for the remote cost of reading the index columns,
@@ -187,21 +181,9 @@ public class IndexStatsCostController extends StatsStoreCostController {
                             boolean reopen_scan,
                             int access_type,
                             StoreCostResult cost_result) throws StandardException {
-
-        FormatableBitSet indexColumns = null;
-        if(scanColumnList!=null){
-            indexColumns=new FormatableBitSet(scanColumnList.size());
-            for(int keyColumn:indexColToHeapColMap){
-                indexColumns.grow(keyColumn+1);
-                scanColumnList.grow(keyColumn+1);
-                if(keyColumn<scanColumnList.getLength() && scanColumnList.get(keyColumn)){
-                    indexColumns.set(keyColumn);
-                }
-            }
-        }
         super.estimateCost(conglomerateStatistics,
                 totalColumns,
-                indexColumns,
+                scanColumnList,
                 startKeyValue, startSearchOperator,
                 stopKeyValue, stopSearchOperator,
                 indexColToHeapColMap,
