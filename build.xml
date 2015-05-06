@@ -803,7 +803,7 @@
   
   <target
       name="buildjars"
-      depends="initjars,derbyjar,derbytoolsjar,derbynetjar,derbyclientjar,derbyrunjar,derbylocalejars,derbytestingjar"
+      depends="initjars,derbyjar,derbyclientjar,derbylocalejars,derbytestingjar"
       description="Build all of the Derby jar files."
   />
 
@@ -895,40 +895,7 @@
       <attribute name="Bundle-Name" value="Apache Derby ${eversion}"/>
       <attribute name="Bundle-Version" value="${eversion}.${maint}.${changenumber}"/>
       <attribute name="Bundle-ManifestVersion" value="2"/>
-
-      	<attribute name="Sealed" value="true"/>
-    	<section name="${splice.package}/impl/tools/sysinfo/">
-    	  <attribute name="Sealed" value="false"/>
-    	</section>
-    	<section name="${splice.package}/iapi/services/context/">
-    	  <attribute name="Sealed" value="false"/>
-    	</section>
-    	<section name="${splice.package}/iapi/services/info/">
-    	  <attribute name="Sealed" value="false"/>
-    	</section>
-    	<section name="${splice.package}/jdbc/">
-    	  <attribute name="Sealed" value="false"/>
-    	</section>
-    	<section name="${splice.package}/info/">
-    	  <attribute name="Sealed" value="false"/>
-    	</section>
-    	<section name="${splice.package}/iapi/services/i18n/">
-    	  <attribute name="Sealed" value="false"/>
-    	</section>
-        <!-- See DERBY-4669. -->
-        <section name="${splice.package}/shared/common/sanity/">
-          <attribute name="Sealed" value="false"/>
-        </section>
-        <section name="${splice.package}/iapi/tools/i18n/">
-    	  <attribute name="Sealed" value="false"/>
-    	</section>
-    	<section name="${splice.package}/loc/">
-    	  <attribute name="Sealed" value="false"/>
-    	</section>
-      	<section name="${splice.package}/tools/">
-    	  <attribute name="Sealed" value="false"/>
-    	</section>
-    </manifest> 
+    </manifest>
 
     <antcall target="make-locale-classpath-manifest">
         <param name="manifest.file" value="${manifest.file}"/>
@@ -937,130 +904,6 @@
 
   </target>
 
-<!-- - - - - - - - - - - - -  derbytools.jar target - - - - - - - - - - -->
-
-  <target name="derbytoolsjar" depends="setsanityname">
-
-    <echo level="info" message="Beginning derbytools.jar ${sanity.name} build"/>
-
-    <!-- purge lists directory to avoid unnecessary content from other jars -->
-    <delete>
-      <fileset dir="${derby.jar.dir}/lists" includes="**/*"/>
-    </delete>
-
-    <echo level="info" message=" creating tools.list "/>
-    <java classname="com.splicemachine.derbyBuild.classlister" fork="yes">
-      <jvmarg value="-Ddb2jtools=true"/>
-      <jvmarg value="-Doutputfile=${derby.jar.dir}/lists/derbytools.list"/>
-      <arg value="${basedir}/tools/jar/tools.properties"/>
-      <classpath>
-        <pathelement path="${out.dir}"/>
-      </classpath>
-    </java>
-    <replace file="${derby.jar.dir}/lists/derbytools.list" token="$$$$" value="$$"/>
-
-    <echo level="info" message=" creating new tools.properties file "/>
-    <antcall target="infowriter">
-      <param name="info.buildnumber" value="${changenumber}"/>
-      <param name="info.iname" value="Apache Derby Tools"/>
-      <param name="info.ename" value="Apache Derby"/>
-      <param name="info.productfile" value="derbytools.jar"/>
-      <param name="info.file" value="${out.dir}/${splice.package}/info/tools.properties"/>
-    </antcall>
-
-    <!-- copy boilerplate common to db jar files -->
-    <antcall target="meta-inf-common"/>
-    <antcall target="make-locale-classpath-manifest">
-        <param name="manifest.file" value="${derby.jar.dir}/lists/smftools.mf"/>
-        <param name="manifest.mode" value="replace"/>
-    </antcall>
-
-    <delete file="${derby.jar.dir}/derbytools.jar"/>
-    <jar destfile="${derby.jar.dir}/derbytools.jar"
-         basedir="${out.dir}"
-         includesfile="${derby.jar.dir}/lists/derbytools.list"
-         manifest="${derby.jar.dir}/lists/smftools.mf"
-         compress="true"
-         filesonly="true">
-      <fileset dir="${out.dir}"
-               includes="${splice.package}/loc/sysinfoMessages.properties,
-                         ${splice.package}/loc/toolsmessages.properties,
-                         ${splice.package}/info/tools.properties"/>
-	  <fileset dir="${derby.tools.src.dir}"
-               includes="${splice.package}/impl/tools/planexporter/resources/*.xsl"/>
-      <fileset dir="${derby.jar.dir}/lists"
-               includes="META-INF/**"/>
-    </jar>
-  </target>
-
-<!-- - - - - - - - - - - - - - derbynet.jar target - - - - - - - - - - - -->
-
-  <target name="derbynetjar" depends="setsanityname">
-
-    <echo level="info" message="Beginning derbynet.jar ${sanity.name} build"/>
-
-    <!-- purge lists directory to avoid unnecessary content from other jars -->
-    <delete>
-      <fileset dir="${derby.jar.dir}/lists" includes="**/*"/>
-    </delete>
-
-    <echo level="info" message=" creating net.list"/> 
-    <java classname="com.splicemachine.derbyBuild.classlister" fork="yes">
-      <jvmarg value="-Ddb2jdrda=true"/>
-      <jvmarg value="-Doutputfile=${derby.jar.dir}/lists/derbynet.list"/>
-      <arg value="${basedir}/tools/jar/net.properties"/>
-      <classpath>
-        <pathelement path="${out.dir}"/>
-      </classpath>
-    </java>
-
-    <echo level="info" message=" creating new net.properties file "/>
-    <antcall target="infowriter">
-      <param name="info.buildnumber" value="${changenumber}"/>
-      <param name="info.iname" value="Apache Derby Network Server"/>
-      <param name="info.ename" value="Apache Derby"/>
-      <param name="info.productfile" value="derbynet.jar"/>
-      <param name="info.file" value="${out.dir}/${splice.package}/info/net.properties"/>
-    </antcall>
-
-    <!-- copy boilerplate common to db jar files -->
-    <antcall target="meta-inf-common"/>
-
-    <manifest file="${derby.jar.dir}/lists/smfnet.mf">
-      <attribute name="Main-Class" value="com.splicemachine.db.drda.NetworkServerControl"/>
-      <attribute name="Class-Path" value="derby.jar"/>
-      	<attribute name="Sealed" value="true"/>
-    	<section name="${splice.package}/impl/drda/">
-    	  <attribute name="Sealed" value="false"/>
-    	</section>
-    	<section name="${splice.package}/impl/tools/sysinfo/">
-    	  <attribute name="Sealed" value="false"/>
-    	</section>
-      	<section name="${splice.package}/tools/">
-    	  <attribute name="Sealed" value="false"/>
-    	</section>
-    	<section name="${splice.package}/loc/">
-    	  <attribute name="Sealed" value="false"/>
-    	</section>
-    </manifest> 
-
-    <delete file="${derby.jar.dir}/derbynet.jar"/>
-    <jar destfile="${derby.jar.dir}/derbynet.jar"
-         basedir="${out.dir}"
-         includesfile="${derby.jar.dir}/lists/derbynet.list"
-         compress="true"
-         filesonly="true"
-    	 manifest="${derby.jar.dir}/lists/smfnet.mf">
-      <fileset dir="${out.dir}"
-               includes="${splice.package}/loc/drda/**,
-                         ${splice.package}/loc/sysinfoMessages.properties,
-                         ${splice.package}/info/net.properties,
-                         ${splice.package}/drda/server.policy"/>
-      <fileset dir="${derby.jar.dir}/lists"
-               includes="META-INF/**"/>
-    </jar>
-
-  </target>
 
 <!-- - - - - - - - - - - - - - derbyclient.jar target - - - - - - - - -->
 
@@ -1124,38 +967,6 @@
 
         <fileset dir="${derby.jar.dir}/lists" includes="META-INF/**"/>
     </jar>
-  </target>
-
-<!-- - - - - - - - - - - - - - derbyrun.jar target  - - - - - - - - - -->
-   
-  <target name="derbyrunjar" depends="setsanityname,initjars">
-
-    <echo level="info" message="Beginning derbyrun.jar build"/>
-
-    <!-- purge lists directory to avoid unnecessary content from other jars -->
-    <delete>
-      <fileset dir="${derby.jar.dir}/lists" includes="**/*"/>
-    </delete>
-
-    <!-- copy boilerplate common to db jar files -->
-    <antcall target="meta-inf-common"/>
-    
-    <manifest file="${derby.jar.dir}/lists/smfcmd.mf">
-      <attribute name="Main-Class" value="com.splicemachine.db.iapi.tools.run"/>
-      <attribute name="Class-Path" value="derby.jar derbyclient.jar derbytools.jar derbynet.jar"/>
-    </manifest> 
- 	
-    <jar destfile="${derby.jar.dir}/derbyrun.jar"
-         compress="true"
-         filesonly="true"
-         update="true"
-    	 manifest="${derby.jar.dir}/lists/smfcmd.mf">
-      <fileset dir="${out.dir}"
-               includes="${splice.package}/iapi/tools/run.class"/>
-      <fileset dir="${derby.jar.dir}/lists"
-               includes="META-INF/LICENSE,META-INF/NOTICE"/>
-    </jar>
-
   </target>
 
 

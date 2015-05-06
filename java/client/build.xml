@@ -1,68 +1,40 @@
 <?xml version="1.0"?>
 <project default="client" basedir="../..">
 
-  <!-- User settings -->
-  <property file="${user.home}/ant.properties"/>
+    <!-- User settings -->
+    <property file="${user.home}/ant.properties"/>
 
-  <!-- Set property lib dir -->
-  <property name="properties.dir" value="tools/ant/properties"/>
+    <!-- Set property lib dir -->
+    <property name="properties.dir" value="tools/ant/properties"/>
 
-  <!-- Significant dirs -->
-  <property file="${properties.dir}/dirs.properties"/>
+    <!-- Significant dirs -->
+    <property file="${properties.dir}/dirs.properties"/>
 
-  <!-- Compiler settings -->
-  <property file="${properties.dir}/modern.properties"/>
+    <!-- Compiler settings -->
+    <property file="${properties.dir}/modern.properties"/>
 
 
-  <!-- Compile-time classpath properties files -->
-  <property file="${properties.dir}/extrapath.properties"/>
+    <!-- Compile-time classpath properties files -->
+    <property file="${properties.dir}/extrapath.properties"/>
 
-<!-- compile classes  -->
-<target name="compile">
-    <javac
-						source="1.7"
-						target="1.7"
-      bootclasspath="${empty}"
-      nowarn="on"
-      debug="${debug}"
-      depend="${depend}"
-      deprecation="${deprecation}"
-      optimize="${optimize}"
-      proceed="${proceed}"
-      verbose="${verbose}"
-      srcdir="${derby.client.src.dir}"
-      excludes="**/*40.java" 
-      destdir="${out.dir}">
-      <classpath>
-          <pathelement path="${main.classpath}"/>
-      </classpath>
-    </javac>
-</target>
-
-<target name="compile_jdbc4">
-    <javac
-      source="1.7"
-      target="1.7"
-      bootclasspath="${empty}"
-      nowarn="on"
-      debug="${debug}"
-      depend="${depend}"
-      deprecation="${deprecation}"
-      optimize="${optimize}"
-      proceed="${proceed}"
-      verbose="${verbose}"
-      srcdir="${derby.client.src.dir}"
-      includes="**/*40.java" 
-      destdir="${out.dir}">
-      <classpath>
-        <pathelement path="${main.classpath}"/>
-      </classpath>
-      <compilerarg value="-Xlint"/>
-   </javac>
-</target> 
-
-  
-<!-- default target  -->
-  <target name="client" depends="compile, compile_jdbc4"/>
+    <target name="client">
+        <javac
+                source="1.7"
+                target="1.7"
+                bootclasspath="${empty}"
+                nowarn="on"
+                debug="${debug}"
+                depend="${depend}"
+                deprecation="${deprecation}"
+                optimize="${optimize}"
+                proceed="${proceed}"
+                verbose="${verbose}"
+                srcdir="${derby.client.src.dir}"
+                destdir="${out.dir}">
+            <classpath>
+                <pathelement path="${main.classpath}"/>
+            </classpath>
+        </javac>
+    </target>
 </project>
 

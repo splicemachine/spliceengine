@@ -27,10 +27,7 @@
 
     <modules>
         <module>engine</module>
-        <module>net</module>
         <module>client</module>
-        <module>tools</module>
-        <module>run</module>
         <module>testing</module>
         <module>derbyLocale_cs</module>
         <module>derbyLocale_de_DE</module>
