@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.altertable;
 
 import java.io.IOException;
-import java.util.List;
 
 import com.google.common.io.Closeables;
 
@@ -43,7 +42,7 @@ public class AlterTableRowTransformer implements RowTransformer {
         this.rowDecoder = rowDecoder;
         this.keyDecoder = keyDecoder;
         this.entryEncoder = entryEncoder;
-        // arraycopy must use the smaller of the two lengths -
+        // array copy must use the smaller of the two lengths -
         // for drop column, templateRow will be shorter.
         // for add column, srcRow will be shorter.
         this.copyLen = Math.min(srcRow.nColumns(), templateRow.nColumns());
@@ -59,9 +58,8 @@ public class AlterTableRowTransformer implements RowTransformer {
                 mergedRow.setColumn(targetIndex, row.cloneColumn(i+1));
             }
         }
-        // encode the result
-        KVPair newPair = entryEncoder.encode(mergedRow);
-        return newPair;
+        // encode and return the result
+        return entryEncoder.encode(mergedRow);
     }
 
     public KVPair transform(KVPair kvPair) throws StandardException, IOException {
@@ -73,11 +71,9 @@ public class AlterTableRowTransformer implements RowTransformer {
         DataValueDescriptor[] srcArray = srcRow.getRowArray();
         DataValueDescriptor[] mergedArray = mergedRow.getRowArray();
         System.arraycopy(srcArray, 0, mergedArray, 0, copyLen);
-        mergedRow.setRowArray(mergedArray);
 
-        // encode the result
-        KVPair newPair = entryEncoder.encode(mergedRow);
-        return newPair;
+        // encode and return the result
+        return entryEncoder.encode(mergedRow);
     }
 
     private static void decodeRow(KVPair kvPair, ExecRow srcRow, KeyHashDecoder keyDecoder, EntryDataDecoder

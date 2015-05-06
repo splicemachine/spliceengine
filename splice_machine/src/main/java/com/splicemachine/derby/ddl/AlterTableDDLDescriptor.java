@@ -2,14 +2,12 @@ package com.splicemachine.derby.ddl;
 
 import java.io.IOException;
 import java.util.Arrays;
-import java.util.concurrent.ExecutionException;
 
 import com.google.common.base.Throwables;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.execute.altertable.AlterTableRowTransformer;
 import com.splicemachine.derby.utils.marshall.BareKeyHash;
@@ -28,6 +26,7 @@ import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.RowTransformer;
 import com.splicemachine.pipeline.ddl.TransformingDDLDescriptor;
+import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.uuid.UUIDGenerator;
 
@@ -136,7 +135,7 @@ public abstract class AlterTableDDLDescriptor implements TransformingDDLDescript
 
         int[] kDecoderMap = new int[keyColumnEncodingOrder.length];
         Arrays.fill(kDecoderMap, -1);
-        for(int i=0;i<keyColumnEncodingOrder.length;i++){
+        for(int i=0; i<keyColumnEncodingOrder.length; i++){
             int baseKeyColumnPosition = keyColumnEncodingOrder[i]; //the position of the column in the base row
             if(pkCols.get(i)) {
                 kDecoderMap[i] = baseColumnMap[baseKeyColumnPosition];
@@ -150,14 +149,9 @@ public abstract class AlterTableDDLDescriptor implements TransformingDDLDescript
 
     protected static int[] getKeyColumnTypes(ExecRow templateRow, int[] keyColumnEncodingOrder) throws IOException {
         if(keyColumnEncodingOrder==null) return null; //no keys to worry about
-        int[] allFormatIds = new int[0];
-        try {
-            allFormatIds = getFormatIds(templateRow);
-        } catch (StandardException e) {
-            new ExecutionException(Throwables.getRootCause(e));
-        }
+        int[] allFormatIds = getFormatIds(templateRow);
         int[] keyFormatIds = new int[keyColumnEncodingOrder.length];
-        for(int i=0,pos=0;i<keyColumnEncodingOrder.length;i++){
+        for(int i=0,pos=0; i<keyColumnEncodingOrder.length; i++){
             int keyColumnPosition = keyColumnEncodingOrder[i];
             if(keyColumnPosition>=0){
                 keyFormatIds[pos] = allFormatIds[keyColumnPosition];
@@ -167,10 +161,14 @@ public abstract class AlterTableDDLDescriptor implements TransformingDDLDescript
         return keyFormatIds;
     }
 
-    protected static int[] getFormatIds(ExecRow templateRow) throws StandardException {
+    protected static int[] getFormatIds(ExecRow templateRow) throws IOException {
         int[] formatIds = new int[templateRow.nColumns()];
         for (int i=0; i<templateRow.nColumns(); i++) {
-            formatIds[i] = templateRow.getColumn(i+1).getTypeFormatId();
+            try {
+                formatIds[i] = templateRow.getColumn(i+1).getTypeFormatId();
+            } catch (StandardException e) {
+                throw Exceptions.getIOException(Throwables.getRootCause(e));
+            }
         }
         return formatIds;
     }

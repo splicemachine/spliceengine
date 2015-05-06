@@ -858,6 +858,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(TriggerInfo.class, EXTERNALIZABLE_SERIALIZER, 253);
         instance.register(TriggerDescriptor.class, EXTERNALIZABLE_SERIALIZER, 254);
         instance.register(GenericPreparedStatement.class, EXTERNALIZABLE_SERIALIZER, 255);
+        instance.register(TentativeDropPKConstraintDesc.class, EXTERNALIZABLE_SERIALIZER, 256);
 
     }
 }

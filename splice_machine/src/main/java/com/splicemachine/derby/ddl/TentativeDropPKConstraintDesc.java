@@ -23,28 +23,25 @@ import com.splicemachine.pipeline.writehandler.altertable.AlterTableInterceptWri
 /**
  * Tentative constraint descriptor. Serves for both add and drop constraint currently.
  */
-public class TentativeAddConstraintDesc extends AlterTableDDLDescriptor implements TransformingDDLDescriptor, Externalizable {
+public class TentativeDropPKConstraintDesc extends AlterTableDDLDescriptor implements TransformingDDLDescriptor, Externalizable {
     private String tableVersion;
     private long newConglomId;
     private long oldConglomId;
-    private long indexConglomerateId;
     private int[] srcColumnOrdering;
     private int[] targetColumnOrdering;
     private ColumnInfo[] columnInfos;
 
-    public TentativeAddConstraintDesc() {}
+    public TentativeDropPKConstraintDesc() {}
 
-    public TentativeAddConstraintDesc(String tableVersion,
-                                   long newConglomId,
-                                   long oldConglomId,
-                                   long indexConglomerateId,
-                                   int[] srcColumnOrdering,
-                                   int[] targetColumnOrdering,
-                                   ColumnInfo[] columnInfos) {
+    public TentativeDropPKConstraintDesc(String tableVersion,
+                                         long newConglomId,
+                                         long oldConglomId,
+                                         int[] srcColumnOrdering,
+                                         int[] targetColumnOrdering,
+                                         ColumnInfo[] columnInfos) {
         this.tableVersion = tableVersion;
         this.newConglomId = newConglomId;
         this.oldConglomId = oldConglomId;
-        this.indexConglomerateId = indexConglomerateId;
         this.srcColumnOrdering = srcColumnOrdering;
         this.targetColumnOrdering = targetColumnOrdering;
         this.columnInfos = columnInfos;
@@ -94,7 +91,6 @@ public class TentativeAddConstraintDesc extends AlterTableDDLDescriptor implemen
         out.writeObject(tableVersion);
         out.writeLong(newConglomId);
         out.writeLong(oldConglomId);
-        out.writeLong(indexConglomerateId);
         ArrayUtil.writeIntArray(out, srcColumnOrdering);
         ArrayUtil.writeIntArray(out, targetColumnOrdering);
         out.writeInt(columnInfos.length);
@@ -108,7 +104,6 @@ public class TentativeAddConstraintDesc extends AlterTableDDLDescriptor implemen
         tableVersion = (String) in.readObject();
         newConglomId = in.readLong();
         oldConglomId = in.readLong();
-        indexConglomerateId = in.readLong();
         srcColumnOrdering = ArrayUtil.readIntArray(in);
         targetColumnOrdering = ArrayUtil.readIntArray(in);
         int size = in.readInt();
@@ -118,15 +113,11 @@ public class TentativeAddConstraintDesc extends AlterTableDDLDescriptor implemen
         }
     }
 
-    public long getIndexConglomerateId() {
-        return indexConglomerateId;
-    }
-
     private ExecRow createSourceTemplate() throws IOException {
-        int rowWidth = columnInfos.length - 1;
+        int rowWidth = columnInfos.length;
         ExecRow srcRow = new ValueRow(rowWidth);
         try {
-            for (int i=0; i<rowWidth+1; i++) {
+            for (int i=0; i<rowWidth; i++) {
                 srcRow.setColumn(i+1, columnInfos[i].dataType.getNull());
             }
         } catch (StandardException e) {
