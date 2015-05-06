@@ -119,6 +119,7 @@ public class DependentOperation extends ScanOperation {
 		GeneratedMethod startKeyGetter, int startSearchOperator,
 		GeneratedMethod stopKeyGetter, int stopSearchOperator,
 		boolean sameStartStopPosition,
+        boolean rowIdKey,
 		String qualifiersField,
 		String tableName,
 		String userSuppliedOptimizerOverrides,
@@ -144,7 +145,7 @@ public class DependentOperation extends ScanOperation {
 		  //REPEATABLE READ irrespective what the user level isolation
 		  //level is.
 		super(conglomId,activation, resultSetNumber,startKeyGetter, startSearchOperator,
-				stopKeyGetter, stopSearchOperator, sameStartStopPosition, false, qualifiersField,
+				stopKeyGetter, stopSearchOperator, sameStartStopPosition, rowIdKey, qualifiersField,
 			 resultRowAllocator,lockMode, tableLocked,
 			  TransactionController.ISOLATION_REPEATABLE_READ,
               colRefItem, -1, false, // Add Index Ref: This is junk JL
