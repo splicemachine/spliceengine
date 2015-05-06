@@ -1,35 +1,22 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.carrotsearch.hppc.BitSet;
-import com.carrotsearch.hppc.ObjectArrayList;
-import com.google.common.io.Closeables;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
-import com.splicemachine.derby.utils.DerbyBytesUtil;
-import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.derby.utils.StandardIterator;
+import com.splicemachine.derby.stream.temporary.update.NonPkRowHash;
+import com.splicemachine.derby.stream.temporary.update.PkDataHash;
+import com.splicemachine.derby.stream.temporary.update.PkRowHash;
+import com.splicemachine.derby.stream.temporary.update.ResultSupplier;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
-import com.splicemachine.encoding.MultiFieldDecoder;
-import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.KVPair;
-import com.splicemachine.metrics.Counter;
-import com.splicemachine.metrics.Timer;
 import com.splicemachine.pipeline.api.RecordingCallBuffer;
 import com.splicemachine.pipeline.callbuffer.ForwardRecordingCallBuffer;
-import com.splicemachine.storage.EntryDecoder;
-import com.splicemachine.storage.EntryEncoder;
-import com.splicemachine.storage.EntryPredicateFilter;
-import com.splicemachine.storage.Predicate;
-import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
@@ -39,10 +26,6 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.Get;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import java.io.IOException;
@@ -55,9 +38,8 @@ public class UpdateOperation extends DMLWriteOperation{
     private static final Logger LOG = Logger.getLogger(UpdateOperation.class);
     private ResultSupplier resultSupplier;
     private DataValueDescriptor[] kdvds;
-    private int[] colPositionMap;
-    private FormatableBitSet heapList;
-    private UpdateOperationNoOpRowSkipper noOpRowSkipper;
+    public int[] colPositionMap;
+    public FormatableBitSet heapList;
 
     protected static final String NAME = UpdateOperation.class.getSimpleName().replaceAll("Operation","");
 
@@ -82,21 +64,6 @@ public class UpdateOperation extends DMLWriteOperation{
         recordConstructorTime();
     }
 
-    /*
-    @Override
-    public ExecRow getNextSinkRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-        if(noOpRowSkipper == null) {
-            noOpRowSkipper = buildNoOpRowSkipper(new SuperSinkRowStandardIterator());
-        }
-        ExecRow nextSinkRow = noOpRowSkipper.next(spliceRuntimeContext);
-        writeRowsFiltered += noOpRowSkipper.getSkippedRows();
-        if (nextSinkRow == null && resultSupplier != null) {
-            resultSupplier.close();
-        }
-        return nextSinkRow;
-    }
-
-*/
     @Override
 		public void init(SpliceOperationContext context) throws StandardException, IOException {
 				SpliceLogUtils.trace(LOG,"init");
@@ -116,7 +83,7 @@ public class UpdateOperation extends DMLWriteOperation{
 
 		}
 
-    private int[] getColumnPositionMap(FormatableBitSet heapList) {
+    public int[] getColumnPositionMap(FormatableBitSet heapList) {
         if(colPositionMap==null) {
 		        /*
 			       * heapList is the position of the columns in the original row (e.g. if cols 2 and 3 are being modified,
@@ -200,7 +167,7 @@ public class UpdateOperation extends DMLWriteOperation{
 
 				int[] finalPkColumns = getFinalPkColumns(colPositionMap);
 
-				resultSupplier = new ResultSupplier(new BitSet());
+				resultSupplier = new ResultSupplier(new BitSet(),txn,heapConglom);
 				return new PkRowHash(finalPkColumns,null,heapList,colPositionMap,resultSupplier,serializers);
 		}
 
@@ -219,7 +186,7 @@ public class UpdateOperation extends DMLWriteOperation{
 				return finalPkColumns;
 		}
 
-    private FormatableBitSet getHeapList() throws StandardException{
+    public FormatableBitSet getHeapList() throws StandardException{
         if(heapList==null){
             heapList = ((UpdateConstantOperation)writeInfo.getConstantAction()).getBaseRowReadList();
             if(heapList==null){
@@ -270,277 +237,5 @@ public class UpdateOperation extends DMLWriteOperation{
 		public String toString() {
 				return "Update{destTable="+heapConglom+",source=" + source + "}";
 		}
-
-    /**
-     * Returns an iterator wrapping the specified one, but one which skips NO-OP update rows.
-     */
-    public UpdateOperationNoOpRowSkipper buildNoOpRowSkipper(StandardIterator<ExecRow> rowIterator) throws StandardException {
-        FormatableBitSet heapList = getHeapList();
-        int[] columnPositionMap = getColumnPositionMap(heapList);
-        return new UpdateOperationNoOpRowSkipper(rowIterator, heapList, columnPositionMap);
-    }
-
-
-    private class ResultSupplier{
-				private KeyValue result;
-
-				private byte[] location;
-				private byte[] filterBytes;
-
-				private HTableInterface htable;
-
-				private ResultSupplier(BitSet interestedFields) {
-						//we need the index so that we can transform data without the information necessary to decode it
-						EntryPredicateFilter predicateFilter = new EntryPredicateFilter(interestedFields,new ObjectArrayList<Predicate>(),true);
-						this.filterBytes = predicateFilter.toBytes();
-				}
-
-				public void setLocation(byte[] location){
-						this.location = location;
-						this.result = null;
-				}
-
-				public void setResult(EntryDecoder decoder) throws IOException {
-						if(result==null) {
-								//need to fetch the latest results
-								if(htable==null){
-										htable = SpliceAccessManager.getFlushableHTable(Bytes.toBytes(Long.toString(heapConglom)));
-								}
-
-//								getTimer.startTiming();
-								Get remoteGet = SpliceUtils.createGet(operationInformation.getTransaction(),location);
-								remoteGet.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,SpliceConstants.PACKED_COLUMN_BYTES);
-								remoteGet.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,filterBytes);
-
-								Result r = htable.get(remoteGet);
-								//we assume that r !=null, because otherwise, what are we updating?
-								KeyValue[] rawKvs = r.raw();
-								for(KeyValue kv:rawKvs){
-										if(kv.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,SpliceConstants.PACKED_COLUMN_BYTES)){
-												result = kv;
-												break;
-										}
-								}
-								//we also assume that PACKED_COLUMN_KEY is properly set by the time we get here
-//								getTimer.tick(1);
-						}
-						decoder.set(result.getBuffer(),result.getValueOffset(),result.getValueLength());
-				}
-
-				public void close() throws IOException {
-						if(htable!=null)
-								htable.close();
-				}
-		}
-
-
-		/*
-				 * Entity for encoding rows when the Primary Key has been modified
-				 */
-		private static class PkRowHash extends EntryDataHash{
-				private ResultSupplier supplier;
-				private EntryDecoder resultDecoder;
-				private final FormatableBitSet finalHeapList;
-				private final int[] colPositionMap;
-
-				public PkRowHash(int[] keyColumns,
-												 boolean[] keySortOrder,
-												 FormatableBitSet finalHeapList,
-												 int[] colPositionMap,
-												 ResultSupplier supplier,
-												 DescriptorSerializer[] serializers) {
-						super(keyColumns, keySortOrder,serializers);
-						this.finalHeapList = finalHeapList;
-						this.colPositionMap = colPositionMap;
-						this.supplier = supplier;
-				}
-
-				@Override
-				public byte[] encode() throws StandardException, IOException {
-						if(entryEncoder==null)
-								entryEncoder = buildEntryEncoder();
-
-						RowLocation location= (RowLocation)currentRow.getColumn(currentRow.nColumns()).getObject(); //the location to update is always at the end
-						//convert Result into put under the new row key
-						supplier.setLocation(location.getBytes());
-
-						if(resultDecoder==null)
-								resultDecoder = new EntryDecoder();
-
-						supplier.setResult(resultDecoder);
-
-						entryEncoder.reset(resultDecoder.getCurrentIndex());
-						pack(entryEncoder.getEntryEncoder(),currentRow);
-						return entryEncoder.encode();
-				}
-
-				@Override
-				protected void pack(MultiFieldEncoder updateEncoder,
-														ExecRow currentRow) throws StandardException, IOException {
-						BitIndex index = resultDecoder.getCurrentIndex();
-						MultiFieldDecoder getFieldDecoder = resultDecoder.getEntryDecoder();
-						for(int pos=index.nextSetBit(0);pos>=0;pos=index.nextSetBit(pos+1)){
-								if(finalHeapList.isSet(pos+1)){
-										DataValueDescriptor dvd = currentRow.getRowArray()[colPositionMap[pos+1]];
-										DescriptorSerializer serializer = serializers[colPositionMap[pos+1]];
-										serializer.encode(updateEncoder,dvd,false);
-//										if(dvd==null||dvd.isNull()){
-//												updateEncoder.encodeEmpty();
-//										}else{
-//												DerbyBytesUtil.encodeInto(updateEncoder, dvd,false);
-//										}
-										resultDecoder.seekForward(getFieldDecoder, pos);
-								}else{
-										//use the index to get the correct offsets
-										int offset = getFieldDecoder.offset();
-										resultDecoder.seekForward(getFieldDecoder,pos);
-										int limit = getFieldDecoder.offset()-1-offset;
-										updateEncoder.setRawBytes(getFieldDecoder.array(),offset,limit);
-								}
-						}
-				}
-				public void close() throws IOException {
-						if(supplier!=null)
-								supplier.close();
-						if(resultDecoder!=null)
-								resultDecoder.close();
-						super.close();
-				}
-		}
-
-		/*
-		 * Entity for encoding rows when primary keys have not been modified
-		 */
-		private class NonPkRowHash extends EntryDataHash{
-				private final FormatableBitSet finalHeapList;
-
-				public NonPkRowHash(int[] keyColumns,
-														boolean[] keySortOrder,
-														DescriptorSerializer[] serializers,
-														FormatableBitSet finalHeapList) {
-						super(keyColumns, keySortOrder,serializers);
-						this.finalHeapList = finalHeapList;
-				}
-
-				@Override
-				protected void pack(MultiFieldEncoder encoder, ExecRow currentRow) throws StandardException {
-						encoder.reset();
-						DataValueDescriptor[] dvds = currentRow.getRowArray();
-						for(int i=finalHeapList.anySetBit();i>=0;i=finalHeapList.anySetBit(i)){
-								int position = keyColumns[i];
-								DataValueDescriptor dvd = dvds[position];
-								DescriptorSerializer serializer = serializers[position];
-								serializer.encode(encoder,dvd,false);
-//								//we know that derby never spits out a null field here--we hope.
-//								if(dvd.isNull())
-//										DerbyBytesUtil.encodeTypedEmpty(encoder,dvd,false,true);
-//								else
-//										DerbyBytesUtil.encodeInto(encoder, dvd, false);
-						}
-				}
-
-				@Override
-				protected EntryEncoder buildEntryEncoder() {
-						BitSet notNullFields = new BitSet(finalHeapList.size());
-						BitSet scalarFields = new BitSet();
-						BitSet floatFields = new BitSet();
-						BitSet doubleFields = new BitSet();
-						for(int i=finalHeapList.anySetBit();i>=0;i=finalHeapList.anySetBit(i)){
-								notNullFields.set(i - 1);
-								DataValueDescriptor dvd = currentRow.getRowArray()[keyColumns[i]];
-								if(DerbyBytesUtil.isScalarType(dvd, null)){
-										scalarFields.set(i-1);
-								}else if(DerbyBytesUtil.isFloatType(dvd)){
-										floatFields.set(i-1);
-								}else if(DerbyBytesUtil.isDoubleType(dvd)){
-										doubleFields.set(i-1);
-								}
-						}
-						return EntryEncoder.create(SpliceDriver.getKryoPool(),currentRow.nColumns(),
-										notNullFields,scalarFields,floatFields,doubleFields);
-				}
-
-				@Override
-				protected BitSet getNotNullFields(ExecRow row, BitSet notNullFields) {
-						notNullFields.clear();
-						for(int i=finalHeapList.anySetBit();i>=0;i=finalHeapList.anySetBit(i)){
-								notNullFields.set(i-1);
-						}
-						return notNullFields;
-				}
-		}
-
-        private class PkDataHash implements DataHash<ExecRow> {
-						private final String tableVersion;
-						private ExecRow currentRow;
-            private byte[] rowKey;
-            private int[] keyColumns;
-            private MultiFieldEncoder encoder;
-            private MultiFieldDecoder decoder;
-            private DataValueDescriptor[] kdvds;
-						private DescriptorSerializer[] serializers;
-
-            public PkDataHash(int[] keyColumns, DataValueDescriptor[] kdvds,String tableVersion) {
-                this.keyColumns = keyColumns;
-                this.kdvds = kdvds;
-								this.tableVersion = tableVersion;
-            }
-
-            @Override
-            public void setRow(ExecRow rowToEncode) {
-                this.currentRow = rowToEncode;
-            }
-
-            @Override
-            public byte[] encode() throws StandardException, IOException {
-                rowKey = ((RowLocation)currentRow.getColumn(currentRow.nColumns()).getObject()).getBytes();
-                if (encoder == null)
-                    encoder = MultiFieldEncoder.create(keyColumns.length);
-                if (decoder == null)
-                    decoder = MultiFieldDecoder.create();
-                pack();
-                return encoder.build();
-            }
-
-            private void pack() throws StandardException {
-                encoder.reset();
-                decoder.set(rowKey);
-								if(serializers==null)
-										serializers = VersionedSerializers.forVersion(tableVersion,false).getSerializers(currentRow);
-                int i = 0;
-                for (int col:keyColumns) {
-                    if (col > 0) {
-                        DataValueDescriptor dvd = currentRow.getRowArray()[col];
-												DescriptorSerializer serializer = serializers[col];
-												serializer.encode(encoder,dvd,false);
-//                        if(dvd==null||dvd.isNull()){
-//                            encoder.encodeEmpty();
-//                        }else{
-//                            DerbyBytesUtil.encodeInto(encoder, dvd,false);
-//                        }
-                        DerbyBytesUtil.skip(decoder,kdvds[i++]);
-                    } else {
-                        int offset = decoder.offset();
-                        DerbyBytesUtil.skip(decoder,kdvds[i++]);
-                        int limit = decoder.offset()-1-offset;
-                        encoder.setRawBytes(decoder.array(),offset,limit);
-                    }
-                }
-            }
-
-						@Override
-						public void close() throws IOException {
-								if(serializers!=null){
-										for(DescriptorSerializer serializer:serializers){
-												Closeables.closeQuietly(serializer);
-										}
-								}
-						}
-
-						@Override
-            public KeyHashDecoder getDecoder() {
-                return NoOpKeyHashDecoder.INSTANCE;
-            }
-        }
 
 }

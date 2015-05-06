@@ -31,6 +31,7 @@ public interface PairDataSet<K,V> {
     public <W> PairDataSet<K,V> broadcastSubtractByKey(PairDataSet<K,W> rightDataSet);
     public <W> PairDataSet<K,Tuple2<Iterator<V>, Iterator<W>>> cogroup(PairDataSet<K,W> rightDataSet);
     public <W> PairDataSet<K,Tuple2<Iterator<V>, Iterator<W>>> broadcastCogroup(PairDataSet<K,W> rightDataSet);
+    public void writeData();
     public String toString();
 
 /*    public <W> PairDataSet<K,Tuple2<V,Optional<W>>> nestedLoopLeftOuterJoin(PairDataSet<K,W> rightDataSet); ?

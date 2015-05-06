@@ -10,17 +10,17 @@ public class SpliceTableOutputCommitter extends OutputCommitter {
 
 	@Override
 	public void abortTask(TaskAttemptContext taskAttemptContext) throws IOException {
-		
+		// Rollback Txn...
 	}
 
 	@Override
 	public void commitTask(TaskAttemptContext taskAttemptContext) throws IOException {
-		
+		// Commit Txn...
 	}
 
 	@Override
 	public boolean needsTaskCommit(TaskAttemptContext taskAttemptContext) throws IOException {		// TODO Auto-generated method stub
-		return false;
+		return true;
 	}
 
 	@Override
@@ -30,7 +30,7 @@ public class SpliceTableOutputCommitter extends OutputCommitter {
 
 	@Override
 	public void setupTask(TaskAttemptContext taskAttemptContext) throws IOException {
-		
+		// Create Sub Transaction
 	}
 
 }

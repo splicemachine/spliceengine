@@ -211,4 +211,9 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     public <W> PairDataSet<K, Tuple2<Iterator<V>, Iterator<W>>> broadcastCogroup(PairDataSet<K, W> rightDataSet) {
         return cogroup(rightDataSet);
     }
+
+    @Override
+    public void writeData() {
+
+    }
 }
