@@ -1194,11 +1194,39 @@ public class FromBaseTable extends FromTable{
                     extraQualifierSelectivity*=scc.getSelectivity(columnNumber,start,includeStart,stop,includeStop);
                 }
             }
+            costEstimate.setRowCount(costEstimate.rowCount()*extraQualifierSelectivity);
+            costEstimate.setEstimatedHeapSize((long)(costEstimate.getEstimatedHeapSize()*extraQualifierSelectivity));
+            /*
+		     ** If the index isn't covering, add the cost of getting the
+		     ** base row.  Only apply extraFirstColumnSelectivity and extraStartStopSelectivity
+		     ** before we do this, don't apply extraQualifierSelectivity etc.  The
+		     ** reason is that the row count here should be the number of index rows
+		     ** (and hence heap rows) we get, and we need to fetch all those rows, even
+		     ** though later on some of them may be filtered out by other predicates.
+		     ** beetle 4787.
+		     */
+            if(cd.isIndex() && (!isCoveringIndex(cd))){
+                scc.getFetchFromRowLocationCost(indexLookupList,0,costEstimate);
+                tracer.trace(OptimizerFlag.COST_OF_NONCOVERING_INDEX,tableNumber,0,0d,costEstimate);
+            }
 
-            double adjustedRowCount=costEstimate.getEstimatedRowCount()*nonQualifierSelectivity*extraQualifierSelectivity;
-            double adjustedHeapSize = costEstimate.getEstimatedHeapSize()*nonQualifierSelectivity*extraQualifierSelectivity;
+            /*
+             * Non-qualifier predicates aren't applied until AFTER the index lookup, so we need to
+             * ensure that the index lookup costs include the cost of looking up rows which will just
+             * be discarded.
+             *
+             * We adjust the output statistics here. Output stats are:
+             *
+             * 1. row count
+             * 2. heap size
+             * 3. remote cost (since it's just the cost to scan over the network)
+             */
+            double adjustedRowCount=costEstimate.getEstimatedRowCount()*nonQualifierSelectivity;
+            double adjustedHeapSize = costEstimate.getEstimatedHeapSize()*nonQualifierSelectivity;
+            double adjustedRemoteCost = costEstimate.remoteCost()*nonQualifierSelectivity;
             costEstimate.setEstimatedRowCount((long)adjustedRowCount);
             costEstimate.setEstimatedHeapSize((long)adjustedHeapSize);
+            costEstimate.setRemoteCost(adjustedRemoteCost);
             costEstimate.setSingleScanRowCount(costEstimate.singleScanRowCount()*extraQualifierSelectivity); //apply selectivity to single-scan row count also
 
 		    /*
@@ -1251,19 +1279,7 @@ public class FromBaseTable extends FromTable{
 //                double ssrc = costEstimate.singleScanRowCount() * listSize;
 
 
-		/*
-		 ** If the index isn't covering, add the cost of getting the
-		 ** base row.  Only apply extraFirstColumnSelectivity and extraStartStopSelectivity
-		 ** before we do this, don't apply extraQualifierSelectivity etc.  The
-		 ** reason is that the row count here should be the number of index rows
-		 ** (and hence heap rows) we get, and we need to fetch all those rows, even
-		 ** though later on some of them may be filtered out by other predicates.
-		 ** beetle 4787.
-		 */
-        if(cd.isIndex() && (!isCoveringIndex(cd))){
-            scc.getFetchFromRowLocationCost(indexLookupList,0,costEstimate);
-            tracer.trace(OptimizerFlag.COST_OF_NONCOVERING_INDEX,tableNumber,0,0d,costEstimate);
-        }
+
         costEstimate.setSingleScanRowCount(singleScanRowCount);
 
         tracer.trace(OptimizerFlag.COST_OF_N_SCANS,tableNumber,0,outerCost.rowCount(),costEstimate);
