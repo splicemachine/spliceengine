@@ -49,7 +49,7 @@ public class UniformDecimalDistribution extends BaseDistribution<BigDecimal> {
         Set<? extends FrequencyEstimate<BigDecimal>> fe = columnStats.topK().frequentElementsBetween(start,stop,includeStart,includeStop);
         baseEstimate-= fe.size()*rowsPerEntry;
         for(FrequencyEstimate<BigDecimal> est:fe){
-            baseEstimate+=est.count();
+            baseEstimate+=est.count()-est.error();
         }
         return (long)baseEstimate;
     }

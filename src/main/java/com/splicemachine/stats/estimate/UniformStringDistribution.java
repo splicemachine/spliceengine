@@ -100,7 +100,7 @@ public class UniformStringDistribution extends BaseDistribution<String> {
         Set<? extends FrequencyEstimate<String>> estimates = fe.frequentElementsBetween(start, stop, includeStart, includeStop);
         baseEstimate-=rowsPerEntry*estimates.size();
         for(FrequencyEstimate<String> est:estimates){
-            baseEstimate+=est.count();
+            baseEstimate+=est.count()-est.error();
         }
         return (long)baseEstimate;
     }

@@ -104,7 +104,7 @@ public class UniformFloatDistribution extends BaseDistribution<Float> implements
         Set<FloatFrequencyEstimate> ffe = ife.frequentBetween(start, stop, includeStart, includeStop);
         baseEstimate-=perRowCount*ffe.size();
         for(FloatFrequencyEstimate est:ffe){
-            baseEstimate+=est.count();
+            baseEstimate+=est.count()-est.error();
         }
         return (long)baseEstimate;
     }

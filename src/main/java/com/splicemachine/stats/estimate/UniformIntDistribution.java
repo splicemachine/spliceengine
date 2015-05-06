@@ -102,7 +102,7 @@ public class UniformIntDistribution extends BaseDistribution<Integer> implements
         Set<IntFrequencyEstimate> intFrequencyEstimates = ife.frequentBetween(start, stop, includeStart, includeStop);
         baseEstimate-=perRowCount*intFrequencyEstimates.size();
         for(IntFrequencyEstimate estimate: intFrequencyEstimates){
-            baseEstimate+=estimate.count();
+            baseEstimate+=estimate.count()-estimate.error();
         }
         return (long)baseEstimate;
     }

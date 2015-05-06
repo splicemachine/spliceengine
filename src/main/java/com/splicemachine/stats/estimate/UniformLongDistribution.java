@@ -105,7 +105,7 @@ public class UniformLongDistribution extends BaseDistribution<Long> implements L
         Set<LongFrequencyEstimate> longFrequencyEstimates = sfe.frequentBetween(start, stop, includeStart, includeStop);
         baseEstimate-=longFrequencyEstimates.size()*perRowCount;
         for(LongFrequencyEstimate est:longFrequencyEstimates){
-            baseEstimate+=est.count();
+            baseEstimate+=est.count()-est.error();
         }
         return (long)baseEstimate;
     }

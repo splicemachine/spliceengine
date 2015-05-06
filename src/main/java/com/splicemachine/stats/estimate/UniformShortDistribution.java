@@ -105,7 +105,7 @@ public class UniformShortDistribution extends BaseDistribution<Short> implements
         Set<ShortFrequencyEstimate> shortFrequencyEstimates = sfe.frequentBetween(start, stop, includeStart, includeStop);
         baseEstimate-=shortFrequencyEstimates.size()*perRowCount;
         for(ShortFrequencyEstimate est:shortFrequencyEstimates){
-            baseEstimate+=est.count();
+            baseEstimate+=est.count()-est.error();
         }
         return (long)baseEstimate;
     }

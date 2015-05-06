@@ -103,7 +103,7 @@ public class UniformDoubleDistribution extends BaseDistribution<Double> implemen
         Set<DoubleFrequencyEstimate> ffe = ife.frequentBetween(start, stop, includeStart, includeStop);
         baseEstimate-=perRowCount*ffe.size();
         for(DoubleFrequencyEstimate est:ffe){
-            baseEstimate+=est.count();
+            baseEstimate+=est.count()-est.error();
         }
         return (long)baseEstimate;
     }
