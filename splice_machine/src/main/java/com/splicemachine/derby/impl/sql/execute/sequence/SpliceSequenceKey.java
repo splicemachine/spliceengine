@@ -10,16 +10,10 @@ public class SpliceSequenceKey extends AbstractSequenceKey{
 
     public SpliceSequenceKey(HTableInterface table,
                              byte[] sysColumnsRow,
-                             long start,
-                             long increment,
+                             long autoIncStart,
+                             long autoIncrement,
                              long blockAllocationSize) {
-        super(table, sysColumnsRow, blockAllocationSize);
-        autoIncStart = start;
-        autoIncrement = increment;
-    }
-
-    protected void getStartAndIncrementFromSystemTables() throws StandardException {
-
+        super(table, sysColumnsRow, blockAllocationSize,autoIncStart,autoIncrement);
     }
 
     public SpliceSequence makeNew() throws StandardException {

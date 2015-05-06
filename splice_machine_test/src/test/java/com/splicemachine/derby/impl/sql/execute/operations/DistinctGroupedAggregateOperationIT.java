@@ -114,21 +114,21 @@ public class DistinctGroupedAggregateOperationIT extends SpliceUnitTest {
 
     @Test
     public void testDistinctAndNonDistinctAggregate() throws Exception {
-        List<Object[]> sumExpected = Arrays.asList(new Object[]{null}, o(6L), o(10L));
+        List<Object[]> sumExpected = Arrays.asList(o(6L), o(10L),new Object[]{null});
         List<Object[]> sumRows = TestUtils.resultSetToArrays(methodWatcher.executeQuery("select sum(c1) " +
                                                                                             "from t1 group by c2 " +
                                                                                             "order by 1"));
 
         Assert.assertArrayEquals(sumExpected.toArray(), sumRows.toArray());
 
-        List<Object[]> sumDistinctExpected = Arrays.asList(new Object[]{null}, o(6L), o(10L));
+        List<Object[]> sumDistinctExpected = Arrays.asList(o(6L), o(10L),new Object[]{null});
         List<Object[]> sumDistinctRows = TestUtils
                                              .resultSetToArrays(methodWatcher.executeQuery("select sum(distinct c1) " +
                                                                                                "from t1 group by c2 " +
                                                                                                "order by 1"));
         Assert.assertArrayEquals(sumDistinctExpected.toArray(), sumDistinctRows.toArray());
 
-        List<Object[]> bothSumsExpected = Arrays.asList(o(null, null), o(6L, 6L), o(10L, 10L));
+        List<Object[]> bothSumsExpected = Arrays.asList(o(6L, 6L), o(10L, 10L),o(null, null));
         List<Object[]> bothSumsRows = TestUtils
                                              .resultSetToArrays(methodWatcher.executeQuery("select sum(distinct c1), " +
                                                                                                "sum(c1) " +

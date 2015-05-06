@@ -14,10 +14,15 @@ public abstract class AbstractSequenceKey implements ResourcePool.Key{
         public AbstractSequenceKey(
                    HTableInterface table,
                    byte[] sysColumnsRow,
-                   long blockAllocationSize) {
-            this.table = table;
+                   long blockAllocationSize,
+                   long autoIncStart,
+                   long autoIncrement) {
+            assert (table != null && sysColumnsRow != null): "Null Table or SysColumnsRow Passed in";
             this.sysColumnsRow = sysColumnsRow;
             this.blockAllocationSize = blockAllocationSize;
+            this.table = table;
+            this.autoIncStart = autoIncStart;
+            this.autoIncrement = autoIncrement;
         }
 
         public byte[] getSysColumnsRow(){
@@ -29,7 +34,10 @@ public abstract class AbstractSequenceKey implements ResourcePool.Key{
             if (this == o) return true;
             if (!(o instanceof AbstractSequenceKey)) return false;
             AbstractSequenceKey key = (AbstractSequenceKey) o;
-            return Arrays.equals(sysColumnsRow, key.sysColumnsRow) && blockAllocationSize == key.blockAllocationSize;
+            return Arrays.equals(sysColumnsRow, key.sysColumnsRow)
+                    && blockAllocationSize == key.blockAllocationSize &&
+                    autoIncStart == key.autoIncStart &&
+                    autoIncrement == key.autoIncrement;
         }
 
         @Override
@@ -38,18 +46,11 @@ public abstract class AbstractSequenceKey implements ResourcePool.Key{
         }
 
         public long getStartingValue() throws StandardException{
-            getStartAndIncrementFromSystemTables();
-            if(autoIncStart<=0l) return 0l;
             return autoIncStart;
         }
 
         public long getIncrementSize() throws StandardException{
-            getStartAndIncrementFromSystemTables();
-            if(autoIncrement<=0l) return 1l;
             return autoIncrement;
         }
-
-        protected abstract void getStartAndIncrementFromSystemTables() throws StandardException;
-
         public abstract SpliceSequence makeNew() throws StandardException;
     }

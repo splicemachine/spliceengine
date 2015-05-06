@@ -7,6 +7,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerB
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -83,6 +84,9 @@ public class TableScanOperation extends ScanOperation {
 				SpliceLogUtils.trace(LOG, "instantiated for tablename %s or indexName %s with conglomerateID %d",
                         tableName, indexName, conglomId);
 				this.forUpdate = forUpdate;
+
+                System.out.println("Current Isolation Level" + activation.getLanguageConnectionContext().getCurrentIsolationLevel());
+
 				this.isConstraint = isConstraint;
 				this.rowsPerRead = rowsPerRead;
 				this.tableName = Long.toString(scanInformation.getConglomerateId());
@@ -207,6 +211,7 @@ public class TableScanOperation extends ScanOperation {
             for (int i = 0; i< currentTemplate.nColumns(); i++) {
                 execRowTypeFormatIds[i] = currentTemplate.getColumn(i+1).getTypeFormatId();
             }
+            TxnView txn = operationInformation.getTransaction();
             TableScannerBuilder tsb = new TableScannerBuilder()
                     .transaction(operationInformation.getTransaction())
                     .scan(getNonSIScan())
