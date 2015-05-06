@@ -54,6 +54,11 @@ public class StatsConstants extends SpliceConstants {
     @SpliceConstants.Parameter public static final String INDEX_FETCH_SAMPLE_SIZE = "splice.statistics.indexFetch.sampleSize";
     @DefaultValue(value = INDEX_FETCH_SAMPLE_SIZE) public static final int DEFAULT_INDEX_FETCH_SAMPLE_SIZE = 128;
 
+    public static int fetchRepetitionCount;
+    @SpliceConstants.Parameter public static final String INDEX_FETCH_REPETITION_COUNT = "splice.statistics.indexFetch.repetitionCount";
+    @DefaultValue(value = INDEX_FETCH_REPETITION_COUNT) public static final int DEFAULT_INDEX_FETCH_REPETITION_COUNT = 3;
+
+
     /*
      * This is the latency scale factor to fall back on when we cannot measure the remote latency directly.
      * By default, it's 10 times the cost of a local scan.
@@ -94,5 +99,6 @@ public class StatsConstants extends SpliceConstants {
 
         remoteLatencyScaleFactor = config.getDouble(REMOTE_LATENCY_SCALE_FACTOR,DEFAULT_REMOTE_LATENCY_SCALE_FACTOR);
         fallbackCardinalityFraction = config.getDouble(FALLBACK_CARDINALITY_FRACTION,DEFAULT_FALLBACK_CARDINALITY_FRACTION);
+        fetchRepetitionCount = config.getInt(INDEX_FETCH_REPETITION_COUNT,DEFAULT_INDEX_FETCH_REPETITION_COUNT);
     }
 }

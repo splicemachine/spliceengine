@@ -83,7 +83,9 @@ public class PredicateUtils {
             } catch (StandardException se) {
                 return se.getMessage();
             }
-        } else {
+        } else if(operand instanceof CastNode){
+            return opToString(((CastNode)operand).getCastOperand());
+        } else{
             return operand.toString().replace("\n", " ");
         }
     }
