@@ -12066,7 +12066,7 @@ Boolean
 beforeOrAfter() :
 {}
 {
-	<NO> <CASCADE> <BEFORE> 
+	<BEFORE>
 	{
 		return Boolean.TRUE;
 	}
