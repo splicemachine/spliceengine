@@ -159,15 +159,9 @@ public class BroadcastJoinOperation extends JoinOperation {
         if (LOG.isDebugEnabled())
             SpliceLogUtils.debug(LOG, "getDataSet Performing MergeSortJoin type=%s, antiJoin=%s, hasRestriction=%s",
                     isOuterJoin ? "outer" : "inner", notExistsRightSide, restriction != null);
-        if (isOuterJoin) { // Outer Join
-            if (restriction!=null) { // Restriction
+        if (isOuterJoin) { // Outer Join with and without restriction
                 return leftDataSet.<LocatedRow>broadcastLeftOuterJoin(rightDataSet)
                         .map(new OuterJoinPairFunction(operationContext));
-            } else { // No Restriction
-                return leftDataSet.<LocatedRow>broadcastLeftOuterJoin(rightDataSet)
-                        .map(new OuterJoinPairFunction(operationContext));
-
-            }
         }
         else {
             if (this.notExistsRightSide) { // antijoin
@@ -179,7 +173,6 @@ public class BroadcastJoinOperation extends JoinOperation {
                             .map(new AntiJoinFunction(operationContext));
                 }
             } else { // Inner Join
-
                 if (restriction !=null) { // with restriction
                     return leftDataSet.broadcastJoin(rightDataSet)
                             .map(new InnerJoinFunction<SpliceOperation>(operationContext))
