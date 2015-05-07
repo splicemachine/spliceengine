@@ -4,6 +4,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -12,6 +13,7 @@ import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
+import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -48,9 +50,7 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import java.util.*;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
@@ -446,10 +446,10 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
         }
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-		return source.getDataSet().map(new BaseRowFetchFunction(dsp.createOperationContext(this)));
+		return source.getDataSet().mapPartitions(new BaseRowFetchFunction(dsp.createOperationContext(this)));
     }
 
-	private static class BaseRowFetchFunction extends SpliceFunction<IndexRowToBaseRowOperation, LocatedRow, LocatedRow> {
+	private static class BaseRowFetchFunction extends SpliceFlatMapFunction<IndexRowToBaseRowOperation, Iterator<LocatedRow>, LocatedRow> {
 
 		private HTableInterface table;
 		private byte[] predicateFilterBytes;
@@ -460,8 +460,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 			super(operationContext);
 		}
 
-		@Override
-		public LocatedRow call(LocatedRow locatedRow) throws Exception {
+		public Iterable<LocatedRow> fetch(List<LocatedRow> batch) throws Exception {
 			if(table==null)
 				table = SpliceAccessManager.getHTable(operationContext.getOperation().conglomId);
 			if(predicateFilterBytes==null) {
@@ -474,11 +473,16 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 				predicateFilterBytes = epf.toBytes();
 			}
 
-			ExecRow row = locatedRow.getRow();
-			byte[] rowLocation = row.getColumn(row.nColumns()).getBytes();
-			Get get = SpliceUtils.createGet(operationContext.getTxn(), rowLocation);
-			get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL, predicateFilterBytes);
-			Result result = table.get(get);
+			List<Get> gets = Lists.newArrayListWithCapacity(batch.size());
+
+			for (LocatedRow locatedRow : batch) {
+				ExecRow row = locatedRow.getRow();
+				byte[] rowLocation = row.getColumn(row.nColumns()).getBytes();
+				Get get = SpliceUtils.createGet(operationContext.getTxn(), rowLocation);
+				get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL, predicateFilterBytes);
+				gets.add(get);
+			}
+			Result[] results = table.get(gets);
 
 			if (keyDecoder==null) {
 				keyDecoder = operationContext.getOperation().getKeyDecoder();
@@ -487,16 +491,31 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 				rowDecoder = operationContext.getOperation().getRowDecoder();
 			}
 
-			ExecRow outpuRow = operationContext.getOperation().getExecRowDefinition();
 
-			for(KeyValue kv:result.raw()){
-				byte[] buffer = kv.getBuffer();
-				keyDecoder.decode(buffer,kv.getRowOffset(),kv.getRowLength(),row);
-				rowDecoder.set(buffer,kv.getValueOffset(),kv.getValueLength());
-				rowDecoder.decode(outpuRow);
+			List<LocatedRow> outputRows = Lists.newArrayListWithCapacity(results.length);
+			for (Result result : results) {
+				ExecRow outpuRow = operationContext.getOperation().getExecRowDefinition(); // we get a new object every time
+				for (KeyValue kv : result.raw()) {
+					byte[] buffer = kv.getBuffer();
+					keyDecoder.decode(buffer, kv.getRowOffset(), kv.getRowLength(), outpuRow);
+					rowDecoder.set(buffer, kv.getValueOffset(), kv.getValueLength());
+					rowDecoder.decode(outpuRow);
+				}
+				outputRows.add(new LocatedRow(outpuRow)); // outputRow is not being reused
 			}
-            operationContext.getOperation().setCurrentRow(outpuRow);
-			return new LocatedRow(outpuRow);
+			return outputRows;
+		}
+
+		@Override
+		public Iterable<LocatedRow> call(Iterator<LocatedRow> locatedRowIterator) throws Exception {
+			if (!locatedRowIterator.hasNext()) {
+				return Collections.emptyList();
+			}
+			List<LocatedRow> batch = new ArrayList<>(SpliceConstants.indexBatchSize);
+			while (locatedRowIterator.hasNext() && batch.size() < SpliceConstants.indexBatchSize) {
+				batch.add(locatedRowIterator.next());
+			}
+			return fetch(batch);
 		}
 	}
 }
