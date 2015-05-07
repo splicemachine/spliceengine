@@ -1,9 +1,14 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import org.apache.log4j.Logger;
+
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.StatementType;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptorList;
@@ -12,14 +17,8 @@ import com.splicemachine.db.iapi.sql.dictionary.ForeignKeyConstraintDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ReferencedKeyConstraintDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
-import com.splicemachine.db.iapi.sql.depend.DependencyManager;
-import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
-import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-import org.apache.log4j.Logger;
-
-import com.splicemachine.derby.impl.sql.execute.AbstractDropIndexConstantOperation;
 import com.splicemachine.utils.SpliceLogUtils;
 
 /**
@@ -137,10 +136,9 @@ public class DropConstraintConstantOperation extends ConstraintConstantOperation
 		 * in order to ensure that no one else compiles against the
 		 * index.
 		 */
-        conDesc = dd.getConstraintDescriptors(td).getPrimaryKey();
-        // non-null means "alter table drop primary key"
-        // FIXME: JC - what if we're dropping a UK constraint on a table that has a PK?
-        if (conDesc == null)
+        if (constraintName == null)  // this means "alter table drop primary key"
+            conDesc = dd.getConstraintDescriptors(td).getPrimaryKey();
+        else
 			conDesc = dd.getConstraintDescriptorByName(td, constraintSd, constraintName, true);
 
 		// Error if constraint doesn't exist
