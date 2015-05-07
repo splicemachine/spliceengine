@@ -31,6 +31,7 @@ import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptorList;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptorList;
+import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptorList;
 import com.splicemachine.db.iapi.sql.dictionary.DataDescriptorGenerator;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
@@ -327,9 +328,8 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
                 }
                 @SuppressWarnings("ConstantConditions") DropConstraintConstantOperation dcc = (DropConstraintConstantOperation)ca;
 
-                if (dd.getConstraintDescriptors(td).getPrimaryKey() != null) {
+                if (dcc.getConstraintName() == null) {
                     // Sadly, constraintName == null is the only way to know if constraint op is drop PK
-                    // FIXME: JC - what if we're dropping a UK constraint on a table that has a PK?
                     // Handle dropping Primary Key
                     executeDropPrimaryKey(activation, DDLChangeType.DROP_PRIMARY_KEY, "DropPrimaryKey", dcc);
                 } else {
@@ -353,6 +353,12 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         DataDictionary dd = lcc.getDataDictionary();
         TransactionController tc = lcc.getTransactionExecute();
         TableDescriptor tableDescriptor = activation.getDDLTableDescriptor();
+
+        // TODO: JC - list of ref'd cols, key cols
+        ConstraintDescriptor cd = dd.getConstraintDescriptors(tableDescriptor).getPrimaryKey();
+        SanityManager.ASSERT(cd != null,tableDescriptor.getSchemaName()+"."+tableName+
+                                                  " does not have a Primary Key to drop.");
+
         ColumnDescriptorList columnDescriptorList = tableDescriptor.getColumnDescriptorList();
         int nColumns = columnDescriptorList.size();
 
@@ -510,6 +516,13 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         DataDictionary dd = lcc.getDataDictionary();
         TransactionController tc = lcc.getTransactionExecute();
         TableDescriptor tableDescriptor = activation.getDDLTableDescriptor();
+
+        // TODO: JC - list of ref'd cols, key cols
+        // TODO: JC - verify that schema in constraint and constraint drop are same
+//        ConstraintDescriptor cd = dd.getConstraintDescriptorByName(tableDescriptor, constraint.getSchemaName(),
+//                                                             constraint.getConstraintName(), true);
+        SanityManager.ASSERT(cd != null,tableDescriptor.getSchemaName()+"."+tableName+
+                                              " does");
 
         TxnView parentTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
 

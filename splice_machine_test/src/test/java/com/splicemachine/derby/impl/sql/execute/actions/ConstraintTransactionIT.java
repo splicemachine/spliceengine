@@ -38,7 +38,7 @@ public class ConstraintTransactionIT {
 
     @Test
     public void testAddColumn() throws Exception {
-        String tableName = "alterTableAddColumn".toUpperCase();
+        String tableName = "testAddColumn".toUpperCase();
         String tableRef = schemaWatcher.schemaName+"."+tableName;
         tableDAO.drop(schemaWatcher.schemaName, tableName);
 
@@ -99,7 +99,7 @@ public class ConstraintTransactionIT {
 
     @Test
     public void testDropUniqueConstraint() throws Exception {
-        String tableName = "tab3".toUpperCase();
+        String tableName = "testDropUniqueConstraint".toUpperCase();
         String tableRef = schemaWatcher.schemaName+"."+tableName;
         tableDAO.drop(schemaWatcher.schemaName, tableName);
 
@@ -138,7 +138,7 @@ public class ConstraintTransactionIT {
 
     @Test
     public void testRollbackDropUniqueConstraint() throws Exception {
-        String tableName = "tab5".toUpperCase();
+        String tableName = "testRollbackDropUniqueConstraint".toUpperCase();
         String tableRef = schemaWatcher.schemaName+"."+tableName;
         tableDAO.drop(schemaWatcher.schemaName, tableName);
 
@@ -196,7 +196,7 @@ public class ConstraintTransactionIT {
 
     @Test
     public void testDropPrimaryKey() throws Exception {
-        String tableName = "tab2".toUpperCase();
+        String tableName = "testDropPrimaryKey".toUpperCase();
         String tableRef = schemaWatcher.schemaName+"."+tableName;
         tableDAO.drop(schemaWatcher.schemaName, tableName);
 
@@ -260,7 +260,7 @@ public class ConstraintTransactionIT {
 
     @Test
     public void testDropUniqueConstraintCreatedWith() throws Exception {
-        String tableName = "tab6".toUpperCase();
+        String tableName = "testDropUniqueConstraintCreatedWith".toUpperCase();
         String tableRef = schemaWatcher.schemaName+"."+tableName;
         tableDAO.drop(schemaWatcher.schemaName, tableName);
 
@@ -294,9 +294,108 @@ public class ConstraintTransactionIT {
         s1.execute(String.format("insert into %s values(2, 3)", tableRef));
     }
 
-    @Test @Ignore("We have no check constraints")
+    @Test
+    public void testDropUniqueConstraintTableHasPK() throws Exception {
+        String tableName = "testDropUniqueConstraintTableHasPK".toUpperCase();
+        String tableRef = schemaWatcher.schemaName+"."+tableName;
+        tableDAO.drop(schemaWatcher.schemaName, tableName);
+
+        Connection c1 = classWatcher.createConnection();
+        c1.setAutoCommit(false);
+        Statement s1 = c1.createStatement();
+
+        s1.execute(String.format("create table %s (c1 int  not null primary key,c2 int not null,constraint C2_UNIQUE unique (c2))", tableRef));
+        c1.commit();
+
+        s1.execute(String.format("insert into %s values(-1, 9)", tableRef));
+        s1.execute(String.format("insert into %s values(-2, 8)", tableRef));
+        s1.execute(String.format("insert into %s values(1, 3)", tableRef));
+        c1.commit();
+
+        try {
+            s1.execute(String.format("insert into %s values(2, 3)", tableRef));
+            Assert.fail("Expected unique key violation");
+        } catch (SQLException e) {
+            Assert.assertTrue(e.getLocalizedMessage(),e.getLocalizedMessage().startsWith("The statement was aborted because it would have " +
+                                                                     "caused a " +
+                                                                     "duplicate key value in a unique or primary key " +
+                                                                     "constraint or unique index " +
+                                                                     "identified by '"));
+        }
+
+        s1.execute(String.format("alter table %s drop constraint C2_UNIQUE", tableRef));
+        c1.commit();
+
+        // Now should be able to insert violating row
+        s1.execute(String.format("insert into %s values(2, 3)", tableRef));
+    }
+
+    @Test
+    public void testDropUniqueConstraintTableHasTwo() throws Exception {
+        String tableName = "testDropUniqueConstraintTableHasTwo".toUpperCase();
+        String tableRef = schemaWatcher.schemaName+"."+tableName;
+        tableDAO.drop(schemaWatcher.schemaName, tableName);
+
+        Connection c1 = classWatcher.createConnection();
+        c1.setAutoCommit(false);
+        Statement s1 = c1.createStatement();
+
+        s1.execute(String.format("create table %s (c1 int not null,c2 int not null,constraint C1_UNIQUE unique (c1),constraint C2_UNIQUE unique (c2))", tableRef));
+        c1.commit();
+
+        s1.execute(String.format("insert into %s values(-1, 9)", tableRef));
+        s1.execute(String.format("insert into %s values(-2, 8)", tableRef));
+        s1.execute(String.format("insert into %s values(1, 3)", tableRef));
+        c1.commit();
+
+        try {
+            s1.execute(String.format("insert into %s values(2, 3)", tableRef));
+            Assert.fail("Expected unique key violation");
+        } catch (SQLException e) {
+            Assert.assertTrue(e.getLocalizedMessage(),e.getLocalizedMessage().startsWith("The statement was aborted because it would have " +
+                                                                     "caused a " +
+                                                                     "duplicate key value in a unique or primary key " +
+                                                                     "constraint or unique index " +
+                                                                     "identified by '"));
+        }
+
+        s1.execute(String.format("alter table %s drop constraint C2_UNIQUE", tableRef));
+        c1.commit();
+
+        // Now should be able to insert violating row
+        s1.execute(String.format("insert into %s values(2, 3)", tableRef));
+    }
+
+    @Test
     public void testDropCheckConstraint() throws Exception {
-        String tableName = "tab4".toUpperCase();
+        // DB-391
+        String tableName = "testDropCheckConstraint".toUpperCase();
+        String tableRef = schemaWatcher.schemaName+"."+tableName;
+        tableDAO.drop(schemaWatcher.schemaName, tableName);
+
+        Connection c1 = classWatcher.createConnection();
+        c1.setAutoCommit(false);
+        Statement s1 = c1.createStatement();
+
+        s1.execute(String.format("create table %s (c1 int,c2 int not null,constraint delme check (c1 > 0))", tableRef));
+        c1.commit();
+
+        s1.execute(String.format("insert into %s values(2, 9)", tableRef));
+        s1.execute(String.format("insert into %s values(3, 8)", tableRef));
+        s1.execute(String.format("insert into %s values(1, 3)", tableRef));
+        c1.commit();
+
+        Connection c2 = classWatcher.createConnection();
+        c2.setAutoCommit(false);
+        Statement s2 = c2.createStatement();
+
+        s2.execute(String.format("alter table %s drop constraint delme", tableRef));
+        c2.commit();
+    }
+
+    @Test @Ignore("We have no check constraint validation")
+    public void testVerifyCheckConstraint() throws Exception {
+        String tableName = "testVerifyCheckConstraint".toUpperCase();
         String tableRef = schemaWatcher.schemaName+"."+tableName;
         tableDAO.drop(schemaWatcher.schemaName, tableName);
 
