@@ -325,7 +325,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
             return new OperationResultSet(leftResultSet.getActivation(),newOp);
         }catch(Exception e){
             if(e instanceof StandardException) throw (StandardException)e;
-            throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
+            throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION, e);
         }
     }
 
@@ -728,7 +728,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
             return new OperationResultSet(source.getActivation(),op);
         }catch(Exception e){
             if(e instanceof StandardException) throw (StandardException)e;
-            throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION,e);
+            throw StandardException.newException(SQLState.DATA_UNEXPECTED_EXCEPTION, e);
         }
     }
 
@@ -1521,6 +1521,11 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }
+    }
+
+    @Override
+    public ResultSet getDeleteCascadeUpdateResultSet(NoPutResultSet source, GeneratedMethod generationClauses, GeneratedMethod checkGM, int constantActionItem, int rsdItem) throws StandardException {
+        throw new UnsupportedOperationException("not implemented");
     }
 
     @Override

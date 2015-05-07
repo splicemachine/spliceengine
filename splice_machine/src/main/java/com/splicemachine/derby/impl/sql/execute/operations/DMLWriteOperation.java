@@ -1,11 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.base.Strings;
-import com.google.common.collect.ImmutableMap;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.db.iapi.db.TriggerExecutionContext;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
@@ -51,6 +46,9 @@ import java.io.ObjectOutput;
 import java.util.*;
 import java.util.concurrent.Callable;
 
+import static com.splicemachine.derby.impl.sql.execute.operations.DMLTriggerEventMapper.getAfterEvent;
+import static com.splicemachine.derby.impl.sql.execute.operations.DMLTriggerEventMapper.getBeforeEvent;
+
 
 /**
  *
@@ -75,15 +73,14 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 		protected DMLWriteInfo writeInfo;
         protected long writeRowsFiltered;
 
-        private TriggerInfo triggerInfo;
-        private TriggerEventActivator triggerActivator;
+        private TriggerHandler triggerHandler;
 
 		public DMLWriteOperation(){
 				super();
 		}
 
 		public DMLWriteOperation(SpliceOperation source, Activation activation) throws StandardException{
-				super(activation,-1,0d,0d);
+				super(activation, -1, 0d, 0d);
 				this.source = source;
 				this.activation = activation;
 				this.writeInfo = new DerbyDMLWriteInfo();
@@ -99,7 +96,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 														 GeneratedMethod generationClauses,
 														 GeneratedMethod checkGM,
 														 Activation activation) throws StandardException{
-				this(source,activation);
+				this(source, activation);
 		}
 
 		DMLWriteOperation(SpliceOperation source,
@@ -149,25 +146,18 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 				}
 				isScan = hasScan;
 
-                initTriggerActivator(context);
+                if(this.triggerHandler == null) {
+                    this.triggerHandler = new TriggerHandler(
+                            context,
+                            writeInfo,
+                            getActivation(),
+                            getBeforeEvent(getClass()),
+                            getAfterEvent(getClass())
+                    );
+                }
 
 				startExecutionTime = System.currentTimeMillis();
 		}
-
-    private void initTriggerActivator(SpliceOperationContext context) throws StandardException {
-        WriteCursorConstantOperation constantAction = (WriteCursorConstantOperation) writeInfo.getConstantAction();
-        this.triggerInfo = constantAction.getTriggerInfo();
-        if(triggerInfo != null && triggerActivator == null) {
-            LanguageConnectionContext lcc = context.getLanguageConnectionContext();
-            triggerActivator = new TriggerEventActivator(lcc,
-                    lcc.getTransactionExecute(),
-                    constantAction.getTargetUUID(),
-                    triggerInfo,
-                    TriggerExecutionContext.INSERT_EVENT,
-                    activation,
-                    new Vector());
-        }
-    }
 
     public byte[] getDestinationTable(){
 				return Long.toString(heapConglom).getBytes();
@@ -217,7 +207,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
         long start = System.currentTimeMillis();
         JobResults results;
 
-        fireBeforeTriggers();
+        triggerHandler.fireBeforeStatementTriggers();
 
         /* If the optimizer knows we are only dealing with one row */
         if (source.getEstimatedRowCount() == 1) {
@@ -239,23 +229,10 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
             this.rowsSunk = TaskStats.sumTotalRowsWritten(jobResults.getJobStats().getTaskStats());
         }
 
-        fireAfterTriggers();
+        triggerHandler.fireAfterStatementTriggers();
 
         return jobResults;
     }
-
-    private void fireBeforeTriggers() throws StandardException {
-        if(triggerInfo != null && triggerInfo.hasBeforeStatementTrigger()) {
-            triggerActivator.notifyEvent(DMLTriggerEventMapper.getBeforeEvent(this.getClass()), null, null, null);
-        }
-    }
-
-    private void fireAfterTriggers() throws StandardException {
-        if(triggerInfo != null && triggerInfo.hasAfterStatementTrigger()) {
-            triggerActivator.notifyEvent(DMLTriggerEventMapper.getAfterEvent(this.getClass()), null, null, null);
-        }
-    }
-
 
     @Override
 		public void open() throws StandardException, IOException {
@@ -269,6 +246,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 				super.close();
 				source.close();
                 rowsSunk = 0;
+                triggerHandler.cleanup();
 				if (modifiedProvider != null)
 						modifiedProvider.close();
 		}
@@ -307,7 +285,15 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 				}
 
 				timer.startTiming();
+
 				ExecRow row = source.nextRow(spliceRuntimeContext);
+
+                /* Before row triggers */
+                triggerHandler.fireBeforeRowTriggers(row);
+                /* After row triggers: Actually before row is persisted, may have to move this if we need
+                 * constraints to be checked first, still WIP. */
+                triggerHandler.fireAfterRowTriggers(row);
+
 				if(row!=null){
 						timer.tick(1);
 						currentRow = row;
@@ -331,6 +317,11 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
             }
 		}
 
+    /**
+     * When DMLWriteOperation has no scan in the operation tree (insert VALUES, for example) it tells that framework
+     * that it is not sinking. Then this RowProvider is used in executeScan.  It ultimately just calls getNextNextSinkRow
+     * from the enclosing operation and sinks the results locally (see SourceRowProvider).
+     */
     private class ModifiedRowProvider extends SingleScanRowProvider {
         private volatile boolean isOpen;
         private long rowsModified = 0;
@@ -366,7 +357,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
              * create or manage transactions here, as it is transparently managed
              * by Derby for us.
              */
-            fireBeforeTriggers();
+            triggerHandler.fireBeforeStatementTriggers();
 
             JobResults jobStats = rowProvider.shuffleRows(instructions, postCompleteTasks);
             long i = 0;
@@ -375,7 +366,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
             }
             rowsModified = i;
 
-            fireAfterTriggers();
+            triggerHandler.fireAfterStatementTriggers();
             return jobStats;
         }
 

@@ -15,6 +15,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.utils.SpliceLogUtils;
@@ -31,7 +32,7 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
 
     private final String triggerName;
     private final String triggerSchemaName;
-    private final int eventMask;
+    private final TriggerEventDML eventMask;
     private final boolean isBefore;
     private final boolean isRow;
     private final boolean isEnabled;
@@ -86,7 +87,7 @@ public class CreateTriggerConstantOperation extends DDLSingleTableConstantOperat
     public CreateTriggerConstantOperation(
             String triggerSchemaName,
             String triggerName,
-            int eventMask,
+            TriggerEventDML eventMask,
             boolean isBefore,
             boolean isRow,
             boolean isEnabled,
