@@ -12,10 +12,7 @@ import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 public class NestedLoopJoinStrategy extends BaseJoinStrategy{
     private static final Logger LOG=Logger.getLogger(NestedLoopJoinStrategy.class);
@@ -239,7 +236,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
                              CostEstimate innerCost) throws StandardException{
 
         SpliceLogUtils.trace(LOG,"rightResultSetCostEstimate outerCost=%s, innerFullKeyCost=%s",outerCost,innerCost);
-        if(outerCost.localCost()==0d && outerCost.getEstimatedRowCount()==1.0){
+        if(outerCost.isUninitialized() ||(outerCost.localCost()==0d && outerCost.getEstimatedRowCount()==1.0)){
             /*
              * Derby calls this method at the end of each table scan, even if it's not a join (or if it's
              * the left side of the join). When this happens, the outer cost is still unitialized, so there's
@@ -294,10 +291,14 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
          * to read the innerScan's rows over the network twice--once to pull them to the outer table's region,
          * and again to write that data across the network.
          */
-        List<Predicate> allPreds=new ArrayList<>(predList.size());
-        for(int i=0;i<predList.size();i++){
-            allPreds.add((Predicate)predList.getOptPredicate(i));
-        }
+        List<Predicate> allPreds;
+        if(predList!=null && predList.size()>0){
+            allPreds=new ArrayList<>(predList.size());
+            for(int i=0;i<predList.size();i++){
+                allPreds.add((Predicate)predList.getOptPredicate(i));
+            }
+        }else
+            allPreds = Collections.emptyList();
         /*
          * We estimate the inputJoinSelectivity using just predicates which deal with the start and stop keys
          * of the join.
