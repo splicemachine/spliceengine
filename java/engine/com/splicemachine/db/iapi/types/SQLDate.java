@@ -111,8 +111,10 @@ public final class SQLDate extends DataType
         return new Timestamp(getTimeInMillis(cal));
     }
 
-	
-	
+
+	/**
+	 * The JodaTime has problems with all the years before 1884
+	 */
 	private static final long JODA_CRUSH_YEAR = 1884;
 	
     /**
