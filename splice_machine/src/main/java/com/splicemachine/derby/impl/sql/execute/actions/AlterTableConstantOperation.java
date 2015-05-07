@@ -285,8 +285,6 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
 
                         break;
                     case DataDictionary.UNIQUE_CONSTRAINT:
-
-                        // FIXME: JC - validate constraint first!
                         // create the unique constraint
                         createUniquenessConstraint(activation, DDLChangeType.ADD_UNIQUE_CONSTRAINT, "AddUniqueConstraint", cca);
 
@@ -354,10 +352,11 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         TransactionController tc = lcc.getTransactionExecute();
         TableDescriptor tableDescriptor = activation.getDDLTableDescriptor();
 
-        // TODO: JC - list of ref'd cols, key cols
         ConstraintDescriptor cd = dd.getConstraintDescriptors(tableDescriptor).getPrimaryKey();
         SanityManager.ASSERT(cd != null,tableDescriptor.getSchemaName()+"."+tableName+
                                                   " does not have a Primary Key to drop.");
+
+        List<String> constraintColumnNames = Arrays.asList(cd.getColumnDescriptors().getColumnNames());
 
         ColumnDescriptorList columnDescriptorList = tableDescriptor.getColumnDescriptorList();
         int nColumns = columnDescriptorList.size();
@@ -377,7 +376,6 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         int[] collation_ids = new int[nColumns];
         ColumnOrdering[] columnSortOrder = new IndexColumnOrder[0];
         int j=0;
-        // TODO: JC - test when we have more than one UK constraint on a table
         for (int ix = 0; ix < nColumns; ix++) {
             ColumnDescriptor col_info = columnDescriptorList.get(ix);
             // Get a template value for each column
@@ -449,7 +447,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
             tentativeTransaction =
                 lifecycleManager.beginChildTransaction(parentTxn, Bytes.toBytes(Long.toString(oldCongNum)));
         } catch (IOException e) {
-            LOG.error("Couldn't start transaction for tentative Add Constraint operation");
+            LOG.error("Couldn't start transaction for tentative Drop Primary Key operation");
             throw Exceptions.parseException(e);
         }
         String tableVersion = DataDictionaryUtils.getTableVersion(lcc, tableId);
@@ -478,13 +476,13 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
                                 changeMsg,
                                 schemaName,
                                 tableName,
-                                Collections.singletonList(constraint.toString()),
+                                constraintColumnNames,
                                 new AlterTableJob(hTable, ddlChange),
                                 parentTxn);
 
             //wait for all past txns to complete
             Txn populateTxn = getChainedTransaction(tc, tentativeTransaction, oldCongNum, changeMsg+"(" +
-                constraint + ")");
+                constraintColumnNames + ")");
 
             // Populate new table with additional column with data from old table
             CoprocessorJob populateJob = new PopulateConglomerateJob(hTable,
@@ -495,7 +493,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
                                 changeMsg,
                                 schemaName,
                                 tableName,
-                                Collections.singletonList(constraint.toString()),
+                                constraintColumnNames,
                                 populateJob,
                                 parentTxn);
             populateTxn.commit();
@@ -517,12 +515,23 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         TransactionController tc = lcc.getTransactionExecute();
         TableDescriptor tableDescriptor = activation.getDDLTableDescriptor();
 
-        // TODO: JC - list of ref'd cols, key cols
-        // TODO: JC - verify that schema in constraint and constraint drop are same
-//        ConstraintDescriptor cd = dd.getConstraintDescriptorByName(tableDescriptor, constraint.getSchemaName(),
-//                                                             constraint.getConstraintName(), true);
+        // try to find constraint descriptor using table's schema first
+        SchemaDescriptor sd = tableDescriptor.getSchemaDescriptor();
+        ConstraintDescriptor cd = dd.getConstraintDescriptorByName(tableDescriptor, sd,
+                                                             constraint.getConstraintName(), true);
+        if (cd == null) {
+            // give it another shot since constraint may not be in the same schema as the table
+            for (ConstraintDescriptor pcd : tableDescriptor.getConstraintDescriptorList()) {
+                if (pcd.getSchemaDescriptor().getSchemaName().equals(constraint.getSchemaName()) &&
+                    pcd.getConstraintName().equals(constraint.getSchemaName())) {
+                    cd = pcd;
+                    break;
+                }
+            }
+        }
         SanityManager.ASSERT(cd != null,tableDescriptor.getSchemaName()+"."+tableName+
-                                              " does");
+                                              " does not have a constraint to drop named "+constraint.getConstraintName());
+        List<String> constraintColumnNames = Arrays.asList(cd.getColumnDescriptors().getColumnNames());
 
         TxnView parentTxn = ((SpliceTransactionManager)tc).getActiveStateTxn();
 
@@ -557,7 +566,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
             tentativeTransaction =
                 lifecycleManager.beginChildTransaction(parentTxn, Bytes.toBytes(Long.toString(oldCongNum)));
         } catch (IOException e) {
-            LOG.error("Couldn't start transaction for tentative Add Constraint operation");
+            LOG.error("Couldn't start transaction for tentative Drop Constraint operation");
             throw Exceptions.parseException(e);
         }
         String tableVersion = DataDictionaryUtils.getTableVersion(lcc, tableId);
@@ -587,13 +596,13 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
                                 changeMsg,
                                 schemaName,
                                 tableName,
-                                Collections.singletonList(constraint.toString()),
+                                constraintColumnNames,
                                 new AlterTableJob(hTable, ddlChange),
                                 parentTxn);
 
             // wait for all in-flight txns to complete
             // FIXME: JC - just commit tentative txn after wait
-            Txn populateTxn = getChainedTransaction(tc, tentativeTransaction, oldCongNum, changeMsg+"("+constraint.toString()+")");
+            Txn populateTxn = getChainedTransaction(tc, tentativeTransaction, oldCongNum, changeMsg+"("+constraintColumnNames+")");
             populateTxn.commit();
         } catch (IOException e) {
             throw Exceptions.parseException(e);
@@ -1450,6 +1459,20 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         return returnValue;
     }
 
+    /**
+     * Do what's necessary to update a table descriptor that's been modified due to alter table
+     * actions. Sometimes an action only requires changing the conglomerate number since a new
+     * conglomerate has been created to replaced the old.  Other times the table descriptor's
+     * main conglomerate descriptor needs to be dropped and recreated.
+     * @param tableDescriptor the table descriptor that's being effected.
+     * @param newConglomNum the conglomerate number of the conglomerate that's been created to
+     *                      replace the old.
+     * @param sd descriptor for the schema in which the new conglomerate lives.
+     * @param lcc language connection context required for coordination.
+     * @param constraintAction constraint being created, dropped, etc
+     * @return the modified conglomerate descriptor.
+     * @throws StandardException
+     */
     protected ConglomerateDescriptor updateTableConglomerateDescriptor(TableDescriptor tableDescriptor,
                                                      long newConglomNum,
                                                      SchemaDescriptor sd,
@@ -1459,20 +1482,28 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         // We invalidate all statements that use the old conglomerates
         TransactionController tc = lcc.getTransactionExecute();
         DataDictionary dd = lcc.getDataDictionary();
+        DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
+
         dd.getDependencyManager().invalidateFor(tableDescriptor, DependencyManager.ALTER_TABLE, lcc);
 
         ConglomerateDescriptor modifiedConglomerateDescriptor = null;
 
         if(constraintAction.getConstraintType()== DataDictionary.PRIMARYKEY_CONSTRAINT) {
-            DataDescriptorGenerator ddg = dd.getDataDescriptorGenerator();
+            // Adding a PK - need to drop the old conglomerate descriptor and
+            // create a new one with an IndexRowGenerator to replace the old
 
-            // get the column positions for the new PK
+            // get the column positions for the new PK to
+            // create the PK IndexDescriptor and new conglomerate
             int [] pkColumns =
                 ((CreateConstraintConstantOperation)constraintAction).genColumnPositions(tableDescriptor, true);
             boolean[] ascending = new boolean[pkColumns.length];
             for(int i=0;i<ascending.length;i++){
                 ascending[i] = true;
             }
+            IndexDescriptor indexDescriptor =
+                new IndexDescriptorImpl("PRIMARYKEY",true,false,pkColumns,ascending,pkColumns.length);
+            IndexRowGenerator irg = new IndexRowGenerator(indexDescriptor);
+
             // Replace old table conglomerate with new one with the new PK conglomerate
             ConglomerateDescriptorList conglomerateList = tableDescriptor.getConglomerateDescriptorList();
             modifiedConglomerateDescriptor =
@@ -1481,12 +1512,9 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
             dd.dropConglomerateDescriptor(modifiedConglomerateDescriptor, tc);
             conglomerateList.dropConglomerateDescriptor(tableDescriptor.getUUID(), modifiedConglomerateDescriptor);
 
-            // create the PK IndexDescriptor and new conglomerate
-            IndexDescriptor indexDescriptor =
-                new IndexDescriptorImpl("PRIMARYKEY",true,false,pkColumns,ascending,pkColumns.length);
-            IndexRowGenerator irg = new IndexRowGenerator(indexDescriptor);
+            // Create a new conglomerate descriptor with new IndexRowGenerator
             ConglomerateDescriptor cgd = ddg.newConglomerateDescriptor(newConglomNum,
-                                                                       null, //conglomerate.getConglomerateName(),
+                                                                       null,//modifiedConglomerateDescriptor.getConglomerateName(),
                                                                        false,
                                                                        irg,
                                                                        false,
@@ -1504,17 +1532,35 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
             dd.updateConglomerateDescriptor(conglomerateArray, newConglomNum, tc);
         } else //noinspection StatementWithEmptyBody
             if (constraintAction.getConstraintType()== DataDictionary.UNIQUE_CONSTRAINT) {
-            // do nothing for unique constraint. let index creation handle
+                // Do nothing for creating unique constraint. Index creation will handle
         } else if (constraintAction.getConstraintType() == DataDictionary.DROP_CONSTRAINT) {
-            if (dd.getConstraintDescriptors(tableDescriptor).getPrimaryKey() != null) {
+            if (constraintAction.getConstraintName() == null) {
                 // Unfortunately, this is the only way we have to know if we're dropping a PK
-                // FIXME: JC - what if we're deleting a UK constraint on a table that has a PK?
                 long heapConglomId = tableDescriptor.getHeapConglomerateId();
                 ConglomerateDescriptorList conglomerateList = tableDescriptor.getConglomerateDescriptorList();
                 modifiedConglomerateDescriptor =
                     conglomerateList.getConglomerateDescriptor(heapConglomId);
-                ConglomerateDescriptor[] conglomerateArray =
-                    conglomerateList.getConglomerateDescriptors(heapConglomId);
+
+                dd.dropConglomerateDescriptor(modifiedConglomerateDescriptor, tc);
+                conglomerateList.dropConglomerateDescriptor(tableDescriptor.getUUID(), modifiedConglomerateDescriptor);
+
+                // Create a new conglomerate descriptor
+                ConglomerateDescriptor cgd = ddg.newConglomerateDescriptor(newConglomNum,
+                                                                           null,//modifiedConglomerateDescriptor.getConglomerateName(),
+                                                                           false,
+                                                                           null,
+                                                                           false,
+                                                                           null,
+                                                                           tableDescriptor.getUUID(),
+                                                                           sd.getUUID());
+                dd.addDescriptor(cgd, sd, DataDictionary.SYSCONGLOMERATES_CATALOG_NUM, false, tc);
+
+                // add the newly crated conglomerate to the table descriptor
+                conglomerateList.add(cgd);
+
+                // update the conglomerate in the data dictionary so that, when asked for TableDescriptor,
+                // it's built with the new PK conglomerate
+                ConglomerateDescriptor[] conglomerateArray = conglomerateList.getConglomerateDescriptors(newConglomNum);
                 dd.updateConglomerateDescriptor(conglomerateArray, newConglomNum, tc);
             }
         }
@@ -1643,7 +1689,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
                 wrapperTxn, Txn.IsolationLevel.SNAPSHOT_ISOLATION, true, tableBytes,waitTxn);
         } catch (IOException e) {
             LOG.error("Couldn't commit transaction for tentative DDL operation");
-            // TODO must cleanup tentative DDL change
+            // TODO cleanup tentative DDL change?
             throw Exceptions.parseException(e);
         }
         return populateTxn;
