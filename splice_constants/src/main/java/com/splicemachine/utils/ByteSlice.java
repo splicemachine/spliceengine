@@ -250,6 +250,12 @@ public class ByteSlice implements Externalizable,Comparable<ByteSlice> {
         return -1;
     }
 
+    @Override
+    public ByteSlice clone() {
+        if(buffer == null) return new ByteSlice();
+        return new ByteSlice(getByteCopy(), 0, length);
+    }
+
     public void set(ByteSlice newData) {
         set(newData.buffer,newData.offset,newData.length);
     }

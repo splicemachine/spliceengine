@@ -78,8 +78,6 @@ public class HBaseRowLocation extends DataType implements RowLocation {
 		this.slice = (ByteSlice) theValue;
 	}
 
-
-
 	public DataValueDescriptor cloneValue(boolean forceMaterialization) {
         try {
             if (forceMaterialization)
