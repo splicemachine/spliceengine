@@ -1368,7 +1368,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                     referencedColsInTriggerAction,
                     0,
                     trd.getTableDescriptor(),
-                    trd.getTriggerEventMask(),
+                    trd.getTriggerEventDML(),
                     true
             ));
 

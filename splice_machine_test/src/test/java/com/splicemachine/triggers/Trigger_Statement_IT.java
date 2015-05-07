@@ -4,16 +4,13 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.test_dao.TriggerBuilder;
 import com.splicemachine.test_dao.TriggerDAO;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 /**
- * Test STATEMENT + AFTER triggers.
+ * Test STATEMENT triggers.
  */
 public class Trigger_Statement_IT {
 
@@ -25,18 +22,25 @@ public class Trigger_Statement_IT {
     @ClassRule
     public static SpliceWatcher classWatcher = new SpliceWatcher(SCHEMA);
 
-    @BeforeClass
-    public static void createSharedTables() throws Exception {
-        classWatcher.executeUpdate("create table T (a int, b int, c int)");
-        classWatcher.executeUpdate("insert into T values(1,1,1),(2,2,2),(3,3,3),(4,4,4),(5,5,5),(6,6,6),(7,7,7)");
-        classWatcher.executeUpdate("create table RECORD (text varchar(99))");
-    }
-
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
 
     private TriggerBuilder tb = new TriggerBuilder();
     private TriggerDAO triggerDAO = new TriggerDAO(methodWatcher.getOrCreateConnection());
+
+    @BeforeClass
+    public static void createSharedTables() throws Exception {
+        classWatcher.executeUpdate("create table T (a int, b int, c int)");
+        classWatcher.executeUpdate("create table RECORD (text varchar(99))");
+    }
+
+    @Before
+    public void resetTables() throws Exception {
+        triggerDAO.dropAllTriggers("T");
+        methodWatcher.executeUpdate("delete from T");
+        methodWatcher.executeUpdate("delete from RECORD");
+        methodWatcher.executeUpdate("insert into T values(1,1,1),(2,2,2),(3,3,3),(4,4,4),(5,5,5),(6,6,6)");
+    }
 
     //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //
@@ -46,8 +50,7 @@ public class Trigger_Statement_IT {
 
     @Test
     public void afterUpdate() throws Exception {
-        methodWatcher.executeUpdate(tb.named("afterUpdateTrig").after().update().on("T").statement()
-                .then("INSERT INTO RECORD VALUES('update')").build());
+        methodWatcher.executeUpdate(tb.after().update().on("T").statement().then("INSERT INTO RECORD VALUES('update')").build());
 
         // when - update
         methodWatcher.executeUpdate("update T set b = b * 2 where a <= 4");
@@ -65,8 +68,7 @@ public class Trigger_Statement_IT {
     /* When an update succeeds but the trigger action fails then the changes from the triggering statement should be rolled back. */
     @Test
     public void afterUpdateTriggerFailureRollsBackTriggeringStatement() throws Exception {
-        methodWatcher.executeUpdate(tb.named("afterUpdateBadTrigger").after().update().on("T").statement()
-                .then("select 1/0 from sys.systables").build());
+        methodWatcher.executeUpdate(tb.after().update().on("T").statement().then("select 1/0 from sys.systables").build());
 
         // when - update causes trigger action that fails
         try {
@@ -78,13 +80,26 @@ public class Trigger_Statement_IT {
 
         // most important original update changes should not be visible
         assertEquals(0L, methodWatcher.query("select count(*) from T where b=0 or c=0"));
-        methodWatcher.executeUpdate("DROP TRIGGER afterUpdateBadTrigger");
+    }
+
+    /* Need a test that fires the same trigger more than 16 times to verify it doesn't blow up because of failure
+     * to reset recursion depth counter. */
+    @Test
+    public void afterUpdateRepeat() throws Exception {
+        methodWatcher.executeUpdate(tb.after().update().on("T").statement().then("INSERT INTO RECORD VALUES('update')").build());
+
+        /* Update triggers should be fired even if the value is updated to the same number. */
+        for (int i = 0; i < 32; i++) {
+            methodWatcher.executeUpdate("update T set a = 1 where a = 1");
+        }
+
+        // then - verify trigger has fired
+        assertEquals(32L, methodWatcher.query("select count(*) from RECORD where text = 'update'"));
     }
 
     @Test
     public void afterInsert() throws Exception {
-        methodWatcher.executeUpdate(tb.named("afterInsertTrig").after().insert().on("T").statement()
-                .then("INSERT INTO RECORD VALUES('insert')").build());
+        methodWatcher.executeUpdate(tb.after().insert().on("T").statement().then("INSERT INTO RECORD VALUES('insert')").build());
 
         // one insert
         methodWatcher.executeUpdate("insert into T select * from T");
@@ -98,7 +113,6 @@ public class Trigger_Statement_IT {
         // Insert VALUES - a special case in splice at the time of writing, different code is executed.
         methodWatcher.executeUpdate("insert into T values (1,1,1),(2,2,2),(3,3,3)");
         assertEquals(4L, methodWatcher.query("select count(*) from RECORD where text='insert'"));
-
     }
 
     @Test
@@ -116,8 +130,7 @@ public class Trigger_Statement_IT {
 
     @Test
     public void afterDelete() throws Exception {
-        methodWatcher.executeUpdate(tb.named("afterDeleteTrig").after().delete().on("T").statement()
-                .then("INSERT INTO RECORD VALUES('delete')").build());
+        methodWatcher.executeUpdate(tb.after().delete().on("T").statement().then("INSERT INTO RECORD VALUES('delete')").build());
 
         // trigger fires on single delete
         methodWatcher.executeUpdate("delete from T where a = 4");
@@ -138,37 +151,38 @@ public class Trigger_Statement_IT {
 
     @Test
     public void beforeUpdate() throws Exception {
-        methodWatcher.executeUpdate(tb.named("beforeUpdateTrig").before().update().on("T").statement()
-                .then("select 1/0 from sys.systables").build());
+        methodWatcher.executeUpdate(tb.before().update().on("T").statement().then("select 1/0 from sys.systables").build());
 
-        assertQueryFails("update T set b = b * 2 where a <= 4", "Attempt to divide by zero.");
+        assertQueryFails("update T set b = 99", "Attempt to divide by zero.");
 
-        triggerDAO.drop("beforeUpdateTrig");
+        // triggering statement should have had no affect.
+        assertEquals(0L, methodWatcher.query("select count(*) from T where b = 99"));
     }
 
     @Test
     public void beforeInsert() throws Exception {
-        methodWatcher.executeUpdate(tb.named("beforeInsertTrig").before().insert().on("T").statement()
-                .then("select 1/0 from sys.systables").build());
+        methodWatcher.executeUpdate(tb.before().insert().on("T").statement().then("select 1/0 from sys.systables").build());
 
         assertQueryFails("insert into T select * from T", "Attempt to divide by zero.");
+        assertQueryFails("insert into T values(99,99,99)", "Attempt to divide by zero.");
 
-        triggerDAO.drop("beforeInsertTrig");
+        // triggering statement should have had no affect.
+        assertEquals(0L, methodWatcher.query("select count(*) from T where a = 99"));
     }
 
     @Test
     public void beforeDelete() throws Exception {
-        methodWatcher.executeUpdate(tb.named("beforeDeleteTrig").before().delete().on("T").statement()
-                .then("select 1/0 from sys.systables").build());
+        methodWatcher.executeUpdate(tb.before().delete().on("T").statement().then("select 1/0 from sys.systables").build());
 
         assertQueryFails("delete from T where a = 1", "Attempt to divide by zero.");
 
-        triggerDAO.drop("beforeDeleteTrig");
+        // triggering statement should have had no affect.
+        assertEquals(1L, methodWatcher.query("select count(*) from T where a = 1"));
     }
 
     //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //
-    // Recursive triggers.  Currently recursive statement triggers will always fail.  This won't be the case when
+    // Recursive triggers.  Currently recursive *statement* triggers will always fail.  This won't be the case when
     //                      we implement restrictions.  For now assert the failure semantics: triggering statement
     //                      is rolled back.
     //
@@ -191,8 +205,6 @@ public class Trigger_Statement_IT {
         assertQueryFails("insert into T values(1,1,1)", "Maximum depth of nested triggers was exceeded.");
 
         assertEquals(originalRowCount, (long) methodWatcher.query("select count(*) from T"));
-
-        triggerDAO.drop("deleteTrigRecursive", "updateTrigRecursive", "insertTrigRecursive");
     }
 
     private void assertQueryFails(String query, String expectedError) {

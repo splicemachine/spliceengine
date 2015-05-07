@@ -25,18 +25,18 @@ public class Trigger_Dependency_IT {
     @ClassRule
     public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
 
+    @Rule
+    public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
+
+    private TriggerBuilder tb = new TriggerBuilder();
+    private TriggerDAO triggerDAO = new TriggerDAO(methodWatcher.getOrCreateConnection());
+
     @Before
     public void createTables() throws Exception {
         new TableDAO(methodWatcher.getOrCreateConnection()).drop(SCHEMA, "R", "T");
         methodWatcher.executeUpdate("create table T (a int, b int, c int)");
         methodWatcher.executeUpdate("create table R (z int)");
     }
-
-    @Rule
-    public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
-
-    private TriggerBuilder tb = new TriggerBuilder();
-    private TriggerDAO triggerDAO = new TriggerDAO(methodWatcher.getOrCreateConnection());
 
     @Test
     public void dropTableDropsTriggers() throws Exception {

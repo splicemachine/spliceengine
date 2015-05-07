@@ -21,6 +21,8 @@ import static org.apache.commons.lang.StringUtils.isNotBlank;
  */
 public class TriggerBuilder {
 
+    private static final String DEFAULT_TRIGGER_NAME = "triggerBuilderDefaultTriggerName";
+
     enum When {
         BEFORE, AFTER
     }
@@ -33,7 +35,7 @@ public class TriggerBuilder {
         STATEMENT, ROW
     }
 
-    private String triggerName;
+    private String triggerName = DEFAULT_TRIGGER_NAME;
     private When when;
     private Event event;
     /* Name of the table upon which the trigger is defined */
