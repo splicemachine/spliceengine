@@ -1,30 +1,8 @@
-/*
-
-   Derby - Class org.apache.derby.impl.sql.execute.InternalTriggerExecutionContext
-
-   Licensed to the Apache Software Foundation (ASF) under one or more
-   contributor license agreements.  See the NOTICE file distributed with
-   this work for additional information regarding copyright ownership.
-   The ASF licenses this file to you under the Apache License, Version 2.0
-   (the "License"); you may not use this file except in compliance with
-   the License.  You may obtain a copy of the License at
-
-      http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-
- */
-
 package com.splicemachine.db.impl.sql.execute;
 
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.db.TriggerExecutionContext;
 import com.splicemachine.db.iapi.error.ExceptionSeverity;
-import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.jdbc.ConnectionContext;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -59,7 +37,6 @@ public class InternalTriggerExecutionContext implements TriggerExecutionContext,
     */
     protected final int[] changedColIds;
     protected final String[] changedColNames;
-    protected final int dmlType;
     protected final String statementText;
     protected final ConnectionContext cc;
     protected final UUID targetTableId;
@@ -117,13 +94,11 @@ public class InternalTriggerExecutionContext implements TriggerExecutionContext,
     public InternalTriggerExecutionContext(LanguageConnectionContext lcc,
                                            ConnectionContext cc,
                                            String statementText,
-                                           int dmlType,
                                            int[] changedColIds,
                                            String[] changedColNames,
                                            UUID targetTableId,
                                            String targetTableName,
                                            Vector<AutoincrementCounter> aiCounters) throws StandardException {
-        this.dmlType = dmlType;
         this.changedColIds = changedColIds;
         this.changedColNames = changedColNames;
         this.statementText = statementText;
@@ -204,29 +179,30 @@ public class InternalTriggerExecutionContext implements TriggerExecutionContext,
      * to a TEC after it is valid, so we clean everything up to be on the safe side.
      */
     protected void cleanup() throws StandardException {
-        lcc.popTriggerExecutionContext(this);
+        if(!cleanupCalled) {
+            lcc.popTriggerExecutionContext(this);
 
         /*  Explicitly close all result sets that we have given out to the user.  */
-        for (Enumeration e = resultSetVector.elements(); e.hasMoreElements(); ) {
-            ResultSet rs = (ResultSet) e.nextElement();
-            try {
-                rs.close();
-            } catch (SQLException se) {
+            for (Enumeration e = resultSetVector.elements(); e.hasMoreElements(); ) {
+                ResultSet rs = (ResultSet) e.nextElement();
+                try {
+                    rs.close();
+                } catch (SQLException se) {
+                }
             }
-        }
-        resultSetVector = null;
+            resultSetVector = null;
 
         /* We should have already closed our underlying ExecResultSets by closing the jdbc result sets,
         ** but in case we got an error that we caught and ignored, explicitly close them. */
-        if (afterResultSet != null) {
-            afterResultSet.close();
-            afterResultSet = null;
+            if (afterResultSet != null) {
+                afterResultSet.close();
+                afterResultSet = null;
+            }
+            if (beforeResultSet != null) {
+                beforeResultSet.close();
+                beforeResultSet = null;
+            }
         }
-        if (beforeResultSet != null) {
-            beforeResultSet.close();
-            beforeResultSet = null;
-        }
-
         lcc = null;
         cleanupCalled = true;
     }
@@ -300,15 +276,6 @@ public class InternalTriggerExecutionContext implements TriggerExecutionContext,
         return targetTableId;
     }
 
-    /**
-     * Get the type for the event that caused the trigger to fire.
-     *
-     * @return the event type (e.g. UPDATE_EVENT)
-     */
-    @Override
-    public int getEventType() {
-        return dmlType;
-    }
 
     /**
      * Get the text of the statement that caused the trigger to fire.
@@ -372,11 +339,9 @@ public class InternalTriggerExecutionContext implements TriggerExecutionContext,
     }
 
     /**
-     * Returns a result set row the old images of the changed rows.
-     * For a row trigger, the result set will have a single row.  For
-     * a statement trigger, this result set has every row that has
-     * changed or will change.  If a statement trigger does not affect
-     * a row, then the result set will be empty (i.e. ResultSet.next()
+     * Returns a result set row the old images of the changed rows. For a row trigger, the result set will have a
+     * single row.  For a statement trigger, this result set has every row that has changed or will change.  If a
+     * statement trigger does not affect a row, then the result set will be empty (i.e. ResultSet.next()
      * will return false).
      *
      * @return the ResultSet containing before images of the rows changed by the triggering event.
@@ -388,25 +353,9 @@ public class InternalTriggerExecutionContext implements TriggerExecutionContext,
         if (beforeResultSet == null) {
             return null;
         }
-
-        try {
-            CursorResultSet brs = beforeResultSet;
-            /* We should really shallow clone the result set, because it could be used
-             * at multiple places independently in trigger action.  This is a bug found
-             * during the fix of beetle 4373.
-             */
-            if (brs instanceof TemporaryRowHolderResultSet) {
-                brs = (CursorResultSet) ((TemporaryRowHolderResultSet) brs).clone();
-            } else if (brs instanceof TableScanResultSet) {
-                brs = (CursorResultSet) ((TableScanResultSet) brs).clone();
-            }
-            brs.open();
-            ResultSet rs = cc.getResultSet(brs);
-            resultSetVector.addElement(rs);
-            return rs;
-        } catch (StandardException se) {
-            throw PublicAPI.wrapStandardException(se);
-        }
+        ResultSet rs = cc.getResultSet(beforeResultSet);
+        resultSetVector.addElement(rs);
+        return rs;
     }
 
     /**
@@ -421,36 +370,17 @@ public class InternalTriggerExecutionContext implements TriggerExecutionContext,
     @Override
     public ResultSet getNewRowSet() throws SQLException {
         ensureProperContext();
-
         if (afterResultSet == null) {
             return null;
         }
-        try {
-            /* We should really shallow clone the result set, because it could be used
-             * at multiple places independently in trigger action.  This is a bug found
-             * during the fix of beetle 4373.
-             */
-            CursorResultSet ars = afterResultSet;
-            if (ars instanceof TemporaryRowHolderResultSet) {
-                ars = (CursorResultSet) ((TemporaryRowHolderResultSet) ars).clone();
-            }
-            else if (ars instanceof TableScanResultSet) {
-                ars = (CursorResultSet) ((TableScanResultSet) ars).clone();
-            }
-            ars.open();
-            ResultSet rs = cc.getResultSet(ars);
-            resultSetVector.addElement(rs);
-            return rs;
-        } catch (StandardException se) {
-            throw PublicAPI.wrapStandardException(se);
-        }
+        ResultSet rs = cc.getResultSet(afterResultSet);
+        resultSetVector.addElement(rs);
+        return rs;
     }
 
     /**
-     * Like getBeforeResultSet(), but returns a result set positioned
-     * on the first row of the before result set.  Used as a convenience
-     * to get a column for a row trigger.  Equivalent to getBeforeResultSet()
-     * followed by next().
+     * Like getBeforeResultSet(), but returns a result set positioned on the first row of the before result set.
+     * Used as a convenience to get a column for a row trigger.  Equivalent to getBeforeResultSet() followed by next().
      *
      * @return the ResultSet positioned on the old row image.
      * @throws SQLException if called after the triggering event has completed
@@ -465,10 +395,8 @@ public class InternalTriggerExecutionContext implements TriggerExecutionContext,
     }
 
     /**
-     * Like getAfterResultSet(), but returns a result set positioned
-     * on the first row of the before result set.  Used as a convenience
-     * to get a column for a row trigger.  Equivalent to getAfterResultSet()
-     * followed by next().
+     * Like getAfterResultSet(), but returns a result set positioned on the first row of the before result set.
+     * Used as a convenience to get a column for a row trigger.  Equivalent to getAfterResultSet() followed by next().
      *
      * @return the ResultSet positioned on the new row image.
      * @throws SQLException if called after the triggering event hascompleted
@@ -484,7 +412,7 @@ public class InternalTriggerExecutionContext implements TriggerExecutionContext,
     public Long getAutoincrementValue(String identity) {
         // first search the hashtable-- this represents the ai values generated by this trigger.
         if (aiHT != null) {
-            Long value = (Long) aiHT.get(identity);
+            Long value = aiHT.get(identity);
             if (value != null)
                 return value;
         }

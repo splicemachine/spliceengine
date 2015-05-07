@@ -57,44 +57,33 @@ public class RowTriggerExecutor extends GenericTriggerExecutor {
         tec.setTrigger(triggerd);
 
         try {
-            while (true) {
-                if (brs != null && brs.getNextRow() == null) {
-                    break;
-                }
-                if (ars != null && ars.getNextRow() == null) {
-                    break;
-                }
+            tec.setBeforeResultSet(brs);
+            tec.setAfterResultSet(ars);
 
-                tec.setBeforeResultSet(brs == null ? null :
-                        TemporaryRowHolderResultSet.getNewRSOnCurrentRow(triggerd, activation, brs, colsReadFromTable));
+            /*
+                This is the key to handling autoincrement values that might
+                be seen by insert triggers. For an AFTER ROW trigger, update
+                the autoincrement counters before executing the SPS for the
+                trigger.
+            */
+            if (event.isAfter()) {
+                tec.updateAICounters();
+            }
 
-                tec.setAfterResultSet(ars == null ? null :
-                        TemporaryRowHolderResultSet.getNewRSOnCurrentRow(triggerd, activation, ars, colsReadFromTable));
-
-                /*     
-                    This is the key to handling autoincrement values that might
-                    be seen by insert triggers. For an AFTER ROW trigger, update
-                    the autoincrement counters before executing the SPS for the
-                    trigger.
-                */
-                if (event.isAfter()) {
-                    tec.updateAICounters();
-                }
-
-                executeSPS(getAction());
+            executeSPS(getAction());
 
                 /*
                   For BEFORE ROW triggers, update the ai values after the SPS
                   has been executed. This way the SPS will see ai values from
                   the previous row.
                 */
-                if (event.isBefore()) {
-                    tec.updateAICounters();
-                }
+            if (event.isBefore()) {
+                tec.updateAICounters();
             }
         } finally {
             clearSPS();
             tec.clearTrigger();
         }
     }
+
 }

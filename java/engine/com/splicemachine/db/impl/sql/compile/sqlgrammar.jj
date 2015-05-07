@@ -116,6 +116,7 @@ import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
+import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
@@ -11988,7 +11989,7 @@ triggerDefinition() throws StandardException :
 	Token				endToken;
 	int					actionBegin;
 	int					actionEnd;
-	int					triggerEvent;
+	TriggerEventDML		triggerEvent;
 	QueryTreeNode		actionNode;
 	ResultColumnList	triggerColumns = (ResultColumnList) nodeFactory.getNode(
 											C_NodeTypes.RESULT_COLUMN_LIST,
@@ -11997,7 +11998,7 @@ triggerDefinition() throws StandardException :
 }
 {
 	<TRIGGER> triggerName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
-	isBefore = beforeOrAfter()
+	    isBefore = beforeOrAfter()
 		triggerEvent = triggerEvent(triggerColumns)		// { INSERT | DELETE | UPDATE [ colList	] }
 		<ON> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
 		[ refClause = triggerReferencingClause() ]		// REFERENCING OLD/NEW AS 	
@@ -12030,7 +12031,7 @@ triggerDefinition() throws StandardException :
 								C_NodeTypes.CREATE_TRIGGER_NODE,
 								triggerName, 
 								tableName,
-								ReuseFactory.getInteger(triggerEvent),
+								triggerEvent,
 								triggerColumns,
 								isBefore,	
 								isRow,
@@ -12088,21 +12089,21 @@ beforeOrAfter() :
 	}
 }
 
-int
+TriggerEventDML
 triggerEvent(ResultColumnList rcl) throws StandardException :
 {}
 {
 	<INSERT> 
 	{
-		return TriggerDescriptor.TRIGGER_EVENT_INSERT;
+		return TriggerEventDML.INSERT;
 	}
 | 	<DELETE>
 	{
-		return TriggerDescriptor.TRIGGER_EVENT_DELETE;
+		return TriggerEventDML.DELETE;
 	}
 |	<UPDATE> [ <OF> columnNameList(rcl) ]
 	{
-		return TriggerDescriptor.TRIGGER_EVENT_UPDATE;
+		return TriggerEventDML.UPDATE;
 	}
 }
 

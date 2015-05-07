@@ -57,7 +57,7 @@ import java.sql.Timestamp;
  *    the ResultSetFactory checks if the these operations are allowed.
  *
  */
-public class GenericConstantActionFactory
+public abstract class GenericConstantActionFactory
 {
 	///////////////////////////////////////////////////////////////////////
 	//
@@ -966,11 +966,10 @@ public class GenericConstantActionFactory
 	 * @param oldReferencingName old referencing table name, if any, that appears in REFERCING clause
 	 * @param newReferencingName new referencing table name, if any, that appears in REFERCING clause
 	 */
-	public ConstantAction getCreateTriggerConstantAction
-	(
+	public abstract ConstantAction getCreateTriggerConstantAction(
 		String				triggerSchemaName,
 		String				triggerName,
-		int					eventMask,
+        TriggerEventDML     eventMask,
 		boolean				isBefore,
 		boolean 			isRow,
 		boolean 			isEnabled,
@@ -988,14 +987,7 @@ public class GenericConstantActionFactory
 		boolean				referencingNew,
 		String				oldReferencingName,
 		String				newReferencingName
-	)
-	{
-		return new CreateTriggerConstantAction(triggerSchemaName, triggerName, 
-				eventMask, isBefore, isRow, isEnabled, triggerTable, whenSPSId,
-				whenText, actionSPSId, actionText, spsCompSchemaId, creationTimestamp,
-				referencedCols, referencedColsInTriggerAction, originalActionText,
-				referencingOld, referencingNew, oldReferencingName, newReferencingName);
-	}
+	);
 
 	/**
 	 * Make the ConstantAction for a DROP TRIGGER statement.
@@ -1017,8 +1009,8 @@ public class GenericConstantActionFactory
 	/**
 	 * Make the constant action for Drop Statistics statement.
 	 *
-	 * @param sd			Schema Descriptor of the schema in which the object 
-	 * resides. 
+	 * @param sd			Schema Descriptor of the schema in which the object
+	 * resides.
 	 * @param fullTableName full name of the object for which statistics are
 	 * being dropped.
 	 * @param objectName	 object name for which statistics are being dropped.

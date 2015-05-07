@@ -43,6 +43,8 @@ import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.Parser;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
+import com.splicemachine.db.impl.sql.execute.TriggerEvent;
+import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 
 import java.io.ObjectOutput;
 import java.io.ObjectInput;
@@ -62,17 +64,13 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
     // field that we want users to be able to know about
     public static final int SYSTRIGGERS_STATE_FIELD = 8;
 
-    public static final int TRIGGER_EVENT_UPDATE = 1;
-    public static final int TRIGGER_EVENT_DELETE = 2;
-    public static final int TRIGGER_EVENT_INSERT = 4;
-
     private UUID id;
     private String name;
     private String oldReferencingName;
     private String newReferencingName;
     private String triggerDefinition;
     private SchemaDescriptor sd;
-    private int eventMask;
+    private TriggerEventDML triggerDML;
     private boolean isBefore;
     private boolean isRow;
     private boolean referencingOld;
@@ -125,7 +123,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
             SchemaDescriptor sd,
             UUID id,
             String name,
-            int eventMask,
+            TriggerEventDML eventMask,
             boolean isBefore,
             boolean isRow,
             boolean isEnabled,
@@ -144,7 +142,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
         this.id = id;
         this.sd = sd;
         this.name = name;
-        this.eventMask = eventMask;
+        this.triggerDML = eventMask;
         this.isBefore = isBefore;
         this.isRow = isRow;
         this.td = td;
@@ -159,8 +157,8 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
         this.referencingNew = referencingNew;
         this.oldReferencingName = oldReferencingName;
         this.newReferencingName = newReferencingName;
-        triggerSchemaId = sd.getUUID();
-        triggerTableId = td.getUUID();
+        this.triggerSchemaId = sd.getUUID();
+        this.triggerTableId = td.getUUID();
     }
     
     /**
@@ -198,20 +196,17 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
 
     /**
      * Indicate whether this trigger listens for this type of event.
-     *
-     * @param event TRIGGER_EVENT_XXXX
-     * @return true if it listens to the specified event.
      */
-    public boolean listensForEvent(int event) {
-        return (event & eventMask) == event;
+    public boolean listensForEvent(TriggerEventDML event) {
+        return triggerDML == event;
     }
 
     /**
      * Get the trigger event mask.  Currently, a trigger may only listen for a single event, though it may
      * OR multiple events in the future.
      */
-    public int getTriggerEventMask() {
-        return eventMask;
+    public TriggerEventDML getTriggerEventDML() {
+        return triggerDML;
     }
 
     /**
@@ -240,6 +235,18 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
     }
 
     /**
+     * This method only makes sense as long as we support only one DML type per trigger.
+     */
+    public TriggerEvent getTriggerEvent() {
+        for (TriggerEvent event : TriggerEvent.values()) {
+            if (event.isBefore() == this.isBefore && event.getDml() == getTriggerEventDML()) {
+                return event;
+            }
+        }
+        throw new IllegalArgumentException();
+    }
+
+    /**
      * Get the trigger action sps UUID
      */
     public UUID getActionId() {
@@ -265,9 +272,13 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
             //this, the nested compile transaction which is attempting to
             //compile the trigger will not run into any locking issues with
             //the user transaction for sysstatements.
-            lcc.beginNestedTransaction(true);
+
+            // KDW -- nested transaction for SPS retrieval not necessary for splice.  I hope.  This would
+            // fail for row trigger that were executing on remote nodes with SpliceTransactionView with which we
+            // cannot begin a new txn.
+            //  lcc.beginNestedTransaction(true);
             actionSPS = getDataDictionary().getSPSDescriptor(actionSPSId);
-            lcc.commitNestedTransaction();
+            // lcc.commitNestedTransaction();
         }
 
         //We need to regenerate the trigger action sql if
@@ -275,24 +286,14 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
         //2)the trigger is defined at row level (that is the only kind of
         //  trigger which allows reference to individual columns from
         //  old/new row)
-        //3)the trigger action plan has columns that reference
-        //  old/new row columns(if we are working with pre-10.9 db,
-        //  meaning we are in soft-upgrade mode, then we won't have
-        //  information about the actual trigger action columns since
-        //  we didn't keep that info in those releases. For such dbs,
-        //  we will just check if they are using REFERENCING OLD and/or
-        //  NEW clause.)
+        //3)the trigger action plan has columns that reference old/new row columns.
         //This code was added as part of DERBY-4874 where the Alter table
         //had changed the length of a varchar column from varchar(30) to
         //varchar(64) but the trigger action plan continued to use varchar(30).
         //To fix varchar(30) in trigger action sql to varchar(64), we need
         //to regenerate the trigger action sql. This new trigger action sql
         //will then get updated into SYSSTATEMENTS table.
-        DataDictionary dd = getDataDictionary();
-        boolean in10_9_orHigherVersion = dd.checkVersion(DataDictionary.DD_VERSION_DERBY_10_9, null);
-        boolean usesReferencingClause = (in10_9_orHigherVersion) ?
-                referencedColsInTriggerAction != null :
-                (referencingOld || referencingNew);
+        boolean usesReferencingClause = referencedColsInTriggerAction != null;
 
         if ((!actionSPS.isValid() || (actionSPS.getPreparedStatement() == null)) && isRow && usesReferencingClause) {
             SchemaDescriptor compSchema = getDataDictionary().getSchemaDescriptor(triggerSchemaId, null);
@@ -309,7 +310,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
                     referencedColsInTriggerAction,
                     0,
                     td,
-                    -1,
+                    null,
                     false
             ));
             //By this point, we are finished transforming the trigger action if
@@ -411,10 +412,10 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
         }
 
         if (stmtType == StatementType.INSERT) {
-            return (eventMask & TRIGGER_EVENT_INSERT) == eventMask;
+            return triggerDML == TriggerEventDML.INSERT;
         }
         if (stmtType == StatementType.DELETE) {
-            return (eventMask & TRIGGER_EVENT_DELETE) == eventMask;
+            return triggerDML == TriggerEventDML.DELETE;
         }
 
         // this is a temporary restriction, but it may not be lifted anytime soon.
@@ -424,7 +425,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
         }
 
         // if update, only relevant if columns intersect
-        return ((eventMask & TRIGGER_EVENT_UPDATE) == eventMask) && ConstraintDescriptor.doColumnsIntersect(modifiedCols, referencedCols);
+        return triggerDML == TriggerEventDML.UPDATE && ConstraintDescriptor.doColumnsIntersect(modifiedCols, referencedCols);
     }
 
     /**
@@ -668,7 +669,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
         name = (String) in.readObject();
         triggerSchemaId = (UUID) in.readObject();
         triggerTableId = (UUID) in.readObject();
-        eventMask = in.readInt();
+        triggerDML = TriggerEventDML.fromId(in.readInt());
         isBefore = in.readBoolean();
         isRow = in.readBoolean();
         isEnabled = in.readBoolean();
@@ -727,7 +728,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
         out.writeObject(name);
         out.writeObject(triggerSchemaId);
         out.writeObject(triggerTableId);
-        out.writeInt(eventMask);
+        out.writeInt(triggerDML.getId());
         out.writeBoolean(isBefore);
         out.writeBoolean(isRow);
         out.writeBoolean(isEnabled);

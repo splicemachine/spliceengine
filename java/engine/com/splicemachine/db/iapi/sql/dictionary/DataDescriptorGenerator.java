@@ -35,6 +35,7 @@ import java.sql.Timestamp;
 
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 
 /**
  * This is an implementation of the DataDescriptorGenerator interface
@@ -362,7 +363,7 @@ public class DataDescriptorGenerator
 		SchemaDescriptor	sd,
 		UUID				uuid,
 		String				name,
-		int					eventMask,
+		TriggerEventDML     eventMask,
 		boolean				isBefore,
 		boolean 			isRow,
 		boolean 			isEnabled,
