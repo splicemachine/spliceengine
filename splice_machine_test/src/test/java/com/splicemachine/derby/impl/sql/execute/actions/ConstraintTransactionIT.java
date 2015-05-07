@@ -247,15 +247,15 @@ public class ConstraintTransactionIT {
         Assert.assertEquals("Should see 2 Freds.", 2, count);
         System.out.println("We've seen 2 Freds\n------------------------");
 
-//        rs = s1.executeQuery("select * from " + tableRef+" where name = 'Fred'");
-//        count =0;
-//        while (rs.next()) {
-//            String name = rs.getString(1);
-//            System.out.println("Name: "+name);
-//            Assert.assertNotNull("NAME is NULL!",name);
-//            count++;
-//        }
-//        Assert.assertEquals("Should see 2 Freds.", 2, count);
+        rs = s1.executeQuery("select * from " + tableRef+" where name = 'Fred'");
+        count =0;
+        while (rs.next()) {
+            String name = rs.getString(1);
+            System.out.println("Name: "+name);
+            Assert.assertNotNull("NAME is NULL!",name);
+            count++;
+        }
+        Assert.assertEquals("Should see 2 Freds.", 2, count);
     }
 
     @Test
@@ -349,6 +349,7 @@ public class ConstraintTransactionIT {
         c1.commit();
 
         try {
+            // C2 does not allow duplicates
             s1.execute(String.format("insert into %s values(2, 3)", tableRef));
             Assert.fail("Expected unique key violation");
         } catch (SQLException e) {
@@ -362,8 +363,20 @@ public class ConstraintTransactionIT {
         s1.execute(String.format("alter table %s drop constraint C2_UNIQUE", tableRef));
         c1.commit();
 
-        // Now should be able to insert violating row
+        // Now should be able to insert previously violating row into C2
         s1.execute(String.format("insert into %s values(2, 3)", tableRef));
+
+        try {
+            // C1 still does not allow duplicates
+            s1.execute(String.format("insert into %s values(1, 6)", tableRef));
+            Assert.fail("Expected unique key violation");
+        } catch (SQLException e) {
+            Assert.assertTrue(e.getLocalizedMessage(),e.getLocalizedMessage().startsWith("The statement was aborted because it would have " +
+                                                                                             "caused a " +
+                                                                                             "duplicate key value in a unique or primary key " +
+                                                                                             "constraint or unique index " +
+                                                                                             "identified by '"));
+        }
     }
 
     @Test
