@@ -1077,8 +1077,18 @@ public final class SQLDate extends DataType
 		int result;
 		
         if( currentCal == null){
-        	result = computeEncodedDate( new DateTime(value) );
-        }else{
+			DateTime dt = new DateTime(value);
+			if (dt.getYear() < JODA_CRUSH_YEAR) {
+				GregorianCalendar cal = new GregorianCalendar();
+				cal.setTime(value);
+				int year = cal.get(Calendar.YEAR);
+				int month = cal.get(Calendar.MONTH) + 1;
+				int day = cal.get(Calendar.DAY_OF_MONTH);
+				result = computeEncodedDate(year, month, day);
+			} else {
+				result = computeEncodedDate(dt);
+			}
+		} else {
             currentCal.setTime(value);
             result = SQLDate.computeEncodedDate(currentCal);
         }
@@ -1124,7 +1134,7 @@ public final class SQLDate extends DataType
                     throw StandardException.newException( SQLState.LANG_INVALID_FUNCTION_ARGUMENT,
                                                           operand.getString(), "date");
                 Calendar cal = new GregorianCalendar( 1970, 0, 1, 12, 0, 0);
-                cal.add( Calendar.DATE, daysSinceEpoch - 1);
+				cal.add(Calendar.DATE, daysSinceEpoch - 1);
                 return new SQLDate( computeEncodedDate( cal.get( Calendar.YEAR),
                                                         cal.get( Calendar.MONTH) + 1,
                                                         cal.get( Calendar.DATE)));
