@@ -111,26 +111,41 @@ public final class SQLDate extends DataType
         return new Timestamp(getTimeInMillis(cal));
     }
 
+
+	/**
+	 * The JodaTime has problems with all the years before 1884
+	 */
+	private static final long JODA_CRUSH_YEAR = 1884;
+	
     /**
      * Convert the date into a milli-seconds since the epoch
      * with the time set to 00:00 based upon the passed in Calendar.
      */
-    private long getTimeInMillis(Calendar cal)
-    {
-    	long result;
-    	
-        if( cal == null){
-        	DateTime dt = new DateTime(getYear(encodedDate), getMonth(encodedDate), getDay(encodedDate), 0, 0, 0, 0);
-        	result = dt.getMillis();
-        }else{
-        	cal.clear();
-            
-            SQLDate.setDateInCalendar(cal, encodedDate);
-            result = cal.getTimeInMillis();
-        }
-        
-        return result;
-    }
+	private long getTimeInMillis(Calendar cal) {
+		long result;
+
+		if (cal == null) {
+			int year = getYear(encodedDate);
+			if (year < JODA_CRUSH_YEAR) {
+				GregorianCalendar c = new GregorianCalendar();
+				c.clear();
+				c.set(year, getMonth(encodedDate) - 1, getDay(encodedDate));
+				// c.setTimeZone(...); if necessary
+				result = c.getTimeInMillis();
+			} else {
+				DateTime dt = new DateTime(year,
+						getMonth(encodedDate), getDay(encodedDate), 0, 0, 0, 0);
+				result = dt.getMillis();
+			}
+		} else {
+			cal.clear();
+
+			SQLDate.setDateInCalendar(cal, encodedDate);
+			result = cal.getTimeInMillis();
+		}
+
+		return result;
+	}
     
     /**
      * Set the date portion of a date-time value into
@@ -1062,8 +1077,18 @@ public final class SQLDate extends DataType
 		int result;
 		
         if( currentCal == null){
-        	result = computeEncodedDate( new DateTime(value) );
-        }else{
+			DateTime dt = new DateTime(value);
+			if (dt.getYear() < JODA_CRUSH_YEAR) {
+				GregorianCalendar cal = new GregorianCalendar();
+				cal.setTime(value);
+				int year = cal.get(Calendar.YEAR);
+				int month = cal.get(Calendar.MONTH) + 1;
+				int day = cal.get(Calendar.DAY_OF_MONTH);
+				result = computeEncodedDate(year, month, day);
+			} else {
+				result = computeEncodedDate(dt);
+			}
+		} else {
             currentCal.setTime(value);
             result = SQLDate.computeEncodedDate(currentCal);
         }
@@ -1109,7 +1134,7 @@ public final class SQLDate extends DataType
                     throw StandardException.newException( SQLState.LANG_INVALID_FUNCTION_ARGUMENT,
                                                           operand.getString(), "date");
                 Calendar cal = new GregorianCalendar( 1970, 0, 1, 12, 0, 0);
-                cal.add( Calendar.DATE, daysSinceEpoch - 1);
+				cal.add(Calendar.DATE, daysSinceEpoch - 1);
                 return new SQLDate( computeEncodedDate( cal.get( Calendar.YEAR),
                                                         cal.get( Calendar.MONTH) + 1,
                                                         cal.get( Calendar.DATE)));
