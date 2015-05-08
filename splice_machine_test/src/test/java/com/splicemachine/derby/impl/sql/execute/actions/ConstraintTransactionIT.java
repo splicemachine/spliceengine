@@ -238,20 +238,17 @@ public class ConstraintTransactionIT {
         int count =0;
         while (rs.next()) {
             String name = rs.getString(1);
-            System.out.println("Name: "+name);
             Assert.assertNotNull("NAME is NULL!", name);
             if (name.trim().equals("Fred")) {
                 count++;
             }
         }
         Assert.assertEquals("Should see 2 Freds.", 2, count);
-        System.out.println("We've seen 2 Freds\n------------------------");
 
         rs = s1.executeQuery("select * from " + tableRef+" where name = 'Fred'");
         count =0;
         while (rs.next()) {
             String name = rs.getString(1);
-            System.out.println("Name: "+name);
             Assert.assertNotNull("NAME is NULL!",name);
             count++;
         }
