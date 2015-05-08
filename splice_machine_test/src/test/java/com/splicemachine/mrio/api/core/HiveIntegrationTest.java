@@ -2,7 +2,7 @@ package com.splicemachine.mrio.api.core;
 
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.sql.Clob;
+import java.sql.ResultSetMetaData;
 import java.sql.Connection;
 import java.sql.Date;
 import java.sql.DriverManager;
@@ -29,7 +29,7 @@ import com.splicemachine.derby.test.framework.SpliceNetConnection;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-@Ignore
+
 public class HiveIntegrationTest extends BaseMRIOTest {
 	    private static final Logger LOG = Logger.getLogger(HiveIntegrationTest.class);
 		private static String driverName = "org.apache.hadoop.hive.jdbc.HiveDriver";
@@ -43,8 +43,8 @@ public class HiveIntegrationTest extends BaseMRIOTest {
 
 	    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
 		protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(HiveIntegrationTest.class.getSimpleName());	
-		protected static SpliceTableWatcher spliceTableWatcherA = new SpliceTableWatcher("A",HiveIntegrationTest.class.getSimpleName(),"(col1 int, col2 varchar(56), primary key (col1))");
-		protected static SpliceTableWatcher spliceTableWatcherB = new SpliceTableWatcher("B",HiveIntegrationTest.class.getSimpleName(),"(col1 int, col2 varchar(56), primary key (col1))");
+		protected static SpliceTableWatcher spliceTableWatcherA = new SpliceTableWatcher("A",HiveIntegrationTest.class.getSimpleName(),"(col1 int, col2 int, primary key (col1))");
+		protected static SpliceTableWatcher spliceTableWatcherB = new SpliceTableWatcher("B",HiveIntegrationTest.class.getSimpleName(),"(col1 char(20), col2 varchar(56), primary key (col1))");
 		protected static SpliceTableWatcher spliceTableWatcherC = new SpliceTableWatcher("C",HiveIntegrationTest.class.getSimpleName(),"("
 				+ "bool_col Boolean,"
 				+ "date_col DATE not null, "
@@ -66,7 +66,7 @@ public class HiveIntegrationTest extends BaseMRIOTest {
 				+ "numeric_col1 numeric(31,0), "
 				+ "numeric_col2 numeric(31,8), "
 				+ "decimal_1 decimal (1), "
-				+ "decimal_2 decimal (2,2), "
+				+ "decimal_2 decimal (10,2), "
 				+"primary key (date_col, varchar_col, small_int_col_not_null))");	
 		
 		
@@ -81,6 +81,7 @@ public class HiveIntegrationTest extends BaseMRIOTest {
 				protected void starting(Description description) {
 					try {
 						PreparedStatement psA = spliceClassWatcher.prepareStatement("insert into "+ HiveIntegrationTest.class.getSimpleName() + ".A (col1,col2) values (?,?)");
+                        PreparedStatement psB = spliceClassWatcher.prepareStatement("insert into "+ HiveIntegrationTest.class.getSimpleName() + ".B (col1,col2) values (?,?)");
 						PreparedStatement psC = spliceClassWatcher.prepareStatement("insert into "+ HiveIntegrationTest.class.getSimpleName() + ".C ("
 								+ "bool_col,"
 								+ "date_col, "
@@ -108,8 +109,13 @@ public class HiveIntegrationTest extends BaseMRIOTest {
 
 						for (int i = 0; i< 100; i++) {
 							psA.setInt(1,i);
-							psA.setString(2, "dataset"+i);
+							psA.setInt(2, i);
 							psA.executeUpdate();
+
+                            psB.setString(1,"Char " + i);
+                            psB.setString(2, "Varchar " + i);
+                            psB.executeUpdate();
+
 							psC.setBoolean(1, true);
 							psC.setDate(2, new Date(System.currentTimeMillis()));
 							psC.setTime(3, new Time(System.currentTimeMillis()));
@@ -146,45 +152,48 @@ public class HiveIntegrationTest extends BaseMRIOTest {
 		@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 	
 	@Test
+    @Ignore
 	public void testCreateExternalWith100RowScan() throws SQLException, IOException {		
 		Connection con = DriverManager.getConnection("jdbc:hive://");
 	    Statement stmt = con.createStatement();
 	    String createExternalExisting = "CREATE EXTERNAL TABLE A " +
-		    "(col1 STRING, col2 STRING) " + 
+		    "(COL1 INT, COL2 INT) " +
 	    	"STORED BY 'com.splicemachine.mrio.api.hive.SMStorageHandler' " +
 	    	"TBLPROPERTIES (" +
 	        "\"splice.jdbc\" = \""+SpliceNetConnection.getDefaultLocalURL()+"\","+
 	        "\"splice.tableName\" = \"HIVEINTEGRATIONTEST.A\""+	        
 	        ")";
-	    stmt.executeQuery(createExternalExisting);	
+	    stmt.execute(createExternalExisting);
+
 	    ResultSet rs = stmt.executeQuery("select * from A");
 	    int i = 0;
 	    while (rs.next()) {
 	    	i++;
+            System.out.println(rs.getInt(1) + ", " + rs.getInt(2));
 	    	Assert.assertNotNull("col1 did not return", rs.getInt(1));
-	    	Assert.assertNotNull("col1 did not return", rs.getString(2));
+	    	Assert.assertNotNull("col1 did not return", rs.getInt(2));
 	    }
 	    Assert.assertEquals("incorrect number of rows returned", 100,i);
 	}
 	
 	@Test
-	@Ignore
-	public void testInsertIntoSelectFrom() throws SQLException, IOException {		
+	public void testVarchar() throws SQLException, IOException {
 		Connection con = DriverManager.getConnection("jdbc:hive://");
 	    Statement stmt = con.createStatement();
-	    String createExternalExisting = "CREATE EXTERNAL TABLE A " +
-		    "(col1 STRING, col2 STRING) " + 
+	    String createExternalExisting = "CREATE EXTERNAL TABLE B " +
+		    "(col1 CHAR(20), col2 VARCHAR(56)) " +
 	    	"STORED BY 'com.splicemachine.mrio.api.hive.SMStorageHandler' " +
 	    	"TBLPROPERTIES (" +
 	        "\"splice.jdbc\" = \""+SpliceNetConnection.getDefaultLocalURL()+"\","+
-	        "\"splice.tableName\" = \"HIVEINTEGRATIONTEST.A\""+	        
+	        "\"splice.tableName\" = \"HIVEINTEGRATIONTEST.B\""+
 	        ")";
-	    stmt.executeQuery(createExternalExisting);	
-	    ResultSet rs = stmt.executeQuery("select * from A");
+
+	    stmt.execute(createExternalExisting);
+	    ResultSet rs = stmt.executeQuery("select * from B");
 	    int i = 0;
 	    while (rs.next()) {
 	    	i++;
-	    	Assert.assertNotNull("col1 did not return", rs.getInt(1));
+	    	Assert.assertNotNull("col1 did not return", rs.getString(1));
 	    	Assert.assertNotNull("col1 did not return", rs.getString(2));
 	    }
 	    Assert.assertEquals("incorrect number of rows returned", 100,i);

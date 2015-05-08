@@ -20,6 +20,8 @@ import org.apache.hadoop.hive.serde2.typeinfo.StructTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
+import org.apache.hadoop.hive.common.type.HiveVarchar;
+import org.apache.hadoop.hive.common.type.HiveChar;
 import org.apache.hadoop.io.Writable;
 import org.apache.log4j.Logger;
 
@@ -233,16 +235,23 @@ public class SMSerDe implements SerDe {
      * 
      */
     private static Object hiveTypeToObject(String hiveType, DataValueDescriptor dvd) throws SerDeException {
-        final String lctype = hiveType.toLowerCase();
+        final String lctype = trim(hiveType.toLowerCase());
+
         try {
 	        switch(lctype) {
-		        case "string":
-		        	return dvd.getString();
+		        case "varchar":
+                    HiveVarchar hiveVarchar = new HiveVarchar();
+                    hiveVarchar.setValue(dvd.getString());
+                    return hiveVarchar;
+                case "char":
+                    HiveChar hiveChar = new HiveChar();
+                    hiveChar.setValue(dvd.getString());
+                    return hiveChar;
 		        case "float":
 		            return dvd.getFloat();
 		        case "double": 
 		            return dvd.getDouble();
-		        case "booolean":
+		        case "boolean":
 		        	return dvd.getBoolean();
 		        case "tinyint":
 		        case "int":
@@ -261,7 +270,16 @@ public class SMSerDe implements SerDe {
         } catch (StandardException se) {
         	throw new SerDeException(se);
         }
-    
     }
 
+    private static String trim(String s) {
+        if (s == null || s.length() == 0)
+            return s;
+
+        int index = s.indexOf("(");
+        if (index == -1)
+            return s;
+
+        return s.substring(0, index);
+    }
 }

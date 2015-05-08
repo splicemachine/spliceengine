@@ -112,10 +112,11 @@ public class SMInputFormat extends InputFormat<RowLocation, ExecRow> implements 
 	@Override
 	public List<InputSplit> getSplits(JobContext context) throws IOException,
 			InterruptedException {
-		if (LOG.isDebugEnabled())
+        setConf(context.getConfiguration());
+        if (LOG.isDebugEnabled())
 			SpliceLogUtils.debug(LOG, "getSplits with context=%s",context);
 		TableInputFormat tableInputFormat = new TableInputFormat();
-		conf.set(TableInputFormat.INPUT_TABLE,conf.get(MRConstants.SPLICE_CONGLOMERATE));		
+		conf.set(TableInputFormat.INPUT_TABLE,conf.get(MRConstants.SPLICE_CONGLOMERATE));
 		tableInputFormat.setConf(conf);
 		try {
 			tableInputFormat.setScan(TableScannerBuilder.getTableScannerBuilderFromBase64String(conf.get(MRConstants.SPLICE_SCAN_INFO)).getScan());
@@ -143,8 +144,8 @@ public class SMInputFormat extends InputFormat<RowLocation, ExecRow> implements 
 		if(table == null)
 			table = new HTable(HBaseConfiguration.create(config), config.get(MRConstants.SPLICE_CONGLOMERATE));
 		rr.setHTable(table);
-		if (!conf.getBoolean("splice.spark", false))
-			rr.init(config, split);
+		//if (!conf.getBoolean("splice.spark", false))
+		rr.init(config, split);
 		if (LOG.isDebugEnabled())
 			SpliceLogUtils.debug(LOG, "returning record reader");		
 		return rr;
