@@ -91,6 +91,21 @@ public class ColumnOrdering{
         return false;
     }
 
+    int position(int tableNumber,int columnNumber){
+        for(int i=0;i<columns.size();i++){
+            Integer col=(Integer)columns.get(i);
+            Integer tab=(Integer)tables.get(i);
+
+            if(tab.intValue()==tableNumber &&
+                    col.intValue()==columnNumber){
+
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
     /**
      * Get the direction of this ColumnOrdering
      */

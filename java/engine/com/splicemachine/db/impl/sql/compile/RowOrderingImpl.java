@@ -153,6 +153,39 @@ public class RowOrderingImpl implements RowOrdering{
     }
 
     @Override
+    public int orderedPositionForColumn(int direction, int tableNumber, int columnNumber) throws StandardException{
+		/*
+		** Return true if the table is always ordered.
+		*/
+        int p = optimizablePosition(tableNumber,alwaysOrderedOptimizables);
+        if(p>=0) return p;
+
+		/*
+		** Return true if the column is always ordered.
+		*/
+        p = columnsAlwaysOrdered.position(tableNumber, columnNumber);
+        if(p>=0) return p;
+
+        boolean ordered=false;
+
+        p = 0;
+        for(ColumnOrdering co : ordering){
+            /*
+            ** Is the column in question ordered with the given direction at
+			** this position?
+			*/
+            boolean thisOrdered=co.ordered(direction, tableNumber, columnNumber);
+
+            if(thisOrdered){
+                return p;
+            }
+            p++;
+        }
+
+        return -1;
+    }
+
+    @Override
     public void addOrderedColumn(int direction, int tableNumber, int columnNumber){
         if(unorderedOptimizables.size()>0)
             return;
@@ -346,8 +379,22 @@ public class RowOrderingImpl implements RowOrdering{
                 }
             }
         }
-
         return false;
+    }
+
+    private int optimizablePosition(int tableNumber,List<Optimizable> vec){
+        int i;
+
+        for(i=vec.size()-1;i>=0;i--){
+            Optimizable optTable=vec.get(i);
+
+            if(optTable.hasTableNumber()){
+                if(optTable.getTableNumber()==tableNumber){
+                    return i;
+                }
+            }
+        }
+        return -1;
     }
 
     /**
