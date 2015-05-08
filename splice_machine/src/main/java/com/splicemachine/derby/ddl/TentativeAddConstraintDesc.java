@@ -123,10 +123,10 @@ public class TentativeAddConstraintDesc extends AlterTableDDLDescriptor implemen
     }
 
     private ExecRow createSourceTemplate() throws IOException {
-        int rowWidth = columnInfos.length - 1;
+        int rowWidth = columnInfos.length;
         ExecRow srcRow = new ValueRow(rowWidth);
         try {
-            for (int i=0; i<rowWidth+1; i++) {
+            for (int i=0; i<rowWidth; i++) {
                 srcRow.setColumn(i+1, columnInfos[i].dataType.getNull());
             }
         } catch (StandardException e) {
