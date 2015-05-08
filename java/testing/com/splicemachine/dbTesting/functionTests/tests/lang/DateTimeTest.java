@@ -1871,13 +1871,5 @@ public final class DateTimeTest extends BaseJDBCTestCase {
                 createStatement().executeQuery(sql), expectedValue);
     }
     
-    
-    public void testShouldConvertSqlDate() {
-    	// date before 1884
-    	SQLDate dt = new SQLDate(117833985); // 1798-01-01
-    	assertEquals("1798-01-01", dt.toString());
-    	// date after 1884
-    	dt = new SQLDate(132055297); // 2015-01-01
-    	assertEquals("2015-01-01", dt.toString());
-    }
+
 }
