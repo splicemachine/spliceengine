@@ -338,4 +338,15 @@ public interface Optimizer{
     void updateBestPlanMaps(short action,Object planKey) throws StandardException;
 
     void addScopedPredicatesToList(OptimizablePredicateList predList) throws StandardException;
+
+    /**
+     * DB-2877/DB-2001. Sometimes, we can call modifyAccessPaths() and it will explode if there is no best plan. Other
+     * times (as with a subselect), we are unable to call modifyAccessPaths() because the inner subselect was unable
+     * to find a best plan; the result of this is that we are stuck in an infinite loop and cannot modify our access
+     * paths.
+     *
+     * The intent of this method is to ensure that we can verify a best plan is found at the end of optimization
+     * loops, and therefore prevent infinite loops from occurring.
+     */
+    void verifyBestPlanFound() throws StandardException;
 }

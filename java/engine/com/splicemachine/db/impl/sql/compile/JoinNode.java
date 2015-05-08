@@ -162,16 +162,11 @@ public class JoinNode extends TableOperatorNode{
 
     }
 
-    /**
-     * @throws StandardException Thrown on error
-     * @see com.splicemachine.db.iapi.sql.compile.Optimizable#optimizeIt
-     */
-    public CostEstimate optimizeIt(
-            Optimizer optimizer,
-            OptimizablePredicateList predList,
-            CostEstimate outerCost,
-            RowOrdering rowOrdering)
-            throws StandardException{
+    @Override
+    public CostEstimate optimizeIt(Optimizer optimizer,
+                                   OptimizablePredicateList predList,
+                                   CostEstimate outerCost,
+                                   RowOrdering rowOrdering) throws StandardException{
         optimizer.tracer().trace(OptimizerFlag.CALLING_ON_JOIN_NODE,0,0,0.0,null);
 
         // It's possible that a call to optimize the left/right will cause

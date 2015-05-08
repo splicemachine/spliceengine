@@ -1148,19 +1148,24 @@ public class OptimizerImpl implements Optimizer{
     @Override public DataDictionary getDataDictionary(){ return dDictionary; }
 
     @Override
+    public void verifyBestPlanFound() throws StandardException{
+        if(!foundABestPlan){
+            if(optimizerTrace){
+                tracer().trace(OptimizerFlag.NO_BEST_PLAN,0,0,0.0,null);
+            }
+
+            throw StandardException.newException(SQLState.LANG_NO_BEST_PLAN_FOUND);
+        }
+    }
+
+    @Override
     public void modifyAccessPaths() throws StandardException{
         OptimizerTrace tracer = tracer();
         if(optimizerTrace){
             tracer.trace(OptimizerFlag.MODIFYING_ACCESS_PATHS,0,0,0.0,null);
         }
 
-        if(!foundABestPlan){
-            if(optimizerTrace){
-                tracer.trace(OptimizerFlag.NO_BEST_PLAN,0,0,0.0,null);
-            }
-
-            throw StandardException.newException(SQLState.LANG_NO_BEST_PLAN_FOUND);
-        }
+        verifyBestPlanFound();
 
 		/* Change the join order of the list of optimizables */
         optimizableList.reOrder(bestJoinOrder);
@@ -1435,6 +1440,7 @@ public class OptimizerImpl implements Optimizer{
             }
         }
     }
+
 
     @Override
     public OptimizableList getOptimizableList(){
