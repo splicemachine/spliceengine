@@ -36,11 +36,6 @@ public class SMSQLUtil extends SIConstants {
 	  private Connection connect = null;
 	  private static SMSQLUtil sqlUtil = null;
 	  private String connStr = null;
-	  public static LazyDataValueFactory factory;
-	  
-	  static {
-		factory = new LazyDataValueFactory();  
-	  }
 	  
 	  private SMSQLUtil(String connStr) throws Exception {  
 	      Class.forName(SPLICE_JDBC_DRIVER).newInstance();
@@ -51,7 +46,7 @@ public class SMSQLUtil extends SIConstants {
 	  public static SMSQLUtil getInstance(String connStr){
 		  if(sqlUtil == null){
 			try {
-				sqlUtil = new SMSQLUtil(connStr);		
+				sqlUtil = new SMSQLUtil(connStr);
 			} catch (Exception e) {
 				throw new RuntimeException(e);
 			}
@@ -343,7 +338,7 @@ public class SMSQLUtil extends SIConstants {
 		  ExecRow execRow = new ValueRow(execRowFormatIds==null?0:execRowFormatIds.length);
 		  try {	
 		  for (int i = 0; i< execRow.nColumns(); i++) {
-				execRow.setColumn(i+1, factory.getLazyNull(execRowFormatIds[i]));
+				execRow.setColumn(i+1, LazyDataValueFactory.getLazyNull(execRowFormatIds[i]));
 			}
 		  } catch (StandardException se) {
 			  throw new IOException(se);
