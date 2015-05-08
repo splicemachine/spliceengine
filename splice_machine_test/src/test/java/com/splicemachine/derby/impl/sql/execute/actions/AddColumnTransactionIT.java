@@ -334,6 +334,22 @@ public class AddColumnTransactionIT {
 
         count = conn1.count("select * from " + addedTable4 + " where id is not null");
         Assert.assertEquals("incorrect row count!", 1, count);
+
+        ps = conn2.prepareStatement("insert into "+addedTable4+" values (?,?,?,?)");
+        ps.setString(1, "Terry");ps.setInt(2, 26); ps.setString(3, "777777"); ps.setInt(4, 1); ps.execute();
+        conn2.commit();
+
+        try {
+            conn2.createStatement().execute(String.format("insert into %s values ('Henry', 214, '45454545', 1)", addedTable4));
+            Assert.fail("Expected unique key violation");
+        } catch (SQLException e) {
+            Assert.assertTrue(e.getLocalizedMessage(),e.getLocalizedMessage().startsWith(
+                "The statement was aborted because it would have caused a " +
+                                                                     "duplicate key value in a unique or primary key " +
+                                                                     "constraint or unique index " +
+                                                                     "identified by 'SQL"));
+        }
+
     }
 
     private TableDAO tableDAO;

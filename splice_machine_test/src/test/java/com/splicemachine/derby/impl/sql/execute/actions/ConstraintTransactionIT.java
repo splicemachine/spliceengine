@@ -256,6 +256,64 @@ public class ConstraintTransactionIT {
     }
 
     @Test
+    public void testRollbackDropPrimaryKey() throws Exception {
+        String tableName = "testRollbackDropPrimaryKey".toUpperCase();
+        String tableRef = schemaWatcher.schemaName+"."+tableName;
+        tableDAO.drop(schemaWatcher.schemaName, tableName);
+
+        Connection c1 = classWatcher.createConnection();
+        c1.setAutoCommit(false);
+        Statement s1 = c1.createStatement();
+
+        s1.execute(String.format("create table %s (c1 int,c2 int not null)", tableRef));
+        c1.commit();
+
+        s1.execute(String.format("insert into %s values(-1, -1)", tableRef));
+        s1.execute(String.format("insert into %s values(-2, -2)", tableRef));
+        s1.execute(String.format("insert into %s values(2, 3)", tableRef));
+        c1.commit();
+
+        Connection c2 = classWatcher.createConnection();
+        c2.setAutoCommit(false);
+        Statement s2 = c2.createStatement();
+
+        s2.execute(String.format("alter table %s add primary key (c2)", tableRef));
+        c2.commit();
+
+        try {
+            s1.execute(String.format("insert into %s values(1, 3)", tableRef));
+            Assert.fail("Expected unique key violation");
+        } catch (SQLException e) {
+            Assert.assertTrue(e.getLocalizedMessage(),e.getLocalizedMessage().startsWith("The statement was aborted because it would have " +
+                                                                     "caused a " +
+                                                                     "duplicate key value in a unique or primary key " +
+                                                                     "constraint or unique index " +
+                                                                     "identified by 'SQL"));
+        }
+
+        s1.execute(String.format("alter table %s drop primary key", tableRef));
+        c1.rollback();
+
+        // Rolled back drop constraint - should still not be able to insert violation
+        try {
+            s2.execute(String.format("insert into %s values(1, 3)", tableRef));
+            Assert.fail("Expected unique key violation");
+        } catch (SQLException e) {
+            Assert.assertTrue(e.getLocalizedMessage(),e.getLocalizedMessage().startsWith("The statement was aborted because it would have " +
+                                                                     "caused a " +
+                                                                     "duplicate key value in a unique or primary key " +
+                                                                     "constraint or unique index " +
+                                                                     "identified by 'SQL"));
+        }
+
+        s2.execute(String.format("alter table %s drop primary key", tableRef));
+        c2.commit();
+
+        // Now we can insert the row
+        s1.execute(String.format("insert into %s values(1, 3)", tableRef));
+    }
+
+    @Test
     public void testDropUniqueConstraintCreatedWith() throws Exception {
         String tableName = "testDropUniqueConstraintCreatedWith".toUpperCase();
         String tableRef = schemaWatcher.schemaName+"."+tableName;
@@ -301,16 +359,16 @@ public class ConstraintTransactionIT {
         c1.setAutoCommit(false);
         Statement s1 = c1.createStatement();
 
-        s1.execute(String.format("create table %s (c1 int  not null primary key,c2 int not null,constraint C2_UNIQUE unique (c2))", tableRef));
+        s1.execute(String.format("create table %s (c1 int not null primary key,c2 int not null,constraint C2_UNIQUE unique (c2))", tableRef));
         c1.commit();
 
-        s1.execute(String.format("insert into %s values(-1, 9)", tableRef));
-        s1.execute(String.format("insert into %s values(-2, 8)", tableRef));
+        s1.execute(String.format("insert into %s values(2, 9)", tableRef));
+        s1.execute(String.format("insert into %s values(3, 8)", tableRef));
         s1.execute(String.format("insert into %s values(1, 3)", tableRef));
         c1.commit();
 
         try {
-            s1.execute(String.format("insert into %s values(2, 3)", tableRef));
+            s1.execute(String.format("insert into %s values(4, 3)", tableRef));
             Assert.fail("Expected unique key violation");
         } catch (SQLException e) {
             Assert.assertTrue(e.getLocalizedMessage(),e.getLocalizedMessage().startsWith("The statement was aborted because it would have " +
@@ -324,7 +382,18 @@ public class ConstraintTransactionIT {
         c1.commit();
 
         // Now should be able to insert violating row
-        s1.execute(String.format("insert into %s values(2, 3)", tableRef));
+        s1.execute(String.format("insert into %s values(4, 3)", tableRef));
+
+        try {
+            s1.execute(String.format("insert into %s values(2, 3)", tableRef));
+            Assert.fail("Expected pirmary key violation");
+        } catch (SQLException e) {
+            Assert.assertTrue(e.getLocalizedMessage(),e.getLocalizedMessage().startsWith("The statement was aborted because it would have " +
+                                                                                             "caused a " +
+                                                                                             "duplicate key value in a unique or primary key " +
+                                                                                             "constraint or unique index " +
+                                                                                             "identified by '"));
+        }
     }
 
     @Test
@@ -425,7 +494,7 @@ public class ConstraintTransactionIT {
             s1.execute(String.format("insert into %s values(-1, 3)", tableRef));
             Assert.fail("Expected check constraint violation");
         } catch (SQLException e) {
-            Assert.assertTrue(e.getLocalizedMessage().startsWith("The statement was aborted because it would have " +
+            Assert.assertTrue(e.getLocalizedMessage(),e.getLocalizedMessage().startsWith("The statement was aborted because it would have " +
                                                                      "caused a " +
                                                                      "duplicate key value in a unique or primary key " +
                                                                      "constraint or unique index " +
