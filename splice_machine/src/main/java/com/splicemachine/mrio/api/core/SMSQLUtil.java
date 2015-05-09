@@ -300,12 +300,15 @@ public class SMSQLUtil extends SIConstants {
     }
 
     public int[] getKeyColumnEncodingOrder(List<NameType> nameTypes, List<PKColumnNamePosition> primaryKeys) {
-        int[] keyColumnEncodingOrder = IntArrays.count(primaryKeys.size());
-        for (int i = 0; i< primaryKeys.size(); i++) {
-            keyColumnEncodingOrder[primaryKeys.get(i).getPosition()] = locationInNameTypes(nameTypes,primaryKeys.get(i).getName());
+        int[] keyColumnEncodingOrder = new int[0];
+        if (primaryKeys!=null && primaryKeys.size() > 0) {
+            keyColumnEncodingOrder = IntArrays.count(primaryKeys.size());
+            for (int i = 0; i < primaryKeys.size(); i++) {
+                keyColumnEncodingOrder[primaryKeys.get(i).getPosition()] = locationInNameTypes(nameTypes, primaryKeys.get(i).getName());
+            }
         }
         if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "getKeyColumnEncodingOrder returns=%s",Arrays.toString(keyColumnEncodingOrder));
+            SpliceLogUtils.trace(LOG, "getKeyColumnEncodingOrder returns=%s", Arrays.toString(keyColumnEncodingOrder));
         return keyColumnEncodingOrder;
     }
 

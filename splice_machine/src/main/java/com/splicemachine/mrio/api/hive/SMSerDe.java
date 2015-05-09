@@ -240,12 +240,20 @@ public class SMSerDe implements SerDe {
         try {
 	        switch(lctype) {
 		        case "varchar":
-                    HiveVarchar hiveVarchar = new HiveVarchar();
-                    hiveVarchar.setValue(dvd.getString());
+                    HiveVarchar hiveVarchar = null;
+                    String s = dvd.getString();
+                    if (s!=null) {
+                        hiveVarchar = new HiveVarchar();
+                        hiveVarchar.setValue(s);
+                    }
                     return hiveVarchar;
                 case "char":
-                    HiveChar hiveChar = new HiveChar();
-                    hiveChar.setValue(dvd.getString());
+                    HiveChar hiveChar = null;
+                    s = dvd.getString();
+                    if (s != null) {
+                        hiveChar = new HiveChar();
+                        hiveChar.setValue(s);
+                    }
                     return hiveChar;
 		        case "float":
 		            return dvd.getFloat();
