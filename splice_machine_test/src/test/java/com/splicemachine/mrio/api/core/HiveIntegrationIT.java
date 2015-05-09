@@ -30,8 +30,8 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 
-public class HiveIntegrationTest extends BaseMRIOTest {
-	    private static final Logger LOG = Logger.getLogger(HiveIntegrationTest.class);
+public class HiveIntegrationIT extends BaseMRIOTest {
+	    private static final Logger LOG = Logger.getLogger(HiveIntegrationIT.class);
 		private static String driverName = "org.apache.hadoop.hive.jdbc.HiveDriver";
 		static {
 			try {
@@ -42,10 +42,10 @@ public class HiveIntegrationTest extends BaseMRIOTest {
 		}
 
 	    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-		protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(HiveIntegrationTest.class.getSimpleName());	
-		protected static SpliceTableWatcher spliceTableWatcherA = new SpliceTableWatcher("A",HiveIntegrationTest.class.getSimpleName(),"(col1 int, col2 int, primary key (col1))");
-		protected static SpliceTableWatcher spliceTableWatcherB = new SpliceTableWatcher("B",HiveIntegrationTest.class.getSimpleName(),"(col1 char(20), col2 varchar(56), primary key (col1))");
-		protected static SpliceTableWatcher spliceTableWatcherC = new SpliceTableWatcher("C",HiveIntegrationTest.class.getSimpleName(),"("
+		protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(HiveIntegrationIT.class.getSimpleName());
+		protected static SpliceTableWatcher spliceTableWatcherA = new SpliceTableWatcher("A",HiveIntegrationIT.class.getSimpleName(),"(col1 int, col2 int, col3 int, primary key (col3, col1))");
+		protected static SpliceTableWatcher spliceTableWatcherB = new SpliceTableWatcher("B",HiveIntegrationIT.class.getSimpleName(),"(col1 char(20), col2 varchar(56), primary key (col1))");
+		protected static SpliceTableWatcher spliceTableWatcherC = new SpliceTableWatcher("C",HiveIntegrationIT.class.getSimpleName(),"("
 				+ "bool_col Boolean,"
 				+ "date_col DATE not null, "
 				+ "time_col TIME, "
@@ -80,9 +80,9 @@ public class HiveIntegrationTest extends BaseMRIOTest {
 				@Override
 				protected void starting(Description description) {
 					try {
-						PreparedStatement psA = spliceClassWatcher.prepareStatement("insert into "+ HiveIntegrationTest.class.getSimpleName() + ".A (col1,col2) values (?,?)");
-                        PreparedStatement psB = spliceClassWatcher.prepareStatement("insert into "+ HiveIntegrationTest.class.getSimpleName() + ".B (col1,col2) values (?,?)");
-						PreparedStatement psC = spliceClassWatcher.prepareStatement("insert into "+ HiveIntegrationTest.class.getSimpleName() + ".C ("
+						PreparedStatement psA = spliceClassWatcher.prepareStatement("insert into "+ HiveIntegrationIT.class.getSimpleName() + ".A (col1,col2,col3) values (?,?,?)");
+                        PreparedStatement psB = spliceClassWatcher.prepareStatement("insert into "+ HiveIntegrationIT.class.getSimpleName() + ".B (col1,col2) values (?,?)");
+						PreparedStatement psC = spliceClassWatcher.prepareStatement("insert into "+ HiveIntegrationIT.class.getSimpleName() + ".C ("
 								+ "bool_col,"
 								+ "date_col, "
 								+ "time_col, "
@@ -109,7 +109,8 @@ public class HiveIntegrationTest extends BaseMRIOTest {
 
 						for (int i = 0; i< 100; i++) {
 							psA.setInt(1,i);
-							psA.setInt(2, i);
+							psA.setInt(2,i+1);
+                            psA.setInt(3,i+2);
 							psA.executeUpdate();
 
                             psB.setString(1,"Char " + i);
@@ -152,16 +153,15 @@ public class HiveIntegrationTest extends BaseMRIOTest {
 		@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
 	
 	@Test
-    @Ignore
-	public void testCreateExternalWith100RowScan() throws SQLException, IOException {		
+	public void testCompositePK() throws SQLException, IOException {
 		Connection con = DriverManager.getConnection("jdbc:hive://");
 	    Statement stmt = con.createStatement();
 	    String createExternalExisting = "CREATE EXTERNAL TABLE A " +
-		    "(COL1 INT, COL2 INT) " +
+		    "(COL1 INT, COL2 INT, COL3 INT) " +
 	    	"STORED BY 'com.splicemachine.mrio.api.hive.SMStorageHandler' " +
 	    	"TBLPROPERTIES (" +
 	        "\"splice.jdbc\" = \""+SpliceNetConnection.getDefaultLocalURL()+"\","+
-	        "\"splice.tableName\" = \"HIVEINTEGRATIONTEST.A\""+	        
+	        "\"splice.tableName\" = \"HIVEINTEGRATIONIT.A\""+
 	        ")";
 	    stmt.execute(createExternalExisting);
 
@@ -169,9 +169,16 @@ public class HiveIntegrationTest extends BaseMRIOTest {
 	    int i = 0;
 	    while (rs.next()) {
 	    	i++;
-            System.out.println(rs.getInt(1) + ", " + rs.getInt(2));
-	    	Assert.assertNotNull("col1 did not return", rs.getInt(1));
-	    	Assert.assertNotNull("col1 did not return", rs.getInt(2));
+            int v1 = rs.getInt(1);
+            int v2 = rs.getInt(2);
+            int v3 = rs.getInt(3);
+
+            Assert.assertNotNull("col1 did not return", v1);
+            Assert.assertNotNull("col1 did not return", v2);
+            Assert.assertNotNull("col1 did not return", v3);
+            Assert.assertTrue(v2==v1+1);
+            Assert.assertTrue(v3==v2+1);
+
 	    }
 	    Assert.assertEquals("incorrect number of rows returned", 100,i);
 	}
@@ -185,7 +192,7 @@ public class HiveIntegrationTest extends BaseMRIOTest {
 	    	"STORED BY 'com.splicemachine.mrio.api.hive.SMStorageHandler' " +
 	    	"TBLPROPERTIES (" +
 	        "\"splice.jdbc\" = \""+SpliceNetConnection.getDefaultLocalURL()+"\","+
-	        "\"splice.tableName\" = \"HIVEINTEGRATIONTEST.B\""+
+	        "\"splice.tableName\" = \"HIVEINTEGRATIONIT.B\""+
 	        ")";
 
 	    stmt.execute(createExternalExisting);
@@ -198,6 +205,4 @@ public class HiveIntegrationTest extends BaseMRIOTest {
 	    }
 	    Assert.assertEquals("incorrect number of rows returned", 100,i);
 	}
-	
-	
 }
