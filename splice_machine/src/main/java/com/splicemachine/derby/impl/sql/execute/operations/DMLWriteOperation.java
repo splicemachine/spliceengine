@@ -146,10 +146,6 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 				return row;
 		}
 
-        abstract KeyEncoder getKeyEncoder() throws StandardException;
-
-        abstract DataHash getRowHash() throws StandardException;
-
     @Override
 		public String prettyPrint(int indentLevel) {
 				String indent = "\n"+ Strings.repeat("\t",indentLevel);
@@ -171,65 +167,11 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 				return source.isReferencingTable(tableNumber);
 		}
 
+    /*
 
-    /**
-     * Gets the number of rows that are "filtered". These are rows that derby thinks should have been
-     * changed, but that we don't change due to some kind of optimization (e.g. not writing data that we know
-     * will fail for some reason). This allows us to generate the "correct" number of rows modified without
-     * actually physically writing it.
-     *
-     * The main usage of this is to enable UpdateOperations to work correctly while still emitting the
-     * same number of rows as we expect(see DB-2007 for more information).
-     *
-     * @return the number of "filtered" rows
-     */
-    public long getFilteredRows(){
-        return writeRowsFiltered;
-
-    }
-
-    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        DataSet set = source.getDataSet();
-        return set.mapPartitions(new DMLWriteSparkOp(dsp.createOperationContext(this)));
-    }
-
-	public static final class DMLWriteSparkOp extends SpliceFlatMapFunction<SpliceOperation, Iterator<LocatedRow>, LocatedRow> {
-		public DMLWriteSparkOp() {
-		}
-
-		public DMLWriteSparkOp(OperationContext<SpliceOperation> operationContext) {
-			super(operationContext);
-		}
-
-        @Override
-		public Iterable<LocatedRow> call(Iterator<LocatedRow> locatedRowIterator) throws Exception {
-            DMLWriteOperation op = (DMLWriteOperation) getOperation();
-			KeyEncoder keyEncoder = op.getKeyEncoder();
-			DataHash rowHash = op.getRowHash();
-			KVPair.Type dataType = op instanceof UpdateOperation ? KVPair.Type.UPDATE : KVPair.Type.INSERT;
-			dataType = op instanceof DeleteOperation ? KVPair.Type.DELETE : dataType;
-			TxnView txn = operationContext.getTxn();
-			WriteCoordinator writeCoordinator = SpliceDriver.driver().getTableWriter();
-            operationContext.recordWrite();
-            // Add metrics?
-			RecordingCallBuffer<KVPair> bufferToTransform = writeCoordinator.writeBuffer(op.getDestinationTable(), txn, Metrics.noOpMetricFactory());
-			RecordingCallBuffer<KVPair> writeBuffer = op.transformWriteBuffer(bufferToTransform);
-			PairEncoder encoder = new PairEncoder(keyEncoder, rowHash, dataType);
-            int i = 0;
-			while(locatedRowIterator.hasNext()) {
-                LocatedRow lr = locatedRowIterator.next();
-				ExecRow row = lr.getRow();
-                operationContext.getOperation().setCurrentLocatedRow(lr);
-				if (row == null) continue;
-				KVPair encode = encoder.encode(row);
-				writeBuffer.add(encode);
-                i++;
-			}
-			writeBuffer.flushBuffer();
-			writeBuffer.close();
-            ValueRow valueRow = new ValueRow(1);
+                ValueRow valueRow = new ValueRow(1);
             valueRow.setColumn(1,new SQLInteger(i));
 			return Collections.singletonList(new LocatedRow(valueRow));
-		}
-	}
+
+     */
 }

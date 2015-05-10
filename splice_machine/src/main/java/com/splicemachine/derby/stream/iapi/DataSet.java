@@ -2,7 +2,6 @@ package com.splicemachine.derby.stream.iapi;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.function.*;
-
 import java.util.Iterator;
 import java.util.List;
 
@@ -32,7 +31,7 @@ public interface DataSet<V> {
      * Apply function to dataset to produce an indexed dataset.  Does not require
      * uniqueness on the left values.
      */
-    <Op extends SpliceOperation, K> PairDataSet<K,V> index(SplicePairFunction<Op,K,V> function);
+    <Op extends SpliceOperation, K,U> PairDataSet<K,U> index(SplicePairFunction<Op,V,K,U> function);
     /**
      * Apply map function.
      */

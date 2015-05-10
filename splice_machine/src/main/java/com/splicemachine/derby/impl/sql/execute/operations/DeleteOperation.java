@@ -1,17 +1,25 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.derby.stream.function.SplicePairFunction;
+import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.temporary.WriteReadUtils;
+import com.splicemachine.derby.stream.temporary.delete.DeleteTableWriterBuilder;
+import com.splicemachine.derby.stream.temporary.insert.InsertTableWriterBuilder;
 import com.splicemachine.derby.utils.marshall.*;
+import com.splicemachine.primitives.Bytes;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.RowLocation;
 import org.apache.log4j.Logger;
+import scala.Tuple2;
 
 import java.io.IOException;
 
@@ -52,35 +60,6 @@ public class DeleteOperation extends DMLWriteOperation {
 	}
 
 		@Override
-		public KeyEncoder getKeyEncoder() throws StandardException {
-				return new KeyEncoder(NoOpPrefix.INSTANCE,new DataHash<ExecRow>(){
-						private ExecRow currentRow;
-
-						@Override
-						public void setRow(ExecRow rowToEncode) {
-								this.currentRow = rowToEncode;
-						}
-
-						@Override
-						public byte[] encode() throws StandardException, IOException {
-								RowLocation location = (RowLocation)currentRow.getColumn(currentRow.nColumns()).getObject();
-								return location.getBytes();
-						}
-
-						@Override public void close() throws IOException {  }
-
-						@Override public KeyHashDecoder getDecoder() {
-								return NoOpKeyHashDecoder.INSTANCE;
-						}
-				},NoOpPostfix.INSTANCE);
-		}
-
-		@Override
-		public DataHash getRowHash() throws StandardException {
-            return EMPTY_VALUES_ENCODER;
-		}
-
-		@Override
 	public String toString() {
 		return "Delete{destTable="+heapConglom+",source=" + source + "}";
 	}
@@ -90,4 +69,32 @@ public class DeleteOperation extends DMLWriteOperation {
         return "Delete"+super.prettyPrint(indentLevel);
     }
 
+    @Override
+    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+        DataSet set = source.getDataSet();
+        TxnView txn = elevateTransaction(Long.toString(heapConglom).getBytes());
+        DeleteTableWriterBuilder builder = new DeleteTableWriterBuilder()
+                .heapConglom(heapConglom)
+                .txn(txn);
+        return set.index(new SplicePairFunction<SpliceOperation,LocatedRow,RowLocation,ExecRow>() {
+            int counter = 0;
+            @Override
+            public Tuple2<RowLocation, ExecRow> call(LocatedRow locatedRow) throws Exception {
+                return new Tuple2<RowLocation, ExecRow>(locatedRow.getRowLocation(),locatedRow.getRow());
+            }
+
+            @Override
+            public RowLocation genKey(LocatedRow locatedRow) {
+                counter++;
+                RowLocation rowLocation = locatedRow.getRowLocation();
+                return rowLocation==null?new HBaseRowLocation(Bytes.toBytes(counter)):rowLocation;
+            }
+
+            @Override
+            public ExecRow genValue(LocatedRow locatedRow) {
+                return locatedRow.getRow();
+            }
+
+        }).deleteData(builder);
+    }
 }

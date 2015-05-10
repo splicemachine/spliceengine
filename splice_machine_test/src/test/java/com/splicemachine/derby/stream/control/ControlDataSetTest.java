@@ -4,7 +4,9 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.BooleanDataValue;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.stream.*;
 import com.splicemachine.derby.stream.function.SpliceFunction;
 import com.splicemachine.derby.stream.function.SpliceFunction2;
@@ -12,7 +14,10 @@ import com.splicemachine.derby.stream.function.SplicePairFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.derby.utils.test.TestingDataType;
+import com.splicemachine.primitives.Bytes;
 import org.junit.*;
+import scala.Tuple2;
+
 import javax.annotation.Nullable;
 import java.util.Iterator;
 
@@ -74,9 +79,22 @@ public class ControlDataSetTest extends BaseStreamTest{
     @Test
     public void testIndex() throws Exception {
         DataSet<ExecRow> control = new ControlDataSet<>(tenRowsTwoDuplicateRecords);
-        PairDataSet<ExecRow,ExecRow> pairDataSet = control.index(new SplicePairFunction<SpliceOperation,ExecRow, ExecRow>() {
+        PairDataSet<RowLocation,ExecRow> pairDataSet = control.index(new SplicePairFunction<SpliceOperation,ExecRow, RowLocation,ExecRow>() {
             @Override
-            public ExecRow internalCall(@Nullable ExecRow execRow) {
+            public RowLocation genKey(ExecRow execRow) {
+                try {
+                    ExecRow clone = execRow.getClone();
+                    DataValueDescriptor dvd = TestingDataType.INTEGER.getDataValueDescriptor();
+                    dvd.setValue(1);
+                    clone.setColumn(1, dvd);
+                    return new HBaseRowLocation(Bytes.toBytes(execRow.getColumn(1).getInt()));
+                } catch (Exception e) {
+                    throw new RuntimeException("Error");
+                }
+            }
+
+            @Override
+            public ExecRow genValue(ExecRow execRow) {
                 try {
                     ExecRow clone = execRow.getClone();
                     DataValueDescriptor dvd = TestingDataType.INTEGER.getDataValueDescriptor();
@@ -84,11 +102,17 @@ public class ControlDataSetTest extends BaseStreamTest{
                     clone.setColumn(1, dvd);
                     return clone;
                 } catch (Exception e) {
-                    throw new RuntimeException(e);
+                    throw new RuntimeException("Error");
                 }
             }
+
+            @Override
+            public Tuple2<RowLocation, ExecRow> call(ExecRow execRow) throws Exception {
+                throw new RuntimeException ("No Op");
+            }
         });
-        Iterator<ExecRow> it = pairDataSet.keys().toLocalIterator();
+
+        Iterator<ExecRow> it = pairDataSet.values().toLocalIterator();
         int i = 0;
         while (it.hasNext()) {
             i++;

@@ -1,10 +1,20 @@
 package com.splicemachine.derby.stream.control;
 
 import com.google.common.base.Optional;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.SQLInteger;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.function.SpliceFunction;
 import com.splicemachine.derby.stream.function.SpliceFunction2;
+import com.splicemachine.derby.stream.temporary.delete.DeleteTableWriter;
+import com.splicemachine.derby.stream.temporary.delete.DeleteTableWriterBuilder;
+import com.splicemachine.derby.stream.temporary.insert.InsertTableWriter;
+import com.splicemachine.derby.stream.temporary.insert.InsertTableWriterBuilder;
+import com.splicemachine.derby.stream.temporary.update.UpdateTableWriter;
+import com.splicemachine.derby.stream.temporary.update.UpdateTableWriterBuilder;
 import org.sparkproject.guava.common.base.Function;
 import org.sparkproject.guava.common.base.Supplier;
 import org.sparkproject.guava.common.collect.*;
@@ -212,8 +222,74 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
         return cogroup(rightDataSet);
     }
 
+    /*
+    Cleanup This code...
+     */
     @Override
-    public void writeData() {
+    public DataSet<V> insertData(InsertTableWriterBuilder builder) {
+        InsertTableWriter insertTableWriter = null;
+        try {
+            insertTableWriter = builder.build();
+            insertTableWriter.open();
+            insertTableWriter.write((Iterator < ExecRow >) values().toLocalIterator());
+            ValueRow valueRow = new ValueRow(1);
+            valueRow.setColumn(1,new SQLInteger(insertTableWriter.rowsWritten));
+            return new ControlDataSet(Collections.singletonList(new LocatedRow(valueRow)));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        } finally {
+            try {
+                if (insertTableWriter != null)
+                        insertTableWriter.close();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    @Override
+    public DataSet<V> updateData(UpdateTableWriterBuilder builder) {
+        UpdateTableWriter updateTableWriter = null;
+        try {
+            updateTableWriter = builder.build();
+            updateTableWriter.open();
+            updateTableWriter.update((Iterator < ExecRow >) values().toLocalIterator());
+            ValueRow valueRow = new ValueRow(1);
+            valueRow.setColumn(1,new SQLInteger(updateTableWriter.rowsUpdated));
+            return new ControlDataSet(Collections.singletonList(new LocatedRow(valueRow)));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        } finally {
+            try {
+                if (updateTableWriter != null)
+                    updateTableWriter.close();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    @Override
+    public DataSet<V> deleteData(DeleteTableWriterBuilder builder) {
+        DeleteTableWriter deleteTableWriter = null;
+        try {
+            deleteTableWriter = builder.build();
+            deleteTableWriter.open();
+            deleteTableWriter.delete((Iterator < ExecRow >) values().toLocalIterator());
+            ValueRow valueRow = new ValueRow(1);
+            valueRow.setColumn(1,new SQLInteger(deleteTableWriter.rowsDeleted));
+            return new ControlDataSet(Collections.singletonList(new LocatedRow(valueRow)));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        } finally {
+            try {
+                if (deleteTableWriter != null)
+                    deleteTableWriter.close();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        }
+
 
     }
 }

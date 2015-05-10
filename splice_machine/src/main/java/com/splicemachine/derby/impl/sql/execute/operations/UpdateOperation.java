@@ -7,16 +7,15 @@ import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
-import com.splicemachine.derby.stream.temporary.update.NonPkRowHash;
-import com.splicemachine.derby.stream.temporary.update.PkDataHash;
-import com.splicemachine.derby.stream.temporary.update.PkRowHash;
-import com.splicemachine.derby.stream.temporary.update.ResultSupplier;
-import com.splicemachine.derby.utils.marshall.*;
-import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
-import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
+import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.derby.stream.function.SplicePairFunction;
+import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.temporary.update.*;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.RecordingCallBuffer;
 import com.splicemachine.pipeline.callbuffer.ForwardRecordingCallBuffer;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
@@ -28,6 +27,8 @@ import com.splicemachine.db.iapi.types.RowLocation;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+import scala.Tuple2;
+
 import java.io.IOException;
 
 /**
@@ -40,6 +41,8 @@ public class UpdateOperation extends DMLWriteOperation{
     private DataValueDescriptor[] kdvds;
     public int[] colPositionMap;
     public FormatableBitSet heapList;
+    protected int[] columnOrdering;
+    protected int[] format_ids;
 
     protected static final String NAME = UpdateOperation.class.getSimpleName().replaceAll("Operation","");
 
@@ -69,13 +72,12 @@ public class UpdateOperation extends DMLWriteOperation{
 				SpliceLogUtils.trace(LOG,"init");
 				super.init(context);
 				heapConglom = writeInfo.getConglomerateId();
-
 				pkCols = writeInfo.getPkColumnMap();
-            pkColumns = writeInfo.getPkColumns();
+                pkColumns = writeInfo.getPkColumns();
 
             SpliceConglomerate conglomerate = (SpliceConglomerate)((SpliceTransactionManager)activation.getTransactionController()).findConglomerate(heapConglom);
-            int[] format_ids = conglomerate.getFormat_ids();
-            int[] columnOrdering = conglomerate.getColumnOrdering();
+            format_ids = conglomerate.getFormat_ids();
+            columnOrdering = conglomerate.getColumnOrdering();
             kdvds = new DataValueDescriptor[columnOrdering.length];
             for (int i = 0; i < columnOrdering.length; ++i) {
                 kdvds[i] = LazyDataValueFactory.getLazyNull(format_ids[columnOrdering[i]]);
@@ -119,57 +121,6 @@ public class UpdateOperation extends DMLWriteOperation{
         return colPositionMap;
     }
 
-		@Override
-		public KeyEncoder getKeyEncoder() throws StandardException {
-				DataHash hash;
-				FormatableBitSet heapList = getHeapList();
-				if(!modifiedPrimaryKeys(heapList)){
-						hash = new DataHash<ExecRow>() {
-								private ExecRow currentRow;
-								@Override
-								public void setRow(ExecRow rowToEncode) {
-										this.currentRow = rowToEncode;
-								}
-
-								@Override
-								public byte[] encode() throws StandardException, IOException {
-										return ((RowLocation)currentRow.getColumn(currentRow.nColumns()).getObject()).getBytes();
-								}
-
-								@Override public void close() throws IOException {  }
-
-								@Override
-								public KeyHashDecoder getDecoder() {
-										return NoOpKeyHashDecoder.INSTANCE;
-								}
-						};
-				}else{
-						//TODO -sf- we need a sort order here for descending columns, don't we?
-						//hash = BareKeyHash.encoder(getFinalPkColumns(getColumnPositionMap(heapList)),null);
-                    hash = new PkDataHash(getFinalPkColumns(getColumnPositionMap(heapList)), kdvds,writeInfo.getTableVersion());
-				}
-				return new KeyEncoder(NoOpPrefix.INSTANCE,hash,NoOpPostfix.INSTANCE);
-		}
-
-		@Override
-		public DataHash getRowHash() throws StandardException {
-				FormatableBitSet heapList = getHeapList();
-				boolean modifiedPrimaryKeys = modifiedPrimaryKeys(heapList);
-
-
-				final int[] colPositionMap = getColumnPositionMap(heapList);
-
-				//if we haven't modified any of our primary keys, then we can just change it directly
-				DescriptorSerializer[] serializers = VersionedSerializers.forVersion(writeInfo.getTableVersion(),false).getSerializers(getExecRowDefinition());
-				if(!modifiedPrimaryKeys){
-						return new NonPkRowHash(colPositionMap,null, serializers, heapList);
-				}
-
-				int[] finalPkColumns = getFinalPkColumns(colPositionMap);
-
-				resultSupplier = new ResultSupplier(new BitSet(),txn,heapConglom);
-				return new PkRowHash(finalPkColumns,null,heapList,colPositionMap,resultSupplier,serializers);
-		}
 
 		private int[] getFinalPkColumns(int[] colPositionMap) {
 				int[] finalPkColumns;
@@ -238,4 +189,41 @@ public class UpdateOperation extends DMLWriteOperation{
 				return "Update{destTable="+heapConglom+",source=" + source + "}";
 		}
 
+    @Override
+    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+
+
+        DataSet set = source.getDataSet();
+        TxnView txn = elevateTransaction(Long.toString(heapConglom).getBytes());
+        UpdateTableWriterBuilder builder = new UpdateTableWriterBuilder()
+                .heapConglom(heapConglom)
+                .execRowDefinition(getExecRowDefinition())
+                .pkCols(pkCols)
+                .pkColumns(pkColumns)
+                .formatIds(format_ids)
+                .columnOrdering(columnOrdering)
+                .heapList(getHeapList())
+                .tableVersion(writeInfo.getTableVersion())
+                .txn(txn);
+        return set.index(new SplicePairFunction<SpliceOperation,LocatedRow,RowLocation,ExecRow>() {
+            int counter = 0;
+            @Override
+            public Tuple2<RowLocation, ExecRow> call(LocatedRow locatedRow) throws Exception {
+                return new Tuple2<RowLocation, ExecRow>(locatedRow.getRowLocation(),locatedRow.getRow());
+            }
+
+            @Override
+            public RowLocation genKey(LocatedRow locatedRow) {
+                counter++;
+                RowLocation rowLocation = locatedRow.getRowLocation();
+                return rowLocation==null?new HBaseRowLocation(com.splicemachine.primitives.Bytes.toBytes(counter)):rowLocation;
+            }
+
+            @Override
+            public ExecRow genValue(LocatedRow locatedRow) {
+                return locatedRow.getRow();
+            }
+
+        }).updateData(builder);
+    }
 }

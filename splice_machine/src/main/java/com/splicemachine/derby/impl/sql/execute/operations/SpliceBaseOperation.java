@@ -879,4 +879,16 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
             closeables = new ArrayList(1);
         closeables.add(closeable);
     }
+
+    protected TxnView elevateTransaction(byte[] table) throws StandardException {
+				/*
+				 * Elevate the current transaction to make sure that we are writable
+				 */
+        TransactionController transactionExecute = activation.getLanguageConnectionContext().getTransactionExecute();
+        Transaction rawStoreXact = ((TransactionManager) transactionExecute).getRawStoreXact();
+        BaseSpliceTransaction rawTxn = (BaseSpliceTransaction) rawStoreXact;
+        TxnView currentTxn = rawTxn.getActiveStateTxn();
+        return ((SpliceTransaction)rawTxn).elevate(table);
+    }
+
 }

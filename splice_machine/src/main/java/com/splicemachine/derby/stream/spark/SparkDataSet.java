@@ -53,7 +53,7 @@ public class SparkDataSet<V> implements DataSet<V>, Serializable {
     }
 
     @Override
-    public <Op extends SpliceOperation, K> PairDataSet<K,V> index(SplicePairFunction<Op,K,V> function) {
+    public <Op extends SpliceOperation, K,U> PairDataSet<K,U> index(SplicePairFunction<Op,V,K,U> function) {
         return new SparkPairDataSet(
                 rdd.mapToPair(function));
     }
