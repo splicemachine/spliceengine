@@ -15,4 +15,5 @@ public interface DataSetProcessor<Op extends SpliceOperation,K,V> {
     OperationContext<Op> createOperationContext(Op spliceOperation);
     void setJobGroup(String jobName, String jobDescription);
 
+
 }

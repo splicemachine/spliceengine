@@ -144,9 +144,10 @@ public class SMRecordWriterImpl extends RecordWriter<RowLocation, ExecRow> {
 		}
 
 		public DataHash<ExecRow> getRowHash() throws StandardException {
-				int[] columns = InsertOperation.getEncodingColumns(execRowDefn.nColumns(),pkCols);
-				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(true).getSerializers(execRowDefn);
-				return new EntryDataHash(columns,null,serializers);
+//				int[] columns = InsertOperation.getEncodingColumns(execRowDefn.nColumns(),pkCols);
+//				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(true).getSerializers(execRowDefn);
+//				return new EntryDataHash(columns,null,serializers);
+            return null;
 		}
 
 			

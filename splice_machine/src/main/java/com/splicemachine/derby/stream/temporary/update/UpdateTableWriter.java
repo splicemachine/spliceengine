@@ -6,25 +6,28 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.metrics.Metrics;
 import com.splicemachine.pipeline.api.RecordingCallBuffer;
 import com.splicemachine.pipeline.callbuffer.ForwardRecordingCallBuffer;
+import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.pipeline.impl.WriteCoordinator;
 import com.splicemachine.si.api.TxnView;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.util.Bytes;
-
 import java.io.IOException;
+import java.util.Iterator;
 
 /**
  * Created by jleach on 5/5/15.
  */
-public class UpdateTableWriter {
-    protected static final KVPair.Type dataType = KVPair.Type.DELETE;
+public class UpdateTableWriter implements AutoCloseable {
+    protected static final KVPair.Type dataType = KVPair.Type.UPDATE;
     protected long heapConglom;
     protected int[] formatIds;
     protected int[] columnOrdering;
@@ -39,12 +42,17 @@ public class UpdateTableWriter {
     protected TxnView txn;
     protected ExecRow execRowDefinition;
     WriteCoordinator writeCoordinator;
+    protected RecordingCallBuffer<KVPair> writeBuffer;
+    protected byte[] destinationTable;
+    protected PairEncoder encoder;
+    protected ExecRow currentRow;
+    public int rowsUpdated = 0;
 
 
 
     public UpdateTableWriter(long heapConglom, int[] formatIds, int[] columnOrdering,
                              int[] pkCols,  FormatableBitSet pkColumns, String tableVersion, TxnView txn,
-                             ExecRow geecRowDefinition) throws StandardException {
+                             ExecRow execRowDefinition,FormatableBitSet heapList) throws StandardException {
         this.heapConglom = heapConglom;
         this.formatIds = formatIds;
         this.columnOrdering = columnOrdering;
@@ -53,6 +61,12 @@ public class UpdateTableWriter {
         this.tableVersion = tableVersion;
         this.txn = txn;
         this.execRowDefinition = execRowDefinition;
+        this.heapList = heapList;
+    }
+
+    public void open() throws StandardException {
+        destinationTable = Long.toString(heapConglom).getBytes();
+        writeCoordinator = SpliceDriver.driver().getTableWriter();
         kdvds = new DataValueDescriptor[columnOrdering.length];
         // Get the DVDS for the primary keys...
         for (int i = 0; i < columnOrdering.length; ++i)
@@ -71,19 +85,22 @@ public class UpdateTableWriter {
             }
         }
         // Grab the final PK Columns
-         if(pkCols!=null){
+        if(pkCols!=null){
             finalPkColumns =new int[pkCols.length];
             int count = 0;
             for(int i : pkCols){
                 finalPkColumns[count] = colPositionMap[i];
                 count++;
             }
-         }else{
-                finalPkColumns = new int[0];
-         }
+        }else{
+            finalPkColumns = new int[0];
+        }
 
 
-
+        RecordingCallBuffer<KVPair> bufferToTransform = writeCoordinator.writeBuffer(destinationTable,
+                txn, Metrics.noOpMetricFactory());
+        writeBuffer = transformWriteBuffer(bufferToTransform);
+        encoder = new PairEncoder(getKeyEncoder(), getRowHash(), dataType);
     }
 
     public KeyEncoder getKeyEncoder() throws StandardException {
@@ -140,6 +157,32 @@ public class UpdateTableWriter {
                 }
             };
         } else return bufferToTransform;
+    }
+
+    public void update(ExecRow execRow) throws StandardException {
+        try {
+            currentRow = execRow;
+            rowsUpdated++;
+            KVPair encode = encoder.encode(execRow);
+            writeBuffer.add(encode);
+        } catch (Exception e) {
+            throw Exceptions.parseException(e);
+        }
+    }
+
+    public void update(Iterator<ExecRow> execRows) throws StandardException {
+        while (execRows.hasNext())
+            update(execRows.next());
+    }
+
+
+    public void close() throws StandardException {
+        try {
+            writeBuffer.flushBuffer();
+            writeBuffer.close();
+        } catch (Exception e) {
+            throw Exceptions.parseException(e);
+        }
     }
 
 }

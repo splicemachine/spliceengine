@@ -1,13 +1,20 @@
 package com.splicemachine.derby.stream.temporary.update;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.si.api.TxnView;
+import org.apache.commons.lang.SerializationUtils;
+import org.apache.hadoop.hbase.util.Base64;
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 
 /**
  * Created by jleach on 5/5/15.
  */
-public class UpdateTableWriterBuilder {
+public class UpdateTableWriterBuilder implements Externalizable {
     protected long heapConglom;
     protected int[] formatIds;
     protected int[] columnOrdering;
@@ -17,6 +24,7 @@ public class UpdateTableWriterBuilder {
     protected String tableVersion;
     protected TxnView txn;
     protected ExecRow execRowDefinition;
+    protected int[] execRowTypeFormatIds;
 
     public UpdateTableWriterBuilder tableVersion(String tableVersion) {
         assert tableVersion != null :"Table Version Cannot Be null!";
@@ -36,6 +44,12 @@ public class UpdateTableWriterBuilder {
         return this;
     }
 
+    public UpdateTableWriterBuilder execRowTypeFormatIds(int[] execRowTypeFormatIds) {
+        assert execRowTypeFormatIds != null :"execRowTypeFormatIds Cannot Be null!";
+        this.execRowTypeFormatIds = execRowTypeFormatIds;
+        return this;
+    }
+
     public UpdateTableWriterBuilder heapConglom(long heapConglom) {
         assert heapConglom !=-1 :"Only Set Heap Congloms allowed!";
         this.heapConglom = heapConglom;
@@ -49,19 +63,16 @@ public class UpdateTableWriterBuilder {
     }
 
     public UpdateTableWriterBuilder columnOrdering(int[] columnOrdering) {
-        assert columnOrdering != null :"Column Ordering cannot be null";
         this.columnOrdering = columnOrdering;
         return this;
     }
 
     public UpdateTableWriterBuilder pkCols(int[] pkCols) {
-        assert pkCols != null :"Primary Key Columns cannot be null";
         this.pkCols = pkCols;
         return this;
     }
 
     public UpdateTableWriterBuilder pkColumns(FormatableBitSet pkColumns) {
-        assert pkColumns != null :"PK Columns cannot be null";
         this.pkColumns = pkColumns;
         return this;
     }
@@ -70,6 +81,30 @@ public class UpdateTableWriterBuilder {
         assert heapList != null :"heapList cannot be null";
         this.heapList = heapList;
         return this;
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+
+    }
+    public static UpdateTableWriterBuilder getDeleteTableWriterBuilderFromBase64String(String base64String) throws IOException {
+        if (base64String == null)
+            throw new IOException("tableScanner base64 String is null");
+        return (UpdateTableWriterBuilder) SerializationUtils.deserialize(Base64.decode(base64String));
+    }
+    public String getUpdateTableWriterBuilderBase64String() throws IOException, StandardException {
+        return Base64.encodeBytes(SerializationUtils.serialize(this));
+    }
+
+    public UpdateTableWriter build() throws StandardException {
+        return new UpdateTableWriter(heapConglom, formatIds, columnOrdering,
+        pkCols,  pkColumns, tableVersion, txn,
+                execRowDefinition,heapList);
     }
 
 }

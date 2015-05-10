@@ -6,6 +6,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.temporary.WriteReadUtils;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.ByteSlice;
@@ -84,9 +85,8 @@ public class TableScanOperation extends ScanOperation {
 				SpliceLogUtils.trace(LOG, "instantiated for tablename %s or indexName %s with conglomerateID %d",
                         tableName, indexName, conglomId);
 				this.forUpdate = forUpdate;
-
-                System.out.println("Current Isolation Level" + activation.getLanguageConnectionContext().getCurrentIsolationLevel());
-
+                // JL TODO Will need to get the isolation on the transaction
+                //System.out.println("Current Isolation Level" + activation.getLanguageConnectionContext().getCurrentIsolationLevel());
 				this.isConstraint = isConstraint;
 				this.rowsPerRead = rowsPerRead;
 				this.tableName = Long.toString(scanInformation.getConglomerateId());
@@ -207,10 +207,6 @@ public class TableScanOperation extends ScanOperation {
         @Override
         public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
             assert currentTemplate != null: "Current Template Cannot Be Null";
-            int[] execRowTypeFormatIds = new int[currentTemplate.nColumns()];
-            for (int i = 0; i< currentTemplate.nColumns(); i++) {
-                execRowTypeFormatIds[i] = currentTemplate.getColumn(i+1).getTypeFormatId();
-            }
             TxnView txn = operationInformation.getTransaction();
             TableScannerBuilder tsb = new TableScannerBuilder()
                     .transaction(operationInformation.getTransaction())
@@ -221,7 +217,7 @@ public class TableScanOperation extends ScanOperation {
                     .keyColumnEncodingOrder(scanInformation.getColumnOrdering())
                     .keyColumnSortOrder(scanInformation.getConglomerate().getAscDescInfo())
                     .keyColumnTypes(getKeyFormatIds())
-                    .execRowTypeFormatIds(execRowTypeFormatIds)
+                    .execRowTypeFormatIds(WriteReadUtils.getExecRowTypeFormatIds(currentTemplate))
                     .accessedKeyColumns(scanInformation.getAccessedPkColumns())
                     .keyDecodingMap(getKeyDecodingMap())
                     .rowDecodingMap(baseColumnMap);

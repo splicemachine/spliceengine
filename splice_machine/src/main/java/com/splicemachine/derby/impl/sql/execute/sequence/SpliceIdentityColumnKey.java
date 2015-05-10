@@ -1,7 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.sequence;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import org.apache.hadoop.hbase.client.HTableInterface;
 
 public class SpliceIdentityColumnKey extends AbstractSequenceKey {
@@ -14,7 +13,6 @@ public class SpliceIdentityColumnKey extends AbstractSequenceKey {
     		byte[] sysColumnsRow,
             long seqConglomId,
             int columnNum,
-            DataDictionary metaDictionary,
             long blockAllocationSize,
             long autoIncStart,
             long autoIncrement

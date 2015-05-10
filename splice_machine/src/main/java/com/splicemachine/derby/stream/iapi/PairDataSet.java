@@ -6,6 +6,10 @@ import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.function.SpliceFunction;
 import com.splicemachine.derby.stream.function.SpliceFunction2;
+import com.splicemachine.derby.stream.function.SplicePairFunction;
+import com.splicemachine.derby.stream.temporary.delete.DeleteTableWriterBuilder;
+import com.splicemachine.derby.stream.temporary.insert.InsertTableWriterBuilder;
+import com.splicemachine.derby.stream.temporary.update.UpdateTableWriterBuilder;
 import scala.Tuple2;
 
 import java.util.Comparator;
@@ -31,7 +35,9 @@ public interface PairDataSet<K,V> {
     public <W> PairDataSet<K,V> broadcastSubtractByKey(PairDataSet<K,W> rightDataSet);
     public <W> PairDataSet<K,Tuple2<Iterator<V>, Iterator<W>>> cogroup(PairDataSet<K,W> rightDataSet);
     public <W> PairDataSet<K,Tuple2<Iterator<V>, Iterator<W>>> broadcastCogroup(PairDataSet<K,W> rightDataSet);
-    public void writeData();
+    public DataSet<V> insertData(InsertTableWriterBuilder builder);
+    public DataSet<V> updateData(UpdateTableWriterBuilder builder);
+    public DataSet<V> deleteData(DeleteTableWriterBuilder builder);
     public String toString();
 
 /*    public <W> PairDataSet<K,Tuple2<V,Optional<W>>> nestedLoopLeftOuterJoin(PairDataSet<K,W> rightDataSet); ?

@@ -4,10 +4,13 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
+import org.sparkproject.guava.common.base.Function;
 import org.sparkproject.guava.common.collect.Iterables;
 import org.sparkproject.guava.common.collect.Multimaps;
 import org.sparkproject.guava.common.collect.Sets;
 import org.sparkproject.guava.common.collect.FluentIterable;
+
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -57,8 +60,21 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
-    public <Op extends SpliceOperation, K>PairDataSet<K, V> index(SplicePairFunction<Op,K,V> function) {
-        return new ControlPairDataSet<K,V>(Multimaps.index(iterable,function));
+    public <Op extends SpliceOperation, K,U>PairDataSet<K, U> index(final SplicePairFunction<Op,V,K,U> function) {
+        return new ControlPairDataSet<K,U>(Multimaps.transformValues(Multimaps.index(iterable, new Function<V, K>() {
+            @Nullable
+            @Override
+            public K apply(@Nullable V v) {
+                return function.genKey(v);
+            }
+        }),new Function<V, U>() {
+            @Nullable
+            @Override
+            public U apply(@Nullable V v) {
+                return function.genValue(v);
+            }
+        }));
+
     }
 
     @Override

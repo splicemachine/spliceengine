@@ -11,6 +11,7 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.function.TableScanTupleFunction;
+import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.mrio.api.core.SMInputFormat;
 import com.splicemachine.db.iapi.types.RowLocation;
 import org.apache.hadoop.conf.Configuration;
@@ -71,4 +72,5 @@ public class SparkDataSetProcessor <Op extends SpliceOperation,K,V> implements D
     public DataSet< V> createDataSet(Iterable<V> value) {
         return new SparkDataSet(SpliceSpark.getContext().parallelize(Lists.newArrayList(value)));
     }
+
 }

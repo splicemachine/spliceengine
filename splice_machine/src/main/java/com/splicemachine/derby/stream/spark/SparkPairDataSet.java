@@ -1,6 +1,7 @@
 package com.splicemachine.derby.stream.spark;
 
 import com.google.common.base.Optional;
+import com.splicemachine.constants.SIConstants;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -8,6 +9,10 @@ import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.function.SpliceFunction;
 import com.splicemachine.derby.stream.function.SpliceFunction2;
+import com.splicemachine.derby.stream.temporary.delete.DeleteTableWriterBuilder;
+import com.splicemachine.derby.stream.temporary.insert.InsertTableWriterBuilder;
+import com.splicemachine.derby.stream.temporary.update.UpdateTableWriterBuilder;
+import org.apache.hadoop.conf.Configuration;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.broadcast.Broadcast;
@@ -50,11 +55,6 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
     @Override
     public PairDataSet< K, V> sortByKey(Comparator<K> comparator) {
         return new SparkPairDataSet<>(rdd.sortByKey(comparator));
-    }
-
-    @Override
-    public void writeData() {
-        rdd.saveAsNewAPIHadoopDataset(null);
     }
 
     @Override
@@ -133,4 +133,24 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
     }
 
 
+    @Override
+    public DataSet<V> insertData(InsertTableWriterBuilder builder) {
+        Configuration conf = new Configuration(SIConstants.config);
+        rdd.saveAsNewAPIHadoopDataset(conf);
+        return null;
+    }
+
+    @Override
+    public DataSet<V> updateData(UpdateTableWriterBuilder builder) {
+        Configuration conf = new Configuration(SIConstants.config);
+        rdd.saveAsNewAPIHadoopDataset(conf);
+        return null;
+    }
+
+    @Override
+    public DataSet<V> deleteData(DeleteTableWriterBuilder builder) {
+        Configuration conf = new Configuration(SIConstants.config);
+        rdd.saveAsNewAPIHadoopDataset(conf);
+        return null;
+    }
 }
