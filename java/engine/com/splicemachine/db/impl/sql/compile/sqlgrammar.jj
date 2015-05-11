@@ -2219,6 +2219,8 @@ public class SQLParser
             // truncating a column in a table. could be type date, timestamp or decimal
             // this is enforced in TruncateOperatorNode after binding so that we know all types
             truncateOperand = operandNode;
+        } else if (operandNode instanceof CurrentDatetimeOperatorNode) {
+            truncateOperand = operandNode;
         }
 
         if (truncateOperand == null) {
@@ -6689,7 +6691,7 @@ escapedValueFunction() throws StandardException :
     }
  
 |   
-    LOOKAHEAD({ getEscapedSYSFUN(getToken(1).image) != null }) 
+    LOOKAHEAD({ getEscapedSYSFUN(getToken(1).image) != null })
     value = escapedSYSFUNFunction()
     {
         return value;
@@ -8032,7 +8034,7 @@ dateTimeScalarFunction() throws StandardException :
                                                         getContextManager());
 		((CastNode) castValue).setForExternallyGeneratedCASTnode();
 		return castValue;
-        }
+    }
 |
         <DATE> <LEFT_PAREN> value = additiveExpression(null,0) <RIGHT_PAREN>
 	{
@@ -8041,17 +8043,22 @@ dateTimeScalarFunction() throws StandardException :
                                                         value,
                                                         DataTypeDescriptor.getBuiltInDataTypeDescriptor( Types.DATE),
                                                         getContextManager());
-        }
+    }
 |
         <TIMESTAMP> <LEFT_PAREN> value = additiveExpression(null,0) timestampNode = timestampFunctionCompletion( value)
 	{
                 return timestampNode;
-        }
+    }
 |
-        (<TRUNC> | <TRUNCATE>) <LEFT_PAREN> value = additiveExpression(null,0) timestampNode = truncateFunctionCompletion(value)
+        (<TRUNC> | <TRUNCATE>) <LEFT_PAREN>
 	{
-                return timestampNode;
+	    if (miscBuiltinFollows()) {
+	        value = miscBuiltins();
+        } else {
+            value = additiveExpression(null,0);
         }
+        return truncateFunctionCompletion(value);
+    }
 |
         <EXTRACT> <LEFT_PAREN> field = datetimeField() <FROM> value = additiveExpression(null,0) <RIGHT_PAREN>
 	{

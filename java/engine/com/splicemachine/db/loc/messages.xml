@@ -3034,7 +3034,7 @@ Guide.
 
             <msg>
                 <name>43002</name>
-                <text>The truncate function was provided an operand which it does not know how to handle: '{0}'.</text>
+                <text>The truncate function was provided an operand which it does not know how to handle: '{0}'. It requires a DATE, TIMESTAMP, INTEGER or DECIMAL type.</text>
                 <arg>operand</arg>
             </msg>
 

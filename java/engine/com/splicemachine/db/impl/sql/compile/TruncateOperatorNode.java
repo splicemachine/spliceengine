@@ -82,7 +82,7 @@ public class TruncateOperatorNode extends BinaryOperatorNode {
             } else {
                 throw StandardException.newException(SQLState.LANG_TRUNCATE_UNKNOWN_TYPE_OPERAND, leftOperand.toString());
             }
-        } else if (! (truncOperand instanceof ColumnReference)) {
+        } else if (! (truncOperand instanceof ColumnReference) && ! (truncOperand instanceof CurrentDatetimeOperatorNode)) {
             // A ColumnReference will not have a type until bind time.
             // We put off further ColumnReference validation until then.
             // If we don't get a ColumnReference at this point, we can't handle the operand.
