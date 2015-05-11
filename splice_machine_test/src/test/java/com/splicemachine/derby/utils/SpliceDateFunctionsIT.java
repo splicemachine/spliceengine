@@ -212,7 +212,7 @@ public class SpliceDateFunctionsIT {
 
     @Test @Ignore("Implemented in SpliceDateFunctions but not exposed in SpliceSystemProcedures due to timezone loss.")
     public void testToTimestampFunction() throws Exception{
-        String sqlText = "SELECT ts, pat, datestr, TO_TIMESTAMP(datestr, pat) as totimestamp from " + tableWatcherI + " order by datestr";
+        String sqlText = "SELECT ts, pat, datestr, TIMESTAMP(datestr, pat) as totimestamp from " + tableWatcherI + " order by datestr";
         try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
 
             String expected =
@@ -360,8 +360,42 @@ public class SpliceDateFunctionsIT {
     }
 
     @Test
+    public void testTimeStampAddUnescaped() throws Exception {
+        // DB-2970
+        String sqlText = "SELECT TIMESTAMPADD(SQL_TSI_MONTH, 1, col3), col3 from " + tableWatcherG + " order by col3";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+
+            String expected =
+                "1           |        COL3          |\n" +
+                    "----------------------------------------------\n" +
+                    "2011-02-28 00:00:00.0 |2011-01-29 00:00:00.0 |\n" +
+                    "2012-02-01 00:00:00.0 |2012-01-01 00:00:00.0 |\n" +
+                    "2012-02-29 00:00:00.0 |2012-01-29 00:00:00.0 |\n" +
+                    "2012-11-01 00:00:00.0 |2012-10-01 00:00:00.0 |\n" +
+                    "2013-01-01 00:00:00.0 |2012-12-01 00:00:00.0 |\n" +
+                    "2013-01-30 00:00:00.0 |2012-12-30 00:00:00.0 |\n" +
+                    "2013-01-31 00:00:00.0 |2012-12-31 00:00:00.0 |\n" +
+                    "2013-01-31 20:00:00.0 |2012-12-31 20:00:00.0 |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
     public void testTimeStampAddValues() throws Exception {
         String sqlText = "values {fn TIMESTAMPADD(SQL_TSI_MONTH, 1, current_timestamp)}";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            int rowCount = 0;
+            while (rs.next()) {
+                rowCount++;
+            }
+            // just make sure we've got at least one row and no exceptions
+            assertEquals("\n" + sqlText + "\n", 1, rowCount);
+        }
+    }
+
+    @Test
+    public void testTimeStampAddValuesUnescaped() throws Exception {
+        String sqlText = "values TIMESTAMPADD(SQL_TSI_MONTH, 1, current_timestamp)";
         try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
             int rowCount = 0;
             while (rs.next()) {
@@ -407,8 +441,42 @@ public class SpliceDateFunctionsIT {
     }
 
     @Test
+    public void testTimeStampDiffWithTimestampUnescaped() throws Exception {
+        // DB-2970
+        String sqlText = "select TIMESTAMPDIFF(SQL_TSI_DAY, date('2012-12-26'), col3), date(col3), date('2012-12-26') from " + tableWatcherG + " order by col3";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            String expected =
+                "1  |     2     |     3     |\n" +
+                    "------------------------------\n" +
+                    "-697 |2011-01-29 |2012-12-26 |\n" +
+                    "-360 |2012-01-01 |2012-12-26 |\n" +
+                    "-332 |2012-01-29 |2012-12-26 |\n" +
+                    " -86 |2012-10-01 |2012-12-26 |\n" +
+                    " -25 |2012-12-01 |2012-12-26 |\n" +
+                    "  4  |2012-12-30 |2012-12-26 |\n" +
+                    "  5  |2012-12-31 |2012-12-26 |\n" +
+                    "  5  |2012-12-31 |2012-12-26 |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
     public void testTimeStampDiffWithDate() throws Exception {
         String sqlText = "select {fn TIMESTAMPDIFF(SQL_TSI_DAY, date('2003-03-29'), col3)}, col3, date('2012-12-26') from " + tableWatcherD + " order by col3";
+        try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
+            String expected =
+                "1  |   COL3    |     3     |\n" +
+                    "------------------------------\n" +
+                    "-365 |2002-03-29 |2012-12-26 |\n" +
+                    "2056 |2008-11-13 |2012-12-26 |";
+            assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+        }
+    }
+
+    @Test
+    public void testTimeStampDiffWithDateUnescaped() throws Exception {
+        // DB-2970
+        String sqlText = "select TIMESTAMPDIFF(SQL_TSI_DAY, date('2003-03-29'), col3), col3, date('2012-12-26') from " + tableWatcherD + " order by col3";
         try (ResultSet rs = methodWatcher.executeQuery(sqlText)) {
             String expected =
                 "1  |   COL3    |     3     |\n" +
