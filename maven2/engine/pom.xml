@@ -28,7 +28,9 @@
                                 </jar>
                                 <jar destfile="${basedir}/target/${project.build.finalName}-sources.jar">
                                     <fileset dir="${basedir}/../../java/engine"/>
-                                    <fileset dir="${basedir}/../../generated/java"/>
+                                    <fileset dir="${basedir}/../../generated/java/engine"/>
+                                    <fileset dir="${basedir}/../../generated/java/shared"/>
+                                    <fileset dir="${basedir}/../../generated/java/tools"/>
                                 </jar>
                             </tasks>
                         </configuration>
