@@ -296,7 +296,7 @@ public class NormalizeOperation extends SpliceBaseOperation {
             }
             SpliceLogUtils.trace(LOG,"normalized row %s", sourceRow);
             getActivation().setCurrentRow(normalized, normalize.resultSetNumber);
-            return new LocatedRow(sourceRow.getRowLocation(), normalized);
+            return new LocatedRow(sourceRow.getRowLocation(), normalized.getClone());
         }
 
         public NormalizeSparkFunction(OperationContext<SpliceOperation> operationContext) {

@@ -120,7 +120,7 @@ public class RowOperation extends SpliceBaseOperation {
 		private ExecRow getRow() throws StandardException {
                 if (cachedRow != null) {
                     SpliceLogUtils.trace(LOG, "getRow,cachedRow=%s", cachedRow);
-                    return cachedRow;
+                    return cachedRow.getClone();
                 }
 
                 if (rowMethod != null) {
@@ -129,7 +129,7 @@ public class RowOperation extends SpliceBaseOperation {
                         cachedRow = currentRow;
                     }
                 }
-                return currentRow;
+                return currentRow.getClone();
 		}
 		/**
 		 * This is not operating against a stored table,
