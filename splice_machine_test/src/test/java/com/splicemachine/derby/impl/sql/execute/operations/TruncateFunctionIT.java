@@ -7,12 +7,8 @@ import static org.junit.Assert.fail;
 
 import java.sql.ResultSet;
 import java.sql.Timestamp;
-import java.text.DateFormat;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.Date;
 
-import org.joda.time.DateTime;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
@@ -216,6 +212,38 @@ public class TruncateFunctionIT {
             Assert.assertEquals("The truncate function got an invalid right-side trunc value for operand type DATE: 'HOUR'.",
                                 e.getLocalizedMessage());
         }
+    }
+
+    @Test
+    public void testTruncCURRENT_DATE() throws Exception {
+        // Just checking that no exception thrown here. Hard to verify CURRENT_DATE statically.
+        String sqlText = "values truncate(CURRENT_DATE)";
+        ResultSet rs = spliceClassWatcher.executeQuery(sqlText);
+        rs.close();
+
+        sqlText = "values truncate(CURRENT DATE)";
+        rs = spliceClassWatcher.executeQuery(sqlText);
+        rs.close();
+
+        sqlText = "values truncate(CURRENT DATE, 'year')";
+        rs = spliceClassWatcher.executeQuery(sqlText);
+        rs.close();
+
+        sqlText = "values truncate(CURRENT DATE, 'day')";
+        rs = spliceClassWatcher.executeQuery(sqlText);
+        rs.close();
+
+        sqlText = "values truncate(CURRENT TIME, 'day')";
+        try {
+            rs = spliceClassWatcher.executeQuery(sqlText);
+            Assert.fail("Expected exception giving time type to trunc fn.");
+        } catch (Exception e) {
+            Assert.assertEquals(e.getLocalizedMessage(), "The truncate function was provided an operand which it does" +
+                " not know how to handle: 'methodName: CURRENT TIME\n" +
+                "dataTypeServices: TIME NOT NULL\n" +
+                "'. It requires a DATE, TIMESTAMP, INTEGER or DECIMAL type.", e.getLocalizedMessage());
+        }
+        rs.close();
     }
 
     //=========================================================================================================
@@ -468,6 +496,26 @@ public class TruncateFunctionIT {
         rs.close();
 
         sqlText = "values truncate(timestamp('2011-12-26', '17:13:30'), 'sec')";
+        rs = spliceClassWatcher.executeQuery(sqlText);
+        rs.close();
+    }
+
+    @Test
+    public void testTruncCURRENT_TIMESTAMP() throws Exception {
+        // Just checking that no exception thrown here. Hard to verify CURRENT_TIMESTAMP statically.
+        String sqlText = "values truncate(CURRENT_TIMESTAMP)";
+        ResultSet rs = spliceClassWatcher.executeQuery(sqlText);
+        rs.close();
+
+        sqlText = "values truncate(CURRENT TIMESTAMP)";
+        rs = spliceClassWatcher.executeQuery(sqlText);
+        rs.close();
+
+        sqlText = "values truncate(CURRENT TIMESTAMP, 'year')";
+        rs = spliceClassWatcher.executeQuery(sqlText);
+        rs.close();
+
+        sqlText = "values truncate(CURRENT TIMESTAMP, 'day')";
         rs = spliceClassWatcher.executeQuery(sqlText);
         rs.close();
     }
