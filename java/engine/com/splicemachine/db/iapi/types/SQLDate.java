@@ -115,8 +115,9 @@ public final class SQLDate extends DataType
 	/**
 	 * The JodaTime has problems with all the years before 1884
 	 */
-	private static final long JODA_CRUSH_YEAR = 1884;
-	
+	public static final long JODA_CRUSH_YEAR = 1884;
+
+
     /**
      * Convert the date into a milli-seconds since the epoch
      * with the time set to 00:00 based upon the passed in Calendar.
@@ -532,7 +533,6 @@ public final class SQLDate extends DataType
 	}
 
 	protected void setFrom(DataValueDescriptor theValue) throws StandardException {
-
 		// Same format means same type SQLDate
 		if (theValue instanceof SQLDate) {
 			restoreToNull();
@@ -540,7 +540,8 @@ public final class SQLDate extends DataType
 		}
         else
         {
-			setValue(theValue.getDateTime());
+			//setValue(theValue.getDateTime());  // uses JodaTime which cannot handle old age
+			setValue(theValue.getString());      // uses JodaTime for new age and Calendar for old age
         }
 	}
 
