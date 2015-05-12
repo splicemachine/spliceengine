@@ -245,6 +245,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 				 */
 				//exclude this from SI treatment, since we're doing it internally
 				scan.setAttribute(SIConstants.SI_NEEDED,null);
+                scan.setMaxVersions();
 				Map<byte[], NavigableSet<byte[]>> familyMap = scan.getFamilyMap();
 				if(familyMap!=null){
 						NavigableSet<byte[]> bytes = familyMap.get(SpliceConstants.DEFAULT_FAMILY_BYTES);
