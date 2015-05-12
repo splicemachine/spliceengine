@@ -214,6 +214,7 @@ public class TestConnection implements Connection{
         while(resultSet.next()){
             accumulator.accumulate(resultSet);
         }
+        resultSet.close();
     }
 
     private long parseWarnings(SQLWarning warnings) {
