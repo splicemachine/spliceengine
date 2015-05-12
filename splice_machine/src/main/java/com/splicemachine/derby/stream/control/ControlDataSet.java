@@ -145,4 +145,9 @@ public class ControlDataSet<V> implements DataSet<V> {
     public DataSet<V> fetchWithOffset(int offset, int fetch) {
         return new ControlDataSet<>(Iterables.limit(Iterables.skip(iterable,offset),fetch));
     }
+
+    @Override
+    public DataSet<V> take(int take) {
+        return new ControlDataSet<V>(Iterables.limit(iterable,take));
+    }
 }
