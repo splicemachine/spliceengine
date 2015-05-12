@@ -201,6 +201,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 						ExecRow clone = def !=null? def.getClone(): null;
 						// Set the default values to 1.  This is to avoid division by zero if any of the projected columns have
 						// division or modulus operators.  The delegate classes will need to reset the values to 0.
+                        if(clone!=null) SpliceUtils.populateDefaultValues(clone.getRowArray(),1);
 						source.setCurrentRow(clone);
 						execRowDefinition = doProjection(clone);
                     }
