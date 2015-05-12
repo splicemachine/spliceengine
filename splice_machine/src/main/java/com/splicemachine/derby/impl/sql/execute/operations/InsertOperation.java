@@ -9,6 +9,7 @@ import com.splicemachine.derby.stream.function.SplicePairFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.temporary.WriteReadUtils;
+import com.splicemachine.derby.stream.temporary.insert.InsertTableWriter;
 import com.splicemachine.derby.stream.temporary.insert.InsertTableWriterBuilder;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -50,8 +51,10 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 		private RowLocation[] autoIncrementRowLocationArray;
         private SpliceSequence[] spliceSequences;
 	    protected static final String NAME = InsertOperation.class.getSimpleName().replaceAll("Operation","");
+        public InsertTableWriter tableWriter;
 
-		@Override
+
+    @Override
 		public String getName() {
 				return NAME;
 		}
@@ -111,13 +114,10 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 
 		@Override
 		public DataValueDescriptor increment(int columnPosition, long increment) throws StandardException {
+            if (tableWriter!=null)
+               return tableWriter.increment(columnPosition,increment);
+            else
                 throw new RuntimeException("Not Implemented");
-/*   				if(rowTemplate==null)
-						rowTemplate = getExecRowDefinition();
-				DataValueDescriptor dvd = rowTemplate.cloneColumn(columnPosition);
-				dvd.setValue(nextIncrement);
-				return dvd;
-				*/
 		}
 
 		@Override

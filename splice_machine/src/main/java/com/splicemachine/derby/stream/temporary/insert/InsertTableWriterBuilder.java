@@ -4,6 +4,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
 import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.Pair;
@@ -26,11 +27,18 @@ public class InsertTableWriterBuilder implements Externalizable {
     protected Pair<Long,Long>[] defaultAutoIncrementValues;
     protected long heapConglom;
     protected TxnView txn;
+    protected InsertOperation insertOperation;
 
     public InsertTableWriterBuilder pkCols(int[] pkCols) {
         this.pkCols = pkCols;
         return this;
     }
+
+    public InsertTableWriterBuilder insertOperation(InsertOperation insertOperation) {
+        this.insertOperation = insertOperation;
+        return this;
+    }
+
 
     public InsertTableWriterBuilder txn(TxnView txn) {
         this.txn = txn;
@@ -117,7 +125,7 @@ public class InsertTableWriterBuilder implements Externalizable {
     public InsertTableWriter build() throws StandardException {
         return new InsertTableWriter(pkCols, tableVersion, execRowDefinition,
                     autoIncrementRowLocationArray,defaultAutoIncrementValues,
-                    heapConglom,txn);
+                    heapConglom,txn,insertOperation);
     }
 
 }

@@ -99,4 +99,14 @@ public class NLJInnerJoinFunction<Op extends SpliceOperation> extends SpliceJoin
     public int getResultSetNumber() {
         return op.resultSetNumber();
     }
+
+    @Override
+    public OperationContext getOperationContext() {
+        return operationContext;
+    }
+
+    @Override
+    public LocatedRow getLeftLocatedRow() {
+        return leftRow;
+    }
 }

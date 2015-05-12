@@ -198,6 +198,12 @@ public class CallStatementOperation extends NoRowsOperation {
     @Override
         public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
             call();
+        registerCloseable(new AutoCloseable() {
+            @Override
+            public void close() throws Exception {
+                this.close();
+            }
+        });
             return dsp.getEmpty();
         }
     }

@@ -6,6 +6,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.utils.StreamLogUtils;
 import com.splicemachine.derby.stream.utils.StreamUtils;
 
 import java.io.IOException;
@@ -43,10 +44,13 @@ public class NLJAntiJoinFunction<Op extends SpliceOperation> extends SpliceJoinF
         try {
             dataSet = op.getRightOperation().getDataSet(StreamUtils.controlDataSetProcessor);
             Iterator<LocatedRow> rightSideNLJ = dataSet.toLocalIterator();
-            if (rightSideNLJ.hasNext())
+            if (rightSideNLJ.hasNext()) {
+                StreamLogUtils.logOperationRecordWithMessage(from, operationContext, "anti-join filtered");
                 return Collections.EMPTY_LIST;
+            }
             ExecRow mergedRow = JoinUtils.getMergedRow(from.getRow(), op.getEmptyRow(),
                     op.wasRightOuterJoin, executionFactory.getValueRow(numberOfColumns));
+            StreamLogUtils.logOperationRecordWithMessage(from, operationContext, "anti-join");
             op.setCurrentRow(mergedRow);
             op.setCurrentRowLocation(from.getRowLocation());
             return Collections.singletonList(new LocatedRow(from.getRowLocation(), mergedRow));

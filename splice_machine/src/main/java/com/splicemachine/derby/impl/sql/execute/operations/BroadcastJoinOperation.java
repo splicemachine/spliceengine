@@ -160,8 +160,9 @@ public class BroadcastJoinOperation extends JoinOperation {
             SpliceLogUtils.debug(LOG, "getDataSet Performing MergeSortJoin type=%s, antiJoin=%s, hasRestriction=%s",
                     isOuterJoin ? "outer" : "inner", notExistsRightSide, restriction != null);
         if (isOuterJoin) { // Outer Join with and without restriction
-                return leftDataSet.<LocatedRow>broadcastLeftOuterJoin(rightDataSet)
-                        .map(new OuterJoinPairFunction(operationContext));
+                    return leftDataSet.broadcastCogroup(rightDataSet)
+                            .flatmap(new CogroupOuterJoinRestrictionFlatMapFunction<SpliceOperation>(operationContext))
+                            .map(new SetCurrentLocatedRowFunction<SpliceOperation>(operationContext));
         }
         else {
             if (this.notExistsRightSide) { // antijoin
@@ -173,10 +174,17 @@ public class BroadcastJoinOperation extends JoinOperation {
                             .map(new AntiJoinFunction(operationContext));
                 }
             } else { // Inner Join
+
+                if (isOneRowRightSide()) {
+                    return leftDataSet.<LocatedRow>broadcastCogroup(rightDataSet)
+                            .flatmap(new CogroupInnerJoinRestrictionFlatMapFunction(operationContext));
+                }
+
                 if (restriction !=null) { // with restriction
-                    return leftDataSet.broadcastJoin(rightDataSet)
-                            .map(new InnerJoinFunction<SpliceOperation>(operationContext))
-                            .filter(new JoinRestrictionPredicateFunction<SpliceOperation>(operationContext));
+                        return leftDataSet.broadcastJoin(rightDataSet)
+                                .map(new InnerJoinFunction<SpliceOperation>(operationContext))
+                                .filter(new JoinRestrictionPredicateFunction<SpliceOperation>(operationContext));
+
                 } else { // No Restriction
                     return leftDataSet.broadcastJoin(rightDataSet)
                             .map(new InnerJoinFunction<SpliceOperation>(operationContext));

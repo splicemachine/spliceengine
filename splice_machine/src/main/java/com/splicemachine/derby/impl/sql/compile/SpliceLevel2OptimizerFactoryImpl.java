@@ -47,10 +47,10 @@ public class SpliceLevel2OptimizerFactoryImpl extends OptimizerFactoryImpl {
 	* where users get different arrays.
 	*/
 		if (joinStrategySet == null) { // Do not change order...
-			JoinStrategy[] jss = new JoinStrategy[3];
+			JoinStrategy[] jss = new JoinStrategy[1];
 			jss[0] = new NestedLoopJoinStrategy();
-			jss[1] = new MergeSortJoinStrategy();
-			jss[2] = new BroadcastJoinStrategy();
+//			jss[1] = new MergeSortJoinStrategy();
+//			jss[2] = new BroadcastJoinStrategy();
 //			jss[3] = new MergeJoinStrategy();
 //			jss[4] = new HashNestedLoopJoinStrategy();
 			joinStrategySet = jss;
