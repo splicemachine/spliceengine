@@ -42,8 +42,8 @@ public class NLJAntiJoinFunction<Op extends SpliceOperation> extends SpliceJoinF
         checkInit();
         DataSet dataSet = null;
         try {
-            dataSet = op.getRightOperation().getDataSet(StreamUtils.controlDataSetProcessor);
-            Iterator<LocatedRow> rightSideNLJ = dataSet.toLocalIterator();
+            op.getRightOperation().openCore(StreamUtils.controlDataSetProcessor);
+            Iterator<LocatedRow> rightSideNLJ = op.getRightOperation().getLocatedRowIterator();
             if (rightSideNLJ.hasNext()) {
                 StreamLogUtils.logOperationRecordWithMessage(from, operationContext, "anti-join filtered");
                 return Collections.EMPTY_LIST;
@@ -55,8 +55,8 @@ public class NLJAntiJoinFunction<Op extends SpliceOperation> extends SpliceJoinF
             op.setCurrentRowLocation(from.getRowLocation());
             return Collections.singletonList(new LocatedRow(from.getRowLocation(), mergedRow));
         } finally {
-            if (dataSet!= null)
-                dataSet.close();
+            if (op.getRightOperation()!= null)
+                op.getRightOperation().close();
         }
 
     }

@@ -4,6 +4,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.stream.function.NLJAntiJoinFunction;
 import com.splicemachine.derby.stream.function.NLJInnerJoinFunction;
+import com.splicemachine.derby.stream.function.NLJOneRowInnerJoinFunction;
 import com.splicemachine.derby.stream.function.NLJOuterJoinFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
@@ -86,13 +87,18 @@ public class NestedLoopJoinOperation extends JoinOperation {
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         DataSet<LocatedRow> left = leftResultSet.getDataSet();
         OperationContext<SpliceOperation> operationContext = dsp.createOperationContext(this);
+
         if (isOuterJoin)
             return left.flatMap(new NLJOuterJoinFunction<SpliceOperation>(operationContext));
         else {
             if (notExistsRightSide)
                 return left.flatMap(new NLJAntiJoinFunction<SpliceOperation>(operationContext));
-            else
-                return left.flatMap(new NLJInnerJoinFunction<SpliceOperation>(operationContext));
+            else {
+                if (oneRowRightSide)
+                    return left.flatMap(new NLJOneRowInnerJoinFunction<SpliceOperation>(operationContext));
+                else
+                    return left.flatMap(new NLJInnerJoinFunction<SpliceOperation>(operationContext));
+            }
         }
     }
 }

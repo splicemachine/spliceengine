@@ -45,12 +45,12 @@ public class NLJInnerJoinFunction<Op extends SpliceOperation> extends SpliceJoin
         leftRow = from;
         DataSet dataSet = null;
         try {
-            dataSet = op.getRightOperation().getDataSet(StreamUtils.controlDataSetProcessor);
-            rightSideNLJIterator = dataSet.toLocalIterator();
+            op.getRightOperation().openCore(StreamUtils.controlDataSetProcessor);
+            rightSideNLJIterator = op.getRightOperation().getLocatedRowIterator();
             return new NestedLoopInnerIterator<>(this);
         } finally {
-
-
+            if (op.getRightOperation()!= null)
+                op.getRightOperation().close();
         }
 
     }
