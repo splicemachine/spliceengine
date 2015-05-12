@@ -2,10 +2,14 @@ package com.splicemachine.derby.stream.spark;
 
 import com.google.common.collect.Iterables;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
+import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaRDD;
+import org.apache.spark.api.java.JavaSparkContext;
+
 import java.io.Serializable;
 import java.util.Iterator;
 import java.util.List;
@@ -128,4 +132,9 @@ public class SparkDataSet<V> implements DataSet<V>, Serializable {
         return this;
     }
 
+    @Override
+    public DataSet<V> take(int take) {
+        JavaSparkContext ctx = SpliceSpark.getContext();
+        return new SparkDataSet<V>(ctx.parallelize(rdd.take(take)));
+    }
 }

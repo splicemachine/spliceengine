@@ -89,4 +89,6 @@ public interface DataSet<V> {
      * @return
      */
     DataSet<V> fetchWithOffset(int offset, int fetch);
+
+    DataSet<V> take(int take);
  }

@@ -16,9 +16,9 @@ import java.sql.ResultSet;
  * Time: 1:29 PM
  * To change this template use File | Settings | File Templates.
  */
-public class CompactEncodingIT extends SpliceUnitTest {
+public class LastIndexKeyOperationIT extends SpliceUnitTest {
 
-    public static final String CLASS_NAME = CompactEncodingIT.class.getSimpleName().toUpperCase();
+    public static final String CLASS_NAME = LastIndexKeyOperationIT.class.getSimpleName().toUpperCase();
 
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     public static final String TABLE_NAME = "TAB";

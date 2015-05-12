@@ -188,6 +188,12 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 				return scan;
 		}
 
+        public Scan getReversedNonSIScan() {
+            Scan scan = getNonSIScan();
+            scan.setReversed(true);
+            return scan;
+        }
+
 		/**
 		 * Get the Stored format ids for the columns in the key. The returned int[] is ordered
 		 * by the encoding order of the keys.
