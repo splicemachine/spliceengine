@@ -2,8 +2,10 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.iapi.sql.execute.*;
+import com.splicemachine.db.iapi.sql.execute.xplain.XPLAINVisitor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.Transaction;
@@ -206,13 +208,50 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
     @Override
     public void close() throws StandardException {
         try {
+            if (!isOpen)
+                return;
+
             if (LOG_CLOSE.isTraceEnabled())
                 LOG_CLOSE.trace(String.format("closing operation %s", this));
             if (closeables != null) {
                 for (AutoCloseable closeable : closeables)
                     closeable.close();
             }
+
             clearCurrentRow();
+
+            for (SpliceOperation op : getSubOperations())
+                op.close();
+
+
+		/* If this is the top ResultSet then we must
+		 * close all of the open subqueries for the
+		 * entire query.
+		 */
+            if (isTopResultSet)
+            {
+			/*
+			** If run time statistics tracing is turned on, then now is the
+			** time to dump out the information.
+			*/
+                LanguageConnectionContext lcc = getActivation().getLanguageConnectionContext();
+
+                int staLength = (subqueryTrackingArray == null) ? 0 :
+                        subqueryTrackingArray.length;
+
+                for (int index = 0; index < staLength; index++) {
+                    if (subqueryTrackingArray[index] == null) {
+                        continue;
+                    }
+                    if (subqueryTrackingArray[index].isClosed()) {
+                        continue;
+                    }
+                    subqueryTrackingArray[index].close();
+                }
+            }
+
+            isOpen = false;
+
         } catch (Exception e) {
             throw Exceptions.parseException(e);
         }
@@ -684,7 +723,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
     @Override
     public boolean isClosed() {
-        return false;
+        return !isOpen;
     }
 
     @Override
