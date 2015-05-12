@@ -101,6 +101,7 @@ public class AddColumnTransactionIT {
             rs.getInt("C");
             Assert.assertTrue("Column C is not null!",rs.wasNull());
         }
+        rs.close();
     }
 
     @Test
@@ -123,6 +124,7 @@ public class AddColumnTransactionIT {
             Assert.assertEquals("Incorrect value for column D", 2, anInt);
             Assert.assertTrue("Column D is null!",!rs.wasNull());
         }
+        rs.close();
     }
 
     @Test
@@ -142,6 +144,7 @@ public class AddColumnTransactionIT {
             Assert.assertEquals("Incorrect value for column E",2,anInt);
             Assert.assertTrue("Column E is null!",!rs.wasNull());
         }
+        rs.close();
     }
 
     @Test
@@ -161,6 +164,7 @@ public class AddColumnTransactionIT {
                 Assert.assertEquals("Incorrect error message!", ErrorState.COLUMN_NOT_FOUND.getSqlState(),se.getSQLState());
             }
         }
+        rs.close();
     }
 
     @Test
@@ -181,7 +185,9 @@ public class AddColumnTransactionIT {
             Assert.assertTrue("Column f is null!",!rs.wasNull());
         }
 
-        conn2.query("select * from " + commitTable + " where a = " + aInt);
+        rs.close();
+
+        rs = conn2.query("select * from " + commitTable + " where a = " + aInt);
 
         if(rs.next()){
             try{
@@ -191,6 +197,9 @@ public class AddColumnTransactionIT {
                 Assert.assertEquals("Incorrect error message!", ErrorState.COLUMN_NOT_FOUND.getSqlState(),se.getSQLState());
             }
         }
+
+        rs.close();
+
     }
 
     @Test
@@ -248,6 +257,7 @@ public class AddColumnTransactionIT {
             Assert.assertEquals("Incorrect default value!",2,f);
             count++;
         }
+        rs.close();
         Assert.assertEquals("Incorrect returned row count", 1, count);
     }
 
@@ -282,6 +292,7 @@ public class AddColumnTransactionIT {
             Assert.assertEquals("Incorrect default value!",2,f);
             count++;
         }
+        rs.close();
         Assert.assertEquals("Incorrect returned row count",1,count);
     }
 
@@ -320,6 +331,7 @@ public class AddColumnTransactionIT {
 
         count = conn1.count("select * from " + addedTable4 + " where id is not null");
         Assert.assertEquals("incorrect row count!", 1, count);
+
     }
 
 }
