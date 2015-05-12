@@ -241,6 +241,7 @@ public class SMSerDe implements SerDe {
 
         try {
 	        switch(lctype) {
+                case "string":
 		        case "varchar":
                     HiveVarchar hiveVarchar = null;
                     String s = dvd.getString();
