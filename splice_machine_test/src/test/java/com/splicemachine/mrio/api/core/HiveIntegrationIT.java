@@ -57,16 +57,33 @@ public class HiveIntegrationIT extends BaseMRIOTest {
             + "date_col date, "
             + "varchar_col varchar(32), "
             + "char_col char(32), "
-            + "boolean_col boolean)"
+            + "boolean_col boolean, "
+            + "binary_col varchar(30))"
     );
 
+
     protected static SpliceTableWatcher spliceTableWatcherD = new SpliceTableWatcher("D",HiveIntegrationIT.class.getSimpleName(),"(id int, name varchar(10), gender char(1))");
+    protected static SpliceTableWatcher spliceTableWatcherE = new SpliceTableWatcher("E",HiveIntegrationIT.class.getSimpleName(),"("
+            + "tinyint_col smallint,"
+            + "smallint_col smallInt, "
+            + "int_col int, "
+            + "bigint_col bigint, "
+            + "float_col float, "
+            + "double_col double, "
+            + "decimal_col decimal, "
+            + "timestamp_col timestamp, "
+            + "date_col date, "
+            + "varchar_col varchar(32), "
+            + "char_col char(32), "
+            + "boolean_col boolean)"
+    );
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(spliceSchemaWatcher)
             .around(spliceTableWatcherA)
             .around(spliceTableWatcherB)
             .around(spliceTableWatcherC)
+            .around(spliceTableWatcherE)
             .around(new SpliceDataWatcher(){
                 @Override
                 protected void starting(Description description) {
@@ -85,9 +102,17 @@ public class HiveIntegrationIT extends BaseMRIOTest {
                                 + "date_col, "
                                 + "varchar_col, "
                                 + "char_col, "
-                                + "boolean_col)"
-                                + "values (?,?,?,?,?,?,?,?,?,?,?,?)");
+                                + "boolean_col, "
+                                + "binary_col) "
+                                + "values (?,?,?,?,?,?,?,?,?,?,?,?,?)");
 
+                        PreparedStatement psE = spliceClassWatcher.prepareStatement("insert into "+ HiveIntegrationIT.class.getSimpleName() + ".E ("
+                                + "decimal_col, "
+                                + "timestamp_col, "
+                                + "date_col, "
+                                + "varchar_col, "
+                                + "char_col)"
+                                + "values (?,?,?,?,?)");
 
                         for (int i = 0; i< 100; i++) {
                             psA.setInt(1,i);
@@ -111,8 +136,15 @@ public class HiveIntegrationIT extends BaseMRIOTest {
                             psC.setString(10, "varchar " + i);
                             psC.setString(11, "char " + i);
                             psC.setBoolean(12, true);
-
+                            psC.setString(13, "Binary " + i);
                             psC.executeUpdate();
+
+                            psE.setBigDecimal(1, null);
+                            psE.setTimestamp(2, null);
+                            psE.setDate(3, null);
+                            psE.setString(4, null);
+                            psE.setString(5, null);
+                            psE.executeUpdate();
                         }
 
                     } catch (Exception e) {
@@ -174,7 +206,7 @@ public class HiveIntegrationIT extends BaseMRIOTest {
         Connection con = DriverManager.getConnection("jdbc:hive://");
         Statement stmt = con.createStatement();
         String createExternalExisting = "CREATE EXTERNAL TABLE B " +
-                "(col1 CHAR(20), col2 VARCHAR(56)) " +
+                "(col1 String, col2 VARCHAR(56)) " +
                 "STORED BY 'com.splicemachine.mrio.api.hive.SMStorageHandler' " +
                 "TBLPROPERTIES (" +
                 "\"splice.jdbc\" = \""+SpliceNetConnection.getDefaultLocalURL()+"\","+
@@ -218,6 +250,7 @@ public class HiveIntegrationIT extends BaseMRIOTest {
         }
         Assert.assertEquals("incorrect number of rows returned", 1,i);
     }
+
     @Test
     public void testDataTypes() throws SQLException, IOException {
         Connection con = DriverManager.getConnection("jdbc:hive://");
@@ -234,7 +267,8 @@ public class HiveIntegrationIT extends BaseMRIOTest {
                 + "date_col date, "
                 + "varchar_col varchar(32), "
                 + "char_col char(32), "
-                + "boolean_col boolean)" +
+                + "boolean_col boolean, "
+                + "binary_col binary)" +
                 "STORED BY 'com.splicemachine.mrio.api.hive.SMStorageHandler' " +
                 "TBLPROPERTIES (" +
                 "\"splice.jdbc\" = \""+SpliceNetConnection.getDefaultLocalURL()+"\","+
@@ -257,7 +291,53 @@ public class HiveIntegrationIT extends BaseMRIOTest {
             Assert.assertNotNull("col9 did not return", rs.getDate(9));
             Assert.assertNotNull("col10 did not return", rs.getString(10));
             Assert.assertNotNull("col11 did not return", rs.getString(11));
-            Assert.assertNotNull("col12 did not return", rs.getString(12));
+            Assert.assertNotNull("col12 did not return", rs.getBoolean(12));
+            Assert.assertNotNull("col13 did not return", rs.getString(13));
+        }
+        Assert.assertEquals("incorrect number of rows returned", 100, i);
+    }
+
+    @Test
+    public void testNullColumnValues() throws SQLException, IOException {
+        Connection con = DriverManager.getConnection("jdbc:hive://");
+        Statement stmt = con.createStatement();
+        String createExternalExisting = "CREATE EXTERNAL TABLE E ("
+                + "tinyint_col tinyint,"
+                + "smallint_col smallInt, "
+                + "int_col int, "
+                + "bigint_col bigint, "
+                + "float_col float, "
+                + "double_col double, "
+                + "decimal_col decimal, "
+                + "timestamp_col timestamp, "
+                + "date_col date, "
+                + "varchar_col varchar(32), "
+                + "char_col char(32), "
+                + "boolean_col boolean)" +
+                "STORED BY 'com.splicemachine.mrio.api.hive.SMStorageHandler' " +
+                "TBLPROPERTIES (" +
+                "\"splice.jdbc\" = \""+SpliceNetConnection.getDefaultLocalURL()+"\","+
+                "\"splice.tableName\" = \"HIVEINTEGRATIONIT.E\""+
+                ")";
+
+        stmt.execute(createExternalExisting);
+        ResultSet rs = stmt.executeQuery("select * from E");
+        int i = 0;
+        while (rs.next()) {
+            i++;
+            Assert.assertTrue("col1 did not return", rs.getByte(1)==0);
+            Assert.assertTrue("col2 did not return", rs.getShort(2)==0);
+            Assert.assertTrue("col3 did not return", rs.getInt(3)==0);
+            Assert.assertTrue("col4 did not return", rs.getLong(4)==0);
+            Assert.assertTrue("col5 did not return", rs.getFloat(5)==0);
+            Assert.assertTrue("col6 did not return", rs.getDouble(6)==0);
+            //TODO - jyuan: Should this return a null?
+            Assert.assertTrue("col7 did not return", rs.getBigDecimal(7).toString().compareTo("0")==0);
+            Assert.assertNull("col8 did not return", rs.getTimestamp(8));
+            Assert.assertNull("col9 did not return", rs.getDate(9));
+            Assert.assertNull("col10 did not return", rs.getString(10));
+            Assert.assertNull("col11 did not return", rs.getString(11));
+            Assert.assertTrue("col12 did not return", rs.getBoolean(12)==false);
         }
         Assert.assertEquals("incorrect number of rows returned", 100, i);
     }
