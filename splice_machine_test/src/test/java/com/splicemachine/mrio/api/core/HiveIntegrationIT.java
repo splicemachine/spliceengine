@@ -46,28 +46,19 @@ public class HiveIntegrationIT extends BaseMRIOTest {
     protected static SpliceTableWatcher spliceTableWatcherA = new SpliceTableWatcher("A",HiveIntegrationIT.class.getSimpleName(),"(col1 int, col2 int, col3 int, primary key (col3, col1))");
     protected static SpliceTableWatcher spliceTableWatcherB = new SpliceTableWatcher("B",HiveIntegrationIT.class.getSimpleName(),"(col1 char(20), col2 varchar(56), primary key (col1))");
     protected static SpliceTableWatcher spliceTableWatcherC = new SpliceTableWatcher("C",HiveIntegrationIT.class.getSimpleName(),"("
-            + "bool_col Boolean,"
-            + "date_col DATE not null, "
-            + "time_col TIME, "
-            + "ts_col TIMESTAMP, "
-            + "char_col char(1) not null, "
-            + "varchar_col varchar(25) not null, "
-            + "long_vchar long varchar, "
-            + "small_int_col_not_null smallint not null, "
-            + "small_int_col smallint, "
+            + "tinyint_col smallint,"
+            + "smallint_col smallInt, "
             + "int_col int, "
             + "bigint_col bigint, "
-            + "decimal_col decimal (18,3), "
-            + "decimal_col2 decimal, "
+            + "float_col float, "
             + "double_col double, "
-            + "float_col float(10), "
-            + "float_col1 float(25), "
-            + "numeric_col numeric(24,4), "
-            + "numeric_col1 numeric(31,0), "
-            + "numeric_col2 numeric(31,8), "
-            + "decimal_1 decimal (1), "
-            + "decimal_2 decimal (10,2), "
-            +"primary key (date_col, varchar_col, small_int_col_not_null))");
+            + "decimal_col decimal, "
+            + "timestamp_col timestamp, "
+            + "date_col date, "
+            + "varchar_col varchar(32), "
+            + "char_col char(32), "
+            + "boolean_col boolean)"
+    );
 
     protected static SpliceTableWatcher spliceTableWatcherD = new SpliceTableWatcher("D",HiveIntegrationIT.class.getSimpleName(),"(id int, name varchar(10), gender char(1))");
     @ClassRule
@@ -83,28 +74,19 @@ public class HiveIntegrationIT extends BaseMRIOTest {
                         PreparedStatement psA = spliceClassWatcher.prepareStatement("insert into "+ HiveIntegrationIT.class.getSimpleName() + ".A (col1,col2,col3) values (?,?,?)");
                         PreparedStatement psB = spliceClassWatcher.prepareStatement("insert into "+ HiveIntegrationIT.class.getSimpleName() + ".B (col1,col2) values (?,?)");
                         PreparedStatement psC = spliceClassWatcher.prepareStatement("insert into "+ HiveIntegrationIT.class.getSimpleName() + ".C ("
-                                + "bool_col,"
-                                + "date_col, "
-                                + "time_col, "
-                                + "ts_col, "
-                                + "char_col, "
-                                + "varchar_col, "
-                                + "long_vchar, "
-                                + "small_int_col_not_null, "
-                                + "small_int_col, "
+                                + "tinyint_col,"
+                                + "smallint_col, "
                                 + "int_col, "
                                 + "bigint_col, "
-                                + "decimal_col, "
-                                + "decimal_col2, "
-                                + "double_col, "
                                 + "float_col, "
-                                + "float_col1, "
-                                + "numeric_col, "
-                                + "numeric_col1, "
-                                + "numeric_col2, "
-                                + "decimal_1, "
-                                + "decimal_2) "
-                                + "values (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)");
+                                + "double_col, "
+                                + "decimal_col, "
+                                + "timestamp_col, "
+                                + "date_col, "
+                                + "varchar_col, "
+                                + "char_col, "
+                                + "boolean_col)"
+                                + "values (?,?,?,?,?,?,?,?,?,?,?,?)");
 
 
                         for (int i = 0; i< 100; i++) {
@@ -117,27 +99,19 @@ public class HiveIntegrationIT extends BaseMRIOTest {
                             psB.setString(2, "Varchar " + i);
                             psB.executeUpdate();
 
-                            psC.setBoolean(1, true);
-                            psC.setDate(2, new Date(System.currentTimeMillis()));
-                            psC.setTime(3, new Time(System.currentTimeMillis()));
-                            psC.setTimestamp(4, new Timestamp(System.currentTimeMillis()));
-                            psC.setString(5, "C");
-                            psC.setString(6, "dsfdsf " + i);
-                            psC.setLong(7, 12323l);
-                            psC.setShort(8, (short) i);
-                            psC.setShort(9, (short) i);
-                            psC.setInt(10, i);
-                            psC.setLong(11, i);
-                            psC.setBigDecimal(12, new BigDecimal(i));
-                            psC.setBigDecimal(13, new BigDecimal(i));
-                            psC.setDouble(14, i);
-                            psC.setFloat(15, i);
-                            psC.setFloat(16, i);
-                            psC.setFloat(17,i);
-                            psC.setFloat(18,i);
-                            psC.setFloat(19,i);
-                            psC.setInt(20, 1);;
-                            psC.setInt(21,1);
+                            psC.setInt(1, i);
+                            psC.setInt(2, i);
+                            psC.setInt(3, i);
+                            psC.setInt(4, i);
+                            psC.setFloat(5, (float) (i * 1.0));
+                            psC.setDouble(6, i * 1.0);
+                            psC.setBigDecimal(7, new BigDecimal(i*1.0));
+                            psC.setTimestamp(8, new Timestamp(System.currentTimeMillis()));
+                            psC.setDate(9, new Date(System.currentTimeMillis()));
+                            psC.setString(10, "varchar " + i);
+                            psC.setString(11, "char " + i);
+                            psC.setBoolean(12, true);
+
                             psC.executeUpdate();
                         }
 
@@ -238,9 +212,53 @@ public class HiveIntegrationIT extends BaseMRIOTest {
             int id = rs.getInt(1);
             String name = rs.getString(2);
             String gender = rs.getString(3);
-            Assert.assertNull("col1 did not return", name);
+            Assert.assertNotNull("col1 did not return", id);
+            Assert.assertNull("col2 did not return", name);
             Assert.assertTrue("Incorrect gender value returned", gender.compareToIgnoreCase("M")==0);
         }
         Assert.assertEquals("incorrect number of rows returned", 1,i);
+    }
+    @Test
+    public void testDataTypes() throws SQLException, IOException {
+        Connection con = DriverManager.getConnection("jdbc:hive://");
+        Statement stmt = con.createStatement();
+        String createExternalExisting = "CREATE EXTERNAL TABLE C ("
+                + "tinyint_col tinyint,"
+                + "smallint_col smallInt, "
+                + "int_col int, "
+                + "bigint_col bigint, "
+                + "float_col float, "
+                + "double_col double, "
+                + "decimal_col decimal, "
+                + "timestamp_col timestamp, "
+                + "date_col date, "
+                + "varchar_col varchar(32), "
+                + "char_col char(32), "
+                + "boolean_col boolean)" +
+                "STORED BY 'com.splicemachine.mrio.api.hive.SMStorageHandler' " +
+                "TBLPROPERTIES (" +
+                "\"splice.jdbc\" = \""+SpliceNetConnection.getDefaultLocalURL()+"\","+
+                "\"splice.tableName\" = \"HIVEINTEGRATIONIT.C\""+
+                ")";
+
+        stmt.execute(createExternalExisting);
+        ResultSet rs = stmt.executeQuery("select * from C");
+        int i = 0;
+        while (rs.next()) {
+            i++;
+            Assert.assertNotNull("col1 did not return", rs.getByte(1));
+            Assert.assertNotNull("col2 did not return", rs.getShort(2));
+            Assert.assertNotNull("col3 did not return", rs.getInt(3));
+            Assert.assertNotNull("col4 did not return", rs.getLong(4));
+            Assert.assertNotNull("col5 did not return", rs.getFloat(5));
+            Assert.assertNotNull("col6 did not return", rs.getDouble(6));
+            Assert.assertNotNull("col7 did not return", rs.getBigDecimal(7));
+            Assert.assertNotNull("col8 did not return", rs.getTimestamp(8));
+            Assert.assertNotNull("col9 did not return", rs.getDate(9));
+            Assert.assertNotNull("col10 did not return", rs.getString(10));
+            Assert.assertNotNull("col11 did not return", rs.getString(11));
+            Assert.assertNotNull("col12 did not return", rs.getString(12));
+        }
+        Assert.assertEquals("incorrect number of rows returned", 100, i);
     }
 }

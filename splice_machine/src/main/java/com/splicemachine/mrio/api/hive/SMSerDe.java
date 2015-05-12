@@ -6,6 +6,7 @@ import com.splicemachine.db.iapi.types.*;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hive.common.type.HiveDecimal;
 import org.apache.hadoop.hive.serde.Constants;
 import org.apache.hadoop.hive.serde2.SerDe;
 import org.apache.hadoop.hive.serde2.SerDeException;
@@ -36,6 +37,7 @@ import java.io.Serializable;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.*;
+import java.math.BigDecimal;
 
 public class SMSerDe implements SerDe {
 	protected StructTypeInfo rowTypeInfo;
@@ -257,11 +259,16 @@ public class SMSerDe implements SerDe {
                     return hiveChar;
 		        case "float":
 		            return dvd.getFloat();
-		        case "double": 
-		            return dvd.getDouble();
+		        case "double":
+                    return dvd.getDouble();
+                case "decimal":
+                    Double d = dvd.getDouble();
+                    HiveDecimal hiveDecimal = HiveDecimal.create(d.toString());
+                    return hiveDecimal;
 		        case "boolean":
 		        	return dvd.getBoolean();
 		        case "tinyint":
+                    return dvd.getByte();
 		        case "int":
 		        	return dvd.getInt();
 		        case "smallint":
@@ -269,7 +276,9 @@ public class SMSerDe implements SerDe {
 		        case "bigint":
 		        	return dvd.getLong();
 		        case "timestamp":
-		        	return dvd.getLong();
+                    return dvd.getTimestamp(null);
+                case "date":
+		        	return dvd.getDate(null);
 		        case "binary":
 		        	return dvd.getBytes();
 		        default:
