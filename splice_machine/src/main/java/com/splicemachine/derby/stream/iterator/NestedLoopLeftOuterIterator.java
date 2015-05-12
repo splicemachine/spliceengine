@@ -6,6 +6,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.JoinUtils;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.function.NLJOuterJoinFunction;
+import com.splicemachine.derby.stream.utils.StreamLogUtils;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import javax.annotation.concurrent.NotThreadSafe;
@@ -40,7 +41,7 @@ public class NestedLoopLeftOuterIterator<Op extends SpliceOperation> implements 
 
     @Override
     public LocatedRow next() {
-        SpliceLogUtils.trace(LOG, "next row=%s",populatedRow);
+        StreamLogUtils.logOperationRecord(populatedRow, outerJoinFunction.operationContext);
         populated=false;
         outerJoinFunction.op.setCurrentLocatedRow(populatedRow);
         return populatedRow;

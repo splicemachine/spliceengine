@@ -178,14 +178,9 @@ public class MergeSortJoinOperation extends JoinOperation {
             SpliceLogUtils.debug(LOG, "getDataSet Performing MergeSortJoin type=%s, antiJoin=%s, hasRestriction=%s",
                     isOuterJoin ? "outer" : "inner", notExistsRightSide, restriction != null);
         if (isOuterJoin) { // Outer Join
-            if (restriction!=null) { // Restriction
-                return leftDataSet.<LocatedRow>hashLeftOuterJoin(rightDataSet)
-                        .map(new OuterJoinPairFunction(operationContext));
-            } else { // No Restriction
-                return leftDataSet.<LocatedRow>hashLeftOuterJoin(rightDataSet)
-                        .map(new OuterJoinPairFunction(operationContext));
-
-            }
+                return leftDataSet.cogroup(rightDataSet)
+                        .flatmap(new CogroupOuterJoinRestrictionFlatMapFunction<SpliceOperation>(operationContext))
+                        .map(new SetCurrentLocatedRowFunction<SpliceOperation>(operationContext));
         }
         else {
             if (this.notExistsRightSide) { // antijoin
@@ -197,6 +192,13 @@ public class MergeSortJoinOperation extends JoinOperation {
                             .map(new AntiJoinFunction(operationContext));
                 }
             } else { // Inner Join
+
+                if (isOneRowRightSide()) {
+                    return leftDataSet.<LocatedRow>broadcastCogroup(rightDataSet)
+                            .flatmap(new CogroupInnerJoinRestrictionFlatMapFunction(operationContext));
+                }
+
+
                 if (restriction !=null) { // with restriction
                     return leftDataSet.hashJoin(rightDataSet)
                             .map(new InnerJoinFunction<SpliceOperation>(operationContext))

@@ -74,10 +74,10 @@ public class SpliceDatabase extends BasicDatabase{
     @Override
     public void boot(boolean create,Properties startParams) throws StandardException{
         Configuration.setConfiguration(null);
-        //System.setProperty("derby.language.logQueryPlan", Boolean.toString(true));
-        if(DatabaseConstants.logStatementContext)
+        System.setProperty("derby.language.logQueryPlan", Boolean.toString(true));
+      //  if(DatabaseConstants.logStatementContext)
             System.setProperty("derby.language.logStatementText",Boolean.toString(true));
-        if(DatabaseConstants.dumpClassFile)
+    //    if(DatabaseConstants.dumpClassFile)
             SanityManager.DEBUG_SET("DumpClassFile");
         if(DatabaseConstants.dumpBindTree)
             SanityManager.DEBUG_SET("DumpBindTree");

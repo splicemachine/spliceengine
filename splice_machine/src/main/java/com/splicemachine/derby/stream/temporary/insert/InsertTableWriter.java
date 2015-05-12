@@ -6,6 +6,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceIdentityColumnKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
@@ -46,10 +47,11 @@ public class InsertTableWriter implements AutoCloseable {
     protected byte[] destinationTable;
     protected PairEncoder encoder;
     public int rowsWritten;
+    protected InsertOperation insertOperation;
 
     public InsertTableWriter(int[] pkCols, String tableVersion, ExecRow execRowDefinition,
                              RowLocation[] autoIncrementRowLocationArray,Pair<Long,Long>[] defaultAutoIncrementValues,
-                             long heapConglom, TxnView txn) {
+                             long heapConglom, TxnView txn, InsertOperation insertOperation) {
         this.pkCols = pkCols;
         this.tableVersion = tableVersion;
         this.execRowDefinition = execRowDefinition;
@@ -57,6 +59,7 @@ public class InsertTableWriter implements AutoCloseable {
         this.defaultAutoIncrementValues = defaultAutoIncrementValues;
         this.heapConglom = heapConglom;
         this.txn = txn;
+        this.insertOperation = insertOperation;
     }
 
 
@@ -80,6 +83,8 @@ public class InsertTableWriter implements AutoCloseable {
             writeBuffer = writeCoordinator.writeBuffer(destinationTable,
                     txn, Metrics.noOpMetricFactory());
             encoder = new PairEncoder(getKeyEncoder(), getRowHash(), dataType);
+            if (insertOperation != null)
+                insertOperation.tableWriter = this;
         }catch(Exception e){
             throw Exceptions.parseException(e);
         }

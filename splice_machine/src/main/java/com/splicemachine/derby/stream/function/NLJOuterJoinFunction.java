@@ -7,6 +7,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iterator.NestedLoopLeftOuterIterator;
+import com.splicemachine.derby.stream.utils.StreamLogUtils;
 import com.splicemachine.derby.stream.utils.StreamUtils;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -51,10 +52,10 @@ public class NLJOuterJoinFunction<Op extends SpliceOperation> extends SpliceJoin
                         op.getEmptyRow(), op.wasRightOuterJoin
                         , executionFactory.getValueRow(numberOfColumns));
                 LocatedRow lr = new LocatedRow(leftRow.getRowLocation(),mergedRow.getClone());
+                StreamLogUtils.logOperationRecordWithMessage(lr,operationContext,"outer - right side no rows");
                 op.setCurrentLocatedRow(lr);
                 return Collections.singletonList(lr);
             }
-
             return new NestedLoopLeftOuterIterator(this);
         } finally {
             if (op.getRightOperation()!= null)

@@ -13,10 +13,12 @@ public interface IterableJoinFunction {
     public ExecRow getRightRow();
     public ExecRow getLeftRow();
     public RowLocation getLeftRowLocation();
+    public LocatedRow getLeftLocatedRow();
     public boolean wasRightOuterJoin();
     public ExecutionFactory getExecutionFactory();
     public int getNumberOfColumns();
     public void setCurrentLocatedRow(LocatedRow locatedRow);
     public int getResultSetNumber();
+    public OperationContext getOperationContext();
 
 }
