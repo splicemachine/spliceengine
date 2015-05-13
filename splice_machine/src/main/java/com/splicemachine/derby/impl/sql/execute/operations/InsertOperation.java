@@ -11,6 +11,7 @@ import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.temporary.WriteReadUtils;
 import com.splicemachine.derby.stream.temporary.insert.InsertTableWriter;
 import com.splicemachine.derby.stream.temporary.insert.InsertTableWriterBuilder;
+import com.splicemachine.derby.stream.utils.StreamLogUtils;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
@@ -174,7 +175,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         DataSet set = source.getDataSet();
-        TxnView txn = elevateTransaction(Long.toString(heapConglom).getBytes());
+        TxnView txn = getCurrentTransaction();
         InsertTableWriterBuilder builder = new InsertTableWriterBuilder()
                 .heapConglom(heapConglom)
                 .autoIncrementRowLocationArray(autoIncrementRowLocationArray)
@@ -186,7 +187,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
                 .pkCols(pkCols)
                 .tableVersion(writeInfo.getTableVersion())
                 .txn(txn);
-        return set.index(new SplicePairFunction<SpliceOperation,LocatedRow,RowLocation,ExecRow>() {
+        return set.index(new SplicePairFunction<SpliceOperation,LocatedRow,RowLocation,ExecRow>(dsp.createOperationContext(this)) {
             int counter = 0;
             @Override
             public Tuple2<RowLocation, ExecRow> call(LocatedRow locatedRow) throws Exception {
@@ -202,6 +203,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 
             @Override
             public ExecRow genValue(LocatedRow locatedRow) {
+                StreamLogUtils.logOperationRecordWithMessage(locatedRow,operationContext,"indexed for insert");
                 return locatedRow.getRow();
             }
 
