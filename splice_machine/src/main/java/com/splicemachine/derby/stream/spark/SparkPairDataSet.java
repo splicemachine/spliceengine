@@ -58,6 +58,11 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
     }
 
     @Override
+    public PairDataSet<K, Iterable<V>> groupByKey() {
+        return new SparkPairDataSet<>(rdd.groupByKey());
+    }
+
+    @Override
     public <W> PairDataSet< K, Tuple2<V, Optional<W>>> hashLeftOuterJoin(PairDataSet< K, W> rightDataSet) {
         return new SparkPairDataSet(rdd.leftOuterJoin( ((SparkPairDataSet) rightDataSet).rdd));
     }

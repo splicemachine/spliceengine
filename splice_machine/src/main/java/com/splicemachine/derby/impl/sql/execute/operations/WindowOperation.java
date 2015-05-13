@@ -10,8 +10,11 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.OperationContext;
+import org.apache.commons.lang.ArrayUtils;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -139,33 +142,13 @@ public class WindowOperation extends SpliceBaseOperation {
 
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        throw new RuntimeException("not implemented");
+        OperationContext<SpliceOperation> operationContext = dsp.createOperationContext(this);
+        return source.getDataSet()
+                .keyBy(new KeyerFunction(operationContext, windowContext.getPartitionColumns()))
+                .groupByKey()
+                .flatmap(new MergeWindowFunction(operationContext, windowContext.getWindowFunctions()))
+                .map(new WindowFinisherFunction(operationContext, windowContext.getWindowFunctions()));
 
-        /*
-
-        dataSet -> pairDataSet (Partition Columns, Row)
-        * partition the data
-        * map sort columns
-        * sort the data
-        *
-
-
-
-         */
-
-        /*
-        DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
-        SparkRow result = source.getDataSet(spliceRuntimeContext, top)
-                .fold(null,new SparkAggregator(this, soi));
-        if (result==null)
-            return dsp.singleRowDataSet(new SparkRow(getExecRowDefinition()));
-        if (!(result.getRow() instanceof ExecIndexRow)) {
-            sourceExecIndexRow.execRowToExecIndexRow(result.getRow());
-            initializeVectorAggregation(result.getRow());
-        }
-        finishAggregation(result.getRow());
-        return dsp.singleRowDataSet(new SparkRow(result.getRow()));
-        */
     }
 
     private WindowFunctionIterator createFrameIterator(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
@@ -241,5 +224,7 @@ public class WindowOperation extends SpliceBaseOperation {
         return this.source;
     }
 
-
+    public WindowContext getWindowContext() {
+        return windowContext;
+    }
 }
