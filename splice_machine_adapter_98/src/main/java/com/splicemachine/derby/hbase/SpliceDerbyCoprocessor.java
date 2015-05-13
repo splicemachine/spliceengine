@@ -13,6 +13,7 @@ import com.splicemachine.derby.impl.stats.Hbase98TableStatsDecoder;
 import com.splicemachine.derby.impl.stats.TableStatsDecoder;
 import com.splicemachine.utils.SpliceLogUtils;
 
+import org.apache.hadoop.hbase.CellScanner;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.MetaMutationAnnotation;
 import org.apache.hadoop.hbase.client.Mutation;
@@ -21,7 +22,9 @@ import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.RegionServerCoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.RegionServerObserver;
+import org.apache.hadoop.hbase.protobuf.generated.AdminProtos;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.replication.ReplicationEndpoint;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -90,7 +93,32 @@ public class SpliceDerbyCoprocessor extends SpliceDerbyCoprocessorService implem
     public void postRollBackMerge(ObserverContext<RegionServerCoprocessorEnvironment> regionServerCoprocessorEnvironmentObserverContext, HRegion hRegion, HRegion hRegion2) throws IOException {
      }
 
-	@Override
+//    @Override
+    public void preRollWALWriterRequest(ObserverContext<RegionServerCoprocessorEnvironment> ctx) throws IOException{
+
+    }
+
+//    @Override
+    public void postRollWALWriterRequest(ObserverContext<RegionServerCoprocessorEnvironment> ctx) throws IOException{
+
+    }
+
+//    @Override
+    public ReplicationEndpoint postCreateReplicationEndPoint(ObserverContext<RegionServerCoprocessorEnvironment> ctx,ReplicationEndpoint endpoint){
+        return null;
+    }
+
+//    @Override
+    public void preReplicateLogEntries(ObserverContext<RegionServerCoprocessorEnvironment> ctx,List<AdminProtos.WALEntry> entries,CellScanner cells) throws IOException{
+
+    }
+
+//    @Override
+    public void postReplicateLogEntries(ObserverContext<RegionServerCoprocessorEnvironment> ctx,List<AdminProtos.WALEntry> entries,CellScanner cells) throws IOException{
+
+    }
+
+    @Override
 	public void computeSplits(RpcController controller,
 			SpliceSplitServiceRequest request,
 			RpcCallback<SpliceSplitServiceResponse> callback) {

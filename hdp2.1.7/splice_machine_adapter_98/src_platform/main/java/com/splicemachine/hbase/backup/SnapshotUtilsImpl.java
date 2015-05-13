@@ -95,6 +95,11 @@ public class SnapshotUtilsImpl implements SnapshotUtils {
 
         return paths;
     }
+
+    public static HFileLink newLink(Configuration conf,Path linkPath) throws IOException{
+        return new HFileLink(conf,linkPath);
+    }
+
     private boolean isRegionTheSame(String fullName, String shortId)
     {
     	return fullName.indexOf(shortId) >=0;

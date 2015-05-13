@@ -45,6 +45,7 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
+import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
@@ -347,7 +348,8 @@ public class UpdateOperation extends DMLWriteOperation{
 								KeyValue[] rawKvs = r.raw();
 								for(KeyValue kv:rawKvs){
 										getBytes.add(kv.getLength());
-										if(kv.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,SpliceConstants.PACKED_COLUMN_BYTES)){
+										if(CellUtil.matchingFamily(kv,SpliceConstants.DEFAULT_FAMILY_BYTES)
+												&& CellUtil.matchingQualifier(kv,SpliceConstants.PACKED_COLUMN_BYTES)){
 												result = kv;
 												break;
 										}

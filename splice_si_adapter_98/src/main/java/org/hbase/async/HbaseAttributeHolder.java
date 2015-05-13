@@ -4,7 +4,9 @@ import com.google.common.collect.Maps;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.ZeroCopyLiteralByteString;
 import com.splicemachine.coprocessor.SpliceMessage;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.exceptions.DeserializationException;
+import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterBase;
 import org.apache.hadoop.io.WritableUtils;
 import java.io.DataInput;
@@ -27,6 +29,10 @@ public class HbaseAttributeHolder extends FilterBase {
 
     public Map<String, byte[]> getAttributes() { return attributes; }
 
+    @Override
+    public ReturnCode filterKeyValue(Cell cell) throws IOException{
+        return null;
+    }
 
     @Override
     public byte[] toByteArray() throws IOException {

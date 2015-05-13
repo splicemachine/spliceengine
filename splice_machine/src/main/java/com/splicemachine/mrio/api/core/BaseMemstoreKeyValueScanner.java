@@ -3,6 +3,8 @@ package com.splicemachine.mrio.api.core;
 import java.io.IOException;
 import java.util.List;
 import java.util.SortedSet;
+
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.ResultScanner;
@@ -76,29 +78,47 @@ public abstract class BaseMemstoreKeyValueScanner<T> implements KeyValueScanner,
 		}
 		return returnValue;
 	}
-	@Override
-	public boolean seek(KeyValue key) throws IOException {
-//		if (LOG.isDebugEnabled())
-//			SpliceLogUtils.debug(LOG, "seek to KeyValue %s", key);
+
+//	@Override
+	public boolean seek(Cell key) throws IOException{
 		while (KeyValue.COMPARATOR.compare(peakKeyValue, key)>0 && peakKeyValue!=null) {
 			next();
 		}
 		return peakKeyValue!=null;
 	}
-	@Override
-	public boolean reseek(KeyValue key) throws IOException {
+
+//	@Override
+	public boolean reseek(Cell key) throws IOException{
 		return seek(key);
 	}
+
+//	@Override
+	public boolean requestSeek(Cell kv,boolean forward,boolean useBloom) throws IOException{
+		if (!forward)
+			throw new UnsupportedOperationException("Backward scans not supported");
+		return seek(kv);
+	}
+
+//	@Override
+	public boolean backwardSeek(Cell key) throws IOException{
+		throw new UnsupportedOperationException("Backward scans not supported");
+	}
+
+//	@Override
+	public boolean seekToPreviousRow(Cell key) throws IOException{
+		throw new UnsupportedOperationException("Backward scans not supported");
+	}
+
 	@Override
 	public long getSequenceID() {
 		if (LOG.isTraceEnabled())
-			SpliceLogUtils.trace(LOG, "getSequenceID");
+			SpliceLogUtils.trace(LOG,"getSequenceID");
 		return Long.MAX_VALUE; // Set the max value - we have the most recent data
 	}
 	@Override
 	public void close() {
 		if (LOG.isDebugEnabled())
-			SpliceLogUtils.debug(LOG, "close");
+			SpliceLogUtils.debug(LOG,"close");
 		resultScanner.close();		
 	}
 	@Override
@@ -109,27 +129,15 @@ public abstract class BaseMemstoreKeyValueScanner<T> implements KeyValueScanner,
 		// TODO: true or false?
 		return true;
 	}
-	@Override
-	public boolean requestSeek(KeyValue kv, boolean forward, boolean useBloom)
-			throws IOException {
-		if (LOG.isDebugEnabled())
-			SpliceLogUtils.debug(LOG, "requestSeek");
-		if (!forward)
-			throw new RuntimeException("Do not support backward scans yet");
-		return seek(kv);
-	}
+
 	@Override
 	public boolean realSeekDone() {
-//		if (LOG.isTraceEnabled())
-//			SpliceLogUtils.trace(LOG, "realSeekDone");
 		return true;
 	}
 	@Override
 	public void enforceSeek() throws IOException {
-//		if (LOG.isTraceEnabled())
-//			SpliceLogUtils.trace(LOG, "enforceSeek");		
-//		Thread.dumpStack();
 	}
+
 	@Override
 	public boolean isFileScanner() {
 		if (LOG.isTraceEnabled())

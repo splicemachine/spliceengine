@@ -68,7 +68,7 @@ public class SnapshotUtilsImpl implements SnapshotUtils{
         	  boolean isReference = storeFile.hasReference();
 
               String regionName = regionInfo.getEncodedName();
-              if(isCurrentRegion(region, regionInfo) == false){
+              if(region!= null && isCurrentRegion(region, regionInfo) == false){
             	  // If not current return
             	  return;
               }
@@ -113,7 +113,7 @@ public class SnapshotUtilsImpl implements SnapshotUtils{
         Path rootDir = FSUtils.getRootDir(conf);
 
         Path snapshotDir = SnapshotDescriptionUtils.getCompletedSnapshotDir(snapshotName, rootDir);
-        List<Object> paths = getSnapshotFilesForRegion(region, conf, fs, snapshotDir);
+        List<Object> paths = getSnapshotFilesForRegion(region,conf,fs,snapshotDir);
 
         return paths;
     }
@@ -252,7 +252,7 @@ public class SnapshotUtilsImpl implements SnapshotUtils{
 	
     /**
      * Returns column family name from store file path
-     * @param path
+     * @param link
      * @return column family name (as byte array)
      */
     public byte[] getColumnFamily(HFileLink link)
@@ -295,10 +295,34 @@ public class SnapshotUtilsImpl implements SnapshotUtils{
     	p = new Path(p, parts[0]);
     	return p;
     }
-    
+
+    private String getTableName(Path refFilePath) {
+        Path p = refFilePath.getParent().getParent().getParent();
+        return p.getName();
+    }
+
+    private String getColumnFamilyName(Path refFilePath) {
+        Path p = refFilePath.getParent();
+        return p.getName();
+    }
+
+    private String getRegionName(Path refFilePath) {
+        String[] parts = refFilePath.getName().split("\\.");
+        return parts[1];
+    }
+
+    private String getFileName(Path refFilePath) {
+        String[] parts = refFilePath.getName().split("\\.");
+        return parts[0];
+    }
+
     public HFileLink getReferredFileLink(HFileLink ref) throws IOException
     {
-    	return new HFileLink(SpliceConstants.config, getReferredFile(ref.getOriginPath()));
+        return HFileLink.create(SpliceConstants.config,
+                TableName.valueOf(getTableName(ref.getOriginPath()).getBytes()),
+                getRegionName(ref.getOriginPath()),
+                getColumnFamilyName(ref.getOriginPath()),
+                getFileName(ref.getOriginPath()));
     }
     /**
      * Checks if region info for the current region.
@@ -309,5 +333,9 @@ public class SnapshotUtilsImpl implements SnapshotUtils{
      */
     public boolean isCurrentRegion(HRegion region, HRegionInfo regInfo) {		
 		return region.getRegionNameAsString().equals(regInfo.getRegionNameAsString());
-	}	
+	}
+
+    public static HFileLink newLink(Configuration conf, Path path) throws IOException{
+        return new HFileLink(conf,path);
+    }
 }

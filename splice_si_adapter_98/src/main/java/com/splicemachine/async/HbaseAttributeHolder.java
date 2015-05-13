@@ -4,7 +4,9 @@ import com.google.common.collect.Maps;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.ZeroCopyLiteralByteString;
 import com.splicemachine.coprocessor.SpliceMessage;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.exceptions.DeserializationException;
+import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterBase;
 import org.apache.hadoop.io.WritableUtils;
 import java.io.DataInput;
@@ -28,6 +30,14 @@ public class HbaseAttributeHolder extends FilterBase {
 
     public Map<String, byte[]> getAttributes() { return attributes; }
 
+    /*
+     * Plaed for compatibility between HBase 0.98 and HBase 1.0 versions. Do not delete until
+     * HBase 0.98 is no longer supported.
+     */
+//    @Override
+    public ReturnCode filterKeyValue(Cell v) throws IOException{
+        throw new UnsupportedOperationException("Cannot use the HBaseAttributeHolder as a filter!");
+    }
 
     @Override
     public byte[] toByteArray() throws IOException {
