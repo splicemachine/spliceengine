@@ -72,15 +72,19 @@ public class BackupReporter extends TransactionalSysTableWriter<Backup>  {
             @Override
             protected void doEncode(MultiFieldEncoder encoder, Backup element) {
 
-                encoder.encodeNext(element.getBackupId())
-                       .encodeNext(TimestampV2DescriptorSerializer.formatLong(element.getBeginBackupTimestamp()))
-                       .encodeNext(TimestampV2DescriptorSerializer.formatLong(element.getEndBackupTimestamp()))
-                       .encodeNext(element.getBackupStatus().toString())
-                       .encodeNext(element.getBackupFilesystem())
-                       .encodeNext(element.getBackupScope().toString())
-                       .encodeNext(element.isIncrementalBackup())
-                       .encodeNext(element.getParentBackupId())
-                       .encodeNext(element.getActualBackupCount());
+                try {
+                    encoder.encodeNext(element.getBackupId())
+                           .encodeNext(TimestampV2DescriptorSerializer.formatLong(element.getBeginBackupTimestamp()))
+                           .encodeNext(TimestampV2DescriptorSerializer.formatLong(element.getEndBackupTimestamp()))
+                           .encodeNext(element.getBackupStatus().toString())
+                           .encodeNext(element.getBackupFilesystem())
+                           .encodeNext(element.getBackupScope().toString())
+                           .encodeNext(element.isIncrementalBackup())
+                           .encodeNext(element.getParentBackupId())
+                           .encodeNext(element.getActualBackupCount());
+                } catch (StandardException e) {
+                    throw new RuntimeException(e);
+                }
             }
         };
     }
