@@ -5,7 +5,6 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.iapi.sql.execute.*;
-import com.splicemachine.db.iapi.sql.execute.xplain.XPLAINVisitor;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.store.access.conglomerate.TransactionManager;
 import com.splicemachine.db.iapi.store.raw.Transaction;
@@ -228,12 +227,8 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		 * close all of the open subqueries for the
 		 * entire query.
 		 */
-            if (isTopResultSet)
-            {
-			/*
-			** If run time statistics tracing is turned on, then now is the
-			** time to dump out the information.
-			*/
+            if (isTopResultSet) {
+
                 LanguageConnectionContext lcc = getActivation().getLanguageConnectionContext();
 
                 int staLength = (subqueryTrackingArray == null) ? 0 :

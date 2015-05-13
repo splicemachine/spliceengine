@@ -28,7 +28,6 @@ public class ControlMeasuredRegionScanner implements MeasuredRegionScanner<Cell>
 
     public ControlMeasuredRegionScanner(byte[] tableName, Scan scan) {
         this.tableName = tableName;
-//        scan.setSmall(true);
         this.scan = scan;
     }
 

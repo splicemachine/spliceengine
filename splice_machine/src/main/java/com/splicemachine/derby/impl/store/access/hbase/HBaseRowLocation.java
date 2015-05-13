@@ -81,7 +81,13 @@ public class HBaseRowLocation extends DataType implements RowLocation {
 
 
 	public DataValueDescriptor cloneValue(boolean forceMaterialization) {
-		return new HBaseRowLocation(this);
+        try {
+            if (forceMaterialization)
+                return new HBaseRowLocation(this.getBytes());
+            return new HBaseRowLocation(this);
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
 	}
 
 	public String getString() {
