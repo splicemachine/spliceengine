@@ -23,6 +23,11 @@ import com.splicemachine.derby.stream.iapi.PairDataSet;
 import scala.Tuple2;
 import javax.annotation.Nullable;
 import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 /**
  *
@@ -91,6 +96,15 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
                 });
         newSource.putAll(source);
         return new ControlPairDataSet<>(newSource);
+    }
+
+    @Override
+    public PairDataSet<K, Iterable<V>> groupByKey() {
+        Multimap<K, Iterable<V>> multiMap = ArrayListMultimap.create();
+        for (Map.Entry<K, Collection<V>> entry : source.asMap().entrySet()) {
+            multiMap.put(entry.getKey(), entry.getValue());
+        }
+        return new ControlPairDataSet<>(multiMap);
     }
 
     @Override
