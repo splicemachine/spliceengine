@@ -2,19 +2,15 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.temporary.WriteReadUtils;
-import com.splicemachine.hbase.MeasuredRegionScanner;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.si.api.TxnView;
-import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -24,15 +20,8 @@ import java.util.Collections;
 import java.util.List;
 
 public class LastIndexKeyOperation extends ScanOperation {
-
-    private static Logger LOG = Logger.getLogger(LastIndexKeyOperation.class);
-	private int[] baseColumnMap;
-    private boolean returnedRow;
-    private Scan contextScan;
-    private MeasuredRegionScanner tentativeScanner;
-
-		private SITableScanner tableScanner;
-
+        private static Logger LOG = Logger.getLogger(LastIndexKeyOperation.class);
+	    private int[] baseColumnMap;
 	    protected static final String NAME = LastIndexKeyOperation.class.getSimpleName().replaceAll("Operation","");
 
 		@Override
@@ -69,7 +58,6 @@ public class LastIndexKeyOperation extends ScanOperation {
 				} catch (IOException e) {
 						throw Exceptions.parseException(e);
 				}
-				returnedRow = false;
         recordConstructorTime();
     }
 
@@ -84,7 +72,6 @@ public class LastIndexKeyOperation extends ScanOperation {
         super.init(context);
 	    this.baseColumnMap = operationInformation.getBaseColumnMap();
         startExecutionTime = System.currentTimeMillis();
-        contextScan = context.getScan();
     }
 
     @Override
@@ -116,9 +103,8 @@ public class LastIndexKeyOperation extends ScanOperation {
 
     @Override
     public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        TxnView txn = operationInformation.getTransaction();
         TableScannerBuilder tsb = new TableScannerBuilder()
-                .transaction(operationInformation.getTransaction())
+                .transaction(getCurrentTransaction())
                 .scan(getReversedNonSIScan())
                 .template(currentTemplate)
                 .tableVersion(scanInformation.getTableVersion())

@@ -19,18 +19,13 @@ public interface OperationInformation {
 
     void initialize(SpliceOperationContext operationContext) throws StandardException;
 
-		/**
-		 * @return the transaction that this operation should operate under.
-		 */
-		TxnView getTransaction();
-
 		public double getEstimatedRowCount();
 
-    public double getEstimatedCost();
+        public double getEstimatedCost();
 
-    public int getResultSetNumber();
+        public int getResultSetNumber();
 
-    public boolean isRuntimeStatisticsEnabled();
+        public boolean isRuntimeStatisticsEnabled();
 
 		/**
 		 * Return the map from the physical (encoded) column locations to the decoded column locations.
@@ -50,25 +45,25 @@ public interface OperationInformation {
 		 *
 		 * @return the map from physical location to logical location for columns in the row.
 		 */
-    public int[] getBaseColumnMap();
+        public int[] getBaseColumnMap();
 
-    public ExecRow compactRow(ExecRow candidateRow,
-                              FormatableBitSet accessedColumns,
-                              boolean isKeyed) throws StandardException;
+        public ExecRow compactRow(ExecRow candidateRow,
+                                  FormatableBitSet accessedColumns,
+                                  boolean isKeyed) throws StandardException;
 
-    public ExecRow compactRow(ExecRow candidateRow,
-                              ScanInformation scanInfo) throws StandardException;
+        public ExecRow compactRow(ExecRow candidateRow,
+                                  ScanInformation scanInfo) throws StandardException;
 
-    public ExecRow getKeyTemplate(ExecRow candidateRow,
-                              ScanInformation scanInfo) throws StandardException;
+        public ExecRow getKeyTemplate(ExecRow candidateRow,
+                                  ScanInformation scanInfo) throws StandardException;
 
-    public NoPutResultSet[] getSubqueryTrackingArray() throws StandardException;
+        public NoPutResultSet[] getSubqueryTrackingArray() throws StandardException;
 
-    DataValueDescriptor getSequenceField(byte[] uuidBytes) throws StandardException;
+        DataValueDescriptor getSequenceField(byte[] uuidBytes) throws StandardException;
 
-    void setCurrentRow(ExecRow row);
+        void setCurrentRow(ExecRow row);
 
-    UUIDGenerator getUUIDGenerator();
+        UUIDGenerator getUUIDGenerator();
 
-    ExecutionFactory getExecutionFactory();
+        ExecutionFactory getExecutionFactory();
 }

@@ -8,6 +8,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.si.api.TransactionalRegion;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -271,7 +272,8 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 
 
 		protected Scan getScan() throws StandardException {
-				return scanInformation.getScan(operationInformation.getTransaction(),null,getKeyDecodingMap());
+				return scanInformation.getScan(getCurrentTransaction(),
+                        null,getKeyDecodingMap());
 		}
 
 		@Override

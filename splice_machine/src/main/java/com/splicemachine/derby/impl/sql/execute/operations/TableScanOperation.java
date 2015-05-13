@@ -207,9 +207,9 @@ public class TableScanOperation extends ScanOperation {
         @Override
         public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
             assert currentTemplate != null: "Current Template Cannot Be Null";
-            TxnView txn = operationInformation.getTransaction();
+            TxnView txn = getCurrentTransaction();
             TableScannerBuilder tsb = new TableScannerBuilder()
-                    .transaction(operationInformation.getTransaction())
+                    .transaction(txn)
                     .scan(getNonSIScan())
                     .template(currentTemplate)
                     .tableVersion(scanInformation.getTableVersion())
