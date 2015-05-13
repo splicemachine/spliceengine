@@ -37,6 +37,7 @@ import org.apache.hadoop.hbase.client.Row;
 import org.apache.hadoop.hbase.client.RowMutations;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.coprocessor.Batch;
+import org.apache.hadoop.hbase.filter.CompareFilter;
 import org.apache.hadoop.hbase.ipc.CoprocessorRpcChannel;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
@@ -185,7 +186,18 @@ public class BetterHTablePool {
         	throw new RuntimeException("Not Supported");
         }
 
-        
+        public boolean[] existsAll(List<Get> gets) throws IOException{
+            throw new UnsupportedOperationException("Cannot be supported on both H98 and HBase 1.0");
+        }
+
+        public boolean checkAndPut(byte[] row,byte[] family,byte[] qualifier,CompareOp compareOp,byte[] value,Put put) throws IOException{
+            throw new UnsupportedOperationException("Cannot be supported on both H98 and HBase 1.0");
+        }
+
+        public boolean checkAndDelete(byte[] row,byte[] family,byte[] qualifier,CompareOp compareOp,byte[] value,Delete delete) throws IOException{
+            throw new UnsupportedOperationException("Cannot be supported on both H98 and HBase 1.0");
+        }
+
         @Override public void close() throws IOException {
             pool.release(table);
         }

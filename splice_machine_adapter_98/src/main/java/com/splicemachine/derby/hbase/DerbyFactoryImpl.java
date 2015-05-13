@@ -31,7 +31,6 @@ import org.apache.hadoop.hbase.RegionLoad;
 import org.apache.hadoop.hbase.ServerLoad;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.TableName;
-import org.apache.hadoop.hbase.catalog.MetaReader;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.client.HTable;
@@ -294,8 +293,11 @@ public class DerbyFactoryImpl implements DerbyFactory<TxnMessage.TxnInfo> {
 		}
 		@Override
 		public int getReduceNumberOfRegions(String tableName, Configuration conf) throws IOException {
-			return MetaReader.getRegionCount(conf, tableName);
+			try(HTable t = new HTable(conf,tableName)) {
+				return t.getRegionLocations().size();
+			}
 		}
+
 		@Override
 		public ConstantAction getDropIndexConstantAction(String fullIndexName,
 				String indexName, String tableName, String schemaName,

@@ -113,7 +113,7 @@ public class SnapshotUtilsImpl implements SnapshotUtils{
         Path rootDir = FSUtils.getRootDir(conf);
 
         Path snapshotDir = SnapshotDescriptionUtils.getCompletedSnapshotDir(snapshotName, rootDir);
-        List<Object> paths = getSnapshotFilesForRegion(region, conf, fs, snapshotDir);
+        List<Object> paths = getSnapshotFilesForRegion(region,conf,fs,snapshotDir);
 
         return paths;
     }
@@ -333,5 +333,9 @@ public class SnapshotUtilsImpl implements SnapshotUtils{
      */
     public boolean isCurrentRegion(HRegion region, HRegionInfo regInfo) {		
 		return region.getRegionNameAsString().equals(regInfo.getRegionNameAsString());
-	}	
+	}
+
+    public static HFileLink newLink(Configuration conf, Path path) throws IOException{
+        return new HFileLink(conf,path);
+    }
 }

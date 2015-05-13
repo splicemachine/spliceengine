@@ -8,6 +8,8 @@ import com.splicemachine.hbase.SimpleMeasuredRegionScanner;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.si.api.TransactionStatus;
 
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
@@ -101,32 +103,32 @@ public class TransactionDump extends DebugTask {
         Boolean readCommitted = null;
         String keepAliveValue = "";
 
-        for(KeyValue kv:keyValues){
-            if(!kv.matchingFamily(SpliceConstants.DEFAULT_FAMILY_BYTES))
+        for(Cell kv:keyValues){
+            if(!CellUtil.matchingFamily(kv,SpliceConstants.DEFAULT_FAMILY_BYTES))
                 continue;
-            if(kv.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,TXN_ID_COL))
+            if(CellUtil.matchingQualifier(kv,TXN_ID_COL))
                 id = Bytes.toLong(kv.getValue());
-            else if(kv.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,GLOBAL_COMMIT_COL))
+            else if(CellUtil.matchingQualifier(kv,GLOBAL_COMMIT_COL))
                 globalCommit = Bytes.toLong(kv.getValue());
-            else if(kv.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,BEGIN_TIMESTAMP))
+            else if(CellUtil.matchingQualifier(kv,BEGIN_TIMESTAMP))
                 beginTimestamp = Bytes.toLong(kv.getValue());
-            else if(kv.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,STATUS))
+            else if(CellUtil.matchingQualifier(kv,STATUS))
                 txnStatus = TransactionStatus.values()[Bytes.toInt(kv.getValue())];
-            else if(kv.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,COMMIT_TIMESTAMP))
+            else if(CellUtil.matchingQualifier(kv,COMMIT_TIMESTAMP))
                 commitTimestamp = Bytes.toLong(kv.getValue());
-            else if(kv.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,COUNTER))
+            else if(CellUtil.matchingQualifier(kv,COUNTER))
                 counter = Bytes.toLong(kv.getValue());
-            else if(kv.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,PARENT))
+            else if(CellUtil.matchingQualifier(kv,PARENT))
                 parent = Bytes.toLong(kv.getValue());
-            else if(kv.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,WRITES))
+            else if(CellUtil.matchingQualifier(kv,WRITES))
                 writes = Bytes.toBoolean(kv.getValue());
-            else if(kv.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,DEPENDENT))
+            else if(CellUtil.matchingQualifier(kv,DEPENDENT))
                 dependent = Bytes.toBoolean(kv.getValue());
-            else if(kv.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,UNCOMMITTED))
+            else if(CellUtil.matchingQualifier(kv,UNCOMMITTED))
                 readUncommitted = Bytes.toBoolean(kv.getValue());
-            else if(kv.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,COMMITTED))
+            else if(CellUtil.matchingQualifier(kv,COMMITTED))
                 readCommitted = Bytes.toBoolean(kv.getValue());
-            else if(kv.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,KEEP_ALIVE))
+            else if(CellUtil.matchingQualifier(kv,KEEP_ALIVE))
                 keepAliveValue = Bytes.toString(kv.getValue());
         }
         String lineFormat = "%-8d\t%-8d\t%-8d\t%-12s\t%-8d\t%-8d\t%-8d\t%b\t%b\t%b\t%b\t%s%n";

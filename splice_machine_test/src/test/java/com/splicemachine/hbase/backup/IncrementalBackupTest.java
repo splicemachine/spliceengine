@@ -66,16 +66,16 @@ public class IncrementalBackupTest {
             f2 = new Path(archiveDir.toString() + "/testtb/4567/cf/f2");
             fs.mkdirs(f2);
 
-            SnapshotUtils snapshotUtils = mock(SnapshotUtilsImpl.class);
+            SnapshotUtils snapshotUtils = mock(SnapshotUtils.class);
             List<Object> files0 = new ArrayList<>();
             List<Object> files1 = new ArrayList<>();
             List<Object> files2 = new ArrayList<>();
 
-            files1.add(new HFileLink(conf, new Path("table/region/cf/testtb=4567-f0")));
-            files1.add(new HFileLink(conf, new Path("table/region/cf/testtb=4567-f1")));
+            files1.add(SnapshotUtilsImpl.newLink(conf, new Path("table/region/cf/testtb=4567-f0")));
+            files1.add(SnapshotUtilsImpl.newLink(conf, new Path("table/region/cf/testtb=4567-f1")));
 
-            files2.add(new HFileLink(conf, new Path("table/region/cf/testtb=4567-f0")));
-            files2.add(new HFileLink(conf, new Path("table/region/cf/testtb=4567-f2")));
+            files2.add(SnapshotUtilsImpl.newLink(conf, new Path("table/region/cf/testtb=4567-f0")));
+            files2.add(SnapshotUtilsImpl.newLink(conf, new Path("table/region/cf/testtb=4567-f2")));
 
             when(snapshotUtils.getSnapshotFilesForRegion(null, conf, fs, snapshotName)).thenReturn(files1);
             when(snapshotUtils.getSnapshotFilesForRegion(null, conf, fs, lastSnapshotName)).thenReturn(files0);

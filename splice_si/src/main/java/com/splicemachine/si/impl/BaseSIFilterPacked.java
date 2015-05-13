@@ -21,7 +21,7 @@ import java.util.List;
 /**
  * An HBase filter that applies SI logic when reading data values.
  */
-public class BaseSIFilterPacked<Data> extends FilterBase implements HasPredicateFilter, Writable {
+public abstract class BaseSIFilterPacked<Data> extends FilterBase implements HasPredicateFilter, Writable {
     private Txn txn;
 		private TransactionReadController<Data,Get,Scan> readController;
 		private EntryPredicateFilter predicateFilter;

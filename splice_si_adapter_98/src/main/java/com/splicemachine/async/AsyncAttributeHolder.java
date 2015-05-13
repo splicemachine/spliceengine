@@ -1,19 +1,12 @@
 package com.splicemachine.async;
 
-import com.google.common.base.Function;
-import com.google.common.collect.Collections2;
 import com.google.common.collect.Maps;
-import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.SpliceZeroCopyByteString;
 import com.google.protobuf.ZeroCopyLiteralByteString;
 import com.splicemachine.coprocessor.SpliceMessage;
 import org.apache.hadoop.hbase.exceptions.DeserializationException;
 import org.jboss.netty.buffer.ChannelBuffer;
 
-import javax.annotation.Nullable;
-import java.io.IOException;
-import java.util.Collection;
 import java.util.Map;
 
 /**

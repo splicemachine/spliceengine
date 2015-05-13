@@ -259,7 +259,7 @@ public abstract class BaseReadAheadRegionScanner<Put extends OperationWithAttrib
 										c=0;
 								}
 						}while(!Thread.currentThread().isInterrupted() && shouldContinue);
-						BaseHRegionUtil.updateReadRequests(region,rowCount);
+					updateReadRequest(region,rowCount);
 						//make sure that the timer has stopped
 						timer.stopTiming();
 
@@ -278,7 +278,9 @@ public abstract class BaseReadAheadRegionScanner<Put extends OperationWithAttrib
 				}
 		}
 
-		private static class ListFactory<Data> implements EventFactory<List<Data>> {
+	protected abstract void updateReadRequest(HRegion region,int rowCount);
+
+	private static class ListFactory<Data> implements EventFactory<List<Data>> {
 				@Override public List<Data> newInstance() {
 						return Lists.newArrayListWithExpectedSize(2);
 				}

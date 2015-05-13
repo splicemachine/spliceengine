@@ -9,6 +9,7 @@ import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.log4j.Logger;
 import java.io.IOException;
@@ -40,7 +41,13 @@ public class BufferedRegionScanner extends AbstractBufferedRegionScanner<Put,Get
 																 SDataLib<Cell,Put,Delete,Get,Scan> dataLib) {
 			super(region,delegate,scan,maxBufferSize,initialBufferSize,metricFactory, dataLib);
 		}
-		@Override public HRegionInfo getRegionInfo() { return delegate.getRegionInfo(); }
+
+	@Override
+	protected void updateReadRequests(HRegion region,int bufferPos){
+		HRegionUtil.updateReadRequests(region,bufferPos);
+	}
+
+	@Override public HRegionInfo getRegionInfo() { return delegate.getRegionInfo(); }
 		@Override public boolean isFilterDone() throws IOException { return delegate.isFilterDone(); }
 		@Override public boolean reseek(byte[] row) throws IOException { return delegate.reseek(row); }
 		@Override public long getMvccReadPoint() { return delegate.getMvccReadPoint(); }
