@@ -216,7 +216,7 @@ public class UpdateOperation extends DMLWriteOperation{
             public RowLocation genKey(LocatedRow locatedRow) {
                 counter++;
                 RowLocation rowLocation = locatedRow.getRowLocation();
-                return rowLocation==null?new HBaseRowLocation(com.splicemachine.primitives.Bytes.toBytes(counter)):rowLocation;
+                return rowLocation==null?new HBaseRowLocation(com.splicemachine.primitives.Bytes.toBytes(counter)):(HBaseRowLocation) rowLocation.cloneValue(true);
             }
 
             @Override

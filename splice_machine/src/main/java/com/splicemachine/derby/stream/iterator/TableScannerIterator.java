@@ -44,6 +44,7 @@ public class TableScannerIterator implements Iterable<LocatedRow>, Iterator<Loca
                 return hasNext;
             slotted = true;
             if (!initialized) {
+                initialized = true;
                 tableScanner = siTableBuilder.build();
                 tableScanner.open();
                 operation.registerCloseable(new Closeable() {
