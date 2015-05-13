@@ -24,7 +24,6 @@ import com.splicemachine.db.iapi.services.io.FormatableHashtable;
 import com.splicemachine.db.vti.IFastPath;
 import com.splicemachine.db.vti.VTIEnvironment;
 import com.splicemachine.db.vti.Restriction;
-
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 
@@ -292,21 +291,19 @@ public class VTIOperation extends SpliceBaseOperation implements VTIEnvironment 
      */
 	@Override
 	public ExecRow nextRow(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
-		throw new RuntimeException("Not Implemented Yet");
+        throw StandardException.newException( SQLState.NOT_IMPLEMENTED, this.getClass().getName());
 	}
-
-	
 
 	/**
 	 * @exception StandardException thrown on error
 	 */
 	public void	close() throws StandardException
 	{
-		throw new RuntimeException("Not Implemented Yet");
+        throw StandardException.newException( SQLState.NOT_IMPLEMENTED, this.getClass().getName());
 	}
 
 	public void finish() throws StandardException {
-		throw new RuntimeException("Not Implemented Yet");
+        throw StandardException.newException( SQLState.NOT_IMPLEMENTED, this.getClass().getName());
 	}
 
 	//
@@ -614,16 +611,16 @@ public class VTIOperation extends SpliceBaseOperation implements VTIEnvironment 
     }
 
 	@Override
-	public List<NodeType> getNodeTypes() {
-		throw new RuntimeException("Not Implemented Yet");
+	public List<NodeType> getNodeTypes(){
+		throw new UnsupportedOperationException(StandardException.newException( SQLState.NOT_IMPLEMENTED, this.getClass().getName()));
 	}
 
 	@Override
 	public List<SpliceOperation> getSubOperations() {
-		throw new RuntimeException("Not Implemented Yet");
+		throw new UnsupportedOperationException(StandardException.newException( SQLState.NOT_IMPLEMENTED, this.getClass().getName()));
 	}
 
-    @Override
+	@Override
     public int[] getRootAccessedCols(long tableNumber) {
         return null;
     }
