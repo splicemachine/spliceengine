@@ -53,7 +53,7 @@ public class HBaseRowLocation extends DataType implements RowLocation {
             slice.set(theValue);
 	}
     
-    public final byte[]	getBytes() throws StandardException {
+    public final byte[]	getBytes() {
 		return slice != null?slice.getByteCopy():null;
 	}
     @Override
@@ -79,13 +79,7 @@ public class HBaseRowLocation extends DataType implements RowLocation {
 	}
 
 	public DataValueDescriptor cloneValue(boolean forceMaterialization) {
-        try {
-            if (forceMaterialization)
-                return new HBaseRowLocation(this.getBytes());
-            return new HBaseRowLocation(this);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
+		return new HBaseRowLocation(this.getBytes());
 	}
 
 	public String getString() {
