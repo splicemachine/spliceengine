@@ -146,9 +146,7 @@ public class WindowOperation extends SpliceBaseOperation {
         return source.getDataSet()
                 .keyBy(new KeyerFunction(operationContext, windowContext.getPartitionColumns()))
                 .groupByKey()
-                .flatmap(new MergeWindowFunction(operationContext, windowContext.getWindowFunctions()))
-                .map(new WindowFinisherFunction(operationContext, windowContext.getWindowFunctions()));
-
+                .flatmap(new MergeWindowFunction(operationContext, windowContext.getWindowFunctions()));
     }
 
     private WindowFunctionIterator createFrameIterator(SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
