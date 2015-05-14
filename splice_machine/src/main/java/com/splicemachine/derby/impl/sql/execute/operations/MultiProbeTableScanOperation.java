@@ -10,12 +10,19 @@ import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.compile.RowOrdering;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
+import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.temporary.WriteReadUtils;
+import com.splicemachine.si.api.TxnView;
+import org.apache.hadoop.hbase.client.Scan;
 // These are for javadoc "@see" tags.
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 /**
  * Result set that fetches rows from a scan by "probing" the underlying
@@ -194,25 +201,29 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
     public String toString() {
         return "MultiProbe"+super.toString();
     }
-    
-/*	@Override // Broken FIX JL
-	public RowProvider getMapRowProvider(SpliceOperation top,PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-		beginTime = System.currentTimeMillis();
-			List<Scan> scans = scanInformation.getScans(operationInformation.getTransaction(), null, activation, top, spliceRuntimeContext);
-			for(Scan scan:scans){
-					//remove SI behavior from scan to make sure that we do it ourselves
-					deSiify(scan);
-			}
-			MultiProbeClientScanProvider provider = new MultiProbeClientScanProvider("tableScan",Bytes.toBytes(tableName),
-							scans, decoder,spliceRuntimeContext);
-		nextTime += System.currentTimeMillis() - beginTime;
-		return provider;
-	}
 
     @Override
-		public RowProvider getReduceRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext, boolean returnDefaultValue) throws StandardException, IOException {
-				return getMapRowProvider(top, decoder, spliceRuntimeContext);
-		}
-		*/
+    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+        TxnView txn = getCurrentTransaction();
+        List<Scan> scans = scanInformation.getScans(getCurrentTransaction(), null, activation);
+        DataSet<LocatedRow> dataSet = dsp.getEmpty();
+        for (Scan scan: scans) {
+            TableScannerBuilder tsb = new TableScannerBuilder()
+                    .transaction(txn)
+                    .scan(scan)
+                    .template(currentTemplate)
+                    .tableVersion(scanInformation.getTableVersion())
+                    .indexName(indexName)
+                    .keyColumnEncodingOrder(scanInformation.getColumnOrdering())
+                    .keyColumnSortOrder(scanInformation.getConglomerate().getAscDescInfo())
+                    .keyColumnTypes(getKeyFormatIds())
+                    .execRowTypeFormatIds(WriteReadUtils.getExecRowTypeFormatIds(currentTemplate))
+                    .accessedKeyColumns(scanInformation.getAccessedPkColumns())
+                    .keyDecodingMap(getKeyDecodingMap())
+                    .rowDecodingMap(baseColumnMap);
+            dataSet = dataSet.union(dsp.getTableScanner(this, tsb, tableName));
+        }
+        return dataSet;
+    }
         
 }

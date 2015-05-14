@@ -36,7 +36,7 @@ public class TableScanOperation extends ScanOperation {
 		protected boolean runTimeStatisticsOn;
 		private Properties scanProperties;
 		public ByteSlice slice;
-		private int[] baseColumnMap;
+		protected int[] baseColumnMap;
 	    protected static final String NAME = TableScanOperation.class.getSimpleName().replaceAll("Operation","");
         protected byte[] tableNameBytes;
 
