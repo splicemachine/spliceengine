@@ -25,7 +25,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
     private static Logger LOG = Logger.getLogger(GroupedAggregateOperation.class);
     protected boolean isInSortedOrder;
     protected boolean isRollup;
-    private GroupedAggregateContext groupedAggregateContext;
+    public GroupedAggregateContext groupedAggregateContext;
     private boolean[] usedTempBuckets;
     protected static final String NAME = GroupedAggregateOperation.class.getSimpleName().replaceAll("Operation","");
 
@@ -158,28 +158,21 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         OperationContext<SpliceOperation> operationContext = dsp.createOperationContext(this);
-        DataSet set;
-        if (groupedAggregateContext.getNonGroupedUniqueColumns()!=null &&
+        DataSet set = source.getDataSet();
+        if (groupedAggregateContext.getNonGroupedUniqueColumns() != null &&
                 groupedAggregateContext.getNonGroupedUniqueColumns().length > 0) {
             // Distinct Aggregate Path
-            int[] allKeys = ArrayUtils.addAll(groupedAggregateContext.getGroupingKeys(),groupedAggregateContext.getNonGroupedUniqueColumns());
-            return source.getDataSet()
+            int[] allKeys = ArrayUtils.addAll(groupedAggregateContext.getGroupingKeys(), groupedAggregateContext.getNonGroupedUniqueColumns());
+            set = set
                     .keyBy(new KeyerFunction(operationContext, allKeys))
                     .reduceByKey(new MergeNonDistinctAggregatesFunction(operationContext, aggregates))
-                    .values()
-                    .keyBy(new KeyerFunction(operationContext, groupedAggregateContext.getGroupingKeys()))
-                    .reduceByKey(new MergeAllAggregatesFunction(operationContext, aggregates))
-                    .values()
-                    .map(new AggregateFinisherFunction(operationContext,aggregates));
-
-        } else {
-            // Regular Group by Path
-            return source.getDataSet()
-                    .keyBy(new KeyerFunction(operationContext, groupedAggregateContext.getGroupingKeys()))
-                    .reduceByKey(new MergeAllAggregatesFunction(operationContext, aggregates))
-                    .values()
-                    .map(new AggregateFinisherFunction(operationContext, aggregates));
+                    .values();
         }
+        if (isRollup) // OLAP Rollup Functionality
+               set = set.flatMap(new GroupedAggregateRollupFlatMapFunction(operationContext));
+        return set.keyBy(new KeyerFunction(operationContext, groupedAggregateContext.getGroupingKeys()))
+               .reduceByKey(new MergeAllAggregatesFunction(operationContext, aggregates))
+               .values()
+               .map(new AggregateFinisherFunction(operationContext, aggregates));
     }
-
 }
