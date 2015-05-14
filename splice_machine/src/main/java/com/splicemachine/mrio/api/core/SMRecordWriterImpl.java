@@ -65,7 +65,7 @@ public class SMRecordWriterImpl extends RecordWriter<RowLocation, ExecRow> {
 				ColumnContext cc = columns[i];
 				if(columns[i].isAutoIncrement()){
 						hasSequence = true;
-						sequences[i] = new SpliceSequence(SpliceAccessManager.getHTable(SpliceConstants.SEQUENCE_TABLE_NAME_BYTES),
+						sequences[i] = new SpliceSequence(
 										50*cc.getAutoIncrementIncrement(),
 										cc.getSequenceRowLocation(),
 										cc.getAutoIncrementStart(),

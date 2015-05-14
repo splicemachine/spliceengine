@@ -1,8 +1,12 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.db.impl.sql.execute.BaseActivation;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.sequence.SpliceIdentityColumnKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.stream.function.SplicePairFunction;
@@ -22,10 +26,9 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.TxnView;
+import com.splicemachine.utils.Pair;
 import org.apache.log4j.Logger;
 import scala.Tuple2;
-
-import javax.annotation.Nullable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -53,6 +56,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
         private SpliceSequence[] spliceSequences;
 	    protected static final String NAME = InsertOperation.class.getSimpleName().replaceAll("Operation","");
         public InsertTableWriter tableWriter;
+        public Pair<Long,Long>[] defaultAutoIncrementValues;
 
 
     @Override
@@ -97,6 +101,24 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
                 autoIncrementRowLocationArray = writeInfo.getConstantAction() != null &&
                         ((InsertConstantOperation) writeInfo.getConstantAction()).getAutoincRowLocation() != null ?
                         ((InsertConstantOperation) writeInfo.getConstantAction()).getAutoincRowLocation() : new RowLocation[0];
+                defaultAutoIncrementValues = WriteReadUtils.getStartAndIncrementFromSystemTables(autoIncrementRowLocationArray,
+                        activation.getLanguageConnectionContext().getDataDictionary(),
+                        heapConglom);
+                spliceSequences = new SpliceSequence[autoIncrementRowLocationArray.length];
+                int length = autoIncrementRowLocationArray.length;
+                for (int i = 0; i < length; i++) {
+                    HBaseRowLocation rl = (HBaseRowLocation) autoIncrementRowLocationArray[i];
+                    if (rl == null) {
+                        spliceSequences[i] = null;
+                    } else {
+                        byte[] rlBytes = rl.getBytes();
+                        spliceSequences[i] = SpliceDriver.driver().getSequencePool().get(new SpliceIdentityColumnKey(
+                                rlBytes,
+                                (isSingleRowResultSet()) ? 1l : SpliceConstants.sequenceBlockSize,
+                                defaultAutoIncrementValues[i].getFirst(),
+                                defaultAutoIncrementValues[i].getSecond()));
+                    }
+                }
             } catch (Exception e) {
                 throw Exceptions.parseException(e);
             }
@@ -115,10 +137,13 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
 
 		@Override
 		public DataValueDescriptor increment(int columnPosition, long increment) throws StandardException {
-            if (tableWriter!=null)
-               return tableWriter.increment(columnPosition,increment);
-            else
-                throw new RuntimeException("Not Implemented");
+            nextIncrement = ((BaseActivation) activation).ignoreSequence()?-1:spliceSequences[columnPosition - 1].getNext();
+            this.getActivation().getLanguageConnectionContext().setIdentityValue(nextIncrement);
+            if (rowTemplate==null)
+                rowTemplate = getExecRowDefinition();
+            DataValueDescriptor dvd = rowTemplate.cloneColumn(columnPosition);
+            dvd.setValue(nextIncrement);
+            return dvd;
 		}
 
 		@Override
@@ -180,10 +205,7 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
                 .heapConglom(heapConglom)
                 .autoIncrementRowLocationArray(autoIncrementRowLocationArray)
                 .execRowDefinition(getExecRowDefinition())
-                .defaultAutoIncrementValues(
-                        WriteReadUtils.getStartAndIncrementFromSystemTables(autoIncrementRowLocationArray,
-                                activation.getLanguageConnectionContext().getDataDictionary(),
-                                heapConglom))
+                .spliceSequences(spliceSequences)
                 .pkCols(pkCols)
                 .tableVersion(writeInfo.getTableVersion())
                 .txn(txn);

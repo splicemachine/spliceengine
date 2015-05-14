@@ -3,24 +3,20 @@ package com.splicemachine.derby.impl.sql.execute.sequence;
 import java.util.Arrays;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.tools.ResourcePool;
-import org.apache.hadoop.hbase.client.HTableInterface;
 
 public abstract class AbstractSequenceKey implements ResourcePool.Key{
-        protected HTableInterface table;
         protected final byte[] sysColumnsRow;
         protected final long blockAllocationSize;
         protected long autoIncStart;
         protected long autoIncrement;
         public AbstractSequenceKey(
-                   HTableInterface table,
                    byte[] sysColumnsRow,
                    long blockAllocationSize,
                    long autoIncStart,
                    long autoIncrement) {
-            assert (table != null && sysColumnsRow != null): "Null Table or SysColumnsRow Passed in";
+            assert (sysColumnsRow != null): "Null SysColumnsRow Passed in";
             this.sysColumnsRow = sysColumnsRow;
             this.blockAllocationSize = blockAllocationSize;
-            this.table = table;
             this.autoIncStart = autoIncStart;
             this.autoIncrement = autoIncrement;
         }
