@@ -38,8 +38,8 @@
     <!-- Based on built-in JMX => Requires jdk1.5 or better -->
     <target name="compile_jdk15">
         <javac
-            source="1.5"
-            target="1.5"
+            source="1.7"
+            target="1.7"
             fork="yes"
             bootclasspath="${empty}"
             nowarn="on"
@@ -52,7 +52,7 @@
             srcdir="${derby.testing.src.dir}"
             destdir="${out.dir}">
             <classpath>
-                <pathelement path="${java15compile.classpath}"/>
+                <pathelement path="${main.classpath}"/>
                 <pathelement path="${junit}"/>
             </classpath>
             <include name="${this.dir}/*.java"/>

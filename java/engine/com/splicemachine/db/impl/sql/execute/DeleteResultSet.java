@@ -453,7 +453,7 @@ class DeleteResultSet extends DMLWriteResultSet
 			}
 
 			// fire BEFORE trigger
-			triggerActivator.notifyEvent(TriggerEvents.BEFORE_DELETE, 
+			triggerActivator.notifyEvent(TriggerEvent.BEFORE_DELETE,
 										 rowHolder.getResultSet(), 
 										 (CursorResultSet)null,
 										 constants.getBaseRowReadMap());
@@ -471,7 +471,7 @@ class DeleteResultSet extends DMLWriteResultSet
 		if (triggerActivator != null)
 		{
 			triggerActivator.reopen();
-			triggerActivator.notifyEvent(TriggerEvents.AFTER_DELETE, 
+			triggerActivator.notifyEvent(TriggerEvent.AFTER_DELETE,
 										 rowHolder.getResultSet(),
 										 (CursorResultSet)null,
 										 constants.getBaseRowReadMap());

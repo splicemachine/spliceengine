@@ -33,6 +33,7 @@ import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.NodeFactory;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.iapi.sql.compile.TypeCompiler;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueFactory;
@@ -1011,6 +1012,10 @@ public abstract class ValueNode extends QueryTreeNode
 		} else {
 			return 0.5d;
 		}
+	}
+
+	public double selectivity(Optimizable optTable,ConglomerateDescriptor currentCd) throws StandardException {
+		return selectivity(optTable);
 	}
 
 	/**

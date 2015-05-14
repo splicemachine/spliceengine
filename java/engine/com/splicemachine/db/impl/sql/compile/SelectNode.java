@@ -1147,6 +1147,8 @@ public class SelectNode extends ResultSetNode{
             eliminateSort=gbn.getIsInSortedOrder();
         }
 
+        // Pull up rowId predicates that are not start or top keys
+        pullRowIdPredicates((ProjectRestrictNode)prnRSN);
         if(windowNodeList!=null){
 
             // Now we add a window result set wrapped in a PRN on top of what
@@ -1477,6 +1479,17 @@ public class SelectNode extends ResultSetNode{
                 optimizer.costPermutation();
             }
         }
+
+        /*
+         * DB-2001/DB-2877. At the end of this loop we need to verify
+         * that we found a best plan for *our subtree*--otherwise, if we are a
+         * subselect for a larger plan, the outer select will not detect that an error
+         * should be thrown, and it will just fall into an infinite loop. Thus,
+         * we put this check in place to terminate the looping early with the appropriate
+         * error. Think of it as a verification step--at this stage in optimization, we
+         * should have an optimal join order and conglomerate choices. If we don't, give up.
+         */
+        optimizer.verifyBestPlanFound();
 
 		/* When we're done optimizing, any scoped predicates that
 		 * we pushed down the tree should now be sitting again
@@ -2279,5 +2292,13 @@ public class SelectNode extends ResultSetNode{
         }
 
         return table;
+    }
+
+    private void pullRowIdPredicates(ProjectRestrictNode prn) throws StandardException{
+        ResultSetNode rsn = prn.getChildResult();
+        if (rsn instanceof ProjectRestrictNode) {
+            ProjectRestrictNode child = (ProjectRestrictNode) rsn;
+            child.pullRowIdPredicates(prn.getRestrictionList());
+        }
     }
 }

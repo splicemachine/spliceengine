@@ -29,6 +29,7 @@ import com.splicemachine.db.iapi.services.compiler.LocalField;
 
 import java.lang.reflect.Modifier;
 
+import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.reference.ClassName;
@@ -748,6 +749,21 @@ public class BinaryOperatorNode extends OperatorNode
 		boolean pushable;
 		pushable = leftOperand.categorize(referencedTabs, simplePredsOnly);
 		pushable = (rightOperand.categorize(referencedTabs, simplePredsOnly) && pushable);
+
+        if (leftOperand instanceof ColumnReference) {
+            ColumnReference lcr = (ColumnReference) leftOperand;
+            if (lcr.getSource().getExpression() instanceof CurrentRowLocationNode) {
+                if (methodName.compareToIgnoreCase("NOTEQUALS") == 0) {
+                    return false;
+                }
+            }
+            if (rightOperand instanceof ColumnReference) {
+                ColumnReference rcr = (ColumnReference) rightOperand;
+                if (rcr.getSource().getExpression() instanceof CurrentRowLocationNode) {
+                    return false;
+                }
+            }
+        }
 		return pushable;
 	}
 

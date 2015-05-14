@@ -1148,19 +1148,24 @@ public class OptimizerImpl implements Optimizer{
     @Override public DataDictionary getDataDictionary(){ return dDictionary; }
 
     @Override
+    public void verifyBestPlanFound() throws StandardException{
+        if(!foundABestPlan){
+            if(optimizerTrace){
+                tracer().trace(OptimizerFlag.NO_BEST_PLAN,0,0,0.0,null);
+            }
+
+            throw StandardException.newException(SQLState.LANG_NO_BEST_PLAN_FOUND);
+        }
+    }
+
+    @Override
     public void modifyAccessPaths() throws StandardException{
         OptimizerTrace tracer = tracer();
         if(optimizerTrace){
             tracer.trace(OptimizerFlag.MODIFYING_ACCESS_PATHS,0,0,0.0,null);
         }
 
-        if(!foundABestPlan){
-            if(optimizerTrace){
-                tracer.trace(OptimizerFlag.NO_BEST_PLAN,0,0,0.0,null);
-            }
-
-            throw StandardException.newException(SQLState.LANG_NO_BEST_PLAN_FOUND);
-        }
+        verifyBestPlanFound();
 
 		/* Change the join order of the list of optimizables */
         optimizableList.reOrder(bestJoinOrder);
@@ -1436,6 +1441,7 @@ public class OptimizerImpl implements Optimizer{
         }
     }
 
+
     @Override
     public OptimizableList getOptimizableList(){
         return optimizableList;
@@ -1466,7 +1472,11 @@ public class OptimizerImpl implements Optimizer{
             if(joinPosition==0) break;
         }
         currentCost.setCost(0.0d,0.0d,0.0d);
+        currentCost.setBase(null);
+        currentCost.setRowOrdering(null);
         currentSortAvoidanceCost.setCost(0.0d,0.0d,0.0d);
+        currentSortAvoidanceCost.setBase(null);
+        currentSortAvoidanceCost.setRowOrdering(null);
         assignedTableMap.clearAll();
     }
 
@@ -1841,6 +1851,7 @@ public class OptimizerImpl implements Optimizer{
         currentCost.setRemoteCost(newRemoteCost);
         currentCost.setRowCount(prevRowCount);
         currentCost.setSingleScanRowCount(prevSingleScanRowCount);
+        currentCost.setBase(null);
 
 		/*
 		** Subtract from the sort avoidance cost if there is a
@@ -1907,6 +1918,7 @@ public class OptimizerImpl implements Optimizer{
                 currentSortAvoidanceCost.setRemoteCost(prevRemoteCost);
                 currentSortAvoidanceCost.setRowCount(prevRowCount);
                 currentSortAvoidanceCost.setSingleScanRowCount(prevSingleScanRowCount);
+                currentSortAvoidanceCost.setBase(null);
 
 				/*
 				** Remove the table from the best row ordering.

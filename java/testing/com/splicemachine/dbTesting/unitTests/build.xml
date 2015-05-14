@@ -36,8 +36,7 @@
   <property file="${properties.dir}/derbytesting.properties"/>
 
   <!-- Compiler settings -->
-  <property file="${properties.dir}/defaultcompiler.properties"/>
-  <property file="${properties.dir}/${build.compiler}.properties"/>
+  <property file="${properties.dir}/modern.properties"/>
 
   <!-- Parser properties -->
   <property file="${properties.dir}/parser.properties"/>
@@ -48,16 +47,13 @@
   <property file="${user.home}/properties/derbytesting.properties"/>
   <property file="${ant.home}/properties/derbytesting.properties"/>
 
-  <!-- Release and Version info -->
-  <property file="${properties.dir}/release.properties"/>
-
 <!--             ============ Begin Targets ==============                -->
  
   <target name="unitTests" 
           description="Build Derby unit testing files">
     <javac
-      source="1.4"
-      target="1.4"
+      source="1.7"
+      target="1.7"
       bootclasspath="${empty}"
       nowarn="on"
       debug="true"
@@ -69,7 +65,7 @@
       srcdir="${derby.testing.src.dir}"
       destdir="${out.dir}">
       <classpath>
-        <pathelement path="${java15compile.classpath}"/>
+        <pathelement path="${main.classpath}"/>
         <pathelement path="${joda-time};${junit}"/>
       </classpath>
       <include name="${derby.testing.unittest.dir}/**/*.java"/>

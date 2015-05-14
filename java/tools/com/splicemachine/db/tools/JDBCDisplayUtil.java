@@ -55,6 +55,17 @@ public class JDBCDisplayUtil {
 
 	// used to control display
 	static final private int MINWIDTH = 4;
+	/*
+	 * -sf- original derby uses this maxWidth field to try and perform its own wrapping w.r.t individual
+	 * columns--i.e. it uses this to ensure that all the columns line up nicely and display well.
+	 * In most circumstances, this is fine (relatively speaking, anyway), but in some circumstances it's helpful
+	 * to not have this. The big example of this is the explain logic, which may easily run off the end of the
+	 * max display width, and which has only a single column anyway.
+	 *
+	 * We therefore add the ability to "disable" this--by setting maxWidth to 0, we make it so that display widths
+	 * are ignored and the entire string is always dumped to the console, no matter how long. Generally, we don't care
+	 * to do this, but for Explain trace we do.
+	 */
 	static private int maxWidth = 256;
     static public boolean showSelectCount = false;
 
@@ -220,7 +231,7 @@ public class JDBCDisplayUtil {
 	static public void DisplayResults(PrintWriter out, Statement stmt, Connection conn )
 		throws SQLException
 	{
-		indent_DisplayResults( out, stmt, conn, 0, null, null);			
+		indent_DisplayResults(out,stmt,conn,0,null,null);
 	}
 
 	static private void indent_DisplayResults
@@ -581,6 +592,7 @@ public class JDBCDisplayUtil {
 		// get column header info
 		// truncate it to the column display width
 		// add a bar between each item.
+		int actualLen = 0;
 		for (int i=1; i <= numCols; i++) {
 			int colnum = displayColumns==null ? i : displayColumns[i-1];
 
@@ -588,37 +600,42 @@ public class JDBCDisplayUtil {
 				buf.append('|');
 
 			String s = rsmd.getColumnLabel(colnum);
+			actualLen+=s.length();
 
 			int w = displayColumnWidths[i-1];
 
-			if (s.length() < w) {
-				
-				buf.append(s);
+			if(w>0){
+				if(s.length()<w){
 
-				// try to paste on big chunks of space at a time.
-				int k = w - s.length();
-				for (; k >= 64; k -= 64)
-					buf.append(
-          "                                                                ");
-				for (; k >= 16; k -= 16)
-					buf.append("                ");
-				for (; k >= 4; k -= 4)
-					buf.append("    ");
-				for (; k > 0; k--)
-					buf.append(' ');
-			}
-			else if (s.length() > w)  {
-				if (w > 1) 
-					buf.append(s.substring(0,w-1));
-				if (w > 0) 
-					buf.append('&');
-			}
-			else {
+					buf.append(s);
+
+					// try to paste on big chunks of space at a time.
+					int k=w-s.length();
+					for(;k>=64;k-=64)
+						buf.append(
+								"                                                                ");
+					for(;k>=16;k-=16)
+						buf.append("                ");
+					for(;k>=4;k-=4)
+						buf.append("    ");
+					for(;k>0;k--)
+						buf.append(' ');
+				}else if(s.length()>w){
+					if(w>1)
+						buf.append(s.substring(0,w-1));
+					if(w>0)
+						buf.append('&');
+				}else{
+					buf.append(s);
+				}
+			} else {
 				buf.append(s);
 			}
 		}
 
 		indentedPrintLine( out, indentLevel, buf);
+		if(buf.length()>rowLen)
+			rowLen = buf.length(); //should only occur if widths are disabled
 
 		// now print a row of '-'s
 		for (int i=0; i<rowLen; i++)
@@ -695,16 +712,18 @@ public class JDBCDisplayUtil {
 			if (s==null) s = "NULL";
 
 			int w = displayColumnWidths[i-1];
-			if (s.length() < w) {
-				StringBuffer fullS = new StringBuffer(s);
-				fullS.ensureCapacity(w);
-				for (int k=s.length(); k<w; k++)
-					fullS.append(' ');
-				s = fullS.toString();
+			if(w>0){
+				if (s.length() < w) {
+					StringBuilder fullS = new StringBuilder(s);
+					fullS.ensureCapacity(w);
+					for (int k=s.length(); k<w; k++)
+						fullS.append(' ');
+					s = fullS.toString();
+				}
+				else if (s.length() > w)
+					// add the & marker to know it got cut off
+					s = s.substring(0,w-1)+"&";
 			}
-			else if (s.length() > w)
-				// add the & marker to know it got cut off
-				s = s.substring(0,w-1)+"&";
 
 			buf.append(s);
 		}

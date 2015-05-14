@@ -5,6 +5,6 @@ package com.splicemachine.db.impl.sql.compile;
  *         Date: 3/30/15
  */
 public class RangePredicate{
-    Predicate start;
-    Predicate stop;
+    public Predicate start;
+    public Predicate stop;
 }

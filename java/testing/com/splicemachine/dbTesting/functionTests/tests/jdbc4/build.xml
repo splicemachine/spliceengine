@@ -28,18 +28,13 @@
 
     <!-- Compiler settings -->
     <property file="${properties.dir}/sane${sanity}.properties"/>
-    <property file="${properties.dir}/defaultcompiler.properties"/>
-    <property file="${properties.dir}/${build.compiler}.properties"/>
+    <property file="${properties.dir}/modern.properties"/>
 
     <!-- Parser properties -->
     <!--property file="${properties.dir}/parser.properties"/-->
 
     <!-- Compile-time classpath properties files -->
     <property file="${properties.dir}/extrapath.properties"/>
-    <property file="${properties.dir}/compilepath.properties"/>
-
-    <!-- Release and Version info -->
-    <property file="${properties.dir}/release.properties"/>
 
     <!-- db testing specific properties files -->
     <property file="${ant.home}/properties/derbytesting.properties"/>
@@ -48,8 +43,8 @@
 
     <target name="compile_jdbc4" depends="copyfiles">
         <javac
-          source="${compilerLevel16}"
-          target="${compilerLevel16}"
+          source="1.7"
+          target="1.7"
             bootclasspath="${empty}"
             nowarn="on"
             debug="true"
@@ -61,7 +56,7 @@
             srcdir="${derby.testing.src.dir}"
             destdir="${out.dir}">
             <classpath>
-                <pathelement path="${java16compile.classpath}"/>
+                <pathelement path="${main.classpath}"/>
 		        <pathelement path="${junit}"/>
             </classpath>
             <include name="${this.dir}/*.java"/>

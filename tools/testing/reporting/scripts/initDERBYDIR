@@ -106,7 +106,6 @@ echo ""
 # Get back in ${TOPDIR}/${TESTSET}/${SANDBOX}
 cd ..
 echo "To have a complete build environment you should have"
-echo "  osgi.jar"
 echo "  junit.jar"
 echo "  jdbc2_0-stdext.jar"
 echo "  jce1_2_2.jar"

@@ -28,7 +28,7 @@
     <property name="ivy.jar.dir" value="${ivy.home}/lib" />
     <property name="ivy.jar.file" value="${ivy.jar.dir}/ivy.jar" />
 
-    <target name="download-ivy" unless="offline">
+    <target name="download-ivy">
 
         <mkdir dir="${ivy.jar.dir}"/>
         <!-- download Ivy from web site so that it can be used even without any special installation -->
@@ -57,11 +57,9 @@
   <!-- Significant dirs -->
   <property file="${properties.dir}/dirs.properties"/>
   <!-- Compiler settings -->
-  <property file="${properties.dir}/defaultcompiler.properties"/>
-  <property file="${properties.dir}/${build.compiler}.properties"/>
+  <property file="${properties.dir}/modern.properties"/>
   <!-- Compile-time classpath properties files -->
   <property file="${properties.dir}/extrapath.properties"/>
-  <property file="${properties.dir}/compilepath.properties"/>
 
   <property name="cur.dir" value="impl/sql"/>
 
@@ -126,7 +124,7 @@
       srcdir="${derby.engine.src.dir}:${generated.engine.dir}"
       destdir="${out.dir}">
       <classpath>
-        <pathelement path="${log4j};${joda-time};${compile.classpath}"/>
+        <pathelement path="${log4j};${joda-time};${main.classpath}"/>
       	<path refid="lib.path.id"/>
       </classpath>
       <include name="${splice.package}/${cur.dir}/**"/>

@@ -935,9 +935,17 @@ public final class SQLTimestamp extends DataType
 		Timestamp t = null;
         
 		if (cal == null){
-        	DateTime dt = createDateTime();
-        	t = new Timestamp(dt.getMillis());
-        	
+			int year = SQLDate.getYear(encodedDate);
+			if (year < SQLDate.JODA_CRUSH_YEAR) {
+				GregorianCalendar c = new GregorianCalendar();
+				c.clear();
+				c.set(year, SQLDate.getMonth(encodedDate) - 1, SQLDate.getDay(encodedDate));
+				// c.setTimeZone(...); if necessary
+				t = new Timestamp(c.getTimeInMillis());
+			} else {
+				DateTime dt = createDateTime();
+				t = new Timestamp(dt.getMillis());
+			}
         }else{
         	setCalendar(cal);
         	t = new Timestamp(cal.getTimeInMillis());

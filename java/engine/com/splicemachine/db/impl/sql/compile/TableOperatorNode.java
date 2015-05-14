@@ -713,6 +713,7 @@ public abstract class TableOperatorNode extends FromTable{
                 }
             }
 
+            optimizer.verifyBestPlanFound(); //modify the access paths to the correct version
             retval=sourceResultSet;
         }else{
             retval=sourceResultSet.optimize(

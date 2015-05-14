@@ -1299,6 +1299,9 @@ public class TypeId{
 
             // Implementation of DECIMAL can change.
             case StoredFormatIds.DECIMAL_TYPE_ID:
+                if (decimalImplementation == null) {
+                    return new SQLDecimal();
+                }
                 return decimalImplementation.getNewNull();
 
             case StoredFormatIds.DOUBLE_TYPE_ID:

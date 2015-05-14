@@ -103,7 +103,7 @@ public abstract class BaseJoinStrategy implements JoinStrategy {
 
 		mb.push(predList.stopOperator(innerTable));
 		mb.push(sameStartStopPosition);
-
+        mb.push(predList.isRowIdScan());
 		predList.generateQualifiers(acb, mb, innerTable, true);
 		//mb.upCast(ClassName.Qualifier + "[][]");
 	}

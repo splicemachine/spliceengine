@@ -29,63 +29,49 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.Activation;
 
 /**
- * A statement trigger executor is an object that executes
- * a statement trigger.  It is instantiated at execution
+ * A statement trigger executor is an object that executes a statement trigger.  It is instantiated at execution
  * time.  There is one per statement trigger.
  */
-public class StatementTriggerExecutor extends GenericTriggerExecutor
-{
-	/**
-	 * Constructor
-	 *
-	 * @param tec the execution context
-	 * @param triggerd the trigger descriptor
-	 * @param activation the activation
-	 * @param lcc the lcc
-	 */
-	StatementTriggerExecutor
-	(
-		InternalTriggerExecutionContext tec, 
-		TriggerDescriptor 				triggerd,
-		Activation						activation,
-		LanguageConnectionContext		lcc
-	)
-	{
-		super(tec, triggerd, activation, lcc);
-	}
+public class StatementTriggerExecutor extends GenericTriggerExecutor {
 
-	/**
-	 * Fire the trigger based on the event.
-	 *
-	 * @param event	the trigger event
-	 * @param brs   the before result set
-	 * @param ars   the after result set
-	 * @param colsReadFromTable   columns required from the trigger table
-	 *   by the triggering sql
-	 *
-	 * @exception StandardException on error or general trigger
-	 *	exception
-	 */
-	void fireTrigger 
-	(
-		TriggerEvent 		event, 
-		CursorResultSet 	brs, 
-		CursorResultSet 	ars,
-		int[] colsReadFromTable
-	) throws StandardException
-	{
-		tec.setTrigger(triggerd);
-		tec.setBeforeResultSet(brs);
-		tec.setAfterResultSet(ars);
-		
-		try
-		{
-			executeSPS(getAction());
-		}
-		finally
-		{
-			clearSPS();
-			tec.clearTrigger();	
-		}
-	}
+    /**
+     * Constructor
+     *
+     * @param tec        the execution context
+     * @param triggerd   the trigger descriptor
+     * @param activation the activation
+     * @param lcc        the lcc
+     */
+    StatementTriggerExecutor(InternalTriggerExecutionContext tec,
+                             TriggerDescriptor triggerd,
+                             Activation activation,
+                             LanguageConnectionContext lcc) {
+        super(tec, triggerd, activation, lcc);
+    }
+
+    /**
+     * Fire the trigger based on the event.
+     *
+     * @param event             the trigger event
+     * @param brs               the before result set
+     * @param ars               the after result set
+     * @param colsReadFromTable columns required from the trigger table by the triggering sql
+     * @throws StandardException on error or general trigger exception
+     */
+    @Override
+    void fireTrigger(TriggerEvent event,
+                     CursorResultSet brs,
+                     CursorResultSet ars,
+                     int[] colsReadFromTable) throws StandardException {
+        tec.setTrigger(triggerd);
+        tec.setBeforeResultSet(brs);
+        tec.setAfterResultSet(ars);
+
+        try {
+            executeSPS(getAction());
+        } finally {
+            clearSPS();
+            tec.clearTrigger();
+        }
+    }
 }

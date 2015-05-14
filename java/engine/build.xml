@@ -7,18 +7,13 @@
   <property file="${properties.dir}/dirs.properties"/>
 
   <!-- Compiler settings -->
-  <property file="${properties.dir}/defaultcompiler.properties"/>
-  <property file="${properties.dir}/${build.compiler}.properties"/>
+  <property file="${properties.dir}/modern.properties"/>
 
   <!-- Parser properties -->
   <property file="${properties.dir}/parser.properties"/>
 
   <!-- Compile-time classpath properties files -->
   <property file="${properties.dir}/extrapath.properties"/>
-  <property file="${properties.dir}/compilepath.properties"/>
-
-  <!-- Release and Version info -->
-  <property file="${properties.dir}/release.properties"/>
 
   <target name="engine" description="Build Derby engine">
 
@@ -34,7 +29,6 @@
   	<ant dir="${derby.engine.dir}/agg"/>
     <ant dir="${derby.engine.dir}/impl"/>
     <ant dir="${derby.engine.dir}/jdbc"/>
-    <ant dir="${derby.engine.dir}/osgi"/>
     <ant dir="${derby.engine.dir}/catalog"/>
 
     <ant dir="${derby.engine.dir}/diag"/>

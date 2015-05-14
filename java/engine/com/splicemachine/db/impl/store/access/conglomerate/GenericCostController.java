@@ -137,6 +137,16 @@ public abstract class GenericCostController extends GenericController implements
         return 1.0d; //not really implemented
     }
 
+    @Override
+    public double rowCount(){
+        return 1.0d;
+    }
+
+    @Override
+    public double nonNullCount(int columnNumber){
+        return 1.0d;
+    }
+
     //    @Override
     public double nullSelectivity(int columnNumber){
         return 1.0d;

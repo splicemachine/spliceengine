@@ -94,8 +94,41 @@ public final class UpdateLoader implements LockOwner {
 
 	private boolean needReload;
 	private JarReader jarReader;
+	private static volatile UpdateLoader instance = null;
 
-	UpdateLoader(String classpath, DatabaseClasses parent, boolean verbose, boolean normalizeToUpper) 
+	/**
+	 * Singleton factory method.
+	 *
+	 * @param classpath
+	 * @param parent
+	 * @param verbose
+	 * @param normalizeToUpper
+	 *
+	 * @return reference to singleton instance
+	 *
+	 * @throws StandardException
+	 */
+	public static synchronized UpdateLoader getInstance(String classpath, DatabaseClasses parent, boolean verbose, boolean normalizeToUpper) 
+			throws StandardException {
+
+		if (instance == null) {
+			instance = new UpdateLoader(classpath, parent, verbose, normalizeToUpper);
+		}
+
+		return instance;
+	}
+
+	/**
+	 * Private constructor.  Use the factory method.
+	 *
+	 * @param classpath
+	 * @param parent
+	 * @param verbose
+	 * @param normalizeToUpper
+	 *
+	 * @throws StandardException
+	 */
+	private UpdateLoader(String classpath, DatabaseClasses parent, boolean verbose, boolean normalizeToUpper) 
 		throws StandardException {
 
         this.normalizeToUpper = normalizeToUpper;

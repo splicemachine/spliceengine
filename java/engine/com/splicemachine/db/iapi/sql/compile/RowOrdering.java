@@ -104,6 +104,7 @@ public interface RowOrdering{
      */
     boolean orderedOnColumn(int direction, int tableNumber, int columnNumber) throws StandardException;
 
+    int orderedPositionForColumn(int direction, int tableNumber, int columnNumber) throws StandardException;
     /**
      * Add a column to this RowOrdering in the current order position.
      * This is a no-op if there are any unordered optimizables in the

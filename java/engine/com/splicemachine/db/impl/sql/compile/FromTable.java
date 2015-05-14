@@ -821,6 +821,8 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         if(scratchCostEstimate==null){
             scratchCostEstimate=optimizer.newCostEstimate();
         }
+        scratchCostEstimate.setRowOrdering(null);
+        scratchCostEstimate.setBase(null);
 
         return scratchCostEstimate;
     }

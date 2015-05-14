@@ -414,7 +414,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                                         boolean skipProbePreds,
                                         int[] baseColumnPositions) throws StandardException{
         ColumnReference indexCol=null;
-        int indexPosition;
+        int indexPosition = -1;
         RelationalOperator relop=pred.getRelop();
 		
 		/* InListOperatorNodes, while not relational operators, may still
@@ -446,15 +446,16 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             return null;
 
 		/* Look for an index column on one side of the relop */
-        for(indexPosition=0;indexPosition<baseColumnPositions.length;indexPosition++){
-            if(isIn){
-                if(inNode.getLeftOperand() instanceof ColumnReference){
-                    indexCol=(ColumnReference)inNode.getLeftOperand();
-                    if((optTable.getTableNumber()!=indexCol.getTableNumber())
-                            || (indexCol.getColumnNumber()!=baseColumnPositions[indexPosition])
-                            || inNode.selfReference(indexCol))
-                        indexCol=null;
-                    else if(pred.isInListProbePredicate() && (indexPosition>0)){
+        if (baseColumnPositions != null) {
+            for (indexPosition = 0; indexPosition < baseColumnPositions.length; indexPosition++) {
+                if (isIn) {
+                    if (inNode.getLeftOperand() instanceof ColumnReference) {
+                        indexCol = (ColumnReference) inNode.getLeftOperand();
+                        if ((optTable.getTableNumber() != indexCol.getTableNumber())
+                                || (indexCol.getColumnNumber() != baseColumnPositions[indexPosition])
+                                || inNode.selfReference(indexCol))
+                            indexCol = null;
+                        else if (pred.isInListProbePredicate() && (indexPosition > 0)) {
 						/* If the predicate is an IN-list probe predicate
 						 * then we only consider it to be useful if the
 						 * referenced column is the *first* one in the
@@ -463,16 +464,16 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 						 * for store, which could lead to incorrect
 						 * results.
 						 */
-                        indexCol=null;
+                            indexCol = null;
+                        }
                     }
+                } else {
+                    indexCol = relop.getColumnOperand(optTable, baseColumnPositions[indexPosition]);
                 }
-            }else{
-                indexCol=relop.getColumnOperand(optTable, baseColumnPositions[indexPosition]);
+                if (indexCol != null)
+                    break;
             }
-            if(indexCol!=null)
-                break;
         }
-			
 		/*
 		** Skip over it if there is no index column on one side of the
 		** operand.
@@ -486,11 +487,56 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 			 * restrictions.  That "revert" operation happens in
 			 * the generateExpression() method of BinaryOperatorNode.
 			 */
+            if (relop instanceof BinaryRelationalOperatorNode) {
+                BinaryRelationalOperatorNode brelop = (BinaryRelationalOperatorNode)relop;
+                if (brelop.hasRowId()) {
+                    pred.markRowId();
+                    return -1;
+                }
+            }
             return null;
         }
         return indexPosition;
     }
 
+
+    public boolean isRowIdScan() {
+        boolean ret = false;
+        for (int i = 0; i < size(); ++i) {
+            Predicate p = elementAt(i);
+            RelationalOperator relop = p.getRelop();
+            if (relop instanceof BinaryRelationalOperatorNode) {
+                BinaryRelationalOperatorNode brelop = (BinaryRelationalOperatorNode)relop;
+                if (brelop.hasRowId()) {
+                    ret = true;
+                    break;
+                }
+            }
+        }
+        return ret;
+    }
+
+    private Predicate[] checkRowIdPredicate(Predicate[] predicates) {
+        if (predicates == null || predicates.length == 0)
+            return predicates;
+
+        List<Predicate> predicateList = new ArrayList<Predicate>();
+        for (Predicate p : predicates) {
+            RelationalOperator relop = p.getRelop();
+            if (relop instanceof BinaryRelationalOperatorNode) {
+                BinaryRelationalOperatorNode brelop = (BinaryRelationalOperatorNode)relop;
+                if (brelop.hasRowId()) {
+                    predicateList.add(p);
+                }
+            }
+        }
+
+        if (predicateList.size() > 0) {
+            predicates = predicateList.toArray(new Predicate[predicateList.size()]);
+        }
+
+        return predicates;
+    }
 
     private void orderUsefulPredicates(Optimizable optTable,
                                        ConglomerateDescriptor cd,
@@ -504,6 +550,8 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         Predicate[] usefulPredicates=new Predicate[size];
         int usefulCount=0;
         Predicate predicate;
+        boolean rowIdScan = false;
+
         if(cd!=null && !cd.isIndex() && !cd.isConstraint()){
             List<ConglomerateDescriptor> cdl=optTable.getTableDescriptor().getConglomerateDescriptorList();
             for(ConglomerateDescriptor primaryKeyCheck : cdl){
@@ -518,6 +566,8 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                 }
             }
         }
+
+        rowIdScan = isRowIdScan();
 
 		/*
 		** Clear all the scan flags for this predicate list, so that the
@@ -537,7 +587,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 		*/
 
 		/* Is a heap scan or a non-matching index scan on a covering index? */
-        if((cd==null) || (!cd.isIndex() && !primaryKey) || (nonMatchingIndexScan && coveringIndexScan)){
+        if(!rowIdScan && ((cd==null) || (!cd.isIndex() && !primaryKey) || (nonMatchingIndexScan && coveringIndexScan))){
 			/*
 			** For the heap, the useful predicates are the relational
 			** operators that have a column from the table on one side,
@@ -583,7 +633,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             }
             return;
         }
-        if(!primaryKey){
+        if(!primaryKey && !rowIdScan){
             baseColumnPositions=cd.getIndexDescriptor().baseColumnPositions();
             isAscending=cd.getIndexDescriptor().isAscending();
         }
@@ -659,10 +709,12 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             usefulPredicates=shrink;
         }
 
-		    /* Sort the array of useful predicates in index position order */
+		/* Sort the array of useful predicates in index position order */
         java.util.Arrays.sort(usefulPredicates);
+        usefulPredicates = checkRowIdPredicate(usefulPredicates);
+        usefulCount = usefulPredicates.length;
 
-		    /* Push the sorted predicates down to the Optimizable table */
+		/* Push the sorted predicates down to the Optimizable table */
         int currentStartPosition=-1;
         boolean gapInStartPositions=false;
         int currentStopPosition=-1;
@@ -671,6 +723,12 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         int firstNonEqualsPosition=-1;
         int lastStartEqualsPosition=-1;
 
+        if (rowIdScan) {
+            currentStartPosition = -2;
+            currentStopPosition = -2;
+            firstNonEqualsPosition = -2;
+            lastStartEqualsPosition = -2;
+        }
 		    /* beetle 4572. We need to truncate if necessary potential multi-column
          * start key up to the first one whose start operator is GT, and make 
          * start operator GT;
@@ -730,8 +788,8 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 					** table to help it.
 					*/
                     if(!seenGT
-                            && (isIn || ((relop.usefulStartKey(optTable) && isAscending[thisIndexPosition])
-                                || (relop.usefulStopKey(optTable) && !isAscending[thisIndexPosition])))){
+                            && (isIn || ((relop.usefulStartKey(optTable) && (thisIndexPosition == -1 || isAscending[thisIndexPosition]))
+                                || (relop.usefulStopKey(optTable) && (thisIndexPosition != -1 && !isAscending[thisIndexPosition]))))){
                         thisPred.markStartKey();
                         currentStartPosition=thisIndexPosition;
                         thisPredMarked=true;
@@ -742,15 +800,15 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             }
 
 			/* Same as above, except for stop keys */
-            if(currentStopPosition!=thisIndexPosition){
+            if(currentStopPosition!=thisIndexPosition || thisIndexPosition == -1){
                 if((thisIndexPosition-currentStopPosition)>1){
                     gapInStopPositions=true;
                 }
 
                 if(!gapInStopPositions){
                     if(!seenGE
-                            && (isIn || ((relop.usefulStopKey(optTable) && isAscending[thisIndexPosition])
-                                || (relop.usefulStartKey(optTable) && !isAscending[thisIndexPosition])))){
+                            && (isIn || ((relop.usefulStopKey(optTable) && (thisIndexPosition == -1 || isAscending[thisIndexPosition]))
+                                || (relop.usefulStartKey(optTable) && (thisIndexPosition != -1 && !isAscending[thisIndexPosition]))))){
                         thisPred.markStopKey();
                         currentStopPosition=thisIndexPosition;
                         thisPredMarked=true;
@@ -774,7 +832,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 
             /* Remember if we have seen a column without an "=" */
             if(lastStartEqualsPosition!=thisIndexPosition
-                    && firstNonEqualsPosition==-1
+                    && firstNonEqualsPosition==(rowIdScan? -2:-1)
                     && (thisOperator!=RelationalOperator.EQUALS_RELOP)
                     && (thisOperator!=RelationalOperator.IS_NULL_RELOP)){
                 seenNonEquals=true;
@@ -789,7 +847,8 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
                  * We don't want to push "in" in this case, since it's not a 
                  * qualifier.  Beetle 4316.
 			     */
-                if(isIn && !thisPredMarked){
+                if(isIn && !thisPredMarked ||
+                thisPred.isRowId() && !thisPred.isStartKey() && !thisPred.isStopKey()){
 					/* If we get here for an IN-list probe pred then we know
 					 * that we are *not* using the probe predicate as a
 					 * start/stop key.  We also know that we're in the middle
@@ -1064,7 +1123,13 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 
         int size=size();
         for(int index=0;index<size;index++){
-            nextAnd=elementAt(index).getAndNode();
+            Predicate p = elementAt(index);
+
+            // Skip rowid predicates that are either start or stop key
+            if (p.isRowId()&& (p.isStartKey() || p.isStopKey())) {
+                continue;
+            }
+            nextAnd=p.getAndNode();
 
             /* We can skip over TRUE AND TRUE */
             if((nextAnd.getLeftOperand().isBooleanTrue()) && (nextAnd.getRightOperand().isBooleanTrue())){
@@ -2956,13 +3021,23 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             mb=exprFun;
         }
 
-        int[] baseColumns=optTable.getTrulyTheBestAccessPath()
-                .getConglomerateDescriptor()
-                .getIndexDescriptor().baseColumnPositions();
-        boolean[] isAscending=optTable.getTrulyTheBestAccessPath().
-                getConglomerateDescriptor().
-                getIndexDescriptor().isAscending();
+        int[] baseColumns = null;
+        boolean[] isAscending = null;
+        if (pred.isRowId()) {
+            baseColumns = new int[1];
+            baseColumns[0] = 1;
 
+            isAscending = new boolean[1];
+            isAscending[0] = true;
+        }
+        else {
+            baseColumns = optTable.getTrulyTheBestAccessPath()
+                    .getConglomerateDescriptor()
+                    .getIndexDescriptor().baseColumnPositions();
+            isAscending = optTable.getTrulyTheBestAccessPath().
+                    getConglomerateDescriptor().
+                    getIndexDescriptor().isAscending();
+        }
 		/* If the predicate is an IN-list probe predicate then we are
 		 * using it as a start/stop key "placeholder", to be over-ridden
 		 * at execution time.  Put differently, we want to generate

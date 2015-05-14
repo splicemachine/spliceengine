@@ -27,17 +27,11 @@ import com.splicemachine.db.iapi.error.StandardException;
 /**
  * The Statement interface is an extension of exec prepared statement
  * that has some stored prepared specifics.
- *
  */
-public interface StorablePreparedStatement extends ExecPreparedStatement
-{
+public interface StorablePreparedStatement extends ExecPreparedStatement {
 
-	/**
-	 * Load up the class from the saved bytes.
-	 *
-	 *
-	 * @exception StandardException on error
-	 */
-	public void loadGeneratedClass()
-		throws StandardException;
-}	
+    /**
+     * Load up the class from the saved bytes.
+     */
+    void loadGeneratedClass() throws StandardException;
+}

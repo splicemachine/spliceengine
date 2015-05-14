@@ -29,7 +29,7 @@
   <property file="${user.home}/properties/derbytesting.properties"/>
   <property file="${ant.home}/properties/derbytesting.properties"/>
   <!-- Compiler settings -->
-  <property file="${properties.dir}/${build.compiler}.properties"/>
+  <property file="${properties.dir}/modern.properties"/>
   <!-- Compile-time classpath properties files -->
   <property file="${properties.dir}/extrapath.properties"/>
   <property file="${properties.dir}/derbytesting.properties"/> 
@@ -46,8 +46,8 @@
 	  <target name="junitsuites" 
 	          description="Build Derby JUnit suites">
 	    <javac
-	      source="1.4"
-	      target="1.4"
+	      source="1.7"
+	      target="1.7"
 	      bootclasspath="${empty}"
 	      nowarn="on"
 	      debug="true"
@@ -59,7 +59,7 @@
 	      srcdir="${derby.testing.src.dir}"
 	      destdir="${out.dir}">
 	      <classpath>
-	        <pathelement path="${compile.classpath}"/>
+	        <pathelement path="${main.classpath}"/>
 	        <pathelement path="${junit}"/>
 	      </classpath>
 	      <include name="${derby.testing.functest.dir}/suites/*.java"/>

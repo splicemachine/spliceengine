@@ -21,8 +21,6 @@
 
 package com.splicemachine.db.iapi.services.info;
 
-import com.splicemachine.derbyPreBuild.ReleaseProperties;
-
 import java.io.InputStream;
 import java.io.IOException;
 import java.util.Properties;
@@ -121,7 +119,7 @@ public final class ProductVersionHolder implements java.security.PrivilegedActio
 	private static final String ALPHA = "alpha";
 	private static final String BETA = "beta";
 
-	public final static int	MAINT_ENCODING = ReleaseProperties.MAINT_ENCODING;
+	public final static int	MAINT_ENCODING = 1000000;
 	
 	private String productVendorName;
 	private String productName;

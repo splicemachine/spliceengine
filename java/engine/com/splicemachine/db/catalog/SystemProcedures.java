@@ -667,7 +667,20 @@ public class SystemProcedures  {
     String  value)
         throws SQLException
     {
-        PropertyInfo.setDatabaseProperty(key, value);
+		// Need to elevate the transaction to make it writable. Otherwise,
+    	// the procedure will fail in Splice when we write to HBase.
+        // Ideally we would pass in a 'real' conglomerate id here,
+        // but the fixed string is fine for cases like this at the Derby level.
+        // See SpliceDataDictionary ("dictionary"), SpliceAccessManager ("boot"),
+        // StatisticsAdmin ("statistics") and many others for comparable examples.
+		LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+        TransactionController tc = lcc.getTransactionExecute();
+		try {
+			tc.elevate("dbprops");
+	    } catch (StandardException se) {
+	        throw PublicAPI.wrapStandardException(se);
+	    }
+		PropertyInfo.setDatabaseProperty(key, value);
     }
 
     /**

@@ -22,30 +22,24 @@
 package com.splicemachine.db.impl.sql.compile;
 
 /**
- * Rudimentary structure for containing information about
- * a REFERENCING clause for a trigger.
- *
+ * Rudimentary structure for containing information about a REFERENCING clause for a trigger.
  */
-public class TriggerReferencingStruct 
-{
-	public String identifier;
-	public boolean isRow;
-	public boolean isNew;
+public class TriggerReferencingStruct {
 
-	public TriggerReferencingStruct
-	(
-		boolean	isRow, 
-		boolean	isNew,
-		String	identifier
-	)
-	{
-		this.isRow = isRow;
-		this.isNew = isNew;
-		this.identifier = identifier;
-	}
+    public String identifier;
+    public boolean isRow;
+    public boolean isNew;
 
-	public String toString()
-	{
-		return (isRow ? "ROW " : "TABLE ")+(isNew ? "new: " : "old: ") + identifier;
-	}
+    public TriggerReferencingStruct(boolean isRow,
+                                    boolean isNew,
+                                    String identifier) {
+        this.isRow = isRow;
+        this.isNew = isNew;
+        this.identifier = identifier;
+    }
+
+    @Override
+    public String toString() {
+        return (isRow ? "ROW " : "TABLE ") + (isNew ? "new: " : "old: ") + identifier;
+    }
 }

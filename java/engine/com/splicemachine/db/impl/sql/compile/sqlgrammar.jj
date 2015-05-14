@@ -2219,6 +2219,8 @@ public class SQLParser
             // truncating a column in a table. could be type date, timestamp or decimal
             // this is enforced in TruncateOperatorNode after binding so that we know all types
             truncateOperand = operandNode;
+        } else if (operandNode instanceof CurrentDatetimeOperatorNode) {
+            truncateOperand = operandNode;
         }
 
         if (truncateOperand == null) {
@@ -6689,7 +6691,7 @@ escapedValueFunction() throws StandardException :
     }
  
 |   
-    LOOKAHEAD({ getEscapedSYSFUN(getToken(1).image) != null }) 
+    LOOKAHEAD({ getEscapedSYSFUN(getToken(1).image) != null })
     value = escapedSYSFUNFunction()
     {
         return value;
@@ -7298,13 +7300,13 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == TIMESTAMP ||
                 getToken(1).kind == TRUNC ||
                 getToken(1).kind == TRUNCATE ||
-		getToken(1).kind == DOUBLE ||
-		getToken(1).kind == CHAR ||
-		getToken(1).kind == VARCHAR ||
-		getToken(1).kind == INTEGER ||
-		getToken(1).kind == INT || 
-		getToken(1).kind == SMALLINT ||
-		getToken(1).kind == LONGINT ||
+                getToken(1).kind == DOUBLE ||
+                getToken(1).kind == CHAR ||
+                getToken(1).kind == VARCHAR ||
+                getToken(1).kind == INTEGER ||
+                getToken(1).kind == INT ||
+                getToken(1).kind == SMALLINT ||
+                getToken(1).kind == LONGINT ||
                 getToken(1).kind == YEAR ||
                 getToken(1).kind == QUARTER ||
                 getToken(1).kind == MONTH ||
@@ -7324,7 +7326,7 @@ miscBuiltins() throws StandardException :
                 getToken(1).kind == XMLSERIALIZE ||
                 getToken(1).kind == XMLEXISTS ||
                 getToken(1).kind == XMLQUERY ) &&
-              getToken(2).kind == LEFT_PAREN
+                getToken(2).kind == LEFT_PAREN
               )
     } )
 	/* miscBuiltins() are composed of the core
@@ -7341,7 +7343,12 @@ miscBuiltins() throws StandardException :
 	{
 		return value;
 	}
-|	
+|
+    value = timestampArithmeticFuncion()
+    {
+        return value;
+    }
+|
 	/* This is where we build a node for static method aliases */
 	value = routineInvocation()
 	{
@@ -8027,7 +8034,7 @@ dateTimeScalarFunction() throws StandardException :
                                                         getContextManager());
 		((CastNode) castValue).setForExternallyGeneratedCASTnode();
 		return castValue;
-        }
+    }
 |
         <DATE> <LEFT_PAREN> value = additiveExpression(null,0) <RIGHT_PAREN>
 	{
@@ -8036,17 +8043,22 @@ dateTimeScalarFunction() throws StandardException :
                                                         value,
                                                         DataTypeDescriptor.getBuiltInDataTypeDescriptor( Types.DATE),
                                                         getContextManager());
-        }
+    }
 |
         <TIMESTAMP> <LEFT_PAREN> value = additiveExpression(null,0) timestampNode = timestampFunctionCompletion( value)
 	{
                 return timestampNode;
-        }
+    }
 |
-        [ <TRUNC> | <TRUNCATE> ] <LEFT_PAREN> value = additiveExpression(null,0) timestampNode = truncateFunctionCompletion(value)
+        (<TRUNC> | <TRUNCATE>) <LEFT_PAREN>
 	{
-                return timestampNode;
+	    if (miscBuiltinFollows()) {
+	        value = miscBuiltins();
+        } else {
+            value = additiveExpression(null,0);
         }
+        return truncateFunctionCompletion(value);
+    }
 |
         <EXTRACT> <LEFT_PAREN> field = datetimeField() <FROM> value = additiveExpression(null,0) <RIGHT_PAREN>
 	{
@@ -12066,7 +12078,7 @@ Boolean
 beforeOrAfter() :
 {}
 {
-	<NO> <CASCADE> <BEFORE> 
+	<BEFORE>
 	{
 		return Boolean.TRUE;
 	}

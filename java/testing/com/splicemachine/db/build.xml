@@ -22,15 +22,14 @@
 
     <!-- Compile-time classpath properties files -->
     <property file="${properties.dir}/extrapath.properties"/>
-    <property file="${properties.dir}/compilepath.properties"/>
 
     <!-- Compile package private tests. -->
     <target name="compile">
         <mkdir dir="${out.pptesting.dir}"/>
 
         <javac
-            source="1.5"
-            target="1.5"
+            source="1.7"
+            target="1.7"
             fork="yes"
             bootclasspath="${empty}"
             nowarn="on"
@@ -43,7 +42,7 @@
             srcdir="${derby.testing.src.dir}"
             destdir="${out.pptesting.dir}">
             <classpath>
-                <pathelement path="${java15compile.classpath}"/>
+                <pathelement path="${main.classpath}"/>
                 <pathelement path="${junit}"/>
                 <pathelement path="${out.dir}"/>
             </classpath>

@@ -430,7 +430,7 @@ public class FromBaseTable extends FromTable{
         // cost field of this FBT's current access path.  So that's the
         // cost we want to return here.
         CostEstimate costEstimate=getCurrentAccessPath().getCostEstimate();
-        costEstimate.setRowOrdering(rowOrdering);
+//        costEstimate.setRowOrdering(rowOrdering);
         return costEstimate;
     }
 
@@ -748,6 +748,7 @@ public class FromBaseTable extends FromTable{
 
         //get a BitSet representing the column positions of interest
         FormatableBitSet scanColumnList = null;
+        FormatableBitSet indexLookupList = null;
         ResultColumnList rcl = templateColumns;
         if(rcl!=null&&rcl.size()>0){
             scanColumnList = new FormatableBitSet(rcl.size());
@@ -756,7 +757,31 @@ public class FromBaseTable extends FromTable{
                 scanColumnList.grow(columnPosition+1);
                 scanColumnList.set(columnPosition);
             }
+            /*
+             * It's possible that we are scanning an index. In that case, we don't necessarily
+             * have access to all the columns in the scanColumnList. Thus, we go through
+             * the index baseColumnPositions, and remove everything else
+             */
+            if(cd.isIndex() && !isCoveringIndex(cd)){
+                int[] baseColumnPositions = cd.getIndexDescriptor().baseColumnPositions();
+                indexLookupList = new FormatableBitSet();
+                for(int i=scanColumnList.anySetBit();i>=0;i=scanColumnList.anySetBit(i)){
+                    boolean found = false;
+                    for(int j=0;j<baseColumnPositions.length;j++){
+                        if(i==j){
+                           found = true;
+                            break;
+                        }
+                    }
+                    if(!found){
+                        indexLookupList.grow(i+1);
+                        indexLookupList.set(i);
+                        scanColumnList.clear(i);
+                    }
+                }
+            }
         }
+
         if(currentJoinStrategy.allowsJoinPredicatePushdown() && isOneRowResultSet(cd,baseTableRestrictionList)){ // Retrieving only one row...
              /*
               * The conglomerate matches at most one row (i.e. lookup on primary key or index key). In
@@ -1084,32 +1109,6 @@ public class FromBaseTable extends FromTable{
                         if(rps==null){
                             rps = new LinkedList<>();
                             rp = new RangePredicate();
-                            rp.stop = p;
-                            rps.add(rp);
-                            startStopPredicates.put(columnNumber,rps);
-                        }else{
-                            boolean found = false;
-                            for(RangePredicate r : rps){
-                                if(r.stop==null){
-                                    r.stop=p;
-                                    found= true;
-                                    break;
-                                }
-                            }
-                            if(!found){
-                                rp = new RangePredicate();
-                                rp.stop = p;
-                                rps.add(rp);
-                            }
-                        }
-                        break;
-                    case RelationalOperator.LESS_EQUALS_RELOP:
-                    case RelationalOperator.LESS_THAN_RELOP:
-                        //see if there's an equivalent operator already found. If so, add to start in that position
-
-                        if(rps==null){
-                            rps = new LinkedList<>();
-                            rp = new RangePredicate();
                             rp.start = p;
                             rps.add(rp);
                             startStopPredicates.put(columnNumber,rps);
@@ -1125,6 +1124,32 @@ public class FromBaseTable extends FromTable{
                             if(!found){
                                 rp = new RangePredicate();
                                 rp.start = p;
+                                rps.add(rp);
+                            }
+                        }
+                        break;
+                    case RelationalOperator.LESS_EQUALS_RELOP:
+                    case RelationalOperator.LESS_THAN_RELOP:
+                        //see if there's an equivalent operator already found. If so, add to start in that position
+
+                        if(rps==null){
+                            rps = new LinkedList<>();
+                            rp = new RangePredicate();
+                            rp.stop = p;
+                            rps.add(rp);
+                            startStopPredicates.put(columnNumber,rps);
+                        }else{
+                            boolean found = false;
+                            for(RangePredicate r : rps){
+                                if(r.stop==null){
+                                    r.stop=p;
+                                    found= true;
+                                    break;
+                                }
+                            }
+                            if(!found){
+                                rp = new RangePredicate();
+                                rp.stop = p;
                                 rps.add(rp);
                             }
                         }
@@ -1169,11 +1194,39 @@ public class FromBaseTable extends FromTable{
                     extraQualifierSelectivity*=scc.getSelectivity(columnNumber,start,includeStart,stop,includeStop);
                 }
             }
+            costEstimate.setRowCount(costEstimate.rowCount()*extraQualifierSelectivity);
+            costEstimate.setEstimatedHeapSize((long)(costEstimate.getEstimatedHeapSize()*extraQualifierSelectivity));
+            /*
+		     ** If the index isn't covering, add the cost of getting the
+		     ** base row.  Only apply extraFirstColumnSelectivity and extraStartStopSelectivity
+		     ** before we do this, don't apply extraQualifierSelectivity etc.  The
+		     ** reason is that the row count here should be the number of index rows
+		     ** (and hence heap rows) we get, and we need to fetch all those rows, even
+		     ** though later on some of them may be filtered out by other predicates.
+		     ** beetle 4787.
+		     */
+            if(cd.isIndex() && (!isCoveringIndex(cd))){
+                scc.getFetchFromRowLocationCost(indexLookupList,0,costEstimate);
+                tracer.trace(OptimizerFlag.COST_OF_NONCOVERING_INDEX,tableNumber,0,0d,costEstimate);
+            }
 
-            double adjustedRowCount=costEstimate.getEstimatedRowCount()*nonQualifierSelectivity*extraQualifierSelectivity;
-            double adjustedHeapSize = costEstimate.getEstimatedHeapSize()*nonQualifierSelectivity*extraQualifierSelectivity;
+            /*
+             * Non-qualifier predicates aren't applied until AFTER the index lookup, so we need to
+             * ensure that the index lookup costs include the cost of looking up rows which will just
+             * be discarded.
+             *
+             * We adjust the output statistics here. Output stats are:
+             *
+             * 1. row count
+             * 2. heap size
+             * 3. remote cost (since it's just the cost to scan over the network)
+             */
+            double adjustedRowCount=costEstimate.getEstimatedRowCount()*nonQualifierSelectivity;
+            double adjustedHeapSize = costEstimate.getEstimatedHeapSize()*nonQualifierSelectivity;
+            double adjustedRemoteCost = costEstimate.remoteCost()*nonQualifierSelectivity;
             costEstimate.setEstimatedRowCount((long)adjustedRowCount);
             costEstimate.setEstimatedHeapSize((long)adjustedHeapSize);
+            costEstimate.setRemoteCost(adjustedRemoteCost);
             costEstimate.setSingleScanRowCount(costEstimate.singleScanRowCount()*extraQualifierSelectivity); //apply selectivity to single-scan row count also
 
 		    /*
@@ -1226,29 +1279,7 @@ public class FromBaseTable extends FromTable{
 //                double ssrc = costEstimate.singleScanRowCount() * listSize;
 
 
-		/*
-		 ** If the index isn't covering, add the cost of getting the
-		 ** base row.  Only apply extraFirstColumnSelectivity and extraStartStopSelectivity
-		 ** before we do this, don't apply extraQualifierSelectivity etc.  The
-		 ** reason is that the row count here should be the number of index rows
-		 ** (and hence heap rows) we get, and we need to fetch all those rows, even
-		 ** though later on some of them may be filtered out by other predicates.
-		 ** beetle 4787.
-		 */
-        if(cd.isIndex() && (!isCoveringIndex(cd))){
-            FormatableBitSet heapCols = null;
-            if(scanColumnList!=null){
-                heapCols=new FormatableBitSet(scanColumnList);
-                int[] indexColumns=cd.getIndexDescriptor().baseColumnPositions();
-                for(int indexColumn : indexColumns){
-                    if(heapCols.size()>indexColumn){
-                        heapCols.clear(indexColumn);
-                    }
-                }
-            }
-            scc.getFetchFromRowLocationCost(heapCols,0,costEstimate);
-            tracer.trace(OptimizerFlag.COST_OF_NONCOVERING_INDEX,tableNumber,0,0d,costEstimate);
-        }
+
         costEstimate.setSingleScanRowCount(singleScanRowCount);
 
         tracer.trace(OptimizerFlag.COST_OF_N_SCANS,tableNumber,0,outerCost.rowCount(),costEstimate);
