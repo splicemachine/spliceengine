@@ -29,6 +29,7 @@ public class RestoreTest {
             byte[] endKey1 = new byte[0];
             byte[] startKey2 = new byte[0];
             byte[] endKey2 = new byte[0];
+
             Assert.assertTrue((boolean) method.invoke(restore, startKey1, endKey1, startKey2, endKey2));
 
             startKey1 = new byte[1];

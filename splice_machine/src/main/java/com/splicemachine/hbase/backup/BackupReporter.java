@@ -16,19 +16,18 @@ import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.si.api.TxnOperationFactory;
-import com.splicemachine.si.data.api.SDataLib;
-import com.splicemachine.si.impl.SIFactoryDriver;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.db.iapi.types.*;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Scan;
-import org.apache.hadoop.hbase.client.ResultScanner;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.Result;
 import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.storage.EntryDecoder;
 import org.apache.log4j.Logger;
 import org.apache.hadoop.hbase.client.Get;
+import java.util.List;
 
 import java.io.IOException;
 
@@ -187,7 +186,8 @@ public class BackupReporter extends TransactionalSysTableWriter<Backup>  {
             byte[] row = MultiFieldEncoder.create(1).encodeNext(backupId, true).build();
             Get get = factory.newGet(txn, row);
             Result r = table.get(get);
-            if (r != null) {
+            List<Cell> cellList = r.listCells();
+            if (cellList != null && cellList.size() > 0) {
                 backup = decode(dataLib.getDataValueBuffer(dataLib.matchDataColumn(r)),
                         dataLib.getDataValueOffset(dataLib.matchDataColumn(r)),
                         dataLib.getDataValuelength(dataLib.matchDataColumn(r)));

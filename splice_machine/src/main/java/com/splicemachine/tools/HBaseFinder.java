@@ -7,6 +7,7 @@ import com.splicemachine.encoding.debug.DataType;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.storage.*;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.Result;
@@ -92,7 +93,8 @@ public class HBaseFinder {
                 byte[] row = result.getRow();
                 String rowBytes = Bytes.toStringBinary(row);
                 for(KeyValue kv:result.raw()){
-                    if(!kv.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES, SpliceConstants.PACKED_COLUMN_BYTES)) continue; //skip non-data columns
+                    if(!CellUtil.matchingFamily(kv,SpliceConstants.DEFAULT_FAMILY_BYTES)) continue;
+                    if(!CellUtil.matchingQualifier(kv,SpliceConstants.PACKED_COLUMN_BYTES)) continue;
                     long ts = kv.getTimestamp();
                     byte[] value = kv.getValue();
                     if(value.length<=0) continue;

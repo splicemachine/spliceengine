@@ -210,6 +210,7 @@ public class TempGroupedAggregateCostController implements AggregateCostControll
             if(scc==null){
                 ConglomerateDescriptor cd = ((IndexToBaseRowNode)rsn).getBaseConglomerateDescriptor();
                 String[] columnNames=cd.getColumnNames();
+                if(columnNames==null) return null;
                 for(String columnName:columnNames){
                     if(ref.getColumnName().equals(columnName)){
                         return rsn.getCompilerContext().getStoreCostController(cd);

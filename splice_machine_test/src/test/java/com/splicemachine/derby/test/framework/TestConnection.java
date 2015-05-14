@@ -103,7 +103,7 @@ public class TestConnection implements Connection{
 
     @Override
     public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency) throws SQLException {
-        PreparedStatement preparedStatement = delegate.prepareStatement(sql, resultSetType, resultSetConcurrency);
+        PreparedStatement preparedStatement = delegate.prepareStatement(sql,resultSetType,resultSetConcurrency);
         preparedStatement = new ManagedPreparedStatement(preparedStatement);
         statements.add(preparedStatement);
         return preparedStatement;
@@ -127,7 +127,7 @@ public class TestConnection implements Connection{
     @Override public void releaseSavepoint(Savepoint savepoint) throws SQLException { delegate.releaseSavepoint(savepoint); }
     @Override
     public Statement createStatement(int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
-        Statement statement = delegate.createStatement(resultSetType, resultSetConcurrency, resultSetHoldability);
+        Statement statement = delegate.createStatement(resultSetType,resultSetConcurrency,resultSetHoldability);
         statement = new ManagedStatement(statement);
         statements.add(statement);
         return statement;
@@ -135,7 +135,7 @@ public class TestConnection implements Connection{
 
     @Override
     public PreparedStatement prepareStatement(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
-        PreparedStatement preparedStatement = delegate.prepareStatement(sql, resultSetType, resultSetConcurrency, resultSetHoldability);
+        PreparedStatement preparedStatement = delegate.prepareStatement(sql,resultSetType,resultSetConcurrency,resultSetHoldability);
         preparedStatement = new ManagedPreparedStatement(preparedStatement);
         statements.add(preparedStatement);
         return preparedStatement;
@@ -143,7 +143,7 @@ public class TestConnection implements Connection{
 
     @Override
     public CallableStatement prepareCall(String sql, int resultSetType, int resultSetConcurrency, int resultSetHoldability) throws SQLException {
-        CallableStatement callableStatement = delegate.prepareCall(sql, resultSetType, resultSetConcurrency, resultSetHoldability);
+        CallableStatement callableStatement = delegate.prepareCall(sql,resultSetType,resultSetConcurrency,resultSetHoldability);
         callableStatement = new ManagedCallableStatement(callableStatement);
         statements.add(callableStatement);
         return callableStatement;
@@ -182,7 +182,7 @@ public class TestConnection implements Connection{
     @Override public void setClientInfo(Properties properties) throws SQLClientInfoException { delegate.setClientInfo(properties); }
     @Override public String getClientInfo(String name) throws SQLException { return delegate.getClientInfo(name); }
     @Override public Properties getClientInfo() throws SQLException { return delegate.getClientInfo(); }
-    @Override public Array createArrayOf(String typeName, Object[] elements) throws SQLException { return delegate.createArrayOf(typeName, elements); }
+    @Override public Array createArrayOf(String typeName, Object[] elements) throws SQLException { return delegate.createArrayOf(typeName,elements); }
     @Override public Struct createStruct(String typeName, Object[] attributes) throws SQLException { return delegate.createStruct(typeName, attributes); }
     public void setSchema(String schema) throws SQLException {
 
@@ -215,6 +215,21 @@ public class TestConnection implements Connection{
             accumulator.accumulate(resultSet);
         }
         resultSet.close();
+    }
+
+    public void collectStats(String schemaName,String tableName) throws SQLException{
+        if(tableName==null){
+            try(CallableStatement cs = prepareCall("call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS(?,false)")){
+                cs.setString(1,schemaName);
+                cs.execute();
+            }
+        }else{
+            try(CallableStatement cs = prepareCall("call SYSCS_UTIL.COLLECT_TABLE_STATISTICS(?,?,false)")){
+                cs.setString(1,schemaName);
+                cs.setString(2,tableName);
+                cs.execute();
+            }
+        }
     }
 
     private long parseWarnings(SQLWarning warnings) {

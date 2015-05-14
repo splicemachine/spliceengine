@@ -336,7 +336,7 @@ public class HdfsImport {
             BaseSpliceTransaction txn = ((SpliceTransactionManager)activation.getTransactionController()).getRawTransaction();
             try {
                 if(schemaName==null)
-                    schemaName = "APP";
+                    schemaName = SpliceConstants.SPLICE_USER;
                 if(tableName==null)
                     throw PublicAPI.wrapStandardException(ErrorState.TABLE_NAME_CANNOT_BE_NULL.newException());
 
@@ -573,6 +573,7 @@ public class HdfsImport {
 								jobStatusLogger.log(String.format("Expected time for %s is %s.  Expected finish is %s.",
 										logVerb, StringUtils.formatTime(estImportTime), new Date(System.currentTimeMillis() + estImportTime)));
 								jobStatusLogger.log(String.format("%sing %d files...", WordUtils.capitalize(logVerb), jobFuture.getNumTasks()));
+								jobStatusLogger.log(String.format("Task status update interval is %s.", StringUtils.formatTime(SpliceConstants.importTaskStatusLoggingInterval)));
 								info.tasksRunning(jobFuture.getAllTaskIds());
 								if(opInfo!=null)
 										opInfo.addJob(info);

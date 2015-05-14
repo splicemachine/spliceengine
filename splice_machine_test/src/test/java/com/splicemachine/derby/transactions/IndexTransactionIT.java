@@ -6,6 +6,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.pipeline.exception.ErrorState;
 
+import com.splicemachine.test.SerialTest;
 import com.splicemachine.test.Transactions;
 import org.junit.*;
 import org.junit.experimental.categories.Category;

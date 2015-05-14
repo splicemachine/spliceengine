@@ -66,7 +66,7 @@ public class Restore {
      */
     public static Restore createRestore(String directory, long backupId) throws SQLException, StandardException{
 
-        Restore restore = null;
+        Restore restore;
         try {
             Txn restoreTxn = TransactionLifecycle.getLifecycleManager().
                     beginTransaction().elevateToWritable("recovery".getBytes());
@@ -106,8 +106,8 @@ public class Restore {
                 backupItem.recreateItem(admin);
             }
 
-            JobFuture future = null;
-            JobInfo info = null;
+            JobFuture future;
+            JobInfo info;
             long start = System.currentTimeMillis();
             int totalItems = backUpItems.size();
             int completedItems = 0;

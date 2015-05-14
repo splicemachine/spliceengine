@@ -30,6 +30,8 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
+ * Intercepts UPDATE/UPSERT/INSERT mutations to a base table and sends corresponding mutations to the index table.
+ *
  * @author Scott Fines
  *         Created on: 5/1/13
  */
@@ -94,18 +96,31 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
 
     @Override
     public boolean updateIndex(KVPair mutation, WriteContext ctx) {
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "updateIndex with %s", mutation);
-
-        if (mutation.getType() == KVPair.Type.DELETE) {
-            if (LOG.isTraceEnabled())
-                SpliceLogUtils.trace(LOG, "updateIndex ignore delete %s", mutation);
-            return true; //send upstream without acting on it
-        }
-
         ensureBufferReader(mutation, ctx);
 
-        return upsert(mutation, ctx);
+        if (mutation.getType().isUpdateOrUpsert() && doUpdate(mutation, ctx)) {
+            // The doUpdate() method either updated the index or determined that it doesn't need to be updated.
+            return false;
+        }
+
+        // If we arrive here we are an INSERT or an UPDATE/UPSERT that has not yet updated the index.
+
+        try {
+            KVPair indexPair = transformer.translate(mutation);
+            if(keepState) {
+                this.indexToMainMutationMap.put(indexPair, mutation);
+            }
+            indexBuffer.add(indexPair);
+        } catch (Exception e) {
+            failed = true;
+            ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName() + ":" + e.getMessage()));
+        }
+        return true;
+    }
+
+    @Override
+    protected boolean isHandledMutationType(KVPair.Type type) {
+        return type == KVPair.Type.UPDATE || type == KVPair.Type.INSERT || type == KVPair.Type.UPSERT;
     }
 
     private void ensureBufferReader(KVPair mutation, WriteContext ctx) {
@@ -117,29 +132,6 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
                 failed = true;
             }
         }
-    }
-
-    private boolean upsert(KVPair mutation, WriteContext ctx) {
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "upsert %s", mutation);
-        KVPair put = update(mutation, ctx);
-        if (put == null) {
-            return false; //we updated the table, and the index during the update process
-        }
-
-        try {
-            KVPair indexPair = transformer.translate(mutation);
-        	if (LOG.isTraceEnabled())
-        		SpliceLogUtils.trace(LOG, "performing upsert on row %s", BytesUtil.toHex(indexPair.getRowKey()));
-            
-            if(keepState)
-                this.indexToMainMutationMap.put(indexPair,mutation);
-            indexBuffer.add(indexPair);
-        } catch (Exception e) {
-            failed = true;
-            ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName() + ":" + e.getMessage()));
-        }
-        return true;
     }
 
     private MultiFieldDecoder createKeyDecoder() {
@@ -182,49 +174,43 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
         }
     }
 
-    private KVPair update(KVPair mutation, WriteContext ctx) {
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "update mutation=%s", BytesUtil.toHex(mutation.getRowKey()));
-        switch (mutation.getType()) {
-            case UPDATE:
-            case UPSERT:
-                return doUpdate(mutation, ctx);
-            default:
-                return mutation;
-        }
-    }
-
-    private KVPair doUpdate(KVPair mutation, WriteContext ctx) {
+    /**
+     * @return TRUE if we update the index or otherwise determine that no further mutation of the index is necessary.
+     * If this returns FALSE then we are indicating that the original mutation should be transformed and written to the
+     * index as it is.
+     */
+    private boolean doUpdate(KVPair mutation, WriteContext ctx) {
         if (newPutDecoder == null) {
             newPutDecoder = new EntryDecoder();
         }
 
+        // This gives us the non-primary-key columns that this mutation modifies.
         newPutDecoder.set(mutation.getValue());
-
         BitIndex updateIndex = newPutDecoder.getCurrentIndex();
-        boolean needsIndexUpdating = false;
+
+        boolean nonPrimaryKeyIndexColumnUpdated = false;
         for (int i = updateIndex.nextSetBit(0); i >= 0; i = updateIndex.nextSetBit(i + 1)) {
             if (indexedColumns.get(i)) {
-                needsIndexUpdating = true;
+                nonPrimaryKeyIndexColumnUpdated = true;
                 break;
             }
         }
-        /*
-         * We would normally love to say that the index hasn't changed--however,
-         * we can't do that in the case of an upsert, because the record may not
-         * exist. In that case, we'll do a local check--if the record already
-         * exists locally, THEN we can say that the index hasn't changed.
-         *
-         * If we are an UPDATE, then we know that the record MUST exist, so
-         * we can skip even the local fetch.
-         */
-        if (mutation.getType() != KVPair.Type.UPSERT && !needsIndexUpdating) {
-            if (LOG.isTraceEnabled())
-                SpliceLogUtils.trace(LOG, "update mutation, index does not need updating");
-            //nothing in the index has changed, whoo!
+
+        if (!nonPrimaryKeyIndexColumnUpdated) {
+            /*
+             * This is an UPDATE or an UPSERT and we have ONLY updated primary key columns.  Return and send the mutation
+             * to the index as it is.  The old value will have been deleted by the UpdateOperation which sends
+             * a delete mutation when it sees that primary keys have changed.
+             */
             ctx.sendUpstream(mutation);
-            return null;
+            return false;
         }
+
+        // If we get here:
+        //
+        // (1) We are an UPDATE or UPSERT
+        // (2) We are modifying non-primary keys.
+        // (3) WE MAY-BE modifying primary keys.
 
         /*
          * To update the index now, we must find the old index row and delete it, then
@@ -241,19 +227,16 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
         try{
             byte[] row = mutation.getRowKey();
             Get oldGet = SpliceUtils.createGet(ctx.getTxn(), row);
-            //TODO -sf- when it comes time to add additional (non-indexed data) to the index, you'll need to add more fields than just what's in indexedColumns
+            // TODO -sf- when it comes time to add additional (non-indexed data) to the index, you'll need to add more fields than just what's in indexedColumns
             EntryPredicateFilter filter = new EntryPredicateFilter(indexedColumns, new ObjectArrayList<Predicate>(), true);
             oldGet.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL, filter.toBytes());
 
             Result r = ctx.getRegion().get(oldGet);
             if (r == null || r.isEmpty()) {
-                /*
-                 * There is no entry in the main table, so this is an insert, regardless of what it THINKS it is
-                 */
-                return mutation;
-            } else if (mutation.getType() == KVPair.Type.UPSERT && !needsIndexUpdating) {
-                //we didn't change the index, and the row exists, we can skip!
-                return null;
+                /* There is no entry in the main table, with this primary key. This is probably because this mutation
+                 * modifies primary keys and non-primary keys (ie the row key has changed).  Return and treat it like
+                 * an insert. The old index value will have been deleted by UpdateOperation. */
+                return false;
             }
 
             ByteEntryAccumulator newKeyAccumulator = transformer.getKeyAccumulator();
@@ -349,7 +332,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
              */
             if (newKeyAccumulator.fieldsMatch(oldKeyAccumulator)) {
                 //our fields match exactly, nothing to update! don't insert into the index either
-                return null;
+                return true;
             }
 
             //bummer, we have to update the index--specifically, we have to delete the old row, then
@@ -383,14 +366,14 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             indexBuffer.add(newPut);
 
             ctx.sendUpstream(mutation);
-            return null;
+            return true;
         } catch (Exception e) {
             failed = true;
             ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName() + ":" + e.getMessage()));
         }
 
         //if we get an exception, then return null so we don't try and insert anything
-        return null;
+        return true;
     }
 
     private void occupy(EntryAccumulator accumulator, DataValueDescriptor dvd, int position) {

@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations.joins;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
@@ -11,9 +12,14 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
+import org.junit.runner.Description;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+
+import java.sql.CallableStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.*;
 
 /**
@@ -56,7 +62,26 @@ public class ThreeTableEquiJoinIT {
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(classWatcher)
             .around(schemaWatcher)
-            .around(TestUtils.createFileDataWatcher(classWatcher, "small_msdatasample/startup.sql", CLASS_NAME));
+            .around(TestUtils.createFileDataWatcher(classWatcher, "small_msdatasample/startup.sql", CLASS_NAME))
+            .around(new SpliceDataWatcher(){
+                @Override
+                protected void starting(Description description){
+                    try(CallableStatement cs = classWatcher.prepareCall("call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS(?,false)")){
+                        cs.setString(1,"SYS");
+                        cs.execute();
+
+                    }catch(Exception e){
+                        throw new RuntimeException(e);
+                    }
+                    try(CallableStatement cs = classWatcher.prepareCall("call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS(?,false)")){
+                        cs.setString(1,schemaWatcher.schemaName);
+                        cs.execute();
+
+                    }catch(Exception e){
+                        throw new RuntimeException(e);
+                    }
+                }
+            });
 
     @Rule public SpliceWatcher methodWatcher = new SpliceWatcher(getClass().getSimpleName());
 

@@ -236,7 +236,7 @@ public class PartitionStatsStore {
         long perRowRemoteLatency = 10*perRowLocalLatency; //assume remote reads are 10x more expensive than local
 
         int numRegions = partitions.size();
-        long totalBytes = numRegions*SpliceConstants.regionMaxFileSize; //assume each region is full
+        long totalBytes = numRegions*SpliceConstants.regionMaxFileSize*1024*1024; //assume each region is full,and measured in bytes
         /*
          * We make the rather stupid assumption of assuming that each row occupies 100 bytes (which is a lot,
          * but it should make some things at least relatively reasonable)

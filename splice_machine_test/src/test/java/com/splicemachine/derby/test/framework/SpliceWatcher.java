@@ -65,11 +65,15 @@ public class SpliceWatcher extends TestWatcher {
      * If a test intentionally leaves a connection in an invalid state (mid test) it must call closeAll().  If a class
      * un-intentionally leaves a connection in an invalid state (mid test) it should fail.
      */
-    public TestConnection getOrCreateConnection() throws Exception {
-        if (currentConnection == null || currentConnection.isClosed()) {
-            createConnection();
+    public TestConnection getOrCreateConnection() {
+        try {
+            if (currentConnection == null || currentConnection.isClosed()) {
+                createConnection();
+            }
+            return currentConnection;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
-        return currentConnection;
     }
 
     /**

@@ -63,6 +63,14 @@ public abstract class ConstraintConstantOperation extends DDLSingleTableConstant
 			SanityManager.ASSERT(schemaName != null, "Constraint schema name is null");
 	}
 
+    /**
+     * Get the name of the schema where this constraint lives.
+     * @return constraint's schema name
+     */
+    public String getSchemaName() {
+        return schemaName;
+    }
+
 	/**
 	 * Get the constraint type.
 	 *

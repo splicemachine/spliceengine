@@ -21,7 +21,6 @@ public class EntryPredicateFilter {
     private BitSet predicateColumns;
 
 		private long rowsFiltered = 0l;
-		private EntryAccumulator accumulator;
 
 		public static EntryPredicateFilter emptyPredicate(){ return EMPTY_PREDICATE; }
 
@@ -144,21 +143,13 @@ public class EntryPredicateFilter {
         }
     }
 
-    public EntryAccumulator newAccumulator(){
-				if(accumulator==null){
-						return new ByteEntryAccumulator(this,returnIndex,fieldsToReturn);
-//						if(fieldsToReturn.isEmpty())
-//								accumulator = new AlwaysAcceptEntryAccumulator(this,returnIndex);
-//						else
-//								accumulator = new SparseEntryAccumulator(this,fieldsToReturn,returnIndex);
-				}
-				return accumulator;
+    public EntryAccumulator newAccumulator() {
+        return new ByteEntryAccumulator(this,returnIndex,fieldsToReturn);
     }
 
-		public long getRowsOutput(){
-				if(accumulator==null) return 0;
-				else return accumulator.getFinishCount();
-		}
+    public long getRowsOutput() {
+        return 0;
+    }
 
 		public long getRowsFiltered(){ return rowsFiltered; }
 

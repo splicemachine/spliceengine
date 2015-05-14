@@ -1,50 +1,40 @@
 package com.splicemachine.derby.impl.sql.execute.sequence;
 
-import com.splicemachine.derby.test.framework.SpliceSequenceWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.Assert;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TestRule;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
-/**
- * Created by jyuan on 11/12/14.
- */
-public class SpliceSequenceIT extends SpliceUnitTest {
-    public static final String CLASS_NAME = SpliceSequenceIT.class.getSimpleName().toUpperCase();
-    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-    public static final String SEQUENCE_NAME = "SMALLSEQ";
+public class SpliceSequenceIT {
 
-    @Rule
-    public SpliceWatcher methodWatcher = new SpliceWatcher();
-
-    private static String sequenceDef = "AS smallint ";
-    protected static SpliceSequenceWatcher spliceSequenceWatcher = new SpliceSequenceWatcher(SEQUENCE_NAME,CLASS_NAME, sequenceDef);
+    private static final String SCHEMA = SpliceSequenceIT.class.getSimpleName().toUpperCase();
 
     @ClassRule
-    public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
-            .around(spliceSequenceWatcher);
+    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
+
+    @Rule
+    public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
 
     @Test
-    public void test() throws Exception {
+    public void testShortSequence() throws Exception {
+        methodWatcher.executeUpdate("create sequence SMALLSEQ AS smallint");
 
-        PreparedStatement ps = spliceClassWatcher.prepareStatement(
-                String.format("values (next value for %s.%s)", CLASS_NAME, SEQUENCE_NAME));
-        ResultSet rs = ps.executeQuery();
-        Assert.assertTrue(rs.next());
-        int m = rs.getInt(1);
-        rs.close();
+        Integer first = methodWatcher.query("values (next value for SMALLSEQ)");
 
-        rs = ps.executeQuery();
-        Assert.assertTrue(rs.next());
-        int n = rs.getInt(1);
+        assertEquals(first + 1, methodWatcher.query("values (next value for SMALLSEQ)"));
+        assertEquals(first + 2, methodWatcher.query("values (next value for SMALLSEQ)"));
+        assertEquals(first + 3, methodWatcher.query("values (next value for SMALLSEQ)"));
+        assertEquals(first + 4, methodWatcher.query("values (next value for SMALLSEQ)"));
+        assertEquals(first + 5, methodWatcher.query("values (next value for SMALLSEQ)"));
+        assertEquals(first + 6, methodWatcher.query("values (next value for SMALLSEQ)"));
 
-        Assert.assertTrue(n == m + 1);
+        assertTrue(first >= Short.MIN_VALUE && first <= Short.MAX_VALUE);
+
+        methodWatcher.executeUpdate("drop sequence SMALLSEQ restrict");
     }
+
 }

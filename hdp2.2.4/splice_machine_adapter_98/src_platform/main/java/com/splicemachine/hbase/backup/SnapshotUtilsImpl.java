@@ -30,8 +30,6 @@ import org.apache.log4j.Logger;
 
 import com.splicemachine.constants.SpliceConstants;
 
-import com.splicemachine.constants.SpliceConstants;
-
 public class SnapshotUtilsImpl implements SnapshotUtils {
     static final Logger LOG = Logger.getLogger(SnapshotUtilsImpl.class);
 	
@@ -50,7 +48,7 @@ public class SnapshotUtilsImpl implements SnapshotUtils {
      */
     public List<Object> getSnapshotFilesForRegion(final HRegion reg, final Configuration conf,
         final FileSystem fs, final Path snapshotDir) throws IOException {
-        final String regionName = reg.getRegionNameAsString();
+        final String regionName = (reg != null) ? reg.getRegionNameAsString() : null;
       SnapshotDescription snapshotDesc = SnapshotDescriptionUtils.readSnapshotInfo(fs, snapshotDir);
 
       final List<Object> files = new ArrayList<Object>();
@@ -62,11 +60,8 @@ public class SnapshotUtilsImpl implements SnapshotUtils {
         new SnapshotReferenceUtil.FileVisitor() {
           public void storeFile (final String region, final String family, final String hfile)
               throws IOException {
-        	  LOG.info("look for: " + regionName);
-        	  LOG.info("found   : " + region);
               if( regionName == null || isRegionTheSame(regionName, region) ){
         		Path path = HFileLink.createPath(TableName.valueOf(table), region, family, hfile);
-        		//long size = new HFileLink(conf, path).getFileStatus(fs).getLen();
         		HFileLink link = new HFileLink(conf, path);
         		if( isReference(hfile) ) {
             	  	files.add(materializeRefFile(conf, fs, link, reg));
@@ -90,7 +85,6 @@ public class SnapshotUtilsImpl implements SnapshotUtils {
 
       return files;
     }
-
     @Override
     public List<Object> getSnapshotFilesForRegion(final HRegion region, final Configuration conf,
                                                   final FileSystem fs, final String snapshotName) throws IOException {
@@ -100,6 +94,10 @@ public class SnapshotUtilsImpl implements SnapshotUtils {
         List<Object> paths = getSnapshotFilesForRegion(region, conf, fs, snapshotDir);
 
         return paths;
+    }
+
+    public static HFileLink newLink(Configuration conf,Path linkPath) throws IOException{
+        return new HFileLink(conf,linkPath);
     }
 
     private boolean isRegionTheSame(String fullName, String shortId)

@@ -1,25 +1,13 @@
 package org.apache.hadoop.hbase.regionserver;
 
-import java.io.IOException;
-import java.util.List;
-
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.cliffc.high_scale_lib.Counter;
+
+import java.io.IOException;
+import java.util.List;
 
 public class BaseHRegionUtil {
-    public static void updateWriteRequests(HRegion region, long numWrites){
-        Counter writeRequestsCount = region.writeRequestsCount;
-        if(writeRequestsCount!=null)
-            writeRequestsCount.add(numWrites);
-    }
-
-    public static void updateReadRequests(HRegion region, long numReads){
-        Counter readRequestsCount = region.readRequestsCount;
-        if(readRequestsCount!=null)
-            readRequestsCount.add(numReads);
-    }
 
     public static boolean containsRange(HRegionInfo region, byte[] taskStart, byte[] taskEnd) {
         byte[] regionStart = region.getStartKey();

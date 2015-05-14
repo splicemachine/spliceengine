@@ -64,6 +64,7 @@ public class TableScanOperation extends ScanOperation {
                                    GeneratedMethod startKeyGetter, int startSearchOperator,
                                    GeneratedMethod stopKeyGetter, int stopSearchOperator,
                                    boolean sameStartStopPosition,
+                                   boolean rowIdKey,
                                    String qualifiersField,
                                    String tableName,
                                    String userSuppliedOptimizerOverrides,
@@ -80,7 +81,7 @@ public class TableScanOperation extends ScanOperation {
                                    double optimizerEstimatedRowCount,
                                    double optimizerEstimatedCost) throws StandardException {
 				super(conglomId, activation, resultSetNumber, startKeyGetter, startSearchOperator, stopKeyGetter, stopSearchOperator,
-                        sameStartStopPosition, qualifiersField, resultRowAllocator, lockMode, tableLocked, isolationLevel,
+                        sameStartStopPosition, rowIdKey, qualifiersField, resultRowAllocator, lockMode, tableLocked, isolationLevel,
                         colRefItem, indexColItem, oneRowScan, optimizerEstimatedRowCount, optimizerEstimatedCost);
 				SpliceLogUtils.trace(LOG, "instantiated for tablename %s or indexName %s with conglomerateID %d",
                         tableName, indexName, conglomId);

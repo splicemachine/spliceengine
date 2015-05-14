@@ -18,6 +18,8 @@ import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryEncoder;
 import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.Cell;
+import java.util.List;
 
 /**
  * Created by jyuan on 4/13/15.
@@ -163,7 +165,8 @@ public class BackupFileSetReporter extends TransactionalSysTableWriter<BackupFil
                     .build();
             Get get = factory.newGet(txn, row);
             Result r = table.get(get);
-            if (r != null) {
+            List<Cell> cellList = r.listCells();
+            if (cellList != null && cellList.size() > 0) {
                 backupFileSet = decode(dataLib.getDataValueBuffer(dataLib.matchDataColumn(r)),
                                        dataLib.getDataValueOffset(dataLib.matchDataColumn(r)),
                                        dataLib.getDataValuelength(dataLib.matchDataColumn(r)));

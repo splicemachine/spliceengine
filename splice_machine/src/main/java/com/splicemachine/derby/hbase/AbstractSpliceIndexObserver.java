@@ -27,6 +27,7 @@ import com.splicemachine.si.impl.TransactionalRegions;
 import com.splicemachine.si.impl.WriteConflict;
 import com.splicemachine.utils.SpliceLogUtils;
 
+import com.splicemachine.utils.ZkUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -39,7 +40,9 @@ import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import com.splicemachine.hbase.backup.BackupFileSet;
+import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
+import org.apache.zookeeper.KeeperException;
 
 import java.io.IOException;
 import java.util.*;
@@ -64,7 +67,7 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
      * also use log component: com.splicemachine.derby.impl.temp.TempTable.
      */
     private static final Logger LOG_COMPACT = Logger.getLogger(AbstractSpliceIndexObserver.class.getName() + ".Compaction");
-
+    private static final Logger LOG_SPLIT = Logger.getLogger(AbstractSpliceIndexObserver.class.getName() + ".Split");
     private static final String LOG_COMPACT_PRE = TempTable.LOG_COMPACT_PRE;
 
     protected long conglomId;
@@ -162,48 +165,53 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
                                HashMap<byte[], Collection<StoreFile>> storeFileInfoMap,
                                HRegion r) throws StandardException{
 
-        if (LOG.isTraceEnabled()) {
-            SpliceLogUtils.info(LOG, "updateFileSet: region = " + r.getRegionInfo().getEncodedName());
+        if (LOG_SPLIT.isTraceEnabled()) {
+            SpliceLogUtils.trace(LOG_SPLIT, "updateFileSet: region = " + r.getRegionInfo().getEncodedName());
         }
         String childRegionName = r.getRegionInfo().getEncodedName();
         for(Collection<StoreFile> storeFiles : storeFileInfoMap.values()) {
             for (StoreFile storeFile : storeFiles) {
                 String referenceFileName = storeFile.getPath().getName();
                 String[] s = referenceFileName.split("\\.");
+                if (s.length == 1)
+                    continue;
                 String fileName = s[0];
-                if (LOG.isTraceEnabled()) {
-                    SpliceLogUtils.info(LOG, "updateFileSet: referenceFileName = " + referenceFileName);
-                    SpliceLogUtils.info(LOG, "updateFileSet: referenced file = " + fileName);
+                String regionName = s[1];
+                if (LOG_SPLIT.isTraceEnabled()) {
+                    SpliceLogUtils.trace(LOG_SPLIT, "updateFileSet: referenceFileName = " + referenceFileName);
+                    SpliceLogUtils.trace(LOG_SPLIT, "updateFileSet: referenced file = " + fileName);
                 }
-                if (pathSet.contains(fileName) || s.length == 1) {
-                    // If referenced file appears in the last snapshot, or this is a materialized file,
+                if (pathSet.contains(fileName)) {
+                    // If referenced file appears in the last snapshot
                     // then file in child region should not be included in next incremental backup
                     BackupUtils.insertFileSet(tableName, childRegionName, referenceFileName, false);
                 }
-                BackupFileSet fileSet = BackupUtils.getFileSet(tableName, parentRegionName, fileName);
-                if (fileSet != null) {
-                    // If there is an entry in Backup.FileSet for the referenceD file in parent region, an entry should
-                    // be created for reference file in child region
-                    BackupUtils.insertFileSet(fileSet.getTableName(), childRegionName,
-                            referenceFileName, fileSet.shouldInclude());
+                else {
+                    BackupFileSet fileSet = BackupUtils.getFileSet(tableName, regionName, fileName);
+                    if (fileSet != null) {
+                        // If there is an entry in SYS.BackupFileSet for the referenceD file, an entry should
+                        // be created for reference file
+                        BackupUtils.insertFileSet(fileSet.getTableName(), childRegionName,
+                                referenceFileName, fileSet.shouldInclude());
+                    }
                 }
             }
         }
     }
 
-    private void recordRegionSplitForBackup(ObserverContext<RegionCoprocessorEnvironment> e, HRegion l, HRegion r) {
+    private void recordRegionSplitForBackup(ObserverContext<RegionCoprocessorEnvironment> e, HRegion l, HRegion r) throws IOException{
         try {
 
             // Nothing needs to be done if there was never a succeeded backup
-            boolean exists = BackupUtils.existBackupWithStatus(Backup.BackupStatus.S.toString());
+            boolean exists = BackupUtils.existBackupWithStatus(Backup.BackupStatus.S.toString(), 0);
             if (!exists)
                 return;
 
             if (LOG.isTraceEnabled()) {
-                SpliceLogUtils.info(LOG, "postSplit: parent region " +
+                SpliceLogUtils.trace(LOG_SPLIT, "postSplit: parent region " +
                         e.getEnvironment().getRegion().getRegionInfo().getEncodedName());
-                SpliceLogUtils.info(LOG, "postSplit: l region " + l.getRegionInfo().getEncodedName());
-                SpliceLogUtils.info(LOG, "postSplit: r region " + r.getRegionInfo().getEncodedName());
+                SpliceLogUtils.trace(LOG_SPLIT, "postSplit: l region " + l.getRegionInfo().getEncodedName());
+                SpliceLogUtils.trace(LOG_SPLIT, "postSplit: r region " + r.getRegionInfo().getEncodedName());
             }
 
             Configuration conf = SpliceConstants.config;
@@ -214,28 +222,31 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
             String tableName = e.getEnvironment().getRegion().getTableDesc().getNameAsString();
             String encodedRegionName = e.getEnvironment().getRegion().getRegionInfo().getEncodedName();
 
+            Set<String> pathSet = new HashSet<>();
             // Get HFiles from last snapshot
             String snapshotName = BackupUtils.getLastSnapshotName(tableName);
-            List<Path> pathList = BackupUtils.getSnapshotHFileLinksForRegion(snapshotUtils,
-                    region, conf, fs, snapshotName);
-            Set<String> pathSet = new HashSet<>();
-            for (Path p : pathList) {
-                String name = p.getName();
-                pathSet.add(name);
-            }
+            if (snapshotName != null) {
+                List<Path> pathList = BackupUtils.getSnapshotHFileLinksForRegion(snapshotUtils,
+                        region, conf, fs, snapshotName);
 
+                for (Path p : pathList) {
+                    String name = p.getName();
+                    pathSet.add(name);
+                }
+            }
             HashMap<byte[], Collection<StoreFile>> lStoreFileInfoMap = BackupUtils.getStoreFiles(l);
             HashMap<byte[], Collection<StoreFile>> rStoreFileInfoMap = BackupUtils.getStoreFiles(r);
 
             updateFileSet(tableName, encodedRegionName, pathSet, lStoreFileInfoMap, l);
             updateFileSet(tableName, encodedRegionName, pathSet, rStoreFileInfoMap, r);
         }catch (Exception ex) {
-            SpliceLogUtils.warn(LOG, "%s", ex.getMessage());
+            SpliceLogUtils.warn(LOG_SPLIT, "Error in recordRegionSplitForBackup: %s", ex.getMessage());
+            //throw new IOException(ex.getCause());
         }
     }
 
     private void recordCompactedFilesForBackup(ObserverContext<RegionCoprocessorEnvironment> e,
-                                               CompactionRequest request, StoreFile resultFile) {
+                                               CompactionRequest request, StoreFile resultFile) throws IOException{
 
         // During compaction, an HFile may need to be registered to Backup.FileSet for incremental backup
         // Check HFiles in compaction request, and classify them into 2 categories
@@ -254,10 +265,17 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
         // it should be excluded for next incremental backup.
         try {
             // Nothing needs to be done if there was never a succeeded backup
-            boolean exists = BackupUtils.existBackupWithStatus(Backup.BackupStatus.S.toString());
+            boolean exists = BackupUtils.existBackupWithStatus(Backup.BackupStatus.S.toString(), 0);
             if (!exists)
                 return;
 
+            if (LOG_COMPACT.isTraceEnabled()) {
+                LOG_COMPACT.trace("Files to compact:");
+                for (StoreFile storeFile : request.getFiles()) {
+                    LOG_COMPACT.trace(storeFile.getPath().toString());
+                }
+                LOG_COMPACT.trace("resultFile = :" + resultFile.getPath().toString());
+            }
             HRegion region = e.getEnvironment().getRegion();
             FileSystem fs = region.getFilesystem();
             String encodedRegionName = e.getEnvironment().getRegion().getRegionInfo().getEncodedName();
@@ -318,6 +336,7 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
         }
         catch (Exception ex) {
             SpliceLogUtils.warn(LOG, "%s", ex.getMessage());
+            //throw new IOException(ex.getCause());
         }
     }
 
@@ -499,7 +518,20 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
 				throw new IOException(e1);
 			}
 		}
+        try {
+            waitForBackupToComplete();
+        }
+        catch (Exception e) {
+            throw new IOException(e);
+        }
 	}
+
+    public void waitForBackupToComplete() throws InterruptedException, KeeperException{
+        RecoverableZooKeeper zooKeeper = ZkUtils.getRecoverableZooKeeper();
+        while (zooKeeper.exists(SpliceConstants.DEFAULT_BACKUP_PATH, false) != null) {
+            Thread.sleep(1000);
+        }
+    }
 
 	public void preCompact() throws IOException {
 		while (true) {
@@ -515,6 +547,12 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
 				throw new IOException(e1);
 			}
 		}
+        try {
+            waitForBackupToComplete();
+        }
+        catch (Exception e) {
+            throw new IOException(e);
+        }
 	}
 
 	public void postCompact() {

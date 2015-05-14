@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.stats;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -18,13 +19,16 @@ import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.collector.ColumnStatsCollector;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Random;
+import java.util.concurrent.ExecutionException;
 
 /**
  * @author Scott Fines
@@ -38,6 +42,8 @@ public class IndexStatisticsCollector extends StatisticsCollector {
     private final int sampleSize;
     private Timer fetchTimer;
     private HTableInterface baseTable;
+    private final Get[] getBuffer;
+    private int bufferPos = 0;
 
     public IndexStatisticsCollector(Txn txn,
                                     ExecRow colsToCollect,
@@ -69,9 +75,12 @@ public class IndexStatisticsCollector extends StatisticsCollector {
                 txnRegion,
                 scanner);
         this.randomGenerator = new Random();
-        this.sampleSize = StatsConstants.fetchSampleSize;
+        int s = 1;
+        while(s<SpliceConstants.indexBatchSize)s<<=1;
+        this.sampleSize = s;
         this.fetchTimer = Metrics.newWallTimer();
         baseTable = SpliceAccessManager.getHTable(Long.toString(baseConglomerateId).getBytes());
+        this.getBuffer = new Get[s];
     }
 
     @Override
@@ -80,7 +89,7 @@ public class IndexStatisticsCollector extends StatisticsCollector {
                              int[] fieldLengths,
                              ExecRow row) throws StandardException, IOException {
         super.updateRow(scanner,dvdCollectors,fieldLengths,row);
-//        sampledGet(row);
+        sampledGet(row);
     }
 
 
@@ -109,14 +118,49 @@ public class IndexStatisticsCollector extends StatisticsCollector {
         return columnStats;
     }
 
+    @Override
+    protected long getRemoteReadTime(long rowCount) throws ExecutionException{
+        try{
+            return (long)(getLatency()*rowCount);
+        }catch(IOException e){
+            throw new ExecutionException(e);
+        }
+    }
+
+    @Override
+    protected long getOpenScannerEvents(){
+        return fetchTimer.getNumEvents();
+    }
+
+    @Override
+    protected long getCloseScannerTimeMicros(){
+        return 0l;
+    }
+
+    @Override
+    protected long getOpenScannerTimeMicros() throws ExecutionException{
+        return 0l;
+    }
+
+    @Override
+    protected long getCloseScannerEvents(){
+        return 0l;
+    }
+
     /* ****************************************************************************************************************/
     /*private helper methods*/
-    private double getLatency(){
+    private double getLatency() throws IOException{
+        if(bufferPos>0){
+            doFetch(bufferPos);
+            bufferPos=0;
+        }
         TimeView time = fetchTimer.getTime();
         double latency;
         if(fetchTimer.getNumEvents()<=0)latency = 0d;
         else
             latency = ((double) time.getWallClockTime()) / fetchTimer.getNumEvents();
+        if(LOG.isTraceEnabled())
+                LOG.trace("IndexLookup latency = "+ time.getWallClockTime()+" nanoseconds to retrieve "+fetchTimer.getNumEvents()+" events");
         return latency;
     }
 
@@ -137,13 +181,44 @@ public class IndexStatisticsCollector extends StatisticsCollector {
     }
 
     private void sampledGet(ExecRow row) throws StandardException, IOException{
-        if(!isSampled()) return;
-
-        RowLocation rl = (RowLocation)row.getColumn(row.nColumns());
+        /*
+         * There's a weird behavior with system tables where the row location could be empty.
+         * This is very weird, and we don't like it much, but it happens and we don't want to blow
+         * up just because. Thus, we skip those rows (we don't sample them either, so that we don't affect
+         * the sample of the base table).
+         */
+        DataValueDescriptor dvd = row.getColumn(row.nColumns());
+        if(!(dvd instanceof RowLocation)) return;
+        RowLocation rl = (RowLocation)dvd;
         byte[] rowLocation = rl.getBytes();
-        Get get = TransactionOperations.getOperationFactory().newGet(txn,rowLocation);
+        if(rowLocation==null || rowLocation.length<=0) return; //this is weird, but it COULD happen hypothetically
+
+        if(!isSampled()) return;
+        getBuffer[bufferPos] = TransactionOperations.getOperationFactory().newGet(txn,rowLocation);
+        bufferPos =(bufferPos+1) & (sampleSize-1);
+        if(bufferPos==0){
+            doFetch(sampleSize);
+        }
+    }
+
+    private void doFetch(int bufferSize) throws IOException{
+        if(bufferSize<=0) return; //nothing to do
+        List<Get> gets=Arrays.asList(getBuffer).subList(0,bufferSize);
+        /*
+         * The JVM may not necessarily have heated up this code path just yet, and the HBase
+         * memstore may not have the rows cached in memory. This means that we will tend to take longer
+         * here when we first run than when the future occurs. To avoid this issue, we want to repeatedly
+         * call this code path to make sure that everything heats up and we get a more accurate read of what's
+         * going to happen in the long term. In the future, we will get this number by reference
+         * to some kind of index lookup service which keeps a running tally of the average latency, but for now,
+         * we do this repetition.
+         *
+         * Of course, this makes collections much more expensive, but accuracy is important, since it will
+         * determine whether or not an index is selected in the optimizer
+         *
+         */
         fetchTimer.startTiming();
-        baseTable.get(get);
-        fetchTimer.tick(1);
+        Result[] results=baseTable.get(gets);
+        fetchTimer.tick(results.length);
     }
 }

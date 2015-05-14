@@ -2,7 +2,6 @@ package com.splicemachine.derby.hbase;
 
 import com.google.common.base.Throwables;
 import com.splicemachine.pipeline.exception.IndexNotSetUpException;
-
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.PleaseHoldException;
@@ -10,7 +9,6 @@ import org.apache.hadoop.hbase.RegionTooBusyException;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 import org.apache.hadoop.hbase.exceptions.RegionMovedException;
 import org.apache.hadoop.hbase.ipc.RemoteWithExtrasException;
-import org.apache.hadoop.hbase.ipc.RpcClient;
 import org.apache.hadoop.hbase.regionserver.WrongRegionException;
 import org.apache.hadoop.ipc.RemoteException;
 
@@ -39,9 +37,16 @@ public class Hbase98ExceptionTranslator extends SkeletonExceptionTranslator{
         return t;
     }
 
+    private static final String callTimeoutString;
+
+    static{
+        callTimeoutString = ErrorString.getCallTimeoutString();
+    }
+
     @Override
-    public boolean isCallTimeoutException(Throwable t) {
-        return t instanceof RpcClient.CallTimeoutException || isRemoteWithExtras(t, RpcClient.CallTimeoutException.class.getCanonicalName());
+    public boolean isCallTimeoutException(Throwable t){
+        return t!=null
+                && (t.getClass().getCanonicalName().equals(callTimeoutString) || isRemoteWithExtras(t,callTimeoutString));
     }
 
     @Override
@@ -87,8 +92,8 @@ public class Hbase98ExceptionTranslator extends SkeletonExceptionTranslator{
     }
 
     @Override
-    public boolean isFailedServerException(Throwable t) {
-        return t instanceof RpcClient.FailedServerException;
+    public boolean isFailedServerException(Throwable t){
+        return t!=null && t.getClass().getCanonicalName().equals(ErrorString.getFailedServerString());
     }
 
 	@Override
@@ -97,10 +102,8 @@ public class Hbase98ExceptionTranslator extends SkeletonExceptionTranslator{
 	}
 
     private boolean isRemoteWithExtras(Throwable t, String className) {
-        if (t instanceof RemoteWithExtrasException &&
-                ((RemoteWithExtrasException) t).getClassName() != null &&
-                ((RemoteWithExtrasException) t).getClassName().equals(className))
-            return true;
-        return false;
+        return t instanceof RemoteWithExtrasException &&
+                ((RemoteWithExtrasException)t).getClassName()!=null &&
+                ((RemoteWithExtrasException)t).getClassName().equals(className);
     }
 }

@@ -1,22 +1,12 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.base.Strings;
-import com.splicemachine.db.iapi.types.SQLInteger;
-import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.db.iapi.db.TriggerExecutionContext;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.derby.iapi.sql.execute.*;
-import com.splicemachine.derby.stream.iapi.DataSet;
-import com.splicemachine.derby.stream.iapi.DataSetProcessor;
-import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
-import com.splicemachine.derby.utils.marshall.DataHash;
-import com.splicemachine.derby.utils.marshall.KeyEncoder;
-import com.splicemachine.derby.utils.marshall.PairEncoder;
-import com.splicemachine.hbase.KVPair;
-import com.splicemachine.metrics.Metrics;
-import com.splicemachine.pipeline.api.RecordingCallBuffer;
+import com.splicemachine.derby.impl.sql.execute.actions.WriteCursorConstantOperation;
 import com.splicemachine.pipeline.exception.Exceptions;
-import com.splicemachine.pipeline.impl.WriteCoordinator;
-import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
@@ -33,8 +23,8 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
+import java.util.*;
 
 
 /**
@@ -53,6 +43,8 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 		private boolean isScan = true;
 		protected DMLWriteInfo writeInfo;
         protected long writeRowsFiltered;
+        private TriggerInfo triggerInfo;
+        private TriggerEventActivator triggerActivator;
 		public DMLWriteOperation(){
 				super();
 		}
@@ -108,9 +100,25 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 				super.init(context);
 				source.init(context);
 				writeInfo.initialize(context);
+                initTriggerActivator(context);
 		}
 
-		public byte[] getDestinationTable(){
+    private void initTriggerActivator(SpliceOperationContext context) throws StandardException {
+        WriteCursorConstantOperation constantAction = (WriteCursorConstantOperation) writeInfo.getConstantAction();
+        this.triggerInfo = constantAction.getTriggerInfo();
+        if(triggerInfo != null && triggerActivator == null) {
+            LanguageConnectionContext lcc = context.getLanguageConnectionContext();
+            triggerActivator = new TriggerEventActivator(lcc,
+                    lcc.getTransactionExecute(),
+                    constantAction.getTargetUUID(),
+                    triggerInfo,
+                    TriggerExecutionContext.INSERT_EVENT,
+                    activation,
+                    new Vector());
+        }
+    }
+
+    public byte[] getDestinationTable(){
 				return Long.toString(heapConglom).getBytes();
 		}
 
@@ -124,7 +132,11 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 				return Collections.singletonList(source);
 		}
 
-		@Override
+
+    // Fire Before Triggers
+
+    // Fire After Triggers
+    @Override
 		public ExecRow getExecRowDefinition() throws StandardException {
 				/*
 				 * Typically, we just call down to our source and then pass that along
@@ -145,8 +157,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 				SpliceLogUtils.trace(LOG,"execRowDefinition=%s",row);
 				return row;
 		}
-
-    @Override
+        @Override
 		public String prettyPrint(int indentLevel) {
 				String indent = "\n"+ Strings.repeat("\t",indentLevel);
 
@@ -167,11 +178,5 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 				return source.isReferencingTable(tableNumber);
 		}
 
-    /*
 
-                ValueRow valueRow = new ValueRow(1);
-            valueRow.setColumn(1,new SQLInteger(i));
-			return Collections.singletonList(new LocatedRow(valueRow));
-
-     */
 }

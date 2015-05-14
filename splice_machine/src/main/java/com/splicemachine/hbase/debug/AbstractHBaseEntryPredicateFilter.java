@@ -3,6 +3,9 @@ package com.splicemachine.hbase.debug;
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
+
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterBase;
 import org.apache.hadoop.io.Writable;
 import com.splicemachine.constants.SpliceConstants;
@@ -12,7 +15,7 @@ import com.splicemachine.storage.EntryAccumulator;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 
-public class AbstractHBaseEntryPredicateFilter<Data> extends FilterBase implements Writable {
+public abstract class AbstractHBaseEntryPredicateFilter<Data> extends FilterBase implements Writable {
 	private static final SDataLib dataLib = SIFactoryDriver.siFactory.getDataLib();
     private EntryPredicateFilter epf;
     private EntryAccumulator accumulator;

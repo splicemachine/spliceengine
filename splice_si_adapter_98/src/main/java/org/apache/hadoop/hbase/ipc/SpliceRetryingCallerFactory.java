@@ -10,16 +10,15 @@ import org.apache.hadoop.hbase.client.RetriesExhaustedException;
 import org.apache.hadoop.hbase.client.RetryingCallable;
 import org.apache.hadoop.hbase.client.RpcRetryingCaller;
 import org.apache.hadoop.hbase.client.RpcRetryingCallerFactory;
-import org.apache.hadoop.hbase.ipc.RpcClient;
-import org.apache.hadoop.hbase.util.EnvironmentEdgeManager;
 import org.apache.hadoop.hbase.util.ExceptionUtil;
 import org.apache.hadoop.hbase.util.ReflectionUtils;
 import org.apache.hadoop.ipc.RemoteException;
+
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.net.SocketTimeoutException;
-import java.util.ArrayList;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -49,7 +48,7 @@ public class SpliceRetryingCallerFactory  {
                 HConstants.DEFAULT_HBASE_CLIENT_PAUSE);
         retries = conf.getInt(HConstants.HBASE_CLIENT_RETRIES_NUMBER,
                 HConstants.DEFAULT_HBASE_CLIENT_RETRIES_NUMBER);
-        socketTimeout = RpcClient.getSocketTimeout(conf);
+        socketTimeout = getSocketTimeout(conf);
     }
 
     public <T> SpliceRpcRetryingCaller<T> newCaller() {
@@ -85,6 +84,8 @@ public class SpliceRetryingCallerFactory  {
         private final long pause;
         private final int retries;
 
+        private int remaining;
+
         public SpliceRpcRetryingCaller(long pause, int retries,int socketTimeout) {
             this.pause = pause;
             this.retries = retries;
@@ -92,22 +93,18 @@ public class SpliceRetryingCallerFactory  {
         }
 
         private void beforeCall() {
-            int remaining = (int)(callTimeout -
-                    (EnvironmentEdgeManager.currentTimeMillis() - this.globalStartTime));
+            int remaining = (int)(callTimeout - (System.currentTimeMillis() - this.globalStartTime));
             if (remaining < socketTimeout) {
                 // If there is no time left, we're trying anyway. It's too late.
                 // 0 means no timeout, and it's not the intent here. So we secure both cases by
                 // resetting to the minimum.
                 remaining = socketTimeout;
             }
-            RpcClient.setRpcTimeout(remaining);
+            this.remaining = remaining;
         }
 
-        private void afterCall() {
-            RpcClient.resetRpcTimeout();
-        }
 
-        public synchronized T callWithRetries(RetryingCallable<T> callable) throws IOException,
+        public synchronized T callWithRetries(SpliceRetryingCall<T> callable) throws IOException,
                 RuntimeException {
             return callWithRetries(callable, HConstants.DEFAULT_HBASE_CLIENT_OPERATION_TIMEOUT);
         }
@@ -122,29 +119,28 @@ public class SpliceRetryingCallerFactory  {
          */
         @edu.umd.cs.findbugs.annotations.SuppressWarnings
                 (value = "SWL_SLEEP_WITH_LOCK_HELD", justification = "na")
-        public synchronized T callWithRetries(RetryingCallable<T> callable, int callTimeout)
+        public synchronized T callWithRetries(SpliceRetryingCall<T> callable, int callTimeout)
                 throws IOException, RuntimeException {
             this.callTimeout = callTimeout;
-            List<RetriesExhaustedException.ThrowableWithExtraContext> exceptions =
-                    new ArrayList<RetriesExhaustedException.ThrowableWithExtraContext>();
-            this.globalStartTime = EnvironmentEdgeManager.currentTimeMillis();
+            List<RetriesExhaustedException.ThrowableWithExtraContext> exceptions = new LinkedList<>();
+            this.globalStartTime = System.currentTimeMillis();
             for (int tries = 0;; tries++) {
                 long expectedSleep = 0;
                 try {
                     beforeCall();
                     callable.prepare(tries != 0); // if called with false, check table status on ZK
-                    return callable.call();
+                    return callable.call(remaining);
                 } catch (Throwable t) {
                     if (LOG.isTraceEnabled()) {
                         LOG.trace("Call exception, tries=" + tries + ", retries=" + retries + ", retryTime=" +
-                                (EnvironmentEdgeManager.currentTimeMillis() - this.globalStartTime) + "ms", t);
+                                (System.currentTimeMillis() - this.globalStartTime) + "ms", t);
                     }
                     // translateException throws exception when should not retry: i.e. when request is bad.
                     t = translateException(t);
                     callable.throwable(t, retries != 1);
                     RetriesExhaustedException.ThrowableWithExtraContext qt =
                             new RetriesExhaustedException.ThrowableWithExtraContext(t,
-                                    EnvironmentEdgeManager.currentTimeMillis(), toString());
+                                    System.currentTimeMillis(), toString());
                     exceptions.add(qt);
                     ExceptionUtil.rethrowIfInterrupt(t);
                     if (tries >= retries - 1) {
@@ -163,7 +159,7 @@ public class SpliceRetryingCallerFactory  {
                         throw (SocketTimeoutException)(new SocketTimeoutException(msg).initCause(t));
                     }
                 } finally {
-                    afterCall();
+                    callable.close();
                 }
                 try {
                     Thread.sleep(expectedSleep);
@@ -178,27 +174,26 @@ public class SpliceRetryingCallerFactory  {
          * @return Calculate how long a single call took
          */
         private long singleCallDuration(final long expectedSleep) {
-            return (EnvironmentEdgeManager.currentTimeMillis() - this.globalStartTime)
+            return (System.currentTimeMillis() - this.globalStartTime)
                     + MIN_RPC_TIMEOUT + expectedSleep;
         }
 
         /**
          * Call the server once only.
          * {@link RetryingCallable} has a strange shape so we can do retrys.  Use this invocation if you
-         * want to do a single call only (A call to {@link RetryingCallable#call()} will not likely
+         * want to do a single call only (A call to {@link SpliceRetryingCall#call(int)} will not likely
          * succeed).
          * @return an object of type T
          * @throws IOException if a remote or network exception occurs
          * @throws RuntimeException other unspecified error
          */
-        public T callWithoutRetries(RetryingCallable<T> callable)
-                throws IOException, RuntimeException {
+        public T callWithoutRetries(SpliceRetryingCall<T> callable) throws IOException, RuntimeException {
             // The code of this method should be shared with withRetries.
-            this.globalStartTime = EnvironmentEdgeManager.currentTimeMillis();
+            this.globalStartTime = System.currentTimeMillis();
             try {
                 beforeCall();
                 callable.prepare(false);
-                return callable.call();
+                return callable.call(remaining);
             } catch (Throwable t) {
                 Throwable t2 = translateException(t);
                 ExceptionUtil.rethrowIfInterrupt(t2);
@@ -209,7 +204,7 @@ public class SpliceRetryingCallerFactory  {
                     throw new RuntimeException(t2);
                 }
             } finally {
-                afterCall();
+                callable.close();
             }
         }
 
@@ -248,5 +243,20 @@ public class SpliceRetryingCallerFactory  {
         }
     }
 
-
+    /*Put here to avoid platform-specific issues*/
+    private final static String H100SOCKET_TIMEOUT = "hbase.ipc.client.socket.timeout.read";
+    private final static String SOCKET_TIMEOUT = "ipc.socket.timeout";
+    private final static int DEFAULT_SOCKET_TIMEOUT = 20000; // 20 seconds
+    private static int getSocketTimeout(Configuration conf) {
+        /*
+         * Hbase 1.0.0 switches the configuration to using the socket.timeout.read version instead
+         * of ipc.socket.timeout. We need to support both (for the 0.98+ versions), so we will
+         * first try and get the 1.0.0 version, and if that fails, we will fall back on the 0.98+ version
+         */
+        String readTimeout = conf.get(H100SOCKET_TIMEOUT);
+        if(readTimeout!=null && readTimeout.length()>0)
+            return Integer.parseInt(readTimeout);
+        else
+            return conf.getInt(SOCKET_TIMEOUT,DEFAULT_SOCKET_TIMEOUT);
+    }
 }

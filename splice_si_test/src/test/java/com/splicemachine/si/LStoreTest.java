@@ -29,9 +29,9 @@ public class LStoreTest {
         final List<KeyValue> outputCells = dataLib.listResult(outputTuple);
         Assert.assertEquals(1, outputCells.size());
         final KeyValue outputCell = outputCells.get(0);
-        Assert.assertEquals("foo", Bytes.toString(outputCell.getFamily()));
-        Assert.assertEquals("age", Bytes.toString(outputCell.getQualifier()));
-        Assert.assertEquals(23, Bytes.toInt(outputCell.getValue()));
+        Assert.assertEquals("foo", Bytes.toString(outputCell.getFamilyArray(), outputCell.getFamilyOffset(), outputCell.getFamilyLength()));
+        Assert.assertEquals("age", Bytes.toString(outputCell.getQualifierArray(), outputCell.getQualifierOffset(), outputCell.getQualifierLength()));
+        Assert.assertEquals(23, Bytes.toInt(outputCell.getValueArray(), outputCell.getValueOffset(), outputCell.getValueLength()));
         Assert.assertEquals(1L, outputCell.getTimestamp());
     }
 
@@ -50,9 +50,9 @@ public class LStoreTest {
         final List<KeyValue> outputCells = dataLib.listResult(outputTuple);
         Assert.assertEquals(1, outputCells.size());
         final KeyValue outputCell = outputCells.get(0);
-        Assert.assertEquals("foo", Bytes.toString(outputCell.getFamily()));
-        Assert.assertEquals("age", Bytes.toString(outputCell.getQualifier()));
-        Assert.assertEquals(21, Bytes.toInt(outputCell.getValue()));
+        Assert.assertEquals("foo", Bytes.toString(outputCell.getFamilyArray(), outputCell.getFamilyOffset(), outputCell.getFamilyLength()));
+        Assert.assertEquals("age", Bytes.toString(outputCell.getQualifierArray(), outputCell.getQualifierOffset(), outputCell.getQualifierLength()));
+        Assert.assertEquals(21, Bytes.toInt(outputCell.getValueArray(), outputCell.getValueOffset(), outputCell.getValueLength()));
         Assert.assertEquals(0L, outputCell.getTimestamp());
     }
 }

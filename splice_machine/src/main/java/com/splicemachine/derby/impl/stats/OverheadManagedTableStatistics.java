@@ -19,4 +19,14 @@ public interface OverheadManagedTableStatistics extends TableStatistics{
      * over all partitions
      */
     double closeScannerLatency();
+
+    /**
+     * @return the number of Scanner opens that were recorded
+     */
+    long numOpenEvents();
+
+    /**
+     * @return the number of Scanner closes that were recorded
+     */
+    long numCloseEvents();
 }

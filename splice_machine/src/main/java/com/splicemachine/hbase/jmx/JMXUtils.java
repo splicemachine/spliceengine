@@ -26,6 +26,7 @@ import com.splicemachine.derby.impl.job.scheduler.StealableTaskSchedulerManageme
 import com.splicemachine.derby.impl.job.scheduler.TieredSchedulerManagement;
 import com.splicemachine.derby.impl.load.ImportTaskManagement;
 import com.splicemachine.derby.management.StatementManagement;
+import com.splicemachine.derby.utils.DatabasePropertyManagement;
 import com.splicemachine.job.JobSchedulerManagement;
 import com.splicemachine.si.impl.timestamp.TimestampMasterManagement;
 import com.splicemachine.si.impl.timestamp.TimestampRegionManagement;
@@ -47,6 +48,7 @@ public class JMXUtils {
     public static final String SPLICEMACHINE_VERSION = "com.splicemachine.version:type=SpliceMachineVersion";
     public static final String TIMESTAMP_MASTER_MANAGEMENT = "com.splicemachine.si.impl.timestamp.generator:type=TimestampMasterManagement";
     public static final String TIMESTAMP_REGION_MANAGEMENT = "com.splicemachine.si.impl.timestamp.request:type=TimestampRegionManagement";
+	public static final String DATABASE_PROPERTY_MANAGEMENT = "com.splicemachine.derby.utils:type=DatabasePropertyManagement";
 
     public static List<Pair<String,JMXConnector>> getMBeanServerConnections(Collection<Pair<String,String>> serverConnections) throws IOException {
         List<Pair<String,JMXConnector>> mbscArray = new ArrayList<Pair<String,JMXConnector>>(serverConnections.size());
@@ -160,6 +162,14 @@ public class JMXUtils {
             managers.add(Pair.newPair(connectorPair.getFirst(), getNewMXBeanProxy(connectorPair.getSecond(), TIMESTAMP_REGION_MANAGEMENT, TimestampRegionManagement.class)));
         }
         return managers;
+    }
+
+    public static List<DatabasePropertyManagement> getDatabasePropertyManagement(List<Pair<String, JMXConnector>> mbscArray) throws MalformedObjectNameException, IOException {
+        List<DatabasePropertyManagement> dbProps = new ArrayList<DatabasePropertyManagement>();
+        for (Pair<String, JMXConnector> mbsc : mbscArray) {
+        	dbProps.add(getNewMXBeanProxy(mbsc.getSecond(), DATABASE_PROPERTY_MANAGEMENT, DatabasePropertyManagement.class));
+        }
+        return dbProps;
     }
 
 	public static <T> T getNewMBeanProxy(JMXConnector mbsc, String mbeanName, Class<T> type) throws MalformedObjectNameException, IOException {

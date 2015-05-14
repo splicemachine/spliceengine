@@ -1,6 +1,13 @@
 package com.splicemachine.derby.utils;
 
+import java.util.concurrent.ExecutionException;
+import java.util.regex.Pattern;
+
 import org.apache.commons.lang.WordUtils;
+
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 
 /**
  * Implementation of standard Splice String functions,
@@ -69,4 +76,29 @@ public class SpliceStringFunctions {
     	return arg1.concat(arg2);
     }
 
+    /**
+     * Implements logic for the SQL function REGEXPLIKE.
+     * 
+     * @param s string to be evaluated
+     * @param regexp regular expression
+     * 
+     * @return flag indicating whether or not there is a match
+     */
+    public static boolean REGEXP_LIKE(String s, String regexp)
+    {
+    	try {
+			return patternCache.get(regexp).matcher(s).matches();
+	    } catch (ExecutionException e) {
+	        throw new RuntimeException(String.format("Unable to fetch Pattern for regexp [%s]", regexp), e);
+	    }
+    }
+    
+    private static LoadingCache<String, Pattern> patternCache = CacheBuilder.newBuilder().maximumSize(100).build(
+        new CacheLoader<String, Pattern>() {
+            @Override
+            public Pattern load(String regexp) {
+                return Pattern.compile(regexp, Pattern.CASE_INSENSITIVE);
+            }
+        }
+    );
 }

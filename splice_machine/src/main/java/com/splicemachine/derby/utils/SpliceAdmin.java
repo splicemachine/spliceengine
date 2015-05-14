@@ -1,6 +1,7 @@
 package com.splicemachine.derby.utils;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.DerbyFactory;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.hbase.SpliceDriver;
@@ -64,6 +65,8 @@ import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.db.iapi.db.Factory;
+import com.splicemachine.db.iapi.db.PropertyInfo;
+
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
@@ -978,7 +981,7 @@ public class SpliceAdmin extends BaseAdminProcedures {
         List<Long> conglomIDs = new ArrayList<Long>();
         if (schemaName == null)
             // default schema
-            schemaName = "APP";
+            schemaName = SpliceConstants.SPLICE_USER;
 
         String allTablesInSchema =  "SELECT C.CONGLOMERATENUMBER FROM SYS.SYSCONGLOMERATES C, SYS.SYSTABLES T, SYS.SYSSCHEMAS S " +
                 "WHERE T.TABLEID = C.TABLEID AND T.SCHEMAID = S.SCHEMAID AND S.SCHEMANAME = ?";
@@ -1197,5 +1200,41 @@ public class SpliceAdmin extends BaseAdminProcedures {
         LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
         lcc.setRunTimeStatisticsMode(enable != 0 ? true : false);
         lcc.setStatisticsTiming(enable != 0 ? true : false);
+    }
+
+    public static void SYSCS_GET_GLOBAL_DATABASE_PROPERTY(final String key, final ResultSet[] resultSet) throws SQLException {
+    	operate(new JMXServerOperation() {
+    		@Override
+    		public void operate(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException, SQLException {
+    			try {
+    				ResultSetBuilder rsBuilder = new ResultSetBuilder();
+    				rsBuilder.getColumnBuilder()
+	    				.addColumn("HOST_NAME",      Types.VARCHAR, 32)
+	    				.addColumn("PROPERTY_VALUE", Types.VARCHAR, 128);
+    				RowBuilder rowBuilder = rsBuilder.getRowBuilder();
+    				int hostIdx = 0;
+    				for (DatabasePropertyManagement databasePropertyMgmt : JMXUtils.getDatabasePropertyManagement(connections)) {
+    					rowBuilder.getDvd(0).setValue(connections.get(hostIdx).getFirst());
+    					rowBuilder.getDvd(1).setValue(databasePropertyMgmt.getDatabaseProperty(key));
+    					rowBuilder.addRow();
+    					hostIdx++;
+    				}
+    				resultSet[0] = rsBuilder.buildResultSet((EmbedConnection)getDefaultConn());
+    			} catch (StandardException se) {
+    				throw PublicAPI.wrapStandardException(se);
+    			}
+    		}
+    	});
+    }
+
+    public static void SYSCS_SET_GLOBAL_DATABASE_PROPERTY(final String key, final String value) throws SQLException {
+    	operate(new JMXServerOperation() {
+    		@Override
+    		public void operate(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException, SQLException {
+    			for (DatabasePropertyManagement databasePropertyMgmt : JMXUtils.getDatabasePropertyManagement(connections)) {
+    				databasePropertyMgmt.setDatabaseProperty(key, value);
+    			}
+    		}
+    	});
     }
 }

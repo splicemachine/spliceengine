@@ -12,6 +12,8 @@ import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.SICompactionState;
 import com.splicemachine.utils.ByteSlice;
 
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.filter.Filter;
@@ -56,11 +58,7 @@ public class LDataLib implements SDataLib<KeyValue,LTuple, LTuple, LGet, LGet> {
 //        return (o1 == null && o2 == null) || ((o1 != null) && o1.equals(o2));
     }
 
-    public boolean valuesMatch(Object family1, Object family2) {
-        return nullSafeComparison(family1, family2);
-    }
-
-    @Override
+	@Override
     public byte[] encode(Object value) {
 				if(value instanceof String){
 						return Bytes.toBytes((String)value);
@@ -184,7 +182,7 @@ public class LDataLib implements SDataLib<KeyValue,LTuple, LTuple, LGet, LGet> {
 
     @Override
     public void addFamilyToGetIfNeeded(LGet get, byte[] family) {
-        ensureFamilyDirect(get, family);
+        ensureFamilyDirect(get,family);
     }
 
     @Override
@@ -204,7 +202,7 @@ public class LDataLib implements SDataLib<KeyValue,LTuple, LTuple, LGet, LGet> {
 
     @Override
     public void addFamilyToScanIfNeeded(LGet get, byte[] family) {
-        ensureFamilyDirect(get, family);
+        ensureFamilyDirect(get,family);
     }
 
     private void ensureFamilyDirect(LGet lGet, byte[] family) {
@@ -231,32 +229,7 @@ public class LDataLib implements SDataLib<KeyValue,LTuple, LTuple, LGet, LGet> {
         return ((LTuple) result).key;
     }
 
-    private List<KeyValue> getValuesForColumn(Result tuple, byte[] family, byte[] qualifier) {
-        KeyValue[] values = tuple.raw();
-        List<KeyValue> results = Lists.newArrayList();
-				for (KeyValue v : values) {
-						if(v.matchingColumn(family,qualifier)){
-								results.add(v);
-						}
-            if (valuesMatch(v.getFamily(), family) && valuesMatch(v.getFamily(), qualifier)) {
-                results.add(v);
-            }
-        }
-        LStore.sortValues(results);
-        return results;
-    }
-
-    private List<KeyValue> getValuesForFamily(Result tuple, byte[] family) {
-        KeyValue[] values = tuple.raw();
-        List<KeyValue> results = Lists.newArrayList();
-        for (KeyValue v: values) {
-						if(v.matchingFamily(family))
-                results.add(v);
-        }
-        return results;
-    }
-
-		@Override
+	@Override
 		public List<KeyValue> listResult(Result result) {
 				List<KeyValue> values = Lists.newArrayList(result.raw());
 				LStore.sortValues(values);
@@ -317,37 +290,37 @@ public class LDataLib implements SDataLib<KeyValue,LTuple, LTuple, LGet, LGet> {
 
 		@Override
 		public boolean singleMatchingFamily(KeyValue element, byte[] family) {
-			return KeyValueUtils.singleMatchingFamily(element, family);
+			return KeyValueUtils.singleMatchingFamily(element,family);
 		}
 
 		@Override
 		public boolean singleMatchingQualifier(KeyValue element, byte[] qualifier) {
-			return KeyValueUtils.singleMatchingQualifier(element, qualifier);
+			return KeyValueUtils.singleMatchingQualifier(element,qualifier);
 		}
 
 		@Override
 		public boolean matchingValue(KeyValue element, byte[] value) {
-			return KeyValueUtils.matchingValue(element, value);
+			return KeyValueUtils.matchingValue(element,value);
 		}
 
 		@Override
 		public boolean matchingFamilyKeyValue(KeyValue element, KeyValue other) {
-			return KeyValueUtils.matchingFamilyKeyValue(element, other);
+			return KeyValueUtils.matchingFamilyKeyValue(element,other);
 		}
 
 		@Override
 		public boolean matchingQualifierKeyValue(KeyValue element, KeyValue other) {
-			return KeyValueUtils.matchingQualifierKeyValue(element, other);
+			return KeyValueUtils.matchingQualifierKeyValue(element,other);
 		}
 
 		@Override
 		public boolean matchingRowKeyValue(KeyValue element, KeyValue other) {
-			return KeyValueUtils.matchingRowKeyValue(element, other);
+			return KeyValueUtils.matchingRowKeyValue(element,other);
 		}
 
 		@Override
 		public KeyValue newValue(KeyValue element, byte[] value) {
-			return KeyValueUtils.newKeyValue(element, value);
+			return KeyValueUtils.newKeyValue(element,value);
 		}
 
 		@Override
@@ -407,7 +380,7 @@ public class LDataLib implements SDataLib<KeyValue,LTuple, LTuple, LGet, LGet> {
 
 		@Override
 		public long getValueToLong(KeyValue element) {
-			return Bytes.toLong(element.getBuffer(), element.getValueOffset(), element.getValueLength());
+			return Bytes.toLong(element.getBuffer(),element.getValueOffset(),element.getValueLength());
 		}
 
 		@Override
@@ -443,7 +416,7 @@ public class LDataLib implements SDataLib<KeyValue,LTuple, LTuple, LGet, LGet> {
 		@Override
 		public KeyValue getColumnLatest(Result result, byte[] family,
 				byte[] qualifier) {
-			return result.getColumnLatest(family, qualifier);
+			return result.getColumnLatest(family,qualifier);
 		}
 
 		@Override
@@ -547,17 +520,21 @@ public class LDataLib implements SDataLib<KeyValue,LTuple, LTuple, LGet, LGet> {
 		public KeyValue matchKeyValue(Iterable<KeyValue> kvs,
 				byte[] columnFamily, byte[] qualifier) {
 			for(KeyValue kv:kvs){
-				if(kv.matchingColumn(columnFamily,qualifier))
+				if(matchingColumn(kv,columnFamily,qualifier))
 						return kv;
 			}
 			return null;
 		}
 
-		@Override
+	private static boolean matchingColumn(Cell c,byte[] family,byte[] qualifier){
+		return CellUtil.matchingFamily(c,family) && CellUtil.matchingQualifier(c,qualifier);
+	}
+
+	@Override
 		public KeyValue matchKeyValue(KeyValue[] kvs, byte[] columnFamily,
 				byte[] qualifier) {
 			for(KeyValue kv:kvs){
-				if(kv.matchingColumn(columnFamily,qualifier))
+				if(matchingColumn(kv,columnFamily,qualifier))
 						return kv;
 			}
 			return null;
@@ -582,6 +559,6 @@ public class LDataLib implements SDataLib<KeyValue,LTuple, LTuple, LGet, LGet> {
 
 		@Override
 		public boolean matchingQualifier(KeyValue element, byte[] qualifier) {
-			return element.matchingQualifier(qualifier);
+			return CellUtil.matchingQualifier(element,qualifier);
 		}		
 }

@@ -10,6 +10,7 @@ import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Put;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.HRegionUtil;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 
 import java.io.IOException;
@@ -35,7 +36,13 @@ public class ReadAheadRegionScanner extends BaseReadAheadRegionScanner<Put,Get,C
 				SDataLib<Cell, Put, Delete, Get, Scan> dataLib){
 			super(region,bufferSize,delegate,metricFactory,dataLib);
 		}
-		@Override
+
+	@Override
+	protected void updateReadRequest(HRegion region,int rowCount){
+		HRegionUtil.updateReadRequests(region,rowCount);
+	}
+
+	@Override
 		public boolean nextRaw(List<Cell> result, int limit) throws IOException {
 			return internalNextRaw(result,limit, null);
 		}

@@ -61,4 +61,9 @@ public class CachedByteSlice extends ByteSlice {
         super.set(bytes);
         cachedCopy=null;
     }
+
+    @Override
+    public String toString() {
+        return "cachedCopy.length=" + (cachedCopy == null ? 0 : cachedCopy.length);
+    }
 }

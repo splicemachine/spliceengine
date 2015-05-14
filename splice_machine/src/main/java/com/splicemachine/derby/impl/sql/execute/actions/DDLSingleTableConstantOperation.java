@@ -54,7 +54,7 @@ public abstract class DDLSingleTableConstantOperation extends DDLConstantOperati
 	void dropConstraint(ConstraintDescriptor consDesc,Activation activation, LanguageConnectionContext lcc,
 		boolean clearDeps) throws StandardException {
 		SpliceLogUtils.trace(LOG, "dropConstraint %s",consDesc);
-		dropConstraint(consDesc, (TableDescriptor)null,(List)null, activation, lcc, clearDeps);
+		dropConstraint(consDesc, null, null, activation, lcc, clearDeps);
 	}
 
 	/**
@@ -68,7 +68,7 @@ public abstract class DDLSingleTableConstantOperation extends DDLConstantOperati
 	void dropConstraint(ConstraintDescriptor consDesc,TableDescriptor skipCreate, Activation activation,
 		LanguageConnectionContext lcc, boolean clearDeps) throws StandardException {
 		SpliceLogUtils.trace(LOG, "dropConstraint %s",consDesc);
-		dropConstraint(consDesc, skipCreate,(List)null, activation, lcc, clearDeps);
+		dropConstraint(consDesc, skipCreate,null, activation, lcc, clearDeps);
 	}
 
 	/**
@@ -126,7 +126,6 @@ public abstract class DDLSingleTableConstantOperation extends DDLConstantOperati
 					consDesc.getTableDescriptor(), ixProps),
 				activation);
 		}
-		return;
 	}
 
 	/**
@@ -143,7 +142,7 @@ public abstract class DDLSingleTableConstantOperation extends DDLConstantOperati
 	protected void dropConglomerate(ConglomerateDescriptor congDesc, TableDescriptor td,
 																	Activation activation, LanguageConnectionContext lcc) throws StandardException {
 		SpliceLogUtils.trace(LOG, "dropConglomerate %s with table descriptor %s",congDesc, td);
-		dropConglomerate(congDesc, td,false, (List)null, activation, lcc);
+		dropConglomerate(congDesc, td, false, null, activation, lcc);
 	}
 
 	/**
@@ -162,7 +161,7 @@ public abstract class DDLSingleTableConstantOperation extends DDLConstantOperati
 	 *  ex. when dropping a table).
 	 */
 	void dropConglomerate(ConglomerateDescriptor congDesc, TableDescriptor td,boolean skipCreate, 
-			List newConglomActions, Activation activation, LanguageConnectionContext lcc) throws StandardException {
+			List<ConstantAction> newConglomActions, Activation activation, LanguageConnectionContext lcc) throws StandardException {
 		SpliceLogUtils.trace(LOG, "dropConglomerate %s with table descriptor %s",congDesc, td);
 		// Get the properties on the old index before dropping.
 		Properties ixProps = new Properties();
@@ -182,16 +181,12 @@ public abstract class DDLSingleTableConstantOperation extends DDLConstantOperati
 			 * otherwise, the new conglomerate is effectively ignored.
 			 */
 			if (newConglomActions != null) {
-				newConglomActions.add(
-					getConglomReplacementAction(
-						newBackingConglomCD, td, ixProps));
+				newConglomActions.add(getConglomReplacementAction(newBackingConglomCD, td, ixProps));
 			}
 		}
 		else {
-			executeConglomReplacement(getConglomReplacementAction(newBackingConglomCD, td, ixProps),
-				activation);
+			executeConglomReplacement(getConglomReplacementAction(newBackingConglomCD, td, ixProps), activation);
 		}
-		return;
 	}
     
     /**
@@ -216,7 +211,7 @@ public abstract class DDLSingleTableConstantOperation extends DDLConstantOperati
         //get index property
         Properties prop = new Properties ();
         loadIndexProperties(lcc, cd, prop);
-        ArrayList list = new ArrayList();
+        ArrayList<ConstantAction> list = new ArrayList<>();
         // drop the existing index.
         dropConglomerate(cd, td, false, list, activation, lcc);
         String [] cols = cd.getColumnNames();
@@ -262,7 +257,6 @@ public abstract class DDLSingleTableConstantOperation extends DDLConstantOperati
 			   	TransactionController.ISOLATION_SERIALIZABLE);
 		cc.getInternalTablePropertySet(ixProps);
 		cc.close();
-		return;
 	}
 
 	/**
@@ -316,7 +310,7 @@ public abstract class DDLSingleTableConstantOperation extends DDLConstantOperati
 		CreateIndexConstantOperation replaceConglomAction = (CreateIndexConstantOperation)replaceConglom;
 		LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
 		DataDictionary dd = lcc.getDataDictionary();
-		// Create the new (replacment) backing conglomerate...
+		// Create the new (replacement) backing conglomerate...
 		replaceConglomAction.executeConstantAction(activation);
 		/* Find all conglomerate descriptors that referenced the
 		 * old backing conglomerate and update them to have the
@@ -343,8 +337,6 @@ public abstract class DDLSingleTableConstantOperation extends DDLConstantOperati
 
 		dd.updateConglomerateDescriptor(congDescs,
 			replaceConglomAction.getCreatedConglomNumber(),lcc.getTransactionExecute());
-
-		return;
 	}
 }
 

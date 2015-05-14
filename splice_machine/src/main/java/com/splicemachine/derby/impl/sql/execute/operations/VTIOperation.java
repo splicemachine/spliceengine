@@ -276,18 +276,17 @@ public class VTIOperation extends SpliceBaseOperation implements VTIEnvironment 
             open();
 		}
 	}
-	
 
 	/**
 	 * @exception StandardException thrown on error
 	 */
 	public void	close() throws StandardException
 	{
-		throw new RuntimeException("Not Implemented Yet");
+        throw StandardException.newException( SQLState.NOT_IMPLEMENTED, this.getClass().getName());
 	}
 
 	public void finish() throws StandardException {
-		throw new RuntimeException("Not Implemented Yet");
+        throw StandardException.newException( SQLState.NOT_IMPLEMENTED, this.getClass().getName());
 	}
 
 	//
@@ -596,10 +595,10 @@ public class VTIOperation extends SpliceBaseOperation implements VTIEnvironment 
 
 	@Override
 	public List<SpliceOperation> getSubOperations() {
-		throw new RuntimeException("Not Implemented Yet");
+		throw new UnsupportedOperationException(StandardException.newException( SQLState.NOT_IMPLEMENTED, this.getClass().getName()));
 	}
 
-    @Override
+	@Override
     public int[] getRootAccessedCols(long tableNumber) {
         return null;
     }

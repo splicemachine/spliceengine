@@ -12,6 +12,7 @@ import com.splicemachine.pipeline.api.WriteContext;
 import com.splicemachine.pipeline.impl.WriteResult;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
+import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
@@ -83,9 +84,6 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
 
     @Override
 	public boolean updateIndex(KVPair mutation, WriteContext ctx) {
-    	if (LOG.isTraceEnabled())
-    		SpliceLogUtils.trace(LOG, "updateIndex with %s", mutation);
-        if(mutation.getType()!= KVPair.Type.DELETE) return true;
         if(indexBuffer==null){
             try{
                 indexBuffer = getWriteBuffer(ctx,expectedWrites);
@@ -97,6 +95,11 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
 
         delete(mutation,ctx);
         return !failed;
+    }
+
+    @Override
+    protected boolean isHandledMutationType(KVPair.Type type) {
+        return type == KVPair.Type.DELETE;
     }
 
     @Override
@@ -143,7 +146,8 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
 
             KeyValue resultValue = null;
             for(KeyValue value:result.raw()){
-                if(value.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,SpliceConstants.PACKED_COLUMN_BYTES)){
+                if(CellUtil.matchingFamily(value,SpliceConstants.DEFAULT_FAMILY_BYTES)
+                        && CellUtil.matchingQualifier(value,SpliceConstants.PACKED_COLUMN_BYTES)){
                     resultValue = value;
                     break;
                 }

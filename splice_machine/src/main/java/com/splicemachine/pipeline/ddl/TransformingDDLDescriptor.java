@@ -2,6 +2,7 @@ package com.splicemachine.pipeline.ddl;
 
 import java.io.IOException;
 
+import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.pipeline.api.RowTransformer;
 import com.splicemachine.pipeline.api.WriteHandler;
 
@@ -34,4 +35,15 @@ public interface TransformingDDLDescriptor extends TentativeDDLDesc {
      * @throws IOException
      */
     WriteHandler createWriteHandler(RowTransformer transformer) throws IOException;
+
+    /**
+     * A TableScannerBuilder gets passed in. Set key/row ordering as appropriate for the
+     * TentativeDDL type and return.<br/>
+     * This builder creates the table scanner that will read, decode and return an ExecRow
+     * for every row in the source conglomerate.
+     * @param builder the builder to specialize
+     * @return the specialized builder
+     * @throws IOException
+     */
+    TableScannerBuilder setScannerBuilderProperties(TableScannerBuilder builder) throws IOException;
 }

@@ -33,9 +33,7 @@ import com.splicemachine.db.impl.sql.execute.TriggerInfo;
  *  E.g. WriteCursorConstants, DeleteConstants.
  *  
  *  Ideally one day the split will occur.
- *
  */
-
 public abstract	class WriteCursorConstantOperation implements ConstantAction, Formatable {
 
 	/********************************************************
@@ -150,9 +148,7 @@ public abstract	class WriteCursorConstantOperation implements ConstantAction, Fo
 	  *	A full list of foreign keys was compiled into this constant
 	  *	action.
 	  *
-	  *
 	  *	@return	the list of foreign keys to enforce for this action
-	  *
 	  */
 	public final FKInfo[] getFKInfo() {
 		return fkInfo;
@@ -172,15 +168,19 @@ public abstract	class WriteCursorConstantOperation implements ConstantAction, Fo
 		return triggerInfo;
 	}
 
-	/**
+    public UUID getTargetUUID() {
+        return targetUUID;
+    }
+
+    /**
 	 *	NOP routine. The work is done in InsertResultSet.
 	 *
 	 *	@see ConstantAction#executeConstantAction
 	 *
 	 * @exception StandardException		Thrown on failure
 	 */
-	public final void executeConstantAction( Activation activation )
-		throws StandardException { }
+    @Override
+	public final void executeConstantAction( Activation activation ) throws StandardException { }
 
 	// Formatable methods
 	/**
@@ -191,9 +191,8 @@ public abstract	class WriteCursorConstantOperation implements ConstantAction, Fo
 	 * @exception IOException					thrown on error
 	 * @exception ClassNotFoundException		thrown on error
 	 */
-	public void readExternal( ObjectInput in )
-		 throws IOException, ClassNotFoundException
-	{
+    @Override
+	public void readExternal( ObjectInput in ) throws IOException, ClassNotFoundException {
 		conglomId = in.readLong();
 		heapSCOCI = (StaticCompiledOpenConglomInfo) in.readObject();
 		irgs = new IndexRowGenerator[ArrayUtil.readArrayLength(in)];
@@ -234,9 +233,8 @@ public abstract	class WriteCursorConstantOperation implements ConstantAction, Fo
 	 *
 	 * @exception IOException		thrown on error
 	 */
-	public void writeExternal( ObjectOutput out )
-		 throws IOException
-	{
+    @Override
+	public void writeExternal( ObjectOutput out ) throws IOException {
 		out.writeLong(conglomId);
 		out.writeObject(heapSCOCI);
 		ArrayUtil.writeArray(out, irgs);

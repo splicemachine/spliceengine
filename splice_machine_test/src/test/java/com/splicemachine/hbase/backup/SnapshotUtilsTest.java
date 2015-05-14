@@ -41,7 +41,7 @@ public class SnapshotUtilsTest {
 		String family = "fam_a";
 		String hfile = "9fb67500d79a43e79b01da8d5d3017a4";
 		Path linkPath = createPath(table, region, family, hfile);
-		HFileLink link = new HFileLink(conf, linkPath);
+		HFileLink link = SnapshotUtilsImpl.newLink(conf, linkPath);
 		SnapshotUtilsImpl sui = (SnapshotUtilsImpl)SnapshotUtilsFactory.snapshotUtils;
 		assertTrue( new String(sui.getColumnFamily(link)).equals(family));
 	}

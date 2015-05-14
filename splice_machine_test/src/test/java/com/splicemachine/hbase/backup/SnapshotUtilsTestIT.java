@@ -91,16 +91,14 @@ public class SnapshotUtilsTestIT {
     // create Table
     support.createTable(TEST_UTIL, tableName, FAMILY);
 
-    HTable table = support.newTable(TEST_UTIL.getConfiguration(), tableName);
-    try {
-      SnapshotTestingUtils.loadData(TEST_UTIL, table, 500000, FAMILY);
+    try(HTable table = support.newTable(TEST_UTIL.getConfiguration(),tableName)) {
+		SnapshotTestingUtils.loadData(TEST_UTIL,table.getName(),500000,FAMILY);
+//      SnapshotTestingUtils.loadData(TEST_UTIL, table, 500000, FAMILY);
       // take a snapshot
       support.snapshot(admin, snapshotName, tableName);
       Path rootDir = FSUtils.getRootDir(TEST_UTIL.getConfiguration());      
       LOG.info("Root: "+ rootDir);
       SpliceConstants.config = TEST_UTIL.getConfiguration();
-    } finally {
-      table.close();
     }
   }
 

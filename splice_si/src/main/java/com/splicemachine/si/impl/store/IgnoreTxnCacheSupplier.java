@@ -38,8 +38,13 @@ public class IgnoreTxnCacheSupplier {
         List<Pair<Long, Long>> ignoreTxnList = cache.get(table);
 
         if (ignoreTxnList == null) {
-            // It's not in cache yet, load from SPLICE_RESTORE table
-            ignoreTxnList = getIgnoreTxnListFromStore(table);
+            synchronized (this) {
+                ignoreTxnList = cache.get(table);
+                if (ignoreTxnList == null) {
+                    // It's not in cache yet, load from SPLICE_RESTORE table
+                    ignoreTxnList = getIgnoreTxnListFromStore(table);
+                }
+            }
             cache.put(table, ignoreTxnList);
         }
 
@@ -51,22 +56,24 @@ public class IgnoreTxnCacheSupplier {
 
         if (entryDecoder == null)
             entryDecoder = new EntryDecoder();
+        try {
+            openScanner(tableName);
+            Result r = null;
 
-        openScanner(tableName);
-        Result r = null;
-
-        while((r = resultScanner.next()) != null) {
-            byte[] buffer = dataLib.getDataValueBuffer(dataLib.matchDataColumn(r));
-            int offset = dataLib.getDataValueOffset(dataLib.matchDataColumn(r));
-            int length = dataLib.getDataValuelength(dataLib.matchDataColumn(r));
-            entryDecoder.set(buffer, offset, length);
-            MultiFieldDecoder decoder = entryDecoder.getEntryDecoder();
-            String item = decoder.decodeNextString();
-            long startTxnId = decoder.decodeNextLong();
-            long endTxnId = decoder.decodeNextLong();
-            ignoreTxnList.add(new Pair<Long, Long>(startTxnId, endTxnId));
+            while ((r = resultScanner.next()) != null) {
+                byte[] buffer = dataLib.getDataValueBuffer(dataLib.matchDataColumn(r));
+                int offset = dataLib.getDataValueOffset(dataLib.matchDataColumn(r));
+                int length = dataLib.getDataValuelength(dataLib.matchDataColumn(r));
+                entryDecoder.set(buffer, offset, length);
+                MultiFieldDecoder decoder = entryDecoder.getEntryDecoder();
+                String item = decoder.decodeNextString();
+                long startTxnId = decoder.decodeNextLong();
+                long endTxnId = decoder.decodeNextLong();
+                ignoreTxnList.add(new Pair<Long, Long>(startTxnId, endTxnId));
+            }
+        } finally {
+            resultScanner.close();
         }
-
         return ignoreTxnList;
     }
 
