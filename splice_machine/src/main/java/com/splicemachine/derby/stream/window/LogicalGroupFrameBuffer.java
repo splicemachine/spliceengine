@@ -119,13 +119,18 @@ public class LogicalGroupFrameBuffer extends BaseFrameBuffer {
         // Add rows to the end of window frame
         if (frameEnd < Long.MAX_VALUE) {
             while(source.hasNext()) {
-                ExecRow row = source.next();
+                ExecRow row = source.peek();
                 ExecRow clonedRow = row.getClone();
                 DataValueDescriptor v = row.getColumn(sortColumns[0]+1);
                 if (newKey != null && newKey.compare(v) == 0) {
+                    //advance iterator
+                    source.next();
                     rows.add(clonedRow);
                     add(clonedRow);
                     end++;
+                } else {
+                    // not in range, bail out
+                    break;
                 }
             }
         }
