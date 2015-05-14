@@ -6,6 +6,7 @@ import com.splicemachine.db.iapi.types.*;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hive.common.type.HiveDecimal;
 import org.apache.hadoop.hive.serde.Constants;
 import org.apache.hadoop.hive.serde2.SerDe;
 import org.apache.hadoop.hive.serde2.SerDeException;
@@ -20,6 +21,8 @@ import org.apache.hadoop.hive.serde2.typeinfo.StructTypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfo;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoFactory;
 import org.apache.hadoop.hive.serde2.typeinfo.TypeInfoUtils;
+import org.apache.hadoop.hive.common.type.HiveVarchar;
+import org.apache.hadoop.hive.common.type.HiveChar;
 import org.apache.hadoop.io.Writable;
 import org.apache.log4j.Logger;
 
@@ -34,6 +37,7 @@ import java.io.Serializable;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.*;
+import java.math.BigDecimal;
 
 public class SMSerDe implements SerDe {
 	protected StructTypeInfo rowTypeInfo;
@@ -233,18 +237,39 @@ public class SMSerDe implements SerDe {
      * 
      */
     private static Object hiveTypeToObject(String hiveType, DataValueDescriptor dvd) throws SerDeException {
-        final String lctype = hiveType.toLowerCase();
+        final String lctype = trim(hiveType.toLowerCase());
+
         try {
 	        switch(lctype) {
-		        case "string":
-		        	return dvd.getString();
+                case "string":
+		        case "varchar":
+                    HiveVarchar hiveVarchar = null;
+                    String s = dvd.getString();
+                    if (s!=null) {
+                        hiveVarchar = new HiveVarchar();
+                        hiveVarchar.setValue(s);
+                    }
+                    return hiveVarchar;
+                case "char":
+                    HiveChar hiveChar = null;
+                    s = dvd.getString();
+                    if (s != null) {
+                        hiveChar = new HiveChar();
+                        hiveChar.setValue(s);
+                    }
+                    return hiveChar;
 		        case "float":
 		            return dvd.getFloat();
-		        case "double": 
-		            return dvd.getDouble();
-		        case "booolean":
+		        case "double":
+                    return dvd.getDouble();
+                case "decimal":
+                    Double d = dvd.getDouble();
+                    HiveDecimal hiveDecimal = HiveDecimal.create(d.toString());
+                    return hiveDecimal;
+		        case "boolean":
 		        	return dvd.getBoolean();
 		        case "tinyint":
+                    return dvd.getByte();
 		        case "int":
 		        	return dvd.getInt();
 		        case "smallint":
@@ -252,7 +277,9 @@ public class SMSerDe implements SerDe {
 		        case "bigint":
 		        	return dvd.getLong();
 		        case "timestamp":
-		        	return dvd.getLong();
+                    return dvd.getTimestamp(null);
+                case "date":
+		        	return dvd.getDate(null);
 		        case "binary":
 		        	return dvd.getBytes();
 		        default:
@@ -261,7 +288,16 @@ public class SMSerDe implements SerDe {
         } catch (StandardException se) {
         	throw new SerDeException(se);
         }
-    
     }
 
+    private static String trim(String s) {
+        if (s == null || s.length() == 0)
+            return s;
+
+        int index = s.indexOf("(");
+        if (index == -1)
+            return s;
+
+        return s.substring(0, index);
+    }
 }

@@ -1,9 +1,15 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import org.apache.log4j.Logger;
+
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.StatementType;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
+import com.splicemachine.db.iapi.sql.depend.DependencyManager;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptorList;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
@@ -11,13 +17,8 @@ import com.splicemachine.db.iapi.sql.dictionary.ForeignKeyConstraintDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ReferencedKeyConstraintDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
-import com.splicemachine.db.iapi.sql.depend.DependencyManager;
-import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
-import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-import org.apache.log4j.Logger;
-
 import com.splicemachine.utils.SpliceLogUtils;
 
 /**
@@ -30,6 +31,7 @@ public class DropConstraintConstantOperation extends ConstraintConstantOperation
     private final boolean cascade;
 	private final String constraintSchemaName;
     private final int verifyType;
+    private long indexConglomerateId = -1;
 
 	// CONSTRUCTORS
 
@@ -58,6 +60,17 @@ public class DropConstraintConstantOperation extends ConstraintConstantOperation
 		this.constraintSchemaName = constraintSchemaName;
         this.verifyType = verifyType;
 	}
+
+    /**
+     * Only available after {@link #executeConstantAction(Activation)}, get the
+     * conglomerate ID associated with this constraint, or -1 if no index conglomerate
+     * is associated.
+     * @return the associated index conglomerate ID for this constraint, or -1 if no
+     * index is associated.
+     */
+    public long getIndexConglomerateId() {
+        return indexConglomerateId;
+    }
 
     @Override
 	public String toString() {
@@ -123,9 +136,9 @@ public class DropConstraintConstantOperation extends ConstraintConstantOperation
 		 * in order to ensure that no one else compiles against the
 		 * index.
 		 */
-		if (constraintName == null)  // this means "alter table drop primary key"
-			conDesc = dd.getConstraintDescriptors(td).getPrimaryKey();
-		else
+        if (constraintName == null)  // this means "alter table drop primary key"
+            conDesc = dd.getConstraintDescriptors(td).getPrimaryKey();
+        else
 			conDesc = dd.getConstraintDescriptorByName(td, constraintSd, constraintName, true);
 
 		// Error if constraint doesn't exist
@@ -138,6 +151,10 @@ public class DropConstraintConstantOperation extends ConstraintConstantOperation
 						errorName,
 						td.getQualifiedName());
 		}
+        if (conDesc instanceof ReferencedKeyConstraintDescriptor) {
+            this.indexConglomerateId = getIndexConglomerateId((ReferencedKeyConstraintDescriptor)conDesc, td, dd);
+        }
+
         switch( verifyType)
         {
         case DataDictionary.UNIQUE_CONSTRAINT:
@@ -201,4 +218,29 @@ public class DropConstraintConstantOperation extends ConstraintConstantOperation
 			dm.clearDependencies(lcc, conDesc);
 		}
 	}
+
+    /**
+     * Find the index conglomerate identifier (aka, conglomerate number) for the given index constraint descriptor
+     * in the given table descriptor.
+     * @param indexConstraint the index constraint for which to find the index conglomerate id.
+     * @param tableDescriptor the table descriptor in which the index conglomerate is expected
+     *                        to reside.
+     * @param dd data directory, used to look up conglomerates.
+     * @return the index conglomerate number associated with the given index constraint or -1 if not found.
+     * @throws StandardException
+     */
+    private long getIndexConglomerateId(ReferencedKeyConstraintDescriptor indexConstraint,
+                                        TableDescriptor tableDescriptor, DataDictionary dd) throws StandardException {
+        ConglomerateDescriptor indexConglomerate = indexConstraint.getIndexConglomerateDescriptor(dd);
+        String indexName = indexConglomerate.getConglomerateName();
+        if (indexName != null) {
+            for (ConglomerateDescriptor conglomerateDescriptor : tableDescriptor.getConglomerateDescriptorList()) {
+                if (conglomerateDescriptor.isIndex() && indexName.equals(conglomerateDescriptor.getConglomerateName())) {
+                    return conglomerateDescriptor.getConglomerateNumber();
+                }
+            }
+        }
+        return -1;
+    }
+
 }

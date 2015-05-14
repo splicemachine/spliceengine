@@ -1,6 +1,5 @@
 package com.splicemachine.derby.impl.load;
 
-import au.com.bytecode.opencsv.CSVReader;
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.SpliceUtils;
@@ -8,21 +7,25 @@ import com.splicemachine.metrics.BaseIOStats;
 import com.splicemachine.metrics.IOStats;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.Timer;
+
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
+import org.supercsv.io.CsvListReader;
+import org.supercsv.prefs.CsvPreference;
 
 import java.io.*;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * @author Scott Fines
  * Created on: 9/30/13
  */
 public class FileImportReader implements ImportReader{
-    private CSVReader csvReader;
+    private SpliceCsvReader csvReader;
     private InputStream stream;
 
 		private Timer timer;
@@ -66,11 +69,12 @@ public class FileImportReader implements ImportReader{
 				boolean shouldContinue;
 				BATCH: for(int i=0;i<lines.length;i++){
 						do{
-								next = csvReader.readNext();
+								next = csvReader.readAsStringArray();
 								if(next==null) {
 										Arrays.fill(lines, i, lines.length, null);
 										break BATCH;
 								}
+
 								shouldContinue = next.length==0||(next.length==1&&(next[0]==null||next[0].length()==0));
 						}while(shouldContinue);
 						//can assume that we are non-null here, else we would have broken from our batch
@@ -121,8 +125,14 @@ public class FileImportReader implements ImportReader{
         //nothing to write
     }
 
-    private CSVReader getCsvReader(Reader reader, ImportContext importContext) {
-        return new CSVReader(reader,importContext.getColumnDelimiter().charAt(0),importContext.getQuoteChar().charAt(0));
+    private SpliceCsvReader getCsvReader(Reader reader, ImportContext importContext) {
+    	return new SpliceCsvReader(
+    			reader,
+    			new CsvPreference.Builder(
+    					importContext.getQuoteChar().charAt(0),
+    					importContext.getColumnDelimiter().charAt(0),
+    					"\n",
+    					SpliceConstants.importMaxQuotedColumnLines).useNullForEmptyColumns(false).build());
     }
 
 		@Override

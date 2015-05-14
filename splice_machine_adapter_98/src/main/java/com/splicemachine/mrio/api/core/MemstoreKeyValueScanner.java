@@ -1,14 +1,11 @@
 package com.splicemachine.mrio.api.core;
 
+import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.KeyValue;import org.apache.hadoop.hbase.client.ResultScanner;
+
 import java.io.IOException;
 import java.util.List;
-
-import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.KeyValue;
-import org.apache.hadoop.hbase.client.ResultScanner;
-
-import com.splicemachine.mrio.api.core.BaseMemstoreKeyValueScanner;
-import com.splicemachine.utils.SpliceLogUtils;
 
 public class MemstoreKeyValueScanner extends BaseMemstoreKeyValueScanner<Cell> {
 	
@@ -23,14 +20,39 @@ public class MemstoreKeyValueScanner extends BaseMemstoreKeyValueScanner<Cell> {
 	public boolean next(List<Cell> results, int limit) throws IOException {
 		return this.nextInternal(results);
 	}
+
+    public boolean seek(KeyValue key) throws IOException{
+		return seek((Cell)key);
+    }
+
+//	@Override
+    public boolean reseek(KeyValue key) throws IOException{
+		return reseek((Cell)key);
+    }
+
+//	@Override
+    public boolean requestSeek(KeyValue kv,boolean forward,boolean useBloom) throws IOException{
+		return requestSeek((Cell)kv,forward,useBloom);
+    }
+
+//	@Override
+    public boolean backwardSeek(KeyValue key) throws IOException{
+		return backwardSeek((Cell)key);
+	}
+
+//	@Override
+    public boolean seekToPreviousRow(KeyValue key) throws IOException{
+		return seekToPreviousRow((Cell)key);
+    }
+
 	@Override
-	public boolean backwardSeek(KeyValue key) throws IOException {
+	public boolean backwardSeek(Cell key) throws IOException {
 		if (LOG.isDebugEnabled())
 			SpliceLogUtils.debug(LOG, "backwardSeek");		
 		return false;
 	}
 	@Override
-	public boolean seekToPreviousRow(KeyValue key) throws IOException {
+	public boolean seekToPreviousRow(Cell key) throws IOException {
 		if (LOG.isDebugEnabled())
 			SpliceLogUtils.debug(LOG, "seekToPreviousRow %s", key);		
 		return false;

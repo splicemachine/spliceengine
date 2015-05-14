@@ -45,11 +45,11 @@ public class IndexController  extends SpliceController  {
 
 		private byte[] generateIndexKey(DataValueDescriptor[] row, boolean[] order) throws IOException, StandardException {
 				if (row.length == nKeyFields) {
-						return DerbyBytesUtil.generateIndexKey(row,order,"1.0");
+						return DerbyBytesUtil.generateIndexKey(row,order,"1.0", false);
 				}
 				DataValueDescriptor[] uniqueRow = new DataValueDescriptor[nKeyFields];
 				System.arraycopy(row, 0, uniqueRow, 0, nKeyFields);
-				return DerbyBytesUtil.generateIndexKey(uniqueRow,order,"1.0");
+				return DerbyBytesUtil.generateIndexKey(uniqueRow,order,"1.0", false);
 		}
 
     public int nKeyFields(){
@@ -111,7 +111,7 @@ public class IndexController  extends SpliceController  {
 						Put put;
 						int[] validCols;
 						if (openSpliceConglomerate.cloneRowTemplate().length == row.length && validColumns == null) {
-								put = SpliceUtils.createPut(DerbyBytesUtil.generateIndexKey(row,sortOrder,"1.0"),((SpliceTransaction)trans).getTxn());
+								put = SpliceUtils.createPut(DerbyBytesUtil.generateIndexKey(row,sortOrder,"1.0", false),((SpliceTransaction)trans).getTxn());
 								validCols = null;
 						} else {
 								DataValueDescriptor[] oldValues = openSpliceConglomerate.cloneRowTemplate();

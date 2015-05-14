@@ -18,7 +18,7 @@ public class ExplainRow{
      */
     private static Pattern costPattern=Pattern.compile("cost=\\(.*?\\)");
     private static Pattern rsnPattern=Pattern.compile("n=[0-9]+");
-    private static Pattern tablePattern=Pattern.compile("table=.*\\([0-9]+\\)");
+    private static Pattern tablePattern=Pattern.compile("Scan\\[.*\\([0-9]+\\)\\]");
     private static Pattern indexPattern=Pattern.compile("using-index=.*\\([0-9]+\\)");
     private static Pattern qualsPattern=Pattern.compile("quals=.*\\[.*?\\]");
 
@@ -35,7 +35,7 @@ public class ExplainRow{
 
         public static Type forLabel(String label){
             for(Type type : values()){
-                if(type.formatString.equals(label)) return type;
+                if(label.startsWith(type.formatString)) return type;
             }
             throw new IllegalArgumentException("Cannot parse type for label "+label);
         }
@@ -58,13 +58,13 @@ public class ExplainRow{
         String label=row.substring(0,row.indexOf("(")).trim();
         Type type=Type.forLabel(label);
 
-        Matcher matcher=costPattern.matcher(row);
-        Assert.assertTrue("No Cost value returned!",matcher.find());
-        Cost cost=Cost.parse(matcher.group());
+//        Matcher matcher=costPattern.matcher(row);
+//        Assert.assertTrue("No Cost value returned!",matcher.find());
+        Cost cost=Cost.parse(row);
 
-        Matcher rsnMatcher=rsnPattern.matcher(row);
-        Assert.assertTrue("No Result Set Number returned!",rsnMatcher.find());
-        int rsn=parseRsn(rsnMatcher.group());
+        Matcher matcher=rsnPattern.matcher(row);
+        Assert.assertTrue("No Result Set Number returned!",matcher.find());
+        int rsn=parseRsn(matcher.group());
 
         String tableName=null;
         String indexName=null;
@@ -109,9 +109,9 @@ public class ExplainRow{
     }
 
     public static class Cost{
-        private static Pattern overallCostP=Pattern.compile("overallCost=[0-9]+\\.?[0-9]*");
+        private static Pattern overallCostP=Pattern.compile("totalCost=[0-9]+\\.?[0-9]*");
         private static Pattern localCostP=Pattern.compile("processingCost=[0-9]+\\.?[0-9]*");
-        private static Pattern remoteCostP=Pattern.compile("networkCost=[0-9]+\\.?[0-9]*");
+        private static Pattern remoteCostP=Pattern.compile("transferCost=[0-9]+\\.?[0-9]*");
         private static Pattern outputRowsP=Pattern.compile("outputRows=[0-9]+");
         private static Pattern outputHeapP=Pattern.compile("outputHeapSize=[0-9]+");
         private static Pattern partitionsP=Pattern.compile("partitions=[0-9]+");
@@ -134,7 +134,7 @@ public class ExplainRow{
 
             m = remoteCostP.matcher(cost);
             Assert.assertTrue("No Remote cost found!",m.find());
-            double rc = Double.parseDouble(m.group().substring("networkCost=".length()));
+            double rc = Double.parseDouble(m.group().substring("transferCost=".length()));
 
             m = outputRowsP.matcher(cost);
             Assert.assertTrue("No Output Rows found!",m.find());

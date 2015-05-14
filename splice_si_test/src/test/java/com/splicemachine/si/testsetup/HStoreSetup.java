@@ -93,7 +93,7 @@ public class HStoreSetup implements StoreSetup {
         ZkUtils.initializeZookeeper();
 
         String familyString = Bytes.toString(SpliceConstants.DEFAULT_FAMILY_BYTES);
-        TestHTableSource tableSource1 = new TestHTableSource(testCluster, new String[]{familyString, familyString});
+        TestHTableSource tableSource1 = new TestHTableSource(testCluster, new String[]{familyString});
         HBaseAdmin admin = testCluster.getHBaseAdmin();
         HTableDescriptor td = SpliceUtilities.generateTransactionTable();
         admin.createTable(td, SpliceUtilities.generateTransactionSplits());

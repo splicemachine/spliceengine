@@ -79,6 +79,7 @@ public class DistinctScanOperation extends ScanOperation {
                 null,
                 -1,
                 true,
+                false,
                 null,
                 resultRowAllocator,
                 lockMode,

@@ -5,6 +5,7 @@ import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.derby.impl.sql.execute.operations.QualifierUtils;
+import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.hbase.AbstractSkippingScanFilter;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
@@ -24,6 +25,7 @@ import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 
@@ -36,7 +38,7 @@ import java.io.IOException;
  *         Created: 1/24/13 10:50 AM
  */
 public class Scans extends SpliceUtils {
-
+    private static Logger LOG = Logger.getLogger(Scans.class);
     private Scans() {
     } //can't construct me
 
@@ -134,18 +136,36 @@ public class Scans extends SpliceUtils {
                                  int[] keyDecodingMap,
                                  int[] keyTablePositionMap,
                                  DataValueFactory dataValueFactory,
-                                 String tableVersion) throws StandardException {
+                                 String tableVersion,
+                                 boolean rowIdKey) throws StandardException {
         assert dataValueFactory != null;
         Scan scan = SpliceUtils.createScan(txn, scanColumnList != null && scanColumnList.anySetBit() == -1); // Here is the count(*) piece
         scan.setCaching(DEFAULT_CACHE_SIZE);
         try {
+            if (rowIdKey) {
+                DataValueDescriptor[] dvd = null;
+                if (startKeyValue != null && startKeyValue.length > 0) {
+                    dvd = new DataValueDescriptor[1];
+                    dvd[0] = new HBaseRowLocation(BytesUtil.fromHex(startKeyValue[0].getString()));
+                    startKeyValue = dvd;
+                }
+
+                if (stopKeyValue != null && stopKeyValue.length > 0) {
+                    dvd = new DataValueDescriptor[1];
+                    dvd[0] = new HBaseRowLocation(BytesUtil.fromHex(stopKeyValue[0].getString()));
+                    stopKeyValue = dvd;
+                }
+            }
             attachScanKeys(scan, startKeyValue, startSearchOperator,
                     stopKeyValue, stopSearchOperator,
-                    scanColumnList, sortOrder, formatIds, keyTablePositionMap, dataValueFactory, tableVersion);
+                    scanColumnList, sortOrder, formatIds, keyTablePositionMap, dataValueFactory, tableVersion, rowIdKey);
+
+            if (!rowIdKey) {
+                PredicateBuilder pb = new PredicateBuilder(keyDecodingMap, sortOrder, formatIds, tableVersion);
+                buildPredicateFilter(qualifiers, scanColumnList, scan, pb, keyDecodingMap);
+            }
 
 
-            PredicateBuilder pb = new PredicateBuilder(keyDecodingMap, sortOrder, formatIds, tableVersion);
-            buildPredicateFilter(qualifiers, scanColumnList, scan, pb, keyDecodingMap);
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
@@ -246,7 +266,8 @@ public class Scans extends SpliceUtils {
                                        int[] columnTypes, //the types of the column in the ENTIRE Row
                                        int[] keyTablePositionMap, //the location in the ENTIRE row of the key columns
                                        DataValueFactory dataValueFactory,
-                                       String tableVersion) throws IOException {
+                                       String tableVersion,
+                                       boolean rowIdKey) throws IOException {
         try {
             // Determines whether we can generate a key and also handles type conversion...
 
@@ -264,7 +285,7 @@ public class Scans extends SpliceUtils {
                     }
                     if(!ArrayUtils.isEmpty(keyTablePositionMap)) {
                         int targetColFormatId = columnTypes[keyTablePositionMap[i]];
-                        if (startDesc.getTypeFormatId() != targetColFormatId) {
+                        if (startDesc.getTypeFormatId() != targetColFormatId && !rowIdKey) {
                             startKeyValue[i] = QualifierUtils.adjustDataValueDescriptor(startDesc, targetColFormatId, dataValueFactory);
                         }
                     }
@@ -280,7 +301,7 @@ public class Scans extends SpliceUtils {
                     }
                     if(!ArrayUtils.isEmpty(keyTablePositionMap)) {
                         int targetColFormatId = columnTypes[keyTablePositionMap[i]];
-                        if (stopDesc.getTypeFormatId() != targetColFormatId) {
+                        if (stopDesc.getTypeFormatId() != targetColFormatId && !rowIdKey) {
                             stopKeyValue[i] = QualifierUtils.adjustDataValueDescriptor(stopDesc, targetColFormatId, dataValueFactory);
                         }
                     }
@@ -288,13 +309,13 @@ public class Scans extends SpliceUtils {
             }
 
             if (generateStartKey) {
-                byte[] startRow = DerbyBytesUtil.generateScanKeyForIndex(startKeyValue, startSearchOperator, sortOrder, tableVersion);
+                byte[] startRow = DerbyBytesUtil.generateScanKeyForIndex(startKeyValue, startSearchOperator, sortOrder, tableVersion, rowIdKey);
                 scan.setStartRow(startRow);
                 if (startRow == null)
                     scan.setStartRow(HConstants.EMPTY_START_ROW);
             }
             if (generateStopKey) {
-                byte[] stopRow = DerbyBytesUtil.generateScanKeyForIndex(stopKeyValue, stopSearchOperator, sortOrder, tableVersion);
+                byte[] stopRow = DerbyBytesUtil.generateScanKeyForIndex(stopKeyValue, stopSearchOperator, sortOrder, tableVersion, rowIdKey);
                 scan.setStopRow(stopRow);
                 if (stopRow == null)
                     scan.setStopRow(HConstants.EMPTY_END_ROW);

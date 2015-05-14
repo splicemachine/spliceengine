@@ -15,6 +15,8 @@ public enum DDLChangeType {
     ADD_PRIMARY_KEY(true),
     ADD_UNIQUE_CONSTRAINT(true),
     DROP_COLUMN(true),
+    DROP_CONSTRAINT(true),
+    DROP_PRIMARY_KEY(true),
     DROP_TABLE(true),
     DROP_SCHEMA(true),
     DROP_INDEX(true),

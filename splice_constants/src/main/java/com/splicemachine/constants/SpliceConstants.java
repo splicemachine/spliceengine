@@ -75,6 +75,10 @@ public class SpliceConstants {
     public static long sequentialImportThreashold;
     public static int sampleTimingSize = 10000;
 
+    @Parameter public static final String IMPORT_MAX_QUOTED_COLUMN_LINES="splice.import.maxQuotedColumnLines";
+    @DefaultValue(IMPORT_MAX_QUOTED_COLUMN_LINES) public static final int DEFAULT_IMPORT_MAX_QUOTED_COLUMN_LINES = 200000;
+    public static int importMaxQuotedColumnLines;
+
     @SpliceConstants.Parameter public static final String CONSTRAINTS_ENABLED ="splice.constraints.enabled";
     @DefaultValue(CONSTRAINTS_ENABLED) public static final boolean DEFAULT_CONSTRAINTS_ENABLED = true;
     public static volatile boolean constraintsEnabled;
@@ -391,19 +395,19 @@ public class SpliceConstants {
 		 * It may not be exactly 10,000 rows since it is based on checking row counts after a "batch" of rows has been written
 		 * and the batches can be smaller than or larger than the configured row count here.
 		 *
-		 * Defaults to 10000 rows.
+		 * Defaults to 1000000 rows.
 		 */
 		@Parameter public static final String IMPORT_TASK_STATUS_REPORTING_ROWCOUNT = "splice.import.task.status.reporting.rowcount";
-		@DefaultValue(IMPORT_TASK_STATUS_REPORTING_ROWCOUNT) public static final long DEFAULT_IMPORT_TASK_STATUS_REPORTING_ROWCOUNT = 10000l;
+		@DefaultValue(IMPORT_TASK_STATUS_REPORTING_ROWCOUNT) public static final long DEFAULT_IMPORT_TASK_STATUS_REPORTING_ROWCOUNT = 1000000l;
 		public static Long importTaskStatusReportingRowCount;
 
 		/**
 		 * Interval of time (in milliseconds) to log the status of all running import tasks to the import job status log.
 		 *
-		 * Defaults to 10000 ms.
+		 * Defaults to 60000 ms.
 		 */
 		@Parameter public static final String IMPORT_TASK_STATUS_LOGGING_INTERVAL = "splice.import.task.status.logging.interval";
-		@DefaultValue(IMPORT_TASK_STATUS_LOGGING_INTERVAL) public static final long DEFAULT_IMPORT_TASK_STATUS_LOGGING_INTERVAL = 10000l;
+		@DefaultValue(IMPORT_TASK_STATUS_LOGGING_INTERVAL) public static final long DEFAULT_IMPORT_TASK_STATUS_LOGGING_INTERVAL = 60000l;
 		public static Long importTaskStatusLoggingInterval;
 
 		//common SI fields
@@ -1001,6 +1005,7 @@ public class SpliceConstants {
     public static final byte[] SUPPRESS_INDEXING_ATTRIBUTE_VALUE = new byte[]{};
     public static final String CHECK_BLOOM_ATTRIBUTE_NAME = "cb";
     public static final String SPLICE_DB = "splicedb";
+    public static final String SPLICE_USER = "SPLICE";
 
     public static final String ENTRY_PREDICATE_LABEL= "p";
 
@@ -1213,6 +1218,8 @@ public class SpliceConstants {
         tempTableBucketCount = config.getInt(TEMP_TABLE_BUCKET_COUNT, DEFAULT_TEMP_TABLE_BUCKET_COUNT);
 
         sequentialImportThreashold = config.getLong(SEQUENTIAL_IMPORT_THREASHOLD,DEFAULT_SEQUENTIAL_IMPORT_THRESHOLD);
+
+        importMaxQuotedColumnLines = config.getInt(IMPORT_MAX_QUOTED_COLUMN_LINES,DEFAULT_IMPORT_MAX_QUOTED_COLUMN_LINES);
 
         constraintsEnabled = config.getBoolean(CONSTRAINTS_ENABLED,DEFAULT_CONSTRAINTS_ENABLED);
 

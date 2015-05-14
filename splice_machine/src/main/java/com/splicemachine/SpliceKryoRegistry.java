@@ -6,6 +6,7 @@ import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
 import com.esotericsoftware.kryo.serializers.MapSerializer;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
 import com.splicemachine.derby.ddl.*;
 import com.splicemachine.derby.impl.job.coprocessor.TaskFutureContext;
 import com.splicemachine.derby.impl.job.fk.CreateFkTask;
@@ -196,7 +197,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
 			   * but that's the nature of the beast.
 			   *
 			   *
-			   * CURRENT HIGHEST VALUE: 229
+			   * CURRENT HIGHEST VALUE: 255
 				 */
     	instance.setReferences(false);
         instance.setRegistrationRequired(true);
@@ -676,12 +677,10 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
 								LongBufferedSumAggregator aggregator = new LongBufferedSumAggregator(64); //todo -sf- make configurable
 								try {
 										aggregator.readExternal(new KryoObjectInput(input, kryo));
-								} catch (IOException e) {
-										throw new RuntimeException(e);
-								} catch (ClassNotFoundException e) {
+								} catch (IOException | ClassNotFoundException e) {
 										throw new RuntimeException(e);
 								}
-								return aggregator;
+                            return aggregator;
 						}
 				},158);
 
@@ -700,12 +699,10 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
 								DoubleBufferedSumAggregator aggregator = new DoubleBufferedSumAggregator(64); //todo -sf- make configurable
 								try {
 										aggregator.readExternal(new KryoObjectInput(input, kryo));
-								} catch (IOException e) {
-										throw new RuntimeException(e);
-								} catch (ClassNotFoundException e) {
+								} catch (IOException | ClassNotFoundException e) {
 										throw new RuntimeException(e);
 								}
-								return aggregator;
+                            return aggregator;
 						}
 				},159);
 
@@ -724,12 +721,10 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
 								DecimalBufferedSumAggregator aggregator = new DecimalBufferedSumAggregator(64); //todo -sf- make configurable
 								try {
 										aggregator.readExternal(new KryoObjectInput(input, kryo));
-								} catch (IOException e) {
-										throw new RuntimeException(e);
-								} catch (ClassNotFoundException e) {
+								} catch (IOException | ClassNotFoundException e) {
 										throw new RuntimeException(e);
 								}
-								return aggregator;
+                            return aggregator;
 						}
 				},160);
 
@@ -748,12 +743,10 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
 								FloatBufferedSumAggregator aggregator = new FloatBufferedSumAggregator(64); //todo -sf- make configurable
 								try {
 										aggregator.readExternal(new KryoObjectInput(input, kryo));
-								} catch (IOException e) {
-										throw new RuntimeException(e);
-								} catch (ClassNotFoundException e) {
+								} catch (IOException | ClassNotFoundException e) {
 										throw new RuntimeException(e);
 								}
-								return aggregator;
+                            return aggregator;
 						}
 				},161);
 
@@ -858,5 +851,11 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(ColumnStatisticsMerge.class,EXTERNALIZABLE_SERIALIZER,250);
         instance.register(CreateIncrementalBackupTask.class, EXTERNALIZABLE_SERIALIZER,251);
         instance.register(TaskFutureContext.class, EXTERNALIZABLE_SERIALIZER,252);
+
+        instance.register(TriggerInfo.class, EXTERNALIZABLE_SERIALIZER, 253);
+        instance.register(TriggerDescriptor.class, EXTERNALIZABLE_SERIALIZER, 254);
+        instance.register(GenericPreparedStatement.class, EXTERNALIZABLE_SERIALIZER, 255);
+        instance.register(TentativeDropPKConstraintDesc.class, EXTERNALIZABLE_SERIALIZER, 256);
+
     }
 }

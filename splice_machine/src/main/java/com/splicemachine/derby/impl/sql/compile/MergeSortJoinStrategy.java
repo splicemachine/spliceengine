@@ -19,14 +19,17 @@ public class MergeSortJoinStrategy extends BaseCostedHashableJoinStrategy {
 		return super.feasible(innerTable, predList, optimizer,outerCost);
 	}
 
-	/**
-     * @see JoinStrategy#getName
-     */
+    @Override
     public String getName() {
         return "SORTMERGE";
     }
 
-	/** @see JoinStrategy#multiplyBaseCostByOuterRows */
+    @Override
+    public String toString(){
+        return "MergeSortJoin";
+    }
+
+    /** @see JoinStrategy#multiplyBaseCostByOuterRows */
 	public boolean multiplyBaseCostByOuterRows() {
 		return true;
 	}
@@ -69,12 +72,15 @@ public class MergeSortJoinStrategy extends BaseCostedHashableJoinStrategy {
                              CostEstimate outerCost,
                              Optimizer optimizer,
                              CostEstimate innerCost) throws StandardException{
-        if(outerCost.isUninitialized() ||(outerCost.localCost()==0d && outerCost.getEstimatedRowCount()==1.0d))
+        if(outerCost.isUninitialized() ||(outerCost.localCost()==0d && outerCost.getEstimatedRowCount()==1.0d)){
+            RowOrdering ro=outerCost.getRowOrdering();
+            if(ro!=null)
+                outerCost.setRowOrdering(ro); //force a cloning
             return; //actually a scan, don't change the cost
+        }
 
         //set the base costing so that we don't lose the underlying table costs
         innerCost.setBase(innerCost.cloneMe());
-        outerCost.setBase(outerCost.cloneMe());
         /*
          * MergeSortJoins are complex, and likely to change. We break this up
          * into two different versions: a "TempTable" version, and a "Spark version".
@@ -200,6 +206,7 @@ public class MergeSortJoinStrategy extends BaseCostedHashableJoinStrategy {
          * of the data.
          */
         innerCost.setRowOrdering(null);
+        outerCost.setRowOrdering(null);
     }
 
 }

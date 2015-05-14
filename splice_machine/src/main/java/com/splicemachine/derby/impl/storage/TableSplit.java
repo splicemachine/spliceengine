@@ -2,7 +2,9 @@ package com.splicemachine.derby.impl.storage;
 
 import com.google.common.base.Splitter;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.encoding.Encoding;
+import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceUtilities;
 import com.splicemachine.db.impl.jdbc.Util;
@@ -147,10 +149,17 @@ public class TableSplit{
             }
             try {
                 admin.split(tableName,pos);
-            } catch (IOException e) {
-               throw new SQLException(e.getMessage(),e);
-            } catch (InterruptedException e) {
-                throw new SQLException("Interrupted while attempting a split",e);
+            }catch (Exception e) {
+                /*
+                 * We have to do this sort of awkward error handling here so that we can support
+                 * multiple versions of HBase. In HBase 98, we have to catch an interrupted exception
+                 * and an IOException. In Hbase 1.0, we only catch an IOException. Thus, the if-check
+                 * handles the INterruptedException appropriately.
+                 */
+                //noinspection ConstantConditions
+                if(e instanceof InterruptedException)
+                    throw new SQLException("Interrupted while attempting a split",e);
+                else throw PublicAPI.wrapStandardException(Exceptions.parseException(e));
             }
             waitForSplitsToFinish(conglomId,admin);
         }

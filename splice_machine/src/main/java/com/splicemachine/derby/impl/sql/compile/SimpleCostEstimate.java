@@ -108,19 +108,22 @@ public class SimpleCostEstimate implements CostEstimate{
         df.setMaximumFractionDigits(3);
         df.setGroupingUsed(false);
 
-        return "(overallCost="+df.format(getEstimatedCost())
-                +",processingCost="+df.format(localCost())
-                +",networkCost="+df.format(remoteCost())
+        long estHeap = getEstimatedHeapSize();
+        double estHeapMb = estHeap/1024d/1024d;
+
+        return "totalCost="+df.format(getEstimatedCost()/1000)
+                +",processingCost="+df.format(localCost()/1000)
+                +",transferCost="+df.format(remoteCost()/1000)
                 +",outputRows="+getEstimatedRowCount()
-                +",outputHeapSize="+getEstimatedHeapSize()+
-                ",partitions="+partitionCount()+")";
+                +",outputHeapSize="+df.format(estHeapMb)+
+                ",partitions="+partitionCount();
     }
 
     @Override
     public String toString(){
-        return "(overallCost="+getEstimatedCost()
+        return "(totalCost="+getEstimatedCost()
                 +",processingCost="+localCost()
-                +",networkCost="+remoteCost()
+                +",transferCost="+remoteCost()
                 +",outputRows="+getEstimatedRowCount()
                 +",outputHeapSize="+getEstimatedHeapSize()+
                 ",partitions="+partitionCount()+")";
@@ -136,7 +139,9 @@ public class SimpleCostEstimate implements CostEstimate{
     @Override public double remoteCost(){ return remoteCost; }
     @Override public double localCost(){ return localCost; }
     @Override public RowOrdering getRowOrdering(){ return rowOrdering; }
-    @Override public void setRowOrdering(RowOrdering rowOrdering){ this.rowOrdering = rowOrdering; }
+    @Override public void setRowOrdering(RowOrdering rowOrdering){
+        this.rowOrdering = rowOrdering;
+    }
     @Override public CostEstimate getBase(){ return baseCost==null?this:baseCost; }
     @Override public void setBase(CostEstimate baseCost){ this.baseCost = baseCost; }
     @Override public long getEstimatedRowCount(){

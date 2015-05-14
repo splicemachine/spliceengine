@@ -2112,9 +2112,9 @@ public class SpliceTransactionManager implements XATransactionController,
         DDLCoordinationFactory.getController().finishMetadataChange(currentDDLChangeId);
     }
 
+    @Override
     public String toString() {
-        String str;
-
+        String str = null;
         if (SanityManager.DEBUG) {
             str = "rawtran = " + rawtran;
         }

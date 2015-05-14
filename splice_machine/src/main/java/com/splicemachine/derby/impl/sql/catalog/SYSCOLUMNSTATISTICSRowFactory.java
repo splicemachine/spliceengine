@@ -111,8 +111,8 @@ public class SYSCOLUMNSTATISTICSRowFactory extends CatalogRowFactory {
             ",STATS_TOP_K(STATS_MERGE(data)) as TOP_K " +
             "from " +
             "sys.syscolumnstats cs" +
-            ",sys.systables t" +
-            ",sys.sysschemas s" +
+            ",sys.sysschemas s " +
+            ",sys.systables t " +
             ",sys.sysconglomerates c" +
             ",sys.syscolumns co" +
             " where " +

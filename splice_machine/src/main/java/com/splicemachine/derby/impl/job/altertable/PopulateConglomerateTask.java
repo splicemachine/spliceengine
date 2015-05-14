@@ -3,21 +3,22 @@ package com.splicemachine.derby.impl.job.altertable;
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
-import java.util.List;
 import java.util.concurrent.ExecutionException;
 import com.google.common.base.Throwables;
-import com.google.common.collect.Lists;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
-import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
+import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.BufferedRegionScanner;
 import com.splicemachine.hbase.KVPair;
@@ -30,17 +31,13 @@ import com.splicemachine.pipeline.api.RecordingCallBuffer;
 import com.splicemachine.pipeline.api.RowTransformer;
 import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.pipeline.ddl.TransformingDDLDescriptor;
-import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.impl.DDLTxnView;
-import com.splicemachine.si.impl.HTransactorFactory;
 import com.splicemachine.si.impl.SIFactoryDriver;
-import com.splicemachine.si.impl.SIFilter;
 import com.splicemachine.si.impl.TransactionalRegions;
-import com.splicemachine.si.impl.TxnFilter;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceZooKeeperManager;
 
@@ -57,9 +54,8 @@ public class PopulateConglomerateTask extends ZkTask {
 
     private RecordingCallBuffer<KVPair> writeBuffer;
     private RowTransformer transformer;
-
-    //performance improvement
-    private KVPair mainPair;
+    private SITableScanner scanner;
+    private SpliceRuntimeContext runtimeContext;
 
     private byte[] scanStart;
     private byte[] scanStop;
@@ -94,6 +90,9 @@ public class PopulateConglomerateTask extends ZkTask {
         super.prepareTask(start,end,rce, zooKeeper);
         this.scanStart = start;
         this.scanStop = end;
+        this.writeBuffer = null;
+        this.transformer = null;
+        this.scanner = null;
     }
 
     @Override
@@ -106,30 +105,19 @@ public class PopulateConglomerateTask extends ZkTask {
         return true;
     }
 
-
     @Override
-    public void doExecute() throws ExecutionException, InterruptedException {
-        long numRecordsRead = 0l;
-
+    public void doExecute() throws ExecutionException {
         try {
-            try (MeasuredRegionScanner brs = getRegionScanner(Metrics.noOpMetricFactory())) {
-
-                try {
-                    // scanning the old table
-                    List nextRow = Lists.newArrayListWithExpectedSize(expectedScanReadWidth);
-                    boolean shouldContinue = true;
-                    while (shouldContinue) {
-                        SpliceBaseOperation.checkInterrupt(numRecordsRead, SpliceConstants.interruptLoopCheck);
-                        nextRow.clear();
-                        shouldContinue = brs.internalNextRaw(nextRow);
-                        numRecordsRead++;
-                        transformResults(nextRow, getTransformer(), getWriteBuffer());
-                    }
-                } finally {
-                    if (writeBuffer != null) {
-                        writeBuffer.flushBuffer();
-                        writeBuffer.close();
-                    }
+            try (SITableScanner scanner = getTableScanner(Metrics.noOpMetricFactory())) {
+                ExecRow nextRow = scanner.next(runtimeContext);
+                while (nextRow != null) {
+                    transformResults(nextRow, getTransformer(), getWriteBuffer());
+                    nextRow = scanner.next(runtimeContext);
+                }
+            } finally {
+                if (writeBuffer != null) {
+                    writeBuffer.flushBuffer();
+                    writeBuffer.close();
                 }
             }
         } catch (IOException e) {
@@ -141,46 +129,52 @@ public class PopulateConglomerateTask extends ZkTask {
         }
     }
 
-    protected MeasuredRegionScanner getRegionScanner(MetricFactory metricFactory) throws IOException {
-        Scan scan = SpliceUtils.createScan(getTxn());
-        scan.setCaching(SpliceConstants.DEFAULT_CACHE_SIZE);
-        scan.addFamily(SIConstants.DEFAULT_FAMILY_BYTES);
-        scan.setStartRow(scanStart);
-        scan.setStopRow(scanStop);
-        scan.setCacheBlocks(false);
+    private SITableScanner getTableScanner(MetricFactory metricFactory) throws IOException {
+        if (scanner == null) {
+            Txn txn = getTxn();
+            Scan scan = SpliceUtils.createScan(txn);
+            scan.setCaching(SpliceConstants.DEFAULT_CACHE_SIZE);
+            scan.addFamily(SIConstants.DEFAULT_FAMILY_BYTES);
+            scan.setStartRow(scanStart);
+            scan.setStopRow(scanStop);
+            scan.setCacheBlocks(false);
+            scan.setMaxVersions();
 
-        try(TransactionalRegion transactionalRegion = TransactionalRegions.get(region)){
-            TxnFilter txnFilter=transactionalRegion.unpackedFilter(new DDLTxnView(getTxn(),this.demarcationTimestamp));
-            scan.setFilter(new SIFilter(txnFilter));
+            RegionScanner regionScanner = region.getScanner(scan);
+
+            MeasuredRegionScanner mrs = SpliceConstants.useReadAheadScanner ?
+                                                            new ReadAheadRegionScanner(region,
+                                                                                       SpliceConstants.DEFAULT_CACHE_SIZE,
+                                                                                       regionScanner,metricFactory,
+                                                                                       dataLib)
+                                                            : new BufferedRegionScanner(region,
+                                                                                        regionScanner,
+                                                                                        scan,
+                                                                                        SpliceConstants.DEFAULT_CACHE_SIZE,
+                                                                                        SpliceConstants.DEFAULT_CACHE_SIZE,
+                                                                                        metricFactory,
+                                                                                        dataLib);
+
+            TxnView txnView = new DDLTxnView(txn, this.demarcationTimestamp);
+
+            TableScannerBuilder builder = new TableScannerBuilder();
+            builder.region(TransactionalRegions.get(region)).scan(scan).scanner(mrs).transaction(txnView).
+                metricFactory(metricFactory);
+
+            TransformingDDLDescriptor tdl = (TransformingDDLDescriptor) ddlChange.getTentativeDDLDesc();
+
+            this.scanner = tdl.setScannerBuilderProperties(builder).build();
+            this.runtimeContext = new SpliceRuntimeContext(ddlChange.getTxn());
         }
+        return scanner;
 
-        RegionScanner regionScanner = region.getScanner(scan);
-
-        return SpliceConstants.useReadAheadScanner ?
-            new ReadAheadRegionScanner(region, SpliceConstants.DEFAULT_CACHE_SIZE, regionScanner,metricFactory, HTransactorFactory.getTransactor().getDataLib())
-            : new BufferedRegionScanner(region,regionScanner,scan,SpliceConstants.DEFAULT_CACHE_SIZE,SpliceConstants.DEFAULT_CACHE_SIZE,metricFactory,HTransactorFactory.getTransactor().getDataLib());
     }
 
-    private void transformResults(List result,
+    private void transformResults(ExecRow row,
                                   RowTransformer transformer,
                                   CallBuffer<KVPair> writeBuffer) throws Exception {
-        //we know that there is only one KeyValue for each row
-        for(Object kv:result){
-            //ignore SI CF
-            if (dataLib.getDataQualifierBuffer(kv)[dataLib.getDataQualifierOffset(kv)] != SIConstants.PACKED_COLUMN_BYTES[0])
-                continue;
-            byte[] row = dataLib.getDataRow(kv);
-            byte[] data = dataLib.getDataValue(kv);
-            if(mainPair==null)
-                mainPair = new KVPair(row,data);
-            else {
-                mainPair.setKey(row);
-                mainPair.setValue(data);
-            }
-            KVPair pair = transformer.transform(mainPair);
-
-            writeBuffer.add(pair);
-        }
+        KVPair pair = transformer.transform(row);
+        writeBuffer.add(pair);
     }
 
     private RecordingCallBuffer<KVPair> getWriteBuffer() {

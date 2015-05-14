@@ -12,10 +12,7 @@ import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
-import java.util.ArrayList;
-import java.util.BitSet;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 public class NestedLoopJoinStrategy extends BaseJoinStrategy{
     private static final Logger LOG=Logger.getLogger(NestedLoopJoinStrategy.class);
@@ -153,15 +150,15 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
 		 * sorted.
 		 */
         if(genInListVals){
-            numArgs=26;
+            numArgs=27;
         }else if(bulkFetch>1){
             // Bulk-fetch uses TableScanResultSet arguments plus two
             // additional arguments: 1) bulk fetch size, and 2) whether the
             // table contains LOB columns (used at runtime to decide if
             // bulk fetch is safe DERBY-1511).
-            numArgs=26;
+            numArgs=27;
         }else{
-            numArgs=24;
+            numArgs=25;
         }
 
         fillInScanArgs1(tc,mb,
@@ -227,7 +224,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
 
     @Override
     public String toString(){
-        return getName();
+        return "NestedLoopJoin";
     }
 
     @Override
@@ -239,17 +236,20 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
                              CostEstimate innerCost) throws StandardException{
 
         SpliceLogUtils.trace(LOG,"rightResultSetCostEstimate outerCost=%s, innerFullKeyCost=%s",outerCost,innerCost);
-        if(outerCost.localCost()==0d && outerCost.getEstimatedRowCount()==1.0){
+        if(outerCost.isUninitialized() ||(outerCost.localCost()==0d && outerCost.getEstimatedRowCount()==1.0)){
             /*
              * Derby calls this method at the end of each table scan, even if it's not a join (or if it's
              * the left side of the join). When this happens, the outer cost is still unitialized, so there's
              * nothing to do in this method;
              */
+            RowOrdering ro = outerCost.getRowOrdering();
+            if(ro!=null)
+                outerCost.setRowOrdering(ro); //force a cloning
             return;
         }
         //set the base costs for the join
         innerCost.setBase(innerCost.cloneMe());
-        outerCost.setBase(outerCost.cloneMe());
+//        outerCost.setBase(outerCost.cloneMe());
 
         /*
          * NestedLoopJoins are very simple. For each outer row, we create a new scan of the inner
@@ -271,7 +271,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
          *
          * Note,however, that some join predicates may be start and stop predicates, which will reduce
          * the number of rows we have to touch during the inner scan. As a result, we have to keep
-         * 2 selectivies: the "output join selectivity" and the "input join selectivity". This adjusts the formulas
+         * 2 selectivities: the "output join selectivity" and the "input join selectivity". This adjusts the formulas
          * to be:
          *
          * innerScan.outputRows = outputJoinSelectivity*innerCost.outputRows
@@ -291,10 +291,14 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
          * to read the innerScan's rows over the network twice--once to pull them to the outer table's region,
          * and again to write that data across the network.
          */
-        List<Predicate> allPreds=new ArrayList<>(predList.size());
-        for(int i=0;i<predList.size();i++){
-            allPreds.add((Predicate)predList.getOptPredicate(i));
-        }
+        List<Predicate> allPreds;
+        if(predList!=null && predList.size()>0){
+            allPreds=new ArrayList<>(predList.size());
+            for(int i=0;i<predList.size();i++){
+                allPreds.add((Predicate)predList.getOptPredicate(i));
+            }
+        }else
+            allPreds = Collections.emptyList();
         /*
          * We estimate the inputJoinSelectivity using just predicates which deal with the start and stop keys
          * of the join.
@@ -312,7 +316,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
 
         /*
          * if the outer table claims to have no rows return, then
-         * we are in a bit of a dilema. On the one hand, maybe nothing
+         * we are in a bit of a dilemma. On the one hand, maybe nothing
          * comes back, in which case that's correct. Or maybe there are no
          * statistics, and we are just screwed anyway.
          *
@@ -331,7 +335,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         double innerSingleScanRowCount = innerCost.singleScanRowCount();
         if(innerCost.getEstimatedRowCount()!=1l){
             double inputJoinSelectivity=getStartStopSelectivity(innerTable,cd,allPreds);
-            double outputJoinSelectivity = estimateJoinSelectivity(innerTable,allPreds);
+            double outputJoinSelectivity = estimateJoinSelectivity(innerTable,cd,allPreds);
 
             innerScanLocalCost *= inputJoinSelectivity;
             innerScanRemoteCost *= outputJoinSelectivity;
@@ -354,8 +358,9 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         double totalHeapSize=outerCost.getEstimatedHeapSize()+outerCost.rowCount()*innerScanHeapSize;
 
         double perRowRemoteCost = outerCost.remoteCost()/outerRowCount;
-        if(innerScanOutputRows>0)
-            perRowRemoteCost+=innerCost.remoteCost()/innerScanOutputRows;
+        if(innerScanOutputRows>0){
+            perRowRemoteCost+=innerCost.remoteCost()/innerCost.rowCount();
+        }
         double totalRemoteCost=totalOutputRows*perRowRemoteCost;
 
         /*
@@ -460,24 +465,25 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
                 int keySpot=cd.getIndexDescriptor().getKeyColumnPosition(columnOperand.getColumnNumber());
                 if(keySpot<startKeySelectivityStop){
                     //we can apply this selectivity!
-                    selectivity*=estimateSelectivityOfJoinPredicate(innerTable,startKey);
+                    selectivity*=estimateSelectivityOfJoinPredicate(innerTable,cd,startKey);
                 }
             }
         }
         return selectivity;
     }
 
-    private double estimateSelectivityOfJoinPredicate(Optimizable innerTable,Predicate predicate) throws StandardException{
+    private double estimateSelectivityOfJoinPredicate(Optimizable innerTable,ConglomerateDescriptor cd,Predicate predicate) throws StandardException{
         //TODO -sf- make this more accurate based on cardinalities etc.
+//        return predicate.selectivity(innerTable,cd);
         return predicate.selectivity(innerTable);
     }
 
-    private double estimateJoinSelectivity(Optimizable innerTable,List<Predicate> predicates) throws StandardException{
+    private double estimateJoinSelectivity(Optimizable innerTable,ConglomerateDescriptor cd,List<Predicate> predicates) throws StandardException{
         double selectivity=1.0d;
         for(Predicate predicate : predicates){
             //ignore join predicates, because FromBaseTable takes those into account
             if(!predicate.isJoinPredicate()) continue;
-            selectivity*=estimateSelectivityOfJoinPredicate(innerTable,predicate);
+            selectivity*=estimateSelectivityOfJoinPredicate(innerTable,cd,predicate);
         }
         return selectivity;
     }

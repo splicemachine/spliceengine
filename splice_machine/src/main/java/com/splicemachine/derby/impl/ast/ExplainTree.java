@@ -5,6 +5,7 @@ import com.google.common.base.Joiner;
 import com.google.common.base.Strings;
 import com.google.common.collect.Iterators;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
+import com.splicemachine.db.iapi.sql.compile.JoinStrategy;
 
 import java.util.*;
 
@@ -42,7 +43,7 @@ public class ExplainTree{
 
         public Builder pushJoin(int rsNum,
                                 CostEstimate ce,
-                                String joinStrategy,
+                                JoinStrategy joinStrategy,
                                 List<String> predicates,
                                 Builder rightSide){
             JoinNode jn = new JoinNode(rsNum,ce,predicates,joinStrategy);
@@ -212,7 +213,7 @@ public class ExplainTree{
             sb = sb.append(spaceToLevel())
                     .append(className).append("(")
                     .append("n=").append(resultSetNumber)
-                    .append(",cost=").append(cost.prettyString());
+                    .append(",").append(cost.prettyString());
             String extras = getExtraInformation();
             if(extras!=null)
                 sb = sb.append(",").append(extras);
@@ -306,23 +307,12 @@ public class ExplainTree{
 
     }
     private static class JoinNode extends TwoChildPredicatedNode{
-        private String joinStrategy;
 
         public JoinNode(int resultSetNUmber,
                         CostEstimate cost,
                         List<String> predicateStrings,
-                        String joinStrategy){
-            super("Join",resultSetNUmber,cost,predicateStrings);
-            this.joinStrategy=joinStrategy;
-        }
-
-        @Override
-        protected String getExtraInformation(){
-            StringBuilder sb = new StringBuilder();
-            sb = sb.append("exe=").append(joinStrategy)
-                    .append(",").append(super.getExtraInformation());
-
-            return sb.toString();
+                        JoinStrategy joinStrategy){
+            super(joinStrategy.toString(),resultSetNUmber,cost,predicateStrings);
         }
     }
 
@@ -376,32 +366,37 @@ public class ExplainTree{
                          List<String> predicateStrings,
                          String tableName,
                          String indexName){
-            super(getClassName(indexName),resultSetNUmber,cost,predicateStrings);
+            super(getClassName(tableName,indexName),resultSetNUmber,cost,predicateStrings);
             this.tableName=tableName;
             this.indexName=indexName;
         }
 
-        private static String getClassName(String indexName){
-            if(indexName!=null) return "IndexScan";
-            return "TableScan";
+        private static String getClassName(String tableName,String indexName){
+            String cName;
+            if(indexName!=null){
+                cName = "IndexScan["+indexName+"]";
+            }else{
+               cName = "TableScan["+tableName+"]";
+            }
+            return cName;
         }
 
         @Override
         protected String getExtraInformation(){
             StringBuilder sb = new StringBuilder();
-            if(tableName!=null)
-                sb = sb.append("table=").append(tableName);
             if(indexName!=null){
-                if(tableName!=null)
-                    sb = sb.append(",");
-                sb=sb.append("using-index=").append(indexName);
+                sb=sb.append("baseTable=").append(tableName);
             }
 
             String superInfo = super.getExtraInformation();
-            if(superInfo==null) return sb.toString();
-
-            sb = sb.append(",").append(super.getExtraInformation());
-            return sb.toString();
+            if(superInfo!=null){
+                if(indexName!=null) sb=sb.append(",");
+                sb=sb.append(superInfo);
+            }
+            if(sb.length()>0)
+                return sb.toString();
+            else
+                return null;
         }
     }
 }

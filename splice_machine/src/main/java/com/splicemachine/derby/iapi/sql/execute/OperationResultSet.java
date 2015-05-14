@@ -338,7 +338,15 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
     }
 
     @Override public Activation getActivation() { return activation; }
-    @Override public void open() throws StandardException { openCore(); }
+    
+    @Override
+    public void open() throws StandardException {
+    	try{
+    		openCore();
+	    } catch (RuntimeException re) {
+	        throw Exceptions.parseException(re);
+	    }
+    }
 
     @Override
     public ExecRow getAbsoluteRow(int row) throws StandardException {

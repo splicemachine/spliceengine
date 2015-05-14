@@ -1,21 +1,30 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.derby.test.framework.TestConnection;
-import com.splicemachine.homeless.TestUtils;
-import com.splicemachine.pipeline.exception.ErrorState;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 
-import com.splicemachine.test.Transactions;
-import org.junit.*;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.pipeline.exception.ErrorState;
+import com.splicemachine.test.Transactions;
+import com.splicemachine.test_dao.TableDAO;
 
 /**
  * @author Scott Fines
@@ -81,6 +90,7 @@ public class AddColumnTransactionIT {
         conn2.setAutoCommit(false);
         conn1Txn = conn1.getCurrentTransactionId();
         conn2Txn = conn2.getCurrentTransactionId();
+        tableDAO = new TableDAO(classWatcher.getOrCreateConnection());
     }
 
     @Test
@@ -217,7 +227,8 @@ public class AddColumnTransactionIT {
         int aInt = 7;
         int bInt = 7;
         PreparedStatement ps = b.prepareStatement("insert into " + addedTable3 + " (a,b) values (?,?)");
-        ps.setInt(1,aInt);ps.setInt(2,bInt); ps.execute();
+        ps.setInt(1,aInt);ps.setInt(2,bInt);
+        ps.execute();
 
         try{
             a.createStatement().execute("alter table "+ addedTable3+" add column c int with default 2");
@@ -243,7 +254,8 @@ public class AddColumnTransactionIT {
         int aInt = 8;
         int bInt = 8;
         PreparedStatement ps = b.prepareStatement("insert into "+addedTable+" (a,b) values (?,?)");
-        ps.setInt(1,aInt);ps.setInt(2,bInt); ps.execute();
+        ps.setInt(1,aInt);ps.setInt(2,bInt);
+        ps.execute();
         b.commit();
 
         a.createStatement().execute("alter table "+ addedTable+" add column f int not null with default 2");
@@ -280,7 +292,8 @@ public class AddColumnTransactionIT {
         a.createStatement().execute("alter table " + addedTable2 + " add column f int not null default 2");
         //now insert some data
         PreparedStatement ps = b.prepareStatement("insert into "+addedTable2+" (a,b) values (?,?)");
-        ps.setInt(1,aInt);ps.setInt(2, bInt); ps.execute();
+        ps.setInt(1,aInt);ps.setInt(2, bInt);
+        ps.execute();
         b.commit();
 
         a.commit();
@@ -310,7 +323,8 @@ public class AddColumnTransactionIT {
 
         // insert with value for new column
         ps = conn2.prepareStatement("insert into "+addedTable4+" values (?,?,?)");
-        ps.setString(1, "Jeff");ps.setInt(2, 13); ps.setString(3, "9999"); ps.execute();
+        ps.setString(1, "Jeff");ps.setInt(2, 13); ps.setString(3, "9999");
+        ps.execute();
         conn2.commit();
 
         // add a column with a unique constraint
@@ -332,6 +346,84 @@ public class AddColumnTransactionIT {
         count = conn1.count("select * from " + addedTable4 + " where id is not null");
         Assert.assertEquals("incorrect row count!", 1, count);
 
+        ps = conn2.prepareStatement("insert into "+addedTable4+" values (?,?,?,?)");
+        ps.setString(1, "Terry");ps.setInt(2, 26); ps.setString(3, "777777"); ps.setInt(4, 1); ps.execute();
+        conn2.commit();
+
+        try {
+            conn2.createStatement().execute(String.format("insert into %s values ('Henry', 214, '45454545', 1)", addedTable4));
+            Assert.fail("Expected unique key violation");
+        } catch (SQLException e) {
+            Assert.assertTrue(e.getLocalizedMessage(),e.getLocalizedMessage().startsWith(
+                "The statement was aborted because it would have caused a " +
+                                                                     "duplicate key value in a unique or primary key " +
+                                                                     "constraint or unique index " +
+                                                                     "identified by 'SQL"));
+        }
+
+    }
+
+    private TableDAO tableDAO;
+
+    @Test
+    public void testAlterTableAddColumn() throws Exception {
+        String tableName = "alterTableAddColumn".toUpperCase();
+        String tableRef = schemaWatcher.schemaName+"."+tableName;
+        tableDAO.drop(schemaWatcher.schemaName, tableName);
+
+        Connection c1 = classWatcher.createConnection();
+        c1.setAutoCommit(false);
+        Statement s1 = c1.createStatement();
+
+        s1.execute(String.format("create table %s(num int, addr varchar(50), zip char(5))", tableRef));
+
+        c1.commit();
+
+        s1.execute(String.format("insert into %s values(100, '100F: 101 California St', '94114')", tableRef));
+        s1.execute(String.format("insert into %s values(200, '200F: 908 Glade Ct.', '94509')", tableRef));
+        s1.execute(String.format("insert into %s values(300, '300F: my addr', '34166')", tableRef));
+        s1.execute(String.format("insert into %s values(400, '400F: 182 Second St.', '94114')", tableRef));
+        s1.execute(String.format("insert into %s(num) values(500)", tableRef));
+
+        c1.commit();
+
+        s1.execute(String.format("Alter table %s add column salary float default 0.0", tableRef));
+
+        c1.commit();
+
+        Connection c2 = classWatcher.createConnection();
+        c2.setAutoCommit(false);
+        Statement s2 = c2.createStatement();
+
+        s1.execute(String.format("update %s set salary=1000.0 where zip='94114'", tableRef));
+        s1.execute(String.format("update %s set salary=5000.85 where zip='94509'", tableRef));
+
+        ResultSet rs = s1.executeQuery(String.format("select zip, salary from %s where salary > 0", tableRef));
+        int count = 0;
+        while (rs.next()) {
+            count++;
+            Assert.assertNotNull("Salary is null!",rs.getFloat(2));
+        }
+        Assert.assertEquals("Salary Cannot Be Queried after added!", 3,count);
+
+        rs = s2.executeQuery(String.format("select zip, salary from %s where salary > 0", tableRef));
+        count = 0;
+        while (rs.next()) {
+            count++;
+            Assert.assertNotNull("Salary is null!",rs.getFloat(2));
+        }
+        Assert.assertEquals("Salary Cannot Be Queried after added!", 0, count);
+
+        // updates will not be seen by c2 until both have committed
+        c1.commit();
+        c2.commit();
+        rs = s2.executeQuery(String.format("select zip, salary from %s where salary > 0", tableRef));
+        count = 0;
+        while (rs.next()) {
+            count++;
+            Assert.assertNotNull("Salary is null!",rs.getFloat(2));
+        }
+        Assert.assertEquals("Salary Cannot Be Queried after added!", 3,count);
     }
 
 }

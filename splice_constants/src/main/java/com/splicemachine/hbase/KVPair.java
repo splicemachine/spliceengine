@@ -41,6 +41,10 @@ public class KVPair implements Comparable<KVPair> {
         public boolean isForeignKeyExistenceCheck() {
             return FOREIGN_KEY_CHILDREN_EXISTENCE_CHECK.equals(this) || FOREIGN_KEY_PARENT_EXISTENCE_CHECK.equals(this);
         }
+
+        public boolean isUpdateOrUpsert() {
+            return UPDATE.equals(this) || UPSERT.equals(this);
+        }
     }
 
     /*fields*/

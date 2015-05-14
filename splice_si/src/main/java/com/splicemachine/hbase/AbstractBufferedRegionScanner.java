@@ -13,7 +13,6 @@ import org.apache.hadoop.hbase.client.OperationWithAttributes;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.filter.FilterList;
-import org.apache.hadoop.hbase.regionserver.BaseHRegionUtil;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.log4j.Logger;
@@ -249,9 +248,11 @@ public abstract class AbstractBufferedRegionScanner<Put extends OperationWithAtt
 						}
 				}finally{
 						region.closeRegionOperation();
-						BaseHRegionUtil.updateReadRequests(region, bufferPos);
+					updateReadRequests(region,bufferPos);
 						readTimer.tick(bufferPos); //the number of records read during this time
 				}
 		}
+
+	protected abstract void updateReadRequests(HRegion region,int bufferPos);
 
 }

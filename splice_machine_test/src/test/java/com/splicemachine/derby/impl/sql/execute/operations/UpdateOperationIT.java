@@ -12,10 +12,7 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.math.BigDecimal;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.Statement;
+import java.sql.*;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
@@ -57,7 +54,7 @@ public class UpdateOperationIT {
         new TableCreator(connection)
                 .withCreate("create table SHIPMENT (cust_id int)")
                 .withInsert("insert into SHIPMENT values(?)")
-                .withRows(rows(row(102), row(104)))
+                .withRows(rows(row(102),row(104)))
                 .create();
 
         new TableCreator(connection)
@@ -75,6 +72,11 @@ public class UpdateOperationIT {
         new TableCreator(connection)
                 .withCreate("create table NULL_TABLE2 (col1 varchar(50), col2 char(5), col3 int)")
                 .create();
+
+        try(CallableStatement cs = connection.prepareCall("call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS(?,false)")){
+            cs.setString(1,SCHEMA);
+            cs.execute();
+        }
     }
 
     /*regression test for DB-2204*/
@@ -305,6 +307,33 @@ public class UpdateOperationIT {
                 "------------\n" +
                 " 3 |99 | 2 |\n" +
                 " 4 |99 | 2 |";
+
+        assertEquals("verify without index", expected, TestUtils.FormattedResult.ResultFactory.toString(rs1));
+        assertEquals("verify using index", expected, TestUtils.FormattedResult.ResultFactory.toString(rs2));
+    }
+
+    /* Test for DB-3160 */
+    @Test
+    public void testUpdateCompoundPrimaryKeyWithMatchingCompoundIndex() throws Exception {
+        methodWatcher.executeUpdate("create table tab4 (c1 int, c2 int, c3 int, c4 int, primary key(c1, c2, c3))");
+        methodWatcher.executeUpdate("create index tab4_idx on tab4 (c1,c2,c3)");
+        methodWatcher.executeUpdate("insert into tab4 values (10,10,10,10),(20,20,20,20),(30,30,30,30)");
+
+        int rows = methodWatcher.executeUpdate("update tab4 set c2=88, c3=888, c4=8888 where c1=10 or c1 = 20");
+
+        assertEquals("incorrect num rows updated!", 2L, rows);
+        assertEquals("incorrect num rows present!", 3L, methodWatcher.query("select count(*) from tab4"));
+        assertEquals("incorrect num rows present!", 3L, methodWatcher.query("select count(*) from tab4 --SPLICE-PROPERTIES index=tab4_idx"));
+        assertEquals("expected this row to be deleted from index", 0L, methodWatcher.query("select count(*) from tab4 --SPLICE-PROPERTIES index=tab4_idx\n where c2=10"));
+
+        ResultSet rs1 = methodWatcher.executeQuery("select * from tab4 where c1=10 or c1 = 20");
+        ResultSet rs2 = methodWatcher.executeQuery("select * from tab4 --SPLICE-PROPERTIES index=tab4_idx \n where c1=10 or c1 = 20");
+
+        String expected = "" +
+                "C1 |C2 |C3  | C4  |\n" +
+                "-------------------\n" +
+                "10 |88 |888 |8888 |\n" +
+                "20 |88 |888 |8888 |";
 
         assertEquals("verify without index", expected, TestUtils.FormattedResult.ResultFactory.toString(rs1));
         assertEquals("verify using index", expected, TestUtils.FormattedResult.ResultFactory.toString(rs2));

@@ -5,6 +5,7 @@ import com.splicemachine.derby.impl.db.SpliceDatabase;
 import com.splicemachine.derby.impl.load.HdfsImport;
 import com.splicemachine.derby.impl.storage.TableSplit;
 import com.splicemachine.derby.impl.storage.TempSplit;
+
 import java.sql.Types;
 import java.util.Arrays;
 import java.util.List;
@@ -13,7 +14,6 @@ import java.util.Map;
 import com.splicemachine.encoding.debug.DataType;
 import com.splicemachine.hbase.backup.BackupSystemProcedures;
 import com.splicemachine.derby.utils.*;
-
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.catalog.types.RoutineAliasInfo;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -775,6 +775,29 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .numResultSets(1)
                             .ownerClass(BackupSystemProcedures.class.getCanonicalName())
                             .build());
+
+                    /*
+                     * Procedure to get a database property on all region servers in the cluster.
+                     */
+                    procedures.add(Procedure.newBuilder().name("SYSCS_GET_GLOBAL_DATABASE_PROPERTY")
+                    		.numOutputParams(0)
+                    		.numResultSets(1)
+                    		.ownerClass(SpliceAdmin.class.getCanonicalName())
+                    		.sqlControl(RoutineAliasInfo.READS_SQL_DATA).returnType(null).isDeterministic(false)
+                    		.catalog("KEY")
+                    		.build());
+
+                    /*
+                     * Procedure to set a database property on all region servers in the cluster.
+                     */
+                    procedures.add(Procedure.newBuilder().name("SYSCS_SET_GLOBAL_DATABASE_PROPERTY")
+                    		.numOutputParams(0)
+                    		.numResultSets(0)
+                    		.ownerClass(SpliceAdmin.class.getCanonicalName())
+                    		.sqlControl(RoutineAliasInfo.MODIFIES_SQL_DATA).returnType(null).isDeterministic(false)
+                    		.catalog("KEY")
+                    		.varchar("VALUE", Limits.DB2_VARCHAR_MAXWIDTH)
+                    		.build());
                 }
 
             } // End iteration through map keys (schema UUIDs)
@@ -805,7 +828,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
     static{
         try {
             SYSFUN_PROCEDURES = new ArrayList<>();
-            SYSFUN_PROCEDURES.addAll(Arrays.asList(//
+            SYSFUN_PROCEDURES.addAll(Arrays.asList(
                     Procedure.newBuilder().name("INSTR")
                             .numOutputParams(0)
                             .numResultSets(0)
@@ -831,7 +854,18 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .isDeterministic(true).ownerClass(SpliceStringFunctions.class.getCanonicalName())
                             .varchar("ARG1", Limits.DB2_VARCHAR_MAXWIDTH)
                             .varchar("ARG2", Limits.DB2_VARCHAR_MAXWIDTH)
-                            .build()));
+                            .build(),
+                    Procedure.newBuilder().name("REGEXP_LIKE")
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .sqlControl(RoutineAliasInfo.NO_SQL)
+                            .returnType(DataTypeDescriptor.getCatalogType(Types.BOOLEAN))
+                            .isDeterministic(true).ownerClass(SpliceStringFunctions.class.getCanonicalName())
+                            .varchar("S", Limits.DB2_VARCHAR_MAXWIDTH)
+                            .varchar("REGEXP", Limits.DB2_VARCHAR_MAXWIDTH)
+                            .build()
+            		)
+            );
             SYSFUN_PROCEDURES.addAll(Arrays.asList(
                     //
                     // Date functions
@@ -989,6 +1023,16 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .numResultSets(0)
                             .sqlControl(RoutineAliasInfo.NO_SQL)
                             .returnType(DataTypeDescriptor.getCatalogType(Types.VARCHAR))
+                            .isDeterministic(true).ownerClass(StatisticsFunctions.class.getCanonicalName())
+                            .arg("SOURCE", SystemColumnImpl
+                                    .getJavaColumn("DATA", "com.splicemachine.stats.ColumnStatistics", false)
+                                    .getType().getCatalogType())
+                            .build(),
+                    Procedure.newBuilder().name("STATS_COL_WIDTH")
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .sqlControl(RoutineAliasInfo.NO_SQL)
+                            .returnType(DataTypeDescriptor.getCatalogType(Types.INTEGER))
                             .isDeterministic(true).ownerClass(StatisticsFunctions.class.getCanonicalName())
                             .arg("SOURCE", SystemColumnImpl
                                     .getJavaColumn("DATA", "com.splicemachine.stats.ColumnStatistics", false)

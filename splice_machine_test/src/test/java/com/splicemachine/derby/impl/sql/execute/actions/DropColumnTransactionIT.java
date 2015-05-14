@@ -1,21 +1,31 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import com.splicemachine.derby.test.framework.*;
-import com.splicemachine.homeless.TestUtils;
-import com.splicemachine.pipeline.exception.ErrorState;
-import com.splicemachine.test.SerialTest;
+import java.math.BigDecimal;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 
-import com.splicemachine.test.Transactions;
-import org.junit.*;
+import org.junit.After;
+import org.junit.AfterClass;
+import org.junit.Assert;
+import org.junit.Before;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
-import java.math.BigDecimal;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import com.splicemachine.derby.test.framework.SpliceDataWatcher;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.pipeline.exception.ErrorState;
+import com.splicemachine.test.Transactions;
 
 /**
  * Tests around dropping a column (transactionally and otherwise).
@@ -68,6 +78,9 @@ public class DropColumnTransactionIT {
                     }
                 }
             });
+
+    @Rule
+    public SpliceWatcher methodWatcher = new SpliceWatcher();
 
     private static TestConnection conn1;
     private static TestConnection conn2;
@@ -318,5 +331,88 @@ public class DropColumnTransactionIT {
         }
         Assert.assertEquals("Incorrect returned row count", 1, count);
 
+    }
+
+    @Test
+    public void testDropColumnAfterUpdateWithPK() throws Exception {
+        String tableName = "dropcolpk".toUpperCase();
+        String tableRef = schemaWatcher.schemaName+"."+tableName;
+        methodWatcher.executeUpdate(String.format("create table %s (Field1 INT NOT NULL, Field2 CHAR(3), " +
+                                                      "Field3 decimal(2,1), PRIMARY KEY(Field1))", tableRef));
+
+        TestConnection conn = methodWatcher.createConnection();
+        conn.createStatement().execute(String.format("insert into %s (Field1,Field2,Field3) VALUES (1,'abc',1.2)", tableRef));
+        conn.createStatement().execute(String.format("insert into %s (Field1,Field2,Field3) VALUES (2,'efg',3.4)", tableRef));
+        conn.createStatement().execute(String.format("insert into %s (Field1,Field2,Field3) VALUES (3,'hij',5.6)", tableRef));
+
+        String query = String.format("select Field1, Field2, Field3 from %s", tableRef);
+        ResultSet rs = methodWatcher.getStatement().executeQuery(query);
+        TestUtils.printResult(query, rs, System.out);
+
+        conn.createStatement().execute(String.format("alter table %s add column Field4 BIGINT", tableRef));
+
+        query = String.format("select Field1, Field2, Field3, Field4 from %s", tableRef);
+        rs = methodWatcher.getStatement().executeQuery(query);
+        TestUtils.printResult(query, rs, System.out);
+
+        // updates hose the table
+        conn.createStatement().execute(String.format("update %s set Field4 = 11", tableRef));
+        // inserts are ok
+//        conn.createStatement().execute(String.format("insert into %s (Field1,Field2,Field3,Field4) VALUES (4,'klm',7.8,22)", tableRef));
+
+        query = String.format("select Field1, Field2, Field3, Field4 from %s", tableRef);
+        rs = methodWatcher.getStatement().executeQuery(query);
+        TestUtils.printResult(query, rs, System.out);
+
+        conn.createStatement().execute(String.format("alter table %s drop column Field3", tableRef));
+
+        query = String.format("select Field1, Field2, Field4 from %s", tableRef);
+        rs = methodWatcher.getStatement().executeQuery(query);
+        TestUtils.printResult(query, rs, System.out);
+
+        rs = methodWatcher.getStatement().executeQuery(query);
+        int count = 0;
+        while (rs.next()) {
+            String field2 = rs.getString("Field2");
+            Assert.assertNotNull("Expected non-null valued for field2.", field2);
+            ++count;
+        }
+        Assert.assertEquals("Incorrect returned row count", 3, count);
+    }
+
+    @Test
+    public void testDropColumnAfterUpdateWithOutPK() throws Exception {
+        String tableName = "dropcol".toUpperCase();
+        String tableRef = schemaWatcher.schemaName+"."+tableName;
+        methodWatcher.executeUpdate(String.format("create table %s (Field1 INT NOT NULL, Field2 CHAR(3), " +
+                                                      "Field3 decimal(2,1))", tableRef));
+
+        TestConnection conn = methodWatcher.createConnection();
+        conn.createStatement().execute(String.format("insert into %s (Field1,Field2,Field3) VALUES (1,'abc',1.2)", tableRef));
+        conn.createStatement().execute(String.format("insert into %s (Field1,Field2,Field3) VALUES (2,'efg',3.4)", tableRef));
+        conn.createStatement().execute(String.format("insert into %s (Field1,Field2,Field3) VALUES (3,'hij',5.6)", tableRef));
+
+        conn.createStatement().execute(String.format("alter table %s add column Field4 BIGINT", tableRef));
+        // updates hose the table (DB-3202)
+        conn.createStatement().execute(String.format("update %s set Field4 = 11", tableRef));
+
+        String query = String.format("select Field1, Field2, Field3, Field4 from %s", tableRef);
+        ResultSet rs = methodWatcher.getStatement().executeQuery(query);
+        TestUtils.printResult(query, rs, System.out);
+
+        conn.createStatement().execute(String.format("alter table %s drop column Field3", tableRef));
+
+        query = String.format("select Field1, Field2, Field4 from %s", tableRef);
+        rs = methodWatcher.getStatement().executeQuery(query);
+        TestUtils.printResult(query, rs, System.out);
+
+        rs = methodWatcher.getStatement().executeQuery(query);
+        int count = 0;
+        while (rs.next()) {
+            String field2 = rs.getString("Field2");
+            Assert.assertNotNull("Expected non-null valued for field2.", field2);
+            ++count;
+        }
+        Assert.assertEquals("Incorrect returned row count", 3, count);
     }
 }

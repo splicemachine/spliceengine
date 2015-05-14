@@ -16,6 +16,7 @@ import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.temp.TempTable;
 import com.splicemachine.derby.logging.DerbyOutputLoggerWriter;
 import com.splicemachine.derby.management.StatementManager;
+import com.splicemachine.derby.utils.DatabasePropertyManagementImpl;
 import com.splicemachine.derby.utils.ErrorReporter;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.SpliceMetrics;
@@ -44,11 +45,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.CoprocessorEnvironment;
-import org.apache.hadoop.hbase.HColumnDescriptor;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.HTableDescriptor;
-import org.apache.hadoop.hbase.PleaseHoldException;
+import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.master.cleaner.HFileCleaner;
 import org.apache.hadoop.hbase.regionserver.HRegion;
@@ -349,7 +346,7 @@ public class SpliceDriver {
         try {
             // The HBaseAdmin creates a connection to the ZooKeeper ensemble and thereafter into the HBase cluster.
             admin = SpliceUtilities.getAdmin(SpliceConstants.config);
-            HTableDescriptor desc = new HTableDescriptor(SpliceMasterObserver.INIT_TABLE);
+            HTableDescriptor desc = new HTableDescriptor(TableName.valueOf(SpliceMasterObserver.INIT_TABLE));
             desc.addFamily(new HColumnDescriptor(Bytes.toBytes("FOO")));
             // Create the special "SPLICE_INIT" table which triggers the creation of the SpliceMasterObserver and ultimately
             // triggers the creation of the "SPLICE_*" HBase tables.  This is an asynchronous call and so we "loop" via a
@@ -465,7 +462,9 @@ public class SpliceDriver {
             ObjectName txnStoreName = new ObjectName("com.splicemachine.txn:type=TxnStoreManagement");
             mbs.registerMBean(TransactionStorage.getTxnStoreManagement(), txnStoreName);
 
-            ImportTaskManagementStats.registerJMX(mbs);
+            ImportTaskManagementStats.getInstance().registerJMX(mbs);
+
+            DatabasePropertyManagementImpl.registerJMX(mbs);
 
         } catch (MalformedObjectNameException | NotCompliantMBeanException | InstanceAlreadyExistsException | MBeanRegistrationException e) {
             //we want to log the message, but this shouldn't affect startup

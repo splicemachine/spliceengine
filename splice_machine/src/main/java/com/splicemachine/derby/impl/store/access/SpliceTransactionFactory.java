@@ -1,14 +1,14 @@
 package com.splicemachine.derby.impl.store.access;
 
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.impl.store.access.base.SpliceLocalFileResource;
+import com.splicemachine.derby.impl.io.HdfsDirStorageFactory;
+import com.splicemachine.derby.impl.store.access.base.SpliceHdfsFileResource;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextManager;
@@ -19,8 +19,8 @@ import com.splicemachine.db.iapi.services.monitor.ModuleSupportable;
 import com.splicemachine.db.iapi.store.access.FileResource;
 import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.J2SEDataValueFactory;
-import com.splicemachine.db.impl.io.DirStorageFactory4;
 import com.splicemachine.db.io.StorageFactory;
+
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -223,14 +223,14 @@ public class SpliceTransactionFactory implements ModuleControl, ModuleSupportabl
 				contextFactory = ContextService.getFactory();
 				lockFactory = new SpliceLockFactory();
 				lockFactory.boot(create, properties);
-        storageFactory = new DirStorageFactory4();
+        storageFactory = new HdfsDirStorageFactory();
         try {
             storageFactory.init(null, SpliceConstants.SPLICE_DB, null, null);
         } catch (IOException ioe) {
             throw StandardException.newException(
                     SQLState.FILE_UNEXPECTED_EXCEPTION, ioe);
         }
-        fileHandler = new SpliceLocalFileResource(storageFactory);
+        fileHandler = new SpliceHdfsFileResource(storageFactory);
     }
 
 		public void stop() {

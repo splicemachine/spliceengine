@@ -49,8 +49,8 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
 			this.initialValue = initialValue;
 			this.region = region;
 		}
-		
-		@Override
+
+//		@Override
 		public KeyValue peek() {
 			if (LOG.isTraceEnabled())
 				SpliceLogUtils.trace(LOG, "peek -->" + super.peek());
@@ -70,15 +70,13 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
 			}
 			if (beginRow)
 				return MRConstants.MEMSTORE_BEGIN;
-			KeyValue peek = super.peek();
+			Cell peek = super.peek();
 			if (peek == null && !endRowAlreadyReturned) {
 				endRowNeedsToBeReturned = true;
 				return MRConstants.MEMSTORE_END;
 			}
-			return super.peek();
+			return (KeyValue)super.peek();
 		}
-
-
 
 		@Override
 		public KeyValue next() {
@@ -87,17 +85,14 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
 			throw new RuntimeException("Not Implemented");
 		}
 
-
-
-		@Override
+//		@Override
 		public boolean seek(KeyValue key) throws IOException {
 			if (LOG.isTraceEnabled())
 				SpliceLogUtils.trace(LOG, "seek with key=%s",key);
 			throw new IOException("Not Implemented");
 		}
 
-
-		@Override
+//		@Override
 		public boolean reseek(KeyValue kv) throws IOException {
 			if (LOG.isTraceEnabled())
 				SpliceLogUtils.trace(LOG, "reseek kv=%s",kv);
@@ -109,11 +104,11 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
 				SpliceLogUtils.trace(LOG, "next kv=%s",outResult);
 			if (beginRow) {
 				beginRow = false;
-				return outResult.add((Cell)MRConstants.MEMSTORE_BEGIN);
+				return outResult.add(MRConstants.MEMSTORE_BEGIN);
 			}
 			if (endRowNeedsToBeReturned) {
 				endRowAlreadyReturned = true;
-				return outResult.add((Cell)MRConstants.MEMSTORE_END);
+				return outResult.add(MRConstants.MEMSTORE_END);
 			}
 			if (didWeFlush()) {
 				if (flushAlreadyReturned) {

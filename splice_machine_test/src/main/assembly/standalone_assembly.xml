@@ -35,6 +35,7 @@ TAR structure:
 				<exclude>tomcat:jasper-compiler</exclude>
 				<exclude>tomcat:jasper-runtime</exclude>
 				<exclude>com.splicemachine:splice-web*</exclude>
+				<exclude>com.splicemachine:dbclient</exclude>
 			</excludes>
 		</dependencySet>
 

@@ -1,64 +1,67 @@
 package com.splicemachine.derby.impl.sql.execute.operations.microstrategy;
 
 import com.google.common.collect.Sets;
-import com.splicemachine.test.SlowTest;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.tables.SpliceCustomerTable;
 import com.splicemachine.test.suites.MicrostrategiesTests;
-import org.junit.Assert;
+import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
-import org.junit.rules.RuleChain;
-import org.junit.rules.TestRule;
+
 import java.sql.PreparedStatement;
-import java.sql.ResultSet;
+import java.util.List;
 import java.util.Set;
 
-/**
- * @author Scott Fines
- * Created on: 2/24/13
- */
+import static com.splicemachine.derby.test.framework.SpliceUnitTest.getResourceDirectory;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+
 @Category(MicrostrategiesTests.class)
-public class MicrostrategiesCustomerIT extends SpliceUnitTest {
-    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
-	public static final String CLASS_NAME = MicrostrategiesCustomerIT.class.getSimpleName().toUpperCase();
-	public static final String TABLE_NAME = "A";
-	protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);	
-	protected static SpliceCustomerTable spliceTableWatcher = new SpliceCustomerTable(TABLE_NAME,CLASS_NAME); 	
-	@ClassRule 
-	public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
-		.around(spliceSchemaWatcher)
-		.around(spliceTableWatcher);
-	
-	@Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
+public class MicrostrategiesCustomerIT {
 
-		@Test
-		@Category(SlowTest.class)
-		public void testRepeatedSelectDistincts() throws Exception {
-			for(int i=0;i<100;i++){
-					testSelectDistinctSelectsDistincts();
-			}
-		}
+    private static final String SCHEMA = MicrostrategiesCustomerIT.class.getSimpleName().toUpperCase();
+    @ClassRule
+    public static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
+    @ClassRule
+    public static SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA);
+    @Rule
+    public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
 
-		@Test
-    public void testSelectDistinctSelectsDistincts() throws Exception{
-	    PreparedStatement ps = methodWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA (?, ?, null,null,?,',',null,null,null,null)");
-	    ps.setString(1,CLASS_NAME);
-	    ps.setString(2,TABLE_NAME);  
-	    ps.setString(3,getResourceDirectory()+"customer_iso.csv");
-	    ps.executeUpdate();
-	    
-        ResultSet rs = methodWatcher.executeQuery(format("select distinct cst_city_id from %s",this.getTableReference(TABLE_NAME)));
-        Set<Integer> cityIds = Sets.newHashSet();
-        while(rs.next()){
-            int city = rs.getInt(1);
-            Assert.assertTrue("City already found!",!cityIds.contains(city));
-            cityIds.add(city);
+    @BeforeClass
+    public static void createSharedTableAndImportData() throws Exception {
+        spliceClassWatcher.executeUpdate("create table A" + SpliceCustomerTable.CREATE_STRING);
+        doImport();
+    }
+
+    private static void doImport() throws Exception {
+        PreparedStatement ps = spliceClassWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA (?, ?, null,null,?,',',null,null,null,null)");
+        ps.setString(1, SCHEMA);
+        ps.setString(2, "A");
+        ps.setString(3, getResourceDirectory() + "customer_iso.csv");
+        ps.executeUpdate();
+        ps.close();
+    }
+
+    @Test
+    public void testRepeatedSelectDistinct() throws Exception {
+        for (int i = 1; i <= 10; i++) {
+            testSelectDistinct();
+            if (i % 3 == 0) {
+                // additional imports should not affect select distinct
+                doImport();
+            }
         }
-        Assert.assertTrue("No City ids found!",cityIds.size()>0);
+    }
+
+    @Test
+    public void testSelectDistinct() throws Exception {
+        List<Integer> allCityIds = methodWatcher.queryList("select distinct cst_city_id from A");
+        Set<Integer> uniqueCityIds = Sets.newHashSet(allCityIds);
+        assertFalse("No City ids found!", uniqueCityIds.isEmpty());
+        assertEquals(allCityIds.size(), uniqueCityIds.size());
+        assertEquals(184, uniqueCityIds.size());
     }
 }

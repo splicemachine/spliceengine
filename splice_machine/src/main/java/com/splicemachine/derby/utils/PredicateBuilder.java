@@ -2,6 +2,9 @@ package com.splicemachine.derby.utils;
 
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.io.Closeables;
+import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.storage.*;
@@ -52,10 +55,10 @@ public class PredicateBuilder {
 								return new NullPredicate(filterIfMissing,isNullNumericalComparison,qualifier.getColumnId(),false,false);
 				}else{
 						boolean sort = getSortPosition(qualifier.getColumnId());
-						if(serializers==null)
-								serializers = VersionedSerializers.forVersion(tableVersion,true).getSerializers(columnTypes);
+                        if(serializers==null)
+                            serializers = VersionedSerializers.forVersion(tableVersion,true).getSerializers(columnTypes);
+                        byte[] bytes = serializers[qualifier.getColumnId()].encodeDirect(dvd, sort);
 
-						byte[] bytes = serializers[qualifier.getColumnId()].encodeDirect(dvd,sort);
 						if(dvd instanceof StringDataValue){
 								return new CharValuePredicate(getHBaseCompareOp(qualifier.getOperator(),
 												qualifier.negateCompareResult()),qualifier.getColumnId(),bytes,true,sort);

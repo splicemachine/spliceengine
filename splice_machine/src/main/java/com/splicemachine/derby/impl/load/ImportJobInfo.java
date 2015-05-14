@@ -91,7 +91,7 @@ public class ImportJobInfo extends JobInfo {
 			if (taskFuture != null && taskFuture instanceof RegionTaskControl) {
 				String taskPath = ((RegionTaskControl)taskFuture).getTaskNode();
 				if (taskPath != null) {
-					ImportTaskManagementStats.cleanup(taskPath);
+					ImportTaskManagementStats.getInstance().cleanup(taskPath);
 				}
 			}
 		} catch (SQLException e) {
@@ -205,7 +205,7 @@ public class ImportJobInfo extends JobInfo {
 		/**
 		 * Flag that tells the TaskStatusLoggerThread when it should exit.
 		 */
-		private boolean runTaskStatusLoggerThread = true;
+		private volatile boolean runTaskStatusLoggerThread = true;
 
 		/**
 		 * Default constructor that sets the name of the thread.
@@ -224,41 +224,27 @@ public class ImportJobInfo extends JobInfo {
 				threadImportAdmin = new ImportAdmin();  // This class is not thread safe, so we have our own instance.
 				try {
 
-					/*
-					 * Initially sleep a bit to give the import tasks some time to get some work done.
-					 */
-					try {
+					// Initially sleep a bit to give the import tasks some time to get some work done.
+					sleep(sleepMillis);
+
+					while (runTaskStatusLoggerThread && !Thread.currentThread().isInterrupted()) {
+						logStatusOfImportTasks(threadImportAdmin, false);
 						sleep(sleepMillis);
-					} catch (InterruptedException e) {
-						LOG.error("TaskStatusLoggerThread has been interrupted.", e);
-					}
-
-					while (runTaskStatusLoggerThread) {
-
-						/*
-						 * Write the status of all running tasks to the import job status log.
-						 */
-						try {
-							logStatusOfImportTasks(threadImportAdmin, false);
-						} catch (SQLException e) {
-							LOG.error("TaskStatusLoggerThread has experienced a SQL exception.  Stopping thread.", e);
-							if (jobStatusLogger != null) {
-								jobStatusLogger.log("TaskStatusLoggerThread has experienced a SQL exception.  Stopping thread.  Check the logs for the stack trace.");
-							}
-							break;
-						}
-
-						/*
-						 * Sleep for a configured amount of time and then log the status of the tasks again.
-						 */
-						try {
-							sleep(sleepMillis);
-						} catch (InterruptedException e) {
-							LOG.error("TaskStatusLoggerThread has been interrupted.", e);
-						}
 					}
 				} finally {
 					threadImportAdmin.close();
+				}
+			} catch (InterruptedException e) {
+				LOG.error("TaskStatusLoggerThread has been interrupted.", e);
+				/*
+				 * Set the interrupt flag to notify the caller that we got interrupted.
+				 * We should be the end of the road here, but do it anyways.  Maybe someone called the run method directly.
+				 */
+				Thread.currentThread().interrupt();
+			} catch (SQLException e) {
+				LOG.error("TaskStatusLoggerThread has experienced a SQL exception.  Stopping thread.", e);
+				if (jobStatusLogger != null) {
+					jobStatusLogger.log("TaskStatusLoggerThread has experienced a SQL exception.  Stopping thread.  Check the logs for the stack trace.");
 				}
 			} catch (Exception e) {
 				LOG.error("TaskStatusLoggerThread has experienced an exception.  Stopping thread.", e);

@@ -2,10 +2,12 @@ package com.splicemachine.derby.impl.sql.catalog;
 
 import java.sql.ResultSet;
 
+import com.splicemachine.test.SerialTest;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -24,6 +26,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
  * @author David Winters
  *		 Created on: 9/25/14
  */
+@Category(SerialTest.class)
 public class SqlJJarIT extends SpliceUnitTest {
 
 	public static final String CLASS_NAME = SqlJJarIT.class.getSimpleName().toUpperCase();
@@ -47,6 +50,9 @@ public class SqlJJarIT extends SpliceUnitTest {
 	private static final String CALL_SET_CLASSPATH_FORMAT_STRING = "CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.database.classpath', '%s')";
 	private static final String CALL_SET_CLASSPATH_TO_DEFAULT = "CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.database.classpath', NULL)";
 	private static final String CALL_SIMPLE_ONE_ARG_PROC_FORMAT_STRING = "CALL " + SCHEMA_NAME + ".SIMPLE_ONE_ARG_PROC('%s')";
+	private static final String CALL_SET_GLOBAL_CLASSPATH_FORMAT_STRING = "CALL SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY('derby.database.classpath', '%s')";
+	private static final String CALL_SET_GLOBAL_CLASSPATH_TO_DEFAULT = "CALL SYSCS_UTIL.SYSCS_SET_GLOBAL_DATABASE_PROPERTY('derby.database.classpath', NULL)";
+	private static final String CALL_GET_GLOBAL_CLASSPATH = "CALL SYSCS_UTIL.SYSCS_GET_GLOBAL_DATABASE_PROPERTY('derby.database.classpath')";
 
 	// SQL queries.
 	private static final String SELECT_FROM_SYSFILES = "SELECT * FROM SYS.SYSFILES";
@@ -58,10 +64,25 @@ public class SqlJJarIT extends SpliceUnitTest {
 	@Rule
 	public SpliceWatcher methodWatcher = new SpliceWatcher();
 
+	/*
+	 * PLEASE NOTE:
+	 * I would personally rather see smaller tests without as many assertions as this one.
+	 * Unfortunately, it would be difficult to split this test into multiple tests unless
+	 * each test had its own custom jar file similar to what we do for unique table names
+	 * for tests.  Without unique custom jars, the parallel execution of these tests would
+	 * cause failures as the tests would clobber each other.  And creating and maintaining
+	 * a dozen or so custom jar files would be painful.
+	 */
 	@Test
 	public void testJarWithSimpleOneArgProc() throws Exception {
 		ResultSet rs = null;
 		int rc = 0;
+
+		/*
+		 * ========================================================================================
+		 * Test the local database CLASSPATH for the region server.
+		 * ========================================================================================
+		 */
 
 		// Count the number of SYSFILES.
 		rs = methodWatcher.executeQuery(SELECT_FROM_SYSFILES);
@@ -71,7 +92,7 @@ public class SqlJJarIT extends SpliceUnitTest {
 		rc = methodWatcher.executeUpdate(String.format(CALL_INSTALL_JAR_FORMAT_STRING, STORED_PROCS_JAR_FILE, JAR_FILE_SQL_NAME));
 		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
 
-		// Add the jar file into the DB class path.
+		// Add the jar file into the local DB class path.
 		rc = methodWatcher.executeUpdate(String.format(CALL_SET_CLASSPATH_FORMAT_STRING, JAR_FILE_SQL_NAME));
 		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
 
@@ -97,6 +118,65 @@ public class SqlJJarIT extends SpliceUnitTest {
 
 		// Remove the jar file from the DB class path.
 		rc = methodWatcher.executeUpdate(CALL_SET_CLASSPATH_TO_DEFAULT);
+		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+
+		// Remove the jar file from the DB.
+		rc = methodWatcher.executeUpdate(String.format(CALL_REMOVE_JAR_FORMAT_STRING, JAR_FILE_SQL_NAME));
+		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+
+		// Compare that the number of SYSFILES matches the original count.
+		rs = methodWatcher.executeQuery(SELECT_FROM_SYSFILES);
+		Assert.assertEquals("Incorrect rows returned!", numSysFiles, resultSetSize(rs));
+
+		/*
+		 * ========================================================================================
+		 * Test the global database CLASSPATH for all region servers in the cluster.
+		 * Note: This test should also pass for a stand-alone server.
+		 * ========================================================================================
+		 */
+
+		// Count the number of SYSFILES.
+		rs = methodWatcher.executeQuery(SELECT_FROM_SYSFILES);
+		numSysFiles = resultSetSize(rs);
+
+		// Install the jar file of user-defined stored procedures.
+		rc = methodWatcher.executeUpdate(String.format(CALL_INSTALL_JAR_FORMAT_STRING, STORED_PROCS_JAR_FILE, JAR_FILE_SQL_NAME));
+		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+
+		// Add the jar file into the global DB class path.
+		rc = methodWatcher.executeUpdate(String.format(CALL_SET_GLOBAL_CLASSPATH_FORMAT_STRING, JAR_FILE_SQL_NAME));
+		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+
+		// Create the user-defined stored procedure.
+		rc = methodWatcher.executeUpdate(CREATE_PROC_SIMPLE_ONE_ARG);
+		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+
+		// Call the user-defined stored procedure.
+		rs = methodWatcher.executeQuery(String.format(CALL_SIMPLE_ONE_ARG_PROC_FORMAT_STRING, "foobar"));
+		Assert.assertTrue("Incorrect rows returned!", resultSetSize(rs) > 10);
+
+		// Replace the jar file.
+		rc = methodWatcher.executeUpdate(String.format(CALL_REPLACE_JAR_FORMAT_STRING, STORED_PROCS_JAR_FILE, JAR_FILE_SQL_NAME));
+		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+
+		// Call the user-defined stored procedure again.
+		rs = methodWatcher.executeQuery(String.format(CALL_SIMPLE_ONE_ARG_PROC_FORMAT_STRING, "foobar"));
+		Assert.assertTrue("Incorrect rows returned!", resultSetSize(rs) > 10);
+
+		// Drop the user-defined stored procedure.
+		rc = methodWatcher.executeUpdate(DROP_PROC_SIMPLE_ONE_ARG);
+		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
+
+		// Check that the global DB class path is correct.
+		rs = methodWatcher.executeQuery(CALL_GET_GLOBAL_CLASSPATH);
+		String dbClassPath = null;
+		if (rs.next()) {
+			dbClassPath = rs.getString(2);
+		}
+		Assert.assertEquals("Global database CLASSPATH is incorrect!", JAR_FILE_SQL_NAME, dbClassPath);
+
+		// Remove the jar file from the global DB class path.
+		rc = methodWatcher.executeUpdate(CALL_SET_GLOBAL_CLASSPATH_TO_DEFAULT);
 		Assert.assertEquals("Incorrect return code or result count returned!", 0, rc);
 
 		// Remove the jar file from the DB.

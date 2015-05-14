@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.load;
 import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
@@ -16,8 +17,10 @@ import com.splicemachine.uuid.UUIDGenerator;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.sql.*;
@@ -71,7 +74,7 @@ public class ImportUtils {
 																							 ImportContext.Builder builder,
 																							 byte[][] autoIncRowLocations,boolean upsert) throws SQLException {
 				DatabaseMetaData dmd = connection.getMetaData();
-				Map<String,ColumnContext.Builder> columns = getColumns(schemaName==null?"APP":schemaName.toUpperCase(),tableName.toUpperCase(),insertColumnList,dmd);
+				Map<String,ColumnContext.Builder> columns = getColumns(schemaName==null?SpliceConstants.SPLICE_USER:schemaName.toUpperCase(),tableName.toUpperCase(),insertColumnList,dmd);
 
 				//TODO -sf- this invokes an additional scan--is there any way that we can avoid this?
 				try {

@@ -5,7 +5,7 @@ package com.splicemachine.pipeline.writeconfiguration;
 
 import java.util.concurrent.ExecutionException;
 
-import org.apache.hadoop.hbase.DoNotRetryIOException;
+import com.splicemachine.derby.hbase.ErrorString;import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.ipc.CallerDisconnectedException;
 import org.apache.hadoop.hbase.ipc.RemoteWithExtrasException;
 import org.apache.hadoop.hbase.ipc.RpcClient;
@@ -46,7 +46,7 @@ public class DefaultWriteConfigurationTest {
 	@Test
 	public void testRpcClientFailedServerException() throws ExecutionException {
 		DefaultWriteConfiguration configuration = new DefaultWriteConfiguration(null);
-		Assert.assertEquals(WriteResponse.THROW_ERROR, configuration.globalError(new RpcClient.FailedServerException("A server has failed")));
+		Assert.assertEquals(WriteResponse.THROW_ERROR, configuration.globalError(ErrorString.failedServer("A server has failed")));
 	}
 
 	@Test

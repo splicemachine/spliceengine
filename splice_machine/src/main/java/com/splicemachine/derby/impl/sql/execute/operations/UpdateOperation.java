@@ -24,6 +24,7 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
+import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
@@ -207,6 +208,7 @@ public class UpdateOperation extends DMLWriteOperation{
                 .txn(txn);
         return set.index(new SplicePairFunction<SpliceOperation,LocatedRow,RowLocation,ExecRow>() {
             int counter = 0;
+
             @Override
             public Tuple2<RowLocation, ExecRow> call(LocatedRow locatedRow) throws Exception {
                 return new Tuple2<RowLocation, ExecRow>(locatedRow.getRowLocation(),locatedRow.getRow());

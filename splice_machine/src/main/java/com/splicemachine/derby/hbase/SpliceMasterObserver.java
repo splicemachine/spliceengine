@@ -21,13 +21,11 @@ public class SpliceMasterObserver extends BaseMasterObserver {
     public static final byte[] INIT_TABLE = Bytes.toBytes("SPLICE_INIT");
     public static final byte[] RESTORE_TABLE = Bytes.toBytes("SPLICE_RESTORE");
 
-    private SpliceMasterObserverRestoreAction restoreAction;
     private SpliceMasterObserverInitAction initAction;
 
     @Override
     public void start(CoprocessorEnvironment ctx) throws IOException {
         SpliceLogUtils.info(LOG, "Starting SpliceMasterObserver");
-        restoreAction = new SpliceMasterObserverRestoreAction(((MasterCoprocessorEnvironment) ctx).getMasterServices());
         initAction = new SpliceMasterObserverInitAction();
     }
 

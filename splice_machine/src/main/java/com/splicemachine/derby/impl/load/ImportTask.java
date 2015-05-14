@@ -54,7 +54,7 @@ public class ImportTask extends ZkTask{
 		private long logRowCountInterval = SpliceConstants.importTaskStatusReportingRowCount;   // The row count interval of when to log rows read.  For example, write to the log every 10,000 rows read.
 		private long rowsRead = 0l;
 		private long previouslyLoggedRowsRead = 0l;  // The number of rows read that was last logged.
-		private ImportErrorReporter errorReporter = null;
+		private ImportErrorReporter errorReporter;
 
 		/**
 		 * @deprecated only available for a a no-args constructor
@@ -105,11 +105,12 @@ public class ImportTask extends ZkTask{
 						long startTime = System.currentTimeMillis();
 						RowErrorLogger errorLogger = getErrorLogger();
 						errorReporter = getErrorReporter(row.getClone(),errorLogger);
-						long maxRecords = importContext.getMaxRecords();
+						long maxRecords = importContext.getMaxRecords();  // The maximum number of records to import or check in the file.
+						ImportTaskManagementStats jmxStats = ImportTaskManagementStats.getInstance();
 
 						// Initialize our JMX stats.  Set row counts for this importTaskPath (and importFilePath) to 0.
 						if (importTaskPath != null) {
-							ImportTaskManagementStats.initialize(importTaskPath, importFilePath);
+							jmxStats.initialize(importTaskPath, importFilePath);
 						}
 
 						try{
@@ -141,8 +142,8 @@ public class ImportTask extends ZkTask{
 
 												if ((rowsRead - previouslyLoggedRowsRead) >= logRowCountInterval) {
 													if (importTaskPath != null) {
-														ImportTaskManagementStats.setImportedRowCount(importTaskPath, rowsRead - errorReporter.errorsReported());
-														ImportTaskManagementStats.setBadRowCount(importTaskPath, errorReporter.errorsReported());
+														jmxStats.setImportedRowCount(importTaskPath, rowsRead - errorReporter.errorsReported());
+														jmxStats.setBadRowCount(importTaskPath, errorReporter.errorsReported());
 													}
 													previouslyLoggedRowsRead = rowsRead;
 													if (LOG.isDebugEnabled()) {
@@ -160,8 +161,8 @@ public class ImportTask extends ZkTask{
 										}while(shouldContinue);
 
 										if (importTaskPath != null) {
-											ImportTaskManagementStats.setImportedRowCount(importTaskPath, rowsRead - errorReporter.errorsReported());
-											ImportTaskManagementStats.setBadRowCount(importTaskPath, errorReporter.errorsReported());
+											jmxStats.setImportedRowCount(importTaskPath, rowsRead - errorReporter.errorsReported());
+											jmxStats.setBadRowCount(importTaskPath, errorReporter.errorsReported());
 										}
 										previouslyLoggedRowsRead = rowsRead;
 										if (LOG.isDebugEnabled()) {

@@ -39,19 +39,6 @@ public class HRegionUtil extends BaseHRegionUtil {
         region.startRegionOperation();
     }
 
-    public static boolean lastElementIsLesser(KeyValueSkipListSet skipList, byte[] key) {
-        try {
-            KeyValue placeHolder = skipList.last();
-            if (placeHolder != null && Bytes.compareTo(placeHolder.getBuffer(), placeHolder.getKeyOffset(),
-                    placeHolder.getKeyLength(), key, 0, key.length) < 0) { // Skip
-                return true;
-            }
-            return false;
-        } catch (NoSuchElementException e) { // Empty KeyValueSkipListSet
-            return true;
-        }
-    }
-
     /**
      * Tests if the key exists in the memstore (hard match) or in the bloom filters (false positives allowed).  This
      * code is utilized via constraint checking and SI Write/Write conflict checking
@@ -82,15 +69,11 @@ public class HRegionUtil extends BaseHRegionUtil {
     }
 
     public static void updateWriteRequests(HRegion region, long numWrites) {
-        Counter writeRequestsCount = region.writeRequestsCount;
-        if (writeRequestsCount != null)
-            writeRequestsCount.add(numWrites);
+        HBasePlatformUtils.updateWriteRequests(region,numWrites);
     }
 
     public static void updateReadRequests(HRegion region, long numReads) {
-        Counter readRequestsCount = region.readRequestsCount;
-        if (readRequestsCount != null)
-            readRequestsCount.add(numReads);
+        HBasePlatformUtils.updateReadRequests(region,numReads);
     }
 
 
@@ -283,7 +266,7 @@ public class HRegionUtil extends BaseHRegionUtil {
                         SIConstants.SNAPSHOT_ISOLATION_COMMIT_TIMESTAMP_COLUMN_BYTES,
                         HConstants.LATEST_TIMESTAMP,
                         HConstants.EMPTY_BYTE_ARRAY);
-                return checkMemstore(HBasePrivateUtils.getKvset(hstore), key, kv) || checkMemstore(HBasePrivateUtils.getSnapshot(hstore), key, kv);
+                return checkMemstore(HBasePlatformUtils.getKvset(hstore), key, kv) || checkMemstore(HBasePlatformUtils.getSnapshot(hstore), key, kv);
             } catch (IOException ioe) {
                 ioe.printStackTrace();
                 throw ioe;
@@ -292,12 +275,12 @@ public class HRegionUtil extends BaseHRegionUtil {
             }
         }
 
-        protected boolean checkMemstore(KeyValueSkipListSet kvSet, byte[] key, Cell kv) {
+        protected boolean checkMemstore(NavigableSet<Cell> kvSet, byte[] key, Cell kv) {
             Cell placeHolder;
             try {
                 // FIXME: remove ref to private audience KeyValueSkipListSet and so remove cast
-                SortedSet<KeyValue> kvset = kvSet.tailSet((KeyValue)kv);
-                placeHolder = kvset.isEmpty() ? null : kvset.first();
+                SortedSet<? super Cell> kvset = kvSet.tailSet(kv);
+                placeHolder = kvset.isEmpty() ? null : (Cell)kvset.first();
                 if (placeHolder != null && CellUtil.matchingRow(placeHolder, key))
                     return true;
             } catch (NoSuchElementException ignored) {

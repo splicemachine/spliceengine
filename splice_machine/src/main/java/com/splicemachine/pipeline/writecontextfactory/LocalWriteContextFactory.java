@@ -1,38 +1,12 @@
 package com.splicemachine.pipeline.writecontextfactory;
 
-import com.google.common.collect.Lists;
-import com.splicemachine.concurrent.ResettableCountDownLatch;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.ddl.DDLChangeType;
-import com.splicemachine.derby.ddl.DDLCoordinationFactory;
-import com.splicemachine.derby.hbase.StatisticsWatcher;
-import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
-import com.splicemachine.derby.utils.DataDictionaryUtils;
-import com.splicemachine.pipeline.api.WriteContext;
-import com.splicemachine.pipeline.constraint.*;
-import com.splicemachine.pipeline.ddl.DDLChange;
-import com.splicemachine.pipeline.ddl.TentativeDDLDesc;
-import com.splicemachine.pipeline.exception.IndexNotSetUpException;
-import com.splicemachine.pipeline.writecontext.PipelineWriteContext;
-import com.splicemachine.pipeline.writehandler.IndexCallBufferFactory;
-import com.splicemachine.pipeline.writehandler.RegionWriteHandler;
-import com.splicemachine.pipeline.writehandler.StatisticsWriteHandler;
-import com.splicemachine.si.api.TransactionalRegion;
-import com.splicemachine.si.api.TxnView;
-import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.db.catalog.IndexDescriptor;
-import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.context.ContextManager;
-import com.splicemachine.db.iapi.services.context.ContextService;
-import com.splicemachine.db.iapi.sql.dictionary.*;
-import org.apache.hadoop.hbase.DoNotRetryIOException;
-import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.log4j.Logger;
+import static com.splicemachine.pipeline.writecontextfactory.ConglomerateDescriptors.isIndex;
+import static com.splicemachine.pipeline.writecontextfactory.ConglomerateDescriptors.isUniqueIndex;
+import static com.splicemachine.pipeline.writecontextfactory.ConglomerateDescriptors.numberFunction;
 
 import java.io.IOException;
 import java.sql.SQLException;
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -41,8 +15,54 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 
+import com.google.common.base.Optional;
+import com.google.common.collect.Iterables;
+import com.google.common.collect.Lists;
+import com.google.common.collect.Multimap;
+import com.google.common.collect.Multimaps;
+import org.apache.hadoop.hbase.DoNotRetryIOException;
+import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
+
+import com.splicemachine.concurrent.ResettableCountDownLatch;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.db.catalog.IndexDescriptor;
+import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.services.context.ContextService;
+import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptorList;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptorList;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.ForeignKeyConstraintDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.ReferencedKeyConstraintDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.derby.ddl.DDLChangeType;
+import com.splicemachine.derby.ddl.DDLCoordinationFactory;
+import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
+import com.splicemachine.derby.utils.DataDictionaryUtils;
+import com.splicemachine.pipeline.api.WriteContext;
+import com.splicemachine.pipeline.constraint.BatchConstraintChecker;
+import com.splicemachine.pipeline.constraint.ChainConstraintChecker;
+import com.splicemachine.pipeline.constraint.Constraint;
+import com.splicemachine.pipeline.constraint.ConstraintContext;
+import com.splicemachine.pipeline.constraint.PrimaryKeyConstraint;
+import com.splicemachine.pipeline.constraint.UniqueConstraint;
+import com.splicemachine.pipeline.ddl.DDLChange;
+import com.splicemachine.pipeline.ddl.TentativeDDLDesc;
+import com.splicemachine.pipeline.exception.IndexNotSetUpException;
+import com.splicemachine.pipeline.writecontext.PipelineWriteContext;
+import com.splicemachine.pipeline.writehandler.IndexCallBufferFactory;
+import com.splicemachine.pipeline.writehandler.RegionWriteHandler;
+import com.splicemachine.si.api.TransactionalRegion;
+import com.splicemachine.si.api.TxnView;
+import com.splicemachine.utils.SpliceLogUtils;
+
 /**
- * One instance of this class will exist per conglomerateId per JVM.  Holds state about whether its conglomerate
+ * One instance of this class will exist per conglomerate number per JVM.  Holds state about whether its conglomerate
  * has indexes and constraints, has columns that have been dropped, etc-- necessary information for performing writes
  * on the represented table/index.
  *
@@ -50,15 +70,30 @@ import java.util.concurrent.locks.ReentrantLock;
  *         Created on: 4/30/13
  */
 class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegion> {
-    private static final Logger LOG = Logger.getLogger(LocalWriteContextFactory.class);
 
+    private static final Logger LOG = Logger.getLogger(LocalWriteContextFactory.class);
     private static final long STARTUP_LOCK_BACKOFF_PERIOD = SpliceConstants.startupLockWaitPeriod;
 
+    /* Known as "conglomerate number" in the sys tables, this is the number of the physical table (hbase table) that
+     * users of this context write to. It may represent a base table or any one of several index tables for a base
+     * table. */
     private final long conglomId;
+
+    /* These factories create WriteHandlers that intercept writes to the htable for this context (a base table)
+     * transform them, and send them to a remote index table.. */
     private final List<LocalWriteFactory> indexFactories = new CopyOnWriteArrayList<>();
+
+    /* These create WriteHandlers that enforce constrains on the htable users of this context write to. */
     private final Set<ConstraintFactory> constraintFactories = new CopyOnWriteArraySet<>();
+
     private final Set<AlterTableWriteFactory> alterTableWriteFactories = new CopyOnWriteArraySet<>();
 
+    /**
+     * Foreign key WriteHandlers intercept writes to parent/child tables and send them to the corresponding parent/child
+     * table for existence checks. There is only one of each (rather than a collection) because these are only
+     * present when the enclosing context is for a FK backing index and there is always exactly one index for one FK
+     * constraint.
+     */
     private ForeignKeyChildInterceptWriteFactory foreignKeyChildInterceptWriteFactory;
     private ForeignKeyChildCheckWriteFactory foreignKeyChildCheckWriteFactory;
     private ForeignKeyParentInterceptWriteFactory foreignKeyParentInterceptWriteFactory;
@@ -212,6 +247,11 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
         }
     }
 
+    /**
+     * This is the write context for a base table and we are adding or replacing an IndexFactory for one specific
+     * index.  IndexFactory equality is based on the index conglomerate number so we end up with at most one IndexFactory
+     * per index on the base table (and at most one DropIndexFactory per index).
+     */
     private void replace(LocalWriteFactory newFactory) {
         synchronized (indexFactories) {
             for (int i = 0; i < indexFactories.size(); i++) {
@@ -270,6 +310,7 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
                     case ADD_COLUMN:
                     case ADD_PRIMARY_KEY:
                     case ADD_UNIQUE_CONSTRAINT:
+                    case DROP_PRIMARY_KEY:
                         alterTableWriteFactories.add(AlterTableWriteFactory.create(ddlChange));
                         break;
                     default:
@@ -280,7 +321,6 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
             }
         }
     }
-
 
     @Override
     public void close() {
@@ -360,6 +400,11 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
         }
     }
 
+    /**
+     * Called once as part of context initialization.
+     *
+     * @param td The table descriptor for the base table associated with the physical table this context writes to.
+     */
     private void startDirect(DataDictionary dataDictionary, TableDescriptor td, ConglomerateDescriptor cd) throws StandardException, IOException {
         boolean isSysConglomerate = td.getSchemaDescriptor().getSchemaName().equals("SYS");
         if (isSysConglomerate) {
@@ -368,27 +413,25 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
             return;
         }
 
-        //get primary key constraint
-        //-sf- Hbase scan
+        // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        // PART 1: Context configuration for PK, FK, and unique constraints using constraint descriptors.
+        //
+        // Here we configure the context to the extent possible using the related table's constraint
+        // descriptors.  The constraint descriptors (from sys.sysconstraints) provide limited
+        // information however-- see notes in part 2.
+        // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         int[] columnOrdering = null;
         int[] formatIds = DataDictionaryUtils.getFormatIds(td.getColumnDescriptorList());
         ConstraintDescriptorList constraintDescriptors = dataDictionary.getConstraintDescriptors(td);
-        for (int i = 0; i < constraintDescriptors.size(); i++) {
-            ConstraintDescriptor cDescriptor = constraintDescriptors.elementAt(i);
-            com.splicemachine.db.catalog.UUID conglomerateId = cDescriptor.getConglomerateId();
-            if (conglomerateId != null && td.getConglomerateDescriptor(conglomerateId).getConglomerateNumber() != conglomId)
+        for (ConstraintDescriptor cDescriptor : constraintDescriptors) {
+            UUID conglomerateId = cDescriptor.getConglomerateId();
+            if (conglomerateId != null && td.getConglomerateDescriptor(conglomerateId).getConglomerateNumber() != conglomId) {
                 continue;
+            }
 
             switch (cDescriptor.getConstraintType()) {
                 case DataDictionary.PRIMARYKEY_CONSTRAINT:
-                    int[] referencedColumns = cDescriptor.getReferencedColumns();
-                    if (referencedColumns != null && referencedColumns.length > 0) {
-                        columnOrdering = new int[referencedColumns.length];
-
-                        for (int j = 0; j < referencedColumns.length; ++j) {
-                            columnOrdering[j] = referencedColumns[j] - 1;
-                        }
-                    }
+                    columnOrdering = DataDictionaryUtils.getColumnOrdering(cDescriptor);
                     constraintFactories.add(buildPrimaryKey(cDescriptor));
                     buildForeignKeyCheckWriteFactory((ReferencedKeyConstraintDescriptor) cDescriptor);
                     break;
@@ -405,29 +448,64 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
             }
         }
 
-        //get Constraints list
-        ConglomerateDescriptorList congloms = td.getConglomerateDescriptorList();
-        for (ConglomerateDescriptor conglomDesc : congloms) {
-            if (conglomDesc.isIndex()) {
-                if (conglomDesc.getConglomerateNumber() == conglomId) {
-                    //we are an index, so just map a constraint rather than an attached index
-                    addIndexConstraint(td, conglomDesc);
-                    indexFactories.clear(); //safe to clear here because we don't chain indices
-                    break;
-                } else {
-                    replace(buildIndex(conglomDesc, constraintDescriptors, columnOrdering, formatIds));
+        // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        // PART 2: Context configuration for unique/non-unique indexes using conglomerate descriptors.
+        //
+        // Configure indices and unique-indices for this context using the conglomerate descriptors of
+        // table associated with this context.  We can only setup for non-unique indices this way,
+        // because they are not classified as constraints, and thus never have an entry in the constraints
+        // table. Why do we handle unique indices here then, instead of when iterating over constraints
+        // above?  There seems to be a bug (or bad design?) we inherited from derby wherein unique
+        // indices added by the "create index..." statement are not represented in the sys.sysconstraints
+        // table.  Consequently we can only account for them by considering conglomerates, as we do here.
+        // One last bit of derby weirdness is that multiple conglomerate descriptors can exist for the
+        // same conglomerate number (multiple rows in sys.sysconglomerates for the same conglomerate
+        // number.  This happens, for example, when a new FK constraint re-uses an existing unique or non-
+        // unique index.
+        // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+        // This is how we tell if the current context is being configured for a base or index table.
+        boolean isIndexTableContext = cd.isIndex();
+
+        //
+        // This is a context for an index.
+        //
+        if(isIndexTableContext) {
+            // we are an index, so just map a constraint rather than an attached index
+            addUniqueIndexConstraint(td, cd);
+            // safe to clear here because we don't chain indices -- we don't send index writes to other index tables.
+            indexFactories.clear();
+        }
+        //
+        // This is a context for a base table.
+        //
+        else {
+            Iterable<ConglomerateDescriptor> allCongloms = td.getConglomerateDescriptorList();
+            // Group by conglomerate number so that we create at most one index config for each conglom number.
+            Multimap<Long, ConglomerateDescriptor> numberToDescriptorMap = Multimaps.index(allCongloms, numberFunction());
+            for (Long conglomerateNumber : numberToDescriptorMap.keySet()) {
+                // The conglomerates just for the current conglomerate number.
+                Collection<ConglomerateDescriptor> currentCongloms = numberToDescriptorMap.get(conglomerateNumber);
+                // Is there an index?  How about a unique index?
+                Optional<ConglomerateDescriptor> indexConglom = Iterables.tryFind(currentCongloms, isIndex());
+                Optional<ConglomerateDescriptor> uniqueIndexConglom = Iterables.tryFind(currentCongloms, isUniqueIndex());
+                if (indexConglom.isPresent()) {
+                    // If this conglomerate number has a unique index conglomerate then the underlying storage (hbase
+                    // table) is encoded as a unique index, so use the unique conglom.  Otherwise just use the first
+                    // conglom descriptor for the current conglom number.
+                    ConglomerateDescriptor srcConglomDesc = uniqueIndexConglom.isPresent() ? uniqueIndexConglom.get() : currentCongloms.iterator().next();
+                    IndexDescriptor indexDescriptor = srcConglomDesc.getIndexDescriptor().getIndexDescriptor();
+                    IndexFactory indexFactory = IndexFactory.create(srcConglomDesc.getConglomerateNumber(), indexDescriptor, columnOrdering, formatIds);
+                    replace(indexFactory);
                 }
             }
         }
 
-        //check ourself for any additional constraints, but only if it's not present already
-        if (!congloms.contains(cd) && cd.isIndex()) {
-            //if we have a constraint, use it
-            addIndexConstraint(td, cd);
-            indexFactories.clear();
-        }
-
-        // check tentative indexes
+        // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+        // PART 3: check tentative indexes
+        //
+        //
+        // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
         for (DDLChange ddlChange : DDLCoordinationFactory.getWatcher().getTentativeDDLs()) {
             TentativeDDLDesc ddlDesc = ddlChange.getTentativeDDLDesc();
             TxnView txn = ddlChange.getTxn();
@@ -450,6 +528,7 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
                     case ADD_COLUMN:
                     case ADD_PRIMARY_KEY:
                     case ADD_UNIQUE_CONSTRAINT:
+                    case DROP_PRIMARY_KEY:
                         if (ddlDesc.getBaseConglomerateNumber() == conglomId)
                             alterTableWriteFactories.add(AlterTableWriteFactory.create(ddlChange));
                         break;
@@ -499,12 +578,13 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
         constraintFactories.add(new ConstraintFactory(new UniqueConstraint(cc)));
     }
 
-    private void addIndexConstraint(TableDescriptor td, ConglomerateDescriptor conglomDesc) {
+    private void addUniqueIndexConstraint(TableDescriptor td, ConglomerateDescriptor conglomDesc) {
         IndexDescriptor indexDescriptor = conglomDesc.getIndexDescriptor().getIndexDescriptor();
         if (indexDescriptor.isUnique()) {
             //make sure it's not already in the constraintFactories
             for (ConstraintFactory constraintFactory : constraintFactories) {
                 if (constraintFactory.getLocalConstraint().getType() == Constraint.Type.UNIQUE) {
+                    // TODO: JC-  Do we need this check anymore since we're no longer calling method inside of a loop?
                     return; //we've found a local unique constraint, don't need to add it more than once
                 }
             }
@@ -513,32 +593,7 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
         }
     }
 
-    private IndexFactory buildIndex(ConglomerateDescriptor conglomDesc, ConstraintDescriptorList constraints,
-                                    int[] columnOrdering, int[] typeIds) {
-        IndexRowGenerator irg = conglomDesc.getIndexDescriptor();
-        IndexDescriptor indexDescriptor = irg.getIndexDescriptor();
-        if (indexDescriptor.isUnique())
-            return IndexFactory.create(conglomDesc.getConglomerateNumber(), indexDescriptor, columnOrdering, typeIds);
-
-        /*
-         * just because the conglom descriptor doesn't claim it's unique, doesn't mean that it isn't
-         * actually unique. You also need to check the ConstraintDescriptor (if there is one) to see
-         * if it has the proper type
-         */
-        for (Object constraint1 : constraints) {
-            ConstraintDescriptor constraint = (ConstraintDescriptor) constraint1;
-            UUID conglomerateId = constraint.getConglomerateId();
-            if (constraint.getConstraintType() == DataDictionary.UNIQUE_CONSTRAINT &&
-                    (conglomerateId != null && conglomerateId.equals(conglomDesc.getUUID()))) {
-                return IndexFactory.create(conglomDesc.getConglomerateNumber(), indexDescriptor,
-                        true, false, columnOrdering, typeIds);
-            }
-        }
-
-        return IndexFactory.create(conglomDesc.getConglomerateNumber(), indexDescriptor, columnOrdering, typeIds);
-    }
-
-    private ConstraintFactory buildPrimaryKey(ConstraintDescriptor cDescriptor) {
+    private static ConstraintFactory buildPrimaryKey(ConstraintDescriptor cDescriptor) {
         ConstraintContext cc = ConstraintContext.primaryKey(cDescriptor);
         return new ConstraintFactory(new PrimaryKeyConstraint(cc));
     }

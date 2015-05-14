@@ -38,11 +38,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.iapi.types.StringDataValue;
 import com.splicemachine.db.iapi.services.cache.ClassSize;
-import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
-import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
-import com.splicemachine.derby.impl.store.access.base.SpliceScan;
 import com.splicemachine.db.impl.store.access.conglomerate.ConglomerateUtil;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;

@@ -7,6 +7,7 @@ import com.splicemachine.si.api.*;
 import com.splicemachine.si.impl.*;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
@@ -66,15 +67,15 @@ public abstract class SIBaseObserver extends BaseRegionObserver {
     }
 
     @Override
-    public void preGet(ObserverContext<RegionCoprocessorEnvironment> e, Get get, List<KeyValue> results) throws IOException {
+    public void preGetOp(ObserverContext<RegionCoprocessorEnvironment> e,Get get,List<Cell> results) throws IOException{
         SpliceLogUtils.trace(LOG, "preGet %s", get);
         if (tableEnvMatch && shouldUseSI(get)) {
             HTransactorFactory.getTransactionReadController().preProcessGet(get);
             assert (get.getMaxVersions() == Integer.MAX_VALUE);
             addSIFilterToGet(get);
         }
-        SpliceLogUtils.trace(LOG, "preGet after %s", get);        
-        super.preGet(e, get, results);
+        SpliceLogUtils.trace(LOG, "preGet after %s", get);
+        super.preGetOp(e,get,results);
     }
 
     @Override
