@@ -45,7 +45,7 @@ public class TimestampV2DescriptorSerializer extends TimestampV1DescriptorSerial
     public static long formatLong(Timestamp timestamp) throws StandardException {
         long millis = timestamp.getTime();
         if (millis > MAX_TIMESTAMP || millis < MIN_TIMESTAMP) {
-            throw StandardException.newException(SQLState.LANG_DATE_TIME_ARITHMETIC_OVERFLOW, timestamp);
+            throw StandardException.newException(SQLState.LANG_DATE_TIME_ARITHMETIC_OVERFLOW, timestamp.toString());
         }
 
         long micros = timestamp.getNanos() / NANOS_TO_MICROS;
