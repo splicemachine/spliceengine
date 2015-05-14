@@ -53,7 +53,7 @@ public class MergeWindowFunction<Op extends WindowOperation> extends SpliceFlatM
         Iterable<LocatedRow> locatedRows = tuple._2();
         List<LocatedRow> partitionRows = Lists.newArrayList(locatedRows);
         WindowContext windowContext = operationContext.getOperation().getWindowContext();
-        sort(partitionRows, new LocatedRowComparator(windowContext.getKeyOrders()));
+        sort(partitionRows, new LocatedRowComparator(windowContext.getKeyColumns(), windowContext.getKeyOrders()));
 
         /// window logic
         final WindowFrameBuffer frameBuffer = BaseFrameBuffer.createFrameBuffer(
@@ -72,10 +72,10 @@ public class MergeWindowFunction<Op extends WindowOperation> extends SpliceFlatM
     }
 
     private class LocatedRowComparator implements Comparator<LocatedRow> {
-        private final RowComparator rowComparator;
+        private final ColumnComparator rowComparator;
 
-        public LocatedRowComparator(boolean[] keyOrders) {
-            this.rowComparator = new RowComparator(keyOrders, false);
+        public LocatedRowComparator(int[] keyColumns, boolean[] keyOrders) {
+            this.rowComparator = new ColumnComparator(keyColumns, keyOrders, false);
         }
 
         @Override

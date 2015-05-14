@@ -80,13 +80,7 @@ abstract public class BaseFrameBuffer implements WindowFrameBuffer{
         return result;
     }
 
-    public boolean hasNext() {
-        if (consumed) {
-            return false;
-        }
-        if (currentRow != null) {
-            return true;
-        }
+    private ExecRow nextInternal() {
         ExecRow row;
         try {
             if (!initialized) {
@@ -94,9 +88,8 @@ abstract public class BaseFrameBuffer implements WindowFrameBuffer{
                 initialized = true;
             }
             if (current >= rows.size()) {
-                currentRow = null;
                 consumed = true;
-                return false;
+                return null;
             }
             row = rows.get(current);
             for (WindowAggregator aggregator : aggregators) {
@@ -106,13 +99,35 @@ abstract public class BaseFrameBuffer implements WindowFrameBuffer{
                 SpliceGenericWindowFunction function = (SpliceGenericWindowFunction) templateRow.getColumn(aggregatorColumnId).getObject();
                 row.setColumn(resultColumnId, function.getResult().cloneValue(false));
             }
-            move();
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        currentRow = row;
+        return row;
+    }
+
+    public boolean hasNext() {
+        if (consumed) {
+            return false;
+        }
+        if (currentRow != null) {
+            return true;
+        }
+        currentRow = nextInternal();
+        if (currentRow == null && source.hasNext()) {
+            // next frame
+            initialized = false;
+            currentRow = nextInternal();
+        }
+
+
         if (currentRow == null) {
             consumed = true;
+        } else {
+            try {
+                move();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
         }
         return currentRow != null;
     }
