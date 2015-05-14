@@ -300,5 +300,9 @@ public class SnapshotUtilsImpl implements SnapshotUtils {
      */
     public boolean isCurrentRegion(HRegion region, HRegionInfo regInfo) {		
 		return region.getRegionNameAsString().equals(regInfo.getRegionNameAsString());
-	}	    
+	}
+
+    public static HFileLink newLink(Configuration conf, Path path) throws IOException{
+        return new HFileLink(conf,path);
+    }
 }
