@@ -222,6 +222,8 @@
 								<option>-keep public class com.splicemachine.si.impl.TxnDataStore { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.TxnFilter { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.TxnRegion { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.TxnUtils { public *; }</option>
+								<option>-keep public class com.splicemachine.si.impl.TxnViewBuilder { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.UnsupportedLifecycleManager { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.UpdatingTxnFilter { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.WritableTxn { public *; }</option>
