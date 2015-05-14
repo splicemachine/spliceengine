@@ -1165,6 +1165,7 @@ public interface SQLState {
     // date, timestamp arithmetic error msgs
     String LANG_DATE_TIME_MULT_DIV_PROHIBITED                           = "44001";
     String LANG_DATE_TIME_ADDITION_PROHIBITED                           = "44002";
+    String LANG_DATE_TIME_ARITHMETIC_OVERFLOW                           = "44003";
 
     // com.splicemachine.db.impl.sql.execute.rts
 	String RTS_ATTACHED_TO											   = "43X00.U";

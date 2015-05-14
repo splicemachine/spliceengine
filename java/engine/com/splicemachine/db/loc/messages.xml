@@ -3075,6 +3075,12 @@ Guide.
               <text>{0}s cannot be added. The operation is undefined.</text>
               <arg>dateOrTimestamp</arg>
             </msg>
+
+            <msg>
+                <name>44003</name>
+                <text>Timestamp '{0}' is out of range.</text>
+                <arg>dateOrTimestamp</arg>
+            </msg>
         </family>
 
 
