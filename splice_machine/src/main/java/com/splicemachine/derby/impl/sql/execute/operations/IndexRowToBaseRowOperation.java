@@ -4,6 +4,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.base.Strings;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
@@ -17,7 +18,6 @@ import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
-import com.splicemachine.derby.stream.function.SpliceFunction;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
@@ -508,14 +508,18 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 
 		@Override
 		public Iterable<LocatedRow> call(Iterator<LocatedRow> locatedRowIterator) throws Exception {
-			if (!locatedRowIterator.hasNext()) {
-				return Collections.emptyList();
-			}
+			Iterable<LocatedRow> returnIterable = Collections.emptyList();
+            if (!locatedRowIterator.hasNext())
+				return returnIterable;
 			List<LocatedRow> batch = new ArrayList<>(SpliceConstants.indexBatchSize);
-			while (locatedRowIterator.hasNext() && batch.size() < SpliceConstants.indexBatchSize) {
+			while (locatedRowIterator.hasNext()) {
 				batch.add(locatedRowIterator.next());
+                if (batch.size() >= SpliceConstants.indexBatchSize) {
+                    returnIterable = Iterables.concat(returnIterable, fetch(batch));
+                    batch.clear();
+                }
 			}
-			return fetch(batch);
+			return returnIterable = Iterables.concat(returnIterable,fetch(batch));
 		}
 	}
 }
