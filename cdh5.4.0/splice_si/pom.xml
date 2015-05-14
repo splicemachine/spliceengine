@@ -141,6 +141,7 @@
 								<option>-keep public class com.splicemachine.si.api.TransactionStatus { public *; }</option>
 								<option>-keep public class com.splicemachine.si.api.TransactionStorage { public *; }</option>
 								<option>-keep public class com.splicemachine.si.api.TransactionTimeoutException { public *; }</option>
+								<option>-keep public class com.splicemachine.si.api.TransactionTimestamps { public *; }</option>
 								<option>-keep public class com.splicemachine.si.api.TransactionalFilter { public *; }</option>
 								<option>-keep public class com.splicemachine.si.api.TransactionalRegion { public *; }</option>
 								<option>-keep public class com.splicemachine.si.api.Transactor { public *; }</option>
