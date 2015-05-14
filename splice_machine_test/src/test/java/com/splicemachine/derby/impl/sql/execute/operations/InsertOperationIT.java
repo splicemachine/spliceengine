@@ -297,6 +297,7 @@ public class InsertOperationIT {
         int i = 0;
         while (rs.next()) {
             i++;
+        //    System.out.println("rs -> " + rs.getInt(1));
             Assert.assertTrue("These numbers should be contiguous", rs.getInt(1) >= 1 && rs.getInt(1) <= 4);
         }
         Assert.assertEquals("Should have returned 4 rows from identity insert", 4, i);

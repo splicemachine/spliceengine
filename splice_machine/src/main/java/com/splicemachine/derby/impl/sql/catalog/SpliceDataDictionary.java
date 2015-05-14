@@ -32,11 +32,7 @@ import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.tools.version.ManifestReader;
 import com.splicemachine.tools.version.SpliceMachineVersion;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.utils.ZkUtils;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
@@ -57,15 +53,11 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     private volatile TabInfoImpl backupStatesTable=null;
     private volatile TabInfoImpl backupJobsTable=null;
     private volatile TabInfoImpl taskHistoryTable=null;
-
     private volatile TabInfoImpl tableStatsTable=null;
     private volatile TabInfoImpl columnStatsTable=null;
     private volatile TabInfoImpl physicalStatsTable=null;
-
     private Splice_DD_Version spliceSoftwareVersion;
-    private HTableInterface spliceSequencesTable;
     private Properties defaultProperties;
-
     public static final String SPLICE_DATA_DICTIONARY_VERSION="SpliceDataDictionaryVersion";
     private volatile StatisticsStore statsStore;
 
@@ -482,15 +474,11 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
             byte[] rlBytes=rowLocation[0].getBytes();
 
-            if(spliceSequencesTable==null){
-                spliceSequencesTable=SpliceAccessManager.getHTable(SpliceConstants.SEQUENCE_TABLE_NAME_BYTES);
-            }
-
             long start=sequenceDescriptor[0].getStartValue();
             long increment=sequenceDescriptor[0].getIncrement();
 
             SpliceSequence sequence=SpliceDriver.driver().getSequencePool().
-                    get(new SpliceSequenceKey(spliceSequencesTable,rlBytes,start,increment,1l));
+                    get(new SpliceSequenceKey(rlBytes,start,increment,1l));
 
             returnValue.setValue(sequence.getNext());
 

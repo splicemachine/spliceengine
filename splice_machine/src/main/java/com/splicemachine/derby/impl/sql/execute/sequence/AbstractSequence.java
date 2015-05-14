@@ -1,19 +1,17 @@
 package com.splicemachine.derby.impl.sql.execute.sequence;
 
-import java.io.IOException;
+import java.io.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
-
 import com.splicemachine.db.iapi.error.StandardException;
-
 import com.splicemachine.pipeline.exception.Exceptions;
 
-public abstract class AbstractSequence implements Sequence {
+public abstract class AbstractSequence implements Sequence, Externalizable {
 	protected final AtomicLong remaining = new AtomicLong(0l);
     protected final AtomicLong currPosition = new AtomicLong(0l);
-    protected final long blockAllocationSize;
-    protected final long incrementSteps;
+    protected long blockAllocationSize;
+    protected long incrementSteps;
     protected final Lock updateLock = new ReentrantLock();
 	protected long startingValue;
 
@@ -58,5 +56,19 @@ public abstract class AbstractSequence implements Sequence {
             }
         }
     }
-    
+
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        out.writeLong(blockAllocationSize);
+        out.writeLong(incrementSteps);
+        out.writeLong(startingValue);
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        blockAllocationSize = in.readLong();
+        incrementSteps = in.readLong();
+        startingValue = in.readLong();
+    }
 }

@@ -7,6 +7,7 @@ import java.util.*;
 import com.google.common.base.Strings;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
+import com.splicemachine.db.impl.sql.execute.BaseActivation;
 import com.splicemachine.derby.stream.function.ProjectRestrictFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
@@ -202,9 +203,12 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 						// Set the default values to 1.  This is to avoid division by zero if any of the projected columns have
 						// division or modulus operators.  The delegate classes will need to reset the values to 0.
                         if(clone!=null) SpliceUtils.populateDefaultValues(clone.getRowArray(),1);
+                        // Keeps Sequences from incrementing when doing an execRowDefiniton evaluation: hack
+                        ((BaseActivation) activation).setIgnoreSequence(true);
 						source.setCurrentRow(clone);
 						execRowDefinition = doProjection(clone);
-                    }
+                    ((BaseActivation) activation).setIgnoreSequence(false);
+                }
                     SpliceUtils.resultValuesToNull(execRowDefinition.getRowArray());
 				return execRowDefinition;
 		}

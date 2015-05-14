@@ -1,16 +1,11 @@
 package com.splicemachine.derby.stream.temporary.insert;
 
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
-import com.splicemachine.derby.impl.sql.execute.sequence.SpliceIdentityColumnKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
-import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
@@ -19,11 +14,9 @@ import com.splicemachine.metrics.Metrics;
 import com.splicemachine.pipeline.api.RecordingCallBuffer;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.pipeline.impl.WriteCoordinator;
-import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.Pair;
-import org.apache.hadoop.hbase.client.HTableInterface;
 import java.util.Iterator;
 
 /**
@@ -32,7 +25,6 @@ import java.util.Iterator;
 public class InsertTableWriter implements AutoCloseable {
     protected int[] pkCols;
     protected String tableVersion;
-    protected HTableInterface sysColumnTable;
     protected ExecRow execRowDefinition;
     protected RowLocation[] autoIncrementRowLocationArray;
     protected Pair<Long,Long>[] defaultAutoIncrementValues;
@@ -50,13 +42,13 @@ public class InsertTableWriter implements AutoCloseable {
     protected InsertOperation insertOperation;
 
     public InsertTableWriter(int[] pkCols, String tableVersion, ExecRow execRowDefinition,
-                             RowLocation[] autoIncrementRowLocationArray,Pair<Long,Long>[] defaultAutoIncrementValues,
+                             RowLocation[] autoIncrementRowLocationArray,SpliceSequence[] spliceSequences,
                              long heapConglom, TxnView txn, InsertOperation insertOperation) {
         this.pkCols = pkCols;
         this.tableVersion = tableVersion;
         this.execRowDefinition = execRowDefinition;
         this.autoIncrementRowLocationArray = autoIncrementRowLocationArray;
-        this.defaultAutoIncrementValues = defaultAutoIncrementValues;
+        this.spliceSequences = spliceSequences;
         this.heapConglom = heapConglom;
         this.txn = txn;
         this.insertOperation = insertOperation;
@@ -66,19 +58,7 @@ public class InsertTableWriter implements AutoCloseable {
     public void open() throws StandardException {
         destinationTable = Long.toString(heapConglom).getBytes();
         try {
-            HTableInterface sysColumnTable = null;
-            spliceSequences = new SpliceSequence[autoIncrementRowLocationArray.length];
-            for (int i = 0; i < autoIncrementRowLocationArray.length; i++) {
-                int columnPosition = i + 1;
-                if (i == 0)
-                    sysColumnTable = SpliceAccessManager.getHTable(SpliceConstants.SEQUENCE_TABLE_NAME_BYTES);
-                HBaseRowLocation rl = (HBaseRowLocation) autoIncrementRowLocationArray[i];
-                byte[] rlBytes = rl.getBytes();
-                spliceSequences[0] = SpliceDriver.driver().getSequencePool().get(new SpliceIdentityColumnKey(
-                        sysColumnTable, rlBytes,
-                        heapConglom, columnPosition, incrementBatch, defaultAutoIncrementValues[i].getFirst(),
-                        defaultAutoIncrementValues[i].getSecond()));
-            }
+
             writeCoordinator = SpliceDriver.driver().getTableWriter();
             writeBuffer = writeCoordinator.writeBuffer(destinationTable,
                     txn, Metrics.noOpMetricFactory());
@@ -93,8 +73,6 @@ public class InsertTableWriter implements AutoCloseable {
         try {
             writeBuffer.flushBuffer();
             writeBuffer.close();
-            if (sysColumnTable != null)
-                sysColumnTable.close();
         } catch (Exception e) {
             throw Exceptions.parseException(e);
         }
@@ -133,14 +111,14 @@ public class InsertTableWriter implements AutoCloseable {
         }
         return new KeyEncoder(prefix,dataHash,postfix);
     }
-
+/* Hive Auto Increment Writing
     public DataValueDescriptor increment(int columnPosition, long increment) throws StandardException {
         long nextIncrement = spliceSequences[columnPosition-1].getNext();
         DataValueDescriptor dvd = execRowDefinition.cloneColumn(columnPosition);
         dvd.setValue(nextIncrement);
         return dvd;
     }
-
+*/
     public DataHash getRowHash() throws StandardException {
         //get all columns that are being set
         int[] columns = getEncodingColumns(execRowDefinition.nColumns(),pkCols);

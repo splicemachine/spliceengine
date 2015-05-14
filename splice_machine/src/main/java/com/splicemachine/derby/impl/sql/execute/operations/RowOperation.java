@@ -6,6 +6,8 @@ import java.io.ObjectOutput;
 import java.util.Collections;
 import java.util.List;
 import com.google.common.base.Strings;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.stream.function.SpliceFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.pipeline.exception.Exceptions;
@@ -219,6 +221,12 @@ public class RowOperation extends SpliceBaseOperation {
 
        @Override
         public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-            return dsp.singleRowDataSet(new LocatedRow(getRow()));
+            return dsp.singleRowDataSet(new LocatedRow(new ValueRow(1)))
+                    .map(new SpliceFunction<SpliceOperation,LocatedRow,LocatedRow>(dsp.createOperationContext(this)) {
+                        @Override
+                        public LocatedRow call(LocatedRow o) throws Exception {
+                            return new LocatedRow(getRow());
+                        }
+                    });
         }
 }

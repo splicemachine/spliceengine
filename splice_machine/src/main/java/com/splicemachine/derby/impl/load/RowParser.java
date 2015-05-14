@@ -78,8 +78,7 @@ public class RowParser {
 				for(int i=0;i< columnInformation.length;i++){
 						ColumnContext cc = columnInformation[i];
 						if(columnInformation[i].isAutoIncrement()){
-								sequences[i] = new SpliceSequence(SpliceAccessManager.getHTable(SpliceConstants.SEQUENCE_TABLE_NAME_BYTES),
-												50*cc.getAutoIncrementIncrement(),
+								sequences[i] = new SpliceSequence(50*cc.getAutoIncrementIncrement(),
 												cc.getSequenceRowLocation(),
 												cc.getAutoIncrementStart(),
 												cc.getAutoIncrementIncrement());

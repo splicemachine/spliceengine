@@ -5,9 +5,9 @@ import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
+import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.TxnView;
-import com.splicemachine.utils.Pair;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.hadoop.hbase.util.Base64;
 import java.io.Externalizable;
@@ -24,7 +24,7 @@ public class InsertTableWriterBuilder implements Externalizable {
     protected int[] execRowTypeFormatIds;
     protected ExecRow execRowDefinition;
     protected RowLocation[] autoIncrementRowLocationArray;
-    protected Pair<Long,Long>[] defaultAutoIncrementValues;
+    protected SpliceSequence[] spliceSequences;
     protected long heapConglom;
     protected TxnView txn;
     protected InsertOperation insertOperation;
@@ -36,6 +36,11 @@ public class InsertTableWriterBuilder implements Externalizable {
 
     public InsertTableWriterBuilder insertOperation(InsertOperation insertOperation) {
         this.insertOperation = insertOperation;
+        return this;
+    }
+
+    public InsertTableWriterBuilder spliceSequences(SpliceSequence[] spliceSequences) {
+        this.spliceSequences = spliceSequences;
         return this;
     }
 
@@ -60,11 +65,6 @@ public class InsertTableWriterBuilder implements Externalizable {
         return this;
     }
 
-    public InsertTableWriterBuilder defaultAutoIncrementValues(Pair<Long,Long>[] defaultAutoIncrementValues) {
-        this.defaultAutoIncrementValues = defaultAutoIncrementValues;
-        return this;
-    }
-
     public InsertTableWriterBuilder heapConglom(long heapConglom) {
         this.heapConglom = heapConglom;
         return this;
@@ -85,11 +85,9 @@ public class InsertTableWriterBuilder implements Externalizable {
             out.writeInt(autoIncrementRowLocationArray.length);
             for (int i = 0; i < autoIncrementRowLocationArray.length; i++)
                 out.writeObject(autoIncrementRowLocationArray[i]);
-            out.writeInt(defaultAutoIncrementValues.length);
-            for (int i =0; i< defaultAutoIncrementValues.length; i++) {
-                Pair<Long,Long> defaultValues = defaultAutoIncrementValues[i];
-                out.writeLong(defaultValues.getFirst());
-                out.writeLong(defaultValues.getSecond());
+            out.writeInt(spliceSequences.length);
+            for (int i =0; i< spliceSequences.length; i++) {
+                out.writeObject(spliceSequences[i]);
             }
             out.writeLong(heapConglom);
         } catch (Exception e) {
@@ -107,9 +105,9 @@ public class InsertTableWriterBuilder implements Externalizable {
         autoIncrementRowLocationArray = new RowLocation[in.readInt()];
         for (int i = 0; i < autoIncrementRowLocationArray.length; i++)
             autoIncrementRowLocationArray[i] = (RowLocation) in.readObject();
-        defaultAutoIncrementValues = new Pair[in.readInt()];
-        for (int i =0; i< defaultAutoIncrementValues.length; i++)
-            defaultAutoIncrementValues[i] = new Pair<>(in.readLong(),in.readLong());
+        spliceSequences = new SpliceSequence[in.readInt()];
+        for (int i =0; i< spliceSequences.length; i++)
+            spliceSequences[i] = (SpliceSequence) in.readObject();
         heapConglom = in.readLong();
     }
 
@@ -124,7 +122,7 @@ public class InsertTableWriterBuilder implements Externalizable {
 
     public InsertTableWriter build() throws StandardException {
         return new InsertTableWriter(pkCols, tableVersion, execRowDefinition,
-                    autoIncrementRowLocationArray,defaultAutoIncrementValues,
+                    autoIncrementRowLocationArray,spliceSequences,
                     heapConglom,txn,insertOperation);
     }
 
