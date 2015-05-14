@@ -49,15 +49,19 @@ public class StatementManager implements StatementManagement{
         }
     }
 
+    private boolean isNullSql(StatementInfo statementInfo) {
+    	return statementInfo.getSql() == null || statementInfo.getSql().equals("null") || statementInfo.getSql().isEmpty();
+    }
+    
     public void addStatementInfo(StatementInfo statementInfo) {
 		if (!executingStatements.add(statementInfo)) {
         	// Even this 'failure' is logged at trace level, because it's normal
-	        if (LOG.isTraceEnabled()) {
+	        if (!isNullSql(statementInfo) && LOG.isTraceEnabled()) {
 			    LOG.trace(String.format("Failed to add executing stmt (numExecStmts=%s): %s", executingStatements.size(), statementInfo));
 	        }
 	        return;
 		}
-        if (LOG.isTraceEnabled()) {
+        if (!isNullSql(statementInfo) && LOG.isTraceEnabled()) {
 			LOG.trace(String.format("Added to executing stmts (numExecStmts=%s): %s", executingStatements.size(), statementInfo));
         }
         return;
@@ -66,11 +70,11 @@ public class StatementManager implements StatementManagement{
     private void removeStatementInfo(StatementInfo statementInfo) {
 	    if (!executingStatements.remove(statementInfo)) {
 	    	// Even this 'failure' is logged at trace level, because it's normal
-	        if (LOG.isTraceEnabled()) {
+	        if (!isNullSql(statementInfo) && LOG.isTraceEnabled()) {
 	        	LOG.trace(String.format("Failed to remove executing stmt (numExecStmts=%s): %s", executingStatements.size(), statementInfo));
 	        }
 		} else {
-	        if (LOG.isTraceEnabled()) {
+	        if (!isNullSql(statementInfo) && LOG.isTraceEnabled()) {
 				LOG.trace(String.format("Removed executing stmt (numExecStmts=%s): %s", executingStatements.size(), statementInfo));
 	        }
 		}
