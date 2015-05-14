@@ -938,41 +938,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
             double optimizerEstimatedRowCount, double optimizerEstimatedCost,
             String parentResultSetId, long fkIndexConglomId,
             int fkColArrayItem, int rltItem) throws StandardException {
-        SpliceLogUtils.trace(LOG, "getRaDependentTableScanResultSet");
-        StaticCompiledOpenConglomInfo scoci = (StaticCompiledOpenConglomInfo)(activation.getPreparedStatement().
-                getSavedObject(scociItem));
-        SpliceOperation op =  new DependentOperation(
-                conglomId,
-                scoci,
-                activation,
-                resultRowAllocator,
-                resultSetNumber,
-                startKeyGetter,
-                startSearchOperator,
-                stopKeyGetter,
-                stopSearchOperator,
-                sameStartStopPosition,
-                rowIdKey,
-                qualifiersField,
-                tableName,
-                userSuppliedOptimizerOverrides,
-                indexName,
-                isConstraint,
-                forUpdate,
-                colRefItem,
-                lockMode,
-                tableLocked,
-                isolationLevel,
-                1,
-                oneRowScan,
-                optimizerEstimatedRowCount,
-                optimizerEstimatedCost,
-                parentResultSetId,
-                fkIndexConglomId,
-                fkColArrayItem,
-                rltItem);
-
-        return new ConversionResultSet(op,activation);
+        throw new UnsupportedOperationException("Dependant operation is not implemented");
     }
 
     @Override
@@ -989,45 +955,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
             double optimizerEstimatedRowCount, double optimizerEstimatedCost,
             String parentResultSetId, long fkIndexConglomId,
             int fkColArrayItem, int rltItem) throws StandardException {
-<<<<<<< HEAD
         throw new UnsupportedOperationException("Dependant operation is not implemented");
-=======
-        SpliceLogUtils.trace(LOG, "getRaDependentTableScanResultSet");
-        StaticCompiledOpenConglomInfo scoci = (StaticCompiledOpenConglomInfo)(activation.getPreparedStatement().
-                getSavedObject(scociItem));
-        SpliceOperation op =  new DependentOperation(
-                conglomId,
-                scoci,
-                activation,
-                resultRowAllocator,
-                resultSetNumber,
-                startKeyGetter,
-                startSearchOperator,
-                stopKeyGetter,
-                stopSearchOperator,
-                sameStartStopPosition,
-                false,
-                qualifiersField,
-                tableName,
-                userSuppliedOptimizerOverrides,
-                indexName,
-                isConstraint,
-                forUpdate,
-                colRefItem,
-                lockMode,
-                tableLocked,
-                isolationLevel,
-                1,
-                oneRowScan,
-                optimizerEstimatedRowCount,
-                optimizerEstimatedCost,
-                parentResultSetId,
-                fkIndexConglomId,
-                fkColArrayItem,
-                rltItem);
-
-        return new ConversionResultSet(op,activation);
->>>>>>> master
     }
 
     @Override
