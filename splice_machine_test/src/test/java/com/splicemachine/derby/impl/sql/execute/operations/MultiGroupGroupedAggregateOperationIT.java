@@ -43,8 +43,8 @@ public class MultiGroupGroupedAggregateOperationIT extends SpliceUnitTest {
 			protected void starting(Description description) {
 				try {
 					PreparedStatement ps = spliceClassWatcher.prepareStatement(String.format("insert into %s.%s (uname, fruit,bushels) values (?,?,?)", CLASS_NAME, TABLE_NAME));
-					List<String> fruits = Arrays.asList("strawberries");//,"bananas","cherries");
-					List<String> users = Arrays.asList("jzhang");//,"sfines","jleach");
+					List<String> fruits = Arrays.asList("strawberries","bananas","cherries");
+					List<String> users = Arrays.asList("jzhang","sfines","jleach");
 					for(int i=0;i< size;i++){
 						List<Integer> values = Arrays.asList(i*5,i*10,i*15);
 						for(String user:users){
@@ -105,7 +105,7 @@ public class MultiGroupGroupedAggregateOperationIT extends SpliceUnitTest {
         for(String result:results){
             LOG.info(result);
         }
-        Assert.assertEquals("Incorrect number of rows returned",size,results.size());
+        Assert.assertEquals("Incorrect number of rows returned",18,results.size());
 
     }
 
