@@ -92,6 +92,7 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 	private	LanguageConnectionContext	lcc;
 	protected ContextManager			cm;
 	protected DataValueFactory dvf;
+    public boolean ignoreSequence = false;
     public enum DataSetProcessorType {
         SPARK, CONTROL, LEGACY
     }
@@ -226,7 +227,15 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 
     protected boolean isTraced;
 
-	protected BaseActivation()
+    public boolean ignoreSequence() {
+        return ignoreSequence;
+    }
+
+    public void setIgnoreSequence(boolean ignoreSequence) {
+        this.ignoreSequence = ignoreSequence;
+    }
+
+    protected BaseActivation()
 	{
 		super();
 	}
