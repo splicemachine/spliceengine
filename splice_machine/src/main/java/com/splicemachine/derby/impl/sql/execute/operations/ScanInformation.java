@@ -58,7 +58,7 @@ interface ScanInformation<T> {
 
     long getConglomerateId();
     
-    List<Scan> getScans(TxnView txn, ExecRow startKeyOverride, Activation activation, SpliceOperation top, SpliceRuntimeContext spliceRuntimeContext) throws StandardException;
+    List<Scan> getScans(TxnView txn, ExecRow startKeyOverride, Activation activation) throws StandardException;
 
     int[] getColumnOrdering() throws StandardException;
 

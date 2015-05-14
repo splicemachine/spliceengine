@@ -522,7 +522,7 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
     }
 
     @Override
-    public List<Scan> getScans(TxnView txn, ExecRow startKeyOverride, Activation activation, SpliceOperation top, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    public List<Scan> getScans(TxnView txn, ExecRow startKeyOverride, Activation activation) throws StandardException {
         throw new RuntimeException("getScans is not supported");
     }
 

@@ -66,7 +66,7 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
 	}
 
 	@Override
-    public List<Scan> getScans(TxnView txn, ExecRow startKeyOverride, Activation activation, SpliceOperation top, SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    public List<Scan> getScans(TxnView txn, ExecRow startKeyOverride, Activation activation) throws StandardException {
         /*
          * We must build the proper scan here in pieces
          */
@@ -81,7 +81,6 @@ public class MultiProbeDerbyScanInformation extends DerbyScanInformation{
         for (int i = 0; i < probeValues.length; i++) {
             probeValue = probeValues[i];
             Scan scan = getScan(txn);
-            SpliceUtils.setInstructions(scan, activation, top, spliceRuntimeContext);
             scans.add(scan);
         }
         return scans;
