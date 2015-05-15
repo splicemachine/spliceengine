@@ -2,6 +2,8 @@ package com.splicemachine.test_dao;
 
 import com.google.common.base.Joiner;
 
+import static com.google.common.base.Preconditions.checkArgument;
+import static com.google.common.base.Preconditions.checkNotNull;
 import static com.google.common.base.Preconditions.checkState;
 import static org.apache.commons.lang.StringUtils.isNotBlank;
 
@@ -129,7 +131,11 @@ public class TriggerBuilder {
 
     public String build() {
         checkState(isNotBlank(triggerName), "trigger name is required");
-        checkState(isNotBlank(tableName), "table name is required");
+        checkState(isNotBlank(tableName), "trigger table name is required");
+        checkState(isNotBlank(triggerAction), "trigger action is required");
+        checkNotNull(when, "trigger (BEFORE/AFTER) required");
+        checkNotNull(event, "trigger event (INSERT/UPDATE/DELETE) required");
+        checkNotNull(type, "trigger type (ROW/STATEMENT) required");
 
         StringBuilder b = new StringBuilder();
         b.append("CREATE TRIGGER");

@@ -38,24 +38,25 @@ import java.util.List;
  *         Created on: 5/13/13
  */
 public class TableOperationSink implements OperationSink {
-    private static final Logger LOG = Logger.getLogger(TableOperationSink.class);
-    private static String hostName = HostnameUtil.getHostname();
 
+    private static final Logger LOG = Logger.getLogger(TableOperationSink.class);
+    private static String HOSTNAME = HostnameUtil.getHostname();
 
     /**
      * A chain of tasks for identifying parent and child tasks. The last byte[] in
      * the list is the immediate parent of other tasks.
      */
     public static final ThreadLocal<List<byte[]>> taskChain = new ThreadLocal<>();
+
     private final WriteCoordinator writeCoordinator;
     private final SinkingOperation operation;
     private final byte[] taskId;
 
     private final Timer totalTimer;
     private final long waitTimeNs;
-    private long statementId;
-    private TxnView txn;
-    private byte[] destinationTable;
+    private final long statementId;
+    private final TxnView txn;
+    private final byte[] destinationTable;
 
     public TableOperationSink(byte[] taskId,
                               SinkingOperation operation,
@@ -149,8 +150,7 @@ public class TableOperationSink implements OperationSink {
                 XplainTaskReporter reporter = SpliceDriver.driver().getTaskReporter();
                 for (OperationRuntimeStats operationStat : operationStats) {
                     operationStat.addMetric(OperationMetric.TASK_QUEUE_WAIT_WALL_TIME, waitTimeNs);
-                    operationStat.setHostName(hostName);
-
+                    operationStat.setHostName(HOSTNAME);
                     reporter.report(operationStat, this.txn);
                 }
             }
