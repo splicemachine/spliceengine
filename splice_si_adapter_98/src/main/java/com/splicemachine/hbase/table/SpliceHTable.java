@@ -52,7 +52,6 @@ public class SpliceHTable extends HTable {
 
     public SpliceHTable(byte[] tableName, Configuration configuration,boolean retryAutomatically) throws IOException{
         super(configuration, TableName.valueOf(tableName));
-        Logger.getLogger(SpliceHTable.class).trace("Initialized super");
         this.regionCache = HBaseRegionCache.getInstance();
         this.tableNameBytes = tableName;
         this.tableName = TableName.valueOf(tableName);
@@ -64,7 +63,6 @@ public class SpliceHTable extends HTable {
     public SpliceHTable(byte[] tableName, HConnection connection, ExecutorService pool,
                         RegionCache regionCache) throws IOException {
         super(tableName, connection, pool);
-        Logger.getLogger(SpliceHTable.class).trace("Initialized super");
         this.regionCache = regionCache;
         this.tableNameBytes = tableName;
         this.tableName = TableName.valueOf(tableName);
