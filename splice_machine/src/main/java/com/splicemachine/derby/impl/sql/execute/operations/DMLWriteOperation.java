@@ -318,7 +318,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 		}
 
     /**
-     * When DMLWriteOperation has no scan in the operation tree (insert VALUES, for example) it tells that framework
+     * When DMLWriteOperation has no scan in the operation tree (insert VALUES, for example) it tells the framework
      * that it is not sinking. Then this RowProvider is used in executeScan.  It ultimately just calls getNextNextSinkRow
      * from the enclosing operation and sinks the results locally (see SourceRowProvider).
      */
