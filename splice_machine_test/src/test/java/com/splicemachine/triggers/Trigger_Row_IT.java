@@ -52,9 +52,7 @@ public class Trigger_Row_IT {
 
     @Test
     public void afterUpdate() throws Exception {
-        methodWatcher.executeUpdate(tb.named("trig").after().update().on("T").row().then("INSERT INTO RECORD VALUES('after-update')").build());
-
-        assertEquals(0L, methodWatcher.query("select count(*) from RECORD where text = 'after-update'"));
+        methodWatcher.executeUpdate(tb.after().update().on("T").row().then("INSERT INTO RECORD VALUES('after-update')").build());
 
         // when - update all rows
         long updateCount1 = methodWatcher.executeUpdate("update T set c = c + 1");
@@ -76,11 +74,27 @@ public class Trigger_Row_IT {
         assertEquals(0, updateCount4);
     }
 
+    /* Trigger on subset of columns */
+    @Test
+    public void afterUpdateOfColumns() throws Exception {
+        methodWatcher.executeUpdate(tb.after().update().of("a,c").on("T").row().then("INSERT INTO RECORD VALUES('after-update')").build());
+
+        // when - update non trigger col
+         methodWatcher.executeUpdate("update T set b = 100");
+        assertRecordCount("after-update", 0);
+
+        // when -- update trigger col 1
+        methodWatcher.executeUpdate("update T set a = 100");
+        assertRecordCount("after-update", 6);
+
+        // when -- update trigger col 2
+        methodWatcher.executeUpdate("update T set c = 100");
+        assertRecordCount("after-update", 12);
+    }
+
     @Test
     public void afterInsert() throws Exception {
-        methodWatcher.executeUpdate(tb.named("trig").after().insert().on("T").row().then("INSERT INTO RECORD VALUES('after-insert')").build());
-
-        assertEquals(0L, methodWatcher.query("select count(*) from RECORD where text = 'after-insert'"));
+        methodWatcher.executeUpdate(tb.after().insert().on("T").row().then("INSERT INTO RECORD VALUES('after-insert')").build());
 
         // when - insert over select
         long insertCount1 = methodWatcher.executeUpdate("insert into T select * from T");
@@ -99,7 +113,7 @@ public class Trigger_Row_IT {
 
     @Test
     public void afterDelete() throws Exception {
-        methodWatcher.executeUpdate(tb.named("trig").after().delete().on("T").row().then("INSERT INTO RECORD VALUES('after-delete')").build());
+        methodWatcher.executeUpdate(tb.after().delete().on("T").row().then("INSERT INTO RECORD VALUES('after-delete')").build());
 
         // when - delete
         long deleteCount1 = methodWatcher.executeUpdate("delete from T where a >=4");
@@ -129,7 +143,7 @@ public class Trigger_Row_IT {
     public void afterInsert_sinkingTriggerAction() throws Exception {
         methodWatcher.executeUpdate("insert into RECORD values('aaa')");
 
-        methodWatcher.executeUpdate(tb.named("trig").after().insert().on("T").row().then("insert into RECORD select * from RECORD").build());
+        methodWatcher.executeUpdate(tb.after().insert().on("T").row().then("insert into RECORD select * from RECORD").build());
 
         // when - insert over select
         methodWatcher.executeUpdate("insert into T values(1,1,1)");
@@ -146,7 +160,7 @@ public class Trigger_Row_IT {
     public void afterUpdate_sinkingTriggerAction() throws Exception {
         methodWatcher.executeUpdate("insert into RECORD values('aaa')");
 
-        methodWatcher.executeUpdate(tb.named("trig").after().update().on("T").row().then("insert into RECORD select * from RECORD").build());
+        methodWatcher.executeUpdate(tb.after().update().on("T").row().then("insert into RECORD select * from RECORD").build());
 
         // when - update all rows
         methodWatcher.executeUpdate("update T set c = c + 1");
@@ -163,29 +177,20 @@ public class Trigger_Row_IT {
 
     @Test
     public void beforeUpdate() throws Exception {
-        methodWatcher.executeUpdate(tb.named("beforeUpdateTrig").before().update().on("T").row()
-                .then("select 1/0 from sys.systables").build());
-
+        methodWatcher.executeUpdate(tb.before().update().on("T").row().then("select 1/0 from sys.systables").build());
         assertQueryFails("update T set b = b * 2 where a <= 4", "Attempt to divide by zero.");
-        triggerDAO.drop("beforeUpdateTrig");
     }
 
     @Test
     public void beforeInsert() throws Exception {
-        methodWatcher.executeUpdate(tb.named("beforeInsertTrig").before().insert().on("T").row()
-                .then("select 1/0 from sys.systables").build());
-
+        methodWatcher.executeUpdate(tb.before().insert().on("T").row().then("select 1/0 from sys.systables").build());
         assertQueryFails("insert into T values(8,8,8)", "Attempt to divide by zero.");
-        triggerDAO.drop("beforeInsertTrig");
     }
 
     @Test
     public void beforeDelete() throws Exception {
-        methodWatcher.executeUpdate(tb.named("beforeDeleteTrig").before().delete().on("T").row()
-                .then("select 1/0 from sys.systables").build());
-
+        methodWatcher.executeUpdate(tb.before().delete().on("T").row().then("select 1/0 from sys.systables").build());
         assertQueryFails("delete from T where c = 6", "Attempt to divide by zero.");
-        triggerDAO.drop("beforeDeleteTrig");
     }
 
     //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -

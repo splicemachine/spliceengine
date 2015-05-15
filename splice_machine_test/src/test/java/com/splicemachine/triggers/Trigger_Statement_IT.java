@@ -97,6 +97,23 @@ public class Trigger_Statement_IT {
         assertEquals(32L, methodWatcher.query("select count(*) from RECORD where text = 'update'"));
     }
 
+    /* Trigger on subset of columns */
+    @Test
+    public void afterUpdateOfColumns() throws Exception {
+        methodWatcher.executeUpdate(tb.after().update().of("b,c").on("T").statement().then("INSERT INTO RECORD VALUES('update')").build());
+
+        // when - update
+        methodWatcher.executeUpdate("update T set a = a * 2");
+        // then - verify trigger has fired
+        assertEquals(0L, methodWatcher.query("select count(*) from RECORD where text = 'update'"));
+
+        // when -- update twice more
+        methodWatcher.executeUpdate("update T set b = b * 2");
+        assertEquals(1L, methodWatcher.query("select count(*) from RECORD where text = 'update'"));
+        methodWatcher.executeUpdate("update T set c = c * 2");
+        assertEquals(2L, methodWatcher.query("select count(*) from RECORD where text = 'update'"));
+    }
+
     @Test
     public void afterInsert() throws Exception {
         methodWatcher.executeUpdate(tb.after().insert().on("T").statement().then("INSERT INTO RECORD VALUES('insert')").build());
