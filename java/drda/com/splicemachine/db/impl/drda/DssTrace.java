@@ -76,7 +76,6 @@ public class DssTrace
   // if tracing isn't used.  So... this array will only be created when
   // the com buffer trace is started.  Note this ref is not protected
   // by final and care must be taken if it's value needs to change.
-  private static CodePointNameTable codePointNameTable = null;
 
   // This column position header is used to mark offsets into the trace.
   private static final String colPosHeader =
@@ -249,15 +248,6 @@ public class DssTrace
         	}
           // Turn on the trace flag.
           comBufferTraceOn = true;
-          // initialize the codepoint name table if it is null.
-          // this is done here so that the CodePointName objects
-          // aren't created if the trace isn't used (save some memory).
-          // this process should only be done once
-          // since after the table is created the ref will
-          // no longer be null.
-          if (DssTrace.codePointNameTable == null) {
-            codePointNameTable = new CodePointNameTable();
-          }
         }
       }
     }
@@ -341,7 +331,7 @@ public class DssTrace
           if (len >= 10) {
             // Get the int value of the two byte unsigned codepoint.
             int codePoint = getCodePoint (buff, offset+8);
-            codePointName = codePointNameTable.lookup (codePoint);
+            codePointName = CodePointNameTable.lookup (codePoint);
           }
 
           if (codePointName == null) {

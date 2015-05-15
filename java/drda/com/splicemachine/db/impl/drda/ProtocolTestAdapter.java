@@ -49,9 +49,6 @@ public class ProtocolTestAdapter {
     public static final int CP_SECMEC = CodePoint.SECMEC;
     public static final int CP_SECCHKCD = CodePoint.SECCHKCD;
 
-    /** Shared code point name table (write once, then only reads/lookups). */
-    private static final CodePointNameTable CP_NAMES = new CodePointNameTable();
-
     private final CcsidManager ccsidManager = new EbcdicCcsidManager();
     private final DDMWriter writer = new DDMWriter(null, null);
     private final Socket socket;
@@ -80,7 +77,7 @@ public class ProtocolTestAdapter {
      * @return Code point name, or {@code null} if code point is unknown.
      */
     public String lookupCodePoint(int codePoint) {
-        return CP_NAMES.lookup(codePoint);
+        return CodePointNameTable.lookup(codePoint);
     }
 
     /**
@@ -91,15 +88,7 @@ public class ProtocolTestAdapter {
      *      name is unknown.
      */
     public Integer decodeCodePoint(String codePointName) {
-        // Just do this the expensive way, assuming it's infrequently used.
-        Iterator entryIter = CP_NAMES.entrySet().iterator();
-        while (entryIter.hasNext()) {
-            Map.Entry entry = (Map.Entry)entryIter.next();
-            if (codePointName.equals((String)entry.getValue())) {
-                return (Integer)entry.getKey();
-            }
-        }
-        return null;
+        return CodePointNameTable.lookup(codePointName);
     }
 
     /** Converts a string to a byte array according to the CCSID manager. */
