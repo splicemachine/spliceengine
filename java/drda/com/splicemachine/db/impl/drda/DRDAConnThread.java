@@ -1095,7 +1095,7 @@ class DRDAConnThread extends Thread {
 			}
 
             if (SanityManager.DEBUG) {
-                String cpStr = new CodePointNameTable().lookup(codePoint);
+                String cpStr = CodePointNameTable.lookup(codePoint);
                 try {
                     PiggyBackedSessionData pbsd =
                             database.getPiggyBackedSessionData(false);
