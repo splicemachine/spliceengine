@@ -1,4 +1,14 @@
 /target
+
+#---------
+# Eclipse
+#---------
 .project
 .classpath
 .settings
+
+#----------
+# IDEA
+#----------
+.idea/
+*.iml
