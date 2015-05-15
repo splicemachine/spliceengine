@@ -39,11 +39,15 @@ public class BackupItemReporter extends TransactionalSysTableWriter<BackupItem> 
             protected void doEncode(MultiFieldEncoder encoder, BackupItem element) {
 
                 Backup backup = element.getBackup();
-                encoder.encodeNext(backup.getBackupId())
-                       .encodeNext(element.getBackupItem())
-                       .encodeNext(TimestampV2DescriptorSerializer.formatLong(element.getBackupItemBeginTimestamp()))
-                       .encodeNext(TimestampV2DescriptorSerializer.formatLong(element.getBackupItemEndTimestamp()))
-                       .encodeNext(element.getSnapshotName());
+                try {
+                    encoder.encodeNext(backup.getBackupId())
+                           .encodeNext(element.getBackupItem())
+                           .encodeNext(TimestampV2DescriptorSerializer.formatLong(element.getBackupItemBeginTimestamp()))
+                           .encodeNext(TimestampV2DescriptorSerializer.formatLong(element.getBackupItemEndTimestamp()))
+                           .encodeNext(element.getSnapshotName());
+                } catch (StandardException e) {
+                    throw new RuntimeException(e);
+                }
             }
         };
     }

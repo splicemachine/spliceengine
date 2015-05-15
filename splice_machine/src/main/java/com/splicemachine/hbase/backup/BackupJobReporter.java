@@ -37,11 +37,15 @@ public class BackupJobReporter extends TransactionalSysTableWriter<BackupJob> {
 
             @Override
             protected void doEncode(MultiFieldEncoder encoder, BackupJob element) {
-                encoder.encodeNext(element.getJobId())
-                        .encodeNext(element.getFileSystem())
-                        .encodeNext(element.getType())
-                        .encodeNext(element.getHourOfDay())
-                        .encodeNext(TimestampV2DescriptorSerializer.formatLong(element.getBeginTimestamp()));
+                try {
+                    encoder.encodeNext(element.getJobId())
+                            .encodeNext(element.getFileSystem())
+                            .encodeNext(element.getType())
+                            .encodeNext(element.getHourOfDay())
+                            .encodeNext(TimestampV2DescriptorSerializer.formatLong(element.getBeginTimestamp()));
+                } catch (StandardException e) {
+                    throw new RuntimeException(e);
+                }
             }
         };
     }
