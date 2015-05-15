@@ -25,7 +25,7 @@
 
   <target
       name="buildsource"
-      depends="init,setCompilerProperties,engine,storeless,tools,drda,client,build,versioninfo,optlocaleinfo"
+      depends="init,setCompilerProperties,engine,tools,drda,client,build,versioninfo,optlocaleinfo"
       description="Compile the product source (does not build the tests)."
   />
   <target
@@ -537,10 +537,6 @@
     <ant dir="${derby.tools.src.dir}"/>
   </target>
 	
-  <target name="storeless" depends="engine">
-  	<ant dir="${derby.storeless.src.dir}"/>
-  </target>
-	
   <target name="shared" depends="init,state">
     <ant dir="${derby.shared.src.dir}"/>
   </target>
@@ -646,7 +642,6 @@
   <target name="clean">
     <delete dir="${out.dir}"/>
     <delete dir="${generated.dir}"/>
-  	<delete dir="${out.storeless.dir}"/>
   	<delete dir="${out.pptesting.dir}"/>
   </target>
 

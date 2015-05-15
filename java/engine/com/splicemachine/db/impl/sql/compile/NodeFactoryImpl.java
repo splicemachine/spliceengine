@@ -79,15 +79,12 @@ public class NodeFactoryImpl extends NodeFactory implements ModuleControl, Modul
 	//////////////////////////////////////////////////////////////////////
 
     /**
-     * Module supports the standard database engine and
-     * a storeless SQL engine. Probably a single NodeFactory
-     * will only ever exist, see DERBY-673, as part of the
-     * compile system.
+     * Module supports the standard database engine. Probably a single NodeFactory
+     * will only ever exist, see DERBY-673, as part of the compile system.
      */
-	public boolean canSupport(Properties startParams)
-	{
-		return Monitor.isDesiredType(startParams,
-                EngineType.STANDALONE_DB | EngineType.STORELESS_ENGINE);
+    @Override
+	public boolean canSupport(Properties startParams) {
+		return Monitor.isDesiredType(startParams, EngineType.STANDALONE_DB);
 	}
 
 	/**

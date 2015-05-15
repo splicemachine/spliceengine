@@ -77,7 +77,7 @@ public abstract class GenericExecutionFactory implements ModuleControl, ModuleSu
     //
     @Override
     public boolean canSupport(Properties startParams) {
-        return Monitor.isDesiredType(startParams, EngineType.STANDALONE_DB | EngineType.STORELESS_ENGINE);
+        return Monitor.isDesiredType(startParams, EngineType.STANDALONE_DB);
     }
 
     /**
