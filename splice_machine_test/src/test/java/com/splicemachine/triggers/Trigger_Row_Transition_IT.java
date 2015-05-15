@@ -63,7 +63,7 @@ public class Trigger_Row_Transition_IT {
         methodWatcher.executeUpdate(tb.named("trig1").after().delete().on("T").referencing("OLD AS O")
                 .row().then("INSERT INTO RECORD_OLD VALUES(O.a, O.b)").build());
 
-        // when - update a row
+        // when - delete a row
         methodWatcher.executeUpdate("delete from T where b = 2");
 
         assertEquals(1L, methodWatcher.query("select count(*) from RECORD_OLD where a='BBB' and b=2"));
@@ -74,7 +74,7 @@ public class Trigger_Row_Transition_IT {
         methodWatcher.executeUpdate(tb.named("trig1").after().insert().on("T").referencing("NEW AS N")
                 .row().then("INSERT INTO RECORD_NEW VALUES(N.a, N.b)").build());
 
-        // when - update a row
+        // when - insert a row
         methodWatcher.executeUpdate("insert into T values('DDD', 4),('EEE', 5)");
 
         assertEquals(1L, methodWatcher.query("select count(*) from RECORD_NEW where a='DDD' and b=4"));
