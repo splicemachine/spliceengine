@@ -3078,7 +3078,7 @@ Guide.
 
             <msg>
                 <name>44003</name>
-                <text>Timestamp '{0}' is out of range.</text>
+                <text>Timestamp '{0}' is out of range (~ from 21 Sep 1677 00:12:44 GMT to 11 Apr 2262 23:47:16 GMT).</text>
                 <arg>dateOrTimestamp</arg>
             </msg>
         </family>
