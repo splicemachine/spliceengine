@@ -18,7 +18,9 @@ import org.apache.hadoop.hbase.io.HalfStoreFileReader;
 import org.apache.hadoop.hbase.io.Reference;
 import org.apache.hadoop.hbase.io.hfile.CacheConfig;
 import org.apache.hadoop.hbase.protobuf.generated.HBaseProtos.SnapshotDescription;
-
+import org.apache.hadoop.hbase.protobuf.generated.SnapshotProtos.SnapshotFileInfo;
+import org.apache.hadoop.hbase.protobuf.generated.SnapshotProtos.SnapshotFileInfoOrBuilder;
+import org.apache.hadoop.hbase.protobuf.generated.SnapshotProtos.SnapshotRegionManifest;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.Store;
 import org.apache.hadoop.hbase.regionserver.StoreFile;
@@ -30,13 +32,12 @@ import org.apache.log4j.Logger;
 
 import com.splicemachine.constants.SpliceConstants;
 
-import com.splicemachine.constants.SpliceConstants;
-
-public class SnapshotUtilsImpl implements SnapshotUtils {
+public class SnapshotUtilsImpl implements SnapshotUtils{
     static final Logger LOG = Logger.getLogger(SnapshotUtilsImpl.class);
 	
+    @Override
     public List<Object> getFilesForFullBackup(String snapshotName, HRegion region) throws IOException {
-		Configuration conf = SpliceConstants.config;
+    	Configuration conf = SpliceConstants.config;
         Path rootDir = new Path(conf.get(HConstants.HBASE_DIR));
         FileSystem fs = rootDir.getFileSystem(conf);
         Path snapshotDir = SnapshotDescriptionUtils.getCompletedSnapshotDir(snapshotName, rootDir);
@@ -45,92 +46,123 @@ public class SnapshotUtilsImpl implements SnapshotUtils {
 	}
 
     /**
-     * Extract the list of files (HFiles/HLogs) to copy 
-     * @return list of files referenced by the snapshot
+     * Extract the list of files (HFiles/HLogs) to copy using Map-Reduce.
+     * @return list of files referenced by the snapshot (pair of path and size)
      */
-    public List<Object> getSnapshotFilesForRegion(final HRegion reg, final Configuration conf,
+    @Override
+    public List<Object> getSnapshotFilesForRegion(final HRegion region, final Configuration conf,
         final FileSystem fs, final Path snapshotDir) throws IOException {
-      final String regionName = reg.getRegionNameAsString();
       SnapshotDescription snapshotDesc = SnapshotDescriptionUtils.readSnapshotInfo(fs, snapshotDir);
 
       final List<Object> files = new ArrayList<Object>();
-      final String table = snapshotDesc.getTable();
+      final TableName table = TableName.valueOf(snapshotDesc.getTable());
 
       // Get snapshot files
-      LOG.info("Loading Snapshot '" + snapshotDesc.getName() + "' hfile list"); 
-      SnapshotReferenceUtil.visitReferencedFiles(fs, snapshotDir,
-        new SnapshotReferenceUtil.FileVisitor() {
-          public void storeFile (final String region, final String family, final String hfile)
-              throws IOException {
-        	  LOG.info("look for: " + regionName);
-        	  LOG.info("found   : " + region);
-        	if( isRegionTheSame(regionName, region) ){  
-        		Path path = HFileLink.createPath(TableName.valueOf(table), region, family, hfile);
-        		//long size = new HFileLink(conf, path).getFileStatus(fs).getLen();
-        		HFileLink link = new HFileLink(conf, path);
-        		if( isReference(hfile) ) {
-            	  	files.add(materializeRefFile(conf, fs, link, reg));
-              	} else{
-              		files.add(link);
-              	}
-        	}
+      LOG.info("Loading Snapshot '" + snapshotDesc.getName() + "' hfile list");
+      SnapshotReferenceUtil.visitReferencedFiles(conf, fs, snapshotDir, snapshotDesc,
+        new SnapshotReferenceUtil.SnapshotVisitor() {
+          @Override
+          public void storeFile(final HRegionInfo regionInfo, final String family,
+              final SnapshotRegionManifest.StoreFile storeFile) throws IOException {
+            
+        	  boolean isReference = storeFile.hasReference();
+
+              String regionName = regionInfo.getEncodedName();
+              if(region!= null && isCurrentRegion(region, regionInfo) == false){
+            	  // If not current return
+            	  return;
+              }
+              String hfile = storeFile.getName();
+              Path path = HFileLink.createPath(table, regionName, family, hfile);
+
+              SnapshotFileInfo fileInfo = SnapshotFileInfo.newBuilder()
+                .setType(SnapshotFileInfo.Type.HFILE)
+                .setHfile(path.toString())
+                .build();
+              
+              HFileLink filePath = getFilePath(fileInfo);
+              if( isReference ) {
+            	  // If its materialized reference - we add Path
+            	  files.add(materializeRefFile(conf, fs, filePath, region));
+              } else{
+            	  // Otherwise we add HFileLink
+            	  files.add(filePath);
+              }
+            
           }
 
-          public void recoveredEdits (final String region, final String logfile)
-              throws IOException {
-            // copied with the snapshot referenecs
-          }
 
+
+		@Override
           public void logFile (final String server, final String logfile)
               throws IOException {
-            //long size = new HLogLink(conf, server, logfile).getFileStatus(fs).getLen();              
-        	  files.add(new Path(server, logfile));
+            SnapshotFileInfo fileInfo = SnapshotFileInfo.newBuilder()
+              .setType(SnapshotFileInfo.Type.WAL)
+              .setWalServer(server)
+              .setWalName(logfile)
+              .build();
+            files.add(getFilePath(fileInfo));
           }
       });
 
       return files;
     }
-
     @Override
     public List<Object> getSnapshotFilesForRegion(final HRegion region, final Configuration conf,
                                                   final FileSystem fs, final String snapshotName) throws IOException {
         Path rootDir = FSUtils.getRootDir(conf);
 
         Path snapshotDir = SnapshotDescriptionUtils.getCompletedSnapshotDir(snapshotName, rootDir);
-        List<Object> paths = getSnapshotFilesForRegion(region, conf, fs, snapshotDir);
+        List<Object> paths = getSnapshotFilesForRegion(region,conf,fs,snapshotDir);
 
         return paths;
     }
+    /**
+     * Returns path to a file referenced in a snapshot
+     * FIXME: race condition possible, if file gets archived during
+     * backup operation. We should probably return HFileLink and process
+     * this link accordingly.
+     * @param fileInfo
+     * @return path to a referenced file
+     * @throws IOException
+     */
 
-    private boolean isRegionTheSame(String fullName, String shortId)
-    {
-    	return fullName.indexOf(shortId) >=0;
-    }
-    
-    
-    private boolean isReference( String fileName)
-    {
-    	return fileName.indexOf(".") > 0;
-    }
-
-    public Path getAvailableFilePath( final Path relativePath)
+	// for testing 
+    public HFileLink getFilePath( final SnapshotFileInfoOrBuilder fileInfo)
             throws IOException {
           try {
-        	  Configuration conf = SpliceConstants.config;
-              Path rootDir = new Path(conf.get(HConstants.HBASE_DIR));
-              FileSystem fs = rootDir.getFileSystem(conf);        	              
-              HFileLink link = new HFileLink(conf, relativePath);            
-            return link.getAvailablePath(fs);
+        	//Configuration conf = SpliceConstants.config;
+            //Path rootDir = new Path(conf.get(HConstants.HBASE_DIR));
+            //FileSystem fs = rootDir.getFileSystem(conf);        	  
+            HFileLink link = null;
+            switch (fileInfo.getType()) {
+              case HFILE:
+                Path inputPath = new Path(fileInfo.getHfile());
+                link = new HFileLink(SpliceConstants.config, inputPath);
+                break;
+              case WAL:
+            	LOG.warn("Unexpected log file in a snapshot: "+fileInfo.toString());  
+                break;
+              default:
+                throw new IOException("Invalid File Type: " + fileInfo.getType().toString());
+            }
+            
+            return link;//link.getAvailablePath(fs);
             
           } catch (FileNotFoundException e) {
-            LOG.error("Unable to get the status for source file=" + relativePath, e);
+            LOG.error("Unable to get the status for source file=" + fileInfo.toString(), e);
             throw e;
           } catch (IOException e) {
-            LOG.error("Unable to get the status for source file=" + relativePath, e);
+            LOG.error("Unable to get the status for source file=" + fileInfo.toString(), e);
             throw e;
           }
         }
-    
+	         
+    /**
+	  * Materializes snapshot reference file - creates real hfile 
+	  * in a current region's tmp directory.
+	  *   
+	  */
     @Override
 	public Path materializeRefFile(Configuration conf, FileSystem fs, HFileLink refFilePath, HRegion region )
 	 	throws IOException
@@ -167,6 +199,7 @@ public class SnapshotUtilsImpl implements SnapshotUtils {
     	return readWrite(scanner, writer);
     	
 	}
+    
     private Reference readReference(FileSystem fs, HFileLink link) 
     		throws IOException
     {
@@ -262,10 +295,34 @@ public class SnapshotUtilsImpl implements SnapshotUtils {
     	p = new Path(p, parts[0]);
     	return p;
     }
-    
+
+    private String getTableName(Path refFilePath) {
+        Path p = refFilePath.getParent().getParent().getParent();
+        return p.getName();
+    }
+
+    private String getColumnFamilyName(Path refFilePath) {
+        Path p = refFilePath.getParent();
+        return p.getName();
+    }
+
+    private String getRegionName(Path refFilePath) {
+        String[] parts = refFilePath.getName().split("\\.");
+        return parts[1];
+    }
+
+    private String getFileName(Path refFilePath) {
+        String[] parts = refFilePath.getName().split("\\.");
+        return parts[0];
+    }
+
     public HFileLink getReferredFileLink(HFileLink ref) throws IOException
     {
-    	return new HFileLink(SpliceConstants.config, getReferredFile(ref.getOriginPath()));
+        return HFileLink.create(SpliceConstants.config,
+                TableName.valueOf(getTableName(ref.getOriginPath()).getBytes()),
+                getRegionName(ref.getOriginPath()),
+                getColumnFamilyName(ref.getOriginPath()),
+                getFileName(ref.getOriginPath()));
     }
     /**
      * Checks if region info for the current region.
@@ -276,5 +333,9 @@ public class SnapshotUtilsImpl implements SnapshotUtils {
      */
     public boolean isCurrentRegion(HRegion region, HRegionInfo regInfo) {		
 		return region.getRegionNameAsString().equals(regInfo.getRegionNameAsString());
-	}	    
+	}
+
+    public static HFileLink newLink(Configuration conf, Path path) throws IOException{
+        return new HFileLink(conf,path);
+    }
 }
