@@ -167,16 +167,49 @@ public class Trigger_Exec_Stored_Proc_IT {
     }
 
     /**
-     * Create/fire a row trigger that records username, timestamp, new and old transition values
+     * Create/fire a row trigger that records username, timestamp, new transition values
      * for an row updated in another table.
      * @throws Exception
      */
-    @Test @Ignore("Not seeing procedure call with update row trigger.")
-    public void testRowUpdateTriggerUserStoredProc() throws Exception {
+    @Test @Ignore("Not seeing procedure call update row trigger transition values.")
+    public void testRowUpdateTriggerUserStoredProcNewTransitionValue() throws Exception {
 
         methodWatcher.executeUpdate("insert into S values (13, 'Joe')");
         methodWatcher.executeUpdate("insert into S values (14, 'Henry')");
-        createTrigger(tb.named("row_update").after().update().on("S").referencing("OLD AS O")
+        createTrigger(tb.named("row_update_new").after().update().on("S").referencing("New AS N")
+                        .row().then(String.format("CALL proc_call_audit_with_transition('%s','%s',%s, %s)",
+                                                  schemaWatcher.schemaName, "audit", "N.id", null)));
+
+        // when - update a row
+        methodWatcher.executeUpdate("update S set id = 39 where id = 13");
+
+        ResultSet rs = methodWatcher.executeQuery("select * from audit");
+//        TestUtils.printResult("select * from audit", rs, System.out);
+        int count =0;
+        while (rs.next()) {
+            Assert.assertEquals("splice",rs.getString(1));
+            Assert.assertNotNull(rs.getObject(2));
+            Assert.assertNotNull(rs.getObject(3));
+            Assert.assertNull(rs.getObject(4));
+            ++count;
+        }
+        Assert.assertEquals(1, count);
+
+        rs.close();
+        triggerDAO.drop("row_update_new");
+    }
+
+    /**
+     * Create/fire a row trigger that records username, timestamp, old transition values
+     * for an row updated in another table.
+     * @throws Exception
+     */
+    @Test @Ignore("Not seeing procedure call update row trigger transition values.")
+    public void testRowUpdateTriggerUserStoredProcOldTransitionValue() throws Exception {
+
+        methodWatcher.executeUpdate("insert into S values (13, 'Joe')");
+        methodWatcher.executeUpdate("insert into S values (14, 'Henry')");
+        createTrigger(tb.named("row_update_old").after().update().on("S").referencing("OLD AS o")
                         .row().then(String.format("CALL proc_call_audit_with_transition('%s','%s',%s, %s)",
                                                   schemaWatcher.schemaName, "audit", null, "O.id")));
 
@@ -184,19 +217,76 @@ public class Trigger_Exec_Stored_Proc_IT {
         methodWatcher.executeUpdate("update S set id = 39 where id = 13");
 
         ResultSet rs = methodWatcher.executeQuery("select * from audit");
-        TestUtils.printResult("select * from audit", rs, System.out);
-//        int count =0;
-//        while (rs.next()) {
-//            Assert.assertEquals("splice",rs.getString(1));
-//            Assert.assertNotNull(rs.getObject(2));
-//            Assert.assertNotNull(rs.getObject(3));
-//            Assert.assertNotNull(rs.getObject(4));
-//            ++count;
-//        }
-//        Assert.assertEquals(1, count);
+//        TestUtils.printResult("select * from audit", rs, System.out);
+        int count =0;
+        while (rs.next()) {
+            Assert.assertEquals("splice",rs.getString(1));
+            Assert.assertNotNull(rs.getObject(2));
+            Assert.assertNull(rs.getObject(3));
+            Assert.assertNotNull(rs.getObject(4));
+            ++count;
+        }
+        Assert.assertEquals(1, count);
 
         rs.close();
-        triggerDAO.drop("row_update");
+        triggerDAO.drop("row_update_old");
+    }
+
+    /**
+     * Create/fire a row trigger that records username, timestamp, new transition values
+     * for an row updated in another table.
+     * @throws Exception
+     */
+    @Test @Ignore("Not seeing procedure call update row trigger transition values.")
+    public void testRowUpdateTriggerUserStoredProcNewAndOldTransitionValues() throws Exception {
+
+        methodWatcher.executeUpdate("insert into S values (13, 'Joe')");
+        methodWatcher.executeUpdate("insert into S values (14, 'Henry')");
+        createTrigger(tb.named("row_update_new").after().update().on("S").referencing("New AS N OLD AS O")
+                        .row().then(String.format("CALL proc_call_audit_with_transition('%s','%s',%s, %s)",
+                                                  schemaWatcher.schemaName, "audit", "N.id", "O.id")));
+
+        // when - update a row
+        methodWatcher.executeUpdate("update S set id = 39 where id = 13");
+
+        ResultSet rs = methodWatcher.executeQuery("select * from audit");
+//        TestUtils.printResult("select * from audit", rs, System.out);
+        int count =0;
+        while (rs.next()) {
+            Assert.assertEquals("splice",rs.getString(1));
+            Assert.assertNotNull(rs.getObject(2));
+            Assert.assertNotNull(rs.getObject(3));
+            Assert.assertNotNull(rs.getObject(4));
+            ++count;
+        }
+        Assert.assertEquals(1, count);
+
+        rs.close();
+        triggerDAO.drop("row_update_new");
+    }
+
+    /**
+     * Create/fire a row trigger that records username, timestamp, new and old transition values
+     * for an row updated in another table.
+     * @throws Exception
+     */
+    @Test @Ignore("DB-3306 - Causing CCE: SpliceTransactionView cannot be cast to SpliceTransaction")
+    public void testRowUpdateTriggerUserStoredProcTwoTriggers() throws Exception {
+
+        methodWatcher.executeUpdate("insert into S values (13, 'Joe')");
+        methodWatcher.executeUpdate("insert into S values (14, 'Henry')");
+        createTrigger(tb.named("row_update_new").after().update().on("S").referencing("New AS N")
+                        .row().then(String.format("CALL proc_call_audit_with_transition('%s','%s',%s, %s)",
+                                                  schemaWatcher.schemaName, "audit", "N.id", null)));
+        createTrigger(tb.named("row_update_old").after().update().on("S").referencing("OLD AS o")
+                        .row().then(String.format("CALL proc_call_audit_with_transition('%s','%s',%s, %s)",
+                                                  schemaWatcher.schemaName, "audit", null, "O.id")));
+
+        // when - update a row
+        methodWatcher.executeUpdate("update S set id = 39 where id = 13");
+
+        triggerDAO.drop("row_update_new");
+        triggerDAO.drop("row_update_old");
     }
 
     /**
