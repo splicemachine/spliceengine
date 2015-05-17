@@ -156,7 +156,7 @@ public class CreateIncrementalBackupTask extends ZkTask {
                     String fileName = s[n - 1];
                     String familyName = s[n - 2];
                     String regionName = s[n - 3];
-                    Path destPath = new Path(backupFileSystem + "/" + regionName + "/" + familyName + "/" + fileName);
+                    Path destPath = new Path(backupFileSystem + "/" + regionName + "/V/" + fileName);
                     if(throttleEnabled){
                     	IOUtils.copyFileWithThrottling(fs, p, fs, destPath, false, SpliceConstants.config);
                     } else{

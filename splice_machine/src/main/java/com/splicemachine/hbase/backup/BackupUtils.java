@@ -434,7 +434,23 @@ public class BackupUtils {
             if (f instanceof HFileLink) {
                 path.add(((HFileLink) f).getAvailablePath(fs));
             }
+            else if (f instanceof Path){
+                path.add((Path)f);
+            }
         }
         return path;
+    }
+
+    /**
+     * TODO: do we have to delete temporary files (materialized from refs)?
+     * @param file
+     * @return true if temporary file
+     */
+    public static boolean isTempFile(Object file) {
+        return file instanceof Path;
+    }
+
+    public static void deleteFile(FileSystem fs, Object file, boolean b) throws IOException {
+        fs.delete((Path) file, b);
     }
 }
