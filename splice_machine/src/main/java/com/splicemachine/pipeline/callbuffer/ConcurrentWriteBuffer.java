@@ -102,7 +102,12 @@ public class ConcurrentWriteBuffer implements CallBuffer<KVPair> {
         }
     }
 
-		@Override
+    @Override
+    public void flushBufferAndWait() throws Exception {
+        throw new UnsupportedOperationException("");
+    }
+
+    @Override
 		public void close() throws Exception {
 				closed=true;
 				synchronized (delegateBuffer){

@@ -146,9 +146,13 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 				}
 				isScan = hasScan;
 
-                if(this.triggerHandler == null) {
+            WriteCursorConstantOperation constantAction = (WriteCursorConstantOperation) writeInfo.getConstantAction();
+            TriggerInfo triggerInfo = constantAction.getTriggerInfo();
+
+            if(this.triggerHandler == null && triggerInfo != null) {
                     this.triggerHandler = new TriggerHandler(
                             context,
+                            triggerInfo,
                             writeInfo,
                             getActivation(),
                             getBeforeEvent(getClass()),
@@ -207,7 +211,9 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
         long start = System.currentTimeMillis();
         JobResults results;
 
-        triggerHandler.fireBeforeStatementTriggers();
+        if(triggerHandler != null) {
+            triggerHandler.fireBeforeStatementTriggers();
+        }
 
         /* If the optimizer knows we are only dealing with one row */
         if (source.getEstimatedRowCount() == 1) {
@@ -229,7 +235,9 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
             this.rowsSunk = TaskStats.sumTotalRowsWritten(jobResults.getJobStats().getTaskStats());
         }
 
-        triggerHandler.fireAfterStatementTriggers();
+        if(triggerHandler != null) {
+            triggerHandler.fireAfterStatementTriggers();
+        }
 
         return jobResults;
     }
@@ -246,9 +254,12 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 				super.close();
 				source.close();
                 rowsSunk = 0;
-                triggerHandler.cleanup();
-				if (modifiedProvider != null)
-						modifiedProvider.close();
+                if(triggerHandler != null) {
+                    triggerHandler.cleanup();
+                }
+				if (modifiedProvider != null) {
+                    modifiedProvider.close();
+                }
 		}
 
 		@Override
@@ -288,12 +299,6 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 
 				ExecRow row = source.nextRow(spliceRuntimeContext);
 
-                /* Before row triggers */
-                triggerHandler.fireBeforeRowTriggers(row);
-                /* After row triggers: Actually before row is persisted, may have to move this if we need
-                 * constraints to be checked first, still WIP. */
-                triggerHandler.fireAfterRowTriggers(row);
-
 				if(row!=null){
 						timer.tick(1);
 						currentRow = row;
@@ -316,6 +321,10 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
                 stats.addMetric(OperationMetric.INPUT_ROWS, timer.getNumEvents());
             }
 		}
+
+    public TriggerHandler getTriggerHandler() {
+        return triggerHandler;
+    }
 
     /**
      * When DMLWriteOperation has no scan in the operation tree (insert VALUES, for example) it tells the framework
@@ -357,7 +366,9 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
              * create or manage transactions here, as it is transparently managed
              * by Derby for us.
              */
-            triggerHandler.fireBeforeStatementTriggers();
+            if(triggerHandler != null) {
+                triggerHandler.fireBeforeStatementTriggers();
+            }
 
             JobResults jobStats = rowProvider.shuffleRows(instructions, postCompleteTasks);
             long i = 0;
@@ -366,7 +377,10 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
             }
             rowsModified = i;
 
-            triggerHandler.fireAfterStatementTriggers();
+            if(triggerHandler != null) {
+                triggerHandler.fireAfterStatementTriggers();
+            }
+
             return jobStats;
         }
 
