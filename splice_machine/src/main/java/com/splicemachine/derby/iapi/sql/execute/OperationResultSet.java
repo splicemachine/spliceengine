@@ -3,7 +3,6 @@ package com.splicemachine.derby.iapi.sql.execute;
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.impl.spark.RDDRowProvider;
 import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
@@ -12,7 +11,6 @@ import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.management.OperationInfo;
 import com.splicemachine.derby.management.StatementInfo;
-import com.splicemachine.derby.utils.WarningState;
 import com.splicemachine.metrics.IOStats;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
@@ -36,6 +34,7 @@ import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.sql.SQLWarning;
 import java.sql.Timestamp;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -195,9 +194,9 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
                 runtimeContext.recordTraceMetrics();
             }
 
-            List<byte[]> taskChain = TableOperationSink.taskChain.get();
-            if (taskChain != null && taskChain.size() > 0){
-                runtimeContext.setParentTaskId(taskChain.get(taskChain.size() - 1));
+            LinkedList<byte[]> taskChain = TaskIdStack.getCurrentThreadTaskIdList();
+            if (taskChain != null && !taskChain.isEmpty()){
+                runtimeContext.setParentTaskId(taskChain.getLast());
             }
 
             // enable Spark if the whole stack supports it
