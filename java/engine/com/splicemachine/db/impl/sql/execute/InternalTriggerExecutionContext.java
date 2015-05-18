@@ -22,6 +22,7 @@ import java.util.Enumeration;
 import java.util.Hashtable;
 import java.util.Map;
 import java.util.Vector;
+import java.util.Objects;
 
 /**
  * There is one of these beasts per INSERT/DELETE/UPDATE statement.  It fulfills the contract for the externally
@@ -484,7 +485,7 @@ public class InternalTriggerExecutionContext implements TriggerExecutionContext,
 
     @Override
     public String toString() {
-        return triggerd.getName();
+        return "triggerd=" + Objects.toString(triggerd);
     }
 
 }
