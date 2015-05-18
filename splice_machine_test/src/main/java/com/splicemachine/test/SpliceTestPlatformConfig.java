@@ -90,7 +90,7 @@ class SpliceTestPlatformConfig {
         //
         // File System
         //
-        config.set("fs.default.name", "file:///"); // MapR Hack, tells it local filesystem
+        config.set("fs.defaultFS", "file:///"); // MapR Hack, tells it local filesystem // fs.default.name is deprecated
         // Must allow Cygwin instance to config its own rootURI
         if (!"CYGWIN".equals(hbaseRootDirUri)) {
             config.set("hbase.rootdir", hbaseRootDirUri);
@@ -100,7 +100,7 @@ class SpliceTestPlatformConfig {
         // Threads, timeouts
         //
         config.setLong("hbase.rpc.timeout", MINUTES.toMillis(2));
-        config.setLong("hbase.regionserver.lease.period", MINUTES.toMillis(2));
+        config.setLong("hbase.client.scanner.timeout.period", MINUTES.toMillis(2)); // hbase.regionserver.lease.period is deprecated
         config.setLong("hbase.regionserver.handler.count", 200);
         config.setLong("hbase.regionserver.msginterval", 1000);
         config.setLong("hbase.master.event.waiting.time", 20);
