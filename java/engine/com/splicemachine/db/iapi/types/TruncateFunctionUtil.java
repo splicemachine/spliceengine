@@ -91,7 +91,7 @@ public class TruncateFunctionUtil {
         double valueToTrunc = returnValue.getDouble();
         int roundingMode = BigDecimal.ROUND_FLOOR;
         if (valueToTrunc < 1) {
-            // short circuit if we know answer is zero (x<1 && truncPlaces<0)
+            // short circuit if we know answer is zero (valueToTrunc<1 && truncPlaces<0)
             if (truncPlaces.getInt() <= 0) {
                 returnValue.setBigDecimal(new BigDecimal(0));
                 return returnValue;
