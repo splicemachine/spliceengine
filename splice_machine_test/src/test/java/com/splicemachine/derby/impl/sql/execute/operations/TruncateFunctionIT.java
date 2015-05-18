@@ -981,6 +981,38 @@ public class TruncateFunctionIT {
                 "0.000000 |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
 
+        sqlText =  "values truncate(-311.0,-1)";
+        rs = spliceClassWatcher.executeQuery(sqlText);
+        expected =
+            "1   |\n" +
+                "--------\n" +
+                "-310.0 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
+        sqlText =  "values truncate(-311.0,-2)";
+        rs = spliceClassWatcher.executeQuery(sqlText);
+        expected =
+            "1   |\n" +
+                "--------\n" +
+                "-300.0 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
+        sqlText =  "values truncate(-311.0,-3)";
+        rs = spliceClassWatcher.executeQuery(sqlText);
+        expected =
+            "1  |\n" +
+                "-----\n" +
+                "0.0 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
+        sqlText =  "values truncate(-300,0)";
+        rs = spliceClassWatcher.executeQuery(sqlText);
+        expected =
+            "1  |\n" +
+                "------\n" +
+                "-300 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
         rs.close();
     }
 
