@@ -17,7 +17,9 @@ import com.splicemachine.derby.utils.marshall.SpreadBucket;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.Timer;
+import com.splicemachine.pipeline.api.CallBuffer;
 import com.splicemachine.pipeline.api.RecordingCallBuffer;
+import com.splicemachine.pipeline.callbuffer.PipingCallBuffer;
 import com.splicemachine.pipeline.impl.WriteCoordinator;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
@@ -26,6 +28,7 @@ import com.splicemachine.uuid.Snowflake;
 import org.apache.hadoop.hbase.util.Bytes;
 
 import java.io.IOException;
+import java.util.concurrent.Callable;
 
 import static com.google.common.base.Throwables.propagateIfInstanceOf;
 
@@ -42,6 +45,8 @@ public class TableOperationSink implements OperationSink {
     private final byte[] destinationTable;
     private final TableOperationSinkTrace traceMetricRecorder;
     private final boolean destinationIsTemp;
+    private final boolean sourceIsDMLOp;
+    private final TriggerHandler triggerHandler;
 
     private long rowsRead;
     private long rowsWritten;
@@ -63,6 +68,8 @@ public class TableOperationSink implements OperationSink {
         this.totalTimer = Metrics.newTimer();
         this.traceMetricRecorder = new TableOperationSinkTrace(operation, taskId, statementId, waitTimeNs, txn);
         this.destinationIsTemp = Bytes.equals(destinationTable, SpliceConstants.TEMP_TABLE_BYTES);
+        this.sourceIsDMLOp = (this.operation instanceof DMLWriteOperation);
+        this.triggerHandler = sourceIsDMLOp ? ((DMLWriteOperation) operation).getTriggerHandler() : null;
     }
 
     /**
@@ -102,7 +109,7 @@ public class TableOperationSink implements OperationSink {
         }
 
         // Increment reported number of rows by row count of DML operation filtered rows.
-        if (operation instanceof DMLWriteOperation) {
+        if (sourceIsDMLOp) {
             rowsWritten += ((DMLWriteOperation) operation).getFilteredRows();
         }
 
@@ -115,17 +122,59 @@ public class TableOperationSink implements OperationSink {
      * the destination table.
      */
     private void sinkRows(SpliceRuntimeContext context, PairEncoder encoder, RecordingCallBuffer<KVPair> writeBuffer) throws Exception {
+
+        /* After triggers can only be fired when rows have been flushed (and constraints checked).  We let the trigger
+         * handler class contain the logic for how often the flush happens, but we have to provide it with a callback
+         * for causing the flush.  The CallBuffer may have already flushed before the trigger handler calls flush, in
+         * which case this callback will do nothing.  What is important is that this callback will cause constraint
+         * violation exceptions to be thrown (when applicable) before we fire after triggers. */
+        Callable<Void> flushCallback = triggerHandler == null ? null : flushCallback(writeBuffer);
+
         ExecRow row;
         while ((row = operation.getNextSinkRow(context)) != null) {
-            SpliceBaseOperation.checkInterrupt(rowsRead, SpliceConstants.interruptLoopCheck);
             rowsRead++;
+            SpliceBaseOperation.checkInterrupt(rowsRead, SpliceConstants.interruptLoopCheck);
+
+            fireBeforeRowTriggers(row);
+
             writeTimer.startTiming();
             KVPair kvPair = encoder.encode(row);
             writeBuffer.add(kvPair);
+
+            fireAfterRowTriggers(row, flushCallback);
+
             writeTimer.tick(1);
             rowsWritten++;
         }
+
+        firePendingAfterTriggers(flushCallback);
     }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    //
+    // trigger related methods
+    //
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+    private void fireBeforeRowTriggers(ExecRow row) throws StandardException {
+        if (triggerHandler != null) {
+            triggerHandler.fireBeforeRowTriggers(row);
+        }
+    }
+
+    private void fireAfterRowTriggers(ExecRow row, Callable<Void> flushCallback) throws Exception {
+        if (triggerHandler != null) {
+            triggerHandler.fireAfterRowTriggers(row, flushCallback);
+        }
+    }
+
+    private void firePendingAfterTriggers(Callable<Void> flushCallback) throws Exception {
+        if(triggerHandler != null) {
+            triggerHandler.firePendingAfterTriggers(flushCallback);
+        }
+    }
+
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //
@@ -188,4 +237,15 @@ public class TableOperationSink implements OperationSink {
             return usedTempBuckets;
         }
     }
+
+    private Callable<Void> flushCallback(final CallBuffer callBuffer) {
+        return new Callable<Void>() {
+            @Override
+            public Void call() throws Exception {
+                callBuffer.flushBufferAndWait();
+                return null;
+            }
+        };
+    }
+
 }

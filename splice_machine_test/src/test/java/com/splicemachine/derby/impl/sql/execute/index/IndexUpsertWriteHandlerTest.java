@@ -352,6 +352,11 @@ public class IndexUpsertWriteHandlerTest {
             heapSize=0;
         }
 
+        @Override
+        public void flushBufferAndWait() throws Exception {
+            throw new UnsupportedOperationException();
+        }
+
         protected abstract long heapSize(E element);
 
         protected abstract void doFlush(List<E> toFlush);

@@ -10,8 +10,6 @@ import com.splicemachine.pipeline.impl.MergingWriteStats;
 import com.splicemachine.pipeline.utils.PipelineUtils;
 import com.splicemachine.pipeline.writeconfiguration.UpdatingWriteConfiguration;
 import com.splicemachine.pipeline.writer.RegulatedWriter;
-import com.splicemachine.pipeline.writerejectedhandler.CountingHandler;
-import com.splicemachine.pipeline.writerejectedhandler.OtherWriteHandler;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.HRegionInfo;
@@ -157,7 +155,7 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, CanRebuild
         // The following block of code flushes the region and region server call buffers.
         if(startKeyToRegionCBMap!=null) {
             for (Pair<RegionCallBuffer, ServerName> buffer : startKeyToRegionCBMap.values())
-                buffer.getFirst().flushBuffer();
+                buffer.getFirst().clear();
             for (RegionServerCallBuffer buffer : serverNameToRegionServerCBMap.values()) {
                 assert (buffer.getBulkWrites().numEntries() == 0);  // This asserts that there are not any outstanding RegionCallBuffers for the region server that need to be flushed still.
                 buffer.close();
@@ -261,34 +259,45 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, CanRebuild
 
     @Override
     public void flushBuffer() throws Exception {
-    	SpliceLogUtils.debug(LOG, "flushBuffer");
-        if (serverNameToRegionServerCBMap == null) return;
-    	//flush all buffers
+        if (serverNameToRegionServerCBMap == null) {
+            return;
+        }
+        // flush all buffers
         rebuildIfNecessary();
-        for(RegionServerCallBuffer buffer:serverNameToRegionServerCBMap.values()) {
-        	if (LOG.isDebugEnabled())
-        		SpliceLogUtils.debug(LOG, "flushBuffer {table=%s, server=%s, rows=%d ",Bytes.toString(tableName),buffer.getServerName(),buffer.getKVPairSize());
+        for (RegionServerCallBuffer buffer : serverNameToRegionServerCBMap.values()) {
             buffer.flushBuffer();
         }
-        currentHeapSize=0;
-        currentKVPairSize=0;
+        currentHeapSize = 0;
+        currentKVPairSize = 0;
         totalFlushes++;
     }
 
     @Override
+    public void flushBufferAndWait() throws Exception {
+        flushBuffer();
+        for (RegionServerCallBuffer buffer : serverNameToRegionServerCBMap.values()) {
+            buffer.flushBufferAndWait();
+        }
+    }
+
+    @Override
     public void close() throws Exception {
-    	SpliceLogUtils.debug(LOG, "close");
-    	//close all buffers
-        if (serverNameToRegionServerCBMap == null) return;
+        // close all buffers
+        if (serverNameToRegionServerCBMap == null) {
+            return;
+        }
         rebuildIfNecessary();
-        for(RegionServerCallBuffer buffer:serverNameToRegionServerCBMap.values()) {
-        	if (LOG.isDebugEnabled())
-        		SpliceLogUtils.debug(LOG, "Closing {table=%s, server=%s}",Bytes.toString(tableName),buffer.getServerName());
+
+        // Server
+        for (RegionServerCallBuffer buffer : serverNameToRegionServerCBMap.values()) {
             buffer.close();
         }
-        
-        for(Pair<RegionCallBuffer,ServerName> buffer:startKeyToRegionCBMap.values())
-        	buffer.getFirst().close();        
+        // Region
+        for (Pair<RegionCallBuffer, ServerName> buffer : startKeyToRegionCBMap.values()) {
+            RegionCallBuffer regionBuffer = buffer.getFirst();
+            regionBuffer.close();
+        }
+
         serverNameToRegionServerCBMap = null;
         startKeyToRegionCBMap = null;
         currentHeapSize = 0;
@@ -304,7 +313,6 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, CanRebuild
     @Override public WriteStats getWriteStats() { return writeStats; }
 
     public List<BulkWrites> getBulkWrites() throws Exception {
-        SpliceLogUtils.trace(LOG, "getBulkWrites");
         rebuildIfNecessary();
         List<BulkWrites> writes = new ArrayList<>(serverNameToRegionServerCBMap.size());
         for(RegionServerCallBuffer buffer:serverNameToRegionServerCBMap.values())

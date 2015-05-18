@@ -109,7 +109,7 @@ class RegionServerCallBuffer implements CallBuffer<Pair<byte[], RegionCallBuffer
             RegionCallBuffer value = regionEntry.getValue();
             if (value.isEmpty()) continue;
             bws.add(value.getBulkWrite());
-            value.flushBuffer(); // zero out
+            value.clear(); // zero out
         }
         return new BulkWrites(bws, this.txn, this.buffers.lastKey());
     }
@@ -132,18 +132,21 @@ class RegionServerCallBuffer implements CallBuffer<Pair<byte[], RegionCallBuffer
     }
 
     @Override
-    public void close() throws Exception {
-        if (writer == null) {// No Op Buffer
-            return;
-        }
+    public void flushBufferAndWait() throws Exception {
         flushBuffer();
         //make sure all outstanding buffers complete before returning
         for (Future<WriteStats> outstandingCall : outstandingRequests) {
             WriteStats retStats = outstandingCall.get();//wait for errors and/or completion
-            if (LOG.isTraceEnabled())
-                SpliceLogUtils.trace(LOG, "close returning stats %s", retStats);
             writeStats.merge(retStats);
         }
+    }
+
+    @Override
+    public void close() throws Exception {
+        if (writer == null) {// No Op Buffer
+            return;
+        }
+        flushBufferAndWait();
     }
 
     public int getHeapSize() {
