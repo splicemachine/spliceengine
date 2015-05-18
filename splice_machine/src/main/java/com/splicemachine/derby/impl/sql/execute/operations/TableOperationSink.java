@@ -3,6 +3,8 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.google.common.base.Throwables;
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
@@ -21,36 +23,37 @@ import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.ActiveWriteTxn;
 import com.splicemachine.uuid.Snowflake;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.log4j.Logger;
 
 import java.io.IOException;
 
+import static com.google.common.base.Throwables.propagateIfInstanceOf;
+
 /**
- * @author Scott Fines
- *         Created on: 5/13/13
+ * OperationSink instance which writes to Hbase tables (temp tables, or non-temp in the case of DML operations).
  */
 public class TableOperationSink implements OperationSink {
-
-    private static final Logger LOG = Logger.getLogger(TableOperationSink.class);
 
     private final WriteCoordinator writeCoordinator;
     private final SinkingOperation operation;
     private final byte[] taskId;
-
     private final Timer totalTimer;
     private final TxnView txn;
     private final byte[] destinationTable;
     private final TableOperationSinkTrace traceMetricRecorder;
+    private final boolean destinationIsTemp;
+
+    private long rowsRead;
+    private long rowsWritten;
+    private Timer writeTimer;
 
     public TableOperationSink(byte[] taskId,
                               SinkingOperation operation,
                               WriteCoordinator writeCoordinator,
                               TxnView txn,
                               long statementId,
-                              long waitTimeNs, byte[] destinationTable) {
+                              long waitTimeNs,
+                              byte[] destinationTable) {
         this.writeCoordinator = writeCoordinator;
         this.taskId = taskId;
         this.operation = operation;
@@ -59,117 +62,130 @@ public class TableOperationSink implements OperationSink {
         //we always record this time information, because it's cheap relative to the per-row timing
         this.totalTimer = Metrics.newTimer();
         this.traceMetricRecorder = new TableOperationSinkTrace(operation, taskId, statementId, waitTimeNs, txn);
+        this.destinationIsTemp = Bytes.equals(destinationTable, SpliceConstants.TEMP_TABLE_BYTES);
     }
 
+    /**
+     * Entry point to this class.  Inits PairEncoder and CallBuffer and sinks rows from source operation.
+     */
     @Override
-    public TaskStats sink(SpliceRuntimeContext spliceRuntimeContext) throws Exception {
-        boolean isTemp = isTempTable(destinationTable, spliceRuntimeContext);
+    public TaskStats sink(SpliceRuntimeContext context) throws Exception {
         //add ourselves to the task id list
         TaskIdStack.pushTaskId(taskId);
-        long rowsRead = 0;
-        long rowsWritten = 0;
-        Timer writeTimer = spliceRuntimeContext.newTimer();
-        KeyEncoder keyEncoder = operation.getKeyEncoder(spliceRuntimeContext);
-        DataHash rowHash = operation.getRowHash(spliceRuntimeContext);
 
-        KVPair.Type dataType = operation instanceof UpdateOperation ? KVPair.Type.UPDATE : KVPair.Type.INSERT;
-        dataType = operation instanceof DeleteOperation ? KVPair.Type.DELETE : dataType;
-        PairEncoder encoder;
-        final boolean[] usedTempBuckets;
-        if (isTemp) {
-            final SpreadBucket tempSpread = SpliceDriver.driver().getTempTable().getCurrentSpread();
-            usedTempBuckets = new boolean[tempSpread.getNumBuckets()];
-            encoder = new PairEncoder(keyEncoder, rowHash, dataType) {
-                @Override
-                public KVPair encode(ExecRow execRow) throws StandardException, IOException {
-                    byte[] key = keyEncoder.getKey(execRow);
-                    usedTempBuckets[tempSpread.bucketIndex(key[0])] = true;
-                    rowEncoder.setRow(execRow);
-                    byte[] row = rowEncoder.encode();
+        writeTimer = context.newTimer();
 
-                    return new KVPair(key, row, pairType);
-                }
-            };
-        } else {
-            usedTempBuckets = null;
-            encoder = new PairEncoder(keyEncoder, rowHash, dataType);
-        }
+        PairEncoder encoder = initPairEncoder(context);
         try {
-            TxnView txn = getTxn(spliceRuntimeContext, destinationTable);
-            RecordingCallBuffer<KVPair> bufferToTransform = writeCoordinator.writeBuffer(destinationTable, txn, spliceRuntimeContext);
-            RecordingCallBuffer<KVPair> writeBuffer = operation.transformWriteBuffer(bufferToTransform);
 
-            ExecRow row;
+            RecordingCallBuffer<KVPair> writeBuffer = intCallBuffer(context);
 
             totalTimer.startTiming();
-            do {
-                SpliceBaseOperation.checkInterrupt(rowsRead, SpliceConstants.interruptLoopCheck);
-                row = operation.getNextSinkRow(spliceRuntimeContext);
-                if (row == null) continue;
-
-                rowsRead++;
-                writeTimer.startTiming();
-                KVPair encode = encoder.encode(row);
-                writeBuffer.add(encode);
-                writeTimer.tick(1);
-                rowsWritten++;
-
-            } while (row != null);
+            sinkRows(context, encoder, writeBuffer);
 
             writeTimer.startTiming();
             writeBuffer.flushBuffer();
             writeBuffer.close();
             writeTimer.stopTiming();
 
-            //stop timing events. We do this inside of the try block because we don't care
-            //if the task fails for some reason
+            //stop timing events. We do this inside of the try block because we don't care if the task fails for some reason
             totalTimer.stopTiming();
-            traceMetricRecorder.recordTraceMetrics(spliceRuntimeContext, writeTimer, writeBuffer.getWriteStats());
+            traceMetricRecorder.recordTraceMetrics(context, writeTimer, writeBuffer.getWriteStats());
+
         } catch (Exception e) {
-            //unwrap interruptedExceptions
-            @SuppressWarnings("ThrowableResultOfMethodCallIgnored") Throwable t = Throwables.getRootCause(e);
-            if (t instanceof InterruptedException)
-                throw (InterruptedException) t;
-            else
-                throw e;
+            propagateIfInstanceOf(Throwables.getRootCause(e), InterruptedException.class);
+            throw e;
         } finally {
             Closeables.closeQuietly(encoder);
             TaskIdStack.popTaskId();
             operation.close();
-
-            if (LOG.isDebugEnabled()) {
-                LOG.debug(String.format("Read %d rows from operation %s", rowsRead, operation.getClass().getSimpleName()));
-                LOG.debug(String.format("Wrote %d rows from operation %s", rowsWritten, operation.getClass().getSimpleName()));
-            }
         }
-        //DB-2007/DB-2070. This is in place to make DB-2007 changes appear unchanged even though it isn't
+
+        // Increment reported number of rows by row count of DML operation filtered rows.
         if (operation instanceof DMLWriteOperation) {
             rowsWritten += ((DMLWriteOperation) operation).getFilteredRows();
         }
+
+        final boolean[] usedTempBuckets = destinationIsTemp ? ((TempPairEncoder) encoder).getUsedTempBuckets() : null;
         return new TaskStats(totalTimer.getTime().getWallClockTime(), rowsRead, rowsWritten, usedTempBuckets);
     }
 
-    private boolean isTempTable(byte[] destinationTable, SpliceRuntimeContext context) {
-        return Bytes.equals(destinationTable, context.getTempTable().getTempTableName());
-    }
-
-    private TxnView getTxn(SpliceRuntimeContext spliceRuntimeContext, byte[] destinationTable) {
-        byte[] tempTableBytes = spliceRuntimeContext.getTempTable().getTempTableName();
-        if (Bytes.equals(destinationTable, tempTableBytes)) {
-            /*
-             * We are writing to the TEMP Table.
-             *
-             * The timestamp has a useful meaning in the TEMP table, which is that
-             * it should be the longified version of the job id (to facilitate dropping
-             * data from TEMP efficiently--See TempTablecompactionScanner for more information).
-             *
-             * However, timestamps can't be negative, so we just take the time portion of the
-             * uuid out and stringify that
-             */
-            long txnId = Snowflake.timestampFromUUID(Bytes.toLong(operation.getUniqueSequenceId()));
-            return new ActiveWriteTxn(txnId, txnId, Txn.ROOT_TRANSACTION);
+    /**
+     * The caller has initialized everything we need.  Now just iterate over rows from the source and send them to
+     * the destination table.
+     */
+    private void sinkRows(SpliceRuntimeContext context, PairEncoder encoder, RecordingCallBuffer<KVPair> writeBuffer) throws Exception {
+        ExecRow row;
+        while ((row = operation.getNextSinkRow(context)) != null) {
+            SpliceBaseOperation.checkInterrupt(rowsRead, SpliceConstants.interruptLoopCheck);
+            rowsRead++;
+            writeTimer.startTiming();
+            KVPair kvPair = encoder.encode(row);
+            writeBuffer.add(kvPair);
+            writeTimer.tick(1);
+            rowsWritten++;
         }
-        return txn;
     }
 
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    //
+    // methods used in initialization are below
+    //
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    /**
+     * init RecordingCallBuffer
+     */
+    private RecordingCallBuffer<KVPair> intCallBuffer(SpliceRuntimeContext context) throws StandardException {
+        TxnView txn = this.txn;
+        if (destinationIsTemp) {
+            /* We are writing to the TEMP Table. The timestamp has a useful meaning in the TEMP table, which is that
+             * it should be the longified version of the job id (to facilitate dropping data from TEMP efficiently.
+             * However, timestamps can't be negative, so we just  take the time portion of the uuid out and stringify */
+            long txnId = Snowflake.timestampFromUUID(Bytes.toLong(operation.getUniqueSequenceId()));
+            txn = new ActiveWriteTxn(txnId, txnId, Txn.ROOT_TRANSACTION);
+        }
+        RecordingCallBuffer<KVPair> bufferToTransform = writeCoordinator.writeBuffer(destinationTable, txn, context);
+        return operation.transformWriteBuffer(bufferToTransform);
+    }
+
+    /**
+     * init PairEncoder
+     */
+    private PairEncoder initPairEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        KeyEncoder keyEncoder = operation.getKeyEncoder(spliceRuntimeContext);
+        DataHash rowHash = operation.getRowHash(spliceRuntimeContext);
+        KVPair.Type dataType = operation instanceof UpdateOperation ? KVPair.Type.UPDATE : KVPair.Type.INSERT;
+        dataType = operation instanceof DeleteOperation ? KVPair.Type.DELETE : dataType;
+
+        if (destinationIsTemp) {
+            return new TempPairEncoder(keyEncoder, rowHash, dataType);
+        } else {
+            return new PairEncoder(keyEncoder, rowHash, dataType);
+        }
+    }
+
+    private static class TempPairEncoder extends PairEncoder {
+        private final boolean[] usedTempBuckets;
+        private final SpreadBucket tempSpread;
+
+        public TempPairEncoder(KeyEncoder keyEncoder, DataHash rowHash, KVPair.Type dataType) {
+            super(keyEncoder, rowHash, dataType);
+            this.tempSpread = SpliceDriver.driver().getTempTable().getCurrentSpread();
+            this.usedTempBuckets = new boolean[tempSpread.getNumBuckets()];
+        }
+
+        @Override
+        public KVPair encode(ExecRow execRow) throws StandardException, IOException {
+            byte[] key = keyEncoder.getKey(execRow);
+            usedTempBuckets[tempSpread.bucketIndex(key[0])] = true;
+            rowEncoder.setRow(execRow);
+            byte[] row = rowEncoder.encode();
+            return new KVPair(key, row, pairType);
+        }
+
+        public boolean[] getUsedTempBuckets() {
+            return usedTempBuckets;
+        }
+    }
 }
