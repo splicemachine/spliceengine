@@ -1,12 +1,12 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.base.Throwables;
-import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.iapi.sql.execute.TaskIdStack;
 import com.splicemachine.derby.management.XplainTaskReporter;
 import com.splicemachine.derby.metrics.OperationMetric;
 import com.splicemachine.derby.metrics.OperationRuntimeStats;
@@ -42,12 +42,6 @@ public class TableOperationSink implements OperationSink {
     private static final Logger LOG = Logger.getLogger(TableOperationSink.class);
     private static String HOSTNAME = HostnameUtil.getHostname();
 
-    /**
-     * A chain of tasks for identifying parent and child tasks. The last byte[] in
-     * the list is the immediate parent of other tasks.
-     */
-    public static final ThreadLocal<List<byte[]>> taskChain = new ThreadLocal<>();
-
     private final WriteCoordinator writeCoordinator;
     private final SinkingOperation operation;
     private final byte[] taskId;
@@ -79,12 +73,7 @@ public class TableOperationSink implements OperationSink {
     public TaskStats sink(SpliceRuntimeContext spliceRuntimeContext) throws Exception {
         boolean isTemp = isTempTable(destinationTable, spliceRuntimeContext);
         //add ourselves to the task id list
-        List<byte[]> bytes = taskChain.get();
-        if (bytes == null) {
-            bytes = Lists.newLinkedList(); //LL used to avoid wasting space here
-            taskChain.set(bytes);
-        }
-        bytes.add(taskId);
+        TaskIdStack.pushTaskId(taskId);
         long rowsRead = 0;
         long rowsWritten = 0;
         Timer writeTimer = spliceRuntimeContext.newTimer();
@@ -163,11 +152,7 @@ public class TableOperationSink implements OperationSink {
                 throw e;
         } finally {
             Closeables.closeQuietly(encoder);
-            bytes = taskChain.get();
-            bytes.remove(bytes.size() - 1);
-            if (bytes.size() <= 0) {
-                taskChain.remove();
-            }
+            TaskIdStack.popTaskId();
             operation.close();
 
             if (LOG.isDebugEnabled()) {
