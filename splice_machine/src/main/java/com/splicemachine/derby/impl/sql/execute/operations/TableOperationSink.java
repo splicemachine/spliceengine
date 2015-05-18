@@ -7,9 +7,6 @@ import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.sql.execute.TaskIdStack;
-import com.splicemachine.derby.management.XplainTaskReporter;
-import com.splicemachine.derby.metrics.OperationMetric;
-import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.derby.utils.marshall.KeyEncoder;
@@ -23,7 +20,6 @@ import com.splicemachine.pipeline.impl.WriteCoordinator;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.ActiveWriteTxn;
-import com.splicemachine.tools.HostnameUtil;
 import com.splicemachine.uuid.Snowflake;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -31,7 +27,6 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
-import java.util.List;
 
 /**
  * @author Scott Fines
@@ -40,17 +35,15 @@ import java.util.List;
 public class TableOperationSink implements OperationSink {
 
     private static final Logger LOG = Logger.getLogger(TableOperationSink.class);
-    private static String HOSTNAME = HostnameUtil.getHostname();
 
     private final WriteCoordinator writeCoordinator;
     private final SinkingOperation operation;
     private final byte[] taskId;
 
     private final Timer totalTimer;
-    private final long waitTimeNs;
-    private final long statementId;
     private final TxnView txn;
     private final byte[] destinationTable;
+    private final TableOperationSinkTrace traceMetricRecorder;
 
     public TableOperationSink(byte[] taskId,
                               SinkingOperation operation,
@@ -65,8 +58,7 @@ public class TableOperationSink implements OperationSink {
         this.destinationTable = destinationTable;
         //we always record this time information, because it's cheap relative to the per-row timing
         this.totalTimer = Metrics.newTimer();
-        this.statementId = statementId;
-        this.waitTimeNs = waitTimeNs;
+        this.traceMetricRecorder = new TableOperationSinkTrace(operation, taskId, statementId, waitTimeNs, txn);
     }
 
     @Override
@@ -132,17 +124,7 @@ public class TableOperationSink implements OperationSink {
             //stop timing events. We do this inside of the try block because we don't care
             //if the task fails for some reason
             totalTimer.stopTiming();
-            if (spliceRuntimeContext.shouldRecordTraceMetrics()) {
-                long taskIdLong = taskId != null ? Bytes.toLong(taskId) : SpliceDriver.driver().getUUIDGenerator().nextUUID();
-                List<OperationRuntimeStats> operationStats = OperationRuntimeStats.getOperationStats(operation,
-                        taskIdLong, statementId, writeBuffer.getWriteStats(), writeTimer.getTime(), spliceRuntimeContext);
-                XplainTaskReporter reporter = SpliceDriver.driver().getTaskReporter();
-                for (OperationRuntimeStats operationStat : operationStats) {
-                    operationStat.addMetric(OperationMetric.TASK_QUEUE_WAIT_WALL_TIME, waitTimeNs);
-                    operationStat.setHostName(HOSTNAME);
-                    reporter.report(operationStat, this.txn);
-                }
-            }
+            traceMetricRecorder.recordTraceMetrics(spliceRuntimeContext, writeTimer, writeBuffer.getWriteStats());
         } catch (Exception e) {
             //unwrap interruptedExceptions
             @SuppressWarnings("ThrowableResultOfMethodCallIgnored") Throwable t = Throwables.getRootCause(e);
@@ -161,8 +143,9 @@ public class TableOperationSink implements OperationSink {
             }
         }
         //DB-2007/DB-2070. This is in place to make DB-2007 changes appear unchanged even though it isn't
-        if (operation instanceof DMLWriteOperation)
+        if (operation instanceof DMLWriteOperation) {
             rowsWritten += ((DMLWriteOperation) operation).getFilteredRows();
+        }
         return new TaskStats(totalTimer.getTime().getWallClockTime(), rowsRead, rowsWritten, usedTempBuckets);
     }
 
@@ -188,6 +171,5 @@ public class TableOperationSink implements OperationSink {
         }
         return txn;
     }
-
 
 }
