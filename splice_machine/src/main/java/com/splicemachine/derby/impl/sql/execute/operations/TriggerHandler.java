@@ -25,10 +25,13 @@ import java.util.concurrent.Callable;
 /**
  * Used by DMLOperation to initialize the derby classes necessary for firing row/statement triggers.  Also provides
  * convenient methods for firing.
+ *
+ * Intended to be used by a single thread.
  */
 public class TriggerHandler {
 
-    private static final int AFTER_ROW_LIMIT = 1000;
+    /** When this many rows have been passed for firing AFTER row triggers then we actually fire. */
+    private static final int AFTER_ROW_BUFFER_SIZE = 1000;
 
     private TriggerEventActivator triggerActivator;
     private ResultDescription resultDescription;
@@ -52,7 +55,7 @@ public class TriggerHandler {
         this.beforeEvent = beforeEvent;
         this.afterEvent = afterEvent;
         this.resultDescription = activation.getResultDescription();
-        this.pendingAfterRows = Lists.newArrayListWithCapacity(AFTER_ROW_LIMIT);
+        this.pendingAfterRows = Lists.newArrayListWithCapacity(AFTER_ROW_BUFFER_SIZE);
 
         this.hasBeforeRow = triggerInfo.hasBeforeRowTrigger();
         this.hasAfterRow = triggerInfo.hasAfterRowTrigger();
@@ -100,12 +103,14 @@ public class TriggerHandler {
 
     public void fireAfterRowTriggers(ExecRow row, Callable<Void> flushCallback) throws Exception {
         pendingAfterRows.add(row.getClone());
-        if (pendingAfterRows.size() == AFTER_ROW_LIMIT) {
+        if (pendingAfterRows.size() == AFTER_ROW_BUFFER_SIZE) {
             firePendingAfterTriggers(flushCallback);
         }
     }
 
     public void firePendingAfterTriggers(Callable<Void> flushCallback) throws Exception {
+        /* If there are any un-flushed rows that would cause a constraint violation then this callback will throw.
+         * Which is what we want. Check constraints before firing after triggers. */
         flushCallback.call();
         for (ExecRow flushedRow : pendingAfterRows) {
             fireAfterRowTriggers(flushedRow);

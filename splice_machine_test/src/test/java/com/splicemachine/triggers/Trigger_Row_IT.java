@@ -6,6 +6,9 @@ import com.splicemachine.test_dao.TriggerBuilder;
 import com.splicemachine.test_dao.TriggerDAO;
 import org.junit.*;
 
+import java.sql.Connection;
+import java.sql.ResultSet;
+
 import static org.junit.Assert.*;
 
 /**
@@ -191,6 +194,54 @@ public class Trigger_Row_IT {
     public void beforeDelete() throws Exception {
         methodWatcher.executeUpdate(tb.before().delete().on("T").row().then("select 1/0 from sys.systables").build());
         assertQueryFails("delete from T where c = 6", "Attempt to divide by zero.");
+    }
+
+    //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    //
+    // Triggers and Constraint violations
+    //
+    //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @Test
+    public void afterInsertWithUniqueConstraintViolation() throws Exception {
+        methodWatcher.executeUpdate("create table T2(a int, constraint T_INDEX1 unique(a))");
+        methodWatcher.executeUpdate("insert into T2 values(1),(2),(3)");
+
+        /* When the triggering statement is rolled back because of a constraint violation we can't use the effect of
+         * the trigger to test if it fired when that effect is also rolled back.  The SET_GLOBAL_DATABASE_PROPERTY
+         * stored procedure is non transactional.
+         */
+        methodWatcher.executeUpdate(tb.named("constraintTrig1").after().insert().on("T2").row()
+                .then("call syscs_util.SYSCS_SET_GLOBAL_DATABASE_PROPERTY('triggerRowItPropA', 'someValue')").build());
+
+        // when - insert over select
+        assertQueryFails("insert into T2 select * from T2", "The statement was aborted because it would have caused a duplicate key value in a unique or primary key constraint or unique index identified by 'T_INDEX1' defined on 'T2'.");
+        // when - insert over values
+        assertQueryFails("insert into T2 values(1)", "The statement was aborted because it would have caused a duplicate key value in a unique or primary key constraint or unique index identified by 'T_INDEX1' defined on 'T2'.");
+
+        // Trigger should NOT have fired.
+        Connection connection = methodWatcher.createConnection();
+        ResultSet rs = connection.prepareCall("call syscs_util.SYSCS_GET_GLOBAL_DATABASE_PROPERTY('triggerRowItPropA')").executeQuery();
+        rs.next();
+        assertNull(rs.getString(2));
+    }
+
+    @Test
+    public void afterUpdateWithUniqueConstraintViolation() throws Exception {
+        methodWatcher.executeUpdate("create table T3(a int, constraint T_INDEX2 unique(a))");
+        methodWatcher.executeUpdate("insert into T3 values(1),(2),(3)");
+
+        methodWatcher.executeUpdate(tb.named("constraintTrig2").after().update().on("T3").row()
+                .then("call syscs_util.SYSCS_SET_GLOBAL_DATABASE_PROPERTY('triggerRowItPropB', 'someValue')").build());
+
+        // when - update
+        assertQueryFails("update T3 set a=1 where a=3", "The statement was aborted because it would have caused a duplicate key value in a unique or primary key constraint or unique index identified by 'T_INDEX2' defined on 'T3'.");
+
+        // Trigger should NOT have fired.
+        Connection connection = methodWatcher.createConnection();
+        ResultSet rs = connection.prepareCall("call syscs_util.SYSCS_GET_GLOBAL_DATABASE_PROPERTY('triggerRowItPropB')").executeQuery();
+        rs.next();
+        assertNull(rs.getString(2));
     }
 
     //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
