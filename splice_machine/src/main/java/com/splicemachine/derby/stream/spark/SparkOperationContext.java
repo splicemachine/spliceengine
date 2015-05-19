@@ -8,6 +8,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
@@ -56,6 +57,7 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
                 soi = SpliceObserverInstructions.create(op.getActivation(), op);
             out.writeObject(soi);
             out.writeObject(op);
+            TransactionOperations.getOperationFactory().writeTxn(txn, out);
             out.writeObject(rowsRead);
             out.writeObject(rowsFiltered);
             out.writeObject(rowsWritten);
@@ -67,6 +69,7 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
             SpliceSpark.setupSpliceStaticComponents();
             soi = (SpliceObserverInstructions) in.readObject();
             op = (Op) in.readObject();
+            txn = TransactionOperations.getOperationFactory().readTxn(in);
             rowsRead = (Accumulator) in.readObject();
             rowsFiltered = (Accumulator) in.readObject();
             rowsWritten = (Accumulator) in.readObject();
@@ -75,7 +78,6 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
                 impl = new SpliceTransactionResourceImpl();
                 impl.prepareContextManager();
                 prepared = true;
-                txn = soi.getTxn();
                 impl.marshallTransaction(txn);
                 activation = soi.getActivation(impl.getLcc());
                 context = SpliceOperationContext.newContext(activation);
