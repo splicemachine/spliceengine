@@ -7,6 +7,7 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.io.HFileLink;
+import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 /**
  * HBase snapshot platform specific code API is defined here
@@ -21,15 +22,21 @@ public interface SnapshotUtils {
 	  * Extract the list of files (HFiles/HLogs) to copy using Map-Reduce.
 	  * @return list of files referenced by the snapshot (pair of path and size)
 	 */
-	public List<Object> getSnapshotFilesForRegion(final HRegion region, final Configuration conf,
-	        final FileSystem fs, final Path snapshotDir) throws IOException ;
 
-    public List<Object> getSnapshotFilesForRegion(final HRegion region, final Configuration conf,
-                                                  final FileSystem fs, final String snapshotName) throws IOException ;
+    public List<Object> getSnapshotFilesForRegion(final HRegion region,
+                                                  final Configuration conf,
+                                                  final FileSystem fs,
+                                                  final String snapshotName,
+                                                  final boolean materialize) throws IOException ;
 	 /**
 	  * Materializes snapshot reference file - creates real hfile in a local tmp directory.  
 	  */
 	public Path materializeRefFile(Configuration conf, FileSystem fs, HFileLink refFilePath, HRegion region )
 	 	throws IOException;
 
+    public HFileLink createHFileLink(Configuration conf,
+                                     TableName table,
+                                     String regionName,
+                                     String family,
+                                     String hfile) throws IOException;
 }

@@ -18,8 +18,15 @@ import com.splicemachine.utils.ZkUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
+import org.apache.hadoop.hbase.HColumnDescriptor;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.KeyValueUtil;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.io.HFileLink;
+import org.apache.hadoop.hbase.io.HalfStoreFileReader;
+import org.apache.hadoop.hbase.io.Reference;
+import org.apache.hadoop.hbase.io.compress.Compression;
+import org.apache.hadoop.hbase.io.hfile.*;
 import org.apache.hadoop.hbase.regionserver.*;
 
 import com.splicemachine.derby.hbase.DerbyFactory;
@@ -234,9 +241,9 @@ public class BackupUtils {
         }
         String fileName = s[0];
         String encodedRegionName = s[1];
+        SnapshotUtils snapshotUtils = SnapshotUtilsFactory.snapshotUtils;
 
         // Get last snapshot for this table
-        SnapshotUtils snapshotUtils = SnapshotUtilsFactory.snapshotUtils;
         Configuration conf = SpliceConstants.config;
         String snapshotName = BackupUtils.getLastSnapshotName(tableName);
         Set<String> pathSet = new HashSet<>();
@@ -244,8 +251,9 @@ public class BackupUtils {
             if (LOG.isTraceEnabled()) {
                 SpliceLogUtils.trace(LOG, "checking snapshot: " + snapshotName);
             }
-            List<Path> pathList = getSnapshotHFileLinksForRegion(snapshotUtils, null, conf, fs, snapshotName);
-            for (Path path : pathList) {
+            List<Object> pathList = snapshotUtils.getSnapshotFilesForRegion(null, conf, fs, snapshotName, false);
+            for (Object obj : pathList) {
+                Path path = ((HFileLink) obj).getAvailablePath(fs);
                 if (LOG.isTraceEnabled()) {
                     SpliceLogUtils.trace(LOG, "snapshot contains file " + path.toString());
                 }
@@ -353,7 +361,7 @@ public class BackupUtils {
         Txn txn = null;
         try {
             txn = TransactionLifecycle.getLifecycleManager()
-                    .beginTransaction();
+                    .beginTransaction(Txn.IsolationLevel.READ_COMMITTED);
             BackupSystemProcedures.backupFileSetReporter.openScanner(txn, tableName, encodedRegionName);
         } catch (Exception e) {
             throw Exceptions.parseException(e);
@@ -404,13 +412,13 @@ public class BackupUtils {
      */
     public static BackupFileSet getFileSet(String tableName,
                                            String encodedRegionName,
-                                           String fileName) throws StandardException{
+                                           String fileName) throws StandardException {
 
         BackupFileSetReporter backupFileSetReporter = null;
         BackupFileSet backupFileSet = null;
         try {
             backupFileSetReporter = scanFileSetForRegion(tableName, encodedRegionName);
-            while((backupFileSet = backupFileSetReporter.next()) != null) {
+            while ((backupFileSet = backupFileSetReporter.next()) != null) {
                 if (backupFileSet.getFileName().compareToIgnoreCase(fileName) == 0) {
                     break;
                 }
@@ -421,24 +429,6 @@ public class BackupUtils {
             backupFileSetReporter.closeScanner();
         }
         return backupFileSet;
-    }
-
-    public static List<Path> getSnapshotHFileLinksForRegion(final SnapshotUtils utils,
-                                                    final HRegion region,
-                                                    final Configuration conf,
-                                                    final FileSystem fs,
-                                                    final String snapshotName) throws IOException {
-        List<Path> path = new ArrayList<>();
-        List<Object> files = utils.getSnapshotFilesForRegion(region, conf, fs, snapshotName);
-        for(Object f : files) {
-            if (f instanceof HFileLink) {
-                path.add(((HFileLink) f).getAvailablePath(fs));
-            }
-            else if (f instanceof Path){
-                path.add((Path)f);
-            }
-        }
-        return path;
     }
 
     /**
@@ -452,5 +442,70 @@ public class BackupUtils {
 
     public static void deleteFile(FileSystem fs, Object file, boolean b) throws IOException {
         fs.delete((Path) file, b);
+    }
+
+    public static void copyHFileHalf(Configuration conf,
+                                     Path inFile,
+                                     Path outFile,
+                                     Reference reference,
+                                     HColumnDescriptor familyDescriptor) throws IOException {
+
+        FileSystem fs = inFile.getFileSystem(conf);
+        CacheConfig cacheConf = new CacheConfig(conf);
+        HalfStoreFileReader halfReader = null;
+        StoreFile.Writer halfWriter = null;
+        int count = 0;
+        try {
+            halfReader = new HalfStoreFileReader(fs, inFile, cacheConf, reference, conf);
+            Map<byte[], byte[]> fileInfo = halfReader.loadFileInfo();
+
+            int blocksize = familyDescriptor.getBlocksize();
+            Compression.Algorithm compression = familyDescriptor.getCompression();
+            BloomType bloomFilterType = familyDescriptor.getBloomFilterType();
+            HFileContext hFileContext = new HFileContextBuilder()
+                    .withCompression(compression)
+                    .withChecksumType(HStore.getChecksumType(conf))
+                    .withBytesPerCheckSum(HStore.getBytesPerChecksum(conf))
+                    .withBlockSize(blocksize)
+                    .withDataBlockEncoding(familyDescriptor.getDataBlockEncoding())
+                    .build();
+            halfWriter = new StoreFile.WriterBuilder(conf, cacheConf,
+                    fs)
+                    .withFilePath(outFile)
+                    .withBloomType(bloomFilterType)
+                    .withFileContext(hFileContext)
+                    .build();
+            HFileScanner scanner = halfReader.getScanner(false, false, false);
+            scanner.seekTo();
+            do {
+                count++;
+                KeyValue kv = KeyValueUtil.ensureKeyValue(scanner.getKeyValue());
+                halfWriter.append(kv);
+            } while (scanner.next());
+
+            for (Map.Entry<byte[],byte[]> entry : fileInfo.entrySet()) {
+                if (shouldCopyHFileMetaKey(entry.getKey())) {
+                    halfWriter.appendFileInfo(entry.getKey(), entry.getValue());
+                }
+            }
+        } finally {
+            if (halfWriter != null) halfWriter.close();
+            if (halfReader != null) halfReader.close(cacheConf.shouldEvictOnClose());
+            SpliceLogUtils.trace(LOG, "materialized %d kvs to %s", count, outFile);
+        }
+    }
+
+    private static boolean shouldCopyHFileMetaKey(byte[] key) {
+        return !HFile.isReservedFileInfoKey(key);
+    }
+
+    public static Path getRandomFilename(final FileSystem fs,
+                                  final Path dir)
+            throws IOException {
+        return new Path(dir, UUID.randomUUID().toString().replaceAll("-", ""));
+    }
+
+    public static boolean isReference( String fileName) {
+        return fileName.indexOf(".") > 0;
     }
 }
