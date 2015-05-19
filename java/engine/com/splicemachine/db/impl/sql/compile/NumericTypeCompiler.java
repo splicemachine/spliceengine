@@ -527,7 +527,8 @@ public final class NumericTypeCompiler extends BaseTypeCompiler
 		*/
 		else
 		{
-			val = Math.max(lscale, rscale);
+			val = Math.min(Math.max(lscale, rscale),
+					NumberDataValue.MAX_DECIMAL_PRECISION_SCALE - Math.max(rprec - rscale, lprec-lscale) - 1);
 		}
 
 		if (val > Integer.MAX_VALUE)
