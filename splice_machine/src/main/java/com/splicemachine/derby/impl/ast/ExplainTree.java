@@ -102,8 +102,9 @@ public class ExplainTree{
                                     CostEstimate cost,
                                     String tableName,
                                     String indexName,
-                                    List<String> predicates){
-            Node newNode = new TableNode(resultSetNumber,cost,predicates,tableName,indexName);
+                                    List<String> predicates,
+                                    boolean isMultiProbing){
+            Node newNode = new TableNode(resultSetNumber,cost,predicates,tableName,indexName,isMultiProbing);
             topNode = newNode;
             newNode.level = 0;
             return this;
@@ -365,19 +366,22 @@ public class ExplainTree{
                          CostEstimate cost,
                          List<String> predicateStrings,
                          String tableName,
-                         String indexName){
-            super(getClassName(tableName,indexName),resultSetNUmber,cost,predicateStrings);
+                         String indexName,
+                         boolean isMultiProbing){
+            super(getClassName(tableName,indexName,isMultiProbing),resultSetNUmber,cost,predicateStrings);
             this.tableName=tableName;
             this.indexName=indexName;
         }
 
-        private static String getClassName(String tableName,String indexName){
+        private static String getClassName(String tableName,String indexName,boolean isMultiProbing){
             String cName;
             if(indexName!=null){
                 cName = "IndexScan["+indexName+"]";
             }else{
                cName = "TableScan["+tableName+"]";
             }
+            if(isMultiProbing)
+                cName = "MultiProbe"+cName;
             return cName;
         }
 

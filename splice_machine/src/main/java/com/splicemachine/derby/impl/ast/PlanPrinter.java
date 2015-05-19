@@ -14,7 +14,6 @@ import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.compile.*;
-import com.splicemachine.derby.impl.sql.execute.operations.IndexRowToBaseRowOperation;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
@@ -174,7 +173,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
                 indexName = String.format("%s(%s)", cd.getConglomerateName(), cd.getConglomerateNumber());
             }
             List<String> qualifiers =  Lists.transform(preds(rsn), PredicateUtils.predToString);
-            builder.addBaseTable(rsNum,ce,tableName,indexName,qualifiers);
+            builder.addBaseTable(rsNum,ce,tableName,indexName,qualifiers,fbt.isMultiProbing());
         }else if(rsn instanceof RowResultSetNode){
             builder.pushValuesNode(rsNum,ce);
         } else if(rsn instanceof ProjectRestrictNode){
@@ -213,7 +212,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         } else if(rsn instanceof FromVTI){
             FromVTI vti = (FromVTI)rsn;
             String tableName = vti.getName();
-            builder.addBaseTable(rsNum,ce,"VTI:"+tableName,null,null);
+            builder.addBaseTable(rsNum,ce,"VTI:"+tableName,null,null,false);
         }
 
         //collect subqueries

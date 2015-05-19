@@ -12,6 +12,8 @@ import java.text.DecimalFormat;
  *         Date: 3/13/15
  */
 public class SimpleCostEstimate implements CostEstimate{
+    private static final String[] displayHeapUnits = new String[]{" B"," KB"," MB"," GB"," TB"};
+
     private double localCost = Double.MAX_VALUE;
     private double remoteCost;
     private int numPartitions;
@@ -109,14 +111,21 @@ public class SimpleCostEstimate implements CostEstimate{
         df.setGroupingUsed(false);
 
         long estHeap = getEstimatedHeapSize();
-        double estHeapMb = estHeap/1024d/1024d;
+        double eHeap = estHeap;
+        int pos = 0;
+        while(pos<displayHeapUnits.length-1 && estHeap>1024){
+            eHeap/=1024;
+            estHeap = (long)eHeap;
+            pos++;
+        }
+        String unit = displayHeapUnits[pos];
 
         return "totalCost="+df.format(getEstimatedCost()/1000)
                 +",processingCost="+df.format(localCost()/1000)
                 +",transferCost="+df.format(remoteCost()/1000)
                 +",outputRows="+getEstimatedRowCount()
-                +",outputHeapSize="+df.format(estHeapMb)+
-                ",partitions="+partitionCount();
+                +",outputHeapSize="+df.format(eHeap)+unit
+                +",partitions="+partitionCount();
     }
 
     @Override

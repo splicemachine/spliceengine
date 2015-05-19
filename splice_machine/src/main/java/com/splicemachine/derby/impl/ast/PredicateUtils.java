@@ -8,6 +8,7 @@ import com.splicemachine.db.impl.sql.compile.Predicate;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import static java.lang.String.format;
@@ -44,13 +45,34 @@ public class PredicateUtils {
     /**
      * Return string representation of a Derby expression
      */
-    public static String opToString(ValueNode operand) {
-        if (operand == null) {
+    public static String opToString(ValueNode operand){
+        if(operand==null){
             return "";
-        } else if (operand instanceof UnaryOperatorNode) {
-            UnaryOperatorNode uop = (UnaryOperatorNode) operand;
-            return format("%s(%s)", uop.getOperatorString(), opToString(uop.getOperand()));
-        } else if (operand instanceof BinaryOperatorNode) {
+        }else if(operand instanceof UnaryOperatorNode){
+            UnaryOperatorNode uop=(UnaryOperatorNode)operand;
+            return format("%s(%s)",uop.getOperatorString(),opToString(uop.getOperand()));
+        }else if(operand instanceof BinaryRelationalOperatorNode){
+            BinaryRelationalOperatorNode bron=(BinaryRelationalOperatorNode)operand;
+            InListOperatorNode inListOp=bron.getInListOp();
+            if(inListOp!=null) return opToString(inListOp);
+
+            return format("(%s %s %s)",opToString(bron.getLeftOperand()),
+                    bron.getOperatorString(),opToString(bron.getRightOperand()));
+        }else if(operand instanceof BinaryListOperatorNode){
+            BinaryListOperatorNode blon = (BinaryListOperatorNode)operand;
+            StringBuilder inList = new StringBuilder("(").append(opToString(blon.getLeftOperand()))
+                    .append(" ")
+                    .append(blon.getOperator())
+                    .append(" (");
+            ValueNodeList rightOperandList=blon.getRightOperandList();
+            boolean isFirst = true;
+            for(Object qtn: rightOperandList){
+                if(isFirst) isFirst = false;
+                else inList = inList.append(",");
+                inList = inList.append(opToString((ValueNode)qtn));
+            }
+            return inList.append("))").toString();
+        }else if (operand instanceof BinaryOperatorNode) {
             BinaryOperatorNode bop = (BinaryOperatorNode) operand;
             return format("(%s %s %s)", opToString(bop.getLeftOperand()),
                             bop.getOperatorString(), opToString(bop.getRightOperand()));
@@ -63,9 +85,9 @@ public class PredicateUtils {
             ColumnReference cr = (ColumnReference) operand;
             String table = cr.getTableName();
             ResultColumn source = cr.getSource();
-            return format("%s%s%s", table == null ? "" : format("%s.", table),
-                    cr.getColumnName(), source == null ? "" :
-                    format("[%s:%s]", source.getResultSetNumber(), source.getVirtualColumnId()));
+            return format("%s%s%s",table==null?"":format("%s.",table),
+                    cr.getColumnName(),source==null?"":
+                            format("[%s:%s]",source.getResultSetNumber(),source.getVirtualColumnId()));
         } else if (operand instanceof VirtualColumnNode) {
             VirtualColumnNode vcn = (VirtualColumnNode) operand;
             ResultColumn source = vcn.getSourceColumn();
