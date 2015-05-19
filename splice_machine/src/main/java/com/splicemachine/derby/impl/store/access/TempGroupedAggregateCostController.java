@@ -185,6 +185,8 @@ public class TempGroupedAggregateCostController implements AggregateCostControll
                 ap = fbt.getBestAccessPath();
                 cd = ap.getConglomerateDescriptor();
             }
+            //DB-3317 check just in case we can't find one for some reason.
+            if(cd==null) return null;
             String[] columnNames=cd.getColumnNames();
             for(String columnName:columnNames){
                 if(ref.getColumnName().equals(columnName)){
