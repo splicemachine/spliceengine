@@ -91,27 +91,21 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
      *  Optimizable interface
 	 */
 
-    /**
-     * @see com.splicemachine.db.iapi.sql.compile.OptimizablePredicate#getReferencedMap
-     */
+    @Override
     public JBitSet getReferencedMap(){
         return referencedSet;
     }
 
-    /**
-     * @see com.splicemachine.db.iapi.sql.compile.OptimizablePredicate#hasSubquery
-     */
+    @Override
     public boolean hasSubquery(){
-		/* RESOLVE - Currently, we record whether or not a predicate is pushable based
+        /* RESOLVE - Currently, we record whether or not a predicate is pushable based
 		 * on whether or not it contains a subquery or method call, but we do not
 		 * record the underlying info.
 		 */
         return !pushable;
     }
 
-    /**
-     * @see com.splicemachine.db.iapi.sql.compile.OptimizablePredicate#hasMethodCall
-     */
+    @Override
     public boolean hasMethodCall(){
 		/* RESOLVE - Currently, we record whether or not a predicate is pushable based
 		 * on whether or not it contains a subquery or method call, but we do not
@@ -120,65 +114,46 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         return !pushable;
     }
 
-    /**
-     * @see OptimizablePredicate#markStartKey
-     */
+    @Override
     public void markStartKey(){
         startKey=true;
     }
 
-    /**
-     * @see OptimizablePredicate#isStartKey
-     */
+    @Override
     public boolean isRowId(){
         return rowId;
     }
 
-    /**
-     * @see OptimizablePredicate#markStartKey
-     */
     public void markRowId(){
         rowId=true;
     }
 
-    /**
-     * @see OptimizablePredicate#isStartKey
-     */
+    @Override
     public boolean isStartKey(){
         return startKey;
     }
 
-    /**
-     * @see OptimizablePredicate#markStopKey
-     */
+    @Override
     public void markStopKey(){
         stopKey=true;
     }
 
-    /**
-     * @see OptimizablePredicate#isStopKey
-     */
+    @Override
     public boolean isStopKey(){
         return stopKey;
     }
 
-    /**
-     * @see OptimizablePredicate#markQualifier
-     */
+    @Override
     public void markQualifier(){
         isQualifier=true;
     }
 
-    /**
-     * @see OptimizablePredicate#isQualifier
-     */
+    @Override
     public boolean isQualifier(){
         return isQualifier;
     }
 
-    /**
-     * @see OptimizablePredicate#compareWithKnownConstant
-     */
+    @Override
     public boolean compareWithKnownConstant(Optimizable optTable,boolean considerParameters){
         boolean retval=false;
         RelationalOperator relop=getRelop();
@@ -196,7 +171,8 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         return retval;
     }
 
-    public int hasEqualOnColumnList(int[] baseColumnPositions, Optimizable optTable) throws StandardException{
+    @Override
+    public int hasEqualOnColumnList(int[] baseColumnPositions,Optimizable optTable) throws StandardException{
         RelationalOperator relop=getRelop();
         assert relop!=null;
 
@@ -207,7 +183,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
             return -1;
 
         for(int i=0;i<baseColumnPositions.length;i++){
-            ColumnReference cr=relop.getColumnOperand(optTable, baseColumnPositions[i]);
+            ColumnReference cr=relop.getColumnOperand(optTable,baseColumnPositions[i]);
 
             if(cr==null)
                 continue;
@@ -223,10 +199,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         return -1;
     }
 
-    /**
-     * @throws StandardException Thrown on error
-     * @see OptimizablePredicate#getCompareValue
-     */
+    @Override
     public DataValueDescriptor getCompareValue(Optimizable optTable) throws StandardException{
         if(SanityManager.DEBUG){
             SanityManager.ASSERT(compareWithKnownConstant(optTable,true),
@@ -234,14 +207,12 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         }
 
         RelationalOperator relop=getRelop();
-        assert relop !=null;
+        assert relop!=null;
 
         return relop.getCompareValue(optTable);
     }
 
-    /**
-     * @see OptimizablePredicate#equalsComparisonWithConstantExpression
-     */
+    @Override
     public boolean equalsComparisonWithConstantExpression(Optimizable optTable){
         boolean retval=false;
 
@@ -264,9 +235,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         return andNode.getLeftOperand().selectivity(table,cd);
     }
 
-    /**
-     * @see OptimizablePredicate#getIndexPosition
-     */
+    @Override
     public int getIndexPosition(){
         return indexPosition;
     }
@@ -324,7 +293,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 		 * method.  So that's what we're checking here.
 		 */
         //this is not "in" or this is a probe predicate
-        if(this.isRelationalOpPredicate() ||  this.isInListProbePredicate()){
+        if(this.isRelationalOpPredicate() || this.isInListProbePredicate()){
             int thisOperator=((RelationalOperator)andNode.getLeftOperand()).getOperator();
             thisIsEquals=(thisOperator==RelationalOperator.EQUALS_RELOP ||
                     thisOperator==RelationalOperator.IS_NULL_RELOP);
@@ -332,7 +301,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
                     thisOperator==RelationalOperator.IS_NOT_NULL_RELOP);
         }
         // other is not "in" or other is a probe predicate
-        if(otherPred.isRelationalOpPredicate() ||  otherPred.isInListProbePredicate()){
+        if(otherPred.isRelationalOpPredicate() || otherPred.isInListProbePredicate()){
             int otherOperator=((RelationalOperator)(otherPred.getAndNode().getLeftOperand())).getOperator();
             otherIsEquals=(otherOperator==RelationalOperator.EQUALS_RELOP ||
                     otherOperator==RelationalOperator.IS_NULL_RELOP);
@@ -492,8 +461,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
                 if(or_node.getLeftOperand() instanceof RelationalOperator){
                     // if any term of the OR clause is not a qualifier, then
                     // reject the entire OR clause.
-                    if(!((RelationalOperator)or_node.getLeftOperand()).
-                            isQualifier(optTable,true)){
+                    if(!((RelationalOperator)or_node.getLeftOperand()).isQualifier(optTable,true)){
                         // one of the terms is not a pushable Qualifier.
                         return (false);
                     }
@@ -557,9 +525,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
      * @return The start operator for a start key on this column.
      */
     int getStartOperator(Optimizable optTable){
-        if(SanityManager.DEBUG){
-            SanityManager.ASSERT(startKey,"Getting a start operator from a Predicate that's not a start key.");
-        }
+        assert startKey: "Getting a start operator from a Predicate that's not a start key.";
 
 		/* if it's for "in" operator's dynamic start key, operator is GE,
 		 * beetle 3858
@@ -568,15 +534,13 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
             return ScanController.GE;
 
         RelationalOperator relop=getRelop();
-        assert relop !=null;
+        assert relop!=null;
 
         return relop.getStartOperator(optTable);
     }
 
     int getStopOperator(Optimizable optTable){
-        if(SanityManager.DEBUG){
-            SanityManager.ASSERT(stopKey,"Getting a stop operator from a Predicate that's not a stop key.");
-        }
+        assert stopKey: "Getting a stop operator from a Predicate that's not a stop key.";
 
 		 /* if it's for "in" operator's dynamic stop key, operator is GT,
 		  * beetle 3858
@@ -623,7 +587,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
      *
      * @return This object as a String
      */
-
+    @Override
     public String toString(){
         if(SanityManager.DEBUG){
             return binaryRelOpColRefsToString()+"\nreferencedSet: "+
@@ -653,7 +617,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 
         final String DUMMY_VAL="<expr>";
         StringBuilder sBuf=new StringBuilder();
-        BinaryRelationalOperatorNode opNode= (BinaryRelationalOperatorNode)getAndNode().getLeftOperand();
+        BinaryRelationalOperatorNode opNode=(BinaryRelationalOperatorNode)getAndNode().getLeftOperand();
 
         // Get left operand's name.
         if(opNode.getLeftOperand() instanceof ColumnReference){
@@ -683,7 +647,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
      *
      * @param depth The depth of this node in the tree
      */
-
+    @Override
     public void printSubNodes(int depth){
         if(SanityManager.DEBUG){
             printLabel(depth,"andNode: ");
@@ -698,6 +662,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
      * @param v the visitor
      * @throws StandardException on error
      */
+    @Override
     public void acceptChildren(Visitor v) throws StandardException{
         super.acceptChildren(v);
 
@@ -755,7 +720,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         // such column references, but it's not clear whether that's
         // always a safe option; further investigation required.
 
-        BinaryRelationalOperatorNode opNode= (BinaryRelationalOperatorNode)getAndNode().getLeftOperand();
+        BinaryRelationalOperatorNode opNode=(BinaryRelationalOperatorNode)getAndNode().getLeftOperand();
 
         JBitSet tNums=new JBitSet(getReferencedSet().size());
         BaseTableNumbersVisitor btnVis=new BaseTableNumbersVisitor(tNums);
@@ -896,7 +861,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
                 Boolean.TRUE,
                 getContextManager());
 
-        BinaryRelationalOperatorNode opNode= (BinaryRelationalOperatorNode)getAndNode().getLeftOperand();
+        BinaryRelationalOperatorNode opNode=(BinaryRelationalOperatorNode)getAndNode().getLeftOperand();
 
         // Create a new op node with left and right operands that point
         // to the received result set's columns as appropriate.
@@ -1046,7 +1011,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 		 * BinaryRelationalOperatorNode (and therefore the following
 		 * cast is safe).
 		 */
-        BinaryRelationalOperatorNode binRelOp= (BinaryRelationalOperatorNode)andNode.getLeftOperand();
+        BinaryRelationalOperatorNode binRelOp=(BinaryRelationalOperatorNode)andNode.getLeftOperand();
 
         ValueNode operand;
 
@@ -1058,10 +1023,10 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 			 * that operand must be the scoped operand.
 			 */
             operand=binRelOp.getLeftOperand();
-            boolean leftIsScoped= !(operand instanceof ColumnReference) || ((ColumnReference)operand).isScoped();
+            boolean leftIsScoped=!(operand instanceof ColumnReference) || ((ColumnReference)operand).isScoped();
 
             operand=binRelOp.getRightOperand();
-            boolean rightIsScoped= !(operand instanceof ColumnReference) || ((ColumnReference)operand).isScoped();
+            boolean rightIsScoped=!(operand instanceof ColumnReference) || ((ColumnReference)operand).isScoped();
 
             SanityManager.ASSERT(leftIsScoped^rightIsScoped,
                     "All scoped predicates should have exactly one scoped "+
@@ -1129,7 +1094,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
 		 * BinaryRelationalOperatorNode (and therefore the following
 		 * cast is safe).
 		 */
-        BinaryRelationalOperatorNode binRelOp= (BinaryRelationalOperatorNode)andNode.getLeftOperand();
+        BinaryRelationalOperatorNode binRelOp=(BinaryRelationalOperatorNode)andNode.getLeftOperand();
 
         ValueNode operand=binRelOp.getLeftOperand();
 
@@ -1260,6 +1225,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         return null;
     }
 
+    @Override
     public String getText(){
         ValueNode operand=getAndNode().getLeftOperand();
         return XPlainUtils.opToString(operand);

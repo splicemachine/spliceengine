@@ -22,10 +22,12 @@
 package com.splicemachine.db.iapi.store.access;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
+
+import java.util.BitSet;
+import java.util.List;
 
 /**
  * The StoreCostController interface provides methods that an access client
@@ -162,7 +164,7 @@ public interface StoreCostController extends RowCountable{
      * @throws StandardException Standard exception policy.
      * @see RowUtil
      */
-    void getFetchFromRowLocationCost(FormatableBitSet validColumns,
+    void getFetchFromRowLocationCost(BitSet validColumns,
                                      int access_type,
                                      CostEstimate cost) throws StandardException;
 
@@ -208,7 +210,7 @@ public interface StoreCostController extends RowCountable{
      * @throws StandardException Standard exception policy.
      * @see RowUtil
      */
-    void getFetchFromFullKeyCost(FormatableBitSet validColumns,
+    void getFetchFromFullKeyCost(BitSet validColumns,
                                  int access_type,
                                  CostEstimate cost) throws StandardException;
 
@@ -242,15 +244,6 @@ public interface StoreCostController extends RowCountable{
      * row that qualifies between start and stop position.
      * <p/>
      *
-     * @param scan_type           The type of scan that will be executed.  There
-     *                            are currently 2 types:
-     *                            STORECOST_SCAN_NORMAL - scans will be executed
-     *                            using the standard next/fetch, where each fetch
-     *                            can retrieve 1 or many rows (if fetchNextGroup()
-     *                            interface is used).
-     *                            <p/>
-     *                            STORECOST_SCAN_SET - The entire result set will
-     *                            be retrieved using the the fetchSet() interface.
      * @param row_count           Estimated total row count of the table.  The
      *                            current system tracks row counts in heaps better
      *                            than btree's (btree's have "rows" which are not
@@ -259,8 +252,6 @@ public interface StoreCostController extends RowCountable{
      *                            pass in the base table's row count into this
      *                            routine to be used as the index's row count.
      *                            If the caller has no idea, pass in -1.
-     * @param group_size          The number of rows to be returned by a single
-     *                            fetch call for STORECOST_SCAN_NORMAL scans.
      * @param forUpdate           Should be true if the caller intends to update
      *                            through the scan.
      * @param scanColumnList      A description of which columns to return from
@@ -316,33 +307,18 @@ public interface StoreCostController extends RowCountable{
      *                            is greater than startKeyValue.  The
      *                            stopSearchOperation parameter is ignored if the
      *                            stopKeyValue parameter is null.
-     * @param access_type         Describe the type of access the query will be
-     *                            performing to the ScanController.
-     *                            <p/>
-     *                            STORECOST_CLUSTERED - The location of one scan
-     *                            is likely clustered "close" to the previous
-     *                            scan.  For instance if the query plan were
-     *                            to used repeated "reopenScan()'s" to probe
-     *                            for the next key in an index, then this flag
-     *                            should be be specified.  If this flag is not
-     *                            set then each scan will be costed independant
-     *                            of any other predicted scan access.
      * @throws StandardException Standard exception policy.
      * @see RowUtil
      */
-    void getScanCost(
-            int scan_type,
-            long row_count,
-            int group_size,
+    void getScanCost(long row_count,
             boolean forUpdate,
-            FormatableBitSet scanColumnList,
+            BitSet scanColumnList,
             DataValueDescriptor[] template,
+            List<DataValueDescriptor> probeValues,
             DataValueDescriptor[] startKeyValue,
             int startSearchOperator,
             DataValueDescriptor[] stopKeyValue,
             int stopSearchOperator,
-            boolean reopen_scan,
-            int access_type,
             StoreCostResult cost_result)
             throws StandardException;
 

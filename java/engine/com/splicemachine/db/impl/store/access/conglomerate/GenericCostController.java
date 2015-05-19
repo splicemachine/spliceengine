@@ -28,6 +28,8 @@ import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
+import java.util.BitSet;
+
 /**
 
  A Generic class which implements the basic functionality needed for a cost
@@ -115,7 +117,8 @@ public abstract class GenericCostController extends GenericController implements
      *
      * @see com.splicemachine.db.iapi.store.access.RowUtil
      **/
-    public void getFetchFromFullKeyCost(FormatableBitSet validColumns,
+    @Override
+    public void getFetchFromFullKeyCost(BitSet validColumns,
                                         int access_type,
                                         CostEstimate cost) throws StandardException{
         // Not implemented in default conglomerate, needs to be overridden.

@@ -146,9 +146,9 @@ public class BinaryRelationalOperatorNode
      * left operand of the inListProbeSource is set correctly before
      * returning it.
      */
-    protected InListOperatorNode getInListOp(){
+    public InListOperatorNode getInListOp(){
         if(inListProbeSource!=null){
-			/* Depending on where this probe predicate currently sits
+            /* Depending on where this probe predicate currently sits
 			 * in the query tree, this.leftOperand *may* have been
 			 * transformed, replaced, or remapped one or more times
 			 * since inListProbeSource was last referenced. Since the
@@ -181,9 +181,7 @@ public class BinaryRelationalOperatorNode
         return inListProbeSource;
     }
 
-    /**
-     * @see RelationalOperator#getColumnOperand
-     */
+    @Override
     public ColumnReference getColumnOperand(
             Optimizable optTable,
             int columnPosition){
@@ -283,12 +281,11 @@ public class BinaryRelationalOperatorNode
 			** The left operand is a column reference.
 			** Is it the correct column?
 			*/
-			cr = (ColumnReference) leftOperand;
-            if (cr.getColumnName().compareToIgnoreCase("ROWID") == 0) {
+            cr=(ColumnReference)leftOperand;
+            if(cr.getColumnName().compareToIgnoreCase("ROWID")==0){
                 return rightOperand;
             }
-			if (valNodeReferencesOptTable(cr, ft, false, walkSubtree))
-			{
+            if(valNodeReferencesOptTable(cr,ft,false,walkSubtree)){
 				/*
 				** The table is correct, how about the column position?
 				*/
@@ -308,12 +305,11 @@ public class BinaryRelationalOperatorNode
 			** The right operand is a column reference.
 			** Is it the correct column?
 			*/
-			cr = (ColumnReference) rightOperand;
-            if (cr.getColumnName().compareToIgnoreCase("ROWID") == 0) {
+            cr=(ColumnReference)rightOperand;
+            if(cr.getColumnName().compareToIgnoreCase("ROWID")==0){
                 return leftOperand;
             }
-			if (valNodeReferencesOptTable(cr, ft, false, walkSubtree))
-			{
+            if(valNodeReferencesOptTable(cr,ft,false,walkSubtree)){
 				/*
 				** The table is correct, how about the column position?
 				*/
@@ -730,12 +726,8 @@ public class BinaryRelationalOperatorNode
         return false;
     }
 
-    /**
-     * @throws StandardException Thrown on error
-     * @see RelationalOperator#isQualifier
-     */
-    public boolean isQualifier(Optimizable optTable,boolean forPush)
-            throws StandardException{
+    @Override
+    public boolean isQualifier(Optimizable optTable,boolean forPush) throws StandardException{
 		/* If this rel op is for an IN-list probe predicate then we never
 		 * treat it as a qualifer.  The reason is that if we treat it as
 		 * a qualifier then we could end up generating it as a qualifier,
@@ -749,8 +741,7 @@ public class BinaryRelationalOperatorNode
 
         FromTable ft;
         ValueNode otherSide=null;
-        JBitSet tablesReferenced;
-        ColumnReference cr=null;
+        ColumnReference cr;
         boolean found=false;
         boolean walkSubtree=true;
 
@@ -817,10 +808,6 @@ public class BinaryRelationalOperatorNode
     }
 
 
-    /**
-     * @throws StandardException Thrown on error
-     * @see RelationalOperator#isQualifier
-     */
     public boolean isQualifier(Optimizable optTable,boolean forPush,int leftColumn,int rightColumn) throws StandardException{
 		/* If this rel op is for an IN-list probe predicate then we never
 		 * treat it as a qualifer.  The reason is that if we treat it as
@@ -835,8 +822,7 @@ public class BinaryRelationalOperatorNode
 
         FromTable ft;
         ValueNode otherSide=null;
-        JBitSet tablesReferenced;
-        ColumnReference cr=null;
+        ColumnReference cr;
         boolean found=false;
         boolean walkSubtree=true;
 
@@ -884,11 +870,7 @@ public class BinaryRelationalOperatorNode
         return !valNodeReferencesOptTable(otherSide,ft,forPush,true);
     }
 
-
-    /**
-     * @throws StandardException thrown on error
-     * @see RelationalOperator#getOrderableVariantType
-     */
+    @Override
     public int getOrderableVariantType(Optimizable optTable)
             throws StandardException{
 		/* The Qualifier's orderable is on the opposite side from
@@ -901,11 +883,9 @@ public class BinaryRelationalOperatorNode
         }
     }
 
-    /**
-     * @see RelationalOperator#compareWithKnownConstant
-     */
+    @Override
     public boolean compareWithKnownConstant(Optimizable optTable,boolean considerParameters){
-        ValueNode node=null;
+        ValueNode node;
         node=keyColumnOnLeft(optTable)?rightOperand:leftOperand;
 
         if(considerParameters){
@@ -917,13 +897,10 @@ public class BinaryRelationalOperatorNode
         }
     }
 
-    /**
-     * @throws StandardException Thrown on error
-     * @see RelationalOperator#getCompareValue
-     */
+    @Override
     public DataValueDescriptor getCompareValue(Optimizable optTable)
             throws StandardException{
-        ValueNode node=null;
+        ValueNode node;
 
 		/* The value being compared to is on the opposite side from
 		** the key column.
@@ -1306,32 +1283,33 @@ public class BinaryRelationalOperatorNode
         StoreCostController storeCostController=getCompilerContext().getStoreCostController(currentCd);
         if(storeCostController==null) return selectivity(optTable);
         ColumnReference colRef=getColumnOperand(optTable);
-        if(colRef==null) return super.selectivity(optTable); //fall back on default behavior when we don't have what we need
+        if(colRef==null)
+            return super.selectivity(optTable); //fall back on default behavior when we don't have what we need
         int colId=colRef.getSource().getColumnPosition();
         double rowCount=storeCostController.nonNullCount(colId);
         if(rowCount==0d) return 1d; //nothing to select
 
-        double selectivity = 1d;
+        double selectivity=1d;
         switch(operatorType){
             case RelationalOperator.EQUALS_RELOP:
                 selectivity*=storeCostController.cardinalityFraction(colId);
                 break;
             case RelationalOperator.NOT_EQUALS_RELOP:
-                selectivity*= 1-storeCostController.cardinalityFraction(colId);
+                selectivity*=1-storeCostController.cardinalityFraction(colId);
                 break;
             case RelationalOperator.LESS_THAN_RELOP:
             case RelationalOperator.LESS_EQUALS_RELOP:
-                selectivity*= 0.5d; //TODO -sf- make this more accurate
+                selectivity*=0.5d; //TODO -sf- make this more accurate
             case RelationalOperator.GREATER_THAN_RELOP:
             case RelationalOperator.GREATER_EQUALS_RELOP:
-                selectivity*= 0.33d; //TODO -sf- make this more accurate
+                selectivity*=0.33d; //TODO -sf- make this more accurate
         }
 
         return selectivity;
     }
 
     public RelationalOperator getTransitiveSearchClause(ColumnReference otherCR) throws StandardException{
-        return (RelationalOperator)getNodeFactory().getNode(getNodeType(), otherCR, rightOperand, getContextManager());
+        return (RelationalOperator)getNodeFactory().getNode(getNodeType(),otherCR,rightOperand,getContextManager());
     }
 
     public boolean equalsComparisonWithConstantExpression(Optimizable optTable){
@@ -1414,9 +1392,9 @@ public class BinaryRelationalOperatorNode
      * hash join since this type of equality predicate is not currently
      * supported for a hash join.
      *
-     * @throws StandardException Thrown on error
      * @return Whether or not an implicit (var)char conversion is required for
      * this binary relational operator.
+     * @throws StandardException Thrown on error
      */
 
     private boolean implicitVarcharComparison()
@@ -1814,18 +1792,17 @@ public class BinaryRelationalOperatorNode
         return;
     }
 
-    public boolean hasRowId() {
-        boolean ret = false;
-        if (leftOperand instanceof ColumnReference) {
-            ColumnReference cr = (ColumnReference) leftOperand;
-            if (cr.getColumnName().compareToIgnoreCase("ROWID") == 0) {
-                ret = true;
+    public boolean hasRowId(){
+        boolean ret=false;
+        if(leftOperand instanceof ColumnReference){
+            ColumnReference cr=(ColumnReference)leftOperand;
+            if(cr.getColumnName().compareToIgnoreCase("ROWID")==0){
+                ret=true;
             }
-        }
-        else if (rightOperand instanceof ColumnReference) {
-            ColumnReference cr = (ColumnReference) rightOperand;
-            if (cr.getColumnName().compareToIgnoreCase("ROWID") == 0) {
-                ret = true;
+        }else if(rightOperand instanceof ColumnReference){
+            ColumnReference cr=(ColumnReference)rightOperand;
+            if(cr.getColumnName().compareToIgnoreCase("ROWID")==0){
+                ret=true;
             }
         }
         return ret;

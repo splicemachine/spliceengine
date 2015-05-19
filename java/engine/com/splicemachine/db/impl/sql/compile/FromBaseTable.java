@@ -49,7 +49,6 @@ import com.splicemachine.db.iapi.util.StringUtil;
 import com.splicemachine.db.impl.sql.catalog.SYSUSERSRowFactory;
 
 import java.lang.reflect.Modifier;
-import java.sql.SQLWarning;
 import java.util.*;
 
 // Temporary until user override for disposable stats has been removed.
@@ -230,6 +229,9 @@ public class FromBaseTable extends FromTable{
         fillInReferencedTableMap(map);
         return map;
     }
+
+    @SuppressWarnings("unused")
+    public boolean isMultiProbing(){  return multiProbing; } //used in Splice engine code
 
 	/*
      * Optimizable interface.
@@ -429,9 +431,8 @@ public class FromBaseTable extends FromTable{
         // The cost that we found from the above call is now stored in the
         // cost field of this FBT's current access path.  So that's the
         // cost we want to return here.
-        CostEstimate costEstimate=getCurrentAccessPath().getCostEstimate();
-//        costEstimate.setRowOrdering(rowOrdering);
-        return costEstimate;
+        //        costEstimate.setRowOrdering(rowOrdering);
+        return getCurrentAccessPath().getCostEstimate();
     }
 
     @Override
@@ -731,15 +732,9 @@ public class FromBaseTable extends FromTable{
         OptimizerTrace tracer =optimizer.tracer();
         tracer.trace(OptimizerFlag.ESTIMATING_COST_OF_CONGLOMERATE,tableNumber,0,0.0,cd);
 		/* Get the uniqueness factory for later use (see below) */
-//        double tableUniquenessFactor=optimizer.uniqueJoinWithOuterTable(predList);
-//        boolean oneRowResultSetForSomeConglom=isOneRowResultSet(predList);
 		/* Get the predicates that can be used for scanning the base table */
         baseTableRestrictionList.removeAllElements();
 
-        /*
-         * -sf- we remove this call because we want the Join strategies to estimate their
-         * own costing strategies
-         */
         currentJoinStrategy.getBasePredicates(predList,baseTableRestrictionList,this);
 		/* RESOLVE: Need to figure out how to cache the StoreCostController */
         StoreCostController scc=getStoreCostController(cd);
@@ -747,14 +742,14 @@ public class FromBaseTable extends FromTable{
         costEstimate.setRowOrdering(rowOrdering);
 
         //get a BitSet representing the column positions of interest
-        FormatableBitSet scanColumnList = null;
-        FormatableBitSet indexLookupList = null;
+        BitSet scanColumnList = null;
+        BitSet indexLookupList = null;
+        int[] baseColumnPositions = null;
         ResultColumnList rcl = templateColumns;
         if(rcl!=null&&rcl.size()>0){
-            scanColumnList = new FormatableBitSet(rcl.size());
+            scanColumnList = new BitSet(rcl.size());
             for(ResultColumn rc:rcl){
                 int columnPosition=rc.getColumnPosition();
-                scanColumnList.grow(columnPosition+1);
                 scanColumnList.set(columnPosition);
             }
             /*
@@ -763,23 +758,24 @@ public class FromBaseTable extends FromTable{
              * the index baseColumnPositions, and remove everything else
              */
             if(cd.isIndex() && !isCoveringIndex(cd)){
-                int[] baseColumnPositions = cd.getIndexDescriptor().baseColumnPositions();
-                indexLookupList = new FormatableBitSet();
-                for(int i=scanColumnList.anySetBit();i>=0;i=scanColumnList.anySetBit(i)){
+                baseColumnPositions = cd.getIndexDescriptor().baseColumnPositions();
+                indexLookupList = new BitSet();
+                for(int i=scanColumnList.nextSetBit(0);i>=0;i=scanColumnList.nextSetBit(i+1)){
                     boolean found = false;
                     for(int j=0;j<baseColumnPositions.length;j++){
-                        if(i==j){
+                        if(i==baseColumnPositions[j]){
                            found = true;
                             break;
                         }
                     }
                     if(!found){
-                        indexLookupList.grow(i+1);
                         indexLookupList.set(i);
                         scanColumnList.clear(i);
                     }
                 }
             }
+        }else{
+            scanColumnList = new BitSet();
         }
 
         if(currentJoinStrategy.allowsJoinPredicatePushdown() && isOneRowResultSet(cd,baseTableRestrictionList)){ // Retrieving only one row...
@@ -803,206 +799,11 @@ public class FromBaseTable extends FromTable{
         }else{
 			/* Conglomerate might match more than one row */
 
-	        /*
-			 * Some predicates are good for start/stop, but we don't know
-			 * the values they are being compared to at this time, so we
-			 * estimate their selectivity in language rather than ask the
-			 * store about them .
-			 *
-			 * -sf-
-			 * When a predicate is no good for start/stop, but is a qualifier,
-			 * then we want to compute a selectivity fraction based off its
-			 * scan costing amounts, which we compute using the store
-			 * cost controller.
-			 *
-			 * If the predicate is not a qualifier, then we fall back to a
-			 * fixed, constant selectivity fraction which represents the type
-			 * (this is essentially derby's original behavior)
-			 *
-			 */
-            //we need the type information because derby compiles with 1.5 source here
-            @SuppressWarnings("Convert2Diamond") List<OptimizablePredicate> nonKeyQualifiers=new LinkedList<OptimizablePredicate>();
-            double nonQualifierSelectivity=1.0d;
-            double extraFirstColumnSelectivity=1.0d;
-            double extraStartStopSelectivity=1.0d;
-            double extraQualifierSelectivity=1.0d;
-//            double extraNonQualifierSelectivity=1.0d;
-//            double statCompositeSelectivity=1.0d;
-
             /*
-			** It is possible for something to be a start or stop predicate
-			** without it being possible to use it as a key for cost estimation.
-			** For example, with an index on (c1, c2), and the predicate
-			** c1 = othertable.c3 and c2 = 1, the comparison on c1 is with
-			** an unknown value, so we can't pass it to the store.  This means
-			** we can't pass the comparison on c2 to the store, either.
-			**
-			** The following booleans keep track of whether we have seen
-			** gaps in the keys we can pass to the store.
-			*/
-            boolean startGap=false;
-            boolean stopGap=false;
-
-
-			/* Count the number of start and stop keys */
-            int startKeyNum=0;
-            int stopKeyNum=0;
-            OptimizablePredicate pred;
-            int predListSize;
-
-            if(predList!=null)
-                predListSize=baseTableRestrictionList.size();
-            else
-                predListSize=0;
-
-            for(int i=0;i<predListSize;i++){
-                pred=baseTableRestrictionList.getOptPredicate(i);
-                boolean startKey=pred.isStartKey();
-                boolean stopKey=pred.isStopKey();
-                if(startKey || stopKey){
-
-                    boolean knownConstant=pred.compareWithKnownConstant(this,true);
-                    if(startKey){
-                        if(knownConstant && (!startGap)){
-                            startKeyNum++;
-                            if(unknownPredicateList!=null)
-                                unknownPredicateList.removeOptPredicate(pred);
-                        }else{
-                            startGap=true;
-                        }
-                    }
-
-                    if(stopKey){
-                        if(knownConstant && (!stopGap)){
-                            stopKeyNum++;
-                            if(unknownPredicateList!=null)
-                                unknownPredicateList.removeOptPredicate(pred);
-                        }else{
-                            stopGap=true;
-                        }
-                    }
-
-		            /* If either we are seeing startGap or stopGap because start/stop key is
-		             * comparison with non-constant, we should multiply the selectivity to
-		             * extraFirstColumnSelectivity.  Beetle 4787.
-		             */
-                    if(startGap || stopGap){
-                        // Don't include redundant join predicates in selectivity calculations
-                        if(baseTableRestrictionList.isRedundantPredicate(i))
-                            continue;
-
-                        if(knownConstant && pred.isQualifier()){
-                            /*
-                             * this predicate is not useful for the start and stop key,
-                             * but it is still a qualifier, and hence we can use statistics
-                             * to estimate our
-                             */
-                            nonKeyQualifiers.add(pred);
-                        }else if(!((Predicate)pred).isJoinPredicate()){
-                            nonQualifierSelectivity*=pred.selectivity(this);
-                        }
-                    }
-                }else{
-                    /* We have a non-key predicate.  */
-                    // Don't include redundant join predicates in selectivity calculations
-                    if(baseTableRestrictionList.isRedundantPredicate(i)){
-                        continue;
-                    }
-
-                    if(pred.isQualifier() && pred.compareWithKnownConstant(this,true)){
-                        nonKeyQualifiers.add(pred);
-                    }else if(!((Predicate)pred).isJoinPredicate()){
-                        //TODO -sf- add in ScanCostController somehow?
-                        nonQualifierSelectivity*=pred.selectivity(this);
-                    }
-
-					/*
-					 ** Strictly speaking, it shouldn't be necessary to
-					 ** indicate a gap here, since there should be no more
-					 ** start/stop predicates, but let's do it, anyway.
-					 */
-                    startGap=true;
-                    stopGap=true;
-                }
-            }
-
-			/* Create the start and stop key arrays, and fill them in */
-            DataValueDescriptor[] startKeys;
-            DataValueDescriptor[] stopKeys;
-
-            if(startKeyNum>0)
-                startKeys=new DataValueDescriptor[startKeyNum];
-            else
-                startKeys=null;
-
-            if(stopKeyNum>0)
-                stopKeys=new DataValueDescriptor[stopKeyNum];
-            else
-                stopKeys=null;
-
-            startKeyNum=0;
-            stopKeyNum=0;
-            startGap=false;
-            stopGap=false;
-
-			/* If we have a probe predicate that is being used as a start/stop
-			 * key then ssKeySourceInList will hold the InListOperatorNode
-			 * from which the probe predicate was built.
+	         ** Get a row template for this conglomerate.  For now, just tell
+	         ** it we are using all the columns in the row.
 			 */
-            InListOperatorNode ssKeySourceInList=null;
-            for(int i=0;i<predListSize;i++){
-                pred=baseTableRestrictionList.getOptPredicate(i);
-                boolean startKey=pred.isStartKey();
-                boolean stopKey=pred.isStopKey();
-
-                if(startKey || stopKey){
-			        /* A probe predicate is only useful if it can be used as
-			         * as a start/stop key for _first_ column in an index
-			         * (i.e. if the column position is 0).  That said, we only
-			         * allow a single start/stop key per column position in
-			         * the index (see PredicateList.orderUsefulPredicates()).
-			         * Those two facts combined mean that we should never have
-			         * more than one probe predicate start/stop key for a given
-			         * conglomerate.
-			         */
-                    if(SanityManager.DEBUG){
-                        if((ssKeySourceInList!=null) && ((Predicate)pred).isInListProbePredicate()){
-                            SanityManager.THROWASSERT(
-                                    "Found multiple probe predicate start/stop keys"+
-                                            " for conglomerate '"+cd.getConglomerateName()+
-                                            "' when at most one was expected.");
-                        }
-                    }
-
-			        /* By passing "true" in the next line we indicate that we
-			         * should only retrieve the underlying InListOpNode *if*
-			         * the predicate is a "probe predicate".
-		             */
-                    ssKeySourceInList=((Predicate)pred).getSourceInList(true);
-                    boolean knownConstant=pred.compareWithKnownConstant(this,true);
-
-                    if(startKey){
-                        if(knownConstant && !startGap){
-                            startKeys[startKeyNum]=pred.getCompareValue(this);
-                            startKeyNum++;
-                        }else{
-                            startGap=true;
-                        }
-                    }
-
-                    if(stopKey){
-                        if(knownConstant && !stopGap){
-                            stopKeys[stopKeyNum]=pred.getCompareValue(this);
-                            stopKeyNum++;
-                        }else{
-                            stopGap=true;
-                        }
-                    }
-                }else{
-                    startGap=true;
-                    stopGap=true;
-                }
-            }
+            DataValueDescriptor[] rowTemplate=getRowTemplate(cd,getBaseCostController());
 
             int startOperator;
             int stopOperator;
@@ -1019,233 +820,464 @@ public class FromBaseTable extends FromTable{
                 stopOperator=ScanController.NA;
             }
 
-            /*
-	         ** Get a row template for this conglomerate.  For now, just tell
-	         ** it we are using all the columns in the row.
-			 */
-            DataValueDescriptor[] rowTemplate=getRowTemplate(cd,getBaseCostController());
-
-	        /* we prefer index than table scan for concurrency reason, by a small
-	         * adjustment on estimated row count.  This affects optimizer's decision
-	         * especially when few rows are in table. beetle 5006. This makes sense
-	         * since the plan may stay long before we actually check and invalidate it.
-	         * And new rows may be inserted before we check and invalidate the plan.
-	         * Here we only prefer index that has start/stop key from predicates. Non-
-	         * constant start/stop key case is taken care of by selectivity later.
-	         *
-	         * -sf-
-	         * Derby preferred index scans to raw table scans, because of its concurrency
-	         * model. In splice, there is no difference in concurrency, so any selection
-	         * made between the two should be done based on their respective costs and selectivities
-	         * only. The above comment is left above as historical reference.
-	         */
-            long baseRC=baseRowCount();
-
-            /*
-             * Get the base cost of the scan. This is the cost of scanning
-             * using only the start and stop keys in the range. We then take
-             * this and multiply it by the qualifier and non-qualifier selectivity
-             * to generate our estimate
-             */
-            scc.getScanCost(currentJoinStrategy.scanCostType(),
-                    baseRC,
-                    1,
-                    forUpdate(),
-                    scanColumnList,
+            ScanCostFunction scf = new ScanCostFunction(scanColumnList,
+                    indexLookupList,
+                    this,
+                    scc,
+                    costEstimate,
                     rowTemplate,
-                    startKeys,
+                    baseColumnPositions,
+                    rowCount,
+                    forUpdate(),
                     startOperator,
-                    stopKeys,
-                    stopOperator,
-                    false,
-                    0,
-                    costEstimate);
+                    stopOperator);
 
-            /*
-             * Adjust the base scan by using the qualifier and non-qualifier predicates.
-             *
-             * We want to deal with situations where we have a range of values within two predicates
-             * first, then deal with the remainder.
-             *
-             * We have three possibilities:
-             *
-             * 1. the predicate is a "range start" --i.e. it defines the start of a contiguous interval (>=, for
-             * example)
-             * 2. the predicate is a "range stop" --i.e. it defines the end of a contiguous interval (<=,<)
-             * 3. the predicate is an equality predicate
-             * 4. The predicate is something else.
-             *
-             * In the case of #1 and #2, we want to gather those together
-             */
+            int predListSize;
 
-            Map<Integer,List<RangePredicate>> startStopPredicates = new HashMap<>();
-            for(OptimizablePredicate predicate : nonKeyQualifiers){
-                Predicate p=(Predicate)predicate;
-                /*
-                 * We skip join predicates, because we want to rely on the individual
-                 * join strategies to determine how the inner table is filtered, and therefore
-                 * how the inner table selectivity is determined
-                 */
-                if(p.isJoinPredicate()) continue;
+            if(predList!=null)
+                predListSize=baseTableRestrictionList.size();
+            else
+                predListSize=0;
 
-                DataValueDescriptor compareValue=p.getCompareValue(this);
-                RelationalOperator relop=p.getRelop();
-                int relationalOperator=relop.getOperator();
-                int columnNumber=relop.getColumnOperand(this).getColumnNumber();
-                List<RangePredicate> rps = startStopPredicates.get(columnNumber);
-                RangePredicate rp;
-                switch(relationalOperator){
-                    case RelationalOperator.EQUALS_RELOP:
-                        //estimate the selectivity on this column
-                        extraQualifierSelectivity*=scc.getSelectivity(columnNumber,compareValue,true,compareValue,true);
-                        break;
-                    case RelationalOperator.NOT_EQUALS_RELOP:
-                        double s=1-scc.getSelectivity(columnNumber,compareValue,true,compareValue,true);
-                        extraQualifierSelectivity*=s;
-                        break;
-                    case RelationalOperator.GREATER_EQUALS_RELOP:
-                    case RelationalOperator.GREATER_THAN_RELOP:
-                        //see if there's an equivalent operator already found. If so, add to start in that position
-                        if(rps==null){
-                            rps = new LinkedList<>();
-                            rp = new RangePredicate();
-                            rp.start = p;
-                            rps.add(rp);
-                            startStopPredicates.put(columnNumber,rps);
-                        }else{
-                            boolean found = false;
-                            for(RangePredicate r : rps){
-                                if(r.start==null){
-                                    r.start=p;
-                                    found= true;
-                                    break;
-                                }
-                            }
-                            if(!found){
-                                rp = new RangePredicate();
-                                rp.start = p;
-                                rps.add(rp);
-                            }
-                        }
-                        break;
-                    case RelationalOperator.LESS_EQUALS_RELOP:
-                    case RelationalOperator.LESS_THAN_RELOP:
-                        //see if there's an equivalent operator already found. If so, add to start in that position
-
-                        if(rps==null){
-                            rps = new LinkedList<>();
-                            rp = new RangePredicate();
-                            rp.stop = p;
-                            rps.add(rp);
-                            startStopPredicates.put(columnNumber,rps);
-                        }else{
-                            boolean found = false;
-                            for(RangePredicate r : rps){
-                                if(r.stop==null){
-                                    r.stop=p;
-                                    found= true;
-                                    break;
-                                }
-                            }
-                            if(!found){
-                                rp = new RangePredicate();
-                                rp.stop = p;
-                                rps.add(rp);
-                            }
-                        }
-                        break;
-                    case RelationalOperator.IS_NULL_RELOP:
-                        extraQualifierSelectivity*=scc.nullSelectivity(columnNumber);
-                        break;
-                    case RelationalOperator.IS_NOT_NULL_RELOP:
-                        extraQualifierSelectivity*=(1-scc.nullSelectivity(columnNumber));
-                        break;
-                    default:
-                        //don't know how we got here, but since we are not a comparable qualifier,
-                        // just add in its base selectivity
-                        nonQualifierSelectivity*=predicate.selectivity(this);
+            for(int i=0;i<predListSize;i++){
+                Predicate p = (Predicate)baseTableRestrictionList.getOptPredicate(i);
+                if(!p.isStartKey()&&!p.isStopKey()){
+                    if(baseTableRestrictionList.isRedundantPredicate(i)) continue;
                 }
-            }
-            //now iterate through our start-stop qualifier ranges and add in a range selectivity
-            for(Map.Entry<Integer,List<RangePredicate>> rangeEntry:startStopPredicates.entrySet()){
-                List<RangePredicate> range = rangeEntry.getValue();
-                int columnNumber = rangeEntry.getKey();
-                for(RangePredicate p:range){
-                    DataValueDescriptor start = null;
-                    boolean includeStart = true;
-                    DataValueDescriptor stop = null;
-                    boolean includeStop = true;
 
-                    Predicate startPred=p.start;
-                    if(startPred!=null){
-                        RelationalOperator startRelop=startPred.getRelop();
-                        start=startRelop.getCompareValue(this);
-                        int sOp=startRelop.getOperator();
-                        includeStart = sOp==RelationalOperator.GREATER_EQUALS_RELOP;
-                    }
-                    Predicate stopPred=p.stop;
-                    if(stopPred!=null){
-                        RelationalOperator stopRelop=stopPred.getRelop();
-                        stop=stopRelop.getCompareValue(this);
-                        int eOp=stopRelop.getOperator();
-                        includeStop=eOp==RelationalOperator.LESS_EQUALS_RELOP;
-                    }
+                if(!p.isJoinPredicate()) //skip join predicates
+                    scf.addPredicate(p);
+            }
 
-                    extraQualifierSelectivity*=scc.getSelectivity(columnNumber,start,includeStart,stop,includeStop);
-                }
-            }
-            costEstimate.setRowCount(costEstimate.rowCount()*extraQualifierSelectivity);
-            costEstimate.setEstimatedHeapSize((long)(costEstimate.getEstimatedHeapSize()*extraQualifierSelectivity));
-            /*
-		     ** If the index isn't covering, add the cost of getting the
-		     ** base row.  Only apply extraFirstColumnSelectivity and extraStartStopSelectivity
-		     ** before we do this, don't apply extraQualifierSelectivity etc.  The
-		     ** reason is that the row count here should be the number of index rows
-		     ** (and hence heap rows) we get, and we need to fetch all those rows, even
-		     ** though later on some of them may be filtered out by other predicates.
-		     ** beetle 4787.
-		     */
-            if(cd.isIndex() && (!isCoveringIndex(cd))){
-                scc.getFetchFromRowLocationCost(indexLookupList,0,costEstimate);
-                tracer.trace(OptimizerFlag.COST_OF_NONCOVERING_INDEX,tableNumber,0,0d,costEstimate);
-            }
+            scf.computeBaseScanCost();
+            scf.computeLookupCost();
+            scf.computeOutputCost();
+
+//	        /*
+//			 * Some predicates are good for start/stop, but we don't know
+//			 * the values they are being compared to at this time, so we
+//			 * estimate their selectivity in language rather than ask the
+//			 * store about them .
+//			 *
+//			 * -sf-
+//			 * When a predicate is no good for start/stop, but is a qualifier,
+//			 * then we want to compute a selectivity fraction based off its
+//			 * scan costing amounts, which we compute using the store
+//			 * cost controller.
+//			 *
+//			 * If the predicate is not a qualifier, then we fall back to a
+//			 * fixed, constant selectivity fraction which represents the type
+//			 * (this is essentially derby's original behavior)
+//			 *
+//			 */
+//            //we need the type information because derby compiles with 1.5 source here
+//            @SuppressWarnings("Convert2Diamond") List<OptimizablePredicate> nonKeyQualifiers=new LinkedList<OptimizablePredicate>();
+//            double nonQualifierSelectivity=1.0d;
+//            double extraFirstColumnSelectivity=1.0d;
+//            double extraStartStopSelectivity=1.0d;
+//            double extraQualifierSelectivity=1.0d;
+////            double extraNonQualifierSelectivity=1.0d;
+////            double statCompositeSelectivity=1.0d;
 
             /*
-             * Non-qualifier predicates aren't applied until AFTER the index lookup, so we need to
-             * ensure that the index lookup costs include the cost of looking up rows which will just
-             * be discarded.
-             *
-             * We adjust the output statistics here. Output stats are:
-             *
-             * 1. row count
-             * 2. heap size
-             * 3. remote cost (since it's just the cost to scan over the network)
-             */
-            double adjustedRowCount=costEstimate.getEstimatedRowCount()*nonQualifierSelectivity;
-            double adjustedHeapSize = costEstimate.getEstimatedHeapSize()*nonQualifierSelectivity;
-            double adjustedRemoteCost = costEstimate.remoteCost()*nonQualifierSelectivity;
-            costEstimate.setEstimatedRowCount((long)adjustedRowCount);
-            costEstimate.setEstimatedHeapSize((long)adjustedHeapSize);
-            costEstimate.setRemoteCost(adjustedRemoteCost);
-            costEstimate.setSingleScanRowCount(costEstimate.singleScanRowCount()*extraQualifierSelectivity); //apply selectivity to single-scan row count also
-
-		    /*
-	         ** Factor in the extra selectivity on the first column
-	         ** of the conglomerate (see comment above).
-	         ** NOTE: In this case we want to apply the selectivity to both
-	         ** the total row count and singleScanRowCount.
-	         */
-            if(extraFirstColumnSelectivity!=1.0d){
-                tracer.trace(OptimizerFlag.COST_INCLUDING_EXTRA_1ST_COL_SELECTIVITY,tableNumber,0,0d,costEstimate);
-            }
-
-	        /* Factor in the extra start/stop selectivity (see comment above).
-	         * NOTE: In this case we want to apply the selectivity to both
-	         * the row count and singleScanRowCount.
-	         */
-            if(extraStartStopSelectivity!=1.0d){
-                tracer.trace(OptimizerFlag.COST_INCLUDING_EXTRA_START_STOP,tableNumber,0,0d,costEstimate);
-            }
+			** It is possible for something to be a start or stop predicate
+			** without it being possible to use it as a key for cost estimation.
+			** For example, with an index on (c1, c2), and the predicate
+			** c1 = othertable.c3 and c2 = 1, the comparison on c1 is with
+			** an unknown value, so we can't pass it to the store.  This means
+			** we can't pass the comparison on c2 to the store, either.
+			**
+			** The following booleans keep track of whether we have seen
+			** gaps in the keys we can pass to the store.
+			*/
+//            boolean startGap=false;
+//            boolean stopGap=false;
+//
+//
+//			/* Count the number of start and stop keys */
+//            int startKeyNum=0;
+//            int stopKeyNum=0;
+//            OptimizablePredicate pred;
+//            int predListSize;
+//
+//            if(predList!=null)
+//                predListSize=baseTableRestrictionList.size();
+//            else
+//                predListSize=0;
+//
+//            for(int i=0;i<predListSize;i++){
+//                pred=baseTableRestrictionList.getOptPredicate(i);
+//                boolean startKey=pred.isStartKey();
+//                boolean stopKey=pred.isStopKey();
+//                if(startKey || stopKey){
+//
+//                    boolean knownConstant=pred.compareWithKnownConstant(this,true);
+//                    if(startKey){
+//                        if(knownConstant && (!startGap)){
+//                            startKeyNum++;
+//                            if(unknownPredicateList!=null)
+//                                unknownPredicateList.removeOptPredicate(pred);
+//                        }else{
+//                            startGap=true;
+//                        }
+//                    }
+//
+//                    if(stopKey){
+//                        if(knownConstant && (!stopGap)){
+//                            stopKeyNum++;
+//                            if(unknownPredicateList!=null)
+//                                unknownPredicateList.removeOptPredicate(pred);
+//                        }else{
+//                            stopGap=true;
+//                        }
+//                    }
+//
+//		            /* If either we are seeing startGap or stopGap because start/stop key is
+//		             * comparison with non-constant, we should multiply the selectivity to
+//		             * extraFirstColumnSelectivity.  Beetle 4787.
+//		             */
+//                    if(startGap || stopGap){
+//                        // Don't include redundant join predicates in selectivity calculations
+//                        if(baseTableRestrictionList.isRedundantPredicate(i))
+//                            continue;
+//
+//                        if(knownConstant && pred.isQualifier()){
+//                            /*
+//                             * this predicate is not useful for the start and stop key,
+//                             * but it is still a qualifier, and hence we can use statistics
+//                             * to estimate our
+//                             */
+//                            nonKeyQualifiers.add(pred);
+//                        }else if(!((Predicate)pred).isJoinPredicate()){
+//                            nonQualifierSelectivity*=pred.selectivity(this);
+//                        }
+//                    }
+//                }else{
+//                    /* We have a non-key predicate.  */
+//                    // Don't include redundant join predicates in selectivity calculations
+//                    if(baseTableRestrictionList.isRedundantPredicate(i)){
+//                        continue;
+//                    }
+//
+//                    if(pred.isQualifier() && pred.compareWithKnownConstant(this,true)){
+//                        nonKeyQualifiers.add(pred);
+//                    }else if(!((Predicate)pred).isJoinPredicate()){
+//                        //TODO -sf- add in ScanCostController somehow?
+//                        nonQualifierSelectivity*=pred.selectivity(this);
+//                    }
+//
+//					/*
+//					 ** Strictly speaking, it shouldn't be necessary to
+//					 ** indicate a gap here, since there should be no more
+//					 ** start/stop predicates, but let's do it, anyway.
+//					 */
+//                    startGap=true;
+//                    stopGap=true;
+//                }
+//            }
+//
+//			/* Create the start and stop key arrays, and fill them in */
+//            DataValueDescriptor[] startKeys;
+//            DataValueDescriptor[] stopKeys;
+//
+//            if(startKeyNum>0)
+//                startKeys=new DataValueDescriptor[startKeyNum];
+//            else
+//                startKeys=null;
+//
+//            if(stopKeyNum>0)
+//                stopKeys=new DataValueDescriptor[stopKeyNum];
+//            else
+//                stopKeys=null;
+//
+//            startKeyNum=0;
+//            stopKeyNum=0;
+//            startGap=false;
+//            stopGap=false;
+//
+//			/* If we have a probe predicate that is being used as a start/stop
+//			 * key then ssKeySourceInList will hold the InListOperatorNode
+//			 * from which the probe predicate was built.
+//			 */
+//            InListOperatorNode ssKeySourceInList=null;
+//            for(int i=0;i<predListSize;i++){
+//                pred=baseTableRestrictionList.getOptPredicate(i);
+//                boolean startKey=pred.isStartKey();
+//                boolean stopKey=pred.isStopKey();
+//
+//                if(startKey || stopKey){
+//			        /* A probe predicate is only useful if it can be used as
+//			         * as a start/stop key for _first_ column in an index
+//			         * (i.e. if the column position is 0).  That said, we only
+//			         * allow a single start/stop key per column position in
+//			         * the index (see PredicateList.orderUsefulPredicates()).
+//			         * Those two facts combined mean that we should never have
+//			         * more than one probe predicate start/stop key for a given
+//			         * conglomerate.
+//			         */
+//                    if(SanityManager.DEBUG){
+//                        if((ssKeySourceInList!=null) && ((Predicate)pred).isInListProbePredicate()){
+//                            SanityManager.THROWASSERT(
+//                                    "Found multiple probe predicate start/stop keys"+
+//                                            " for conglomerate '"+cd.getConglomerateName()+
+//                                            "' when at most one was expected.");
+//                        }
+//                    }
+//
+//			        /* By passing "true" in the next line we indicate that we
+//			         * should only retrieve the underlying InListOpNode *if*
+//			         * the predicate is a "probe predicate".
+//		             */
+//                    ssKeySourceInList=((Predicate)pred).getSourceInList(true);
+//                    boolean knownConstant=pred.compareWithKnownConstant(this,true);
+//
+//                    if(startKey){
+//                        if(knownConstant && !startGap){
+//                            startKeys[startKeyNum]=pred.getCompareValue(this);
+//                            startKeyNum++;
+//                        }else{
+//                            startGap=true;
+//                        }
+//                    }
+//
+//                    if(stopKey){
+//                        if(knownConstant && !stopGap){
+//                            stopKeys[stopKeyNum]=pred.getCompareValue(this);
+//                            stopKeyNum++;
+//                        }else{
+//                            stopGap=true;
+//                        }
+//                    }
+//                }else{
+//                    startGap=true;
+//                    stopGap=true;
+//                }
+//            }
+//
+//
+//
+//
+//	        /* we prefer index than table scan for concurrency reason, by a small
+//	         * adjustment on estimated row count.  This affects optimizer's decision
+//	         * especially when few rows are in table. beetle 5006. This makes sense
+//	         * since the plan may stay long before we actually check and invalidate it.
+//	         * And new rows may be inserted before we check and invalidate the plan.
+//	         * Here we only prefer index that has start/stop key from predicates. Non-
+//	         * constant start/stop key case is taken care of by selectivity later.
+//	         *
+//	         * -sf-
+//	         * Derby preferred index scans to raw table scans, because of its concurrency
+//	         * model. In splice, there is no difference in concurrency, so any selection
+//	         * made between the two should be done based on their respective costs and selectivities
+//	         * only. The above comment is left above as historical reference.
+//	         */
+//            long baseRC=baseRowCount();
+//
+//            /*
+//             * Get the base cost of the scan. This is the cost of scanning
+//             * using only the start and stop keys in the range. We then take
+//             * this and multiply it by the qualifier and non-qualifier selectivity
+//             * to generate our estimate
+//             */
+//            scc.getScanCost(currentJoinStrategy.scanCostType(),
+//                    baseRC,
+//                    1,
+//                    forUpdate(),
+//                    scanColumnList,
+//                    rowTemplate,
+//                    startKeys,
+//                    startOperator,
+//                    stopKeys,
+//                    stopOperator,
+//                    false,
+//                    0,
+//                    costEstimate);
+//
+//            /*
+//             * Adjust the base scan by using the qualifier and non-qualifier predicates.
+//             *
+//             * We want to deal with situations where we have a range of values within two predicates
+//             * first, then deal with the remainder.
+//             *
+//             * We have three possibilities:
+//             *
+//             * 1. the predicate is a "range start" --i.e. it defines the start of a contiguous interval (>=, for
+//             * example)
+//             * 2. the predicate is a "range stop" --i.e. it defines the end of a contiguous interval (<=,<)
+//             * 3. the predicate is an equality predicate
+//             * 4. The predicate is something else.
+//             *
+//             * In the case of #1 and #2, we want to gather those together
+//             */
+//
+//            Map<Integer,List<RangePredicate>> startStopPredicates = new HashMap<>();
+//            for(OptimizablePredicate predicate : nonKeyQualifiers){
+//                Predicate p=(Predicate)predicate;
+//                /*
+//                 * We skip join predicates, because we want to rely on the individual
+//                 * join strategies to determine how the inner table is filtered, and therefore
+//                 * how the inner table selectivity is determined
+//                 */
+//                if(p.isJoinPredicate()) continue;
+//
+//                DataValueDescriptor compareValue=p.getCompareValue(this);
+//                RelationalOperator relop=p.getRelop();
+//                int relationalOperator=relop.getOperator();
+//                int columnNumber=relop.getColumnOperand(this).getColumnNumber();
+//                List<RangePredicate> rps = startStopPredicates.get(columnNumber);
+//                RangePredicate rp;
+//                switch(relationalOperator){
+//                    case RelationalOperator.EQUALS_RELOP:
+//                        //estimate the selectivity on this column
+//                        extraQualifierSelectivity*=scc.getSelectivity(columnNumber,compareValue,true,compareValue,true);
+//                        break;
+//                    case RelationalOperator.NOT_EQUALS_RELOP:
+//                        double s=1-scc.getSelectivity(columnNumber,compareValue,true,compareValue,true);
+//                        extraQualifierSelectivity*=s;
+//                        break;
+//                    case RelationalOperator.GREATER_EQUALS_RELOP:
+//                    case RelationalOperator.GREATER_THAN_RELOP:
+//                        //see if there's an equivalent operator already found. If so, add to start in that position
+//                        if(rps==null){
+//                            rps = new LinkedList<>();
+//                            rp = new RangePredicate();
+//                            rp.start = p;
+//                            rps.add(rp);
+//                            startStopPredicates.put(columnNumber,rps);
+//                        }else{
+//                            boolean found = false;
+//                            for(RangePredicate r : rps){
+//                                if(r.start==null){
+//                                    r.start=p;
+//                                    found= true;
+//                                    break;
+//                                }
+//                            }
+//                            if(!found){
+//                                rp = new RangePredicate();
+//                                rp.start = p;
+//                                rps.add(rp);
+//                            }
+//                        }
+//                        break;
+//                    case RelationalOperator.LESS_EQUALS_RELOP:
+//                    case RelationalOperator.LESS_THAN_RELOP:
+//                        //see if there's an equivalent operator already found. If so, add to start in that position
+//
+//                        if(rps==null){
+//                            rps = new LinkedList<>();
+//                            rp = new RangePredicate();
+//                            rp.stop = p;
+//                            rps.add(rp);
+//                            startStopPredicates.put(columnNumber,rps);
+//                        }else{
+//                            boolean found = false;
+//                            for(RangePredicate r : rps){
+//                                if(r.stop==null){
+//                                    r.stop=p;
+//                                    found= true;
+//                                    break;
+//                                }
+//                            }
+//                            if(!found){
+//                                rp = new RangePredicate();
+//                                rp.stop = p;
+//                                rps.add(rp);
+//                            }
+//                        }
+//                        break;
+//                    case RelationalOperator.IS_NULL_RELOP:
+//                        extraQualifierSelectivity*=scc.nullSelectivity(columnNumber);
+//                        break;
+//                    case RelationalOperator.IS_NOT_NULL_RELOP:
+//                        extraQualifierSelectivity*=(1-scc.nullSelectivity(columnNumber));
+//                        break;
+//                    default:
+//                        //don't know how we got here, but since we are not a comparable qualifier,
+//                        // just add in its base selectivity
+//                        nonQualifierSelectivity*=predicate.selectivity(this);
+//                }
+//            }
+//            //now iterate through our start-stop qualifier ranges and add in a range selectivity
+//            for(Map.Entry<Integer,List<RangePredicate>> rangeEntry:startStopPredicates.entrySet()){
+//                List<RangePredicate> range = rangeEntry.getValue();
+//                int columnNumber = rangeEntry.getKey();
+//                for(RangePredicate p:range){
+//                    DataValueDescriptor start = null;
+//                    boolean includeStart = true;
+//                    DataValueDescriptor stop = null;
+//                    boolean includeStop = true;
+//
+//                    Predicate startPred=p.start;
+//                    if(startPred!=null){
+//                        RelationalOperator startRelop=startPred.getRelop();
+//                        start=startRelop.getCompareValue(this);
+//                        int sOp=startRelop.getOperator();
+//                        includeStart = sOp==RelationalOperator.GREATER_EQUALS_RELOP;
+//                    }
+//                    Predicate stopPred=p.stop;
+//                    if(stopPred!=null){
+//                        RelationalOperator stopRelop=stopPred.getRelop();
+//                        stop=stopRelop.getCompareValue(this);
+//                        int eOp=stopRelop.getOperator();
+//                        includeStop=eOp==RelationalOperator.LESS_EQUALS_RELOP;
+//                    }
+//
+//                    extraQualifierSelectivity*=scc.getSelectivity(columnNumber,start,includeStart,stop,includeStop);
+//                }
+//            }
+//            costEstimate.setRowCount(costEstimate.rowCount()*extraQualifierSelectivity);
+//            costEstimate.setEstimatedHeapSize((long)(costEstimate.getEstimatedHeapSize()*extraQualifierSelectivity));
+//            /*
+//		     ** If the index isn't covering, add the cost of getting the
+//		     ** base row.  Only apply extraFirstColumnSelectivity and extraStartStopSelectivity
+//		     ** before we do this, don't apply extraQualifierSelectivity etc.  The
+//		     ** reason is that the row count here should be the number of index rows
+//		     ** (and hence heap rows) we get, and we need to fetch all those rows, even
+//		     ** though later on some of them may be filtered out by other predicates.
+//		     ** beetle 4787.
+//		     */
+//            if(cd.isIndex() && (!isCoveringIndex(cd))){
+//                scc.getFetchFromRowLocationCost(indexLookupList,0,costEstimate);
+//                tracer.trace(OptimizerFlag.COST_OF_NONCOVERING_INDEX,tableNumber,0,0d,costEstimate);
+//            }
+//
+//            /*
+//             * Non-qualifier predicates aren't applied until AFTER the index lookup, so we need to
+//             * ensure that the index lookup costs include the cost of looking up rows which will just
+//             * be discarded.
+//             *
+//             * We adjust the output statistics here. Output stats are:
+//             *
+//             * 1. row count
+//             * 2. heap size
+//             * 3. remote cost (since it's just the cost to scan over the network)
+//             */
+//            double adjustedRowCount=costEstimate.getEstimatedRowCount()*nonQualifierSelectivity;
+//            double adjustedHeapSize = costEstimate.getEstimatedHeapSize()*nonQualifierSelectivity;
+//            double adjustedRemoteCost = costEstimate.remoteCost()*nonQualifierSelectivity;
+//            costEstimate.setEstimatedRowCount((long)adjustedRowCount);
+//            costEstimate.setEstimatedHeapSize((long)adjustedHeapSize);
+//            costEstimate.setRemoteCost(adjustedRemoteCost);
+//            costEstimate.setSingleScanRowCount(costEstimate.singleScanRowCount()*extraQualifierSelectivity); //apply selectivity to single-scan row count also
+//
+//		    /*
+//	         ** Factor in the extra selectivity on the first column
+//	         ** of the conglomerate (see comment above).
+//	         ** NOTE: In this case we want to apply the selectivity to both
+//	         ** the total row count and singleScanRowCount.
+//	         */
+//            if(extraFirstColumnSelectivity!=1.0d){
+//                tracer.trace(OptimizerFlag.COST_INCLUDING_EXTRA_1ST_COL_SELECTIVITY,tableNumber,0,0d,costEstimate);
+//            }
+//
+//	        /* Factor in the extra start/stop selectivity (see comment above).
+//	         * NOTE: In this case we want to apply the selectivity to both
+//	         * the row count and singleScanRowCount.
+//	         */
+//            if(extraStartStopSelectivity!=1.0d){
+//                tracer.trace(OptimizerFlag.COST_INCLUDING_EXTRA_START_STOP,tableNumber,0,0d,costEstimate);
+//            }
 
             singleScanRowCount=costEstimate.singleScanRowCount();
         }

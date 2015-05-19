@@ -61,7 +61,7 @@ public class B2ICostController extends BTreeCostController
 		super();
 	}
 
-//    @Override
+    @Override
     public double cardinalityFraction(int columnNumber){
         return 1d; //not really implemented
     }
