@@ -34,7 +34,7 @@ public class SnapshotUtilsImpl extends SnapshotUtilsBase {
         FileSystem fs = rootDir.getFileSystem(conf);
         Path snapshotDir = SnapshotDescriptionUtils.getCompletedSnapshotDir(snapshotName, rootDir);
 
-        return getSnapshotFilesForRegion(region, conf, fs, snapshotDir);
+        return getSnapshotFilesForRegion(region, conf, fs, snapshotDir, true);
     }
 
     /**
@@ -42,9 +42,11 @@ public class SnapshotUtilsImpl extends SnapshotUtilsBase {
      *
      * @return list of files referenced by the snapshot (pair of path and size)
      */
-    @Override
-    public List<Object> getSnapshotFilesForRegion(final HRegion region, final Configuration conf,
-                                                  final FileSystem fs, final Path snapshotDir) throws IOException {
+    public List<Object> getSnapshotFilesForRegion(final HRegion region,
+                                                  final Configuration conf,
+                                                  final FileSystem fs,
+                                                  final Path snapshotDir,
+                                                  final boolean materialize) throws IOException {
         SnapshotDescription snapshotDesc = SnapshotDescriptionUtils.readSnapshotInfo(fs, snapshotDir);
 
         final List<Object> files = new ArrayList<Object>();
@@ -61,32 +63,29 @@ public class SnapshotUtilsImpl extends SnapshotUtilsBase {
                         boolean isReference = storeFile.hasReference();
 
                         String regionName = regionInfo.getEncodedName();
-                        if (isCurrentRegion(region, regionInfo) == false) {
+                        if (region != null && isCurrentRegion(region, regionInfo) == false) {
                             // If not current return
                             return;
                         }
                         String hfile = storeFile.getName();
-                        Path path = HFileLink.createPath(table, regionName, family, hfile);
-
-                        SnapshotFileInfo fileInfo = SnapshotFileInfo.newBuilder()
-                                .setType(SnapshotFileInfo.Type.HFILE)
-                                .setHfile(path.toString())
-                                .build();
-
-                        HFileLink filePath = getFilePath(fileInfo);
-                        if (isReference) {
-                            // If its materialized reference - we add Path
-                            Path p = materializeRefFile(conf, fs, filePath, region);
-                            files.add(p);
-                            SpliceLogUtils.info(LOG, "Add %s to snapshot", p);
-                        } else {
-                            // Otherwise we add HFileLink
+                        HFileLink filePath = createHFileLink(conf, table, regionName, family, hfile);
+                        if (materialize) {
+                            if (isReference) {
+                                // If its materialized reference - we add Path
+                                Path p = materializeRefFile(conf, fs, filePath, region);
+                                files.add(p);
+                                SpliceLogUtils.info(LOG, "Add %s to snapshot", p);
+                            } else {
+                                // Otherwise we add HFileLink
+                                files.add(filePath);
+                                SpliceLogUtils.info(LOG, "Add %s to snapshot", filePath);
+                            }
+                        }
+                        else {
                             files.add(filePath);
-                            SpliceLogUtils.info(LOG, "Add %s to snapshot", filePath);
                         }
 
                     }
-
 
                     @Override
                     public void logFile(final String server, final String logfile)
@@ -105,12 +104,15 @@ public class SnapshotUtilsImpl extends SnapshotUtilsBase {
     }
 
     @Override
-    public List<Object> getSnapshotFilesForRegion(final HRegion region, final Configuration conf,
-                                                  final FileSystem fs, final String snapshotName) throws IOException {
+    public List<Object> getSnapshotFilesForRegion(final HRegion region,
+                                                  final Configuration conf,
+                                                  final FileSystem fs,
+                                                  final String snapshotName,
+                                                  final boolean materialize) throws IOException {
         Path rootDir = FSUtils.getRootDir(conf);
 
         Path snapshotDir = SnapshotDescriptionUtils.getCompletedSnapshotDir(snapshotName, rootDir);
-        List<Object> paths = getSnapshotFilesForRegion(region, conf, fs, snapshotDir);
+        List<Object> paths = getSnapshotFilesForRegion(region, conf, fs, snapshotDir, materialize);
 
         return paths;
     }
@@ -165,5 +167,22 @@ public class SnapshotUtilsImpl extends SnapshotUtilsBase {
                 getColumnFamilyName(ref.getOriginPath()),
                 getFileName(ref.getOriginPath()));
 
+    }
+
+    @Override
+    public HFileLink createHFileLink(Configuration conf,
+                                     TableName table,
+                                     String regionName,
+                                     String family,
+                                     String hfile) throws IOException {
+        Path path = HFileLink.createPath(table, regionName, family, hfile);
+
+        SnapshotFileInfo fileInfo = SnapshotFileInfo.newBuilder()
+                .setType(SnapshotFileInfo.Type.HFILE)
+                .setHfile(path.toString())
+                .build();
+
+        HFileLink filePath = getFilePath(fileInfo);
+        return filePath;
     }
 }

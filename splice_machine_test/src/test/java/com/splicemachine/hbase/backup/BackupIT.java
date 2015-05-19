@@ -102,7 +102,7 @@ public class BackupIT extends SpliceUnitTest {
         spliceClassWatcher.splitTable(TABLE_NAME1, SCHEMA_NAME, 750);
         Thread.sleep(10000);
         backup("incremental");
-        //verifyIncrementalBackup(getBackupId(), conglomerateNumber1, false);
+        verifyIncrementalBackup(getBackupId(), conglomerateNumber1, false);
         verifyIncrementalBackup(getBackupId(), conglomerateNumber2, true);
     }
 
