@@ -87,8 +87,6 @@ public class LocatedRow implements KeyableRow, Externalizable {
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
-        System.out.println(rowLocation);
-        System.out.println(row);
         out.writeObject(rowLocation);
         out.writeObject(row);
     }
