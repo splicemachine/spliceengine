@@ -55,13 +55,13 @@ public interface UserAuthenticator
 	 * Authenticate a user's credentials.
      * <BR>
      * E.g. if connection url is 
-     * <code>jdbc:derby:testdb;user=Fred;password=ScT7dmM2</code>
+     * <code>jdbc:splice:testdb;user=Fred;password=ScT7dmM2</code>
      * then the userName will be Fred and within the Derby user authorization 
      * system, Fred becomes a case-insensitive authorization identifier and 
      * is known as FRED
      *<BR>
      * if connection url is 
-     * <code>jdbc:derby:testdb;user="Fred";password=ScT7dmM2</code>
+     * <code>jdbc:splice:testdb;user="Fred";password=ScT7dmM2</code>
      * then the userName will be "Fred" and within the Derby user authorization
      * system, Fred becomes a case-sensitive authorization identifier and is
      * known as Fred

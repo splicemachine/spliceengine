@@ -43,7 +43,7 @@ public class ConnectionHandling {
 
         new EmbeddedDriver();
         
-        Connection conn = DriverManager.getConnection("jdbc:derby:wombat;create=true");
+        Connection conn = DriverManager.getConnection("jdbc:splice:wombat;create=true");
         conn.close();
         conn = null;
         
@@ -56,7 +56,7 @@ public class ConnectionHandling {
             Connection c;
             try {
 
-                c = DriverManager.getConnection("jdbc:derby:wombat", p);
+                c = DriverManager.getConnection("jdbc:splice:wombat", p);
             } catch (SQLException e) {
                 if ("08004".equals(e.getSQLState()))
                     System.out.println("FIRST OOME: " + e.getSQLState() + " "
@@ -96,7 +96,7 @@ public class ConnectionHandling {
             if (i == 300)
                 Thread.sleep(10000L);
             try {
-                Connection c = DriverManager.getConnection("jdbc:derby:wombat", p);
+                Connection c = DriverManager.getConnection("jdbc:splice:wombat", p);
                   list.add(c);
                   ok++;
             } catch (SQLException e) {

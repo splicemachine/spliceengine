@@ -86,7 +86,7 @@ public class TestPreStartedMaster extends ClientRunner
 
         Connection conn = null;
         String db = masterDatabasePath +"/"+ReplicationRun.masterDbSubPath +"/"+ replicatedDb;
-        String connectionURL = "jdbc:derby:"
+        String connectionURL = "jdbc:splice:"
                 + "//" + masterServerHost + ":" + masterServerPort + "/"
                 + db
                 + ";startMaster=true"
@@ -131,7 +131,7 @@ public class TestPreStartedMaster extends ClientRunner
 
         // A 2. StartSlave connect should fail:
         db = slaveDatabasePath +"/"+ReplicationRun.slaveDbSubPath +"/"+ replicatedDb;
-        connectionURL = "jdbc:derby:"
+        connectionURL = "jdbc:splice:"
                 + "//" + slaveServerHost + ":" + slaveServerPort + "/"
                 + db
                 + ";startSlave=true"

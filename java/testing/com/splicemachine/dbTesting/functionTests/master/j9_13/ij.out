@@ -21,7 +21,7 @@ ij> --
 connect 'cloudscape:wombat';
 ERROR 08001: Driver not found: cloudscape:wombat
 ij> -- this one will work.
-connect 'jdbc:derby:wombat';
+connect 'jdbc:splice:wombat';
 ERROR XJ004: Database 'wombat' not found.
 ij> -- no connection yet, this will fail
 create table t (i int);

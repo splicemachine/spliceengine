@@ -66,7 +66,7 @@ public class ConnectTest extends BaseJDBCTestCase{
      *  Test whether we can reconnect.
      */
     public void testConnectRepeatedly() throws SQLException {
-        String url = "jdbc:derby:wombat;create=true";
+        String url = "jdbc:splice:wombat;create=true";
         Connection con = DriverManager.getConnection(url);
 
         Statement st = con.createStatement();
@@ -88,7 +88,7 @@ public class ConnectTest extends BaseJDBCTestCase{
     public void testDBName() throws SQLException {
         // Do we get a non-internal error when we try to create
         // over an existing directory? (T#674)
-        String url = "jdbc:derby:wombat/seg0;create=true";
+        String url = "jdbc:splice:wombat/seg0;create=true";
         try {
             DriverManager.getConnection(url);
             fail("Error XBM0J is expected");
@@ -99,7 +99,7 @@ public class ConnectTest extends BaseJDBCTestCase{
         // -- check to ensure an empty database name is taken
         // -- as the name, over any connection attribute.
         // -- this should fail.
-        url = "jdbc:derby: ;databaseName=wombat";
+        url = "jdbc:splice: ;databaseName=wombat";
         try {
             DriverManager.getConnection(url);
             fail("Error XJ004 is expected");
@@ -108,7 +108,7 @@ public class ConnectTest extends BaseJDBCTestCase{
         }
 
         // and this should succeed (no database name in URL)
-        url = "jdbc:derby:;databaseName=wombat";
+        url = "jdbc:splice:;databaseName=wombat";
         Connection con = DriverManager.getConnection(url);
         con.close();
     }
@@ -118,7 +118,7 @@ public class ConnectTest extends BaseJDBCTestCase{
      * All should fail with errors.
      */
     public void testGrantAndRevoke() throws SQLException {
-        String url = "jdbc:derby:wombat";
+        String url = "jdbc:splice:wombat";
         Connection con = DriverManager.getConnection(url);
 
         String sql = "create table mytab(i int)";
@@ -154,7 +154,7 @@ public class ConnectTest extends BaseJDBCTestCase{
      * @throws SQLException
      */
     public void clientTestDerby2026LoginTimeout() throws SQLException  {
-        String url = "jdbc:derby://" + TestConfiguration.getCurrent().getHostName() +":" +
+        String url = "jdbc:splice://" + TestConfiguration.getCurrent().getHostName() +":" +
                 TestConfiguration.getCurrent().getPort() + "/" + TestConfiguration.getCurrent().getDefaultDatabaseName();
         try {
             DriverManager.setLoginTimeout(10);

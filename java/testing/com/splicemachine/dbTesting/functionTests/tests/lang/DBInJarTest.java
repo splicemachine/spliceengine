@@ -55,15 +55,15 @@ public class DBInJarTest extends BaseJDBCTestCase {
     {
         //      Create database to be jarred up.
 
-        Connection beforejarconn = DriverManager.getConnection("jdbc:derby:testjardb;create=true");
+        Connection beforejarconn = DriverManager.getConnection("jdbc:splice:testjardb;create=true");
         Statement bjstmt = beforejarconn.createStatement();
         bjstmt.executeUpdate("CREATE TABLE TAB (I INT)");
         bjstmt.executeUpdate("INSERT INTO TAB VALUES(1)");
-        shutdownDB("jdbc:derby:testjardb;shutdown=true");
+        shutdownDB("jdbc:splice:testjardb;shutdown=true");
         Statement stmt = createStatement();
 
         stmt.executeUpdate("CALL CREATEARCHIVE('testjardb.jar', 'testjardb','testjardb')");
-        Connection jarconn = DriverManager.getConnection("jdbc:derby:jar:(testjardb.jar)testjardb");
+        Connection jarconn = DriverManager.getConnection("jdbc:splice:jar:(testjardb.jar)testjardb");
         Statement s = jarconn.createStatement();
 
         // try to read from a table.
@@ -84,7 +84,7 @@ public class DBInJarTest extends BaseJDBCTestCase {
                 {"SYSPROC",null},
                 {"SYSSTAT",null}};
         JDBC.assertFullResultSet(rs, expectedRows);
-        shutdownDB("jdbc:derby:jar:(testjardb.jar)testjardb;shutdown=true");
+        shutdownDB("jdbc:splice:jar:(testjardb.jar)testjardb;shutdown=true");
 
         // cleanup databases
         File jarreddb = new File(System.getProperty("derby.system.home") + "/testjardb.jar");
@@ -110,7 +110,7 @@ public class DBInJarTest extends BaseJDBCTestCase {
         createDerby2354Database();
 
         Connection jarConn =
-                DriverManager.getConnection("jdbc:derby:jar:(d2354db.jar)d2354db");
+                DriverManager.getConnection("jdbc:splice:jar:(d2354db.jar)d2354db");
 
         Statement stmt = jarConn.createStatement();
 
@@ -147,7 +147,7 @@ public class DBInJarTest extends BaseJDBCTestCase {
         jarConn.close();
 
         // Cleanup. Shut down the database and delete it.
-        shutdownDB("jdbc:derby:jar:(d2354db.jar)d2354db;shutdown=true");
+        shutdownDB("jdbc:splice:jar:(d2354db.jar)d2354db;shutdown=true");
         removeFiles(new String[] {
                 System.getProperty("derby.system.home") + "/d2354db.jar"
         });
@@ -159,7 +159,7 @@ public class DBInJarTest extends BaseJDBCTestCase {
     private void createDerby2354Database() throws SQLException {
         // First create an ordinary database with a table.
         Connection conn =
-                DriverManager.getConnection("jdbc:derby:d2354db;create=true");
+                DriverManager.getConnection("jdbc:splice:d2354db;create=true");
         conn.setAutoCommit(false);
         Statement s = conn.createStatement();
         s.execute("create table d2354 (x varchar(100))");
@@ -183,7 +183,7 @@ public class DBInJarTest extends BaseJDBCTestCase {
         conn.close();
 
         // Shut down the database and archive it in a jar file.
-        shutdownDB("jdbc:derby:d2354db;shutdown=true");
+        shutdownDB("jdbc:splice:d2354db;shutdown=true");
 
         createStatement().execute(
                 "CALL CREATEARCHIVE('d2354db.jar', 'd2354db', 'd2354db')");

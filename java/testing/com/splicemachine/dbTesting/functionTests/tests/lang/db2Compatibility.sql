@@ -111,11 +111,11 @@ create table NOTYPE(i int, b org.apache.derby.vti.VTIEnvironment);
 -- beetle 5234
 CREATE TABLE testCS (col1 int, col2 char(30), col3 int);
 INSERT INTO testCS VALUES (100, 'asdf', 732);
-DELETE FROM NEW com.splicemachine.dbTesting.functionTests.util.VTIClasses.ExternalTable('jdbc:derby:wombat', 'testCS') WHERE col1 = 100 and col3 = 732;
+DELETE FROM NEW com.splicemachine.dbTesting.functionTests.util.VTIClasses.ExternalTable('jdbc:splice:wombat', 'testCS') WHERE col1 = 100 and col3 = 732;
 
 -- VTI in the INSERT statement
 -- beetle 5234
-INSERT INTO NEW com.splicemachine.dbTesting.functionTests.util.serializabletypes.ExternalTable('jdbc:derby:wombat', 'testCS') VALUES (100, 'asdf', 732);
+INSERT INTO NEW com.splicemachine.dbTesting.functionTests.util.serializabletypes.ExternalTable('jdbc:splice:wombat', 'testCS') VALUES (100, 'asdf', 732);
 
 -- VTI in the SELECT statement
 -- beetle 5234
@@ -127,11 +127,11 @@ select * from syscs_diag.lock_table;
 -- VTI in CREATE TRIGGER statement
 -- beetle 5234
 CREATE TABLE tb1(a int);
-CREATE TRIGGER testtrig1 AFTER DELETE ON tb1 FOR EACH ROW MODE DB2SQL INSERT INTO NEW com.splicemachine.dbTesting.functionTests.util.VTIClasses.ExternalTable('jdbc:derby:wombat', 'testCS') VALUES (1000);
+CREATE TRIGGER testtrig1 AFTER DELETE ON tb1 FOR EACH ROW MODE DB2SQL INSERT INTO NEW com.splicemachine.dbTesting.functionTests.util.VTIClasses.ExternalTable('jdbc:splice:wombat', 'testCS') VALUES (1000);
 
 -- VTI in CREATE TRIGGER statement
 -- beetle 5234
-CREATE TRIGGER testtrig2 AFTER DELETE ON tb1 FOR EACH ROW MODE DB2SQL DELETE FROM NEW com.splicemachine.dbTesting.functionTests.util.VTIClasses.ExternalTable('jdbc:derby:wombat', 'testCS') WHERE col1 = 100 and col3 = 732;
+CREATE TRIGGER testtrig2 AFTER DELETE ON tb1 FOR EACH ROW MODE DB2SQL DELETE FROM NEW com.splicemachine.dbTesting.functionTests.util.VTIClasses.ExternalTable('jdbc:splice:wombat', 'testCS') WHERE col1 = 100 and col3 = 732;
 
 -- VTI in CREATE TRIGGER statement
 -- beetle 5234
@@ -179,11 +179,11 @@ drop table tb2;
 -- beetle 5234
 CREATE TABLE testCS (col1 int, col2 char(30), col3 int);
 INSERT INTO testCS VALUES (100, 'asdf', 732);
-DELETE FROM NEW com.splicemachine.dbTesting.functionTests.util.VTIClasses.ExternalTable('jdbc:derby:wombat', 'testCS') WHERE col1 = 100 and col3 = 732;
+DELETE FROM NEW com.splicemachine.dbTesting.functionTests.util.VTIClasses.ExternalTable('jdbc:splice:wombat', 'testCS') WHERE col1 = 100 and col3 = 732;
 
 -- VTI in the INSERT statement
 -- beetle 5234
-INSERT INTO NEW com.splicemachine.dbTesting.functionTests.util.VTIClasses.ExternalTable('jdbc:derby:wombat', 'testCS') VALUES (100, 'asdf', 732);
+INSERT INTO NEW com.splicemachine.dbTesting.functionTests.util.VTIClasses.ExternalTable('jdbc:splice:wombat', 'testCS') VALUES (100, 'asdf', 732);
 
 -- VTI in the SELECT statement
 -- beetle 5234
@@ -192,11 +192,11 @@ select * from testCS, new com.splicemachine.dbTesting.functionTests.util.VTIClas
 -- VTI in CREATE TRIGGER statement
 -- beetle 5234
 CREATE TABLE tb1(a int);
-CREATE TRIGGER testtrig1 AFTER DELETE ON tb1 FOR EACH ROW MODE DB2SQL INSERT INTO NEW com.splicemachine.dbTesting.functionTests.util.VTIClasses.ExternalTable('jdbc:derby:wombat', 'testCS') VALUES (1000);
+CREATE TRIGGER testtrig1 AFTER DELETE ON tb1 FOR EACH ROW MODE DB2SQL INSERT INTO NEW com.splicemachine.dbTesting.functionTests.util.VTIClasses.ExternalTable('jdbc:splice:wombat', 'testCS') VALUES (1000);
 
 -- VTI in CREATE TRIGGER statement
 -- beetle 5234
-CREATE TRIGGER testtrig2 AFTER DELETE ON tb1 FOR EACH ROW MODE DB2SQL DELETE FROM NEW com.splicemachine.dbTesting.functionTests.util.VTIClasses.ExternalTable('jdbc:derby:wombat', 'testCS') WHERE col1 = 100 and col3 = 732;
+CREATE TRIGGER testtrig2 AFTER DELETE ON tb1 FOR EACH ROW MODE DB2SQL DELETE FROM NEW com.splicemachine.dbTesting.functionTests.util.VTIClasses.ExternalTable('jdbc:splice:wombat', 'testCS') WHERE col1 = 100 and col3 = 732;
 
 -- VTI in CREATE TRIGGER statement
 -- beetle 5234

@@ -22,7 +22,7 @@
 -- this one is a bad url:
 connect 'cloudscape:wombat';
 -- this one will work.
-connect 'jdbc:derby:wombat';
+connect 'jdbc:splice:wombat';
 
 -- no connection yet, this will fail
 create table t (i int);
@@ -58,7 +58,7 @@ driver 'com.splicemachine.db.jdbc.EmbeddedDriver';
 connect 'asdfasdf';
 
 -- now a valid database, but no create
-connect 'jdbc:derby:wombat';
+connect 'jdbc:splice:wombat';
 -- and, the help output:
 help;
 

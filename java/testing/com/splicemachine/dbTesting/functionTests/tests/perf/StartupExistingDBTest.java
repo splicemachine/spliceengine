@@ -57,7 +57,7 @@ public class StartupExistingDBTest extends BaseJDBCTestCase {
         // Use an existing DB.  This is copied over by the harness
         startTime = System.currentTimeMillis();
         Connection conn = 
-            DriverManager.getConnection("jdbc:derby:../existingDb");
+            DriverManager.getConnection("jdbc:splice:../existingDb");
         currentTime = System.currentTimeMillis();
         System.out.println("Open connection with existing database:  " 
             + (currentTime - startTime));

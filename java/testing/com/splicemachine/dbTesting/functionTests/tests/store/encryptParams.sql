@@ -17,9 +17,9 @@
 -- test database encryption parameters such as the encryption algorithm and the encryption provider
 
 
-connect 'jdbc:derby:;shutdown=true';
+connect 'jdbc:splice:;shutdown=true';
 
-connect 'jdbc:derby:wombatDESede;create=true;dataEncryption=true;bootPassword=ThursdaySaturday;encryptionAlgorithm=DESede/CBC/NoPadding';
+connect 'jdbc:splice:wombatDESede;create=true;dataEncryption=true;bootPassword=ThursdaySaturday;encryptionAlgorithm=DESede/CBC/NoPadding';
 
 create table t1 ( a char(20));
 insert into t1 values ('hello world');
@@ -28,25 +28,25 @@ select * from t1;
 
 
 disconnect;
-connect 'jdbc:derby:;shutdown=true';
+connect 'jdbc:splice:;shutdown=true';
 
 -- algorithm is not specified, doesn't matter since algorithm is stored in the database
-connect 'jdbc:derby:wombatDESede;bootPassword=ThursdaySaturday';
+connect 'jdbc:splice:wombatDESede;bootPassword=ThursdaySaturday';
 select * from t1;
 
 disconnect;
-connect 'jdbc:derby:;shutdown=true';
+connect 'jdbc:splice:;shutdown=true';
 
 -- wrong algorithm, doesn't matter since algorithm is stored in the database
-connect 'jdbc:derby:wombatDESede;bootPassword=ThursdaySaturday;encryptionAlgorithm=Blowfish/CBC/NoPadding';
+connect 'jdbc:splice:wombatDESede;bootPassword=ThursdaySaturday;encryptionAlgorithm=Blowfish/CBC/NoPadding';
 
 select * from t1;
 
 disconnect;
-connect 'jdbc:derby:;shutdown=true';
+connect 'jdbc:splice:;shutdown=true';
 
 -- create new databases with different encryption algorithms
-connect 'jdbc:derby:wombatDES;create=true;dataEncryption=true;bootPassword=ThursdaySaturdayfoobarpo;encryptionAlgorithm=DES/CBC/NoPadding';
+connect 'jdbc:splice:wombatDES;create=true;dataEncryption=true;bootPassword=ThursdaySaturdayfoobarpo;encryptionAlgorithm=DES/CBC/NoPadding';
 
 create table t2 ( a char(20));
 insert into t2 values ('hot air');
@@ -54,9 +54,9 @@ insert into t2 values ('hot air');
 select * from t2;
 
 disconnect;
-connect 'jdbc:derby:;shutdown=true';
+connect 'jdbc:splice:;shutdown=true';
 
-connect 'jdbc:derby:wombatBlowfish;create=true;dataEncryption=true;bootPassword=SundayMondayFriday;encryptionAlgorithm=Blowfish/CBC/NoPadding';
+connect 'jdbc:splice:wombatBlowfish;create=true;dataEncryption=true;bootPassword=SundayMondayFriday;encryptionAlgorithm=Blowfish/CBC/NoPadding';
 
 create table t3 ( a char(20));
 insert into t3 values ('blow hot air on fish');
@@ -64,15 +64,15 @@ insert into t3 values ('blow hot air on fish');
 select * from t3;
 
 disconnect;
-connect 'jdbc:derby:;shutdown=true';
+connect 'jdbc:splice:;shutdown=true';
 
 
                 
 -- have 3 connections open to 3 databases, each datababase uses a different encryption algorithm
 
-connect 'jdbc:derby:wombatDESede;bootPassword=ThursdaySaturday' AS C1;
-connect 'jdbc:derby:wombatDES;bootPassword=ThursdaySaturdayfoobarpo' AS C2;
-connect 'jdbc:derby:wombatBlowfish;bootPassword=SundayMondayFriday' AS C3;
+connect 'jdbc:splice:wombatDESede;bootPassword=ThursdaySaturday' AS C1;
+connect 'jdbc:splice:wombatDES;bootPassword=ThursdaySaturdayfoobarpo' AS C2;
+connect 'jdbc:splice:wombatBlowfish;bootPassword=SundayMondayFriday' AS C3;
 
 set connection C1;
 select * from t1;
@@ -84,28 +84,28 @@ set connection C3;
 select * from t3;
 
 disconnect;
-connect 'jdbc:derby:;shutdown=true';
+connect 'jdbc:splice:;shutdown=true';
 
 -- create a new database with an algorithm which uses padding
 -- should not work
-connect 'jdbc:derby:wombatBad;create=true;dataEncryption=true;bootPassword=ThursdaySaturday;encryptionAlgorithm=DESede/CBC/PKCS5Padding';
+connect 'jdbc:splice:wombatBad;create=true;dataEncryption=true;bootPassword=ThursdaySaturday;encryptionAlgorithm=DESede/CBC/PKCS5Padding';
 
 -- create a new database with a bad algorithm
 -- should not work
-connect 'jdbc:derby:wombatBad;create=true;dataEncryption=true;bootPassword=ThursdaySaturday;encryptionAlgorithm=Fungus/CBC/NoPadding';
+connect 'jdbc:splice:wombatBad;create=true;dataEncryption=true;bootPassword=ThursdaySaturday;encryptionAlgorithm=Fungus/CBC/NoPadding';
 
 -- create a new database with another bad algorithm (bad feedback mode)
 -- should not work
-connect 'jdbc:derby:wombatBad;create=true;dataEncryption=true;bootPassword=ThursdaySaturday;encryptionAlgorithm=DES/CNN/NoPadding';
+connect 'jdbc:splice:wombatBad;create=true;dataEncryption=true;bootPassword=ThursdaySaturday;encryptionAlgorithm=DES/CNN/NoPadding';
 
 -- create a new database with a bad provider
 -- should not work
-connect 'jdbc:derby:wombatBad;create=true;dataEncryption=true;bootPassword=ThursdaySaturday;encryptionProvider=com.foo.bar';
+connect 'jdbc:splice:wombatBad;create=true;dataEncryption=true;bootPassword=ThursdaySaturday;encryptionProvider=com.foo.bar';
 
 -- create a new database with a bad encryption algorithm format
 -- should not work
-connect 'jdbc:derby:wombatBad;create=true;dataEncryption=true;bootPassword=ThursdaySaturday;encryptionAlgorithm=DES';
+connect 'jdbc:splice:wombatBad;create=true;dataEncryption=true;bootPassword=ThursdaySaturday;encryptionAlgorithm=DES';
 
 -- create a new database with a non supported feedback mode (PCBC)
 -- should not work
-connect 'jdbc:derby:wombatBad;create=true;dataEncryption=true;bootPassword=ThursdaySaturday;encryptionAlgorithm=DES/PCBC/NoPadding';
+connect 'jdbc:splice:wombatBad;create=true;dataEncryption=true;bootPassword=ThursdaySaturday;encryptionAlgorithm=DES/PCBC/NoPadding';

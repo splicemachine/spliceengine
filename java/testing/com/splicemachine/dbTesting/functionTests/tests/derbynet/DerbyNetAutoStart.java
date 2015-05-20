@@ -520,7 +520,7 @@ public class DerbyNetAutoStart
         {
             System.setOut( serverOutputOut);
             Class.forName("com.splicemachine.db.jdbc.EmbeddedDriver").newInstance();
-            embeddedConn = DriverManager.getConnection( "jdbc:derby:" + databaseName + ";create=true");
+            embeddedConn = DriverManager.getConnection( "jdbc:splice:" + databaseName + ";create=true");
             System.setOut( realSystemOut);
         }
         catch( SQLException sqle)
@@ -648,7 +648,7 @@ public class DerbyNetAutoStart
         } catch (InterruptedException ex) {}
         try
         {
-            DriverManager.getConnection( "jdbc:derby:;shutdown=true");
+            DriverManager.getConnection( "jdbc:splice:;shutdown=true");
         }
         catch( SQLException sqle)
         {

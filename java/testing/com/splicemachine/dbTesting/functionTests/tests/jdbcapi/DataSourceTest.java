@@ -222,7 +222,7 @@ public class DataSourceTest extends BaseJDBCTestCase {
         try {
             DataSource ds = JDBCDataSource.getDataSource();
             // non-existent database
-            JDBCDataSource.setBeanProperty(ds, "databaseName", "jdbc:derby:wombat");
+            JDBCDataSource.setBeanProperty(ds, "databaseName", "jdbc:splice:wombat");
             ds.getConnection();
             fail ("expected an SQLException!");
         } catch (SQLException sqle) {

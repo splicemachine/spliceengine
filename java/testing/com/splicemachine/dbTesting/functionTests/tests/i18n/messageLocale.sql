@@ -28,7 +28,7 @@ driver 'com.splicemachine.dbTesting.functionTests.tests.i18n.DefaultLocale';
 -- create a databse in this default locale, should
 -- get english messages, as there are no messages
 -- for rr_TT;
-connect 'jdbc:derby:wombat;create=true';
+connect 'jdbc:splice:wombat;create=true';
 
 -- make sure the database is clean
 drop procedure checkDefaultLoc;
@@ -62,7 +62,7 @@ disconnect;
 -- create a database with a locale that has a small
 -- number of messages. Missing ones will default to
 -- the locale of the default locale i.e. German;
-connect 'jdbc:derby:testdb;create=true;territory=qq_PP_testOnly';
+connect 'jdbc:splice:testdb;create=true;territory=qq_PP_testOnly';
 
 -- error (in qq_PP messages);
 -- create table t1 (i longe);
@@ -79,10 +79,10 @@ drop table t3;
 
 -- should be in German;
 disconnect;
-connect 'jdbc:derby:;shutdown=true';
+connect 'jdbc:splice:;shutdown=true';
 
 -- Now, all Enlish messages;
-connect 'jdbc:derby:enTest;create=true;territory=en_US';
+connect 'jdbc:splice:enTest;create=true;territory=en_US';
 
 -- create table t1 (i longe);
 create table t1 oops (i int primary key);

@@ -66,7 +66,7 @@ public class DropWhileConnectingTest
 
     public void testConcurrentAccessAndDrop()
             throws SQLException {
-        final String url = "jdbc:derby:memory:testDB";
+        final String url = "jdbc:splice:memory:testDB";
         // Database owner is the default user SPLICE.
         Connection con =
                 MemoryDbManager.getSharedInstance().createDatabase("testDB");

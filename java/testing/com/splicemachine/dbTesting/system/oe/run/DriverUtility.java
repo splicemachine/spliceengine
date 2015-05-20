@@ -45,7 +45,7 @@ import com.splicemachine.dbTesting.system.oe.util.OEChecks;
  * To load database with scale of 2
  * and to not do any checks, the command to run the test is as follows:
  * <BR>
- * java com.splicemachine.dbTesting.system.oe.run.DriverUtility -driver com.splicemachine.db.jdbc.ClientDriver -dbUrl 'jdbc:derby://localhost:1527/db' -scale 2 -doChecks false
+ * java com.splicemachine.dbTesting.system.oe.run.DriverUtility -driver com.splicemachine.db.jdbc.ClientDriver -dbUrl 'jdbc:splice://localhost:1527/db' -scale 2 -doChecks false
  * <BR>
  */
 public class DriverUtility {
@@ -62,7 +62,7 @@ public class DriverUtility {
     /**
      * Database connection url
      */
-    private static String dbUrl = "jdbc:derby:wombat;create=true";
+    private static String dbUrl = "jdbc:splice:wombat;create=true";
 
     /**
      * JDBC Driver class

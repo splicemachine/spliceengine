@@ -153,7 +153,7 @@ public class BasicInMemoryDbTest
         String dbPathBackedUp = PrivilegedFileOpsForTests.getAbsolutePath(
                 new File(dbPath, "newMemDb"));
         Connection dirCon = DriverManager.getConnection(
-                "jdbc:derby:" + dbPathBackedUp);
+                "jdbc:splice:" + dbPathBackedUp);
         // 4. Verify content, then add one more row.
         stmt = dirCon.createStatement();
         rs = stmt.executeQuery("select * from toverify");
@@ -170,7 +170,7 @@ public class BasicInMemoryDbTest
         // Shutdown.
         try {
             DriverManager.getConnection(
-                    "jdbc:derby:" + dbPathBackedUp + ";shutdown=true");
+                    "jdbc:splice:" + dbPathBackedUp + ";shutdown=true");
         } catch (SQLException sqle) {
             assertSQLState("08006", sqle);
         }
@@ -203,7 +203,7 @@ public class BasicInMemoryDbTest
         dbm.createDatabase("/tmp/myDB");
         try {
             DriverManager.getConnection(
-                    "jdbc:derby:memory:/tmp/myDB;shutdown=true");
+                    "jdbc:splice:memory:/tmp/myDB;shutdown=true");
             fail("Engine shutdown should have caused exception");
         } catch (SQLException sqle) {
             assertSQLState("08006", sqle);
@@ -223,7 +223,7 @@ public class BasicInMemoryDbTest
         dbm.createDatabase("/tmp/myDB");
         try {
             DriverManager.getConnection(
-                    "jdbc:derby:;shutdown=true");
+                    "jdbc:splice:;shutdown=true");
             fail("Engine shutdown should have caused exception");
         } catch (SQLException sqle) {
             assertSQLState("XJ015", sqle);
@@ -250,7 +250,7 @@ public class BasicInMemoryDbTest
         // Connect to the on-disk database. The table we created in the
         // in-memory database shouldn't exist in the on-disk database.
         Connection con2 = DriverManager.getConnection(
-                "jdbc:derby:" + dbName + ";create=true");
+                "jdbc:splice:" + dbName + ";create=true");
         // Table t should not exist.
         Statement stmt2 = con2.createStatement();
         try {
@@ -275,14 +275,14 @@ public class BasicInMemoryDbTest
             throws SQLException {
         loadDriver();
         Connection conCreate = DriverManager.getConnection(
-                "jdbc:derby:memory:deleteDbSimple;create=true");
+                "jdbc:splice:memory:deleteDbSimple;create=true");
         Statement stmt = dbm.createStatement(conCreate);
         JDBC.assertDrainResults(stmt.executeQuery(
                 "select * from sys.systables"));
         // Delete the database.
         try {
             DriverManager.getConnection(
-                    "jdbc:derby:memory:deleteDbSimple;drop=true");
+                    "jdbc:splice:memory:deleteDbSimple;drop=true");
             fail("Dropping database should have raised exception.");
         } catch (SQLException sqle) {
             assertSQLState("08006", sqle);
@@ -290,7 +290,7 @@ public class BasicInMemoryDbTest
         // Try to connect to the database again, without creation.
         try {
             DriverManager.getConnection(
-                    "jdbc:derby:memory:deleteDbSimple;create=false");
+                    "jdbc:splice:memory:deleteDbSimple;create=false");
             fail("Database should not exist after deletion.");
         } catch (SQLException sqle) {
             assertSQLState("XJ004", sqle);
@@ -298,14 +298,14 @@ public class BasicInMemoryDbTest
 
         // Recreate and delete again.
         conCreate = DriverManager.getConnection(
-                "jdbc:derby:memory:deleteDbSimple;create=true");
+                "jdbc:splice:memory:deleteDbSimple;create=true");
         stmt = dbm.createStatement(conCreate);
         JDBC.assertDrainResults(stmt.executeQuery(
                 "select * from sys.systables"));
         // Delete the database.
         try {
             DriverManager.getConnection(
-                    "jdbc:derby:memory:deleteDbSimple;drop=true");
+                    "jdbc:splice:memory:deleteDbSimple;drop=true");
             fail("Dropping database should have raised exception.");
         } catch (SQLException sqle) {
             assertSQLState("08006", sqle);
@@ -325,14 +325,14 @@ public class BasicInMemoryDbTest
             throws IOException, SQLException {
         loadDriver();
         Connection con = DriverManager.getConnection(
-                "jdbc:derby:memory:deleteDb;create=true");
+                "jdbc:splice:memory:deleteDb;create=true");
         PreparedStatement ps = dbm.prepareStatement(con,
                 "select * from sys.systables");
         JDBC.assertDrainResults(ps.executeQuery());
         // Delete the database.
         try {
             DriverManager.getConnection(
-                    "jdbc:derby:memory:deleteDb;drop=true");
+                    "jdbc:splice:memory:deleteDb;drop=true");
             fail("Dropping database should have raised exception.");
         } catch (SQLException sqle) {
             assertSQLState("08006", sqle);
@@ -366,7 +366,7 @@ public class BasicInMemoryDbTest
         // Delete the database.
         try {
             DriverManager.getConnection(
-                    "jdbc:derby:memory:deleteDb;shutdown=true");
+                    "jdbc:splice:memory:deleteDb;shutdown=true");
             fail("Database shutdown should have raised exception.");
         } catch (SQLException sqle) {
             assertSQLState("08006", sqle);

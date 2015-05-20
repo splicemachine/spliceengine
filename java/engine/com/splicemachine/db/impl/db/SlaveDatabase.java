@@ -426,7 +426,7 @@ public class SlaveDatabase extends BasicDatabase {
         try {
             shutdownInitiated = true;
 
-            String conStr = "jdbc:derby:"+dbname+";"+
+            String conStr = "jdbc:splice:"+dbname+";"+
                 Attribute.REPLICATION_INTERNAL_SHUTDOWN_SLAVE+
                 "=true";
 

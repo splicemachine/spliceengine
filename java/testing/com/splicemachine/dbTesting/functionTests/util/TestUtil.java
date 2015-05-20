@@ -67,12 +67,12 @@ public class TestUtil {
     public static final int UNKNOWN_FRAMEWORK = -1;
 
     /**
-     framework = embedded (or null) jdbc:derby:
+     framework = embedded (or null) jdbc:splice:
      */
     public static final int EMBEDDED_FRAMEWORK = 0;
 
     /**
-     framework = DerbyNet for JCC  jdbc:derby:net:
+     framework = DerbyNet for JCC  jdbc:splice:net:
      */
     public static final int DERBY_NET_FRAMEWORK = 1;
 
@@ -84,9 +84,9 @@ public class TestUtil {
     public  static final int DB2JCC_FRAMEWORK = 2; // jdbc:db2//
 
     /**
-     framework = DerbyNetClient  for Derby cient  jdbc:derby://
+     framework = DerbyNetClient  for Derby cient  jdbc:splice://
      */
-    public static final int DERBY_NET_CLIENT_FRAMEWORK = 3; // jdbc:derby://
+    public static final int DERBY_NET_CLIENT_FRAMEWORK = 3; // jdbc:splice://
 
 
     /**
@@ -94,7 +94,7 @@ public class TestUtil {
      OLD_NET_FRAMEWORK is for tests that have not yet been contributed.
      it can be removed once all tests are at apache
      */
-    public  static final int OLD_NET_FRAMEWORK = 4;          // jdbc:derby:net:
+    public  static final int OLD_NET_FRAMEWORK = 4;          // jdbc:splice:net:
 
 
     private static int framework = UNKNOWN_FRAMEWORK;
@@ -239,9 +239,9 @@ public class TestUtil {
      @param port    port to connect to with client driver
      ignored with embedded driver
      @return URL prefix
-     EMBEDDED_FRAMEWORK returns "jdbc:derby"
-     DERBY_NET_FRAMEWORK = "jdbc:derby:net://<server>:port/"
-     DERBY_NET_CLIENT_FRAMEWORK = "jdbc:derby://<server>:port/"
+     EMBEDDED_FRAMEWORK returns "jdbc:splice"
+     DERBY_NET_FRAMEWORK = "jdbc:splice:net://<server>:port/"
+     DERBY_NET_CLIENT_FRAMEWORK = "jdbc:splice://<server>:port/"
      DB2_JCC_FRAMEWORK = "jdbc:db2://<server>:port/"
      */
     public static String getJdbcUrlPrefix(String server, int port)
@@ -250,12 +250,12 @@ public class TestUtil {
         switch (framework)
         {
             case EMBEDDED_FRAMEWORK:
-                return "jdbc:derby:";
+                return "jdbc:splice:";
             case DERBY_NET_FRAMEWORK:
             case OLD_NET_FRAMEWORK:
-                return "jdbc:derby:net://" + server + ":" + port + "/";
+                return "jdbc:splice:net://" + server + ":" + port + "/";
             case DERBY_NET_CLIENT_FRAMEWORK:
-                return "jdbc:derby://" + server + ":" + port + "/";
+                return "jdbc:splice://" + server + ":" + port + "/";
             case DB2JCC_FRAMEWORK:
                 return "jdbc:db2://" + server + ":" + port + "/";
         }
@@ -887,7 +887,7 @@ public class TestUtil {
     public static boolean compareURL(String url) {
 
         if(isEmbeddedFramework()) {
-            if(url.compareTo("jdbc:derby:wombat") == 0)
+            if(url.compareTo("jdbc:splice:wombat") == 0)
                 return true;
         } else if(isNetFramework()) {
             try {
@@ -899,10 +899,10 @@ public class TestUtil {
                 if(urlEnd.compareTo("wombat;create=true") != 0)
                     return false;
 
-                if(isJCCFramework() && (urlStart.compareTo("jdbc:derby:net:") == 0))
+                if(isJCCFramework() && (urlStart.compareTo("jdbc:splice:net:") == 0))
                     return true;
 
-                if(isDerbyNetClientFramework() && (urlStart.compareTo("jdbc:derby:") == 0))
+                if(isDerbyNetClientFramework() && (urlStart.compareTo("jdbc:splice:") == 0))
                     return true;
 
             } catch (NoSuchElementException nsee) {

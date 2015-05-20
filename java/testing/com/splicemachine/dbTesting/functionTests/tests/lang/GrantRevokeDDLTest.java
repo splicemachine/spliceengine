@@ -4715,7 +4715,7 @@ public final class GrantRevokeDDLTest extends BaseJDBCTestCase {
         
         // set connection mamta3
         //ij(MAMTA1)> --connect 
-        // 'jdbc:derby:c:/dellater/dbmaintest2;create=true' user
+        // 'jdbc:splice:c:/dellater/dbmaintest2;create=true' user
         // 'mamta3' as mamta3
         
         

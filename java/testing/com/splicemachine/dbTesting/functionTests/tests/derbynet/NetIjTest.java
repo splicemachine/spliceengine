@@ -80,7 +80,7 @@ public final class NetIjTest extends ScriptTestCase {
 
         Properties prop = new Properties();
         prop.setProperty("ij.protocol",
-                "jdbc:derby://localhost:"+port+"/");
+                "jdbc:splice://localhost:"+port+"/");
 
         Test client = new SystemPropertyTestSetup(
                 TestConfiguration.clientServerDecoratorWithPort(clientTests,port),

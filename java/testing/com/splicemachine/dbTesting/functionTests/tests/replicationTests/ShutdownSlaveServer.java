@@ -74,7 +74,7 @@ public class ShutdownSlaveServer extends ShutdownSlave
     public void testShutdownSlave()
     throws SQLException, IOException, InterruptedException
     {
-        String slaveServerURL = "jdbc:derby:"
+        String slaveServerURL = "jdbc:splice:"
                 +"//"+slaveServerHost+":"+slaveServerPort+"/";
         
         shutdown(slaveServerURL, false, false); // serverURL,false,-: shutdown server!

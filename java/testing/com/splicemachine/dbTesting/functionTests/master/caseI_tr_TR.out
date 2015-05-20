@@ -1,4 +1,4 @@
-CONNECTION0* -  EnC:>9< jdbc:derby:trdb
+CONNECTION0* -  EnC:>9< jdbc:splice:trdb
 * = current connection
 splice> --
 --   Licensed to the Apache Software Foundation (ASF) under one or more

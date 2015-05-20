@@ -59,8 +59,8 @@ public class IjConnNameTest extends ScriptTestCase {
 
         Properties props = new Properties();
 
-        props.setProperty("ij.connection.connOne", "jdbc:derby:wombat;create=true");
-        props.setProperty("ij.connection.connFour", "jdbc:derby:nevercreated");
+        props.setProperty("ij.connection.connOne", "jdbc:splice:wombat;create=true");
+        props.setProperty("ij.connection.connFour", "jdbc:splice:nevercreated");
 
         props.setProperty("ij.showNoConnectionsAtStart", "true");
         props.setProperty("ij.showNoCountForSelect", "true");

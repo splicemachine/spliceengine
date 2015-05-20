@@ -53,7 +53,7 @@ public class ij2Test extends ScriptTestCase {
         }
 
         props.setProperty("derby.infolog.append", "true");
-        props.setProperty("ij.protocol", "jdbc:derby:");
+        props.setProperty("ij.protocol", "jdbc:splice:");
         props.setProperty("ij.database", "wombat;create=true");
 
         Test test = new SystemPropertyTestSetup(new ij2Test("ij2"), props);
@@ -65,7 +65,7 @@ public class ij2Test extends ScriptTestCase {
         suite.addTest(test);
 
         if (JDBC.vmSupportsJDBC3()) {
-            props.setProperty("ij.protocol", "jdbc:derby:");
+            props.setProperty("ij.protocol", "jdbc:splice:");
             props.setProperty("ij.showNoConnectionsAtStart", "true");
 
             Test testb = new SystemPropertyTestSetup(new ij2Test("ij2b"), props);

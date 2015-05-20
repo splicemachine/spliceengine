@@ -15,4 +15,4 @@ splice> --
 --   limitations under the License.
 --
 disconnect;
-splice> connect 'jdbc:derby:detest;create=true;';
+splice> connect 'jdbc:splice:detest;create=true;';

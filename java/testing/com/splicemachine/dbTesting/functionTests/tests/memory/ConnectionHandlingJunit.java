@@ -148,7 +148,7 @@ public class ConnectionHandlingJunit extends BaseJDBCTestCase {
 
     public void driverMgrTestConnectionsToNonexistentDbInMemory()
             throws SQLException {
-        driverMgrConnectionInitiator("jdbc:derby:memory:noDbHere", true);
+        driverMgrConnectionInitiator("jdbc:splice:memory:noDbHere", true);
     }
 
     private void driverMgrConnectionInitiator(String url, boolean appendId)

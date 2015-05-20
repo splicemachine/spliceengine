@@ -61,7 +61,7 @@ xa_recover xa_startrscan;
 ---------------------------------------------
 -- shutdown the database.
 ---------------------------------------------
-connect 'jdbc:derby:;shutdown=true';
+connect 'jdbc:splice:;shutdown=true';
 
 
 ---------------------------------------------

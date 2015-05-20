@@ -52,7 +52,7 @@ public class BadConnectionTest extends BaseJDBCTestCase
     {
         try {
             Connection c = DriverManager.getConnection(
-                    "jdbc:derby://" + getTestConfiguration().getHostName()
+                    "jdbc:splice://" + getTestConfiguration().getHostName()
                             + ":" + getTestConfiguration().getPort() + "/testbase");
             fail("Connection with no user or password succeeded");
         } catch (SQLException e) {
@@ -72,7 +72,7 @@ public class BadConnectionTest extends BaseJDBCTestCase
             p.put("user", "admin");
             p.put("password", "admin");
             Connection c = DriverManager.getConnection(
-                    "jdbc:derby://" + getTestConfiguration().getHostName()
+                    "jdbc:splice://" + getTestConfiguration().getHostName()
                             + ":" + getTestConfiguration().getPort() + "/testbase", p);
             fail("Connection with no database succeeded");
         } catch (SQLException e)
@@ -93,7 +93,7 @@ public class BadConnectionTest extends BaseJDBCTestCase
     {
         try {
             Connection c = DriverManager.getConnection(
-                    "jdbc:derby://" + getTestConfiguration().getHostName()
+                    "jdbc:splice://" + getTestConfiguration().getHostName()
                             + ":" + getTestConfiguration().getPort() + "/badAttribute;upgrade=notValidValue");
             fail("Connection with bad atttributes succeeded");
         } catch (SQLException e)

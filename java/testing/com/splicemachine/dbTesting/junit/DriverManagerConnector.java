@@ -137,7 +137,7 @@ public class DriverManagerConnector implements Connector {
      */
     public void shutEngine() throws SQLException {
         
-        getConnectionByAttributes("jdbc:derby:", "shutdown", "true");
+        getConnectionByAttributes("jdbc:splice:", "shutdown", "true");
     }
     
     /**

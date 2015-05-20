@@ -52,7 +52,7 @@ public class StartupNewDBTest extends BaseJDBCTestCase {
         // Create a database                
         startTime = System.currentTimeMillis();
         Connection conn = 
-            DriverManager.getConnection("jdbc:derby:newdb;create=true");
+            DriverManager.getConnection("jdbc:splice:newdb;create=true");
         currentTime = System.currentTimeMillis();
         System.out.println("Open connection with creating new database:  " 
             + (currentTime - startTime));

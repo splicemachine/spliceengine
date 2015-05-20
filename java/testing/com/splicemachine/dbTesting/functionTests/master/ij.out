@@ -21,7 +21,7 @@ splice> --
 connect 'cloudscape:wombat';
 ERROR 08001: No suitable driver (errorCode = 0)
 splice> -- this one will work.
-connect 'jdbc:derby:wombat';
+connect 'jdbc:splice:wombat';
 ERROR XJ004: Database 'wombat' not found. (errorCode = 40000)
 splice> -- no connection yet, this will fail
 create table t (i int);
@@ -60,7 +60,7 @@ splice> -- specify an invalid database
 connect 'asdfasdf';
 ERROR 08001: No suitable driver (errorCode = 0)
 splice> -- now a valid database, but no create
-connect 'jdbc:derby:wombat';
+connect 'jdbc:splice:wombat';
 ERROR XJ004: Database 'wombat' not found. (errorCode = 40000)
 splice> -- and, the help output:
 help;

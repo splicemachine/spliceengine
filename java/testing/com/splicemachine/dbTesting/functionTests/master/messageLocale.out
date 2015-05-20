@@ -26,7 +26,7 @@ splice> --
 -- create a databse in this default locale, should
 -- get english messages, as there are no messages
 -- for rr_TT;
-connect 'jdbc:derby:wombat;create=true';
+connect 'jdbc:splice:wombat;create=true';
 splice> -- make sure the database is clean
 drop procedure checkDefaultLoc;
 ERROR 42Y55: 'DROP PROCEDURE' cannot be performed on 'CHECKDEFAULTLOC' because it does not exist.
@@ -74,7 +74,7 @@ splice> disconnect;
 splice> -- create a database with a locale that has a small
 -- number of messages. Missing ones will default to
 -- the locale of the default locale i.e. German;
-connect 'jdbc:derby:testdb;create=true;territory=qq_PP_testOnly';
+connect 'jdbc:splice:testdb;create=true;territory=qq_PP_testOnly';
 splice> -- error (in qq_PP messages);
 -- create table t1 (i longe);
 create table t1 oops (i int primary key);
@@ -96,10 +96,10 @@ drop table t3;
 ERROR 42Y55: 'DROP TABLE' kann nicht f EnC:>252< r 'T3' ausgef EnC:>252< hrt werden, da dieses Objekt nicht vorhanden ist.
 splice> -- should be in German;
 disconnect;
-splice> connect 'jdbc:derby:;shutdown=true';
+splice> connect 'jdbc:splice:;shutdown=true';
 ERROR XJ015: Das Derby-System wird heruntergefahren.
 splice> -- Now, all Enlish messages;
-connect 'jdbc:derby:enTest;create=true;territory=en_US';
+connect 'jdbc:splice:enTest;create=true;territory=en_US';
 splice> -- create table t1 (i longe);
 create table t1 oops (i int primary key);
 ERROR 42X01: Syntax error: Encountered "oops" at line 2, column 17.

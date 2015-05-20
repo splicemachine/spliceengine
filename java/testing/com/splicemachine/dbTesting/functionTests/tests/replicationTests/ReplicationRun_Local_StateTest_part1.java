@@ -192,7 +192,7 @@ public class ReplicationRun_Local_StateTest_part1 extends ReplicationRun
     {
         Connection conn = null;
         String db = masterDatabasePath +FS+ReplicationRun.masterDbSubPath +FS+ replicatedDb;
-        String connectionURL = "jdbc:derby:"
+        String connectionURL = "jdbc:splice:"
                 + "//" + masterServerHost + ":" + masterServerPort + "/"
                 + db
                 + ";startMaster=true"
@@ -220,7 +220,7 @@ public class ReplicationRun_Local_StateTest_part1 extends ReplicationRun
     {
         Connection conn = null;
         String db = slaveDatabasePath +FS+ReplicationRun.slaveDbSubPath +FS+ replicatedDb;
-        String connectionURL = "jdbc:derby:"
+        String connectionURL = "jdbc:splice:"
                 + "//" + slaveServerHost + ":" + slaveServerPort + "/"
                 + db
                 + ";startSlave=true"
@@ -252,7 +252,7 @@ public class ReplicationRun_Local_StateTest_part1 extends ReplicationRun
 
         // 1.  stopMaster on master: fail
         db = masterDatabasePath +FS+ReplicationRun.masterDbSubPath +FS+ replicatedDb;
-        connectionURL = "jdbc:derby:"
+        connectionURL = "jdbc:splice:"
                 + "//" + masterServerHost + ":" + masterServerPort + "/"
                 + db
                 + ";stopMaster=true";
@@ -279,7 +279,7 @@ public class ReplicationRun_Local_StateTest_part1 extends ReplicationRun
 
         // 2. stopSlave on slave: fail
         db = slaveDatabasePath +FS+ReplicationRun.slaveDbSubPath +FS+ replicatedDb;
-        connectionURL = "jdbc:derby:"
+        connectionURL = "jdbc:splice:"
                 + "//" + slaveServerHost + ":" + slaveServerPort + "/"
                 + db
                 + ";stopSlave=true";
@@ -307,7 +307,7 @@ public class ReplicationRun_Local_StateTest_part1 extends ReplicationRun
     {
         Connection conn = null;
         String db = slaveDatabasePath +FS+ReplicationRun.slaveDbSubPath +FS+ replicatedDb;
-        String connectionURL = "jdbc:derby:"
+        String connectionURL = "jdbc:splice:"
                 + "//" + slaveServerHost + ":" + slaveServerPort + "/"
                 + db
                 + ";startSlave=true"
@@ -361,7 +361,7 @@ public class ReplicationRun_Local_StateTest_part1 extends ReplicationRun
     {
         Connection conn = null;
         String db = masterDatabasePath +FS+ReplicationRun.masterDbSubPath +FS+ replicatedDb;
-        String connectionURL = "jdbc:derby:"
+        String connectionURL = "jdbc:splice:"
                 + "//" + masterServerHost + ":" + masterServerPort + "/"
                 + db
                 + ";startMaster=true"
@@ -427,7 +427,7 @@ public class ReplicationRun_Local_StateTest_part1 extends ReplicationRun
         // A 2. StartSlave connect should fail:
         util.DEBUG("startSlave attempt should fail on: " + connectionURL);
         db = slaveDatabasePath +FS+ReplicationRun.slaveDbSubPath +FS+ replicatedDb;
-        connectionURL = "jdbc:derby:"
+        connectionURL = "jdbc:splice:"
                 + "//" + slaveServerHost + ":" + slaveServerPort + "/"
                 + db
                 + ";startSlave=true"

@@ -176,13 +176,13 @@ public class JDBCMBeanTest extends MBeanTest {
         Boolean accepted;
 
         // first, test that a simple valid embedded driver URL is accepted
-        params[0] = "jdbc:derby:testDatabase";
+        params[0] = "jdbc:splice:testDatabase";
         accepted = (Boolean)invokeOperation(objName, opName, params, signature);
         assertTrue("URL: " + params[0], accepted);
 
         // then, test that a valid embedded URL with a number of attributes is
         // accepted
-        params[0] = "jdbc:derby:testDB;create=true;user=tester;password=mypass";
+        params[0] = "jdbc:splice:testDB;create=true;user=tester;password=mypass";
         accepted = (Boolean)invokeOperation(objName, opName, params, signature);
         assertTrue("URL: " + params[0], accepted);
 

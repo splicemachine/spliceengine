@@ -146,9 +146,9 @@ public class mtTestCase
                 String newURLPrefix = null;
                 framework = framework.toUpperCase(java.util.Locale.ENGLISH);
                 if (framework.equals("DB2JNET") || framework.equals("DERBYNET"))
-                    newURLPrefix= "jdbc:derby:net://localhost:1527/";
+                    newURLPrefix= "jdbc:splice:net://localhost:1527/";
                 else if (framework.equals("DERBYNETCLIENT"))
-                    newURLPrefix = "jdbc:derby://localhost:1527/";
+                    newURLPrefix = "jdbc:splice://localhost:1527/";
                 if (newURLPrefix != null)
                 {
                     updateURLProperties(p,newURLPrefix);
@@ -263,7 +263,7 @@ public class mtTestCase
 
 	public String alterURL(String url, String newURLPrefix)
 	{
-        String urlPrefix = "jdbc:derby:";
+        String urlPrefix = "jdbc:splice:";
 	
 		if (url.startsWith(newURLPrefix))
 			return url;
@@ -278,7 +278,7 @@ public class mtTestCase
 
 		if (url.startsWith(urlPrefix))
 		{
-			//jdbc:derbye jdbc:derby: with our url:
+			//jdbc:splicee jdbc:splice: with our url:
 			url = newURLPrefix +
 				url.substring(urlPrefix.length());
 

@@ -40,7 +40,7 @@ public class PlanExporter {
 
     /**
      * @param args
-     * 1) database URL eg: jdbc:derby:myDB ---------
+     * 1) database URL eg: jdbc:splice:myDB ---------
      * 2) database schema -----------------------------
      * 3) statement ID (36 characters) ----------------
      * and user specified arguments.

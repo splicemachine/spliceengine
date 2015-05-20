@@ -32,7 +32,7 @@ public interface ASTVisitorConfig {
         public static String EMBEDDED_DRIVER = "com.splicemachine.db.jdbc.EmbeddedDriver";
         public static String CLIENT_DRIVER = "com.splicemachine.db.jdbc.ClientDriver";
 
-        protected static String PROTOCOL = "jdbc:derby:";
+        protected static String PROTOCOL = "jdbc:splice:";
         protected static String DB = "derbyDB";
         protected static String PORT = ":1527";
         protected static String CREATE = ";CREATE=true";
@@ -59,7 +59,7 @@ public interface ASTVisitorConfig {
             }
             return conn;
         }
-        private static final String SHUTDOWN_URL = "jdbc:derby:spliceDB:1521;shutdown=true";
+        private static final String SHUTDOWN_URL = "jdbc:splice:spliceDB:1521;shutdown=true";
         public static void closeConnection(Connection connection) {
             try {
                 if (connection != null) {

@@ -17,5 +17,5 @@
 
 -- Regular database creation test for ij
 
-connect 'jdbc:derby:wombat;create=true';
+connect 'jdbc:splice:wombat;create=true';
 values(1);

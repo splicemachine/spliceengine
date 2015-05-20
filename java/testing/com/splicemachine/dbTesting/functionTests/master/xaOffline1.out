@@ -171,7 +171,7 @@ splice(XA)> --- xa_datasource 'wombat' shutdown;
 ---------------------------------------------
 -- shutdown the database.
 ---------------------------------------------
-connect 'jdbc:derby:;shutdown=true';
+connect 'jdbc:splice:;shutdown=true';
 ERROR XJ015: Derby system shutdown.
 splice(XA)> ---------------------------------------------
 -- restart the system, should find the prepared transaction

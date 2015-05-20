@@ -102,7 +102,7 @@ public abstract class DataValueFactoryImpl implements DataValueFactory, ModuleCo
     		//hence it can do the Collator support check
     		//(collation property is available through JDBC url at the database
     		//create time, if user has asked for a particular collation) eg
-    		//connect 'jdbc:derby:db;create=true;territory=no;collation=TERRITORY_BASED';
+    		//connect 'jdbc:splice:db;create=true;territory=no;collation=TERRITORY_BASED';
     		//Once the database is created, the collation property gets
     		//saved in the database and during susbsequent boots of the
     		//database, collation attribute of the database is only available

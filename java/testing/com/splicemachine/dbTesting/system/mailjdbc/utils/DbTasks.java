@@ -74,9 +74,9 @@ public class DbTasks {
             // setting the properties like user, password etc for both the
             // database and the backup database
             if (useexistingdb)
-                setSystemProperty("database", "jdbc:derby:mailsdb");
+                setSystemProperty("database", "jdbc:splice:mailsdb");
             else
-                setSystemProperty("database", "jdbc:derby:mailsdb;create=true");
+                setSystemProperty("database", "jdbc:splice:mailsdb;create=true");
             setSystemProperty("ij.user", "REFRESH");
             setSystemProperty("ij.password", "Refresh");
         } else {
@@ -89,10 +89,10 @@ public class DbTasks {
                     .logMsg("\n\n*****************************************************");
             if (useexistingdb)
                 setSystemProperty("database",
-                        "jdbc:derby://localhost:1527/mailsdb");
+                        "jdbc:splice://localhost:1527/mailsdb");
             else
                 setSystemProperty("database",
-                        "jdbc:derby://localhost:1527/mailsdb;create=true");
+                        "jdbc:splice://localhost:1527/mailsdb;create=true");
             setSystemProperty("ij.user", "REFRESH");
             setSystemProperty("ij.password", "Refresh");
 

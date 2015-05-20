@@ -834,7 +834,7 @@ public class ProtocolTest
      * @param name Name of the database to delete
      */
     private void deleteDatabase(String name) {
-        String shutdownUrl = "jdbc:derby:"+name+";shutdown=true";
+        String shutdownUrl = "jdbc:splice:"+name+";shutdown=true";
         try {
             DriverManager.getConnection(shutdownUrl);
         } catch (SQLException sqle) {

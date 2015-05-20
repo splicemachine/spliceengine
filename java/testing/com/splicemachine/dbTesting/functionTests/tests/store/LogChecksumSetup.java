@@ -39,7 +39,7 @@ import com.splicemachine.db.tools.ij;
  * the test properties file:
  * db.subSubProtocol.csf=com.splicemachine.dbTesting.functionTests.
  *             util.corruptio.CorruptDiskStorageFactory
- *  database=jdbc:derby:csf:wombat
+ *  database=jdbc:splice:csf:wombat
  *
  * @version 1.0
  * @see CorruptibleIo

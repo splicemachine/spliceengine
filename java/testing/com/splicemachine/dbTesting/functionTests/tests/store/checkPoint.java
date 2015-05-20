@@ -134,7 +134,7 @@ public class checkPoint
 		//shutdown the database ..
 		try{
 			//shutdown 
-			Connection conn = DriverManager.getConnection("jdbc:derby:wombat;shutdown=true");
+			Connection conn = DriverManager.getConnection("jdbc:splice:wombat;shutdown=true");
 		}catch(SQLException se){
 				if (se.getSQLState() != null && se.getSQLState().equals("08006"))
 					System.out.println("database shutdown properly\n");

@@ -142,7 +142,7 @@ public class dblook_test {
         }
 
 		Class.forName("com.splicemachine.db.jdbc.EmbeddedDriver").newInstance();
-        jdbcProtocol = "jdbc:derby:";
+        jdbcProtocol = "jdbc:splice:";
         createDBFromDDL(testDBName, scriptName);
 
         // Figure out where our database directory is (abs path).
@@ -399,7 +399,7 @@ public class dblook_test {
         // created it, so we have to shut it down).
         try {
             DriverManager.getConnection(
-                    "jdbc:derby:" + dbName +
+                    "jdbc:splice:" + dbName +
                             ";shutdown=true;user=app;password=apppw");
         } catch (SQLException e) {}
 
@@ -552,7 +552,7 @@ public class dblook_test {
 
     private void go(String dbName, String [] args) {
 
-        jdbcProtocol = "jdbc:derby:";
+        jdbcProtocol = "jdbc:splice:";
         String sourceDBUrl = jdbcProtocol + dbPath +
                 separator + dbName + ";user=app;password=apppw";
 
@@ -656,7 +656,7 @@ public class dblook_test {
         // Have to shut db down before we can mess with it.
         try {
             Connection conn =
-                    DriverManager.getConnection("jdbc:derby:" +
+                    DriverManager.getConnection("jdbc:splice:" +
                             jarPath + ";shutdown=true,user=app;password=apppw");
             conn.close();
         } catch (SQLException se) {
@@ -714,7 +714,7 @@ public class dblook_test {
 
         // Connect to the database.
         Connection conn = DriverManager.getConnection(
-                "jdbc:derby:" + dbName + ";user=app;password=apppw");
+                "jdbc:splice:" + dbName + ";user=app;password=apppw");
         conn.setAutoCommit(false);
 
         // Set the system schema to ensure that UCS_BASIC collation is used.
@@ -1222,7 +1222,7 @@ public class dblook_test {
                 "' from ddl script '" + scriptName + "'");
 
         Connection conn = DriverManager.getConnection(
-                "jdbc:derby:" + newDBName +
+                "jdbc:splice:" + newDBName +
                         ";create=true;user=app;password=apppw" + territoryBased);
 
         Statement stmt = conn.createStatement();
@@ -1468,7 +1468,7 @@ public class dblook_test {
         // Have to shut it down before we can delete it.
         try {
             Connection conn =
-                    DriverManager.getConnection("jdbc:derby:" +
+                    DriverManager.getConnection("jdbc:splice:" +
                             deletePath + ";shutdown=true;user=app;password=apppw");
             conn.close();
         } catch (SQLException se) {

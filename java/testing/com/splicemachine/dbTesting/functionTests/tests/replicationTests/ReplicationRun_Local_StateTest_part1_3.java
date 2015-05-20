@@ -133,7 +133,7 @@ public class ReplicationRun_Local_StateTest_part1_3 extends ReplicationRun
     {
         Connection conn = null;
         String db = slaveDatabasePath +FS+ReplicationRun.slaveDbSubPath +FS+ replicatedDb;
-        String connectionURL = "jdbc:derby:"
+        String connectionURL = "jdbc:splice:"
                 + "//" + slaveServerHost + ":" + slaveServerPort + "/"
                 + db
                 + ";failover=true";
@@ -155,7 +155,7 @@ public class ReplicationRun_Local_StateTest_part1_3 extends ReplicationRun
 
         // Failover on master should succeed:
         db = masterDatabasePath +FS+ReplicationRun.masterDbSubPath +FS+ replicatedDb;
-        connectionURL = "jdbc:derby:"
+        connectionURL = "jdbc:splice:"
                 + "//" + masterServerHost + ":" + masterServerPort + "/"
                 + db
                 + ";failover=true";

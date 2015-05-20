@@ -2005,8 +2005,8 @@ throws SQLException
 			// For example,
 			//		CONNECT TO 'test'
 			// is equivalent to
-			// 		CONNECT TO 'jdbc:derby:test'
-			sVal = "jdbc:derby:" + stringValue(t.image);
+			// 		CONNECT TO 'jdbc:splice:test'
+			sVal = "jdbc:splice:" + stringValue(t.image);
 		else
 			sVal = stringValue(t.image);
 

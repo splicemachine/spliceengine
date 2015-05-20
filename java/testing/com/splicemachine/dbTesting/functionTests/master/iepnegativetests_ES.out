@@ -1,4 +1,4 @@
-CONNECTION0* -  EnC:>9< jdbc:derby:wombat
+CONNECTION0* -  EnC:>9< jdbc:splice:wombat
 * = current connection
 splice> --
 --   Licensed to the Apache Software Foundation (ASF) under one or more

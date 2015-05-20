@@ -210,7 +210,7 @@ public class MogTest extends BaseJDBCTestCase {
      * @return A database URL (without any connection attributes).
      */
     private StringBuffer constructUrl() {
-        StringBuffer sb = new StringBuffer("jdbc:derby:");
+        StringBuffer sb = new StringBuffer("jdbc:splice:");
         if (usingEmbedded()) {
             sb.append("memory:");
         } else {
