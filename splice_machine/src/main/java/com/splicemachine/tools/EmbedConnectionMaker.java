@@ -1,63 +1,44 @@
 package com.splicemachine.tools;
 
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.hbase.SpliceDriver;
-
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.jdbc.EmbeddedDriver;
+import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.db.AuthenticationConstants;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Properties;
 
+import static java.lang.String.format;
+
 /**
- * @author Scott Fines
- * Created on: 3/22/13
+ * Provides connections for internal use.
  */
 public final class EmbedConnectionMaker implements ConnectionPool.Supplier {
-    private static final String DRIVER_CLASS_NAME = "com.splicemachine.db.jdbc.EmbeddedDriver";
-    private static final String protocol = "jdbc:splice:";
 
-    private static final Class<EmbeddedDriver> driverClass;
+    private static final String JDBC_URL = format("jdbc:splice:%s;user=splice", SpliceConstants.SPLICE_DB);
 
-    static{
-        try {
-            driverClass= (Class<EmbeddedDriver>) Class.forName(DRIVER_CLASS_NAME);
-        } catch (ClassNotFoundException e) {
-            throw new RuntimeException("Unable to load embedded drivers. " +
-                    "Check classpath for correct jars",e);
-        }
-    }
+    private final EmbeddedDriver driver = new EmbeddedDriver();
 
-    private final EmbeddedDriver driver;
-
-    public EmbedConnectionMaker() {
-        try {
-            driver = loadDriver();
-        } catch (Exception e) {
-            throw new RuntimeException("Unable to create Embedded driver. " +
-                    "Check classpath for correct jars",e);
-        }
-    }
-
+    /**
+     * Connection for internal use. Connects as 'splice' without using a password.
+     */
     @Override
     public Connection createNew() throws SQLException {
-        return driver.connect(protocol+SpliceConstants.SPLICE_DB+";create=true;user=splice;password=admin",
-                SpliceDriver.driver().getProperties());
-    }
-    
-    public Connection createFirstNew() throws SQLException {
-    	Properties first = (Properties) SpliceDriver.driver().getProperties().clone();
-    	if(!AuthenticationConstants.authentication.toUpperCase().equals("LDAP"))
-    		first.remove(EmbedConnection.INTERNAL_CONNECTION);
-    	
-        return driver.connect(protocol+SpliceConstants.SPLICE_DB+";create=true;user=splice;password=admin",
-                first);    	
+        return driver.connect(JDBC_URL, SpliceDriver.driver().getProperties());
     }
 
-    /*private helper methods*/
-    private EmbeddedDriver loadDriver() throws Exception{
-        return driverClass.newInstance();
+    /**
+     * Intended to be called the very first time we connect to a newly initialized database.  This
+     * method appears to be responsible for setting the initial password for our 'splice' user.
+     */
+    public Connection createFirstNew() throws SQLException {
+        Properties properties = (Properties) SpliceDriver.driver().getProperties().clone();
+        if (!AuthenticationConstants.authentication.equalsIgnoreCase("LDAP")) {
+            properties.remove(EmbedConnection.INTERNAL_CONNECTION);
+        }
+        final String SPLICE_DEFAULT_PASSWORD = "admin";
+        return driver.connect(JDBC_URL + ";create=true;password=" + SPLICE_DEFAULT_PASSWORD, properties);
     }
 }
