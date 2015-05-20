@@ -14,12 +14,18 @@ import java.io.ObjectOutput;
  */
 public class ControlOperationContext<Op extends SpliceOperation> implements OperationContext<Op> {
         protected Op spliceOperation;
+        long rowsRead;
+        long rowsFiltered;
+        long rowsWritten;
 
         public ControlOperationContext() {
         }
 
         protected ControlOperationContext(Op spliceOperation) {
             this.spliceOperation = spliceOperation;
+            rowsRead = 0;
+            rowsFiltered=0;
+            rowsWritten = 0;
         }
 
         public void readExternalInContext(ObjectInput in) throws IOException, ClassNotFoundException
@@ -68,16 +74,31 @@ public class ControlOperationContext<Op extends SpliceOperation> implements Oper
 
     @Override
     public void recordRead() {
-
+        rowsRead++;
     }
 
     @Override
     public void recordFilter() {
-
+        rowsFiltered++;
     }
 
     @Override
     public void recordWrite() {
+        rowsWritten++;
+    }
 
+    @Override
+    public long getRecordsRead() {
+        return rowsRead;
+    }
+
+    @Override
+    public long getRecordsFiltered() {
+        return rowsFiltered;
+    }
+
+    @Override
+    public long getRecordsWritten() {
+        return rowsWritten;
     }
 }

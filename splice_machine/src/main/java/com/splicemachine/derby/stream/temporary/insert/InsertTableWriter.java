@@ -6,6 +6,8 @@ import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
+import com.splicemachine.derby.stream.iapi.TableWriter;
+import com.splicemachine.derby.stream.temporary.AbstractTableWriter;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
@@ -22,21 +24,15 @@ import java.util.Iterator;
 /**
  * Created by jleach on 5/5/15.
  */
-public class InsertTableWriter implements AutoCloseable {
+public class InsertTableWriter extends AbstractTableWriter {
     protected int[] pkCols;
     protected String tableVersion;
     protected ExecRow execRowDefinition;
     protected RowLocation[] autoIncrementRowLocationArray;
-    protected Pair<Long,Long>[] defaultAutoIncrementValues;
-    protected long heapConglom;
-    int[] execRowTypeFormatIds;
     protected static final KVPair.Type dataType = KVPair.Type.INSERT;
-    protected TxnView txn;
     protected WriteCoordinator writeCoordinator;
     protected SpliceSequence[] spliceSequences;
-    protected int incrementBatch;
     protected RecordingCallBuffer<KVPair> writeBuffer;
-    protected byte[] destinationTable;
     protected PairEncoder encoder;
     public int rowsWritten;
     protected InsertOperation insertOperation;
@@ -44,19 +40,17 @@ public class InsertTableWriter implements AutoCloseable {
     public InsertTableWriter(int[] pkCols, String tableVersion, ExecRow execRowDefinition,
                              RowLocation[] autoIncrementRowLocationArray,SpliceSequence[] spliceSequences,
                              long heapConglom, TxnView txn, InsertOperation insertOperation) {
+        super(txn,heapConglom);
         this.pkCols = pkCols;
         this.tableVersion = tableVersion;
         this.execRowDefinition = execRowDefinition;
         this.autoIncrementRowLocationArray = autoIncrementRowLocationArray;
         this.spliceSequences = spliceSequences;
-        this.heapConglom = heapConglom;
-        this.txn = txn;
         this.insertOperation = insertOperation;
+        destinationTable = Long.toString(heapConglom).getBytes();
     }
 
-
     public void open() throws StandardException {
-        destinationTable = Long.toString(heapConglom).getBytes();
         try {
 
             writeCoordinator = SpliceDriver.driver().getTableWriter();
@@ -78,7 +72,7 @@ public class InsertTableWriter implements AutoCloseable {
         }
     };
 
-    public void write(ExecRow execRow) throws StandardException {
+    public void insert(ExecRow execRow) throws StandardException {
         try {
             KVPair encode = encoder.encode(execRow);
             writeBuffer.add(encode);
@@ -88,10 +82,19 @@ public class InsertTableWriter implements AutoCloseable {
         }
     }
 
-    public void write(Iterator<ExecRow> execRows) throws StandardException {
+    public void insert(Iterator<ExecRow> execRows) throws StandardException {
         while (execRows.hasNext())
-            write(execRows.next());
+            insert(execRows.next());
     }
+
+    public void write(ExecRow execRow) throws StandardException {
+        insert(execRow);
+    }
+
+    public void write(Iterator<ExecRow> execRows) throws StandardException {
+        insert(execRows);
+    }
+
 
     public KeyEncoder getKeyEncoder() throws StandardException {
         HashPrefix prefix;

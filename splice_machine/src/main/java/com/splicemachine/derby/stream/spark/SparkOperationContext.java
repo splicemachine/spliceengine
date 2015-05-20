@@ -33,6 +33,7 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
         public Accumulator<Integer> rowsWritten;
 
         public SparkOperationContext() {
+
         }
 
         protected SparkOperationContext(Op spliceOperation)  {
@@ -130,5 +131,20 @@ public class SparkOperationContext<Op extends SpliceOperation> implements Operat
     @Override
     public void recordWrite() {
         rowsWritten.add(1);
+    }
+
+    @Override
+    public long getRecordsRead() {
+        return rowsRead.value();
+    }
+
+    @Override
+    public long getRecordsFiltered() {
+        return rowsFiltered.value();
+    }
+
+    @Override
+    public long getRecordsWritten() {
+        return rowsWritten.value();
     }
 }

@@ -2,10 +2,7 @@ package com.splicemachine.derby.stream.iapi;
 
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.si.api.TxnView;
-import org.apache.spark.Accumulator;
-
 import java.io.Externalizable;
 
 /**
@@ -20,4 +17,7 @@ public interface OperationContext<Op extends SpliceOperation> extends Externaliz
     void recordRead();
     void recordFilter();
     void recordWrite();
+    long getRecordsRead();
+    long getRecordsFiltered();
+    long getRecordsWritten();
 }

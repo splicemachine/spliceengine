@@ -1,16 +1,17 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.carrotsearch.hppc.BitSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.impl.sql.execute.actions.UpdateConstantOperation;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
-import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.derby.stream.function.SplicePairFunction;
+import com.splicemachine.derby.stream.function.InsertPairFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.temporary.WriteReadUtils;
+import com.splicemachine.derby.stream.temporary.insert.InsertTableWriterBuilder;
 import com.splicemachine.derby.stream.temporary.update.*;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.RecordingCallBuffer;
@@ -24,12 +25,9 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
-import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-import scala.Tuple2;
-
 import java.io.IOException;
 
 /**
@@ -192,40 +190,22 @@ public class UpdateOperation extends DMLWriteOperation{
 
     @Override
     public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-
-
         DataSet set = source.getDataSet();
-        TxnView txn = elevateTransaction(Long.toString(heapConglom).getBytes());
+        OperationContext operationContext = dsp.createOperationContext(this);
+        TxnView txn = getCurrentTransaction();
+        ExecRow execRow = getExecRowDefinition();
+        int[] execRowTypeFormatIds = WriteReadUtils.getExecRowTypeFormatIds(execRow);
         UpdateTableWriterBuilder builder = new UpdateTableWriterBuilder()
                 .heapConglom(heapConglom)
-                .execRowDefinition(getExecRowDefinition())
-                .pkCols(pkCols)
+                .execRowDefinition(execRow)
+                .execRowTypeFormatIds(execRowTypeFormatIds)
+                .pkCols(pkCols==null?new int[0]:pkCols)
                 .pkColumns(pkColumns)
                 .formatIds(format_ids)
-                .columnOrdering(columnOrdering)
+                .columnOrdering(columnOrdering==null?new int[0]:columnOrdering)
                 .heapList(getHeapList())
                 .tableVersion(writeInfo.getTableVersion())
                 .txn(txn);
-        return set.index(new SplicePairFunction<SpliceOperation,LocatedRow,RowLocation,ExecRow>() {
-            int counter = 0;
-
-            @Override
-            public Tuple2<RowLocation, ExecRow> call(LocatedRow locatedRow) throws Exception {
-                return new Tuple2<RowLocation, ExecRow>(locatedRow.getRowLocation(),locatedRow.getRow());
-            }
-
-            @Override
-            public RowLocation genKey(LocatedRow locatedRow) {
-                counter++;
-                RowLocation rowLocation = locatedRow.getRowLocation();
-                return rowLocation==null?new HBaseRowLocation(com.splicemachine.primitives.Bytes.toBytes(counter)):(HBaseRowLocation) rowLocation.cloneValue(true);
-            }
-
-            @Override
-            public ExecRow genValue(LocatedRow locatedRow) {
-                return locatedRow.getRow();
-            }
-
-        }).updateData(builder);
+        return set.index(new InsertPairFunction(operationContext)).updateData(builder, operationContext);
     }
 }

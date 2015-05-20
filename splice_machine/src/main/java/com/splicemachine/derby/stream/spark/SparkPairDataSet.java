@@ -2,22 +2,30 @@ package com.splicemachine.derby.stream.spark;
 
 import com.google.common.base.Optional;
 import com.splicemachine.constants.SIConstants;
+import com.splicemachine.db.iapi.types.SQLInteger;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.spark.SpliceSpark;
+import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.function.SpliceFunction;
 import com.splicemachine.derby.stream.function.SpliceFunction2;
+import com.splicemachine.derby.stream.output.SMOutputFormat;
 import com.splicemachine.derby.stream.temporary.delete.DeleteTableWriterBuilder;
 import com.splicemachine.derby.stream.temporary.insert.InsertTableWriterBuilder;
 import com.splicemachine.derby.stream.temporary.update.UpdateTableWriterBuilder;
+import com.splicemachine.derby.stream.utils.TableWriterUtils;
+import com.splicemachine.mrio.MRConstants;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.broadcast.Broadcast;
 import scala.Tuple2;
-
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 
@@ -27,6 +35,7 @@ import java.util.Iterator;
  * @see org.apache.spark.api.java.JavaPairRDD
  */
 public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
+
     public JavaPairRDD<K,V> rdd;
     public SparkPairDataSet(JavaPairRDD<K,V> rdd) {
         this.rdd = rdd;
@@ -139,23 +148,50 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
 
 
     @Override
-    public DataSet<V> insertData(InsertTableWriterBuilder builder) {
-        Configuration conf = new Configuration(SIConstants.config);
-        rdd.saveAsNewAPIHadoopDataset(conf);
-        return null;
+    public DataSet<V> insertData(InsertTableWriterBuilder builder,OperationContext operationContext) {
+        try {
+            Configuration conf = new Configuration(SIConstants.config);
+            TableWriterUtils.serializeInsertTableWriterBuilder(conf,builder);
+            conf.setClass(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR, SMOutputFormat.class, SMOutputFormat.class);
+            JavaSparkContext context = SpliceSpark.getContext();
+            rdd.saveAsNewAPIHadoopDataset(conf);
+            ValueRow valueRow = new ValueRow(1);
+            valueRow.setColumn(1,new SQLInteger((int) operationContext.getRecordsWritten()));
+            return new SparkDataSet(context.parallelize(Collections.singletonList(new LocatedRow(valueRow))));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
-    public DataSet<V> updateData(UpdateTableWriterBuilder builder) {
-        Configuration conf = new Configuration(SIConstants.config);
-        rdd.saveAsNewAPIHadoopDataset(conf);
-        return null;
+    public DataSet<V> updateData(UpdateTableWriterBuilder builder, OperationContext operationContext) {
+        try {
+            Configuration conf = new Configuration(SIConstants.config);
+            TableWriterUtils.serializeUpdateTableWriterBuilder(conf,builder);
+            conf.setClass(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR, SMOutputFormat.class, SMOutputFormat.class);
+            JavaSparkContext context = SpliceSpark.getContext();
+            rdd.saveAsNewAPIHadoopDataset(conf);
+            ValueRow valueRow = new ValueRow(1);
+            valueRow.setColumn(1,new SQLInteger((int) operationContext.getRecordsWritten()));
+            return new SparkDataSet(context.parallelize(Collections.singletonList(new LocatedRow(valueRow))));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
-    public DataSet<V> deleteData(DeleteTableWriterBuilder builder) {
-        Configuration conf = new Configuration(SIConstants.config);
-        rdd.saveAsNewAPIHadoopDataset(conf);
-        return null;
+    public DataSet<V> deleteData(DeleteTableWriterBuilder builder, OperationContext operationContext) {
+        try {
+            Configuration conf = new Configuration(SIConstants.config);
+            TableWriterUtils.serializeDeleteTableWriterBuilder(conf,builder);
+            conf.setClass(MRJobConfig.OUTPUT_FORMAT_CLASS_ATTR, SMOutputFormat.class, SMOutputFormat.class);
+            JavaSparkContext context = SpliceSpark.getContext();
+            rdd.saveAsNewAPIHadoopDataset(conf);
+            ValueRow valueRow = new ValueRow(1);
+            valueRow.setColumn(1,new SQLInteger((int) operationContext.getRecordsWritten()));
+            return new SparkDataSet(context.parallelize(Collections.singletonList(new LocatedRow(valueRow))));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }

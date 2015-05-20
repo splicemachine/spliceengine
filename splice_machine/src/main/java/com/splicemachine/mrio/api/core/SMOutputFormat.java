@@ -12,16 +12,8 @@ import java.util.Map;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.impl.load.ColumnContext.Builder;
-import com.splicemachine.derby.utils.marshall.DataHash;
-import com.splicemachine.derby.utils.marshall.KeyEncoder;
-import com.splicemachine.derby.utils.marshall.PairEncoder;
-import com.splicemachine.hbase.KVPair;
 import com.splicemachine.mrio.MRConstants;
-import com.splicemachine.pipeline.api.RecordingCallBuffer;
-import com.splicemachine.pipeline.impl.WriteCoordinator;
-import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.JobContext;
