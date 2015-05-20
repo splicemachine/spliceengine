@@ -21,7 +21,6 @@ public class RowOperationFunction extends SpliceFunction<SpliceOperation,Located
     @Override
     public LocatedRow call(LocatedRow o) throws Exception {
         RowOperation rowOp = (RowOperation) operationContext.getOperation();
-        System.out.println("Getting Located Row " + rowOp.getRow());
         return new LocatedRow(rowOp.getRow());
     }
 
