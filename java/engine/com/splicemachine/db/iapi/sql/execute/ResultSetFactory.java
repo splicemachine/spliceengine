@@ -960,33 +960,6 @@ public interface ResultSetFactory {
 								double optimizerEstimatedCost)
 			throws StandardException;
 
-    NoPutResultSet getTableScanResultSet(
-            Activation activation,
-            long conglomId,
-            int scociItem,
-            GeneratedMethod resultRowAllocator,
-            int resultSetNumber,
-            GeneratedMethod startKeyGetter,
-            int startSearchOperator,
-            GeneratedMethod stopKeyGetter,
-            int stopSearchOperator,
-            boolean sameStartStopPosition,
-            String qualifiersField,
-            String tableName,
-            String userSuppliedOptimizerOverrides,
-            String indexName,
-            boolean isConstraint,
-            boolean forUpdate,
-            int colRefItem,
-            int indexColItem,
-            int lockMode,
-            boolean tableLocked,
-            int isolationLevel,
-            boolean oneRowScan,
-            double optimizerEstimatedRowCount,
-            double optimizerEstimatedCost)
-            throws StandardException;
-
 	/**
 		A table scan result set forms a result set on a scan
 		of a table.
@@ -1083,35 +1056,7 @@ public interface ResultSetFactory {
 								double optimizerEstimatedCost)
 			throws StandardException;
 
-    NoPutResultSet getBulkTableScanResultSet(
-            Activation activation,
-            long conglomId,
-            int scociItem,
-            GeneratedMethod resultRowAllocator,
-            int resultSetNumber,
-            GeneratedMethod startKeyGetter,
-            int startSearchOperator,
-            GeneratedMethod stopKeyGetter,
-            int stopSearchOperator,
-            boolean sameStartStopPosition,
-            String qualifiersField,
-            String tableName,
-            String userSuppliedOptimizerOverrides,
-            String indexName,
-            boolean isConstraint,
-            boolean forUpdate,
-            int colRefItem,
-            int indexColItem,
-            int lockMode,
-            boolean tableLocked,
-            int isolationLevel,
-            int rowsPerRead,
-            boolean disableForHoldable,
-            boolean oneRowScan,
-            double optimizerEstimatedRowCount,
-            double optimizerEstimatedCost)
-            throws StandardException;
-	/**
+    /**
 		A multi-probe result set, used for probing an index with one or more
 		target values (probeValues) and returning the matching rows.  This
 		type of result set is useful for IN lists as it allows us to avoid
@@ -1155,35 +1100,7 @@ public interface ResultSetFactory {
 								double optimizerEstimatedRowCount,
 								double optimizerEstimatedCost)
 			throws StandardException;
-    NoPutResultSet getMultiProbeTableScanResultSet(
-            Activation activation,
-            long conglomId,
-            int scociItem,
-            GeneratedMethod resultRowAllocator,
-            int resultSetNumber,
-            GeneratedMethod startKeyGetter,
-            int startSearchOperator,
-            GeneratedMethod stopKeyGetter,
-            int stopSearchOperator,
-            boolean sameStartStopPosition,
-            String qualifiersField,
-            DataValueDescriptor [] probeVals,
-            int sortRequired,
-            String tableName,
-            String userSuppliedOptimizerOverrides,
-            String indexName,
-            boolean isConstraint,
-            boolean forUpdate,
-            int colRefItem,
-            int indexColItem,
-            int lockMode,
-            boolean tableLocked,
-            int isolationLevel,
-            boolean oneRowScan,
-            double optimizerEstimatedRowCount,
-            double optimizerEstimatedCost)
-            throws StandardException;
-	/**
+    /**
 		An index row to base row result set gets an index row from its source
 		and uses the RowLocation in its last column to get the row from the
 		base conglomerate.
@@ -1884,38 +1801,7 @@ public interface ResultSetFactory {
 									int rltItem)
 		throws StandardException;
 
-
-    public NoPutResultSet getRaDependentTableScanResultSet(
-            Activation activation,
-            long conglomId,
-            int scociItem,
-            GeneratedMethod resultRowAllocator,
-            int resultSetNumber,
-            GeneratedMethod startKeyGetter,
-            int startSearchOperator,
-            GeneratedMethod stopKeyGetter,
-            int stopSearchOperator,
-            boolean sameStartStopPosition,
-            String qualifiersField,
-            String tableName,
-            String userSuppliedOptimizerOverrides,
-            String indexName,
-            boolean isConstraint,
-            boolean forUpdate,
-            int colRefItem,
-            int indexColItem,
-            int lockMode,
-            boolean tableLocked,
-            int isolationLevel,
-            boolean oneRowScan,
-            double optimizerEstimatedRowCount,
-            double optimizerEstimatedCost,
-            String parentResultSetId,
-            long fkIndexConglomId,
-            int fkColArrayItem,
-            int rltItem)
-            throws StandardException;
-	/**
+    /**
 	 * This result sets implements the filtering needed by <result offset
 	 * clause> and <fetch first clause>. It is only ever generated if at least
 	 * one of the two clauses is present.
