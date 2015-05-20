@@ -92,7 +92,8 @@ public class HashNestedLoopJoinStrategy extends HashableJoinStrategy {
     public boolean feasible(Optimizable innerTable,
                             OptimizablePredicateList predList,
                             Optimizer optimizer,
-                            CostEstimate outerCost) throws StandardException {
+                            CostEstimate outerCost,
+                            boolean wasHinted) throws StandardException {
 //		if (CostUtils.isThisBaseTable(optimizer))
 //			return false;
     	SpliceLogUtils.trace(LOG, "feasible innerTable=%s, predList=%s, optimizer=%s",innerTable,predList,optimizer);
