@@ -34,7 +34,7 @@ public class ActiveIgnoreTxnCacheSupplier {
                 }
 
                 for (Pair<Long, Long> range : ignoreTxnList) {
-                    if (txnId >= range.getFirst() && txnId <= range.getSecond()) {
+                    if (txnId > range.getFirst() && txnId < range.getSecond()) {
                         result = true;
                         break;
                     }
