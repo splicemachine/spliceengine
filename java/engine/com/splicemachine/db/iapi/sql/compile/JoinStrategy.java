@@ -45,15 +45,17 @@ public interface JoinStrategy {
 	 * @param innerTable    The inner table of the join
 	 * @param predList        The predicateList for the join
 	 * @param optimizer        The optimizer to use
-	 *
-	 * @param outerCost
+	 * @param outerCost the cost to scan the outer table
+	 * @param wasHinted {@code true} if the join strategy was chosen by the user as a hint, {@code false} otherwise
 	 * @return	true means the strategy is feasible, false means it isn't
 	 *
 	 * @exception StandardException		Thrown on error
 	 */
 	boolean feasible(Optimizable innerTable,
 					 OptimizablePredicateList predList,
-					 Optimizer optimizer,CostEstimate outerCost) throws StandardException;
+					 Optimizer optimizer,
+					 CostEstimate outerCost,
+					 boolean wasHinted) throws StandardException;
 
 	/**
 	 * Is it OK to use bulk fetch with this join strategy?

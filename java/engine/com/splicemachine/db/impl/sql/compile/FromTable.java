@@ -191,6 +191,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
                 found=false;
             }else{
                 ap.setJoinStrategy(optimizer.getJoinStrategy(userSpecifiedJoinStrategy));
+                ap.setHintedJoinStrategy(true);
 
                 if(ap.getJoinStrategy()==null){
                     throw StandardException.newException(SQLState.LANG_INVALID_JOIN_STRATEGY,
@@ -201,6 +202,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
                 found=true;
             }
         }else if(joinStrategyNumber<numStrat){
+            ap.setHintedJoinStrategy(false);
 			/* Step through the join strategies. */
             ap.setJoinStrategy(optimizer.getJoinStrategy(joinStrategyNumber));
 
@@ -261,10 +263,12 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
     public void rememberJoinStrategyAsBest(AccessPath ap){
         Optimizer optimizer=ap.getOptimizer();
 
-        ap.setJoinStrategy(getCurrentAccessPath().getJoinStrategy());
+        AccessPath currentAccessPath=getCurrentAccessPath();
+        ap.setJoinStrategy(currentAccessPath.getJoinStrategy());
+        ap.setHintedJoinStrategy(currentAccessPath.isHintedJoinStrategy());
 
         OptimizerTrace tracer=optimizer.tracer();
-        tracer.trace(OptimizerFlag.REMEMBERING_JOIN_STRATEGY,tableNumber,0,0.0,getCurrentAccessPath().getJoinStrategy());
+        tracer.trace(OptimizerFlag.REMEMBERING_JOIN_STRATEGY,tableNumber,0,0.0,currentAccessPath.getJoinStrategy());
 
         if(ap==bestAccessPath){
             tracer.trace(OptimizerFlag.REMEMBERING_BEST_ACCESS_PATH_SUBSTRING,tableNumber,0,0.0,ap);
@@ -541,7 +545,9 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
      */
     protected void resetJoinStrategies(){
         joinStrategyNumber=0;
-        getCurrentAccessPath().setJoinStrategy(null);
+        AccessPath currentAccessPath=getCurrentAccessPath();
+        currentAccessPath.setJoinStrategy(null);
+        currentAccessPath.setHintedJoinStrategy(false);
     }
 
     @Override
@@ -709,7 +715,8 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
 
     @Override
     public boolean feasibleJoinStrategy(OptimizablePredicateList predList,Optimizer optimizer,CostEstimate outerCost) throws StandardException{
-        return getCurrentAccessPath().getJoinStrategy().feasible(this,predList,optimizer,outerCost);
+        AccessPath currentAccessPath=getCurrentAccessPath();
+        return currentAccessPath.getJoinStrategy().feasible(this,predList,optimizer,outerCost,currentAccessPath.isHintedJoinStrategy());
     }
 
     @Override

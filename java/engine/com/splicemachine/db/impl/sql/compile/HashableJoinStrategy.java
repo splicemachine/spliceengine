@@ -22,13 +22,12 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
     public HashableJoinStrategy() {
     }
 
-    /**
-     * @see com.splicemachine.db.iapi.sql.compile.JoinStrategy#feasible
-     *
-     * @exception com.splicemachine.db.iapi.error.StandardException        Thrown on error
-     */
-    public boolean feasible(Optimizable innerTable,OptimizablePredicateList predList,Optimizer optimizer,CostEstimate outerCost) throws StandardException {
-        //commented out because it's annoying -SF-
+    @Override
+    public boolean feasible(Optimizable innerTable,
+                            OptimizablePredicateList predList,
+                            Optimizer optimizer,
+                            CostEstimate outerCost,
+                            boolean wasHinted) throws StandardException {
         int[] hashKeyColumns;
         ConglomerateDescriptor cd = null;
         OptimizerTrace tracer=optimizer.tracer();

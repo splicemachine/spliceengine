@@ -52,7 +52,11 @@ public class HashNestedLoopJoinStrategy extends HashableJoinStrategy {
     }
 
     @Override
-    public boolean feasible(Optimizable innerTable,OptimizablePredicateList predList,Optimizer optimizer,CostEstimate outerCost) throws StandardException {
+    public boolean feasible(Optimizable innerTable,
+                            OptimizablePredicateList predList,
+                            Optimizer optimizer,
+                            CostEstimate outerCost,
+                            boolean wasHinted) throws StandardException {
         /*
          * Somewhat Temporary Fix.
          *
@@ -67,7 +71,7 @@ public class HashNestedLoopJoinStrategy extends HashableJoinStrategy {
 //            optimizer.trace(Optimizer.HJ_SKIP_NOT_MATERIALIZABLE,0,0,0.0,null);
 //            return false;
 //        }
-        return super.feasible(innerTable,predList,optimizer,outerCost);
+        return super.feasible(innerTable,predList,optimizer,outerCost,wasHinted);
     }
 
     private boolean isOverSink(Optimizable innerTable) {
