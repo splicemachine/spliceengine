@@ -15,7 +15,16 @@
 
     <groupId>com.splicemachine</groupId>
     <artifactId>db-project</artifactId>
-    <version>1.1.1-SNAPSHOT</version>
+
+    <!-- SPLICE DERBY VERSION:
+
+         I guess our current convention for the derby version is that the first three digits match the
+         version of splice engine on the same branch (that is, the version of splice engine that is using
+         this version of derby).  Increment a fourth digit if there are API breaking changes (so that other
+         developers who are not yet ready to account for the derby changes on their local/bug branches don't
+         have to).-->
+    <version>1.1.1.2-SNAPSHOT</version>
+
     <packaging>pom</packaging>
     <name>Splice Derby Project</name>
 
