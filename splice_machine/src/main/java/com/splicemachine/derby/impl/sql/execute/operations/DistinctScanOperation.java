@@ -448,7 +448,7 @@ public class DistinctScanOperation extends ScanOperation implements SinkingOpera
         JavaSparkContext ctx = SpliceSpark.getContext();
         Configuration conf = new Configuration(SIConstants.config);
         conf.set(MRConstants.SPLICE_CONGLOMERATE, Long.toString(scanInformation.getConglomerateId()));
-        conf.set(MRConstants.SPLICE_JDBC_STR, "jdbc:derby://localhost:1527/splicedb;create=true;user=splice;password=admin");
+        conf.set(MRConstants.SPLICE_JDBC_STR, "jdbc:splice://localhost:1527/splicedb;create=true;user=splice;password=admin");
         try {
             conf.set(MRConstants.SPLICE_SCAN_INFO, tsb.getTableScannerBuilderBase64String());
         } catch (IOException ioe) {

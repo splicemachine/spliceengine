@@ -46,7 +46,7 @@ public class TransactionAdminTest {
     private static String sqlUpdate2 = "UPDATE customer SET status = 'true' WHERE cust_id = 4";
     private static String sqlDummy = "SELECT * FROM SYSIBM.SYSDUMMY1";
 
-    private static final String DB_CONNECTION = "jdbc:derby://localhost:1527/splicedb;user=splice;password=admin";
+    private static final String DB_CONNECTION = "jdbc:splice://localhost:1527/splicedb;user=splice;password=admin";
     private static final Snowflake snowflake = new Snowflake((short)1);
 
     private static KeyEncoder getKeyEncoder(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {

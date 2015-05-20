@@ -18,6 +18,6 @@ public class ConnectionGenerator {
     }
 
     public Connection getConnection() throws SQLException {
-        return DriverManager.getConnection("jdbc:derby://"+serverName+"/" +  SpliceConstants.SPLICE_DB+";create=true");
+        return DriverManager.getConnection("jdbc:splice://"+serverName+"/" +  SpliceConstants.SPLICE_DB+";create=true");
     }
 }
