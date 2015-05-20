@@ -30,7 +30,7 @@ public class BaseMRIOTest extends SpliceUnitTest {
     	System.setProperty("mapreduce.framework.name", "local-chicken");
     	System.setProperty(HConstants.HBASE_DIR, getHBaseDirectory());
     	System.setProperty("hive.exec.mode.local.auto","true");
-    	System.setProperty("javax.jdo.option.ConnectionURL", "jdbc:derby:;databaseName=target/metastore_db;create=true");
+    	System.setProperty("javax.jdo.option.ConnectionURL", "jdbc:splice:;databaseName=target/metastore_db;create=true");
 		sqlUtil = SMSQLUtil.getInstance(SpliceNetConnection.getDefaultLocalURL());
 	}
 	

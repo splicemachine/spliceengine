@@ -17,7 +17,7 @@ import java.util.Properties;
  */
 public final class EmbedConnectionMaker implements ConnectionPool.Supplier {
     private static final String DRIVER_CLASS_NAME = "com.splicemachine.db.jdbc.EmbeddedDriver";
-    private static final String protocol = "jdbc:derby:splice:";
+    private static final String protocol = "jdbc:splice:";
 
     private static final Class<EmbeddedDriver> driverClass;
 
