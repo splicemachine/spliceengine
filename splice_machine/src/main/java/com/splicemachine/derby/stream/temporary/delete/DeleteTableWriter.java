@@ -4,6 +4,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.stream.temporary.AbstractTableWriter;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.metrics.Metrics;
@@ -11,31 +12,24 @@ import com.splicemachine.pipeline.api.RecordingCallBuffer;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.pipeline.impl.WriteCoordinator;
 import com.splicemachine.si.api.TxnView;
-
-import java.io.Closeable;
 import java.io.IOException;
 import java.util.Iterator;
 
 /**
  * Created by jleach on 5/5/15.
  */
-public class DeleteTableWriter implements AutoCloseable{
+public class DeleteTableWriter extends AbstractTableWriter {
     private static final FixedDataHash EMPTY_VALUES_ENCODER = new FixedDataHash(new byte[]{});
     protected static final KVPair.Type dataType = KVPair.Type.DELETE;
     protected WriteCoordinator writeCoordinator;
     protected RecordingCallBuffer<KVPair> writeBuffer;
     protected PairEncoder encoder;
-    protected byte[] destinationTable;
-    protected long heapConglom;
-    protected TxnView txn;
     public int rowsDeleted = 0;
 
     public DeleteTableWriter(TxnView txn, long heapConglom) throws StandardException {
-        this.txn = txn;
-        this.heapConglom = heapConglom;
+        super(txn,heapConglom);
     }
     public void open() throws StandardException {
-        destinationTable = Long.toString(heapConglom).getBytes();
         writeCoordinator = SpliceDriver.driver().getTableWriter();
         writeBuffer = writeCoordinator.writeBuffer(destinationTable,
                 txn, Metrics.noOpMetricFactory());
@@ -92,6 +86,14 @@ public class DeleteTableWriter implements AutoCloseable{
     public void delete(Iterator<ExecRow> execRows) throws StandardException {
         while (execRows.hasNext())
             delete(execRows.next());
+    }
+
+    public void write(ExecRow execRow) throws StandardException {
+        delete(execRow);
+    }
+
+    public void write(Iterator<ExecRow> execRows) throws StandardException {
+        delete(execRows);
     }
 
 }

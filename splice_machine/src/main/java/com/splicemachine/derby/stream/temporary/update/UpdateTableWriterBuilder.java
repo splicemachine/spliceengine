@@ -1,8 +1,11 @@
 package com.splicemachine.derby.stream.temporary.update;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.derby.stream.temporary.WriteReadUtils;
+import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.TxnView;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.hadoop.hbase.util.Base64;
@@ -25,6 +28,34 @@ public class UpdateTableWriterBuilder implements Externalizable {
     protected TxnView txn;
     protected ExecRow execRowDefinition;
     protected int[] execRowTypeFormatIds;
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        out.writeLong(heapConglom);
+        ArrayUtil.writeIntArray(out, formatIds);
+        ArrayUtil.writeIntArray(out, columnOrdering);
+        ArrayUtil.writeIntArray(out, pkCols);
+        out.writeObject(pkColumns);
+        out.writeObject(heapList);
+        out.writeUTF(tableVersion);
+        TransactionOperations.getOperationFactory().writeTxn(txn, out);
+        ArrayUtil.writeIntArray(out, execRowTypeFormatIds);
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        heapConglom = in.readLong();
+        formatIds = ArrayUtil.readIntArray(in);
+        columnOrdering = ArrayUtil.readIntArray(in);
+        pkCols = ArrayUtil.readIntArray(in);
+        pkColumns = (FormatableBitSet) in.readObject();
+        heapList = (FormatableBitSet) in.readObject();
+        tableVersion = in.readUTF();
+        txn = TransactionOperations.getOperationFactory().readTxn(in);
+        execRowTypeFormatIds = ArrayUtil.readIntArray(in);
+        execRowDefinition = WriteReadUtils.getExecRowFromTypeFormatIds(execRowTypeFormatIds);
+    }
+
 
     public UpdateTableWriterBuilder tableVersion(String tableVersion) {
         assert tableVersion != null :"Table Version Cannot Be null!";
@@ -83,16 +114,8 @@ public class UpdateTableWriterBuilder implements Externalizable {
         return this;
     }
 
-    @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
 
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-
-    }
-    public static UpdateTableWriterBuilder getDeleteTableWriterBuilderFromBase64String(String base64String) throws IOException {
+    public static UpdateTableWriterBuilder getUpdateTableWriterBuilderFromBase64String(String base64String) throws IOException {
         if (base64String == null)
             throw new IOException("tableScanner base64 String is null");
         return (UpdateTableWriterBuilder) SerializationUtils.deserialize(Base64.decode(base64String));
@@ -102,8 +125,8 @@ public class UpdateTableWriterBuilder implements Externalizable {
     }
 
     public UpdateTableWriter build() throws StandardException {
-        return new UpdateTableWriter(heapConglom, formatIds, columnOrdering,
-        pkCols,  pkColumns, tableVersion, txn,
+        return new UpdateTableWriter(heapConglom, formatIds, columnOrdering==null?new int[0]:columnOrdering,
+        pkCols==null?new int[0]:pkCols,  pkColumns, tableVersion, txn,
                 execRowDefinition,heapList);
     }
 

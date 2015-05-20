@@ -5,12 +5,19 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.KeyableRow;
 import com.splicemachine.db.iapi.types.RowLocation;
 
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+
 /**
  * Created by dgomezferro on 4/14/15.
  */
-public class LocatedRow implements KeyableRow {
+public class LocatedRow implements KeyableRow, Externalizable {
     private RowLocation rowLocation;
     private ExecRow row;
+
+    public LocatedRow() {}
 
     public LocatedRow(RowLocation rowLocation, ExecRow row) {
         this.rowLocation = rowLocation;
@@ -76,5 +83,19 @@ public class LocatedRow implements KeyableRow {
 
     public LocatedRow getClone() throws CloneNotSupportedException {
         return new LocatedRow(getRowLocation(),getRow());
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        System.out.println(rowLocation);
+        System.out.println(row);
+        out.writeObject(rowLocation);
+        out.writeObject(row);
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        rowLocation = (RowLocation) in.readObject();
+        row = (ExecRow) in.readObject();
     }
 }

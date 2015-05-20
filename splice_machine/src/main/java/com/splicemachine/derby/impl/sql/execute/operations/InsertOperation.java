@@ -9,9 +9,11 @@ import com.splicemachine.derby.impl.sql.execute.actions.InsertConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceIdentityColumnKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.derby.stream.function.InsertPairFunction;
 import com.splicemachine.derby.stream.function.SplicePairFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.temporary.WriteReadUtils;
 import com.splicemachine.derby.stream.temporary.insert.InsertTableWriter;
 import com.splicemachine.derby.stream.temporary.insert.InsertTableWriterBuilder;
@@ -200,35 +202,19 @@ public class InsertOperation extends DMLWriteOperation implements HasIncrement {
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         DataSet set = source.getDataSet();
+        OperationContext operationContext = dsp.createOperationContext(this);
         TxnView txn = getCurrentTransaction();
+        ExecRow execRow = getExecRowDefinition();
+        int[] execRowTypeFormatIds = WriteReadUtils.getExecRowTypeFormatIds(execRow);
         InsertTableWriterBuilder builder = new InsertTableWriterBuilder()
                 .heapConglom(heapConglom)
                 .autoIncrementRowLocationArray(autoIncrementRowLocationArray)
                 .execRowDefinition(getExecRowDefinition())
+                .execRowTypeFormatIds(execRowTypeFormatIds)
                 .spliceSequences(spliceSequences)
                 .pkCols(pkCols)
                 .tableVersion(writeInfo.getTableVersion())
                 .txn(txn);
-        return set.index(new SplicePairFunction<SpliceOperation,LocatedRow,RowLocation,ExecRow>(dsp.createOperationContext(this)) {
-            int counter = 0;
-            @Override
-            public Tuple2<RowLocation, ExecRow> call(LocatedRow locatedRow) throws Exception {
-                return new Tuple2<RowLocation, ExecRow>(locatedRow.getRowLocation(),locatedRow.getRow());
-            }
-
-            @Override
-            public RowLocation genKey(LocatedRow locatedRow) {
-                counter++;
-                RowLocation rowLocation = locatedRow.getRowLocation();
-               return rowLocation==null?new HBaseRowLocation(Bytes.toBytes(counter)):(HBaseRowLocation) rowLocation.cloneValue(true);
-            }
-
-            @Override
-            public ExecRow genValue(LocatedRow locatedRow) {
-                StreamLogUtils.logOperationRecordWithMessage(locatedRow,operationContext,"indexed for insert");
-                return locatedRow.getRow();
-            }
-
-        }).insertData(builder);
+        return set.index(new InsertPairFunction(operationContext)).insertData(builder,operationContext);
     }
 }

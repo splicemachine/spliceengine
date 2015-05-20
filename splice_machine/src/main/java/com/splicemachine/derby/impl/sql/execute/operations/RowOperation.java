@@ -6,10 +6,14 @@ import java.io.ObjectOutput;
 import java.util.Collections;
 import java.util.List;
 import com.google.common.base.Strings;
+import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
+import com.splicemachine.derby.stream.function.RowOperationFunction;
 import com.splicemachine.derby.stream.function.SpliceFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
@@ -17,6 +21,7 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
+import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -119,7 +124,7 @@ public class RowOperation extends SpliceBaseOperation {
 		}
 
 
-		private ExecRow getRow() throws StandardException {
+		public ExecRow getRow() throws StandardException {
                 if (cachedRow != null) {
                     SpliceLogUtils.trace(LOG, "getRow,cachedRow=%s", cachedRow);
                     return cachedRow.getClone();
@@ -221,12 +226,10 @@ public class RowOperation extends SpliceBaseOperation {
 
        @Override
         public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-            return dsp.singleRowDataSet(new LocatedRow(new ValueRow(1)))
-                    .map(new SpliceFunction<SpliceOperation,LocatedRow,LocatedRow>(dsp.createOperationContext(this)) {
-                        @Override
-                        public LocatedRow call(LocatedRow o) throws Exception {
-                            return new LocatedRow(getRow());
-                        }
-                    });
+           ExecRow execRow = new ValueRow(1);
+           execRow.setColumn(1,new SQLInteger(123));
+            return dsp.singleRowDataSet(new LocatedRow(new HBaseRowLocation(Bytes.toBytes(1)),execRow))
+                    .map(new RowOperationFunction(dsp.createOperationContext(this)));
         }
+
 }

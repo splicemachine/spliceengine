@@ -557,7 +557,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator {
 				instance.register(ColumnInfo[].class);
 				instance.register(MergeLeftOuterJoinOperation.class, EXTERNALIZABLE_SERIALIZER);
         instance.register(DataValueDescriptor[].class);
-        instance.register(LocatedRow.class);
+        instance.register(LocatedRow.class,EXTERNALIZABLE_SERIALIZER);
 //        instance.register(Tuple2.class, new Serializer<Tuple2>() {
 //            @Override
 //            public Tuple2 read(Kryo kryo, Input input, Class type) {

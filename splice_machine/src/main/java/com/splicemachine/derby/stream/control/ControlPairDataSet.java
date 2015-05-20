@@ -9,6 +9,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.function.SpliceFunction;
 import com.splicemachine.derby.stream.function.SpliceFunction2;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.temporary.delete.DeleteTableWriter;
 import com.splicemachine.derby.stream.temporary.delete.DeleteTableWriterBuilder;
 import com.splicemachine.derby.stream.temporary.insert.InsertTableWriter;
@@ -240,14 +241,14 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     Cleanup This code...
      */
     @Override
-    public DataSet<V> insertData(InsertTableWriterBuilder builder) {
+    public DataSet<V> insertData(InsertTableWriterBuilder builder, OperationContext operationContext) {
         InsertTableWriter insertTableWriter = null;
         try {
             insertTableWriter = builder.build();
             insertTableWriter.open();
             insertTableWriter.write((Iterator < ExecRow >) values().toLocalIterator());
             ValueRow valueRow = new ValueRow(1);
-            valueRow.setColumn(1,new SQLInteger(insertTableWriter.rowsWritten));
+            valueRow.setColumn(1,new SQLInteger((int) operationContext.getRecordsWritten()));
             return new ControlDataSet(Collections.singletonList(new LocatedRow(valueRow)));
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -262,14 +263,14 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     }
 
     @Override
-    public DataSet<V> updateData(UpdateTableWriterBuilder builder) {
+    public DataSet<V> updateData(UpdateTableWriterBuilder builder, OperationContext operationContext) {
         UpdateTableWriter updateTableWriter = null;
         try {
             updateTableWriter = builder.build();
             updateTableWriter.open();
             updateTableWriter.update((Iterator < ExecRow >) values().toLocalIterator());
             ValueRow valueRow = new ValueRow(1);
-            valueRow.setColumn(1,new SQLInteger(updateTableWriter.rowsUpdated));
+            valueRow.setColumn(1,new SQLInteger((int) operationContext.getRecordsWritten()));
             return new ControlDataSet(Collections.singletonList(new LocatedRow(valueRow)));
         } catch (Exception e) {
             throw new RuntimeException(e);
@@ -284,14 +285,14 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     }
 
     @Override
-    public DataSet<V> deleteData(DeleteTableWriterBuilder builder) {
+    public DataSet<V> deleteData(DeleteTableWriterBuilder builder, OperationContext operationContext) {
         DeleteTableWriter deleteTableWriter = null;
         try {
             deleteTableWriter = builder.build();
             deleteTableWriter.open();
             deleteTableWriter.delete((Iterator < ExecRow >) values().toLocalIterator());
             ValueRow valueRow = new ValueRow(1);
-            valueRow.setColumn(1,new SQLInteger(deleteTableWriter.rowsDeleted));
+            valueRow.setColumn(1,new SQLInteger((int) operationContext.getRecordsWritten()));
             return new ControlDataSet(Collections.singletonList(new LocatedRow(valueRow)));
         } catch (Exception e) {
             throw new RuntimeException(e);

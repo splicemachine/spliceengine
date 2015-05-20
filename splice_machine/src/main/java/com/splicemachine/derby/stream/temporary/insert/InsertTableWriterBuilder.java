@@ -4,8 +4,10 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
+import com.splicemachine.derby.stream.temporary.WriteReadUtils;
 import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.TxnView;
 import org.apache.commons.lang.SerializationUtils;
@@ -109,9 +111,10 @@ public class InsertTableWriterBuilder implements Externalizable {
         for (int i =0; i< spliceSequences.length; i++)
             spliceSequences[i] = (SpliceSequence) in.readObject();
         heapConglom = in.readLong();
+        execRowDefinition = WriteReadUtils.getExecRowFromTypeFormatIds(execRowTypeFormatIds);
     }
 
-    public static InsertTableWriterBuilder getDeleteTableWriterBuilderFromBase64String(String base64String) throws IOException {
+    public static InsertTableWriterBuilder getInsertTableWriterBuilderFromBase64String(String base64String) throws IOException {
         if (base64String == null)
             throw new IOException("tableScanner base64 String is null");
         return (InsertTableWriterBuilder) SerializationUtils.deserialize(Base64.decode(base64String));

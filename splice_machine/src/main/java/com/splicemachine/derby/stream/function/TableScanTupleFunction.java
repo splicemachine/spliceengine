@@ -24,9 +24,9 @@ public class TableScanTupleFunction<Op extends SpliceOperation> extends SpliceFu
     @Override
     public LocatedRow call(Tuple2<RowLocation, ExecRow> tuple) throws Exception {
         this.operationContext.recordRead();
-        return new LocatedRow(tuple._1(), tuple._2());
+        LocatedRow locatedRow = new LocatedRow(tuple._1(), tuple._2());
+        operationContext.getOperation().setCurrentLocatedRow(locatedRow);
+        return locatedRow;
     }
-
-    //public abstract void metricHook();
 
 }

@@ -23,6 +23,7 @@ public class MRConstants {
 	final public static byte[] HOLD = "H".getBytes();
 	final public static KeyValue MEMSTORE_BEGIN = new KeyValue(HConstants.EMPTY_START_ROW,HOLD,HOLD);
 	final public static KeyValue MEMSTORE_END = new KeyValue(HConstants.EMPTY_END_ROW,HOLD,HOLD);	
-	final public static KeyValue MEMSTORE_BEGIN_FLUSH = new KeyValue(HConstants.EMPTY_START_ROW,FLUSH,FLUSH);	
-	
+	final public static KeyValue MEMSTORE_BEGIN_FLUSH = new KeyValue(HConstants.EMPTY_START_ROW,FLUSH,FLUSH);
+    final public static String TABLE_WRITER = "table.writer";
+    final public static String TABLE_WRITER_TYPE = "table.writer.type";
 }

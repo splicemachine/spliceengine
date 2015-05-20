@@ -8,6 +8,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
+import com.splicemachine.derby.stream.temporary.AbstractTableWriter;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
@@ -26,9 +27,8 @@ import java.util.Iterator;
 /**
  * Created by jleach on 5/5/15.
  */
-public class UpdateTableWriter implements AutoCloseable {
+public class UpdateTableWriter extends AbstractTableWriter {
     protected static final KVPair.Type dataType = KVPair.Type.UPDATE;
-    protected long heapConglom;
     protected int[] formatIds;
     protected int[] columnOrdering;
     protected int[] pkCols;
@@ -39,33 +39,28 @@ public class UpdateTableWriter implements AutoCloseable {
     protected boolean modifiedPrimaryKeys = false;
     protected int[] finalPkColumns;
     protected String tableVersion;
-    protected TxnView txn;
     protected ExecRow execRowDefinition;
     WriteCoordinator writeCoordinator;
     protected RecordingCallBuffer<KVPair> writeBuffer;
-    protected byte[] destinationTable;
     protected PairEncoder encoder;
     protected ExecRow currentRow;
     public int rowsUpdated = 0;
 
-
-
     public UpdateTableWriter(long heapConglom, int[] formatIds, int[] columnOrdering,
                              int[] pkCols,  FormatableBitSet pkColumns, String tableVersion, TxnView txn,
                              ExecRow execRowDefinition,FormatableBitSet heapList) throws StandardException {
-        this.heapConglom = heapConglom;
+        super(txn,heapConglom);
+        assert pkCols != null && columnOrdering != null: "Primary Key Information is null";
         this.formatIds = formatIds;
         this.columnOrdering = columnOrdering;
         this.pkCols = pkCols;
         this.pkColumns = pkColumns;
         this.tableVersion = tableVersion;
-        this.txn = txn;
         this.execRowDefinition = execRowDefinition;
         this.heapList = heapList;
     }
 
     public void open() throws StandardException {
-        destinationTable = Long.toString(heapConglom).getBytes();
         writeCoordinator = SpliceDriver.driver().getTableWriter();
         kdvds = new DataValueDescriptor[columnOrdering.length];
         // Get the DVDS for the primary keys...
@@ -164,6 +159,7 @@ public class UpdateTableWriter implements AutoCloseable {
             currentRow = execRow;
             rowsUpdated++;
             KVPair encode = encoder.encode(execRow);
+            assert encode.getRowKey() != null && encode.getRowKey().length > 0: "Tried to buffer incorrect row key";
             writeBuffer.add(encode);
         } catch (Exception e) {
             throw Exceptions.parseException(e);
@@ -175,6 +171,14 @@ public class UpdateTableWriter implements AutoCloseable {
             update(execRows.next());
     }
 
+    public void write(Iterator<ExecRow> execRows) throws StandardException {
+        update(execRows);
+    }
+
+    public void write(ExecRow execRow) throws StandardException {
+        update(execRow);
+    }
+
 
     public void close() throws StandardException {
         try {
@@ -184,5 +188,4 @@ public class UpdateTableWriter implements AutoCloseable {
             throw Exceptions.parseException(e);
         }
     }
-
 }

@@ -24,8 +24,8 @@ public class StreamUtils {
     }
 
     public static <Op extends SpliceOperation> DataSetProcessor<Op,RowLocation,ExecRow> getDataSetProcessorFromActivation(Activation activation) {
-        return controlDataSetProcessor; //TODO JLEACH : Split
-//        return new SparkDataSetProcessor<>(); //TODO JLEACH : Split
+//        return controlDataSetProcessor; //TODO JLEACH : Split
+        return new SparkDataSetProcessor<>(); //TODO JLEACH : Split
     }
 
 
