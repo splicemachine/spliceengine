@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
@@ -110,7 +111,7 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
         GenericDescriptorList tdl = dd.getTriggerDescriptors(td);
         for (Object aTdl : tdl) {
             TriggerDescriptor trd = (TriggerDescriptor) aTdl;
-            if (trd.listensForEvent(TriggerDescriptor.TRIGGER_EVENT_DELETE) && trd.isEnabled()) {
+            if (trd.listensForEvent(TriggerEventDML.DELETE) && trd.isEnabled()) {
                 throw StandardException.newException(SQLState.LANG_NO_TRUNCATE_ON_ENABLED_DELETE_TRIGGERS, td.getName(), trd.getName());
             }
         }

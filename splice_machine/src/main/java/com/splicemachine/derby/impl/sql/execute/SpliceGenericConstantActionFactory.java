@@ -413,7 +413,7 @@ public class SpliceGenericConstantActionFactory extends GenericConstantActionFac
 
 	@Override
 	public ConstantAction getCreateTriggerConstantAction(
-			String triggerSchemaName, String triggerName, int eventMask,
+			String triggerSchemaName, String triggerName, TriggerEventDML eventMask,
 			boolean isBefore, boolean isRow, boolean isEnabled,
 			TableDescriptor triggerTable, UUID whenSPSId, String whenText,
 			UUID actionSPSId, String actionText, UUID spsCompSchemaId,

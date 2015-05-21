@@ -448,6 +448,8 @@ public class Backup implements InternalTable {
         FileSystem fileSystem = FileSystem.get(URI.create(getBackupFilesystem()),SpliceConstants.config);
         FileStatus[] status = fileSystem.listStatus(getTableBackupFilesystemAsPath());
         for (FileStatus stat : status) {
+            if (!stat.isDirectory())
+                continue;
             BackupItem item = new BackupItem();
             item.setBackup(this);
             item.setBackupItem(stat.getPath().getName());

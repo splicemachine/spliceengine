@@ -54,4 +54,25 @@ public class TriggerDAO {
         }
     }
 
+    /**
+     * Returns the names of all triggers on the specified table
+     */
+    public List<String> getTriggerNames(String tableName) {
+        return jdbcTemplate.query("" +
+                "select trig.triggername " +
+                "from sys.systriggers trig " +
+                "join sys.sysschemas  s    on trig.schemaid = s.schemaid " +
+                "join sys.systables   tab  on trig.tableid  = tab.tableid " +
+                "where s.schemaname=CURRENT SCHEMA and tab.tablename=?", tableName.toUpperCase());
+    }
+
+    /**
+     * Drop all triggers on the specified table.
+     */
+    public void dropAllTriggers(String tableName) {
+        for (String triggerName : getTriggerNames(tableName)) {
+            drop(triggerName);
+        }
+    }
+
 }
