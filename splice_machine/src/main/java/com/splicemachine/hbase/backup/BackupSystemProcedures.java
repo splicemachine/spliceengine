@@ -521,6 +521,7 @@ public class BackupSystemProcedures {
             try {
                 if (backup != null) {
                     backup.markBackupFailed();
+                    backup.setEndBackupTimestamp(new Timestamp(System.currentTimeMillis()));
                     insertBackup(backup);
                 }
             }
