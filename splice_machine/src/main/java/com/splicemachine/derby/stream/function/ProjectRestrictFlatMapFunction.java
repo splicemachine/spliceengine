@@ -8,6 +8,9 @@ import com.splicemachine.derby.impl.sql.execute.operations.ProjectRestrictOperat
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.utils.StreamLogUtils;
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.util.Collections;
 
 /**
@@ -25,6 +28,16 @@ public class ProjectRestrictFlatMapFunction<Op extends SpliceOperation> extends 
 
     public ProjectRestrictFlatMapFunction(OperationContext<Op> operationContext) {
         super(operationContext);
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        super.writeExternal(out);
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        super.readExternal(in);
     }
 
     @Override

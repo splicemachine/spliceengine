@@ -11,11 +11,8 @@ import com.splicemachine.derby.stream.function.SpliceFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.derby.stream.function.SpliceFunction2;
-import org.apache.tools.ant.taskdefs.Exec;
 import org.junit.*;
-import org.sparkproject.guava.common.collect.FluentIterable;
 import scala.Tuple2;
-
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Iterator;
@@ -76,19 +73,19 @@ public class ControlPairDataSetTest extends BaseStreamTest {
     public void testCogroup() throws StandardException {
         PairDataSet<ExecRow, ExecRow> set1 = new ControlPairDataSet<ExecRow, ExecRow>(tenRows);
         PairDataSet<ExecRow, ExecRow> set2 = new ControlPairDataSet<ExecRow, ExecRow>(tenRows);
-        PairDataSet<ExecRow, Tuple2<Iterator<ExecRow>, Iterator<ExecRow>>> returnValues = set1.cogroup(set2);
-        Iterator<Tuple2<Iterator<ExecRow>, Iterator<ExecRow>>> it = returnValues.values().toLocalIterator();
+        PairDataSet<ExecRow, Tuple2<Iterable<ExecRow>, Iterable<ExecRow>>> returnValues = set1.cogroup(set2);
+        Iterator<Tuple2<Iterable<ExecRow>, Iterable<ExecRow>>> it = returnValues.values().toLocalIterator();
         int i = 0;
         while (it.hasNext()) {
-            Tuple2<Iterator<ExecRow>,Iterator<ExecRow>> groupedTuples = it.next();
-            Iterator it1 = groupedTuples._1;
+            Tuple2<Iterable<ExecRow>,Iterable<ExecRow>> groupedTuples = it.next();
+            Iterator it1 = groupedTuples._1.iterator();
             int j = 0;
             while (it1.hasNext()) {
                 it1.next();
                 j++;
             }
             Assert.assertEquals("MissingRecords", 5, j);
-            Iterator it2 = groupedTuples._2;
+            Iterator it2 = groupedTuples._2.iterator();
             int k = 0;
             while (it2.hasNext()) {
                 it2.next();
@@ -272,19 +269,19 @@ public class ControlPairDataSetTest extends BaseStreamTest {
     public void testBroadcastCogroup() throws StandardException {
         PairDataSet<ExecRow, ExecRow> set1 = new ControlPairDataSet<ExecRow, ExecRow>(tenRows);
         PairDataSet<ExecRow, ExecRow> set2 = new ControlPairDataSet<ExecRow, ExecRow>(tenRows);
-        PairDataSet<ExecRow, Tuple2<Iterator<ExecRow>, Iterator<ExecRow>>> returnValues = set1.cogroup(set2);
-        Iterator<Tuple2<Iterator<ExecRow>, Iterator<ExecRow>>> it = returnValues.values().toLocalIterator();
+        PairDataSet<ExecRow, Tuple2<Iterable<ExecRow>, Iterable<ExecRow>>> returnValues = set1.cogroup(set2);
+        Iterator<Tuple2<Iterable<ExecRow>, Iterable<ExecRow>>> it = returnValues.values().toLocalIterator();
         int i = 0;
         while (it.hasNext()) {
-            Tuple2<Iterator<ExecRow>,Iterator<ExecRow>> groupedTuples = it.next();
-            Iterator it1 = groupedTuples._1;
+            Tuple2<Iterable<ExecRow>,Iterable<ExecRow>> groupedTuples = it.next();
+            Iterator it1 = groupedTuples._1.iterator();
             int j = 0;
             while (it1.hasNext()) {
                 it1.next();
                 j++;
             }
             Assert.assertEquals("MissingRecords", 5, j);
-            Iterator it2 = groupedTuples._2;
+            Iterator it2 = groupedTuples._2.iterator();
             int k = 0;
             while (it2.hasNext()) {
                 it2.next();
