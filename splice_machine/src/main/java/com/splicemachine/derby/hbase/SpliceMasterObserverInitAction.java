@@ -52,11 +52,9 @@ class SpliceMasterObserverInitAction {
             evaluateState();
             createSplice();
             throw new PleaseHoldException("pre create succeeded");
-        } catch (PleaseHoldException phe) {
+        } catch (PleaseHoldException | DoNotRetryIOException phe) {
             // Expected when state != RUNNING, catch at this level to avoid logging full stack trace.
             throw phe;
-        } catch (DoNotRetryIOException dnr) {
-            throw dnr;
         } catch (Exception e) {
             SpliceLogUtils.logAndThrow(LOG, "preCreateTable Error", Exceptions.getIOException(e));
         }
@@ -99,7 +97,6 @@ class SpliceMasterObserverInitAction {
                     } else {
                         SpliceLogUtils.info(LOG, "Initializing Splice Machine for first time");
                         ZkUtils.refreshZookeeper();
-                        SpliceUtilities.refreshHbase();
                         SpliceUtilities.createSpliceHBaseTables();
                         connection = bootSplice();
                         ZkUtils.spliceFinishedLoading();
@@ -138,11 +135,10 @@ class SpliceMasterObserverInitAction {
         return "state=" + state.get() + ", createFuture.isDone=" + (createFuture == null ? "NULL" : createFuture.isDone());
     }
 
-    private static enum State {
+    private enum State {
         NOT_STARTED,
         INITIALIZING,
         RUNNING
     }
-
 
 }

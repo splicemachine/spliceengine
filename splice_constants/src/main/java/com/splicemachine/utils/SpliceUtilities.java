@@ -184,28 +184,6 @@ public class SpliceUtilities extends SIConstants {
 		return snapshot;
 	}
 
-	public static void refreshHbase() {
-		SpliceLogUtils.info(LOG, "Refresh HBase");
-		HBaseAdmin admin = null;
-		try {
-			admin = getAdmin();
-			HTableDescriptor[] descriptors = admin.listTables();
-			for (HTableDescriptor desc : descriptors) {
-				if (!admin.isTableDisabled(desc.getName())) {
-					admin.disableTable(desc.getName());
-				}
-
-				admin.deleteTable(desc.getName());
-			}
-		} catch (Exception e) {
-			// TODO: should this be logged and thrown? If we get this exception
-			// during startup, we will fail to start.
-			SpliceLogUtils.error(LOG, "Unable to Refresh Hbase", e);
-		} finally {
-			Closeables.closeQuietly(admin);
-		}
-	}
-
 	public static boolean createSpliceHBaseTables() {
 		SpliceLogUtils.info(LOG, "Creating Splice Required HBase Tables");
 		HBaseAdmin admin = null;
