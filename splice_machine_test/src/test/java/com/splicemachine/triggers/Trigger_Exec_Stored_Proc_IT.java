@@ -36,27 +36,35 @@ public class Trigger_Exec_Stored_Proc_IT {
     @ClassRule
     public static SpliceWatcher classWatcher = new SpliceWatcher(SCHEMA);
 
-//    private static final String STORED_PROCS_JAR_FILE = SpliceUnitTest.getBaseDirectory()+"/target/test-classes/trigger_procs.jar";
-    private static final String DERBY_JAR_NAME = schemaWatcher.schemaName + ".TRIGGER_PROCS_JAR";
+    private static final String DERBY_JAR_NAME = SCHEMA + ".TRIGGER_PROCS_JAR";
+
     private static final String CALL_SET_CLASSPATH_STRING =
         "CALL SYSCS_UTIL.SYSCS_SET_DATABASE_PROPERTY('derby.database.classpath', %s)";
+
     private static final String CREATE_PROC =
-        "CREATE PROCEDURE "+ schemaWatcher.schemaName+".proc_call_audit(" +
+        "CREATE PROCEDURE "+ SCHEMA+".proc_call_audit(" +
             "in schema_name varchar(30), in table_name varchar(20)) " +
             "PARAMETER STYLE JAVA LANGUAGE JAVA READS SQL DATA " +
             "EXTERNAL NAME 'com.splicemachine.triggers.TriggerProcs.proc_call_audit'";
 
     private static final String CREATE_PROC_WITH_TRANSITION_VAR =
-        "CREATE PROCEDURE "+ schemaWatcher.schemaName+".proc_call_audit_with_transition(" +
+        "CREATE PROCEDURE "+ SCHEMA+".proc_call_audit_with_transition(" +
             "in schema_name varchar(30), in table_name varchar(20), in new_val integer, in old_val integer) " +
             "PARAMETER STYLE JAVA LANGUAGE JAVA READS SQL DATA " +
             "EXTERNAL NAME 'com.splicemachine.triggers.TriggerProcs.proc_call_audit_with_transition'";
 
     private static final String CREATE_PROC_WITH_RESULT =
-        "CREATE PROCEDURE "+schemaWatcher.schemaName+".proc_call_audit_with_result(" +
+        "CREATE PROCEDURE "+SCHEMA+".proc_call_audit_with_result(" +
             "in schema_name varchar(30), in table_name varchar(20)) " +
             "PARAMETER STYLE JAVA READS SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 " +
             "EXTERNAL NAME 'com.splicemachine.triggers.TriggerProcs.proc_call_audit_with_result'";
+
+    @Rule
+    public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
+
+    private TriggerBuilder tb = new TriggerBuilder();
+    private TriggerDAO triggerDAO = new TriggerDAO(methodWatcher.getOrCreateConnection());
+
 
     @BeforeClass
     public static void setUpClass() throws Exception {
@@ -64,8 +72,7 @@ public class Trigger_Exec_Stored_Proc_IT {
         // Install the jar file of stored procedures.
         File jar = new File(storedProcsJarFilePath);
         Assert.assertTrue("Can't run test without " + storedProcsJarFilePath, jar.exists());
-        classWatcher.executeUpdate(String.format("CALL SQLJ.INSTALL_JAR('%s', '%s', 0)",
-                                                 storedProcsJarFilePath, DERBY_JAR_NAME));
+        classWatcher.executeUpdate(String.format("CALL SQLJ.INSTALL_JAR('%s', '%s', 0)", storedProcsJarFilePath, DERBY_JAR_NAME));
         classWatcher.executeUpdate(String.format(CALL_SET_CLASSPATH_STRING, "'"+ DERBY_JAR_NAME +"'"));
         classWatcher.executeUpdate(CREATE_PROC);
         classWatcher.executeUpdate(CREATE_PROC_WITH_TRANSITION_VAR);
@@ -75,9 +82,9 @@ public class Trigger_Exec_Stored_Proc_IT {
     @AfterClass
     public static void tearDownClass() throws Exception {
         try {
-            classWatcher.executeUpdate(String.format("DROP PROCEDURE %s.%s", schemaWatcher.schemaName, "proc_call_audit"));
-            classWatcher.executeUpdate(String.format("DROP PROCEDURE %s.%s", schemaWatcher.schemaName, "proc_call_audit_with_transition"));
-            classWatcher.executeUpdate(String.format("DROP PROCEDURE %s.%s", schemaWatcher.schemaName, "proc_call_audit_with_result"));
+            classWatcher.executeUpdate(String.format("DROP PROCEDURE %s.%s", SCHEMA, "proc_call_audit"));
+            classWatcher.executeUpdate(String.format("DROP PROCEDURE %s.%s", SCHEMA, "proc_call_audit_with_transition"));
+            classWatcher.executeUpdate(String.format("DROP PROCEDURE %s.%s", SCHEMA, "proc_call_audit_with_result"));
         } catch (Exception e) {
             System.err.println("Ignoring in test teardown: " + e.getLocalizedMessage());
         }
@@ -101,21 +108,13 @@ public class Trigger_Exec_Stored_Proc_IT {
         classWatcher.executeUpdate("create table audit (username varchar(20),insert_time timestamp, new_id integer, old_id integer)");
     }
 
-    @Rule
-    public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
-
-    private TriggerBuilder tb = new TriggerBuilder();
-    private TriggerDAO triggerDAO = new TriggerDAO(methodWatcher.getOrCreateConnection());
-
     /**
-     * Create/fire a statement trigger that records username and timestamp of an insert
-     * in another table.
-     * @throws Exception
+     * Create/fire a statement trigger that records username and timestamp of an insert in another table.
      */
     @Test
     public void testStatementTriggerUserStoredProc() throws Exception {
         tb.named("auditme").before().insert().on("S").statement().
-            then(String.format("CALL proc_call_audit('%s','%s')", schemaWatcher.schemaName,"audit"));
+            then(String.format("CALL proc_call_audit('%s','%s')", SCHEMA,"audit"));
         createTrigger(tb);
 
         Connection c1 = classWatcher.createConnection();
@@ -140,13 +139,12 @@ public class Trigger_Exec_Stored_Proc_IT {
     /**
      * Create/fire a row trigger that records username, timestamp and new transition value
      * for an row inserted into another table.
-     * @throws Exception
      */
     @Test
     public void testRowInsertTriggerUserStoredProc() throws Exception {
         createTrigger(tb.named("row_insert").after().insert().on("S").referencing("NEW AS N")
                         .row().then(String.format("CALL proc_call_audit_with_transition('%s','%s',%s, %s)",
-                                                  schemaWatcher.schemaName, "audit", "N.id", null)));
+                                                  SCHEMA, "audit", "N.id", null)));
 
         // when - insert a row
         methodWatcher.executeUpdate("insert into S values (13, 'Joe')");
@@ -169,7 +167,6 @@ public class Trigger_Exec_Stored_Proc_IT {
     /**
      * Create/fire a row trigger that records username, timestamp, new transition values
      * for an row updated in another table.
-     * @throws Exception
      */
     @Test @Ignore("Not seeing procedure call update row trigger transition values.")
     public void testRowUpdateTriggerUserStoredProcNewTransitionValue() throws Exception {
@@ -178,7 +175,7 @@ public class Trigger_Exec_Stored_Proc_IT {
         methodWatcher.executeUpdate("insert into S values (14, 'Henry')");
         createTrigger(tb.named("row_update_new").after().update().on("S").referencing("New AS N")
                         .row().then(String.format("CALL proc_call_audit_with_transition('%s','%s',%s, %s)",
-                                                  schemaWatcher.schemaName, "audit", "N.id", null)));
+                                                  SCHEMA, "audit", "N.id", null)));
 
         // when - update a row
         methodWatcher.executeUpdate("update S set id = 39 where id = 13");
@@ -202,7 +199,6 @@ public class Trigger_Exec_Stored_Proc_IT {
     /**
      * Create/fire a row trigger that records username, timestamp, old transition values
      * for an row updated in another table.
-     * @throws Exception
      */
     @Test @Ignore("Not seeing procedure call update row trigger transition values.")
     public void testRowUpdateTriggerUserStoredProcOldTransitionValue() throws Exception {
@@ -211,7 +207,7 @@ public class Trigger_Exec_Stored_Proc_IT {
         methodWatcher.executeUpdate("insert into S values (14, 'Henry')");
         createTrigger(tb.named("row_update_old").after().update().on("S").referencing("OLD AS o")
                         .row().then(String.format("CALL proc_call_audit_with_transition('%s','%s',%s, %s)",
-                                                  schemaWatcher.schemaName, "audit", null, "O.id")));
+                                                  SCHEMA, "audit", null, "O.id")));
 
         // when - update a row
         methodWatcher.executeUpdate("update S set id = 39 where id = 13");
@@ -235,7 +231,6 @@ public class Trigger_Exec_Stored_Proc_IT {
     /**
      * Create/fire a row trigger that records username, timestamp, new transition values
      * for an row updated in another table.
-     * @throws Exception
      */
     @Test @Ignore("Not seeing procedure call update row trigger transition values.")
     public void testRowUpdateTriggerUserStoredProcNewAndOldTransitionValues() throws Exception {
@@ -244,7 +239,7 @@ public class Trigger_Exec_Stored_Proc_IT {
         methodWatcher.executeUpdate("insert into S values (14, 'Henry')");
         createTrigger(tb.named("row_update_new").after().update().on("S").referencing("New AS N OLD AS O")
                         .row().then(String.format("CALL proc_call_audit_with_transition('%s','%s',%s, %s)",
-                                                  schemaWatcher.schemaName, "audit", "N.id", "O.id")));
+                                                  SCHEMA, "audit", "N.id", "O.id")));
 
         // when - update a row
         methodWatcher.executeUpdate("update S set id = 39 where id = 13");
@@ -268,19 +263,18 @@ public class Trigger_Exec_Stored_Proc_IT {
     /**
      * Create/fire a row trigger that records username, timestamp, new and old transition values
      * for an row updated in another table.
-     * @throws Exception
      */
-    @Test @Ignore("DB-3306 - Causing CCE: SpliceTransactionView cannot be cast to SpliceTransaction")
+    @Test
     public void testRowUpdateTriggerUserStoredProcTwoTriggers() throws Exception {
 
         methodWatcher.executeUpdate("insert into S values (13, 'Joe')");
         methodWatcher.executeUpdate("insert into S values (14, 'Henry')");
         createTrigger(tb.named("row_update_new").after().update().on("S").referencing("New AS N")
                         .row().then(String.format("CALL proc_call_audit_with_transition('%s','%s',%s, %s)",
-                                                  schemaWatcher.schemaName, "audit", "N.id", null)));
+                                                  SCHEMA, "audit", "N.id", null)));
         createTrigger(tb.named("row_update_old").after().update().on("S").referencing("OLD AS o")
                         .row().then(String.format("CALL proc_call_audit_with_transition('%s','%s',%s, %s)",
-                                                  schemaWatcher.schemaName, "audit", null, "O.id")));
+                                                  SCHEMA, "audit", null, "O.id")));
 
         // when - update a row
         methodWatcher.executeUpdate("update S set id = 39 where id = 13");
@@ -290,14 +284,12 @@ public class Trigger_Exec_Stored_Proc_IT {
     }
 
     /**
-     * Create/fire a statement trigger that records username and timestamp of an insert
-     * in another table.
-     * @throws Exception
+     * Create/fire a statement trigger that records username and timestamp of an insert in another table.
      */
     @Test
     public void testStatementTriggerUserStoredProcWithResult() throws Exception {
         tb.named("auditme2").before().insert().on("S").statement().
-            then(String.format("CALL proc_call_audit_with_result('%s','%s')", schemaWatcher.schemaName,"audit"));
+            then(String.format("CALL proc_call_audit_with_result('%s','%s')", SCHEMA,"audit"));
         createTrigger(tb);
 
         Connection c1 = classWatcher.createConnection();
@@ -321,7 +313,6 @@ public class Trigger_Exec_Stored_Proc_IT {
 
     /**
      * Create/fire a statement trigger that calls a splice system procedure.
-     * @throws Exception
      */
     @Test
     public void testStatementTriggerSysStoredProc() throws Exception {
