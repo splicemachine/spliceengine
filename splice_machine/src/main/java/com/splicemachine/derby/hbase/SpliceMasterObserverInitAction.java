@@ -29,7 +29,7 @@ import java.util.concurrent.atomic.AtomicReference;
 class SpliceMasterObserverInitAction {
 
     private static final Logger LOG = Logger.getLogger(SpliceMasterObserver.class);
-    private static final AtomicReference<State> state = new AtomicReference<State>();
+    private static final AtomicReference<State> state = new AtomicReference<>();
     private volatile Future<Void> createFuture;
     private ExecutorService executor;
 
