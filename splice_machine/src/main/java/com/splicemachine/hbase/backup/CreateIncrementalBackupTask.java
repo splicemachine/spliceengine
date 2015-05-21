@@ -11,6 +11,7 @@ import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.io.IOUtils;
 import org.apache.hadoop.hbase.HRegionInfo;
+import org.apache.hadoop.hbase.io.HFileLink;
 import org.apache.hadoop.hbase.regionserver.Store;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
@@ -131,11 +132,12 @@ public class CreateIncrementalBackupTask extends ZkTask {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, String.format("executing incremental backup on region %s", region.toString()));
 
-        boolean throttleEnabled = 
-    			getConfiguration().getBoolean(Backup.CONF_IOTHROTTLE, false);
+        boolean throttleEnabled =
+                getConfiguration().getBoolean(Backup.CONF_IOTHROTTLE, false);
         tableName = region.getTableDesc().getNameAsString();
         encodedRegionName = region.getRegionInfo().getEncodedName();
         int count = 0;
+        Configuration conf = SpliceConstants.config;
         try{
             populateFileSet();
             List<Path> paths = getIncrementalChanges();
@@ -143,21 +145,32 @@ public class CreateIncrementalBackupTask extends ZkTask {
 
             // Write region information
             BackupUtils.derbyFactory.writeRegioninfoOnFilesystem(region.getRegionInfo(),
-                    new Path(backupFileSystem), fs, SpliceConstants.config);
+                    new Path(backupFileSystem), fs, conf);
 
             // Copy HFiles that only in the latest snapshot and not in BACKUP.BACKUP_FILESET with include=false
             if (paths != null && paths.size() > 0) {
                 for (Path p : paths) {
+                    Path from = p;
+
                     String[] s = p.toString().split("/");
                     int n = s.length;
                     String fileName = s[n - 1];
                     String familyName = s[n - 2];
                     String regionName = s[n - 3];
+                    if (BackupUtils.isReference(p.getName())) {
+                        // materialize the reference file first
+                        HFileLink fileLink = snapshotUtils.createHFileLink(conf,
+                                region.getTableDesc().getTableName(), encodedRegionName, familyName, p.getName());
+
+                        from = snapshotUtils.materializeRefFile(conf, fs, fileLink, region);
+                        fileName = from.getName();
+                    }
+
                     Path destPath = new Path(backupFileSystem + "/" + regionName + "/" + familyName + "/" + fileName);
                     if(throttleEnabled){
-                    	IOUtils.copyFileWithThrottling(fs, p, fs, destPath, false, SpliceConstants.config);
+                        IOUtils.copyFileWithThrottling(fs, from, fs, destPath, false, SpliceConstants.config);
                     } else{
-                    	FileUtil.copy(fs, p, fs, destPath, false, SpliceConstants.config);
+                        FileUtil.copy(fs, from, fs, destPath, false, SpliceConstants.config);
                     }
                     count++;
                 }
@@ -177,10 +190,10 @@ public class CreateIncrementalBackupTask extends ZkTask {
     }
 
     private Configuration getConfiguration() {
-		return SpliceConstants.config;
-	}
+        return SpliceConstants.config;
+    }
 
-	/**
+    /**
      * For each HFile in archived directory, check whether it should be included in incremental backup.
      * Delete all entries for this region in BACKUP.BACKUP_FILESET. BACKUP.BACKUP_FILESET should only keeps track of
      * HFile changes between two consecutive incremental backups.
@@ -195,6 +208,7 @@ public class CreateIncrementalBackupTask extends ZkTask {
         FileSystem fileSystem = region.getFilesystem();
         Map<byte[], Store> stores = region.getStores();
         Configuration conf = SpliceConstants.config;
+        FileSystem fs = region.getFilesystem();
 
         for (byte[] family : stores.keySet()) {
             HRegionInfo regionInfo = region.getRegionInfo();
@@ -211,6 +225,14 @@ public class CreateIncrementalBackupTask extends ZkTask {
                 String fileName = srcPath.getName();
                 Path destPath = new Path(backupFileSystem + "/" + encodedRegionName + "/" + familyName + "/" + fileName);
                 if (includeFileSet.contains(fileName)) {
+                    if (BackupUtils.isReference(fileName)) {
+                        // materialize the reference file first
+                        HFileLink fileLink = snapshotUtils.createHFileLink(conf,
+                                region.getTableDesc().getTableName(), encodedRegionName, familyName, fileName);
+
+                        srcPath = snapshotUtils.materializeRefFile(conf, fs, fileLink, region);
+                        fileName = srcPath.getName();
+                    }
                     FileUtil.copy(fileSystem, srcPath, fileSystem, destPath, false, conf);
                     ++count;
                     BackupUtils.deleteFileSet(tableName, encodedRegionName, fileName, true);
@@ -227,8 +249,8 @@ public class CreateIncrementalBackupTask extends ZkTask {
     private List<Path> getIncrementalChanges() throws ExecutionException{
 
         List<Path> hFiles = null;
-        List<Path> paths = null;
-        List<Path> lastPaths = null;
+        List<Object> paths = null;
+        List<Object> lastPaths = null;
 
         try {
             Configuration conf = SpliceConstants.config;
@@ -237,35 +259,38 @@ public class CreateIncrementalBackupTask extends ZkTask {
             rootDir = FSUtils.getRootDir(conf);
 
             // Get files that are in the latest snapshot
-            paths = BackupUtils.getSnapshotHFileLinksForRegion(snapshotUtils, region, conf, fs, snapshotName);
+            paths = snapshotUtils.getSnapshotFilesForRegion(region, conf, fs, snapshotName, false);
             if (lastSnapshotName != null) {
                 // Get files that are in a previous snapshot
-                lastPaths = BackupUtils.getSnapshotHFileLinksForRegion(snapshotUtils, region, conf, fs, lastSnapshotName);
+                lastPaths = snapshotUtils.getSnapshotFilesForRegion(region, conf, fs, lastSnapshotName, false);
             }
+
+
+            // Hash files from the latest snapshot, ignore files that should be excluded
+            HashMap<String, Path> pathMap = new HashMap<>();
+            for(Object o : paths) {
+                Path p = ((HFileLink) o).getAvailablePath(fs);
+                String name = p.getName();
+                if (!excludeFileSet.contains(name)) {
+                    pathMap.put(name, p);
+                }
+            }
+
+            if (lastPaths != null && lastPaths.size() > 0) {
+                // remove an HFile if it also appears in a previous snapshot
+                for (Object o : lastPaths) {
+                    Path p = ((HFileLink) o).getAvailablePath(fs);
+                    String name = p.getName();
+                    if (pathMap.containsKey(name)) {
+                        pathMap.remove(name);
+                    }
+                }
+            }
+            Collection<Path> r = pathMap.values();
+            hFiles = new ArrayList<>(r);
         } catch (IOException e) {
             throw new ExecutionException(e);
         }
-
-        // Hash files from the latest snapshot, ignore files that should be excluded
-        HashMap<String, Path> pathMap = new HashMap<>();
-        for(Path p : paths) {
-            String name = p.getName();
-            if (!excludeFileSet.contains(name)) {
-                pathMap.put(name, p);
-            }
-        }
-
-        if (lastPaths != null && lastPaths.size() > 0) {
-            // remove an HFile if it also appears in a previous snapshot
-            for (Path p : lastPaths) {
-                String name = p.getName();
-                if (pathMap.containsKey(name)) {
-                    pathMap.remove(name);
-                }
-            }
-        }
-        Collection<Path> r = pathMap.values();
-        hFiles = new ArrayList<>(r);
 
         return hFiles;
     }

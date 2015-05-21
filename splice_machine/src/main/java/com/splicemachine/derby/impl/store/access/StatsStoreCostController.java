@@ -2,7 +2,6 @@ package com.splicemachine.derby.impl.store.access;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
@@ -23,6 +22,7 @@ import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.PartitionStatistics;
 import com.splicemachine.stats.TableStatistics;
 
+import java.util.BitSet;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
@@ -69,7 +69,7 @@ public class StatsStoreCostController extends GenericController implements Store
     }
 
     @Override
-    public void getFetchFromRowLocationCost(FormatableBitSet validColumns,
+    public void getFetchFromRowLocationCost(BitSet validColumns,
                                             int access_type,
                                             CostEstimate cost) throws StandardException {
         /*
@@ -78,7 +78,6 @@ public class StatsStoreCostController extends GenericController implements Store
          */
         double columnSizeFactor = columnSizeFactor(conglomerateStatistics,
                 ((SpliceConglomerate)baseConglomerate.getConglomerate()).getFormat_ids().length,
-                baseConglomerate.getColumnOrdering(),
                 validColumns);
         double scale = conglomerateStatistics.remoteReadLatency()*columnSizeFactor;
         long bytes = (long)scale*conglomerateStatistics.avgRowWidth();
@@ -88,7 +87,7 @@ public class StatsStoreCostController extends GenericController implements Store
 
 
     @Override
-    public void getFetchFromFullKeyCost(FormatableBitSet validColumns, int access_type, CostEstimate cost) throws StandardException {
+    public void getFetchFromFullKeyCost(BitSet validColumns, int access_type, CostEstimate cost) throws StandardException {
         /*
          * This is the cost to read a single row from a PK or indexed table (without any associated index lookups).
          * Since we know the full key, we have two scenarios:
@@ -104,7 +103,6 @@ public class StatsStoreCostController extends GenericController implements Store
          */
         double columnSizeFactor = columnSizeFactor(conglomerateStatistics,
                 ((SpliceConglomerate)baseConglomerate.getConglomerate()).getFormat_ids().length,
-                baseConglomerate.getColumnOrdering(),
                 validColumns);
         double scale = conglomerateStatistics.remoteReadLatency()*columnSizeFactor;
         long bytes = (long)scale*conglomerateStatistics.avgRowWidth();
@@ -118,18 +116,15 @@ public class StatsStoreCostController extends GenericController implements Store
     }
 
     @Override
-    public void getScanCost(int scan_type,
-                            long row_count,
-                            int group_size,
+    public void getScanCost(long row_count,
                             boolean forUpdate,
-                            FormatableBitSet scanColumnList,
+                            BitSet scanColumnList,
                             DataValueDescriptor[] template,
+                            List<DataValueDescriptor> probeValues,
                             DataValueDescriptor[] startKeyValue,
                             int startSearchOperator,
                             DataValueDescriptor[] stopKeyValue,
                             int stopSearchOperator,
-                            boolean reopen_scan,
-                            int access_type,
                             StoreCostResult cost_result) throws StandardException {
        /*
         * We estimate the cost of the key scan. This is effectively the selectivity of the
@@ -146,7 +141,7 @@ public class StatsStoreCostController extends GenericController implements Store
         estimateCost(conglomerateStatistics,
                 ((SpliceConglomerate)baseConglomerate.getConglomerate()).getFormat_ids().length,
                 scanColumnList,
-                startKeyValue,startSearchOperator,
+                probeValues,startKeyValue,startSearchOperator,
                 stopKeyValue,stopSearchOperator,baseConglomerate.getColumnOrdering(),(CostEstimate)cost_result);
         List<? extends PartitionStatistics> partStats=conglomerateStatistics.partitionStatistics();
         if(partStats==null||partStats.size()<=0 ||partStats.get(0) instanceof FakedPartitionStatistics){
@@ -271,7 +266,8 @@ public class StatsStoreCostController extends GenericController implements Store
     @SuppressWarnings("unchecked")
     protected void estimateCost(OverheadManagedTableStatistics stats,
                                 int totalColumns, //the total number of columns in the store
-                                FormatableBitSet scanColumnList, //a list of the output columns, or null if fetch all
+                                BitSet scanColumnList, //a list of the output columns, or null if fetch all
+                                List<DataValueDescriptor> probeValues,
                                 DataValueDescriptor[] startKeyValue,
                                 int startSearchOperator,
                                 DataValueDescriptor[] stopKeyValue,
@@ -305,13 +301,27 @@ public class StatsStoreCostController extends GenericController implements Store
         double remoteCost = stats.openScannerLatency()+stats.closeScannerLatency(); //always the cost to open a scanner
         int numPartitions = 0;
         for(PartitionStatistics pStats:partitionStatistics){
-            long partRc=partitionColumnSelectivity(pStats,startKeyValue,includeStart,stopKeyValue,includeStop,keyMap);
+            long partRc = 0l;
+            if(probeValues!=null){
+                /*
+                 * We have probe values, which means that the first entry in the startKeyValue and the stopKeyValue
+                 * are populated with an entry, so we loop through here, and if there are rows in this partition
+                 * for any of the probe values, then we add a partition in. Otherwise, we do not
+                 */
+                for(DataValueDescriptor probeValue:probeValues){
+                    startKeyValue[0] = probeValue;
+                    stopKeyValue[0] = probeValue;
+                    partRc+=partitionColumnSelectivity(pStats,startKeyValue,includeStart,stopKeyValue,includeStop,keyMap);
+                }
+            }else
+                partRc=partitionColumnSelectivity(pStats,startKeyValue,includeStart,stopKeyValue,includeStop,keyMap);
+
             if(partRc>0){
                 numPartitions++;
                 numRows+=partRc;
 
                 localCost+=pStats.localReadLatency()*partRc;
-                double colSizeAdjustment=columnSizeFactor(totalColumns,scanColumnList,pStats,keyMap);
+                double colSizeAdjustment=columnSizeFactor(totalColumns,scanColumnList,pStats);
                 double remoteLatency = pStats.remoteReadLatency();
                 double size = partRc*colSizeAdjustment;
                 remoteCost+=remoteLatency*size;
@@ -348,19 +358,19 @@ public class StatsStoreCostController extends GenericController implements Store
         }
     }
 
-    protected double columnSizeFactor(TableStatistics tableStats,int totalColumns,int[] keyMap,FormatableBitSet validColumns){
+    protected double columnSizeFactor(TableStatistics tableStats,int totalColumns,BitSet validColumns){
         //get the average columnSize factor across all regions
         double colFactorSum = 0d;
         List<? extends PartitionStatistics> partStats=tableStats.partitionStatistics();
         if(partStats.size()<=0) return 0d; //no partitions present? huh?
 
         for(PartitionStatistics pStats: partStats){
-            colFactorSum+=columnSizeFactor(totalColumns,validColumns,pStats,keyMap);
+            colFactorSum+=columnSizeFactor(totalColumns,validColumns,pStats);
         }
         return colFactorSum/partStats.size();
     }
 
-    private double columnSizeFactor(int totalColumns,FormatableBitSet scanColumnList,PartitionStatistics partStats,int[] keyMap){
+    private double columnSizeFactor(int totalColumns,BitSet scanColumnList,PartitionStatistics partStats){
         /*
          * Now that we have a base cost, we want to scale that cost down if we
          * are returning fewer columns than the total. To do this, we first
@@ -381,8 +391,8 @@ public class StatsStoreCostController extends GenericController implements Store
             assert partStats.rowCount()==0: "No row width exists, but there is a positive row count!";
             return 0d;
         }
-        if(scanColumnList!=null && scanColumnList.getNumBitsSet()>0 && scanColumnList.getNumBitsSet()!=totalColumns){
-            for(int i=scanColumnList.anySetBit();i>=0;i=scanColumnList.anySetBit(i)){
+        if(scanColumnList!=null && scanColumnList.cardinality()>0 && scanColumnList.cardinality()!=totalColumns){
+            for(int i=scanColumnList.nextSetBit(0);i>=0;i=scanColumnList.nextSetBit(i+1)){
                 ColumnStatistics<DataValueDescriptor> cStats = partStats.columnStatistics(i);
                 if(cStats!=null)
                     columnSize+=cStats.avgColumnWidth();

@@ -47,6 +47,11 @@
 			<version>1.1.1-SNAPSHOT</version>
 			<classifier>tests</classifier>
 		</dependency>
+    <dependency>
+      <groupId>org.splicetest.sqlj</groupId>
+      <artifactId>sqlj-it-procs</artifactId>
+      <version>1.0.2-SNAPSHOT</version>
+    </dependency>
 	</dependencies>
 	<profiles>
 		<profile>

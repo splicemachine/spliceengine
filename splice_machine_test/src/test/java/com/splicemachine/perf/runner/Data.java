@@ -141,7 +141,7 @@ public class Data {
             //attempt to load the driver
             Class.forName("com.splicemachine.db.jdbc.AutoloadedDriver40");
             //fetch the driver for the url
-            jdbcPath = "jdbc:derby://"+server+"/" + SpliceConstants.SPLICE_DB + ";create=true";
+            jdbcPath = "jdbc:splice://"+server+"/" + SpliceConstants.SPLICE_DB + ";create=true";
             driver = DriverManager.getDriver(jdbcPath);
         }
 

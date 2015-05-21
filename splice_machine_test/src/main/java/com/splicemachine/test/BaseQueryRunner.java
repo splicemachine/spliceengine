@@ -192,7 +192,7 @@ public abstract class BaseQueryRunner {
     }
 
     private static String formatConnectString(String host, String port) {
-        return "jdbc:derby://"+host+":"+port+"/splicedb;user=splice;password=admin";
+        return "jdbc:splice://"+host+":"+port+"/splicedb;user=splice;password=admin";
     }
 
     protected abstract class Runner implements Callable<RunStats> {

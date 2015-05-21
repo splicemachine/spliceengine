@@ -17,6 +17,8 @@ import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.io.IOUtils;
+import org.apache.log4j.Logger;
+
 /**
  *
  * \begin{enumerate}
@@ -53,7 +55,7 @@ public class CreateBackupTask extends ZkTask {
 	private static final long serialVersionUID = 5l;
     private BackupItem backupItem;
     private String backupFileSystem;
-    
+    private static Logger LOG = Logger.getLogger(CreateBackupTask.class);
     
     public CreateBackupTask() { }
 
@@ -97,10 +99,21 @@ public class CreateBackupTask extends ZkTask {
     public void doExecute() throws ExecutionException, InterruptedException {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, String.format("executing %S backup on region %s",backupItem.getBackup().isIncrementalBackup()?"incremental":"full", region.toString()));
+        FileSystem fs = null;
         try {
+            fs = FileSystem.get(URI.create(backupFileSystem), SpliceConstants.config);
             writeRegionInfoOnFilesystem();
             doFullBackup();
         } catch (IOException e) {
+            try {
+                Path p = new Path(backupFileSystem + "/" + region.getRegionInfo().getEncodedName());
+                if (fs != null && fs.exists(p)) {
+                    fs.delete(p, true);
+                }
+            }
+            catch (IOException ex) {
+                throw new ExecutionException(ex);
+            }
             throw new ExecutionException(e);
         }
     }
@@ -138,21 +151,23 @@ public class CreateBackupTask extends ZkTask {
             String fileName = s[n - 1];
             String familyName = s[n - 2];
             String regionName = s[n - 3];
-            Path destPath = new Path(backupFileSystem + "/" + regionName + "/" + familyName + "/" + fileName);
+            Path destPath = new Path(backupFileSystem + "/" + regionName + "/V/" + fileName);
             if(throttleEnabled){
             	IOUtils.copyFileWithThrottling(fs, file, backupFs,  destPath, false, getConfiguration());
             } else{
             	copyFile(fs, file, backupFs,  destPath, false, SpliceConstants.config);
             }
-	    	if(isTempFile(file)){
-	    		deleteFile(fs, file, false);
+	    	if(BackupUtils.isTempFile(file)){
+                BackupUtils.deleteFile(fs, file, false);
+                SpliceLogUtils.trace(LOG, "delete temp file %s", file);
 	    	}
+            if (LOG.isTraceEnabled()) {
+                SpliceLogUtils.trace(LOG, "copied %s to %s", file.toString(), destPath.toString());
+            }
     	}
     }
     
-    private void deleteFile(FileSystem fs, Object file, boolean b) throws IOException {
-		fs.delete((Path) file, b);
-	}
+
 
 	private void copyFile(FileSystem srcFS, Object file, FileSystem dstFS,
 			Path dst, boolean deleteSource, Configuration conf) throws IOException 
@@ -169,14 +184,7 @@ public class CreateBackupTask extends ZkTask {
 	}
 
 
-	/**
-     * TODO: do we have to delete temporary files (materialized from refs)?    
-     * @param file
-     * @return true if temporary file
-     */
-	private boolean isTempFile(Object file) {		
-		return file instanceof Path;
-	}
+
     
     private String getSnapshotName()
     {

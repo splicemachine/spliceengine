@@ -112,10 +112,6 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 				return Collections.singletonList(source);
 		}
 
-
-    // Fire Before Triggers
-
-    // Fire After Triggers
 		@Override
 		public ExecRow getExecRowDefinition() throws StandardException {
 				/*

@@ -2,7 +2,6 @@ package com.splicemachine.derby.impl.stats;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.StoreCostResult;
@@ -15,6 +14,8 @@ import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.TxnView;
 
+import java.util.BitSet;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -25,7 +26,6 @@ public class IndexStatsCostController extends StatsStoreCostController {
     private final int totalColumns;
     private final IndexTableStatistics indexStats;
     private int[] indexColToHeapColMap;
-    private int[] baseTableKeyColumns;
 
     public IndexStatsCostController(ConglomerateDescriptor cd,
                                     OpenSpliceConglomerate indexConglomerate,
@@ -53,11 +53,10 @@ public class IndexStatsCostController extends StatsStoreCostController {
             throw Exceptions.parseException(e);
         }
         totalColumns = ((SpliceConglomerate)heapConglomerate).getFormat_ids().length;
-        this.baseTableKeyColumns = ((SpliceConglomerate)heapConglomerate).getColumnOrdering();
     }
 
     @Override
-    public void getFetchFromRowLocationCost(FormatableBitSet heapColumns,int access_type,CostEstimate cost) throws StandardException{
+    public void getFetchFromRowLocationCost(BitSet heapColumns,int access_type,CostEstimate cost) throws StandardException{
         double rowsToFetch=cost.rowCount();
         if(rowsToFetch==0d) return; //we don't expect to see any rows, so we won't perform a lookup either
         /*
@@ -79,7 +78,7 @@ public class IndexStatsCostController extends StatsStoreCostController {
         double baseLookupLatency = indexStats.multiGetLatency();
 
         //scale by the column size factor of the heap columns
-        double colSizeFactor=super.columnSizeFactor(indexStats,totalColumns,baseTableKeyColumns,heapColumns);
+        double colSizeFactor=super.columnSizeFactor(indexStats,totalColumns,heapColumns);
         baseLookupLatency *=colSizeFactor;
 
         /*
@@ -88,7 +87,14 @@ public class IndexStatsCostController extends StatsStoreCostController {
          * add the open and close scanner latency once per block, rather than once per row as we might expect
          */
         int lookupsPerBlock =SpliceConstants.indexBatchSize;
-        long numBlocks = (long)Math.ceil(rowsToFetch/lookupsPerBlock); //we need at least one block
+        long numBlocks = (long)(rowsToFetch/lookupsPerBlock); //we need at least one block
+        double partialBlockRatio = 0d;
+        if((rowsToFetch % lookupsPerBlock)!=0){
+            /*
+             * The last block is only partially filled, so we need
+             */
+            partialBlockRatio=(rowsToFetch%lookupsPerBlock)/lookupsPerBlock;
+        }
 
         double blockLookupLatency = baseLookupLatency*lookupsPerBlock;
         /*
@@ -131,7 +137,7 @@ public class IndexStatsCostController extends StatsStoreCostController {
             //fillToLookupRatio = how long it takes to fill the next block/the cost to perform this block's lookup
             double largeBlockLatency=blockLookupLatency-largeBlockCost;
 
-            int specialBlocks=blocksBeforePausing-(int)(numBlocks%blocksBeforePausing);
+            int specialBlocks=(int)(numBlocks%blocksBeforePausing);
             long nBlocks=numBlocks-specialBlocks;
 
             latency=nBlocks*largeBlockLatency;
@@ -142,7 +148,11 @@ public class IndexStatsCostController extends StatsStoreCostController {
                 latency+=largeBlockLatency;
                 specialBlocks--;
             }
+            //the last block we fill to the partial amount, then wait for it to finish, so
+            //the latency is a ratio of the largeBlockLatency
+            latency+=partialBlockRatio*largeBlockLatency;
         }
+
 
         /*
          * We need to add in the cost to read the added number of rows across the network
@@ -168,22 +178,20 @@ public class IndexStatsCostController extends StatsStoreCostController {
     }
 
     @Override
-    public void getScanCost(int scan_type,
-                            long row_count,
-                            int group_size,
+    public void getScanCost(long row_count,
                             boolean forUpdate,
-                            FormatableBitSet scanColumnList,
+                            BitSet scanColumnList,
                             DataValueDescriptor[] template,
+                            List<DataValueDescriptor> probeValues,
                             DataValueDescriptor[] startKeyValue,
                             int startSearchOperator,
                             DataValueDescriptor[] stopKeyValue,
                             int stopSearchOperator,
-                            boolean reopen_scan,
-                            int access_type,
                             StoreCostResult cost_result) throws StandardException {
         super.estimateCost(conglomerateStatistics,
                 totalColumns,
                 scanColumnList,
+                probeValues,
                 startKeyValue, startSearchOperator,
                 stopKeyValue, stopSearchOperator,
                 indexColToHeapColMap,

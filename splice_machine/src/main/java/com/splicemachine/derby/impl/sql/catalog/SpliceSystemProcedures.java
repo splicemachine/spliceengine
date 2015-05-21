@@ -231,6 +231,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                     Procedure getActiveServers = Procedure.newBuilder().name("SYSCS_GET_ACTIVE_SERVERS")
                             .numOutputParams(0)
                             .numResultSets(1)
+                            .sqlControl(RoutineAliasInfo.READS_SQL_DATA)
                             .ownerClass(SpliceAdmin.class.getCanonicalName())
                             .build();
                     procedures.add(getActiveServers);
@@ -268,6 +269,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                     Procedure getRegionServerTaskInfo = Procedure.newBuilder().name("SYSCS_GET_REGION_SERVER_TASK_INFO")
                             .numOutputParams(0)
                             .numResultSets(1)
+                            .sqlControl(RoutineAliasInfo.NO_SQL)
                             .ownerClass(SpliceAdmin.class.getCanonicalName())
                             .build();
                     procedures.add(getRegionServerTaskInfo);
@@ -279,6 +281,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .numOutputParams(0)
                             .numResultSets(1)
                             .ownerClass(SpliceAdmin.class.getCanonicalName())
+                            .sqlControl(RoutineAliasInfo.NO_SQL)
                             .build();
                     procedures.add(getRegionServerStatsInfo);
 
@@ -290,6 +293,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .integer("mode")            // 0 = fetch all, 1 = fetch only props where value not same on all servers
                             .numOutputParams(0)
                             .numResultSets(1)
+                            .sqlControl(RoutineAliasInfo.NO_SQL)
                             .ownerClass(SpliceAdmin.class.getCanonicalName())
                             .build();
                     procedures.add(getRegionServerConfig);
@@ -300,6 +304,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                     Procedure getVersionInfo = Procedure.newBuilder().name("SYSCS_GET_VERSION_INFO")
                             .numOutputParams(0)
                             .numResultSets(1)
+                            .sqlControl(RoutineAliasInfo.READS_SQL_DATA)
                             .ownerClass(SpliceAdmin.class.getCanonicalName())
                             .build();
                     procedures.add(getVersionInfo);
@@ -484,6 +489,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .numOutputParams(0)
                             .numResultSets(1)
                             .varchar("loggerName", 128)
+                            .sqlControl(RoutineAliasInfo.READS_SQL_DATA)
                             .ownerClass(SpliceAdmin.class.getCanonicalName())
                             .build();
                     procedures.add(getLoggerLevel);
@@ -496,6 +502,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .numResultSets(0)
                             .varchar("loggerName", 128)
                             .varchar("loggerLevel", 128)
+                            .sqlControl(RoutineAliasInfo.NO_SQL)
                             .ownerClass(SpliceAdmin.class.getCanonicalName())
                             .build();
                     procedures.add(setLoggerLevel);
@@ -703,6 +710,7 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                     Procedure getAutoTrace = Procedure.newBuilder().name("SYSCS_GET_AUTO_TRACE")
                             .numOutputParams(0)
                             .numResultSets(1)
+                            .sqlControl(RoutineAliasInfo.READS_SQL_DATA)
                             .ownerClass(SpliceAdmin.class.getCanonicalName())
                             .build();
                     procedures.add(getAutoTrace);

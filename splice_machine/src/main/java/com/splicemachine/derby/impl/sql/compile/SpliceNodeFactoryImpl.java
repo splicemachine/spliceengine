@@ -37,8 +37,9 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
      * will only ever exist, see DERBY-673, as part of the
      * compile system.
      */
+    @Override
 	public boolean canSupport(Properties startParams) {
-		return Monitor.isDesiredType(startParams,EngineType.STANDALONE_DB | EngineType.STORELESS_ENGINE);
+		return Monitor.isDesiredType(startParams,EngineType.STANDALONE_DB);
 	}
 
 	/**

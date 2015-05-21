@@ -47,7 +47,6 @@ public class QueryTimeoutIT extends SpliceUnitTest {
                 }
             });
 
-    private static final String STORED_PROCS_JAR_FILE = getBaseDirectory()+"/target/test-classes/test_procs.jar";
     private static final String DERBY_JAR_NAME = schemaWatcher.schemaName + ".TESTS_PROCS_JAR";
     private static final String CALL_INSTALL_JAR_STRING = "CALL SQLJ.INSTALL_JAR('%s', '%s', 0)";
     private static final String CALL_SET_CLASSPATH_STRING =
@@ -81,6 +80,7 @@ public class QueryTimeoutIT extends SpliceUnitTest {
     @Before
     public void setUpClass() throws Exception {
         // Install the jar file of user-defined stored procedures.
+        String STORED_PROCS_JAR_FILE = TestProcs.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath();
         File jar = new File(STORED_PROCS_JAR_FILE);
         Assert.assertTrue("Can't run test without " + STORED_PROCS_JAR_FILE, jar.exists());
         classWatcher.executeUpdate(String.format(CALL_INSTALL_JAR_STRING, STORED_PROCS_JAR_FILE, DERBY_JAR_NAME));
