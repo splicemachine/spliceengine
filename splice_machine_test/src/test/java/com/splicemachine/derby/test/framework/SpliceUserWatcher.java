@@ -43,7 +43,7 @@ public class SpliceUserWatcher extends TestWatcher {
 	}
 	
 	public void createUser(String userName, String password) {
-	  if (!AuthenticationConstants.authentication.toUpperCase().equals("LDAP")) {
+	  if (! AuthenticationConstants.authentication.toUpperCase().equals("LDAP")) {
 		Connection connection = null;
 		PreparedStatement statement = null;
 		try {
@@ -64,13 +64,13 @@ public class SpliceUserWatcher extends TestWatcher {
 	}
 	
 	public void dropUser(String userName) {
-	  if (AuthenticationConstants.authentication.toUpperCase().equals("LDAP")) {
+	  if (! AuthenticationConstants.authentication.toUpperCase().equals("LDAP")) {
 		Connection connection = null;
 		PreparedStatement statement = null;
 		try {
 			connection = SpliceNetConnection.getConnection();
 			statement = connection.prepareStatement("select username from sys.sysusers where username = ?");
-			statement.setString(1, userName);
+			statement.setString(1, userName.toUpperCase());
 			ResultSet rs = statement.executeQuery();
 			if (rs.next()) {
 				statement = connection.prepareStatement("call syscs_util.syscs_drop_user(?)");
