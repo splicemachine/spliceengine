@@ -7,9 +7,6 @@ import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.impl.sql.compile.Predicate;
 import com.splicemachine.db.impl.sql.compile.PredicateList;
-import org.apache.log4j.Logger;
-
-import java.util.Arrays;
 
 public class BroadcastJoinStrategy extends BaseCostedHashableJoinStrategy {
     public BroadcastJoinStrategy() { }
@@ -66,8 +63,9 @@ public class BroadcastJoinStrategy extends BaseCostedHashableJoinStrategy {
 	public boolean feasible(Optimizable innerTable,
                             OptimizablePredicateList predList,
                             Optimizer optimizer,
-                            CostEstimate outerCost) throws StandardException {
-        boolean hashFeasible = super.feasible(innerTable,predList,optimizer,outerCost) && innerTable.isBaseTable();
+                            CostEstimate outerCost,
+                            boolean wasHinted) throws StandardException {
+        boolean hashFeasible = super.feasible(innerTable,predList,optimizer,outerCost,wasHinted) && innerTable.isBaseTable();
         if(!hashFeasible) return false;
 		TableDescriptor td = innerTable.getTableDescriptor();
         if(td==null) return false;
@@ -96,7 +94,8 @@ public class BroadcastJoinStrategy extends BaseCostedHashableJoinStrategy {
 
         CostEstimate baseEstimate = innerTable.estimateCost(nonJoinPredicates,innerCd,optimizer.newCostEstimate(),optimizer,null);
         double estimatedMemoryMB = baseEstimate.getEstimatedHeapSize()/1024d/1024d;
-        return estimatedMemoryMB<SpliceConstants.broadcastRegionMBThreshold;
+        //TODO -sf- warn users when they hint this join and we think it won't fit in heap
+        return wasHinted || estimatedMemoryMB<SpliceConstants.broadcastRegionMBThreshold;
 	}
 
     @Override

@@ -35,7 +35,7 @@ public final class SpliceTransactionResourceImpl implements AutoCloseable{
 		protected LanguageConnectionContext lcc;
 
 		public SpliceTransactionResourceImpl() throws SQLException {
-				this ("jdbc:derby:"+ SpliceConstants.SPLICE_DB + ";create=true", new Properties());
+				this ("jdbc:splice:"+ SpliceConstants.SPLICE_DB + ";create=true", new Properties());
 		}
 
 		public SpliceTransactionResourceImpl(String url, Properties info) throws SQLException {

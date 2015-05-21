@@ -77,8 +77,8 @@ public class IncrementalBackupTest {
             files2.add(SnapshotUtilsImpl.newLink(conf, new Path("table/region/cf/testtb=4567-f0")));
             files2.add(SnapshotUtilsImpl.newLink(conf, new Path("table/region/cf/testtb=4567-f2")));
 
-            when(snapshotUtils.getSnapshotFilesForRegion(null, conf, fs, snapshotName)).thenReturn(files1);
-            when(snapshotUtils.getSnapshotFilesForRegion(null, conf, fs, lastSnapshotName)).thenReturn(files0);
+            when(snapshotUtils.getSnapshotFilesForRegion(null, conf, fs, snapshotName, false)).thenReturn(files1);
+            when(snapshotUtils.getSnapshotFilesForRegion(null, conf, fs, lastSnapshotName, false)).thenReturn(files0);
 
             Class klass = incrementalBackupTask.getClass();
             Field f = klass.getDeclaredField("snapshotUtils");
@@ -115,8 +115,8 @@ public class IncrementalBackupTest {
             f = klass.getDeclaredField("lastSnapshotName");
             f.setAccessible(true);
             f.set(incrementalBackupTask, lastSnapshotName);
-            when(snapshotUtils.getSnapshotFilesForRegion(null, conf, fs, snapshotName)).thenReturn(files2);
-            when(snapshotUtils.getSnapshotFilesForRegion(null, conf, fs, lastSnapshotName)).thenReturn(files1);
+            when(snapshotUtils.getSnapshotFilesForRegion(null, conf, fs, snapshotName, false)).thenReturn(files2);
+            when(snapshotUtils.getSnapshotFilesForRegion(null, conf, fs, lastSnapshotName, false)).thenReturn(files1);
             paths = (List<Path>) method.invoke(incrementalBackupTask);
             Assert.assertEquals(1, paths.size());
             Assert.assertTrue(paths.get(0).getName().compareTo("f2")== 0);

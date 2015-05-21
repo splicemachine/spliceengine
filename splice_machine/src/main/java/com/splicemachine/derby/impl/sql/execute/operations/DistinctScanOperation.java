@@ -17,7 +17,6 @@ import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
-import com.splicemachine.si.api.TxnView;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;

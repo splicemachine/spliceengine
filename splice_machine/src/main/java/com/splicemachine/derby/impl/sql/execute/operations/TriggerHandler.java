@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.jdbc.ConnectionContext;
 import com.splicemachine.db.iapi.services.context.Context;
@@ -18,37 +19,49 @@ import com.splicemachine.tools.EmbedConnectionMaker;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.List;
+import java.util.concurrent.Callable;
 
 /**
  * Used by DMLOperation to initialize the derby classes necessary for firing row/statement triggers.  Also provides
  * convenient methods for firing.
+ *
+ * Intended to be used by a single thread.
  */
 public class TriggerHandler {
 
-    private final TriggerInfo triggerInfo;
+    /** When this many rows have been passed for firing AFTER row triggers then we actually fire. */
+    private static final int AFTER_ROW_BUFFER_SIZE = 1000;
+
     private TriggerEventActivator triggerActivator;
     private ResultDescription resultDescription;
     private TriggerEvent beforeEvent;
     private TriggerEvent afterEvent;
+    private List<ExecRow> pendingAfterRows;
+
+    private final boolean hasBeforeRow;
+    private final boolean hasBeforeStatement;
+    private final boolean hasAfterRow;
+    private final boolean hasAfterStatement;
 
     public TriggerHandler(SpliceOperationContext context,
+                          TriggerInfo triggerInfo,
                           DMLWriteInfo writeInfo,
                           Activation activation,
                           TriggerEvent beforeEvent,
                           TriggerEvent afterEvent) throws StandardException {
         WriteCursorConstantOperation constantAction = (WriteCursorConstantOperation) writeInfo.getConstantAction();
-        this.triggerInfo = constantAction.getTriggerInfo();
-
-        if (this.triggerInfo == null) {
-            // short circuit, our current DML statement has no triggers.
-            return;
-        }
-
         initConnectionContext(context);
-
         this.beforeEvent = beforeEvent;
         this.afterEvent = afterEvent;
         this.resultDescription = activation.getResultDescription();
+        this.pendingAfterRows = Lists.newArrayListWithCapacity(AFTER_ROW_BUFFER_SIZE);
+
+        this.hasBeforeRow = triggerInfo.hasBeforeRowTrigger();
+        this.hasAfterRow = triggerInfo.hasAfterRowTrigger();
+        this.hasBeforeStatement = triggerInfo.hasBeforeStatementTrigger();
+        this.hasAfterStatement = triggerInfo.hasAfterStatementTrigger();
+
         this.triggerActivator = new TriggerEventActivator(
                 context.getLanguageConnectionContext(),
                 context.getLanguageConnectionContext().getTransactionExecute(),
@@ -81,15 +94,32 @@ public class TriggerHandler {
     }
 
     public void fireBeforeRowTriggers(ExecRow row) throws StandardException {
-        if (triggerInfo != null && row != null && triggerInfo.hasBeforeRowTrigger()) {
+        if (row != null && hasBeforeRow) {
             SingleRowCursorResultSet rowResultSet1 = new SingleRowCursorResultSet(resultDescription, row);
             SingleRowCursorResultSet rowResultSet2 = new SingleRowCursorResultSet(resultDescription, row);
             triggerActivator.notifyRowEvent(beforeEvent, rowResultSet1, rowResultSet2, null);
         }
     }
 
-    public void fireAfterRowTriggers(ExecRow row) throws StandardException {
-        if (triggerInfo != null && row != null && triggerInfo.hasAfterRowTrigger()) {
+    public void fireAfterRowTriggers(ExecRow row, Callable<Void> flushCallback) throws Exception {
+        pendingAfterRows.add(row.getClone());
+        if (pendingAfterRows.size() == AFTER_ROW_BUFFER_SIZE) {
+            firePendingAfterTriggers(flushCallback);
+        }
+    }
+
+    public void firePendingAfterTriggers(Callable<Void> flushCallback) throws Exception {
+        /* If there are any un-flushed rows that would cause a constraint violation then this callback will throw.
+         * Which is what we want. Check constraints before firing after triggers. */
+        flushCallback.call();
+        for (ExecRow flushedRow : pendingAfterRows) {
+            fireAfterRowTriggers(flushedRow);
+        }
+        pendingAfterRows.clear();
+    }
+
+    private void fireAfterRowTriggers(ExecRow row) throws StandardException {
+        if (row != null && hasAfterRow) {
             SingleRowCursorResultSet rowResultSet1 = new SingleRowCursorResultSet(resultDescription, row);
             SingleRowCursorResultSet rowResultSet2 = new SingleRowCursorResultSet(resultDescription, row);
             triggerActivator.notifyRowEvent(afterEvent, rowResultSet1, rowResultSet2, null);
@@ -97,13 +127,13 @@ public class TriggerHandler {
     }
 
     public void fireBeforeStatementTriggers() throws StandardException {
-        if (triggerInfo != null && triggerInfo.hasBeforeStatementTrigger()) {
+        if (hasBeforeStatement) {
             triggerActivator.notifyStatementEvent(beforeEvent);
         }
     }
 
     public void fireAfterStatementTriggers() throws StandardException {
-        if (triggerInfo != null && triggerInfo.hasAfterStatementTrigger()) {
+        if (hasAfterStatement) {
             triggerActivator.notifyStatementEvent(afterEvent);
         }
     }

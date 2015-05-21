@@ -802,18 +802,217 @@ public class TruncateFunctionIT {
         rs.close();
     }
 
-    @Test @Ignore("The DRDA command parseSQLDIAGSTT is not currently implemented.  The connection has been terminated.")
+    @Test
     public void testTruncDecimalValueNegativeGreaterThanPrecision() throws Exception {
         // DB-2954
         String sqlText =  "values truncate(0.341234, -3)";
-
         ResultSet rs = spliceClassWatcher.executeQuery(sqlText);
-
         String expected =
-            "1 |\n" +
-                "----\n" +
-                " 0 |";
+            "1    |\n" +
+                "----------\n" +
+                "0.000000 |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
+        sqlText =  "values truncate(45.341234,-3)";
+        rs = spliceClassWatcher.executeQuery(sqlText);
+        expected =
+            "1    |\n" +
+                "----------\n" +
+                "0.000000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
+        sqlText =  "values truncate(5.341234,-3)";
+        rs = spliceClassWatcher.executeQuery(sqlText);
+        expected =
+            "1    |\n" +
+                "----------\n" +
+                "0.000000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
+        sqlText =  "values truncate(0.341234,0)";
+        rs = spliceClassWatcher.executeQuery(sqlText);
+        expected =
+            "1    |\n" +
+                "----------\n" +
+                "0.000000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
+        sqlText =  "values truncate(0.341234,-1)";
+        rs = spliceClassWatcher.executeQuery(sqlText);
+        expected =
+            "1    |\n" +
+                "----------\n" +
+                "0.000000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
+        sqlText =  "values truncate(0.341234,-2)";
+        rs = spliceClassWatcher.executeQuery(sqlText);
+        expected =
+            "1    |\n" +
+                "----------\n" +
+                "0.000000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
+        sqlText =  "values truncate(0.341234,-3)";
+        rs = spliceClassWatcher.executeQuery(sqlText);
+        expected =
+            "1    |\n" +
+                "----------\n" +
+                "0.000000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
+        sqlText =  "values truncate(0.341234,-4)";
+        rs = spliceClassWatcher.executeQuery(sqlText);
+        expected =
+            "1    |\n" +
+                "----------\n" +
+                "0.000000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
+        sqlText =  "values truncate(0.341234,-5)";
+        rs = spliceClassWatcher.executeQuery(sqlText);
+        expected =
+            "1    |\n" +
+                "----------\n" +
+                "0.000000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
+        sqlText =  "values truncate(0.341234,-200)";
+        rs = spliceClassWatcher.executeQuery(sqlText);
+        expected =
+            "1    |\n" +
+                "----------\n" +
+                "0.000000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
+        sqlText =  "values truncate(1.341234,-1)";
+        rs = spliceClassWatcher.executeQuery(sqlText);
+        expected =
+            "1    |\n" +
+                "----------\n" +
+                "0.000000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
+        sqlText =  "values truncate(11.341234,-1)";
+        rs = spliceClassWatcher.executeQuery(sqlText);
+        expected =
+            "1     |\n" +
+                "-----------\n" +
+                "10.000000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
+        sqlText =  "values truncate(1.341234,0)";
+        rs = spliceClassWatcher.executeQuery(sqlText);
+        expected =
+            "1    |\n" +
+                "----------\n" +
+                "1.000000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
+        sqlText =  "values truncate(1.341234,2)";
+        rs = spliceClassWatcher.executeQuery(sqlText);
+        expected =
+            "1    |\n" +
+                "----------\n" +
+                "1.340000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
+        sqlText =  "values truncate(1.341234,1)";
+        rs = spliceClassWatcher.executeQuery(sqlText);
+        expected =
+            "1    |\n" +
+                "----------\n" +
+                "1.300000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
+        sqlText =  "values truncate(0.000000,0)";
+        rs = spliceClassWatcher.executeQuery(sqlText);
+        expected =
+            "1    |\n" +
+                "----------\n" +
+                "0.000000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
+        sqlText =  "values truncate(0.000000,-1)";
+        rs = spliceClassWatcher.executeQuery(sqlText);
+        expected =
+            "1    |\n" +
+                "----------\n" +
+                "0.000000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
+        sqlText =  "values truncate(0.000000,1)";
+        rs = spliceClassWatcher.executeQuery(sqlText);
+        expected =
+            "1    |\n" +
+                "----------\n" +
+                "0.000000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
+        sqlText =  "values truncate(0.000000,-2)";
+        rs = spliceClassWatcher.executeQuery(sqlText);
+        expected =
+            "1    |\n" +
+                "----------\n" +
+                "0.000000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
+        sqlText =  "values truncate(0.000000,2)";
+        rs = spliceClassWatcher.executeQuery(sqlText);
+        expected =
+            "1    |\n" +
+                "----------\n" +
+                "0.000000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
+        sqlText =  "values truncate(0.000000,-3)";
+        rs = spliceClassWatcher.executeQuery(sqlText);
+        expected =
+            "1    |\n" +
+                "----------\n" +
+                "0.000000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
+        sqlText =  "values truncate(0.000000,3)";
+        rs = spliceClassWatcher.executeQuery(sqlText);
+        expected =
+            "1    |\n" +
+                "----------\n" +
+                "0.000000 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
+        sqlText =  "values truncate(-311.0,-1)";
+        rs = spliceClassWatcher.executeQuery(sqlText);
+        expected =
+            "1   |\n" +
+                "--------\n" +
+                "-310.0 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
+        sqlText =  "values truncate(-311.0,-2)";
+        rs = spliceClassWatcher.executeQuery(sqlText);
+        expected =
+            "1   |\n" +
+                "--------\n" +
+                "-300.0 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
+        sqlText =  "values truncate(-311.0,-3)";
+        rs = spliceClassWatcher.executeQuery(sqlText);
+        expected =
+            "1  |\n" +
+                "-----\n" +
+                "0.0 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
+        sqlText =  "values truncate(-300,0)";
+        rs = spliceClassWatcher.executeQuery(sqlText);
+        expected =
+            "1  |\n" +
+                "------\n" +
+                "-300 |";
+        assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
+
         rs.close();
     }
 

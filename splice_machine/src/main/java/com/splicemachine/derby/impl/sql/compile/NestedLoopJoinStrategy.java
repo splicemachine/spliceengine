@@ -24,7 +24,8 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
     public boolean feasible(Optimizable innerTable,
                             OptimizablePredicateList predList,
                             Optimizer optimizer,
-                            CostEstimate outerCost) throws StandardException{
+                            CostEstimate outerCost,
+                            boolean wasHinted) throws StandardException{
         /* Nested loop is feasible, except in the corner case
          * where innerTable is a VTI that cannot be materialized
 		 * (because it has a join column as a parameter) and

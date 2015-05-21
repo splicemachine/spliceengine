@@ -30,7 +30,7 @@ public final class JavaSparkPI {
 	
 	long beginTime = System.currentTimeMillis();	
 	Configuration config = HBaseConfiguration.create();
-	config.set(MRConstants.SPLICE_JDBC_STR, "jdbc:derby://localhost:1527/splicedb;user=splice;password=admin");
+	config.set(MRConstants.SPLICE_JDBC_STR, "jdbc:splice://localhost:1527/splicedb;user=splice;password=admin");
 
 
 	SMSQLUtil sqlUtil = SMSQLUtil.getInstance(config.get(MRConstants.SPLICE_JDBC_STR));

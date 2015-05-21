@@ -37,6 +37,7 @@ import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
 import org.apache.hadoop.hbase.coprocessor.ObserverContext;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+import org.apache.hadoop.hbase.io.HFileLink;
 import org.apache.hadoop.hbase.regionserver.*;
 import org.apache.hadoop.hbase.regionserver.compactions.CompactionRequest;
 import com.splicemachine.hbase.backup.BackupFileSet;
@@ -226,10 +227,10 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
             // Get HFiles from last snapshot
             String snapshotName = BackupUtils.getLastSnapshotName(tableName);
             if (snapshotName != null) {
-                List<Path> pathList = BackupUtils.getSnapshotHFileLinksForRegion(snapshotUtils,
-                        region, conf, fs, snapshotName);
+                List<Object> pathList = snapshotUtils.getSnapshotFilesForRegion(region, conf, fs, snapshotName, false);
 
-                for (Path p : pathList) {
+                for (Object o : pathList) {
+                    Path p = ((HFileLink) o).getAvailablePath(fs);
                     String name = p.getName();
                     pathSet.add(name);
                 }
@@ -241,7 +242,7 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
             updateFileSet(tableName, encodedRegionName, pathSet, rStoreFileInfoMap, r);
         }catch (Exception ex) {
             SpliceLogUtils.warn(LOG_SPLIT, "Error in recordRegionSplitForBackup: %s", ex.getMessage());
-            //throw new IOException(ex.getCause());
+            ex.printStackTrace();
         }
     }
 
@@ -286,11 +287,12 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
             String tableName = e.getEnvironment().getRegion().getTableDesc().getNameAsString();
             String snapshotName = BackupUtils.getLastSnapshotName(tableName);
             if (snapshotName != null) {
+                SpliceLogUtils.trace(LOG, "Retrived snapshot %s.", snapshotName);
                 Configuration conf = SpliceConstants.config;
-                List<Path> pathList = BackupUtils.getSnapshotHFileLinksForRegion(snapshotUtils,
-                        region, conf, fs, snapshotName);
+                List<Object> pathList = snapshotUtils.getSnapshotFilesForRegion(region, conf, fs, snapshotName, false);
 
-                for (Path path : pathList) {
+                for (Object obj : pathList) {
+                    Path path = ((HFileLink) obj).getAvailablePath(fs);
                     pathSet.add(path.getName());
                 }
             }
@@ -336,7 +338,7 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
         }
         catch (Exception ex) {
             SpliceLogUtils.warn(LOG, "%s", ex.getMessage());
-            //throw new IOException(ex.getCause());
+            ex.printStackTrace();
         }
     }
 

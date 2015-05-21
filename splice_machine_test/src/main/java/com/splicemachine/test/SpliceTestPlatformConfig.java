@@ -16,9 +16,7 @@ import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.io.hfile.CacheConfig;
 import org.apache.hadoop.hbase.master.cleaner.TimeToLiveHFileCleaner;
-
 import java.util.List;
-
 import static com.google.common.collect.Lists.transform;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -90,7 +88,7 @@ class SpliceTestPlatformConfig {
         //
         // File System
         //
-        config.set("fs.default.name", "file:///"); // MapR Hack, tells it local filesystem
+        config.set("fs.defaultFS", "file:///"); // MapR Hack, tells it local filesystem // fs.default.name is deprecated
         // Must allow Cygwin instance to config its own rootURI
         if (!"CYGWIN".equals(hbaseRootDirUri)) {
             config.set("hbase.rootdir", hbaseRootDirUri);
@@ -99,8 +97,8 @@ class SpliceTestPlatformConfig {
         //
         // Threads, timeouts
         //
-        config.setLong("hbase.rpc.timeout", MINUTES.toMillis(6));
-        config.setLong("hbase.regionserver.lease.period", MINUTES.toMillis(6));
+        config.setLong("hbase.rpc.timeout", MINUTES.toMillis(2));
+        config.setLong("hbase.client.scanner.timeout.period", MINUTES.toMillis(2)); // hbase.regionserver.lease.period is deprecated
         config.setLong("hbase.regionserver.handler.count", 200);
         config.setLong("hbase.regionserver.msginterval", 1000);
         config.setLong("hbase.master.event.waiting.time", 20);

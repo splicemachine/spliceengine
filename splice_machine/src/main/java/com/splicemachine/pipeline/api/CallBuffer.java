@@ -44,11 +44,19 @@ public interface CallBuffer<E> extends AutoCloseable {
     void addAll(Iterable<E> elements) throws Exception;
 
     /**
-     * Flush the buffer.
+     * Flush buffered writes but don't necessarily wait them (network calls) to complete.
      *
      * @throws Exception if something goes wrong during the flush operation.
      */
     void flushBuffer() throws Exception;
+
+    /**
+     * Flush buffered writes and wait for them to complete.  Use this version of flush to be sure that the writes are
+     * persisted remotely (with constraints checked, etc) before the calling thread returns.
+     *
+     * @throws Exception if constraint violation or other problem writing
+     */
+    void flushBufferAndWait() throws Exception;
 
     /**
      * Close the buffer.

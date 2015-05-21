@@ -14,6 +14,7 @@ import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.derby.stream.derby.DataSetNoPutResultSet;
 import com.splicemachine.metrics.IOStats;
+import com.splicemachine.primitives.Bytes;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.pipeline.exception.Exceptions;
@@ -30,7 +31,6 @@ import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.sql.SQLWarning;
@@ -161,6 +161,7 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
     public SpliceRuntimeContext sinkOpen(TxnView txn,boolean showStatementInfo) throws StandardException, IOException {
         throw new RuntimeException("no Sinks now");
     }
+
 
     public TxnView getCurrentTransaction() throws StandardException {
         if(topOperation instanceof DMLWriteOperation || activation.isTraced()){

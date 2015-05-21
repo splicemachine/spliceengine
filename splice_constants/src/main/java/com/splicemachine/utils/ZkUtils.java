@@ -337,20 +337,23 @@ public class ZkUtils {
                 "speaking with ZooKeeper");
     }
 
-		public static void cleanZookeeper() throws InterruptedException, KeeperException {
-				RecoverableZooKeeper rzk = getRecoverableZooKeeper();
-				for (String path: SpliceConstants.zookeeperPaths) {
-						if (rzk.exists(path, false) != null) {
-								for (String child: rzk.getChildren(path, false)) {
-										for (String grandChild: rzk.getChildren(path + "/" + child,false)) {
-												rzk.delete(path + "/" + child + "/" + grandChild, -1);
-										}
-										rzk.delete(path + "/" + child, -1);
-								}
-								rzk.delete(path, -1);
-						}
-				}
-		}
+    /**
+     * Deletes just the splice-specific paths in zookeeper.  Does not delete hbase paths.
+     */
+    public static void cleanZookeeper() throws InterruptedException, KeeperException {
+        RecoverableZooKeeper rzk = getRecoverableZooKeeper();
+        for (String path : SpliceConstants.zookeeperPaths) {
+            if (rzk.exists(path, false) != null) {
+                for (String child : rzk.getChildren(path, false)) {
+                    for (String grandChild : rzk.getChildren(path + "/" + child, false)) {
+                        rzk.delete(path + "/" + child + "/" + grandChild, -1);
+                    }
+                    rzk.delete(path + "/" + child, -1);
+                }
+                rzk.delete(path, -1);
+            }
+        }
+    }
 
 		public static void delete(String path) throws InterruptedException, KeeperException {
 				RecoverableZooKeeper rzk = getRecoverableZooKeeper();
@@ -369,9 +372,9 @@ public class ZkUtils {
 				}
 		}
 
-		public static void refreshZookeeper() throws InterruptedException, KeeperException {
-    	cleanZookeeper();
-    	initializeZookeeper();
+    public static void refreshZookeeper() throws InterruptedException, KeeperException {
+        cleanZookeeper();
+        initializeZookeeper();
     }
 
     public static boolean validZookeeper() throws InterruptedException, KeeperException {

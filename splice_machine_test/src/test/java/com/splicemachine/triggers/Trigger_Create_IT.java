@@ -83,23 +83,23 @@ public class Trigger_Create_IT {
     @Test
     public void create_rowTriggersReferencing() throws Exception {
         // UPDATE AFTER
-        createTrigger(tb.on("T").named("t1").after().update().referencing("NEW AS N").then("select N.a from sys.systables"));
-        createTrigger(tb.on("T").named("t2").after().update().referencing("OLD AS O").then("select O.a from sys.systables"));
-        createTrigger(tb.on("T").named("t3").after().update().referencing("NEW AS N OLD AS O").then("select N.a,O.a from sys.systables"));
+        createTrigger(tb.on("T").named("t1").after().update().row().referencing("NEW AS N").then("select N.a from sys.systables"));
+        createTrigger(tb.on("T").named("t2").after().update().row().referencing("OLD AS O").then("select O.a from sys.systables"));
+        createTrigger(tb.on("T").named("t3").after().update().row().referencing("NEW AS N OLD AS O").then("select N.a,O.a from sys.systables"));
         // UPDATE BEFORE
-        createTrigger(tb.on("T").named("t4").before().update().referencing("NEW AS N").then("select N.a from sys.systables"));
-        createTrigger(tb.on("T").named("t5").before().update().referencing("OLD AS O").then("select O.a from sys.systables"));
-        createTrigger(tb.on("T").named("t6").before().update().referencing("NEW AS N OLD AS O").then("select N.a,O.a from sys.systables"));
+        createTrigger(tb.on("T").named("t4").before().update().row().referencing("NEW AS N").then("select N.a from sys.systables"));
+        createTrigger(tb.on("T").named("t5").before().update().row().referencing("OLD AS O").then("select O.a from sys.systables"));
+        createTrigger(tb.on("T").named("t6").before().update().row().referencing("NEW AS N OLD AS O").then("select N.a,O.a from sys.systables"));
 
         // INSERT AFTER
-        createTrigger(tb.on("T").named("t7").after().insert().referencing("NEW AS N").then("select N.a from sys.systables"));
+        createTrigger(tb.on("T").named("t7").after().insert().row().referencing("NEW AS N").then("select N.a from sys.systables"));
         // INSERT BEFORE
-        createTrigger(tb.on("T").named("t8").before().insert().referencing("NEW AS N").then("select N.a from sys.systables"));
+        createTrigger(tb.on("T").named("t8").before().insert().row().referencing("NEW AS N").then("select N.a from sys.systables"));
 
         // DELETE AFTER
-        createTrigger(tb.on("T").named("t9").after().delete().referencing("OLD AS O").then("select O.a from sys.systables"));
+        createTrigger(tb.on("T").named("t9").after().delete().row().referencing("OLD AS O").then("select O.a from sys.systables"));
         // DELETE BEFORE
-        createTrigger(tb.on("T").named("t10").before().delete().referencing("OLD AS O").then("select O.a from sys.systables"));
+        createTrigger(tb.on("T").named("t10").before().delete().row().referencing("OLD AS O").then("select O.a from sys.systables"));
     }
 
     @Test

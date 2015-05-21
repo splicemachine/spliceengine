@@ -1,6 +1,5 @@
 package com.splicemachine.pipeline.callbuffer;
 
-import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.pipeline.api.CallBuffer;
 import com.splicemachine.pipeline.api.PreFlushHook;
 import com.splicemachine.pipeline.api.RecordingCallBuffer;
@@ -19,6 +18,7 @@ public class ForwardRecordingCallBuffer<E> implements RecordingCallBuffer<E> {
 		@Override public void addAll(E[] elements) throws Exception { delegate.addAll(elements); }
 		@Override public void addAll(Iterable<E> elements) throws Exception { delegate.addAll(elements); }
 		@Override public void flushBuffer() throws Exception { delegate.flushBuffer(); }
+        @Override public void flushBufferAndWait() throws Exception { delegate.flushBufferAndWait(); }
 		@Override public void close() throws Exception { delegate.close(); }
 		@Override public long getTotalElementsAdded() { return delegate.getTotalElementsAdded(); }
 		@Override public long getTotalBytesAdded() { return delegate.getTotalBytesAdded(); }
