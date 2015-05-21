@@ -7,6 +7,7 @@ import com.splicemachine.test_dao.TriggerDAO;
 import org.junit.*;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
 import static org.junit.Assert.*;
@@ -242,6 +243,60 @@ public class Trigger_Row_IT {
         ResultSet rs = connection.prepareCall("call syscs_util.SYSCS_GET_GLOBAL_DATABASE_PROPERTY('triggerRowItPropB')").executeQuery();
         rs.next();
         assertNull(rs.getString(2));
+    }
+
+    //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    //
+    // Misc other tests
+    //
+    //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @Test
+    public void multipleRowAndStatementTriggersOnOneTable() throws Exception {
+        // given - six row triggers on same table.
+        methodWatcher.executeUpdate(tb.named("u_1").after().update().on("T").row().then("INSERT INTO RECORD VALUES('u1')").build());
+        methodWatcher.executeUpdate(tb.named("u_2").after().update().on("T").row().then("INSERT INTO RECORD VALUES('u2')").build());
+        methodWatcher.executeUpdate(tb.named("i_1").after().insert().on("T").row().then("INSERT INTO RECORD VALUES('i1')").build());
+        methodWatcher.executeUpdate(tb.named("i_2").after().insert().on("T").row().then("INSERT INTO RECORD VALUES('i2')").build());
+        methodWatcher.executeUpdate(tb.named("d_1").after().delete().on("T").row().then("INSERT INTO RECORD VALUES('d1')").build());
+        methodWatcher.executeUpdate(tb.named("d_2").after().delete().on("T").row().then("INSERT INTO RECORD VALUES('d2')").build());
+
+        // given - three statement triggers
+        methodWatcher.executeUpdate(tb.named("u_stat").after().update().on("T").statement().then("INSERT INTO RECORD VALUES('statement-1')").build());
+        methodWatcher.executeUpdate(tb.named("i_stat").after().insert().on("T").statement().then("INSERT INTO RECORD VALUES('statement-2')").build());
+        methodWatcher.executeUpdate(tb.named("d_stat").after().delete().on("T").statement().then("INSERT INTO RECORD VALUES('statement-3')").build());
+
+        // when - update
+        methodWatcher.executeUpdate("update T set c = 0 where c=1 or c=2");
+        assertRecordCount("u1", 2);
+        assertRecordCount("u2", 2);
+        assertRecordCount("statement-1", 1);
+        // when - insert
+        methodWatcher.executeUpdate("insert into T values(7,7,7)");
+        assertRecordCount("i1", 1);
+        assertRecordCount("i2", 1);
+        assertRecordCount("statement-2", 1);
+        // when - delete
+        methodWatcher.executeUpdate("delete from T where c=3 or c=4");
+        assertRecordCount("d1", 2);
+        assertRecordCount("d2", 2);
+        assertRecordCount("statement-3", 1);
+    }
+
+    @Test
+    public void oldPreparedStatementsFireNewRowTriggers() throws Exception {
+        // given - create a prepared statement and execute it so we are sure that it is compiled
+        PreparedStatement ps = methodWatcher.getOrCreateConnection().prepareStatement("update T set a = a + 1");
+        assertEquals(6, ps.executeUpdate());
+
+        // given - define the trigger after ps is created/compiled
+        methodWatcher.executeUpdate(tb.named("u_1").after().update().on("T").row().then("INSERT INTO RECORD VALUES('u1')").build());
+
+        // when - execute ps again
+        assertEquals(6, ps.executeUpdate());
+
+        // then - trigger still fires
+        assertRecordCount("u1", 6);
     }
 
     //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
