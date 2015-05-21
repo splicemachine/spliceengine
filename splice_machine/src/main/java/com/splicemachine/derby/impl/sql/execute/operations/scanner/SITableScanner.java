@@ -93,6 +93,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
                              String indexName,
                              final String tableVersion,
                              SIFilterFactory filterFactory) {
+        assert template!=null:"Template cannot be null into a scanner";
         this.dataLib = dataLib;
         this.region = region;
         this.scan = scan;
