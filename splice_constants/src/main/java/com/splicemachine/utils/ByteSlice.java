@@ -219,8 +219,10 @@ public class ByteSlice implements Externalizable,Comparable<ByteSlice> {
     public void readExternal(ObjectInput in) throws IOException,ClassNotFoundException {
         offset = in.readInt();
         length = in.readInt();
-        buffer = new byte[length];
-        in.readFully(buffer);
+        if (in.readBoolean()) {
+            buffer = new byte[length];
+            in.readFully(buffer);
+        }
         hashSet = false;
     }
 
@@ -228,7 +230,9 @@ public class ByteSlice implements Externalizable,Comparable<ByteSlice> {
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeInt(offset);
         out.writeInt(length);
-        out.write(buffer,offset,length);
+        out.writeBoolean(buffer !=null);
+        if (buffer!=null)
+            out.write(buffer,offset,length);
     }
 
     public void reverse() {
