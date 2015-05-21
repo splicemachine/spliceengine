@@ -36,9 +36,9 @@ public class SpliceMasterObserver extends BaseMasterObserver {
 
     @Override
     public void preCreateTable(ObserverContext<MasterCoprocessorEnvironment> ctx, HTableDescriptor desc, HRegionInfo[] regions) throws IOException {
-        SpliceLogUtils.info(LOG, "preCreateTable %s", Bytes.toString(desc.getName()));
+        SpliceLogUtils.info(LOG, "preCreateTable %s", Bytes.toString(desc.getTableName().getName()));
 
-        if (Bytes.equals(desc.getName(), INIT_TABLE)) {
+        if (Bytes.equals(desc.getTableName().getName(), INIT_TABLE)) {
             initAction.execute();
         }
 //        if (Bytes.equals(desc.getName(), RESTORE_TABLE)) {
