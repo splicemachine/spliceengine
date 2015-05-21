@@ -12,7 +12,7 @@ public class MoreExecutorsTest {
 
     @Test
     public void newSingleThreadExecutor_usesThreadWithExpectedName() throws Exception {
-        ExecutorService executorService = MoreExecutors.namedSingleThreadExecutor("testName-%d");
+        ExecutorService executorService = MoreExecutors.namedSingleThreadExecutor("testName-%d", false);
         Future<String> threadName = executorService.submit(new GetThreadNameCallable());
         Future<Boolean> isDaemon = executorService.submit(new IsDaemonCallable());
 
