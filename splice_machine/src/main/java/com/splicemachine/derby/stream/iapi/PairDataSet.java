@@ -31,8 +31,8 @@ public interface PairDataSet<K,V> {
     public <W> PairDataSet<K,Tuple2<V,W>> broadcastJoin(PairDataSet<K,W> rightDataSet);
     public <W> PairDataSet<K,V> subtractByKey(PairDataSet<K,W> rightDataSet);
     public <W> PairDataSet<K,V> broadcastSubtractByKey(PairDataSet<K,W> rightDataSet);
-    public <W> PairDataSet<K,Tuple2<Iterator<V>, Iterator<W>>> cogroup(PairDataSet<K,W> rightDataSet);
-    public <W> PairDataSet<K,Tuple2<Iterator<V>, Iterator<W>>> broadcastCogroup(PairDataSet<K,W> rightDataSet);
+    public <W> PairDataSet<K,Tuple2<Iterable<V>, Iterable<W>>> cogroup(PairDataSet<K,W> rightDataSet);
+    public <W> PairDataSet<K,Tuple2<Iterable<V>, Iterable<W>>> broadcastCogroup(PairDataSet<K,W> rightDataSet);
     public DataSet<V> insertData(InsertTableWriterBuilder builder, OperationContext operationContext);
     public DataSet<V> updateData(UpdateTableWriterBuilder builder, OperationContext operationContext);
     public DataSet<V> deleteData(DeleteTableWriterBuilder builder, OperationContext operationContext);
