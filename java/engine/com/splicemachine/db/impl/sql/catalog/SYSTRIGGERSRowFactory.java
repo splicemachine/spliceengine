@@ -49,6 +49,7 @@ import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 
 import java.sql.Timestamp;
 import java.sql.Types;
@@ -160,8 +161,8 @@ public class SYSTRIGGERSRowFactory extends CatalogRowFactory {
             suuid = triggerDescriptor.getSchemaDescriptor().getUUID();
             createTime = triggerDescriptor.getCreationTimestamp();
             // for now we are assuming that a trigger can only listen to a single event
-            event = triggerDescriptor.listensForEvent(TriggerDescriptor.TRIGGER_EVENT_UPDATE) ? "U" :
-                    triggerDescriptor.listensForEvent(TriggerDescriptor.TRIGGER_EVENT_DELETE) ? "D" : "I";
+            event = triggerDescriptor.listensForEvent(TriggerEventDML.UPDATE) ? "U" :
+                    triggerDescriptor.listensForEvent(TriggerEventDML.DELETE) ? "D" : "I";
             time = triggerDescriptor.isBeforeTrigger() ? "B" : "A";
             type = triggerDescriptor.isRowTrigger() ? "R" : "S";
             enabled = triggerDescriptor.isEnabled() ? "E" : "D";
@@ -271,7 +272,7 @@ public class SYSTRIGGERSRowFactory extends CatalogRowFactory {
         UUID actionSPSID = null;        // action sps uuid string
         UUID whenSPSID = null;        // when clause sps uuid string
         Timestamp createTime;
-        int eventMask = 0;
+        TriggerEventDML eventMask;
         boolean isBefore;
         boolean isRow;
         boolean isEnabled;
@@ -309,21 +310,19 @@ public class SYSTRIGGERSRowFactory extends CatalogRowFactory {
         theChar = col.getString().charAt(0);
         switch (theChar) {
             case 'U':
-                eventMask = TriggerDescriptor.TRIGGER_EVENT_UPDATE;
+                eventMask = TriggerEventDML.UPDATE;
                 break;
 
             case 'I':
-                eventMask = TriggerDescriptor.TRIGGER_EVENT_INSERT;
+                eventMask = TriggerEventDML.INSERT;
                 break;
 
             case 'D':
-                eventMask = TriggerDescriptor.TRIGGER_EVENT_DELETE;
+                eventMask = TriggerEventDML.DELETE;
                 break;
 
             default:
-                if (SanityManager.DEBUG) {
-                    SanityManager.THROWASSERT("bad event mask: " + theChar);
-                }
+                throw new IllegalStateException("bad trigger event type: " + theChar);
         }
 
         // 6th column is FIRINGTIME (char(1))
@@ -389,8 +388,8 @@ public class SYSTRIGGERSRowFactory extends CatalogRowFactory {
                 whenSPSID,
                 actionSPSID,
                 createTime,
-                (rcd == null) ? (int[]) null : rcd.getReferencedColumnPositions(),
-                (rcd == null) ? (int[]) null : rcd.getTriggerActionReferencedColumnPositions(),
+                (rcd == null) ?  null : rcd.getReferencedColumnPositions(),
+                (rcd == null) ?  null : rcd.getTriggerActionReferencedColumnPositions(),
                 triggerDefinition,
                 referencingOld,
                 referencingNew,

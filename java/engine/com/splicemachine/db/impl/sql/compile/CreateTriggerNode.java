@@ -22,11 +22,7 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import java.sql.Timestamp;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Enumeration;
-import java.util.Hashtable;
-import java.util.Vector;
+import java.util.*;
 
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -42,6 +38,8 @@ import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
+import com.splicemachine.db.impl.sql.execute.TriggerEvent;
+import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 
 /**
  * A CreateTriggerNode is the root of a QueryTree that represents a CREATE TRIGGER statement.
@@ -50,7 +48,7 @@ public class CreateTriggerNode extends DDLStatementNode {
 
     private TableName triggerName;
     private TableName tableName;
-    private int triggerEventMask;
+    private TriggerEventDML triggerEventMask;
     private ResultColumnList triggerCols;
     private boolean isBefore;
     private boolean isRow;
@@ -249,7 +247,7 @@ public class CreateTriggerNode extends DDLStatementNode {
         initAndCheck(triggerName);
         this.triggerName = (TableName) triggerName;
         this.tableName = (TableName) tableName;
-        this.triggerEventMask = (Integer) triggerEventMask;
+        this.triggerEventMask = (TriggerEventDML) triggerEventMask;
         this.triggerCols = (ResultColumnList) triggerCols;
         this.isBefore = (Boolean) isBefore;
         this.isRow = (Boolean) isRow;
@@ -716,11 +714,9 @@ public class CreateTriggerNode extends DDLStatementNode {
     ** Check for illegal combinations here: insert & old or delete and new
     */
     private void checkInvalidTriggerReference(String tableName) throws StandardException {
-        if (tableName.equals(oldTableName) &&
-                (triggerEventMask & TriggerDescriptor.TRIGGER_EVENT_INSERT) == TriggerDescriptor.TRIGGER_EVENT_INSERT) {
+        if (tableName.equals(oldTableName) && triggerEventMask == TriggerEventDML.INSERT) {
             throw StandardException.newException(SQLState.LANG_TRIGGER_BAD_REF_MISMATCH, "INSERT", "new");
-        } else if (tableName.equals(newTableName) &&
-                (triggerEventMask & TriggerDescriptor.TRIGGER_EVENT_DELETE) == TriggerDescriptor.TRIGGER_EVENT_DELETE) {
+        } else if (tableName.equals(newTableName) && triggerEventMask == TriggerEventDML.DELETE) {
             throw StandardException.newException(SQLState.LANG_TRIGGER_BAD_REF_MISMATCH, "DELETE", "old");
         }
     }
@@ -760,7 +756,7 @@ public class CreateTriggerNode extends DDLStatementNode {
                 /*
                 ** 3a) No NEW reference in delete trigger
                 */
-                if ((triggerEventMask & TriggerDescriptor.TRIGGER_EVENT_DELETE) == TriggerDescriptor.TRIGGER_EVENT_DELETE) {
+                if (triggerEventMask == TriggerEventDML.DELETE) {
                     throw StandardException.newException(SQLState.LANG_TRIGGER_BAD_REF_MISMATCH, "DELETE", "old");
                 }
                 newTableName = trn.identifier;
@@ -772,7 +768,7 @@ public class CreateTriggerNode extends DDLStatementNode {
                 /*
                 ** 3b) No OLD reference in insert trigger
                 */
-                if ((triggerEventMask & TriggerDescriptor.TRIGGER_EVENT_INSERT) == TriggerDescriptor.TRIGGER_EVENT_INSERT) {
+                if (triggerEventMask == TriggerEventDML.INSERT) {
                     throw StandardException.newException(SQLState.LANG_TRIGGER_BAD_REF_MISMATCH, "INSERT", "new");
                 }
                 oldTableName = trn.identifier;

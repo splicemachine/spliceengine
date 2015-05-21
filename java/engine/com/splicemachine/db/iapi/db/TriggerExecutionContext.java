@@ -31,22 +31,6 @@ import com.splicemachine.db.catalog.UUID;
  */
 public interface TriggerExecutionContext {
     /**
-     * Return value from </I>getEventType()</I> for an update trigger.
-     */
-    int UPDATE_EVENT = 1;
-
-    /**
-     * Return value from </I>getEventType()</I> for a delete trigger.
-     */
-    int DELETE_EVENT = 2;
-
-    /**
-     * Return value from </I>getEventType()</I> for an insert trigger.
-     */
-    int INSERT_EVENT = 3;
-
-
-    /**
      * Get the target table name upon which the trigger event is declared.
      *
      * @return the target table
@@ -59,13 +43,6 @@ public interface TriggerExecutionContext {
      * @return the uuid of the target table
      */
     UUID getTargetTableId();
-
-    /**
-     * Get the type for the event that caused the trigger to fire.
-     *
-     * @return the event type (e.g. UPDATE_EVENT)
-     */
-    int getEventType();
 
     /**
      * Get the text of the statement that caused the trigger to fire.
@@ -86,21 +63,19 @@ public interface TriggerExecutionContext {
 
     /**
      * Find out if a column was changed, by column name.
+     * Note that this will always return true for INSERT and DELETE regardless of the column name passed in.
      *
      * @param columnName the column to check
      * @return true if the column was modified by this statement.
-     * Note that this will always return true for INSERT
-     * and DELETE regardless of the column name passed in.
      */
     boolean wasColumnModified(String columnName);
 
     /**
      * Find out if a column was changed, by column number
+     * Note that this will always return true for INSERT and DELETE regardless of the column name passed in.
      *
      * @param columnNumber the column to check
      * @return true if the column was modified by this statement.
-     * Note that this will always return true for INSERT
-     * and DELETE regardless of the column name passed in.
      */
     boolean wasColumnModified(int columnNumber);
 
@@ -150,8 +125,7 @@ public interface TriggerExecutionContext {
      * that is currently executing.  For example, will return null if called
      * during a the firing of an INSERT trigger.
      *
-     * @return the ResultSet positioned on the old row image.  May
-     * return null.
+     * @return the ResultSet positioned on the old row image.  May return null.
      * @throws SQLException if called after the triggering event has completed
      */
     ResultSet getOldRow() throws SQLException;
@@ -166,8 +140,7 @@ public interface TriggerExecutionContext {
      * that is currently executing.  For example, will return null if
      * called during the firing of a DELETE trigger.
      *
-     * @return the ResultSet positioned on the new row image.  May
-     * return null.
+     * @return the ResultSet positioned on the new row image.  May return null.
      * @throws SQLException if called after the triggering event has completed
      */
     ResultSet getNewRow() throws SQLException;

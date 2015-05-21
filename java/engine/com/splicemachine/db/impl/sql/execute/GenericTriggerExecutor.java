@@ -32,6 +32,7 @@ import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
 
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.impl.sql.GenericPreparedStatement;
 
 /**
  * A trigger executor is an object that executes a trigger.  It is subclassed by row and statement executors.
@@ -150,6 +151,7 @@ public abstract class GenericTriggerExecutor {
                 // This is a substatement; for now, we do not set any timeout
                 // for it. We might change this behaviour later, by linking
                 // timeout to its parent statement's timeout settings.
+                ((GenericPreparedStatement)ps).setNeedsSavepoint(false);
                 ResultSet rs = ps.executeSubStatement(activation, spsActivation, false, 0L);
                 if (rs.returnsRows()) {
                     // Fetch all the data to ensure that functions in the select list or values statement will

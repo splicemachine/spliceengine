@@ -64,18 +64,8 @@ public abstract class GenericResultSetFactory implements ResultSetFactory
 	{
 	}
 
-	/**
-		@see ResultSetFactory#getInsertResultSet
-		@exception StandardException thrown on error
-	 */
-	public ResultSet getInsertResultSet(NoPutResultSet source, GeneratedMethod generationClauses,
-										GeneratedMethod checkGM)
-		throws StandardException
-	{
-		Activation activation = source.getActivation();
-		getAuthorizer(activation).authorize(activation, Authorizer.SQL_WRITE_OP);
-		return new InsertResultSet(source, generationClauses, checkGM, activation );
-	}
+    @Override
+	public abstract ResultSet getInsertResultSet(NoPutResultSet source, GeneratedMethod generationClauses, GeneratedMethod checkGM) throws StandardException;
 
 	/**
 		@see ResultSetFactory#getInsertVTIResultSet
@@ -103,62 +93,18 @@ public abstract class GenericResultSetFactory implements ResultSetFactory
 		return new DeleteVTIResultSet(source, activation);
 	}
 
-	/**
-		@see ResultSetFactory#getDeleteResultSet
-		@exception StandardException thrown on error
-	 */
-	public ResultSet getDeleteResultSet(NoPutResultSet source)
-			throws StandardException
-	{
-		Activation activation = source.getActivation();
-		getAuthorizer(activation).authorize(activation, Authorizer.SQL_WRITE_OP);
-		return new DeleteResultSet(source, activation );
-	}
+    @Override
+	public abstract ResultSet getDeleteResultSet(NoPutResultSet source) throws StandardException;
 
-
-	/**
-		@see ResultSetFactory#getDeleteCascadeResultSet
-		@exception StandardException thrown on error
-	 */
-	public ResultSet getDeleteCascadeResultSet(NoPutResultSet source, 
+    @Override
+	public abstract ResultSet getDeleteCascadeResultSet(NoPutResultSet source,
 											   int constantActionItem,
 											   ResultSet[] dependentResultSets,
-											   String resultSetId)
-		throws StandardException
-	{
-		Activation activation = source.getActivation();
-		getAuthorizer(activation).authorize(activation, Authorizer.SQL_WRITE_OP);
-		return new DeleteCascadeResultSet(source, activation, 
-										  constantActionItem,
-										  dependentResultSets, 
-										  resultSetId);
-	}
+											   String resultSetId) throws StandardException;
 
 
-
-	/**
-		@see ResultSetFactory#getUpdateResultSet
-		@exception StandardException thrown on error
-	 */
-	public ResultSet getUpdateResultSet(NoPutResultSet source, GeneratedMethod generationClauses,
-										GeneratedMethod checkGM)
-			throws StandardException
-	{
-		Activation activation = source.getActivation();
-		//The stress test failed with null pointer exception in here once and then
-		//it didn't happen again. It can be a jit problem because after this null
-		//pointer exception, the cleanup code in UpdateResultSet got a null
-		//pointer exception too which can't happen since the cleanup code checks
-		//for null value before doing anything.
-		//In any case, if this ever happens again, hopefully the following
-		//assertion code will catch it.
-		if (SanityManager.DEBUG)
-		{
-			SanityManager.ASSERT(getAuthorizer(activation) != null, "Authorizer is null");
-		}
-		getAuthorizer(activation).authorize(activation, Authorizer.SQL_WRITE_OP);
-		return new UpdateResultSet(source, generationClauses, checkGM, activation);
-	}
+    @Override
+	public abstract ResultSet getUpdateResultSet(NoPutResultSet source, GeneratedMethod generationClauses, GeneratedMethod checkGM) throws StandardException;
 
 	/**
 		@see ResultSetFactory#getUpdateVTIResultSet
@@ -174,23 +120,12 @@ public abstract class GenericResultSetFactory implements ResultSetFactory
 
 
 
-	/**
-		@see ResultSetFactory#getDeleteCascadeUpdateResultSet
-		@exception StandardException thrown on error
-	 */
-	public ResultSet getDeleteCascadeUpdateResultSet(NoPutResultSet source,
+    @Override
+	public abstract ResultSet getDeleteCascadeUpdateResultSet(NoPutResultSet source,
                                                      GeneratedMethod generationClauses,
 													 GeneratedMethod checkGM,
 													 int constantActionItem,
-													 int rsdItem)
-			throws StandardException
-	{
-		Activation activation = source.getActivation();
-		getAuthorizer(activation).authorize(activation, Authorizer.SQL_WRITE_OP);
-		return new UpdateResultSet(source, generationClauses, checkGM, activation,
-								   constantActionItem, rsdItem);
-	}
-
+													 int rsdItem) throws StandardException;
 
 	/**
 		@see ResultSetFactory#getCallStatementResultSet

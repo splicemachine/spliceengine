@@ -34,6 +34,7 @@ import com.splicemachine.db.iapi.sql.depend.DependencyManager;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 
 import java.sql.Types;
 import java.util.Dictionary;
@@ -1174,7 +1175,7 @@ public interface DataDictionary{
                                   int[] referencedColsInTriggerAction,
                                   int actionOffset,
                                   TableDescriptor triggerTableDescriptor,
-                                  int triggerEventMask,
+                                  TriggerEventDML triggerEventMask,
                                   boolean createTriggerTime) throws StandardException;
 
 

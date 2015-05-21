@@ -47,25 +47,7 @@ import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.Parser;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.DependencyManager;
-import com.splicemachine.db.iapi.sql.dictionary.CheckConstraintDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptorList;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptorList;
-import com.splicemachine.db.iapi.sql.dictionary.DataDescriptorGenerator;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.DefaultDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.DependencyDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.GenericDescriptorList;
-import com.splicemachine.db.iapi.sql.dictionary.IndexLister;
-import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
-import com.splicemachine.db.iapi.sql.dictionary.ReferencedKeyConstraintDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.StatisticsDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.SPSDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -1868,7 +1850,7 @@ class AlterTableConstantAction extends DDLSingleTableConstantAction
 				referencedColsInTriggerAction,
 				0,
 				trd.getTableDescriptor(),
-				trd.getTriggerEventMask(),
+				trd.getTriggerEventDML(),
 				true
 				));
 			
@@ -2364,17 +2346,12 @@ class AlterTableConstantAction extends DDLSingleTableConstantAction
 		}
 
 		//truncate is not allowed when there are enabled DELETE triggers
-		GenericDescriptorList tdl = dd.getTriggerDescriptors(td);
-        for (Iterator descIter = tdl.iterator(); descIter.hasNext(); ) {
-            TriggerDescriptor trd = (TriggerDescriptor)descIter.next();
-			if (trd.listensForEvent(TriggerDescriptor.TRIGGER_EVENT_DELETE) &&
-				trd.isEnabled())
-			{
-				throw
-					StandardException.newException(SQLState.LANG_NO_TRUNCATE_ON_ENABLED_DELETE_TRIGGERS,
-												   td.getName(),trd.getName());	
-			}
-		}
+		List<TriggerDescriptor> tdl = dd.getTriggerDescriptors(td);
+        for (TriggerDescriptor trd : tdl) {
+            if (trd.listensForEvent(TriggerEventDML.DELETE) && trd.isEnabled()) {
+                throw StandardException.newException(SQLState.LANG_NO_TRUNCATE_ON_ENABLED_DELETE_TRIGGERS, td.getName(), trd.getName());
+            }
+        }
 
 		//gather information from the existing conglomerate to create new one.
 		emptyHeapRow = td.getEmptyExecRow();
