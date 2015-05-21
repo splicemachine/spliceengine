@@ -1,11 +1,8 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.google.common.base.Strings;
-import com.splicemachine.db.iapi.db.TriggerExecutionContext;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.derby.iapi.sql.execute.*;
-import com.splicemachine.derby.impl.sql.execute.actions.WriteCursorConstantOperation;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -24,7 +21,6 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Collections;
 import java.util.List;
-import java.util.*;
 
 
 /**
@@ -50,7 +46,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 		}
 
 		public DMLWriteOperation(SpliceOperation source, Activation activation) throws StandardException{
-				super(activation,-1,0d,0d);
+				super(activation, -1, 0d, 0d);
 				this.source = source;
 				this.activation = activation;
 				this.writeInfo = new DerbyDMLWriteInfo();
@@ -66,7 +62,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 														 GeneratedMethod generationClauses,
 														 GeneratedMethod checkGM,
 														 Activation activation) throws StandardException{
-				this(source,activation);
+				this(source, activation);
 		}
 
 		DMLWriteOperation(SpliceOperation source,
@@ -100,23 +96,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 				super.init(context);
 				source.init(context);
 				writeInfo.initialize(context);
-                initTriggerActivator(context);
 		}
-
-    private void initTriggerActivator(SpliceOperationContext context) throws StandardException {
-        WriteCursorConstantOperation constantAction = (WriteCursorConstantOperation) writeInfo.getConstantAction();
-        this.triggerInfo = constantAction.getTriggerInfo();
-        if(triggerInfo != null && triggerActivator == null) {
-            LanguageConnectionContext lcc = context.getLanguageConnectionContext();
-            triggerActivator = new TriggerEventActivator(lcc,
-                    lcc.getTransactionExecute(),
-                    constantAction.getTargetUUID(),
-                    triggerInfo,
-                    TriggerExecutionContext.INSERT_EVENT,
-                    activation,
-                    new Vector());
-        }
-    }
 
     public byte[] getDestinationTable(){
 				return Long.toString(heapConglom).getBytes();
@@ -136,7 +116,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
     // Fire Before Triggers
 
     // Fire After Triggers
-    @Override
+		@Override
 		public ExecRow getExecRowDefinition() throws StandardException {
 				/*
 				 * Typically, we just call down to our source and then pass that along
@@ -157,7 +137,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 				SpliceLogUtils.trace(LOG,"execRowDefinition=%s",row);
 				return row;
 		}
-        @Override
+
 		public String prettyPrint(int indentLevel) {
 				String indent = "\n"+ Strings.repeat("\t",indentLevel);
 

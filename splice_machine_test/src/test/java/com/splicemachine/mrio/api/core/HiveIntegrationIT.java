@@ -30,6 +30,8 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 
+// Ignore until mapr brakage is fixed
+@Ignore
 public class HiveIntegrationIT extends BaseMRIOTest {
     private static final Logger LOG = Logger.getLogger(HiveIntegrationIT.class);
     private static String driverName = "org.apache.hadoop.hive.jdbc.HiveDriver";

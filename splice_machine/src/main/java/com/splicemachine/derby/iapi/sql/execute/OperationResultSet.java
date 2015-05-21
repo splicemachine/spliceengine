@@ -116,7 +116,7 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
         List<OperationInfo> operationInfo = getOperationInfo(stmtInfo.getStatementUuid());
         stmtInfo.setOperationInfo(operationInfo);
         topOperation.setStatementId(stmtInfo.getStatementUuid());
-        
+
     	SpliceDriver.driver().getStatementManager().addStatementInfo(stmtInfo);
 
         return stmtInfo;
@@ -180,10 +180,10 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
         return sinkOpen(t,showStatementInfo);
     }
 
-		public void open(boolean useProbe,boolean showStatementInfo) throws StandardException, IOException {
+    public void open(boolean useProbe,boolean showStatementInfo) throws StandardException, IOException {
         SpliceRuntimeContext ctx = sinkOpen(useProbe,showStatementInfo);
         executeScan(useProbe,ctx);
-		}
+    }
 
     @Override
     public void openCore() throws StandardException {
@@ -237,7 +237,8 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
             populateOpInfo(statementId,operationUuid,true,operation.getRightOperation(),infos);
 		}
 
-		@Override public void reopenCore() throws StandardException {
+    @Override
+    public void reopenCore() throws StandardException {
         try {
             open(false);
         } catch (IOException e) {
@@ -569,25 +570,27 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
                 "No Delegate Result Set provided, please ensure open() or openCore() was called");
     }
 
-		private TxnView elevateTransaction() throws StandardException {
-				/*
-				 * Elevate the current transaction to make sure that we are writable
-				 */
-				TransactionController transactionExecute = activation.getLanguageConnectionContext().getTransactionExecute();
-				Transaction rawStoreXact = ((TransactionManager) transactionExecute).getRawStoreXact();
+    private TxnView elevateTransaction() throws StandardException {
+        /*
+         * Elevate the current transaction to make sure that we are writable
+         */
+        TransactionController transactionExecute = activation.getLanguageConnectionContext().getTransactionExecute();
+        Transaction rawStoreXact = ((TransactionManager) transactionExecute).getRawStoreXact();
         BaseSpliceTransaction rawTxn = (BaseSpliceTransaction) rawStoreXact;
         TxnView currentTxn = rawTxn.getActiveStateTxn();
-        if(topOperation instanceof DMLWriteOperation)
-            return ((SpliceTransaction)rawTxn).elevate(((DMLWriteOperation) topOperation).getDestinationTable());
-        else if (activation.isTraced()){
-            if(!currentTxn.allowsWrites())
-                return ((SpliceTransaction)rawTxn).elevate("xplain".getBytes());
-            else
-                return currentTxn; //no need to elevate, since we're already elevated with better information
-        }else
-            throw new IllegalStateException("Programmer error: " +
-                    "attempting to elevate an operation txn without specifying a destination table");
-		}
+        if(!currentTxn.allowsWrites()) {
+            SpliceTransaction spliceRawTxn = (SpliceTransaction) rawTxn;
+            if (topOperation instanceof DMLWriteOperation) {
+                DMLWriteOperation dmlTopOperation = (DMLWriteOperation) this.topOperation;
+                return spliceRawTxn.elevate(dmlTopOperation.getDestinationTable());
+            } else if (activation.isTraced()) {
+                return spliceRawTxn.elevate("xplain".getBytes());
+            } else {
+                throw new IllegalStateException("Programmer error: attempting to elevate a non-write/non-trace operation");
+            }
+        }
+        return currentTxn;
+    }
 
     private TxnView getTransaction() throws StandardException {
         TransactionController transactionExecute = activation.getLanguageConnectionContext().getTransactionExecute();
