@@ -5,6 +5,7 @@ import com.splicemachine.derby.impl.sql.execute.serial.DecimalDVDSerializer;
 import com.splicemachine.derby.impl.sql.execute.serial.DoubleDVDSerializer;
 import com.splicemachine.derby.impl.sql.execute.serial.StringDVDSerializer;
 import com.splicemachine.derby.impl.sql.execute.serial.TimestampDVDSerializer;
+import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.utils.ByteSlice;
 
@@ -170,7 +171,9 @@ public class LazyDataValueFactory extends J2SEDataValueFactory{
             case StoredFormatIds.SQL_BLOB_ID: return new SQLBlob();
             case StoredFormatIds.SQL_CLOB_ID: return new LazyStringDataValueDescriptor(new SQLClob());
             case StoredFormatIds.XML_ID: return new XML();
-            default:return null;
+            case StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID: return new HBaseRowLocation();
+            default:
+                throw new RuntimeException("No Lazy Descriptor for type=" + formatId);
         }
     }
 
