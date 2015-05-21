@@ -17,7 +17,7 @@ import java.util.Set;
 /**
  * Created by jleach on 4/30/15.
  */
-public class CogroupInnerJoinRestrictionFlatMapFunction<Op extends SpliceOperation> extends SpliceJoinFlatMapFunction<Op, Tuple2<ExecRow,Tuple2<Iterator<LocatedRow>,Iterator<LocatedRow>>>,LocatedRow> {
+public class CogroupInnerJoinRestrictionFlatMapFunction<Op extends SpliceOperation> extends SpliceJoinFlatMapFunction<Op, Tuple2<ExecRow,Tuple2<Iterable<LocatedRow>,Iterable<LocatedRow>>>,LocatedRow> {
     protected InnerJoinRestrictionFlatMapFunction innerJoinRestrictionFlatMapFunction;
     protected LocatedRow leftRow;
     public CogroupInnerJoinRestrictionFlatMapFunction() {
@@ -29,12 +29,13 @@ public class CogroupInnerJoinRestrictionFlatMapFunction<Op extends SpliceOperati
     }
 
     @Override
-    public Iterable<LocatedRow> call(Tuple2<ExecRow,Tuple2<Iterator<LocatedRow>, Iterator<LocatedRow>>> tuple) throws Exception {
+    public Iterable<LocatedRow> call(Tuple2<ExecRow,Tuple2<Iterable<LocatedRow>, Iterable<LocatedRow>>> tuple) throws Exception {
         checkInit();
         Set<LocatedRow> rightSide = Sets.newHashSet(tuple._2._2); // Memory Issue, HashSet ?
         Iterable<LocatedRow> returnRows = new ArrayList();
-        while (tuple._2._1.hasNext()) {
-            returnRows = Iterables.concat(returnRows, innerJoinRestrictionFlatMapFunction.call(new Tuple2(tuple._2._1.next(),rightSide.iterator())));
+        Iterator<LocatedRow> it = tuple._2._1.iterator();
+        while (it.hasNext()) {
+            returnRows = Iterables.concat(returnRows, innerJoinRestrictionFlatMapFunction.call(new Tuple2(it.next(),rightSide.iterator())));
         }
         return returnRows;
     }

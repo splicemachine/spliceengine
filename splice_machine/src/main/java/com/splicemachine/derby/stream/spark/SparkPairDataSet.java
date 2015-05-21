@@ -18,7 +18,6 @@ import com.splicemachine.derby.stream.temporary.delete.DeleteTableWriterBuilder;
 import com.splicemachine.derby.stream.temporary.insert.InsertTableWriterBuilder;
 import com.splicemachine.derby.stream.temporary.update.UpdateTableWriterBuilder;
 import com.splicemachine.derby.stream.utils.TableWriterUtils;
-import com.splicemachine.mrio.MRConstants;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.mapreduce.MRJobConfig;
 import org.apache.spark.api.java.JavaPairRDD;
@@ -27,7 +26,6 @@ import org.apache.spark.broadcast.Broadcast;
 import scala.Tuple2;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.Iterator;
 
 /**
  *
@@ -129,12 +127,12 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
     }
 
     @Override
-    public <W> PairDataSet<K, Tuple2<Iterator<V>, Iterator<W>>> cogroup(PairDataSet<K, W> rightDataSet) {
+    public <W> PairDataSet<K, Tuple2<Iterable<V>, Iterable<W>>> cogroup(PairDataSet<K, W> rightDataSet) {
         return new SparkPairDataSet(rdd.cogroup(((SparkPairDataSet) rightDataSet).rdd));
     }
 
     @Override
-    public <W> PairDataSet<K, Tuple2<Iterator<V>, Iterator<W>>> broadcastCogroup(PairDataSet<K, W> rightDataSet) {
+    public <W> PairDataSet<K, Tuple2<Iterable<V>, Iterable<W>>> broadcastCogroup(PairDataSet<K, W> rightDataSet) {
         JavaPairRDD<K,W> rightPairDataSet = ((SparkPairDataSet) rightDataSet).rdd;
         JavaSparkContext context = SpliceSpark.getContext();
         Broadcast<JavaPairRDD<K,W>> broadcast = context.broadcast(rightPairDataSet);

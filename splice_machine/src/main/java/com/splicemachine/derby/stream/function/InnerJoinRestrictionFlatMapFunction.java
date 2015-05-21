@@ -14,7 +14,7 @@ import java.util.Iterator;
  * Created by jleach on 4/22/15.
  */
 @NotThreadSafe
-public class InnerJoinRestrictionFlatMapFunction<Op extends SpliceOperation> extends SpliceJoinFlatMapFunction<Op,Tuple2<LocatedRow,Iterator<LocatedRow>>,LocatedRow> {
+public class InnerJoinRestrictionFlatMapFunction<Op extends SpliceOperation> extends SpliceJoinFlatMapFunction<Op,Tuple2<LocatedRow,Iterable<LocatedRow>>,LocatedRow> {
     protected LocatedRow leftRow;
     protected LocatedRow rightRow;
     protected ExecRow mergedRow;
@@ -27,11 +27,12 @@ public class InnerJoinRestrictionFlatMapFunction<Op extends SpliceOperation> ext
     }
 
     @Override
-    public Iterable<LocatedRow> call(Tuple2<LocatedRow, Iterator<LocatedRow>> tuple) throws Exception {
+    public Iterable<LocatedRow> call(Tuple2<LocatedRow, Iterable<LocatedRow>> tuple) throws Exception {
         checkInit();
         leftRow = tuple._1();
-        while (tuple._2.hasNext()) {
-            rightRow = tuple._2.next();
+        Iterator<LocatedRow> it = tuple._2.iterator();
+        while (it.hasNext()) {
+            rightRow = it.next();
             mergedRow = JoinUtils.getMergedRow(leftRow.getRow(),
                     rightRow.getRow(), op.wasRightOuterJoin,
                     executionFactory.getValueRow(numberOfColumns));

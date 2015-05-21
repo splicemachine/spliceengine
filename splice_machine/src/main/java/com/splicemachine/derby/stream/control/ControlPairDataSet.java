@@ -223,17 +223,17 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     }
 
     @Override
-    public <W> PairDataSet<K, Tuple2<Iterator<V>, Iterator<W>>> cogroup(PairDataSet<K, W> rightDataSet) {
-        Multimap<K, Tuple2<Iterator<V>, Iterator<W>>> newMap = ArrayListMultimap.create();
+    public <W> PairDataSet<K, Tuple2<Iterable<V>, Iterable<W>>> cogroup(PairDataSet<K, W> rightDataSet) {
+        Multimap<K, Tuple2<Iterable<V>, Iterable<W>>> newMap = ArrayListMultimap.create();
         Multimap<K,W> rightSide = ((ControlPairDataSet) rightDataSet).source;
         Sets.union(source.keySet(),rightSide.keySet());
         for (K key: Sets.union(source.keySet(),rightSide.keySet()))
-            newMap.put(key, new Tuple2(source.get(key).iterator(), rightSide.get(key).iterator()));
+            newMap.put(key, new Tuple2(source.get(key), rightSide.get(key)));
         return new ControlPairDataSet<>(newMap);
     }
 
     @Override
-    public <W> PairDataSet<K, Tuple2<Iterator<V>, Iterator<W>>> broadcastCogroup(PairDataSet<K, W> rightDataSet) {
+    public <W> PairDataSet<K, Tuple2<Iterable<V>, Iterable<W>>> broadcastCogroup(PairDataSet<K, W> rightDataSet) {
         return cogroup(rightDataSet);
     }
 
