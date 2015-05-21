@@ -2752,7 +2752,7 @@ clp.list(System.out);
 
 			try 
 			{
-				java.sql.DriverManager.getConnection("jdbc:derby:;shutdown=true");
+				java.sql.DriverManager.getConnection("jdbc:splice:;shutdown=true");
 			} 
 			catch (java.sql.SQLException e) 
 			{

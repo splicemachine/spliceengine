@@ -135,7 +135,7 @@ public class GenericLanguageConnectionContext
      */
     private Map<String, String> xplain_statements = new HashMap<String, String>();
     private long xplainStatementId;
-    private boolean isAutoTraced = true;
+    private boolean isAutoTraced = false;
     //all the temporary tables declared for this connection
     private ArrayList<TempTableInfo> allDeclaredGlobalTempTables;
 

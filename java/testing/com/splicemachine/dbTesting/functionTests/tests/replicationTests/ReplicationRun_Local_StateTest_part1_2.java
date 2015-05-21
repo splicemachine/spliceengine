@@ -155,7 +155,7 @@ public class ReplicationRun_Local_StateTest_part1_2 extends ReplicationRun
         // 1. Attempt to perform stopMaster on slave. Should fail.
         db = slaveDatabasePath +FS+ReplicationRun.slaveDbSubPath
                 +FS+ replicatedDb;
-        connectionURL = "jdbc:derby:"
+        connectionURL = "jdbc:splice:"
                 + "//" + slaveServerHost + ":" + slaveServerPort + "/"
                 + db
                 + ";stopMaster=true";
@@ -185,7 +185,7 @@ public class ReplicationRun_Local_StateTest_part1_2 extends ReplicationRun
         // 2. stopMaster on master: OK
         db = masterDatabasePath +FS+ReplicationRun.masterDbSubPath
                 +FS+ replicatedDb;
-        connectionURL = "jdbc:derby:"
+        connectionURL = "jdbc:splice:"
                 + "//" + masterServerHost + ":" + masterServerPort + "/"
                 + db
                 + ";stopMaster=true";
@@ -208,7 +208,7 @@ public class ReplicationRun_Local_StateTest_part1_2 extends ReplicationRun
 
         // 3. Connect to slave which now is not in non-replication mode is OK.
         db = slaveDatabasePath +FS+ReplicationRun.slaveDbSubPath +FS+ replicatedDb;
-        connectionURL = "jdbc:derby:"
+        connectionURL = "jdbc:splice:"
                 + "//" + slaveServerHost + ":" + slaveServerPort + "/"
                 + db;
         util.DEBUG("3. testPostStartedMasterAndSlave_StopMaster: " + connectionURL);
@@ -254,7 +254,7 @@ public class ReplicationRun_Local_StateTest_part1_2 extends ReplicationRun
 
         // 4. stopMaster on slave which now is not in replication mode should fail.
         db = slaveDatabasePath +FS+ReplicationRun.slaveDbSubPath +FS+ replicatedDb;
-        connectionURL = "jdbc:derby:"
+        connectionURL = "jdbc:splice:"
                 + "//" + slaveServerHost + ":" + slaveServerPort + "/"
                 + db
                 + ";stopMaster=true";
@@ -281,7 +281,7 @@ public class ReplicationRun_Local_StateTest_part1_2 extends ReplicationRun
 
         // 5. Connect master which now is now in non-replication mode should succeed.
         db = masterDatabasePath +FS+ReplicationRun.masterDbSubPath +FS+ replicatedDb;
-        connectionURL = "jdbc:derby:"
+        connectionURL = "jdbc:splice:"
                 + "//" + masterServerHost + ":" + masterServerPort + "/"
                 + db;
         util.DEBUG("5. testPostStartedMasterAndSlave_StopMaster: " + connectionURL);
@@ -304,7 +304,7 @@ public class ReplicationRun_Local_StateTest_part1_2 extends ReplicationRun
         // 6. Attempt to do stopmaster on master which now is now in non-replication mode should fail.
         db = masterDatabasePath +FS+ReplicationRun.masterDbSubPath
                 +FS+ replicatedDb;
-        connectionURL = "jdbc:derby:"
+        connectionURL = "jdbc:splice:"
                 + "//" + masterServerHost + ":" + masterServerPort + "/"
                 + db
                 + ";stopMaster=true";

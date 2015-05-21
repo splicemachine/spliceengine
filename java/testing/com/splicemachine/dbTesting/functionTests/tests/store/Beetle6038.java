@@ -38,7 +38,7 @@ public class Beetle6038  {
 	{
 		String driver = "com.splicemachine.db.jdbc.EmbeddedDriver";
 		Class.forName(driver).newInstance();
-		String dburl = "jdbc:derby:Beetle6038Db;create=true;dataEncryption=true;bootPassword=Thursday;encryptionAlgorithm=DES/CBC/NoPadding";
+		String dburl = "jdbc:splice:Beetle6038Db;create=true;dataEncryption=true;bootPassword=Thursday;encryptionAlgorithm=DES/CBC/NoPadding";
 
 		Connection conn = DriverManager.getConnection(dburl);
 		conn.close();

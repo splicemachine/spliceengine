@@ -84,7 +84,7 @@ public class TestPreStoppedSlaveServer extends ClientRunner
         /*
         Connection conn = null;
         String db = slaveDatabasePath +"/"+ReplicationRun.slaveDbSubPath +"/"+ replicatedDb;
-        String connectionURL = "jdbc:derby:"
+        String connectionURL = "jdbc:splice:"
                 + "//" + slaveServerHost + ":" + slaveServerPort + "/"
                 + db
                 + ";startMaster=true"

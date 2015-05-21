@@ -52,7 +52,7 @@ public interface ModuleControl {
 		properties sets, which are not written out to service.properties.
 		These default sets are how callers modify the create process. In a
 		JDBC connection database create the first set of defaults is a properties
-		object that contains the attributes that were set on the jdbc:derby: URL.
+		object that contains the attributes that were set on the jdbc:splice: URL.
 		This attributes properties set has the second default properties set as
 		its default. This set (which could be null) contains the properties
 		that the user set on their DriverManager.getConnection() call, and are thus

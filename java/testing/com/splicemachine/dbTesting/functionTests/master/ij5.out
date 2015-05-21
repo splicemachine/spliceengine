@@ -1,4 +1,4 @@
-CONNECTION0* - 	jdbc:derby:wombat
+CONNECTION0* - 	jdbc:splice:wombat
 * = current connection
 splice> --
 --   Licensed to the Apache Software Foundation (ASF) under one or more

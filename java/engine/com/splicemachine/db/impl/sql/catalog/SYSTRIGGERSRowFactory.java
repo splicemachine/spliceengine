@@ -255,6 +255,7 @@ public class SYSTRIGGERSRowFactory extends CatalogRowFactory {
      * @param dd                    dataDictionary
      * @return a descriptor equivalent to a SYSTRIGGERS row
      */
+    @Override
     public TupleDescriptor buildDescriptor(
             ExecRow row,
             TupleDescriptor parentTupleDescriptor,

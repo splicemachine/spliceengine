@@ -441,9 +441,9 @@ public abstract class InternalDriver implements ModuleControl {
 		Get the database name from the url.
 		Copes with three forms
 
-		jdbc:derby:dbname
-		jdbc:derby:dbname;...
-		jdbc:derby:;subname=dbname
+		jdbc:splice:dbname
+		jdbc:splice:dbname;...
+		jdbc:splice:;subname=dbname
 
 		@param url The url being used for the connection
 		@param info The properties set being used for the connection, must include
@@ -459,7 +459,7 @@ public abstract class InternalDriver implements ModuleControl {
 			return "";
 		}	
 		
-		// skip the jdbc:derby:
+		// skip the jdbc:splice:
 		int attributeStart = url.indexOf(';');
 		String dbname;
 		if (attributeStart == -1)

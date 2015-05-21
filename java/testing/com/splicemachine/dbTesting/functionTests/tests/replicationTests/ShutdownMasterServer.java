@@ -69,7 +69,7 @@ public class ShutdownMasterServer extends ShutdownMaster
     public void testShutdownMasterServer()
     throws SQLException, IOException, InterruptedException
     {
-        String masterServerURL = "jdbc:derby:"
+        String masterServerURL = "jdbc:splice:"
                 +"//"+masterServerHost+":"+masterServerPort+"/"; // No database path!
         
         shutdown(masterServerURL, false, false); // false : shutdown server, false: do not use OS kill!

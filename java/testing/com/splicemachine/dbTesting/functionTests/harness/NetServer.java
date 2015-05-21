@@ -73,7 +73,7 @@ public class NetServer
 	// an array of the framework prefix, suffix, driver, port  and 
 	// String[] command arguments to start the server
 	// String[] Command arguments to stop the server
-	String url = "jdbc:derby:net://" + hostName + ":1527/";
+	String url = "jdbc:splice:net://" + hostName + ":1527/";
 	m.put("DerbyNet", new Object[]
 	    {url,                 //prefix
 	     "",                                            // suffix
@@ -85,7 +85,7 @@ public class NetServer
 			   "shutdown"},
 	     null});                                        //shutdown2
 
-	url = "jdbc:derby://" + hostName + ":1527/";
+	url = "jdbc:splice://" + hostName + ":1527/";
 
 	m.put("DerbyNetClient", new Object[]
 	    {url,                 //prefix
@@ -424,7 +424,7 @@ public class NetServer
 
     public static String alterURL(String fm, String url)
     {
-	String urlPrefix = "jdbc:derby:";
+	String urlPrefix = "jdbc:splice:";
 	String newURLPrefix = getURLPrefix(fm);
 	String newURLSuffix = getURLSuffix(fm);
 	
@@ -449,7 +449,7 @@ public class NetServer
 	
 	if (url.startsWith(urlPrefix))
 	{
-	    // replace jdbc:derby: with our url:
+	    // replace jdbc:splice: with our url:
 	    url = newURLPrefix +
 		url.substring(urlPrefix.length()) +
 		newURLSuffix;

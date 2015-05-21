@@ -250,12 +250,12 @@ public class DriverTest extends BaseJDBCTestCase {
             frameworkOffset = EMBEDDED_OFFSET;
 
         // URLS to check.  New urls need to also be added to the acceptsUrl table
-        String EMBEDDED_URL = "jdbc:derby:";
+        String EMBEDDED_URL = "jdbc:splice:";
         String INVALID_URL = "jdbc:db2j:";
         String hostName = TestConfiguration.getCurrent().getHostName();
         int port = TestConfiguration.getCurrent().getPort();
         String CLIENT_URL =
-                "jdbc:derby://"+hostName+":"+port+"/"+dbName+";create=true";
+                "jdbc:splice://"+hostName+":"+port+"/"+dbName+";create=true";
 
         String[] urls = new String[]
                 {

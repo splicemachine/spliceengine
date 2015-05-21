@@ -1027,7 +1027,7 @@ public class ProcedureTest extends BaseJDBCTestCase {
         throws SQLException
     {
         // Use a server-side connection to the same database.
-        String url = "jdbc:derby:" + dbName;
+        String url = "jdbc:splice:" + dbName;
         
         Connection conn = DriverManager.getConnection(url, user, password);
         

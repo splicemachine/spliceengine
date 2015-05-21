@@ -128,7 +128,7 @@ public class ReplicationRun extends BaseTestCase
     static long sleepTime = 5000L; // millisecs.
     
     static final String DRIVER_CLASS_NAME = "com.splicemachine.db.jdbc.ClientDriver";
-    static final String DB_PROTOCOL="jdbc:derby";
+    static final String DB_PROTOCOL="jdbc:splice";
     
     static final String ALL_INTERFACES = "0.0.0.0";
     
@@ -3128,7 +3128,7 @@ test.postStoppedSlaveServer.return=true
     {
         String db = databasePath +FS+dbSubPath +FS+ replicatedDb;
         String connectionURL = serverURL( db, serverHost, serverPort );
-        //String connectionURL jdbc:derby:db:"
+        //String connectionURL jdbc:splice:db:"
         //       + "//" + serverHost + ":" + serverPort + "/"
         //        + db;
         util.DEBUG(connectionURL);
@@ -3201,7 +3201,7 @@ test.postStoppedSlaveServer.return=true
         String dbPath = slaveDatabasePath + FS + subPath + FS + replicatedDb;
 
         String connectionURL = serverURL( dbPath, slaveServerHost, slaveServerPort ) + ";stopSlave=true";
-        //String connectionUjdbc:derbydbc:db:"
+        //String connectionUjdbc:splicedbc:db:"
         //    + "//" + slaveServerHost + ":" + slaveServerPort + "/"
         //    + dbPath
         //    + ";stopSlave=true"

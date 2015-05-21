@@ -314,7 +314,7 @@ public final class dblook {
 		if (derbyDriver == null) {
 			if (sourceDBUrl.indexOf(":net://") != -1)
 				derbyDriver = "com.ibm.db2.jcc.DB2Driver";
-			else if (sourceDBUrl.startsWith("jdbc:derby://"))
+			else if (sourceDBUrl.startsWith("jdbc:splice://"))
 			   derbyDriver = "com.splicemachine.db.jdbc.ClientDriver";
 			else
 				derbyDriver = "com.splicemachine.db.jdbc.EmbeddedDriver";
@@ -351,7 +351,7 @@ public final class dblook {
 		// will be thrown we try to connect.
 			return "";
 
-		int start = dbUrl.indexOf("jdbc:derby:");
+		int start = dbUrl.indexOf("jdbc:splice:");
 		if (start == -1)
 		// not a valid url; just ignore it (an error
 		// will be thrown when we try to connect).
@@ -359,7 +359,7 @@ public final class dblook {
 
 		start = dbUrl.indexOf("://");
 		if (start == -1)
-		// standardjdbc:derbydbc:db:<dbname>).  Database
+		// standardjdbc:splicedbc:db:<dbname>).  Database
 		// name starts right after "db:".  The "6" in
 		// the following line is the length of "db:".
 			start = dbUrl.indexOf("derby:") + 6;

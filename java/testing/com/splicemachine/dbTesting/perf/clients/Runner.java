@@ -40,7 +40,7 @@ public class Runner {
     private static final String DERBY_EMBEDDED_DRIVER =
             "com.splicemachine.db.jdbc.EmbeddedDriver";
 
-    private static final String DEFAULT_URL = "jdbc:derby:db;create=true";
+    private static final String DEFAULT_URL = "jdbc:splice:db;create=true";
 
     /** The JDBC driver class to use in the test. */
     private static String driver = DERBY_EMBEDDED_DRIVER;

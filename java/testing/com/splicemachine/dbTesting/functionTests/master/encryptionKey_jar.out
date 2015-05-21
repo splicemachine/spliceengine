@@ -20,7 +20,7 @@ splice> --
 -- Case: create encrypted database using encryptionKey, jar it up and then test 
 -- using the jar protocol.
 -- create encrypted database.
-connect 'jdbc:derby:encdb;create=true;dataEncryption=true;encryptionAlgorithm=DES/CBC/NoPadding;encryptionKey=6162636465666768';
+connect 'jdbc:splice:encdb;create=true;dataEncryption=true;encryptionAlgorithm=DES/CBC/NoPadding;encryptionKey=6162636465666768';
 splice> create table t1(a int ) ;
 0 rows inserted/updated/deleted
 splice> insert into t1 values(1) ;
@@ -33,10 +33,10 @@ splice> insert into t1 values(4) ;
 1 row inserted/updated/deleted
 splice> insert into t1 values(5) ;
 1 row inserted/updated/deleted
-splice> connect 'jdbc:derby:encdb;shutdown=true';
+splice> connect 'jdbc:splice:encdb;shutdown=true';
 ERROR 08006: Database 'encdb' shutdown.
 splice> -- now create archive of encrypted database.
-connect 'jdbc:derby:wombat;create=true';
+connect 'jdbc:splice:wombat;create=true';
 splice(CONNECTION1)> create procedure CREATEARCHIVE(jarName VARCHAR(20), path VARCHAR(20), dbName VARCHAR(20))
 LANGUAGE JAVA PARAMETER STYLE JAVA
 NO SQL
@@ -51,7 +51,7 @@ splice(CONNECTION1)> disconnect;
 splice> -- now that we have the database in a jar file,
 -- test using the jar protocol to connect to the db1 that is in ina.jar
 -- Should pass: ( DERBY-1373)
-connect 'jdbc:derby:jar:(ina.jar)db1;encryptionAlgorithm=DES/CBC/NoPadding;encryptionKey=6162636465666768' AS DB1;
+connect 'jdbc:splice:jar:(ina.jar)db1;encryptionAlgorithm=DES/CBC/NoPadding;encryptionKey=6162636465666768' AS DB1;
 splice(DB1)> select * from t1 order by a;
 A          
 -----------
@@ -60,25 +60,25 @@ A
 3          
 4          
 5          
-splice(DB1)> connect 'jdbc:derby:;shutdown=true';
+splice(DB1)> connect 'jdbc:splice:;shutdown=true';
 ERROR XJ015: Derby system shutdown.
 splice(DB1)> -- NEGATIVE CASE: Test with wrong encryption key. This should fail.
-connect 'jdbc:derby:jar:(ina.jar)db1;encryptionAlgorithm=DES/CBC/NoPadding;encryptionKey=6162636465666760' AS DB1;
+connect 'jdbc:splice:jar:(ina.jar)db1;encryptionAlgorithm=DES/CBC/NoPadding;encryptionKey=6162636465666760' AS DB1;
 ERROR XJ040: Failed to start database 'jar:(ina.jar)db1' with class loader XXXX,  see the next exception for details.
 ERROR XBCXK: The given encryption key does not match the encryption key used when creating the database. Please ensure that you are using the correct encryption key and try again. 
 splice(DB1)> disconnect;
 splice> -- test reading a database from a jar file and loading
 -- classes etc. from the jars within the database.
 -- first using the jar protocol and then the classpath option.
-connect 'jdbc:derby:jar:(ina.jar)db1;encryptionAlgorithm=DES/CBC/NoPadding;encryptionKey=6162636465666768' AS DB1;
-splice(DB1)> connect 'jdbc:derby:;shutdown=true';
+connect 'jdbc:splice:jar:(ina.jar)db1;encryptionAlgorithm=DES/CBC/NoPadding;encryptionKey=6162636465666768' AS DB1;
+splice(DB1)> connect 'jdbc:splice:;shutdown=true';
 ERROR XJ015: Derby system shutdown.
 splice(DB1)> -- connect to database in jar file using classpath subprotocol.
 -- should fail as it is not on the classpath yet.
-connect 'jdbc:derby:classpath:db2;encryptionAlgorithm=DES/CBC/NoPadding;encryptionKey=6162636465666768' AS DB2CL;
+connect 'jdbc:splice:classpath:db2;encryptionAlgorithm=DES/CBC/NoPadding;encryptionKey=6162636465666768' AS DB2CL;
 ERROR XJ004: Database 'classpath:db2' not found.
 splice(DB1)> -- create a class loader for this current thread
-connect 'jdbc:derby:encdb;dataEncryption=true;encryptionAlgorithm=DES/CBC/NoPadding;encryptionKey=6162636465666768';
+connect 'jdbc:splice:encdb;dataEncryption=true;encryptionAlgorithm=DES/CBC/NoPadding;encryptionKey=6162636465666768';
 splice(CONNECTION1)> create procedure setDBContextClassLoader(JARNAME VARCHAR(20))
 LANGUAGE JAVA PARAMETER STYLE JAVA
 NO SQL
@@ -88,7 +88,7 @@ splice(CONNECTION1)> call setDBContextClassLoader('ina2.jar');
 0 rows inserted/updated/deleted
 splice(CONNECTION1)> disconnect;
 splice> -- connect using classpath option with correct encryption key.
-connect 'jdbc:derby:classpath:db2;encryptionAlgorithm=DES/CBC/NoPadding;encryptionKey=6162636465666768' AS DB2CL;
+connect 'jdbc:splice:classpath:db2;encryptionAlgorithm=DES/CBC/NoPadding;encryptionKey=6162636465666768' AS DB2CL;
 splice(DB2CL)> select * from t1 order by a;
 A          
 -----------
@@ -97,10 +97,10 @@ A
 3          
 4          
 5          
-splice(DB2CL)> connect 'jdbc:derby:;shutdown=true';
+splice(DB2CL)> connect 'jdbc:splice:;shutdown=true';
 ERROR XJ015: Derby system shutdown.
 splice(DB2CL)> -- try with wrong encryption key, this should fail.
-connect 'jdbc:derby:classpath:db2;encryptionAlgorithm=DES/CBC/NoPadding;encryptionKey=6162636465666760' AS DB2CL;
+connect 'jdbc:splice:classpath:db2;encryptionAlgorithm=DES/CBC/NoPadding;encryptionKey=6162636465666760' AS DB2CL;
 ERROR XJ040: Failed to start database 'classpath:db2' with class loader XXXX,  see the next exception for details.
 ERROR XBCXK: The given encryption key does not match the encryption key used when creating the database. Please ensure that you are using the correct encryption key and try again. 
 splice(DB2CL)> exit;

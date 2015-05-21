@@ -251,9 +251,9 @@ public class ClientDriver implements java.sql.Driver {
     // ----------------helper methods---------------------------------------------
 
     // Tokenize one of the following:
-    //  "jdbc:derby:"
+    //  "jdbc:splice:"
     // and return 0 if the protcol is unrecognized
-    // return DERBY_PROTOCOL for "jdbc:derby"
+    // return DERBY_PROTOCOL for "jdbc:splice"
     private static int tokenizeProtocol(String url, java.util.StringTokenizer urlTokenizer) throws SqlException {
         // Is this condition necessary, StringTokenizer constructor may do this for us
         if (url == null) {
@@ -270,13 +270,12 @@ public class ClientDriver implements java.sql.Driver {
                 return 0;
             }
             if (!urlTokenizer.nextToken(":").equals(":")) {
-                return 0; // Skip over the first colon in jdbc:derby:
+                return 0; // Skip over the first colon in jdbc:splice:
             }
             String dbname = urlTokenizer.nextToken(":");
             int protocol = 0;
-            if (dbname.equals("derby") && (url.indexOf("derby://") != -1) ||
-                dbname.equals("splice") && (url.indexOf("splice://") != -1)) {
-                // For Derby AS need to check for // since jdbc:derby: is also the
+            if (dbname.equals("splice") && (url.indexOf("splice://") != -1)) {
+                // For Derby AS need to check for // since jdbc:splice: is also the
                 // embedded prefix
                 protocol = DERBY_REMOTE_PROTOCOL;
             } else {
@@ -284,7 +283,7 @@ public class ClientDriver implements java.sql.Driver {
             }
 
             if (!urlTokenizer.nextToken(":").equals(":")) {
-                return 0; // Skip over the second colon in jdbc:derby:
+                return 0; // Skip over the second colon in jdbc:splice:
             }
 
             return protocol;
@@ -293,7 +292,7 @@ public class ClientDriver implements java.sql.Driver {
         }
     }
 
-    // tokenize "/server" from URL jdbc:derby://server:port/
+    // tokenize "/server" from URL jdbc:splice://server:port/
     // returns server name
     private static String tokenizeServerName(java.util.StringTokenizer urlTokenizer,
                                              String url) throws SqlException {
@@ -312,7 +311,7 @@ public class ClientDriver implements java.sql.Driver {
         }
     }
 
-    // tokenize "[:portNumber]/" from URL jdbc:derby://server[:port]/
+    // tokenize "[:portNumber]/" from URL jdbc:splice://server[:port]/
     // returns the portNumber or zero if portNumber is not specified.
     private static int tokenizeOptionalPortNumber(java.util.StringTokenizer urlTokenizer,
                                                   String url) throws SqlException {

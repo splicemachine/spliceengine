@@ -591,7 +591,7 @@ select * from t32TriggerTest;
 
 -- DERBY-630 
 -- NPE in CREATE TRIGGER when compilation schema is other than SPLICE.
-connect 'jdbc:derby:wombat;create=true;user=user1;password=pwd' as user1;
+connect 'jdbc:splice:wombat;create=true;user=user1;password=pwd' as user1;
 create table ippo.t1 (i int);
 create table ippo.t2 (i int);
 create index ippo.idx2 on t2(i);
@@ -703,7 +703,7 @@ drop table y;
 -- DERBY-2183
 -- trigger recompilation test
 disconnect user1;
-connect 'jdbc:derby:wombat' user 'user1' as user1;
+connect 'jdbc:splice:wombat' user 'user1' as user1;
 set schema app;
 drop trigger app.tr1;
 drop table app.t1;
@@ -714,7 +714,7 @@ update app.t1 set i=i+1;
 select * from app.t1;
 call sqlj.install_jar('file:dcl_emc1.jar', 'SPLICE.dcl_emc1', 0);
 
-connect 'jdbc:derby:wombat' user 'user2' as user2;
+connect 'jdbc:splice:wombat' user 'user2' as user2;
 -- ok
 update app.t1 set i=i+1;
 select * from app.t1;

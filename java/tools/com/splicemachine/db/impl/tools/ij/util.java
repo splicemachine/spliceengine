@@ -764,9 +764,9 @@ AppUI.out.println("SIZE="+l);
 
     private static final String[][] protocolDrivers =
             {
-                    { "jdbc:derby:net:",			"com.ibm.db2.jcc.DB2Driver"},
-                    { "jdbc:derby://",              "com.splicemachine.db.jdbc.ClientDriver"},
-                    { "jdbc:derby:",				"com.splicemachine.db.jdbc.EmbeddedDriver" },
+                    { "jdbc:splice:net:",			"com.ibm.db2.jcc.DB2Driver"},
+                    { "jdbc:splice://",              "com.splicemachine.db.jdbc.ClientDriver"},
+                    { "jdbc:splice:",				"com.splicemachine.db.jdbc.EmbeddedDriver" },
             };
 
 	/**

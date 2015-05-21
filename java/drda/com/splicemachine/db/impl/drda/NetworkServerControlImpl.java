@@ -910,7 +910,7 @@ public final class NetworkServerControlImpl {
 						if (passwordArg != null) {
 							p.setProperty("password", passwordArg);
 						}
-						cloudscapeDriver.connect("jdbc:derby:;shutdown=true", p);
+						cloudscapeDriver.connect("jdbc:splice:;shutdown=true", p);
 					}
 				} catch (SQLException sqle) {
 					// If we can't shutdown Derby, perhaps, authentication has

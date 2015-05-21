@@ -24,7 +24,7 @@ set connection connOne;
 
 -- expect connOne to be active
 show connections;
-connect 'jdbc:derby:lemming;create=true' as connTwo;
+connect 'jdbc:splice:lemming;create=true' as connTwo;
 set connection connOne;
 values 1;
 set connection connTwo;
@@ -47,4 +47,4 @@ disconnect current;
 show connections;
 
 -- shutdown system
-connect 'jdbc:derby:;shutdown=true';
+connect 'jdbc:splice:;shutdown=true';

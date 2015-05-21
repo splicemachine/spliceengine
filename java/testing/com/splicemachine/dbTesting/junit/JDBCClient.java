@@ -37,7 +37,7 @@ public final class JDBCClient {
             "com.splicemachine.db.jdbc.EmbeddedDataSource",
             "com.splicemachine.db.jdbc.EmbeddedConnectionPoolDataSource",
             "com.splicemachine.db.jdbc.EmbeddedXADataSource",
-            "jdbc:derby:");
+            "jdbc:splice:");
     
     /**
      * The embedded JDBC client for JDBC 4.0.
@@ -48,7 +48,7 @@ public final class JDBCClient {
             "com.splicemachine.db.jdbc.EmbeddedDataSource40",
             "com.splicemachine.db.jdbc.EmbeddedConnectionPoolDataSource40",
             "com.splicemachine.db.jdbc.EmbeddedXADataSource40",
-            "jdbc:derby:");
+            "jdbc:splice:");
     
     /**
      * The embedded JDBC client for JSR 169
@@ -92,7 +92,7 @@ public final class JDBCClient {
             JDBC.vmSupportsJDBC4() ?
             "com.splicemachine.db.jdbc.ClientXADataSource40" :
             "com.splicemachine.db.jdbc.ClientXADataSource",
-            "jdbc:derby://");
+            "jdbc:splice://");
     
     static final JDBCClient DERBYNETCLIENT_30 = new JDBCClient(
             "DerbyNetClient",
@@ -100,7 +100,7 @@ public final class JDBCClient {
             "com.splicemachine.db.jdbc.ClientDataSource",
             "com.splicemachine.db.jdbc.ClientConnectionPoolDataSource",
             "com.splicemachine.db.jdbc.ClientXADataSource",
-            "jdbc:derby://");
+            "jdbc:splice://");
 
     /**
      * The DB2 Universal JDBC network client.
@@ -111,7 +111,7 @@ public final class JDBCClient {
             "DB2Client",
             "com.ibm.db2.jcc.DB2Driver",
             null, null, null,
-            "jdbc:derby:net://");
+            "jdbc:splice:net://");
     
     /**
      * Is this the embdded client.

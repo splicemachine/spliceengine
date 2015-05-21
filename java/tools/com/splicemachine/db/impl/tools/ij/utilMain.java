@@ -428,13 +428,13 @@ public class utilMain implements java.security.PrivilegedAction {
         if(!AutoloadedDriver.isBooted()) return; //no reason to try booting the db if we are just going to shut it down
 			Driver d = null;
 			try {
-			    d = DriverManager.getDriver("jdbc:derby:");
+			    d = DriverManager.getDriver("jdbc:splice:");
 			} catch (Throwable e) {
 				d = null;
 			}
 			if (d!=null) { // do we have a driver running? shutdown on exit.
 				try {
-					DriverManager.getConnection("jdbc:derby:;shutdown=true");
+					DriverManager.getConnection("jdbc:splice:;shutdown=true");
 				} catch (SQLException e) {
 					// ignore the errors, they are expected.
 				}

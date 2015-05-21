@@ -20,17 +20,17 @@ splice(CONNECTION0)> --
 
 --disconnect connection created by ScriptTestCase 
 show connections;
-CONNECTION0* - 	jdbc:derby:wombat
-CONNONE - 	jdbc:derby:wombat
+CONNECTION0* - 	jdbc:splice:wombat
+CONNONE - 	jdbc:splice:wombat
 * = current connection
 WARNING 01J01: Database 'wombat' not created, connection made to existing database instead.
 splice(CONNECTION0)> disconnect CONNECTION0;
 splice> set connection connOne;
 splice> -- expect connOne to be active
 show connections;
-CONNONE* - 	jdbc:derby:wombat
+CONNONE* - 	jdbc:splice:wombat
 * = current connection
-splice> connect 'jdbc:derby:lemming;create=true' as connTwo;
+splice> connect 'jdbc:splice:lemming;create=true' as connTwo;
 splice(CONNTWO)> set connection connOne;
 splice(CONNONE)> values 1;
 1          
@@ -49,8 +49,8 @@ set connection connFour;
 Splice ERROR: No connection exists with the name CONNFOUR
 splice(CONNTWO)> -- connTwo is still active
 show connections;
-CONNONE - 	jdbc:derby:wombat
-CONNTWO* - 	jdbc:derby:lemming
+CONNONE - 	jdbc:splice:wombat
+CONNTWO* - 	jdbc:splice:lemming
 * = current connection
 splice(CONNTWO)> -- no such connection to disconnect
 disconnect noName;
@@ -64,6 +64,6 @@ splice> -- see no more connections to use
 show connections;
 No connections available.
 splice> -- shutdown system
-connect 'jdbc:derby:;shutdown=true';
+connect 'jdbc:splice:;shutdown=true';
 ERROR XJ015: Derby system shutdown.
 splice> 

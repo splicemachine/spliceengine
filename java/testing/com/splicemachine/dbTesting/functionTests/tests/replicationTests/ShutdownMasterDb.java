@@ -70,7 +70,7 @@ public class ShutdownMasterDb extends ShutdownMaster
     public void testShutdownMasterDb()
     throws SQLException, IOException, InterruptedException
     {
-        String masterServerURL = "jdbc:derby:"
+        String masterServerURL = "jdbc:splice:"
                 +"//"+masterServerHost+":"+masterServerPort+"/";
         String masterDbURL = masterServerURL
                 +ReplicationRun.masterDatabasePath

@@ -89,7 +89,7 @@ public class TestPostStartedMasterAndSlave_StopMaster extends ClientRunner
 
         // 1. Add attempt to perform stopMaster on slave. Should fail.
         db = slaveDatabasePath +"/"+ReplicationRun.slaveDbSubPath +"/"+ replicatedDb;
-        connectionURL = "jdbc:derby:"
+        connectionURL = "jdbc:splice:"
                 + "//" + slaveServerHost + ":" + slaveServerPort + "/"
                 + db
                 + ";stopMaster=true";
@@ -112,7 +112,7 @@ public class TestPostStartedMasterAndSlave_StopMaster extends ClientRunner
 
         // 2. stopMaster on master: OK
         db = masterDatabasePath +"/"+ReplicationRun.masterDbSubPath +"/"+ replicatedDb;
-        connectionURL = "jdbc:derby:"
+        connectionURL = "jdbc:splice:"
                 + "//" + masterServerHost + ":" + masterServerPort + "/"
                 + db
                 + ";stopMaster=true";
@@ -133,7 +133,7 @@ public class TestPostStartedMasterAndSlave_StopMaster extends ClientRunner
 
         // 3. stopMaster on slave which now is in non-replicating mode should fail.
         db = slaveDatabasePath +"/"+ReplicationRun.slaveDbSubPath +"/"+ replicatedDb;
-        connectionURL = "jdbc:derby:"
+        connectionURL = "jdbc:splice:"
                 + "//" + slaveServerHost + ":" + slaveServerPort + "/"
                 + db
                 + ";stopMaster=true";
@@ -156,7 +156,7 @@ public class TestPostStartedMasterAndSlave_StopMaster extends ClientRunner
 
         // 4. Attempt to do stopmaster on master which now is in non-replicating mode should fail.
         db = masterDatabasePath +"/"+ReplicationRun.masterDbSubPath +"/"+ replicatedDb;
-        connectionURL = "jdbc:derby:"
+        connectionURL = "jdbc:splice:"
                 + "//" + masterServerHost + ":" + masterServerPort + "/"
                 + db
                 + ";stopMaster=true";

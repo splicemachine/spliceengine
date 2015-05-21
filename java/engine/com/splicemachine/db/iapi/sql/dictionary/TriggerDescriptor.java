@@ -465,11 +465,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
 
     @Override
     public String toString() {
-        if (SanityManager.DEBUG) {
-            return "TRIGGER: " + name;
-        } else {
-            return "";
-        }
+        return "name=" + name;
     }
 
     ////////////////////////////////////////////////////////////////////

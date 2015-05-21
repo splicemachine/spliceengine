@@ -102,7 +102,7 @@ public class EmbeddedDriver  implements Driver {
 	** Methods from java.sql.Driver.
 	*/
 	/**
-		Accept anything that starts with <CODE>jdbc:derby:</CODE>.
+		Accept anything that starts with <CODE>jdbc:splice:</CODE>.
 		@exception SQLException if a database-access error occurs.
     @see java.sql.Driver
 	*/

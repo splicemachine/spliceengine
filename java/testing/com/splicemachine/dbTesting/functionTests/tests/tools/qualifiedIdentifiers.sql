@@ -15,13 +15,13 @@
 --   limitations under the License.
 --
 -- This test will cover the qualified identifiers introduced by DERBY-4550
-connect 'jdbc:derby:wombat;user=fred' as DERBY4550_1;
+connect 'jdbc:splice:wombat;user=fred' as DERBY4550_1;
 create table t1(a int, b int);
 insert into t1(a,b) values (1,100), (2,200), (3,300);
 prepare fred_select as 'select a from t1';
 
 -- setup destination db
-connect 'jdbc:derby:wombat;user=alice' as DERBY4550_2;
+connect 'jdbc:splice:wombat;user=alice' as DERBY4550_2;
 create table t2(a int);
 
 -- execute prepared statements

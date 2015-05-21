@@ -91,7 +91,7 @@ public class TestPostStartedMasterAndSlave_StopSlave extends ClientRunner
 
         // 1. stopSlave to slave with connection to master should fail.
         db = slaveDatabasePath +"/"+ReplicationRun.slaveDbSubPath +"/"+ replicatedDb;
-        connectionURL = "jdbc:derby:"
+        connectionURL = "jdbc:splice:"
                 + "//" + slaveServerHost + ":" + slaveServerPort + "/"
                 + db
                 + ";stopSlave=true";
@@ -121,7 +121,7 @@ public class TestPostStartedMasterAndSlave_StopSlave extends ClientRunner
 
         // 2. stopSlave to a master server should fail:
         db = masterDatabasePath +"/"+ReplicationRun.masterDbSubPath +"/"+ replicatedDb;
-        connectionURL = "jdbc:derby:"
+        connectionURL = "jdbc:splice:"
                 + "//" + masterServerHost + ":" + masterServerPort + "/"
                 + db
                 + ";stopSlave=true";
@@ -157,7 +157,7 @@ public class TestPostStartedMasterAndSlave_StopSlave extends ClientRunner
 
         // 3.  stopSlave on slave should now be allowed. Observe that the database shall be shutdown.
         db = slaveDatabasePath +"/"+ReplicationRun.slaveDbSubPath +"/"+ replicatedDb;
-        connectionURL = "jdbc:derby:"
+        connectionURL = "jdbc:splice:"
                 + "//" + slaveServerHost + ":" + slaveServerPort + "/"
                 + db
                 + ";stopSlave=true";
@@ -190,7 +190,7 @@ public class TestPostStartedMasterAndSlave_StopSlave extends ClientRunner
         if ( stopSlaveCorrect )
         {
             // 4. Try a normal connection:
-            connectionURL = "jdbc:derby:"
+            connectionURL = "jdbc:splice:"
                     + "//" + slaveServerHost + ":" + slaveServerPort + "/"
                     + db;
             System.out.println("4. " + connectionURL);

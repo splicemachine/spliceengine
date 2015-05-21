@@ -85,7 +85,7 @@ public class TestPostStartedMasterAndSlave_Failover extends ClientRunner
 
         Connection conn = null;
         String db = slaveDatabasePath +"/"+ReplicationRun.slaveDbSubPath +"/"+ replicatedDb;
-        String connectionURL = "jdbc:derby:"
+        String connectionURL = "jdbc:splice:"
                 + "//" + slaveServerHost + ":" + slaveServerPort + "/"
                 + db
                 + ";failover=true";
@@ -116,7 +116,7 @@ public class TestPostStartedMasterAndSlave_Failover extends ClientRunner
 
         // Failover on master should succeed:
         db = masterDatabasePath +"/"+ReplicationRun.masterDbSubPath +"/"+ replicatedDb;
-        connectionURL = "jdbc:derby:"
+        connectionURL = "jdbc:splice:"
                 + "//" + masterServerHost + ":" + masterServerPort + "/"
                 + db
                 + ";failover=true";

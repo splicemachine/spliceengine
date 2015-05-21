@@ -39,7 +39,7 @@ public class ij3Test extends ScriptTestCase {
     public static Test suite() {        
         Properties props = new Properties();
         
-        props.setProperty("ij.database", "jdbc:derby:wombat;create=true");
+        props.setProperty("ij.database", "jdbc:splice:wombat;create=true");
         props.setProperty("ij.showNoConnectionsAtStart", "true");
         props.setProperty("ij.showNoCountForSelect", "true");
 

@@ -19,6 +19,5 @@ maven2/target/
 classes
 generated
 jars
-classes.storeless/
 changenumber.properties
 *.log

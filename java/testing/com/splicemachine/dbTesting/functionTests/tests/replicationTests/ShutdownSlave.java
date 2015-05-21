@@ -105,7 +105,7 @@ public class ShutdownSlave extends BaseJDBCTestCase
     public void testShutdownSlave()
     throws SQLException, IOException, InterruptedException
     {
-        String slaveServerURL = "jdbc:derby:"
+        String slaveServerURL = "jdbc:splice:"
                 +"//"+slaveServerHost+":"+slaveServerPort+"/";
         String slaveDbURL = slaveServerURL
                 +ReplicationRun.slaveDatabasePath

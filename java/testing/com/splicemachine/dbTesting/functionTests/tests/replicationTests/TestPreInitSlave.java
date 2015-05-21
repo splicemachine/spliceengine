@@ -89,7 +89,7 @@ public class TestPreInitSlave extends ClientRunner
 
         // 1.  stopMaster on master: fail
         db = masterDatabasePath +"/"+ReplicationRun.masterDbSubPath +"/"+ replicatedDb;
-        connectionURL = "jdbc:derby:"
+        connectionURL = "jdbc:splice:"
                 + "//" + masterServerHost + ":" + masterServerPort + "/"
                 + db
                 + ";stopMaster=true";
@@ -112,7 +112,7 @@ public class TestPreInitSlave extends ClientRunner
 
         // 2. stopSlave on slave: fail
         db = slaveDatabasePath +"/"+ReplicationRun.slaveDbSubPath +"/"+ replicatedDb;
-        connectionURL = "jdbc:derby:"
+        connectionURL = "jdbc:splice:"
                 + "//" + slaveServerHost + ":" + slaveServerPort + "/"
                 + db
                 + ";stopSlave=true";

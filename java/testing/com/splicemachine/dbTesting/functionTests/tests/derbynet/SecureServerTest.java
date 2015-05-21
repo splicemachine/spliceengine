@@ -388,7 +388,7 @@ public class SecureServerTest extends BaseJDBCTestCase
     {
         final TestConfiguration config = getTestConfiguration();
         String  url
-            = ( "jdbc:derby://localhost:" + config.getPort()
+            = ( "jdbc:splice://localhost:" + config.getPort()
                 + "/" + "wombat;create=true"
                 + ";user=" + config.getUserName()
                 + ";password=" + config.getUserPassword() );

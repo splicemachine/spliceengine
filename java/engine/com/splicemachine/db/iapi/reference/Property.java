@@ -557,7 +557,7 @@ public interface Property {
      * db.subSubProtocol.mem=com.mycompany.MemStore
      *<br>
      * defines the "mem" subsubprotocol with class com.mycompany.MemStore as its StorageFactory implementation.
-     * A database implemented using this subsubprotocol can be opened with the URL "jdbc:derby:mem:myDatabase".
+     * A database implemented using this subsubprotocol can be opened with the URL "jdbc:splice:mem:myDatabase".
      *<p>
      *
      * Subsubprotocols "directory", "classpath", "jar", "http", and "https" are built in and may not be overridden.

@@ -26,10 +26,10 @@ package com.splicemachine.dbTesting.system.optimizer;
  *
  */
 public class StaticValues {
-    public static String clientURL="jdbc:derby://localhost:1527/testdb;create=true";
+    public static String clientURL="jdbc:splice://localhost:1527/testdb;create=true";
 	public static String clientClass="com.splicemachine.db.jdbc.ClientDriver";
 
-    public static String embedURL="jdbc:derby:testdb;create=true";
+    public static String embedURL="jdbc:splice:testdb;create=true";
 	public static String embedClass="com.splicemachine.db.jdbc.EmbeddedDriver";
 
     public static int NUM_OF_ROWS=1000; //Total number of rows expected in each table

@@ -31,7 +31,7 @@ import java.util.Properties;
 
 public class GetPropertyInfoTest
 {
-	static String protocol = "jdbc:derby:";
+	static String protocol = "jdbc:splice:";
 	static String url = "EncryptedDB;create=true;dataEncryption=true";
 	static String driver = "com.splicemachine.db.jdbc.EmbeddedDriver";
 

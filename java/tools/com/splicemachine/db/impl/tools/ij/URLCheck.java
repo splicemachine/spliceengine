@@ -96,14 +96,14 @@ public class URLCheck {
 
         String protocol = "";
 
-        if( url.startsWith( "jdbc:derby:net:") ||
-                url.startsWith( "jdbc:derby://"))
+        if( url.startsWith( "jdbc:splice:net:") ||
+                url.startsWith( "jdbc:splice://"))
         {
             validProps = null;
         }
-        else if( url.startsWith( "jdbc:derby:"))
+        else if( url.startsWith( "jdbc:splice:"))
         {
-            protocol = "jdbc:derby:";
+            protocol = "jdbc:splice:";
             validProps = getValidDerbyProps();
         }
         else

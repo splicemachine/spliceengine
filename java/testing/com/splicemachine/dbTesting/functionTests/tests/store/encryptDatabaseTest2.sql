@@ -46,19 +46,19 @@ xa_prepare 1;
 
 -- shutdown the database
 disconnect;
-connect 'jdbc:derby:;shutdown=true';
+connect 'jdbc:splice:;shutdown=true';
 
 
 -- configure the database for encrypion with an external encryption key.
 -- this should fail because of the global transacton in the prepared state.
  
-connect 'jdbc:derby:wombat_en;dataEncryption=true;encryptionKey=6162636465666768';
+connect 'jdbc:splice:wombat_en;dataEncryption=true;encryptionKey=6162636465666768';
 
 ---attempt to configure the database for encrypion with a boot password.
 -- this should fail because of the global transacton in 
 -- the prepared state.
 
-connect 'jdbc:derby:wombat_en;dataEncryption=true;bootPassword=xyz1234abc';
+connect 'jdbc:splice:wombat_en;dataEncryption=true;bootPassword=xyz1234abc';
 
 -- now reboot the db and commit the transaction in the prepapred state. 
 xa_datasource 'wombat_en';
@@ -74,11 +74,11 @@ xa_commit xa_1phase 2;
 
 -- shutdown the database
 disconnect;
-connect 'jdbc:derby:;shutdown=true';
+connect 'jdbc:splice:;shutdown=true';
 
 --- configure the database for encrypion with a boot password.
 --- this should pass.
-connect 'jdbc:derby:wombat_en;dataEncryption=true;bootPassword=xyz1234abc';
+connect 'jdbc:splice:wombat_en;dataEncryption=true;bootPassword=xyz1234abc';
 disconnect;
 xa_datasource 'wombat_en';
 xa_connect ;
@@ -92,15 +92,15 @@ xa_prepare 3;
 
 -- shutdown the database
 disconnect;
-connect 'jdbc:derby:;shutdown=true';
+connect 'jdbc:splice:;shutdown=true';
 
 -- attempt to reconfigure the database with a new password. 
 -- this should fail because of the global transaction in the prepared state
 -- after recovery.
-connect 'jdbc:derby:wombat_en;bootPassword=xyz1234abc;newBootPassword=new1234xyz';
+connect 'jdbc:splice:wombat_en;bootPassword=xyz1234abc;newBootPassword=new1234xyz';
 
 -- now reboot the db and commit the transaction in the prepared state. 
-connect 'jdbc:derby:wombat_en;bootPassword=xyz1234abc';
+connect 'jdbc:splice:wombat_en;bootPassword=xyz1234abc';
 disconnect;
 xa_datasource 'wombat_en';
 xa_connect ;
@@ -115,9 +115,9 @@ xa_commit xa_1phase 4;
 
 -- shutdown the database
 disconnect;
-connect 'jdbc:derby:;shutdown=true';
+connect 'jdbc:splice:;shutdown=true';
 
 --- re-encrypt the database with a new password. 
 --- this should pass. 
-connect 'jdbc:derby:wombat_en;bootPassword=xyz1234abc;newBootPassword=new1234xyz';
+connect 'jdbc:splice:wombat_en;bootPassword=xyz1234abc;newBootPassword=new1234xyz';
 select * from foo ;

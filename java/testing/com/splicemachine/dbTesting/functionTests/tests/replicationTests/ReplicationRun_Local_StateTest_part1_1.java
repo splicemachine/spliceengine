@@ -189,7 +189,7 @@ public class ReplicationRun_Local_StateTest_part1_1 extends ReplicationRun
         // 4. Try a normal connection:
         String db = slaveDatabasePath + FS + slaveDbSubPath + FS + replicatedDb;
 
-        String connectionURL = "jdbc:derby:"
+        String connectionURL = "jdbc:splice:"
             + "//" + slaveServerHost + ":" + slaveServerPort + "/"
             + db;
 

@@ -74,7 +74,7 @@ public class col_rec1 extends BaseTest
         conn.setAutoCommit(false);
         s.execute("insert into t values 'xxxx'");
 		Connection connSecond = DriverManager.getConnection
-		("jdbc:derby:collationDB");
+		("jdbc:splice:collationDB");
         connSecond.setAutoCommit(false);
         Statement sSecond = connSecond.createStatement();
         sSecond.execute("insert into t values 'abab'");

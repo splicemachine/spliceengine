@@ -63,7 +63,7 @@ import java.io.IOException;
  *<p>A StorageFactory implementation is plugged into the database engine via a sub-protocol. Sub-protocol <i>xxx</i> is
  * tied to a StorageFactory implementation class via the db.subSubProtocol.<i>xxx</i> system property. So,
  * to use StorageFactory implementation class MyStorageFactory with database myDB you would set the system
- * property "derby.subSubProtocol.mysf=MyStorageFactory" and use the URL "jdbc:derby:mysf:myDB" to
+ * property "derby.subSubProtocol.mysf=MyStorageFactory" and use the URL "jdbc:splice:mysf:myDB" to
  * connect to the database.
  *
  * @see WritableStorageFactory

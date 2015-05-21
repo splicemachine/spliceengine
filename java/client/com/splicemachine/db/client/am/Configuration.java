@@ -87,7 +87,7 @@ public class Configuration {
     //---------------------- database URL protocols ------------------------------
 
     // For DatabaseMetaData.getURL()
-    public final static String jdbcDerbyNETProtocol = "jdbc:derby://";
+    public final static String jdbcDerbyNETProtocol = "jdbc:splice://";
 
     // -------------------------- metrics ----------------------
     // Not currently used by production builds.

@@ -41,6 +41,7 @@ class AccessPathImpl implements AccessPath{
     int lockMode;
     Optimizer optimizer;
     private CostEstimate costEstimate=null;
+    private boolean isJoinStrategyHinted = false;
 
     AccessPathImpl(Optimizer optimizer){
         this.optimizer=optimizer;
@@ -90,6 +91,7 @@ class AccessPathImpl implements AccessPath{
         setCoveringIndexScan(copyFrom.getCoveringIndexScan());
         setNonMatchingIndexScan(copyFrom.getNonMatchingIndexScan());
         setJoinStrategy(copyFrom.getJoinStrategy());
+        setHintedJoinStrategy(copyFrom.isHintedJoinStrategy());
         setLockMode(copyFrom.getLockMode());
     }
 
@@ -118,5 +120,15 @@ class AccessPathImpl implements AccessPath{
                 throw StandardException.newException(SQLState.LANG_OBJECT_NOT_FOUND,"CONSTRAINT on TABLE",td.getName());
             }
         }
+    }
+
+    @Override
+    public void setHintedJoinStrategy(boolean isHintedJoinStrategy){
+        this.isJoinStrategyHinted = isHintedJoinStrategy;
+    }
+
+    @Override
+    public boolean isHintedJoinStrategy(){
+        return isJoinStrategyHinted;
     }
 }

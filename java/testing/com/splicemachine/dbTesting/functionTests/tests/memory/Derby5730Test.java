@@ -111,7 +111,7 @@ public class Derby5730Test extends BaseTestCase {
         Class.forName("com.splicemachine.db.jdbc.EmbeddedDriver");
         for (int i = 0; i < FUNCTIONS.length; i++) {
             Connection c = DriverManager.getConnection(
-                    "jdbc:derby:memory:derby5730;create=true");
+                    "jdbc:splice:memory:derby5730;create=true");
             prepareFunction(c,
                     (String) FUNCTIONS[i][0],
                     ((Integer) FUNCTIONS[i][1]).intValue());
@@ -119,7 +119,7 @@ public class Derby5730Test extends BaseTestCase {
             c.close();
             try {
                 DriverManager.getConnection(
-                        "jdbc:derby:memory:derby5730;shutdown=true");
+                        "jdbc:splice:memory:derby5730;shutdown=true");
                 fail("Shutdown should throw exception");
             } catch (SQLException sqle) {
                 BaseJDBCTestCase.assertSQLState("08006", sqle);

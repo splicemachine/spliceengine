@@ -20,26 +20,26 @@ splice(CONNECTION1)> --
 
 connect 'wombat' as wombat;
 splice(WOMBAT)> show connections;
-CONNECTION0 - 	jdbc:derby:wombat
-CONNECTION1 - 	jdbc:derby:wombat1
-WOMBAT* - 	jdbc:derby:wombat
+CONNECTION0 - 	jdbc:splice:wombat
+CONNECTION1 - 	jdbc:splice:wombat1
+WOMBAT* - 	jdbc:splice:wombat
 * = current connection
 WARNING 01J01: Database 'wombat' not created, connection made to existing database instead.
 splice(WOMBAT)> set connection connection0;
 splice(CONNECTION0)> show connections;
-CONNECTION0* - 	jdbc:derby:wombat
-CONNECTION1 - 	jdbc:derby:wombat1
-WOMBAT - 	jdbc:derby:wombat
+CONNECTION0* - 	jdbc:splice:wombat
+CONNECTION1 - 	jdbc:splice:wombat1
+WOMBAT - 	jdbc:splice:wombat
 * = current connection
 splice(CONNECTION0)> set connection wombat;
 splice(WOMBAT)> disconnect;
 splice> show connections;
-CONNECTION0 - 	jdbc:derby:wombat
-CONNECTION1 - 	jdbc:derby:wombat1
+CONNECTION0 - 	jdbc:splice:wombat
+CONNECTION1 - 	jdbc:splice:wombat1
 No current connection
 splice> set connection connection0;
 splice(CONNECTION0)> show connections;
-CONNECTION0* - 	jdbc:derby:wombat
-CONNECTION1 - 	jdbc:derby:wombat1
+CONNECTION0* - 	jdbc:splice:wombat
+CONNECTION1 - 	jdbc:splice:wombat1
 * = current connection
 splice(CONNECTION0)> 

@@ -81,13 +81,13 @@ public	class	DerbyJUnitTest	extends	TestCase
     // indexed by DATABASE_URL and DRIVER_NAME
     private	static	final	String[]	DERBY_CLIENT =
             {
-                    "jdbc:derby://localhost:1527/",
+                    "jdbc:splice://localhost:1527/",
                     "org.apache.derby.jdbc.ClientDriver",
                     "DerbyNetClient"
             };
     private	static	final	String[]	EMBEDDED_CLIENT =
             {
-                    "jdbc:derby:",
+                    "jdbc:splice:",
                     "org.apache.derby.jdbc.EmbeddedDriver",
                     "embedded"
             };

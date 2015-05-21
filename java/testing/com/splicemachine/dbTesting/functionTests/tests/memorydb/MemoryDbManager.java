@@ -47,7 +47,7 @@ public class MemoryDbManager {
     private static final String ATTR_CREATE = ";create=true";
 
     /** JDBC protocl prefix used for in-memory databases. */
-    private static final String JDBC_PREFIX = "jdbc:derby:memory:";
+    private static final String JDBC_PREFIX = "jdbc:splice:memory:";
     /** Shared manager instance. */
     private static final MemoryDbManager DBM = new MemoryDbManager();
 

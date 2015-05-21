@@ -101,7 +101,7 @@ public class Driver40UnbootedTest extends BaseJDBCTestCase
      */
     public  static  void    main( String[] args )  throws Exception
     {
-        Driver  embeddedDriver = DriverManager.getDriver( "jdbc:derby:" );
+        Driver  embeddedDriver = DriverManager.getDriver( "jdbc:splice:" );
         Wrapper41Driver embeddedWrapper = new Wrapper41Driver( embeddedDriver );
 
         String  statusMessage = SUCCESS;

@@ -41,13 +41,13 @@ import com.splicemachine.db.tools.JDBCDisplayUtil;
  **	are present when a fresh database is created.  There are
  **	some gaps still-- sync objects, and I have not done SYSFILES.
  **	I have probably missed other things as well.  At present this
- **	is hardwired for jdbc:derby:wombat, the focus of our
+ **	is hardwired for jdbc:splice:wombat, the focus of our
  **	attention in the embedded tests.
  **
  */
 public class dbcleanup {
 
-	static String dbURL = "jdbc:derby:splice:wombat";
+	static String dbURL = "jdbc:splice:splice:wombat";
 	static String driver = "com.splicemachine.db.jdbc.EmbeddedDriver";
 	static boolean dbIsDirty = false;
 

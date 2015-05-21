@@ -1077,7 +1077,7 @@ C321
 1          
 splice> -- DERBY-630 
 -- NPE in CREATE TRIGGER when compilation schema is other than SPLICE.
-connect 'jdbc:derby:wombat;create=true;user=user1;password=pwd' as user1;
+connect 'jdbc:splice:wombat;create=true;user=user1;password=pwd' as user1;
 WARNING 01J01: Database 'wombat' not created, connection made to existing database instead.
 splice(USER1)> create table ippo.t1 (i int);
 0 rows inserted/updated/deleted
@@ -1320,7 +1320,7 @@ splice(USER1)> drop table y;
 splice(USER1)> -- DERBY-2183
 -- trigger recompilation test
 disconnect user1;
-splice> connect 'jdbc:derby:wombat' user 'user1' as user1;
+splice> connect 'jdbc:splice:wombat' user 'user1' as user1;
 splice(USER1)> set schema app;
 0 rows inserted/updated/deleted
 splice(USER1)> drop trigger app.tr1;
@@ -1341,7 +1341,7 @@ I          |J
 2          |11         
 splice(USER1)> call sqlj.install_jar('file:dcl_emc1.jar', 'SPLICE.dcl_emc1', 0);
 0 rows inserted/updated/deleted
-splice(USER1)> connect 'jdbc:derby:wombat' user 'user2' as user2;
+splice(USER1)> connect 'jdbc:splice:wombat' user 'user2' as user2;
 splice(USER2)> -- ok
 update app.t1 set i=i+1;
 1 row inserted/updated/deleted

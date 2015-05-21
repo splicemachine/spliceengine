@@ -47,7 +47,7 @@ public interface Attribute {
     /**
      * Not an attribute but the root for the JDBC URL that Derby supports.
      */
-    String PROTOCOL = "jdbc:derby:";
+    String PROTOCOL = "jdbc:splice:";
 
     /**
      * The SQLJ protocol for getting the default connection for server side jdbc
@@ -59,13 +59,13 @@ public interface Attribute {
     /**
      * The protocol for Derby Network Client
      */
-    String DNC_PROTOCOL = "jdbc:derby://";
+    String DNC_PROTOCOL = "jdbc:splice://";
 
     /**
      * The protocol for the IBM Universal JDBC Driver
      * 
      */
-    String JCC_PROTOCOL = "jdbc:derby:net:";
+    String JCC_PROTOCOL = "jdbc:splice:net:";
 
     /**
      * User should use this prefix for the client attributes traceLevel 

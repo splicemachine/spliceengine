@@ -131,4 +131,19 @@ public interface AccessPath {
 	 * @exception StandardException 	on error.
 	 */
 	void initializeAccessPathName(DataDictionary dd,TableDescriptor td) throws StandardException;
-}	
+
+	/**
+	 * Inform the access path that the join strategy was chosen by the user through the use of hints. This
+	 * way the individual join strategies can be informed that that user believes the join strategy to be feasible,
+	 * and not to check physical restrictions (such as memory size limits etc.)
+	 *
+	 * @param isHintedJoinStrategy {@code true} if the join strategy was hinted, {@code false} otherwise.
+	 */
+	void setHintedJoinStrategy(boolean isHintedJoinStrategy);
+
+	/**
+	 * @return {@code true} if the join strategy in this access path was selected by the user through hints,
+	 * {@code false} otherwise
+	 */
+	boolean isHintedJoinStrategy();
+}

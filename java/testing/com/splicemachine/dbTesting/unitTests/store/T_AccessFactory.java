@@ -48,6 +48,7 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.i18n.MessageService;
 
 import java.io.Serializable;
+import java.util.BitSet;
 import java.util.Hashtable;
 import java.util.Properties;
 import com.splicemachine.db.iapi.types.SQLInteger;
@@ -2099,7 +2100,7 @@ public class T_AccessFactory extends T_Generic
         fetch_cost = 0;
 //            scc.getFetchFromRowLocationCost(
 //                (FormatableBitSet) new FormatableBitSet(1), 0,null);
-        FormatableBitSet bit_set = new FormatableBitSet(2);
+        BitSet bit_set = new BitSet(2);
         REPORT("fetch cost (no cols) of row loc = " + fetch_cost);
         bit_set.set(1);
         fetch_cost = 0;
@@ -2139,71 +2140,59 @@ public class T_AccessFactory extends T_Generic
         StoreCostResult cost_result = new T_StoreCostResult();
 
         scc.getScanCost(
-            StoreCostController.STORECOST_SCAN_NORMAL,
             -1,             // row count
-            1,              // number of rows fetched at a time from access.
             false,          // forUpdate
-            (FormatableBitSet) null,  // validColumns
+			null,  // validColumns
             new T_AccessRow(2).getRowArray(),  // template
+            null,  			// probe position
             null,           // start position - first row in conglomerate
             0,              // unused if start position is null.
             null,           // stop position - last row in conglomerate
             0,              // unused if stop position is null.
-            false,          // reopen_scan?
-            0,              // access_type
             cost_result);   // cost result.
 
         REPORT("fetch scan cost (full row) of row loc = " + cost_result);
 
         scc.getScanCost(
-            StoreCostController.STORECOST_SCAN_NORMAL,
             -1,             // row count
-            1,              // number of rows fetched at a time from access.
             false,          // forUpdate
-            new FormatableBitSet(0),  // validColumns
+            new BitSet(),  // validColumns
             new T_AccessRow(2).getRowArray(),  // template
+            null,           // probe position
             null,           // start position - first row in conglomerate
             0,              // unused if start position is null.
             null,           // stop position - last row in conglomerate
             0,              // unused if stop position is null.
-            false,          // reopen_scan?
-            0,              // access_type
             cost_result);   // cost result.
 
         REPORT("fetch scan cost (no cols) of row loc = " + cost_result);
 
         scc.getScanCost(
-            StoreCostController.STORECOST_SCAN_NORMAL,
             -1,             // row count
-            1,              // number of rows fetched at a time from access.
             false,          // forUpdate
-            new FormatableBitSet(1),  // validColumns
+            new BitSet(1),  // validColumns
             new T_AccessRow(2).getRowArray(),  // template
-            null,           // start position - first row in conglomerate
+            null,           // probe position
+			null,           // start position - first row in conglomerate
             0,              // unused if start position is null.
             null,           // stop position - last row in conglomerate
             0,              // unused if stop position is null.
-            false,          // reopen_scan?
-            0,              // access_type
             cost_result);   // cost result.
 
         REPORT("fetch scan cost (no cols) of row loc = " + cost_result);
 
-        bit_set = new FormatableBitSet(2);
+        bit_set = new BitSet(2);
         bit_set.set(1);
         scc.getScanCost(
-            StoreCostController.STORECOST_SCAN_NORMAL,
             -1,             // row count
-            1,              // number of rows fetched at a time from access.
             false,          // forUpdate
             bit_set,        // validColumns
             new T_AccessRow(2).getRowArray(),  // template
-            null,           // start position - first row in conglomerate
+            null,           // probe position
+			null,           // start position - first row in conglomerate
             0,              // unused if start position is null.
             null,           // stop position - last row in conglomerate
             0,              // unused if stop position is null.
-            false,          // reopen_scan?
-            0,              // access_type
             cost_result);   // cost result.
 
         REPORT("fetch scan cost (1 cols) of row loc = " + cost_result);

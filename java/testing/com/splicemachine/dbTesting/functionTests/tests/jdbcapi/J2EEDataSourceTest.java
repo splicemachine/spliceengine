@@ -2666,7 +2666,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
     public void testJira95pds() throws Exception {
         try {
             ConnectionPoolDataSource pds = J2EEDataSource.getConnectionPoolDataSource();
-            JDBCDataSource.setBeanProperty(pds, "databaseName", "jdbc:derby:boo");
+            JDBCDataSource.setBeanProperty(pds, "databaseName", "jdbc:splice:boo");
             pds.getPooledConnection();
             fail ("expected an SQLException!");
         } catch (SQLException sqle) {
@@ -2682,7 +2682,7 @@ public class J2EEDataSourceTest extends BaseJDBCTestCase {
     public void testJira95xads() throws SQLException {
         try {
             XADataSource dxs = J2EEDataSource.getXADataSource();
-            JDBCDataSource.setBeanProperty(dxs, "databaseName", "jdbc:derby:boo");
+            JDBCDataSource.setBeanProperty(dxs, "databaseName", "jdbc:splice:boo");
             dxs.getXAConnection().getConnection();
             fail ("expected an SQLException!");
         } catch (SQLException sqle) {

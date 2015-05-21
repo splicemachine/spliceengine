@@ -61,9 +61,9 @@ public class NsTest extends Thread {
 
     public static final String password = "nstest";
 
-    public static final String clientURL = "jdbc:derby://localhost:1900/";
+    public static final String clientURL = "jdbc:splice://localhost:1900/";
 
-    public static final String embedURL = "jdbc:derby:";
+    public static final String embedURL = "jdbc:splice:";
 
     public static final String dataEncypt = "dataEncryption=true";
 

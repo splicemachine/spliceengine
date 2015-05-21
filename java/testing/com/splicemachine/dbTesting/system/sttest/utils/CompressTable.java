@@ -38,7 +38,7 @@ public class CompressTable {
 	
 	static boolean startByIJ = false;
 	
-	static String dbURL = "jdbc:derby:testDB";
+	static String dbURL = "jdbc:splice:testDB";
 	
 	static String driver = "com.splicemachine.db.jdbc.EmbeddedDriver";
 	

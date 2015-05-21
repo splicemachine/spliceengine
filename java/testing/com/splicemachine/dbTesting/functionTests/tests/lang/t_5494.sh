@@ -33,13 +33,13 @@ echo The bug causes both next value for invocations to return the same value.
 echo The bug is fixed if the invocations return successive values.
 echo --------------------
 
-echo connect \'jdbc:derby:db\;create=true\'\;  > $script1
+echo connect \'jdbc:splice:db\;create=true\'\;  > $script1
 echo create procedure systemExit\( in exitCode int \) language java parameter style java no sql external name \'java.lang.System.exit\'\;  >> $script1
 echo create sequence s\;  >> $script1
 echo values next value for s\;  >> $script1
 echo call systemExit\( 1 \)\;  >> $script1
 
-echo connect \'jdbc:derby:db\'\;  > $script2
+echo connect \'jdbc:splice:db\'\;  > $script2
 echo values next value for s\;  >> $script2
 
 rm -rf db

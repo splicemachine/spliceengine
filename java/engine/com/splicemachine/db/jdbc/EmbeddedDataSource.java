@@ -496,7 +496,7 @@ public class EmbeddedDataSource extends ReferenceableDataSource implements
 		synchronized(this)
 		{
 			// The driver has either never been booted, or it has been
-			// shutdown by a 'jdbc:derby:;shutdown=true'
+			// shutdown by a 'jdbc:splice:;shutdown=true'
 			if (driver == null || !driver.acceptsURL(url))
 			{
 

@@ -38,13 +38,13 @@ import com.splicemachine.db.io.StorageFactory;
  * 
  * Derby by default uses the storage factory implementation in 
  * DirStorageFactory/DirStorageFactory4 when a database is accessed with 
- * "jdbc:derby:<databaseName>". This factory can be specified instead using
+ * "jdbc:splice:<databaseName>". This factory can be specified instead using
  * db.subSubProtocol.<sub protocol name>  For example:
  *
  *  db.subSubProtocol.csf=com.splicemachine.dbTesting.functionTests.
  *             util.corruptio.CorruptDiskStorageFactory
  *  database need to be accessed by specifying the subporotocol name like
- *jdbc:derby:db:csf:wombat'.
+ *jdbc:splice:db:csf:wombat'.
  *
  * Interaction between the tests that requires instrumenting the i/o and 
  * this factory is through the flags in CorruptibleIo class. Tests should not 

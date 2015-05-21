@@ -1659,7 +1659,7 @@ public class RunList
         // but only if we're not having a J2ME configuration i.e. no DriverManager, so check...
         if (TestUtil.HAVE_DRIVER_CLASS)
         try {
-            DriverManager.getConnection("jdbc:derby:;shutdown=true");
+            DriverManager.getConnection("jdbc:splice:;shutdown=true");
         } catch (SQLException se) {
             // Ignore any exception thrown
         }

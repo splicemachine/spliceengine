@@ -256,10 +256,9 @@ public class GenericLanguageConnectionFactory
 	/**
 		this implementation will not support caching of statements.
 	 */
+    @Override
 	public boolean canSupport(Properties startParams) {
-
-		return Monitor.isDesiredType( startParams,
-                EngineType.STANDALONE_DB | EngineType.STORELESS_ENGINE);
+		return Monitor.isDesiredType(startParams, EngineType.STANDALONE_DB);
 	}
 
 	private	int	statementCacheSize(Properties startParams)
