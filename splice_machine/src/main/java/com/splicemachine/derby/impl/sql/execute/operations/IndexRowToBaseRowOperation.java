@@ -456,6 +456,10 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 		private EntryDataDecoder rowDecoder;
 		private KeyDecoder keyDecoder;
 
+        public BaseRowFetchFunction() {
+            super();
+        }
+
 		public BaseRowFetchFunction(OperationContext operationContext) {
 			super(operationContext);
 		}
