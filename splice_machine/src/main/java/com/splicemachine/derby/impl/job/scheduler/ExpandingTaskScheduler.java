@@ -17,7 +17,10 @@ public class ExpandingTaskScheduler<T extends Task> implements StealableTaskSche
 		private final ExecutorService executor;
 
 		public ExpandingTaskScheduler() {
-				ThreadFactory factory = new ThreadFactoryBuilder().setNameFormat("expandingWorker-thread-%d").build();
+				ThreadFactory factory = new ThreadFactoryBuilder()
+                    .setNameFormat("expandingWorker-thread-%d")
+                    .setDaemon(true)
+                    .build();
 				this.executor = new ThreadPoolExecutor(0,
 								Integer.MAX_VALUE,60l, TimeUnit.MILLISECONDS,new SynchronousQueue<Runnable>(),factory);
 		}
