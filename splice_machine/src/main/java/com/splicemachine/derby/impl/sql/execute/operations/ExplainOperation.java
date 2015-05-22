@@ -127,7 +127,7 @@ public class ExplainOperation extends SpliceBaseOperation {
                                                                      currentTemplate.resetRowArray();
                                                                      DataValueDescriptor[] dvds = currentTemplate.getRowArray();
                                                                      dvds[0].setValue(n);
-                                                                     return new LocatedRow(currentTemplate);
+                                                                     return new LocatedRow(currentTemplate.getClone());
                                                                  } catch (Exception e) {
                                                                      throw new RuntimeException(e);
                                                                  }
