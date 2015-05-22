@@ -6,13 +6,13 @@ import java.io.PrintStream;
 import org.apache.hadoop.hbase.ClusterStatus;
 import org.apache.hadoop.hbase.ServerLoad;
 import org.apache.hadoop.hbase.ServerName;
-import org.apache.hadoop.hbase.client.Admin;
+import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.derby.utils.SpliceUtils;
 
 /**
- * Utility to work with HBaseAdmin (now just Admin) in concert with testing - called from
+ * Utility to work with HBaseAdmin in concert with testing - called from
  * tests, shell scripts, etc.
  * <p/>
  * Things you can do are: report status of a cluster, shut down a region server, ...
@@ -21,9 +21,9 @@ import com.splicemachine.derby.utils.SpliceUtils;
 public class HBaseAdminUtil {
     private static final Logger LOG = Logger.getLogger(HBaseAdminUtil.class);
 
-    public static Admin getAdmin() {
+    public static HBaseAdmin getAdmin() {
         // TODO: requires a cast until we address deprecated use of HBaseAdmin
-        return (Admin) SpliceUtils.getAdmin();
+        return SpliceUtils.getAdmin();
     }
 
     /**
@@ -35,7 +35,7 @@ public class HBaseAdminUtil {
      * @param ps PrintStream to which to write
      * @throws IOException when admin can't get cluster status
      */
-    public static void clusterReport(Admin admin, PrintStream ps) throws IOException {
+    public static void clusterReport(HBaseAdmin admin, PrintStream ps) throws IOException {
         if (admin == null) {
             admin = getAdmin();
         }
@@ -104,7 +104,7 @@ public class HBaseAdminUtil {
      * @param regionServer region server for which to request stop.
      * @throws IOException
      */
-    public static void stopRegionServer(Admin admin, ServerName regionServer) throws IOException{
+    public static void stopRegionServer(HBaseAdmin admin, ServerName regionServer) throws IOException{
         LOG.info("Requesting shutdown for: " + regionServer.getHostAndPort());
         if (admin == null) {
             admin = getAdmin();
@@ -120,7 +120,7 @@ public class HBaseAdminUtil {
      *              {@link #getAdmin()}.
      * @throws IOException
      */
-    public static void stopFirstRegionServer(Admin admin) throws IOException {
+    public static void stopFirstRegionServer(HBaseAdmin admin) throws IOException {
         if (admin == null) {
             admin = getAdmin();
         }
