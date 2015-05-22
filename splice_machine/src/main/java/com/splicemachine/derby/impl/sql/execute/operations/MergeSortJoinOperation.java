@@ -194,7 +194,7 @@ public class MergeSortJoinOperation extends JoinOperation {
             } else { // Inner Join
 
                 if (isOneRowRightSide()) {
-                    return leftDataSet.<LocatedRow>broadcastCogroup(rightDataSet)
+                    return leftDataSet.<LocatedRow>cogroup(rightDataSet)
                             .flatmap(new CogroupInnerJoinRestrictionFlatMapFunction(operationContext));
                 }
 
