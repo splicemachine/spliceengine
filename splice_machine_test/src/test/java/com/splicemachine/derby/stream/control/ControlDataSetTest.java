@@ -24,102 +24,11 @@ import java.util.Iterator;
 /**
  * Created by jleach on 4/15/15.
  */
-public class ControlDataSetTest extends BaseStreamTest{
+public class ControlDataSetTest extends AbstractDataSetTest {
 
-    @Test
-    public void testDistinct() {
-        DataSet<ExecRow> control = new ControlDataSet<>(tenRowsTwoDuplicateRecords);
-        Assert.assertEquals("Duplicate Rows Not Filtered", 10, control.distinct().collect().size());
-    }
-
-    @Test
-    public void testMap() throws StandardException {
-        DataSet<ExecRow> control = new ControlDataSet<>(tenRowsTwoDuplicateRecords);
-        DataSet<ExecRow> mapppedDataSet = control.map(new SpliceFunction<SpliceOperation,ExecRow,ExecRow>() {
-            @Override
-            public ExecRow call(ExecRow execRow) throws Exception {
-                ExecRow clone = execRow.getClone();
-                clone.setColumn(1,TestingDataType.BOOLEAN.getDataValueDescriptor());
-                return clone;
-            }
-        });
-        Iterator<ExecRow> it = mapppedDataSet.toLocalIterator();
-        while (it.hasNext())
-            Assert.assertTrue("transform did not replace value",it.next().getColumn(1) instanceof BooleanDataValue);
-    }
-
-    @Test
-    public void testLocalIterator() {
-        int numElements = 0;
-        DataSet<ExecRow> control = new ControlDataSet<>(tenRowsTwoDuplicateRecords);
-        Iterator<ExecRow> it = control.toLocalIterator();
-        while (it.hasNext() && it.next() !=null)
-            numElements++;
-        Assert.assertEquals("iterator loses records",tenRowsTwoDuplicateRecords.size(),numElements);
-    }
-
-    @Test
-    public void testFold() throws StandardException {
-        DataSet<ExecRow> control = new ControlDataSet<>(tenRowsTwoDuplicateRecords);
-        ExecRow execRow = control.fold(null, new SpliceFunction2<SpliceOperation,ExecRow,ExecRow,ExecRow>() {
-            @Override
-            public ExecRow call(ExecRow execRow, ExecRow execRow2) throws Exception {
-                if (execRow==null)
-                    return execRow2;
-                if (execRow2 ==null)
-                    return execRow;
-                ExecRow returnRow = execRow.getClone();
-                returnRow.getColumn(1).setValue(execRow.getColumn(1).getInt()+execRow2.getColumn(1).getInt());
-                return returnRow;
-            }
-        });
-        Assert.assertEquals("summation did not work on execRow",47,execRow.getColumn(1).getInt());
-    }
-
-    @Test
-    public void testIndex() throws Exception {
-        DataSet<ExecRow> control = new ControlDataSet<>(tenRowsTwoDuplicateRecords);
-        PairDataSet<RowLocation,ExecRow> pairDataSet = control.index(new SplicePairFunction<SpliceOperation,ExecRow, RowLocation,ExecRow>() {
-            @Override
-            public RowLocation genKey(ExecRow execRow) {
-                try {
-                    ExecRow clone = execRow.getClone();
-                    DataValueDescriptor dvd = TestingDataType.INTEGER.getDataValueDescriptor();
-                    dvd.setValue(1);
-                    clone.setColumn(1, dvd);
-                    return new HBaseRowLocation(Bytes.toBytes(execRow.getColumn(1).getInt()));
-                } catch (Exception e) {
-                    throw new RuntimeException("Error");
-                }
-            }
-
-            @Override
-            public ExecRow genValue(ExecRow execRow) {
-                try {
-                    ExecRow clone = execRow.getClone();
-                    DataValueDescriptor dvd = TestingDataType.INTEGER.getDataValueDescriptor();
-                    dvd.setValue(1);
-                    clone.setColumn(1, dvd);
-                    return clone;
-                } catch (Exception e) {
-                    throw new RuntimeException("Error");
-                }
-            }
-
-            @Override
-            public Tuple2<RowLocation, ExecRow> call(ExecRow execRow) throws Exception {
-                throw new RuntimeException ("No Op");
-            }
-        });
-
-        Iterator<ExecRow> it = pairDataSet.values().toLocalIterator();
-        int i = 0;
-        while (it.hasNext()) {
-            i++;
-            ExecRow execRow = it.next();
-            Assert.assertEquals("Key not set",1,execRow.getColumn(1).getInt());
-        }
-        Assert.assertEquals("Number of rows incorrect",11,i);
+    @Override
+    protected DataSet<ExecRow> getTenRowsTwoDuplicateRecordsDataSet() {
+        return new ControlDataSet<>(tenRowsTwoDuplicateRecords);
     }
 
 }
