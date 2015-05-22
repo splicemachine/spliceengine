@@ -46,13 +46,23 @@ public class ScalarAggregateFunction extends SpliceFunction2<SpliceOperation, Lo
             op.initializeVectorAggregation(r1);
         }
         if (!op.isInitialized(r2)) {
-            op.initializeVectorAggregation(r2);
+            accumulate(t2.getRow(), (ExecIndexRow) r1);
+        } else {
+            merge(t2.getRow(), (ExecIndexRow) r1);
         }
-        aggregate(t2.getRow(), (ExecIndexRow) r1);
         return new LocatedRow(r1);
     }
 
-    private void aggregate(ExecRow next, ExecIndexRow agg) throws StandardException {
+    private void accumulate(ExecRow next, ExecIndexRow agg) throws StandardException {
+        ScalarAggregateOperation op = (ScalarAggregateOperation) getOperation();
+        if (RDDUtils.LOG.isDebugEnabled()) {
+            RDDUtils.LOG.debug(String.format("Accumulating %s to %s", next, agg));
+        }
+        for (SpliceGenericAggregator aggregate : op.aggregates)
+            aggregate.accumulate(next, agg);
+    }
+
+    private void merge(ExecRow next, ExecIndexRow agg) throws StandardException {
         ScalarAggregateOperation op = (ScalarAggregateOperation) getOperation();
         if (RDDUtils.LOG.isDebugEnabled()) {
             RDDUtils.LOG.debug(String.format("Merging %s to %s", next, agg));
