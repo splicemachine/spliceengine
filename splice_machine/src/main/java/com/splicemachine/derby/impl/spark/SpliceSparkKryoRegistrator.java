@@ -42,6 +42,8 @@ import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseConglomerate;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.stats.TaskStats;
+import com.splicemachine.derby.stream.function.*;
+import com.splicemachine.derby.stream.spark.SparkOperationContext;
 import com.splicemachine.derby.utils.kryo.DataValueDescriptorSerializer;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.job.ErrorTransport;
@@ -118,6 +120,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator {
         instance.register(DecimalTypeIdImpl.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(RowMultiSetImpl.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(RoutineAliasInfo.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SparkOperationContext.class,EXTERNALIZABLE_SERIALIZER);
 
         instance.register(IndexConglomerate.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(HBaseConglomerate.class,EXTERNALIZABLE_SERIALIZER);
@@ -558,6 +561,61 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator {
 				instance.register(MergeLeftOuterJoinOperation.class, EXTERNALIZABLE_SERIALIZER);
         instance.register(DataValueDescriptor[].class);
         instance.register(LocatedRow.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(AbstractSpliceFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(AggregateFinisherFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(AntiJoinFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(AntiJoinRestrictionFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(CogroupAntiJoinRestrictionFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER);
+
+
+
+        instance.register(CogroupInnerJoinRestrictionFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(CogroupOuterJoinRestrictionFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(ColumnComparator.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(FetchWithOffsetFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(GroupedAggregateRollupFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER);
+
+        instance.register(InnerJoinFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(InnerJoinRestrictionFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(InnerJoinRestrictionFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(InsertPairFunction.class,EXTERNALIZABLE_SERIALIZER);
+
+        instance.register(JoinRestrictionPredicateFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(KeyerFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(LocatedRowToRowLocationFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(MergeAllAggregatesFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(MergeNonDistinctAggregatesFunction.class,EXTERNALIZABLE_SERIALIZER);
+
+
+        instance.register(MergeWindowFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(NLJAntiJoinFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(NLJInnerJoinFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(NLJOneRowInnerJoinFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(NLJOuterJoinFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(OuterJoinFunction.class,EXTERNALIZABLE_SERIALIZER);
+
+        instance.register(OuterJoinPairFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(OuterJoinRestrictionFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(ProjectRestrictFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(RowComparator.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(RowOperationFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(ScalarAggregateFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SetCurrentLocatedRowFunction.class,EXTERNALIZABLE_SERIALIZER);
+
+        instance.register(SpliceFlatMap2Function.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SpliceFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SpliceFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SpliceFunction2.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SpliceJoinFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SpliceJoinFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SplicePairFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(SplicePredicateFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(TableScanTupleFunction.class,EXTERNALIZABLE_SERIALIZER);
+
+        instance.register(UpdateNoOpPredicateFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(WindowFinisherFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(WindowFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER);
+
 //        instance.register(Tuple2.class, new Serializer<Tuple2>() {
 //            @Override
 //            public Tuple2 read(Kryo kryo, Input input, Class type) {
