@@ -99,7 +99,9 @@ public class TriggerEventActivator {
         for (TriggerDescriptor td : triggerInfo.getTriggerDescriptors()) {
             TriggerEvent event = td.getTriggerEvent();
             if (td.isRowTrigger()) {
-                addToMap(rowExecutorsMap, event, new RowTriggerExecutor(tec, td, activation, lcc));
+                RowTriggerExecutor executor = new RowTriggerExecutor(tec, td, activation, lcc);
+                executor.forceCompile();
+                addToMap(rowExecutorsMap, event, executor);
             } else {
                 addToMap(statementExecutorsMap, event, new StatementTriggerExecutor(tec, td, activation, lcc));
             }
