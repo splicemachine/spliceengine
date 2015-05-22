@@ -34,7 +34,7 @@ class SpliceMasterObserverInitAction {
     private ExecutorService executor;
 
     SpliceMasterObserverInitAction() {
-        executor = MoreExecutors.namedSingleThreadExecutor("splice-master-manager");
+        executor = MoreExecutors.namedSingleThreadExecutor("splice-master-manager", true);
         state.set(State.NOT_STARTED);
     }
 
@@ -135,8 +135,15 @@ class SpliceMasterObserverInitAction {
         return "state=" + state.get() + ", createFuture.isDone=" + (createFuture == null ? "NULL" : createFuture.isDone());
     }
 
+    public void stop() {
+        state.set(State.SHUTTING_DOWN);
+        SpliceDriver.driver().shutdown();
+        executor.shutdownNow();
+    }
+
     private enum State {
         NOT_STARTED,
+        SHUTTING_DOWN,
         INITIALIZING,
         RUNNING
     }

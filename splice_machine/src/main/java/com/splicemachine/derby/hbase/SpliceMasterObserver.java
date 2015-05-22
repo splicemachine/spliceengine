@@ -32,6 +32,7 @@ public class SpliceMasterObserver extends BaseMasterObserver {
     @Override
     public void stop(CoprocessorEnvironment ctx) throws IOException {
         SpliceLogUtils.info(LOG, "Stopping SpliceMasterObserver");
+        initAction.stop();
     }
 
     @Override
