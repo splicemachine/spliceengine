@@ -267,19 +267,19 @@ public class Trigger_Row_IT {
         methodWatcher.executeUpdate(tb.named("d_stat").after().delete().on("T").statement().then("INSERT INTO RECORD VALUES('statement-3')").build());
 
         // when - update
-        methodWatcher.executeUpdate("update T set c = 0 where c=1 or c=2");
-        assertRecordCount("u1", 2);
-        assertRecordCount("u2", 2);
+        methodWatcher.executeUpdate("update T set c = 0 where c=1 or c=2 or c=3");
+        assertRecordCount("u1", 3);
+        assertRecordCount("u2", 3);
         assertRecordCount("statement-1", 1);
         // when - insert
-        methodWatcher.executeUpdate("insert into T values(7,7,7)");
-        assertRecordCount("i1", 1);
-        assertRecordCount("i2", 1);
+        methodWatcher.executeUpdate("insert into T values(7,7,7),(8,8,8),(9,9,9),(10,10,10)");
+        assertRecordCount("i1", 4);
+        assertRecordCount("i2", 4);
         assertRecordCount("statement-2", 1);
         // when - delete
-        methodWatcher.executeUpdate("delete from T where c=3 or c=4");
-        assertRecordCount("d1", 2);
-        assertRecordCount("d2", 2);
+        methodWatcher.executeUpdate("delete from T where c=4 or c=5 or c=6 or c=7 or c=8");
+        assertRecordCount("d1", 5);
+        assertRecordCount("d2", 5);
         assertRecordCount("statement-3", 1);
     }
 
