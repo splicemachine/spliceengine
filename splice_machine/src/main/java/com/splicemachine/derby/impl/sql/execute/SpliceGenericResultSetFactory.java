@@ -18,7 +18,6 @@ import com.splicemachine.db.impl.sql.GenericResultDescription;
 import com.splicemachine.db.impl.sql.execute.GenericResultSetFactory;
 import org.apache.log4j.Logger;
 import com.splicemachine.derby.iapi.sql.execute.ConvertedResultSet;
-import com.splicemachine.derby.iapi.sql.execute.OperationResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.rowcount.RowCountOperation;
 import com.splicemachine.pipeline.exception.Exceptions;

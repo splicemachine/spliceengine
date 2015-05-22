@@ -529,7 +529,7 @@ public class SpliceSparkKryoRegistry implements KryoPool.KryoRegistry{
                 },149);
 
         instance.register(LazyTimestampDataValueDescriptor.class,EXTERNALIZABLE_SERIALIZER,154);
-        instance.register(ActivationSerializer.OperationResultSetStorage.class,EXTERNALIZABLE_SERIALIZER,155);
+     //   instance.register(ActivationSerializer.OperationResultSetStorage.class,EXTERNALIZABLE_SERIALIZER,155);
         instance.register(ByteSlice.class,EXTERNALIZABLE_SERIALIZER,156);
 				instance.register(ZkTask.class,EXTERNALIZABLE_SERIALIZER,157);
 				//instance.register(SinkTask.class,EXTERNALIZABLE_SERIALIZER,158);
@@ -718,6 +718,7 @@ public class SpliceSparkKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(UpdateNoOpPredicateFunction.class,EXTERNALIZABLE_SERIALIZER,239);
         instance.register(WindowFinisherFunction.class,EXTERNALIZABLE_SERIALIZER,240);
         instance.register(WindowFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER,241);
+        instance.register(ScrollInsensitiveOperation.class, EXTERNALIZABLE_SERIALIZER,242);
 
 
 
