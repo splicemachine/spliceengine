@@ -1,14 +1,63 @@
 package com.splicemachine.derby.hbase;
 
+import javax.management.InstanceAlreadyExistsException;
+import javax.management.MBeanRegistrationException;
+import javax.management.MBeanServer;
+import javax.management.MalformedObjectNameException;
+import javax.management.NotCompliantMBeanException;
+import javax.management.ObjectName;
+import java.io.IOException;
+import java.lang.management.ManagementFactory;
+import java.net.InetAddress;
+import java.sql.Connection;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Properties;
+import java.util.Random;
+import java.util.Set;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+
 import com.google.common.io.Closeables;
+import com.yammer.metrics.core.MetricsRegistry;
+import com.yammer.metrics.reporting.JmxReporter;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.CoprocessorEnvironment;
+import org.apache.hadoop.hbase.HColumnDescriptor;
+import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.PleaseHoldException;
+import org.apache.hadoop.hbase.TableName;
+import org.apache.hadoop.hbase.client.HBaseAdmin;
+import org.apache.hadoop.hbase.master.cleaner.HFileCleaner;
+import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.RegionCoprocessorHost;
+import org.apache.hadoop.hbase.regionserver.RegionServerServices;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.log4j.Logger;
+
 import com.splicemachine.SpliceKryoRegistry;
 import com.splicemachine.concurrent.MoreExecutors;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.db.drda.NetworkServerControl;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.derby.ddl.DDLWatcher;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
-import com.splicemachine.derby.impl.job.scheduler.*;
+import com.splicemachine.derby.impl.job.scheduler.DistributedJobScheduler;
+import com.splicemachine.derby.impl.job.scheduler.ExpandingTaskScheduler;
+import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
+import com.splicemachine.derby.impl.job.scheduler.SchedulerTracer;
+import com.splicemachine.derby.impl.job.scheduler.StealableTaskScheduler;
+import com.splicemachine.derby.impl.job.scheduler.TieredTaskScheduler;
+import com.splicemachine.derby.impl.job.scheduler.TieredTaskSchedulerSetup;
 import com.splicemachine.derby.impl.load.ImportTaskManagementStats;
 import com.splicemachine.derby.impl.sql.execute.sequence.AbstractSequenceKey;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
@@ -21,7 +70,12 @@ import com.splicemachine.derby.utils.ErrorReporter;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.hbase.SpliceMetrics;
 import com.splicemachine.hbase.backup.BackupHFileCleaner;
-import com.splicemachine.job.*;
+import com.splicemachine.job.JobScheduler;
+import com.splicemachine.job.Task;
+import com.splicemachine.job.TaskMonitor;
+import com.splicemachine.job.TaskScheduler;
+import com.splicemachine.job.TaskSchedulerManagement;
+import com.splicemachine.job.ZkTaskMonitor;
 import com.splicemachine.pipeline.api.Service;
 import com.splicemachine.pipeline.impl.WriteCoordinator;
 import com.splicemachine.si.impl.TransactionStorage;
@@ -38,32 +92,6 @@ import com.splicemachine.utils.kryo.KryoPool;
 import com.splicemachine.utils.logging.LogManager;
 import com.splicemachine.utils.logging.Logging;
 import com.splicemachine.uuid.Snowflake;
-import com.yammer.metrics.core.MetricsRegistry;
-import com.yammer.metrics.reporting.JmxReporter;
-import com.splicemachine.db.drda.NetworkServerControl;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.reference.Property;
-import com.splicemachine.db.impl.jdbc.EmbedConnection;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.*;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.master.cleaner.HFileCleaner;
-import org.apache.hadoop.hbase.regionserver.HRegion;
-import org.apache.hadoop.hbase.regionserver.RegionCoprocessorHost;
-import org.apache.hadoop.hbase.regionserver.RegionServerServices;
-import org.apache.hadoop.hbase.util.Bytes;
-import org.apache.log4j.Logger;
-import javax.management.*;
-import java.io.IOException;
-import java.lang.management.ManagementFactory;
-import java.net.InetAddress;
-import java.sql.Connection;
-import java.util.*;
-import java.util.concurrent.Callable;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * A central/important class in our application. One instance per JVM.  Starts major services including network server
@@ -132,7 +160,7 @@ public class SpliceDriver {
     }
 
     protected SpliceDriver(ZkTaskMonitor taskMonitor, WriteCoordinator writeCoordinator, DDLWatcher ddlWatcher) {
-        this.lifecycleExecutor = MoreExecutors.namedSingleThreadExecutor("splice-lifecycle-manager");
+        this.lifecycleExecutor = MoreExecutors.namedSingleThreadExecutor("splice-lifecycle-manager", true);
         this.taskMonitor = taskMonitor;
         this.ddlWatcher = ddlWatcher;
         this.writeCoordinator = writeCoordinator;
@@ -423,6 +451,8 @@ public class SpliceDriver {
                 return null;
             }
         });
+        lifecycleExecutor.shutdown();
+        ((TieredTaskScheduler)threadTaskScheduler).shutdown();
     }
 
     private void registerJMX() {
