@@ -26,7 +26,7 @@ public class JoinOperationIT {
         Collection<Object[]> params = Lists.newArrayListWithCapacity(4);
         params.add(new Object[]{"NESTEDLOOP"});
         params.add(new Object[]{"SORTMERGE"});
- //       params.add(new Object[]{"BROADCAST"});
+        params.add(new Object[]{"BROADCAST"});
 //        params.add(new Object[]{"MERGE"});
 //        params.add(new Object[]{"NESTEDLOOP"});
         return params;
