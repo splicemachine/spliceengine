@@ -155,6 +155,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                                                       boolean doesProjection,
                                                       double optimizerEstimatedRowCount,
                                                       double optimizerEstimatedCost) throws StandardException {
+        assert source!=null:"passed in source is null";
         SpliceLogUtils.trace(LOG, "getProjectRestrictResultSet");
         try{
             ConvertedResultSet opSet = (ConvertedResultSet)source;
