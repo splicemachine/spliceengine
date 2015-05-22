@@ -125,12 +125,11 @@ public class Trigger_Row_Transition_IT {
 
         // then - assert date is approx now
         Timestamp triggerDateTime1 = methodWatcher.query("select createdtime from simulate where a = 1");
-        assertTrue(triggerDateTime1.getTime() - System.currentTimeMillis() < TimeUnit.SECONDS.toMillis(10));
+        assertTrue(Math.abs(triggerDateTime1.getTime() - System.currentTimeMillis()) < TimeUnit.SECONDS.toMillis(10));
 
         // then - assert date is approx now
         Timestamp triggerDateTime2 = methodWatcher.query("select createdtime from simulate where a = 2");
-        assertTrue(triggerDateTime2.getTime() - System.currentTimeMillis() < TimeUnit.SECONDS.toMillis(10));
+        assertTrue(Math.abs(triggerDateTime2.getTime() - System.currentTimeMillis()) < TimeUnit.SECONDS.toMillis(10));
     }
-
 
 }
