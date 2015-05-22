@@ -1,6 +1,7 @@
 package com.splicemachine.derby.stream.function;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.GenericAggregateOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -13,37 +14,29 @@ import java.io.ObjectOutput;
  */
 public class AggregateFinisherFunction extends SpliceFunction<SpliceOperation, LocatedRow, LocatedRow> {
         protected SpliceGenericAggregator[] aggregates;
-        protected SpliceOperation op;
+        protected boolean initialized;
+        protected GenericAggregateOperation op;
         public AggregateFinisherFunction() {
             super();
         }
-        protected boolean initialized = false;
 
-        public AggregateFinisherFunction(OperationContext<SpliceOperation> operationContext, SpliceGenericAggregator[] aggregates) {
+        public AggregateFinisherFunction(OperationContext<SpliceOperation> operationContext) {
             super(operationContext);
-            this.aggregates = aggregates;
         }
         @Override
         public void writeExternal(ObjectOutput out) throws IOException {
             super.writeExternal(out);
-            out.writeInt(aggregates.length);
-            for (int i = 0; i<aggregates.length;i++) {
-                out.writeObject(aggregates[i]);
-            }
         }
 
         @Override
         public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
             super.readExternal(in);
-            aggregates = new SpliceGenericAggregator[in.readInt()];
-            for (int i = 0; i<aggregates.length;i++) {
-                aggregates[i] = (SpliceGenericAggregator) in.readObject();
-            }
         }
         @Override
         public LocatedRow call(LocatedRow locatedRow) throws Exception {
             if (!initialized) {
-                op = (SpliceOperation) getOperation();
+                op = (GenericAggregateOperation) getOperation();
+                aggregates = op.aggregates;
                 initialized = true;
             }
             for(SpliceGenericAggregator aggregator:aggregates){
