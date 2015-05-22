@@ -9,6 +9,7 @@ import com.splicemachine.derby.stream.function.SpliceFunction;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -94,13 +95,24 @@ public class CachedOperation extends SpliceBaseOperation {
 
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        return dsp.createDataSet(rows).map(new SpliceFunction<SpliceOperation, ExecRow, LocatedRow>() {
-            @Override
-            public LocatedRow call(ExecRow execRow) throws Exception {
-                setCurrentRow(execRow);
-                return new LocatedRow(execRow);
-            }
-        });
+        return dsp.createDataSet(rows).map(new CacheFunction(dsp.createOperationContext(this)));
+    }
+
+    public static class CacheFunction extends SpliceFunction<SpliceOperation, ExecRow, LocatedRow> {
+
+        public CacheFunction() {
+
+        }
+
+        public CacheFunction(OperationContext<SpliceOperation> operationContext) {
+            super(operationContext);
+        }
+
+        @Override
+        public LocatedRow call(ExecRow execRow) throws Exception {
+            getOperation().setCurrentRow(execRow);
+            return new LocatedRow(execRow);
+        }
     }
 
 }

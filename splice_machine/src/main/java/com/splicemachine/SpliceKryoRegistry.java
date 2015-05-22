@@ -660,7 +660,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
                 },149);
 
         instance.register(LazyTimestampDataValueDescriptor.class,EXTERNALIZABLE_SERIALIZER,154);
-        instance.register(ActivationSerializer.OperationResultSetStorage.class,EXTERNALIZABLE_SERIALIZER,155);
+        //instance.register(ActivationSerializer.OperationResultSetStorage.class,EXTERNALIZABLE_SERIALIZER,155);
         instance.register(ByteSlice.class,EXTERNALIZABLE_SERIALIZER,156);
 				instance.register(LongBufferedSumAggregator.class,new Serializer<LongBufferedSumAggregator>() {
 						@Override
@@ -856,6 +856,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(TriggerDescriptor.class, EXTERNALIZABLE_SERIALIZER, 254);
         instance.register(GenericPreparedStatement.class, EXTERNALIZABLE_SERIALIZER, 255);
         instance.register(TentativeDropPKConstraintDesc.class, EXTERNALIZABLE_SERIALIZER, 256);
+        instance.register(ScrollInsensitiveOperation.class, EXTERNALIZABLE_SERIALIZER,257);
 
     }
 }

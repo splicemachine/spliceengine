@@ -518,7 +518,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator {
                 });
 
         instance.register(LazyTimestampDataValueDescriptor.class,EXTERNALIZABLE_SERIALIZER);
-        instance.register(ActivationSerializer.OperationResultSetStorage.class,EXTERNALIZABLE_SERIALIZER);
+       // instance.register(ActivationSerializer.OperationResultSetStorage.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(ByteSlice.class,EXTERNALIZABLE_SERIALIZER);
 				instance.register(ZkTask.class,EXTERNALIZABLE_SERIALIZER);
 				//instance.register(SinkTask.class,EXTERNALIZABLE_SERIALIZER);
@@ -615,6 +615,7 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator {
         instance.register(UpdateNoOpPredicateFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(WindowFinisherFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(WindowFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER);
+        instance.register(ScrollInsensitiveOperation.class, EXTERNALIZABLE_SERIALIZER);
 
 //        instance.register(Tuple2.class, new Serializer<Tuple2>() {
 //            @Override

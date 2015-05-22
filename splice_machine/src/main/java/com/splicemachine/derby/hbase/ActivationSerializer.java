@@ -2,24 +2,18 @@ package com.splicemachine.derby.hbase;
 
 import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
-import com.splicemachine.derby.iapi.sql.execute.ConversionResultSet;
-import com.splicemachine.derby.iapi.sql.execute.OperationResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.sql.execute.operations.CachedOperation;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ParameterValueSet;
 import com.splicemachine.db.iapi.sql.ResultDescription;
-import com.splicemachine.db.iapi.sql.ResultSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.execute.BaseActivation;
 import com.splicemachine.db.impl.sql.execute.IndexRow;
 import org.apache.log4j.Logger;
-
 import java.io.*;
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
@@ -66,7 +60,6 @@ public class ActivationSerializer {
         factories.add(new DataValueDescriptorFactory());
         factories.add(new ExecRowFactory());
         factories.add(new CachedOpFieldFactory());
-        factories.add(new OperationResultSetFactory());
         arrayFactory = new ArrayFactory();
         factories.add(arrayFactory);
         factories.add(new CachedOpFieldFactory());
@@ -330,56 +323,6 @@ public class ActivationSerializer {
         }
     }
 
-    private static class OperationResultSetFactory implements FieldStorageFactory<OperationResultSetStorage>{
-
-        @Override
-        public OperationResultSetStorage create(Object objectToStore, Class type) {
-        	OperationResultSet ors = (OperationResultSet) objectToStore;
-            return new OperationResultSetStorage(ors);
-        }
-
-        @Override
-        public boolean isType(Object instance, Class type) {
-        	// Originally we had this:
-        	//     return type.equals(ResultSet.class) 
-        	// which was changed to this:
-        	//     return instance instanceof ResultSet;
-        	// But that allowed some things to slip through (like ConversionResultSet)
-        	// which could not be case to OperationResultSet in create method above.
-
-        	return instance instanceof OperationResultSet;
-        }
-    }  
-
-    public static class OperationResultSetStorage implements FieldStorage {
-    	private OperationResultSet ors;
-    	
-    	public OperationResultSetStorage() {}
-    	
-    	
-    	public OperationResultSetStorage(OperationResultSet ors) {
-    		this.ors = ors;
-    	}
-
-		@Override
-		public void readExternal(ObjectInput input) throws IOException,
-				ClassNotFoundException {
-			ors = new OperationResultSet(null,(SpliceOperation)input.readObject());			
-		}
-
-		@Override
-		public void writeExternal(ObjectOutput output) throws IOException {
-			output.writeObject(ors.getTopOperation());
-		}
-
-		@Override
-		public Object getValue(Activation context) throws StandardException {
-			 ors.setActivation(context);
-			 return ors;
-		}
-    	
-    	
-    }
 
     private static class DataValueDescriptorFactory implements FieldStorageFactory<DataValueStorage>{
 
@@ -497,13 +440,12 @@ public class ActivationSerializer {
 
         @Override
         public CachedOpFieldStorage create(Object objectToStore, @SuppressWarnings("rawtypes") Class type) {
-            return new CachedOpFieldStorage(((ConversionResultSet)objectToStore).getOperation());
+            return new CachedOpFieldStorage((SpliceOperation)objectToStore);
         }
 
         @Override
         public boolean isType(Object instance, Class type) {
-            return instance instanceof ConversionResultSet &&
-                           ((ConversionResultSet) instance).getOperation() instanceof CachedOperation;
+            return instance instanceof SpliceOperation ;
         }
     }
 
@@ -523,9 +465,8 @@ public class ActivationSerializer {
 
         @Override
         public Object getValue(Activation context) throws StandardException {
-            ConversionResultSet crs = new ConversionResultSet(operation);
-            crs.setActivation(context);
-            return crs;
+            operation.setActivation(context);
+            return operation;
         }
 
         @Override

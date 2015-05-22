@@ -59,9 +59,10 @@ public class MergeAllAggregatesFunction<Op extends com.splicemachine.derby.iapi.
                 aggregator.initializeAndAccumulateIfNeeded(r1, r1);
             }
             if (!aggregator.isInitialized(r2)) {
-                aggregator.initializeAndAccumulateIfNeeded(r2, r2);
+                aggregator.accumulate(r2, r1);
+            } else {
+                aggregator.merge(r2, r1);
             }
-            aggregator.merge(r2, r1);
         }
         return new LocatedRow(locatedRow1.getRowLocation(),r1);
     }
