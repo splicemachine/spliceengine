@@ -113,25 +113,7 @@ public abstract class GenericTriggerExecutor {
             ** setup work.
             */
             if (ps == null || recompile) {
-                /*
-                ** We need to clone the prepared statement so we don't
-                ** wind up marking that ps that is tied to sps as finished
-                ** during the course of execution.
-                */
-                ps = sps.getPreparedStatement();
-                ps = ps.getClone();
-                // it should be valid since we've just prepared for it
-                ps.setValid();
-                spsActivation = ps.getActivation(lcc, false);
-
-                /*
-                ** Normally, we want getSource() for an sps invocation
-                ** to be EXEC STATEMENT xxx, but in this case, since
-                ** we are executing the SPS in our own fashion, we want
-                ** the text to be the trigger action.  So set it accordingly.
-                */
-                ps.setSource(sps.getText());
-                ps.setSPSAction();
+                compile(sps);
             }
 
             // save the active statement context for exception handling purpose
@@ -212,6 +194,42 @@ public abstract class GenericTriggerExecutor {
             /* Done with execution without any recompiles */
             break;
         }
+    }
+
+    /**
+     * Most of the time this will just retrieve the action's prepared statement and save a reference as a field
+     * in this class.  When the statement is marked as invalid in the database (because of DDL that changed
+     * its referenced table(s), etc) this method causes the statement to be recompiled.  Splice added this method
+     * for use during initialization of TriggerEventActivator so that row trigger statements are always compiled
+     * on the control side.  Statement triggers only execute control side so they are not relevant here.  Before
+     * we did this region side triggers would find invalid statements, try to recompile them, and fail because
+     * nested transactions could not be created with the SpliceTransactionView provided by SinkTask.  If SinkTask
+     * goes away post Lassen we can consider removing this method. Or maybe someone can find a better way.
+     */
+    public void forceCompile() throws StandardException {
+        compile(getAction());
+    }
+
+    private void compile(SPSDescriptor sps) throws StandardException {
+        ps = sps.getPreparedStatement();
+        /*
+         * We need to clone the prepared statement so we don't
+         * wind up marking that ps that is tied to sps as finished
+         * during the course of execution.
+         */
+        ps = ps.getClone();
+        // it should be valid since we've just prepared for it
+        ps.setValid();
+        spsActivation = ps.getActivation(lcc, false);
+
+        /*
+         * Normally, we want getSource() for an sps invocation
+         * to be EXEC STATEMENT xxx, but in this case, since
+         * we are executing the SPS in our own fashion, we want
+         * the text to be the trigger action.  So set it accordingly.
+         */
+        ps.setSource(sps.getText());
+        ps.setSPSAction();
     }
 
     /**
