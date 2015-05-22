@@ -15,7 +15,7 @@ public class RowComparator implements Comparator<ExecRow>, Serializable, Externa
     private boolean nullsOrderedLow;
 
     public RowComparator() {
-
+        nullsOrderedLow = true;
     }
     public RowComparator(boolean[] descColumns, boolean nullsOrderedLow) {
         this.descColumns = descColumns;
@@ -24,18 +24,22 @@ public class RowComparator implements Comparator<ExecRow>, Serializable, Externa
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
-        out.writeInt(descColumns.length);
-        for (int i =0; i<descColumns.length; i++)
-            out.writeBoolean(descColumns[i]);
+        out.writeBoolean(descColumns!=null);
+        if (descColumns !=null) {
+            out.writeInt(descColumns.length);
+            for (int i = 0; i < descColumns.length; i++)
+                out.writeBoolean(descColumns[i]);
+        }
         out.writeBoolean(nullsOrderedLow);
-
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        descColumns = new boolean[in.readInt()];
-        for (int i = 0; i < descColumns.length; i++)
-            descColumns[i] = in.readBoolean();
+        if (in.readBoolean()) {
+            descColumns = new boolean[in.readInt()];
+            for (int i = 0; i < descColumns.length; i++)
+                descColumns[i] = in.readBoolean();
+        }
          nullsOrderedLow = in.readBoolean();
     }
 
