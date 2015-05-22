@@ -6,7 +6,10 @@ import com.splicemachine.test_dao.TriggerBuilder;
 import com.splicemachine.test_dao.TriggerDAO;
 import org.junit.*;
 
+import java.sql.Date;
 import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.*;
 
@@ -48,14 +51,15 @@ public class Trigger_Row_Transition_IT {
     }
 
     @Test
-    public void afterUpdate() throws Exception {
-        methodWatcher.executeUpdate(tb.named("trig1").after().update().on("T").referencing("OLD AS O")
-                .row().then("INSERT INTO RECORD_OLD VALUES(O.a, O.b)").build());
+    public void afterUpdateTriggerUpdatesOwnTable() throws Exception {
+        methodWatcher.executeUpdate(tb.named("trig1").after().update().on("T").referencing("NEW AS N")
+                .row().then("INSERT INTO T VALUES(N.a, N.b)").build());
 
         // when - update a row
-        methodWatcher.executeUpdate("update T set b = 2000, a='ZZZ' where a='BBB'");
+        methodWatcher.executeUpdate("update T set b = 2000 where a='BBB'");
 
-        assertEquals(1L, methodWatcher.query("select count(*) from RECORD_OLD where a='BBB' and b=2"));
+        // then -- updated row and row from trigger
+        assertEquals(2L, methodWatcher.query("select count(*) from T where a='BBB'"));
     }
 
     @Test
@@ -94,6 +98,38 @@ public class Trigger_Row_Transition_IT {
             assertTrue(e.getMessage().contains("divide by zero"));
         }
 
+    }
+
+    @Test
+    public void afterUpdate() throws Exception {
+        methodWatcher.executeUpdate(tb.named("trig1").after().update().on("T").referencing("OLD AS O")
+                .row().then("INSERT INTO RECORD_OLD VALUES(O.a, O.b)").build());
+
+        // when - update a row
+        methodWatcher.executeUpdate("update T set b = 2000, a='ZZZ' where a='BBB'");
+
+        assertEquals(1L, methodWatcher.query("select count(*) from RECORD_OLD where a='BBB' and b=2"));
+    }
+
+    @Test
+    public void simulateMySQLTimestampColumnToPopulateCreatedTimeColumnOnInsert() throws Exception {
+        // given - table
+        methodWatcher.executeUpdate("create table simulate(a int primary key, b int, createdtime timestamp)");
+        // given - trigger
+        methodWatcher.executeUpdate(tb.after().insert().on("simulate").row().referencing("NEW AS N")
+                .then("update simulate set createdtime=CURRENT_TIMESTAMP where a=N.a").build());
+
+        // when - insert
+        methodWatcher.executeUpdate("insert into simulate values(1,10, null)");
+        methodWatcher.executeUpdate("insert into simulate values(2,20, null)");
+
+        // then - assert date is approx now
+        Timestamp triggerDateTime1 = methodWatcher.query("select createdtime from simulate where a = 1");
+        assertTrue(triggerDateTime1.getTime() - System.currentTimeMillis() < TimeUnit.SECONDS.toMillis(10));
+
+        // then - assert date is approx now
+        Timestamp triggerDateTime2 = methodWatcher.query("select createdtime from simulate where a = 2");
+        assertTrue(triggerDateTime2.getTime() - System.currentTimeMillis() < TimeUnit.SECONDS.toMillis(10));
     }
 
 
