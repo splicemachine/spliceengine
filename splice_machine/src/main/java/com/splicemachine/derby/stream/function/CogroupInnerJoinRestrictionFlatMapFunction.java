@@ -35,7 +35,7 @@ public class CogroupInnerJoinRestrictionFlatMapFunction<Op extends SpliceOperati
         Iterable<LocatedRow> returnRows = new ArrayList();
         Iterator<LocatedRow> it = tuple._2._1.iterator();
         while (it.hasNext()) {
-            returnRows = Iterables.concat(returnRows, innerJoinRestrictionFlatMapFunction.call(new Tuple2(it.next(),rightSide.iterator())));
+            returnRows = Iterables.concat(returnRows, innerJoinRestrictionFlatMapFunction.call(new Tuple2(it.next(),rightSide)));
         }
         return returnRows;
     }
