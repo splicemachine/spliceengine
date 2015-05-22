@@ -165,14 +165,14 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
             int[] allKeys = ArrayUtils.addAll(groupedAggregateContext.getGroupingKeys(), groupedAggregateContext.getNonGroupedUniqueColumns());
             set = set
                     .keyBy(new KeyerFunction(operationContext, allKeys))
-                    .reduceByKey(new MergeNonDistinctAggregatesFunction(operationContext, aggregates))
+                    .reduceByKey(new MergeNonDistinctAggregatesFunction(operationContext))
                     .values();
         }
         if (isRollup) // OLAP Rollup Functionality
                set = set.flatMap(new GroupedAggregateRollupFlatMapFunction(operationContext));
         return set.keyBy(new KeyerFunction(operationContext, groupedAggregateContext.getGroupingKeys()))
-               .reduceByKey(new MergeAllAggregatesFunction(operationContext, aggregates))
+               .reduceByKey(new MergeAllAggregatesFunction(operationContext))
                .values()
-               .map(new AggregateFinisherFunction(operationContext, aggregates));
+               .map(new AggregateFinisherFunction(operationContext));
     }
 }
