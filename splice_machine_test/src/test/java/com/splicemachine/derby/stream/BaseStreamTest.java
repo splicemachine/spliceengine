@@ -19,6 +19,10 @@ public class BaseStreamTest {
     public static Multimap<ExecRow,ExecRow> tenRows;
     public static Multimap<ExecRow,ExecRow> evenRows;
 
+    public BaseStreamTest() {
+
+    }
+
     static {
         ClassSize.setDummyCatalog();
         tenRowsTwoDuplicateRecords = new ArrayList<ExecRow>(10);
