@@ -33,7 +33,6 @@ import org.apache.derby.iapi.services.cache.ClassSize;
 import org.apache.derby.iapi.util.StringUtil;
 import org.apache.derby.iapi.util.ReuseFactory;
 import org.joda.time.DateTime;
-import org.joda.time.IllegalInstantException;
 import java.sql.Date;
 import java.sql.Time;
 import java.sql.Timestamp;
@@ -849,7 +848,7 @@ public final class SQLTimestamp extends DataType
                 try {
                     DateTime dt = createDateTime();
                     t = new Timestamp(dt.getMillis());
-                } catch (IllegalInstantException e) {
+                } catch (Exception e) {
                     t = computeGregorianCalendarTimestamp(year);
                 }
             }
