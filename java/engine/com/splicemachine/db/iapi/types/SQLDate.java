@@ -65,6 +65,11 @@ public final class SQLDate extends DataType
 						implements DateTimeDataValue
 {
 
+	/**
+	 +     * The JodaTime has problems with all the years before 1884
+	 +     */
+
+
 	private int	encodedDate;	//year << 16 + month << 8 + day
 
     private static final int BASE_MEMORY_USAGE = ClassSize.estimateBaseFromCatalog( SQLDate.class);
