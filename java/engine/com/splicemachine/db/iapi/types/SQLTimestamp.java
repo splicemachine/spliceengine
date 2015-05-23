@@ -931,28 +931,36 @@ public final class SQLTimestamp extends DataType
 	{
 		if (isNull())
 			return null;
-		
+
 		Timestamp t = null;
-        
+
 		if (cal == null){
 			int year = SQLDate.getYear(encodedDate);
 			if (year < SQLDate.JODA_CRUSH_YEAR) {
-				GregorianCalendar c = new GregorianCalendar();
-				c.clear();
-				c.set(year, SQLDate.getMonth(encodedDate) - 1, SQLDate.getDay(encodedDate));
-				// c.setTimeZone(...); if necessary
-				t = new Timestamp(c.getTimeInMillis());
+				t = computeGregorianCalendarTimestamp(year);
 			} else {
-				DateTime dt = createDateTime();
-				t = new Timestamp(dt.getMillis());
+				try {
+					DateTime dt = createDateTime();
+					t = new Timestamp(dt.getMillis());
+				} catch (Exception e) {
+					t = computeGregorianCalendarTimestamp(year);
+				}
 			}
-        }else{
-        	setCalendar(cal);
-        	t = new Timestamp(cal.getTimeInMillis());
-        }
-        		
+		}else{
+			setCalendar(cal);
+			t = new Timestamp(cal.getTimeInMillis());
+		}
+
 		t.setNanos(nanos);
 		return t;
+	}
+
+	private Timestamp computeGregorianCalendarTimestamp(int year) {
+		GregorianCalendar c = new GregorianCalendar();
+		c.clear();
+		c.set(year, SQLDate.getMonth(encodedDate) - 1, SQLDate.getDay(encodedDate));
+		// c.setTimeZone(...); if necessary
+		return new Timestamp(c.getTimeInMillis());
 	}
 
     public DateTime getDateTime() {
