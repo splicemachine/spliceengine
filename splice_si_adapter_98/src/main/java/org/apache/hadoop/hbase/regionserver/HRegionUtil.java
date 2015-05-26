@@ -176,7 +176,6 @@ public class HRegionUtil extends BaseHRegionUtil {
                   int blockCounter = 0;
 	    		  long lastOffset = 0;
 	    		  for (int i =0; i<size;i++) {
-                      fileReader.getRootBlockOffset(i)));
                       blockCounter += fileReader.getRootBlockDataSize(i);
                       if (LOG.isTraceEnabled())
                     	  SpliceLogUtils.trace(LOG, "block %d, with blockCounter=%d",i,blockCounter);
