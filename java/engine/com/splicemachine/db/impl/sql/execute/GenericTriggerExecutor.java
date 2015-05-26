@@ -39,7 +39,7 @@ import com.splicemachine.db.impl.sql.GenericPreparedStatement;
  */
 public abstract class GenericTriggerExecutor {
 
-    protected InternalTriggerExecutionContext tec;
+    protected TriggerExecutionContext tec;
     protected TriggerDescriptor triggerd;
     protected Activation activation;
     protected LanguageConnectionContext lcc;
@@ -60,7 +60,7 @@ public abstract class GenericTriggerExecutor {
      * @param activation the activation
      * @param lcc        the lcc
      */
-    GenericTriggerExecutor(InternalTriggerExecutionContext tec,
+    GenericTriggerExecutor(TriggerExecutionContext tec,
                            TriggerDescriptor triggerd,
                            Activation activation,
                            LanguageConnectionContext lcc) {

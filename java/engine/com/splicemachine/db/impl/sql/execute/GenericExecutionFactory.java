@@ -278,7 +278,7 @@ public abstract class GenericExecutionFactory implements ModuleControl, ModuleSu
      *
      * @throws StandardException Thrown on error
      */
-    public InternalTriggerExecutionContext getTriggerExecutionContext(LanguageConnectionContext lcc,
+    public TriggerExecutionContext getTriggerExecutionContext(LanguageConnectionContext lcc,
                                                                       ConnectionContext cc,
                                                                       String statementText,
                                                                       int[] changedColIds,
@@ -286,7 +286,7 @@ public abstract class GenericExecutionFactory implements ModuleControl, ModuleSu
                                                                       UUID targetTableId,
                                                                       String targetTableName,
                                                                       Vector<AutoincrementCounter> aiCounters) throws StandardException {
-        return new InternalTriggerExecutionContext(lcc, cc,
+        return new TriggerExecutionContext(lcc, cc,
                 statementText,
                 changedColIds,
                 changedColNames,

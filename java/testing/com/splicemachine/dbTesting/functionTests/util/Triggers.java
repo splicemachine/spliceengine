@@ -22,6 +22,8 @@
 package com.splicemachine.dbTesting.functionTests.util;
 
 import com.splicemachine.db.iapi.db.*;
+import com.splicemachine.db.impl.sql.execute.TriggerExecutionContext;
+
 import java.sql.*;
 
 /**

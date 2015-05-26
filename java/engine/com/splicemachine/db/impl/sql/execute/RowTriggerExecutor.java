@@ -40,7 +40,7 @@ public class RowTriggerExecutor extends GenericTriggerExecutor {
      * @param activation the activation
      * @param lcc        the lcc
      */
-    RowTriggerExecutor(InternalTriggerExecutionContext tec, TriggerDescriptor triggerd, Activation activation, LanguageConnectionContext lcc) {
+    RowTriggerExecutor(TriggerExecutionContext tec, TriggerDescriptor triggerd, Activation activation, LanguageConnectionContext lcc) {
         super(tec, triggerd, activation, lcc);
     }
 

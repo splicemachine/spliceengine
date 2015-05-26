@@ -39,7 +39,7 @@ public class TriggerEventActivator {
 
     private LanguageConnectionContext lcc;
     private TriggerInfo triggerInfo;
-    private InternalTriggerExecutionContext tec;
+    private TriggerExecutionContext tec;
     private Map<TriggerEvent, List<GenericTriggerExecutor>> statementExecutorsMap = new HashMap<>();
     private Map<TriggerEvent, List<GenericTriggerExecutor>> rowExecutorsMap = new HashMap<>();
     private Activation activation;

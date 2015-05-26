@@ -44,7 +44,7 @@ import com.splicemachine.db.iapi.sql.PreparedStatement;
 import com.splicemachine.db.iapi.sql.ParameterValueSet;
 
 import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.iapi.db.TriggerExecutionContext;
+import com.splicemachine.db.impl.sql.execute.TriggerExecutionContext;
 import com.splicemachine.db.iapi.sql.execute.RunTimeStatistics;
 import com.splicemachine.db.catalog.UUID;
 

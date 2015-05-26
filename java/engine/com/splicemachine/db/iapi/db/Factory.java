@@ -23,6 +23,8 @@ package com.splicemachine.db.iapi.db;
 
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.ConnectionUtil;
+import com.splicemachine.db.impl.sql.execute.TriggerExecutionContext;
+
 import java.sql.SQLException;
 
 /**
