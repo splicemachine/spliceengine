@@ -206,22 +206,69 @@ public class Trigger_Statement_IT {
     //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     @Test
-    public void afterDeleteRecursive() throws Exception {
-        long originalRowCount = methodWatcher.query("select count(*) from T");
-
+    public void afterRecursiveUpdateDelete() throws Exception {
+        // given
         methodWatcher.executeUpdate(tb.named("deleteTrigRecursive").after().delete().on("T").statement()
                 .then("delete from T").build());
         methodWatcher.executeUpdate(tb.named("updateTrigRecursive").after().update().on("T").statement()
                 .then("update T set c = c +1").build());
-        methodWatcher.executeUpdate(tb.named("insertTrigRecursive").after().insert().on("T").statement()
-                .then("insert into T values(1,1,1)").build());
 
-        // trigger fires on single delete
+        // when
         assertQueryFails("delete from T", "Maximum depth of nested triggers was exceeded.");
-        assertQueryFails("update T set b = b +1", "Maximum depth of nested triggers was exceeded.");
+        assertQueryFails("update T set b = b + 1", "Maximum depth of nested triggers was exceeded.");
+
+        // then
+        assertEquals("expected unchanged row count", 6L, methodWatcher.query("select count(*) from T"));
+    }
+
+    @Test
+    public void afterRecursiveInsertOverValues() throws Exception {
+        // given
+        methodWatcher.executeUpdate(tb.after().insert().on("T").statement().then("insert into T values(1,1,1)").build());
+
+        // when
+        assertQueryFails("insert into T select * from T", "Maximum depth of nested triggers was exceeded.");
         assertQueryFails("insert into T values(1,1,1)", "Maximum depth of nested triggers was exceeded.");
 
-        assertEquals(originalRowCount, (long) methodWatcher.query("select count(*) from T"));
+        // then
+        assertEquals("expected unchanged row count", 6L, methodWatcher.query("select count(*) from T"));
+    }
+
+    @Test
+    public void afterRecursiveInsertOverSelect() throws Exception {
+        // given
+        methodWatcher.executeUpdate(tb.after().insert().on("T").statement().then("insert into T select * from T").build());
+
+        // when
+        assertQueryFails("insert into T select * from T", "Maximum depth of nested triggers was exceeded.");
+        assertQueryFails("insert into T values(1,1,1)", "Maximum depth of nested triggers was exceeded.");
+
+        // then
+        assertEquals("expected unchanged row count", 6L, methodWatcher.query("select count(*) from T"));
+    }
+
+    /* DB-3351 */
+    @Test
+    public void recursiveTriggerNotRecursiveAfterDropped() throws Exception {
+        methodWatcher.executeUpdate("create table a (b int,c int)");
+        methodWatcher.executeUpdate("insert into a values (1,2)");
+
+        methodWatcher.executeUpdate(tb.named("trig1").after().delete().on("a").statement()
+                .then("insert into a values (1,2)").build());
+
+        methodWatcher.executeUpdate("delete from a");
+
+        assertEquals(1L, methodWatcher.query("select count(*) from a"));
+
+        // when - add recursive trigger
+        methodWatcher.executeUpdate(tb.named("trig2").after().delete().on("a").statement()
+                .then("delete from a").build());
+
+        assertQueryFails("delete from a", "Maximum depth of nested triggers was exceeded.");
+
+        methodWatcher.executeUpdate("drop trigger trig2");
+
+        methodWatcher.executeUpdate("delete from a");
     }
 
     private void assertQueryFails(String query, String expectedError) {
