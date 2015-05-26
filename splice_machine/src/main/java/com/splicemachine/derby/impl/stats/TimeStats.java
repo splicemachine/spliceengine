@@ -52,13 +52,13 @@ public class TimeStats extends TimeStatistics{
         }
     };
 
-    private static class TimeFreqElem extends TimeFreq{
+    static class TimeFreqElem extends TimeFreq{
         public TimeFreqElem(LongFrequencyEstimate lfe){ super(lfe); }
         @Override protected DataValueDescriptor wrap(long value){ return wrapLong(value); }
     }
 
 
-    private class TimeFreqs extends TimeStatistics.TimeFrequentElems{
+    static class TimeFreqs extends TimeStatistics.TimeFrequentElems{
         private Calendar calendar;
 
         public TimeFreqs(LongFrequentElements lfe){
@@ -94,7 +94,7 @@ public class TimeStats extends TimeStatistics{
         }
     }
 
-    private class TimeDist extends TimeDistribution{
+    static class TimeDist extends TimeDistribution{
         private Calendar calendar;
         public TimeDist(LongColumnStatistics baseColStats){ super(baseColStats); }
 

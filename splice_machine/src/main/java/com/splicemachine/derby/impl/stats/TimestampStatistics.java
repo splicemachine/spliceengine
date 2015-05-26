@@ -61,7 +61,7 @@ public class TimestampStatistics extends TimeStatistics{
     }
 
 
-    private class TimestampFreqs extends TimeStatistics.TimeFrequentElems{
+    static class TimestampFreqs extends TimeStatistics.TimeFrequentElems{
         private Calendar calendar;
 
         public TimestampFreqs(LongFrequentElements lfe){
@@ -81,7 +81,7 @@ public class TimestampStatistics extends TimeStatistics{
         }
     }
 
-    private static long getLong(DataValueDescriptor dvd,Calendar calendar){
+    static long getLong(DataValueDescriptor dvd,Calendar calendar){
         try{
             return TimestampV2DescriptorSerializer.formatLong(dvd.getTimestamp(calendar));
         }catch(StandardException e){
@@ -89,7 +89,7 @@ public class TimestampStatistics extends TimeStatistics{
         }
     }
 
-    private static DataValueDescriptor wrapLong(long value){
+    static DataValueDescriptor wrapLong(long value){
         Timestamp t = TimestampV2DescriptorSerializer.parseTimestamp(value);
         try{
             return new SQLTimestamp(t);

@@ -12,7 +12,10 @@ import com.splicemachine.stats.frequency.*;
 import com.splicemachine.utils.ComparableComparator;
 
 import java.math.BigDecimal;
+import java.sql.Time;
+import java.util.Calendar;
 import java.util.Collections;
+import java.util.GregorianCalendar;
 
 /**
  * @author Scott Fines
@@ -104,30 +107,43 @@ public abstract class ColumnAverage implements ColumnStatistics<DataValueDescrip
             case StoredFormatIds.SQL_VARCHAR_ID:
             case StoredFormatIds.SQL_LONGVARCHAR_ID:
                 return new VarcharAverage(columnId, maxLength);
+            case StoredFormatIds.SQL_TIME_ID:
+                return new TimeAverage(columnId);
+            case StoredFormatIds.SQL_DATE_ID:
+                return new DateAverage(columnId);
+            case StoredFormatIds.SQL_TIMESTAMP_ID:
+                return new TimestampAverage(columnId);
             default:
                 throw new UnsupportedOperationException("Programmer error: Cannot collect statistics for format id "+ typeFormatId);
         }
     }
 
     public static ColumnStatistics fromExisting(ColumnStatistics toMerge) {
+        int columnId=toMerge.columnId();
         if(toMerge instanceof BooleanStats){
-            return new BooleanAverage(toMerge.columnId());
+            return new BooleanAverage(columnId);
         } else if (toMerge instanceof SmallintStats){
-            return new ShortAverage(toMerge.columnId());
+            return new ShortAverage(columnId);
         } else if(toMerge instanceof IntStats){
-            return new IntAverage(toMerge.columnId());
+            return new IntAverage(columnId);
         } else if(toMerge instanceof BigintStats){
-            return new LongAverage(toMerge.columnId());
+            return new LongAverage(columnId);
         } else if(toMerge instanceof RealStats){
-            return new FloatAverage(toMerge.columnId());
+            return new FloatAverage(columnId);
         } else if(toMerge instanceof DoubleStats){
-            return new DoubleAverage(toMerge.columnId());
+            return new DoubleAverage(columnId);
         } else if(toMerge instanceof NumericStats){
-            return new DecimalAverage(toMerge.columnId());
+            return new DecimalAverage(columnId);
         } else if(toMerge instanceof VarcharStats){
-            return new VarcharAverage(toMerge.columnId(),((VarcharStats)toMerge).maxLength());
+            return new VarcharAverage(columnId,((VarcharStats)toMerge).maxLength());
         } else if(toMerge instanceof CharStats){
-            return new CharAverage(toMerge.columnId(),((CharStats)toMerge).maxLength());
+            return new CharAverage(columnId,((CharStats)toMerge).maxLength());
+        } else if(toMerge instanceof DateStatistics){
+            return new DateAverage(columnId);
+        } else if(toMerge instanceof TimeStats){
+            return new TimeAverage(columnId);
+        } else if(toMerge instanceof TimestampStatistics){
+            return new TimestampAverage(columnId);
         }else
              throw new IllegalArgumentException("Programmer error: unknown Column Statistics type: "+toMerge.getClass().getCanonicalName());
     }
@@ -635,6 +651,194 @@ public abstract class ColumnAverage implements ColumnStatistics<DataValueDescrip
 
         @Override public ColumnStatistics<DataValueDescriptor> getClone() {
             return new VarcharAverage(columnId,maxLength);
+        }
+    }
+
+    private abstract static class BaseTimeAverage extends ColumnAverage{
+        private long min;
+        private long minCount;
+        private long max;
+        private final FrequentElements<DataValueDescriptor> empty;
+        private transient Calendar calendar; //stashed for performance reasons
+
+        public BaseTimeAverage(int columnId) {
+            super(columnId);
+            this.empty = emptyFreqs();
+        }
+
+
+        @Override
+        protected void mergeExtrema(ColumnStatistics<DataValueDescriptor> stats) {
+            DataValueDescriptor minDvd = stats.minValue();
+            if(minDvd!=null && !minDvd.isNull()){
+                long minV=safeLong(minDvd);
+                if(min>minV){
+                    min=minV;
+                    minCount=stats.minCount();
+                }
+            }
+            DataValueDescriptor maxDvd=stats.maxValue();
+            if(maxDvd!=null && !maxDvd.isNull()){
+                long maxV=safeLong(maxDvd);
+                if(max<maxV){
+                    max=maxV;
+                }
+            }
+        }
+
+        @Override public long minCount() { return minCount; }
+        @Override public FrequentElements<DataValueDescriptor> topK() { return empty; }
+
+        @Override public DataValueDescriptor maxValue() { return getDvd(max); }
+        @Override public DataValueDescriptor minValue() { return getDvd(min); }
+
+        @Override
+        public Distribution<DataValueDescriptor> getDistribution() {
+            LongFrequentElements fe = LongFrequentElements.topK(0, 0,
+                    Collections.<LongFrequencyEstimate>emptyList());
+            LongColumnStatistics lcs = new LongColumnStatistics(columnId,
+                    FixedCardinalityEstimate.longEstimate(cardinality()),
+                    fe,
+                    min,
+                    max,
+                    totalBytes(),
+                    nonNullCount()+nullCount(),
+                    nullCount(),
+                    minCount);
+            return newDistribution(lcs);
+        }
+
+        protected abstract Distribution<DataValueDescriptor> newDistribution(LongColumnStatistics lcs);
+
+        protected abstract DataValueDescriptor getDvd(long value);
+
+        protected abstract long safeLong(DataValueDescriptor value);
+
+        protected abstract FrequentElements<DataValueDescriptor> emptyFreqs();
+
+        protected Calendar getCal(){
+            if(calendar==null)
+                calendar = new GregorianCalendar();
+            return calendar;
+        }
+    }
+
+    private static class TimeAverage extends BaseTimeAverage{
+
+        public TimeAverage(int columnId){
+            super(columnId);
+        }
+
+        @Override
+        protected Distribution<DataValueDescriptor> newDistribution(LongColumnStatistics lcs){
+            return new TimeStats.TimeDist(lcs);
+        }
+
+        @Override
+        protected DataValueDescriptor getDvd(long value){
+            try{
+                SQLTime sqlTime=new SQLTime();
+                sqlTime.setValue(new Time(value));
+                return sqlTime;
+            }catch(StandardException e){
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
+        protected long safeLong(DataValueDescriptor value){
+            try{
+                return value.getTime(getCal()).getTime();
+            }catch(StandardException e){
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
+        protected FrequentElements<DataValueDescriptor> emptyFreqs(){
+            LongFrequentElements lfe=LongFrequentElements.topK(0,0,Collections.<LongFrequencyEstimate>emptyList());
+            return new TimeStats.TimeFreqs(lfe);
+        }
+
+        @Override
+        public ColumnStatistics<DataValueDescriptor> getClone(){
+            return new TimeAverage(columnId);
+        }
+    }
+
+    private static class DateAverage extends BaseTimeAverage{
+
+        public DateAverage(int columnId){
+            super(columnId);
+        }
+
+        @Override
+        protected Distribution<DataValueDescriptor> newDistribution(LongColumnStatistics lcs){
+            return new DateStatistics.DateDist(lcs);
+        }
+
+        @Override
+        protected DataValueDescriptor getDvd(long value){
+            try{
+                SQLDate sqlTime=new SQLDate();
+                sqlTime.setValue(new Time(value));
+                return sqlTime;
+            }catch(StandardException e){
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
+        protected long safeLong(DataValueDescriptor value){
+            try{
+                return value.getDate(getCal()).getTime();
+            }catch(StandardException e){
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
+        protected FrequentElements<DataValueDescriptor> emptyFreqs(){
+            LongFrequentElements lfe=LongFrequentElements.topK(0,0,Collections.<LongFrequencyEstimate>emptyList());
+            return new DateStatistics.DateFreqs(lfe);
+        }
+
+        @Override
+        public ColumnStatistics<DataValueDescriptor> getClone(){
+            return new DateAverage(columnId);
+        }
+    }
+
+    private static class TimestampAverage extends BaseTimeAverage{
+
+        public TimestampAverage(int columnId){
+            super(columnId);
+        }
+
+        @Override
+        protected Distribution<DataValueDescriptor> newDistribution(LongColumnStatistics lcs){
+            return new TimeStats.TimeDist(lcs);
+        }
+
+        @Override
+        protected DataValueDescriptor getDvd(long value){
+            return TimestampStatistics.wrapLong(value);
+        }
+
+        @Override
+        protected long safeLong(DataValueDescriptor value){
+            return TimestampStatistics.getLong(value,getCal());
+        }
+
+        @Override
+        protected FrequentElements<DataValueDescriptor> emptyFreqs(){
+            LongFrequentElements lfe=LongFrequentElements.topK(0,0,Collections.<LongFrequencyEstimate>emptyList());
+            return new TimestampStatistics.TimestampFreqs(lfe);
+        }
+
+        @Override
+        public ColumnStatistics<DataValueDescriptor> getClone(){
+            return new TimestampAverage(columnId);
         }
     }
 }
