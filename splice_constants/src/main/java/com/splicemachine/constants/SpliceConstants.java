@@ -350,8 +350,8 @@ public class SpliceConstants {
     public static int importSplitFactor;
 
 		@Parameter public static final String SPLIT_BLOCK_SIZE = "splice.splitBlockSize";
-		@DefaultValue(IMPORT_SPLIT_FACTOR) public static final long DEFAULT_SPLIT_BLOCK_SIZE=128*1024*1024;
-		public static long splitBlockSize;
+		@DefaultValue(IMPORT_SPLIT_FACTOR) public static final int DEFAULT_SPLIT_BLOCK_SIZE=128*1024*1024;
+		public static int splitBlockSize;
 
 		/**
 		 * The number of threads which will be used to process rows from import files. Increasing this
@@ -1205,6 +1205,8 @@ public class SpliceConstants {
 
         collectStats = config.getBoolean(COLLECT_PERF_STATS,DEFAULT_COLLECT_STATS);
         pause = config.getLong(CLIENT_PAUSE,DEFAULT_CLIENT_PAUSE);
+
+        splitBlockSize = config.getInt(SPLIT_BLOCK_SIZE,DEFAULT_SPLIT_BLOCK_SIZE);
 
         importSplitFactor = config.getInt(IMPORT_SPLIT_FACTOR,DEFAULT_IMPORT_SPLIT_FACTOR);
         taskWorkers = config.getInt(TOTAL_WORKERS,DEFAULT_TOTAL_WORKERS);

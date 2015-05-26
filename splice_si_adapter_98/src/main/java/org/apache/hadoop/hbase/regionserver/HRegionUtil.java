@@ -176,7 +176,8 @@ public class HRegionUtil extends BaseHRegionUtil {
                   int blockCounter = 0;
 	    		  long lastOffset = 0;
 	    		  for (int i =0; i<size;i++) {
-                      blockCounter += fileReader.getRootBlockOffset(i) - lastOffset;        
+                      fileReader.getRootBlockOffset(i)));
+                      blockCounter += fileReader.getRootBlockDataSize(i);
                       if (LOG.isTraceEnabled())
                     	  SpliceLogUtils.trace(LOG, "block %d, with blockCounter=%d",i,blockCounter);
 	    			  byte[] possibleCutpoint = KeyValue.createKeyValueFromKey(fileReader.getRootBlockKey(i)).getRow();
