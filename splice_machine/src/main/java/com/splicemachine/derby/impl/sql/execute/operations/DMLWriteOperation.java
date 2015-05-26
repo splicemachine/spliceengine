@@ -254,7 +254,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 				super.close();
 				source.close();
                 rowsSunk = 0;
-                if(triggerHandler != null) {
+                if(triggerHandler != null && this.isScan) {
                     triggerHandler.cleanup();
                 }
 				if (modifiedProvider != null) {

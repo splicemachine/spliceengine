@@ -11,6 +11,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.jdbc.EmbedConnection;
 import com.splicemachine.db.impl.sql.execute.TriggerEvent;
 import com.splicemachine.db.impl.sql.execute.TriggerEventActivator;
+import com.splicemachine.db.impl.sql.execute.TriggerExecutionContext;
 import com.splicemachine.db.impl.sql.execute.TriggerInfo;
 import com.splicemachine.derby.iapi.sql.execute.SingleRowCursorResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
@@ -25,12 +26,14 @@ import java.util.concurrent.Callable;
 /**
  * Used by DMLOperation to initialize the derby classes necessary for firing row/statement triggers.  Also provides
  * convenient methods for firing.
- *
- * Intended to be used by a single thread.
+ * <p/>
+ * Instances are intended to be used by a single thread.
  */
 public class TriggerHandler {
 
-    /** When this many rows have been passed for firing AFTER row triggers then we actually fire. */
+    /**
+     * When this many rows have been passed for firing AFTER row triggers then we actually fire.
+     */
     private static final int AFTER_ROW_BUFFER_SIZE = 1000;
 
     private TriggerEventActivator triggerActivator;
@@ -52,6 +55,7 @@ public class TriggerHandler {
                           TriggerEvent afterEvent) throws StandardException {
         WriteCursorConstantOperation constantAction = (WriteCursorConstantOperation) writeInfo.getConstantAction();
         initConnectionContext(context);
+
         this.beforeEvent = beforeEvent;
         this.afterEvent = afterEvent;
         this.resultDescription = activation.getResultDescription();
@@ -62,13 +66,34 @@ public class TriggerHandler {
         this.hasBeforeStatement = triggerInfo.hasBeforeStatementTrigger();
         this.hasAfterStatement = triggerInfo.hasAfterStatementTrigger();
 
-        this.triggerActivator = new TriggerEventActivator(
-                context.getLanguageConnectionContext(),
-                context.getLanguageConnectionContext().getTransactionExecute(),
-                constantAction.getTargetUUID(),
-                constantAction.getTriggerInfo(),
-                activation,
-                null);
+        initTriggerActivator(context, activation, constantAction);
+    }
+
+    private void initTriggerActivator(SpliceOperationContext context, Activation activation, WriteCursorConstantOperation constantAction) throws StandardException {
+        try {
+            this.triggerActivator = new TriggerEventActivator(
+                    context.getLanguageConnectionContext(),
+                    context.getLanguageConnectionContext().getTransactionExecute(),
+                    constantAction.getTargetUUID(),
+                    constantAction.getTriggerInfo(),
+                    activation,
+                    null);
+        } catch (StandardException e) {
+            popAllTriggerExecutionContexts(context);
+            throw e;
+        }
+    }
+
+    /* If we throw a StandardException during initialization of the TEC then we are done not just with this
+     * trigger, but with the entire recursive trigger hierarchy, so remove all TEC from the context stack and then
+     * re-throw.  I believe the only StandardException we expect here is max-trigger-recursion-depth exception. */
+    private void popAllTriggerExecutionContexts(SpliceOperationContext context) throws StandardException {
+        LanguageConnectionContext lcc = context.getLanguageConnectionContext();
+        TriggerExecutionContext tec = lcc.getTriggerExecutionContext();
+        while (tec != null) {
+            lcc.popTriggerExecutionContext(tec);
+            tec = lcc.getTriggerExecutionContext();
+        }
     }
 
     /* We have a trigger and we are on a region-side node where the LCC has no connection context.  Add one.
