@@ -1,24 +1,3 @@
-/*
-
-   Derby - Class org.apache.derby.impl.sql.execute.TriggerInfo
-
-   Licensed to the Apache Software Foundation (ASF) under one or more
-   contributor license agreements.  See the NOTICE file distributed with
-   this work for additional information regarding copyright ownership.
-   The ASF licenses this file to you under the Apache License, Version 2.0
-   (the "License"); you may not use this file except in compliance with
-   the License.  You may obtain a copy of the License at
-
-      http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-
- */
-
 package com.splicemachine.db.impl.sql.execute;
 
 import com.splicemachine.db.iapi.sql.dictionary.GenericDescriptorList;
@@ -33,6 +12,7 @@ import com.splicemachine.db.iapi.services.io.Formatable;
 import java.io.ObjectOutput;
 import java.io.ObjectInput;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Iterator;
 
 /**
@@ -145,37 +125,13 @@ public final class TriggerInfo implements Formatable {
     //
     //////////////////////////////////////////////
 
-
     @Override
     public String toString() {
-        if (SanityManager.DEBUG) {
-            StringBuilder str = new StringBuilder();
-            str.append("\nColumn names modified:\t\t(");
-            for (int i = 0; i < columnNames.length; i++) {
-                if (i > 0)
-                    str.append(",");
-
-                str.append(columnNames[i]);
-            }
-            str.append(")");
-
-            str.append("\nColumn ids modified:\t\t(");
-            for (int i = 0; i < columnIds.length; i++) {
-                if (i > 0)
-                    str.append(",");
-
-                str.append(columnIds[i]);
-            }
-            str.append(")");
-
-            str.append("\nTriggers:");
-            for (TriggerDescriptor aTriggerArray : triggerDescriptors) {
-                str.append("\n" + aTriggerArray);
-            }
-            return str.toString();
-        } else {
-            return "";
-        }
+        return "TriggerInfo{" +
+                "columnIds=" + Arrays.toString(columnIds) +
+                ", triggerDescriptors=" + Arrays.toString(triggerDescriptors) +
+                ", columnNames=" + Arrays.toString(columnNames) +
+                '}';
     }
 
 
@@ -189,7 +145,6 @@ public final class TriggerInfo implements Formatable {
      * Write this object out
      *
      * @param out write bytes here
-     * @throws IOException thrown on error
      */
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
@@ -202,8 +157,6 @@ public final class TriggerInfo implements Formatable {
      * Read this object from a stream of stored objects.
      *
      * @param in read this.
-     * @throws IOException            thrown on error
-     * @throws ClassNotFoundException thrown on error
      */
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
