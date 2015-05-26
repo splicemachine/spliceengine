@@ -73,13 +73,8 @@ import java.util.*;
  * activations, and cursors in use by the current connection.
  * <p>
  * The generic impl does not provide statement caching.
- *
- *
  */
-public class GenericLanguageConnectionContext
-    extends ContextImpl 
-    implements LanguageConnectionContext
-{
+public class GenericLanguageConnectionContext extends ContextImpl implements LanguageConnectionContext {
 
     // make sure these are not zeros
     private final static int NON_XA = 0;
@@ -132,7 +127,7 @@ public class GenericLanguageConnectionContext
      * can be prepared and used to insert rows into the table during the
      * capturing of statistics data into the user XPLAIN tables.
      */
-    private Map<String, String> xplain_statements = new HashMap<String, String>();
+    private Map<String, String> xplain_statements = new HashMap<>();
     private long xplainStatementId;
     private boolean isAutoTraced = false;
     //all the temporary tables declared for this connection
@@ -174,7 +169,7 @@ public class GenericLanguageConnectionContext
      * with a nested transaction context.
      *
      */
-    private final List<TransactionController> nestedTransactions = new LinkedList<TransactionController>();
+    private final List<TransactionController> nestedTransactions = new LinkedList<>();
 
     /**
      * If non-null indicates that a read-only nested 
@@ -317,32 +312,26 @@ public class GenericLanguageConnectionContext
      */
     private boolean restoreMode = false;
 
-    /*
-       constructor
-    */
-    public GenericLanguageConnectionContext
-    (
-     ContextManager cm,
-     TransactionController tranCtrl,
-
-     LanguageFactory lf,
-     LanguageConnectionFactory lcf,
-     Database db,
-     String userName,
-     int instanceNumber,
-     String drdaID,
-     String dbname)
-         throws StandardException
-    {
+    /* constructor */
+    public GenericLanguageConnectionContext(
+            ContextManager cm,
+            TransactionController tranCtrl,
+            LanguageFactory lf,
+            LanguageConnectionFactory lcf,
+            Database db,
+            String userName,
+            int instanceNumber,
+            String drdaID,
+            String dbname) throws StandardException {
         super(cm, ContextId.LANG_CONNECTION);
-        acts = new ArrayList<Activation>();
+        acts = new ArrayList<>();
         tran = tranCtrl;
 
         dataFactory = lcf.getDataValueFactory();
         tcf = lcf.getTypeCompilerFactory();
         of = lcf.getOptimizerFactory();
-        langFactory =  lf;
-        connFactory =  lcf;
+        langFactory = lf;
+        connFactory = lcf;
         this.db = db;
         this.userName = userName;
         this.instanceNumber = instanceNumber;
@@ -351,13 +340,11 @@ public class GenericLanguageConnectionContext
 
         /* Find out whether or not to log info on executing statements to error log
          */
-        String logStatementProperty = PropertyUtil.getServiceProperty(getTransactionCompile(),
-                    "derby.language.logStatementText");
-        logStatementText = Boolean.valueOf(logStatementProperty).booleanValue();
+        String logStatementProperty = PropertyUtil.getServiceProperty(getTransactionCompile(), "derby.language.logStatementText");
+        logStatementText = Boolean.valueOf(logStatementProperty);
 
-        String logQueryPlanProperty = PropertyUtil.getServiceProperty(getTransactionCompile(),
-                    "derby.language.logQueryPlan");
-        logQueryPlan = Boolean.valueOf(logQueryPlanProperty).booleanValue();
+        String logQueryPlanProperty = PropertyUtil.getServiceProperty(getTransactionCompile(), "derby.language.logQueryPlan");
+        logQueryPlan = Boolean.valueOf(logQueryPlanProperty);
 
         setRunTimeStatisticsMode(logQueryPlan);
 
@@ -369,9 +356,9 @@ public class GenericLanguageConnectionContext
                                        Property.DEFAULT_LOCKS_ESCALATION_THRESHOLD);
         */
         lockEscalationThreshold = Property.DEFAULT_LOCKS_ESCALATION_THRESHOLD;
-        stmtValidators = new ArrayList<ExecutionStmtValidator>();
-        triggerExecutionContexts = new ArrayList<TriggerExecutionContext>();
-        triggerTables = new ArrayList<TableDescriptor>();
+        stmtValidators = new ArrayList<>();
+        triggerExecutionContexts = new ArrayList<>();
+        triggerTables = new ArrayList<>();
     }
 
     /**
@@ -381,8 +368,8 @@ public class GenericLanguageConnectionContext
      */
     private String sessionUser = null;
 
-    public void initialize() throws StandardException
-    {
+    @Override
+    public void initialize() throws StandardException {
         interruptedException = null;
         sessionUser = IdUtil.getUserAuthorizationId(userName);
         //
@@ -403,14 +390,14 @@ public class GenericLanguageConnectionContext
                     " reasonably");
             }
         }
-
         setDefaultSchema(initDefaultSchemaDescriptor());
-        referencedColumnMap = new WeakHashMap<TableDescriptor, FormatableBitSet>();
+        referencedColumnMap = new WeakHashMap<>();
     }
+
     /*
      * Initialize the LCC without the extraneous SQL Calls.
-     * 
      */
+    @Override
     public void initializeSplice(String sessionUser, SchemaDescriptor defaultSchemaDescriptor) throws StandardException {
             interruptedException = null;
             this.sessionUser = sessionUser;
@@ -433,19 +420,17 @@ public class GenericLanguageConnectionContext
                 }
             }
             setDefaultSchema(defaultSchemaDescriptor);
-            referencedColumnMap = new WeakHashMap<TableDescriptor, FormatableBitSet>();
+            referencedColumnMap = new WeakHashMap<>();
     }
 
     
     /**
-     * Compute the initial default schema and set
-     * cachedInitialDefaultSchemaDescr accordingly.
+     * Compute the initial default schema and set cachedInitialDefaultSchemaDescr accordingly.
      *
      * @return computed initial default schema value for this session
      * @throws StandardException
      */
-    protected SchemaDescriptor initDefaultSchemaDescriptor()
-        throws StandardException {
+    protected SchemaDescriptor initDefaultSchemaDescriptor() throws StandardException {
         /*
         ** - If the database supports schemas and a schema with the
         ** same name as the user's name exists (has been created using
@@ -466,7 +451,7 @@ public class GenericLanguageConnectionContext
                     dd,
                     getSessionUserId(),
                     getSessionUserId(),
-                    (UUID) null,
+                    null,
                     false);
             }
 
@@ -487,50 +472,40 @@ public class GenericLanguageConnectionContext
     //
     // LanguageConnectionContext interface
     //
-    /**
-     * @see LanguageConnectionContext#getLogStatementText
-     */
-    public boolean getLogStatementText()
-    {
+
+    @Override
+    public boolean getLogStatementText() {
         return logStatementText;
     }
 
-    /**
-     * @see LanguageConnectionContext#setLogStatementText
-     */
-    public void setLogStatementText(boolean logStatementText)
-    {
+    @Override
+    public void setLogStatementText(boolean logStatementText) {
         this.logStatementText = logStatementText;
     }
 
-    /**
-     * @see LanguageConnectionContext#getLogQueryPlan
-     */
-    public boolean getLogQueryPlan()
-    {
+    @Override
+    public boolean getLogQueryPlan() {
         return logQueryPlan;
     }
 
-    /**
-     * @see LanguageConnectionContext#usesSqlAuthorization
-     */
-    public boolean usesSqlAuthorization()
-    {
+    @Override
+    public boolean usesSqlAuthorization() {
         return getDataDictionary().usesSqlAuthorization();
     }
 
     /**
      * get the lock escalation threshold.
      */
-    public int getLockEscalationThreshold()
-    {
+    @Override
+    public int getLockEscalationThreshold() {
         return lockEscalationThreshold;
     }
 
     /**
      * Add the activation to those known about by this connection.
      */
-    public void addActivation(Activation a) 
+    @Override
+    public void addActivation(Activation a)
         throws StandardException {
         acts.add(a);
 
@@ -539,9 +514,8 @@ public class GenericLanguageConnectionContext
         }
     }
 
-    public void closeUnusedActivations()
-            throws StandardException
-    {
+    @Override
+    public void closeUnusedActivations() throws StandardException {
         // DERBY-418. Activations which are marked unused,
         // are closed here. Activations Vector is iterated 
         // to identify and close unused activations, only if 
@@ -582,19 +556,13 @@ public class GenericLanguageConnectionContext
         unusedActs = true;
     }
 
-    /**
-     * @see LanguageConnectionContext#checkIfAnyDeclaredGlobalTempTablesForThisConnection
-     */
+    @Override
     public boolean checkIfAnyDeclaredGlobalTempTablesForThisConnection() {
         return (allDeclaredGlobalTempTables != null);
     }
 
-    /**
-     * @see LanguageConnectionContext#addDeclaredGlobalTempTable
-     */
-    public void addDeclaredGlobalTempTable(TableDescriptor td)
-        throws StandardException 
-    {
+    @Override
+    public void addDeclaredGlobalTempTable(TableDescriptor td) throws StandardException {
 
         if (findDeclaredGlobalTempTable(td.getName()) != null) 
         {
@@ -615,14 +583,12 @@ public class GenericLanguageConnectionContext
         // tables currently active in the transaction.
 
         if (allDeclaredGlobalTempTables == null)
-            allDeclaredGlobalTempTables = new ArrayList<TempTableInfo>();
+            allDeclaredGlobalTempTables = new ArrayList<>();
 
         allDeclaredGlobalTempTables.add(tempTableInfo);
     }
 
-    /**
-     * @see LanguageConnectionContext#dropDeclaredGlobalTempTable
-     */
+    @Override
     public boolean dropDeclaredGlobalTempTable(TableDescriptor td) {
         TempTableInfo tempTableInfo = findDeclaredGlobalTempTable(td.getName());
 
@@ -710,9 +676,7 @@ public class GenericLanguageConnectionContext
      *
      * @exception  StandardException  Standard exception policy.
      **/
-    private void tempTablesAndCommit(boolean in_xa_transaction) 
-        throws StandardException
-    {
+    private void tempTablesAndCommit(boolean in_xa_transaction) throws StandardException {
         // loop through all declared global temporary tables and determine
         // what to do at commit time based on if they were dropped during
         // the current savepoint level.
@@ -750,8 +714,7 @@ public class GenericLanguageConnectionContext
         // process.
 
         for (TempTableInfo allDeclaredGlobalTempTable : allDeclaredGlobalTempTables) {
-            TableDescriptor td =
-                    ((TempTableInfo) allDeclaredGlobalTempTable).getTableDescriptor();
+            TableDescriptor td = allDeclaredGlobalTempTable.getTableDescriptor();
             if (!td.isOnCommitDeleteRows()) {
                 // do nothing for temp table with ON COMMIT PRESERVE ROWS
                 continue;
@@ -774,9 +737,7 @@ public class GenericLanguageConnectionContext
         }
     }
 
-    private void tempTablesXApostCommit() 
-        throws StandardException
-    {
+    private void tempTablesXApostCommit() throws StandardException {
         TransactionController tc = getTransactionExecute();
 
         // at commit time for an XA transaction drop all temporary tables.
@@ -801,13 +762,9 @@ public class GenericLanguageConnectionContext
         tc.commit();
     }
 
-    /**
-        Reset the connection before it is returned (indirectly) by
-        a PooledConnection object. See EmbeddedConnection.
-     */
-    public void resetFromPool()
-         throws StandardException
-    {
+    /*Reset the connection before it is returned (indirectly) by a PooledConnection object. See EmbeddedConnection. */
+    @Override
+    public void resetFromPool() throws StandardException {
         interruptedException = null;
 
         // Reset IDENTITY_VAL_LOCAL
@@ -825,11 +782,15 @@ public class GenericLanguageConnectionContext
         // Reset the current user
         getCurrentSQLSessionContext().setUser(getSessionUserId());
 
-        referencedColumnMap = new WeakHashMap<TableDescriptor, FormatableBitSet>();
+        referencedColumnMap = new WeakHashMap<>();
     }
 
     // debug methods
+
+    @Override
     public  void    setLastQueryTree( Object queryTree ) { lastQueryTree = queryTree; }
+
+    @Override
     public  Object    getLastQueryTree() { return lastQueryTree; }
 
     /**
@@ -981,9 +942,7 @@ public class GenericLanguageConnectionContext
      * 4)If an existing temp table was modified in the UOW, then get rid of 
      *   all the rows from the table.
      */
-    private void tempTablesAndRollback()
-        throws StandardException 
-    {
+    private void tempTablesAndRollback() throws StandardException {
         for (int i = allDeclaredGlobalTempTables.size()-1; i >= 0; i--) 
         {
             TempTableInfo tempTableInfo = allDeclaredGlobalTempTables.get(i);
@@ -1067,9 +1026,7 @@ public class GenericLanguageConnectionContext
     }
 
     /** Invalidate a dropped temp table */
-    private void    invalidateDroppedTempTable( TableDescriptor td )
-        throws StandardException
-    {
+    private void invalidateDroppedTempTable( TableDescriptor td ) throws StandardException {
         getDataDictionary().getDependencyManager().invalidateFor( td, DependencyManager.DROP_TABLE, this );
         cleanupTempTableOnCommitOrRollback( td, true );
     }
@@ -1089,25 +1046,20 @@ public class GenericLanguageConnectionContext
      *                  getting changed
      * @param td        New table descriptor for the temporary table
      */
-    private void replaceDeclaredGlobalTempTable(
-    String          tableName, 
-    TableDescriptor td) 
-    {
+    private void replaceDeclaredGlobalTempTable(String tableName, TableDescriptor td) {
         TempTableInfo tempTableInfo = findDeclaredGlobalTempTable(tableName);
-        
         tempTableInfo.setDroppedInSavepointLevel(-1);
         tempTableInfo.setDeclaredInSavepointLevel(-1);
         tempTableInfo.setTableDescriptor(td);
 
-        allDeclaredGlobalTempTables.set(
-            allDeclaredGlobalTempTables.indexOf(tempTableInfo), tempTableInfo);
+        allDeclaredGlobalTempTables.set(allDeclaredGlobalTempTables.indexOf(tempTableInfo), tempTableInfo);
     }
 
     /**
      * @see LanguageConnectionContext#getTableDescriptorForDeclaredGlobalTempTable
      */
     public TableDescriptor getTableDescriptorForDeclaredGlobalTempTable(String tableName) {
-    TempTableInfo tempTableInfo = findDeclaredGlobalTempTable(tableName);
+        TempTableInfo tempTableInfo = findDeclaredGlobalTempTable(tableName);
         if (tempTableInfo == null)
             return null;
         else
@@ -1117,8 +1069,7 @@ public class GenericLanguageConnectionContext
     /**
      * Find the declared global temporary table in the list of temporary tables known by this connection.
      * @param tableName look for this table name in the saved list
-     * @return data structure defining the temporary table if found. Else, return null 
-     *
+     * @return data structure defining the temporary table if found. Else, return null
      */
     private TempTableInfo findDeclaredGlobalTempTable(String tableName) {
         if (allDeclaredGlobalTempTables == null)
@@ -1131,19 +1082,17 @@ public class GenericLanguageConnectionContext
         return null;
     }
 
-    /**
-     * @see LanguageConnectionContext#markTempTableAsModifiedInUnitOfWork
-     */
+    @Override
     public void markTempTableAsModifiedInUnitOfWork(String tableName) {
-    TempTableInfo tempTableInfo = findDeclaredGlobalTempTable(tableName);
-    tempTableInfo.setModifiedInSavepointLevel(currentSavepointLevel);
+        TempTableInfo tempTableInfo = findDeclaredGlobalTempTable(tableName);
+        tempTableInfo.setModifiedInSavepointLevel(currentSavepointLevel);
     }
 
-        /**
-     * @see LanguageConnectionContext#prepareInternalStatement
-     */
-        public PreparedStatement prepareInternalStatement(SchemaDescriptor compilationSchema, String sqlText, boolean isForReadOnly, boolean forMetaData) 
-        throws StandardException 
+    @Override
+    public PreparedStatement prepareInternalStatement(SchemaDescriptor compilationSchema,
+                                                      String sqlText,
+                                                      boolean isForReadOnly,
+                                                      boolean forMetaData) throws StandardException
         {
             if (restoreMode) {
                 throw StandardException.newException(
@@ -1161,26 +1110,18 @@ public class GenericLanguageConnectionContext
         return connFactory.getStatement(compilationSchema, sqlText, isForReadOnly).prepare(this, forMetaData);
         }
 
-        /**
-         * @see LanguageConnectionContext#prepareInternalStatement
-         */
-        public PreparedStatement prepareInternalStatement(String sqlText) 
-        throws StandardException 
-        {
-            if (restoreMode) {
-                throw StandardException.newException(
-                        SQLState.CONNECTION_RESET_ON_RESTORE_MODE);
-            }
-            return connFactory.
-                getStatement(getDefaultSchema(), sqlText, true).prepare(this);
-        }      
 
-    /**
-     * Remove the activation to those known about by this connection.
-     *
-     */
-    public void removeActivation(Activation a) 
-    {
+    @Override
+    public PreparedStatement prepareInternalStatement(String sqlText) throws StandardException {
+        if (restoreMode) {
+            throw StandardException.newException(SQLState.CONNECTION_RESET_ON_RESTORE_MODE);
+        }
+        return connFactory.getStatement(getDefaultSchema(), sqlText, true).prepare(this);
+    }
+
+    /** Remove the activation to those known about by this connection. */
+    @Override
+    public void removeActivation(Activation a) {
         if (SanityManager.DEBUG) {
             SanityManager.ASSERT(a.isClosed(), "Activation is not closed");
         }
@@ -1200,6 +1141,7 @@ public class GenericLanguageConnectionContext
      * are marked as unused and later closed and removed on
      * the next commit/rollback).
      */
+    @Override
     public int getActivationCount() {
         return acts.size();
     }
@@ -1209,9 +1151,9 @@ public class GenericLanguageConnectionContext
      * if so return its activation. Returns null if not found.
      * For use in execution.
      *
-     * @return the activation for the given cursor, null
-     *  if none was found.
+     * @return the activation for the given cursor, null if none was found.
      */
+    @Override
     public CursorActivation lookupCursorActivation(String cursorName) {
 
         int size = acts.size();
@@ -1238,8 +1180,7 @@ public class GenericLanguageConnectionContext
                 // determine that the names don't match. Even if the hash codes
                 // are equal, we still need to call equals() to verify that the
                 // two names actually are equal.
-                if (executingCursorName == null ||
-                        executingCursorName.hashCode() != cursorHash) {
+                if (executingCursorName == null || executingCursorName.hashCode() != cursorHash) {
                     continue;
                 }
 
@@ -1272,8 +1213,7 @@ public class GenericLanguageConnectionContext
     *  @param statement Statement to remove
     *  @exception StandardException thrown if lookup goes wrong.
     */  
-    public void removeStatement(GenericStatement statement)
-        throws StandardException {
+    public void removeStatement(GenericStatement statement) throws StandardException {
         
         CacheManager statementCache =
             getLanguageConnectionFactory().getStatementCache();
@@ -1327,7 +1267,7 @@ public class GenericLanguageConnectionContext
         }
 
         if (!useCaches) {
-        	return null;
+            return null;
         }
 
         Cacheable cachedItem = statementCache.find(statement);
@@ -1362,27 +1302,21 @@ public class GenericLanguageConnectionContext
         return ps;
     }
 
-    /**
-        Get a connection unique system generated name for a cursor.
-    */
+    /* Get a connection unique system generated name for a cursor. */
     public String getUniqueCursorName() 
     {
         return getNameString("SQLCUR", nextCursorId++);
     }
 
-    /**
-        Get a connection unique system generated name for an unnamed savepoint.
-    */
-    public String getUniqueSavepointName()
-    {
+    /* Get a connection unique system generated name for an unnamed savepoint. */
+    @Override
+    public String getUniqueSavepointName() {
         return getNameString("SAVEPT", nextSavepointId++);
     }
 
-    /**
-        Get a connection unique system generated id for an unnamed savepoint.
-    */
-    public int getUniqueSavepointID()
-    {
+    /** Get a connection unique system generated id for an unnamed savepoint. */
+    @Override
+    public int getUniqueSavepointID() {
         return nextSavepointId-1;
     }
 
@@ -1417,8 +1351,8 @@ public class GenericLanguageConnectionContext
      *
      * @exception StandardException thrown on failure
      */
-    public void internalCommit(boolean commitStore) throws StandardException
-    {
+    @Override
+    public void internalCommit(boolean commitStore) throws StandardException {
         doCommit(commitStore, true, NON_XA, false);
     }
 
@@ -1430,8 +1364,8 @@ public class GenericLanguageConnectionContext
      *
      * @exception StandardException thrown on failure
      */
-    public void userCommit() throws StandardException
-    {
+    @Override
+    public void userCommit() throws StandardException {
         doCommit(true, true, NON_XA, true);
     }
 
@@ -1451,12 +1385,10 @@ public class GenericLanguageConnectionContext
 
         @exception StandardException thrown on failure
      */
-    public final void internalCommitNoSync(int commitflag) 
-        throws StandardException
-    {
+    @Override
+    public final void internalCommitNoSync(int commitflag) throws StandardException {
         doCommit(true, false, commitflag, false);
     }
-
 
     /**
         Same as userCommit except commit a distributed transaction.   
@@ -1464,9 +1396,8 @@ public class GenericLanguageConnectionContext
 
         @param onePhase if true, allow it to commit without first going thru a
         prepared state.
-
-        @exception StandardException    thrown if something goes wrong
      */
+    @Override
     public final void xaCommit(boolean onePhase) throws StandardException
     {
         // further overload internalCommit to make it understand 2 phase commit
@@ -1515,7 +1446,6 @@ public class GenericLanguageConnectionContext
      *
      * @exception StandardException     Thrown on error
      */
-
     protected void doCommit(boolean commitStore,
                                                boolean sync,
                                                int commitflag,
@@ -1644,18 +1574,18 @@ public class GenericLanguageConnectionContext
     }
 
     private void checkGlobalDDLChanges() {
-    	if (invalidateCaches) {
+        if (invalidateCaches) {
             invalidateAllCaches();
 
-    		invalidateCaches = false;
-    		if (ongoingDDLChange) {
-    			// if DDL changes are still ongoing, next transaction can't use caches
-    			useCaches = false;
-    		}
-    	}
-	}
+            invalidateCaches = false;
+            if (ongoingDDLChange) {
+                // if DDL changes are still ongoing, next transaction can't use caches
+                useCaches = false;
+            }
+        }
+    }
 
-	/**
+    /**
      * If dropAndRedeclare is true, that means we have come here for temp 
      * tables with on commit delete rows and no held curosr open on them. We 
      * will drop the existing conglomerate and redeclare a new conglomerate
@@ -1666,11 +1596,8 @@ public class GenericLanguageConnectionContext
      * rollback cleanup work. We are trying to restore old definition of the 
      * temp table (because the drop on it is being rolled back).
      */
-    private TableDescriptor cleanupTempTableOnCommitOrRollback(
-    TableDescriptor         td, 
-    boolean                 dropAndRedeclare)
-         throws StandardException
-    {
+    private TableDescriptor cleanupTempTableOnCommitOrRollback(TableDescriptor td,
+                                                               boolean dropAndRedeclare) throws StandardException {
         // need to upgrade txn to write
         getDataDictionary().startWriting(this);
         TransactionController tc = getTransactionExecute();
@@ -1741,9 +1668,8 @@ public class GenericLanguageConnectionContext
 
       @exception StandardException thrown on failure
      */
-
-    public void internalRollback() throws StandardException 
-    {
+    @Override
+    public void internalRollback() throws StandardException {
         doRollback(false /* non-xa */, false);
     }
 
@@ -1752,19 +1678,15 @@ public class GenericLanguageConnectionContext
      * rollback (e.g. a java.sql.Connection.rollback() or a language
      * 'ROLLBACk' statement.  Does some extra checking to make
      * sure that users aren't doing anything bad.
-     *
-     * @exception StandardException thrown on failure
      */
+    @Override
     public void userRollback() throws StandardException
     {
         doRollback(false /* non-xa */, true);
     }
 
-    /**
-        Same as userRollback() except rolls back a distrubuted transaction.
-
-        @exception StandardException    thrown if something goes wrong
-     */
+    /** Same as userRollback() except rolls back a distrubuted transaction. */
+    @Override
     public void xaRollback() throws StandardException
     {
         doRollback(true /* xa */, true);
@@ -1890,6 +1812,7 @@ public class GenericLanguageConnectionContext
      *
      * @exception StandardException thrown if something goes wrong
      */
+    @Override
     public void internalRollbackToSavepoint( String savepointName, boolean refreshStyle, Object kindOfSavepoint )
         throws StandardException
     {
@@ -1932,9 +1855,8 @@ public class GenericLanguageConnectionContext
       Non NULL value means it is a user defined savepoint which can be a SQL savepoint or a JDBC savepoint
       A String value for kindOfSavepoint would mean it is SQL savepoint
       A JDBC Savepoint object value for kindOfSavepoint would mean it is JDBC savepoint
-
-      @exception StandardException thrown if something goes wrong
      */
+    @Override
     public  void    releaseSavePoint( String savepointName, Object kindOfSavepoint )  throws StandardException
     {
         TransactionController tc = getTransactionExecute();
@@ -1958,6 +1880,7 @@ public class GenericLanguageConnectionContext
 
         @exception StandardException thrown if something goes wrong
       */
+    @Override
     public  void    languageSetSavePoint( String savepointName, Object kindOfSavepoint )  throws StandardException
     {
         TransactionController tc = getTransactionExecute();
@@ -1972,6 +1895,7 @@ public class GenericLanguageConnectionContext
      * already active simply increment a counter, queryNestingDepth, to keep
      * track of how many times we have tried to start a NUT.
      */
+    @Override
     public void beginNestedTransaction(boolean readOnly) throws StandardException
     {
         // DERBY-2490 incremental rework, currently this is only called
@@ -1996,9 +1920,8 @@ public class GenericLanguageConnectionContext
         queryNestingDepth++;
     }
 
-    public void commitNestedTransaction()
-        throws StandardException
-    {
+    @Override
+    public void commitNestedTransaction() throws StandardException {
         if (--queryNestingDepth == 0)
         {
             readOnlyNestedTransaction.commit();
@@ -2012,15 +1935,14 @@ public class GenericLanguageConnectionContext
      * connection context. If a NUT is active then return NUT else return parent
      * transaction.
      */
-    public TransactionController getTransactionCompile()
-    {
+    @Override
+    public TransactionController getTransactionCompile() {
         return (readOnlyNestedTransaction != null) ? readOnlyNestedTransaction : tran;
     }
 
-    public TransactionController getTransactionExecute()
-    {
-        TransactionController transToUse = nestedTransactions.size()<=0? tran: nestedTransactions.get(0);
-        return transToUse;
+    @Override
+    public TransactionController getTransactionExecute() {
+        return nestedTransactions.isEmpty() ? tran: nestedTransactions.get(0);
     }
 
     @Override
@@ -2033,49 +1955,43 @@ public class GenericLanguageConnectionContext
         return nestedTransactions.remove(0);
     }
 
- /** Get the data value factory to use with this language connection
-        context.
-     */
+    /** Get the data value factory to use with this language connection context. */
+    @Override
     public DataValueFactory getDataValueFactory() {
         return dataFactory;
     }
     
-    /**
-        Get the language factory to use with this language connection
-        context.
-     */
+    /* Get the language factory to use with this language connection context. */
+    @Override
     public LanguageFactory getLanguageFactory() {
         return langFactory;
     }
-        
+
+    @Override
     public OptimizerFactory getOptimizerFactory() {
         return of;
     }
 
-    /**
-        Get the language connection factory to use with this language connection
-        context.
-     */
+    /** Get the language connection factory to use with this language connection context. */
+    @Override
     public LanguageConnectionFactory getLanguageConnectionFactory() {
         return connFactory;
     }
 
     /**
      * check if there are any activations that reference this temporary table
+     *
      * @param tableName look for any activations referencing this table name
      * @return boolean  false if found no activations
      */
-    private boolean checkIfAnyActivationHasHoldCursor(String tableName)
-            throws StandardException
-    {
+    private boolean checkIfAnyActivationHasHoldCursor(String tableName) throws StandardException {
         for (int i = acts.size() - 1; i >= 0; i--) {
             Activation a = acts.get(i);
             if (a.checkIfThisActivationHasHoldCursor(tableName))
                 return true;
+        }
+        return false;
     }
-    return false;
-    }
-
 
     /**
      * Verify that there are no activations with open held result sets.
@@ -2089,9 +2005,8 @@ public class GenericLanguageConnectionContext
      * execution time, set transaction isolation level calls this method before
      * changing the isolation level.
      */
-    public boolean verifyAllHeldResultSetsAreClosed()
-            throws StandardException
-    {
+    @Override
+    public boolean verifyAllHeldResultSetsAreClosed() throws StandardException {
         boolean seenOpenResultSets = false;
 
         /* For every activation */
@@ -2153,7 +2068,7 @@ public class GenericLanguageConnectionContext
                 continue;
             }
 
-            ResultSet rs = ((CursorActivation) a).getResultSet();
+            ResultSet rs = a.getResultSet();
 
             /* is there an open held result set? */
             if ((rs != null) && !rs.isClosed() && rs.returnsRows())
@@ -2173,13 +2088,10 @@ public class GenericLanguageConnectionContext
      * @param action    The action causing the possible invalidation
      *
      * @return Nothing.
-     *
-     * @exception StandardException thrown on failure
      */
-    public boolean verifyNoOpenResultSets(PreparedStatement pStmt, Provider provider,
-                                       int action)
-            throws StandardException
-    {
+    @Override
+    public boolean verifyNoOpenResultSets(PreparedStatement pStmt, Provider provider, int action)
+            throws StandardException {
         /*
         ** It is not a problem to create an index when there is an open
         ** result set, since it doesn't invalidate the access path that was
@@ -2269,26 +2181,18 @@ public class GenericLanguageConnectionContext
         return sessionUser;
     }
 
-    /**
-     * @see LanguageConnectionContext#getDefaultSchema
-     */
-    public SchemaDescriptor getDefaultSchema() 
-    { 
+    @Override
+    public SchemaDescriptor getDefaultSchema() {
         return getCurrentSQLSessionContext().getDefaultSchema();
     }
 
-    /**
-     * @see LanguageConnectionContext#getDefaultSchema(Activation a)
-     */
+    @Override
     public SchemaDescriptor getDefaultSchema(Activation a) {
         return getCurrentSQLSessionContext(a).getDefaultSchema();
     }
 
-    /**
-     * @see LanguageConnectionContext#getCurrentSchemaName()
-     */
-    public String getCurrentSchemaName()
-    {
+    @Override
+    public String getCurrentSchemaName() {
         // getCurrentSchemaName with no arg is used even
         // at run-time but only in places(*) where the statement context
         // can be relied on, AFAICT.
@@ -2302,47 +2206,30 @@ public class GenericLanguageConnectionContext
         return s.getSchemaName();
     }
 
-
-    /**
-     * @see LanguageConnectionContext#getCurrentSchemaName(Activation a)
-     */
-    public String getCurrentSchemaName(Activation a)
-    {
+    @Override
+    public String getCurrentSchemaName(Activation a) {
         SchemaDescriptor s = getDefaultSchema(a);
         if( null == s)
             return null;
         return s.getSchemaName();
     }
 
-
-    /**
-     * @see LanguageConnectionContext#isInitialDefaultSchema
-     */
+    @Override
     public boolean isInitialDefaultSchema(String schemaName) {
         return cachedInitialDefaultSchemaDescr.getSchemaName().
             equals(schemaName);
     }
 
-
-    /**
-     * @see LanguageConnectionContext#setDefaultSchema(SchemaDescriptor sd)
-     */
-    public void setDefaultSchema(SchemaDescriptor sd)
-        throws StandardException
-    {   
+    @Override
+    public void setDefaultSchema(SchemaDescriptor sd) throws StandardException {
         if (sd == null) {   
             sd = getInitialDefaultSchemaDescriptor();
         }
-
         getCurrentSQLSessionContext().setDefaultSchema(sd);
     }
 
-    /**
-     * @see LanguageConnectionContext#setDefaultSchema(Activation a,
-     * SchemaDescriptor sd)
-     */
-    public void setDefaultSchema(Activation a, SchemaDescriptor sd)
-        throws StandardException
+    @Override
+    public void setDefaultSchema(Activation a, SchemaDescriptor sd) throws StandardException
     {
         if (sd == null) {
             sd = getInitialDefaultSchemaDescriptor();
@@ -2351,13 +2238,8 @@ public class GenericLanguageConnectionContext
         getCurrentSQLSessionContext(a).setDefaultSchema(sd);
     }
 
-
-    /**
-     * @see LanguageConnectionContext#resetSchemaUsages(Activation activation,
-     *      String schemaName)
-     */
-    public void resetSchemaUsages(Activation activation, String schemaName)
-            throws StandardException {
+    @Override
+    public void resetSchemaUsages(Activation activation, String schemaName) throws StandardException {
 
         Activation parent = activation.getParentActivation();
         SchemaDescriptor defaultSchema = getInitialDefaultSchemaDescriptor();
@@ -2395,9 +2277,9 @@ public class GenericLanguageConnectionContext
      *
      * @return the generated identity column value
      */
-    public Long getIdentityValue()
-    {
-        return identityNotNull ? new Long(identityVal) : null;
+    @Override
+    public Long getIdentityValue() {
+        return identityNotNull ? identityVal : null;
     }
 
     /**
@@ -2405,8 +2287,8 @@ public class GenericLanguageConnectionContext
      *
      * @param val the generated identity column value
      */
-    public void setIdentityValue(long val)
-    {
+    @Override
+    public void setIdentityValue(long val) {
         identityVal = val;
         identityNotNull = true;
     }
@@ -2417,12 +2299,10 @@ public class GenericLanguageConnectionContext
      * which we compile against.
      *
      * @return the compiler context
-     *
-     * @exception StandardException thrown on failure
      */
-    public  final CompilerContext pushCompilerContext()
-    {
-        return pushCompilerContext((SchemaDescriptor)null);
+    @Override
+    public  final CompilerContext pushCompilerContext() {
+        return pushCompilerContext(null);
     }
 
     /**
@@ -2453,7 +2333,8 @@ public class GenericLanguageConnectionContext
      * The compiler context's compilation schema will be set accordingly based 
      * on the given input above.   
      */
-    public  CompilerContext pushCompilerContext(SchemaDescriptor sd)
+    @Override
+    public CompilerContext pushCompilerContext(SchemaDescriptor sd)
     {
         CompilerContext cc;
         boolean         firstCompilerContext = false;
@@ -2512,23 +2393,16 @@ public class GenericLanguageConnectionContext
      *
      * @param cc  The compiler context.
      */
-    public void popCompilerContext(CompilerContext cc)
-    {
+    @Override
+    public void popCompilerContext(CompilerContext cc) {
         cc.setCurrentDependent(null);
-
         cc.setInUse(false);
-
-        /*
-        ** Only pop the compiler context if it's not the first one
-        ** on the stack.
-        */
-        if (! cc.isFirstOnStack()) 
-        { 
+        /* Only pop the compiler context if it's not the first one on the stack. */
+        if (! cc.isFirstOnStack()) {
             cc.popMe(); 
         }
-        else
-        {
-            cc.setCompilationSchema((SchemaDescriptor)null);
+        else {
+            cc.setCompilationSchema(null);
         }
     }
 
@@ -2555,11 +2429,11 @@ public class GenericLanguageConnectionContext
      * @return StatementContext  The statement context.
      *
      */
+    @Override
     public StatementContext pushStatementContext (boolean isAtomic, boolean isForReadOnly, 
                               String stmtText, ParameterValueSet pvs, 
                               boolean rollbackParentContext, 
-                              long timeoutMillis)
-    {
+                              long timeoutMillis) {
         int                 parentStatementDepth = statementDepth;
         boolean             inTrigger = false;
         boolean             parentIsAtomic = false;
@@ -2629,9 +2503,8 @@ public class GenericLanguageConnectionContext
      * @param statementContext  The statement context.
      * @param error             The error, if any  (Only relevant for DEBUG)
      */
-    public void popStatementContext(StatementContext statementContext,
-                                    Throwable error) 
-    {
+    @Override
+    public void popStatementContext(StatementContext statementContext, Throwable error) {
         if ( statementContext != null ) 
         { 
             /*
@@ -2724,8 +2597,8 @@ public class GenericLanguageConnectionContext
      *
      * @param validator the validator to add
      */
-    public void pushExecutionStmtValidator(ExecutionStmtValidator validator)
-    {
+    @Override
+    public void pushExecutionStmtValidator(ExecutionStmtValidator validator) {
         stmtValidators.add(validator);
     }
 
@@ -2734,68 +2607,49 @@ public class GenericLanguageConnectionContext
      * comparison.  Asserts that the validator is found.
      *
      * @param validator the validator to remove
-     *
-     * @exception StandardException on error
      */
-    public void popExecutionStmtValidator(ExecutionStmtValidator validator)
-        throws StandardException
-    {
+    @Override
+    public void popExecutionStmtValidator(ExecutionStmtValidator validator) throws StandardException {
         boolean foundElement = stmtValidators.remove(validator);
-        if (SanityManager.DEBUG)
-        {
-            if (!foundElement)
-            {
+        if (SanityManager.DEBUG) {
+            if (!foundElement) {
                 SanityManager.THROWASSERT("statement validator "+validator+" not found");
             }
         }
     }
 
     /**
-     * Push a new trigger execution context.
-     * <p>
-     * Multiple TriggerExecutionContexts may be active at any given time.
+     * Push a new trigger execution context.  Multiple TriggerExecutionContexts may be active at any given time.
      *
      * @param tec the trigger execution context
      *
      * @exception StandardException on trigger recursion error
      */
-    public void pushTriggerExecutionContext(TriggerExecutionContext tec) throws StandardException
-    {
-        if (outermostTrigger == -1) 
-        {
+    @Override
+    public void pushTriggerExecutionContext(TriggerExecutionContext tec) throws StandardException {
+        if (outermostTrigger == -1) {
             outermostTrigger = statementDepth; 
         }
-
         /* Maximum 16 nesting levels allowed */
-        if (triggerExecutionContexts.size() >= Limits.DB2_MAX_TRIGGER_RECURSION)
-        {
+        if (triggerExecutionContexts.size() >= Limits.DB2_MAX_TRIGGER_RECURSION) {
             throw StandardException.newException(SQLState.LANG_TRIGGER_RECURSION_EXCEEDED);
         }
-
         triggerExecutionContexts.add(tec);
     }
 
     /**
-     * Remove the tec.  Does an object identity (tec == tec)
-     * comparison.  Asserts that the tec is found.
+     * Remove the tec.  Does an object identity (tec == tec) comparison.  Asserts that the tec is found.
      *
      * @param tec the tec to remove
-     *
-     * @exception StandardException on error
      */
-    public void popTriggerExecutionContext(TriggerExecutionContext tec)
-        throws StandardException
-    {
-        if (outermostTrigger == statementDepth)
-        {
+    @Override
+    public void popTriggerExecutionContext(TriggerExecutionContext tec) throws StandardException {
+        if (outermostTrigger == statementDepth) {
             outermostTrigger = -1; 
         }
-
         boolean foundElement = triggerExecutionContexts.remove(tec);
-        if (SanityManager.DEBUG)
-        {
-            if (!foundElement)
-            {
+        if (SanityManager.DEBUG) {
+            if (!foundElement) {
                 SanityManager.THROWASSERT("trigger execution context "+tec+" not found");
             }
         }
@@ -2803,13 +2657,10 @@ public class GenericLanguageConnectionContext
 
     /**
      * Get the topmost tec.  
-     *
-     * @return the tec
      */
-    public TriggerExecutionContext getTriggerExecutionContext()
-    {
-        return triggerExecutionContexts.size() == 0 ?
-                null : triggerExecutionContexts.get(triggerExecutionContexts.size() - 1);
+    @Override
+    public TriggerExecutionContext getTriggerExecutionContext() {
+        return triggerExecutionContexts.isEmpty() ? null : triggerExecutionContexts.get(triggerExecutionContexts.size() - 1);
     }
 
     /**
@@ -2817,21 +2668,15 @@ public class GenericLanguageConnectionContext
      * and executing them.  If a validator throws and exception, then the
      * checking is stopped and the exception is passed up.
      *
-     * @param constantAction the constantAction that is about to be executed (and
-     *  should be validated
+     * @param constantAction the constantAction that is about to be executed (and should be validated
      *
      * @exception StandardException on validation failure
      */
-    public void validateStmtExecution(ConstantAction constantAction)
-        throws StandardException
-    {
-        if (SanityManager.DEBUG)
-        {
+    public void validateStmtExecution(ConstantAction constantAction) throws StandardException {
+        if (SanityManager.DEBUG) {
             SanityManager.ASSERT(constantAction!=null, "constantAction is null");
         }
-
-        if (stmtValidators.size() > 0)
-        {
+        if (!stmtValidators.isEmpty()) {
             for (ExecutionStmtValidator stmtValidator : stmtValidators) {
                 stmtValidator.validateStatement(constantAction);
             }
@@ -2839,15 +2684,12 @@ public class GenericLanguageConnectionContext
     }
     
     /**
-     * Set the trigger table descriptor.  Used to compile
-     * statements that may special trigger pseudo tables.
+     * Set the trigger table descriptor.  Used to compile statements that may special trigger pseudo tables.
      *
-     * @param td the table that the trigger is 
-     * defined upon
-     *
+     * @param td the table that the trigger is defined upon
      */
-    public void pushTriggerTable(TableDescriptor td)
-    {
+    @Override
+    public void pushTriggerTable(TableDescriptor td) {
         triggerTables.add(td);
     }
 
@@ -2856,13 +2698,11 @@ public class GenericLanguageConnectionContext
      *
      * @param td the table to remove from the stack.
      */
-    public void popTriggerTable(TableDescriptor td)
-    {
+    @Override
+    public void popTriggerTable(TableDescriptor td) {
         boolean foundElement = triggerTables.remove(td);
-        if (SanityManager.DEBUG)
-        {
-            if (!foundElement)
-            {
+        if (SanityManager.DEBUG) {
+            if (!foundElement) {
                 SanityManager.THROWASSERT("trigger table not found: "+td);
             }
         }
@@ -2879,122 +2719,97 @@ public class GenericLanguageConnectionContext
     {
         return triggerTables.size() == 0 ? null : triggerTables.get(triggerTables.size() - 1);
     }
-    /**
-     * @see LanguageConnectionContext#getDatabase
-     */
-    public Database
-    getDatabase()
-    {
+
+    @Override
+    public Database getDatabase() {
         return db;
     }
 
-    /** @see LanguageConnectionContext#incrementBindCount */
-    public int incrementBindCount()
-    {
+    @Override
+    public int incrementBindCount() {
         bindCount++;
         return bindCount;
     }
 
-    
-    /** @see LanguageConnectionContext#decrementBindCount */
-    public int decrementBindCount()
-    {
+    @Override
+    public int decrementBindCount() {
         bindCount--;
-
         if (SanityManager.DEBUG)
         {
             if (bindCount < 0)
                 SanityManager.THROWASSERT(
                     "Level of nested binding == " + bindCount);
         }
-
         return bindCount;
     }
 
-    /** @see LanguageConnectionContext#getBindCount */
-    public int getBindCount()
-    {
+    @Override
+    public int getBindCount() {
         return bindCount;
     }
 
-    /** @see LanguageConnectionContext#setDataDictionaryWriteMode */
-    public final void setDataDictionaryWriteMode()
-    {
+    @Override
+    public final void setDataDictionaryWriteMode() {
         ddWriteMode = true;
     }
 
-    /** @see LanguageConnectionContext#dataDictionaryInWriteMode */
-    public final boolean dataDictionaryInWriteMode()
-    {
+    @Override
+    public final boolean dataDictionaryInWriteMode() {
         return ddWriteMode;
     }
 
-    /** @see LanguageConnectionContext#setRunTimeStatisticsMode */
-    public void setRunTimeStatisticsMode(boolean onOrOff)
-    {
+    @Override
+    public void setRunTimeStatisticsMode(boolean onOrOff) {
         runTimeStatisticsSetting = onOrOff;
     }
 
-    /** @see LanguageConnectionContext#getRunTimeStatisticsMode */
-    public boolean getRunTimeStatisticsMode()
-    {
+    @Override
+    public boolean getRunTimeStatisticsMode() {
         return runTimeStatisticsSetting;
     }
 
-    /** @see LanguageConnectionContext#setStatisticsTiming */
-    public void setStatisticsTiming(boolean onOrOff)
-    {
+    @Override
+    public void setStatisticsTiming(boolean onOrOff) {
         statisticsTiming = onOrOff;
     }
 
-    /** @see LanguageConnectionContext#getStatisticsTiming */
-    public boolean getStatisticsTiming()
-    {
+    @Override
+    public boolean getStatisticsTiming() {
         return statisticsTiming;
     }
 
-    /** @see LanguageConnectionContext#setRunTimeStatisticsObject */
-    public void setRunTimeStatisticsObject(RunTimeStatistics runTimeStatisticsObject)
-    {
+    @Override
+    public void setRunTimeStatisticsObject(RunTimeStatistics runTimeStatisticsObject) {
         this.runTimeStatisticsObject = runTimeStatisticsObject;
     }
 
-    /** @see LanguageConnectionContext#getRunTimeStatisticsObject */
-    public RunTimeStatistics getRunTimeStatisticsObject()
-    {
+    @Override
+    public RunTimeStatistics getRunTimeStatisticsObject() {
         return runTimeStatisticsObject;
     }
-
 
     /**
       * Reports how many statement levels deep we are.
       *
       * @return a statement level >= OUTERMOST_STATEMENT
       */
-    public  int     getStatementDepth()
-    { return statementDepth; }
+    @Override
+    public int getStatementDepth() {
+        return statementDepth;
+    }
 
-    /**
-     * @see LanguageConnectionContext#isIsolationLevelSetUsingSQLorJDBC
-     */
-    public boolean isIsolationLevelSetUsingSQLorJDBC()
-    {
+    @Override
+    public boolean isIsolationLevelSetUsingSQLorJDBC() {
         return isolationLevelSetUsingSQLorJDBC;
     }
 
-    /**
-     * @see LanguageConnectionContext#resetIsolationLevelFlagUsedForSQLandJDBC
-     */
-    public void resetIsolationLevelFlagUsedForSQLandJDBC()
-    {
+    @Override
+    public void resetIsolationLevelFlagUsedForSQLandJDBC() {
         isolationLevelSetUsingSQLorJDBC = false;
     }
 
-    /**
-     * @see LanguageConnectionContext#setIsolationLevel
-     */
-    public void setIsolationLevel(int isolationLevel) throws StandardException
-    {
+    @Override
+    public void setIsolationLevel(int isolationLevel) throws StandardException {
         StatementContext stmtCtxt = getStatementContext();
         if (stmtCtxt!= null && stmtCtxt.inTrigger())
             throw StandardException.newException(SQLState.LANG_NO_XACT_IN_TRIGGER, getTriggerExecutionContext().toString());
@@ -3035,17 +2850,12 @@ public class GenericLanguageConnectionContext
         this.isolationLevelSetUsingSQLorJDBC = true;
     }
 
-    /**
-     * @see LanguageConnectionContext#getCurrentIsolationLevel
-     */
-    public int getCurrentIsolationLevel()
-    {
+    @Override
+    public int getCurrentIsolationLevel() {
         return (isolationLevel == ExecutionContext.UNSPECIFIED_ISOLATION_LEVEL) ? defaultIsolationLevel : isolationLevel;
     }
 
-    /**
-     * @see LanguageConnectionContext#getCurrentIsolationLevel
-     */
+    @Override
     public String getCurrentIsolationLevelStr()
     {
         if( isolationLevel >= 0 && isolationLevel < ExecutionContext.CS_TO_SQL_ISOLATION_MAP.length)
@@ -3053,38 +2863,26 @@ public class GenericLanguageConnectionContext
         return ExecutionContext.CS_TO_SQL_ISOLATION_MAP[ ExecutionContext.UNSPECIFIED_ISOLATION_LEVEL][0];
     }
 
-    /**
-     * @see LanguageConnectionContext#setPrepareIsolationLevel
-     */
-    public void setPrepareIsolationLevel(int level) 
-    {
+    @Override
+    public void setPrepareIsolationLevel(int level) {
             prepareIsolationLevel = level;
     }
 
-    /**
-     * @see LanguageConnectionContext#getPrepareIsolationLevel
-     */
-    public int getPrepareIsolationLevel()
-    {
+    @Override
+    public int getPrepareIsolationLevel() {
         if (!isolationLevelExplicitlySet)
             return prepareIsolationLevel;
         else
             return ExecutionContext.UNSPECIFIED_ISOLATION_LEVEL;
     }
 
-    /**
-     * @see LanguageConnectionContext#getStatementContext
-     */
-    public StatementContext getStatementContext()
-    {   
+    @Override
+    public StatementContext getStatementContext() {
         return (StatementContext) getContextManager().getContext(ContextId.LANG_STATEMENT);
     }
 
-    /**
-     * @see LanguageConnectionContext#setOptimizerTrace
-     */
-    public boolean setOptimizerTrace(boolean onOrOff)
-    {
+    @Override
+    public boolean setOptimizerTrace(boolean onOrOff) {
         if (of == null)
         {
             return false;
@@ -3097,11 +2895,8 @@ public class GenericLanguageConnectionContext
         return true;
     }
 
-    /**
-     * @see LanguageConnectionContext#getOptimizerTrace
-     */
-    public boolean getOptimizerTrace()
-    {
+    @Override
+    public boolean getOptimizerTrace() {
         return optimizerTrace;
     }
 
@@ -3122,19 +2917,13 @@ public class GenericLanguageConnectionContext
         return true;
     }
 
-    /**
-     * @see LanguageConnectionContext#getOptimizerTraceHtml
-     */
-    public boolean getOptimizerTraceHtml()
-    {
+    @Override
+    public boolean getOptimizerTraceHtml() {
         return optimizerTraceHtml;
     }
 
-    /**
-     * @see LanguageConnectionContext#setOptimizerTraceOutput
-     */
-    public void setOptimizerTraceOutput(String startingText)
-    {
+    @Override
+    public void setOptimizerTraceOutput(String startingText) {
         if (optimizerTrace)
         {
             lastOptimizerTraceOutput = optimizerTraceOutput;
@@ -3142,20 +2931,14 @@ public class GenericLanguageConnectionContext
         }
     }
 
-    /**
-     * @see LanguageConnectionContext#appendOptimizerTraceOutput
-     */
-    public void appendOptimizerTraceOutput(String output)
-    {
+    @Override
+    public void appendOptimizerTraceOutput(String output) {
         optimizerTraceOutput = 
             (optimizerTraceOutput == null) ? output : optimizerTraceOutput + output;
     }
 
-    /**
-     * @see LanguageConnectionContext#getOptimizerTraceOutput
-     */
-    public String getOptimizerTraceOutput()
-    {
+    @Override
+    public String getOptimizerTraceOutput() {
         return lastOptimizerTraceOutput;
     }
 
@@ -3165,6 +2948,7 @@ public class GenericLanguageConnectionContext
       * @return true if there is outstanding work in the transaction
       *             false otherwise
       */
+    @Override
     public  boolean isTransactionPristine()
     {
         return getTransactionExecute().isPristine();
@@ -3197,6 +2981,7 @@ public class GenericLanguageConnectionContext
         @exception StandardException thrown on error. REVISIT: don't want
         cleanupOnError's to throw exceptions.
      */
+    @Override
     public void cleanupOnError(Throwable error) throws StandardException {
 
         /*
@@ -3348,7 +3133,7 @@ public class GenericLanguageConnectionContext
             } else {
                 //We are dealing with commit here. 
                 if (resultsetReturnsRows){
-                    if (a.getResultSetHoldability() == false)
+                    if (!a.getResultSetHoldability())
                         //Close result sets that return rows and are not held 
                         //across commit. This is to implement closing JDBC 
                         //result sets that are CLOSE_CURSOR_ON_COMMIT at commit 
@@ -3415,35 +3200,25 @@ public class GenericLanguageConnectionContext
         statementDepth = 0;
     }
 
-    public DataDictionary getDataDictionary()
-    {
+    @Override
+    public DataDictionary getDataDictionary() {
         return getDatabase().getDataDictionary();
     }
 
-    /**
-      @see LanguageConnectionContext#setReadOnly
-      @exception StandardException The operation is disallowed.
-      */
-    public void setReadOnly(boolean on) throws StandardException
-    {
+    @Override
+    public void setReadOnly(boolean on) throws StandardException {
         if (!tran.isPristine())
             throw StandardException.newException(SQLState.AUTH_SET_CONNECTION_READ_ONLY_IN_ACTIVE_XACT);
         authorizer.setReadOnlyConnection(on,true);
     }
 
-    /**
-      @see LanguageConnectionContext#isReadOnly
-      */
-    public boolean isReadOnly()
-    {
+    @Override
+    public boolean isReadOnly() {
         return authorizer.isReadOnlyConnection();
     }
 
-    /**
-      @see LanguageConnectionContext#getAuthorizer
-     */
-    public Authorizer getAuthorizer()
-    {
+    @Override
+    public Authorizer getAuthorizer() {
         return authorizer;
     }
 
@@ -3465,69 +3240,52 @@ public class GenericLanguageConnectionContext
      * @see LanguageConnectionContext#lastAutoincrementValue
      * @see com.splicemachine.db.iapi.db.ConnectionInfo#lastAutoincrementValue
      */
-    public Long lastAutoincrementValue(String schemaName, String tableName,
-                                       String columnName)
-    {
+    @Override
+    public Long lastAutoincrementValue(String schemaName, String tableName, String columnName) {
         String aiKey = AutoincrementCounter.makeIdentity(schemaName, tableName, columnName);
-        
         int size = triggerExecutionContexts.size();
-        //      System.out.println(" searching for " + aiKey);
-        for (int i = size - 1; i >= 0; i--)
-        {
+        for (int i = size - 1; i >= 0; i--) {
             // first loop through triggers.
-            TriggerExecutionContext itec = (TriggerExecutionContext)triggerExecutionContexts.get(i);
+            TriggerExecutionContext itec = triggerExecutionContexts.get(i);
             Long value = itec.getAutoincrementValue(aiKey);
-            if (value == null)
+            if (value == null) {
                 continue;
-
+            }
             return value;
         }
-        if (autoincrementHT == null)
+        if (autoincrementHT == null) {
             return null;
+        }
         return autoincrementHT.get(aiKey);
-    }   
+    }
 
-    /**
-     * @see LanguageConnectionContext#setAutoincrementUpdate
-     */
-    public void setAutoincrementUpdate(boolean flag)
-    {
+    @Override
+    public void setAutoincrementUpdate(boolean flag) {
         autoincrementUpdate = flag;
     }
-    
-    /**
-     * @see LanguageConnectionContext#getAutoincrementUpdate
-     */
-    public boolean getAutoincrementUpdate()
-    {
+
+    @Override
+    public boolean getAutoincrementUpdate(){
         return autoincrementUpdate;
     }
-    
-    /**
-     * @see LanguageConnectionContext#autoincrementCreateCounter
-     */
+
+    @Override
     public void autoincrementCreateCounter(String s, String t, String c,
                                            Long initialValue, long increment,
-                                           int position)
-    {
+                                           int position) {
         String key = AutoincrementCounter.makeIdentity(s,t,c);
-        
-        if (autoincrementCacheHashtable == null)
-        {
-            autoincrementCacheHashtable = new HashMap<String, AutoincrementCounter>();
+        if (autoincrementCacheHashtable == null) {
+            autoincrementCacheHashtable = new HashMap<>();
         }
 
         AutoincrementCounter aic = autoincrementCacheHashtable.get(key);
         if (aic != null)
         {
-            if (SanityManager.DEBUG)            
-            {
-                SanityManager.THROWASSERT(
-                              "Autoincrement Counter already exists:" + key);
+            if (SanityManager.DEBUG) {
+                SanityManager.THROWASSERT("Autoincrement Counter already exists:" + key);
             }
             return;
         }
-        
         aic = new AutoincrementCounter(initialValue, increment, 0, s, t, c, position);
         autoincrementCacheHashtable.put(key, aic);
     }
@@ -3539,29 +3297,21 @@ public class GenericLanguageConnectionContext
      * used when as autoincrement column is added to a table by an alter 
      * table statemenet and during bulk insert.
      *
-     * @param schemaName
-     * @param tableName
      * @param columnName identify the column uniquely in the system.
      */
+    @Override
     public long nextAutoincrementValue(String schemaName, String tableName,
-                                       String columnName)
-            throws StandardException                           
-    {
-        String key = AutoincrementCounter.makeIdentity(schemaName,tableName,
-                                                       columnName);
-        
+                                       String columnName) throws StandardException {
+        String key = AutoincrementCounter.makeIdentity(schemaName,tableName,columnName);
         AutoincrementCounter aic = autoincrementCacheHashtable.get(key);
 
-        if (aic == null)
-        {
-            if (SanityManager.DEBUG)            
-            {
+        if (aic == null) {
+            if (SanityManager.DEBUG) {
                 SanityManager.THROWASSERT("counter doesn't exist:" + key);
             }
             return 0;
         }
-        else
-        {
+        else {
             return aic.update();
         }
     }
@@ -3576,9 +3326,8 @@ public class GenericLanguageConnectionContext
      * @see GenericLanguageConnectionContext#lastAutoincrementValue
      * @see com.splicemachine.db.iapi.db.ConnectionInfo#lastAutoincrementValue
      */
-    public void autoincrementFlushCache(UUID tableUUID)
-        throws StandardException
-    {
+    @Override
+    public void autoincrementFlushCache(UUID tableUUID) throws StandardException {
         if (autoincrementCacheHashtable == null)
             return;
 
@@ -3602,56 +3351,44 @@ public class GenericLanguageConnectionContext
      * into autoincrementHT, the cache of autoincrement values 
      * kept in the languageconnectioncontext.
      */
-    public void copyHashtableToAIHT(Map<String, Long> from)
-    {
-        if (from.isEmpty())
+    @Override
+    public void copyHashtableToAIHT(Map<String, Long> from) {
+        if (from.isEmpty()) {
             return;
-        if (autoincrementHT == null)
-            autoincrementHT = new HashMap<String, Long>();
-        
+        }
+        if (autoincrementHT == null) {
+            autoincrementHT = new HashMap<>();
+        }
         autoincrementHT.putAll(from);
     }
-    
-    /**
-     * @see LanguageConnectionContext#getInstanceNumber
-     */
+
+    @Override
     public int getInstanceNumber()
     {
         return instanceNumber;
     }
 
-    /**
-     * @see LanguageConnectionContext#getDrdaID
-     */
-    public String getDrdaID()
-    {
+    @Override
+    public String getDrdaID() {
         return drdaID;
     }
 
-    /**
-     * @see LanguageConnectionContext#setDrdaID
-     */
-    public void setDrdaID(String drdaID)
-    {
+    @Override
+    public void setDrdaID(String drdaID) {
         this.drdaID = drdaID;
     }
 
-    /**
-     * @see LanguageConnectionContext#getDbname
-     */
-    public String getDbname()
-    {
+    @Override
+    public String getDbname() {
         return dbname;
     }
 
-    /**
-     * @see LanguageConnectionContext#getLastActivation
-     */
-    public Activation getLastActivation()
-    {
+    @Override
+    public Activation getLastActivation()  {
         return acts.get(acts.size() - 1);
     }
 
+    @Override
     public StringBuffer appendErrorInfo() {
 
         TransactionController tc = getTransactionExecute();
@@ -3679,36 +3416,23 @@ public class GenericLanguageConnectionContext
         return sb;
     }
 
-
-    /**
-     * @see LanguageConnectionContext#setCurrentRole(Activation a, String role)
-     */
+    @Override
     public void setCurrentRole(Activation a, String role) {
         getCurrentSQLSessionContext(a).setRole(role);
     }
 
-
-    /**
-     * @see LanguageConnectionContext#getCurrentRoleId(Activation a)
-     */
+    @Override
     public String getCurrentRoleId(Activation a) {
         return getCurrentSQLSessionContext(a).getRole();
     }
 
-
-    /**
-     * @see LanguageConnectionContext#getCurrentUserId(Activation a)
-     */
+    @Override
     public String getCurrentUserId(Activation a) {
         return getCurrentSQLSessionContext(a).getCurrentUser();
     }
 
-
-    /**
-     * @see LanguageConnectionContext#getCurrentRoleIdDelimited(Activation a)
-     */
-    public String getCurrentRoleIdDelimited(Activation a)
-            throws StandardException {
+    @Override
+    public String getCurrentRoleIdDelimited(Activation a) throws StandardException {
 
         String role = getCurrentSQLSessionContext(a).getRole();
 
@@ -3733,12 +3457,8 @@ public class GenericLanguageConnectionContext
         return role;
     }
 
-
-    /**
-     * @see LanguageConnectionContext#roleIsSettable(Activation a, String role)
-     */
-    public boolean roleIsSettable(Activation a, String role)
-            throws StandardException {
+    @Override
+    public boolean roleIsSettable(Activation a, String role) throws StandardException {
 
         DataDictionary dd = getDataDictionary();
         String dbo = dd.getAuthorizationDatabaseOwner();
@@ -3750,7 +3470,7 @@ public class GenericLanguageConnectionContext
             grantDesc = dd.getRoleDefinitionDescriptor(role);
         } else {
             grantDesc = dd.getRoleGrantDescriptor
-                (role, currentUser, dbo);
+                    (role, currentUser, dbo);
 
             if (grantDesc == null) {
                 // or if not, via PUBLIC?
@@ -3809,15 +3529,8 @@ public class GenericLanguageConnectionContext
         return curr;
     }
 
-
-    /**
-     * @see LanguageConnectionContext#setupNestedSessionContext(Activation a, boolean definersRights, String definer)
-     */
-    public void setupNestedSessionContext(
-        Activation a,
-        boolean definersRights,
-        String definer) throws StandardException {
-
+    @Override
+    public void setupNestedSessionContext(Activation a, boolean definersRights, String definer) throws StandardException {
         setupSessionContextMinion(a, true, definersRights, definer);
     }
 
@@ -3897,19 +3610,12 @@ public class GenericLanguageConnectionContext
     }
 
 
-    /**
-     * @see LanguageConnectionContext#setupSubStatementSessionContext(Activation a)
-     */
-    public void setupSubStatementSessionContext(Activation a)
-            throws StandardException {
-
+    @Override
+    public void setupSubStatementSessionContext(Activation a) throws StandardException {
         setupSessionContextMinion(a, false, false, null);
     }
 
-
-    /**
-     * @see GenericLanguageConnectionContext#topLevelSSC
-     */
+    @Override
     public SQLSessionContext getTopLevelSQLSessionContext() {
         if (topLevelSSC == null) {
             topLevelSSC = new SQLSessionContextImpl(
@@ -3920,9 +3626,7 @@ public class GenericLanguageConnectionContext
     }
 
 
-    /**
-     * @see LanguageConnectionContext#createSQLSessionContext
-     */
+    @Override
     public SQLSessionContext createSQLSessionContext() {
         return new SQLSessionContextImpl(
             getInitialDefaultSchemaDescriptor(),
@@ -3936,9 +3640,7 @@ public class GenericLanguageConnectionContext
      */
     Map printedObjectsMap = null;
 
-    /**
-     * @see com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext#getPrintedObjectsMap
-     */
+    @Override
     public Map getPrintedObjectsMap() {
         if (printedObjectsMap == null) {
             printedObjectsMap = new IdentityHashMap();
@@ -3946,87 +3648,106 @@ public class GenericLanguageConnectionContext
         return printedObjectsMap;
     }
 
-    /** @see LanguageConnectionContext#getXplainOnlyMode() */
+    @Override
     public boolean getXplainOnlyMode() {
         return xplainOnlyMode;
     }
-    
-    /** @see LanguageConnectionContext#setXplainOnlyMode(boolean) */
+
+    @Override
     public void setXplainOnlyMode(boolean onOrOff) {
         xplainOnlyMode = onOrOff;
     }
-    
-    /** @see LanguageConnectionContext#getXplainSchema() */
+
+    @Override
     public String getXplainSchema() {
         return xplain_schema;
     }
-    
-    /** @see LanguageConnectionContext#setXplainSchema(String) */
+
+    @Override
     public void setXplainSchema(String s) {
         xplain_schema = s;
     }
-    public void setXplainStatement(String key, String stmt)
-    {
+
+    @Override
+    public void setXplainStatement(String key, String stmt) {
         xplain_statements.put(key, stmt);
     }
-    public String getXplainStatement(String key)
-    {
+
+    @Override
+    public String getXplainStatement(String key) {
         return xplain_statements.get(key);
     }
+
+    @Override
     public long getXplainStatementId() {
         return xplainStatementId;
     }
+
+    @Override
     public void setXplainStatementId(long id) {
         xplainStatementId = id;
     }
+
+    @Override
     public void setAutoTrace(boolean onOff) {
         this.isAutoTraced = onOff;
     }
+
+    @Override
     public boolean isAutoTraced() {
         return this.isAutoTraced;
     }
-    public void setASTVisitor( ASTVisitor visitor )
-    {
+
+    @Override
+    public void setASTVisitor( ASTVisitor visitor ) {
         astWalker = visitor;
     }
-    public ASTVisitor getASTVisitor( )
-    {
+
+    @Override
+    public ASTVisitor getASTVisitor() {
         return astWalker;
     }
 
+    @Override
     public void setInterruptedException(StandardException e) {
         interruptedException = e;
     }
 
+    @Override
     public StandardException getInterruptedException() {
         return interruptedException;
     }
 
+    @Override
     public FormatableBitSet getReferencedColumnMap(TableDescriptor td) {
         return referencedColumnMap.get(td);
     }
 
-    public void setReferencedColumnMap(TableDescriptor td,
-                                       FormatableBitSet map) {
+    @Override
+    public void setReferencedColumnMap(TableDescriptor td, FormatableBitSet map) {
         referencedColumnMap.put(td, map);
     }
 
-	public void startGlobalDDLChange() {
-		if (!ongoingDDLChange) {
-			ongoingDDLChange = true;
-			invalidateCaches = true;
-		}
-	}
+    @Override
+    public void startGlobalDDLChange() {
+        if (!ongoingDDLChange) {
+            ongoingDDLChange = true;
+            invalidateCaches = true;
+        }
+    }
 
-	public void finishGlobalDDLChange() {
-		ongoingDDLChange = false;
-		useCaches = true;
-	}
-	
-	public boolean useCaches() {
-		return useCaches;
-	}
+    @Override
+    public void finishGlobalDDLChange() {
+        ongoingDDLChange = false;
+        useCaches = true;
+    }
 
+    @Override
+    public boolean useCaches() {
+        return useCaches;
+    }
+
+    @Override
     public void enterRestoreMode() {
         this.restoreMode = true;
     };
