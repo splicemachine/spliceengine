@@ -22,7 +22,7 @@
 package com.splicemachine.db.catalog;
 
 import com.splicemachine.db.iapi.db.Factory;
-import com.splicemachine.db.iapi.db.TriggerExecutionContext;
+import com.splicemachine.db.impl.sql.execute.TriggerExecutionContext;
 
 import java.io.InputStream;
 import java.io.Reader;

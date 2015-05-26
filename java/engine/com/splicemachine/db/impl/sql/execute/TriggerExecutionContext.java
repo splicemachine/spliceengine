@@ -1,7 +1,31 @@
+/*
+
+   Derby - Class com.splicemachine.db.iapi.db.TriggerExecutionContext
+
+   Licensed to the Apache Software Foundation (ASF) under one or more
+   contributor license agreements.  See the NOTICE file distributed with
+   this work for additional information regarding copyright ownership.
+   The ASF licenses this file to you under the Apache License, Version 2.0
+   (the "License"); you may not use this file except in compliance with
+   the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+ */
+
 package com.splicemachine.db.impl.sql.execute;
 
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.*;
+
 import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.iapi.db.TriggerExecutionContext;
 import com.splicemachine.db.iapi.error.ExceptionSeverity;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.jdbc.ConnectionContext;
@@ -15,49 +39,40 @@ import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionStmtValidator;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.util.Enumeration;
-import java.util.Hashtable;
-import java.util.Map;
-import java.util.Vector;
-import java.util.Objects;
+import com.splicemachine.db.impl.sql.execute.AutoincrementCounter;
+import com.splicemachine.db.impl.sql.execute.DDLConstantAction;
+import com.splicemachine.db.impl.sql.execute.TriggerEvent;
 
 /**
- * There is one of these beasts per INSERT/DELETE/UPDATE statement.  It fulfills the contract for the externally
- * visible trigger execution context and it validates that a statement that is about to be executed doesn't
- * violate the restrictions placed upon what can be executed from a trigger.
- * <p/>
- * Note that it is crucial that cleanup() is called once the DML has completed, cleanup() makes sure that users
- * can't do something invalid on a the reference that they were holding from when the trigger fired.
+ * A trigger execution context holds information that is available from the context of a trigger invocation.
  */
-public class InternalTriggerExecutionContext implements TriggerExecutionContext, ExecutionStmtValidator {
-    /*
-    ** Immutable
-    */
-    protected final int[] changedColIds;
-    protected final String[] changedColNames;
-    protected final String statementText;
-    protected final ConnectionContext cc;
-    protected final UUID targetTableId;
-    protected final String targetTableName;
-    protected LanguageConnectionContext lcc;
+public class TriggerExecutionContext implements ExecutionStmtValidator {
 
     /*
-    ** Mutable
-    */
+     * Immutable
+     */
+    private final int[] changedColIds;
+    private final String[] changedColNames;
+    private final String statementText;
+    private final ConnectionContext cc;
+    private final UUID targetTableId;
+    private final String targetTableName;
+    private LanguageConnectionContext lcc;
+
+    /*
+     * Mutable
+     */
     protected CursorResultSet beforeResultSet;
     protected CursorResultSet afterResultSet;
 
-    /**
+    /*
      * used exclusively for InsertResultSets which have autoincrement columns.
      */
-    protected ExecRow afterRow;
+    private ExecRow afterRow;
 
-    protected boolean cleanupCalled;
-    protected TriggerEvent event;
-    protected TriggerDescriptor triggerd;
+    private boolean cleanupCalled;
+    private TriggerEvent event;
+    private TriggerDescriptor triggerd;
 
     /*
     ** Used to track all the result sets we have given out to users.  When the trigger context is no longer valid,
@@ -92,14 +107,14 @@ public class InternalTriggerExecutionContext implements TriggerExecutionContext,
      * @param targetTableName the name of the table upon which the trigger fired
      * @param aiCounters      A vector of AutoincrementCounters to keep state of the ai columns in this insert trigger.a
      */
-    public InternalTriggerExecutionContext(LanguageConnectionContext lcc,
-                                           ConnectionContext cc,
-                                           String statementText,
-                                           int[] changedColIds,
-                                           String[] changedColNames,
-                                           UUID targetTableId,
-                                           String targetTableName,
-                                           Vector<AutoincrementCounter> aiCounters) throws StandardException {
+    public TriggerExecutionContext(LanguageConnectionContext lcc,
+                                   ConnectionContext cc,
+                                   String statementText,
+                                   int[] changedColIds,
+                                   String[] changedColNames,
+                                   UUID targetTableId,
+                                   String targetTableName,
+                                   Vector<AutoincrementCounter> aiCounters) throws StandardException {
         this.changedColIds = changedColIds;
         this.changedColNames = changedColNames;
         this.statementText = statementText;
@@ -125,11 +140,11 @@ public class InternalTriggerExecutionContext implements TriggerExecutionContext,
         lcc.pushTriggerExecutionContext(this);
     }
 
-    void setBeforeResultSet(CursorResultSet rs) {
+    public void setBeforeResultSet(CursorResultSet rs) {
         beforeResultSet = rs;
     }
 
-    void setAfterResultSet(CursorResultSet rs) throws StandardException {
+    public void setAfterResultSet(CursorResultSet rs) throws StandardException {
         afterResultSet = rs;
 
         if (aiCounters != null) {
@@ -147,19 +162,19 @@ public class InternalTriggerExecutionContext implements TriggerExecutionContext,
         }
     }
 
-    void setCurrentTriggerEvent(TriggerEvent event) {
+    public void setCurrentTriggerEvent(TriggerEvent event) {
         this.event = event;
     }
 
-    void clearCurrentTriggerEvent() {
+    public void clearCurrentTriggerEvent() {
         event = null;
     }
 
-    void setTrigger(TriggerDescriptor triggerd) {
+    public void setTrigger(TriggerDescriptor triggerd) {
         this.triggerd = triggerd;
     }
 
-    void clearTrigger() throws StandardException {
+    public void clearTrigger() throws StandardException {
         event = null;
         triggerd = null;
         if (afterResultSet != null) {
@@ -179,8 +194,8 @@ public class InternalTriggerExecutionContext implements TriggerExecutionContext,
      * We go to somewhat exaggerated lengths to free up all our resources here because a user may hold on
      * to a TEC after it is valid, so we clean everything up to be on the safe side.
      */
-    protected void cleanup() throws StandardException {
-        if(!cleanupCalled) {
+    public void cleanup() throws StandardException {
+        if (!cleanupCalled) {
             lcc.popTriggerExecutionContext(this);
 
         /*  Explicitly close all result sets that we have given out to the user.  */
@@ -262,7 +277,6 @@ public class InternalTriggerExecutionContext implements TriggerExecutionContext,
      *
      * @return the target table
      */
-    @Override
     public String getTargetTableName() {
         return targetTableName;
     }
@@ -272,7 +286,6 @@ public class InternalTriggerExecutionContext implements TriggerExecutionContext,
      *
      * @return the uuid of the target table
      */
-    @Override
     public UUID getTargetTableId() {
         return targetTableId;
     }
@@ -283,7 +296,6 @@ public class InternalTriggerExecutionContext implements TriggerExecutionContext,
      *
      * @return the statement text
      */
-    @Override
     public String getEventStatementText() {
         return statementText;
     }
@@ -294,7 +306,6 @@ public class InternalTriggerExecutionContext implements TriggerExecutionContext,
      *
      * @return an array of Strings
      */
-    @Override
     public String[] getModifiedColumns() {
         return changedColNames;
     }
@@ -306,7 +317,6 @@ public class InternalTriggerExecutionContext implements TriggerExecutionContext,
      * @return true if the column was modified by this statement.
      * Note that this will always return true for INSERT and DELETE regardless of the column name passed in.
      */
-    @Override
     public boolean wasColumnModified(String columnName) {
         if (changedColNames == null) {
             return true;
@@ -326,7 +336,6 @@ public class InternalTriggerExecutionContext implements TriggerExecutionContext,
      * @return true if the column was modified by this statement.
      * Note that this will always return true for INSERT and DELETE regardless of the column name passed in.
      */
-    @Override
     public boolean wasColumnModified(int columnNumber) {
         if (changedColIds == null) {
             return true;
@@ -348,7 +357,6 @@ public class InternalTriggerExecutionContext implements TriggerExecutionContext,
      * @return the ResultSet containing before images of the rows changed by the triggering event.
      * @throws SQLException if called after the triggering event has completed
      */
-    @Override
     public ResultSet getOldRowSet() throws SQLException {
         ensureProperContext();
         if (beforeResultSet == null) {
@@ -368,7 +376,6 @@ public class InternalTriggerExecutionContext implements TriggerExecutionContext,
      * @return the ResultSet containing after images of the rows changed by the triggering event.
      * @throws SQLException if called after the triggering event has completed
      */
-    @Override
     public ResultSet getNewRowSet() throws SQLException {
         ensureProperContext();
         if (afterResultSet == null) {
@@ -386,7 +393,6 @@ public class InternalTriggerExecutionContext implements TriggerExecutionContext,
      * @return the ResultSet positioned on the old row image.
      * @throws SQLException if called after the triggering event has completed
      */
-    @Override
     public ResultSet getOldRow() throws SQLException {
         ResultSet rs = getOldRowSet();
         if (rs != null)
@@ -402,7 +408,6 @@ public class InternalTriggerExecutionContext implements TriggerExecutionContext,
      * @return the ResultSet positioned on the new row image.
      * @throws SQLException if called after the triggering event hascompleted
      */
-    @Override
     public ResultSet getNewRow() throws SQLException {
         ResultSet rs = getNewRowSet();
         if (rs != null)

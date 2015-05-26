@@ -42,7 +42,7 @@ public class StatementTriggerExecutor extends GenericTriggerExecutor {
      * @param activation the activation
      * @param lcc        the lcc
      */
-    StatementTriggerExecutor(InternalTriggerExecutionContext tec,
+    StatementTriggerExecutor(TriggerExecutionContext tec,
                              TriggerDescriptor triggerd,
                              Activation activation,
                              LanguageConnectionContext lcc) {

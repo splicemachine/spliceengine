@@ -10,7 +10,6 @@ import com.splicemachine.db.impl.sql.compile.CompilerContextImpl;
 import com.splicemachine.db.impl.sql.execute.BaseActivation;
 import com.splicemachine.db.impl.sql.execute.GenericConstantActionFactory;
 import com.splicemachine.db.impl.sql.execute.GenericExecutionFactory;
-import com.splicemachine.db.impl.sql.execute.InternalTriggerExecutionContext;
 import com.splicemachine.db.impl.sql.execute.AutoincrementCounter;
 import com.splicemachine.db.impl.sql.GenericStatement;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
@@ -64,7 +63,7 @@ import com.splicemachine.db.iapi.util.InterruptStatus;
 
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.sql.execute.RunTimeStatistics;
-import com.splicemachine.db.iapi.db.TriggerExecutionContext;
+import com.splicemachine.db.impl.sql.execute.TriggerExecutionContext;
 import com.splicemachine.db.iapi.reference.Property;
 
 import java.util.*;
@@ -270,9 +269,9 @@ public class GenericLanguageConnectionContext
     // database is booted.
     private int lockEscalationThreshold; 
 
-    private ArrayList<ExecutionStmtValidator> stmtValidators;
-    private ArrayList<TriggerExecutionContext> triggerExecutionContexts;
-    private ArrayList<TableDescriptor> triggerTables;
+    private List<ExecutionStmtValidator> stmtValidators;
+    private List<TriggerExecutionContext> triggerExecutionContexts;
+    private List<TableDescriptor> triggerTables;
 
     // OptimizerTrace
     private boolean optimizerTrace;
@@ -3476,8 +3475,7 @@ public class GenericLanguageConnectionContext
         for (int i = size - 1; i >= 0; i--)
         {
             // first loop through triggers.
-            InternalTriggerExecutionContext itec = 
-                (InternalTriggerExecutionContext)triggerExecutionContexts.get(i);
+            TriggerExecutionContext itec = (TriggerExecutionContext)triggerExecutionContexts.get(i);
             Long value = itec.getAutoincrementValue(aiKey);
             if (value == null)
                 continue;
