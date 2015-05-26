@@ -31,6 +31,7 @@ import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.sql.SQLWarning;
 import java.sql.Timestamp;
@@ -53,7 +54,7 @@ import java.util.List;
  * @author Scott Fines
  * Created on: 3/28/13
  */
-public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorResultSet,ConvertedResultSet {
+public class OperationResultSet implements NoPutResultSet, HasIncrement, CursorResultSet, ConvertedResultSet {
     private static final Logger LOG = Logger.getLogger(OperationResultSet.class);
     private static Logger PLAN_LOG = Logger.getLogger("com.splicemachine.queryPlan");
     private Activation activation;
@@ -64,17 +65,17 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
     private long statementId;
     private SpliceBaseOperation.XplainOperationChainInfo operationChainInfo;
 
-	private StatementInfo statementInfo;
-	private long scrollUuid = -1l;
-	private TxnView txn;
+    private StatementInfo statementInfo;
+    private long scrollUuid = -1l;
+    private TxnView txn;
 
     public OperationResultSet() {
-			// no-op
-		}
+        // no-op
+    }
 
 
-		public OperationResultSet(Activation activation,
-                              SpliceOperation topOperation){
+    public OperationResultSet(Activation activation,
+                              SpliceOperation topOperation) {
         this.activation = activation;
         this.topOperation = topOperation;
     }
@@ -89,8 +90,8 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
         topOperation.markAsTopResultSet();
     }
 
-    private StatementInfo initStatmentInfo(TxnView txn,StatementInfo stmtInfo, SpliceOperationContext opCtx) throws StandardException {
-        if (stmtInfo != null){
+    private StatementInfo initStatmentInfo(TxnView txn, StatementInfo stmtInfo, SpliceOperationContext opCtx) throws StandardException {
+        if (stmtInfo != null) {
             // if statementInfo already created for this ResultSet, don't create again nor add
             // to StatementManager
             return stmtInfo;
@@ -106,8 +107,7 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
             stmtInfo = new StatementInfo(sql, user, txn,
                     OperationTree.getNumSinks(topOperation),
                     sId);
-        }
-        else {
+        } else {
             stmtInfo = new StatementInfo(sql, user, txn,
                     OperationTree.getNumSinks(topOperation),
                     statementId);
@@ -116,29 +116,29 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
         stmtInfo.setOperationInfo(operationInfo);
         topOperation.setStatementId(stmtInfo.getStatementUuid());
 
-    	SpliceDriver.driver().getStatementManager().addStatementInfo(stmtInfo);
+        SpliceDriver.driver().getStatementManager().addStatementInfo(stmtInfo);
 
         return stmtInfo;
     }
 
-	public SpliceNoPutResultSet getDelegate(){
-		return delegate;
-	}
+    public SpliceNoPutResultSet getDelegate() {
+        return delegate;
+    }
 
-    public void open(boolean useProbe) throws StandardException, IOException{
+    public void open(boolean useProbe) throws StandardException, IOException {
         boolean showStatementInfo = !(topOperation instanceof ExplainOperation || topOperation instanceof ExportOperation);
         open(useProbe, showStatementInfo);
     }
 
     public void executeScan(boolean useProbe, SpliceRuntimeContext context) throws StandardException {
-        try{
+        try {
             if (context.useSpark()) {
                 OperationInformation info = topOperation.getOperationInformation();
                 Activation activation = topOperation.getActivation();
                 int resultSetNumber = info.getResultSetNumber();
                 StatementInfo statementInfo = context.getStatementInfo();
-                long txnId = ((SpliceTransactionManager)activation.getTransactionController()).getRawTransaction().getTxnInformation().getTxnId();
-                String jobName = topOperation.getName() + " rs "+resultSetNumber + " <" + txnId + ">";
+                long txnId = ((SpliceTransactionManager) activation.getTransactionController()).getRawTransaction().getTxnInformation().getTxnId();
+                String jobName = topOperation.getName() + " rs " + resultSetNumber + " <" + txnId + ">";
                 String jobDescription = statementInfo != null ? statementInfo.getSql() : null;
                 SpliceSpark.getContext().setJobGroup(jobName, jobDescription);
                 delegate = topOperation.executeRDD(context);
@@ -147,36 +147,36 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
             }
             delegate.setScrollId(scrollUuid);
             delegate.openCore();
-        }catch(RuntimeException re){
+        } catch (RuntimeException re) {
             throw Exceptions.parseException(re);
         }
-        if(PLAN_LOG.isDebugEnabled() && Boolean.valueOf(System.getProperty("derby.language.logQueryPlan"))){
+        if (PLAN_LOG.isDebugEnabled() && Boolean.valueOf(System.getProperty("derby.language.logQueryPlan"))) {
             PLAN_LOG.debug(topOperation.prettyPrint(1));
         }
     }
 
-    public SpliceRuntimeContext sinkOpen(TxnView txn,boolean showStatementInfo) throws StandardException, IOException {
+    public SpliceRuntimeContext sinkOpen(TxnView txn, boolean showStatementInfo) throws StandardException, IOException {
         this.txn = txn;
-        SpliceLogUtils.trace(LOG,"openCore");
-        closed=false;
-        if(delegate!=null) delegate.close();
+        SpliceLogUtils.trace(LOG, "openCore");
+        closed = false;
+        if (delegate != null) delegate.close();
         SpliceRuntimeContext runtimeContext = new SpliceRuntimeContext(txn);
 
         try {
             List<SpliceBaseOperation.XplainOperationChainInfo> operationChain = SpliceBaseOperation.operationChain.get();
             if (operationChain != null && operationChain.size() > 0) {
-                operationChainInfo = operationChain.get(operationChain.size()-1);
+                operationChainInfo = operationChain.get(operationChain.size() - 1);
                 runtimeContext.recordTraceMetrics();
-                if(parentOperationID==-1l)
+                if (parentOperationID == -1l)
                     parentOperationID = operationChainInfo.getOperationId();
                 statementId = operationChainInfo.getStatementId();
             }
 
-            SpliceOperationContext operationContext = SpliceOperationContext.newContext(activation,txn);
+            SpliceOperationContext operationContext = SpliceOperationContext.newContext(activation, txn);
             topOperation.init(operationContext);
             topOperation.open();
-            if(showStatementInfo){
-                statementInfo = initStatmentInfo(txn,statementInfo, operationContext);
+            if (showStatementInfo) {
+                statementInfo = initStatmentInfo(txn, statementInfo, operationContext);
 //                if(activation.isTraced()){
 //                    SQLWarning w = StandardException.newWarning(WarningState.XPLAIN_STATEMENT_ID.getSqlState(), statementInfo.getStatementUuid());
 //                    ((GenericStorablePreparedStatement)activation.getPreparedStatement()).addWarning(w);
@@ -186,16 +186,16 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
             throw Exceptions.parseException(e);
         }
 
-        try{
+        try {
 
-            if(showStatementInfo)
+            if (showStatementInfo)
                 runtimeContext.setStatementInfo(statementInfo);
-            if(activation.isTraced()){
+            if (activation.isTraced()) {
                 runtimeContext.recordTraceMetrics();
             }
 
             LinkedList<byte[]> taskChain = TaskIdStack.getCurrentThreadTaskIdList();
-            if (taskChain != null && !taskChain.isEmpty()){
+            if (taskChain != null && !taskChain.isEmpty()) {
                 runtimeContext.setParentTaskId(taskChain.getLast());
             }
 
@@ -207,25 +207,25 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
             }
 
             return runtimeContext;
-        }catch(RuntimeException e){
+        } catch (RuntimeException e) {
             throw Exceptions.parseException(e);
         }
     }
 
     public SpliceRuntimeContext sinkOpen(boolean useProbe, boolean showStatementInfo) throws StandardException, IOException {
         TxnView t;
-        if(topOperation instanceof DMLWriteOperation || activation.isTraced()){
+        if (topOperation instanceof DMLWriteOperation || activation.isTraced()) {
             //elevate the transaction
             t = elevateTransaction();
-        }else
+        } else
             t = getTransaction();
 
-        return sinkOpen(t,showStatementInfo);
+        return sinkOpen(t, showStatementInfo);
     }
 
-    public void open(boolean useProbe,boolean showStatementInfo) throws StandardException, IOException {
-        SpliceRuntimeContext ctx = sinkOpen(useProbe,showStatementInfo);
-        executeScan(useProbe,ctx);
+    public void open(boolean useProbe, boolean showStatementInfo) throws StandardException, IOException {
+        SpliceRuntimeContext ctx = sinkOpen(useProbe, showStatementInfo);
+        executeScan(useProbe, ctx);
     }
 
     @Override
@@ -237,48 +237,48 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
         }
     }
 
-    public void setParentOperationID(long operationId){
+    public void setParentOperationID(long operationId) {
         this.parentOperationID = operationId;
     }
 
-		private List<OperationInfo> getOperationInfo(long statementId) {
-				List<OperationInfo> info = Lists.newArrayList();
+    private List<OperationInfo> getOperationInfo(long statementId) {
+        List<OperationInfo> info = Lists.newArrayList();
         SpliceOperation top = topOperation;
-				if(!(top instanceof DMLWriteOperation||top instanceof MiscOperation)){
-					/*
-					 * We add an extra OperationInfo on the top here to indicate that there is
-					 * a "Scroll Insensitive" which returns the final output.
-					 */
-            String m = operationChainInfo==null ? null : operationChainInfo.getMethodName();
+        if (!(top instanceof DMLWriteOperation || top instanceof MiscOperation)) {
+            /*
+             * We add an extra OperationInfo on the top here to indicate that there is
+             * a "Scroll Insensitive" which returns the final output.
+             */
+            String m = operationChainInfo == null ? null : operationChainInfo.getMethodName();
 
             scrollUuid = SpliceDriver.driver().getUUIDGenerator().nextUUID();
-						OperationInfo opInfo = new OperationInfo(scrollUuid,statementId,"ScrollInsensitive",
-                                m, false,parentOperationID);
-						info.add(opInfo);
-				}else if (top instanceof MiscOperation){
+            OperationInfo opInfo = new OperationInfo(scrollUuid, statementId, "ScrollInsensitive",
+                    m, false, parentOperationID);
+            info.add(opInfo);
+        } else if (top instanceof MiscOperation) {
             top = topOperation.getLeftOperation();
-						scrollUuid = -1l;
-				}else{
+            scrollUuid = -1l;
+        } else {
             scrollUuid = -1l;
         }
-        populateOpInfo(statementId,scrollUuid,false,top,info);
+        populateOpInfo(statementId, scrollUuid, false, top, info);
         return info;
     }
 
 
-		private void populateOpInfo(long statementId,long parentOperationId,boolean isRight,SpliceOperation operation, List<OperationInfo> infos) {
-				if(operation==null) return;
-				long operationUuid = Bytes.toLong(operation.getUniqueSequenceID());
-				OperationInfo opInfo = new OperationInfo(operationUuid,statementId, operation.getName(), operation.getInfo(), isRight,parentOperationId);
-				infos.add(opInfo);
-				populateOpInfo(statementId,operationUuid, false, operation.getLeftOperation(), infos);
-//        /*
-//         * Most joins will record their information during the scan phase, and are not themselves
-//         * sinks. However, MergeSortJoin will need to record its right hand side data directly here
-//         */
+    private void populateOpInfo(long statementId, long parentOperationId, boolean isRight, SpliceOperation operation, List<OperationInfo> infos) {
+        if (operation == null) return;
+        long operationUuid = Bytes.toLong(operation.getUniqueSequenceID());
+        OperationInfo opInfo = new OperationInfo(operationUuid, statementId, operation.getName(), operation.getInfo(), isRight, parentOperationId);
+        infos.add(opInfo);
+        populateOpInfo(statementId, operationUuid, false, operation.getLeftOperation(), infos);
+        /*
+         * Most joins will record their information during the scan phase, and are not themselves
+         * sinks. However, MergeSortJoin will need to record its right hand side data directly here
+         */
         //if(operation.getNodeTypes().contains(SpliceOperation.NodeType.REDUCE))
-            populateOpInfo(statementId,operationUuid,true,operation.getRightOperation(),infos);
-		}
+        populateOpInfo(statementId, operationUuid, true, operation.getRightOperation(), infos);
+    }
 
     @Override
     public void reopenCore() throws StandardException {
@@ -366,7 +366,10 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
         delegate.positionScanAtRowLocation(rLoc);
     }
 
-    @Override public boolean returnsRows() { return delegate != null && delegate.returnsRows(); }
+    @Override
+    public boolean returnsRows() {
+        return delegate != null && delegate.returnsRows();
+    }
 
     @Override
     public int modifiedRowCount() {
@@ -380,15 +383,18 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
         return delegate.getResultDescription();
     }
 
-    @Override public Activation getActivation() { return activation; }
-    
+    @Override
+    public Activation getActivation() {
+        return activation;
+    }
+
     @Override
     public void open() throws StandardException {
-    	try{
-    		openCore();
-	    } catch (RuntimeException re) {
-	        throw Exceptions.parseException(re);
-	    }
+        try {
+            openCore();
+        } catch (RuntimeException re) {
+            throw Exceptions.parseException(re);
+        }
     }
 
     @Override
@@ -459,19 +465,19 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 
     @Override
     public void close() throws StandardException {
-        if(statementInfo!=null){
+        if (statementInfo != null) {
             statementInfo.markCompleted();
             try {
-                TxnView recordTxn = txn!=null? txn: getTransaction();
-                SpliceDriver.driver().getStatementManager().completedStatement(statementInfo, activation.isTraced(),recordTxn);
+                TxnView recordTxn = txn != null ? txn : getTransaction();
+                SpliceDriver.driver().getStatementManager().completedStatement(statementInfo, activation.isTraced(), recordTxn);
             } catch (IOException e) {
                 throw Exceptions.parseException(e);
             }
             statementInfo = null; //remove the field in case we call close twice
-            ((GenericStorablePreparedStatement)activation.getPreparedStatement()).clearWarnings();
+            ((GenericStorablePreparedStatement) activation.getPreparedStatement()).clearWarnings();
         }
-        if(delegate!=null)delegate.close();
-        closed=true;
+        if (delegate != null) delegate.close();
+        closed = true;
     }
 
     @Override
@@ -480,7 +486,10 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
         delegate.cleanUp();
     }
 
-    @Override public boolean isClosed() { return closed; }
+    @Override
+    public boolean isClosed() {
+        return closed;
+    }
 
     @Override
     public void finish() throws StandardException {
@@ -531,7 +540,10 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
         return delegate.getCursorName();
     }
 
-    @Override public void addWarning(SQLWarning w) { activation.addWarning(w); }
+    @Override
+    public void addWarning(SQLWarning w) {
+        activation.addWarning(w);
+    }
 
     @Override
     public SQLWarning getWarnings() {
@@ -577,35 +589,39 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
 
     @Override
     public DataValueDescriptor increment(int columnPosition, long increment) throws StandardException {
-        if(!(topOperation instanceof HasIncrement))
+        if (!(topOperation instanceof HasIncrement))
             throw StandardException.newException(SQLState.STORE_FEATURE_NOT_IMPLEMENTED);
-        return ((HasIncrement)topOperation).increment(columnPosition,increment);
+        return ((HasIncrement) topOperation).increment(columnPosition, increment);
     }
 
-		@Override
-		public RowLocation getRowLocation() throws StandardException {
-				if(delegate != null) return delegate.getRowLocation();
-				return null;
-		}
+    @Override
+    public RowLocation getRowLocation() throws StandardException {
+        if (delegate != null) return delegate.getRowLocation();
+        return null;
+    }
 
-		@Override
-		public ExecRow getCurrentRow() throws StandardException {
-				if(delegate != null) return delegate.getCurrentRow();
-				return null;
-		}
+    @Override
+    public ExecRow getCurrentRow() throws StandardException {
+        if (delegate != null) return delegate.getCurrentRow();
+        return null;
+    }
 
-		@Override public SpliceOperation getOperation() { return topOperation; }
+    @Override
+    public SpliceOperation getOperation() {
+        return topOperation;
+    }
 
-		public StatementInfo getStatementInfo(){ return statementInfo; }
+    public StatementInfo getStatementInfo() {
+        return statementInfo;
+    }
 
-		public void setActivation(Activation activation) throws StandardException {
-				this.activation = activation;
-				topOperation.setActivation(activation);
-		}
+    public void setActivation(Activation activation) throws StandardException {
+        this.activation = activation;
+        topOperation.setActivation(activation);
+    }
 
-/*********************************************************************************************************************/
+    /*********************************************************************************************************************/
     /*private helper methods*/
-
     private void checkDelegate() {
         Preconditions.checkNotNull(delegate,
                 "No Delegate Result Set provided, please ensure open() or openCore() was called");
@@ -619,7 +635,7 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
         Transaction rawStoreXact = ((TransactionManager) transactionExecute).getRawStoreXact();
         BaseSpliceTransaction rawTxn = (BaseSpliceTransaction) rawStoreXact;
         TxnView currentTxn = rawTxn.getActiveStateTxn();
-        if(!currentTxn.allowsWrites()) {
+        if (!currentTxn.allowsWrites()) {
             SpliceTransaction spliceRawTxn = (SpliceTransaction) rawTxn;
             if (topOperation instanceof DMLWriteOperation) {
                 DMLWriteOperation dmlTopOperation = (DMLWriteOperation) this.topOperation;
