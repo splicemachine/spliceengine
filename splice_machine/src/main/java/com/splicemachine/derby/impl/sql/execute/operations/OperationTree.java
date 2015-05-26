@@ -50,35 +50,21 @@ public class OperationTree {
     private static final Logger LOG = Logger.getLogger(OperationTree.class);
     private final static ForkJoinPool FJ_POOL = new ForkJoinPool(SpliceConstants.maxTreeThreads);
 
-    public static SpliceNoPutResultSet executeTree(SpliceOperation root,
-                                                   final SpliceRuntimeContext ctx,
-                                                   boolean useProbe)
-            throws StandardException, IOException {
-        // enable Spark if the whole stack supports it
-        if (root.expectsRDD()) {
-            ctx.setUseSpark(true);
-            return new SpliceNoPutResultSet(root.getActivation(), root,
-                    new RDDRowProvider(root.getRDD(ctx, root), ctx));
-        }
-        sink(root, ctx);
-        return useProbe ? root.executeProbeScan() : root.executeScan(ctx);
-    }
-
     public static void sink(SpliceOperation root, SpliceRuntimeContext ctx) throws StandardException, IOException {
-        if (root instanceof  ExplainOperation)
+        if (root instanceof ExplainOperation)
             return;
         List<SinkingOperation> deps = immediateSinkDependencies(root);
-        if (deps.size() > 0){
+        if (deps.size() > 0) {
             List<ForkJoinTask> futures = Lists.newArrayListWithExpectedSize(deps.size());
-            for (SinkingOperation s: deps){
+            for (SinkingOperation s : deps) {
                 futures.add(FJ_POOL.submit(sinkAction(s, ctx)));
             }
-            for (ForkJoinTask f: Lists.reverse(futures)) {
+            for (ForkJoinTask f : Lists.reverse(futures)) {
                 f.join();
             }
         }
-        if (isSink(root)){
-            shuffle((SinkingOperation)root, ctx);
+        if (isSink(root)) {
+            shuffle((SinkingOperation) root, ctx);
         }
     }
 
@@ -86,12 +72,12 @@ public class OperationTree {
      * Returns the sinking node children of op (where a sinking node child is a descendant
      * sinking reachable only through non-sinking nodes).
      */
-    public static List<SinkingOperation> immediateSinkDependencies(SpliceOperation op){
+    public static List<SinkingOperation> immediateSinkDependencies(SpliceOperation op) {
         List<SinkingOperation> sinks = Lists.newLinkedList();
         List<SpliceOperation> children = op instanceof NestedLoopJoinOperation ?
-                                             Arrays.asList(op.getLeftOperation()) :
-                                             op.getSubOperations();
-        for (SpliceOperation child: children) {
+                Arrays.asList(op.getLeftOperation()) :
+                op.getSubOperations();
+        for (SpliceOperation child : children) {
             if (isSink(child)) {
                 sinks.add((SinkingOperation) child);
             } else if (child != null) {
@@ -105,40 +91,36 @@ public class OperationTree {
         return op.getNodeTypes().contains(SpliceOperation.NodeType.REDUCE);
     }
 
-    public static int getNumSinks(SpliceOperation op){
+    public static int getNumSinks(SpliceOperation op) {
         int n = 0;
-        for (SinkingOperation child: immediateSinkDependencies(op)) {
+        for (SinkingOperation child : immediateSinkDependencies(op)) {
             n = n + getNumSinks(child);
         }
         return n + (isSink(op) ? 1 : 0);
     }
 
     public static RecursiveAction sinkAction(final SinkingOperation sink,
-                                             final SpliceRuntimeContext ctx){
+                                             final SpliceRuntimeContext ctx) {
         return new RecursiveAction() {
             @Override
             protected void compute() {
-                 try {
+                try {
                     List<RecursiveAction> depTasks = Lists.newLinkedList();
-                    for (SinkingOperation s: immediateSinkDependencies(sink)){
+                    for (SinkingOperation s : immediateSinkDependencies(sink)) {
                         depTasks.add(sinkAction(s, ctx));
                     }
                     // run dependent sinks & wait for completion
                     invokeAll(depTasks);
                     runSettingThreadLocals(sink, ctx);
-                } catch (SQLException e) {
+                } catch (SQLException | StandardException | IOException e) {
                     throw new RuntimeException(Exceptions.parseException(e));
-                } catch (StandardException e) {
-                    throw new RuntimeException(Exceptions.parseException(e));
-                } catch (IOException e) {
-										 throw new RuntimeException(Exceptions.parseException(e));
-								 }
-						}
+                }
+            }
         };
     }
 
     private static void resetContext(SpliceTransactionResourceImpl impl, boolean prepared) {
-        if(prepared){
+        if (prepared) {
             impl.resetContextManager();
         }
         if (impl != null) {
@@ -147,16 +129,12 @@ public class OperationTree {
     }
 
     public static void runSettingThreadLocals(SinkingOperation op, SpliceRuntimeContext ctx)
-						throws StandardException, SQLException, IOException {
+            throws StandardException, SQLException, IOException {
         SpliceTransactionResourceImpl transactionResource = new SpliceTransactionResourceImpl();
         boolean prepared = false;
         try {
             transactionResource.prepareContextManager();
             prepared = true;
-//            Txn txn = ((SpliceTransactionManager)op.getActivation().getTransactionController()).getActiveStateTxn();
-//            transactionResource.marshallTransaction(txn,ctx);
-//            transactionResource.marshallTransaction(
-//                    ((SpliceTransactionManager)(op.getActivation().getTransactionController())).getActiveStateTxn());
             shuffle(op, ctx);
         } finally {
             resetContext(transactionResource, prepared);
@@ -168,14 +146,14 @@ public class OperationTree {
         final StatementInfo info = ctx.getStatementInfo();
         boolean setStatement = info != null;
         long statementUuid = setStatement ? info.getStatementUuid() : 0;
-        if (setStatement){
+        if (setStatement) {
             op.setStatementId(statementUuid);
         }
         op.executeShuffle(ctx);
         if (LOG.isDebugEnabled()) {
             LOG.debug(String.format("Running shuffle for operation %s taking %dms",
-                                       op.resultSetNumber(),
-                                       System.currentTimeMillis() - begin));
+                    op.resultSetNumber(),
+                    System.currentTimeMillis() - begin));
         }
     }
 
