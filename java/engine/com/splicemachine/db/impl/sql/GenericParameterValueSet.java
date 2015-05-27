@@ -1,24 +1,3 @@
-/*
-
-   Derby - Class com.splicemachine.db.impl.sql.GenericParameterValueSet
-
-   Licensed to the Apache Software Foundation (ASF) under one or more
-   contributor license agreements.  See the NOTICE file distributed with
-   this work for additional information regarding copyright ownership.
-   The ASF licenses this file to you under the Apache License, Version 2.0
-   (the "License"); you may not use this file except in compliance with
-   the License.  You may obtain a copy of the License at
-
-      http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-
- */
-
 package com.splicemachine.db.impl.sql;
 
 import com.splicemachine.db.iapi.error.StandardException;
@@ -39,44 +18,40 @@ import java.sql.Types;
  * Implementation of ParameterValueSet
  *
  * @see ParameterValueSet
- *
  */
 
-public final class GenericParameterValueSet implements ParameterValueSet,Externalizable
-{
+public final class GenericParameterValueSet implements ParameterValueSet, Externalizable {
+
     public static final long serialVerionUID = 1l;
 
     //all this has to be copied in the clone constructor
-    private GenericParameter[]				parms;
-    ClassInspector 			ci;
-    private boolean			hasReturnOutputParam;
-
+    private GenericParameter[] parms;
+    private ClassInspector ci;
+    private boolean hasReturnOutputParam;
 
     /*
      * Constructor for serialization/deserialization, DO NOT USE
      */
-//    @Deprecated
-    public GenericParameterValueSet(){}
+    public GenericParameterValueSet() {
+    }
 
     /**
      * Constructor for a GenericParameterValueSet
      *
-     * @param numParms	The number of parameters in the new ParameterValueSet
-     * @param hasReturnOutputParam	if we have a ? = call syntax.  Note that
-     *			this is NOT the same thing as an output parameter -- return
-     *			output parameters are special cases of output parameters.
+     * @param numParms             The number of parameters in the new ParameterValueSet
+     * @param hasReturnOutputParam if we have a ? = call syntax.  Note that
+     *                             this is NOT the same thing as an output parameter -- return
+     *                             output parameters are special cases of output parameters.
      */
-    GenericParameterValueSet(ClassInspector ci, int numParms, boolean hasReturnOutputParam)
-    {
+    GenericParameterValueSet(ClassInspector ci, int numParms, boolean hasReturnOutputParam) {
         this.ci = ci;
         this.hasReturnOutputParam = hasReturnOutputParam;
         parms = new GenericParameter[numParms];
-        for (int i = 0; i < numParms; i++)
-        {
-			/*
-			** Last param is if this is a return output param.  True if 
-			** we have an output param and we are on the 1st parameter.
-			*/
+        for (int i = 0; i < numParms; i++) {
+            /*
+            ** Last param is if this is a return output param.  True if
+            ** we have an output param and we are on the 1st parameter.
+            */
             parms[i] = new GenericParameter(this, (hasReturnOutputParam && i == 0));
         }
     }
@@ -84,66 +59,57 @@ public final class GenericParameterValueSet implements ParameterValueSet,Externa
     /*
     ** Construct a pvs by cloning a pvs.
     */
-    private GenericParameterValueSet(int numParms, GenericParameterValueSet pvs)
-    {
+    private GenericParameterValueSet(int numParms, GenericParameterValueSet pvs) {
         this.hasReturnOutputParam = pvs.hasReturnOutputParam;
         this.ci = pvs.ci;
         parms = new GenericParameter[numParms];
-        for (int i = 0; i < numParms; i++)
-        {
+        for (int i = 0; i < numParms; i++) {
             parms[i] = pvs.getGenericParameter(i).getClone(this);
         }
     }
 
-	/*
-	** ParameterValueSet interface methods
-	*/
+    /*
+    ** ParameterValueSet interface methods
+    */
 
     /**
      * Initialize the set by allocating a holder DataValueDescriptor object
      * for each parameter.
      */
-    public void initialize(DataTypeDescriptor[] types) throws StandardException
-    {
-        for (int i = 0; i < parms.length; i++)
-        {
+    @Override
+    public void initialize(DataTypeDescriptor[] types) throws StandardException {
+        for (int i = 0; i < parms.length; i++) {
             parms[i].initialize(types[i]);
         }
     }
 
+    @Override
     public void setParameterMode(int position, int mode) {
         parms[position].parameterMode = (short) mode;
     }
 
-    /**
-     * @see ParameterValueSet#clearParameters
-     */
-    public void clearParameters()
-    {
-        for (int i = 0; i < parms.length; i++)
-        {
-            parms[i].clear();
+    @Override
+    public void clearParameters() {
+        for (GenericParameter parm : parms) {
+            parm.clear();
         }
     }
 
     /**
      * Returns the number of parameters in this set.
-     *
-     * @return	The number of parameters in this set.
      */
-    public	int	getParameterCount()
-    {
+    @Override
+    public int getParameterCount() {
         return parms.length;
     }
 
     /**
      * Returns the parameter value at the given position.
      *
-     * @return	The parameter at the given position.
-     * @exception StandardException		Thrown on error
+     * @return The parameter at the given position.
      */
-    public	DataValueDescriptor	getParameter( int position ) throws StandardException
-    {
+    @Override
+    public DataValueDescriptor getParameter(int position) throws StandardException {
         try {
             return parms[position].getValue();
         } catch (ArrayIndexOutOfBoundsException e) {
@@ -153,11 +119,9 @@ public final class GenericParameterValueSet implements ParameterValueSet,Externa
     }
 
 
-
-    public	DataValueDescriptor	getParameterForSet(int position) throws StandardException {
-
+    @Override
+    public DataValueDescriptor getParameterForSet(int position) throws StandardException {
         try {
-
             GenericParameter gp = parms[position];
             if (gp.parameterMode == JDBC30Translation.PARAMETER_MODE_OUT)
                 throw StandardException.newException(SQLState.LANG_RETURN_OUTPUT_PARAM_CANNOT_BE_SET);
@@ -172,12 +136,10 @@ public final class GenericParameterValueSet implements ParameterValueSet,Externa
 
     }
 
-    public	DataValueDescriptor	getParameterForGet(int position) throws StandardException {
-
+    @Override
+    public DataValueDescriptor getParameterForGet(int position) throws StandardException {
         try {
-
             GenericParameter gp = parms[position];
-
             switch (gp.parameterMode) {
                 case JDBC30Translation.PARAMETER_MODE_IN:
                 case JDBC30Translation.PARAMETER_MODE_UNKNOWN:
@@ -191,10 +153,9 @@ public final class GenericParameterValueSet implements ParameterValueSet,Externa
         }
     }
 
+    @Override
     public void setParameterAsObject(int position, Object value) throws StandardException {
-
         UserDataValue dvd = (UserDataValue) getParameterForSet(position);
-
         GenericParameter gp = parms[position];
         if (value != null) {
 
@@ -216,20 +177,13 @@ public final class GenericParameterValueSet implements ParameterValueSet,Externa
             }
 
         }
-
         dvd.setValue(value);
     }
 
-    /**
-     * @see ParameterValueSet#allAreSet
-     */
-    public boolean allAreSet()
-    {
-        for (int i = 0; i < parms.length; i++)
-        {
-            GenericParameter gp = parms[i];
-            if (!gp.isSet)
-            {
+    @Override
+    public boolean allAreSet() {
+        for (GenericParameter gp : parms) {
+            if (!gp.isSet) {
                 switch (gp.parameterMode) {
                     case JDBC30Translation.PARAMETER_MODE_OUT:
                         break;
@@ -244,15 +198,11 @@ public final class GenericParameterValueSet implements ParameterValueSet,Externa
         return true;
     }
 
-    /**
-     * @see ParameterValueSet#transferDataValues
-     */
-    public void  transferDataValues(ParameterValueSet pvstarget) throws StandardException
-    {
+    @Override
+    public void transferDataValues(ParameterValueSet pvstarget) throws StandardException {
         // don't take application's values for return output parameters
         int firstParam = pvstarget.hasReturnOutputParameter() ? 1 : 0;
-        for (int i = firstParam; i < parms.length;i++)
-        {
+        for (int i = firstParam; i < parms.length; i++) {
 
             GenericParameter oldp = parms[i];
 
@@ -262,8 +212,7 @@ public final class GenericParameterValueSet implements ParameterValueSet,Externa
 
             }
 
-            if (oldp.isSet)
-            {
+            if (oldp.isSet) {
                 DataValueDescriptor dvd = oldp.getValue();
                 InputStream is = null;
                 // See if the value type can hold a stream.
@@ -281,21 +230,18 @@ public final class GenericParameterValueSet implements ParameterValueSet,Externa
         }
     }
 
-    GenericParameter getGenericParameter(int position)
-    {
-        return(parms[position]);
+    GenericParameter getGenericParameter(int position) {
+        return (parms[position]);
     }
 
-    /* Class implementation */
-    public String toString()
-    {
-		/* This method needed for derby.language.logStatementText=true.
-		 * Do not put under SanityManager.DEBUG.
-		 */
-        StringBuffer strbuf = new StringBuffer();
+    @Override
+    public String toString() {
+        /* This method needed for derby.language.logStatementText=true.
+         * Do not put under SanityManager.DEBUG.
+         */
+        StringBuilder strbuf = new StringBuilder();
 
-        for (int ctr = 0; ctr < parms.length; ctr++)
-        {
+        for (int ctr = 0; ctr < parms.length; ctr++) {
             strbuf.append("begin parameter #" + (ctr + 1) + ": ");
             strbuf.append(parms[ctr].toString());
             strbuf.append(" :end parameter ");
@@ -308,29 +254,26 @@ public final class GenericParameterValueSet implements ParameterValueSet,Externa
      * Check the position number for a parameter and throw an exception if
      * it is out of range.
      *
-     * @param position	The position number to check
-     *
-     * @exception StandardException	Thrown if position number is
-     *											out of range.
+     * @param position The position number to check
+     * @throws StandardException Thrown if position number is
+     *                           out of range.
      */
-    private void checkPosition(int position) throws StandardException
-    {
-        if (position < 0 || position >= parms.length)
-        {
+    private void checkPosition(int position) throws StandardException {
+        if (position < 0 || position >= parms.length) {
 
             if (parms.length == 0)
                 throw StandardException.newException(SQLState.NO_INPUT_PARAMETERS);
 
             throw StandardException.newException(SQLState.LANG_INVALID_PARAM_POSITION,
-                    String.valueOf(position+1),
+                    String.valueOf(position + 1),
                     String.valueOf(parms.length));
         }
     }
 
 
-    public ParameterValueSet getClone()
-    {
-        return(new GenericParameterValueSet(parms.length, this));
+    @Override
+    public ParameterValueSet getClone() {
+        return (new GenericParameterValueSet(parms.length, this));
     }
 
     //////////////////////////////////////////////////////////////////
@@ -342,16 +285,14 @@ public final class GenericParameterValueSet implements ParameterValueSet,Externa
     /**
      * Mark the parameter as an output parameter.
      *
-     * @param parameterIndex	The ordinal parameterIndex of a parameter to set
-     *			to the given value.
-     * @param sqlType	A type from java.sql.Types
-     * @param scale		the scale to use.  -1 means ignore scale
-     *
-     * @exception StandardException on error
+     * @param parameterIndex The ordinal parameterIndex of a parameter to set
+     *                       to the given value.
+     * @param sqlType        A type from java.sql.Types
+     * @param scale          the scale to use.  -1 means ignore scale
+     * @throws StandardException on error
      */
-    public void registerOutParameter(int parameterIndex, int sqlType, int scale)
-            throws StandardException
-    {
+    @Override
+    public void registerOutParameter(int parameterIndex, int sqlType, int scale) throws StandardException {
         checkPosition(parameterIndex);
         parms[parameterIndex].setOutParameter(sqlType, scale);
     }
@@ -366,50 +307,42 @@ public final class GenericParameterValueSet implements ParameterValueSet,Externa
      * registerOutputParamter(), we cannot be sure we have the types
      * correct until we get to execute().
      *
-     * @exception StandardException if the parameters aren't valid
+     * @throws StandardException if the parameters aren't valid
      */
-    public void validate() throws StandardException
-    {
-        for (int i = 0; i < parms.length; i++)
-        {
-            parms[i].validate();
+    @Override
+    public void validate() throws StandardException {
+        for (GenericParameter parm : parms) {
+            parm.validate();
         }
     }
 
 
     /**
-     * Return the parameter number (in jdbc lingo, i.e. 1 based)
-     * for the given parameter.  Linear search.
+     * Return the parameter number (in jdbc lingo, i.e. 1 based) for the given parameter.  Linear search.
      *
      * @return the parameter number, or 0 if not found
      */
-    public int getParameterNumber(GenericParameter theParam)
-    {
-        for (int i = 0; i < parms.length; i++)
-        {
-            if (parms[i] == theParam)
-            {
-                return i+1;
+    public int getParameterNumber(GenericParameter theParam) {
+        for (int i = 0; i < parms.length; i++) {
+            if (parms[i] == theParam) {
+                return i + 1;
             }
         }
         return 0;
     }
 
     /**
-     Check that there are not output parameters defined
-     by the parameter set. If there are unknown parameter
-     types they are forced to input types. i.e. Derby static method
-     calls with parameters that are array.
-
-     @return true if a declared Java Procedure INOUT or OUT parameter is in the set, false otherwise.
+     * Check that there are not output parameters defined
+     * by the parameter set. If there are unknown parameter
+     * types they are forced to input types. i.e. Derby static method
+     * calls with parameters that are array.
+     *
+     * @return true if a declared Java Procedure INOUT or OUT parameter is in the set, false otherwise.
      */
+    @Override
     public boolean checkNoDeclaredOutputParameters() {
-
         boolean hasDeclaredOutputParameter = false;
-        for (int i=0; i<parms.length; i++) {
-
-            GenericParameter gp = parms[i];
-
+        for (GenericParameter gp : parms) {
             switch (gp.parameterMode) {
                 case JDBC30Translation.PARAMETER_MODE_IN:
                     break;
@@ -426,15 +359,15 @@ public final class GenericParameterValueSet implements ParameterValueSet,Externa
     }
 
     /**
-     Return the mode of the parameter according to JDBC 3.0 ParameterMetaData
-     * @param parameterIndex the first parameter is 1, the second is 2, ...
+     * Return the mode of the parameter according to JDBC 3.0 ParameterMetaData
      *
+     * @param parameterIndex the first parameter is 1, the second is 2, ...
      */
-    public short getParameterMode(int parameterIndex)
-    {
+    @Override
+    public short getParameterMode(int parameterIndex) {
         short mode = parms[parameterIndex - 1].parameterMode;
         //if (mode == (short) JDBC30Translation.PARAMETER_MODE_UNKNOWN)
-        //	mode = (short) JDBC30Translation.PARAMETER_MODE_IN;
+        //    mode = (short) JDBC30Translation.PARAMETER_MODE_IN;
         return mode;
     }
 
@@ -444,29 +377,24 @@ public final class GenericParameterValueSet implements ParameterValueSet,Externa
      * syntax: ? = CALL myMethod()
      *
      * @return true if it has a return parameter
-     *
      */
-    public boolean hasReturnOutputParameter()
-    {
+    @Override
+    public boolean hasReturnOutputParameter() {
         return hasReturnOutputParam;
     }
 
     /**
      * Get the value of the return parameter in order to set it.
      *
-     *
-     * @exception StandardException if a database-access error occurs.
+     * @throws StandardException if a database-access error occurs.
      */
-    public DataValueDescriptor getReturnValueForSet() throws StandardException
-    {
+    @Override
+    public DataValueDescriptor getReturnValueForSet() throws StandardException {
         checkPosition(0);
-
-        if (SanityManager.DEBUG)
-        {
+        if (SanityManager.DEBUG) {
             if (!hasReturnOutputParam)
                 SanityManager.THROWASSERT("getReturnValueForSet called on non-return parameter");
         }
-
         return parms[0].getValue();
     }
 
@@ -474,27 +402,25 @@ public final class GenericParameterValueSet implements ParameterValueSet,Externa
      * Return the scale of the given parameter index in this pvs.
      *
      * @param parameterIndex the first parameter is 1, the second is 2, ...
-     *
      * @return scale
      */
-    public int getScale(int parameterIndex)
-    {
-        return parms[parameterIndex-1].getScale();
+    @Override
+    public int getScale(int parameterIndex) {
+        return parms[parameterIndex - 1].getScale();
     }
 
     /**
      * Return the precision of the given parameter index in this pvs.
      *
      * @param parameterIndex the first parameter is 1, the second is 2, ...
-     *
      * @return precision
      */
-    public int getPrecision(int parameterIndex)
-    {
-        return parms[parameterIndex-1].getPrecision();
+    @Override
+    public int getPrecision(int parameterIndex) {
+        return parms[parameterIndex - 1].getPrecision();
     }
 
-    //    @Override
+    @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         /*
          * For the moment, we ignore the ClassInspector, because it's not
@@ -503,19 +429,18 @@ public final class GenericParameterValueSet implements ParameterValueSet,Externa
          * done client-side before serialization anyway, so it shouldn't be a
          * big deal.
          */
-        ArrayUtil.writeArray(out,parms);
+        ArrayUtil.writeArray(out, parms);
         out.writeBoolean(hasReturnOutputParam);
     }
 
-    //    @Override
+    @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         parms = new GenericParameter[in.readInt()];
-        ArrayUtil.readArrayItems(in,parms);
+        ArrayUtil.readArrayItems(in, parms);
         hasReturnOutputParam = in.readBoolean();
 
         //set the value set on each parameter
-        for(int i=0;i<parms.length;i++){
-            GenericParameter parm = parms[i];
+        for (GenericParameter parm : parms) {
             parm.setParameterValueSet(this);
         }
     }
