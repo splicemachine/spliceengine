@@ -469,7 +469,14 @@ public class HdfsImport {
 				}finally{
 						//put this stuff first to avoid a memory leak
             if(rollback){
-								try {
+
+				try {
+					SpliceDriver.driver().getStatementManager().completedStatement(statementInfo, false, childTransaction);
+				} catch (Exception e1) {
+					LOG.error("Unable to complete failed statement in statement manager, but this is not fatal. We will still roll back transaction.", e1);
+				}
+            	
+            	try {
                     childTransaction.rollback();
 								} catch (IOException e) {
 										/*
