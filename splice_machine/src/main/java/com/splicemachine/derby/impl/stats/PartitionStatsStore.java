@@ -242,7 +242,11 @@ public class PartitionStatsStore {
          * but it should make some things at least relatively reasonable)
          */
         long numRows = totalBytes/100;
-        long rowsPerRegion = numRows/partitions.size();
+        int partitionSize = partitions.size();
+        if(partitionSize==0)
+            partitionSize = 1; //there's always 1 partition
+
+        long rowsPerRegion = numRows/partitionSize;
 
         List<OverheadManagedPartitionStatistics> partStats = new ArrayList<>(partitions.size());
         for(HRegionInfo info:partitions){
