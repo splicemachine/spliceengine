@@ -30,6 +30,9 @@ public class ExportFailedTaskCleanupTest {
 
     @Test
     public void cleanup() throws StandardException, IOException {
+        Configuration conf = SpliceConstants.config;
+        // Mapr4.0 specific fix
+        conf.set(FileSystem.FS_DEFAULT_NAME_KEY,"file:///");
 
         File expectedFile = new File(temporaryFolder.getRoot(), "export_82010203042A060708.csv");
         byte[] failedTaskId = new byte[]{-126, 1, 2, 3, 4, 42, 6, 7, 8};
@@ -40,13 +43,6 @@ public class ExportFailedTaskCleanupTest {
         //
         String exportPath = temporaryFolder.getRoot().getAbsolutePath();
         ExportParams exportParams = new ExportParams(exportPath, false, 1, null, null, null);
-        Configuration conf = SpliceConstants.config;
- 		// Mapr4.0 specific fix
- 		// See DB-2859        
- 		System.setProperty("zookeeper.sasl.client", "false");   
- 		System.setProperty("zookeeper.sasl.serverconfig", "fake");
- 		conf.set("fs.hdfs.impl", "org.apache.hadoop.hdfs.DistributedFileSystem");
- 		conf.set(FileSystem.FS_DEFAULT_NAME_KEY,"file:///");
         ExportFile exportFile = new ExportFile(exportParams, failedTaskId, conf);
         OutputStream outputStream = exportFile.getOutputStream();
         outputStream.write(1);
