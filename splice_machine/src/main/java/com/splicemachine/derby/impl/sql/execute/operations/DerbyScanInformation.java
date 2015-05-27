@@ -303,8 +303,8 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
     @Override
     public Scan getScan(TxnView txn, ExecRow startKeyOverride, int[] keyDecodingMap) throws StandardException {
         boolean sameStartStop = startKeyOverride == null && sameStartStopPosition;
-        ExecIndexRow startPosition = getStartPosition();
-        ExecIndexRow stopPosition = sameStartStop ? startPosition : getStopPosition();
+        ExecRow startPosition = getStartPosition();
+        ExecRow stopPosition = sameStartStop ? startPosition : getStopPosition();
         ExecRow overriddenStartPos = startKeyOverride != null ? startKeyOverride : startPosition;
 
         /*
@@ -322,13 +322,19 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
             startSearchOperator = ScanController.GE;
         }
 
+        /* Below populateQualifiers can mutate underlying DataValueDescriptors in some cases, clone them for use in
+           start/stop keys first. */
+        DataValueDescriptor[] startKeyValues = overriddenStartPos == null ? null : overriddenStartPos.getClone().getRowArray();
+        DataValueDescriptor[] stopKeyValues = stopPosition == null ? null : stopPosition.getClone().getRowArray();
+
         Qualifier[][] qualifiers = populateQualifiers();
 
         getConglomerate();
+
         return Scans.setupScan(
-                overriddenStartPos == null ? null : overriddenStartPos.getRowArray(),
+                startKeyValues,
                 startSearchOperator,
-                stopPosition == null ? null : stopPosition.getRowArray(),
+                stopKeyValues,
                 stopSearchOperator,
                 qualifiers,
                 conglomerate.getAscDescInfo(),
