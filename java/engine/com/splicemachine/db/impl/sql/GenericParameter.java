@@ -1,24 +1,3 @@
-/*
-
-   Derby - Class org.apache.derby.impl.sql.GenericParameter
-
-   Licensed to the Apache Software Foundation (ASF) under one or more
-   contributor license agreements.  See the NOTICE file distributed with
-   this work for additional information regarding copyright ownership.
-   The ASF licenses this file to you under the Apache License, Version 2.0
-   (the "License"); you may not use this file except in compliance with
-   the License.  You may obtain a copy of the License at
-
-      http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing, software
-   distributed under the License is distributed on an "AS IS" BASIS,
-   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-   See the License for the specific language governing permissions and
-   limitations under the License.
-
- */
-
 package com.splicemachine.db.impl.sql;
 
 import com.splicemachine.db.iapi.util.StringUtil;
@@ -41,11 +20,10 @@ import java.sql.Types;
 
 /**
  * A parameter.  Originally lifted from ParameterValueSet.
- *
  */
-public final class GenericParameter implements Externalizable
-{
-    public static final long serialVersionUID=4l;
+public final class GenericParameter implements Externalizable {
+
+    public static final long serialVersionUID = 4l;
 
     // These defaults match the Network Server/ JCC max precision and
     // The JCC "guessed" scale. They are used as the defaults for
@@ -57,44 +35,44 @@ public final class GenericParameter implements Externalizable
     /*
     ** The parameter set we are part of
     */
-    private GenericParameterValueSet		pvs;
+    private GenericParameterValueSet pvs;
 
     /**
-     ** Our value
+     * * Our value
      */
-    private DataValueDescriptor				value;
+    private DataValueDescriptor value;
 
     /**
-     Compile time JDBC type identifier.
+     * Compile time JDBC type identifier.
      */
-    int								jdbcTypeId;
+    int jdbcTypeId;
 
     /**
-     Compile time Java class name.
+     * Compile time Java class name.
      */
-    String							declaredClassName;
+    String declaredClassName;
 
     /**
-     Mode of the parameter, from ParameterMetaData
+     * Mode of the parameter, from ParameterMetaData
      */
-    short							parameterMode;
+    short parameterMode;
 
     /*
     ** If we are set
     */
-    boolean							isSet;
+    boolean isSet;
 
     /*
     ** Output parameter values
      */
-    private boolean					isReturnOutputParameter;
+    private boolean isReturnOutputParameter;
 
     /**
-     Type that has been registered.
+     * Type that has been registered.
      */
-    int	registerOutType = Types.NULL;
+    int registerOutType = Types.NULL;
     /**
-     Scale that has been registered.
+     * Scale that has been registered.
      */
     int registerOutScale = -1;
 
@@ -111,20 +89,16 @@ public final class GenericParameter implements Externalizable
     /**
      * Constructor for serialization/deserialization. DO NOT USE
      */
-    public GenericParameter(){}
+    public GenericParameter() {
+    }
 
     /**
      * Constructor for a Parameter
      *
-     * @param pvs the parameter set that this is part of
+     * @param pvs                     the parameter set that this is part of
      * @param isReturnOutputParameter true if this is a return output parameter
      */
-    GenericParameter
-    (
-            GenericParameterValueSet	pvs,
-            boolean						isReturnOutputParameter
-    )
-    {
+    GenericParameter(GenericParameterValueSet pvs, boolean isReturnOutputParameter) {
         this.pvs = pvs;
         parameterMode = (this.isReturnOutputParameter = isReturnOutputParameter)
                 ? (short) JDBC30Translation.PARAMETER_MODE_OUT : (short) JDBC30Translation.PARAMETER_MODE_IN;
@@ -136,7 +110,6 @@ public final class GenericParameter implements Externalizable
      * everything but the underlying SQLInt and its int.
      *
      * @param pvs the parameter value set
-     *
      * @return a new generic parameter.
      */
     public GenericParameter getClone(GenericParameterValueSet pvs) {
@@ -151,7 +124,6 @@ public final class GenericParameter implements Externalizable
 
     /**
      * Set the DataValueDescriptor and type information for this parameter
-     *
      */
     void initialize(DataTypeDescriptor dtd) throws StandardException {
         this.value = dtd.getNull();
@@ -160,20 +132,16 @@ public final class GenericParameter implements Externalizable
         this.dataType = dtd;
     }
 
-
     /**
      * Clear the parameter, unless it is a return
      * output parameter
      */
-    void clear()
-    {
+    void clear() {
         isSet = false;
     }
 
-
     /**
-     * Get the parameter value.  Doesn't check to
-     * see if it has been initialized or not.
+     * Get the parameter value.  Doesn't check to see if it has been initialized or not.
      *
      * @return the parameter value, may return null
      */
@@ -189,7 +157,7 @@ public final class GenericParameter implements Externalizable
             if (dataType != null && dataType.getTypeId().isFixedStringTypeId() && value != null && !value.isNull()) {
                 String paramStringVal = value.getString();
                 int typeWidth = dataType.getMaximumWidth();
-                if(paramStringVal.length() < typeWidth) {
+                if (paramStringVal.length() < typeWidth) {
                     value.setValue(StringUtil.padRight(paramStringVal, SQLChar.PAD, typeWidth));
                 }
             }
@@ -198,7 +166,7 @@ public final class GenericParameter implements Externalizable
         }
     }
 
-    void setParameterValueSet(GenericParameterValueSet valueSet){
+    void setParameterValueSet(GenericParameterValueSet valueSet) {
         this.pvs = valueSet;
     }
 
@@ -211,14 +179,11 @@ public final class GenericParameter implements Externalizable
     /**
      * Mark the parameter as an output parameter.
      *
-     * @param sqlType	A type from java.sql.Types
-     * @param scale		scale, -1 if no scale arg
-     *
-     * @exception StandardException on error
+     * @param sqlType A type from java.sql.Types
+     * @param scale   scale, -1 if no scale arg
+     * @throws StandardException on error
      */
-    void setOutParameter(int sqlType, int scale)
-            throws StandardException
-    {
+    void setOutParameter(int sqlType, int scale) throws StandardException {
         // fast case duplicate registrations.
         if (registerOutType == sqlType) {
             if (scale == registerOutScale)
@@ -250,18 +215,15 @@ public final class GenericParameter implements Externalizable
         // String sqlTypeName = typeId == null ? "OTHER" : typeId.getSQLTypeName();
 
 
-		String jdbcTypesName = Util.typeName(sqlType);
+        String jdbcTypesName = Util.typeName(sqlType);
 
         TypeId typeId = TypeId.getBuiltInTypeId(jdbcTypeId);
         String thisTypeName = typeId == null ? declaredClassName : typeId.getSQLTypeName();
 
-        StandardException e = StandardException.newException(SQLState.LANG_INVALID_OUT_PARAM_MAP,
+        return StandardException.newException(SQLState.LANG_INVALID_OUT_PARAM_MAP,
                 getJDBCParameterNumberStr(),
                 jdbcTypesName, thisTypeName);
-
-        return e;
     }
-
 
 
     /**
@@ -274,10 +236,9 @@ public final class GenericParameter implements Externalizable
      * registerOutputParamter(), we cannot be sure we have the types
      * correct until we get to execute().
      *
-     * @exception StandardException if the parameters aren't valid
+     * @throws StandardException if the parameters aren't valid
      */
-    void validate() throws StandardException
-    {
+    void validate() throws StandardException {
         switch (parameterMode) {
             case JDBC30Translation.PARAMETER_MODE_UNKNOWN:
                 break;
@@ -299,15 +260,12 @@ public final class GenericParameter implements Externalizable
      *
      * @return scale
      */
-    int getScale()
-    {
+    int getScale() {
         //when the user doesn't pass any scale, the registerOutScale gets set to -1
         return (registerOutScale == -1 ? 0 : registerOutScale);
     }
 
-
-    int getPrecision()
-    {
+    int getPrecision() {
         return registerOutPrecision;
 
     }
@@ -321,37 +279,29 @@ public final class GenericParameter implements Externalizable
     /**
      * get string for param number
      */
-    String getJDBCParameterNumberStr()
-    {
+    String getJDBCParameterNumberStr() {
         return Integer.toString(pvs.getParameterNumber(this));
     }
 
     @Override
-    public String toString()
-    {
-		/* This method is used for debugging.
-		 * It is called when derby.language.logStatementText=true,
-		 * so there is no check of SanityManager.DEBUG.
-		 * Anyway, we need to call value.getString() instead of
-		 * value.toString() because the user may have done a
-		 * a setStream() on the parameter.  (toString() could get
-		 * an assertion failure in that case as it would be in an
-		 * unexpected state since this is a very weird codepath.)
-		 * getString() can throw an exception which we eat and
-		 * and reflect in the returned string.
-		 */
-        if (value == null)
-        {
+    public String toString() {
+        /* This method is used for debugging.
+         * It is called when derby.language.logStatementText=true,
+         * so there is no check of SanityManager.DEBUG.
+         * Anyway, we need to call value.getString() instead of
+         * value.toString() because the user may have done a
+         * a setStream() on the parameter.  (toString() could get
+         * an assertion failure in that case as it would be in an
+         * unexpected state since this is a very weird codepath.)
+         * getString() can throw an exception which we eat and
+         * and reflect in the returned string.
+         */
+        if (value == null) {
             return "null";
-        }
-        else
-        {
-            try
-            {
+        } else {
+            try {
                 return value.getTraceString();
-            }
-            catch (StandardException se)
-            {
+            } catch (StandardException se) {
                 return "unexpected exception from getTraceString() - " + se;
             }
         }
@@ -368,7 +318,7 @@ public final class GenericParameter implements Externalizable
         out.writeInt(this.registerOutScale);
         out.writeInt(this.registerOutPrecision);
         out.writeBoolean(!value.isNull());
-        if(!value.isNull())
+        if (!value.isNull())
             out.writeObject(this.value);
 
     }
@@ -383,12 +333,12 @@ public final class GenericParameter implements Externalizable
         registerOutType = in.readInt();
         registerOutScale = in.readInt();
         registerOutPrecision = in.readInt();
-        if(in.readBoolean())
-            value = (DataValueDescriptor)in.readObject();
-        else{
-            try{
+        if (in.readBoolean())
+            value = (DataValueDescriptor) in.readObject();
+        else {
+            try {
                 value = DataTypeDescriptor.getBuiltInDataTypeDescriptor(jdbcTypeId).getNull();
-            }catch(StandardException se){
+            } catch (StandardException se) {
                 throw new IOException(se);
             }
         }
