@@ -14,6 +14,8 @@ import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.derby.management.StatementInfo;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.utils.StreamUtils;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -561,6 +563,11 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
             if (LOG.isTraceEnabled())
                 LOG.trace(String.format("openCore %s", this));
             isOpen = true;
+            String sql = activation.getPreparedStatement().getSource();
+            long txnId = ((SpliceTransactionManager)activation.getTransactionController()).getRawTransaction().getTxnInformation().getTxnId();
+            sql = sql==null?this.toString():sql;
+            String jobName = getName() + " rs "+resultSetNumber + " <" + txnId + ">";
+            dsp.setJobGroup(jobName,sql);
             this.locatedRowIterator = getDataSet(dsp).toLocalIterator();
         } catch (Exception e) { // This catches all the iterator errors for things that are not lazy.
             throw Exceptions.parseException(e);
