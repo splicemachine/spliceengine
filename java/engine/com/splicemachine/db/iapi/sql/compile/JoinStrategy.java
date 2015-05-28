@@ -158,8 +158,17 @@ public interface JoinStrategy {
 						CostEstimate costEstimate)
 		throws StandardException;
 
+	/*
+	 * Get the output sort order of the join strategy. In most cases, it will inherit the join
+	 * order of the outer table, but in some cases it might be different, and we'll want to be careful.
+	 */
+//	void setOutputSortOrder(Optimizable innerTable,
+//								   OptimizablePredicateList predicateList,
+//								   CostEstimate outerCost,
+//								   Optimizer optimizer,
+//								   CostEstimate innerCost);
     /**
-     * @param userSpecifiedCapacity
+     * @param userSpecifiedCapacity the capacity as specified by the user (bytes per table)
      * @param maxMemoryPerTable maximum number of bytes per table
      * @param perRowUsage number of bytes per row
      *
@@ -299,4 +308,11 @@ public interface JoinStrategy {
 
 	boolean allowsJoinPredicatePushdown();
 
+	/**
+	 * Sets the row ordering on the cost estimate. The row ordering which is set is the
+	 * <em>output</em> ordering after the join.
+	 *
+	 * @param costEstimate the cost estimate to set the ordering on.
+	 */
+	void setRowOrdering(CostEstimate costEstimate);
 }

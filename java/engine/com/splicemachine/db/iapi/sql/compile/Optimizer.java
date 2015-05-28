@@ -223,6 +223,8 @@ public interface Optimizer{
      */
     CostEstimate newCostEstimate();
 
+    AccessPath newAccessPath();
+
     AggregateCostController newAggregateCostController(GroupByList groupingList, List<AggregateNode> aggregateVector);
 
     SortCostController newSortCostController(OrderByList orderByList);

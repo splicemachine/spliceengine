@@ -997,6 +997,11 @@ public class OptimizerImpl implements Optimizer{
 			*/
             Optimizable outerOptimizable=optimizableList.getOptimizable(proposedJoinOrder[joinPosition-1]);
             outerCost=outerOptimizable.getBestAccessPath().getCostEstimate();
+            /*
+             * It is possible that the join strategy cloned out the base outer cost (a la MergeSortJoin). Because
+             * we want to consider the actual scan order BEFORE any previous operations, we look at the
+             * base Cost in this scenario
+             */
         }
 
 		/* At this point outerCost should be non-null (DERBY-1777).
@@ -1013,6 +1018,7 @@ public class OptimizerImpl implements Optimizer{
 		** Don't consider non-feasible join strategies.
 		*/
         if(!optimizable.feasibleJoinStrategy(predicateList,this,outerCost)){
+            tracer().trace(OptimizerFlag.INFEASIBLE_JOIN,0,0,0.0,optimizable.getCurrentAccessPath().getJoinStrategy());
             return;
         }
 
@@ -1030,6 +1036,7 @@ public class OptimizerImpl implements Optimizer{
 		** Don't consider non-feasible join strategies.
 		*/
         if(!optimizable.feasibleJoinStrategy(predList,this,outerCost)){
+            tracer().trace(OptimizerFlag.INFEASIBLE_JOIN,0,0,0.0,optimizable.getCurrentAccessPath().getJoinStrategy());
             return;
         }
 
@@ -1193,6 +1200,11 @@ public class OptimizerImpl implements Optimizer{
     @Override
     public CostEstimate newCostEstimate(){
         return new CostEstimateImpl();
+    }
+
+    @Override
+    public AccessPath newAccessPath(){
+        return new AccessPathImpl(this);
     }
 
     @Override
@@ -1478,6 +1490,9 @@ public class OptimizerImpl implements Optimizer{
         currentSortAvoidanceCost.setBase(null);
         currentSortAvoidanceCost.setRowOrdering(null);
         assignedTableMap.clearAll();
+        outermostCostEstimate.setCost(0.0d,0d,0d);
+        outermostCostEstimate.setBase(null);
+        outermostCostEstimate.setRowOrdering(null);
     }
 
     /*
@@ -1778,7 +1793,7 @@ public class OptimizerImpl implements Optimizer{
             prevSingleScanRowCount=outermostCostEstimate.singleScanRowCount();
         }else{
             prevPosition=proposedJoinOrder[joinPosition-1];
-            CostEstimate localCE= optimizableList. getOptimizable(prevPosition).getBestAccessPath().getCostEstimate();
+            CostEstimate localCE= optimizableList.getOptimizable(prevPosition).getBestAccessPath().getCostEstimate();
             prevRowCount=localCE.rowCount();
             prevSingleScanRowCount=localCE.singleScanRowCount();
         }
