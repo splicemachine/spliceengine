@@ -19,6 +19,7 @@ public class MRConstants {
 	final public static String SPLICE_SCAN_INFO = "splice.scan.info";
 	final public static String HBASE_OUTPUT_TABLE_NAME = "hbase_output_tableName";
 	final public static String SPLICE_SCAN_MEMSTORE_ONLY="MR";
+    final public static String SPLICE_TBLE_CONTEXT="splice.tableContext";
 	final public static byte[] FLUSH = "F".getBytes();
 	final public static byte[] HOLD = "H".getBytes();
 	final public static KeyValue MEMSTORE_BEGIN = new KeyValue(HConstants.EMPTY_START_ROW,HOLD,HOLD);
