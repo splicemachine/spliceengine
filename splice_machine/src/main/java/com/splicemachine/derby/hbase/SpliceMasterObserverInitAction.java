@@ -135,9 +135,16 @@ class SpliceMasterObserverInitAction {
         return "state=" + state.get() + ", createFuture.isDone=" + (createFuture == null ? "NULL" : createFuture.isDone());
     }
 
-    public void stop() {
+    public void onMasterStop() {
         state.set(State.SHUTTING_DOWN);
+
+        /* Why are we calling SpliceDriver.shutdown() on master?  Apparently the creation of an embedded connection
+         * in this class as part of startup ends up starting, here on master: task framework thread pool, region cache
+         * loading threads, asyc-hbase new-io thread pools, and lots of other stuff.  None of this is necessary on
+         * master so this is bad and should be fixed.  In the mean time, to get master to actually shutdown gracefully
+         * we have to stop that stuff and SpliceDriver.shutdown() is a convenient way to do it.  */
         SpliceDriver.driver().shutdown();
+
         executor.shutdownNow();
     }
 
