@@ -24,6 +24,7 @@ public class SMHiveSplit extends FileSplit implements InputSplit {
 
 
 	  public SMHiveSplit(SMSplit split, Path dummyPath) {
+        super(dummyPath, 0, 0, (String[]) null);
 	    this.split = split;
 	  }
 

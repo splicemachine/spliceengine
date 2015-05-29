@@ -18,7 +18,7 @@ import org.apache.hadoop.mapred.OutputFormat;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.mrio.MRConstants;
-import com.splicemachine.mrio.api.core.SMOutputFormatold;
+import com.splicemachine.mrio.api.core.SMOutputFormat;
 import com.splicemachine.mrio.api.core.SMSQLUtil;
 
 import java.sql.Connection;
@@ -250,7 +250,7 @@ public class SMStorageHandler extends DefaultStorageHandler
 
 	@Override
 	public Class<? extends OutputFormat> getOutputFormatClass() {
-		return SMOutputFormatold.class;
+		return SMHiveOutputFormat.class;
 	}
     
     
