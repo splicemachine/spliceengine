@@ -23,4 +23,9 @@ public class SimpleTimestampSource implements TimestampSource {
     public long retrieveTimestamp() {
         return memory;
     }
+
+    @Override
+    public void shutdown() {
+        
+    }
 }
