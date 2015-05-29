@@ -97,9 +97,9 @@ public class BackupIT extends SpliceUnitTest {
         Thread.sleep(10000);
 
         //Split table 'A', and verify it is not in next incremental backup
-        spliceClassWatcher.splitTable(TABLE_NAME1, SCHEMA_NAME, 250);
+        //spliceClassWatcher.splitTable(TABLE_NAME1, SCHEMA_NAME, 250);
         spliceClassWatcher.splitTable(TABLE_NAME1, SCHEMA_NAME, 500);
-        spliceClassWatcher.splitTable(TABLE_NAME1, SCHEMA_NAME, 750);
+        //spliceClassWatcher.splitTable(TABLE_NAME1, SCHEMA_NAME, 750);
         Thread.sleep(10000);
         backup("incremental");
         verifyIncrementalBackup(getBackupId(), conglomerateNumber1, false);

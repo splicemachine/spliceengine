@@ -1,6 +1,7 @@
 package com.splicemachine.mrio.api.hive;
 
 import java.io.IOException;
+import java.sql.SQLException;
 
 import org.apache.hadoop.mapred.RecordWriter;
 import org.apache.hadoop.mapred.Reporter;
@@ -20,7 +21,7 @@ public class SMHiveRecordWriter implements RecordWriter<RowLocationWritable, Exe
 	public void write(RowLocationWritable key, ExecRowWritable value)
 			throws IOException {
 		try {
-			recordWriter.write(key.get(), value.get());
+			recordWriter.write(null, value.get());
 		} catch (InterruptedException e) {
 			throw new IOException(e);
 		}
@@ -28,7 +29,13 @@ public class SMHiveRecordWriter implements RecordWriter<RowLocationWritable, Exe
 
 	@Override
 	public void close(Reporter reporter) throws IOException {
-		return; // ?
+		recordWriter.close(null);
+        /*try {
+            SMStorageHandler.commitParentTxn();
+        }
+        catch (SQLException e) {
+
+        }*/
 	}
 
 }

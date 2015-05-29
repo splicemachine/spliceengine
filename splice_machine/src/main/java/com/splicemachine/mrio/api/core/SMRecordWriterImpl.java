@@ -6,17 +6,13 @@ import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.mapreduce.RecordWriter;
 import org.apache.hadoop.mapreduce.TaskAttemptContext;
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.impl.load.ColumnContext;
-import com.splicemachine.derby.impl.sql.execute.operations.InsertOperation;
 import com.splicemachine.derby.impl.sql.execute.sequence.SpliceSequence;
-import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.marshall.BareKeyHash;
 import com.splicemachine.derby.utils.marshall.DataHash;
-import com.splicemachine.derby.utils.marshall.EntryDataHash;
 import com.splicemachine.derby.utils.marshall.HashPrefix;
 import com.splicemachine.derby.utils.marshall.KeyEncoder;
 import com.splicemachine.derby.utils.marshall.KeyPostfix;
@@ -54,7 +50,7 @@ public class SMRecordWriterImpl extends RecordWriter<RowLocation, ExecRow> {
 	protected Connection conn;
 	protected Configuration conf;
 	protected long childTxsID;
-	
+
 	public SMRecordWriterImpl(TableContext tableContext, Configuration conf) throws IOException {
 		this.tableContext = tableContext;
 		this.pkCols = tableContext.pkCols;
@@ -72,23 +68,23 @@ public class SMRecordWriterImpl extends RecordWriter<RowLocation, ExecRow> {
 										cc.getAutoIncrementIncrement());
 				}
 		}
-		execRowDefn = SMSQLUtil.getExecRow(execRowFormatIds);	
+		execRowDefn = SMSQLUtil.getExecRow(execRowFormatIds);
 		sqlUtil = SMSQLUtil.getInstance(conf.get(MRConstants.SPLICE_JDBC_STR));
 		this.conf = conf;
 	}
-	
-	
+
+
 	@Override
 	public void write(RowLocation ignore, ExecRow value) throws IOException,
 			InterruptedException {
-		try {		
+		try {
 			if(callBuffer == null){
 				conn = sqlUtil.createConn();
 				sqlUtil.disableAutoCommit(conn);
 				long parentTxnID = Long.parseLong(conf.get(MRConstants.SPLICE_TRANSACTION_ID));
 
 				childTxsID = sqlUtil.getChildTransactionID(conn,
-								parentTxnID, 
+								parentTxnID,
 								conf.get(MRConstants.SPLICE_TABLE_NAME));
 
 				String strSize = conf.get(MRConstants.SPLICE_WRITE_BUFFER_SIZE);
@@ -99,29 +95,29 @@ public class SMRecordWriterImpl extends RecordWriter<RowLocation, ExecRow> {
 
 				txn = new ActiveWriteTxn(childTxsID,childTxsID);
 
-				callBuffer = WriteCoordinator.create(conf).writeBuffer(Bytes.toBytes(tableContext.conglomerateId), 
+				callBuffer = WriteCoordinator.create(conf).writeBuffer(Bytes.toBytes(tableContext.conglomerateId),
 								txn, size);
-				
+
 				keyEncoder = getKeyEncoder();
 				dataHash = getRowHash();
-				
-			}		
+
+			}
 			byte[] key = this.keyEncoder.getKey(value);
 			dataHash.setRow(value);
-			
+
 			byte[] bdata = dataHash.encode();
 			KVPair kv = new KVPair(key,bdata);
 			callBuffer.add(kv);
-				
+
 		} catch (Exception e) {
 			throw new IOException(e);
 		}
 	}
-	
+
 	@Override
 	public void close(TaskAttemptContext context) throws IOException,
 			InterruptedException {
-		
+
 	}
 		public KeyEncoder getKeyEncoder() throws StandardException {
 				HashPrefix prefix;
@@ -150,5 +146,4 @@ public class SMRecordWriterImpl extends RecordWriter<RowLocation, ExecRow> {
             return null;
 		}
 
-			
 }

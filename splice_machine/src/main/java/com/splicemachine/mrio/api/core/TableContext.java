@@ -58,7 +58,7 @@ public class TableContext implements Externalizable {
 		conglomerateId = in.readLong();
 	}
 	
-	public static TableContext getTableContextFromBase64String(String base64String) throws IOException, StandardException {
+	public static TableContext getTableContextFromBase64String(String base64String) throws IOException {
 		return (TableContext) SerializationUtils.deserialize(Base64.decode(base64String));
 	}
 	
