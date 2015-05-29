@@ -31,7 +31,9 @@ public class SpliceTestPlatform {
                     derbyPort,
                     failTasksRandomly);
 
-            new MiniHBaseCluster(config, 1, 1);
+            MiniHBaseCluster miniHBaseCluster = new MiniHBaseCluster(config, 1, 1);
+
+            new SpliceTestPlatformShutdownThread(miniHBaseCluster);
 
         } catch (NumberFormatException e) {
             SpliceTestPlatformUsage.usage("Bad port specified", e);

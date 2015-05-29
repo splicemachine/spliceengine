@@ -19,33 +19,27 @@ public class SpliceMasterObserver extends BaseMasterObserver {
     private static final Logger LOG = Logger.getLogger(SpliceMasterObserver.class);
 
     public static final byte[] INIT_TABLE = Bytes.toBytes("SPLICE_INIT");
-    public static final byte[] RESTORE_TABLE = Bytes.toBytes("SPLICE_RESTORE");
 
     private SpliceMasterObserverInitAction initAction;
 
     @Override
     public void start(CoprocessorEnvironment ctx) throws IOException {
-        SpliceLogUtils.info(LOG, "Starting SpliceMasterObserver");
+        LOG.info("Starting SpliceMasterObserver");
         initAction = new SpliceMasterObserverInitAction();
     }
 
     @Override
     public void stop(CoprocessorEnvironment ctx) throws IOException {
-        SpliceLogUtils.info(LOG, "Stopping SpliceMasterObserver");
-        initAction.stop();
+        LOG.warn("Stopping SpliceMasterObserver");
+        initAction.onMasterStop();
     }
 
     @Override
     public void preCreateTable(ObserverContext<MasterCoprocessorEnvironment> ctx, HTableDescriptor desc, HRegionInfo[] regions) throws IOException {
         SpliceLogUtils.info(LOG, "preCreateTable %s", Bytes.toString(desc.getTableName().getName()));
-
         if (Bytes.equals(desc.getTableName().getName(), INIT_TABLE)) {
             initAction.execute();
         }
-//        if (Bytes.equals(desc.getName(), RESTORE_TABLE)) {
-//            restoreAction.restoreDatabase(desc);
-//        }
     }
-
 
 }

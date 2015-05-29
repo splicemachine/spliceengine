@@ -41,6 +41,7 @@ import java.util.concurrent.locks.ReadWriteLock;
 public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService implements CoprocessorService, Coprocessor{
     private static final Logger LOG=Logger.getLogger(TxnLifecycleEndpoint.class);
     private static final TxnMessage.Txn NONEXISTENT_TXN;
+
     static{
         TxnMessage.TxnInfo nonExistentInfo = TxnMessage.TxnInfo.newBuilder()
                 .setBeginTs(-Long.MAX_VALUE)
@@ -49,6 +50,7 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
 
         NONEXISTENT_TXN = TxnMessage.Txn.newBuilder().setState(Txn.State.ROLLEDBACK.getId()).setInfo(nonExistentInfo).build();
     }
+
     private LongStripedSynchronizer<ReadWriteLock> lockStriper;
     private RegionTxnStore regionStore;
     private HRegion region;
@@ -84,9 +86,10 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
 
     @Override
     public void stop(CoprocessorEnvironment env){
-        SpliceLogUtils.trace(LOG,"Shutting down TxnLifecycleEndpoint");
-        if(isTxnTable)
+        SpliceLogUtils.info(LOG, "Shutting down TxnLifecycleEndpoint");
+        if(isTxnTable) {
             resolverRef.release(true);
+        }
     }
 
     @Override

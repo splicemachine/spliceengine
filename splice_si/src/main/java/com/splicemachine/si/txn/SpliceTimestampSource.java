@@ -16,10 +16,7 @@ import com.splicemachine.utils.SpliceLogUtils;
  * this service, a singleton client instance of {@link TimestampClient}
  * is used to manage the concurrent requests that come through this
  * timestamp source.
- * <p>
- * This class obsoletes {@link ZooKeeperStatTimestampSource},
- * which should no longer be used.
- * 
+ *
  * @author Walt Koetke
  */
 public class SpliceTimestampSource implements TimestampSource {
@@ -91,5 +88,13 @@ public class SpliceTimestampSource implements TimestampSource {
             return 0;
         }
         return Bytes.toLong(data);
+    }
+
+    @Override
+    public synchronized void shutdown() {
+        if(_tc != null) {
+            _tc.shutdown();
+            _tc = null;
+        }
     }
 }

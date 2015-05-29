@@ -26,6 +26,10 @@ import static java.util.concurrent.TimeUnit.SECONDS;
  */
 class SpliceTestPlatformConfig {
 
+    private static final List<Class<?>> REGION_SERVER_COPROCESSORS = ImmutableList.<Class<?>>of(
+            SpliceDerbyCoprocessor.class
+    );
+
     private static final List<Class<?>> REGION_COPROCESSORS = ImmutableList.<Class<?>>of(
             SpliceOperationRegionObserver.class,
             SpliceIndexObserver.class,
@@ -60,6 +64,7 @@ class SpliceTestPlatformConfig {
         //
         // Coprocessors
         //
+        config.set("hbase.coprocessor.regionserver.classes", getRegionServerCoprocessorsAsString());
         config.set("hbase.coprocessor.region.classes", getRegionCoprocessorsAsString());
         config.set("hbase.coprocessor.master.classes", getMasterCoprocessorsAsString());
 
@@ -169,6 +174,10 @@ class SpliceTestPlatformConfig {
             return input.getCanonicalName();
         }
     };
+
+    private static String getRegionServerCoprocessorsAsString() {
+        return Joiner.on(",").join(transform(REGION_SERVER_COPROCESSORS, CLASS_NAME_FUNC));
+    }
 
     private static String getRegionCoprocessorsAsString() {
         return Joiner.on(",").join(transform(REGION_COPROCESSORS, CLASS_NAME_FUNC));
