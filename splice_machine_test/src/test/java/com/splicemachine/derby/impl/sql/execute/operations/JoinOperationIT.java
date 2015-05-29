@@ -28,7 +28,6 @@ public class JoinOperationIT {
         params.add(new Object[]{"SORTMERGE"});
         params.add(new Object[]{"BROADCAST"});
 //        params.add(new Object[]{"MERGE"});
-//        params.add(new Object[]{"NESTEDLOOP"});
         return params;
     }
     private String joinStrategy;

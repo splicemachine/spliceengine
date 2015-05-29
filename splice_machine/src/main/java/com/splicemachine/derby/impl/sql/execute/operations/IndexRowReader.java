@@ -3,30 +3,25 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.KeyDecoder;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
-import com.splicemachine.metrics.*;
-import com.splicemachine.hbase.HBaseStatUtils;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Result;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.InterruptedIOException;
-import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
@@ -40,61 +35,51 @@ import java.util.concurrent.Future;
  * @author Scott Fines
  * Created on: 9/4/13
  */
-class IndexRowReader {
+public class IndexRowReader implements Iterator<LocatedRow>, Iterable<LocatedRow> {
     protected static Logger LOG = Logger.getLogger(IndexRowReader.class);
 
     private final ExecutorService lookupService;
-    private final SpliceOperation sourceOperation;
+    private final Iterable<LocatedRow> sourceIterable;
     private final int batchSize;
-		private final int numBlocks;
+	private final int numBlocks;
     private final ExecRow outputTemplate;
     private final long mainTableConglomId;
-		private final byte[] predicateFilterBytes;
-		private final MetricFactory metricFactory;
-		private final SpliceRuntimeContext runtimeContext;
-
-		private final KeyDecoder keyDecoder;
-		private final int[] indexCols;
-		private final KeyHashDecoder rowDecoder;
+	private final byte[] predicateFilterBytes;
+	private final KeyDecoder keyDecoder;
+	private final int[] indexCols;
+	private final KeyHashDecoder rowDecoder;
     private final TxnView txn;
-
-    private List<Pair<RowAndLocation,Result>> currentResults;
-    private RowAndLocation toReturn = new RowAndLocation();
-    private List<Future<List<Pair<RowAndLocation,Result>>>> resultFutures;
-
+    private List<Pair<LocatedRow,Result>> currentResults;
+    private LocatedRow toReturn = new LocatedRow();
+    private List<Future<List<Pair<LocatedRow,Result>>>> resultFutures;
     private boolean populated = false;
-		private HTableInterface table;
+	private EntryDecoder entryDecoder;
+    protected Iterator<LocatedRow> sourceIterator;
 
-		private EntryDecoder entryDecoder;
-
-		IndexRowReader(ExecutorService lookupService,
-									 SpliceOperation sourceOperation,
+	IndexRowReader(ExecutorService lookupService,
+									 Iterable<LocatedRow> sourceIterable,
 									 ExecRow outputTemplate,
 									 TxnView txn,
 									 int lookupBatchSize,
 									 int numConcurrentLookups,
 									 long mainTableConglomId,
 									 byte[] predicateFilterBytes,
-									 MetricFactory metricFactory,
-									 SpliceRuntimeContext runtimeContext,
 									 KeyHashDecoder keyDecoder,
 									 KeyHashDecoder rowDecoder,
-									 int[] indexCols, HTableInterface table) {
+									 int[] indexCols) {
 				this.lookupService = lookupService;
-				this.sourceOperation = sourceOperation;
+				this.sourceIterable = sourceIterable;
+                this.sourceIterator = sourceIterable.iterator();
 				this.outputTemplate = outputTemplate;
-        this.txn = txn;
+                this.txn = txn;
 				batchSize = lookupBatchSize;
 				this.numBlocks = numConcurrentLookups;
 				this.mainTableConglomId = mainTableConglomId;
 				this.predicateFilterBytes = predicateFilterBytes;
-				this.metricFactory = metricFactory;
-				this.runtimeContext = runtimeContext;
 				this.keyDecoder = new KeyDecoder(keyDecoder,0);
 				this.rowDecoder = rowDecoder;
 				this.indexCols = indexCols;
 				this.resultFutures = Lists.newArrayListWithCapacity(numConcurrentLookups);
-				this.table =table;
 		}
 
     public void close() throws IOException {
@@ -102,90 +87,69 @@ class IndexRowReader {
 				Closeables.closeQuietly(this.keyDecoder);
 				if(entryDecoder!=null)
             entryDecoder.close();
-        if(table!=null)
-            table.close();
+        Thread.dumpStack();
         lookupService.shutdownNow();
     }
 
-    public RowAndLocation next() throws StandardException, IOException {
-        if(currentResults==null||currentResults.size()<=0)
-            getMoreData();
-
-        if(currentResults ==null ||currentResults.size()<=0)
-            return null; //no more data to return
-
-        Pair<RowAndLocation,Result> next = currentResults.remove(0);
-
-        //merge the results
-        RowAndLocation nextScannedRow = next.getFirst();
-        Result nextFetchedData = next.getSecond();
-
-        if(entryDecoder==null)
-            entryDecoder = new EntryDecoder();
-
-        for(KeyValue kv:nextFetchedData.raw()){
-						byte[] buffer = kv.getBuffer();
-						keyDecoder.decode(buffer,kv.getRowOffset(),kv.getRowLength(),nextScannedRow.row);
-						rowDecoder.set(buffer,kv.getValueOffset(),kv.getValueLength());
-						rowDecoder.decode(nextScannedRow.row);
-        }
-
-        return nextScannedRow;
+    @Override
+    public LocatedRow next() {
+        return toReturn;
     }
 
-		public long getTotalRows(){
-				/*
-				 * We do the type checking like this (even though it's ugly), so that
-				 * we can easily swap between a NoOpMetricFactory and an AtomicTimer without
-				 * paying a significant penalty in if-branches (lots of if(recordStats) blocks)
-				 *
-				 * In general, this will only be called if record stats is true, but we put
-				 * in the instanceof check just to be safe
-				 */
-				if(metricFactory instanceof AtomicTimer)
-						return ((AtomicTimer)metricFactory).getTotalEvents();
-				return 0;
-		}
+    @Override
+    public void remove() {
 
-		public TimeView getTimeInfo(){
-				if(metricFactory instanceof AtomicTimer)
-						return ((AtomicTimer)metricFactory).getTimeView();
-				return Metrics.noOpTimeView();
-		}
+    }
 
-		public long getBytesFetched(){
-				if(metricFactory instanceof AtomicTimer)
-						return ((AtomicTimer)metricFactory).getTotalCountedValues();
-				return 0;
-		}
+    @Override
+    public boolean hasNext() {
+        try {
+            if (currentResults == null || currentResults.size() <= 0)
+                getMoreData();
+
+            if (currentResults == null || currentResults.size() <= 0)
+                return false; // No More Data
+            Pair<LocatedRow, Result> next = currentResults.remove(0);
+            //merge the results
+            LocatedRow nextScannedRow = next.getFirst();
+            Result nextFetchedData = next.getSecond();
+            if (entryDecoder == null)
+                entryDecoder = new EntryDecoder();
+            for (KeyValue kv : nextFetchedData.raw()) {
+                byte[] buffer = kv.getBuffer();
+                keyDecoder.decode(buffer, kv.getRowOffset(), kv.getRowLength(), nextScannedRow.getRow());
+                rowDecoder.set(buffer, kv.getValueOffset(), kv.getValueLength());
+                rowDecoder.decode(nextScannedRow.getRow());
+            }
+            toReturn = nextScannedRow;
+            return true;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
 
 /**********************************************************************************************************************************/
 		/*private helper methods*/
     private void getMoreData() throws StandardException, IOException {
         //read up to batchSize rows from the source, then submit them to the background thread for processing
-        List<RowAndLocation> sourceRows = Lists.newArrayListWithCapacity(batchSize);
+        List<LocatedRow> sourceRows = Lists.newArrayListWithCapacity(batchSize);
         for(int i=0;i<batchSize;i++){
-            ExecRow next = sourceOperation.getNextRowCore();
-            if(next==null) break; //we are done
-
+            if (!sourceIterator.hasNext())
+                break;
+            LocatedRow next = sourceIterator.next();
             if(!populated){
                 for(int index=0;index<indexCols.length;index++){
                     if(indexCols[index]!=-1){
-                        outputTemplate.setColumn(index + 1, next.getColumn(indexCols[index] + 1));
+                        outputTemplate.setColumn(index + 1, next.getRow().getColumn(indexCols[index] + 1));
                     }
                 }
                 populated=true;
-                toReturn.row = outputTemplate;
+                toReturn.setRow(outputTemplate);
             }
-            RowAndLocation rowLoc = new RowAndLocation();
-            rowLoc.row = outputTemplate.getClone();
-            rowLoc.rowLocation = next.getColumn(next.nColumns()).getBytes();
-            sourceRows.add(rowLoc);
+            sourceRows.add(new LocatedRow((RowLocation) next.getRow().getColumn(next.getRow().nColumns()),
+                    outputTemplate.getClone()));
         }
-
-        if(table==null)
-            table = SpliceAccessManager.getHTable(mainTableConglomId);
-
         if(sourceRows.size()>0){
             //submit to the background thread
             resultFutures.add(lookupService.submit(new Lookup(sourceRows)));
@@ -211,68 +175,44 @@ class IndexRowReader {
             else throw Exceptions.parseException(t);
         }
     }
-    /** TODO REMOVE JLEACH */
-    static class RowAndLocation{
-        ExecRow row;
-        byte[] rowLocation;
 
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) return true;
-            if (!(o instanceof RowAndLocation)) return false;
+        private class Lookup implements Callable<List<Pair<LocatedRow,Result>>> {
+            private final List<LocatedRow> sourceRows;
+            private HTableInterface table;
 
-            RowAndLocation that = (RowAndLocation) o;
-
-            if(!Bytes.equals(rowLocation,that.rowLocation)) return false;
-
-            if(row.nColumns()!=that.row.nColumns()) return false;
-            DataValueDescriptor[] leftRow = row.getRowArray();
-            DataValueDescriptor[] rightRow = row.getRowArray();
-            for(int i=0;i<leftRow.length;i++){
-                if(!leftRow[i].equals(rightRow[i])) return false;
+            public Lookup(List<LocatedRow> sourceRows) {
+                this.sourceRows = sourceRows;
             }
-            return true;
-        }
 
-        @Override
-        public int hashCode() {
-            int result = row.hashCode();
-            result = 31 * result + Arrays.hashCode(rowLocation);
-            return result;
+            @Override
+            public List<Pair<LocatedRow,Result>> call() throws Exception {
+                    List<Get> gets = Lists.newArrayListWithCapacity(sourceRows.size());
+            for(LocatedRow sourceRow:sourceRows){
+                byte[] row = sourceRow.getRowLocation().getBytes();
+                Get get = SpliceUtils.createGet(txn,row);
+                get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilterBytes);
+                gets.add(get);
+            }
+            try {
+                table = SpliceAccessManager.getHTable(mainTableConglomId);
+                Result[] results = table.get(gets);
+                int i = 0;
+                List<Pair<LocatedRow, Result>> locations = Lists.newArrayListWithCapacity(sourceRows.size());
+                for (LocatedRow sourceRow : sourceRows) {
+                    locations.add(Pair.newPair(sourceRow, results[i]));
+                    i++;
+                }
+                return locations;
+            } finally {
+                if (table != null)
+                    table.close();
+            }
         }
     }
 
-    private class Lookup implements Callable<List<Pair<RowAndLocation,Result>>> {
-        private final List<RowAndLocation> sourceRows;
-				private final Timer timer;
-				private final Counter bytesCounter;
-
-        public Lookup(List<RowAndLocation> sourceRows) {
-            this.sourceRows = sourceRows;
-						this.timer = metricFactory.newTimer();
-						this.bytesCounter = metricFactory.newCounter();
-        }
-
-        @Override
-        public List<Pair<RowAndLocation,Result>> call() throws Exception {
-						List<Get> gets = Lists.newArrayListWithCapacity(sourceRows.size());
-						for(RowAndLocation sourceRow:sourceRows){
-								byte[] row = sourceRow.rowLocation;
-								Get get = SpliceUtils.createGet(txn,row);
-								get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilterBytes);
-								gets.add(get);
-						}
-						timer.startTiming();
-						Result[] results = table.get(gets);
-						timer.tick(results.length);
-						HBaseStatUtils.countBytes(bytesCounter, results);
-						int i=0;
-						List<Pair<RowAndLocation,Result>> locations = Lists.newArrayListWithCapacity(sourceRows.size());
-						for(RowAndLocation sourceRow:sourceRows){
-								locations.add(Pair.newPair(sourceRow,results[i]));
-								i++;
-						}
-						return locations;
-				}
+    @Override
+    public Iterator<LocatedRow> iterator() {
+        return this;
     }
+
 }

@@ -208,6 +208,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
     @Override
     public void close() throws StandardException {
+        System.out.println(String.format(this.getName() + " -> closing with isOpen=%s, and closeables=%s",isOpen,closeables));
         try {
             if (!isOpen)
                 return;
@@ -215,8 +216,10 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
             if (LOG_CLOSE.isTraceEnabled())
                 LOG_CLOSE.trace(String.format("closing operation %s", this));
             if (closeables != null) {
-                for (AutoCloseable closeable : closeables)
+                for (AutoCloseable closeable : closeables) {
                     closeable.close();
+                }
+                closeables = null;
             }
 
             clearCurrentRow();
@@ -564,7 +567,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
                 LOG.trace(String.format("openCore %s", this));
             isOpen = true;
             String sql = activation.getPreparedStatement().getSource();
-            long txnId = ((SpliceTransactionManager)activation.getTransactionController()).getRawTransaction().getTxnInformation().getTxnId();
+            long txnId = getCurrentTransaction().getTxnId();
             sql = sql==null?this.toString():sql;
             String jobName = getName() + " rs "+resultSetNumber + " <" + txnId + ">";
             dsp.setJobGroup(jobName,sql);
