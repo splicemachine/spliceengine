@@ -3,6 +3,7 @@ package com.splicemachine.mrio.api.core;
 import java.io.IOException;
 import java.sql.SQLException;
 
+import com.splicemachine.constants.SpliceConstants;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HConstants;
@@ -12,6 +13,7 @@ import com.splicemachine.derby.test.framework.SpliceNetConnection;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.mrio.api.core.SMSQLUtil;
+import org.apache.hadoop.fs.Path;
 import org.junit.Ignore;
 
 @Ignore("Breaks stuff")
@@ -20,9 +22,10 @@ public class BaseMRIOTest extends SpliceUnitTest {
 	protected static SMSQLUtil sqlUtil;
 	
 	static {
-		config = HBaseConfiguration.create();
+		config = SpliceConstants.config;
 		config.set("hbase.zookeeper.quorum", "127.0.0.1:2181");
 		config.set(HConstants.HBASE_DIR,getHBaseDirectory());
+        SpliceConstants.HBASE_ROOT_DIR = new Path(getHBaseDirectory());
         config.set("fs.default.name", "file:///"); // MapR Hack, tells it local filesystem
     	config.set(MRConstants.SPLICE_JDBC_STR, SpliceNetConnection.getDefaultLocalURL());
     	System.setProperty("hive.metastore.warehouse.dir", getHiveWarehouseDirectory());
@@ -30,7 +33,7 @@ public class BaseMRIOTest extends SpliceUnitTest {
     	System.setProperty("mapreduce.framework.name", "local-chicken");
     	System.setProperty(HConstants.HBASE_DIR, getHBaseDirectory());
     	System.setProperty("hive.exec.mode.local.auto","true");
-    	System.setProperty("javax.jdo.option.ConnectionURL", "jdbc:splice:;databaseName=target/metastore_db;create=true");
+    	System.setProperty("javax.jdo.option.ConnectionURL", "jdbc:derby:;databaseName=target/metastore_db;create=true");
 		sqlUtil = SMSQLUtil.getInstance(SpliceNetConnection.getDefaultLocalURL());
 	}
 	

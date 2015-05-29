@@ -276,7 +276,7 @@ public class SMSQLUtil extends SIConstants {
         int []rowDecodingMap = IntArrays.count(nameTypes.size());
         for (int i = 0; i< nameTypes.size(); i++) {
             NameType nameType = nameTypes.get(i);
-            if (!isPrimaryKeyCOlumn(primaryKeys, nameType.getName()) && (columnNames.contains(nameType.getName())))
+            if (!isPrimaryKeyColumn(primaryKeys, nameType.getName()) && (columnNames.contains(nameType.getName())))
                 rowDecodingMap[i] = columnNames.indexOf(nameType.getName());
             else
                 rowDecodingMap[i] = -1;
@@ -286,7 +286,7 @@ public class SMSQLUtil extends SIConstants {
         return rowDecodingMap;
     }
 
-    private boolean isPrimaryKeyCOlumn(List<PKColumnNamePosition> primaryKeys, String name) {
+    private boolean isPrimaryKeyColumn(List<PKColumnNamePosition> primaryKeys, String name) {
         boolean isPkCol = false;
         if (primaryKeys != null && primaryKeys.size() > 0) {
             for (PKColumnNamePosition namePosition: primaryKeys) {

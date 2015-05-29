@@ -3,6 +3,10 @@ package com.splicemachine.mrio.api.hive;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.*;
+import com.splicemachine.derby.impl.load.ColumnContext;
+import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
+import com.splicemachine.mrio.api.core.PKColumnNamePosition;
+import com.splicemachine.mrio.api.core.TableContext;
 import org.apache.commons.lang.SerializationUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HConstants;
@@ -31,13 +35,12 @@ import com.splicemachine.mrio.api.core.NameType;
 import com.splicemachine.mrio.api.core.SMSQLUtil;
 import com.splicemachine.mrio.api.serde.ExecRowWritable;
 import com.splicemachine.utils.SpliceLogUtils;
-
+import org.apache.hadoop.hive.conf.HiveConf;
 import java.io.IOException;
 import java.io.Serializable;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.*;
-import java.math.BigDecimal;
 
 public class SMSerDe implements SerDe {
 	protected StructTypeInfo rowTypeInfo;
@@ -48,6 +51,7 @@ public class SMSerDe implements SerDe {
     protected List<TypeInfo> colTypes; // hive types, not Splice Types
     protected static Logger Log = Logger.getLogger(SMSerDe.class.getName());
     protected List<Object> objectCache;
+    protected String tableName;
     
     /**
      * An initialization function used to gather information about the table.
@@ -61,15 +65,27 @@ public class SMSerDe implements SerDe {
     		SpliceLogUtils.debug(Log, "initialize with conf=%s, tbl=%s",conf,tbl);
         // Get a list of the table's column names.
         String spliceInputTableName = tbl.getProperty(MRConstants.SPLICE_TABLE_NAME);
-        conf.set(MRConstants.SPLICE_TABLE_NAME, spliceInputTableName);
-        conf.set(MRConstants.SPLICE_JDBC_STR, tbl.getProperty(MRConstants.SPLICE_JDBC_STR));
-        String hbaseDir = conf.get(HConstants.HBASE_DIR);
+        tableName = spliceInputTableName;
+        String hbaseDir = null;
+        if (conf != null) {
+            hbaseDir = conf.get(HConstants.HBASE_DIR);
+        }
         if (hbaseDir == null)
         	hbaseDir = System.getProperty(HConstants.HBASE_DIR);
         if (hbaseDir == null)
         	throw new SerDeException("hbase root directory not set, please include hbase.rootdir in config or via -D system property ...");
-        conf.set(HConstants.HBASE_DIR, hbaseDir);
-        
+        if (conf != null) {
+            conf.set(MRConstants.SPLICE_TABLE_NAME, spliceInputTableName);
+            conf.set(MRConstants.SPLICE_JDBC_STR, tbl.getProperty(MRConstants.SPLICE_JDBC_STR));
+            conf.set(HConstants.HBASE_DIR, hbaseDir);
+            if (conf.get(HiveConf.ConfVars.POSTEXECHOOKS.varname) == null) {
+                conf.set(HiveConf.ConfVars.POSTEXECHOOKS.varname, "com.splicemachine.mrio.api.hive.PostExecHook");
+            }
+            if (conf.get(HiveConf.ConfVars.ONFAILUREHOOKS.varname) == null) {
+                conf.set(HiveConf.ConfVars.ONFAILUREHOOKS.varname, "com.splicemachine.mrio.api.hive.FailureExecHook");
+            }
+        }
+
         if (sqlUtil == null)
             sqlUtil = SMSQLUtil.getInstance(tbl.getProperty(MRConstants.SPLICE_JDBC_STR));
         String colNamesStr = tbl.getProperty(Constants.LIST_COLUMNS);
@@ -84,7 +100,39 @@ public class SMSerDe implements SerDe {
             try {
                 if (!sqlUtil.checkTableExists(spliceInputTableName))
                 	throw new SerDeException(String.format("table %s does not exist...",spliceInputTableName));
-            	conf.set(MRConstants.SPLICE_SCAN_INFO, sqlUtil.getTableScannerBuilder(spliceInputTableName, colNames).getTableScannerBuilderBase64String());
+                if (conf != null) {
+                    TableScannerBuilder tableScannerBuilder = sqlUtil.getTableScannerBuilder(spliceInputTableName, colNames);
+                    conf.set(MRConstants.SPLICE_SCAN_INFO, tableScannerBuilder.getTableScannerBuilderBase64String());
+
+                    int[] execRowIds = tableScannerBuilder.getExecRowTypeFormatIds();
+                    Map<String, ColumnContext.Builder> columns = sqlUtil.getColumns(tableName);
+                    ColumnContext[] columnContexts = new ColumnContext[columns.size()];
+                    int index = 0;
+                    for(ColumnContext.Builder colBuilder : columns.values()) {
+                        ColumnContext context = colBuilder.build();
+                        columnContexts[index++] = context;
+                    }
+                    String conglomerateId = sqlUtil.getConglomID(tableName);
+
+                    List<PKColumnNamePosition> pkColumnNamePositions = sqlUtil.getPrimaryKeys(tableName);
+                    List<NameType> nameTypes = sqlUtil.getTableStructure(tableName);
+
+                    List<String>  columnNames = new ArrayList<String>(nameTypes.size());
+                    for (int i = 0; i< nameTypes.size(); i++) {
+                        columnNames.add(nameTypes.get(i).getName());
+                    }
+
+                    int[] columnOrdering = sqlUtil.getKeyColumnEncodingOrder(nameTypes,pkColumnNamePositions);
+                    int[] pkCols = new int[0];
+                    if (columnOrdering != null && columnOrdering.length > 0) {
+                        pkCols = new int[columnOrdering.length];
+                        for (int i = 0; i < columnOrdering.length; ++i) {
+                            pkCols[i] = columnOrdering[i] + 1;
+                        }
+                    }
+                    TableContext tableContext = new TableContext(columnContexts, pkCols, execRowIds, new Long(conglomerateId));
+                    conf.set(MRConstants.SPLICE_TBLE_CONTEXT, tableContext.getTableContextBase64String());
+                }
 			} catch (Exception e) {
 				throw new SerDeException(e);
 			}
@@ -162,7 +210,7 @@ public class SMSerDe implements SerDe {
     	ExecRow row = null;
     	int[] execRowFormatIds = null;
         try {
-			List<NameType> nameTypes = sqlUtil.getTableStructure(null);
+			List<NameType> nameTypes = sqlUtil.getTableStructure(tableName);
 			execRowFormatIds = sqlUtil.getExecRowFormatIds(colNames, nameTypes);
 			row = sqlUtil.getExecRow(execRowFormatIds);
 			if (row == null)
@@ -197,29 +245,53 @@ public class SMSerDe implements SerDe {
                 Object fieldObj = soi.getStructFieldData(obj, field);
                 PrimitiveObjectInspector primOI = (PrimitiveObjectInspector) fieldOI;
                 Object data = primOI.getPrimitiveJavaObject(fieldObj);
-                
-                if (primOI.getPrimitiveCategory() == PrimitiveCategory.INT)
-                    dvd.setValue((Integer) data);
-                else if (primOI.getPrimitiveCategory() == PrimitiveCategory.STRING)
-                	dvd.setValue((String) data);
-                else if (primOI.getPrimitiveCategory() == PrimitiveCategory.BINARY)
-                	dvd.setValue((SerializationUtils.serialize((Serializable) data))); // is this right?  Should just be a byte[]
-                else if (primOI.getPrimitiveCategory() == PrimitiveCategory.BOOLEAN)
-                    dvd.setValue((Boolean) data);
-                else if (primOI.getPrimitiveCategory() == PrimitiveCategory.DECIMAL)
-                    dvd.setValue((String) data);
-                else if (primOI.getPrimitiveCategory() == PrimitiveCategory.DOUBLE)
-                    dvd.setValue((Double) data);
-                else if (primOI.getPrimitiveCategory() == PrimitiveCategory.FLOAT)
-                    dvd.setValue((Float) data);
-                else if (primOI.getPrimitiveCategory() == PrimitiveCategory.LONG)
-                	dvd.setValue((Long) data);
-                else if (primOI.getPrimitiveCategory() == PrimitiveCategory.SHORT)
-                	dvd.setValue((Short) data);
-                else if (primOI.getPrimitiveCategory() == PrimitiveCategory.TIMESTAMP)
-                	dvd.setValue((Timestamp) data);
-                else {
-                	throw new SerDeException(String.format("Hive Type %s Not Supported Yet",primOI.getPrimitiveCategory()));
+
+                PrimitiveCategory primitiveCategory = primOI.getPrimitiveCategory();
+                switch (primitiveCategory) {
+                    case BYTE:
+                        dvd.setValue(((Byte) data).byteValue());
+                        break;
+                    case INT:
+                        dvd.setValue(((Integer) data).intValue());
+                        break;
+                    case VARCHAR:
+                        dvd.setValue(((HiveVarchar)data).getValue());
+                        break;
+                    case CHAR:
+                        dvd.setValue(((HiveChar)data).getValue());
+                        break;
+                    case STRING:
+                        dvd.setValue((String) data);
+                        break;
+                    case BINARY:
+                        dvd.setValue((SerializationUtils.serialize((Serializable) data))); // is this right?  Should just be a byte[]
+                        break;
+                    case BOOLEAN:
+                        dvd.setValue(((Boolean) data).booleanValue());
+                        break;
+                    case DECIMAL:
+                        dvd.setValue(((HiveDecimal) data).doubleValue());
+                        break;
+                    case DOUBLE:
+                        dvd.setValue(((Double) data).doubleValue());
+                        break;
+                    case FLOAT:
+                        dvd.setValue(((Float) data).floatValue());
+                        break;
+                    case LONG:
+                        dvd.setValue(((Long) data).longValue());
+                        break;
+                    case SHORT:
+                        dvd.setValue(((Short) data).shortValue());
+                        break;
+                    case TIMESTAMP:
+                        dvd.setValue((Timestamp) data);
+                        break;
+                    case DATE:
+                        dvd.setValue((java.sql.Date) data);
+                        break;
+                    default:
+                        throw new SerDeException(String.format("Hive Type %s Not Supported Yet",primOI.getPrimitiveCategory()));
                 }
             }
 
