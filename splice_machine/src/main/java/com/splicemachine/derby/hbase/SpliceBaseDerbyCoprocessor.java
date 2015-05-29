@@ -1,64 +1,37 @@
 package com.splicemachine.derby.hbase;
 
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.constants.environment.EnvUtils;
 import com.splicemachine.si.impl.TransactionalRegions;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicLong;
+import org.apache.hadoop.hbase.regionserver.RegionServerServices;
 
 /**
- * Coprocessor for starting the derby services on top of HBase.
+ * Coprocessor for starting the splice services on top of HBase.
  *
  * @author John Leach
  */
 public class SpliceBaseDerbyCoprocessor {
-    private static final AtomicLong runningCoprocessors = new AtomicLong(0l);
-    private static final AtomicBoolean stop = new AtomicBoolean(false); // Set to true when region server is stopping or stopped
+
     public static volatile String regionServerZNode;
     public static volatile String rsZnode;
 
     /**
-     * Logs the start of the observer and runs the SpliceDriver if needed...
-     * 
-     * @see com.splicemachine.derby.hbase.SpliceDriver
+     * Logs the start of the observer and runs the SpliceDriver if needed.
      */
     public void start(CoprocessorEnvironment e) {
-        rsZnode = ((RegionCoprocessorEnvironment) e).getRegionServerServices().getZooKeeper().rsZNode;
-        regionServerZNode =((RegionCoprocessorEnvironment) e).getRegionServerServices().getServerName().getServerName();
+        RegionServerServices regionServerServices = ((RegionCoprocessorEnvironment) e).getRegionServerServices();
 
-        SpliceConstants.TableEnv tableEvn = EnvUtils.getTableEnv((RegionCoprocessorEnvironment)e);
-        boolean tableEnvMatch = !SpliceConstants.TableEnv.ROOT_TABLE.equals(tableEvn);
+        rsZnode = regionServerServices.getZooKeeper().rsZNode;
+        regionServerZNode = regionServerServices.getServerName().getServerName();
 
         //make sure the factory is correct
         TransactionalRegions.setActionFactory(RollForwardAction.FACTORY);
         //use the independent write control from the write pipeline
         TransactionalRegions.setTrafficControl(SpliceBaseIndexEndpoint.independentTrafficControl);
-        if (tableEnvMatch) {
-        	SpliceDriver.driver().start(((RegionCoprocessorEnvironment) e).getRegionServerServices());
-            runningCoprocessors.incrementAndGet();
-        }
-    }
 
-    /**
-     * Logs the stop of the observer and shutdowns the SpliceDriver if needed...
-     * 
-     * @see com.splicemachine.derby.hbase.SpliceDriver
-     */
-    public void stop(CoprocessorEnvironment e) {
-        if (stop.get() && runningCoprocessors.decrementAndGet() <= 0L) {
-            SpliceDriver.driver().shutdown();
-        }
-    }
-
-    public void stoppingRegionServer() {
-        stop.set(true);
-        if (runningCoprocessors.get() <= 0L) {
-            SpliceDriver.driver().shutdown();
-        }
+        /* We used to only invoke start here if the table was not a hbase meta table, but this method only
+         * has an effect once per JVM so it doesn't matter what table this particular coprocessor instance if for. */
+        SpliceDriver.driver().start(regionServerServices);
     }
 
 }
-

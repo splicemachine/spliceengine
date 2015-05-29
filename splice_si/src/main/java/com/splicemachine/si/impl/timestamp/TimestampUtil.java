@@ -85,11 +85,10 @@ public class TimestampUtil {
 		SpliceLogUtils.error(logger, message, t, args);		
 	}
 
-	public static void doClientErrorThrow(Logger logger, String message, Throwable t, Object... args)
-		throws TimestampIOException {
-		if (message == null) message = "";
-		SpliceLogUtils.logAndThrow(logger, String.format(message, args),
-		    t != null ? new TimestampIOException(message, t) : new TimestampIOException(message));
+	public static void doClientErrorThrow(Logger logger, String message, Throwable t, Object... args) throws TimestampIOException {
+        if (message == null) message = "";
+        TimestampIOException t1 = t != null ? new TimestampIOException(message, t) : new TimestampIOException(message);
+        SpliceLogUtils.logAndThrow(logger, String.format(message, args), t1);
 	}
 	
 	public static void doServerError(Logger logger, String message) {

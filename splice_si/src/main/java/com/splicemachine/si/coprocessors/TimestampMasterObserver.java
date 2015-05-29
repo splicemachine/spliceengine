@@ -2,7 +2,6 @@ package com.splicemachine.si.coprocessors;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.si.impl.timestamp.TimestampServer;
-import com.splicemachine.si.impl.timestamp.TimestampUtil;
 
 import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.coprocessor.BaseMasterObserver;
@@ -18,26 +17,28 @@ import java.io.IOException;
  * the specialized server {@link TimestampServer} that provides
  * timestamps for the transaction system.
  */
-
 public class TimestampMasterObserver extends BaseMasterObserver {
 
-	private static Logger LOG = Logger.getLogger(TimestampMasterObserver.class);
+    private static Logger LOG = Logger.getLogger(TimestampMasterObserver.class);
+
+    private TimestampServer timestampServer;
 
     @Override
     public void start(CoprocessorEnvironment ctx) throws IOException {
-        TimestampUtil.doServerInfo(LOG, "Starting Timestamp Master Observer...");
+        LOG.info("Starting Timestamp Master Observer");
         
         ZooKeeperWatcher zkw = ((MasterCoprocessorEnvironment)ctx).getMasterServices().getZooKeeper();
         RecoverableZooKeeper rzk = zkw.getRecoverableZooKeeper();
         
-        new TimestampServer(SpliceConstants.timestampServerBindPort, rzk).startServer();
+        this.timestampServer = new TimestampServer(SpliceConstants.timestampServerBindPort, rzk);
+        this.timestampServer.startServer();
         
         super.start(ctx);
     }
 
     @Override
     public void stop(CoprocessorEnvironment ctx) throws IOException {
-    	TimestampUtil.doServerInfo(LOG, "Stopping Timestamp Master Observer...");
-        super.stop(ctx);
+        LOG.warn("Stopping Timestamp Master Observer");
+        this.timestampServer.stopServer();
     }
 }

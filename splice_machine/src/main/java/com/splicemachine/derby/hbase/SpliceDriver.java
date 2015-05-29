@@ -330,10 +330,10 @@ public class SpliceDriver {
                         }
 
                         // Write the Splice version to the log.
-                        SpliceLogUtils.info(LOG, String.format("Splice Machine Release = %s", spliceVersion.getRelease()));
-                        SpliceLogUtils.info(LOG, String.format("Splice Machine Version Hash = %s", spliceVersion.getImplementationVersion()));
-                        SpliceLogUtils.info(LOG, String.format("Splice Machine Build Time = %s", spliceVersion.getBuildTime()));
-                        SpliceLogUtils.info(LOG, String.format("Splice Machine URL = %s", spliceVersion.getURL()));
+                        SpliceLogUtils.info(LOG, "Splice Machine Release      = %s", spliceVersion.getRelease());
+                        SpliceLogUtils.info(LOG, "Splice Machine Version Hash = %s", spliceVersion.getImplementationVersion());
+                        SpliceLogUtils.info(LOG, "Splice Machine Build Time   = %s", spliceVersion.getBuildTime());
+                        SpliceLogUtils.info(LOG, "Splice Machine URL          = %s", spliceVersion.getURL());
 
                         SpliceLogUtils.debug(LOG, "Starting Server");
                         setRunning = startServer();
@@ -434,31 +434,14 @@ public class SpliceDriver {
         return sequences;
     }
 
+    /**
+     * Call when splice is stopping on this node because the entire region server process/JVM is stopping.
+     */
     public void shutdown() {
-        lifecycleExecutor.submit(new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                try {
-                    SpliceLogUtils.info(LOG, "Shutting down connections");
-                    if (server != null) server.shutdown();
-
-                    SpliceLogUtils.info(LOG, "Shutting down services");
-                    for (Service service : services) {
-                        service.shutdown();
-                    }
-
-                    if (metricsReporter != null) metricsReporter.shutdown();
-                    SpliceLogUtils.info(LOG, "Destroying internal Engine");
-                    stateHolder.set(State.SHUTDOWN);
-                } catch (Exception e) {
-                    SpliceLogUtils.error(LOG,
-                            "Unable to shut down properly, this may affect the next time the service is started", e);
-                }
-                return null;
-            }
-        });
-        lifecycleExecutor.shutdown();
-        ((TieredTaskScheduler)threadTaskScheduler).shutdown();
+        if(stateHolder.getAndSet(State.SHUTDOWN) != State.SHUTDOWN) {
+            lifecycleExecutor.submit(new SpliceDriverShutdownRunnable(metricsReporter, server, services, (TieredTaskScheduler) threadTaskScheduler));
+            lifecycleExecutor.shutdown();
+        }
     }
 
     private void registerJMX() {
@@ -566,7 +549,7 @@ public class SpliceDriver {
         return SpliceKryoRegistry.getInstance();
     }
 
-    private static enum State {
+    private enum State {
         NOT_STARTED, INITIALIZING, INITIALIZED_SERVICES, RUNNING, STARTUP_FAILED, SHUTDOWN;
 
         public boolean isPostServiceStartState() {

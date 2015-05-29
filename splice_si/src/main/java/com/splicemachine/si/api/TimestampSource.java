@@ -7,4 +7,5 @@ public interface TimestampSource {
     long nextTimestamp();
     void rememberTimestamp(long timestamp);
     long retrieveTimestamp();
+    void shutdown();
 }
