@@ -57,7 +57,7 @@ import static org.mockito.Mockito.when;
  */
 @RunWith(Parameterized.class)
 public class IndexRowReaderTest {
-
+/*
     private static final KryoPool kryoPool = mock(KryoPool.class);
 
     @Parameterized.Parameters
@@ -301,5 +301,5 @@ public class IndexRowReaderTest {
         templateInput.setColumn(templateInput.nColumns(),new HBaseRowLocation());
         return templateInput;
     }
-
+*/
 }

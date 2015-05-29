@@ -4,25 +4,18 @@ import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.concurrent.SameThreadExecutorService;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.utils.marshall.EntryDataDecoder;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.derby.utils.marshall.NoOpKeyHashDecoder;
 import com.splicemachine.derby.utils.marshall.SkippingKeyDecoder;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
-import com.splicemachine.si.api.Txn;
-import com.splicemachine.metrics.MetricFactory;
-import com.splicemachine.metrics.Metrics;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import org.apache.hadoop.hbase.client.HTableInterface;
-
 import java.util.concurrent.*;
 
 /**
@@ -30,31 +23,25 @@ import java.util.concurrent.*;
  *         Date: 4/11/14
  */
 public class IndexRowReaderBuilder {
-		private SpliceOperation sourceOperation;
+		private Iterable source;
 		private int lookupBatchSize;
 		private int numConcurrentLookups = -1;
 		private ExecRow  outputTemplate;
 		private long mainTableConglomId = -1;
-
 		private int[] mainTableRowDecodingMap;
 		private FormatableBitSet mainTableAccessedRowColumns;
-
 		private int[] mainTableKeyColumnEncodingOrder;
 		private boolean[] mainTableKeyColumnSortOrder;
 		private int[] mainTableKeyDecodingMap;
 		private FormatableBitSet mainTableAccessedKeyColumns;
-
 		/*
 		 * A Map from the physical location of the Index columns in the INDEX scanned row
 		 * and the decoded output row.
 		 */
 		private int[] indexCols;
-		private MetricFactory metricFactory;
-		private SpliceRuntimeContext runtimeContext;
 		private String tableVersion;
 		private int[] mainTableKeyColumnTypes;
-		private HTableInterface table;
-    private TxnView txn;
+        private TxnView txn;
 
     public IndexRowReaderBuilder indexColumns(int[] indexCols){
 				this.indexCols = indexCols;
@@ -66,8 +53,8 @@ public class IndexRowReaderBuilder {
 				return this;
 		}
 
-		public IndexRowReaderBuilder source(SpliceOperation sourceOperation) {
-				this.sourceOperation = sourceOperation;
+		public IndexRowReaderBuilder source(Iterable source) {
+				this.source = source;
 				return this;
 		}
 
@@ -131,42 +118,20 @@ public class IndexRowReaderBuilder {
 				return this;
 		}
 
-		public IndexRowReaderBuilder metricFactory(MetricFactory metricFactory) {
-				this.metricFactory = metricFactory;
-				return this;
-		}
-
-		public IndexRowReaderBuilder runtimeContext(SpliceRuntimeContext runtimeContext) {
-				this.runtimeContext = runtimeContext;
-				return this;
-		}
-
-		public IndexRowReaderBuilder table(HTableInterface table) {
-				this.table = table;
-				return this;
-		}
-
 		public IndexRowReader build() throws StandardException{
 				assert txn!=null: "No Transaction specified!";
-				assert runtimeContext!=null: "No Runtime context specified!";
 				assert mainTableRowDecodingMap!=null: "No Row decoding map specified!";
 				assert mainTableConglomId>=0: "No Main table conglomerate id specified!";
 				assert outputTemplate!=null: "No output template specified!";
-				assert sourceOperation!=null: "No source specified";
+				assert source!=null: "No source specified";
 				assert indexCols!=null: "No index columns specified!";
-
-				if(metricFactory==null) {
-                    if (runtimeContext.shouldRecordTraceMetrics()) {
-                        metricFactory = Metrics.atomicTimer();
-                    }
-                    else {
-                        metricFactory = Metrics.noOpMetricFactory();
-                    }
-                }
 				ExecutorService lookupService;
 				if(numConcurrentLookups<0)
 						lookupService = SameThreadExecutorService.instance();
 				else{
+
+                    Thread.dumpStack();
+
 						ThreadFactory factory = new ThreadFactoryBuilder()
 										.setNameFormat("index-lookup-%d").build();
 						lookupService = new ThreadPoolExecutor(numConcurrentLookups,numConcurrentLookups,
@@ -198,18 +163,16 @@ public class IndexRowReaderBuilder {
 				KeyHashDecoder rowDecoder = new EntryDataDecoder(mainTableRowDecodingMap,null,templateSerializers);
 
 				return new IndexRowReader(lookupService,
-								sourceOperation,
+								source,
 								outputTemplate,
 								txn,
 								lookupBatchSize,
 								Math.max(numConcurrentLookups,0),
 								mainTableConglomId,
 								epfBytes,
-								metricFactory,
-								runtimeContext,
 								keyDecoder,
 								rowDecoder,
-								indexCols,table);
+								indexCols);
 		}
 
 }
