@@ -189,4 +189,142 @@ public class SqlProcedureColsIT extends SpliceUnitTest {
 		}
 		Assert.assertEquals("Incorrect rows returned!", 1, count);
 	}
+
+    @Test
+    public void testSYSIBMSQLUDTS() throws Exception {
+        ResultSet rs = null;
+        rs = methodWatcher.executeQuery("CALL SYSIBM.SQLUDTS(null,null,null,null,null)");
+        Assert.assertEquals("Incorrect rows returned!", 0, resultSetSize(rs));
+    }
+
+    @Test
+    public void testSYSIBMSQLTABLES() throws Exception {
+        ResultSet rs = null;
+        rs = methodWatcher.executeQuery("CALL SYSIBM.SQLTABLES(null,null,null,null,null)");
+        Assert.assertNotEquals("Incorrect rows returned!", 0, resultSetSize(rs));
+    }
+
+    @Test
+    public void testSYSIBMSQLTABLEPRIVILEGES() throws Exception {
+        ResultSet rs = null;
+        rs = methodWatcher.executeQuery("CALL SYSIBM.SQLTABLEPRIVILEGES(null,null,null,null)");
+    }
+
+    @Test
+    public void testSYSIBMSQLSTATISTICS() throws Exception {
+        ResultSet rs = null;
+        rs = methodWatcher.executeQuery("CALL SYSIBM.SQLSTATISTICS(null,null,null,0,1,null)");
+    }
+
+    @Test
+    public void testSYSIBMSQLSPECIALCOLUMNS() throws Exception {
+        ResultSet rs = null;
+        rs = methodWatcher.executeQuery("CALL SYSIBM.SQLSPECIALCOLUMNS(1,null,null,'FOO',0,0,null)");
+    }
+
+    @Test
+    public void testSQLPROCEDURES() throws Exception {
+        ResultSet rs = null;
+        rs = methodWatcher.executeQuery("CALL SYSIBM.SQLPROCEDURES(null,null,null,null)");
+    }
+
+    @Test
+    public void testSQLPROCEDURECOLS() throws Exception {
+        ResultSet rs = null;
+        rs = methodWatcher.executeQuery("CALL SYSIBM.SQLPROCEDURECOLS(null,null,null,null,null)");
+    }
+
+    @Test
+    public void testSQLPRIMARYKEYS() throws Exception {
+        ResultSet rs = null;
+        rs = methodWatcher.executeQuery("CALL SYSIBM.SQLPRIMARYKEYS(null,null,'FOO',null)");
+    }
+
+    @Test
+    public void testSQLGETTYPEINFO() throws Exception {
+        ResultSet rs = null;
+        rs = methodWatcher.executeQuery("CALL SYSIBM.SQLGETTYPEINFO(0,null)");
+    }
+
+    @Test
+    public void testSQLFUNCTIONS() throws Exception {
+        ResultSet rs = null;
+        rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFUNCTIONS(null,null,null,null)");
+    }
+
+
+    @Test
+    public void testSQLFUNCTIONPARAMS() throws Exception {
+        ResultSet rs = null;
+        rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFUNCTIONPARAMS(null,null,null,null,null)");
+    }
+    @Test
+    public void testSQLFOREIGNKEYS() throws Exception {
+        ResultSet rs = null;
+        rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFOREIGNKEYS(null,null,'FOO',null,null,'FOO2',null)");
+    }
+
+    @Test
+    public void testSQLCOLUMNS() throws Exception {
+        ResultSet rs = null;
+        rs = methodWatcher.executeQuery("CALL SYSIBM.SQLCOLUMNS(null,null,null,null,null)");
+    }
+
+
+
+    @Test
+    public void testSQLCOLPRIVILEGES() throws Exception {
+        ResultSet rs = null;
+        rs = methodWatcher.executeQuery("CALL SYSIBM.SQLCOLPRIVILEGES(null,null,'FOO',null,null)");
+    }
+    /*
+    @Test
+    public void testSQLCAMESSAGE() throws Exception {
+        ResultSet rs = null;
+        rs = methodWatcher.executeQuery("CALL SYSIBM.SQLCAMESSAGE(1,null,null,'FOO',0,0,null)");
+    }
+*/
+
+    @Test
+    public void testMETADATA() throws Exception {
+        ResultSet rs = null;
+        rs = methodWatcher.executeQuery("CALL SYSIBM.METADATA()");
+    }
+    /*
+    @Test
+    public void testCLOBTRUNCATE() throws Exception {
+        ResultSet rs = null;
+        rs = methodWatcher.executeQuery("CALL SYSIBM.CLOBTRUNCATE(1,null,null,'FOO',0,0,null)");
+    }
+
+    @Test
+    public void testCLOBSETSTRING() throws Exception {
+        ResultSet rs = null;
+        rs = methodWatcher.executeQuery("CALL SYSIBM.CLOBSETSTRING(1,null,null,'FOO',0,0,null)");
+    }
+
+    @Test
+    public void testCLOBRELEASELOCATOR() throws Exception {
+        ResultSet rs = null;
+        rs = methodWatcher.executeQuery("CALL SYSIBM.CLOBRELEASELOCATOR(1,null,null,'FOO',0,0,null)");
+    }
+
+    @Test
+    public void testBLOBTRUNCATE() throws Exception {
+        ResultSet rs = null;
+        rs = methodWatcher.executeQuery("CALL SYSIBM.BLOBTRUNCATE(1,null,null,'FOO',0,0,null)");
+    }
+
+    @Test
+    public void testBLOBSETBYTES() throws Exception {
+        ResultSet rs = null;
+        rs = methodWatcher.executeQuery("CALL SYSIBM.BLOBSETBYTES(1,null,null,'FOO',0,0,null)");
+    }
+
+    @Test
+    public void testBLOBRELEASELOCATOR() throws Exception {
+        ResultSet rs = null;
+        rs = methodWatcher.executeQuery("CALL SYSIBM.BLOBRELEASELOCATOR(1,null,null,'FOO',0,0,null)");
+    }
+*/
 }
