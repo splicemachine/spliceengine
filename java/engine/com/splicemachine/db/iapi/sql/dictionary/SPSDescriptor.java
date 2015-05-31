@@ -522,7 +522,7 @@ public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDes
                 // transaction (commit or abort).
                 TransactionController nestedTC;
                 try {
-                    nestedTC = lcc.getTransactionCompile().startNestedUserTransaction(false, true);
+                    nestedTC = lcc.getTransactionCompile().startIndependentInternalTransaction(false);
 
                     // DERBY-3693: The nested transaction may run into a lock
                     // conflict with its parent transaction, in which case we
@@ -569,7 +569,9 @@ public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDes
                         prepareAndRelease(lcc, null, null);
                         updateSYSSTATEMENTS(lcc, RECOMPILE, null);
                     } else {
-                        throw se;
+
+                        // Swallow Exception: There will be some write/write conflicts that occur
+                        //throw se;
                     }
                 } finally {
                     // no matter what, commit the nested transaction;

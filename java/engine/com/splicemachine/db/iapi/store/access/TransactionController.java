@@ -763,6 +763,8 @@ public interface TransactionController
     boolean flush_log_on_xact_end)
         throws StandardException;
 
+    TransactionController startIndependentInternalTransaction(boolean readOnly) throws StandardException;
+
     /**
      * A superset of properties that "users" can specify.
      * <p>
