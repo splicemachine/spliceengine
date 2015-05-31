@@ -1918,6 +1918,31 @@ public class SpliceTransactionManager implements XATransactionController,
         return (TransactionManager)accessmanager.getTransaction(cm);
     }
 
+    public TransactionController startIndependentInternalTransaction(boolean readOnly) throws StandardException {
+        if (LOG.isTraceEnabled())
+            LOG.trace("startIndependentInternalTransaction ");
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "Before startIndependentInternalTransaction: parentTxn=%s, readOnly=%b", getRawTransaction(), readOnly);
+        // Get the context manager.
+        ContextManager cm = getContextManager();
+        String txnName;
+        Transaction global = accessmanager.getRawStore().startGlobalTransaction(cm,1,new byte[0],new byte[0]);
+        if(!readOnly)
+            ((SpliceTransaction)global).elevate("unknown".getBytes()); //TODO -sf- replace this with an actual name
+
+        SpliceTransactionManager rt = new SpliceTransactionManager(
+                accessmanager, global, this);
+
+        //this actually does some work, so don't remove it
+        @SuppressWarnings("UnusedDeclaration") SpliceTransactionManagerContext rtc = new SpliceTransactionManagerContext(
+                cm, AccessFactoryGlobals.RAMXACT_CHILD_CONTEXT_ID, rt, true /* abortAll */);
+
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "After startNestedUserTransaction: childTxn=%s, nestedTxnStack=\n%s", global, rt.getNestedTransactionStackString());
+
+        return (rt);
+    }
+
     /**
      * Get an nested user transaction.
      * <p>
