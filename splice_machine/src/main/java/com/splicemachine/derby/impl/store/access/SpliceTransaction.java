@@ -183,10 +183,10 @@ public class SpliceTransaction extends BaseSpliceTransaction {
 	    if (LOG.isDebugEnabled())
 	        SpliceLogUtils.debug(LOG, "Before commit: state=%s, savePointStack=\n%s", getTransactionStatusAsString(), getSavePointStackString());
         if (state == IDLE) {
-            if(LOG.isTraceEnabled()) {
-                String message = ((txnStack != null && txnStack.size() > 0 && txnStack.getLast().getSecond() != null) ? txnStack.getLast().getSecond().toString() : "null");
-                SpliceLogUtils.trace(LOG, "The transaction is in idle state and there is nothing to commit, transID=" + message);
-            }
+
+            if(LOG.isTraceEnabled())
+                SpliceLogUtils.trace(LOG, "The transaction is in idle state and there is nothing to commit, transID=" + (txnStack.peekLast() == null? "null":txnStack.getLast().getSecond()));
+
             return null;
         }
         if (state == CLOSED) {
@@ -194,7 +194,7 @@ public class SpliceTransaction extends BaseSpliceTransaction {
         }
 
         if(LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG, "commit, state=" + state + " for transaction " + txnStack.getLast().getSecond());
+            SpliceLogUtils.trace(LOG, "commit, state=" + state + " for transaction " + (txnStack.peekLast() == null? "null":txnStack.getLast().getSecond()));
 
         Pair<String, Txn> userPair = txnStack.peekLast();
         Txn txn = userPair.getSecond();
