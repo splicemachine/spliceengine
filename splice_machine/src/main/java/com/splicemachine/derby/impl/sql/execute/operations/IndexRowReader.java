@@ -87,7 +87,6 @@ public class IndexRowReader implements Iterator<LocatedRow>, Iterable<LocatedRow
 				Closeables.closeQuietly(this.keyDecoder);
 				if(entryDecoder!=null)
             entryDecoder.close();
-        Thread.dumpStack();
         lookupService.shutdownNow();
     }
 

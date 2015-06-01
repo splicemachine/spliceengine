@@ -129,9 +129,6 @@ public class IndexRowReaderBuilder {
 				if(numConcurrentLookups<0)
 						lookupService = SameThreadExecutorService.instance();
 				else{
-
-                    Thread.dumpStack();
-
 						ThreadFactory factory = new ThreadFactoryBuilder()
 										.setNameFormat("index-lookup-%d").build();
 						lookupService = new ThreadPoolExecutor(numConcurrentLookups,numConcurrentLookups,
