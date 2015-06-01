@@ -308,7 +308,7 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
                     .lookupBatchSize(SpliceConstants.indexBatchSize);
         }
         OperationContext context = dsp.createOperationContext(this);
-       return source.getDataSet().
+       return source.getDataSet(dsp).
                mapPartitions(new IndexToBaseRowFlatMapFunction(context,readerBuilder))
                 .filter(new IndexToBaseRowFilterPredicateFunction(context));
     }
