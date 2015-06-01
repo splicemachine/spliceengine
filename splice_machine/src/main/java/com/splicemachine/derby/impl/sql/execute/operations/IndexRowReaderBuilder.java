@@ -4,26 +4,34 @@ import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.concurrent.SameThreadExecutorService;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.derby.stream.temporary.WriteReadUtils;
 import com.splicemachine.derby.utils.marshall.EntryDataDecoder;
 import com.splicemachine.derby.utils.marshall.KeyHashDecoder;
 import com.splicemachine.derby.utils.marshall.NoOpKeyHashDecoder;
 import com.splicemachine.derby.utils.marshall.SkippingKeyDecoder;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
+import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.storage.Predicate;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.Iterator;
 import java.util.concurrent.*;
 
 /**
  * @author Scott Fines
  *         Date: 4/11/14
  */
-public class IndexRowReaderBuilder {
-		private Iterable source;
+public class IndexRowReaderBuilder implements Externalizable {
+		private Iterator source;
 		private int lookupBatchSize;
 		private int numConcurrentLookups = -1;
 		private ExecRow  outputTemplate;
@@ -34,6 +42,7 @@ public class IndexRowReaderBuilder {
 		private boolean[] mainTableKeyColumnSortOrder;
 		private int[] mainTableKeyDecodingMap;
 		private FormatableBitSet mainTableAccessedKeyColumns;
+        private int[] execRowTypeFormatIds;
 		/*
 		 * A Map from the physical location of the Index columns in the INDEX scanned row
 		 * and the decoded output row.
@@ -48,12 +57,18 @@ public class IndexRowReaderBuilder {
 				return this;
 		}
 
-		public IndexRowReaderBuilder mainTableVersion(String mainTableVersion){
+    public IndexRowReaderBuilder execRowTypeFormatIds(int[] execRowTypeFormatIds){
+        this.execRowTypeFormatIds = execRowTypeFormatIds;
+        return this;
+    }
+
+
+    public IndexRowReaderBuilder mainTableVersion(String mainTableVersion){
 				this.tableVersion = mainTableVersion;
 				return this;
 		}
 
-		public IndexRowReaderBuilder source(Iterable source) {
+		public IndexRowReaderBuilder source(Iterator source) {
 				this.source = source;
 				return this;
 		}
@@ -172,4 +187,44 @@ public class IndexRowReaderBuilder {
 								indexCols);
 		}
 
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        try {
+            TransactionOperations.getOperationFactory().writeTxn(txn, out);
+            out.writeInt(lookupBatchSize);
+            out.writeInt(numConcurrentLookups);
+            ArrayUtil.writeIntArray(out, WriteReadUtils.getExecRowTypeFormatIds(outputTemplate));
+            out.writeLong(mainTableConglomId);
+            ArrayUtil.writeIntArray(out, mainTableRowDecodingMap);
+            out.writeObject(mainTableAccessedRowColumns);
+            ArrayUtil.writeIntArray(out, mainTableKeyColumnEncodingOrder);
+            ArrayUtil.writeBooleanArray(out, mainTableKeyColumnSortOrder);
+            ArrayUtil.writeIntArray(out, mainTableKeyDecodingMap);
+            out.writeObject(mainTableAccessedKeyColumns);
+            ArrayUtil.writeIntArray(out, indexCols);
+            out.writeUTF(tableVersion);
+            ArrayUtil.writeIntArray(out, mainTableKeyColumnTypes);
+        } catch (StandardException se) {
+            throw new IOException(se);
+        }
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        txn = TransactionOperations.getOperationFactory().readTxn(in);
+        lookupBatchSize = in.readInt();
+        numConcurrentLookups = in.readInt();
+        execRowTypeFormatIds = ArrayUtil.readIntArray(in);
+        outputTemplate = WriteReadUtils.getExecRowFromTypeFormatIds(execRowTypeFormatIds);
+        mainTableConglomId = in.readLong();
+        mainTableRowDecodingMap = ArrayUtil.readIntArray(in);
+        mainTableAccessedRowColumns = (FormatableBitSet) in.readObject();
+        mainTableKeyColumnEncodingOrder = ArrayUtil.readIntArray(in);
+        mainTableKeyColumnSortOrder = ArrayUtil.readBooleanArray(in);
+        mainTableKeyDecodingMap = ArrayUtil.readIntArray(in);
+        mainTableAccessedKeyColumns = (FormatableBitSet) in.readObject();
+        indexCols = ArrayUtil.readIntArray(in);
+        tableVersion = in.readUTF();
+        mainTableKeyColumnTypes = ArrayUtil.readIntArray(in);
+    }
 }

@@ -37,9 +37,7 @@ import java.util.concurrent.Future;
  */
 public class IndexRowReader implements Iterator<LocatedRow>, Iterable<LocatedRow> {
     protected static Logger LOG = Logger.getLogger(IndexRowReader.class);
-
     private final ExecutorService lookupService;
-    private final Iterable<LocatedRow> sourceIterable;
     private final int batchSize;
 	private final int numBlocks;
     private final ExecRow outputTemplate;
@@ -57,7 +55,7 @@ public class IndexRowReader implements Iterator<LocatedRow>, Iterable<LocatedRow
     protected Iterator<LocatedRow> sourceIterator;
 
 	IndexRowReader(ExecutorService lookupService,
-									 Iterable<LocatedRow> sourceIterable,
+									 Iterator<LocatedRow> sourceIterator,
 									 ExecRow outputTemplate,
 									 TxnView txn,
 									 int lookupBatchSize,
@@ -68,8 +66,7 @@ public class IndexRowReader implements Iterator<LocatedRow>, Iterable<LocatedRow
 									 KeyHashDecoder rowDecoder,
 									 int[] indexCols) {
 				this.lookupService = lookupService;
-				this.sourceIterable = sourceIterable;
-                this.sourceIterator = sourceIterable.iterator();
+				this.sourceIterator = sourceIterator;
 				this.outputTemplate = outputTemplate;
                 this.txn = txn;
 				batchSize = lookupBatchSize;
