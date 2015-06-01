@@ -208,11 +208,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
     @Override
     public void close() throws StandardException {
-        System.out.println(String.format(this.getName() + " -> closing with isOpen=%s, and closeables=%s",isOpen,closeables));
         try {
-            if (!isOpen)
-                return;
-
             if (LOG_CLOSE.isTraceEnabled())
                 LOG_CLOSE.trace(String.format("closing operation %s", this));
             if (closeables != null) {
@@ -221,9 +217,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
                 }
                 closeables = null;
             }
-
             clearCurrentRow();
-
             for (SpliceOperation op : getSubOperations())
                 op.close();
 
