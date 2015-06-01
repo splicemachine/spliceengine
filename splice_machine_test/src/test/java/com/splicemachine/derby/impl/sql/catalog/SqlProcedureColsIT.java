@@ -258,11 +258,11 @@ public class SqlProcedureColsIT extends SpliceUnitTest {
         ResultSet rs = null;
         rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFUNCTIONPARAMS(null,null,null,null,null)");
     }
-    @Test
-    public void testSQLFOREIGNKEYS() throws Exception {
-        ResultSet rs = null;
-        rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFOREIGNKEYS(null,null,'FOO',null,null,'FOO2',null)");
-    }
+//    @Test
+//    public void testSQLFOREIGNKEYS() throws Exception {
+//        ResultSet rs = null;
+//        rs = methodWatcher.executeQuery("CALL SYSIBM.SQLFOREIGNKEYS(null,null,'FOO',null,null,'FOO2',null)");
+//    }
 
     @Test
     public void testSQLCOLUMNS() throws Exception {
