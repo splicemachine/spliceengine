@@ -69,8 +69,12 @@ public class ConfiguredStream extends SingleStream {
 				}
 			} catch (IOException ioe) {
 				archived = false;
-				LOG.error(String.format("Exception trying to archive log file %s. We will proceed without archiving it.",
+				LOG.error(String.format("IOException trying to archive log file %s. We will proceed without archiving it.",
 					logFileName), ioe);
+			} catch (SecurityException se) {
+				archived = false;
+				LOG.error(String.format("SecurityException trying to archive log file %s. We will proceed without archiving it.",
+					logFileName), se);
 			}
 		}
 		return archived;
