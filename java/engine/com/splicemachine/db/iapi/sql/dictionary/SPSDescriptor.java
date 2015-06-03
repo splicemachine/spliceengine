@@ -522,7 +522,7 @@ public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDes
                 // transaction (commit or abort).
                 TransactionController nestedTC;
                 try {
-                    nestedTC = lcc.getTransactionCompile().startIndependentInternalTransaction(false);
+                    nestedTC = lcc.getTransactionCompile().startNestedUserTransaction(false, true);
 
                     // DERBY-3693: The nested transaction may run into a lock
                     // conflict with its parent transaction, in which case we
@@ -569,9 +569,16 @@ public class SPSDescriptor extends TupleDescriptor implements UniqueSQLObjectDes
                         prepareAndRelease(lcc, null, null);
                         updateSYSSTATEMENTS(lcc, RECOMPILE, null);
                     } else {
-
-                        // Swallow Exception: There will be some write/write conflicts that occur
-                        //throw se;
+                        // An example of a StandardException that can occur here is an exception indicating that
+                        // the statement cannot be compiled because it is no longer valid.  Trigger actions that
+                        // reference a column that now has a different incompatible type, for example. StandardException
+                        // like this we should just throw.  WriteWrite conflicts (SE014) we ignore.  Ignoring WriteWrite
+                        // here was added as part of DB-3386.  This is probably the behavoir we want sometimes
+                        // (another transaction compiled the SPS, ok) but it is not clear that this will work for all
+                        // cases. Probably some more work to do here.
+                        if(!"SE014".equalsIgnoreCase(se.getSQLState())) {
+                            throw se;
+                        }
                     }
                 } finally {
                     // no matter what, commit the nested transaction;
