@@ -2706,9 +2706,7 @@ public class EmbedDatabaseMetaData extends ConnectionChild
 		boolean notInSoftUpgradeMode;
         LanguageConnectionContext lcc = getLanguageConnectionContext();
 		try {
-			notInSoftUpgradeMode =
-               lcc.getDataDictionary().checkVersion(
-						DataDictionary.DD_VERSION_CURRENT,null);
+			notInSoftUpgradeMode = lcc.getDataDictionary().checkVersion(DataDictionary.DD_VERSION_CURRENT,null);
             InterruptStatus.restoreIntrFlagIfSeen();
 		} catch (Throwable t) {
 			throw handleException(t);
@@ -3112,19 +3110,10 @@ public class EmbedDatabaseMetaData extends ConnectionChild
      * @return a result set with SQL type description
      */
     private ResultSet getTypeInfoMinion(String queryName) throws SQLException {
-        try {
-            // DERBY-4946: BOOLEAN data type was introduced in 10.7
-            boolean booleanSupported =
-                    getLanguageConnectionContext().getDataDictionary().
-                    checkVersion(DataDictionary.DD_VERSION_DERBY_10_7, null);
-
+             // DERBY-4946: BOOLEAN data type was introduced in 10.7
             PreparedStatement ps = getPreparedQuery(queryName);
-            ps.setBoolean(1, booleanSupported);
+            ps.setBoolean(1, true);
             return ps.executeQuery();
-
-        } catch (StandardException se) {
-            throw handleException(se);
-        }
     }
 
     /**
@@ -4054,18 +4043,6 @@ public class EmbedDatabaseMetaData extends ConnectionChild
 		throws StandardException
 	{
 		DataDictionary dd = getLanguageConnectionContext().getDataDictionary();
-
-		// If dictionary version is below 10.2, special case
-		// getColumnPrivileges and getTablePrivileges since new system tables
-		// for privileges wouldn't be present.
-		if (!dd.checkVersion(DataDictionary.DD_VERSION_DERBY_10_2, null))
-		{
-			if (queryName.equals("getColumnPrivileges"))
-				queryName = "getColumnPrivileges_10_1";
-
-			if (queryName.equals("getTablePrivileges"))
-				queryName = "getTablePrivileges_10_1";
-		}
 
 		return getQueryDescriptions(net).getProperty(queryName);
 	}

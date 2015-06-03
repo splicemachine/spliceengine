@@ -1097,7 +1097,7 @@ public final class UpdateNode extends DMLModStatementNode
 				continue;
 			}
 
-			int[] refColumns = ((CheckConstraintDescriptor)cd).getReferencedColumns();
+			int[] refColumns = cd.getReferencedColumns();
 			for (int i = 0; i < refColumns.length; i++)
 			{
 				columnMap.set(refColumns[i]);
@@ -1141,11 +1141,9 @@ public final class UpdateNode extends DMLModStatementNode
 			// upgrade mode for a 10.8 or prior database so that we can
 			// go back to the older release if that's what the user chooses
 			// after the soft-upgrade.
-			boolean in10_9_orHigherVersion = dd.checkVersion(DataDictionary.DD_VERSION_DERBY_10_9,null);
-            for (Iterator descIter = relevantTriggers.iterator();
-                    descIter.hasNext(); ) {
+            for (Iterator descIter = relevantTriggers.iterator(); descIter.hasNext(); ) {
                 TriggerDescriptor trd = (TriggerDescriptor) descIter.next();
-				if (in10_9_orHigherVersion) {
+
 					// See if we can avoid reading all the columns from the
 					// trigger table.
 	                int[] referencedColsInTriggerAction = trd.getReferencedColsInTriggerAction();
@@ -1199,18 +1197,7 @@ public final class UpdateNode extends DMLModStatementNode
 	                                }
 	                        }
 	                }			
-	            } else {
-	            	//We are in soft upgrade mode working with 10.8 or lower 
-	            	// database.
-	                //Does this trigger have REFERENCING clause defined on it
-	                if (!trd.getReferencingNew() && !trd.getReferencingOld())
-	                        continue;
-	                else
-	                {
-	                        needToIncludeAllColumns = true;
-	                        break;
-	                }
-	            }
+
         }
 
         if (needToIncludeAllColumns) {

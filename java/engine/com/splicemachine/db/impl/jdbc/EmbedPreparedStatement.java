@@ -863,20 +863,16 @@ public abstract class EmbedPreparedStatement extends EmbedStatement implements E
     }
 
     /**
-     * Determines which header format to use for CLOBs when writing them to
-     * the store.
+     * Determines which header format to use for CLOBs when writing them to the store.
      *
      * @return {@code true} if the pre Derby 10.5 header format is to be used,
      *      {@code false} if the new header format can be used (10.5 or newer)
-     * @throws StandardException if obtaining the access mode fails
      */
-    private Boolean usePreTenFiveHdrFormat()
-            throws StandardException {
+    private Boolean usePreTenFiveHdrFormat() {
         // Determine the version of the database we are accessing.
         // This is required to write the correct stream header format for Clobs.
         if (usePreTenFiveHdrFormat == null) {
-            usePreTenFiveHdrFormat = !lcc.getDataDictionary().checkVersion(
-                    DataDictionary.DD_VERSION_DERBY_10_5, null);
+            usePreTenFiveHdrFormat = false;
         }
         return usePreTenFiveHdrFormat;
     }

@@ -633,9 +633,6 @@ public class DataDictionaryImpl extends BaseDataDictionary{
                     }
                 }else{
                     if(Boolean.valueOf(sqlAuth) || nativeAuthenticationEnabled){
-                        // SQL authorization requires 10.2 or higher database
-                        checkVersion(DataDictionary.DD_VERSION_DERBY_10_2,
-                                "sqlAuthorization");
                         usesSqlAuthorization=true;
                     }
                 }
@@ -1119,11 +1116,11 @@ public class DataDictionaryImpl extends BaseDataDictionary{
         // we don't want to store a hash using the new scheme if the database
         // is running in soft upgrade and may be used with an older version
         // later.
-        boolean supportConfigurableHash=checkVersion(DataDictionary.DD_VERSION_DERBY_10_6,null);
+        boolean supportConfigurableHash=true;
 
         // Support for key stretching was added in Derby 10.9, so don't use it
         // if the database may still be used with an older version.
-        boolean supportKeyStretching=checkVersion(DataDictionary.DD_VERSION_DERBY_10_9,null);
+        boolean supportKeyStretching=true;
 
         if(!supportConfigurableHash){
             return null;
@@ -3974,12 +3971,6 @@ public class DataDictionaryImpl extends BaseDataDictionary{
             TableDescriptor triggerTableDescriptor,
             TriggerEventDML triggerEventMask,
             boolean createTriggerTime) throws StandardException{
-        // If we are dealing with database created in 10.8 and prior,
-        // then we must be in soft upgrade mode. For such databases,
-        // we want to generate trigger action sql which assumes that
-        // all columns are getting read from the trigger table. We
-        // need to do this to maintain backward compatibility. 
-        boolean in10_9_orHigherVersion=checkVersion(DataDictionary.DD_VERSION_DERBY_10_9,null);
 
         StringBuilder newText=new StringBuilder();
         int start=0;
@@ -4155,12 +4146,12 @@ public class DataDictionaryImpl extends BaseDataDictionary{
                     throw StandardException.newException(SQLState.LANG_COLUMN_NOT_FOUND,tableName+"."+colName);
                 }
 
-                if(in10_9_orHigherVersion){
-                    int triggerColDescPosition=triggerColDesc.getPosition();
-                    triggerColsAndTriggerActionCols[triggerColDescPosition-1]=triggerColDescPosition;
-                    triggerActionColsOnly[triggerColDescPosition-1]=triggerColDescPosition;
-                    referencedColsInTriggerAction[triggerColDescPosition-1]=triggerColDescPosition;
-                }
+
+                int triggerColDescPosition=triggerColDesc.getPosition();
+                triggerColsAndTriggerActionCols[triggerColDescPosition-1]=triggerColDescPosition;
+                triggerActionColsOnly[triggerColDescPosition-1]=triggerColDescPosition;
+                referencedColsInTriggerAction[triggerColDescPosition-1]=triggerColDescPosition;
+
             }
         }else{
             //We are here because we have come across an invalidated trigger 
@@ -4292,7 +4283,7 @@ public class DataDictionaryImpl extends BaseDataDictionary{
             //column position in table1 is 4 but in the relative columns
             //that will be fetched during trigger execution, it's position
             //is 2. That is what the following code is doing.
-            if(in10_9_orHigherVersion && triggerColsAndTriggerActionCols!=null){
+            if(triggerColsAndTriggerActionCols!=null){
                 for(int j=0;j<triggerColsAndTriggerActionCols.length;j++){
                     if(triggerColsAndTriggerActionCols[j]==colPositionInTriggerTable)
                         colPositionInRuntimeResultSet=j+1;

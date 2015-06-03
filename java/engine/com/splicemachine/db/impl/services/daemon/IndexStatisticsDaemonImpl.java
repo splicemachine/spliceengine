@@ -243,16 +243,7 @@ public class IndexStatisticsDaemonImpl
 
     /** Tells if the database is 10.9 or newer. */
     private boolean dbAtLeast10_9(Database db) {
-        try {
-            return db.getDataDictionary().checkVersion(
-                DataDictionary.DD_VERSION_DERBY_10_9, null);
-        } catch (StandardException se) {
-            if (SanityManager.DEBUG) {
-                SanityManager.THROWASSERT("dd version check failed", se);
-            }
-            // Not expected to happen, but if it does err on the safe-side.
-            return false;
-        }
+       return true;
     }
 
     /**

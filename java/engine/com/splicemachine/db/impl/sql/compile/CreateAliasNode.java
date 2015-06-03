@@ -221,18 +221,6 @@ public class CreateAliasNode extends DDLStatementNode{
                 Object[] parameters=(Object[])routineElements[PARAMETER_ARRAY];
                 int paramCount=((Vector)parameters[0]).size();
 
-                // Support for Java signatures in Derby was added in 10.1
-                // Check to see the catalogs have been upgraded to 10.1 before
-                // accepting such a method name for a routine. Otherwise
-                // a routine that works in 10.1 soft upgrade mode would
-                // exist when running 10.0 but not resolve to anything.
-                if(this.methodName.indexOf('(')!=-1){
-                    getDataDictionary().checkVersion(
-                            DataDictionary.DD_VERSION_DERBY_10_1,
-                            "EXTERNAL NAME 'class.method(<signature>)'");
-
-                }
-
                 String[] names=null;
                 TypeDescriptor[] types=null;
                 int[] modes=null;
@@ -251,7 +239,7 @@ public class CreateAliasNode extends DDLStatementNode{
 
                     modes=new int[paramCount];
                     for(int i=0;i<paramCount;i++){
-                        int currentMode=((Integer)(((Vector)parameters[2]).get(i))).intValue();
+                        int currentMode= (Integer) (((Vector) parameters[2]).get(i));
                         modes[i]=currentMode;
 
                         //

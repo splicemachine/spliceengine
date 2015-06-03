@@ -373,20 +373,18 @@ public class JarUtil
             final long currentGenerationId)
             throws StandardException {
         try {
-            return ((Long) AccessController
+            return (Long) AccessController
                     .doPrivileged(new java.security.PrivilegedExceptionAction() {
-
+                        @Override
                         public Object run() throws StandardException {
                             long generationId;
-                            
                             if (add)
                                 generationId = fr.add(jarExternalName, contents);
                             else
-                                generationId =  fr.replace(jarExternalName,
-                                        currentGenerationId, contents);
-                            return new Long(generationId);
+                                generationId = fr.replace(jarExternalName, currentGenerationId, contents);
+                            return generationId;
                         }
-                    })).longValue();
+                    });
         } catch (PrivilegedActionException e) {
             throw (StandardException) e.getException();
         }
@@ -411,27 +409,12 @@ public class JarUtil
             String sqlName,
             char separatorChar,
             boolean upgrading,
-            boolean newStyle) throws StandardException
-    {
-        StringBuffer sb = new StringBuffer(30);
+            boolean newStyle) throws StandardException {
+        StringBuilder sb = new StringBuilder(30);
         sb.append(FileResource.JAR_DIRECTORY_NAME);
         sb.append(separatorChar);
 
-        boolean uuidSupported = false;
-
-        if (!upgrading) {
-            LanguageConnectionContext lcc =
-                (LanguageConnectionContext)ContextService.getContextOrNull(
-                    LanguageConnectionContext.CONTEXT_ID);
-
-            // DERBY-5357 UUIDs introduced in jar file names in 10.9
-            uuidSupported =
-                lcc.getDataDictionary().
-                checkVersion(DataDictionary.DD_VERSION_DERBY_10_9, null);
-        }
-
-
-        if (!upgrading && uuidSupported || upgrading && newStyle) {
+        if (!upgrading || newStyle) {
             sb.append(id.toString());
             sb.append(".jar");
         } else {
