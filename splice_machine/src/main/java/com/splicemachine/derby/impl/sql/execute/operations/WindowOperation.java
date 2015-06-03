@@ -107,8 +107,6 @@ public class WindowOperation extends SpliceBaseOperation {
         source = (SpliceOperation) in.readObject();
         isInSortedOrder = in.readBoolean();
         windowContext = (DerbyWindowContext)in.readObject();
-        extraUniqueSequenceID = new byte[in.readInt()];
-        in.readFully(extraUniqueSequenceID);
     }
 
     @Override
@@ -117,8 +115,6 @@ public class WindowOperation extends SpliceBaseOperation {
         out.writeObject(source);
         out.writeBoolean(isInSortedOrder);
         out.writeObject(windowContext);
-        out.writeInt(extraUniqueSequenceID.length);
-        out.write(extraUniqueSequenceID);
     }
 
     @Override
