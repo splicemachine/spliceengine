@@ -21,6 +21,7 @@ import javax.management.ObjectName;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import com.splicemachine.concurrent.CountDownLatches;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import org.jboss.netty.bootstrap.ClientBootstrap;
 import org.jboss.netty.buffer.ChannelBuffer;
@@ -122,7 +123,7 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampRe
         try {
             registerJMX();
         } catch (Exception e) {
-            TimestampUtil.doServerError(LOG, "Unable to register TimestampClient with JMX. Timestamps will still be generated but metrics will not be available.");
+            SpliceLogUtils.error(LOG, "Unable to register TimestampClient with JMX. Timestamps will still be generated but metrics will not be available.");
         }
     }
 
@@ -148,7 +149,7 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampRe
         try {
             hostName = SpliceUtilities.getMasterServer().getHostname();
         } catch (Exception e) {
-            TimestampUtil.doClientErrorThrow(LOG, "Unable to determine host name for active hbase master", e);
+            doClientErrorThrow(LOG, "Unable to determine host name for active hbase master", e);
         }
         return hostName;
     }
@@ -174,7 +175,7 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampRe
             }
 
             if (LOG.isInfoEnabled()) {
-                TimestampUtil.doClientInfo(LOG, "Attempting to connect to server (host %s, port %s)", getHost(), getPort());
+                SpliceLogUtils.info(LOG, "Attempting to connect to server (host %s, port %s)", getHost(), getPort());
             }
 
             ChannelFuture futureConnect = bootstrap.connect(new InetSocketAddress(getHost(), getPort()));
@@ -186,7 +187,7 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampRe
                                                   latchConnect.countDown();
                                               } else {
                                                   latchConnect.countDown();
-                                                  TimestampUtil.doClientErrorThrow(LOG, "TimestampClient unable to connect to TimestampServer", cf.getCause());
+                                                  doClientErrorThrow(LOG, "TimestampClient unable to connect to TimestampServer", cf.getCause());
                                               }
                                           }
                                       }
@@ -212,34 +213,34 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampRe
 
         short clientCallId = (short) clientCallCounter.getAndIncrement();
         final ClientCallback callback = new ClientCallback(clientCallId);
-        TimestampUtil.doClientDebug(LOG, "Starting new client call with id %s", clientCallId);
+        SpliceLogUtils.debug(LOG, "Starting new client call with id %s", clientCallId);
 
         // Add this caller (id and callback) to the map of current clients.
         // If an entry was already present for this caller id, that is a bug,
         // so throw an exception.
         if (clientCallbacks.putIfAbsent(clientCallId, callback) != null) {
-            TimestampUtil.doClientErrorThrow(LOG, "Found existing client callback with caller id %s, so unable to handle new call.", null, clientCallId);
+            doClientErrorThrow(LOG, "Found existing client callback with caller id %s, so unable to handle new call.", null, clientCallId);
         }
 
         try {
             ChannelBuffer buffer = ChannelBuffers.buffer(2);
             buffer.writeShort(clientCallId);
-            TimestampUtil.doClientTrace(LOG, "Writing request message to server for client: %s", callback);
+            SpliceLogUtils.trace(LOG, "Writing request message to server for client: %s", callback);
             ChannelFuture futureWrite = channel.write(buffer);
             futureWrite.addListener(new ChannelFutureListener() {
                 @Override
                 public void operationComplete(ChannelFuture future) throws Exception {
                     if (!future.isSuccess()) {
-                        TimestampUtil.doClientErrorThrow(LOG, "Error writing message from timestamp client to server", future.getCause());
+                        doClientErrorThrow(LOG, "Error writing message from timestamp client to server", future.getCause());
                     } else {
-                        TimestampUtil.doClientTrace(LOG, "Request sent. Waiting for response for client: %s", callback);
+                        SpliceLogUtils.trace(LOG, "Request sent. Waiting for response for client: %s", callback);
                     }
                 }
             });
         } catch (Exception e) { // Correct to catch all Exceptions in this case so we can remove client call
             clientCallbacks.remove(clientCallId);
             callback.error(e);
-            TimestampUtil.doClientErrorThrow(LOG, "Exception writing message to timestamp server for client: %s", e, callback);
+            doClientErrorThrow(LOG, "Exception writing message to timestamp server for client: %s", e, callback);
         }
 
         // If we get here, request was successfully sent without exception.
@@ -250,10 +251,10 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampRe
             int timeoutMillis = SpliceConstants.timestampClientWaitTime;
             boolean success = callback.await(timeoutMillis);
             if (!success) {
-                TimestampUtil.doClientErrorThrow(LOG, "Client timed out after %s ms waiting for new timestamp: %s", null, timeoutMillis, callback);
+                doClientErrorThrow(LOG, "Client timed out after %s ms waiting for new timestamp: %s", null, timeoutMillis, callback);
             }
         } catch (InterruptedException e) {
-            TimestampUtil.doClientErrorThrow(LOG, "Interrupted waiting for timestamp client: %s", e, callback);
+            doClientErrorThrow(LOG, "Interrupted waiting for timestamp client: %s", e, callback);
         }
 
         // If we get here, it should mean the client received the response with the timestamp,
@@ -261,10 +262,10 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampRe
 
         long timestamp = callback.getNewTimestamp();
         if (timestamp < 0) {
-            TimestampUtil.doClientErrorThrow(LOG, "Invalid timestamp found for client: %s", null, callback);
+            doClientErrorThrow(LOG, "Invalid timestamp found for client: %s", null, callback);
         }
 
-        TimestampUtil.doClientDebug(LOG, "Client call complete: %s", callback);
+        SpliceLogUtils.debug(LOG, "Client call complete: %s", callback);
 
         // Since request was successful, update JMX metrics
         numRequests.incrementAndGet();
@@ -286,10 +287,10 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampRe
         assert (timestamp > 0);
         ensureReadableBytes(buf, 0);
 
-        TimestampUtil.doClientDebug(LOG, "Response from server: clientCallerId = %s, timestamp = %s", clientCallerId, timestamp);
+        SpliceLogUtils.debug(LOG, "Response from server: clientCallerId = %s, timestamp = %s", clientCallerId, timestamp);
         ClientCallback cb = clientCallbacks.remove(clientCallerId);
         if (cb == null) {
-            TimestampUtil.doClientErrorThrow(LOG, "Client callback with id %s not found, so unable to deliver timestamp %s", null, clientCallerId, timestamp);
+            doClientErrorThrow(LOG, "Client callback with id %s not found, so unable to deliver timestamp %s", null, clientCallerId, timestamp);
         }
 
         // This releases the latch the original client thread is waiting for
@@ -302,7 +303,7 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampRe
 
     @Override
     public void channelConnected(ChannelHandlerContext ctx, ChannelStateEvent e) throws Exception {
-        TimestampUtil.doClientInfo(LOG, "Successfully connected to server");
+        SpliceLogUtils.info(LOG, "Successfully connected to server");
         synchronized (state) {
             channel = e.getChannel();
             state.set(State.CONNECTED);
@@ -324,23 +325,23 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampRe
 
     @Override
     protected void doTrace(String message, Object... args) {
-        TimestampUtil.doClientTrace(LOG, message, args);
+        SpliceLogUtils.trace(LOG, message, args);
     }
 
     @Override
     protected void doDebug(String message, Object... args) {
-        TimestampUtil.doClientDebug(LOG, message, args);
+        SpliceLogUtils.debug(LOG, message, args);
     }
 
     @Override
     protected void doError(String message, Throwable t, Object... args) {
-        TimestampUtil.doClientError(LOG, message, t, args);
+        SpliceLogUtils.error(LOG, message, t, args);
     }
 
     private void registerJMX() throws MalformedObjectNameException, NotCompliantMBeanException, InstanceAlreadyExistsException, MBeanRegistrationException {
         MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
         registerJMX(mbs);
-        TimestampUtil.doServerInfo(LOG, "TimestampClient on region server successfully registered with JMX");
+        SpliceLogUtils.info(LOG, "TimestampClient on region server successfully registered with JMX");
     }
 
     private void registerJMX(MBeanServer mbs) throws MalformedObjectNameException, NotCompliantMBeanException, InstanceAlreadyExistsException, MBeanRegistrationException {
@@ -365,5 +366,11 @@ public class TimestampClient extends TimestampBaseHandler implements TimestampRe
         if(state.get() != State.SHUTDOWN) {
             LOG.error("exceptionCaught", e.getCause());
         }
+    }
+
+    private static void doClientErrorThrow(Logger logger, String message, Throwable t, Object... args) throws TimestampIOException {
+        if (message == null) message = "";
+        TimestampIOException t1 = t != null ? new TimestampIOException(message, t) : new TimestampIOException(message);
+        SpliceLogUtils.logAndThrow(logger, String.format(message, args), t1);
     }
 }
