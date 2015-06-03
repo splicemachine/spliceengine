@@ -1,5 +1,6 @@
 package com.splicemachine.si.impl.timestamp;
 
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
 import org.jboss.netty.buffer.ChannelBuffer;
@@ -24,7 +25,7 @@ public class TimestampServerHandler extends TimestampBaseHandler {
     }
 
     public void initializeIfNeeded() throws TimestampIOException {
-        TimestampUtil.doServerTrace(LOG, "Checking whether initialization is needed");
+        SpliceLogUtils.trace(LOG, "Checking whether initialization is needed");
         synchronized (this) {
             if (oracle == null) {
                 oracle = TimestampOracle.getInstance(rzk, SpliceConstants.zkSpliceMaxReservedTimestampPath);
@@ -44,7 +45,7 @@ public class TimestampServerHandler extends TimestampBaseHandler {
         final short callerId = buf.readShort();
         ensureReadableBytes(buf, 0);
 
-        TimestampUtil.doServerTrace(LOG, "Received timestamp request from client. Caller id = %s", callerId);
+        SpliceLogUtils.trace(LOG, "Received timestamp request from client. Caller id = %s", callerId);
         long nextTimestamp = oracle.getNextTimestamp();
         assert nextTimestamp > 0;
 
@@ -56,7 +57,7 @@ public class TimestampServerHandler extends TimestampBaseHandler {
         ChannelBuffer writeBuf = ChannelBuffers.buffer(TimestampServer.FIXED_MSG_SENT_LENGTH);
         writeBuf.writeShort(callerId);
         writeBuf.writeLong(nextTimestamp);
-        TimestampUtil.doServerDebug(LOG, "Responding to caller %s with timestamp %s", callerId, nextTimestamp);
+        SpliceLogUtils.debug(LOG, "Responding to caller %s with timestamp %s", callerId, nextTimestamp);
         ChannelFuture futureResponse = e.getChannel().write(writeBuf); // Could also use Channels.write
         futureResponse.addListener(new ChannelFutureListener() {
                                        @Override
@@ -73,15 +74,15 @@ public class TimestampServerHandler extends TimestampBaseHandler {
     }
 
     protected void doTrace(String message, Object... args) {
-        TimestampUtil.doServerTrace(LOG, message, args);
+        SpliceLogUtils.trace(LOG, message, args);
     }
 
     protected void doDebug(String message, Object... args) {
-        TimestampUtil.doServerDebug(LOG, message, args);
+        SpliceLogUtils.debug(LOG, message, args);
     }
 
     protected void doError(String message, Throwable t, Object... args) {
-        TimestampUtil.doServerError(LOG, message, t, args);
+        SpliceLogUtils.error(LOG, message, t, args);
     }
 
 }

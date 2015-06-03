@@ -1,5 +1,6 @@
 package com.splicemachine.si.impl.timestamp;
 
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
@@ -47,7 +48,7 @@ public class TimestampOracle implements TimestampMasterManagement {
 	    throws TimestampIOException {
 		synchronized(TimestampOracle.class) {
 			if (_instance == null) {
-				TimestampUtil.doServerInfo(LOG, "Initializing TimestampOracle...");
+                SpliceLogUtils.info(LOG, "Initializing TimestampOracle...");
 				_instance = new TimestampOracle(rzk, blockNode);
 			}
 			return _instance;
@@ -67,7 +68,7 @@ public class TimestampOracle implements TimestampMasterManagement {
 			synchronized(this) {
 				byte[] data = _zooKeeper.getData(_blockNode, false, new Stat());
 				long maxReservedTs = Bytes.toLong(data);
-				TimestampUtil.doServerInfo(LOG, "Initializing: existing max reserved timestamp = %s", maxReservedTs);
+                SpliceLogUtils.info(LOG, "Initializing: existing max reserved timestamp = %s", maxReservedTs);
 				
 				// If no previous maximum reserved timestamp found, then assume this is first time
 				// new implementation (TimestampOracle) is being used. Fetch previous maximum
@@ -86,7 +87,7 @@ public class TimestampOracle implements TimestampMasterManagement {
 		            /* byte[] dataCounter = */ _zooKeeper.getData(counterTransactionPath, false, statCounter);
 		            int version = statCounter.getVersion();
 		            maxReservedTs = version | highBits;
-					TimestampUtil.doServerInfo(LOG, "Initializing: detected last timestamp from prior TimestampSource implementation: %s", maxReservedTs);
+                    SpliceLogUtils.info(LOG, "Initializing: detected last timestamp from prior TimestampSource implementation: %s", maxReservedTs);
 				}
 
 				_maxReservedTimestamp = maxReservedTs;
@@ -95,14 +96,12 @@ public class TimestampOracle implements TimestampMasterManagement {
 			try {
 				registerJMX();
 			} catch (Exception e) {
-		        TimestampUtil.doServerError(LOG, "Unable to register Timestamp Generator with JMX. Service will function but metrics will not be available.");
+                SpliceLogUtils.error(LOG, "Unable to register Timestamp Generator with JMX. Service will function but metrics will not be available.");
 			}
-		} catch (KeeperException e) {
-			throw new TimestampIOException(e);
-		} catch (InterruptedException e) {
+		} catch (KeeperException | InterruptedException e) {
 			throw new TimestampIOException(e);
 		}
-	}
+    }
 
 	public long getNextTimestamp() throws TimestampIOException {
 		long nextTS = _timestampCounter.getAndIncrement();
@@ -123,19 +122,17 @@ public class TimestampOracle implements TimestampMasterManagement {
                 _zooKeeper.setData(_blockNode, data, -1 /* version */); // durably reserve the next block
                 _maxReservedTimestamp = nextMax;
                 _numBlocksReserved.incrementAndGet(); // JMX metric
-                TimestampUtil.doServerDebug(LOG, "Next timestamp block reserved with max = %s", _maxReservedTimestamp);
-            } catch (KeeperException e) {
+                SpliceLogUtils.debug(LOG, "Next timestamp block reserved with max = %s", _maxReservedTimestamp);
+            } catch (KeeperException | InterruptedException e) {
                 throw new TimestampIOException(e);
-            } catch (InterruptedException e) {
-                throw new TimestampIOException(e);
-			}
-		}
+            }
+        }
 	}
 
 	private void registerJMX() throws MalformedObjectNameException, NotCompliantMBeanException, InstanceAlreadyExistsException, MBeanRegistrationException {
         MBeanServer mbs = ManagementFactory.getPlatformMBeanServer();
         registerJMX(mbs);
-        TimestampUtil.doServerInfo(LOG, "Timestamp Generator on master successfully registered with JMX");
+        SpliceLogUtils.info(LOG, "Timestamp Generator on master successfully registered with JMX");
 	}
 
     private void registerJMX(MBeanServer mbs) throws MalformedObjectNameException, NotCompliantMBeanException, InstanceAlreadyExistsException, MBeanRegistrationException {

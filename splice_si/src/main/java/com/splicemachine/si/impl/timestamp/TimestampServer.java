@@ -6,6 +6,7 @@ import java.util.concurrent.Executors;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.splicemachine.concurrent.MoreExecutors;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.zookeeper.RecoverableZooKeeper;
 import org.apache.log4j.Logger;
 import org.jboss.netty.bootstrap.ServerBootstrap;
@@ -41,7 +42,7 @@ public class TimestampServer {
         ExecutorService executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder().setNameFormat("TimestampServer-%d").setDaemon(true).build());
         this.factory = new NioServerSocketChannelFactory(executor, executor);
 
-        TimestampUtil.doServerInfo(LOG, "Timestamp Server starting (binding to port %s)...", port);
+        SpliceLogUtils.info(LOG, "Timestamp Server starting (binding to port %s)...", port);
 
         ServerBootstrap bootstrap = new ServerBootstrap(factory);
 
@@ -70,7 +71,7 @@ public class TimestampServer {
 
         this.channel = bootstrap.bind(new InetSocketAddress(getPortNumber()));
 
-        TimestampUtil.doServerInfo(LOG, "Timestamp Server started.");
+        SpliceLogUtils.info(LOG, "Timestamp Server started.");
     }
 
     protected int getPortNumber() {
