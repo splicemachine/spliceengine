@@ -5,6 +5,7 @@ import org.apache.commons.lang.StringEscapeUtils;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 
+import java.io.Serializable;
 import java.nio.charset.Charset;
 import java.nio.charset.UnsupportedCharsetException;
 
@@ -14,7 +15,7 @@ import static org.apache.commons.lang.StringUtils.isEmpty;
 /**
  * Represents the user provided parameters of a given export.
  */
-public class ExportParams {
+public class ExportParams implements Serializable {
 
     private static final String DEFAULT_ENCODING = Charsets.UTF_8.name();
     private static final short DEFAULT_REPLICATION_COUNT = 1;

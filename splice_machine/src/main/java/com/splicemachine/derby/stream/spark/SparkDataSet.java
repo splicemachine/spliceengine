@@ -10,6 +10,7 @@ import org.apache.spark.SparkContext;
 import org.apache.spark.api.java.JavaRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 
+import java.io.File;
 import java.io.Serializable;
 import java.util.Iterator;
 import java.util.List;
@@ -136,5 +137,10 @@ public class SparkDataSet<V> implements DataSet<V>, Serializable {
     public DataSet<V> take(int take) {
         JavaSparkContext ctx = SpliceSpark.getContext();
         return new SparkDataSet<V>(ctx.parallelize(rdd.take(take)));
+    }
+
+    @Override
+    public void writeToDisk(String path) {
+        rdd.saveAsTextFile(path);
     }
 }

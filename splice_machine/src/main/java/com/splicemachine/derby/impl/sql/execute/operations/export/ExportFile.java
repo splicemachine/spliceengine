@@ -56,6 +56,10 @@ class ExportFile {
         return fileSystem.delete(buildOutputFilePath(), false);
     }
 
+    public boolean deleteDirectory() throws IOException {
+        return fileSystem.delete(new Path(exportParams.getDirectory()), true);
+    }
+
     protected Path buildOutputFilePath() {
         Path directoryPath = new Path(exportParams.getDirectory());
         String exportFile = buildFilenameFromTaskId(taskId);
