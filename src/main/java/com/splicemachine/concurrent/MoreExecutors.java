@@ -8,9 +8,10 @@ import java.util.concurrent.*;
  * Convenient executor factory methods.
  *
  * On daemon property: For the splicemachine main product where we run as part of of HBase we probably want
- * all threads to be daemons so as to not prevent HBase from shutting down.  However we already have some non-daemon
- * threads and it doesn't seem to be affecting HBase shutdown-- perhaps region servers eventually call System.exit(),
- * in which case daemon property of out application threads just doesn't matter.
+ * most thread pools to consist of daemons that do not not prevent HBase region server JVMs from shutting down.
+ * An thread pool that strictly must finish any in progress work before the jvm exists would be an exception to this
+ * rule.  In this later case make the threads non-daemon and make sure ExecutorService.shutdown() is explicitly
+ * invoked as part of the splice shutdown process.
  */
 public class MoreExecutors {
 
