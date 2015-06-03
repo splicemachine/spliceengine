@@ -91,4 +91,6 @@ public interface DataSet<V> {
     DataSet<V> fetchWithOffset(int offset, int fetch);
 
     DataSet<V> take(int take);
+
+    void writeToDisk(String path);
  }

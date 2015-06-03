@@ -2,21 +2,26 @@ package com.splicemachine.derby.impl.sql.execute.operations.export;
 
 
 import com.google.common.base.Strings;
+import com.google.common.collect.Lists;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
+import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
+import org.supercsv.io.CsvListWriter;
+
+import java.io.*;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -58,7 +63,9 @@ public class ExportOperation extends SpliceBaseOperation {
         this.exportParams = new ExportParams(exportPath, compression, replicationCount, encoding, fieldSeparator, quoteCharacter);
         this.activation = activation;
         try {
-            new ExportPermissionCheck(exportParams).verify();
+            ExportPermissionCheck checker = new ExportPermissionCheck(exportParams);
+            checker.verify();
+            checker.cleanup();
             init(SpliceOperationContext.newContext(activation));
         } catch (IOException e) {
             throw Exceptions.parseException(e);
@@ -149,8 +156,38 @@ public class ExportOperation extends SpliceBaseOperation {
 
     @Override
     public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        throw new RuntimeException("not implemented");
+        DataSet<LocatedRow> dataset = source.getDataSet(dsp);
+        OperationContext<ExportOperation> operationContext = dsp.createOperationContext(this);
+        dataset.mapPartitions(new ExportFunction(operationContext)).writeToDisk(exportParams.getDirectory());
+        return dsp.createDataSet(Collections.emptyList());
     }
 
+    private ExportExecRowWriter initializeExecRowWriter(OutputStream outputStream) throws IOException {
+        CsvListWriter writer = new ExportCSVWriterBuilder().build(outputStream, getExportParams());
+        return new ExportExecRowWriter(writer);
+    }
 
+    private static class ExportFunction extends SpliceFlatMapFunction<ExportOperation, Iterator<LocatedRow>, String> {
+        public ExportFunction() {
+        }
+
+        public ExportFunction(OperationContext<ExportOperation> operationContext) {
+            super(operationContext);
+        }
+
+        @Override
+        public Iterable<String> call(Iterator<LocatedRow> locatedRowIterator) throws Exception {
+            ExportOperation op = operationContext.getOperation();
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ExportExecRowWriter rowWriter = op.initializeExecRowWriter(baos);
+            while (locatedRowIterator.hasNext()) {
+                LocatedRow lr = locatedRowIterator.next();
+                rowWriter.writeRow(lr.getRow(), op.getSourceResultColumnDescriptors());
+            }
+            rowWriter.close();
+            List result = new ArrayList(1);
+            result.add(baos.toString(op.getExportParams().getCharacterEncoding()));
+            return result;
+        }
+    }
 }

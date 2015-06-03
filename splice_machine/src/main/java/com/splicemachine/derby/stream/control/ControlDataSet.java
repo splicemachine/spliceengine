@@ -11,6 +11,8 @@ import org.sparkproject.guava.common.collect.Sets;
 import org.sparkproject.guava.common.collect.FluentIterable;
 
 import javax.annotation.Nullable;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -149,5 +151,19 @@ public class ControlDataSet<V> implements DataSet<V> {
     @Override
     public DataSet<V> take(int take) {
         return new ControlDataSet<V>(Iterables.limit(iterable,take));
+    }
+
+    @Override
+    public void writeToDisk(String path) {
+        PrintWriter out = null;
+        try {
+            out = new PrintWriter(path);
+        } catch (FileNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+        for (V value : iterable) {
+            out.write(value.toString());
+        }
+        out.close();
     }
 }
