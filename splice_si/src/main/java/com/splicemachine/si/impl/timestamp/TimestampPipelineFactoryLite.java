@@ -1,5 +1,6 @@
 package com.splicemachine.si.impl.timestamp;
 
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import org.jboss.netty.channel.ChannelHandler;
 import org.jboss.netty.channel.ChannelPipeline;
@@ -23,12 +24,12 @@ public class TimestampPipelineFactoryLite implements ChannelPipelineFactory {
 
     @Override
     public ChannelPipeline getPipeline() throws Exception {
-        TimestampUtil.doServerDebug(LOG, "Creating new channel pipeline...");
+        SpliceLogUtils.debug(LOG, "Creating new channel pipeline...");
         ChannelPipeline pipeline = Channels.pipeline();
         ((TimestampServerHandler) tsHandler).initializeIfNeeded();
         pipeline.addLast("decoder", new FixedLengthFrameDecoder(TimestampServer.FIXED_MSG_RECEIVED_LENGTH));
         pipeline.addLast("handler", tsHandler);
-        TimestampUtil.doServerDebug(LOG, "Done creating channel pipeline");
+        SpliceLogUtils.debug(LOG, "Done creating channel pipeline");
         return pipeline;
     }
     
