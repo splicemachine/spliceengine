@@ -156,7 +156,7 @@ public class CoprocessorTaskScheduler extends SpliceSchedulerService implements 
         if(!HRegionUtil.containsRange(region, taskStart, taskEnd))
             throw new IncorrectRegionException("Incorrect region for Task submission");
         if(!SpliceDriver.driver().isStarted())
-            throw new ServerNotRunningYetException("Cannot submit tasks until Server is fully online. Please retry");
+            throw new NotServingRegionException("Cannot submit tasks until Server is fully online. Please retry");
     }
 
     @SuppressWarnings("unchecked")
