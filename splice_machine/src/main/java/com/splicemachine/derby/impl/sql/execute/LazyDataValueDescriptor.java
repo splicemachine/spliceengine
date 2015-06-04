@@ -697,7 +697,9 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
 
             out.writeInt(bytes.length);
             out.write(bytes);
-						out.writeUTF(tableVersion);
+            out.writeBoolean(tableVersion != null);
+            if (tableVersion!=null)
+		        out.writeUTF(tableVersion);
         }
     }
 
@@ -710,7 +712,8 @@ public abstract class LazyDataValueDescriptor implements DataValueDescriptor {
 						if(bytes==null)
 								bytes = new ByteSlice();
 						bytes.set(data,0,data.length);
-						tableVersion = in.readUTF();
+            if (in.readBoolean())
+                tableVersion = in.readUTF();
 						this.serializer = VersionedSerializers.forVersion(tableVersion,true).getEagerSerializer(typeFormatId);
         }else{
             isNull = true;
