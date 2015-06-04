@@ -8,6 +8,7 @@ import com.splicemachine.si.impl.TransactionalRegions;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
+import org.apache.hadoop.hbase.NotServingRegionException;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.BaseRegionObserver;
@@ -146,7 +147,7 @@ public class SpliceOperationRegionObserver extends BaseRegionObserver {
 
     /******************************************************************************************************************/
     /*private helper methods*/
-    private TransactionalRegion getTxnRegion(HRegion region) throws IOException{
+    private TransactionalRegion getTxnRegion(HRegion region) throws IOException {
         /*
          * Get the transactional region. in 99.999% of cases, the transactional region is set in the
          * SpliceDriver.Service before the server allows connections, and we are up and running. However, it
@@ -157,9 +158,12 @@ public class SpliceOperationRegionObserver extends BaseRegionObserver {
          * (or AsyncHBase) will automatically retry the request, and allow the boot sequence time to complete.
          */
         TransactionalRegion tr = txnRegion; //assign to local variable to avoid double-reading a volatile variable
-        if(tr==null){
-            if(!SpliceDriver.driver().isStarted())
-                throw new ServerNotRunningYetException("Server is not yet online, please retry");
+        if (tr == null) {
+            if (!SpliceDriver.driver().isStarted()) {
+                /* We originally threw ServerNotRunningYetException here but asyc hbase is un-aware of this
+                 * exception and just lets it propagate to the client. */
+                throw new NotServingRegionException("Server is not yet online, please retry");
+            }
             tr = TransactionalRegions.get(region);
             txnRegion = tr;
         }

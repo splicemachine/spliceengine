@@ -283,9 +283,17 @@ public class SpliceDriver {
         return stateHolder.get() == State.RUNNING;
     }
 
+    /**
+     * Call this to execute splice application startup logic on the region/JVM.
+     */
     public void start(RegionServerServices regionServerServices) {
         this.regionServerServices = regionServerServices;
+
+        // Only execute once per JVM, regardless of how many times we are called.
         if (stateHolder.compareAndSet(State.NOT_STARTED, State.INITIALIZING)) {
+
+            // We run this on a background thread because the startup logic will access hbase but hbase can't start
+            // until we return from the enclosing method, as it is called from the start method of a coprocessor.
             lifecycleExecutor.submit(new Callable<Void>() {
                 @Override
                 public Void call() throws Exception {
@@ -383,12 +391,12 @@ public class SpliceDriver {
 
             return false;
         } catch (PleaseHoldException pe) {
-            Thread.sleep(5000);
+            Thread.sleep(1000);
             SpliceLogUtils.info(LOG, "Waiting for splice schema creation.");
             return bootDatabase();
         } catch (Exception e) {
             if (derbyFactory.getExceptionHandler().isPleaseHoldException(e)) {
-                Thread.sleep(5000);
+                Thread.sleep(1000);
                 SpliceLogUtils.info(LOG, "Waiting for splice schema creation");
                 return bootDatabase();
             } else {
