@@ -168,15 +168,17 @@ public class HRegionUtil extends BaseHRegionUtil {
 	      HFileBlockIndex.BlockIndexReader fileReader;
 	      List<byte[]> cutPoints = new ArrayList<byte[]>();
 	      for (StoreFile file: storeFiles) {
+              long storeFileInBytes = file.getFileInfo().getFileStatus().getLen();
 	    	  if (file != null) {
 	    	    	if (LOG.isTraceEnabled())
 	    	    		SpliceLogUtils.trace(LOG, "getCutpoints with file=%s",file.getPath());
 	    		  fileReader = file.createReader().getHFileReader().getDataBlockIndexReader();
 	    		  int size = fileReader.getRootBlockCount();
+                  long incrementalSize = storeFileInBytes/(long) size;
                   int blockCounter = 0;
 	    		  long lastOffset = 0;
 	    		  for (int i =0; i<size;i++) {
-                      blockCounter += fileReader.getRootBlockDataSize(i);
+                      blockCounter += incrementalSize;
                       if (LOG.isTraceEnabled())
                     	  SpliceLogUtils.trace(LOG, "block %d, with blockCounter=%d",i,blockCounter);
 	    			  byte[] possibleCutpoint = KeyValue.createKeyValueFromKey(fileReader.getRootBlockKey(i)).getRow();
