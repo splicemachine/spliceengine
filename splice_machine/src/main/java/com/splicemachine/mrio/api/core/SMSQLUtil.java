@@ -258,9 +258,10 @@ public class SMSQLUtil extends SIConstants {
                 return tmp;
             }
             if(tmp.length == 1){
-                tmp[1] = tmp[0];
-                tmp[0] = null;
-                return tmp;
+                String[] s = new String[2];
+                s[1] = tmp[0];
+                s[0] = null;
+                return s;
             }
             throw new SQLException("Splice table not known, "
                     + "please specify Splice tableName. "
