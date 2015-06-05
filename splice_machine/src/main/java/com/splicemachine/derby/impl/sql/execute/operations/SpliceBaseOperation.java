@@ -551,7 +551,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
         }
 
     public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet() throws StandardException {
-            DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
+            DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation,this);
             return getDataSet(dsp);
     }
 
@@ -573,7 +573,7 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 
     @Override
     public void openCore() throws StandardException {
-        openCore(StreamUtils.getDataSetProcessorFromActivation(activation));
+        openCore(StreamUtils.getDataSetProcessorFromActivation(activation,this));
     }
 
     @Override
