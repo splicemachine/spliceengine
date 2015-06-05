@@ -136,7 +136,7 @@ public class OperationResultSet implements NoPutResultSet,HasIncrement,CursorRes
     public void executeScan(boolean useProbe, SpliceRuntimeContext context) throws StandardException {
         SpliceLogUtils.trace(LOG, "executeScan with topOperation=%s",topOperation);
         try{
-            DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation);
+            DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation,topOperation);
             OperationInformation info = topOperation.getOperationInformation();
             Activation activation = topOperation.getActivation();
             int resultSetNumber = info.getResultSetNumber();

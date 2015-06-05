@@ -23,11 +23,11 @@ public class StreamUtils {
         return sparkDataSetProcessor;
     }
 
-    public static <Op extends SpliceOperation> DataSetProcessor<Op,RowLocation,ExecRow> getDataSetProcessorFromActivation(Activation activation) {
+    public static <Op extends SpliceOperation> DataSetProcessor<Op,RowLocation,ExecRow> getDataSetProcessorFromActivation(Activation activation, SpliceOperation op) {
       //  System.out.println("activation rowCount=%d, estimatedCost=%d" + activation.getMaxRows());
       //  System.out.println("activation2" + ((SpliceOperation) activation.getResultSet()).getEstimatedRowCount());
       //  System.out.println("activation3" + ((SpliceOperation)activation.getResultSet()).getEstimatedCost());
-        if ( ((SpliceOperation)activation.getResultSet()).getEstimatedCost() > 40000.00) {
+        if ( (activation.getResultSet() == null && op.getEstimatedCost() > 40000.00)  || ((SpliceOperation)activation.getResultSet()).getEstimatedCost() > 40000.00) {
             return sparkDataSetProcessor;
         }
         return controlDataSetProcessor;
