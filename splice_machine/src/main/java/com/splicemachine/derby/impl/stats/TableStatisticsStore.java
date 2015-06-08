@@ -15,7 +15,7 @@ public interface TableStatisticsStore {
 
     void start() throws ExecutionException;
 
-    public TableStatisticsDescriptor[] fetchTableStatistics(TxnView txn, long conglomerateId,List<String> partitionsToFetch) throws ExecutionException;
+    TableStatisticsDescriptor[] fetchTableStatistics(TxnView txn,long conglomerateId,List<String> partitionsToFetch) throws ExecutionException;
 
-    public void invalidate(long conglomerateId,Collection<String> partitionsToInvalidate);
+    void invalidate(long conglomerateId,Collection<String> partitionsToInvalidate);
 }
