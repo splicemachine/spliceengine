@@ -78,6 +78,7 @@ public class AuthorizationIT {
     }
 
     @Test
+    @Ignore
     public void testSuperUserCannotSeePasswordsInSysUsers() throws Exception {
         assertFailed(methodWatcher.getOrCreateConnection(), "select * from sys.sysusers", ErrorState.HIDDEN_COLUMN);
     }
