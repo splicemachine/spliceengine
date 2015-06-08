@@ -2,16 +2,12 @@ package com.splicemachine.hbase.table;
 
 import com.splicemachine.constants.SpliceConstants;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.*;
-import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.hbase.client.coprocessor.Batch;
-import org.apache.hadoop.hbase.protobuf.generated.AdminProtos;
-import org.apache.hadoop.hbase.protobuf.generated.ClientProtos;
-import org.apache.hadoop.hbase.protobuf.generated.MasterProtos;
+import org.apache.hadoop.hbase.HConstants;
+import org.apache.hadoop.hbase.client.HConnection;
+import org.apache.hadoop.hbase.client.HConnectionManager;
 import org.apache.lucene.util.NamedThreadFactory;
 
 import java.io.IOException;
-import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -51,12 +47,7 @@ public class SpliceConnectionPool {
     }
 
     public HConnection getConnection(){
-        /*
-         * Don't close the underlying connection when we call close() on this result.
-         */
-        return new ForwardingHConnection(getConnectionDirect()){
-            @Override public void close() throws IOException{ }
-        };
+        return getConnectionDirect();
     }
 
     HConnection getConnectionDirect(){
@@ -74,7 +65,7 @@ public class SpliceConnectionPool {
         }
         long keepAliveTime = conf.getLong("hbase.hconnection.threads.keepalivetime", 60);
         LinkedBlockingQueue<Runnable> workQueue =
-                new LinkedBlockingQueue<Runnable>(maxThreads *
+                new LinkedBlockingQueue<>(maxThreads*
                         conf.getInt(HConstants.HBASE_CLIENT_MAX_TOTAL_TASKS,
                                 HConstants.DEFAULT_HBASE_CLIENT_MAX_TOTAL_TASKS));
         return new ThreadPoolExecutor(coreThreads,  maxThreads, keepAliveTime, TimeUnit.SECONDS,

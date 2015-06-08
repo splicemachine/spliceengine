@@ -1,19 +1,19 @@
 package com.splicemachine.hbase;
 
 import com.google.common.collect.Maps;
-import com.google.common.io.Closeables;
-import com.splicemachine.concurrent.DynamicScheduledRunnable;
 import com.splicemachine.concurrent.MoreExecutors;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.table.SpliceConnectionPool;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.utils.SpliceUtilities;
-import org.apache.hadoop.hbase.*;
-import org.apache.hadoop.hbase.client.Admin;
+import org.apache.hadoop.hbase.ClusterStatus;
+import org.apache.hadoop.hbase.RegionLoad;
+import org.apache.hadoop.hbase.ServerLoad;
+import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HConnection;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
+
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
@@ -116,18 +116,17 @@ public class HBaseRegionLoads {
                     return value;
                 }
             };
-        try(HConnection conn = SpliceConnectionPool.INSTANCE.getConnection()){
-            try(Admin admin = conn.getAdmin()){
-                ClusterStatus clusterStatus=admin.getClusterStatus();
-                for(ServerName serverName : clusterStatus.getServers()){
-                    final ServerLoad serverLoad=clusterStatus.getLoad(serverName);
+        HConnection conn = SpliceConnectionPool.INSTANCE.getConnection();
+        try(HBaseAdmin admin = new HBaseAdmin(conn.getConfiguration())){
+            ClusterStatus clusterStatus=admin.getClusterStatus();
+            for(ServerName serverName : clusterStatus.getServers()){
+                final ServerLoad serverLoad=clusterStatus.getLoad(serverName);
 
-                    for(Map.Entry<byte[], RegionLoad> entry : serverLoad.getRegionsLoad().entrySet()){
-                        String regionName=Bytes.toString(entry.getKey());
-                        String tableName=tableForRegion(regionName);
-                        Map<String, RegionLoad> loads=regionLoads.get(tableName);
-                        loads.put(regionName,entry.getValue());
-                    }
+                for(Map.Entry<byte[], RegionLoad> entry : serverLoad.getRegionsLoad().entrySet()){
+                    String regionName=Bytes.toString(entry.getKey());
+                    String tableName=tableForRegion(regionName);
+                    Map<String, RegionLoad> loads=regionLoads.get(tableName);
+                    loads.put(regionName,entry.getValue());
                 }
             }
         }catch(IOException e){
