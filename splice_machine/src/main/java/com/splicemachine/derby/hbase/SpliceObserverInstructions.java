@@ -3,6 +3,8 @@ package com.splicemachine.derby.hbase;
 import com.esotericsoftware.kryo.Kryo;
 import com.esotericsoftware.kryo.io.Input;
 import com.esotericsoftware.kryo.io.Output;
+
+import com.splicemachine.db.impl.sql.execute.TriggerExecutionStack;
 import com.splicemachine.derby.iapi.sql.execute.ConversionResultSet;
 import com.splicemachine.derby.iapi.sql.execute.ConvertedResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -51,7 +53,7 @@ public class SpliceObserverInstructions implements Externalizable {
 		protected SchemaDescriptor defaultSchemaDescriptor;
 		protected String sessionUserName;
 		protected SpliceRuntimeContext spliceRuntimeContext;
-
+        private TriggerExecutionStack triggerStack;
 
 		public SpliceObserverInstructions() {
 				super();
@@ -63,6 +65,7 @@ public class SpliceObserverInstructions implements Externalizable {
                                       SpliceOperation topOperation,
                                       ActivationContext activationContext,
                                       String sessionUserName, SchemaDescriptor defaultSchemaDescriptor,
+                                          TriggerExecutionStack triggerStack,
                                       SpliceRuntimeContext spliceRuntimeContext) {
 				SpliceLogUtils.trace(LOG, "instantiated with statement %s", statement);
 				this.statement = statement;
@@ -71,6 +74,7 @@ public class SpliceObserverInstructions implements Externalizable {
 				this.sessionUserName = sessionUserName;
 				this.defaultSchemaDescriptor = defaultSchemaDescriptor;
 				this.spliceRuntimeContext = spliceRuntimeContext;
+            this.triggerStack = triggerStack;
 		}
 
 		public TxnView getTxn(){
@@ -87,6 +91,7 @@ public class SpliceObserverInstructions implements Externalizable {
 				this.sessionUserName = in.readUTF();
 				this.defaultSchemaDescriptor = (SchemaDescriptor) in.readObject();
 				this.spliceRuntimeContext = (SpliceRuntimeContext) in .readObject();
+				this.triggerStack = (TriggerExecutionStack) in .readObject();
 		}
 
 		@Override
@@ -98,6 +103,7 @@ public class SpliceObserverInstructions implements Externalizable {
 				out.writeUTF(sessionUserName);
 				out.writeObject(defaultSchemaDescriptor);
 				out.writeObject(spliceRuntimeContext);
+				out.writeObject(triggerStack);
 		}
 
 
@@ -117,8 +123,11 @@ public class SpliceObserverInstructions implements Externalizable {
 				try{
 						GenericActivationHolder gah = (GenericActivationHolder)statement.getActivation(lcc,false);
 						this.statement.setActivationClass(gah.gc);
-						Activation activation = gah.ac;
-						return activationContext.populateActivation(activation,statement,topOperation);
+						Activation activation = activationContext.populateActivation(gah.ac,statement,topOperation);
+                    if (triggerStack != null) {
+                        activation.getLanguageConnectionContext().setTriggerStack(triggerStack);
+                    }
+                    return activation;
 				} catch (StandardException e) {
 						SpliceLogUtils.logAndThrow(LOG,e);
 						return null; //never happen
@@ -132,13 +141,21 @@ public class SpliceObserverInstructions implements Externalizable {
 		public static SpliceObserverInstructions create(Activation activation,
                                                         SpliceOperation topOperation,
 														SpliceRuntimeContext spliceRuntimeContext){
-				ActivationContext activationContext = ActivationContext.create(activation, topOperation);
+            ActivationContext activationContext = ActivationContext.create(activation, topOperation);
+            LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+            TriggerExecutionStack triggerExecutionStack = null;
+            if (lcc.hasTriggers()) {
+                triggerExecutionStack = lcc.getTriggerStack();
+            }
 
 				return new SpliceObserverInstructions(
 								(GenericStorablePreparedStatement) activation.getPreparedStatement(),
-								topOperation,activationContext,
-                activation.getLanguageConnectionContext().getSessionUserId(),
-								activation.getLanguageConnectionContext().getDefaultSchema(),spliceRuntimeContext);
+								topOperation,
+                                activationContext,
+                                lcc.getSessionUserId(),
+                                lcc.getDefaultSchema(),
+                                triggerExecutionStack,
+                                spliceRuntimeContext);
 		}
 
 		/*

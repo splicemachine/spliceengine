@@ -661,5 +661,7 @@ public class SpliceSparkKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(TentativeAddColumnDesc.class,new FieldSerializer(instance,TentativeAddColumnDesc.class),193);
         instance.register(TentativeAddConstraintDesc.class,new FieldSerializer(instance,TentativeAddConstraintDesc.class),194);
         instance.register(TentativeDropPKConstraintDesc.class,new FieldSerializer(instance,TentativeDropPKConstraintDesc.class),195);
+        instance.register(TriggerExecutionContext.class,new FieldSerializer(instance,TriggerExecutionContext.class),196);
+        instance.register(TriggerExecutionStack.class,new FieldSerializer(instance,TriggerExecutionStack.class),197);
     }
 }
