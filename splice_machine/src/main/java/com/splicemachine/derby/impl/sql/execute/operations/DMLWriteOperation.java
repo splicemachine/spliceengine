@@ -96,6 +96,21 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 				super.init(context);
 				source.init(context);
 				writeInfo.initialize(context);
+
+            WriteCursorConstantOperation constantAction = (WriteCursorConstantOperation) writeInfo.getConstantAction();
+            TriggerInfo triggerInfo = constantAction.getTriggerInfo();
+
+            if(this.triggerHandler == null && triggerInfo != null) {
+                    this.triggerHandler = new TriggerHandler(
+                            triggerInfo,
+                            writeInfo,
+                            getActivation(),
+                            getBeforeEvent(getClass()),
+                            getAfterEvent(getClass())
+                    );
+                }
+
+				startExecutionTime = System.currentTimeMillis();
 		}
 
     public byte[] getDestinationTable(){
