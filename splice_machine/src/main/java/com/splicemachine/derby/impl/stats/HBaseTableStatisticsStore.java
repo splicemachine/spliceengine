@@ -128,7 +128,7 @@ public class HBaseTableStatisticsStore implements TableStatisticsStore {
              * that, we will it in with at "configured remote latency"--e.g.
              * a (configurable) constant rate times the local latency
              */
-            remoteReadLat = (long)(StatsConstants.remoteLatencyScaleFactor*localReadLat);
+            remoteReadLat = (long)(StatsConstants.fallbackRemoteLatencyRatio*localReadLat);
         }
         long writeLat = decoder.decodeNextLong();
         /*

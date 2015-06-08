@@ -11,7 +11,6 @@ import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.PartitionStatistics;
-import com.splicemachine.stats.TableStatistics;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.ServerName;
@@ -219,48 +218,49 @@ public class PartitionStatsStore {
     }
 
     private GlobalStatistics emptyStats(String tableId,List<HRegionInfo> partitions){
-        /*
-         * There are no statistics collected for this table.
-         *
-         * This is unfortunate, because we still need to *act* like there are statistics, even
-         * though we haven't collected anything. To that end, we create a list
-         * of "fake" partition statistics--statistics which are based off of pretty much arbitrary
-         * values for latency, and which use region size information to build an estimate of
-         * rows. This is pretty much ALWAYS not a good estimate, so we make sure and return a different
-         * type of statistics, which will allow callers to add warnings etc.
-         *
-         * Because we base most optimizations off of the latency measures, our arbitrary scaling factors assume
-         * that the localreadLatency = 1, and we scale all of our other latencies off of that figure.
-         */
-        long perRowLocalLatency = 1;
-        long perRowRemoteLatency = 10*perRowLocalLatency; //assume remote reads are 10x more expensive than local
-
-        int numRegions = partitions.size();
-        long totalBytes = numRegions*SpliceConstants.regionMaxFileSize*1024*1024; //assume each region is full,and measured in bytes
-        /*
-         * We make the rather stupid assumption of assuming that each row occupies 100 bytes (which is a lot,
-         * but it should make some things at least relatively reasonable)
-         */
-        long numRows = totalBytes/100;
-        int partitionSize = partitions.size();
-        if(partitionSize==0)
-            partitionSize = 1; //there's always 1 partition
-
-        long rowsPerRegion = numRows/partitionSize;
-
-        List<OverheadManagedPartitionStatistics> partStats = new ArrayList<>(partitions.size());
-        for(HRegionInfo info:partitions){
-            partStats.add(new FakedPartitionStatistics(tableId,info.getEncodedName(),
-                    numRows,
-                    totalBytes,
-                    0l,
-                    perRowLocalLatency*rowsPerRegion,
-                    perRowLocalLatency,1l,
-                    perRowRemoteLatency*rowsPerRegion,
-                    perRowRemoteLatency,1l,
-                    Collections.<ColumnStatistics>emptyList()));
-        }
-        return new GlobalStatistics(tableId, partStats);
+        return RegionLoadStatistics.getParameterStatistics(tableId,partitions);
+//        /*
+//         * There are no statistics collected for this table.
+//         *
+//         * This is unfortunate, because we still need to *act* like there are statistics, even
+//         * though we haven't collected anything. To that end, we create a list
+//         * of "fake" partition statistics--statistics which are based off of pretty much arbitrary
+//         * values for latency, and which use region size information to build an estimate of
+//         * rows. This is pretty much ALWAYS not a good estimate, so we make sure and return a different
+//         * type of statistics, which will allow callers to add warnings etc.
+//         *
+//         * Because we base most optimizations off of the latency measures, our arbitrary scaling factors assume
+//         * that the localreadLatency = 1, and we scale all of our other latencies off of that figure.
+//         */
+//        long perRowLocalLatency = 1;
+//        long perRowRemoteLatency = 10*perRowLocalLatency; //assume remote reads are 10x more expensive than local
+//
+//        int numRegions = partitions.size();
+//        long totalBytes = numRegions*SpliceConstants.regionMaxFileSize*1024*1024; //assume each region is full,and measured in bytes
+//        /*
+//         * We make the rather stupid assumption of assuming that each row occupies 100 bytes (which is a lot,
+//         * but it should make some things at least relatively reasonable)
+//         */
+//        long numRows = totalBytes/100;
+//        int partitionSize = partitions.size();
+//        if(partitionSize==0)
+//            partitionSize = 1; //there's always 1 partition
+//
+//        long rowsPerRegion = numRows/partitionSize;
+//
+//        List<OverheadManagedPartitionStatistics> partStats = new ArrayList<>(partitions.size());
+//        for(HRegionInfo info:partitions){
+//            partStats.add(new FakedPartitionStatistics(tableId,info.getEncodedName(),
+//                    numRows,
+//                    totalBytes,
+//                    0l,
+//                    perRowLocalLatency*rowsPerRegion,
+//                    perRowLocalLatency,1l,
+//                    perRowRemoteLatency*rowsPerRegion,
+//                    perRowRemoteLatency,1l,
+//                    Collections.<ColumnStatistics>emptyList()));
+//        }
+//        return new GlobalStatistics(tableId, partStats);
     }
 
     private Txn getTxn(TxnView wrapperTxn) throws ExecutionException {
