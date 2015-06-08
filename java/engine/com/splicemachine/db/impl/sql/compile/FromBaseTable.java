@@ -1288,39 +1288,14 @@ public class FromBaseTable extends FromTable{
         tracer.trace(OptimizerFlag.COST_OF_CONGLOMERATE_SCAN2,tableNumber,0,0d,costEstimate);
 
 
-		/* If the start and stop key came from an IN-list "probe predicate"
-		 * then we need to adjust the cost estimate.  The probe predicate
-		 * is of the form "col = ?" and we currently have the estimated
-		 * cost of probing the index a single time for "?".  But with an
-		 * IN-list we don't just probe the index once; we're going to
-		 * probe it once for every value in the IN-list.  And we are going
-		 * to potentially return an additional row (or set of rows) for
-		 * each probe.  To account for this "multi-probing" we take the
-		 * costEstimate and multiply each of its fields by the size of
-		 * the IN-list.
-		 *
-		 * Note: If the IN-list has duplicate values then this simple
-		 * multiplication could give us an elevated cost (because we
-		 * only probe the index for each *non-duplicate* value in the
-		 * IN-list).  But for now, we're saying that's okay.
-		 */
-        //TODO -sf- account for MultiProbe scan costs
-//            if(ssKeySourceInList!=null){
-//                int listSize = ssKeySourceInList.getRightOperandList().size();
-//                double rc = costEstimate.rowCount() * listSize;
-//                double ssrc = costEstimate.singleScanRowCount() * listSize;
-
-
 
         costEstimate.setSingleScanRowCount(singleScanRowCount);
-
-        tracer.trace(OptimizerFlag.COST_OF_N_SCANS,tableNumber,0,outerCost.rowCount(),costEstimate);
 
         /*
          * Now compute the joinStrategy costs.
          */
         currentJoinStrategy.estimateCost(this,baseTableRestrictionList,cd,outerCost,optimizer,costEstimate);
-//        currentJoinStrategy.estimateCost(baseTableRestrictionList,outerCost,costEstimate);
+        tracer.trace(OptimizerFlag.COST_OF_N_SCANS,tableNumber,0,outerCost.rowCount(),costEstimate);
 
 		/* Put the base predicates back in the predicate list */
         currentJoinStrategy.putBasePredicates(predList, baseTableRestrictionList);
