@@ -151,7 +151,6 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 
             if(this.triggerHandler == null && triggerInfo != null) {
                     this.triggerHandler = new TriggerHandler(
-                            context,
                             triggerInfo,
                             writeInfo,
                             getActivation(),

@@ -526,6 +526,8 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator {
 				instance.register(ImportContext.class,EXTERNALIZABLE_SERIALIZER);
 				instance.register(ColumnContext.class,EXTERNALIZABLE_SERIALIZER);
 				instance.register(FileImportReader.class,EXTERNALIZABLE_SERIALIZER);
+				instance.register(TriggerExecutionContext.class,EXTERNALIZABLE_SERIALIZER);
+				instance.register(TriggerExecutionStack.class,EXTERNALIZABLE_SERIALIZER);
 				instance.register(TentativeIndexDesc.class,new FieldSerializer(instance,TentativeIndexDesc.class));
 				instance.register(TentativeDropColumnDesc.class,new FieldSerializer(instance,TentativeDropColumnDesc.class));
 				instance.register(TentativeAddColumnDesc.class,new FieldSerializer(instance,TentativeAddColumnDesc.class));
