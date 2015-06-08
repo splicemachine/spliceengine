@@ -2,13 +2,16 @@ package com.splicemachine.hbase.table;
 
 import com.splicemachine.constants.SpliceConstants;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.ZooKeeperConnectionException;
-import org.apache.hadoop.hbase.client.HConnection;
-import org.apache.hadoop.hbase.client.HConnectionManager;
+import org.apache.hadoop.hbase.*;
+import org.apache.hadoop.hbase.client.*;
+import org.apache.hadoop.hbase.client.coprocessor.Batch;
+import org.apache.hadoop.hbase.protobuf.generated.AdminProtos;
+import org.apache.hadoop.hbase.protobuf.generated.ClientProtos;
+import org.apache.hadoop.hbase.protobuf.generated.MasterProtos;
 import org.apache.lucene.util.NamedThreadFactory;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.ThreadPoolExecutor;
@@ -41,15 +44,22 @@ public class SpliceConnectionPool {
             configuration.setInt(HConstants.HBASE_CLIENT_INSTANCE_ID,i);
             try {
                 connections[i] =HConnectionManager.createConnection(config, connectionPool);
-            } catch (ZooKeeperConnectionException e) {
-                throw new RuntimeException(e);
-            } catch (IOException e) {
+            }catch (IOException e) {
                 throw new RuntimeException(e);
             }
         }
     }
 
     public HConnection getConnection(){
+        /*
+         * Don't close the underlying connection when we call close() on this result.
+         */
+        return new ForwardingHConnection(getConnectionDirect()){
+            @Override public void close() throws IOException{ }
+        };
+    }
+
+    HConnection getConnectionDirect(){
         return connections[counter.getAndIncrement() % numConnections];
     }
 
@@ -73,4 +83,5 @@ public class SpliceConnectionPool {
                 new ThreadPoolExecutor.AbortPolicy());
 
     }
+
 }
