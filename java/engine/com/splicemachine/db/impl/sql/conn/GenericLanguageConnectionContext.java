@@ -65,6 +65,7 @@ import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.sql.execute.RunTimeStatistics;
 import com.splicemachine.db.impl.sql.execute.TriggerExecutionContext;
 import com.splicemachine.db.iapi.reference.Property;
+import com.splicemachine.db.impl.sql.execute.TriggerExecutionStack;
 
 import java.util.*;
 
@@ -204,7 +205,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      */
     private final StatementContext[] statementContexts = new StatementContext[2];
     private int     statementDepth;
-    protected int     outermostTrigger = -1;
+    private int outermostTrigger = -1;
 
     protected Authorizer authorizer;
     protected String userName = null; //The name the user connects with.
@@ -265,7 +266,7 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     private int lockEscalationThreshold; 
 
     private List<ExecutionStmtValidator> stmtValidators;
-    private List<TriggerExecutionContext> triggerExecutionContexts;
+    private TriggerExecutionStack triggerStack;
     private List<TableDescriptor> triggerTables;
 
     // OptimizerTrace
@@ -357,7 +358,6 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
         */
         lockEscalationThreshold = Property.DEFAULT_LOCKS_ESCALATION_THRESHOLD;
         stmtValidators = new ArrayList<>();
-        triggerExecutionContexts = new ArrayList<>();
         triggerTables = new ArrayList<>();
     }
 
@@ -2627,14 +2627,13 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      */
     @Override
     public void pushTriggerExecutionContext(TriggerExecutionContext tec) throws StandardException {
+        if (triggerStack == null) {
+            triggerStack = new TriggerExecutionStack();
+        }
         if (outermostTrigger == -1) {
-            outermostTrigger = statementDepth; 
+            outermostTrigger = statementDepth;
         }
-        /* Maximum 16 nesting levels allowed */
-        if (triggerExecutionContexts.size() >= Limits.DB2_MAX_TRIGGER_RECURSION) {
-            throw StandardException.newException(SQLState.LANG_TRIGGER_RECURSION_EXCEEDED);
-        }
-        triggerExecutionContexts.add(tec);
+        triggerStack.pushTriggerExecutionContext(tec);
     }
 
     /**
@@ -2645,13 +2644,18 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     @Override
     public void popTriggerExecutionContext(TriggerExecutionContext tec) throws StandardException {
         if (outermostTrigger == statementDepth) {
-            outermostTrigger = -1; 
+            outermostTrigger = -1;
         }
-        boolean foundElement = triggerExecutionContexts.remove(tec);
-        if (SanityManager.DEBUG) {
-            if (!foundElement) {
-                SanityManager.THROWASSERT("trigger execution context "+tec+" not found");
-            }
+        if (triggerStack != null) {
+            triggerStack.popTriggerExecutionContext(tec);
+        }
+    }
+
+    @Override
+    public void popAllTriggerExecutionContexts() {
+        outermostTrigger = -1;
+        if (triggerStack != null) {
+            triggerStack.popAllTriggerExecutionContexts();
         }
     }
 
@@ -2660,7 +2664,10 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
      */
     @Override
     public TriggerExecutionContext getTriggerExecutionContext() {
-        return triggerExecutionContexts.isEmpty() ? null : triggerExecutionContexts.get(triggerExecutionContexts.size() - 1);
+        if (triggerStack == null) {
+            return null;
+        }
+        return triggerStack.getTriggerExecutionContext();
     }
 
     /**
@@ -3243,15 +3250,14 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     @Override
     public Long lastAutoincrementValue(String schemaName, String tableName, String columnName) {
         String aiKey = AutoincrementCounter.makeIdentity(schemaName, tableName, columnName);
-        int size = triggerExecutionContexts.size();
-        for (int i = size - 1; i >= 0; i--) {
-            // first loop through triggers.
-            TriggerExecutionContext itec = triggerExecutionContexts.get(i);
-            Long value = itec.getAutoincrementValue(aiKey);
-            if (value == null) {
-                continue;
+        if (triggerStack != null) {
+            for (TriggerExecutionContext tec : triggerStack.asList()) {
+                Long value = tec.getAutoincrementValue(aiKey);
+                if (value == null) {
+                    continue;
+                }
+                return value;
             }
-            return value;
         }
         if (autoincrementHT == null) {
             return null;
@@ -3751,4 +3757,22 @@ public class GenericLanguageConnectionContext extends ContextImpl implements Lan
     public void enterRestoreMode() {
         this.restoreMode = true;
     };
+
+    @Override
+    public void setTriggerStack(TriggerExecutionStack triggerStack) {
+        if (this.triggerStack != null) {
+            SanityManager.THROWASSERT("LCC already has a trigger stack.");
+        }
+        this.triggerStack = triggerStack;
+    }
+
+    @Override
+    public TriggerExecutionStack getTriggerStack() {
+        return this.triggerStack;
+    }
+
+    @Override
+    public boolean hasTriggers() {
+        return !(this.triggerStack == null || this.triggerStack.isEmpty());
+    }
 }

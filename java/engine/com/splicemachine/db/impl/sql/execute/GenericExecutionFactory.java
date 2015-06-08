@@ -278,21 +278,18 @@ public abstract class GenericExecutionFactory implements ModuleControl, ModuleSu
      *
      * @throws StandardException Thrown on error
      */
-    public TriggerExecutionContext getTriggerExecutionContext(LanguageConnectionContext lcc,
-                                                                      ConnectionContext cc,
-                                                                      String statementText,
-                                                                      int[] changedColIds,
-                                                                      String[] changedColNames,
-                                                                      UUID targetTableId,
-                                                                      String targetTableName,
-                                                                      Vector<AutoincrementCounter> aiCounters) throws StandardException {
-        return new TriggerExecutionContext(lcc, cc,
-                statementText,
-                changedColIds,
-                changedColNames,
-                targetTableId,
-                targetTableName,
-                aiCounters);
+    public TriggerExecutionContext getTriggerExecutionContext(String statementText,
+                                                              int[] changedColIds,
+                                                              String[] changedColNames,
+                                                              UUID targetTableId,
+                                                              String targetTableName,
+                                                              Vector<AutoincrementCounter> aiCounters) throws StandardException {
+        return new TriggerExecutionContext(statementText,
+                                            changedColIds,
+                                            changedColNames,
+                                            targetTableId,
+                                            targetTableName,
+                                            aiCounters);
     }
 
     /*

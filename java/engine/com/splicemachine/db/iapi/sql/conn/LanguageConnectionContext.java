@@ -47,6 +47,7 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.sql.execute.TriggerExecutionContext;
 import com.splicemachine.db.iapi.sql.execute.RunTimeStatistics;
 import com.splicemachine.db.catalog.UUID;
+import com.splicemachine.db.impl.sql.execute.TriggerExecutionStack;
 
 import java.util.Map;
 
@@ -701,7 +702,13 @@ public interface LanguageConnectionContext extends Context {
 	public void popTriggerExecutionContext(TriggerExecutionContext tec)
 		throws StandardException;
 
-	/**
+    /**
+     * Pop all trigger execution contexts. Either means an error has occurred
+     * or a trigger has been dropped.
+     */
+    void popAllTriggerExecutionContexts();
+
+    /**
 	 * Get the topmost tec.  
 	 *
 	 * @return the tec
@@ -1065,7 +1072,7 @@ public interface LanguageConnectionContext extends Context {
 	 * @exception StandardException thrown on error.
 	 *
 	 * @see LanguageConnectionContext#lastAutoincrementValue
-	 * @see org.apache.derby.impl.sql.conn.GenericLanguageConnectionContext#lastAutoincrementValue
+	 * @see com.splicemachine.db.impl.sql.conn.GenericLanguageConnectionContext#lastAutoincrementValue
 	 * @see com.splicemachine.db.iapi.db.ConnectionInfo#lastAutoincrementValue
 	 */
 	public void autoincrementFlushCache(UUID tableUUID)
@@ -1341,4 +1348,26 @@ public interface LanguageConnectionContext extends Context {
      * database is rebooted.
      */
     public void enterRestoreMode();
+
+    /**
+     * Set a trigger execution context (TEC) stack on this LCC.<br/>
+     * Used to serialize TECs across serialization boundaries.
+     * @param triggerStack the stack to set
+     */
+    void setTriggerStack(TriggerExecutionStack triggerStack);
+
+    /**
+     * Get the trigger execution context (TEC) stack from this LCC><br/>
+     * Used to serialize TECs across serialization boundaries.<br/>
+     * <b>Note:</b> may be null.  Use {@link #hasTriggers()} to check.
+     * @return the trigger execution stack, possibly null.
+     */
+    TriggerExecutionStack getTriggerStack();
+
+    /**
+     * Check to see if this LCC has any triggers.<br/>
+     * Used to see if we need to serialize a trigger execution context stack.
+     * @return true, if this LCC has any trigger execution contexts.
+     */
+    boolean hasTriggers();
 }

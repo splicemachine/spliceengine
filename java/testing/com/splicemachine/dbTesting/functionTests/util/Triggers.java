@@ -133,13 +133,14 @@ public class Triggers
 	{
 		TriggerExecutionContext tec = Factory.getTriggerExecutionContext();
 		System.out.println("BEFORE RESULT SET");
-		dumpRS(tec.getOldRowSet());
-		System.out.println("\nAFTER RESULT SET");
-		dumpRS(tec.getNewRowSet());
+        // JC - changed TriggerExecutionContext so that it returns ExecRow instead of ResultSet
+//		dumpRS(tec.getOldRowSet());
+//		System.out.println("\nAFTER RESULT SET");
+//		dumpRS(tec.getNewRowSet());
 	}
 
 	// lifted from the metadata test	
-	private static void dumpRS(ResultSet s) throws SQLException 
+	private static void dumpRS(ResultSet s) throws SQLException
 	{
 		if (s == null)
 		{

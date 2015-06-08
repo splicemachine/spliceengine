@@ -4397,9 +4397,9 @@ public class DataDictionaryImpl extends BaseDataDictionary{
             @SuppressWarnings("StringBufferReplaceableByString") StringBuilder methodCall=new StringBuilder();
             methodCall.append("CAST (com.splicemachine.db.iapi.db.Factory::getTriggerExecutionContext().");
             methodCall.append(isOldTable?"getOldRow()":"getNewRow()");
-            methodCall.append(".getObject(");
+            methodCall.append(".cloneColumn(");
             methodCall.append(colPositionInRuntimeResultSet);
-            methodCall.append(") AS ");
+            methodCall.append(").getObject() AS ");
 
 	        /*
 	        ** getSQLString() returns <typeName> 
@@ -4441,9 +4441,9 @@ public class DataDictionaryImpl extends BaseDataDictionary{
             methodCall.append(
                     "com.splicemachine.db.iapi.db.Factory::getTriggerExecutionContext().");
             methodCall.append(isOldTable?"getOldRow()":"getNewRow()");
-            methodCall.append(".getString(");
+            methodCall.append(".cloneColumn(");
             methodCall.append(colPositionInRuntimeResultSet);
-            methodCall.append(") AS CLOB) PRESERVE WHITESPACE ) ");
+            methodCall.append(").getString() AS CLOB) PRESERVE WHITESPACE ) ");
 
             return methodCall.toString();
         }

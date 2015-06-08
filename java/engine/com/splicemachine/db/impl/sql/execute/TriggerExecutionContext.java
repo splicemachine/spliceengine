@@ -1,17 +1,23 @@
 package com.splicemachine.db.impl.sql.execute;
 
-import java.sql.ResultSet;
+import java.io.Externalizable;
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
 import java.sql.SQLException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.ExceptionSeverity;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.jdbc.ConnectionContext;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.i18n.MessageService;
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
@@ -20,42 +26,54 @@ import com.splicemachine.db.iapi.sql.execute.ExecutionStmtValidator;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
 /**
- * A trigger execution context holds information that is available from the context of a trigger invocation.
+ * A trigger execution context (TEC) holds information that is available from the context of a trigger invocation.<br/>
+ * A TEC is just a shell that gets pushed on a {@link TriggerExecutionStack} (initially empty). It is utilized by setting a
+ * {@link TriggerDescriptor} on it and executing it's statement. After execution, the trigger descriptor is removed.<br/>
+ * A TEC is removed from the stack when all of it's trigger executions, including any started by actions it may have
+ * performed, have completed.
+ * <p/>
+ * A TEC will have to be serialized over synch boundaries so that trigger action information is available to
+ * executions on other nodes.
+ * <p/>
+ * <h2>Possible Optimizations</h2>
+ * <ul>
+ * <li>We use a single row (for before/after row) implementation. This has changed from returning a heavy-weight
+ * ResultSet to a lighter-weight ExecRow. We could support (for Statement Triggers) a batched up collection of
+ * ExecRows.</li>
+ * <li>A trigger rarely uses all columns in a row. We could use <code>changedColIds</code> to track only the required
+ * new/old column values for the row.</li>
+ * </ul>
  */
-public class TriggerExecutionContext implements ExecutionStmtValidator {
+public class TriggerExecutionContext implements ExecutionStmtValidator, Externalizable {
 
-    /*
-     * Immutable
+    /* ========================
+     * Serialized information
+     * ========================
      */
-    private final int[] changedColIds;
-    private final String[] changedColNames;
-    private final String statementText;
-    private final ConnectionContext cc;
-    private final UUID targetTableId;
-    private final String targetTableName;
-    private LanguageConnectionContext lcc;
+    private int[] changedColIds;
+    private String[] changedColNames;
+    private String statementText;
+    private UUID targetTableId;
+    private String targetTableName;
+    private ExecRow beforeResultSet;
+    private ExecRow afterResultSet;
+    private TriggerDescriptor triggerd;
+    private ExecRow afterRow;   // used exclusively for InsertResultSets which have autoincrement columns.
 
-    /*
-     * Mutable
+    /* ========================
+     * Not serialized
+     * TODO: JC Maybe some of these need to be serialized too but haven't seen the need yet. Test coverage?
+     * ========================
      */
-    private CursorResultSet beforeResultSet;
-    private CursorResultSet afterResultSet;
-
-    /*
-     * used exclusively for InsertResultSets which have autoincrement columns.
-     */
-    private ExecRow afterRow;
-
     private boolean cleanupCalled;
     private TriggerEvent event;
-    private TriggerDescriptor triggerd;
 
     /*
      * Used to track all the result sets we have given out to users.  When the trigger context is no longer valid,
      * we close all the result sets that may be in the user space because they can no longer provide meaningful
      * results.
      */
-    private List<ResultSet> resultSetList;
+    private List<ExecRow> resultSetList;
 
     /**
      * aiCounters is a list of AutoincrementCounters used to keep state which might be used by the trigger. This is
@@ -70,12 +88,7 @@ public class TriggerExecutionContext implements ExecutionStmtValidator {
 
     /**
      * Build me a big old nasty trigger execution context. Damnit.
-     * <p/>
-     * About the only thing of real interest to outside observers is that it pushes itself as the trigger execution
-     * context in the lcc.  Be sure to call <i>cleanup()</i> when you are done, or you will be flogged like the
-     * reprobate that you are.
      *
-     * @param lcc             the lcc
      * @param statementText   the text of the statement that caused the trigger to fire.  may be null if we are replicating
      * @param changedColIds   the list of columns that changed.  Null for all columns or INSERT/DELETE.
      * @param changedColNames the names that correspond to changedColIds
@@ -83,22 +96,18 @@ public class TriggerExecutionContext implements ExecutionStmtValidator {
      * @param targetTableName the name of the table upon which the trigger fired
      * @param aiCounters      A list of AutoincrementCounters to keep state of the ai columns in this insert trigger.a
      */
-    public TriggerExecutionContext(LanguageConnectionContext lcc,
-                                   ConnectionContext cc,
-                                   String statementText,
+    public TriggerExecutionContext(String statementText,
                                    int[] changedColIds,
                                    String[] changedColNames,
                                    UUID targetTableId,
                                    String targetTableName,
                                    List<AutoincrementCounter> aiCounters) throws StandardException {
+        this();
         this.changedColIds = changedColIds;
         this.changedColNames = changedColNames;
         this.statementText = statementText;
-        this.cc = cc;
-        this.lcc = lcc;
         this.targetTableId = targetTableId;
         this.targetTableName = targetTableName;
-        this.resultSetList = new ArrayList<>();
         this.aiCounters = aiCounters;
 
         if (SanityManager.DEBUG) {
@@ -108,20 +117,33 @@ public class TriggerExecutionContext implements ExecutionStmtValidator {
                         "  (changedColsNames == null) = " + (changedColNames == null));
             }
             if (changedColIds != null) {
-                SanityManager.ASSERT(changedColIds.length == changedColNames.length,
+                SanityManager.ASSERT(changedColIds.length == (changedColNames != null ? changedColNames.length : 0),
                         "different number of changed col ids vs names");
             }
         }
-
-        lcc.pushTriggerExecutionContext(this);
     }
 
-    public void setBeforeResultSet(CursorResultSet rs) {
-        beforeResultSet = rs;
+    public TriggerExecutionContext() {
+        this.resultSetList = new ArrayList<>();
+    }
+
+    public void setBeforeResultSet(CursorResultSet rs) throws StandardException {
+        if (rs == null) {
+            return;
+        }
+        beforeResultSet = rs.getCurrentRow();
+        try {
+            rs.close();
+        } catch (StandardException e) {
+            // ignore - close quietly. We have only a single row impl currently
+        }
+
     }
 
     public void setAfterResultSet(CursorResultSet rs) throws StandardException {
-        afterResultSet = rs;
+        if (rs == null) {
+            return;
+        }
 
         if (aiCounters != null) {
             if (triggerd.isRowTrigger()) {
@@ -135,6 +157,12 @@ public class TriggerExecutionContext implements ExecutionStmtValidator {
                     resetAICounters(false);
                 }
             }
+        }
+        afterResultSet = rs.getCurrentRow();
+        try {
+            rs.close();
+        } catch (StandardException e) {
+            // ignore - close quietly. We have only a single row impl currently
         }
     }
 
@@ -154,12 +182,13 @@ public class TriggerExecutionContext implements ExecutionStmtValidator {
         event = null;
         triggerd = null;
         if (afterResultSet != null) {
-            afterResultSet.close();
             afterResultSet = null;
         }
         if (beforeResultSet != null) {
-            beforeResultSet.close();
             beforeResultSet = null;
+        }
+        if (resultSetList != null && ! resultSetList.isEmpty()) {
+            resultSetList.clear();
         }
     }
 
@@ -172,29 +201,16 @@ public class TriggerExecutionContext implements ExecutionStmtValidator {
      */
     public void cleanup() throws StandardException {
         if (!cleanupCalled) {
-            lcc.popTriggerExecutionContext(this);
 
-        /*  Explicitly close all result sets that we have given out to the user.  */
-            for (ResultSet rs : resultSetList) {
-                try {
-                    rs.close();
-                } catch (SQLException se) {
-                }
-            }
             resultSetList = null;
 
-        /* We should have already closed our underlying ExecResultSets by closing the jdbc result sets,
-        ** but in case we got an error that we caught and ignored, explicitly close them. */
             if (afterResultSet != null) {
-                afterResultSet.close();
                 afterResultSet = null;
             }
             if (beforeResultSet != null) {
-                beforeResultSet.close();
                 beforeResultSet = null;
             }
         }
-        lcc = null;
         cleanupCalled = true;
     }
 
@@ -332,14 +348,14 @@ public class TriggerExecutionContext implements ExecutionStmtValidator {
      * @return the ResultSet containing before images of the rows changed by the triggering event.
      * @throws SQLException if called after the triggering event has completed
      */
-    public ResultSet getOldRowSet() throws SQLException {
+    private ExecRow getOldRowSet() throws SQLException {
+        // private currently since no callers currently and we have impl of only 1 exec row at a time
         ensureProperContext();
         if (beforeResultSet == null) {
             return null;
         }
-        ResultSet rs = cc.getResultSet(beforeResultSet);
-        resultSetList.add(rs);
-        return rs;
+        resultSetList.add(beforeResultSet);
+        return beforeResultSet;
     }
 
     /**
@@ -351,14 +367,14 @@ public class TriggerExecutionContext implements ExecutionStmtValidator {
      * @return the ResultSet containing after images of the rows changed by the triggering event.
      * @throws SQLException if called after the triggering event has completed
      */
-    public ResultSet getNewRowSet() throws SQLException {
+    private ExecRow getNewRowSet() throws SQLException {
+        // private currently since no callers currently and we have impl of only 1 exec row at a time
         ensureProperContext();
         if (afterResultSet == null) {
             return null;
         }
-        ResultSet rs = cc.getResultSet(afterResultSet);
-        resultSetList.add(rs);
-        return rs;
+        resultSetList.add(afterResultSet);
+        return afterResultSet;
     }
 
     /**
@@ -368,12 +384,8 @@ public class TriggerExecutionContext implements ExecutionStmtValidator {
      * @return the ResultSet positioned on the old row image.
      * @throws SQLException if called after the triggering event has completed
      */
-    public ResultSet getOldRow() throws SQLException {
-        ResultSet rs = getOldRowSet();
-        if (rs != null)
-            rs.next();
-
-        return rs;
+    public ExecRow getOldRow() throws SQLException {
+        return getOldRowSet();
     }
 
     /**
@@ -383,11 +395,8 @@ public class TriggerExecutionContext implements ExecutionStmtValidator {
      * @return the ResultSet positioned on the new row image.
      * @throws SQLException if called after the triggering event hascompleted
      */
-    public ResultSet getNewRow() throws SQLException {
-        ResultSet rs = getNewRowSet();
-        if (rs != null)
-            rs.next();
-        return rs;
+    public ExecRow getNewRow() throws SQLException {
+        return getNewRowSet();
     }
 
     public Long getAutoincrementValue(String identity) {
@@ -397,7 +406,6 @@ public class TriggerExecutionContext implements ExecutionStmtValidator {
             if (value != null)
                 return value;
         }
-
 
         // If we didn't find it in the map search in the counters which
         // represent values inherited by trigger from insert statements.
@@ -461,7 +469,36 @@ public class TriggerExecutionContext implements ExecutionStmtValidator {
 
     @Override
     public String toString() {
-        return "triggerd=" + Objects.toString(triggerd);
+        return "Name="+targetTableName+" triggerd=" + Objects.toString(triggerd);
     }
 
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        ArrayUtil.writeIntArray(out, changedColIds);
+        ArrayUtil.writeArray(out, changedColNames);
+        out.writeObject(statementText);
+        out.writeObject(targetTableId);
+        out.writeObject(targetTableName);
+        out.writeObject(triggerd);
+        out.writeObject(beforeResultSet);
+        out.writeObject(afterResultSet);
+        out.writeObject(afterRow);
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        changedColIds = ArrayUtil.readIntArray(in);
+        int len = ArrayUtil.readArrayLength(in);
+        if (len != 0) {
+            changedColNames = new String[len];
+            ArrayUtil.readArrayItems(in, changedColNames);
+        }
+        statementText = (String) in.readObject();
+        targetTableId = (UUID) in.readObject();
+        targetTableName = (String) in.readObject();
+        triggerd = (TriggerDescriptor) in.readObject();
+        beforeResultSet = (ExecRow) in.readObject();
+        afterResultSet = (ExecRow) in.readObject();
+        afterRow = (ExecRow) in.readObject();
+    }
 }
