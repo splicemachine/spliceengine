@@ -68,6 +68,10 @@ public class SpliceConstants {
     @DefaultValue(MAX_DDL_WAIT) public static final int DEFAULT_NUM_HCONNECTIONS=5;
     public static int numHConnections;
 
+    public static long regionLoadUpdateInterval;
+    @Parameter public static final String REGION_LOAD_UPDATE_INTERVAL = "splice.statistics.regionLoadUpdateInterval";
+    @DefaultValue(REGION_LOAD_UPDATE_INTERVAL) public static final long DEFAULT_REGION_LOAD_UPDATE_INTERVAL = 5;
+
     public enum AuthenticationType {NONE,LDAP,NATIVE,CUSTOM};
 
     @Parameter public static final String SEQUENTIAL_IMPORT_THREASHOLD="splice.import.sequentialFileSize";
@@ -1250,6 +1254,8 @@ public class SpliceConstants {
         maxDdlWait = config.getInt(MAX_DDL_WAIT,DEFAULT_MAX_DDL_WAIT);
 
         numHConnections = config.getInt(NUM_CLIENT_HCONNECTIONS,DEFAULT_NUM_HCONNECTIONS);
+
+        regionLoadUpdateInterval = config.getLong(REGION_LOAD_UPDATE_INTERVAL,DEFAULT_REGION_LOAD_UPDATE_INTERVAL);
     }
 
     public static void reloadConfiguration(Configuration configuration) {

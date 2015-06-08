@@ -60,14 +60,6 @@ public class StatsConstants extends SpliceConstants {
 
 
     /*
-     * This is the latency scale factor to fall back on when we cannot measure the remote latency directly.
-     * By default, it's 10 times the cost of a local scan.
-     */
-    public static double remoteLatencyScaleFactor;
-    @SpliceConstants.Parameter public static final String REMOTE_LATENCY_SCALE_FACTOR = "splice.statistics.defaultRemoteLatencyScaleFactor";
-    @DefaultValue(value = INDEX_FETCH_SAMPLE_SIZE) public static final double DEFAULT_REMOTE_LATENCY_SCALE_FACTOR = 20d;
-
-    /*
      * This is the cardinality fraction to fall back on when we cannot measure the cardinality directly (or
      * statistics are not available for some reason). By default it assumes that there are 100 duplicates
      * of every row (giving a cardinality fraction of 0.01)
@@ -78,7 +70,36 @@ public class StatsConstants extends SpliceConstants {
      */
     public static double fallbackCardinalityFraction;
     @Parameter public static final String FALLBACK_CARDINALITY_FRACTION = "splice.statistics.defaultCardinalityFraction";
-    @DefaultValue(value=FALLBACK_CARDINALITY_FRACTION)public static final double DEFAULT_FALLBACK_CARDINALITY_FRACTION=.01d;
+    @DefaultValue(value=FALLBACK_CARDINALITY_FRACTION)public static final double DEFAULT_FALLBACK_CARDINALITY_FRACTION=.1d;
+
+    /**
+     *  The fallback size of a region, when no statistics at all are present. Generally, it's much preferable
+     *  to collect statistics than it is to fiddle with this setting--it's only here so that we have SOMETHING
+     *  when no statistics are available.
+     */
+    public static long fallbackRegionRowCount;
+    @Parameter public static final String FALLBACK_REGION_ROW_COUNT="splice.statistics.fallbackRegionRowCount";
+    @DefaultValue(value = FALLBACK_REGION_ROW_COUNT) public static final long DEFAULT_FALLBACK_REGION_COUNT=5000000;
+
+    /**
+     * The fallback ratio of remote to local scan cost. This is only used when no statistics are present for the
+     * table of interest; it is never a good idea to mess with this parameter--collect statistics instead.
+     */
+    public static long fallbackRemoteLatencyRatio;
+    @Parameter public static final String FALLBACK_REMOTE_LATENCY_RATIO="splice.statistics.fallbackRemoteLatencyRatio";
+    @DefaultValue(value =FALLBACK_REMOTE_LATENCY_RATIO) public static final long DEFAULT_FALLBACK_REMOTE_LATENCY_RATIO= 20l;
+
+    /**
+     * The fallback minimum number of rows to see when starts are not available. Rather than messing
+     * around with this parameter, collect statistics instead. You'll be much better off.
+     */
+    public static long fallbackMinimumRowCount;
+    @Parameter public static final String FALLBACK_MINIMUM_ROW_COUNT="splice.statistics.fallbackMinimumRowCount";
+    @DefaultValue(value = FALLBACK_MINIMUM_ROW_COUNT) public static final long DEFAULT_FALLBACK_MINIMUM_ROW_COUNT=20;
+
+    public static int fallbackRowWidth;
+    @Parameter public static final String FALLBACK_ROW_WIDTH="splice.statistics.fallbackMinimumRowWidth";
+    @DefaultValue(value = FALLBACK_ROW_WIDTH) public static final int DEFAULT_FALLBACK_ROW_WIDTH=170;
 
     public static void setParameters(Configuration config){
         int cp = config.getInt(CARDINALITY_PRECISION,DEFAULT_CARDINALITY_PRECISION);
@@ -97,8 +118,12 @@ public class StatsConstants extends SpliceConstants {
             i<<=1;
         fetchSampleSize = i;
 
-        remoteLatencyScaleFactor = config.getDouble(REMOTE_LATENCY_SCALE_FACTOR,DEFAULT_REMOTE_LATENCY_SCALE_FACTOR);
+        fallbackRemoteLatencyRatio= config.getLong(FALLBACK_REMOTE_LATENCY_RATIO,DEFAULT_FALLBACK_REMOTE_LATENCY_RATIO);
         fallbackCardinalityFraction = config.getDouble(FALLBACK_CARDINALITY_FRACTION,DEFAULT_FALLBACK_CARDINALITY_FRACTION);
         fetchRepetitionCount = config.getInt(INDEX_FETCH_REPETITION_COUNT,DEFAULT_INDEX_FETCH_REPETITION_COUNT);
+
+        fallbackRegionRowCount = config.getLong(FALLBACK_REGION_ROW_COUNT,DEFAULT_FALLBACK_REGION_COUNT);
+        fallbackRowWidth = config.getInt(FALLBACK_ROW_WIDTH,DEFAULT_FALLBACK_ROW_WIDTH);
+        fallbackMinimumRowCount = config.getLong(FALLBACK_MINIMUM_ROW_COUNT,DEFAULT_FALLBACK_MINIMUM_ROW_COUNT);
     }
 }
