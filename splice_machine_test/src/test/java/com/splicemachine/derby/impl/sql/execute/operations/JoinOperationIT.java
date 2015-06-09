@@ -24,10 +24,10 @@ public class JoinOperationIT {
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
         Collection<Object[]> params = Lists.newArrayListWithCapacity(4);
-        params.add(new Object[]{"NESTEDLOOP"});
-        params.add(new Object[]{"SORTMERGE"});
-        params.add(new Object[]{"BROADCAST"});
-//        params.add(new Object[]{"MERGE"});
+//        params.add(new Object[]{"NESTEDLOOP"});
+//        params.add(new Object[]{"SORTMERGE"});
+//        params.add(new Object[]{"BROADCAST"});
+        params.add(new Object[]{"MERGE"});
         return params;
     }
     private String joinStrategy;
