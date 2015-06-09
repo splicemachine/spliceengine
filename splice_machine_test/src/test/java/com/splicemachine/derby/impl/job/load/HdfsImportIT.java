@@ -695,10 +695,12 @@ public class HdfsImportIT extends SpliceUnitTest {
 			String expectedMessage1 = "unexpected end of file";
 			String expectedMessage2 = "org.supercsv.exception.SuperCsvException";
 			String rootCauseMessage = Throwables.getRootCause(t).getMessage();
-			Assert.assertTrue(
-					String.format("Root cause message does not contain '%s' and '%s'.  Actual root cause message is '%s'.", expectedMessage1, expectedMessage2, rootCauseMessage),
-					rootCauseMessage.contains(expectedMessage1) && rootCauseMessage.contains(expectedMessage2));
-		}
+            if (! rootCauseMessage.contains("Intentional task invalidation")) {
+                Assert.assertTrue(
+                        String.format("Root cause message does not contain '%s' and '%s'.  Actual root cause message is '%s'.", expectedMessage1, expectedMessage2, rootCauseMessage),
+                        rootCauseMessage.contains(expectedMessage1) && rootCauseMessage.contains(expectedMessage2));
+            }
+        }
 	}
 
 	/**
@@ -731,10 +733,12 @@ public class HdfsImportIT extends SpliceUnitTest {
 			String expectedMessage1 = "Quoted column beginning on line";
 			String expectedMessage2 = "org.supercsv.exception.SuperCsvException";
 			String rootCauseMessage = Throwables.getRootCause(t).getMessage();
-			Assert.assertTrue(
-					String.format("Root cause message does not contain '%s' and '%s'.  Actual root cause message is '%s'.", expectedMessage1, expectedMessage2, rootCauseMessage),
-					rootCauseMessage.contains(expectedMessage1) && rootCauseMessage.contains(expectedMessage2));
-		}
+            if (! rootCauseMessage.contains("Intentional task invalidation")) {
+                Assert.assertTrue(
+                        String.format("Root cause message does not contain '%s' and '%s'.  Actual root cause message is '%s'.", expectedMessage1, expectedMessage2, rootCauseMessage),
+                        rootCauseMessage.contains(expectedMessage1) && rootCauseMessage.contains(expectedMessage2));
+            }
+        }
 	}
 
 	/**
