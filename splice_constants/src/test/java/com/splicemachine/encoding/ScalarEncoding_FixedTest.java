@@ -1,6 +1,9 @@
 package com.splicemachine.encoding;
 
 import com.splicemachine.encoding.debug.BitFormat;
+import org.junit.Assert;
+import org.apache.hadoop.hbase.util.Bytes;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -82,5 +85,15 @@ public class ScalarEncoding_FixedTest {
         int retVal = ScalarEncoding.getInt(test, false);
         assertEquals(0, retVal);
     }
+
+    @Test
+    @Ignore("DB-3421")
+    public void testEncodeDecodeNegativeBigInt() throws Exception {
+        byte[] test = ScalarEncoding.toBytes(-9208636019293794487l,false);
+        byte[] test2 = ScalarEncoding.toBytes(-9169196554323565708l,false);
+        Assert.assertTrue("encoding incorrect", Bytes.compareTo(test,test2)<0);
+    }
+
+
 
 }
