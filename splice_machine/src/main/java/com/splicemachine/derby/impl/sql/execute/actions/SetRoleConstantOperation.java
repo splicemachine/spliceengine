@@ -13,6 +13,9 @@ import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.util.IdUtil;
+import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
+import com.splicemachine.si.impl.ReadOnlyTxn;
 
 public class SetRoleConstantOperation implements ConstantAction {
     protected final String  roleName;
@@ -52,7 +55,8 @@ public class SetRoleConstantOperation implements ConstantAction {
         TransactionController tc = lcc.getTransactionExecute();
 
         // SQL 2003, section 18.3, General rule 1:
-        if (!tc.isIdle()) {
+        BaseSpliceTransaction txn = ((SpliceTransactionManager) tc).getRawTransaction();
+        if (!(txn.getTxnInformation() instanceof ReadOnlyTxn)) {
             throw StandardException.newException
                 (SQLState.INVALID_TRANSACTION_STATE_ACTIVE_CONNECTION);
         }
