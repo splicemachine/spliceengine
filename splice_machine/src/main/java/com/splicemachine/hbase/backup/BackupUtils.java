@@ -403,6 +403,31 @@ public class BackupUtils {
         }
     }
 
+    public static void deleteBackup(long backupId) throws StandardException{
+        Txn txn = null;
+        try {
+            txn = TransactionLifecycle.getLifecycleManager()
+                    .beginTransaction()
+                    .elevateToWritable("backup".getBytes());
+            Backup backup = new Backup();
+            backup.setBackupId(backupId);
+            BackupSystemProcedures.backupReporter.remove(backup, txn);
+            if (LOG.isTraceEnabled()) {
+                String record = String.format("(%d)", backupId);
+                LOG.trace("removed " + record + " from sys.sysbackup");
+            }
+            txn.commit();
+        }
+        catch (Exception e) {
+            try {
+                txn.rollback();
+            }catch(Exception ex) {
+                throw Exceptions.parseException(ex);
+            }
+            throw Exceptions.parseException(e);
+        }
+    }
+
     /**
      * Look for an entry for an HFile in BACKUP.BACKUP_FILESET
      * @param tableName name of HBase table
