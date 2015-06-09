@@ -13,6 +13,7 @@
 *.prefs
 *.rej
 *.run.xml
+**/*.log.*
 
 
 
