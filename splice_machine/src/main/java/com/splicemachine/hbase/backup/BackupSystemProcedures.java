@@ -337,7 +337,7 @@ public class BackupSystemProcedures {
      */
     public static void SYSCS_DELETE_BACKUP(long backupId, ResultSet[] resultSets)
             throws StandardException, SQLException {
-        String query = "select filesystem from backup.backup where transaction_id=?";
+        String query = "select filesystem from sys.sysbackup where backup_id=?";
 
         IteratorNoPutResultSet inprs = null;
         LanguageConnectionContext lcc = null;
@@ -355,9 +355,6 @@ public class BackupSystemProcedures {
             String filesystem = rs.getString(1);
             rs.close();
             deleteBackup(filesystem, backupId);
-            List<Long> backupIdList = new ArrayList<Long>();
-            backupIdList.add(backupId);
-            deleteBackupFromTable(backupIdList, conn);
         }
         catch (Throwable t) {
 
@@ -395,7 +392,7 @@ public class BackupSystemProcedures {
             Timestamp ts = new Timestamp(calendar.getTimeInMillis());
 
             //Get backups that are more than backupWindow days old
-            String sqlText = "select filesystem, transaction_id from backup.backup where begin_timestamp<?";
+            String sqlText = "select filesystem, backup_id from sys.sysbackup where begin_timestamp<?";
             PreparedStatement ps = conn.prepareStatement(sqlText);
             ps.setTimestamp(1, ts);
             ResultSet rs = ps.executeQuery();
@@ -405,9 +402,9 @@ public class BackupSystemProcedures {
                 long backupId = rs.getLong(2);
                 backupIdList.add(backupId);
                 deleteBackup(filesystem, backupId);
+                BackupUtils.deleteBackup(backupId);
             }
             rs.close();
-            deleteBackupFromTable(backupIdList, conn);
         }
         catch (Throwable t) {
 
@@ -645,27 +642,12 @@ public class BackupSystemProcedures {
         }
     }
 
-    private static void deleteBackup(String directory, long backupId) throws IOException{
-        Path path = new Path(directory + "/BACKUP$" + backupId);
+    private static void deleteBackup(String directory, long backupId) throws IOException, StandardException{
+        Path path = new Path(directory + "/BACKUP_" + backupId);
         FileSystem fs = FileSystem.get(URI.create(path.toString()), SpliceConstants.config);
         if (fs.exists(path)) {
             fs.delete(path, true);
         }
-    }
-    private static void deleteBackupFromTable(List<Long> backupIdList, Connection conn)
-                                                                                throws IOException, SQLException{
-        if (backupIdList == null || backupIdList.size() == 0) {
-            return;
-        }
-
-        String s = "(";
-        for (long backupId : backupIdList) {
-            s += backupId + ",";
-        }
-        s = s.substring(0, s.length()-1) + ")";
-
-        String sqlText = "delete from backup.backup where transaction_id in " + s;
-        PreparedStatement ps = conn.prepareStatement(sqlText);
-        ps.execute();
+        BackupUtils.deleteBackup(backupId);
     }
 }

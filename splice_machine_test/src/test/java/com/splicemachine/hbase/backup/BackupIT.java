@@ -102,8 +102,12 @@ public class BackupIT extends SpliceUnitTest {
         //spliceClassWatcher.splitTable(TABLE_NAME1, SCHEMA_NAME, 750);
         Thread.sleep(10000);
         backup("incremental");
-        verifyIncrementalBackup(getBackupId(), conglomerateNumber1, false);
-        verifyIncrementalBackup(getBackupId(), conglomerateNumber2, true);
+        long backupId = getBackupId();
+        verifyIncrementalBackup(backupId, conglomerateNumber1, false);
+        verifyIncrementalBackup(backupId, conglomerateNumber2, true);
+
+        delete_backup(backupId);
+        Assert.assertTrue(backupId > getBackupId());
     }
 
     private void insertData(String tableName) throws Exception {
@@ -204,5 +208,10 @@ public class BackupIT extends SpliceUnitTest {
         PreparedStatement ps = connection.prepareStatement(format("call SYSCS_UTIL.SYSCS_RESTORE_DATABASE('%s', %d)", backupDir.getAbsolutePath(), backupId));
         ps.execute();
         System.out.println("Restore completed.");
+    }
+
+    private void delete_backup(long backupId) throws Exception{
+        PreparedStatement ps = connection.prepareStatement(format("call SYSCS_UTIL.SYSCS_DELETE_BACKUP(%d)", backupId));
+        ps.execute();
     }
 }
