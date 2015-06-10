@@ -1,19 +1,18 @@
 package com.splicemachine.db.impl.sql.execute;
 
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.Arrays;
+import java.util.Iterator;
+
+import com.splicemachine.db.iapi.services.io.ArrayUtil;
+import com.splicemachine.db.iapi.services.io.Formatable;
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.dictionary.GenericDescriptorList;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
-
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
-import com.splicemachine.db.iapi.services.io.ArrayUtil;
-import com.splicemachine.db.iapi.services.io.Formatable;
-
-import java.io.ObjectOutput;
-import java.io.ObjectInput;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Iterator;
 
 /**
  * This is a simple class used to store the run time information
@@ -62,15 +61,6 @@ public final class TriggerInfo implements Formatable {
         for (int i = 0; i < size; i++) {
             triggerDescriptors[i] = descIter.next();
         }
-    }
-
-    /*
-     * private constructor for TriggerInfo
-     */
-    private TriggerInfo(TriggerDescriptor[] triggers, int[] changedColsIds, String[] changedColsNames) {
-        this.columnIds = changedColsIds;
-        this.columnNames = changedColsNames;
-        this.triggerDescriptors = triggers;
     }
 
     public boolean hasBeforeStatementTrigger() {

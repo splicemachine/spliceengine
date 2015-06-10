@@ -24,10 +24,7 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
-import com.splicemachine.db.iapi.sql.compile.ExpressionClassBuilderInterface;
-import com.splicemachine.db.iapi.sql.compile.JoinStrategy;
-import com.splicemachine.db.iapi.sql.compile.Optimizable;
-import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
+import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
@@ -200,6 +197,14 @@ public abstract class BaseJoinStrategy implements JoinStrategy{
     @Override
     public boolean allowsJoinPredicatePushdown(){
         return false;
+    }
+
+    @Override
+    public void setRowOrdering(CostEstimate costEstimate){
+        /*
+         * By default, we do nothing here, because more join strategies inherit the sort order
+         * of the outer table (which is the default behavior).
+         */
     }
 
     /**

@@ -329,14 +329,6 @@ public class TableElementList extends QueryTreeNodeVector {
             {
                 // for UNIQUE, check that columns are unique
                 verifyUniqueColumnList(ddlStmt, cdn);
-
-                // unique constraints on nullable columns added in 10.4, 
-                // disallow until database hard upgraded at least to 10.4.
-                if (!dd.checkVersion(
-                        DataDictionary.DD_VERSION_DERBY_10_4, null))
-                {
-                    checkForNullColumns(cdn, td);
-                }
             }
             else if (cdn.hasForeignKeyConstraint())
             {
@@ -1088,23 +1080,17 @@ public class TableElementList extends QueryTreeNodeVector {
                 // "unique with duplicate null" backing index for constraints 
                 // that contain at least one nullable column.
 
-				if (constraintDN.constraintType ==
-					DataDictionary.UNIQUE_CONSTRAINT && 
-					(dd.checkVersion(
-                         DataDictionary.DD_VERSION_DERBY_10_4, null))) 
-                {
+				if (constraintDN.constraintType == DataDictionary.UNIQUE_CONSTRAINT) {
                     boolean contains_nullable_columns = 
                         areColumnsNullable(constraintDN, td);
 
                     // if all the columns are non nullable, continue to use
                     // a unique backing index.
-                    boolean unique = 
-                        !contains_nullable_columns;
+                    boolean unique = !contains_nullable_columns;
 
                     // Only use a "unique with duplicate nulls" backing index
                     // for constraints with nullable columns.
-                    boolean uniqueWithDuplicateNulls = 
-                        contains_nullable_columns;
+                    boolean uniqueWithDuplicateNulls = contains_nullable_columns;
 
 					indexAction = genIndexAction(
 						forCreateTable,
@@ -1526,15 +1512,8 @@ public class TableElementList extends QueryTreeNodeVector {
                 dtd = getColumnDataTypeDescriptor(colName, td);
             }
             // todo dtd may be null if the column does not exist, we should check that first
-            if (dtd != null && dtd.isNullable())
-            {
-                String errorState = 
-                   (getLanguageConnectionContext().getDataDictionary()
-                        .checkVersion(DataDictionary.DD_VERSION_DERBY_10_4, null))
-                    ? SQLState.LANG_ADD_PRIMARY_KEY_ON_NULL_COLS
-                    : SQLState.LANG_DB2_ADD_UNIQUE_OR_PRIMARY_KEY_ON_NULL_COLS;
-
-                throw StandardException.newException(errorState, colName);
+            if (dtd != null && dtd.isNullable()) {
+                throw StandardException.newException(SQLState.LANG_ADD_PRIMARY_KEY_ON_NULL_COLS, colName);
             }
         }
     }

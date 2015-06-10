@@ -814,21 +814,10 @@ public final class RawStore implements RawStoreFactory, ModuleControl, ModuleSup
                 // Create the backup jar directory
                 if (!privMkdirs(backupJarDir))
                 {
-                    throw StandardException.newException(
-                          SQLState.RAWSTORE_CANNOT_CREATE_BACKUP_DIRECTORY,
-                          (File) backupJarDir);
+                    throw StandardException.newException(SQLState.RAWSTORE_CANNOT_CREATE_BACKUP_DIRECTORY, backupJarDir);
                 }
 
-                LanguageConnectionContext lcc = 
-                    (LanguageConnectionContext)ContextService.getContextOrNull(
-                        LanguageConnectionContext.CONTEXT_ID);
-        
-                // DERBY-5357 UUIDs introduced in jar file names in 10.9
-                boolean uuidSupported =
-                    lcc.getDataDictionary().
-                    checkVersion(DataDictionary.DD_VERSION_DERBY_10_9, null);
 
-                if (uuidSupported) {
                     // no subdirectories
                     for (int i = 0; i < jarDirContents.length; i++) {
                         StorageFile jar = storageFactory.newStorageFile(
@@ -853,29 +842,10 @@ public final class RawStore implements RawStoreFactory, ModuleControl, ModuleSup
                                     jar, backupJar);
                         }
                     }
-                } else {
-                    for (int i = 0; i < jarDirContents.length; i++) {
-                        StorageFile jarSchemaDir =
-                            storageFactory.newStorageFile(
-                                jarDir, jarDirContents[i]);
 
-                        File backupJarSchemaDir =
-                            new File(backupJarDir, jarDirContents[i]);
-
-                        if (!privCopyDirectory(
-                                    jarSchemaDir, backupJarSchemaDir,
-                                    (byte[])null, null, false)) {
-                            throw StandardException.
-                                newException(
-                                    SQLState.RAWSTORE_ERROR_COPYING_FILE,
-                                    jarSchemaDir, backupJarSchemaDir);
-                        }
-                    }
-                }
             }
 
-
-            // save service properties into the backup, Read in property 
+            // save service properties into the backup, Read in property
             // from service.properties file, remove logDevice from it, 
             // then write it to the backup.
 

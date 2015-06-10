@@ -527,14 +527,7 @@ public final class NumericTypeCompiler extends BaseTypeCompiler
 		*/
 		else
 		{
-			// in case we have integer part overflow, then we decrease scale
-			// in order to avoid format overflow error
-			// e.g. for DECIMAL(31,30) and DECIMAL(8,1) result will be
-			// 31 - max (31 - 30, 8 - 1) - 1 = 23
-			// instead of max (30,1) = 30
-			// and it will leave 8 digits for integer part
-			val = Math.min(Math.max(lscale, rscale),
-					NumberDataValue.MAX_DECIMAL_PRECISION_SCALE - Math.max(rprec - rscale, lprec-lscale) - 1);
+			val = Math.max(lscale, rscale);
 		}
 
 		if (val > Integer.MAX_VALUE)

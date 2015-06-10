@@ -2949,14 +2949,11 @@ public abstract class EmbedResultSet extends ConnectionChild
                 return;
             }
             
-            final StringDataValue dvd = (StringDataValue)
-                    getDVDforColumnToBeUpdated(columnIndex, updateMethodName);
+            final StringDataValue dvd = (StringDataValue) getDVDforColumnToBeUpdated(columnIndex, updateMethodName);
             // In the case of updatable result sets, we cannot guarantee that a
             // context is pushed when the header needs to be generated. To fix
             // this, tell the DVD/generator which header format to use.
-            dvd.setStreamHeaderFormat(Boolean.valueOf(
-                    !getEmbedConnection().getDatabase().getDataDictionary().
-                    checkVersion(DataDictionary.DD_VERSION_DERBY_10_5, null)));
+            dvd.setStreamHeaderFormat(Boolean.FALSE);
             ReaderToUTF8Stream utfIn;
             int usableLength = DataValueDescriptor.UNKNOWN_LOGICAL_LENGTH;
             if (!lengthLess) {

@@ -70,7 +70,8 @@ public final class TriggerNewTransitionRows extends com.splicemachine.db.vti.Upd
 		{
 			throw new SQLException("There are no active triggers", "38000");
 		}
-		resultSet = tec.getNewRowSet();
+        // JC - TEC no longer returns ResultSets, it returns ExecRows. This class is not used.
+//		resultSet = tec.getNewRowSet();
 
 		if (resultSet == null)
 		{

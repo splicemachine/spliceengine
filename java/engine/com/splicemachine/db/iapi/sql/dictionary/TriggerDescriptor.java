@@ -636,6 +636,8 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
         dm.invalidateFor(spsd, DependencyManager.DROP_TRIGGER, lcc);
         dm.clearDependencies(lcc, spsd);
         dd.dropSPSDescriptor(spsd, tc);
+        // Remove all TECs from trigger stack. They will need to be rebuilt.
+        lcc.popAllTriggerExecutionContexts();
 
         if (getWhenClauseId() != null) {
             spsd = dd.getSPSDescriptor(getWhenClauseId());

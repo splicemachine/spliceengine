@@ -24,10 +24,8 @@ package com.splicemachine.db.impl.services.stream;
 import com.splicemachine.db.iapi.services.stream.InfoStreams;
 import com.splicemachine.db.iapi.services.stream.HeaderPrintWriter;
 import com.splicemachine.db.iapi.services.stream.PrintWriterGetHeader;
-
 import com.splicemachine.db.iapi.services.monitor.ModuleControl;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
-
 import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
 
@@ -37,14 +35,16 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.File;
 import java.io.Writer;
-
 import java.util.Properties;
-
 import java.lang.reflect.Method;
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.lang.reflect.Member;
 import java.lang.reflect.InvocationTargetException;
+import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
 import com.splicemachine.db.iapi.services.i18n.MessageService;
 import com.splicemachine.db.iapi.services.io.FileUtil;
 import com.splicemachine.db.shared.common.reference.MessageId;
@@ -186,11 +186,12 @@ public class SingleStream implements InfoStreams, ModuleControl, java.security.P
 				streamFile = new File((File) monitorEnv, fileName);
 		}
 
+		boolean archived = archiveLogFileIfNeeded(streamFile);
+
 		FileOutputStream	fos;
 
 		try {
-
-			if (streamFile.exists() && appendInfoLog)
+			if (streamFile.exists() && appendInfoLog && !archived)
 				fos = new FileOutputStream(streamFile.getPath(), true);
 			else
 				fos = new FileOutputStream(streamFile);
@@ -205,6 +206,22 @@ public class SingleStream implements InfoStreams, ModuleControl, java.security.P
 			true, streamFile.getPath());
 	}
 
+	/**
+	 * Returns <code>true</code> if it was determined that the existing log file
+	 * should be archived and that this operation was successful. Otherwise,
+	 * returns <code>false</code>.
+	 */
+	protected boolean archiveLogFileIfNeeded(File logFile) {
+		// Default Derby behavior is to return false,
+		// which means we don't archive the log file,
+		// just truncate it or append to it depending
+		// on the configuration.
+		//
+		// This is generally only to be called as a hook
+		// from PBmakeFileHPW method.
+		return false;
+	}
+	
 	private HeaderPrintWriter makeMethodHPW(String methodInvocation,
 											PrintWriterGetHeader header) {
 

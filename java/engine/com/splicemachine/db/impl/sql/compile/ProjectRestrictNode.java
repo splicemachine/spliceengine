@@ -509,12 +509,8 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
 
 			/* Replace this PRN with a HRN if we are doing a hash join */
             if(trulyTheBestAccessPath.getJoinStrategy().isHashJoin()){
-                if(SanityManager.DEBUG){
-                    SanityManager.ASSERT(restrictionList!=null,
-                            "restrictionList expected to be non-null");
-                    SanityManager.ASSERT(restrictionList.size()!=0,
-                            "restrictionList.size() expected to be non-zero");
-                }
+                assert restrictionList!=null: "restrictionList expected to be non-null";
+                assert restrictionList.size()!=0: "restrictionList.size() expected to be non-zero";
 				/* We're doing a hash join on an arbitary result set.
 				 * We need to get the table number from this node when
 				 * dividing up the restriction list for a hash join.
@@ -537,7 +533,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         else if(!(childResult instanceof FromBaseTable)){
 			/* Make sure that we have a join strategy */
             if(trulyTheBestAccessPath.getJoinStrategy()==null){
-                trulyTheBestAccessPath=(AccessPathImpl)((Optimizable)childResult).getTrulyTheBestAccessPath();
+                trulyTheBestAccessPath=((Optimizable)childResult).getTrulyTheBestAccessPath();
             }
 
             // If the childResult is a SetOperatorNode (esp. a UnionNode),

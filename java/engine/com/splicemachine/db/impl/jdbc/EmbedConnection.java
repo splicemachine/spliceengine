@@ -1329,21 +1329,11 @@ public abstract class EmbedConnection implements EngineConnection
 
 			DataDictionary dd = lcc.getDataDictionary();
 
-			// Check is only performed if we have
-			// db.database.sqlAuthorization == true and we have
-			// upgraded dictionary to at least level 10.4 (roles
-			// introduced in 10.4):
-			if (lcc.usesSqlAuthorization() &&
-				dd.checkVersion(DataDictionary.DD_VERSION_DERBY_10_4, null)) {
-
-				TransactionController tc = lcc.getTransactionExecute();
-
-				String failedString =
-					MessageService.getTextMessage(MessageId.AUTH_INVALID);
-
+			// Check is only performed if we have db.database.sqlAuthorization == true
+			if (lcc.usesSqlAuthorization()) {
+				String failedString = MessageService.getTextMessage(MessageId.AUTH_INVALID);
 				if (dd.getRoleDefinitionDescriptor(username) != null) {
-					throw newSQLException(SQLState.NET_CONNECT_AUTH_FAILED,
-										  failedString);
+					throw newSQLException(SQLState.NET_CONNECT_AUTH_FAILED, failedString);
 				}
 			}
 

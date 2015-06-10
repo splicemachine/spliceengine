@@ -958,7 +958,7 @@ public final class SQLTimestamp extends DataType
 	private Timestamp computeGregorianCalendarTimestamp(int year) {
 		GregorianCalendar c = new GregorianCalendar();
 		c.clear();
-		c.set(year, SQLDate.getMonth(encodedDate) - 1, SQLDate.getDay(encodedDate));
+		c.set(year, SQLDate.getMonth(encodedDate) - 1, SQLDate.getDay(encodedDate), SQLTime.getHour(encodedTime), SQLTime.getMinute(encodedTime), SQLTime.getSecond(encodedTime));
 		// c.setTimeZone(...); if necessary
 		return new Timestamp(c.getTimeInMillis());
 	}

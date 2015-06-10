@@ -30,7 +30,6 @@ public class Level2OptimizerTrace implements OptimizerTrace{
                 traceString= "Optimization started at time "+ optimizer.timeOptimizationStarted+
                         " using optimizer "+this.hashCode();
                 break;
-
             case TIME_EXCEEDED:
                 traceString="Optimization time exceeded at time "+optimizer.currentTime+"\n"+bestCost();
                 break;
@@ -251,14 +250,17 @@ public class Level2OptimizerTrace implements OptimizerTrace{
                         ", statistics start/stop selectivity is : "+
                         doubleParam;
                 break;
+            case INFEASIBLE_JOIN:
+                traceString="Skipping join Strategy "+ objectParam1+" because it is infeasible";
+                break;
             default:
                 throw new IllegalStateException("Unexpected Trace flag: "+ flag);
         }
         assert traceString!=null: "TraceString expected to be non-null";
-        trace(traceString);
+        trace(flag.level(),traceString);
     }
 
-    protected void trace(String traceString){
+    protected void trace(TraceLevel level,String traceString){
         lcc.appendOptimizerTraceOutput(traceString+"\n");
     }
 

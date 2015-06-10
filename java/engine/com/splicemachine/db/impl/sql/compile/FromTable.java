@@ -63,10 +63,10 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
     float loadFactor=HashScanResultSet.DEFAULT_LOADFACTOR;
     int maxCapacity=HashScanResultSet.DEFAULT_MAX_CAPACITY;
 
-    AccessPathImpl currentAccessPath;
-    AccessPathImpl bestAccessPath;
-    AccessPathImpl bestSortAvoidancePath;
-    AccessPathImpl trulyTheBestAccessPath;
+    AccessPath currentAccessPath;
+    AccessPath bestAccessPath;
+    AccessPath bestSortAvoidancePath;
+    AccessPath trulyTheBestAccessPath;
 
     private int joinStrategyNumber;
 
@@ -264,11 +264,12 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         Optimizer optimizer=ap.getOptimizer();
 
         AccessPath currentAccessPath=getCurrentAccessPath();
-        ap.setJoinStrategy(currentAccessPath.getJoinStrategy());
+        JoinStrategy joinStrategy=currentAccessPath.getJoinStrategy();
+        ap.setJoinStrategy(joinStrategy);
         ap.setHintedJoinStrategy(currentAccessPath.isHintedJoinStrategy());
 
         OptimizerTrace tracer=optimizer.tracer();
-        tracer.trace(OptimizerFlag.REMEMBERING_JOIN_STRATEGY,tableNumber,0,0.0,currentAccessPath.getJoinStrategy());
+        tracer.trace(OptimizerFlag.REMEMBERING_JOIN_STRATEGY,tableNumber,0,0.0,joinStrategy);
 
         if(ap==bestAccessPath){
             tracer.trace(OptimizerFlag.REMEMBERING_BEST_ACCESS_PATH_SUBSTRING,tableNumber,0,0.0,ap);
@@ -769,16 +770,16 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
     @Override
     public void initAccessPaths(Optimizer optimizer){
         if(currentAccessPath==null){
-            currentAccessPath=new AccessPathImpl(optimizer);
+            currentAccessPath=optimizer.newAccessPath();
         }
         if(bestAccessPath==null){
-            bestAccessPath=new AccessPathImpl(optimizer);
+            bestAccessPath=optimizer.newAccessPath();
         }
         if(bestSortAvoidancePath==null){
-            bestSortAvoidancePath=new AccessPathImpl(optimizer);
+            bestSortAvoidancePath=optimizer.newAccessPath();
         }
         if(trulyTheBestAccessPath==null){
-            trulyTheBestAccessPath=new AccessPathImpl(optimizer);
+            trulyTheBestAccessPath=optimizer.newAccessPath();
         }
     }
 

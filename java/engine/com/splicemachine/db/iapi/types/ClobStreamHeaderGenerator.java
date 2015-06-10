@@ -107,6 +107,7 @@ public final class ClobStreamHeaderGenerator
      * @return {@code false} if a byte count is expected (prior to 10.5),
      *      {@code true} if a character count is expected (10.5 and newer).
      */
+    @Override
     public boolean expectsCharCount() {
         if (callbackDVD != null && isPreDerbyTenFive == null) {
             determineHeaderFormat();
@@ -124,6 +125,7 @@ public final class ClobStreamHeaderGenerator
      * @param valueLength the length to encode in the header
      * @return The number of bytes written into the buffer.
      */
+    @Override
     public int generateInto(byte[] buf, int offset, long valueLength) {
         if (callbackDVD != null && isPreDerbyTenFive == null) {
             determineHeaderFormat();
@@ -159,6 +161,7 @@ public final class ClobStreamHeaderGenerator
      * @return The number of bytes written to the destination stream.
      * @throws IOException if writing to the destination stream fails
      */
+    @Override
     public int generateInto(ObjectOutput out, long valueLength)
             throws IOException {
         if (callbackDVD != null && isPreDerbyTenFive == null) {
@@ -196,6 +199,7 @@ public final class ClobStreamHeaderGenerator
      * @param valueLength the length of the stream
      * @return Number of bytes written (zero or more).
      */
+    @Override
     public int writeEOF(byte[] buffer, int offset, long valueLength) {
         if (callbackDVD != null && isPreDerbyTenFive == null) {
             determineHeaderFormat();
@@ -221,6 +225,7 @@ public final class ClobStreamHeaderGenerator
      * @param valueLength the length of the stream
      * @return Number of bytes written (zero or more).
      */
+    @Override
     public int writeEOF(ObjectOutput out, long valueLength)
             throws IOException {
         if (callbackDVD != null && isPreDerbyTenFive == null) {
@@ -243,6 +248,7 @@ public final class ClobStreamHeaderGenerator
      *
      * @return Maximum header length in bytes.
      */
+    @Override
     public int getMaxHeaderLength() {
         return 5;
     }
@@ -257,24 +263,12 @@ public final class ClobStreamHeaderGenerator
      * @throws IllegalStateException if there is no context
      */
     private void determineHeaderFormat() {
-        DatabaseContext dbCtx = (DatabaseContext)
-                ContextService.getContext(DatabaseContext.CONTEXT_ID);
+        DatabaseContext dbCtx = (DatabaseContext) ContextService.getContext(DatabaseContext.CONTEXT_ID);
         if (dbCtx == null) {
             throw new IllegalStateException("No context, unable to determine " +
                     "which stream header format to generate");
         } else {
-            DataDictionary dd = dbCtx.getDatabase().getDataDictionary();
-            try {
-                isPreDerbyTenFive = Boolean.valueOf(!dd.checkVersion(
-                        DataDictionary.DD_VERSION_DERBY_10_5, null));
-            } catch (StandardException se) {
-                // This should never happen as long as the second argument
-                // above is null. If it happens, just bomb out.
-                IllegalStateException ise =
-                        new IllegalStateException(se.getMessage());
-                ise.initCause(se);
-                throw ise;
-            }
+            isPreDerbyTenFive = false;
             // Update the DVD with information about the mode the database is
             // being accessed in. It is assumed that a DVD is only shared
             // within a single database, i.e. the mode doesn't change during

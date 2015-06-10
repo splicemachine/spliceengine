@@ -558,25 +558,10 @@ class CreateIndexConstantAction extends IndexConstantAction
         }
 
         // Tell it the conglomerate id of the base table
-        indexProperties.put("baseConglomerateId",
-                            Long.toString(td.getHeapConglomerateId()));
+        indexProperties.put("baseConglomerateId", Long.toString(td.getHeapConglomerateId()));
         
-        if (uniqueWithDuplicateNulls)
-        {
-            if (dd.checkVersion(DataDictionary.DD_VERSION_DERBY_10_4, null))
-            {
-                indexProperties.put(
-                    "uniqueWithDuplicateNulls", Boolean.toString(true));
-            }
-            else
-            {
-                // for lower version of DD there is no unique with nulls
-                // index creating a unique index instead.
-                if (uniqueWithDuplicateNulls)
-                {
-                    unique = true;
-                }
-            }
+        if (uniqueWithDuplicateNulls) {
+            indexProperties.put("uniqueWithDuplicateNulls", Boolean.toString(true));
         }
 
         // All indexes are unique because they contain the RowLocation.

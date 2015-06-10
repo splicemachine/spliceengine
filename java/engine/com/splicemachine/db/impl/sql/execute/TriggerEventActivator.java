@@ -21,16 +21,18 @@
 
 package com.splicemachine.db.impl.sql.execute;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Vector;
+
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.jdbc.ConnectionContext;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
 import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
-import com.splicemachine.db.iapi.store.access.TransactionController;
-
-import java.util.*;
 
 /**
  * Responsible for firing a trigger or set of triggers based on an event.
@@ -43,7 +45,6 @@ public class TriggerEventActivator {
     private Map<TriggerEvent, List<GenericTriggerExecutor>> statementExecutorsMap = new HashMap<>();
     private Map<TriggerEvent, List<GenericTriggerExecutor>> rowExecutorsMap = new HashMap<>();
     private Activation activation;
-    private ConnectionContext cc;
     private String statementText;
     private UUID tableId;
     private String tableName;
@@ -51,15 +52,12 @@ public class TriggerEventActivator {
     /**
      * Basic constructor
      *
-     * @param lcc         the lcc
-     * @param tc          the xact controller
+     * @param tableId     UUID of the target table
      * @param triggerInfo the trigger information
      * @param activation  the activation.
      * @param aiCounters  vector of ai counters
      */
-    public TriggerEventActivator(LanguageConnectionContext lcc,
-                                 TransactionController tc,
-                                 UUID tableId,
+    public TriggerEventActivator(UUID tableId,
                                  TriggerInfo triggerInfo,
                                  Activation activation,
                                  Vector<AutoincrementCounter> aiCounters) throws StandardException {
@@ -68,11 +66,10 @@ public class TriggerEventActivator {
         }
         // extrapolate the table name from the triggerdescriptors
         this.tableName = triggerInfo.getTriggerDescriptors()[0].getTableDescriptor().getQualifiedName();
-        this.lcc = lcc;
         this.activation = activation;
         this.tableId = tableId;
         this.triggerInfo = triggerInfo;
-        this.cc = (ConnectionContext) lcc.getContextManager().getContext(ConnectionContext.CONTEXT_ID);
+        this.lcc = activation.getLanguageConnectionContext();
         this.statementText = lcc.getStatementContext().getStatementText();
 
         initTriggerExecContext(aiCounters);
@@ -82,8 +79,9 @@ public class TriggerEventActivator {
     private void initTriggerExecContext(Vector<AutoincrementCounter> aiCounters) throws StandardException {
         GenericExecutionFactory executionFactory = (GenericExecutionFactory) lcc.getLanguageConnectionFactory().getExecutionFactory();
         this.tec = executionFactory.getTriggerExecutionContext(
-                lcc, cc, statementText, triggerInfo.getColumnIds(), triggerInfo.getColumnNames(),
+               statementText, triggerInfo.getColumnIds(), triggerInfo.getColumnNames(),
                 tableId, tableName, aiCounters);
+        this.lcc.pushTriggerExecutionContext(this.tec);
     }
 
     /**
@@ -180,6 +178,7 @@ public class TriggerEventActivator {
     public void cleanup() throws StandardException {
         if (tec != null) {
             tec.cleanup();
+            lcc.popTriggerExecutionContext(tec);
         }
     }
 
