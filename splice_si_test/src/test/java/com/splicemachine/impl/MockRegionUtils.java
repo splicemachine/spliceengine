@@ -2,20 +2,12 @@ package com.splicemachine.impl;
 
 import com.google.common.base.Predicate;
 import com.google.common.collect.*;
-import com.splicemachine.constants.SIConstants;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.impl.IteratorRegionScanner;
-import com.splicemachine.si.api.TxnView;
-import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.light.LDataLib;
-import com.splicemachine.utils.ByteSlice;
 
 import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.HConstants;
-import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.*;
-import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -28,7 +20,6 @@ import java.io.IOException;
 import java.util.*;
 
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyBoolean;
 import static org.mockito.Mockito.*;
 
 /**
