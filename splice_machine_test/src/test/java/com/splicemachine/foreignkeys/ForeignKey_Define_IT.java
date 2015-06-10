@@ -1,17 +1,24 @@
 package com.splicemachine.foreignkeys;
 
+import com.google.common.collect.Iterables;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.test.SerialTest;
+import com.splicemachine.test_dao.Constraint;
+import com.splicemachine.test_dao.ConstraintDAO;
 import com.splicemachine.test_dao.TableDAO;
 import com.splicemachine.test_tools.TableCreator;
-import org.junit.*;
+import org.junit.Before;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.ExpectedException;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.SQLIntegrityConstraintViolationException;
+import java.util.List;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
@@ -265,6 +272,32 @@ public class ForeignKey_Define_IT {
         methodWatcher.executeUpdate("drop table C");
         methodWatcher.executeUpdate("drop table P");
     }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    // misc other FK definition tests
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    /* DB-3345 */
+    @Test
+    public void createTable_selfReferencingVerifySysTables() throws Exception {
+        // given - self referencing PK
+        methodWatcher.executeUpdate("create table P(a int primary key, b int references P(a), c int unique)");
+
+        // when - we select all constraints
+        ConstraintDAO constraintDAO = new ConstraintDAO(methodWatcher.getOrCreateConnection());
+
+        // then - we should find three constraints
+        List<Constraint> constraintList = constraintDAO.getAllConstraints("P");
+        assertEquals("constraints: " + constraintList, 3, constraintList.size());
+
+        // then - one should be FK
+        assertNotNull(Iterables.find(constraintList, Constraint.constraintTypePredicate("F")));
+        // then - one should be primary key
+        assertNotNull(Iterables.find(constraintList, Constraint.constraintTypePredicate("P")));
+        // then - one should be unique
+        assertNotNull(Iterables.find(constraintList, Constraint.constraintTypePredicate("U")));
+    }
+
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //
