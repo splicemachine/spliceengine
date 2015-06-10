@@ -10,6 +10,7 @@ import org.junit.Rule;
 import org.junit.Test;
 
 import java.sql.Connection;
+import java.util.regex.Pattern;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
@@ -519,6 +520,67 @@ public class ForeignKey_Check_IT {
         assertQueryFail("update C set j='1999-12-12 12:12:12.012'", "Operation on table 'C' caused a violation of foreign key constraint 'FK9' for key (J).  The statement has been rolled back.");
     }
 
+    /* When there are multiple FKs per column (not just per table) they share the same backing index */
+    @Test
+    public void multipleForeignKeysPerColumn() throws Exception {
+        // given -- three parent tables and one child that references all three
+        methodWatcher.executeUpdate("create table P1(a int primary key)");
+        methodWatcher.executeUpdate("create table P2(a int primary key)");
+        methodWatcher.executeUpdate("create table P3(a int primary key)");
+
+        methodWatcher.executeUpdate("insert into P1 values(1),(9)");
+        methodWatcher.executeUpdate("insert into P2 values(2),(9)");
+        methodWatcher.executeUpdate("insert into P3 values(3),(9)");
+
+        methodWatcher.executeUpdate("create table C(a int, " +
+                "    CONSTRAINT fk1 FOREIGN KEY (a) REFERENCES P1(a)," +
+                "    CONSTRAINT fk2 FOREIGN KEY (a) REFERENCES P2(a)," +
+                "    CONSTRAINT fk3 FOREIGN KEY (a) REFERENCES P3(a)" +
+                ")");
+
+        // then - we can insert into the child a value present all three
+        methodWatcher.executeUpdate("insert into C values(9)");
+
+        // then - we cannot insert any value NOT present in all three
+        assertQueryFailMatch("insert into C values(1)", "Operation on table 'C' caused a violation of foreign key constraint 'FK[2|3]' for key \\(A\\).  The statement has been rolled back.");
+        assertQueryFailMatch("insert into C values(2)", "Operation on table 'C' caused a violation of foreign key constraint 'FK[1|3]' for key \\(A\\).  The statement has been rolled back.");
+        assertQueryFailMatch("insert into C values(3)", "Operation on table 'C' caused a violation of foreign key constraint 'FK[1|2]' for key \\(A\\).  The statement has been rolled back.");
+    }
+
+    /* When there are multiple FKs per column (not just per table) they share the same backing index */
+    @Test
+    public void multipleForeignKeysPerColumn_fkAddedByAlterTable() throws Exception {
+        // given -- three parent tables and one child
+        methodWatcher.executeUpdate("create table P1(a int primary key)");
+        methodWatcher.executeUpdate("create table P2(a int primary key)");
+        methodWatcher.executeUpdate("create table P3(a int primary key)");
+
+        methodWatcher.executeUpdate("insert into P1 values(1),(9)");
+        methodWatcher.executeUpdate("insert into P2 values(2),(9)");
+        methodWatcher.executeUpdate("insert into P3 values(3),(9)");
+
+        methodWatcher.executeUpdate("create table C(a int, " +
+                "    CONSTRAINT fk1 FOREIGN KEY (a) REFERENCES P1(a)," +
+                "    CONSTRAINT fk2 FOREIGN KEY (a) REFERENCES P2(a)," +
+                "    CONSTRAINT fk3 FOREIGN KEY (a) REFERENCES P3(a)" +
+                ")");
+
+        // when - make sure the write context for C is initialized
+        methodWatcher.executeUpdate("insert into C values(9)");
+
+        // when - alter table add FK after write context is initialized
+        methodWatcher.executeUpdate("ALTER table C add FOREIGN KEY (a) REFERENCES P2(a)");
+        methodWatcher.executeUpdate("ALTER table C add FOREIGN KEY (a) REFERENCES P3(a)");
+
+        // then - we can insert into the child a value present all three
+        methodWatcher.executeUpdate("insert into C values(9)");
+
+        // then - we cannot insert any value NOT present in all three
+        assertQueryFailMatch("insert into C values(1)", "Operation on table 'C' caused a violation of foreign key constraint 'FK[2|3]' for key \\(A\\).  The statement has been rolled back.");
+        assertQueryFailMatch("insert into C values(2)", "Operation on table 'C' caused a violation of foreign key constraint 'FK[1|3]' for key \\(A\\).  The statement has been rolled back.");
+        assertQueryFailMatch("insert into C values(3)", "Operation on table 'C' caused a violation of foreign key constraint 'FK[1|2]' for key \\(A\\).  The statement has been rolled back.");
+    }
+
     @Test
     public void multipleTablesReferencingSameTable() throws Exception {
         new TableCreator(connection())
@@ -593,6 +655,16 @@ public class ForeignKey_Check_IT {
             fail();
         } catch (Exception e) {
             assertEquals(expectedExceptionMessage, e.getMessage());
+        }
+    }
+
+    private void assertQueryFailMatch(String sql, String expectedExceptionMessagePattern) {
+        try {
+            methodWatcher.executeUpdate(sql);
+            fail();
+        } catch (Exception e) {
+            assertTrue(String.format("exception '%s' did not match expected pattern '%s'", e.getMessage(), expectedExceptionMessagePattern),
+                    Pattern.compile(expectedExceptionMessagePattern).matcher(e.getMessage()).matches());
         }
     }
 
