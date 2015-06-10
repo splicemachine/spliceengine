@@ -220,7 +220,10 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 	protected ExecRow[] row;
 	protected ParameterValueSet pvs;
 
-		private long numRowsSeen = 0l;
+    protected ExecRow scanStartOverride;
+    protected ExecRow scanStopOverride;
+
+	private long numRowsSeen = 0l;
 	//
 	// constructors
 	//
@@ -1916,4 +1919,22 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
     public DataSetProcessorType getDataSetProcessorType() {
         return this.dataSetProcessorType;
     }
+
+    public void setScanStartOverride(ExecRow scanStartOverride) {
+        this.scanStartOverride = scanStartOverride;
+    }
+
+    public ExecRow getScanStartOverride() {
+        return scanStartOverride;
+    }
+
+    public void setScanStopOverride(ExecRow scanStopOverride) {
+        this.scanStopOverride = scanStopOverride;
+    }
+
+    public ExecRow getScanStopOverride() {
+        return scanStopOverride;
+    }
+
+
 }
