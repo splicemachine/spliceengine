@@ -17,11 +17,11 @@ public class KeyValueUtils {
 		}
 		
 		public static boolean singleMatchingFamily(KeyValue keyValue, byte[] family) {
-			return keyValue.getBuffer()[keyValue.getFamilyOffset()] == family[0];
+			return keyValue.getFamilyArray()[keyValue.getFamilyOffset()] == family[0];
 		}
 
 		public static boolean singleMatchingQualifier(KeyValue keyValue, byte[] qualifier) {
-			return keyValue.getBuffer()[keyValue.getQualifierOffset()] == qualifier[0];
+			return keyValue.getQualifierArray()[keyValue.getQualifierOffset()] == qualifier[0];
 		}
 		
 		public static boolean matchingValue(KeyValue keyValue, byte[] value) {
@@ -39,7 +39,9 @@ public class KeyValueUtils {
 		}
 
 		public static KeyValue newKeyValue(KeyValue keyValue, byte[] value) {
-				return new KeyValue(keyValue.getBuffer(),keyValue.getRowOffset(),keyValue.getRowLength(),keyValue.getBuffer(),keyValue.getFamilyOffset(),keyValue.getFamilyLength(),keyValue.getBuffer(),keyValue.getQualifierOffset(),keyValue.getQualifierLength(),keyValue.getTimestamp(), KeyValue.Type.Put,value,0,value==null ? 0 : value.length);
+				return new KeyValue(keyValue.getRowArray(),keyValue.getRowOffset(),keyValue.getRowLength(),
+                        keyValue.getFamilyArray(),keyValue.getFamilyOffset(),keyValue.getFamilyLength(),
+                        keyValue.getQualifierArray(),keyValue.getQualifierOffset(),keyValue.getQualifierLength(),keyValue.getTimestamp(), KeyValue.Type.Put,value,0,value==null ? 0 : value.length);
 		}
 
 		public static KeyValue newKeyValue(byte[] rowKey, byte[] family, byte[] qualifier, Long timestamp, byte[] value) {

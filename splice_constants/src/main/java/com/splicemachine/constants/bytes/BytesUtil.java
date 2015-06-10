@@ -342,7 +342,7 @@ public class BytesUtil {
      * Returns true if the specified KeyValue is contained by the specified range.
      */
     public static boolean isKeyValueInRange(KeyValue kv, Pair<byte[], byte[]> range) {
-        byte[] kvBuffer = kv.getBuffer();
+        byte[] kvBuffer = kv.getRowArray();
         int rowKeyOffset = kv.getRowOffset();
         short rowKeyLength = kv.getRowLength();
         byte[] start = range.getFirst();
