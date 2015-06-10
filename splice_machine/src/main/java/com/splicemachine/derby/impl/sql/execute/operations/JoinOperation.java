@@ -221,10 +221,6 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 				return cols;
 		}
 
-		public OperationResultSet getRightResultSet() {
-				return new OperationResultSet(activation,rightResultSet);
-		}
-
 		public SpliceOperation getLeftResultSet() {
 				return leftResultSet;
 		}
@@ -234,7 +230,11 @@ public abstract class JoinOperation extends SpliceBaseOperation {
 				return leftResultSet;
 		}
 
-		@Override
+        public SpliceOperation getRightResultSet() {
+        return rightResultSet;
+    }
+
+    @Override
 		public SpliceOperation getRightOperation() {
 				return rightResultSet;
 		}

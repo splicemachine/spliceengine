@@ -98,6 +98,8 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 				writeInfo.initialize(context);
 
             WriteCursorConstantOperation constantAction = (WriteCursorConstantOperation) writeInfo.getConstantAction();
+/*            WriteCursorConstantOperation constantAction = (WriteCursorConstantOperation) writeInfo.getConstantAction();
+>>>>>>> Added Remaining Merges
             TriggerInfo triggerInfo = constantAction.getTriggerInfo();
 
             if(this.triggerHandler == null && triggerInfo != null) {
@@ -109,7 +111,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
                             getAfterEvent(getClass())
                     );
                 }
-
+*/
 				startExecutionTime = System.currentTimeMillis();
 		}
 
