@@ -39,7 +39,7 @@ public abstract class BaseRegionMetaScannerVisitor implements MetaScanner.MetaSc
     public boolean processRow(Result rowResult) throws IOException {
         Pair<HRegionInfo, ServerName> infoPair = parseCatalogResult(rowResult);
         HRegionInfo regionInfo = infoPair.getFirst();
-        byte[] currentTableName = regionInfo.getTableName();
+        byte[] currentTableName = regionInfo.getTable().toBytes();
         String currentTableNameString = Bytes.toString(currentTableName);
 
         if (updateTableName != null && !Bytes.equals(updateTableName, currentTableName)) {
