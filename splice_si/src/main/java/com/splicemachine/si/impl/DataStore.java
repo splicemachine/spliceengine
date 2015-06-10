@@ -8,6 +8,7 @@ import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.si.api.TxnSupplier;
 import com.splicemachine.si.data.api.SDataLib;
+import com.splicemachine.si.data.api.SRowLock;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
 import org.apache.hadoop.hbase.client.OperationWithAttributes;
@@ -24,12 +25,12 @@ import static com.splicemachine.constants.SpliceConstants.*;
  * Library of functions used by the SI module when accessing rows from data tables (data tables as opposed to the
  * transaction table).
  */
-public class DataStore<RowLock, Data, Mutation, Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes, Scan, IHTable> {
+public class DataStore<Data, Mutation, Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes, Scan, IHTable> {
     //    private static final Logger LOG = Logger.getLogger(DataStore.class);
 
     public final SDataLib<Data, Put, Delete, Get, Scan> dataLib;
     private final STableReader<IHTable, Get, Scan> reader;
-    private final STableWriter<RowLock, IHTable, Mutation, Put, Delete> writer;
+    private final STableWriter<IHTable, Mutation, Put, Delete> writer;
     private final String siNeededAttribute;
     private final String deletePutAttribute;
     private final TxnSupplier txnSupplier;
@@ -189,7 +190,7 @@ public class DataStore<RowLock, Data, Mutation, Put extends OperationWithAttribu
         return null;
     }
 
-    public OperationStatus[] writeBatch(IHTable table, Pair<Mutation, RowLock>[] mutationsAndLocks) throws IOException {
+    public OperationStatus[] writeBatch(IHTable table, Pair<Mutation, SRowLock>[] mutationsAndLocks) throws IOException {
         return writer.writeBatch(table, mutationsAndLocks);
     }
 

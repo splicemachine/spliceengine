@@ -27,24 +27,6 @@ public class TxnTable extends HbTable {
         this.hbaseClient = hbaseClient;
     }
 
-    private static final RowKeyDistributor distributor = new RowKeyDistributorByHashPrefix(new RowKeyDistributorByHashPrefix.Hasher() {
-        @Override public byte[] getHashPrefix(byte[] originalKey) { return new byte[]{originalKey[0]}; }
-
-        @Override
-        public byte[][] getAllPossiblePrefixes() {
-            byte[][] bytes = new byte[16][];
-            for(int i=0;i<16;i++){
-                bytes[i] = new byte[]{(byte)i};
-            }
-            return bytes;
-        }
-
-        @Override
-        public int getPrefixLength(byte[] adjustedKey) {
-            return 1;
-        }
-    });
-
     @Override
     public CloseableIterator<Result> scan(Scan scan) throws IOException {
         final AsyncScanner scanner = new QueueingAsyncScanner(SIAsyncUtils.convert(scan, hbaseClient, SIConstants.TRANSACTION_TABLE_BYTES),Metrics.noOpMetricFactory());
