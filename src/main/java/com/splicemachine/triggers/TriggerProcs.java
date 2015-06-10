@@ -94,6 +94,27 @@ public class TriggerProcs {
 
     }
 
+    /**
+     * A stored procedure which gets called from a trigger.<br/>
+     * Executes the given sql.
+     * @param sqlText the SQL to execute
+     * @throws SQLException
+     */
+    public static void proc_exec_sql(String sqlText, ResultSet[] rs) throws SQLException {
+        Connection conn = null;
+        Statement statement = null;
+        try {
+            conn = DriverManager.getConnection("jdbc:splice://localhost:1527/splicedb;user=splice;password=admin");
+            statement = conn.createStatement();
+            statement.execute(sqlText);
+            rs[0] = statement.getResultSet();
+        } finally {
+            closeQuietly(statement);
+            closeQuietly(conn);
+        }
+
+    }
+
     private static void closeQuietly(AutoCloseable closeable) {
         if (closeable != null) {
             try {
