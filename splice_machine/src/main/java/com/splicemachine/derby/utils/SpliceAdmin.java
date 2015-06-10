@@ -983,29 +983,37 @@ public class SpliceAdmin extends BaseAdminProcedures {
             // default schema
             schemaName = SpliceConstants.SPLICE_USER;
 
-        String allTablesInSchema =  "SELECT C.CONGLOMERATENUMBER FROM SYS.SYSCONGLOMERATES C, SYS.SYSTABLES T, SYS.SYSSCHEMAS S " +
-                "WHERE T.TABLEID = C.TABLEID AND T.SCHEMAID = S.SCHEMAID AND S.SCHEMANAME = ?";
+        String query;
+        boolean isTableNameEmpty;
 
-        String query =  "SELECT C.CONGLOMERATENUMBER FROM SYS.SYSCONGLOMERATES C, SYS.SYSTABLES T, SYS.SYSSCHEMAS S " +
-                "WHERE T.TABLEID = C.TABLEID AND T.SCHEMAID = S.SCHEMAID AND S.SCHEMANAME = ? AND T.TABLENAME = ?";
-
-        if (tableName == null)
+        if (tableName == null) {
             // all tables in schema
-            query = allTablesInSchema;
+            query = "SELECT C.CONGLOMERATENUMBER FROM SYS.SYSCONGLOMERATES C, SYS.SYSTABLES T, SYS.SYSSCHEMAS S " +
+                    "WHERE T.TABLEID = C.TABLEID AND T.SCHEMAID = S.SCHEMAID AND S.SCHEMANAME = ?";
+            isTableNameEmpty = true;
+        } else {
+            query = "SELECT C.CONGLOMERATENUMBER FROM SYS.SYSCONGLOMERATES C, SYS.SYSTABLES T, SYS.SYSSCHEMAS S " +
+                    "WHERE T.TABLEID = C.TABLEID AND T.SCHEMAID = S.SCHEMAID AND S.SCHEMANAME = ? AND T.TABLENAME = ?";
+            isTableNameEmpty = false;
+        }
 
         ResultSet rs = null;
         PreparedStatement s = null;
         try {
             s = conn.prepareStatement(query);
             s.setString(1, schemaName.toUpperCase());
-            if (tableName != null) {
+            if (!isTableNameEmpty) {
                 s.setString(2, tableName.toUpperCase());
             }
             rs = s.executeQuery();
             while (rs.next()) {
                 conglomIDs.add(rs.getLong(1));
             }
+
             if (conglomIDs.isEmpty()) {
+                if (isTableNameEmpty) {
+                    throw PublicAPI.wrapStandardException(ErrorState.LANG_SCHEMA_DOES_NOT_EXIST.newException(schemaName));
+                }
                 throw PublicAPI.wrapStandardException(ErrorState.LANG_TABLE_NOT_FOUND.newException(tableName));
             }
         } finally {
@@ -1027,6 +1035,7 @@ public class SpliceAdmin extends BaseAdminProcedures {
         Arrays.sort(congloms);
         return congloms;
     }
+
 
     private static class Trip<T, U, V> {
         private final T first;
