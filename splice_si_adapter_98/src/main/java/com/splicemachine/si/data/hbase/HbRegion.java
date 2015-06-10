@@ -21,7 +21,7 @@ import com.splicemachine.si.data.api.SRowLock;
 /**
  * Wrapper that makes an HBase region comply with a standard interface that abstracts across regions and tables.
  */
-public class HbRegion extends BaseHbRegion<SRowLock> {
+public class HbRegion extends BaseHbRegion {
     //    static final Logger LOG = Logger.getLogger(HbRegion.class);
     static final Result EMPTY_RESULT = Result.create(Collections.<Cell>emptyList());
     final HRegion region;
@@ -71,12 +71,7 @@ public class HbRegion extends BaseHbRegion<SRowLock> {
 
     @Override
     public SRowLock lockRow(byte[] rowKey) throws IOException {
-        final SRowLock lock = new HRowLock(region.getRowLock(rowKey, true));
-        if (lock == null) {
-            throw new RuntimeException("Unable to obtain row lock on region of table " + region.getTableDesc()
-                    .getNameAsString());
-        }
-        return lock;
+        return new HRowLock(region.getRowLock(rowKey, true));
     }
 
     @Override

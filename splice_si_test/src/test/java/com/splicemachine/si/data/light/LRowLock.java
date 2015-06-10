@@ -1,6 +1,7 @@
 package com.splicemachine.si.data.light;
 
 import com.splicemachine.si.data.api.SRowLock;
+import org.apache.hadoop.hbase.regionserver.HRegion;
 
 /**
  * @author Scott Fines
@@ -23,8 +24,8 @@ public class LRowLock implements SRowLock {
     }
 
     @Override
-    public Integer getLockId() {
-        return lockId;
+    public HRegion.RowLock getDelegate() {
+        return null;
     }
 
     @Override

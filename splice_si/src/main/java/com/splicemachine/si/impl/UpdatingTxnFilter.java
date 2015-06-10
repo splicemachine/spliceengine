@@ -6,7 +6,7 @@ import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.rollforward.SegmentedRollForward;
 import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
 
-public class UpdatingTxnFilter<RowLock,Data> extends SimpleTxnFilter<RowLock,Data> {
+public class UpdatingTxnFilter<Data> extends SimpleTxnFilter<Data> {
     private final SegmentedRollForward.Context context;
 
     public UpdatingTxnFilter(String tableName,
