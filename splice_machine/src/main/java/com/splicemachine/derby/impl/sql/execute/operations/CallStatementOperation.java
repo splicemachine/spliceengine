@@ -96,22 +96,7 @@ public class CallStatementOperation extends NoRowsOperation {
                 return;
             }
 
-            dynamicStatementInfo = Lists.newArrayListWithExpectedSize(dynamicResults.length);
-            for(ResultSet[] dResults:dynamicResults){
-                if(dResults==null) continue;
 
-                for(ResultSet rs:dResults){
-                    if(rs==null) continue;
-
-                    if(rs instanceof EmbedResultSet){
-                        com.splicemachine.db.iapi.sql.ResultSet underlyingSet = ((EmbedResultSet)rs).getUnderlyingResultSet();
-                        if(underlyingSet instanceof OperationResultSet){
-                            OperationResultSet ors = (OperationResultSet)underlyingSet;
-                            dynamicStatementInfo.add(ors.getStatementInfo());
-                        }
-                    }
-                }
-            }
             timer.stopTiming();
             stopExecutionTime = System.currentTimeMillis();
         }
