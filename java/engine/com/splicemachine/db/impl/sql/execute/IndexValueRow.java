@@ -28,11 +28,13 @@ import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
+import java.io.*;
+
 /**
 	Mapper of ValueRow into ExecIndexRow. 
 
  */
-public class IndexValueRow implements ExecIndexRow {
+public class IndexValueRow implements ExecIndexRow, Serializable {
 
 	private ExecRow valueRow;
 
