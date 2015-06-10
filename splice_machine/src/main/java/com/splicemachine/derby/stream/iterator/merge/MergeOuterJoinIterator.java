@@ -29,11 +29,13 @@ public class MergeOuterJoinIterator extends AbstractMergeJoinIterator {
     @Override
     public boolean hasNext() {
         try {
-            while (currentRightIterator.hasNext()) {
-                ExecRow right = currentRightIterator.next();
-                currentLocatedRow = mergeRows(left, right);
-                if (mergeJoinOperation.getRestriction().apply(currentLocatedRow.getRow())) {
-                    return true;
+            if (left != null) {
+                while (currentRightIterator.hasNext()) {
+                    ExecRow right = currentRightIterator.next();
+                    currentLocatedRow = mergeRows(left, right);
+                    if (mergeJoinOperation.getRestriction().apply(currentLocatedRow.getRow())) {
+                        return true;
+                    }
                 }
             }
             while (leftRS.hasNext()) {
