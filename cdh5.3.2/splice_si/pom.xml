@@ -165,7 +165,7 @@
 								<option>-keep public class com.splicemachine.si.data.api.IHTable { public *; }</option>
 								<option>-keep public class com.splicemachine.si.data.api.SDataLib {public *; }</option>
 								<option>-keep public class com.splicemachine.si.data.api.SRowLock { public *; }</option>
-                                <option>-keep public class com.splicemachine.si.data.hbase.HRowLock { public *; }</option>
+								<option>-keep public class com.splicemachine.si.data.hbase.HRowLock { public *; }</option>
 								<option>-keep public class com.splicemachine.si.data.api.STableReader { public *; }</option>
 								<option>-keep public class com.splicemachine.si.data.api.STableWriter { public *; }</option>
 								<option>-keep public class com.splicemachine.si.data.hbase.BaseHbRegion { public *; protected *;}</option>
