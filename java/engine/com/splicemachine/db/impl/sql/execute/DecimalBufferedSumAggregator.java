@@ -16,12 +16,16 @@ import java.util.Arrays;
  *         Date: 5/16/14
  */
 public class DecimalBufferedSumAggregator extends SumAggregator {
-		private final BigDecimal[] buffer;
-		private final int length;
+		private BigDecimal[] buffer;
+		private int length;
 		private int position;
 
 		private BigDecimal sum = BigDecimal.ZERO;
 		private boolean isNull = true;
+
+        public DecimalBufferedSumAggregator() { // SERDE
+
+        }
 
 		public DecimalBufferedSumAggregator(int bufferSize) {
 				int s = 1;
