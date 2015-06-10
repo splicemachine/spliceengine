@@ -59,6 +59,17 @@ TAR structure:
 			</includes>
 		</dependencySet>
 
+		<dependencySet>
+			<outputDirectory>splicemachine/jdbc-driver</outputDirectory>
+			<useStrictFiltering>false</useStrictFiltering>
+			<useTransitiveDependencies>false</useTransitiveDependencies>
+			<useProjectArtifact>false</useProjectArtifact>
+			<outputFileNameMapping>splicedriver-${artifact.baseVersion}${dashClassifier?}.${artifact.extension}</outputFileNameMapping>
+			<includes>
+				<include>com.splicemachine:dbclient*</include>
+			</includes>
+		</dependencySet>
+
 	</dependencySets>
 
 	<!-- MISC FILES -->
