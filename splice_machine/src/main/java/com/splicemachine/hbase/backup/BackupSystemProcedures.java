@@ -29,7 +29,6 @@ import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.hbase.TableName;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.protobuf.generated.HBaseProtos;
 import org.apache.log4j.Logger;
@@ -203,7 +202,7 @@ public class BackupSystemProcedures {
         }
     }
 
-	/**
+    /**
      * Entry point for system procedure SYSCS_SCHEDULE_DAILY_BACKUP. Submit a scheduled job to back up database
      *
      * @param directory A directory in file system to stored backup data
@@ -375,7 +374,7 @@ public class BackupSystemProcedures {
     }
 
     public static void SYSCS_DELETE_OLD_BACKUPS(int backupWindow, ResultSet[] resultSets)
-                                                                        throws StandardException, SQLException {
+            throws StandardException, SQLException {
 
         IteratorNoPutResultSet inprs = null;
         LanguageConnectionContext lcc = null;
@@ -457,11 +456,24 @@ public class BackupSystemProcedures {
         }
 
     }
-        /*******************************************************************************************************************
-         *       Private methods
-         * *****************************************************************************************************************
-         */
+    /*******************************************************************************************************************
+     *       Private methods
+     * *****************************************************************************************************************
+     */
 
+
+    private static boolean existsSnapshotForBackup(Set<String> snapshotNameSet, long backupId) {
+        boolean exists = false;
+        String sId = (new Long(backupId)).toString();
+        for (String sname : snapshotNameSet) {
+            if (sname.endsWith(sId)) {
+                exists = true;
+                break;
+            }
+        }
+        return exists;
+
+    }
     private static void backup(String backupDir, long parentBackupId)
             throws SQLException, IOException, KeeperException, InterruptedException, StandardException{
         HBaseAdmin admin = null;
@@ -477,7 +489,7 @@ public class BackupSystemProcedures {
             }
 
             // If there is not snapshot, force a full backup
-            if (snapshotNameSet.size() == 0) {
+            if (snapshotNameSet.size() == 0 || !existsSnapshotForBackup(snapshotNameSet, parentBackupId)) {
                 parentBackupId = -1;
             }
 
@@ -492,7 +504,7 @@ public class BackupSystemProcedures {
             for (String key : backupItems.keySet()) {
                 BackupItem backupItem =  backupItems.get(key);
                 boolean backedUp = backupItem.doBackup();
-                
+
                 if (backedUp) backup.incrementActualBackupCount();
                 backup.updateProgress();
             }
@@ -649,5 +661,6 @@ public class BackupSystemProcedures {
             fs.delete(path, true);
         }
         BackupUtils.deleteBackup(backupId);
+        BackupUtils.deleteBackupItem(backupId);
     }
 }
