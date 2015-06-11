@@ -48,6 +48,12 @@ public class ComparableColumnStatistics<T extends Comparable<T>> extends BaseCol
     @Override public T maxValue() { return max; }
 
     @Override
+    public String toString() {
+        return String.format("ComparableColumnStatistics{ cardinalityEstimator=%s, frequentElements=%s, min=%s, max=%s, distributionFactory=%s}",
+                cardinalityEstimator,frequentElements,min,max,distributionFactory);
+    }
+
+    @Override
     public Distribution<T> getDistribution() {
         return distributionFactory.newDistribution(this);
     }
@@ -129,4 +135,5 @@ public class ComparableColumnStatistics<T extends Comparable<T>> extends BaseCol
                     distributionFactory);
         }
     }
+
 }
