@@ -75,12 +75,11 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 /**
- * g
- * Standard database implementation of the data dictionary
- * that stores the information in the system catlogs.
+ * Standard database implementation of the data dictionary that stores the information in the system catlogs.
+ *
+ * See SpliceDataDictionary in spliceengine repo.
  */
-public class DataDictionaryImpl extends BaseDataDictionary{
-//    private static final Logger LOG = Logger.getLogger(DataDictionaryImpl.class);
+public abstract class DataDictionaryImpl extends BaseDataDictionary{
 
     /**
      * Runtime definition of the functions from SYSFUN_FUNCTIONS.
@@ -257,9 +256,7 @@ public class DataDictionaryImpl extends BaseDataDictionary{
     }
 
     @Override
-    public StatisticsStore getStatisticsStore(){
-        return NoOpStatisticsStore.INSTANCE;
-    }
+    public abstract StatisticsStore getStatisticsStore();
 
     /**
      * Start-up method for this instance of the data dictionary.
@@ -667,13 +664,9 @@ public class DataDictionaryImpl extends BaseDataDictionary{
      *
      * @return a generator for SystemProcedures.
      */
-    protected SystemProcedureGenerator getSystemProcedures(){
-        return new DefaultSystemProcedureGenerator(this);
-    }
+    protected abstract SystemProcedureGenerator getSystemProcedures();
 
-    protected SystemAggregateGenerator getSystemAggregateGenerator(){
-        return new DefaultSystemAggregateGenerator(this);
-    }
+    protected abstract SystemAggregateGenerator getSystemAggregateGenerator();
 
     /**
      * Find the default message digest algorithm to use for BUILTIN
@@ -714,9 +707,7 @@ public class DataDictionaryImpl extends BaseDataDictionary{
      * sets the dependencymanager associated with this dd. subclasses can
      * override this to install their own funky dependency manager.
      */
-    protected void setDependencyManager(){
-        dmgr=new BasicDependencyManager(this);
-    }
+    protected abstract void setDependencyManager();
 
     /**
      * returns the dependencymanager associated with this datadictionary.
@@ -1409,33 +1400,7 @@ public class DataDictionaryImpl extends BaseDataDictionary{
      * @return The row for the schema
      * @throws StandardException Thrown on error
      */
-    public SchemaDescriptor locateSchemaRow(String schemaName,TransactionController tc) throws StandardException{
-        DataValueDescriptor schemaNameOrderable;
-        TabInfoImpl ti=coreInfo[SYSSCHEMAS_CORE_NUM];
-
-		/* Use aliasNameOrderable in both start 
-         * and stop position for scan.
-		 */
-        schemaNameOrderable=new SQLVarchar(schemaName);
-
-		/* Set up the start/stop position for the scan */
-        ExecIndexRow keyRow=exFactory.getIndexableRow(1);
-        keyRow.setColumn(1,schemaNameOrderable);
-
-        // XXX - TODO Cache Lookup
-
-        return (SchemaDescriptor)
-                getDescriptorViaIndex(
-                        SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_ID,
-                        keyRow,
-                        null,
-                        ti,
-                        null,
-                        null,
-                        false,
-                        TransactionController.ISOLATION_REPEATABLE_READ,
-                        tc);
-    }
+    public abstract SchemaDescriptor locateSchemaRow(String schemaName,TransactionController tc) throws StandardException;
 
 
     /**
@@ -5416,46 +5381,8 @@ public class DataDictionaryImpl extends BaseDataDictionary{
      * @param tc         The TransactionController
      * @throws StandardException Thrown on failure
      */
-    protected void addSubKeyConstraint(KeyConstraintDescriptor descriptor,
-                                       TransactionController tc) throws StandardException{
-        ExecRow row;
-        TabInfoImpl ti;
-
-		/*
-		** Foreign keys get a row in SYSFOREIGNKEYS, and
-		** all others get a row in SYSKEYS.
-		*/
-        if(descriptor.getConstraintType()==DataDictionary.FOREIGNKEY_CONSTRAINT){
-            ForeignKeyConstraintDescriptor fkDescriptor=(ForeignKeyConstraintDescriptor)descriptor;
-
-            ti=getNonCoreTI(SYSFOREIGNKEYS_CATALOG_NUM);
-            SYSFOREIGNKEYSRowFactory fkkeysRF=(SYSFOREIGNKEYSRowFactory)ti.getCatalogRowFactory();
-
-            row=fkkeysRF.makeRow(fkDescriptor,null);
-
-			/*
-			** Now we need to bump the reference count of the
-			** contraint that this FK references
-			*/
-            ReferencedKeyConstraintDescriptor refDescriptor=fkDescriptor.getReferencedConstraint();
-
-            refDescriptor.incrementReferenceCount();
-
-            int[] colsToSet=new int[1];
-            colsToSet[0]=SYSCONSTRAINTSRowFactory.SYSCONSTRAINTS_REFERENCECOUNT;
-
-            updateConstraintDescriptor(refDescriptor,refDescriptor.getUUID(),colsToSet,tc);
-        }else{
-            ti=getNonCoreTI(SYSKEYS_CATALOG_NUM);
-            SYSKEYSRowFactory keysRF=(SYSKEYSRowFactory)ti.getCatalogRowFactory();
-
-            // build the row to be stuffed into SYSKEYS
-            row=keysRF.makeRow(descriptor,null);
-        }
-
-        // insert row into catalog and all its indices
-        ti.insertRow(row,tc);
-    }
+    protected abstract void addSubKeyConstraint(KeyConstraintDescriptor descriptor,
+                                       TransactionController tc) throws StandardException;
 
     /**
      * Drop the matching row from syskeys when dropping a primary key
@@ -8281,19 +8208,7 @@ public class DataDictionaryImpl extends BaseDataDictionary{
     }
 
     @Override
-    public void getCurrentValueAndAdvance(String sequenceUUIDstring,NumberDataValue returnValue) throws StandardException{
-        SequenceUpdater sequenceUpdater=null;
-
-        try{
-            sequenceUpdater=(SequenceUpdater)sequenceGeneratorCache.find(sequenceUUIDstring);
-
-            sequenceUpdater.getCurrentValueAndAdvance(returnValue);
-        }finally{
-            if(sequenceUpdater!=null){
-                sequenceGeneratorCache.release(sequenceUpdater);
-            }
-        }
-    }
+    public abstract void getCurrentValueAndAdvance(String sequenceUUIDstring,NumberDataValue returnValue) throws StandardException;
 
     @Override
     public Long peekAtSequence(String schemaName,String sequenceName) throws StandardException{
