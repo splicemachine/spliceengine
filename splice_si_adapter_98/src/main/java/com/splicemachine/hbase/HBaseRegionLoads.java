@@ -30,13 +30,9 @@ import java.util.concurrent.atomic.AtomicReference;
  *         Date: 19/03/2014
  */
 public class HBaseRegionLoads {
-
     private static final Logger LOG = Logger.getLogger(HBaseRegionLoads.class);
-
     private static HBaseAdmin admin;
-
     // Periodic updating
-
     private static final int UPDATE_MULTIPLE = 15;
     private static final int SMALLEST_UPDATE_INTERVAL = 200;
     private static final AtomicBoolean started = new AtomicBoolean(false);
@@ -65,7 +61,11 @@ public class HBaseRegionLoads {
      * of update running time
      */
     public static void start() {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG,"start attempted");
         if (started.compareAndSet(false, true)) {
+            if (LOG.isDebugEnabled())
+                SpliceLogUtils.debug(LOG,"update service scheduled");
             updateService.scheduleAtFixedRate(updater,0l,SpliceConstants.regionLoadUpdateInterval,TimeUnit.SECONDS);
         }
     }
@@ -74,6 +74,8 @@ public class HBaseRegionLoads {
      * Update now, blocking until finished or interrupted
      */
     public static void update() throws InterruptedException {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG,"update service scheduled");
         final CountDownLatch latch = new CountDownLatch(1);
         updateService.execute(new Runnable() {
             @Override
@@ -104,6 +106,8 @@ public class HBaseRegionLoads {
 
 
     private static Map<String, Map<String,RegionLoad>> fetchRegionLoads() {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG,"fetch region loads");
         Map<String, Map<String,RegionLoad>> regionLoads =
             new HashMap<String, Map<String,RegionLoad>>(){
                 @Override
@@ -121,11 +125,14 @@ public class HBaseRegionLoads {
             ClusterStatus clusterStatus=admin.getClusterStatus();
             for(ServerName serverName : clusterStatus.getServers()){
                 final ServerLoad serverLoad=clusterStatus.getLoad(serverName);
-
+                if (LOG.isDebugEnabled())
+                    SpliceLogUtils.debug(LOG,"cluster status for serverLoad=%s",serverLoad);
                 for(Map.Entry<byte[], RegionLoad> entry : serverLoad.getRegionsLoad().entrySet()){
                     String regionName=Bytes.toString(entry.getKey());
                     String tableName=tableForRegion(regionName);
                     Map<String, RegionLoad> loads=regionLoads.get(tableName);
+                    if (LOG.isDebugEnabled())
+                        SpliceLogUtils.debug(LOG,"processing regionName=%s, tableName=%s, loads=%s",regionName,tableName,loads);
                     loads.put(regionName,entry.getValue());
                 }
             }
@@ -140,6 +147,8 @@ public class HBaseRegionLoads {
     public static Collection<RegionLoad> getCachedRegionLoadsForTable(String tableName){
         Map<String,Map<String,RegionLoad>> loads = cache.get();
         if (loads == null){
+            if (LOG.isDebugEnabled())
+                SpliceLogUtils.debug(LOG,"This should not happen");
             return Collections.emptyList();
         }
         Map<String, RegionLoad> regions = loads.get(tableName);
