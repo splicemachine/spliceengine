@@ -7,18 +7,13 @@ import java.sql.DriverManager;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLBoolean;
 import com.splicemachine.db.iapi.types.SQLInteger;
-import com.splicemachine.db.iapi.types.SQLVarchar;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.util.Bytes;
 
-import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.utils.marshall.BareKeyHash;
 import com.splicemachine.derby.utils.marshall.DataHash;
 import com.splicemachine.derby.utils.marshall.EntryDataHash;
 import com.splicemachine.derby.utils.marshall.HashPrefix;
@@ -26,11 +21,9 @@ import com.splicemachine.derby.utils.marshall.KeyEncoder;
 import com.splicemachine.derby.utils.marshall.KeyPostfix;
 import com.splicemachine.derby.utils.marshall.NoOpDataHash;
 import com.splicemachine.derby.utils.marshall.NoOpPostfix;
-import com.splicemachine.derby.utils.marshall.NoOpPrefix;
 import com.splicemachine.derby.utils.marshall.SaltedPrefix;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
-import com.splicemachine.encoding.Encoding;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.CallBuffer;
 import com.splicemachine.pipeline.impl.WriteCoordinator;
@@ -90,7 +83,7 @@ public class TransactionAdminTest {
         rs = conn1.createStatement().executeQuery("call SYSCS_UTIL.SYSCS_GET_CURRENT_TRANSACTION()");
         rs.next();
         long parentTransactionId = rs.getLong(1);
-        long conglomId = SpliceAdmin.getConglomids(conn1, "SPLICE", "customer")[0];
+        long conglomId = SpliceAdmin.getConglomNumbers(conn1, "SPLICE", "customer")[0];
         /**
          *
          * elevating parent transaction
