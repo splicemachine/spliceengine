@@ -98,61 +98,64 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     @Override
     protected void addSubKeyConstraint(KeyConstraintDescriptor descriptor,
-                                       TransactionController tc) throws StandardException{
+                                       TransactionController tc) throws StandardException {
         ExecRow row;
         TabInfoImpl ti;
 
-		    /*
-             ** Foreign keys get a row in SYSFOREIGNKEYS, and
-		     ** all others get a row in SYSKEYS.
-		     */
-        if(descriptor.getConstraintType()
-                ==DataDictionary.FOREIGNKEY_CONSTRAINT){
-            if(SanityManager.DEBUG){
-                if(!(descriptor instanceof ForeignKeyConstraintDescriptor)){
-                    SanityManager.THROWASSERT("descriptor not an fk descriptor, is "+
-                            descriptor.getClass().getName());
+        /*
+         * Foreign keys get a row in SYSFOREIGNKEYS, and all others get a row in SYSKEYS.
+         */
+        if (descriptor.getConstraintType() == DataDictionary.FOREIGNKEY_CONSTRAINT) {
+            if (SanityManager.DEBUG) {
+                if (!(descriptor instanceof ForeignKeyConstraintDescriptor)) {
+                    SanityManager.THROWASSERT("descriptor not an fk descriptor, is " + descriptor.getClass().getName());
                 }
             }
-            @SuppressWarnings("ConstantConditions") ForeignKeyConstraintDescriptor fkDescriptor=(ForeignKeyConstraintDescriptor)descriptor;
+            @SuppressWarnings("ConstantConditions")
+            ForeignKeyConstraintDescriptor fkDescriptor = (ForeignKeyConstraintDescriptor) descriptor;
 
-            ti=getNonCoreTI(SYSFOREIGNKEYS_CATALOG_NUM);
-            SYSFOREIGNKEYSRowFactory fkkeysRF=(SYSFOREIGNKEYSRowFactory)ti.getCatalogRowFactory();
+            ti = getNonCoreTI(SYSFOREIGNKEYS_CATALOG_NUM);
+            SYSFOREIGNKEYSRowFactory fkkeysRF = (SYSFOREIGNKEYSRowFactory) ti.getCatalogRowFactory();
 
-            row=fkkeysRF.makeRow(fkDescriptor,null);
+            row = fkkeysRF.makeRow(fkDescriptor, null);
 
-			      /*
-			       ** Now we need to bump the reference count of the
-			       ** contraint that this FK references
-			       */
-            ReferencedKeyConstraintDescriptor refDescriptor=
-                    fkDescriptor.getReferencedConstraint();
-
+            /*
+             * Now we need to bump the reference count of the constraint that this FK references
+             */
+            ReferencedKeyConstraintDescriptor refDescriptor = fkDescriptor.getReferencedConstraint();
             refDescriptor.incrementReferenceCount();
+            int[] colsToSet = new int[1];
+            colsToSet[0] = SYSCONSTRAINTSRowFactory.SYSCONSTRAINTS_REFERENCECOUNT;
 
-            int[] colsToSet=new int[1];
-            colsToSet[0]=SYSCONSTRAINTSRowFactory.SYSCONSTRAINTS_REFERENCECOUNT;
+            /* Have to update the reference count in a nested transaction here because the SYSCONSTRAINTS row we are
+             * updating (a primary key constraint or unique index constraint) may have been created in the same
+             * statement as the FK (create table for self referencing FK, for example). In that case the KeyValue for
+             * that constraint row will have the same rowKey AND timestamp. Updating here with the same ts would REPLACE
+             * the entire row with just the updated reference count column, corrupting the row (DB-3345). */
+            TransactionController transactionController = tc.startNestedUserTransaction(false, true);
+            try {
+                updateConstraintDescriptor(refDescriptor, refDescriptor.getUUID(), colsToSet, transactionController);
+            } finally {
+                transactionController.commit();
+                transactionController.destroy();
+            }
 
-            updateConstraintDescriptor(refDescriptor,
-                    refDescriptor.getUUID(),
-                    colsToSet,
-                    tc);
-        }else if(descriptor.getConstraintType()==DataDictionary.PRIMARYKEY_CONSTRAINT){
-            ti=getPkTable();
+        } else if (descriptor.getConstraintType() == DataDictionary.PRIMARYKEY_CONSTRAINT) {
+            ti = getPkTable();
             faultInTabInfo(ti);
-            SYSPRIMARYKEYSRowFactory pkRF=(SYSPRIMARYKEYSRowFactory)ti.getCatalogRowFactory();
+            SYSPRIMARYKEYSRowFactory pkRF = (SYSPRIMARYKEYSRowFactory) ti.getCatalogRowFactory();
 
-            row=pkRF.makeRow(descriptor,null);
-        }else{
-            ti=getNonCoreTI(SYSKEYS_CATALOG_NUM);
-            SYSKEYSRowFactory keysRF=(SYSKEYSRowFactory)ti.getCatalogRowFactory();
+            row = pkRF.makeRow(descriptor, null);
+        } else {
+            ti = getNonCoreTI(SYSKEYS_CATALOG_NUM);
+            SYSKEYSRowFactory keysRF = (SYSKEYSRowFactory) ti.getCatalogRowFactory();
 
             // build the row to be stuffed into SYSKEYS
-            row=keysRF.makeRow(descriptor,null);
+            row = keysRF.makeRow(descriptor, null);
         }
 
         // insert row into catalog and all its indices
-        ti.insertRow(row,tc);
+        ti.insertRow(row, tc);
     }
 
     public void createStatisticsTables(TransactionController tc) throws StandardException{
