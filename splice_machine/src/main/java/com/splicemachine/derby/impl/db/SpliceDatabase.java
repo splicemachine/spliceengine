@@ -99,9 +99,8 @@ public class SpliceDatabase extends BasicDatabase{
             SpliceLogUtils.info(LOG,"Booting the Splice Machine database");
         }
         super.boot(create,startParams);
-        if(!create){
-            HBaseRegionLoads.start();
-        }
+        // Start HBase Region Loads
+        HBaseRegionLoads.start();
     }
 
     @Override
