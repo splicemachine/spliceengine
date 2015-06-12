@@ -63,13 +63,18 @@ public class UniformStringDistribution extends BaseDistribution<String> {
         super(columnStats, ComparableComparator.<String>newComparator());
         this.strLen = strLen;
 
-        BigDecimal at = BigDecimal.valueOf(columnStats.nonNullCount()-columnStats.minCount());
-        BigDecimal maxPosition=computePosition(columnStats.maxValue());
-        BigDecimal overallDistance = maxPosition.subtract(computePosition(columnStats.minValue()));
-        at = at.divide(overallDistance,MathContext.DECIMAL64);
+        if (columnStats.maxValue() == null) {
+            this.a = BigDecimal.valueOf(0.0);
+            this.b = BigDecimal.valueOf(0.0);
+        } else {
+            BigDecimal at = BigDecimal.valueOf(columnStats.nonNullCount() - columnStats.minCount());
+            BigDecimal maxPosition = computePosition(columnStats.maxValue());
+            BigDecimal overallDistance = maxPosition.subtract(computePosition(columnStats.minValue()));
+            at = at.divide(overallDistance, MathContext.DECIMAL64);
 
-        this.a = at;
-        this.b = BigDecimal.valueOf(columnStats.nonNullCount()).subtract(a.multiply(maxPosition));
+            this.a = at;
+            this.b = BigDecimal.valueOf(columnStats.nonNullCount()).subtract(a.multiply(maxPosition));
+        }
     }
 
     @Override
