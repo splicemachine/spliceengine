@@ -96,6 +96,9 @@ public class AssertFailure extends RuntimeException {
      * @return - thread dump string.
      */
     public String getThreadDump() {
+        // DEBUG: Thread dump is rarely helpful. One stacktrace at the point of error is better.
+        // DEBUG: To replace the thread dump with one stacktrace, uncomment pinchALoaf(), comment threadDump
+//        return pinchALoaf();
         return threadDump;
     }
 
@@ -114,6 +117,8 @@ public class AssertFailure extends RuntimeException {
      */
     public void printStackTrace(PrintStream s) {
         super.printStackTrace(s);
+        // DEBUG: Thread dump is rarely helpful. One stacktrace at the point of error is better.
+//        s.println(pinchALoaf());
         s.println(threadDump);
     }
 
@@ -123,6 +128,8 @@ public class AssertFailure extends RuntimeException {
      */
     public void printStackTrace(PrintWriter s) {
         super.printStackTrace(s);
+        // DEBUG: Thread dump is rarely helpful. One stacktrace at the point of error is better.
+//        s.println(pinchALoaf());
         s.println(threadDump);
     }
 
@@ -139,6 +146,21 @@ public class AssertFailure extends RuntimeException {
             // Ignore exception
         }
         return false;
+    }
+
+    /**
+     * Printing a complete thread dump is rarely useful and mostly just confuses
+     * the problem. Here we just return a stack trace from a new exception.
+     * @return current stack trace.
+     */
+    private String pinchALoaf() {
+        // NOTE: No need to flush with the StringWriter/PrintWriter combination.
+        StringWriter out = new StringWriter();
+        PrintWriter p = new PrintWriter(out, true);
+
+        Exception e = new Exception("No thread dump.");
+        e.printStackTrace(p);
+        return p.toString();
     }
 
     /**
