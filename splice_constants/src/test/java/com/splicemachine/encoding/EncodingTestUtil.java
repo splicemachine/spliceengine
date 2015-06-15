@@ -59,6 +59,27 @@ public class EncodingTestUtil {
         assertEquals(numberIn, numberOutAscWrap, 1e-12);
     }
 
+    public static void assertEncodeDecode(int numberIn) {
+        byte[] bytesDes = ScalarEncoding.toBytes(numberIn, true);
+        byte[] bytesAsc = ScalarEncoding.toBytes(numberIn, false);
+
+        int numberOutDes = ScalarEncoding.getInt(bytesDes, true);
+        int numberOutAsc = ScalarEncoding.getInt(bytesAsc, false);
+
+        assertEquals(numberIn, numberOutAsc);
+        assertEquals(numberIn, numberOutDes);
+    }
+
+    public static void assertEncodeDecode(long numberIn) {
+        byte[] bytesDes = ScalarEncoding.toBytes(numberIn, true);
+        byte[] bytesAsc = ScalarEncoding.toBytes(numberIn, false);
+
+        long numberOutDes = ScalarEncoding.toLong(bytesDes, true);
+        long numberOutAsc = ScalarEncoding.toLong(bytesAsc, false);
+
+        assertEquals(numberIn, numberOutAsc);
+        assertEquals(numberIn, numberOutDes);
+    }
 
     public static List<byte[]> toBytes(List<BigDecimal> bigIns, boolean desc) {
         List<byte[]> bytesList = Lists.newArrayList();
