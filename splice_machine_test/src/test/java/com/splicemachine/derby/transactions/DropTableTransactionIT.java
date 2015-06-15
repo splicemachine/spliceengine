@@ -92,6 +92,7 @@ public class DropTableTransactionIT {
 
         // CONN2: we shouldn't be able to see the table now
         assertQueryFail(conn2, "insert into " + table + " values (1,1)", ErrorState.LANG_TABLE_NOT_FOUND.getSqlState());
+        assertQueryFail(conn2, "select * from " + table, ErrorState.LANG_TABLE_NOT_FOUND.getSqlState());
     }
 
     @Test
