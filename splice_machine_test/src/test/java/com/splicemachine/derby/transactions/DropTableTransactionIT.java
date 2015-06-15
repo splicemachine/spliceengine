@@ -16,6 +16,8 @@ import org.junit.rules.TestRule;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
+import static org.junit.Assert.fail;
+
 /**
  * @author Scott Fines
  *         Date: 9/4/14
@@ -76,7 +78,7 @@ public class DropTableTransactionIT {
         //issue the drop statement
         conn1.createStatement().execute("drop table " + table);
 
-        //now confirm that you can keep writing and reading data from the table from conn1
+        //now confirm that you can keep writing and reading data from the table from conn2
         int aInt = 1;
         int bInt = 1;
         PreparedStatement ps = conn2.prepareStatement("insert into " + table+"(a,b) values (?,?)");
@@ -99,7 +101,8 @@ public class DropTableTransactionIT {
 
         //we shouldn't be able to see the table now
         try{
-            ps = conn2.prepareStatement("insert into " + table+"(a,b) values (?,?)");
+            conn2.prepareStatement("insert into " + table+"(a,b) values (?,?)");
+            fail("should not be able to see");
         }catch(SQLException se){
             System.out.printf("%s:%s%n",se.getSQLState(),se.getMessage());
             Assert.assertEquals("Incorrect error message!", ErrorState.LANG_TABLE_NOT_FOUND.getSqlState(),se.getSQLState());
@@ -161,7 +164,7 @@ public class DropTableTransactionIT {
         conn1.createStatement().execute("drop table "+ schemaWatcher+".t3");
         try{
             conn2.createStatement().execute("drop table "+ schemaWatcher+".t3");
-            Assert.fail("Did not throw a Write/Write conflict");
+            fail("Did not throw a Write/Write conflict");
         }catch(SQLException se){
            Assert.assertEquals("Incorrect error message!",ErrorState.WRITE_WRITE_CONFLICT.getSqlState(),se.getSQLState());
         }finally{
