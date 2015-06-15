@@ -286,9 +286,9 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
     }
 
     @Override
-    public void addForeignKeyParentCheckWriteFactory(int[] backingIndexFormatIds) {
+    public void addForeignKeyParentCheckWriteFactory(int[] backingIndexFormatIds, String parentTableVersion) {
         /* One instance handles all FKs that reference this primary key or unique index */
-        this.foreignKeyParentCheckWriteFactory = new ForeignKeyParentCheckWriteFactory(backingIndexFormatIds);
+        this.foreignKeyParentCheckWriteFactory = new ForeignKeyParentCheckWriteFactory(backingIndexFormatIds, parentTableVersion);
     }
 
     @Override
@@ -568,8 +568,9 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
         ColumnDescriptorList backingIndexColDescriptors = cDescriptor.getColumnDescriptors();
         int backingIndexFormatIds[] = DataDictionaryUtils.getFormatIds(backingIndexColDescriptors);
 
-        addForeignKeyParentCheckWriteFactory(backingIndexFormatIds);
         String parentTableName = cDescriptor.getTableDescriptor().getName();
+        String parentTableVersion = cDescriptor.getTableDescriptor().getVersion();
+        addForeignKeyParentCheckWriteFactory(backingIndexFormatIds, parentTableVersion);
         List<Long> backingIndexConglomIds = DataDictionaryUtils.getBackingIndexConglomerateIdsForForeignKeys(fks);
         addForeignKeyParentInterceptWriteFactory(parentTableName, backingIndexConglomIds);
     }

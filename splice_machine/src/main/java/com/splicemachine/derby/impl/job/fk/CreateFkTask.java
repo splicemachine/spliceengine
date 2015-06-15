@@ -33,17 +33,21 @@ public class CreateFkTask extends ZkTask {
     private long referencingConglomerateId;
     /* users visible name of the table new FK references */
     private String referencedTableName;
+    /* Referenced table's encoding version ('1.0', '2.0', etc) */
+    private String referencedTableVersion;
 
 
     public CreateFkTask() {
     }
 
-    public CreateFkTask(String jobId, int[] backingIndexFormatIds, long referencedConglomerateId, long referencingConglomerateId, String referencedTableName) {
+    public CreateFkTask(String jobId, int[] backingIndexFormatIds, long referencedConglomerateId,
+                        long referencingConglomerateId, String referencedTableName, String referencedTableVersion) {
         super(jobId, OperationJob.operationTaskPriority, null);
         this.backingIndexFormatIds = backingIndexFormatIds;
         this.referencedConglomerateId = referencedConglomerateId;
         this.referencingConglomerateId = referencingConglomerateId;
         this.referencedTableName = referencedTableName;
+        this.referencedTableVersion = referencedTableVersion;
     }
 
     @Override
@@ -71,7 +75,7 @@ public class CreateFkTask extends ZkTask {
         try {
             WriteContextFactory contextFactory = WriteContextFactoryManager.getWriteContext(referencedConglomerateId);
             try {
-                contextFactory.addForeignKeyParentCheckWriteFactory(backingIndexFormatIds);
+                contextFactory.addForeignKeyParentCheckWriteFactory(backingIndexFormatIds, referencedTableVersion);
                 contextFactory.addForeignKeyParentInterceptWriteFactory(referencedTableName, ImmutableList.of(referencingConglomerateId));
             } finally {
                 contextFactory.close();
@@ -93,6 +97,7 @@ public class CreateFkTask extends ZkTask {
         out.writeLong(referencedConglomerateId);
         out.writeLong(referencingConglomerateId);
         out.writeUTF(referencedTableName);
+        out.writeUTF(referencedTableVersion);
         out.writeInt(backingIndexFormatIds.length);
         for (int formatId : backingIndexFormatIds) {
             out.writeInt(formatId);
@@ -105,6 +110,7 @@ public class CreateFkTask extends ZkTask {
         this.referencedConglomerateId = in.readLong();
         this.referencingConglomerateId = in.readLong();
         this.referencedTableName = in.readUTF();
+        this.referencedTableVersion = in.readUTF();
         int n = in.readInt();
         if (n > 0) {
             backingIndexFormatIds = new int[n];

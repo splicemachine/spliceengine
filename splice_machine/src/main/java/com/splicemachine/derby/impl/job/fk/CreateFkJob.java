@@ -23,19 +23,22 @@ public class CreateFkJob implements CoprocessorJob {
     private final long referencedConglomerateId;
     private final long referencingBackingIndexConglomId;
     private final String referencedTableName;
+    private final String referencedTableVersion;
 
-    public CreateFkJob(HTableInterface table, TxnView txn, int referencedConglomerateId, int[] backingIndexFormatIds, long referencingBackingIndexConglomId, String referncedTableName) {
+    public CreateFkJob(HTableInterface table, TxnView txn, int referencedConglomerateId, int[] backingIndexFormatIds,
+                       long referencingBackingIndexConglomId, String referncedTableName, String referencedTableVersion) {
         this.table = table;
         this.txn = txn;
         this.backingIndexFormatIds = backingIndexFormatIds;
         this.referencedConglomerateId = referencedConglomerateId;
         this.referencingBackingIndexConglomId = referencingBackingIndexConglomId;
         this.referencedTableName = referncedTableName;
+        this.referencedTableVersion = referencedTableVersion;
     }
 
     @Override
     public Map<? extends RegionTask, Pair<byte[], byte[]>> getTasks() throws Exception {
-        CreateFkTask task = new CreateFkTask(getJobId(), backingIndexFormatIds, referencedConglomerateId, referencingBackingIndexConglomId, referencedTableName);
+        CreateFkTask task = new CreateFkTask(getJobId(), backingIndexFormatIds, referencedConglomerateId, referencingBackingIndexConglomId, referencedTableName, referencedTableVersion);
         return Collections.singletonMap(task, Pair.newPair(HConstants.EMPTY_START_ROW, HConstants.EMPTY_END_ROW));
     }
 
