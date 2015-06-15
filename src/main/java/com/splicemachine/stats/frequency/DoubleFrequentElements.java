@@ -44,6 +44,8 @@ public abstract class DoubleFrequentElements implements FrequentElements<Double>
 
     @Override
     public Set<? extends FrequencyEstimate<Double>> allFrequentElements() {
+        if (totalCount == 0)
+            return Collections.emptySet();
         return frequentBetween(elements.first().value(),elements.last().value(),true,true);
     }
 
