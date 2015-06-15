@@ -214,7 +214,7 @@ public class ForeignKey_Check_IT {
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //
-    // floating-point columns in foreign key-- a special case in splice because our encoding allows zeros in these cos.
+    // floating-point columns in foreign key
     //
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
@@ -291,6 +291,32 @@ public class ForeignKey_Check_IT {
         assertQueryFail("insert into C values (1.0, 4.0, 1.0, 1.0)", "Operation on table 'C' caused a violation of foreign key constraint 'FK1' for key (B,C,D).  The statement has been rolled back.");
 
         assertQueryFail("update C set b=-1.1 where a=1.1", "Operation on table 'C' caused a violation of foreign key constraint 'FK1' for key (B,C,D).  The statement has been rolled back.");
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    //
+    // column values that encode with one are more byes = 0
+    //
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+    @Test
+    public void intValue_withZeroByteAsPartOfEncoding() throws Exception {
+        // given -- parent table with compound primary key with two values that encode with zeros
+        // -2147483648           encodes as [23, -128, 0, 0, 0]
+        // -9219236770852362184L encodes as [4, -128, 14, -79, 0, -91, 32, 40, 56]
+        new TableCreator(connection())
+                .withCreate("create table P (a int, b bigint, primary key(a,b))")
+                .withInsert("insert into P values(?,?)")
+                .withRows(rows(row(-2147483648, -9219236770852362184L))).create();
+
+        // when -- child table has FK referencing parent
+        new TableCreator(connection())
+                .withCreate("create table C (a int, b bigint, CONSTRAINT FK1 FOREIGN KEY (a,b) REFERENCES P(a,b))").create();
+
+        // then -- we can successfully insert zero encoding values
+        methodWatcher.executeUpdate("insert into C values(-2147483648, -9219236770852362184)");
+        // then -- but we cannot insert values that don't exist in parent table
+        assertQueryFail("insert into C values(-1, -1)", "Operation on table 'C' caused a violation of foreign key constraint 'FK1' for key (A,B).  The statement has been rolled back.");
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
