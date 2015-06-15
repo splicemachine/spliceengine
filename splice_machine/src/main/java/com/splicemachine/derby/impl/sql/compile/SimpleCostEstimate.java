@@ -135,7 +135,8 @@ public class SimpleCostEstimate implements CostEstimate{
                 +",transferCost="+remoteCost()
                 +",outputRows="+getEstimatedRowCount()
                 +",outputHeapSize="+getEstimatedHeapSize()+
-                ",partitions="+partitionCount()+")";
+                ",partitions="+partitionCount()+
+                ",rowOrdering="+rowOrdering+")";
     }
 
     @Override public void setRowCount(double outerRows){ this.numRows = outerRows;  }
