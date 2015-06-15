@@ -2,6 +2,8 @@ package com.splicemachine.pipeline.writehandler.foreignkey;
 
 import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.derby.utils.marshall.dvd.TypeProvider;
+import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.Code;
@@ -25,11 +27,13 @@ public class ForeignKeyParentCheckWriteHandler implements WriteHandler {
     /* FormatIds of just the FK columns. */
     private final int formatIds[];
     private final MultiFieldDecoder multiFieldDecoder;
+    private final TypeProvider typeProvider;
 
-    public ForeignKeyParentCheckWriteHandler(TransactionalRegion transactionalRegion, int[] formatIds) {
+    public ForeignKeyParentCheckWriteHandler(TransactionalRegion transactionalRegion, int[] formatIds, String parentTableVersion) {
         this.transactionalRegion = transactionalRegion;
         this.formatIds = formatIds;
         this.multiFieldDecoder = MultiFieldDecoder.create();
+        this.typeProvider = VersionedSerializers.typesForVersion(parentTableVersion);
     }
 
     /**
@@ -119,7 +123,7 @@ public class ForeignKeyParentCheckWriteHandler implements WriteHandler {
                 position += multiFieldDecoder.skipDouble();
             } else if (formatIds[i] == StoredFormatIds.SQL_REAL_ID) {
                 position += multiFieldDecoder.skipFloat();
-            } else if (isEncodedAsLong(formatIds[i])) {
+            } else if (typeProvider.isScalar(formatIds[i])) {
                 position += multiFieldDecoder.skipLong();
             } else {
                 position += multiFieldDecoder.skip();
@@ -135,10 +139,5 @@ public class ForeignKeyParentCheckWriteHandler implements WriteHandler {
         return checkRowKey;
     }
 
-    /* Should probably be a method on SerializerMap, so we can ask a given encoding version. All are the same for now however.  */
-    private static boolean isEncodedAsLong(int formatId) {
-        return formatId == StoredFormatIds.SQL_LONGINT_ID || formatId == StoredFormatIds.SQL_DATE_ID
-                || formatId == StoredFormatIds.SQL_TIME_ID || formatId == StoredFormatIds.SQL_TIMESTAMP_ID;
-    }
 
 }
