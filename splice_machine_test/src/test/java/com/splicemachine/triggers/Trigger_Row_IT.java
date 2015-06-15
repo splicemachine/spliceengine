@@ -9,6 +9,7 @@ import org.junit.*;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.Timestamp;
 
 import static org.junit.Assert.*;
 
@@ -37,6 +38,9 @@ public class Trigger_Row_IT {
     public static void createSharedTables() throws Exception {
         classWatcher.executeUpdate("create table T (a int, b int, c int)");
         classWatcher.executeUpdate("create table RECORD (text varchar(99))");
+        classWatcher.executeUpdate("create table cascade1 (a int)");
+        classWatcher.executeUpdate("create table cascade2 (a int, name varchar(20), t timestamp)");
+        classWatcher.executeUpdate("create table cascade3 (a int, name varchar(20), t timestamp)");
     }
 
     /* Each test starts with same table state */
@@ -46,6 +50,11 @@ public class Trigger_Row_IT {
         classWatcher.executeUpdate("delete from T");
         classWatcher.executeUpdate("delete from RECORD");
         classWatcher.executeUpdate("insert into T values(1,1,1),(2,2,2),(3,3,3),(4,4,4),(5,5,5),(6,6,6)");
+
+//        triggerDAO.drop("cascade1_insert", "cascade2_insert");
+        classWatcher.executeUpdate("delete from cascade1");
+        classWatcher.executeUpdate("delete from cascade2");
+        classWatcher.executeUpdate("delete from cascade3");
     }
 
     //- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -170,6 +179,38 @@ public class Trigger_Row_IT {
         methodWatcher.executeUpdate("update T set c = c + 1");
         // this should actually be 2^6
         assertRecordCount("aaa", 7);
+    }
+
+    @Test
+    public void afterInsertCascadingTriggers() throws Exception {
+        // DB-3354: Nested triggers produce null transition variables.
+        methodWatcher.executeUpdate(tb.named("cascade1_insert").after().insert().on("cascade1").referencing("NEW as NEW").row().
+            then("insert into cascade2(a, name, t)\n" +
+                     "values (NEW.a, 'cascade1_insert', CURRENT_TIMESTAMP)").build());
+        methodWatcher.executeUpdate(tb.named("cascade2_insert").after().insert().on("cascade2").referencing("NEW as NEW").row().
+            then("insert into cascade3(a, name, t)\n" +
+                     "values (NEW.a, 'cascade2_insert', CURRENT_TIMESTAMP)").build());
+
+        methodWatcher.executeUpdate("insert into cascade1 (a) values (1)");
+
+        Timestamp ts2 = null;
+        ResultSet rs = methodWatcher.executeQuery("select * from cascade2");
+        while (rs.next()) {
+            assertEquals(1, rs.getInt(1));
+            assertEquals("cascade1_insert", rs.getString(2));
+            ts2 = rs.getTimestamp(3);
+            assertNotNull(ts2);
+        }
+
+        Timestamp ts3 = null;
+        rs = methodWatcher.executeQuery("select * from cascade3");
+        while (rs.next()) {
+            assertEquals(1, rs.getInt(1));
+            assertEquals("cascade2_insert", rs.getString(2));
+            ts3 = rs.getTimestamp(3);
+            assertNotNull(ts3);
+        }
+        assertTrue(ts2.before(ts3));
     }
 
 
