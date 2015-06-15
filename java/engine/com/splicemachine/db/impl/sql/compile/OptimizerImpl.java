@@ -2347,8 +2347,7 @@ public class OptimizerImpl implements Optimizer{
         if(timeExceeded || numTablesInQuery<=6) return timeExceeded;
 
         currentTime=System.currentTimeMillis();
-        timeExceeded=(currentTime-timeOptimizationStarted)>timeLimit;
-
+        timeExceeded=(currentTime-timeOptimizationStarted)>timeLimit && (currentTime-timeOptimizationStarted) > 600000;
         if(timeExceeded)
             tracer().trace(OptimizerFlag.TIME_EXCEEDED,0,0,0.0,null);
         return timeExceeded;
