@@ -31,7 +31,9 @@ public class ExplainTree{
     }
 
     public Iterator<String> treeToString(){
-        return Iterators.transform(new Tree(topNode),toStringFunction);
+        Tree t = new Tree(topNode);
+        t.label();
+        return Iterators.transform(new Tree(topNode), toStringFunction);
     }
 
     public static class Builder{
@@ -193,11 +195,25 @@ public class ExplainTree{
                 next=jn.nextNode(); //go down the right hand side
             }
         }
+
+        public void label() {
+            List<Node> nodes = new ArrayList<>();
+            while(hasNext()) {
+                nodes.add(next());
+            }
+
+            int n = nodes.size();
+            int order = 0;
+            for(int i = n - 1; i >=0; --i ) {
+                nodes.get(i).setOrder(order++);
+            }
+        }
     }
 
     private static class Node{
         private CostEstimate cost;
         protected int resultSetNumber;
+        int order;
         int level;
         private String className;
         private List<SubqueryNode> subqueries;
@@ -213,7 +229,7 @@ public class ExplainTree{
             StringBuilder sb = new StringBuilder();
             sb = sb.append(spaceToLevel())
                     .append(className).append("(")
-                    .append("n=").append(resultSetNumber)
+                    .append("n=").append(order)
                     .append(",").append(cost.prettyString());
             String extras = getExtraInformation();
             if(extras!=null)
@@ -249,6 +265,9 @@ public class ExplainTree{
             return subqueries;
         }
 
+        public void setOrder(int order) {
+            this.order = order;
+        }
     }
 
     private static abstract class PredicatedNode extends Node{
