@@ -4,7 +4,6 @@ import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.PartitionStatistics;
 import com.splicemachine.stats.estimate.Distribution;
 import com.splicemachine.stats.estimate.GlobalDistribution;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -171,6 +170,15 @@ public class GlobalStatistics implements OverheadManagedTableStatistics {
             combinedColumnStatistics = mergeColumnStats(partitionStatistics);
         }
         return combinedColumnStatistics;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("GlobalStatistics(%s) {openScannerLatency=%f, closeScannerLatency=%f, numOpenEvents=%d, numCloseEvents=%d," +
+                "rowCounts=%d, totalSize=%d, avgSize=%d, localReadLatency=%f, remoteReadLatency=%f, localReadTime=%d, " +
+                "remoteReadTime=%d, avgRowWidth=%d, queryCount=%d}",tableId,openScannerLatency(),closeScannerLatency(),
+                numOpenEvents(),numCloseEvents(),rowCount(),totalSize(),avgSize(),localReadLatency(),remoteReadLatency(),
+                localReadTime(),remoteReadTime(),avgRowWidth(),queryCount());
     }
 
     @Override
