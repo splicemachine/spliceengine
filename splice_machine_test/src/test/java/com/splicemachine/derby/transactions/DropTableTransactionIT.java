@@ -13,9 +13,11 @@ import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 /**
@@ -24,20 +26,18 @@ import static org.junit.Assert.fail;
  */
 @Category({Transactions.class})
 public class DropTableTransactionIT {
-    public static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(DropTableTransactionIT.class.getSimpleName().toUpperCase());
 
-    public static final SpliceTableWatcher table = new SpliceTableWatcher("A",schemaWatcher.schemaName,"(a int, b int)");
+    private static final SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(DropTableTransactionIT.class.getSimpleName().toUpperCase());
 
-    public static final SpliceWatcher classWatcher = new SpliceWatcher();
+    private static final SpliceTableWatcher table = new SpliceTableWatcher("A",schemaWatcher.schemaName,"(a int, b int)");
+
+    private static final SpliceWatcher classWatcher = new SpliceWatcher();
+
     @ClassRule
-    public static TestRule chain = RuleChain.outerRule(classWatcher)
-            .around(schemaWatcher);
+    public static TestRule chain = RuleChain.outerRule(classWatcher).around(schemaWatcher);
 
     private static TestConnection conn1;
     private static TestConnection conn2;
-
-    private long conn1Txn;
-    private long conn2Txn;
 
     @BeforeClass
     public static void setUpClass() throws Exception {
@@ -63,8 +63,6 @@ public class DropTableTransactionIT {
     public void setUp() throws Exception {
         conn1.setAutoCommit(false);
         conn2.setAutoCommit(false);
-        conn1Txn = conn1.getCurrentTransactionId();
-        conn2Txn = conn2.getCurrentTransactionId();
     }
 
     @Test
@@ -75,38 +73,25 @@ public class DropTableTransactionIT {
         tearDown();
         setUp();
 
-        //issue the drop statement
+        // CONN1: issue the drop statement
         conn1.createStatement().execute("drop table " + table);
 
-        //now confirm that you can keep writing and reading data from the table from conn2
-        int aInt = 1;
-        int bInt = 1;
-        PreparedStatement ps = conn2.prepareStatement("insert into " + table+"(a,b) values (?,?)");
-        ps.setInt(1,aInt);ps.setInt(2,bInt);ps.execute();
+        // CONN2: now confirm that you can keep writing and reading data from the table
+        conn2.createStatement().execute("insert into " + table + " values (1, 1)");
+        assertEquals("Unable to read data from dropped table!", 1L, conn2.count("select * from " + table+" where a=1"));
 
-        long count = conn2.count("select * from "+ table+" where a="+aInt);
-        Assert.assertEquals("Unable to read data from dropped table!",1l,count);
-
-        //commit conn1
+        // CONN1: commit
         conn1.commit();
-        //confirm we still can write and read from it
-        ps = conn2.prepareStatement("insert into " + table+"(a,b) values (?,?)");
-        ps.setInt(1,aInt);ps.setInt(2,bInt);ps.execute();
 
-        count = conn2.count("select * from "+ table+" where a="+aInt);
-        Assert.assertEquals("Unable to read data from dropped table!",2l,count);
+        // CONN2: confirm we still can write and read from it
+        conn2.createStatement().execute("insert into " + table + " values (1, 1)");
+        assertEquals("Unable to read data from dropped table!", 2L, conn2.count("select * from "+ table+" where a=1"));
 
-        //commit conn2. Table should be dropped to conn2 now
+        // CONN2: Commit. Table should be dropped to conn2 now
         conn2.commit();
 
-        //we shouldn't be able to see the table now
-        try{
-            conn2.prepareStatement("insert into " + table+"(a,b) values (?,?)");
-            fail("should not be able to see");
-        }catch(SQLException se){
-            System.out.printf("%s:%s%n",se.getSQLState(),se.getMessage());
-            Assert.assertEquals("Incorrect error message!", ErrorState.LANG_TABLE_NOT_FOUND.getSqlState(),se.getSQLState());
-        }
+        // CONN2: we shouldn't be able to see the table now
+        assertQueryFail(conn2, "insert into " + table + " values (1,1)", ErrorState.LANG_TABLE_NOT_FOUND.getSqlState());
     }
 
     @Test
@@ -128,7 +113,7 @@ public class DropTableTransactionIT {
         ps.setInt(1,aInt);ps.setInt(2,bInt);ps.execute();
 
         long count = conn1.count("select * from "+ table+" where a="+aInt);
-        Assert.assertEquals("Unable to read data from dropped table!",1l,count);
+        assertEquals("Unable to read data from dropped table!", 1l, count);
     }
 
     @Test
@@ -166,10 +151,20 @@ public class DropTableTransactionIT {
             conn2.createStatement().execute("drop table "+ schemaWatcher+".t3");
             fail("Did not throw a Write/Write conflict");
         }catch(SQLException se){
-           Assert.assertEquals("Incorrect error message!",ErrorState.WRITE_WRITE_CONFLICT.getSqlState(),se.getSQLState());
+           assertEquals("Incorrect error message!", ErrorState.WRITE_WRITE_CONFLICT.getSqlState(), se.getSQLState());
         }finally{
             //commit the two transactions to make sure that the tables no longer exist
             conn1.commit();
+        }
+    }
+
+
+    private static void assertQueryFail(Connection connection, String sql, String expected) {
+        try {
+            connection.createStatement().execute(sql);
+            fail("didn't fail as expected: " + sql);
+        } catch(SQLException e) {
+            assertEquals("Unexpected exception message upon failure", expected, e.getSQLState());
         }
     }
 }
