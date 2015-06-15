@@ -18,6 +18,20 @@ public class ScalarEncoding_FixedTest {
     private BitFormat bitFormat = new BitFormat(false);
 
     @Test
+    public void testLongBoundaries() {
+        EncodingTestUtil.assertEncodeDecode(Long.MIN_VALUE);
+        EncodingTestUtil.assertEncodeDecode(0L);
+        EncodingTestUtil.assertEncodeDecode(Long.MAX_VALUE);
+    }
+
+    @Test
+    public void testIntegerBoundaries() {
+        EncodingTestUtil.assertEncodeDecode(Integer.MIN_VALUE);
+        EncodingTestUtil.assertEncodeDecode(0);
+        EncodingTestUtil.assertEncodeDecode(Integer.MAX_VALUE);
+    }
+
+    @Test
     public void testLongWithEncodingThatContainsZeroByte() {
         byte[] bytes = ScalarEncoding.toBytes(-9219236770852362184L, false);
         assertEquals("[4, -128, 14, -79, 0, -91, 32, 40, 56]", Arrays.toString(bytes));
@@ -77,13 +91,6 @@ public class ScalarEncoding_FixedTest {
         i ^= (i >>> 9);
         assertEquals("11111111 10000000 00000000 00000000", bitFormat.format(i));
         assertEquals("[0, -128, 0, 0]", Arrays.toString(FloatEncoding.toBytes(Float.intBitsToFloat(i), false)));
-    }
-
-    @Test
-    public void testEncodeDecodeIntegerZero() throws Exception {
-        byte[] test = ScalarEncoding.toBytes(0, false);
-        int retVal = ScalarEncoding.getInt(test, false);
-        assertEquals(0, retVal);
     }
 
     @Test
