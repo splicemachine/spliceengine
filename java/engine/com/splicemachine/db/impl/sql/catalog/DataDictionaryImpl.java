@@ -39,7 +39,6 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.services.locks.*;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.property.PropertyUtil;
-import com.splicemachine.db.iapi.services.sanity.AssertFailure;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
@@ -57,7 +56,6 @@ import com.splicemachine.db.impl.services.locks.Timeout;
 import com.splicemachine.db.impl.sql.compile.CollectNodesVisitor;
 import com.splicemachine.db.impl.sql.compile.ColumnReference;
 import com.splicemachine.db.impl.sql.compile.TableName;
-import com.splicemachine.db.impl.sql.depend.BasicDependencyManager;
 import com.splicemachine.db.impl.sql.execute.JarUtil;
 import com.splicemachine.db.impl.sql.execute.TriggerEventDML;
 
@@ -7467,14 +7465,12 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
             try{
                 base_row_exists=heapCC.fetch(baseRowLocation,outRow.getRowArray(),null);
             }catch(RuntimeException re){
-                if(SanityManager.DEBUG){
-                    if(re instanceof AssertFailure){
-                        StringBuilder strbuf=new StringBuilder("Error retrieving base row in table "+ti.getTableName());
-                        strbuf.append(": An ASSERT was thrown when trying to locate a row matching index row ")
-                                .append(indexRow1).append(" from index ").append(ti.getIndexName(indexId))
-                                .append(", conglom number ").append(ti.getIndexConglomerate(indexId));
-                        debugGenerateInfo(strbuf,tc,heapCC,ti,indexId);
-                    }
+                if (SanityManager.DEBUG) {
+                    StringBuilder strbuf = new StringBuilder("Error retrieving base row in table " + ti.getTableName());
+                    strbuf.append(": An ASSERT was thrown when trying to locate a row matching index row ")
+                            .append(indexRow1).append(" from index ").append(ti.getIndexName(indexId))
+                            .append(", conglom number ").append(ti.getIndexConglomerate(indexId));
+                    debugGenerateInfo(strbuf, tc, heapCC, ti, indexId);
                 }
                 throw re;
             }catch(StandardException se){
