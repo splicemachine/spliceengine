@@ -191,23 +191,8 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
             //
             topOperation.close();
             // get rid of the following if redundant
-            JobResults jobResults = topOperation.getJobResults();
-            if (jobResults != null)
-                jobResults.cleanup();
-        } catch (RuntimeException | IOException r) {
+        } catch (RuntimeException r) {
             throw Exceptions.parseException(r);
-        }
-        boolean xplain = activation.isTraced();
-        if (xplain) {
-            String xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
-            long statementId = topOperation.getStatementId();
-            if (scrollId == -1l) scrollId = Bytes.toLong(topOperation.getUniqueSequenceID());
-            if (taskId == -1l) taskId = SpliceDriver.driver().getUUIDGenerator().nextUUID();
-            try {
-                rowProvider.reportStats(statementId, scrollId, taskId, xplainSchema, regionName);
-            } catch (IOException e) {
-                throw Exceptions.parseException(e);
-            }
         }
         closed = true;
     }
