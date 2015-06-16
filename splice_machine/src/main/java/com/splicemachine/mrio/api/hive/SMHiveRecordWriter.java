@@ -29,7 +29,7 @@ public class SMHiveRecordWriter implements RecordWriter<RowLocationWritable, Exe
 
 	@Override
 	public void close(Reporter reporter) throws IOException {
-		recordWriter.close(null);
+//		recordWriter.close(null);
         /*try {
             SMStorageHandler.commitParentTxn();
         }

@@ -14,11 +14,8 @@ import org.junit.ClassRule;
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
-
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.derby.utils.TimestampAdmin;
-import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_dao.TriggerBuilder;
 import com.splicemachine.test_dao.TriggerDAO;
 
@@ -61,15 +58,12 @@ public class Trigger_Exec_Stored_Proc_IT {
             "PARAMETER STYLE JAVA READS SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 " +
             "EXTERNAL NAME 'com.splicemachine.triggers.TriggerProcs.proc_call_audit_with_result'";
 
-<<<<<<< HEAD
-=======
     private static final String CREATE_EXEC_PROC =
         "CREATE PROCEDURE "+SCHEMA+".proc_exec_sql(" +
             "in sqlText varchar(200)) " +
             "PARAMETER STYLE JAVA READS SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 " +
             "EXTERNAL NAME 'com.splicemachine.triggers.TriggerProcs.proc_exec_sql'";
 
->>>>>>> master
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
 
@@ -97,10 +91,7 @@ public class Trigger_Exec_Stored_Proc_IT {
             classWatcher.executeUpdate(String.format("DROP PROCEDURE %s.%s", SCHEMA, "proc_call_audit"));
             classWatcher.executeUpdate(String.format("DROP PROCEDURE %s.%s", SCHEMA, "proc_call_audit_with_transition"));
             classWatcher.executeUpdate(String.format("DROP PROCEDURE %s.%s", SCHEMA, "proc_call_audit_with_result"));
-<<<<<<< HEAD
-=======
             classWatcher.executeUpdate(String.format("DROP PROCEDURE %s.%s", SCHEMA, "proc_exec_sql"));
->>>>>>> master
         } catch (Exception e) {
             System.err.println("Ignoring in test teardown: " + e.getLocalizedMessage());
         }
