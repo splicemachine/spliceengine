@@ -121,8 +121,6 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation 
         super.writeExternal(out);
         out.writeBoolean(isInSortedOrder);
         out.writeInt(orderItem);
-        out.writeInt(extraUniqueSequenceID.length);
-        out.write(extraUniqueSequenceID);
     }
 
     @Override
@@ -130,8 +128,6 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation 
         super.readExternal(in);
         isInSortedOrder = in.readBoolean();
         orderItem = in.readInt();
-        extraUniqueSequenceID = new byte[in.readInt()];
-        in.readFully(extraUniqueSequenceID);
     }
 
     @Override
