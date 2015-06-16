@@ -21,6 +21,8 @@
 
 package com.splicemachine.db.iapi.sql.dictionary;
 
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
@@ -154,6 +156,7 @@ public final class ColumnDescriptor extends TupleDescriptor
         this.autoincStart = autoincStart;
         this.autoincValue = autoincStart;
         this.autoincInc = autoincInc;
+        this.collectStatistics = allowsStatistics(columnType);
 
     }
 
@@ -183,17 +186,17 @@ public final class ColumnDescriptor extends TupleDescriptor
                             UUID uuid,
                             UUID defaultUUID,
                             long autoincStart, long autoincInc, long autoincValue){
-        this(columnName,
-                columnPosition,
-                columnType,
-                columnDefault,
-                columnDefaultInfo,
-                uuid,
-                defaultUUID,
-                autoincStart,
-                autoincInc,
-                autoincValue,
-                false);
+            this(columnName,
+                    columnPosition,
+                    columnType,
+                    columnDefault,
+                    columnDefaultInfo,
+                    uuid,
+                    defaultUUID,
+                    autoincStart,
+                    autoincInc,
+                    autoincValue,
+                    allowsStatistics(columnType));
     }
 
     public ColumnDescriptor(String columnName,
@@ -517,6 +520,37 @@ public final class ColumnDescriptor extends TupleDescriptor
                         "If column is not autoinc and have defaultInfo, " +
                                 "isDefaultValueAutoinc can not be true");
             }
+        }
+    }
+
+
+    public static boolean allowsStatistics(int typeFormatId){
+        switch(typeFormatId){
+            case StoredFormatIds.SQL_BOOLEAN_ID:
+            case StoredFormatIds.SQL_TINYINT_ID:
+            case StoredFormatIds.SQL_SMALLINT_ID:
+            case StoredFormatIds.SQL_INTEGER_ID:
+            case StoredFormatIds.SQL_LONGINT_ID:
+            case StoredFormatIds.SQL_REAL_ID:
+            case StoredFormatIds.SQL_DOUBLE_ID:
+            case StoredFormatIds.SQL_DECIMAL_ID:
+            case StoredFormatIds.SQL_CHAR_ID:
+            case StoredFormatIds.SQL_DATE_ID:
+            case StoredFormatIds.SQL_TIME_ID:
+            case StoredFormatIds.SQL_TIMESTAMP_ID:
+            case StoredFormatIds.SQL_VARCHAR_ID:
+            case StoredFormatIds.SQL_LONGVARCHAR_ID:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    public static boolean allowsStatistics(DataTypeDescriptor columnType) {
+        try {
+            return allowsStatistics(columnType.getNull().getTypeFormatId());
+        } catch (StandardException se) {
+            throw new RuntimeException(se);
         }
     }
 

@@ -47,8 +47,6 @@ public class TriggerExecutionStack implements Externalizable {
         if (triggerExecutionContexts.isEmpty()) {
             return;
         }
-//        TriggerExecutionContext popped = triggerExecutionContexts.remove(triggerExecutionContexts.size() - 1);
-//        boolean foundElement = popped != null && popped == tec;
         boolean foundElement = triggerExecutionContexts.remove(tec);
         if (SanityManager.DEBUG) {
             if (!foundElement) {

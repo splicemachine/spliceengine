@@ -1450,14 +1450,18 @@ public abstract class BaseActivation implements CursorActivation, GeneratedByteC
 	 * @see com.splicemachine.db.iapi.sql.Activation#getSQLSessionContextForChildren
 	 */
 	public SQLSessionContext getSQLSessionContextForChildren() {
-
+        SQLSessionContext sessionContext = this.sqlSessionContextForChildren;
+        if (sessionContext == null && parentActivation != null) {
+            // if child session context not existent here, try parent.
+            sessionContext = parentActivation.getSQLSessionContextForChildren();
+        }
 		if (SanityManager.DEBUG) {
 			SanityManager.ASSERT
-				(sqlSessionContextForChildren != null,
+				(sessionContext != null,
 				 "Expected sqlSessionContextForChildren to be non-null");
 		}
 
-		return sqlSessionContextForChildren;
+		return sessionContext;
 	}
 
 	/**

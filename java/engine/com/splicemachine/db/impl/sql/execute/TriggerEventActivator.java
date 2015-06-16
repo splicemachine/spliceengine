@@ -48,6 +48,7 @@ public class TriggerEventActivator {
     private String statementText;
     private UUID tableId;
     private String tableName;
+    private boolean tecPushed;
 
     /**
      * Basic constructor
@@ -81,7 +82,6 @@ public class TriggerEventActivator {
         this.tec = executionFactory.getTriggerExecutionContext(
                statementText, triggerInfo.getColumnIds(), triggerInfo.getColumnNames(),
                 tableId, tableName, aiCounters);
-        this.lcc.pushTriggerExecutionContext(this.tec);
     }
 
     /**
@@ -124,6 +124,11 @@ public class TriggerEventActivator {
         tec.setCurrentTriggerEvent(event);
         try {
             lcc.pushExecutionStmtValidator(tec);
+            if (! tecPushed) {
+                lcc.pushTriggerExecutionContext(tec);
+                tecPushed = true;
+            }
+
             for (GenericTriggerExecutor triggerExecutor : triggerExecutors) {
                 // Reset the AI counters to the beginning before firing next trigger.
                 tec.resetAICounters(true);
@@ -160,6 +165,11 @@ public class TriggerEventActivator {
         tec.setCurrentTriggerEvent(event);
         try {
             lcc.pushExecutionStmtValidator(tec);
+            if (! tecPushed) {
+                lcc.pushTriggerExecutionContext(tec);
+                tecPushed = true;
+            }
+
             for (GenericTriggerExecutor triggerExecutor : triggerExecutors) {
                 // Reset the AI counters to the beginning before firing next trigger.
                 tec.resetAICounters(true);
@@ -178,7 +188,10 @@ public class TriggerEventActivator {
     public void cleanup() throws StandardException {
         if (tec != null) {
             tec.cleanup();
-            lcc.popTriggerExecutionContext(tec);
+            if (tecPushed) {
+                lcc.popTriggerExecutionContext(tec);
+            }
+            tecPushed = false;
         }
     }
 
