@@ -723,5 +723,7 @@ public class SpliceSparkKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(ExportParams.class, EXTERNALIZABLE_SERIALIZER, 243);
         instance.register(TriggerExecutionContext.class,new FieldSerializer(instance,TriggerExecutionContext.class),244);
         instance.register(TriggerExecutionStack.class,new FieldSerializer(instance,TriggerExecutionStack.class),245);
+        instance.register(TriggerExecutionContext.class,new FieldSerializer(instance,TriggerExecutionContext.class),246);
+        instance.register(TriggerExecutionStack.class,new FieldSerializer(instance,TriggerExecutionStack.class),247);
     }
 }

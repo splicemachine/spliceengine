@@ -58,8 +58,8 @@ public class SITransactor<Data, Table,
     private static final OperationStatus NOT_RUN = new OperationStatus(HConstants.OperationStatusCode.NOT_RUN);
 
     private final SDataLib<Data, Put, Delete, Get, Scan> dataLib;
-    private final STableWriter<SRowLock, Table, Mutation, Put, Delete> dataWriter;
-    private final DataStore<SRowLock, Data, Mutation, Put, Delete, Get, Scan, Table> dataStore;
+    private final STableWriter<Table, Mutation, Put, Delete> dataWriter;
+    private final DataStore<Data, Mutation, Put, Delete, Get, Scan, Table> dataStore;
     private final TxnOperationFactory operationFactory;
     private final TxnSupplier transactionStore;
     private final IgnoreTxnCacheSupplier ignoreTransactionStore;
@@ -656,8 +656,8 @@ public class SITransactor<Data, Table,
             Put extends Mutation, Delete extends OperationWithAttributes, Get extends OperationWithAttributes, Scan extends OperationWithAttributes,
             Table> {
         private SDataLib<Data, Put, Delete, Get, Scan> dataLib;
-        private STableWriter<SRowLock, Table, Mutation, Put, Delete> dataWriter;
-        private DataStore<SRowLock, Data, Mutation, Put, Delete, Get, Scan, Table> dataStore;
+        private STableWriter<Table, Mutation, Put, Delete> dataWriter;
+        private DataStore<Data, Mutation, Put, Delete, Get, Scan, Table> dataStore;
         private TxnSupplier txnStore;
         private TxnOperationFactory operationFactory;
         private IgnoreTxnCacheSupplier ignoreTxnStore;
@@ -674,7 +674,7 @@ public class SITransactor<Data, Table,
             return this;
         }
 
-        public Builder dataWriter(STableWriter<SRowLock, Table, Mutation, Put, Delete> dataWriter) {
+        public Builder dataWriter(STableWriter<Table, Mutation, Put, Delete> dataWriter) {
             this.dataWriter = dataWriter;
             return this;
         }
@@ -684,7 +684,7 @@ public class SITransactor<Data, Table,
             return this;
         }
 
-        public Builder dataStore(DataStore<SRowLock, Data, Mutation, Put, Delete, Get, Scan, Table> dataStore) {
+        public Builder dataStore(DataStore<Data, Mutation, Put, Delete, Get, Scan, Table> dataStore) {
             this.dataStore = dataStore;
             return this;
         }

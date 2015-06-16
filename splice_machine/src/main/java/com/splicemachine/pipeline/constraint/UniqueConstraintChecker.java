@@ -29,7 +29,8 @@ public class UniqueConstraintChecker implements BatchConstraintChecker {
     @Override
     public OperationStatus checkConstraint(KVPair mutation, Result existingRow) throws IOException {
         // There is an existing row, if this is an insert then fail.
-        return (mutation.getType() == KVPair.Type.INSERT) ? failure : SUCCESS;
+        KVPair.Type type = mutation.getType();
+        return (type == KVPair.Type.INSERT /*|| type == KVPair.Type.UPDATE*/) ? failure : SUCCESS;
     }
 
     @Override

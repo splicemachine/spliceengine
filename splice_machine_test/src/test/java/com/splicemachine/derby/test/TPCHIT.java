@@ -106,19 +106,20 @@ public class TPCHIT {
     public void sql8() throws Exception {
         executeQuery(getContent("8.sql"), "", true);
     }
-
+/*
     @Test
     public void sql9() throws Exception {
         executeQuery(getContent("9.sql"), "", true);
     }
-
+*/
+/*
     @Test
     public void sql9Repeated() throws Exception {
         for (int i = 0; i < 3; i++) {
             sql9();
         }
     }
-
+*/
     @Test
     public void sql10() throws Exception {
         executeQuery(getContent("10.sql"), "", true);

@@ -57,6 +57,8 @@ public class CreateFkJobSubmitter {
         List<ConstraintDescriptor> newForeignKey = ImmutableList.of(foreignKeyConstraintDescriptor);
         long backingIndexConglomerateIds = DataDictionaryUtils.getBackingIndexConglomerateIdsForForeignKeys(newForeignKey).get(0);
 
+        String referencedTableVersion = referencedConstraint.getTableDescriptor().getVersion();
+
         HTableInterface table = SpliceAccessManager.getHTable(Long.toString(referencedConglomerateId).getBytes());
 
         JobInfo info = null;
@@ -70,7 +72,7 @@ public class CreateFkJobSubmitter {
                     referencedConglomerateId,
                     backingIndexFormatIds,
                     backingIndexConglomerateIds,
-                    referencedConstraint.getTableDescriptor().getName());
+                    referencedConstraint.getTableDescriptor().getName(), referencedTableVersion);
 
             future = SpliceDriver.driver().getJobScheduler().submit(job);
             info = new JobInfo(job.getJobId(), future.getNumTasks(), start);

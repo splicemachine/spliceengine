@@ -88,13 +88,13 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
 
     private final Set<AlterTableWriteFactory> alterTableWriteFactories = new CopyOnWriteArraySet<>();
 
-    /**
+    /*
      * Foreign key WriteHandlers intercept writes to parent/child tables and send them to the corresponding parent/child
-     * table for existence checks. There is only one of each (rather than a collection) because these are only
-     * present when the enclosing context is for a FK backing index and there is always exactly one index for one FK
-     * constraint.
+     * table for existence checks. Generally one WriteHandler handles all intercepts/checks for the conglomerate
+     * for this context.  Child intercept is the exception, where we will have multiple WriteHandlers if the backing
+     * index is shared by multiple FKs (multiple FKs on the same child column sharing the the same backing index).
      */
-    private ForeignKeyChildInterceptWriteFactory foreignKeyChildInterceptWriteFactory;
+    private List<ForeignKeyChildInterceptWriteFactory> foreignKeyChildInterceptWriteFactories = Lists.newArrayList();
     private ForeignKeyChildCheckWriteFactory foreignKeyChildCheckWriteFactory;
     private ForeignKeyParentInterceptWriteFactory foreignKeyParentInterceptWriteFactory;
     private ForeignKeyParentCheckWriteFactory foreignKeyParentCheckWriteFactory;
@@ -188,8 +188,9 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
             }
 
             // FK - child intercept (of inserts/updates)
-            if (foreignKeyChildInterceptWriteFactory != null) {
-                foreignKeyChildInterceptWriteFactory.addTo(context, false, expectedWrites);
+            if (foreignKeyChildInterceptWriteFactories != null) {
+                for (ForeignKeyChildInterceptWriteFactory factory : foreignKeyChildInterceptWriteFactories)
+                    factory.addTo(context, false, expectedWrites);
             }
 
             // FK - child existence check (upon parent update/delete)
@@ -285,9 +286,9 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
     }
 
     @Override
-    public void addForeignKeyParentCheckWriteFactory(int[] backingIndexFormatIds) {
+    public void addForeignKeyParentCheckWriteFactory(int[] backingIndexFormatIds, String parentTableVersion) {
         /* One instance handles all FKs that reference this primary key or unique index */
-        this.foreignKeyParentCheckWriteFactory = new ForeignKeyParentCheckWriteFactory(backingIndexFormatIds);
+        this.foreignKeyParentCheckWriteFactory = new ForeignKeyParentCheckWriteFactory(backingIndexFormatIds, parentTableVersion);
     }
 
     @Override
@@ -554,7 +555,7 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
             keyConglomerateId = referencedConstraint.getTableDescriptor().getHeapConglomerateId();
         }
         byte[] hbaseTableNameBytes = Bytes.toBytes(String.valueOf(keyConglomerateId));
-        foreignKeyChildInterceptWriteFactory = new ForeignKeyChildInterceptWriteFactory(hbaseTableNameBytes, fkConstraintDesc);
+        foreignKeyChildInterceptWriteFactories.add( new ForeignKeyChildInterceptWriteFactory(hbaseTableNameBytes, fkConstraintDesc));
         foreignKeyChildCheckWriteFactory = new ForeignKeyChildCheckWriteFactory(fkConstraintDesc);
     }
 
@@ -567,8 +568,9 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
         ColumnDescriptorList backingIndexColDescriptors = cDescriptor.getColumnDescriptors();
         int backingIndexFormatIds[] = DataDictionaryUtils.getFormatIds(backingIndexColDescriptors);
 
-        addForeignKeyParentCheckWriteFactory(backingIndexFormatIds);
         String parentTableName = cDescriptor.getTableDescriptor().getName();
+        String parentTableVersion = cDescriptor.getTableDescriptor().getVersion();
+        addForeignKeyParentCheckWriteFactory(backingIndexFormatIds, parentTableVersion);
         List<Long> backingIndexConglomIds = DataDictionaryUtils.getBackingIndexConglomerateIdsForForeignKeys(fks);
         addForeignKeyParentInterceptWriteFactory(parentTableName, backingIndexConglomIds);
     }

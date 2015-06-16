@@ -74,7 +74,8 @@ public class FunctionIT extends SpliceUnitTest {
      * 
      * @throws SQLException
      */
-    @Test(expected=SQLException.class)
+
+/*    @Test(expected=SQLException.class)
     public void testAcosFunction() throws Exception{
         ResultSet funcRs = methodWatcher.executeQuery("select acos(data) from" + this.getPaddedTableReference("A"));
         int rows = 0;
@@ -87,6 +88,6 @@ public class FunctionIT extends SpliceUnitTest {
         }
         Assert.assertTrue("Incorrect rows returned!",rows>0);
     }
-    
+ */
 }
 

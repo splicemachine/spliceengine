@@ -155,12 +155,14 @@ public abstract class StringStatistics extends BaseDvdStatistics{
     private static final Encoder<String> stringEncoder = new Encoder<String>() {
         @Override
         public void encode(String item, DataOutput dataInput) throws IOException {
-            dataInput.writeUTF(item);
+            dataInput.writeBoolean(item!=null);
+            if (item!=null)
+                dataInput.writeUTF(item);
         }
 
         @Override
         public String decode(DataInput input) throws IOException {
-            return input.readUTF();
+            return input.readBoolean()?input.readUTF():null;
         }
     };
 

@@ -206,7 +206,6 @@ public class MergeSortJoinStrategy extends BaseCostedHashableJoinStrategy {
          * of the data.
          */
         innerCost.setRowOrdering(null);
-        outerCost.setRowOrdering(null);
     }
 
 }

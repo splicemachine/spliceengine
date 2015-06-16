@@ -57,8 +57,8 @@ class ForeignKeyViolationProcessor {
      * ForeignKeyConstraintDescriptor.  A slight complication is that how we get a ForeignKeyConstraintDescriptor
      * depends on where the failure happened, etc. Thus the abstraction below.
      */
-    static interface FkConstraintContextProvider {
-        public ConstraintContext get(ConstraintViolation.ForeignKeyConstraintViolation cause);
+    interface FkConstraintContextProvider {
+        ConstraintContext get(ConstraintViolation.ForeignKeyConstraintViolation cause);
     }
 
     static class ChildFkConstraintContextProvider implements FkConstraintContextProvider {

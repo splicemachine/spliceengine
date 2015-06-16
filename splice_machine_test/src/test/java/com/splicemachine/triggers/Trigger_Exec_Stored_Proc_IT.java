@@ -4,6 +4,7 @@ import java.io.File;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.sql.Timestamp;
 
 import org.junit.AfterClass;
 import org.junit.Assert;
@@ -16,6 +17,7 @@ import org.junit.Test;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.utils.TimestampAdmin;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_dao.TriggerBuilder;
 import com.splicemachine.test_dao.TriggerDAO;
@@ -59,6 +61,15 @@ public class Trigger_Exec_Stored_Proc_IT {
             "PARAMETER STYLE JAVA READS SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 " +
             "EXTERNAL NAME 'com.splicemachine.triggers.TriggerProcs.proc_call_audit_with_result'";
 
+<<<<<<< HEAD
+=======
+    private static final String CREATE_EXEC_PROC =
+        "CREATE PROCEDURE "+SCHEMA+".proc_exec_sql(" +
+            "in sqlText varchar(200)) " +
+            "PARAMETER STYLE JAVA READS SQL DATA LANGUAGE JAVA DYNAMIC RESULT SETS 1 " +
+            "EXTERNAL NAME 'com.splicemachine.triggers.TriggerProcs.proc_exec_sql'";
+
+>>>>>>> master
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
 
@@ -77,6 +88,7 @@ public class Trigger_Exec_Stored_Proc_IT {
         classWatcher.executeUpdate(CREATE_PROC);
         classWatcher.executeUpdate(CREATE_PROC_WITH_TRANSITION_VAR);
         classWatcher.executeUpdate(CREATE_PROC_WITH_RESULT);
+        classWatcher.executeUpdate(CREATE_EXEC_PROC);
     }
 
     @AfterClass
@@ -85,6 +97,10 @@ public class Trigger_Exec_Stored_Proc_IT {
             classWatcher.executeUpdate(String.format("DROP PROCEDURE %s.%s", SCHEMA, "proc_call_audit"));
             classWatcher.executeUpdate(String.format("DROP PROCEDURE %s.%s", SCHEMA, "proc_call_audit_with_transition"));
             classWatcher.executeUpdate(String.format("DROP PROCEDURE %s.%s", SCHEMA, "proc_call_audit_with_result"));
+<<<<<<< HEAD
+=======
+            classWatcher.executeUpdate(String.format("DROP PROCEDURE %s.%s", SCHEMA, "proc_exec_sql"));
+>>>>>>> master
         } catch (Exception e) {
             System.err.println("Ignoring in test teardown: " + e.getLocalizedMessage());
         }
@@ -103,9 +119,18 @@ public class Trigger_Exec_Stored_Proc_IT {
     @Before
     public void setUp() throws Exception {
         classWatcher.executeUpdate("drop table if exists S");
-        classWatcher.executeUpdate("drop table if exists audit");
         classWatcher.executeUpdate("create table S (id integer, name varchar(30))");
+        classWatcher.executeUpdate("drop table if exists audit");
         classWatcher.executeUpdate("create table audit (username varchar(20),insert_time timestamp, new_id integer, old_id integer)");
+
+        classWatcher.executeUpdate("drop table if exists t_out");
+        classWatcher.executeUpdate("create table t_out(id int, col2 char(10), col3 varchar(50), tm_time timestamp)");
+        classWatcher.executeUpdate("drop table if exists t_master");
+        classWatcher.executeUpdate("create table t_master(id int, col2 char(10), col3 varchar(50), tm_time timestamp)");
+        classWatcher.executeUpdate("drop table if exists t_slave");
+        classWatcher.executeUpdate("create table t_slave(id int, description varchar(10),tm_time timestamp)");
+        classWatcher.executeUpdate("drop table if exists t_slave2");
+        classWatcher.executeUpdate("create table t_slave2(id int, description varchar(10),tm_time timestamp)");
     }
 
     /**
@@ -356,8 +381,91 @@ public class Trigger_Exec_Stored_Proc_IT {
         triggerDAO.drop("log_level_change");
     }
 
+    /**
+     * Create/fire a statement trigger that calls a splice system procedure with a SQL string to execute.
+     */
+    @Test @Ignore("DB-3424: Executing trigger action insert thru a stored proc (disallowed directly) causes infinite recursion.")
+    public void testExecSQLRecursion() throws Exception {
+
+        methodWatcher.executeUpdate("insert into t_master values (13, 'grrr', 'I''m a pirate!', CURRENT_TIMESTAMP)");
+        methodWatcher.executeUpdate("insert into t_slave values (99, 'trigger01', CURRENT_TIMESTAMP)");
+        methodWatcher.executeUpdate("insert into t_slave2 values (22, 'trigger02', CURRENT_TIMESTAMP)");
+
+        createTrigger(tb.named("TriggerMaster01").before().insert().on("t_master")
+                        .statement().then(String.format("CALL proc_exec_sql('%s')",
+                  "insert into "+SCHEMA+".t_master select id, description, ''Is the REAL deal'', CURRENT_TIMESTAMP from "+SCHEMA+".t_slave")));
+
+        createTrigger(tb.named("TriggerMaster02").before().insert().on("t_master")
+                        .statement().then(String.format("CALL proc_exec_sql('%s')",
+                  "insert into "+SCHEMA+".t_master select id, description, ''Is the REAL deal'', CURRENT_TIMESTAMP from "+SCHEMA+".t_slave2")));
+
+        // never returns...
+        methodWatcher.executeUpdate("insert into "+SCHEMA+".t_master values (01, 'roar', 'I''m a tiger!', CURRENT_TIMESTAMP)");
+
+        triggerDAO.drop("TriggerMaster01");
+        triggerDAO.drop("TriggerMaster02");
+    }
+
+    /**
+     * Create/fire a statement trigger that calls a splice system procedure with a SQL string to execute.
+     */
+    @Test
+    public void testExecSQL() throws Exception {
+
+        methodWatcher.executeUpdate("insert into t_master values (13, 'grrr', 'I''m a pirate!', CURRENT_TIMESTAMP)");
+        methodWatcher.executeUpdate("insert into t_slave values (22, 'trigger01', CURRENT_TIMESTAMP)");
+        methodWatcher.executeUpdate("insert into t_slave2 values (99, 'trigger02', CURRENT_TIMESTAMP)");
+
+        createTrigger(tb.named("TriggerMaster01").before().insert().on("t_master")
+                        .statement().then(String.format("CALL proc_exec_sql('%s')",
+                  "insert into "+SCHEMA+".t_out select id, description, ''Is the REAL deal'', CURRENT_TIMESTAMP from "+SCHEMA+".t_slave")));
+
+        createTrigger(tb.named("TriggerMaster02").before().insert().on("t_master")
+                        .statement().then(String.format("CALL proc_exec_sql('%s')",
+                  "insert into "+SCHEMA+".t_out select id, description, ''Is the REAL deal'', CURRENT_TIMESTAMP from "+SCHEMA+".t_slave2")));
+
+        methodWatcher.executeUpdate("insert into " + SCHEMA + ".t_master values (01, 'roar', 'I''m a tiger!', CURRENT_TIMESTAMP)");
+
+//        String query = "select * from t_master";
+//        ResultSet rs = methodWatcher.executeQuery(query);
+//        TestUtils.printResult(query, rs, System.out);
+//        query = "select * from t_out";
+//        rs = methodWatcher.executeQuery(query);
+//        TestUtils.printResult(query, rs, System.out);
+
+        ResultSet rs = methodWatcher.executeQuery("select * from t_master");
+        int count = 0;
+        while (rs.next()) {
+            ++count;
+        }
+        Assert.assertEquals("Expected 2 rows in t_master", 2, count);
+
+        rs = methodWatcher.executeQuery("select * from t_out order by id");
+        Timestamp t1 = null;
+        Timestamp t2 = null;
+        count = 0;
+        while (rs.next()) {
+            ++count;
+            if (count == 1) {
+                Assert.assertEquals("trigger01", rs.getString(2).trim());
+                t1 = rs.getTimestamp(4);
+            } else {
+                Assert.assertEquals("trigger02", rs.getString(2).trim());
+                t2 = rs.getTimestamp(4);
+            }
+        }
+        Assert.assertEquals("Expected 2 rows in t_out", 2, count);
+        Assert.assertNotNull(t1);
+        Assert.assertNotNull(t2);
+        Assert.assertTrue(t1.before(t2));
+
+        rs.close();
+        triggerDAO.drop("TriggerMaster01");
+        triggerDAO.drop("TriggerMaster02");
+    }
+
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    //
+    // Utility
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
     private void createTrigger(TriggerBuilder tb) throws Exception {

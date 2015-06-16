@@ -18,6 +18,20 @@ public class ScalarEncoding_FixedTest {
     private BitFormat bitFormat = new BitFormat(false);
 
     @Test
+    public void testLongBoundaries() {
+        EncodingTestUtil.assertEncodeDecode(Long.MIN_VALUE);
+        EncodingTestUtil.assertEncodeDecode(0L);
+        EncodingTestUtil.assertEncodeDecode(Long.MAX_VALUE);
+    }
+
+    @Test
+    public void testIntegerBoundaries() {
+        EncodingTestUtil.assertEncodeDecode(Integer.MIN_VALUE);
+        EncodingTestUtil.assertEncodeDecode(0);
+        EncodingTestUtil.assertEncodeDecode(Integer.MAX_VALUE);
+    }
+
+    @Test
     public void testLongWithEncodingThatContainsZeroByte() {
         byte[] bytes = ScalarEncoding.toBytes(-9219236770852362184L, false);
         assertEquals("[4, -128, 14, -79, 0, -91, 32, 40, 56]", Arrays.toString(bytes));
@@ -80,20 +94,11 @@ public class ScalarEncoding_FixedTest {
     }
 
     @Test
-    public void testEncodeDecodeIntegerZero() throws Exception {
-        byte[] test = ScalarEncoding.toBytes(0, false);
-        int retVal = ScalarEncoding.getInt(test, false);
-        assertEquals(0, retVal);
-    }
-
-    @Test
     @Ignore("DB-3421")
     public void testEncodeDecodeNegativeBigInt() throws Exception {
         byte[] test = ScalarEncoding.toBytes(-9208636019293794487l,false);
         byte[] test2 = ScalarEncoding.toBytes(-9169196554323565708l,false);
         Assert.assertTrue("encoding incorrect", Bytes.compareTo(test,test2)<0);
     }
-
-
 
 }

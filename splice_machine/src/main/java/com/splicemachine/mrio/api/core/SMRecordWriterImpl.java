@@ -2,6 +2,11 @@ package com.splicemachine.mrio.api.core;
 
 import java.io.IOException;
 import java.sql.Connection;
+import java.sql.SQLException;
+
+import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.mapreduce.RecordWriter;
@@ -30,8 +35,10 @@ import com.splicemachine.pipeline.impl.WriteCoordinator;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.ActiveWriteTxn;
 import com.splicemachine.uuid.BasicUUIDGenerator;
+import org.apache.log4j.Logger;
 
 public class SMRecordWriterImpl extends RecordWriter<RowLocation, ExecRow> {
+<<<<<<< HEAD
 <<<<<<< HEAD
 	protected TableContext tableContext;
 	protected KeyEncoder keyEncoder;
@@ -208,6 +215,67 @@ public class SMRecordWriterImpl extends RecordWriter<RowLocation, ExecRow> {
                 String strSize = conf.get(MRConstants.SPLICE_WRITE_BUFFER_SIZE);
 
                 int size = 1024;
+=======
+    static final Logger LOG = Logger.getLogger(SMRecordWriterImpl.class);
+    protected TableContext tableContext;
+    protected KeyEncoder keyEncoder;
+    protected DataHash<ExecRow> dataHash;
+    protected PairEncoder encoder;
+    protected KVPair.Type pairType;
+    protected int rowsWritten = 0;
+    protected byte[] tableName;
+    protected TxnView txn;
+    protected RecordingCallBuffer<KVPair> callBuffer;
+    protected int[] pkCols;
+    protected int[] execRowFormatIds;
+    protected SpliceSequence[] sequences;
+    protected boolean hasSequence = false;
+    protected ExecRow execRowDefn;
+    protected SMSQLUtil sqlUtil;
+    protected Connection conn;
+    protected Configuration conf;
+    protected long childTxsID;
+
+    public SMRecordWriterImpl(TableContext tableContext, Configuration conf) throws IOException {
+        this.tableContext = tableContext;
+        this.pkCols = tableContext.pkCols;
+        this.execRowFormatIds = tableContext.execRowFormatIds;
+        ColumnContext[] columns = tableContext.columns;
+        this.sequences = new SpliceSequence[columns.length];
+        for(int i=0;i< columns.length;i++){
+            ColumnContext cc = columns[i];
+            if(columns[i].isAutoIncrement()){
+                hasSequence = true;
+                sequences[i] = new SpliceSequence(SpliceAccessManager.getHTable(SpliceConstants.SEQUENCE_TABLE_NAME_BYTES),
+                        50*cc.getAutoIncrementIncrement(),
+                        cc.getSequenceRowLocation(),
+                        cc.getAutoIncrementStart(),
+                        cc.getAutoIncrementIncrement());
+            }
+        }
+        execRowDefn = SMSQLUtil.getExecRow(execRowFormatIds);
+        sqlUtil = SMSQLUtil.getInstance(conf.get(MRConstants.SPLICE_JDBC_STR));
+        this.conf = conf;
+    }
+
+
+    @Override
+    public void write(RowLocation ignore, ExecRow value) throws IOException,
+            InterruptedException {
+        try {
+            if(callBuffer == null){
+                conn = sqlUtil.createConn();
+                sqlUtil.disableAutoCommit(conn);
+                long parentTxnID = Long.parseLong(conf.get(MRConstants.SPLICE_TRANSACTION_ID));
+
+                childTxsID = sqlUtil.getChildTransactionID(conn,
+                        parentTxnID,
+                        conf.get(MRConstants.SPLICE_TABLE_NAME));
+
+                String strSize = conf.get(MRConstants.SPLICE_WRITE_BUFFER_SIZE);
+
+                int size = 1024;
+>>>>>>> master
                 if((strSize != null) && (!strSize.equals("")))
                     size = Integer.valueOf(strSize);
 
@@ -282,6 +350,7 @@ public class SMRecordWriterImpl extends RecordWriter<RowLocation, ExecRow> {
     }
 
     public DataHash<ExecRow> getRowHash() throws StandardException {
+<<<<<<< HEAD
 /*        int[] columns = InsertOperation.getEncodingColumns(execRowDefn.nColumns(),pkCols);
         DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(true).getSerializers(execRowDefn);
         return new EntryDataHash(columns,null,serializers);
@@ -289,4 +358,10 @@ public class SMRecordWriterImpl extends RecordWriter<RowLocation, ExecRow> {
         return null;
     }
 >>>>>>> Added Remaining Merges
+=======
+        int[] columns = InsertOperation.getEncodingColumns(execRowDefn.nColumns(),pkCols);
+        DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(true).getSerializers(execRowDefn);
+        return new EntryDataHash(columns,null,serializers);
+    }
+>>>>>>> master
 }
