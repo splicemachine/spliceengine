@@ -28,7 +28,7 @@
                 srcdir="${derby.engine.src.dir}"
                 destdir="${out.dir}">
             <classpath>
-                <pathelement path="${main.classpath}"/>
+                <pathelement path="${main.classpath};${joda-time}"/>
             </classpath>
             <include name="${splice.package}/${cur.dir}/*.java"/>
         </javac>
