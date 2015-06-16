@@ -82,7 +82,7 @@ public class StatisticsAdminIT {
          * the emptyTable is not configured to collect any column stats, we only check the row stats for
          * values.
          */
-        long conglomId = SpliceAdmin.getConglomids(conn,schema.schemaName, emptyTable.tableName)[0];
+        long conglomId = SpliceAdmin.getConglomNumbers(conn, schema.schemaName, emptyTable.tableName)[0];
         PreparedStatement check = conn.prepareStatement("select * from sys.systablestats where conglomerateId = ?");
         check.setLong(1, conglomId);
         ResultSet resultSet = check.executeQuery();
@@ -107,7 +107,7 @@ public class StatisticsAdminIT {
          * the emptyTable is not configured to collect any column stats, we only check the row stats for
          * values.
          */
-        long conglomId = SpliceAdmin.getConglomids(conn,schema.schemaName, occupiedTable.tableName)[0];
+        long conglomId = SpliceAdmin.getConglomNumbers(conn, schema.schemaName, occupiedTable.tableName)[0];
         PreparedStatement check = conn.prepareStatement("select * from sys.systablestats where conglomerateId = ?");
         check.setLong(1, conglomId);
         ResultSet resultSet = check.executeQuery();
