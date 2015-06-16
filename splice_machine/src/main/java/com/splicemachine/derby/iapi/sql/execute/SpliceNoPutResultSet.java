@@ -39,17 +39,17 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
     private long taskId = -1;
     private String regionName;
 
-    public SpliceNoPutResultSet(Activation activation,SpliceOperation topOperation,RowProvider rowProvider){
-        this(activation,topOperation,rowProvider,true);
+    public SpliceNoPutResultSet(Activation activation, SpliceOperation topOperation, RowProvider rowProvider) {
+        this(activation, topOperation, rowProvider, true);
     }
 
     public SpliceNoPutResultSet(Activation activation,
-                        SpliceOperation topOperation,
-                        RowProvider rowProvider, boolean returnsRows){
-        SpliceLogUtils.trace(LOG, "instantiate with rowProvider %s",rowProvider);
+                                SpliceOperation topOperation,
+                                RowProvider rowProvider, boolean returnsRows) {
+        SpliceLogUtils.trace(LOG, "instantiate with rowProvider %s", rowProvider);
         this.activation = activation;
-        if(activation!=null)
-        this.resultDescription = activation.getPreparedStatement().getResultDescription();
+        if (activation != null)
+            this.resultDescription = activation.getPreparedStatement().getResultDescription();
         this.topOperation = topOperation;
         this.rowProvider = rowProvider;
         this.returnsRows = returnsRows;
@@ -63,19 +63,19 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 
     @Override
     public int modifiedRowCount() {
-        SpliceLogUtils.trace(LOG,"modifiedRowCount");
+        SpliceLogUtils.trace(LOG, "modifiedRowCount");
         return rowProvider.getModifiedRowCount();
     }
 
     @Override
     public ResultDescription getResultDescription() {
-        SpliceLogUtils.trace(LOG,"getResultDescription");
+        SpliceLogUtils.trace(LOG, "getResultDescription");
         return resultDescription;
     }
 
     @Override
     public Activation getActivation() {
-        SpliceLogUtils.trace(LOG,"getActivation");
+        SpliceLogUtils.trace(LOG, "getActivation");
         return activation;
     }
 
@@ -87,13 +87,13 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 
     @Override
     public ExecRow getAbsoluteRow(int row) throws StandardException {
-        SpliceLogUtils.trace(LOG,"getAbsoluteRow row: %s",row);
+        SpliceLogUtils.trace(LOG, "getAbsoluteRow row: %s", row);
         return null;
     }
 
     @Override
     public ExecRow getRelativeRow(int row) throws StandardException {
-        SpliceLogUtils.trace(LOG,"getRelativeRow row: %s",row);
+        SpliceLogUtils.trace(LOG, "getRelativeRow row: %s", row);
         return null;
     }
 
@@ -117,54 +117,56 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
     }
 
     private void attachStatementContext() throws StandardException {
-        if(statementContext == null || !statementContext.onStack()){
-        statementContext = activation.getLanguageConnectionContext().getStatementContext();
+        if (statementContext == null || !statementContext.onStack()) {
+            statementContext = activation.getLanguageConnectionContext().getStatementContext();
         }
-        statementContext.setTopResultSet(this,subqueryTrackingArray);
-        if(subqueryTrackingArray == null)
-        subqueryTrackingArray = statementContext.getSubqueryTrackingArray();
+        statementContext.setTopResultSet(this, subqueryTrackingArray);
+        if (subqueryTrackingArray == null)
+            subqueryTrackingArray = statementContext.getSubqueryTrackingArray();
         statementContext.setActivation(activation);
     }
 
     @Override
     public ExecRow getPreviousRow() throws StandardException {
-        SpliceLogUtils.trace(LOG,"getPreviousRow");
+        SpliceLogUtils.trace(LOG, "getPreviousRow");
         return null;
     }
 
     @Override
     public ExecRow getLastRow() throws StandardException {
-        SpliceLogUtils.trace(LOG,"getLastRow");
+        SpliceLogUtils.trace(LOG, "getLastRow");
         return null;
     }
 
     @Override
     public ExecRow setAfterLastRow() throws StandardException {
-        SpliceLogUtils.trace(LOG,"setAfterLastRow");
+        SpliceLogUtils.trace(LOG, "setAfterLastRow");
         return null;
     }
 
     @Override
     public void clearCurrentRow() {
-        SpliceLogUtils.trace(LOG,"clearCurrentRow");
+        SpliceLogUtils.trace(LOG, "clearCurrentRow");
     }
 
     @Override
     public boolean checkRowPosition(int isType) throws StandardException {
-        SpliceLogUtils.trace(LOG, "checkRowPosition isType: %d",isType);
+        SpliceLogUtils.trace(LOG, "checkRowPosition isType: %d", isType);
         return false;
     }
 
     @Override
     public int getRowNumber() {
-        SpliceLogUtils.trace(LOG,"getRowNumber");
+        SpliceLogUtils.trace(LOG, "getRowNumber");
         return 0;
     }
 
     @Override
     public void close() throws StandardException {
-        SpliceLogUtils.trace(LOG, "close=%s",closed);
-        if(closed) return;
+        SpliceLogUtils.trace(LOG, "close=%s", closed);
+        if (closed) return;
+
+        try {
             rowProvider.close();
 
             //if (LOG.isTraceEnabled()) {
@@ -188,7 +190,26 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
             // operations.
             //
             topOperation.close();
-        closed =true;
+            // get rid of the following if redundant
+            JobResults jobResults = topOperation.getJobResults();
+            if (jobResults != null)
+                jobResults.cleanup();
+        } catch (RuntimeException | IOException r) {
+            throw Exceptions.parseException(r);
+        }
+        boolean xplain = activation.isTraced();
+        if (xplain) {
+            String xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
+            long statementId = topOperation.getStatementId();
+            if (scrollId == -1l) scrollId = Bytes.toLong(topOperation.getUniqueSequenceID());
+            if (taskId == -1l) taskId = SpliceDriver.driver().getUUIDGenerator().nextUUID();
+            try {
+                rowProvider.reportStats(statementId, scrollId, taskId, xplainSchema, regionName);
+            } catch (IOException e) {
+                throw Exceptions.parseException(e);
+            }
+        }
+        closed = true;
     }
 
     @Override
@@ -205,36 +226,36 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
     @Override
     public void finish() throws StandardException {
         SpliceLogUtils.trace(LOG, "finish");
-        if(!isClosed())close();
+        if (!isClosed()) close();
     }
 
     @Override
     public long getExecuteTime() {
-        SpliceLogUtils.trace(LOG,"getExecuteTime");
+        SpliceLogUtils.trace(LOG, "getExecuteTime");
         return 0;
     }
 
     @Override
     public Timestamp getBeginExecutionTimestamp() {
-        SpliceLogUtils.trace(LOG,"getBeginExecutionTimestamp");
+        SpliceLogUtils.trace(LOG, "getBeginExecutionTimestamp");
         return null;
     }
 
     @Override
     public Timestamp getEndExecutionTimestamp() {
-        SpliceLogUtils.trace(LOG,"getEndExecutionTimestamp");
+        SpliceLogUtils.trace(LOG, "getEndExecutionTimestamp");
         return null;
     }
 
     @Override
     public long getTimeSpent(int type) {
-        SpliceLogUtils.trace(LOG,"getTimeSpent type %d",type);
+        SpliceLogUtils.trace(LOG, "getTimeSpent type %d", type);
         return 0;
     }
 
     @Override
     public NoPutResultSet[] getSubqueryTrackingArray(int numSubqueries) {
-        SpliceLogUtils.trace(LOG,"getSubqueryTrackingArray with numSubqueries %d",numSubqueries);
+        SpliceLogUtils.trace(LOG, "getSubqueryTrackingArray with numSubqueries %d", numSubqueries);
         if (subqueryTrackingArray == null)
             subqueryTrackingArray = new NoPutResultSet[numSubqueries];
 
@@ -243,7 +264,7 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 
     @Override
     public ResultSet getAutoGeneratedKeysResultset() {
-        SpliceLogUtils.trace(LOG,"getAutoGeneratedKeysResultSet");
+        SpliceLogUtils.trace(LOG, "getAutoGeneratedKeysResultSet");
         return null;
     }
 
@@ -262,9 +283,9 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 
     @Override
     public SQLWarning getWarnings() {
-    SQLWarning warnings = activation.getWarnings();
-    activation.clearWarnings();
-    return warnings;
+        SQLWarning warnings = activation.getWarnings();
+        activation.clearWarnings();
+        return warnings;
     }
 
     @Override
@@ -275,25 +296,25 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 
     @Override
     public void rowLocation(RowLocation rl) throws StandardException {
-        SpliceLogUtils.trace(LOG,"needsRowLocation");
+        SpliceLogUtils.trace(LOG, "needsRowLocation");
     }
 
     @Override
     public DataValueDescriptor[] getNextRowFromRowSource()
             throws StandardException {
-        SpliceLogUtils.trace(LOG,"getNextRowFromRowSource");
+        SpliceLogUtils.trace(LOG, "getNextRowFromRowSource");
         return null;
     }
 
     @Override
     public boolean needsToClone() {
-        SpliceLogUtils.trace(LOG,"needsToClone");
+        SpliceLogUtils.trace(LOG, "needsToClone");
         return false;
     }
 
     @Override
     public FormatableBitSet getValidColumns() {
-        SpliceLogUtils.trace(LOG,"getValidColumns");
+        SpliceLogUtils.trace(LOG, "getValidColumns");
         return null;
     }
 
@@ -304,36 +325,36 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 
     @Override
     public void markAsTopResultSet() {
-        SpliceLogUtils.trace(LOG,"markAsTopResultSet");
+        SpliceLogUtils.trace(LOG, "markAsTopResultSet");
     }
 
     @Override
     public void openCore() throws StandardException {
-        SpliceLogUtils.trace(LOG,"opening rowProvider %s",rowProvider);
-        try{
+        SpliceLogUtils.trace(LOG, "opening rowProvider %s", rowProvider);
+        try {
             rowProvider.open();
-        }catch(Exception e){
+        } catch (Exception e) {
             throw Exceptions.parseException(e);
         }
-        closed=false;
+        closed = false;
     }
 
     @Override
     public void reopenCore() throws StandardException {
-        SpliceLogUtils.trace(LOG, "reopening rowProvider %s",rowProvider);
+        SpliceLogUtils.trace(LOG, "reopening rowProvider %s", rowProvider);
         openCore();
     }
 
     @Override
     public ExecRow getNextRowCore() throws StandardException {
-        SpliceLogUtils.trace(LOG,"nextRow");
+        SpliceLogUtils.trace(LOG, "nextRow");
         try {
-            if(rowProvider.hasNext()){
+            if (rowProvider.hasNext()) {
                 execRow = rowProvider.next();
-                activation.setCurrentRow(execRow,resultSetNumber());
+                activation.setCurrentRow(execRow, resultSetNumber());
                 SpliceLogUtils.trace(LOG, "nextRow=%s", execRow);
                 return execRow;
-            }else {
+            } else {
                 return null;
             }
         } catch (Throwable t) {
@@ -349,41 +370,41 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 
     @Override
     public int getScanIsolationLevel() {
-        SpliceLogUtils.trace(LOG,"getScanIsolationLevel");
+        SpliceLogUtils.trace(LOG, "getScanIsolationLevel");
         return 0;
     }
 
     @Override
     public void setTargetResultSet(TargetResultSet trs) {
-        SpliceLogUtils.trace(LOG,"setTargetResultSet %s",trs);
+        SpliceLogUtils.trace(LOG, "setTargetResultSet %s", trs);
     }
 
     @Override
     public void setNeedsRowLocation(boolean needsRowLocation) {
-        SpliceLogUtils.trace(LOG,"setNeedsRowLocation %b",needsRowLocation);
+        SpliceLogUtils.trace(LOG, "setNeedsRowLocation %b", needsRowLocation);
     }
 
     @Override
     public double getEstimatedRowCount() {
-        SpliceLogUtils.trace(LOG,"getEstimatedRowCount");
+        SpliceLogUtils.trace(LOG, "getEstimatedRowCount");
         return 0;
     }
 
     @Override
     public int resultSetNumber() {
-        SpliceLogUtils.trace(LOG,"resultSetNumber");
+        SpliceLogUtils.trace(LOG, "resultSetNumber");
         return topOperation.resultSetNumber();
     }
 
     @Override
     public void setCurrentRow(ExecRow row) {
-        SpliceLogUtils.trace(LOG, "setCurrentRow %s",row);
+        SpliceLogUtils.trace(LOG, "setCurrentRow %s", row);
         activation.setCurrentRow(row, topOperation.resultSetNumber());
     }
 
     @Override
     public boolean requiresRelocking() {
-        SpliceLogUtils.trace(LOG,"requiresRelocking");
+        SpliceLogUtils.trace(LOG, "requiresRelocking");
         return false;
     }
 
@@ -395,23 +416,25 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
 
     @Override
     public void updateRow(ExecRow row, RowChanger rowChanger) throws StandardException {
-        SpliceLogUtils.trace(LOG, "updateRow with row %s, and rowChanger %s",row,rowChanger);
+        SpliceLogUtils.trace(LOG, "updateRow with row %s, and rowChanger %s", row, rowChanger);
     }
 
     @Override
     public void markRowAsDeleted() throws StandardException {
-        SpliceLogUtils.trace(LOG,"markRowAsDeleted");
+        SpliceLogUtils.trace(LOG, "markRowAsDeleted");
     }
 
     @Override
     public void positionScanAtRowLocation(RowLocation rLoc) throws StandardException {
-        SpliceLogUtils.trace(LOG,"positionScanAtRowLocation with RowLocation %s",rLoc);
+        SpliceLogUtils.trace(LOG, "positionScanAtRowLocation with RowLocation %s", rLoc);
     }
+
     @Override
     public RowLocation getRowLocation() throws StandardException {
         SpliceLogUtils.trace(LOG, "getRowLocation");
         return rowProvider.getCurrentRowLocation();
     }
+
     @Override
     public ExecRow getCurrentRow() throws StandardException {
         SpliceLogUtils.trace(LOG, "getCurrentRow");
@@ -422,17 +445,12 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
         this.scrollId = scrollId;
     }
 
-    public void setTaskId(long taskId){
+    public void setTaskId(long taskId) {
         this.taskId = taskId;
     }
 
-    public void setRegionName(String regionName){
+    public void setRegionName(String regionName) {
         this.regionName = regionName;
     }
 
-    }
-<<<<<<< HEAD
->>>>>>> DB-3351: trigger execution context reset bug: SpliceNoPutResultSet: tabs
 }
-=======
->>>>>>> Added Remaining Merges

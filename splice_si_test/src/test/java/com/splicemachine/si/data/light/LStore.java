@@ -8,6 +8,7 @@ import com.splicemachine.collections.CloseableIterator;
 import com.splicemachine.collections.ForwardingCloseableIterator;
 import com.splicemachine.si.api.Clock;
 import com.splicemachine.si.api.Transactor;
+import com.splicemachine.si.data.api.SRowLock;
 import com.splicemachine.si.data.api.STableReader;
 import com.splicemachine.si.data.api.STableWriter;
 import com.splicemachine.utils.ByteSlice;
@@ -25,8 +26,7 @@ import java.io.IOException;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class LStore implements STableReader<LTable, LGet, LGet>,
-        STableWriter<LRowLock, LTable, LTuple, LTuple, LTuple>{
+public class LStore implements STableReader<LTable, LGet, LGet>, STableWriter<LTable, LTuple, LTuple, LTuple>{
 
     private final Map<String, Map<byte[], LRowLock>> locks=Maps.newTreeMap();
     private final Map<String, Map<LRowLock, byte[]>> reverseLocks=Maps.newTreeMap();
@@ -182,7 +182,7 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
     }
 
     @Override
-    public void write(LTable table,LTuple put,LRowLock rowLock) throws IOException{
+    public void write(LTable table,LTuple put,SRowLock rowLock) throws IOException{
         write(table,put);
     }
 
@@ -202,8 +202,8 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
     }
 
     @Override
-    public OperationStatus[] writeBatch(LTable table,Pair<LTuple, LRowLock>[] puts) throws IOException{
-        for(Pair<LTuple, LRowLock> p : puts){
+    public OperationStatus[] writeBatch(LTable table,Pair<LTuple, SRowLock>[] puts) throws IOException{
+        for(Pair<LTuple, SRowLock> p : puts){
             write(table,p.getFirst());
         }
         OperationStatus[] result=new OperationStatus[puts.length];
@@ -276,7 +276,7 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
     }
 
     @Override
-    public void unLockRow(LTable sTable,LRowLock lock){
+    public void unLockRow(LTable sTable,SRowLock lock){
         synchronized(this){
             String table=sTable.relationIdentifier;
             Map<byte[], LRowLock> lockTable=locks.get(table);
@@ -328,7 +328,7 @@ public class LStore implements STableReader<LTable, LGet, LGet>,
     }
 
     @Override
-    public void delete(LTable table,LTuple delete,LRowLock lock) throws IOException{
+    public void delete(LTable table,LTuple delete,SRowLock lock) throws IOException{
         final String relationIdentifier=table.relationIdentifier;
         final List<LTuple> tuples=relations.get(relationIdentifier);
         final List<LTuple> newTuples=Lists.newArrayList();

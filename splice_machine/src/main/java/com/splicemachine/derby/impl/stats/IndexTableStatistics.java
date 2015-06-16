@@ -67,6 +67,15 @@ public class IndexTableStatistics implements OverheadManagedTableStatistics{
     }
 
     @Override
+    public String toString() {
+        return String.format("IndexTableStatistics(%s) {openScannerLatency=%f, closeScannerLatency=%f, numOpenEvents=%d, numCloseEvents=%d," +
+                        "rowCounts=%d, totalSize=%d, avgSize=%f, localReadLatency=%f, remoteReadLatency=%f, localReadTime=%d, " +
+                        "remoteReadTime=%d, avgRowWidth=%f, queryCount=%d}", tableId(), openScannerLatency(), closeScannerLatency(),
+                numOpenEvents(), numCloseEvents(), rowCount(), totalSize(), avgSize(), localReadLatency(), remoteReadLatency(),
+                localReadTime(), remoteReadTime(), avgRowWidth(), queryCount());
+    }
+
+    @Override
     public PartitionStatistics merge(PartitionStatistics other){
         indexStats.merge(other);
         return this;

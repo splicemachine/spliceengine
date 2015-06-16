@@ -11,7 +11,7 @@ import org.apache.hadoop.hbase.client.Put;
 
 import java.io.IOException;
 
-public abstract class BaseHbRegion<HbRowLock> implements IHTable<HbRowLock> {
+public abstract class BaseHbRegion implements IHTable {
 
     protected Mutation getMutation(KVPair kvPair, TxnView txn) throws IOException {
         assert kvPair.getType() == KVPair.Type.INSERT : "Performing an update/delete on a non-transactional table";

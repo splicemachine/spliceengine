@@ -22,10 +22,10 @@ import java.util.TreeSet;
  * <p/>
  * It is handed key-values and can change them.
  */
-public class SICompactionState<RowLock,Data,Mutation,
+public class SICompactionState<Data,Mutation,
     Put extends OperationWithAttributes, Delete, Get extends OperationWithAttributes, Scan, IHTable> {
     private static final Logger LOG = Logger.getLogger(SICompactionState.class);
-    private final DataStore<RowLock,Data,Mutation, Put, Delete, Get, Scan, IHTable> dataStore;
+    private final DataStore<Data,Mutation, Put, Delete, Get, Scan, IHTable> dataStore;
     private final TxnSupplier transactionStore;
     public SortedSet<Data> dataToReturn;
     private final RollForward rollForward;
@@ -35,7 +35,7 @@ public class SICompactionState<RowLock,Data,Mutation,
         this.dataStore = dataStore;
         this.rollForward = rollForward;
         this.transactionStore = new ActiveTxnCacheSupplier(transactionStore,SIConstants.activeTransactionCacheSize); //cache active transactions during our scan
-        this.dataToReturn  = new TreeSet<Data>(dataStore.dataLib.getComparator());
+        this.dataToReturn  = new TreeSet<>(dataStore.dataLib.getComparator());
     }
 
     /**

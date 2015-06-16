@@ -73,8 +73,8 @@ public class OperationResultSet implements NoPutResultSet, HasIncrement, CursorR
         // no-op
     }
 
-		public OperationResultSet(Activation activation,
-                              SpliceOperation topOperation){
+    public OperationResultSet(Activation activation,
+                              SpliceOperation topOperation) {
         this.activation = activation;
         this.topOperation = topOperation;
          if (LOG.isTraceEnabled())
@@ -102,99 +102,14 @@ public class OperationResultSet implements NoPutResultSet, HasIncrement, CursorR
     }
 
     public void executeScan(boolean useProbe, SpliceRuntimeContext context) throws StandardException {
-<<<<<<< HEAD
-        SpliceLogUtils.trace(LOG, "executeScan with topOperation=%s",topOperation);
-        try{
-            DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(activation,topOperation);
-            OperationInformation info = topOperation.getOperationInformation();
-            Activation activation = topOperation.getActivation();
-            int resultSetNumber = info.getResultSetNumber();
-            StatementInfo statementInfo = context.getStatementInfo();
-            long txnId = ((SpliceTransactionManager)activation.getTransactionController()).getRawTransaction().getTxnInformation().getTxnId();
-            String jobName = topOperation.getName() + " rs "+resultSetNumber + " <" + txnId + ">";
-            String jobDescription = statementInfo != null ? statementInfo.getSql() : null;
-            dsp.setJobGroup(jobName,jobDescription);
-            boolean returnsRows = !(topOperation instanceof DMLWriteOperation || topOperation instanceof CallStatementOperation
-                || topOperation instanceof MiscOperation);
-            delegate = new DataSetNoPutResultSet(activation, topOperation, topOperation.getDataSet(),returnsRows);
-=======
-        try {
-            if (context.useSpark()) {
-                OperationInformation info = topOperation.getOperationInformation();
-                Activation activation = topOperation.getActivation();
-                int resultSetNumber = info.getResultSetNumber();
-                StatementInfo statementInfo = context.getStatementInfo();
-                long txnId = ((SpliceTransactionManager) activation.getTransactionController()).getRawTransaction().getTxnInformation().getTxnId();
-                String jobName = topOperation.getName() + " rs " + resultSetNumber + " <" + txnId + ">";
-                String jobDescription = statementInfo != null ? statementInfo.getSql() : null;
-                SpliceSpark.getContext().setJobGroup(jobName, jobDescription);
-                delegate = topOperation.executeRDD(context);
-            } else {
-                delegate = useProbe ? topOperation.executeProbeScan() : topOperation.executeScan(context);
-            }
->>>>>>> DB-3351: trigger execution context reset bug: SpliceNoPutResultSet: tabs
-            delegate.setScrollId(scrollUuid);
-            delegate.openCore();
-        } catch (RuntimeException re) {
-            throw Exceptions.parseException(re);
-        }
-        if (PLAN_LOG.isDebugEnabled() && Boolean.valueOf(System.getProperty("derby.language.logQueryPlan"))) {
-            PLAN_LOG.debug(topOperation.prettyPrint(1));
-        }
+        throw new RuntimeException("no execute scans")
+    }
     }
 
-<<<<<<< HEAD
     public SpliceRuntimeContext sinkOpen(TxnView txn,boolean showStatementInfo) throws StandardException, IOException {
         throw new RuntimeException("no Sinks now");
     }
-=======
-    public SpliceRuntimeContext sinkOpen(TxnView txn, boolean showStatementInfo) throws StandardException, IOException {
-        this.txn = txn;
-        SpliceLogUtils.trace(LOG, "openCore");
-        closed = false;
-        if (delegate != null) delegate.close();
-        SpliceRuntimeContext runtimeContext = new SpliceRuntimeContext(txn);
 
-        try {
-            List<SpliceBaseOperation.XplainOperationChainInfo> operationChain = SpliceBaseOperation.operationChain.get();
-            if (operationChain != null && operationChain.size() > 0) {
-                operationChainInfo = operationChain.get(operationChain.size() - 1);
-                runtimeContext.recordTraceMetrics();
-                if (parentOperationID == -1l)
-                    parentOperationID = operationChainInfo.getOperationId();
-                statementId = operationChainInfo.getStatementId();
-            }
-
-            SpliceOperationContext operationContext = SpliceOperationContext.newContext(activation, txn);
-            topOperation.init(operationContext);
-            topOperation.open();
-            if (showStatementInfo) {
-                statementInfo = initStatmentInfo(txn, statementInfo, operationContext);
-//                if(activation.isTraced()){
-//                    SQLWarning w = StandardException.newWarning(WarningState.XPLAIN_STATEMENT_ID.getSqlState(), statementInfo.getStatementUuid());
-//                    ((GenericStorablePreparedStatement)activation.getPreparedStatement()).addWarning(w);
-//                }
-            }
-        } catch (IOException e) {
-            throw Exceptions.parseException(e);
-        }
-
-        try {
-
-            if (showStatementInfo)
-                runtimeContext.setStatementInfo(statementInfo);
-            if (activation.isTraced()) {
-                runtimeContext.recordTraceMetrics();
-            }
-
-            LinkedList<byte[]> taskChain = TaskIdStack.getCurrentThreadTaskIdList();
-            if (taskChain != null && !taskChain.isEmpty()) {
-                runtimeContext.setParentTaskId(taskChain.getLast());
-            }
->>>>>>> DB-3351: trigger execution context reset bug: SpliceNoPutResultSet: tabs
-
-
-<<<<<<< HEAD
     public TxnView getCurrentTransaction() throws StandardException {
         if(topOperation instanceof DMLWriteOperation || activation.isTraced()){
             return elevateTransaction();
@@ -463,11 +378,15 @@ public class OperationResultSet implements NoPutResultSet, HasIncrement, CursorR
     @Override
     public void close() throws StandardException {
 <<<<<<< HEAD
+<<<<<<< HEAD
         SpliceLogUtils.trace(LOG, "close()");
         if(statementInfo!=null){
 =======
         if (statementInfo != null) {
 >>>>>>> DB-3351: trigger execution context reset bug: SpliceNoPutResultSet: tabs
+=======
+        if (statementInfo != null) {
+>>>>>>> master
             statementInfo.markCompleted();
             try {
                 TxnView recordTxn = txn != null ? txn : getTransaction();

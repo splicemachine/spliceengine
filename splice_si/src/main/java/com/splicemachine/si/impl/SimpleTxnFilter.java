@@ -22,10 +22,10 @@ import java.io.IOException;
  * @author Scott Fines
  * Date: 6/23/14
  */
-public class SimpleTxnFilter<RowLock,Data> implements TxnFilter<Data> {
+public class SimpleTxnFilter<Data> implements TxnFilter<Data> {
     	private final TxnSupplier transactionStore;
 		private final TxnView myTxn;
-		private final DataStore<RowLock,Data,Mutation,Put,Delete,Get,Scan,IHTable> dataStore;
+		private final DataStore<Data,Mutation,Put,Delete,Get,Scan,IHTable> dataStore;
 		private final ReadResolver readResolver;
 		//per row fields
 		private final LongOpenHashSet visitedTxnIds = new LongOpenHashSet();

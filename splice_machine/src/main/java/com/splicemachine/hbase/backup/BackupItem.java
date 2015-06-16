@@ -120,6 +120,10 @@ public class BackupItem implements InternalTable {
         return snapshotName;
     }
 
+    public void setSnapshotName(String snapshotName) {
+        this.snapshotName = snapshotName;
+    }
+
     public void insertBackupItem() throws StandardException {
         try {
             BackupSystemProcedures.backupItemReporter.report(this, getBackupTransaction());
@@ -324,6 +328,14 @@ public class BackupItem implements InternalTable {
 
     public String getLastSnapshotName() {
         return lastSnapshotName;
+    }
+
+    public void setBackupId(long backupId) {
+        backup.setBackupId(backupId);
+    }
+
+    public long getBackupId() {
+        return backup.getBackupId();
     }
 
     public static class RegionInfo implements Externalizable {

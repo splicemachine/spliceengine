@@ -21,6 +21,8 @@ import com.splicemachine.si.api.TxnView;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.PartitionStatistics;
 import com.splicemachine.stats.TableStatistics;
+import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.log4j.Logger;
 
 import java.util.BitSet;
 import java.util.List;
@@ -33,17 +35,21 @@ import java.util.concurrent.ExecutionException;
  *         Date: 3/4/15
  */
 public class StatsStoreCostController extends GenericController implements StoreCostController {
+    private static Logger LOG = Logger.getLogger(StatsStoreCostController.class);
     protected OverheadManagedTableStatistics conglomerateStatistics;
     protected OpenSpliceConglomerate baseConglomerate;
 
     public StatsStoreCostController(OpenSpliceConglomerate baseConglomerate) throws StandardException {
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG,"init baseConglomerate=%s",baseConglomerate.getContainerID());
         this.baseConglomerate = baseConglomerate;
         BaseSpliceTransaction bst = (BaseSpliceTransaction)baseConglomerate.getTransaction();
         TxnView txn = bst.getActiveStateTxn();
         long conglomId = baseConglomerate.getConglomerate().getContainerid();
-
         try {
             this.conglomerateStatistics = StatisticsStorage.getPartitionStore().getStatistics(txn, conglomId);
+            if (LOG.isTraceEnabled())
+                SpliceLogUtils.trace(LOG,"init conglomerateStatistics=%s",conglomerateStatistics);
         } catch (ExecutionException e) {
             throw Exceptions.parseException(e);
         }
@@ -83,6 +89,10 @@ public class StatsStoreCostController extends GenericController implements Store
         long bytes = (long)scale*conglomerateStatistics.avgRowWidth();
         cost.setRemoteCost(cost.remoteCost()+cost.rowCount()*scale);
         cost.setEstimatedHeapSize(cost.getEstimatedHeapSize()+bytes);
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG,"getFetchFromRowLocationCost={columnSizeFactor=%f, scale=%f, bytes=%d " +
+                    "estimatedCost=%d, estimatedHeapSize=%d, estimatedRowCount=%d",columnSizeFactor,scale,bytes,cost.getEstimatedCost(),
+            cost.getEstimatedHeapSize(), cost.getEstimatedRowCount());
     }
 
 
@@ -113,6 +123,12 @@ public class StatsStoreCostController extends GenericController implements Store
         cost.setEstimatedRowCount(1l);
         cost.setOpenCost(conglomerateStatistics.openScannerLatency());
         cost.setCloseCost(conglomerateStatistics.closeScannerLatency());
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG,"getFetchFromFullKeyCost={columnSizeFactor=%f, scale=%f, bytes=%d " +
+                            "coset=%s",columnSizeFactor,scale,bytes,cost);
+
+
+
     }
 
     @Override
@@ -147,6 +163,9 @@ public class StatsStoreCostController extends GenericController implements Store
         if(partStats==null||partStats.size()<=0 ||partStats.get(0) instanceof FakedPartitionStatistics){
             ((CostEstimate)cost_result).setIsRealCost(false);
         }
+
+        if (LOG.isTraceEnabled())
+            SpliceLogUtils.trace(LOG,"getScanCost costEstimate=%s",cost_result);
 
         if(cost_result instanceof SimpleCostEstimate){
             ((SimpleCostEstimate)cost_result).setStoreCost(this);

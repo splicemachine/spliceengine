@@ -1,10 +1,8 @@
 package com.splicemachine.si;
 
 import com.google.common.collect.Lists;
-import com.google.common.primitives.Longs;
 import com.splicemachine.si.data.api.SDataLib;
 import com.splicemachine.si.data.light.LDataLib;
-import com.splicemachine.si.data.light.LTuple;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -12,8 +10,6 @@ import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 
 public class LDataLibTest {

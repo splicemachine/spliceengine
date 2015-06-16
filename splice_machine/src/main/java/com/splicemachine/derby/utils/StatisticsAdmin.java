@@ -99,7 +99,7 @@ public class StatisticsAdmin {
             for(ColumnDescriptor descriptor: columnDescriptorList){
                 if(descriptor.getColumnName().equalsIgnoreCase(columnName)){
                     DataTypeDescriptor type=descriptor.getType();
-                    if(!allowsStatistics(type.getNull().getTypeFormatId()))
+                    if(!ColumnDescriptor.allowsStatistics(type))
                         throw ErrorState.LANG_COLUMN_STATISTICS_NOT_POSSIBLE.newException(columnName,type.getTypeName());
                     descriptor.setCollectStatistics(true);
                     PreparedStatement ps = conn.prepareStatement("update SYS.SYSCOLUMNS set collectstats=true where " +
@@ -612,27 +612,6 @@ public class StatisticsAdmin {
         }
     }
 
-    private static boolean allowsStatistics(int typeFormatId){
-        switch(typeFormatId){
-            case StoredFormatIds.SQL_BOOLEAN_ID:
-            case StoredFormatIds.SQL_TINYINT_ID:
-            case StoredFormatIds.SQL_SMALLINT_ID:
-            case StoredFormatIds.SQL_INTEGER_ID:
-            case StoredFormatIds.SQL_LONGINT_ID:
-            case StoredFormatIds.SQL_REAL_ID:
-            case StoredFormatIds.SQL_DOUBLE_ID:
-            case StoredFormatIds.SQL_DECIMAL_ID:
-            case StoredFormatIds.SQL_CHAR_ID:
-            case StoredFormatIds.SQL_DATE_ID:
-            case StoredFormatIds.SQL_TIME_ID:
-            case StoredFormatIds.SQL_TIMESTAMP_ID:
-            case StoredFormatIds.SQL_VARCHAR_ID:
-            case StoredFormatIds.SQL_LONGVARCHAR_ID:
-                return true;
-            default:
-                return false;
-        }
-    }
 
     private static class StatsJob{
         private ExecRow outputRow;
