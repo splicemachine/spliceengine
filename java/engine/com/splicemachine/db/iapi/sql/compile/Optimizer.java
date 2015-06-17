@@ -263,6 +263,14 @@ public interface Optimizer{
     void setOuterRows(double outerRowCount);
 
     /**
+     *
+     * Set Row Ordering on the Outermost Cost Estimate
+     *
+     * @param rowOrdering
+     */
+    void setOuterRowOrdering(RowOrdering rowOrdering);
+
+    /**
      * Get the number of join strategies supported by this optimizer.
      */
     int getNumberOfJoinStrategies();
