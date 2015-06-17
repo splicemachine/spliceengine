@@ -85,7 +85,7 @@ public class ForeignKeyChildInterceptWriteHandler implements WriteHandler {
 
     @Override
     public String toString() {
-        return "ForeignKeyInterceptWriteHandler{parentTable='" + parentTableNameString + '\'' + '}';
+        return "ForeignKeyChildInterceptWriteHandler{parentTable='" + parentTableNameString + '\'' + '}';
     }
 
 
