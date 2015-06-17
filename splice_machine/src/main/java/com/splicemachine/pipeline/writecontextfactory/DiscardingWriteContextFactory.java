@@ -72,16 +72,6 @@ class DiscardingWriteContextFactory<T> implements WriteContextFactory<T> {
     }
 
     @Override
-    public void addForeignKeyParentCheckWriteFactory(int[] backingIndexFormatIds, String parentTableVersion) {
-        delegate.addForeignKeyParentCheckWriteFactory(backingIndexFormatIds, parentTableVersion);
-    }
-
-    @Override
-    public void addForeignKeyParentInterceptWriteFactory(String parentTableName, List<Long> backingIndexConglomIds) {
-        delegate.addForeignKeyParentInterceptWriteFactory(parentTableName, backingIndexConglomIds);
-    }
-
-    @Override
     public void addDDLChange(DDLChange ddlChange) {
         delegate.addDDLChange(ddlChange);
     }

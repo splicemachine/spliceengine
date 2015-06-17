@@ -34,6 +34,11 @@ public class DDLChange implements Externalizable {
         this.changeType = type;
     }
 
+    public DDLChange(TxnView txn, DDLChangeType type, TentativeDDLDesc tentativeDDLDesc) {
+        this(txn, type);
+        this.tentativeDDLDesc = tentativeDDLDesc;
+    }
+
     public void setTxn(Txn txn) {
         assert txn.allowsWrites(): "Cannot create a DDLChange with a read-only transaction";
         this.txn = txn;
@@ -59,7 +64,6 @@ public class DDLChange implements Externalizable {
         this.tentativeDDLDesc = tentativeDDLDesc;
     }
 
-
     public String getChangeId() {
         return changeId;
     }
@@ -77,16 +81,6 @@ public class DDLChange implements Externalizable {
             out.writeObject(tentativeDDLDesc);
 
         out.writeLong(txn.getTxnId());
-//        out.writeLong(txn.getBeginTimestamp());
-//        out.writeLong(txn.getParentTxnId());
-//        out.writeBoolean(txn.isAdditive());
-
-//        out.writeBoolean(parentTxn!=null);
-//        if(parentTxn!=null){
-//            out.writeLong(parentTxn.getTxnId());
-//            out.writeLong(parentTxn.getParentTxnId());
-//            out.writeBoolean(parentTxn.isAdditive());
-//        }
     }
 
     @Override
@@ -99,10 +93,6 @@ public class DDLChange implements Externalizable {
             tentativeDDLDesc = (TentativeDDLDesc)in.readObject();
 
         long txnId = in.readLong();
-//        long beginTs = in.readLong();
-//        long parentTxnId = in.readLong();
-//        boolean additive = in.readBoolean();
-
         txn = new LazyTxnView(txnId,TransactionStorage.getTxnSupplier());
     }
     

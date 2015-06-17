@@ -8,7 +8,7 @@ public enum DDLChangeType {
 
     CHANGE_PK(true),
     ADD_CHECK(true),
-    CREATE_FK(true),
+    ADD_FOREIGN_KEY(true),
     CREATE_INDEX(true),
     ADD_NOT_NULL(true),
     ADD_COLUMN(true),

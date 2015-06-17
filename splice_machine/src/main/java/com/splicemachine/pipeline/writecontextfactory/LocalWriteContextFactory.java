@@ -16,10 +16,8 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.ReentrantLock;
 
 import com.google.common.base.Optional;
-import com.google.common.collect.Iterables;
-import com.google.common.collect.Lists;
-import com.google.common.collect.Multimap;
-import com.google.common.collect.Multimaps;
+import com.google.common.collect.*;
+import com.splicemachine.derby.ddl.AddForeignKeyDDLDescriptor;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -285,14 +283,12 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
         }
     }
 
-    @Override
-    public void addForeignKeyParentCheckWriteFactory(int[] backingIndexFormatIds, String parentTableVersion) {
+    private void addForeignKeyParentCheckWriteFactory(int[] backingIndexFormatIds, String parentTableVersion) {
         /* One instance handles all FKs that reference this primary key or unique index */
         this.foreignKeyParentCheckWriteFactory = new ForeignKeyParentCheckWriteFactory(backingIndexFormatIds, parentTableVersion);
     }
 
-    @Override
-    public synchronized void addForeignKeyParentInterceptWriteFactory(String parentTableName, List<Long> backingIndexConglomIds) {
+    private void addForeignKeyParentInterceptWriteFactory(String parentTableName, List<Long> backingIndexConglomIds) {
         /* One instance handles all FKs that reference this primary key or unique index */
         if (this.foreignKeyParentInterceptWriteFactory == null) {
             this.foreignKeyParentInterceptWriteFactory = new ForeignKeyParentInterceptWriteFactory(parentTableName, backingIndexConglomIds);
@@ -314,6 +310,10 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
                     case DROP_PRIMARY_KEY:
                         alterTableWriteFactories.add(AlterTableWriteFactory.create(ddlChange));
                         break;
+                    case ADD_FOREIGN_KEY:
+                        AddForeignKeyDDLDescriptor d = (AddForeignKeyDDLDescriptor) ddlChange.getTentativeDDLDesc();
+                        addForeignKeyParentCheckWriteFactory(d.getBackingIndexFormatIds(), d.getReferencedTableVersion());
+                        addForeignKeyParentInterceptWriteFactory(d.getReferencedTableName(), ImmutableList.of(d.getReferencingConglomerateId()));
                     default:
                         break;
                 }
@@ -517,7 +517,7 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
                 switch (ddlChange.getChangeType()) {
                     case CHANGE_PK:
                     case ADD_CHECK:
-                    case CREATE_FK:
+                    case ADD_FOREIGN_KEY:
                     case ADD_NOT_NULL:
                     case DROP_TABLE:
                         break; //TODO -sf- implement
@@ -583,13 +583,6 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
     private void addUniqueIndexConstraint(TableDescriptor td, ConglomerateDescriptor conglomDesc) {
         IndexDescriptor indexDescriptor = conglomDesc.getIndexDescriptor().getIndexDescriptor();
         if (indexDescriptor.isUnique()) {
-            //make sure it's not already in the constraintFactories
-            for (ConstraintFactory constraintFactory : constraintFactories) {
-                if (constraintFactory.getLocalConstraint().getType() == Constraint.Type.UNIQUE) {
-                    // TODO: JC-  Do we need this check anymore since we're no longer calling method inside of a loop?
-                    return; //we've found a local unique constraint, don't need to add it more than once
-                }
-            }
             ConstraintContext cc = ConstraintContext.unique(td, conglomDesc);
             constraintFactories.add(new ConstraintFactory(new UniqueConstraint(cc)));
         }

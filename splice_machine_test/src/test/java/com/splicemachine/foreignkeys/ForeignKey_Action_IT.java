@@ -139,7 +139,7 @@ public class ForeignKey_Action_IT {
     private void assertQueryFail(String sql, String expectedExceptionMessage) {
         try {
             methodWatcher.executeUpdate(sql);
-            fail();
+            fail("expected query to fail: " + sql);
         } catch (Exception e) {
             assertEquals(expectedExceptionMessage, e.getMessage());
             assertEquals(SQLIntegrityConstraintViolationException.class, e.getClass());

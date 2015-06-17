@@ -200,7 +200,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
 			   * but that's the nature of the beast.
 			   *
 			   *
-			   * CURRENT HIGHEST VALUE: 255
+			   * CURRENT HIGHEST VALUE: 259
 				 */
     	instance.setReferences(false);
         instance.setRegistrationRequired(true);
@@ -861,5 +861,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(TentativeDropPKConstraintDesc.class, EXTERNALIZABLE_SERIALIZER, 256);
         instance.register(TriggerExecutionStack.class, EXTERNALIZABLE_SERIALIZER, 257);
         instance.register(TriggerExecutionContext.class, EXTERNALIZABLE_SERIALIZER, 258);
+
+        instance.register(AddForeignKeyDDLDescriptor.class, EXTERNALIZABLE_SERIALIZER, 259);
     }
 }
