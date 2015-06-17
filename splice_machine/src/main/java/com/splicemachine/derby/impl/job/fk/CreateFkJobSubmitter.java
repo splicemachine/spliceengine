@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.job.fk;
 
 import com.google.common.collect.ImmutableList;
+import com.splicemachine.derby.ddl.AddForeignKeyDDLDescriptor;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
@@ -58,6 +59,7 @@ public class CreateFkJobSubmitter {
         long backingIndexConglomerateIds = DataDictionaryUtils.getBackingIndexConglomerateIdsForForeignKeys(newForeignKey).get(0);
 
         String referencedTableVersion = referencedConstraint.getTableDescriptor().getVersion();
+        String referencedTableName = referencedConstraint.getTableDescriptor().getName();
 
         HTableInterface table = SpliceAccessManager.getHTable(Long.toString(referencedConglomerateId).getBytes());
 
@@ -66,13 +68,15 @@ public class CreateFkJobSubmitter {
         try {
             long start = System.currentTimeMillis();
 
-            CreateFkJob job = new CreateFkJob(
-                    table,
-                    transactionManager.getActiveStateTxn(),
-                    referencedConglomerateId,
+            AddForeignKeyDDLDescriptor descriptor = new AddForeignKeyDDLDescriptor(
                     backingIndexFormatIds,
-                    backingIndexConglomerateIds,
-                    referencedConstraint.getTableDescriptor().getName(), referencedTableVersion);
+                    referencedConglomerateId,
+                    referencedTableName,
+                    referencedTableVersion,
+                    backingIndexConglomerateIds
+            );
+
+            CreateFkJob job = new CreateFkJob(table, transactionManager.getActiveStateTxn(), descriptor);
 
             future = SpliceDriver.driver().getJobScheduler().submit(job);
             info = new JobInfo(job.getJobId(), future.getNumTasks(), start);

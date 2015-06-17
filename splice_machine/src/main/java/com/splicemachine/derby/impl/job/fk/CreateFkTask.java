@@ -1,13 +1,16 @@
 package com.splicemachine.derby.impl.job.fk;
 
 import com.google.common.base.Throwables;
-import com.google.common.collect.ImmutableList;
+import com.splicemachine.derby.ddl.AddForeignKeyDDLDescriptor;
+import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.impl.job.ZkTask;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.derby.impl.job.operation.OperationJob;
 import com.splicemachine.derby.impl.job.scheduler.SchedulerPriorities;
+import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.pipeline.writecontextfactory.WriteContextFactory;
 import com.splicemachine.pipeline.writecontextfactory.WriteContextFactoryManager;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import java.io.IOException;
@@ -25,29 +28,16 @@ public class CreateFkTask extends ZkTask {
 
     private static final long serialVersionUID = 1L;
 
-    /* formatIds for the backing index of the FK we are creating */
-    private int[] backingIndexFormatIds;
-    /* conglom ID of unique index or base table primary key our FK references */
-    private long referencedConglomerateId;
-    /* conglom ID of the backing-index associated with the FK */
-    private long referencingConglomerateId;
-    /* users visible name of the table new FK references */
-    private String referencedTableName;
-    /* Referenced table's encoding version ('1.0', '2.0', etc) */
-    private String referencedTableVersion;
-
+    private TxnView txn;
+    private AddForeignKeyDDLDescriptor ddlDescriptor;
 
     public CreateFkTask() {
     }
 
-    public CreateFkTask(String jobId, int[] backingIndexFormatIds, long referencedConglomerateId,
-                        long referencingConglomerateId, String referencedTableName, String referencedTableVersion) {
+    public CreateFkTask(String jobId, TxnView txn, AddForeignKeyDDLDescriptor ddlDescriptor) {
         super(jobId, OperationJob.operationTaskPriority, null);
-        this.backingIndexFormatIds = backingIndexFormatIds;
-        this.referencedConglomerateId = referencedConglomerateId;
-        this.referencingConglomerateId = referencingConglomerateId;
-        this.referencedTableName = referencedTableName;
-        this.referencedTableVersion = referencedTableVersion;
+        this.txn = txn;
+        this.ddlDescriptor = ddlDescriptor;
     }
 
     @Override
@@ -73,10 +63,10 @@ public class CreateFkTask extends ZkTask {
     @Override
     public void doExecute() throws ExecutionException, InterruptedException {
         try {
-            WriteContextFactory contextFactory = WriteContextFactoryManager.getWriteContext(referencedConglomerateId);
+            WriteContextFactory contextFactory = WriteContextFactoryManager.getWriteContext(ddlDescriptor.getReferencedConglomerateId());
             try {
-                contextFactory.addForeignKeyParentCheckWriteFactory(backingIndexFormatIds, referencedTableVersion);
-                contextFactory.addForeignKeyParentInterceptWriteFactory(referencedTableName, ImmutableList.of(referencingConglomerateId));
+                DDLChange ddlChange = new DDLChange(txn, DDLChangeType.ADD_FOREIGN_KEY, ddlDescriptor);
+                contextFactory.addDDLChange(ddlChange);
             } finally {
                 contextFactory.close();
             }
@@ -94,29 +84,14 @@ public class CreateFkTask extends ZkTask {
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
-        out.writeLong(referencedConglomerateId);
-        out.writeLong(referencingConglomerateId);
-        out.writeUTF(referencedTableName);
-        out.writeUTF(referencedTableVersion);
-        out.writeInt(backingIndexFormatIds.length);
-        for (int formatId : backingIndexFormatIds) {
-            out.writeInt(formatId);
-        }
+        out.writeObject(txn);
+        out.writeObject(ddlDescriptor);
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
-        this.referencedConglomerateId = in.readLong();
-        this.referencingConglomerateId = in.readLong();
-        this.referencedTableName = in.readUTF();
-        this.referencedTableVersion = in.readUTF();
-        int n = in.readInt();
-        if (n > 0) {
-            backingIndexFormatIds = new int[n];
-            for (int i = 0; i < n; ++i) {
-                backingIndexFormatIds[i] = in.readInt();
-            }
-        }
+        this.txn = (TxnView) in.readObject();
+        this.ddlDescriptor = (AddForeignKeyDDLDescriptor) in.readObject();
     }
 }
