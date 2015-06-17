@@ -32,8 +32,15 @@ public abstract class TimeStatistics extends BaseDvdStatistics{
         this.baseStats=baseStats;
     }
 
-    @Override public DataValueDescriptor minValue(){ return wrap(baseStats.min()); }
-    @Override public DataValueDescriptor maxValue(){ return wrap(baseStats.max()); }
+    @Override public DataValueDescriptor minValue(){
+        return (baseStats.min() == Long.MIN_VALUE || baseStats.min() == Long.MAX_VALUE)
+                ?null:wrap(baseStats.min());
+
+    }
+    @Override public DataValueDescriptor maxValue(){
+        return (baseStats.max() == Long.MIN_VALUE || baseStats.max() == Long.MAX_VALUE)
+                ?null:wrap(baseStats.max());
+    }
 
 
     @Override
