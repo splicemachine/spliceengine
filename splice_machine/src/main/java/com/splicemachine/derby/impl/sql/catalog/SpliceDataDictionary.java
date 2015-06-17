@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.catalog;
 
+import com.googlecode.concurrentlinkedhashmap.ConcurrentLinkedHashMap;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.UUID;
@@ -32,9 +33,7 @@ import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.tools.version.ManifestReader;
 import com.splicemachine.tools.version.SpliceMachineVersion;
 import com.splicemachine.utils.SpliceLogUtils;
-import com.splicemachine.utils.ZkUtils;
 import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.util.Collections;
@@ -68,6 +67,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     public static final String SPLICE_DATA_DICTIONARY_VERSION="SpliceDataDictionaryVersion";
     private volatile StatisticsStore statsStore;
+    private ConcurrentLinkedHashMap<String, byte[]> sequenceRowLocationBytesMap = null;
+    private ConcurrentLinkedHashMap<String, SequenceDescriptor[]> sequenceDescriptorMap = null;
 
     @Override
     public SystemProcedureGenerator getSystemProcedures(){
@@ -474,17 +475,34 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             throws StandardException{
 
         try{
-            RowLocation[] rowLocation=new RowLocation[1];
-            SequenceDescriptor[] sequenceDescriptor=new SequenceDescriptor[1];
+            if (sequenceRowLocationBytesMap == null) {
+                sequenceRowLocationBytesMap = new ConcurrentLinkedHashMap.Builder<String, byte[]>()
+                        .maximumWeightedCapacity(1024)
+                        .concurrencyLevel(64)
+                        .build();
+            }
 
-            LanguageConnectionContext llc=(LanguageConnectionContext)
-                    ContextService.getContextOrNull(LanguageConnectionContext.CONTEXT_ID);
+            if (sequenceDescriptorMap == null) {
+                sequenceDescriptorMap = new ConcurrentLinkedHashMap.Builder<String, SequenceDescriptor[]>()
+                        .maximumWeightedCapacity(1024)
+                        .concurrencyLevel(64)
+                        .build();
+            }
+            byte[] sequenceRowLocationBytes = sequenceRowLocationBytesMap.get(sequenceUUIDstring);
+            SequenceDescriptor[] sequenceDescriptor = sequenceDescriptorMap.get(sequenceUUIDstring);
+            if (sequenceRowLocationBytes == null || sequenceDescriptor == null) {
+                RowLocation[] rowLocation = new RowLocation[1];
+                sequenceDescriptor = new SequenceDescriptor[1];
 
-            TransactionController tc=llc.getTransactionExecute();
-            computeSequenceRowLocation(tc,sequenceUUIDstring,rowLocation,sequenceDescriptor);
+                LanguageConnectionContext llc = (LanguageConnectionContext)
+                        ContextService.getContextOrNull(LanguageConnectionContext.CONTEXT_ID);
 
-            byte[] rlBytes=rowLocation[0].getBytes();
-
+                TransactionController tc = llc.getTransactionExecute();
+                computeSequenceRowLocation(tc, sequenceUUIDstring, rowLocation, sequenceDescriptor);
+                sequenceRowLocationBytes = rowLocation[0].getBytes();
+                sequenceRowLocationBytesMap.put(sequenceUUIDstring, sequenceRowLocationBytes);
+                sequenceDescriptorMap.put(sequenceUUIDstring, sequenceDescriptor);
+            }
             if(spliceSequencesTable==null){
                 spliceSequencesTable=SpliceAccessManager.getHTable(SpliceConstants.SEQUENCE_TABLE_NAME_BYTES);
             }
@@ -493,7 +511,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             long increment=sequenceDescriptor[0].getIncrement();
 
             SpliceSequence sequence=SpliceDriver.driver().getSequencePool().
-                    get(new SpliceSequenceKey(spliceSequencesTable,rlBytes,start,increment,1l));
+                    get(new SpliceSequenceKey(spliceSequencesTable,sequenceRowLocationBytes,start,increment,1024l));
 
             returnValue.setValue(sequence.getNext());
 
