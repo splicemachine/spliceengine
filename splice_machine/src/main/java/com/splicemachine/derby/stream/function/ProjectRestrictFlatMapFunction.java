@@ -55,7 +55,7 @@ public class ProjectRestrictFlatMapFunction<Op extends SpliceOperation> extends 
             return Collections.EMPTY_LIST;
         }
         ExecRow execRow = executionFactory.getValueRow(numberOfColumns);
-        ExecRow preCopy = op.doProjection(from.getRow()).getClone();
+        ExecRow preCopy = op.doProjection(from.getRow());
         LocatedRow locatedRow = new LocatedRow(from.getRowLocation(),
                 ProjectRestrictOperation.copyProjectionToNewRow(preCopy, execRow));
         op.setCurrentLocatedRow(locatedRow);

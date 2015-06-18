@@ -167,7 +167,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 				if (projection != null) {
 						result = projection.invoke();
 				} else {
-						result = mappedResultRow;
+						result = mappedResultRow.getNewNullRow();
 				}
 				// Copy any mapped columns from the source
 				for (int index = 0; index < projectMapping.length; index++) {
@@ -182,7 +182,7 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 						}
 				}
         /* Remember the result if reusing it */
-				return result.getClone(); // Do We Need This?
+				return result;
 		}
 
 		/**
