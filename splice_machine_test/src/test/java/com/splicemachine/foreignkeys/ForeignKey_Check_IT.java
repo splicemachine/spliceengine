@@ -586,17 +586,15 @@ public class ForeignKey_Check_IT {
         methodWatcher.executeUpdate("insert into P3 values(3),(9)");
 
         methodWatcher.executeUpdate("create table C(a int, " +
-                "    CONSTRAINT fk1 FOREIGN KEY (a) REFERENCES P1(a)," +
-                "    CONSTRAINT fk2 FOREIGN KEY (a) REFERENCES P2(a)," +
-                "    CONSTRAINT fk3 FOREIGN KEY (a) REFERENCES P3(a)" +
+                "    CONSTRAINT fk1 FOREIGN KEY (a) REFERENCES P1(a)" +
                 ")");
 
         // when - make sure the write context for C is initialized
         methodWatcher.executeUpdate("insert into C values(9)");
 
         // when - alter table add FK after write context is initialized
-        methodWatcher.executeUpdate("ALTER table C add FOREIGN KEY (a) REFERENCES P2(a)");
-        methodWatcher.executeUpdate("ALTER table C add FOREIGN KEY (a) REFERENCES P3(a)");
+        methodWatcher.executeUpdate("ALTER table C add constraint FK2 FOREIGN KEY (a) REFERENCES P2(a)");
+        methodWatcher.executeUpdate("ALTER table C add constraint FK3 FOREIGN KEY (a) REFERENCES P3(a)");
 
         // then - we can insert into the child a value present all three
         methodWatcher.executeUpdate("insert into C values(9)");

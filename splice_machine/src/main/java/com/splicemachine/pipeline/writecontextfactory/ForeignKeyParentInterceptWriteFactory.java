@@ -26,7 +26,7 @@ class ForeignKeyParentInterceptWriteFactory implements LocalWriteFactory {
 
     @Override
     public long getConglomerateId() {
-        return 0;
+        throw new UnsupportedOperationException("not used");
     }
 
 }

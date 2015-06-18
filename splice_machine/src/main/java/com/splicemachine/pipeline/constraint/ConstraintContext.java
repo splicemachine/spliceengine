@@ -1,8 +1,6 @@
 package com.splicemachine.pipeline.constraint;
 
-import com.google.common.base.Function;
-import com.google.common.base.Joiner;
-import com.google.common.collect.Lists;
+import com.splicemachine.pipeline.writecontextfactory.FKConstraintInfo;
 import org.apache.commons.lang.ArrayUtils;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 
@@ -47,11 +45,10 @@ public class ConstraintContext implements Externalizable {
         return new ConstraintContext(constraintName, tableName);
     }
 
-    public static ConstraintContext foreignKey(ForeignKeyConstraintDescriptor fkConstraintDesc) {
-        String tableName = fkConstraintDesc.getTableDescriptor().getName();
-        String constraintName = fkConstraintDesc.getConstraintName();
-        ColumnDescriptorList columnDescriptors = fkConstraintDesc.getColumnDescriptors();
-        String columnNames = Joiner.on(",").join(Lists.transform(columnDescriptors, new ColumnDescriptorNameFunction()));
+    public static ConstraintContext foreignKey(FKConstraintInfo fkConstraintInfo) {
+        String tableName = fkConstraintInfo.getTableName();
+        String constraintName = fkConstraintInfo.getConstraintName();
+        String columnNames = fkConstraintInfo.getColumnNames();
         return new ConstraintContext(constraintName, tableName, "Operation", "(" + columnNames + ")");
     }
 
@@ -125,12 +122,4 @@ public class ConstraintContext implements Externalizable {
                 "messageArgs=" + Arrays.toString(messageArgs) +
                 '}';
     }
-
-    private static class ColumnDescriptorNameFunction implements Function<ColumnDescriptor, String> {
-        @Override
-        public String apply(ColumnDescriptor columnDescriptor) {
-            return columnDescriptor.getColumnName();
-        }
-    }
-
 }

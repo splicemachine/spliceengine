@@ -22,6 +22,7 @@ import com.splicemachine.hbase.backup.CreateIncrementalBackupTask;
 import com.splicemachine.hbase.backup.PurgeTransactionsTask;
 import com.splicemachine.hbase.backup.RestoreBackupTask;
 
+import com.splicemachine.pipeline.writecontextfactory.FKConstraintInfo;
 import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.TxnView;
 import de.javakaffee.kryoserializers.UnmodifiableCollectionsSerializer;
@@ -200,7 +201,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
 			   * but that's the nature of the beast.
 			   *
 			   *
-			   * CURRENT HIGHEST VALUE: 259
+			   * CURRENT HIGHEST VALUE: 260
 				 */
     	instance.setReferences(false);
         instance.setRegistrationRequired(true);
@@ -863,5 +864,6 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(TriggerExecutionContext.class, EXTERNALIZABLE_SERIALIZER, 258);
 
         instance.register(AddForeignKeyDDLDescriptor.class, EXTERNALIZABLE_SERIALIZER, 259);
+        instance.register(FKConstraintInfo.class, EXTERNALIZABLE_SERIALIZER, 260);
     }
 }
