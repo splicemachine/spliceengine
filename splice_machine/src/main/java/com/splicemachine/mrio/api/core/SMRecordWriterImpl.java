@@ -94,9 +94,13 @@ public class SMRecordWriterImpl extends RecordWriter<RowLocation, ExecRow> {
                 sqlUtil.disableAutoCommit(conn);
                 long parentTxnID = Long.parseLong(conf.get(MRConstants.SPLICE_TRANSACTION_ID));
 
+                String tableName = conf.get(MRConstants.SPLICE_OUTPUT_TABLE_NAME);
+                if (tableName == null) {
+                    tableName = conf.get(MRConstants.SPLICE_TABLE_NAME);
+                }
                 childTxsID = sqlUtil.getChildTransactionID(conn,
                         parentTxnID,
-                        conf.get(MRConstants.SPLICE_TABLE_NAME));
+                        tableName);
 
                 String strSize = conf.get(MRConstants.SPLICE_WRITE_BUFFER_SIZE);
 
@@ -118,7 +122,6 @@ public class SMRecordWriterImpl extends RecordWriter<RowLocation, ExecRow> {
 
             byte[] bdata = dataHash.encode();
             KVPair kv = new KVPair(key,bdata);
-            SpliceLogUtils.error(LOG, "k = %s, v = %s", BytesUtil.toHex(key), BytesUtil.toHex(bdata));
             callBuffer.add(kv);
             callBuffer.flushBuffer();
         } catch (Exception e) {

@@ -14,7 +14,11 @@ import org.apache.hadoop.hbase.util.Bytes;
 public class MRConstants {
 	public final static String SPLICE_TRANSACTION_ID = "transaction.id";
 	final public static String SPLICE_TABLE_NAME = "splice.tableName";
-	final public static String SPLICE_CONGLOMERATE = "splice.conglomerate";	
+    final public static String SPLICE_INPUT_TABLE_NAME="splice.input.tableName";
+    final public static String SPLICE_OUTPUT_TABLE_NAME="splice.output.tableName";
+    final public static String SPLICE_CONGLOMERATE = "splice.conglomerate";
+    final public static String SPLICE_INPUT_CONGLOMERATE = "splice.input.conglomerate";
+    final public static String SPLICE_OUTPUT_CONGLOMERATE = "splice.output.conglomerate";
 	final public static String SPLICE_WRITE_BUFFER_SIZE = "splice.write.buffer.size";
 	final public static String SPLICE_JDBC_STR = "splice.jdbc";
 	final public static String SPLICE_SCAN_INFO = "splice.scan.info";
