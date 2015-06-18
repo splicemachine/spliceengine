@@ -2,7 +2,8 @@ package com.splicemachine.derby.impl.job.fk;
 
 import com.google.common.collect.ImmutableList;
 import com.splicemachine.db.iapi.sql.dictionary.*;
-import com.splicemachine.derby.ddl.AddForeignKeyDDLDescriptor;
+import com.splicemachine.derby.ddl.DDLChangeType;
+import com.splicemachine.derby.ddl.FKTentativeDDLDesc;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
@@ -24,28 +25,35 @@ import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 
 /**
- * Encapsulate code/error-handling necessary to submit a CreateFkJob.  The code here was just extracted from
+ * Encapsulate code/error-handling necessary to submit a FkJob.  The code here was just extracted from
  * the ConstantAction where it is used because it got a bit large/complex.
+ * <p/>
+ * Modifies existing write context factories on remote/all nodes when we add or drop a foreign key constraint.
  */
-public class CreateFkJobSubmitter {
+public class FkJobSubmitter {
 
-    private static final Logger LOG = Logger.getLogger(CreateFkJobSubmitter.class);
+    private static final Logger LOG = Logger.getLogger(FkJobSubmitter.class);
 
-    private DataDictionary dataDictionary;
-    private SpliceTransactionManager transactionManager;
-    private ReferencedKeyConstraintDescriptor referencedConstraint;
-    private ConstraintDescriptor foreignKeyConstraintDescriptor;
+    private final DataDictionary dataDictionary;
+    private final SpliceTransactionManager transactionManager;
+    private final ReferencedKeyConstraintDescriptor referencedConstraint;
+    private final ConstraintDescriptor foreignKeyConstraintDescriptor;
+    private final DDLChangeType ddlChangeType;
 
-    public CreateFkJobSubmitter(DataDictionary dataDictionary,
-                                SpliceTransactionManager transactionManager,
-                                ReferencedKeyConstraintDescriptor referencedConstraint,
-                                ConstraintDescriptor foreignKeyConstraintDescriptor) {
+    public FkJobSubmitter(DataDictionary dataDictionary,
+                          SpliceTransactionManager transactionManager,
+                          ReferencedKeyConstraintDescriptor referencedConstraint,
+                          ConstraintDescriptor foreignKeyConstraintDescriptor, DDLChangeType ddlChangeType) {
         this.dataDictionary = dataDictionary;
         this.transactionManager = transactionManager;
         this.referencedConstraint = referencedConstraint;
         this.foreignKeyConstraintDescriptor = foreignKeyConstraintDescriptor;
+        this.ddlChangeType = ddlChangeType;
     }
 
+    /**
+     * Creates jobs for the parent and child conglomerates, submits them, and waits for completion of both.
+     */
     public void submit() throws StandardException {
 
         // Format IDs for the new foreign key.
@@ -72,7 +80,7 @@ public class CreateFkJobSubmitter {
         try {
             long start = System.currentTimeMillis();
 
-            AddForeignKeyDDLDescriptor descriptor = new AddForeignKeyDDLDescriptor(
+            FKTentativeDDLDesc descriptor = new FKTentativeDDLDesc(
                     new FKConstraintInfo((ForeignKeyConstraintDescriptor) foreignKeyConstraintDescriptor),
                     backingIndexFormatIds,
                     referencedConglomerateId,
@@ -87,7 +95,7 @@ public class CreateFkJobSubmitter {
             //
             // parent
             //
-            CreateFkJob parentJob = new CreateFkJob(parentHTable, activeStateTxn, referencedConglomerateId, descriptor);
+            FkJob parentJob = new FkJob(parentHTable, activeStateTxn, referencedConglomerateId, ddlChangeType, descriptor);
             parentFuture = jobScheduler.submit(parentJob);
             parentJobInfo = new JobInfo(parentJob.getJobId(), parentFuture.getNumTasks(), start);
             parentJobInfo.setJobFuture(parentFuture);
@@ -95,7 +103,7 @@ public class CreateFkJobSubmitter {
             //
             // child
             //
-            CreateFkJob childJob = new CreateFkJob(childHTable, activeStateTxn, backingIndexConglomerateIds, descriptor);
+            FkJob childJob = new FkJob(childHTable, activeStateTxn, backingIndexConglomerateIds, ddlChangeType, descriptor);
             childFuture = jobScheduler.submit(childJob);
             childJobInfo = new JobInfo(childJob.getJobId(), childFuture.getNumTasks(), start);
             childJobInfo.setJobFuture(childFuture);

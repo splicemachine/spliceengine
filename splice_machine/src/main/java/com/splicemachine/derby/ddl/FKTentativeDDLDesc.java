@@ -7,7 +7,7 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 
-public class AddForeignKeyDDLDescriptor implements TentativeDDLDesc {
+public class FKTentativeDDLDesc implements TentativeDDLDesc {
 
     /* Info about the constraint that is ultimately used in constraint violation error messages */
     private FKConstraintInfo fkConstraintInfo;
@@ -22,12 +22,12 @@ public class AddForeignKeyDDLDescriptor implements TentativeDDLDesc {
     /* Referenced table's encoding version ('1.0', '2.0', etc) */
     private String referencedTableVersion;
 
-    public AddForeignKeyDDLDescriptor() {
+    public FKTentativeDDLDesc() {
     }
 
-    public AddForeignKeyDDLDescriptor(FKConstraintInfo fkConstraintInfo, int[] backingIndexFormatIds, long referencedConglomerateNumber,
-                                      String referencedTableName, String referencedTableVersion,
-                                      long referencingConglomerateNumber) {
+    public FKTentativeDDLDesc(FKConstraintInfo fkConstraintInfo, int[] backingIndexFormatIds, long referencedConglomerateNumber,
+                              String referencedTableName, String referencedTableVersion,
+                              long referencingConglomerateNumber) {
         this.fkConstraintInfo = fkConstraintInfo;
         this.backingIndexFormatIds = backingIndexFormatIds;
         this.referencedConglomerateNumber = referencedConglomerateNumber;

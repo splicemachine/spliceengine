@@ -9,7 +9,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
 import com.splicemachine.derby.ddl.*;
 import com.splicemachine.derby.impl.job.coprocessor.TaskFutureContext;
-import com.splicemachine.derby.impl.job.fk.CreateFkTask;
+import com.splicemachine.derby.impl.job.fk.FkTask;
 import com.splicemachine.derby.impl.sql.catalog.Splice_DD_Version;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
@@ -829,7 +829,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(Backup.class, EXTERNALIZABLE_SERIALIZER,226);
         instance.register(BackupItem.RegionInfo.class, EXTERNALIZABLE_SERIALIZER,227);
         instance.register(Pair.class, 228);
-        instance.register(CreateFkTask.class, EXTERNALIZABLE_SERIALIZER,229);
+        instance.register(FkTask.class, EXTERNALIZABLE_SERIALIZER,229);
         instance.register(CreateIncrementalBackupTask.class, EXTERNALIZABLE_SERIALIZER,230);
         instance.register(AlterTableTask.class, EXTERNALIZABLE_SERIALIZER,231);
         instance.register(TentativeAddConstraintDesc.class,EXTERNALIZABLE_SERIALIZER,232);
@@ -863,7 +863,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(TriggerExecutionStack.class, EXTERNALIZABLE_SERIALIZER, 257);
         instance.register(TriggerExecutionContext.class, EXTERNALIZABLE_SERIALIZER, 258);
 
-        instance.register(AddForeignKeyDDLDescriptor.class, EXTERNALIZABLE_SERIALIZER, 259);
+        instance.register(FKTentativeDDLDesc.class, EXTERNALIZABLE_SERIALIZER, 259);
         instance.register(FKConstraintInfo.class, EXTERNALIZABLE_SERIALIZER, 260);
     }
 }

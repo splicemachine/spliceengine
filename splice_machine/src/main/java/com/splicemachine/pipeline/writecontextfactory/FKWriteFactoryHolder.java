@@ -5,7 +5,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Maps;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.dictionary.*;
-import com.splicemachine.derby.ddl.AddForeignKeyDDLDescriptor;
+import com.splicemachine.derby.ddl.FKTentativeDDLDesc;
 import com.splicemachine.derby.utils.DataDictionaryUtils;
 import com.splicemachine.pipeline.ddl.DDLChange;
 
@@ -38,13 +38,13 @@ class FKWriteFactoryHolder {
 
     public void addParentCheckWriteFactory(int[] backingIndexFormatIds, String parentTableVersion) {
         /* One instance handles all FKs that reference this primary key or unique index */
-        this.parentCheckWriteFactory = new ForeignKeyParentCheckWriteFactory(backingIndexFormatIds, parentTableVersion);
+        parentCheckWriteFactory = new ForeignKeyParentCheckWriteFactory(backingIndexFormatIds, parentTableVersion);
     }
 
     public void addParentInterceptWriteFactory(String parentTableName, List<Long> backingIndexConglomIds) {
         /* One instance handles all FKs that reference this primary key or unique index */
-        if (this.parentInterceptWriteFactory == null) {
-            this.parentInterceptWriteFactory = new ForeignKeyParentInterceptWriteFactory(parentTableName, backingIndexConglomIds);
+        if (parentInterceptWriteFactory == null) {
+            parentInterceptWriteFactory = new ForeignKeyParentInterceptWriteFactory(parentTableName, backingIndexConglomIds);
         }
     }
 
@@ -60,9 +60,9 @@ class FKWriteFactoryHolder {
      * Convenience method that takes the DDLChange and the conglom on which we are called and invokes the methods
      * above to add factories for the parent or child table as appropriate.
      */
-    public void handleDDLChange(DDLChange ddlChange, long onConglomerateNumber) {
+    public void handleForeignKeyAdd(DDLChange ddlChange, long onConglomerateNumber) {
+        FKTentativeDDLDesc d = (FKTentativeDDLDesc) ddlChange.getTentativeDDLDesc();
         // We are configuring a write context on the PARENT base-table or unique-index.
-        AddForeignKeyDDLDescriptor d = (AddForeignKeyDDLDescriptor) ddlChange.getTentativeDDLDesc();
         if (onConglomerateNumber == d.getReferencedConglomerateNumber()) {
             addParentCheckWriteFactory(d.getBackingIndexFormatIds(), d.getReferencedTableVersion());
             addParentInterceptWriteFactory(d.getReferencedTableName(), ImmutableList.of(d.getReferencingConglomerateNumber()));
@@ -71,6 +71,18 @@ class FKWriteFactoryHolder {
         if (onConglomerateNumber == d.getReferencingConglomerateNumber()) {
             addChildCheck(d.getFkConstraintInfo());
             addChildIntercept(d.getReferencedConglomerateNumber(), d.getFkConstraintInfo());
+        }
+    }
+
+    public void handleForeignKeyDrop(DDLChange ddlChange, long onConglomerateNumber) {
+        FKTentativeDDLDesc d = (FKTentativeDDLDesc) ddlChange.getTentativeDDLDesc();
+        // We are configuring a write context on the PARENT base-table or unique-index.
+        if (onConglomerateNumber == d.getReferencedConglomerateNumber()) {
+            parentInterceptWriteFactory.removeReferencingIndexConglomerateNumber(d.getReferencingConglomerateNumber());
+        }
+        // We are configuring a write context on the CHILD fk backing index.
+        if (onConglomerateNumber == d.getReferencingConglomerateNumber()) {
+            childInterceptWriteFactories.remove(d.getReferencedConglomerateNumber());
         }
     }
 

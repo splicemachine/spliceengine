@@ -1,5 +1,8 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import com.splicemachine.derby.ddl.DDLChangeType;
+import com.splicemachine.derby.impl.job.fk.FkJobSubmitter;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.db.catalog.UUID;
@@ -155,42 +158,47 @@ public class DropConstraintConstantOperation extends ConstraintConstantOperation
             this.indexConglomerateId = getIndexConglomerateId((ReferencedKeyConstraintDescriptor)conDesc, td, dd);
         }
 
-        switch( verifyType)
-        {
-        case DataDictionary.UNIQUE_CONSTRAINT:
-            if( conDesc.getConstraintType() != verifyType)
-                throw StandardException.newException(SQLState.LANG_DROP_CONSTRAINT_TYPE,
-                                                     constraintName, "UNIQUE");
-            break;
+        switch (verifyType) {
+            case DataDictionary.UNIQUE_CONSTRAINT:
+                if (conDesc.getConstraintType() != verifyType)
+                    throw StandardException.newException(SQLState.LANG_DROP_CONSTRAINT_TYPE,
+                            constraintName, "UNIQUE");
+                break;
 
-        case DataDictionary.CHECK_CONSTRAINT:
-            if( conDesc.getConstraintType() != verifyType)
-                throw StandardException.newException(SQLState.LANG_DROP_CONSTRAINT_TYPE,
-                                                     constraintName, "CHECK");
-            break;
+            case DataDictionary.CHECK_CONSTRAINT:
+                if (conDesc.getConstraintType() != verifyType)
+                    throw StandardException.newException(SQLState.LANG_DROP_CONSTRAINT_TYPE,
+                            constraintName, "CHECK");
+                break;
 
-        case DataDictionary.FOREIGNKEY_CONSTRAINT:
+            case DataDictionary.FOREIGNKEY_CONSTRAINT:
             if( conDesc.getConstraintType() != verifyType)
                 throw StandardException.newException(SQLState.LANG_DROP_CONSTRAINT_TYPE,
                                                      constraintName, "FOREIGN KEY");
-            break;
+                break;
         }
 
-		boolean cascadeOnRefKey = (cascade &&
-						conDesc instanceof ReferencedKeyConstraintDescriptor);
+		boolean cascadeOnRefKey = (cascade && conDesc instanceof ReferencedKeyConstraintDescriptor);
 		if (!cascadeOnRefKey)
 		{
 			dm.invalidateFor(conDesc, DependencyManager.DROP_CONSTRAINT, lcc);
 		}
 
 		/*
-		** If we had a primary/unique key and it is drop cascade,	
+		** If we had a primary/unique key and it is drop cascade,
 		** drop all the referencing keys now.  We MUST do this AFTER
 		** dropping the referenced key because otherwise we would
 		** be repeatedly changing the reference count of the referenced
 		** key and generating unnecessary I/O.
 		*/
 		dropConstraint(conDesc, activation, lcc, !cascadeOnRefKey);
+
+        if(conDesc.getConstraintType() == DataDictionary.FOREIGNKEY_CONSTRAINT) {
+            ForeignKeyConstraintDescriptor d = (ForeignKeyConstraintDescriptor)conDesc;
+            final ReferencedKeyConstraintDescriptor referencedConstraint = d.getReferencedConstraint();
+            new FkJobSubmitter(dd, (SpliceTransactionManager) tc, referencedConstraint, conDesc, DDLChangeType.DROP_FOREIGN_KEY).submit();
+        }
+
 
 		if (cascadeOnRefKey) 
 		{

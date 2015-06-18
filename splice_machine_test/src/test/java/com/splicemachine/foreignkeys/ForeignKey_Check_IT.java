@@ -295,7 +295,7 @@ public class ForeignKey_Check_IT {
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //
-    // column values that encode with one are more byes = 0
+    // column values having encoding with one are more bytes = 0
     //
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
