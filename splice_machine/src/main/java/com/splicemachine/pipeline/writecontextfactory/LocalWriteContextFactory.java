@@ -286,7 +286,11 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
                         alterTableWriteFactories.add(AlterTableWriteFactory.create(ddlChange));
                         break;
                     case ADD_FOREIGN_KEY:
-                        fkWriteFactoryHolder.handleDDLChange(ddlChange, this.conglomId);
+                        fkWriteFactoryHolder.handleForeignKeyAdd(ddlChange, this.conglomId);
+                        break;
+                    case DROP_FOREIGN_KEY:
+                        fkWriteFactoryHolder.handleForeignKeyDrop(ddlChange, this.conglomId);
+                        break;
                     default:
                         break;
                 }

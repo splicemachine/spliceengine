@@ -3,6 +3,7 @@ package com.splicemachine.derby.utils;
 import com.google.common.collect.Lists;
 
 import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.derby.jdbc.SpliceTransactionResourceImpl;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.TxnView;
@@ -132,7 +133,10 @@ public class DataDictionaryUtils {
         formatIds = new int[numCols];
         for (int j = 0; j < numCols; ++j) {
             ColumnDescriptor columnDescriptor = cdList.elementAt(j);
-            formatIds[j] = columnDescriptor.getType().getNull().getTypeFormatId();
+            if(columnDescriptor != null) {
+                DataTypeDescriptor type = columnDescriptor.getType();
+                formatIds[j] = type.getNull().getTypeFormatId();
+            }
         }
         return formatIds;
     }
