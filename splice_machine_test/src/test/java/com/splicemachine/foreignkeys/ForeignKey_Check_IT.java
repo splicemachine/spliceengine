@@ -17,7 +17,7 @@ import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.*;
 
 /**
- * Foreign key tests for *checking* the existence of parent rows upon INSERT/UPDATE of a child tables.
+ * Foreign key tests for *checking* that the FK constraint is enforced in various scenarios.
  */
 public class ForeignKey_Check_IT {
 
