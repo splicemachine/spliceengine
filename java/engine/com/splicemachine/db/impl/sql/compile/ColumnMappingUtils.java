@@ -20,7 +20,7 @@ public class ColumnMappingUtils {
 
             if(rcToUpdate != null){
                 // TODO: handle column name collision
-                ResultColumn updateFromRC = colsToUpdateFrom.getResultColumn(rcToUpdate.getName());
+                ResultColumn updateFromRC = colsToUpdateFrom.getResultColumnFullName(rcToUpdate.getFullName(), true);
                 rcToUpdate.setResultSetNumber(updateFromRC.getResultSetNumber());
                 rcToUpdate.setVirtualColumnId(updateFromRC.getVirtualColumnId());
             }

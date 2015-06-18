@@ -380,6 +380,10 @@ public class ResultColumn extends ValueNode
 		return exposedName;
 	}
 
+	public String getFullName(){
+		return getTableName() + "." + exposedName;
+	}
+
 	public String getSchemaName() throws StandardException
 	{
 		if ((columnDescriptor!=null) &&
