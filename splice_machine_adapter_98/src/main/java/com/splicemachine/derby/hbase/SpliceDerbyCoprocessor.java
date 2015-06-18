@@ -13,6 +13,7 @@ import com.splicemachine.derby.impl.stats.Hbase98TableStatsDecoder;
 import com.splicemachine.derby.impl.stats.TableStatsDecoder;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.CellScanner;
+import org.apache.hadoop.hbase.Coprocessor;
 import org.apache.hadoop.hbase.CoprocessorEnvironment;
 import org.apache.hadoop.hbase.MetaMutationAnnotation;
 import org.apache.hadoop.hbase.client.Mutation;
@@ -29,12 +30,8 @@ import java.util.List;
  * This class implements both CoprocessorService and RegionServerObserver.  One instance will be created for each
  * region and one instance for the RegionServerObserver interface.  We should probably consider splitting this into
  * two classes.
- * <p/>
- * This coprocessor must be listed in two places in our hbase config:
- * hbase.coprocessor.region.classes (region); and
- * hbase.coprocessor.regionserver.classes (region server).
  */
-public class SpliceDerbyCoprocessor extends SpliceDerbyCoprocessorService implements CoprocessorService, RegionServerObserver {
+public class SpliceDerbyCoprocessor extends SpliceDerbyCoprocessorService implements CoprocessorService, Coprocessor {
 
     private static final Logger LOG = Logger.getLogger(SpliceDerbyCoprocessor.class);
 
@@ -45,12 +42,10 @@ public class SpliceDerbyCoprocessor extends SpliceDerbyCoprocessorService implem
      */
     @Override
     public void start(CoprocessorEnvironment e) {
-        if (e instanceof RegionCoprocessorEnvironment) {
-            TableStatsDecoder.setInstance(new Hbase98TableStatsDecoder());
-            SpliceBaseDerbyCoprocessor impl = new SpliceBaseDerbyCoprocessor();
-            impl.start(e);
-            region = ((RegionCoprocessorEnvironment) e).getRegion();
-        }
+        TableStatsDecoder.setInstance(new Hbase98TableStatsDecoder());
+        SpliceBaseDerbyCoprocessor impl = new SpliceBaseDerbyCoprocessor();
+        impl.start(e);
+        region = ((RegionCoprocessorEnvironment) e).getRegion();
     }
 
     /**
@@ -88,62 +83,6 @@ public class SpliceDerbyCoprocessor extends SpliceDerbyCoprocessorService implem
 
     private static List<byte[]> computeSplits(HRegion region, byte[] beginKey, byte[] endKey) throws IOException {
         return BytesCopyTaskSplitter.getCutPoints(region, beginKey, endKey);
-    }
-
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    //
-    // RegionServerObserver methods below
-    //
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @Override
-    public void preStopRegionServer(ObserverContext<RegionServerCoprocessorEnvironment> env) throws IOException {
-        SpliceDriver.driver().shutdown();
-    }
-
-    @Override
-    public void preMerge(ObserverContext<RegionServerCoprocessorEnvironment> regionServerCoprocessorEnvironmentObserverContext, HRegion hRegion, HRegion hRegion2) throws IOException {
-    }
-
-    @Override
-    public void postMerge(ObserverContext<RegionServerCoprocessorEnvironment> regionServerCoprocessorEnvironmentObserverContext, HRegion hRegion, HRegion hRegion2, HRegion hRegion3) throws IOException {
-    }
-
-    @Override
-    public void preMergeCommit(ObserverContext<RegionServerCoprocessorEnvironment> ctx, HRegion regionA, HRegion regionB, @MetaMutationAnnotation List<Mutation> metaEntries) throws IOException {
-    }
-
-    @Override
-    public void postMergeCommit(ObserverContext<RegionServerCoprocessorEnvironment> regionServerCoprocessorEnvironmentObserverContext, HRegion hRegion, HRegion hRegion2, HRegion hRegion3) throws IOException {
-    }
-
-    @Override
-    public void preRollBackMerge(ObserverContext<RegionServerCoprocessorEnvironment> regionServerCoprocessorEnvironmentObserverContext, HRegion hRegion, HRegion hRegion2) throws IOException {
-    }
-
-    @Override
-    public void postRollBackMerge(ObserverContext<RegionServerCoprocessorEnvironment> regionServerCoprocessorEnvironmentObserverContext, HRegion hRegion, HRegion hRegion2) throws IOException {
-    }
-
-    //    @Override
-    public void preRollWALWriterRequest(ObserverContext<RegionServerCoprocessorEnvironment> ctx) throws IOException {
-    }
-
-    //    @Override
-    public void postRollWALWriterRequest(ObserverContext<RegionServerCoprocessorEnvironment> ctx) throws IOException {
-    }
-
-    //    @Override
-    public ReplicationEndpoint postCreateReplicationEndPoint(ObserverContext<RegionServerCoprocessorEnvironment> ctx, ReplicationEndpoint endpoint) {
-        return null;
-    }
-
-    //    @Override
-    public void preReplicateLogEntries(ObserverContext<RegionServerCoprocessorEnvironment> ctx, List<AdminProtos.WALEntry> entries, CellScanner cells) throws IOException {
-    }
-
-    //    @Override
-    public void postReplicateLogEntries(ObserverContext<RegionServerCoprocessorEnvironment> ctx, List<AdminProtos.WALEntry> entries, CellScanner cells) throws IOException {
     }
 
 }
