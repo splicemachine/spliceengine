@@ -30,13 +30,18 @@ public class CreateFkTask extends ZkTask {
 
     private TxnView txn;
     private AddForeignKeyDDLDescriptor ddlDescriptor;
+    /* This is the number of the conglomerate we want to modify. Will be the child table's backing index if this
+     * job is for modifying write contexts of the child.  Will be the parent base table or unique index conglomerate
+     * if this job is modifying write contexts of the parent. */
+    private long jobTargetConglomerateNumber;
 
     public CreateFkTask() {
     }
 
-    public CreateFkTask(String jobId, TxnView txn, AddForeignKeyDDLDescriptor ddlDescriptor) {
+    public CreateFkTask(String jobId, TxnView txn, long jobTargetConglomerateNumber, AddForeignKeyDDLDescriptor ddlDescriptor) {
         super(jobId, OperationJob.operationTaskPriority, null);
         this.txn = txn;
+        this.jobTargetConglomerateNumber = jobTargetConglomerateNumber;
         this.ddlDescriptor = ddlDescriptor;
     }
 
@@ -63,7 +68,7 @@ public class CreateFkTask extends ZkTask {
     @Override
     public void doExecute() throws ExecutionException, InterruptedException {
         try {
-            WriteContextFactory contextFactory = WriteContextFactoryManager.getWriteContext(ddlDescriptor.getReferencedConglomerateId());
+            WriteContextFactory contextFactory = WriteContextFactoryManager.getWriteContext(jobTargetConglomerateNumber);
             try {
                 DDLChange ddlChange = new DDLChange(txn, DDLChangeType.ADD_FOREIGN_KEY, ddlDescriptor);
                 contextFactory.addDDLChange(ddlChange);
@@ -85,6 +90,7 @@ public class CreateFkTask extends ZkTask {
     public void writeExternal(ObjectOutput out) throws IOException {
         super.writeExternal(out);
         out.writeObject(txn);
+        out.writeLong(jobTargetConglomerateNumber);
         out.writeObject(ddlDescriptor);
     }
 
@@ -92,6 +98,7 @@ public class CreateFkTask extends ZkTask {
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         super.readExternal(in);
         this.txn = (TxnView) in.readObject();
+        this.jobTargetConglomerateNumber = in.readLong();
         this.ddlDescriptor = (AddForeignKeyDDLDescriptor) in.readObject();
     }
 }

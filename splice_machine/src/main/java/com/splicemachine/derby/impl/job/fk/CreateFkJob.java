@@ -19,18 +19,23 @@ import java.util.Map;
 public class CreateFkJob implements CoprocessorJob {
 
     private final HTableInterface table;
+    /* Transaction that is adding a FK */
     private final TxnView txn;
+    /* Info necessary to create the FK */
     private final AddForeignKeyDDLDescriptor ddlDescriptor;
+    /* Run this task on all regions for this conglomerate number  */
+    private final long jobTargetConglomerateNumber;
 
-    public CreateFkJob(HTableInterface table, TxnView txn, AddForeignKeyDDLDescriptor ddlDescriptor) {
+    public CreateFkJob(HTableInterface table, TxnView txn, long targetConglomerateNumber, AddForeignKeyDDLDescriptor ddlDescriptor) {
         this.table = table;
         this.txn = txn;
+        this.jobTargetConglomerateNumber = targetConglomerateNumber;
         this.ddlDescriptor = ddlDescriptor;
     }
 
     @Override
     public Map<? extends RegionTask, Pair<byte[], byte[]>> getTasks() throws Exception {
-        CreateFkTask task = new CreateFkTask(getJobId(), txn, ddlDescriptor);
+        CreateFkTask task = new CreateFkTask(getJobId(), txn, jobTargetConglomerateNumber, ddlDescriptor);
         return Collections.singletonMap(task, Pair.newPair(HConstants.EMPTY_START_ROW, HConstants.EMPTY_END_ROW));
     }
 
@@ -51,7 +56,7 @@ public class CreateFkJob implements CoprocessorJob {
 
     @Override
     public byte[] getDestinationTable() {
-        return null;
+        return this.table.getName().getName();
     }
 
     @Override

@@ -1,6 +1,7 @@
 package com.splicemachine.derby.ddl;
 
 import com.splicemachine.pipeline.ddl.TentativeDDLDesc;
+import com.splicemachine.pipeline.writecontextfactory.FKConstraintInfo;
 
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -8,12 +9,14 @@ import java.io.ObjectOutput;
 
 public class AddForeignKeyDDLDescriptor implements TentativeDDLDesc {
 
+    /* Info about the constraint that is ultimately used in constraint violation error messages */
+    private FKConstraintInfo fkConstraintInfo;
     /* formatIds for the backing index of the FK we are creating */
     private int[] backingIndexFormatIds;
-    /* conglom ID of unique index or base table primary key our FK references */
-    private long referencedConglomerateId;
-    /* conglom ID of the backing-index associated with the FK */
-    private long referencingConglomerateId;
+    /* conglom number of unique index or base table primary key our FK references */
+    private long referencedConglomerateNumber;
+    /* conglom number of the backing-index associated with the FK */
+    private long referencingConglomerateNumber;
     /* users visible name of the table new FK references */
     private String referencedTableName;
     /* Referenced table's encoding version ('1.0', '2.0', etc) */
@@ -22,26 +25,32 @@ public class AddForeignKeyDDLDescriptor implements TentativeDDLDesc {
     public AddForeignKeyDDLDescriptor() {
     }
 
-    public AddForeignKeyDDLDescriptor(int[] backingIndexFormatIds, long referencedConglomerateId,
+    public AddForeignKeyDDLDescriptor(FKConstraintInfo fkConstraintInfo, int[] backingIndexFormatIds, long referencedConglomerateNumber,
                                       String referencedTableName, String referencedTableVersion,
-                                      long referencingConglomerateId) {
+                                      long referencingConglomerateNumber) {
+        this.fkConstraintInfo = fkConstraintInfo;
         this.backingIndexFormatIds = backingIndexFormatIds;
-        this.referencedConglomerateId = referencedConglomerateId;
+        this.referencedConglomerateNumber = referencedConglomerateNumber;
         this.referencedTableName = referencedTableName;
         this.referencedTableVersion = referencedTableVersion;
-        this.referencingConglomerateId = referencingConglomerateId;
+        this.referencingConglomerateNumber = referencingConglomerateNumber;
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
+
+    public FKConstraintInfo getFkConstraintInfo() {
+        return fkConstraintInfo;
+    }
+
     public int[] getBackingIndexFormatIds() {
         return backingIndexFormatIds;
     }
 
-    public long getReferencedConglomerateId() {
-        return referencedConglomerateId;
+    public long getReferencedConglomerateNumber() {
+        return referencedConglomerateNumber;
     }
 
     public String getReferencedTableName() {
@@ -52,8 +61,8 @@ public class AddForeignKeyDDLDescriptor implements TentativeDDLDesc {
         return referencedTableVersion;
     }
 
-    public long getReferencingConglomerateId() {
-        return referencingConglomerateId;
+    public long getReferencingConglomerateNumber() {
+        return referencingConglomerateNumber;
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -62,12 +71,12 @@ public class AddForeignKeyDDLDescriptor implements TentativeDDLDesc {
 
     @Override
     public long getBaseConglomerateNumber() {
-        return 0;
+        throw new UnsupportedOperationException("this method from interface not used");
     }
 
     @Override
     public long getConglomerateNumber() {
-        return 0;
+        throw new UnsupportedOperationException("this method from interface not used");
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -76,8 +85,9 @@ public class AddForeignKeyDDLDescriptor implements TentativeDDLDesc {
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
-        out.writeLong(referencedConglomerateId);
-        out.writeLong(referencingConglomerateId);
+        out.writeObject(fkConstraintInfo);
+        out.writeLong(referencedConglomerateNumber);
+        out.writeLong(referencingConglomerateNumber);
         out.writeUTF(referencedTableName);
         out.writeUTF(referencedTableVersion);
         out.writeInt(backingIndexFormatIds.length);
@@ -88,8 +98,9 @@ public class AddForeignKeyDDLDescriptor implements TentativeDDLDesc {
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        this.referencedConglomerateId = in.readLong();
-        this.referencingConglomerateId = in.readLong();
+        this.fkConstraintInfo = (FKConstraintInfo) in.readObject();
+        this.referencedConglomerateNumber = in.readLong();
+        this.referencingConglomerateNumber = in.readLong();
         this.referencedTableName = in.readUTF();
         this.referencedTableVersion = in.readUTF();
         int n = in.readInt();

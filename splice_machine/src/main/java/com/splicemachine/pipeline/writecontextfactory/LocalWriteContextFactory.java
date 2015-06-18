@@ -17,7 +17,6 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import com.google.common.base.Optional;
 import com.google.common.collect.*;
-import com.splicemachine.derby.ddl.AddForeignKeyDDLDescriptor;
 import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
 import org.apache.log4j.Logger;
@@ -287,9 +286,7 @@ class LocalWriteContextFactory implements WriteContextFactory<TransactionalRegio
                         alterTableWriteFactories.add(AlterTableWriteFactory.create(ddlChange));
                         break;
                     case ADD_FOREIGN_KEY:
-                        AddForeignKeyDDLDescriptor d = (AddForeignKeyDDLDescriptor) ddlChange.getTentativeDDLDesc();
-                        fkWriteFactoryHolder.addForeignKeyParentCheckWriteFactory(d.getBackingIndexFormatIds(), d.getReferencedTableVersion());
-                        fkWriteFactoryHolder.addForeignKeyParentInterceptWriteFactory(d.getReferencedTableName(), ImmutableList.of(d.getReferencingConglomerateId()));
+                        fkWriteFactoryHolder.handleDDLChange(ddlChange, this.conglomId);
                     default:
                         break;
                 }

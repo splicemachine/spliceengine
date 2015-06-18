@@ -1,19 +1,20 @@
 package com.splicemachine.derby.impl.job.fk;
 
 import com.google.common.collect.ImmutableList;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.derby.ddl.AddForeignKeyDDLDescriptor;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.JobInfo;
+import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.utils.DataDictionaryUtils;
 import com.splicemachine.job.JobFuture;
+import com.splicemachine.job.JobScheduler;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptorList;
-import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.ReferencedKeyConstraintDescriptor;
+import com.splicemachine.pipeline.writecontextfactory.FKConstraintInfo;
+import com.splicemachine.si.api.TxnView;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.log4j.Logger;
 
@@ -61,14 +62,18 @@ public class CreateFkJobSubmitter {
         String referencedTableVersion = referencedConstraint.getTableDescriptor().getVersion();
         String referencedTableName = referencedConstraint.getTableDescriptor().getName();
 
-        HTableInterface table = SpliceAccessManager.getHTable(Long.toString(referencedConglomerateId).getBytes());
+        HTableInterface parentHTable = SpliceAccessManager.getHTable(Long.toString(referencedConglomerateId).getBytes());
+        HTableInterface childHTable = SpliceAccessManager.getHTable(Long.toString(backingIndexConglomerateIds).getBytes());
 
-        JobInfo info = null;
-        JobFuture future = null;
+        JobInfo parentJobInfo = null;
+        JobFuture parentFuture = null;
+        JobInfo childJobInfo = null;
+        JobFuture childFuture = null;
         try {
             long start = System.currentTimeMillis();
 
             AddForeignKeyDDLDescriptor descriptor = new AddForeignKeyDDLDescriptor(
+                    new FKConstraintInfo((ForeignKeyConstraintDescriptor) foreignKeyConstraintDescriptor),
                     backingIndexFormatIds,
                     referencedConglomerateId,
                     referencedTableName,
@@ -76,34 +81,61 @@ public class CreateFkJobSubmitter {
                     backingIndexConglomerateIds
             );
 
-            CreateFkJob job = new CreateFkJob(table, transactionManager.getActiveStateTxn(), descriptor);
+            JobScheduler<CoprocessorJob> jobScheduler = SpliceDriver.driver().getJobScheduler();
+            TxnView activeStateTxn = transactionManager.getActiveStateTxn();
 
-            future = SpliceDriver.driver().getJobScheduler().submit(job);
-            info = new JobInfo(job.getJobId(), future.getNumTasks(), start);
-            info.setJobFuture(future);
+            //
+            // parent
+            //
+            CreateFkJob parentJob = new CreateFkJob(parentHTable, activeStateTxn, referencedConglomerateId, descriptor);
+            parentFuture = jobScheduler.submit(parentJob);
+            parentJobInfo = new JobInfo(parentJob.getJobId(), parentFuture.getNumTasks(), start);
+            parentJobInfo.setJobFuture(parentFuture);
+
+            //
+            // child
+            //
+            CreateFkJob childJob = new CreateFkJob(childHTable, activeStateTxn, backingIndexConglomerateIds, descriptor);
+            childFuture = jobScheduler.submit(childJob);
+            childJobInfo = new JobInfo(childJob.getJobId(), childFuture.getNumTasks(), start);
+            childJobInfo.setJobFuture(childFuture);
+
             try {
-                future.completeAll(info);
+                parentFuture.completeAll(parentJobInfo);
+                childFuture.completeAll(childJobInfo);
             } catch (CancellationException ce) {
                 throw Exceptions.parseException(ce);
             } catch (Throwable t) {
-                info.failJob();
+                parentJobInfo.failJob();
+                childJobInfo.failJob();
                 throw t;
             }
         } catch (Throwable e) {
-            if (info != null) {
-                info.failJob();
+            if (parentJobInfo != null) {
+                parentJobInfo.failJob();
+            }
+            if (childJobInfo != null) {
+                childJobInfo.failJob();
             }
             LOG.error("Couldn't create FKs on existing regions", e);
             try {
-                table.close();
+                parentHTable.close();
+                childHTable.close();
             } catch (IOException e1) {
-                LOG.warn("Couldn't close table", e1);
+                LOG.warn("Couldn't close parentHTable", e1);
             }
             throw Exceptions.parseException(e);
         } finally {
-            if (future != null) {
+            if (parentFuture != null) {
                 try {
-                    future.cleanup();
+                    parentFuture.cleanup();
+                } catch (ExecutionException e) {
+                    LOG.warn("Task cleanup failure", e);
+                }
+            }
+            if (childFuture != null) {
+                try {
+                    childFuture.cleanup();
                 } catch (ExecutionException e) {
                     LOG.warn("Task cleanup failure", e);
                 }
