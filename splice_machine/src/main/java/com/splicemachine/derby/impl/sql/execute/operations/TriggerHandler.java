@@ -20,6 +20,7 @@ import com.splicemachine.db.impl.sql.execute.TriggerEventActivator;
 import com.splicemachine.db.impl.sql.execute.TriggerInfo;
 import com.splicemachine.derby.iapi.sql.execute.SingleRowCursorResultSet;
 import com.splicemachine.derby.impl.sql.execute.actions.WriteCursorConstantOperation;
+import com.splicemachine.pipeline.api.CallBuffer;
 import com.splicemachine.tools.EmbedConnectionMaker;
 
 /**
@@ -70,9 +71,9 @@ public class TriggerHandler {
     private void initTriggerActivator(Activation activation, WriteCursorConstantOperation constantAction) throws StandardException {
         try {
             this.triggerActivator = new TriggerEventActivator(constantAction.getTargetUUID(),
-                                                              constantAction.getTriggerInfo(),
-                                                              activation,
-                                                              null);
+                    constantAction.getTriggerInfo(),
+                    activation,
+                    null);
         } catch (StandardException e) {
             popAllTriggerExecutionContexts(activation.getLanguageConnectionContext());
             throw e;
@@ -152,6 +153,44 @@ public class TriggerHandler {
         if (hasAfterStatement) {
             triggerActivator.notifyStatementEvent(afterEvent);
         }
+    }
+
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+    // Static convenience methods for invoking methods in this class on an instance that may be null.
+    //
+    // We now fire triggers from multiple locations and most of the time triggerHandler will be null
+    // (most of the time there are no triggers involved in DML operations).  These methods are here
+    // just so that we can take the null checks out of the DMLOperation code and make that code a bit
+    // more concise (one line to fire, etc), no null check.
+    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+
+
+    public static void fireBeforeRowTriggers(TriggerHandler triggerHandler, ExecRow row) throws StandardException {
+        if (triggerHandler != null) {
+            triggerHandler.fireBeforeRowTriggers(row);
+        }
+    }
+
+    public static void fireAfterRowTriggers(TriggerHandler triggerHandler, ExecRow row, Callable<Void> flushCallback) throws Exception {
+        if (triggerHandler != null) {
+            triggerHandler.fireAfterRowTriggers(row, flushCallback);
+        }
+    }
+
+    public static void firePendingAfterTriggers(TriggerHandler triggerHandler, Callable<Void> flushCallback) throws Exception {
+        if (triggerHandler != null) {
+            triggerHandler.firePendingAfterTriggers(flushCallback);
+        }
+    }
+
+    public static Callable<Void> flushCallback(final CallBuffer callBuffer) {
+        return new Callable<Void>() {
+            @Override
+            public Void call() throws Exception {
+                callBuffer.flushBufferAndWait();
+                return null;
+            }
+        };
     }
 
 }

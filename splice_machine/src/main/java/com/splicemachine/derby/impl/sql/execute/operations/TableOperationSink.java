@@ -128,51 +128,26 @@ public class TableOperationSink implements OperationSink {
          * for causing the flush.  The CallBuffer may have already flushed before the trigger handler calls flush, in
          * which case this callback will do nothing.  What is important is that this callback will cause constraint
          * violation exceptions to be thrown (when applicable) before we fire after triggers. */
-        Callable<Void> flushCallback = triggerHandler == null ? null : flushCallback(writeBuffer);
+        Callable<Void> flushCallback = triggerHandler == null ? null : TriggerHandler.flushCallback(writeBuffer);
 
         ExecRow row;
         while ((row = operation.getNextSinkRow(context)) != null) {
             rowsRead++;
             SpliceBaseOperation.checkInterrupt(rowsRead, SpliceConstants.interruptLoopCheck);
 
-            fireBeforeRowTriggers(row);
+            TriggerHandler.fireBeforeRowTriggers(triggerHandler, row);
 
             writeTimer.startTiming();
             KVPair kvPair = encoder.encode(row);
             writeBuffer.add(kvPair);
 
-            fireAfterRowTriggers(row, flushCallback);
+            TriggerHandler.fireAfterRowTriggers(triggerHandler, row, flushCallback);
 
             writeTimer.tick(1);
             rowsWritten++;
         }
 
-        firePendingAfterTriggers(flushCallback);
-    }
-
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    //
-    // trigger related methods
-    //
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-
-    private void fireBeforeRowTriggers(ExecRow row) throws StandardException {
-        if (triggerHandler != null) {
-            triggerHandler.fireBeforeRowTriggers(row);
-        }
-    }
-
-    private void fireAfterRowTriggers(ExecRow row, Callable<Void> flushCallback) throws Exception {
-        if (triggerHandler != null) {
-            triggerHandler.fireAfterRowTriggers(row, flushCallback);
-        }
-    }
-
-    private void firePendingAfterTriggers(Callable<Void> flushCallback) throws Exception {
-        if(triggerHandler != null) {
-            triggerHandler.firePendingAfterTriggers(flushCallback);
-        }
+        TriggerHandler.firePendingAfterTriggers(triggerHandler, flushCallback);
     }
 
 
@@ -236,16 +211,6 @@ public class TableOperationSink implements OperationSink {
         public boolean[] getUsedTempBuckets() {
             return usedTempBuckets;
         }
-    }
-
-    private Callable<Void> flushCallback(final CallBuffer callBuffer) {
-        return new Callable<Void>() {
-            @Override
-            public Void call() throws Exception {
-                callBuffer.flushBufferAndWait();
-                return null;
-            }
-        };
     }
 
 }
