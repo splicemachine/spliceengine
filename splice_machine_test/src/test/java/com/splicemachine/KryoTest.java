@@ -8,6 +8,7 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.kryo.DataValueDescriptorSerializer;
+import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.kryo.KryoObjectInput;
 import com.splicemachine.utils.kryo.KryoObjectOutput;
 import com.splicemachine.utils.kryo.KryoPool;
@@ -20,6 +21,8 @@ import com.splicemachine.db.iapi.types.SQLDecimal;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
+
+import static org.junit.Assert.assertEquals;
 
 /**
  * @author Jeff Cunningham
@@ -73,7 +76,7 @@ public class KryoTest  {
         SQLDecimal out = (SQLDecimal) koi.readObject();
 
         Assert.assertNotNull(out);
-        Assert.assertEquals(in, out);
+        assertEquals(in, out);
     }
 
      @Test
@@ -93,7 +96,7 @@ public class KryoTest  {
         SQLDecimal out = serializer.read(kryo, input, SQLDecimal.class);
 
         Assert.assertNotNull(out);
-        Assert.assertEquals(in, out);
+        assertEquals(in, out);
     }
 
     @Test
@@ -111,6 +114,24 @@ public class KryoTest  {
         List out = kryo.readObject(input, clazz);
 
         Assert.assertNotNull(out);
-        Assert.assertEquals(in, out);
+        assertEquals(in, out);
     }
+
+    @Test
+    public void testEmptyByteSlice() {
+        ByteSlice byteSliceIn = ByteSlice.wrap(new byte[] {0, 1, 2,3,4,5,6,7,8,9}, 5, 0);
+
+        Output output = new Output(new byte[20],20);
+        kryo.writeObject(output, byteSliceIn);
+        byte[] bytes = output.toBytes();
+        Assert.assertNotNull(bytes);
+
+        Input input = new Input(new ByteArrayInputStream(bytes), bytes.length);
+        ByteSlice byteSliceOut = kryo.readObject(input, ByteSlice.class);
+
+        Assert.assertNotNull(byteSliceOut);
+        assertEquals(5, byteSliceOut.offset());
+        assertEquals(0, byteSliceOut.length());
+    }
+
 }
