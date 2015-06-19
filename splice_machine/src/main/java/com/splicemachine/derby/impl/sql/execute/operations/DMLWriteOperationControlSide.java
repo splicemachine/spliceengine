@@ -14,8 +14,11 @@ import com.splicemachine.derby.utils.marshall.PairEncoder;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.job.SimpleJobResults;
+import com.splicemachine.pipeline.api.CallBuffer;
 import com.splicemachine.pipeline.api.RecordingCallBuffer;
 import com.splicemachine.pipeline.impl.WriteCoordinator;
+
+import java.util.concurrent.Callable;
 
 /**
  * Control side shuffle for DML write operations.
@@ -27,18 +30,20 @@ import com.splicemachine.pipeline.impl.WriteCoordinator;
  */
 class DMLWriteOperationControlSide {
 
-    private DMLWriteOperation dmlOperation;
-    private SpliceOperation source;
-    private WriteCoordinator writeCoordinator;
-    private KVPair.Type dataType;
-    private boolean isUpdate;
+    private final DMLWriteOperation dmlOperation;
+    private final SpliceOperation source;
+    private final WriteCoordinator writeCoordinator;
+    private final KVPair.Type dataType;
+    private final boolean isUpdate;
+    private final TriggerHandler triggerHandler;
 
     public DMLWriteOperationControlSide(DMLWriteOperation dmlOperation) {
         this.dmlOperation = dmlOperation;
         this.source = dmlOperation.getSource();
         this.writeCoordinator = SpliceDriver.driver().getTableWriter();
         this.isUpdate = dmlOperation instanceof UpdateOperation;
-        dataType = isUpdate ? KVPair.Type.UPDATE : (dmlOperation instanceof InsertOperation) ? KVPair.Type.INSERT : KVPair.Type.DELETE;
+        this.dataType = isUpdate ? KVPair.Type.UPDATE : (dmlOperation instanceof InsertOperation) ? KVPair.Type.INSERT : KVPair.Type.DELETE;
+        this.triggerHandler = dmlOperation.getTriggerHandler();
     }
 
     public JobResults controlSideShuffle(SpliceRuntimeContext runtimeContext) throws Exception {
@@ -47,6 +52,7 @@ class DMLWriteOperationControlSide {
         //
         RecordingCallBuffer<KVPair> writeBuffer = writeCoordinator.writeBuffer(dmlOperation.getDestinationTable(), runtimeContext.getTxn(), runtimeContext);
         writeBuffer = dmlOperation.transformWriteBuffer(writeBuffer);
+        Callable<Void> flushCallback = TriggerHandler.flushCallback(writeBuffer);
 
         //
         // PairEncoder: For local ExecRow -> KVPair -> CallBuffer
@@ -74,6 +80,7 @@ class DMLWriteOperationControlSide {
             iterator.open();
             ExecRow execRow;
             while ((execRow = iterator.next(runtimeContext)) != null) {
+                TriggerHandler.fireBeforeRowTriggers(triggerHandler, execRow);
                 dmlOperation.setCurrentRow(execRow);
                 KVPair kvPair = pairEncoder.encode(execRow);
                 writeBuffer.add(kvPair);
@@ -81,12 +88,15 @@ class DMLWriteOperationControlSide {
                 if (isUpdate) {
                     rowsSunk += ((UpdateOperationNoOpRowSkipper) iterator).getSkippedRows();
                 }
+                TriggerHandler.fireAfterRowTriggers(triggerHandler, execRow, flushCallback);
             }
 
             // The last call of iterator.next() may have skipped a zillion rows and then returned null
             if (isUpdate) {
                 rowsSunk += ((UpdateOperationNoOpRowSkipper) iterator).getSkippedRows();
             }
+
+            TriggerHandler.firePendingAfterTriggers(triggerHandler, flushCallback);
 
             dmlOperation.setRowsSunk(rowsSunk);
 
@@ -100,4 +110,6 @@ class DMLWriteOperationControlSide {
 
         return new SimpleJobResults(new EmptyJobStats(), null);
     }
+
+
 }
