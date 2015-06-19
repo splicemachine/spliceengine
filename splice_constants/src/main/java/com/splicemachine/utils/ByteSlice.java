@@ -220,7 +220,9 @@ public class ByteSlice implements Externalizable,Comparable<ByteSlice> {
         offset = in.readInt();
         length = in.readInt();
         buffer = new byte[length];
-        in.readFully(buffer);
+        if(length > 0) {
+            in.readFully(buffer);
+        }
         hashSet = false;
     }
 
@@ -228,7 +230,9 @@ public class ByteSlice implements Externalizable,Comparable<ByteSlice> {
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeInt(offset);
         out.writeInt(length);
-        out.write(buffer,offset,length);
+        if(length > 0) {
+            out.write(buffer, offset, length);
+        }
     }
 
     public void reverse() {
