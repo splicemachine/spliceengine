@@ -521,11 +521,6 @@ public class HDataLib implements SDataLib<Cell,Put, Delete, Get, Scan> {
 		
 		@Override
 		public void setThreadReadPoint(RegionScanner delegate) {
-			ThreadLocal<Long> perThreadReadPoint = new ThreadLocal<Long>(){
-                @Override protected Long initialValue(){
-                return Long.MAX_VALUE;
-                }
-            };
 		}
 
 		@Override
