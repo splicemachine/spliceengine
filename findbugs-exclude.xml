@@ -33,4 +33,25 @@
         <Class name="~com\.splicemachine\.coprocessor\.SpliceMessage.*"/>
     </Match>
 
+    <!-- SpliceConstants: our static fields in are intentionally not final -->
+    <Match>
+        <Class name="com.splicemachine.constants.SpliceConstants"/>
+        <Bug pattern="MS_SHOULD_BE_FINAL"/>
+    </Match>
+    <!-- SpliceConstants: our static fields in are intentionally not final -->
+    <Match>
+        <Class name="com.splicemachine.constants.SpliceConstants"/>
+        <Bug pattern="MS_CANNOT_BE_FINAL"/>
+    </Match>
+    <!-- SpliceConstants: is is ok for unused fields to be public for now -->
+    <Match>
+        <Class name="com.splicemachine.constants.SpliceConstants"/>
+        <Bug pattern="MS_PKGPROTECT"/>
+    </Match>
+    <!-- SpliceConstants: all of our table name fields are static but are mutable arrays -->
+    <Match>
+        <Class name="com.splicemachine.constants.SpliceConstants"/>
+        <Bug pattern="MS_MUTABLE_ARRAY"/>
+    </Match>
+
 </FindBugsFilter>

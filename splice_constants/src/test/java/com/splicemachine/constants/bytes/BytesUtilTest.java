@@ -68,4 +68,13 @@ public class BytesUtilTest {
         assertArrayEquals(bytesIn, bytesOut);
     }
 
+    @Test
+    public void bytesToLong() {
+        long longIn = new Random().nextLong();
+        byte[] bytes = BytesUtil.longToBytes(longIn);
+        long longOut = BytesUtil.bytesToLong(bytes, 0);
+        assertEquals(longIn, longOut);
+    }
+
+
 }

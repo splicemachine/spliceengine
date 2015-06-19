@@ -2,6 +2,7 @@ package com.splicemachine.mrio;
 
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.util.Bytes;
 
 
 /**
@@ -20,8 +21,8 @@ public class MRConstants {
 	final public static String HBASE_OUTPUT_TABLE_NAME = "hbase_output_tableName";
 	final public static String SPLICE_SCAN_MEMSTORE_ONLY="MR";
     final public static String SPLICE_TBLE_CONTEXT="splice.tableContext";
-	final public static byte[] FLUSH = "F".getBytes();
-	final public static byte[] HOLD = "H".getBytes();
+	final public static byte[] FLUSH = Bytes.toBytes("F");
+	final public static byte[] HOLD = Bytes.toBytes("H");
 	final public static KeyValue MEMSTORE_BEGIN = new KeyValue(HConstants.EMPTY_START_ROW,HOLD,HOLD);
 	final public static KeyValue MEMSTORE_END = new KeyValue(HConstants.EMPTY_END_ROW,HOLD,HOLD);	
 	final public static KeyValue MEMSTORE_BEGIN_FLUSH = new KeyValue(HConstants.EMPTY_START_ROW,FLUSH,FLUSH);	

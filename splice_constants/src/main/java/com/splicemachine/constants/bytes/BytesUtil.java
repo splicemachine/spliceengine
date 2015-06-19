@@ -91,13 +91,13 @@ public class BytesUtil {
 
     public static String debug(Object o) {
         byte[] bytes = (byte[]) o;
-        String s = "" + bytes.length + "[";
-        for (int i=0; i<bytes.length; i++) {
+        StringBuilder s = new StringBuilder("" + bytes.length + "[");
+        for (byte aByte : bytes) {
             // represent as hex for unsigned byte
-            s += " " + Integer.toHexString(bytes[i] & 0xFF);
+            s.append(" ").append(Integer.toHexString(aByte & 0xFF));
         }
-        s += " ]";
-        return s;
+        s.append(" ]");
+        return s.toString();
     }
 
     private static void copyInto(byte[][] bytes, byte[] concatedBytes,int initialPos){
@@ -131,7 +131,7 @@ public class BytesUtil {
     /**
      * Lexicographical byte[] comparator that places empty byte[] values before non-empty values.
      */
-    public static Comparator<byte[]> startComparator = new Comparator<byte[]>() {
+    public static final Comparator<byte[]> startComparator = new Comparator<byte[]>() {
         @Override
         public int compare(byte[] o1, byte[] o2) {
             return compareBytes(false, o1, o2);
@@ -141,7 +141,7 @@ public class BytesUtil {
     /**
      * Lexicographical byte[] comparator that places empty byte[] values after non-empty values.
      */
-    public static Comparator<byte[]> endComparator = new Comparator<byte[]>() {
+    public static final Comparator<byte[]> endComparator = new Comparator<byte[]>() {
         @Override
         public int compare(byte[] o1, byte[] o2) {
             return compareBytes(true, o1, o2);
@@ -268,13 +268,13 @@ public class BytesUtil {
     }
 
     public static void longToBytes(long x, byte[] data, int offset){
-        data[offset]   = (byte)(x>>56);
-        data[offset+1] = (byte)(x>>48);
-        data[offset+2] = (byte)(x>>40);
-        data[offset+3] = (byte)(x>>32);
-        data[offset+4] = (byte)(x>>24);
-        data[offset+5] = (byte)(x>>16);
-        data[offset+6] = (byte)(x>>8);
+        data[offset] = (byte) (x >> 56);
+        data[offset + 1] = (byte) (x >> 48);
+        data[offset + 2] = (byte) (x >> 40);
+        data[offset + 3] = (byte) (x >> 32);
+        data[offset + 4] = (byte) (x >> 24);
+        data[offset + 5] = (byte) (x >> 16);
+        data[offset + 6] = (byte) (x >> 8);
         data[offset+7] = (byte)(x   );
     }
     public static int bytesToInt(byte[] data, int offset) {
@@ -288,14 +288,14 @@ public class BytesUtil {
 
     public static long bytesToLong(byte[] data, int offset){
         long value = 0;
-        value |= (data[offset] & 0xff)<<56;
-        value |= (data[offset+1] & 0xff)<<48;
-        value |= (data[offset+2] & 0xff)<<40;
-        value |= (data[offset+3] & 0xff)<<32;
-        value |= (data[offset+4] & 0xff)<<24;
-        value |= (data[offset+5] & 0xff)<<16;
-        value |= (data[offset+6] & 0xff)<<8;
-        value |= (data[offset+7] & 0xff);
+        value |= (data[offset] & 0xffL)<<56;
+        value |= (data[offset+1] & 0xffL)<<48;
+        value |= (data[offset+2] & 0xffL)<<40;
+        value |= (data[offset+3] & 0xffL)<<32;
+        value |= (data[offset+4] & 0xffL)<<24;
+        value |= (data[offset+5] & 0xffL)<<16;
+        value |= (data[offset+6] & 0xffL)<<8;
+        value |= (data[offset+7] & 0xffL);
         return value;
     }
 
