@@ -36,7 +36,7 @@ public class SynchronousReadResolver {
     //don't instantiate me, I'm a singleton!
 		private SynchronousReadResolver(){}
 
-		public static SynchronousReadResolver INSTANCE = new SynchronousReadResolver();
+		public static final SynchronousReadResolver INSTANCE = new SynchronousReadResolver();
 
     /**
      * @param region the region for the relevant read resolver
