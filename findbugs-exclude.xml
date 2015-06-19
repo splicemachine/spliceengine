@@ -1,0 +1,36 @@
+<?xml version="1.1"?>
+<FindBugsFilter>
+
+    <!-- = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =
+    Splicemachine findbugs exclusion filter file.
+
+    http://findbugs.sourceforge.net/manual/filter.html
+
+    Most (all?) attribute values can be a regex: start with "~".  Period must be escaped in regex string.
+
+    Please explain every exclusion with a comment.
+     = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = -->
+
+
+    <!--
+    Exposing internal representation by getting/setting mutable fields.
+    We often intentionally break this rule for performance.
+    !-->
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP"/>
+    </Match>
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+    </Match>
+
+    <!--
+    generated code
+    !-->
+    <Match>
+        <Class name="~com\.splicemachine\.si\.coprocessor\.TxnMessage.*"/>
+    </Match>
+    <Match>
+        <Class name="~com\.splicemachine\.coprocessor\.SpliceMessage.*"/>
+    </Match>
+
+</FindBugsFilter>
