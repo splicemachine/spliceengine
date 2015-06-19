@@ -144,7 +144,7 @@ public class SpliceUtilities extends SIConstants {
 				.valueOf(DEFAULT_BLOOMFILTER.toUpperCase()));
 		columnDescriptor.setTimeToLive(DEFAULT_TTL);
 		desc.addFamily(columnDescriptor);
-		desc.addFamily(new HColumnDescriptor(SI_PERMISSION_FAMILY.getBytes()));
+		desc.addFamily(new HColumnDescriptor(Bytes.toBytes(SI_PERMISSION_FAMILY)));
 		return desc;
 	}
 
