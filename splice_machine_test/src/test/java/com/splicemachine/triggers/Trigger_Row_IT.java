@@ -174,6 +174,26 @@ public class Trigger_Row_IT {
         assertRecordCount("aaa", 7);
     }
 
+    /* DB-3391: trigger would fail to fire if trigger statement was one-row delete/update on PK or unique index */
+    @Test
+    public void afterDelete_deleteTriggerAction() throws Exception {
+        // given -- a row in the RECORD table, and a trigger that should delete it
+        methodWatcher.executeUpdate("create table T3391 (a bigint primary key, b bigint unique, c bigint)");
+        methodWatcher.executeUpdate("insert into T3391 values(1,1,1),(2,2,2)");
+        methodWatcher.executeUpdate("insert into RECORD values('aaa'), ('bbb')");
+        createTrigger(tb.named("t3391a").after().delete().on("T3391").row().then("delete from RECORD where text='aaa'"));
+        createTrigger(tb.named("t3391b").after().delete().on("T3391").row().then("delete from RECORD where text='bbb'"));
+        assertRecordCount("aaa", 1);
+        assertRecordCount("bbb", 1);
+
+        // when - that trigger is fired
+        methodWatcher.executeUpdate("delete from T3391 where a = 1");
+        methodWatcher.executeUpdate("delete from T3391 where b = 2");
+
+        assertRecordCount("bbb", 0);
+        assertRecordCount("aaa", 0);
+    }
+
     // DB-3354: Nested triggers produce null transition variables.
     @Test
     public void afterInsertCascadingTriggers() throws Exception {
