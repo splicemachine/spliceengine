@@ -20,10 +20,18 @@ public class Level2OptimizerTrace implements OptimizerTrace{
     }
 
     @Override
-    public void trace(OptimizerFlag flag,int intParam1,int intParam2,double doubleParam,Object objectParam1){
+    public void trace(OptimizerFlag flag,int intParam1,int intParam2,double doubleParam,Object... objectParams){
         ConglomerateDescriptor cd;
         String cdString;
         String traceString;
+        Object objectParam1 = null;
+        Object objectParam2 = null;
+        if (objectParams != null) {
+            objectParam1 = objectParams[0];
+            if (objectParams.length >= 2) {
+                objectParam2 = objectParams[1];
+            }
+        }
 
         switch(flag){
             case STARTED:
@@ -101,7 +109,7 @@ public class Level2OptimizerTrace implements OptimizerTrace{
                 traceString="Skipping access path due to excess memory usage, maximum is "+optimizer.maxMemoryPerTable;
                 break;
             case COST_OF_N_SCANS:
-                traceString="Cost of "+doubleParam+" scans is: "+objectParam1+" for table "+intParam1;
+                traceString="Cost of "+doubleParam+" scans is: "+ objectParam1 +" for table "+intParam1;
                 break;
             case HJ_SKIP_NOT_MATERIALIZABLE:
                 traceString="Skipping HASH JOIN because optimizable is not materializable";
@@ -110,7 +118,7 @@ public class Level2OptimizerTrace implements OptimizerTrace{
                 traceString="Skipping HASH JOIN because there are no hash key columns";
                 break;
             case HJ_HASH_KEY_COLUMNS:
-                int[] hashKeyColumns=(int[])objectParam1;
+                int[] hashKeyColumns=(int[]) objectParam1;
                 traceString="# hash key columns = "+hashKeyColumns.length;
                 for(int index=0;index<hashKeyColumns.length;index++){
                     traceString="\n"+traceString+"hashKeyColumns["+index+"] = "+hashKeyColumns[index];
@@ -120,11 +128,11 @@ public class Level2OptimizerTrace implements OptimizerTrace{
                 traceString="Calling optimizeIt() for join node";
                 break;
             case CONSIDERING_JOIN_STRATEGY:
-                JoinStrategy js=(JoinStrategy)objectParam1;
+                JoinStrategy js=(JoinStrategy) objectParam1;
                 traceString="Considering join strategy "+js+" for table "+intParam1;
                 break;
             case REMEMBERING_BEST_ACCESS_PATH:
-                traceString="Remembering access path "+objectParam1+
+                traceString="Remembering access path "+ objectParam1 +
                         " as truly the best for table "+intParam1+" for plan type "
                         +(intParam2==Optimizer.NORMAL_PLAN?" normal ":"sort avoidance")+"\n";
                 break;
@@ -132,7 +140,7 @@ public class Level2OptimizerTrace implements OptimizerTrace{
                 traceString="No more conglomerates to consider for table "+intParam1;
                 break;
             case CONSIDERING_CONGLOMERATE:
-                cd=(ConglomerateDescriptor)objectParam1;
+                cd=(ConglomerateDescriptor) objectParam1;
                 cdString=dumpConglomerateDescriptor(cd);
                 traceString="\nConsidering conglomerate "+cdString+" for table "+intParam1;
                 break;
@@ -140,7 +148,8 @@ public class Level2OptimizerTrace implements OptimizerTrace{
                 traceString="Scanning heap, but we have a full match on a unique key.";
                 break;
             case ADDING_UNORDERED_OPTIMIZABLE:
-                traceString="Adding unordered optimizable, # of predicates = "+intParam1;
+                traceString="Adding unordered optimizable, # of predicates = "+intParam1+": "+
+                    PredicateUtils.toString((PredicateList)objectParam1);
                 break;
             case CHANGING_ACCESS_PATH_FOR_TABLE:
                 traceString="Changing access path for table "+intParam1;
@@ -156,21 +165,22 @@ public class Level2OptimizerTrace implements OptimizerTrace{
                 traceString="Lock mode set to MODE_RECORD because all start and stop positions are constant";
                 break;
             case ESTIMATING_COST_OF_CONGLOMERATE:
-                cd=(ConglomerateDescriptor)objectParam1;
+                cd=(ConglomerateDescriptor) objectParam1;
                 cdString=dumpConglomerateDescriptor(cd);
                 traceString="Estimating cost of conglomerate: "+costForTable(cdString,intParam1);
                 break;
             case LOOKING_FOR_SPECIFIED_INDEX:
-                traceString="Looking for user-specified index: "+objectParam1+" for table "+intParam1;
+                traceString="Looking for user-specified index: "+ objectParam1 +" for table "+intParam1;
                 break;
             case MATCH_SINGLE_ROW_COST:
                 traceString="Guaranteed to match a single row - cost is: "+doubleParam+" for table "+intParam1;
                 break;
             case COST_INCLUDING_EXTRA_1ST_COL_SELECTIVITY:
-                traceString="Cost including extra first column selectivity is : "+objectParam1+" for table "+intParam1;
+                traceString="Cost including extra first column selectivity is : "+ objectParam1 +" for table "+intParam1;
                 break;
             case CALLING_NEXT_ACCESS_PATH:
-                traceString="Calling nextAccessPath() for base table "+objectParam1+" with "+intParam1+" predicates.";
+                traceString="Calling nextAccessPath() for base table "+ objectParam1 +" with "+intParam1+" predicates: "+
+                PredicateUtils.toString((PredicateList)objectParam2);
                 break;
             case TABLE_LOCK_OVER_THRESHOLD:
                 traceString=lockModeThreshold("MODE_TABLE","greater",doubleParam,intParam1);
@@ -179,19 +189,19 @@ public class Level2OptimizerTrace implements OptimizerTrace{
                 traceString=lockModeThreshold("MODE_RECORD","less",doubleParam,intParam1);
                 break;
             case COST_INCLUDING_EXTRA_START_STOP:
-                traceString=costIncluding("start/stop",objectParam1,intParam1);
+                traceString=costIncluding("start/stop", objectParam1,intParam1);
                 break;
             case COST_INCLUDING_EXTRA_QUALIFIER_SELECTIVITY:
-                traceString=costIncluding("qualifier",objectParam1,intParam1);
+                traceString=costIncluding("qualifier", objectParam1,intParam1);
                 break;
             case COST_INCLUDING_EXTRA_NONQUALIFIER_SELECTIVITY:
-                traceString=costIncluding("non-qualifier",objectParam1,intParam1);
+                traceString=costIncluding("non-qualifier", objectParam1,intParam1);
                 break;
             case COST_INCLUDING_COMPOSITE_SEL_FROM_STATS:
-                traceString=costIncluding("selectivity from statistics",objectParam1,intParam1);
+                traceString=costIncluding("selectivity from statistics", objectParam1,intParam1);
                 break;
             case COST_INCLUDING_STATS_FOR_INDEX:
-                traceString=costIncluding("statistics for index being considered",objectParam1,intParam1);
+                traceString=costIncluding("statistics for index being considered", objectParam1,intParam1);
                 break;
             case COMPOSITE_SEL_FROM_STATS:
                 traceString="Selectivity from statistics found. It is "+doubleParam;
@@ -201,7 +211,7 @@ public class Level2OptimizerTrace implements OptimizerTrace{
                         costForTable(objectParam1,intParam1);
                 break;
             case REMEMBERING_JOIN_STRATEGY:
-                traceString="Remembering join strategy "+objectParam1+" as best for table "+intParam1;
+                traceString="Remembering join strategy "+ objectParam1 +" as best for table "+intParam1;
                 break;
             case REMEMBERING_BEST_ACCESS_PATH_SUBSTRING:
                 traceString="in best access path";
@@ -213,12 +223,12 @@ public class Level2OptimizerTrace implements OptimizerTrace{
                 traceString="in best unknown access path";
                 break;
             case COST_OF_CONGLOMERATE_SCAN1:
-                cd=(ConglomerateDescriptor)objectParam1;
+                cd=(ConglomerateDescriptor) objectParam1;
                 cdString=dumpConglomerateDescriptor(cd);
                 traceString="Cost of conglomerate "+cdString+" scan for table number "+intParam1+" is : ";
                 break;
             case COST_OF_CONGLOMERATE_SCAN2:
-                traceString=objectParam1.toString();
+                traceString= objectParam1.toString();
                 break;
             case COST_OF_CONGLOMERATE_SCAN3:
                 traceString="\tNumber of extra first column predicates is : "+
@@ -251,7 +261,7 @@ public class Level2OptimizerTrace implements OptimizerTrace{
                         doubleParam;
                 break;
             case INFEASIBLE_JOIN:
-                traceString="Skipping join Strategy "+ objectParam1+" because it is infeasible";
+                traceString="Skipping join Strategy "+ objectParam1 +" because it is infeasible";
                 break;
             default:
                 throw new IllegalStateException("Unexpected Trace flag: "+ flag);

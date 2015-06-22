@@ -43,6 +43,10 @@ public class PredicateUtils {
             ValueNode operand = ((Predicate)predicate).getAndNode().getLeftOperand();
             buf.append(opToString(operand)).append(", ");
         }
+        if (buf.length() > 2) {
+            // trim of last ", "
+            buf.setLength(buf.length() - 2);
+        }
         return buf.toString();
     }
 
@@ -100,17 +104,21 @@ public class PredicateUtils {
         } else if (operand instanceof ColumnReference) {
             ColumnReference cr = (ColumnReference) operand;
             String table = cr.getTableName();
-            ResultColumn source = cr.getSource();
+            ResultColumn source = cr.getSourceResultColumn();
+            if (source == null) {
+                source = cr.getOrigSourceResultColumn();
+            }
             return format("%s%s%s",table==null?"":format("%s.",table),
-                          cr.getColumnName(),source==null?"":
-                              format("[%s:%s]",source.getResultSetNumber(),source.getVirtualColumnId()));
+                          cr.getColumnName(),source==null?"": getSource(source));
         } else if (operand instanceof VirtualColumnNode) {
             VirtualColumnNode vcn = (VirtualColumnNode) operand;
-            ResultColumn source = vcn.getSourceColumn();
+            ResultColumn source = vcn.getSourceResultColumn();
+            if (source == null) {
+                source = vcn.getSourceColumn();
+            }
             String table = source.getTableName();
             return format("%s%s%s", table == null ? "" : format("%s.", table),
-                          source.getName(),
-                          format("[%s:%s]", source.getResultSetNumber(), source.getVirtualColumnId()));
+                          source.getName(), getSource(source));
         } else if (operand instanceof SubqueryNode) {
             SubqueryNode subq = (SubqueryNode) operand;
             return format("subq=%s", subq.getResultSet().getResultSetNumber());
@@ -126,5 +134,19 @@ public class PredicateUtils {
         } else{
             return operand.toString().replace("\n", " ");
         }
+    }
+
+    private static String getSource(ResultColumn rc) {
+        int from = rc.getResultSetNumber();
+        String originalTable = from +"";
+        if (from == -1) {
+            try {
+                originalTable = rc.getSchemaName()+"."+rc.getTableName();
+            } catch (StandardException e) {
+                // TODO: JC
+                e.printStackTrace();
+            }
+        }
+        return format("[%s:%s]", originalTable,rc.getColumnPosition());
     }
 }
