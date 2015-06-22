@@ -28,12 +28,12 @@ import java.util.*;
 /**
  * @author Yifu Ma
  */
-public class planDebugger extends AbstractSpliceVisitor {
+public class PlanDebugger extends AbstractSpliceVisitor {
 
-    public static Logger LOG = Logger.getLogger(planDebugger.class);
+    public static Logger LOG = Logger.getLogger(PlanDebugger.class);
 
     public static final String spaces = "  ";
-    private static final Logger COST_LOG=Logger.getLogger(planDebugger.class.getName()+".CostLog");
+    private static final Logger COST_LOG=Logger.getLogger(PlanDebugger.class.getName()+".CostLog");
 
     private boolean explain = false;
     public static ThreadLocal<Map<String,ExplainTree>> planMap = new ThreadLocal<Map<String,ExplainTree>>(){
@@ -280,7 +280,7 @@ public class planDebugger extends AbstractSpliceVisitor {
             // we only want to see exec row info when THIS logger is set to trace:
             // com.splicemachine.derby.impl.ast.PlanPrinter=TRACE
             // or
-            // call SYSCS_UTIL.SYSCS_SET_LOGGER_LEVEL('com.splicemachine.derby.impl.ast.planDebugger', 'TRACE');
+            // call SYSCS_UTIL.SYSCS_SET_LOGGER_LEVEL('com.splicemachine.derby.impl.ast.PlanDebugger', 'TRACE');
 
             List<Map<String, Object>> columnInfo =  getResultColumnInfo(rsn);
             int count = 1;
