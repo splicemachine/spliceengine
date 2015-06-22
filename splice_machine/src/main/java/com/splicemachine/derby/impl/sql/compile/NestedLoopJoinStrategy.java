@@ -6,8 +6,10 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
@@ -331,31 +333,36 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         double innerScanLocalCost = innerCost.localCost();
         double innerScanRemoteCost = innerCost.remoteCost();
         double innerScanHeapSize = innerCost.getEstimatedHeapSize();
-        int innerScanNumPartitions = innerCost.partitionCount();
         double innerScanOutputRows = innerCost.rowCount();
-        double innerSingleScanRowCount = innerCost.singleScanRowCount();
+//        ScanCostFunction scf = new ScanCostFunction(null,null,innerTable,
+//                ((FromTable)innerTable).getCompilerContext().getStoreCostController(cd),
+//                optimizer.newCostEstimate(),null,
+//                ((FromTable)innerTable).getOutputRowTemplate(cd),
+//                cd.getIndexDescriptor()!=null?cd.getIndexDescriptor().baseColumnPositions():null,
+//                (long)innerCost.rowCount(),
+//                false,
+//                )
+        double outputJoinSelectivity = estimateJoinSelectivity(innerTable,cd,allPreds);
         if(innerCost.getEstimatedRowCount()!=1l){
             double inputJoinSelectivity=getStartStopSelectivity(innerTable,cd,allPreds);
-            double outputJoinSelectivity = estimateJoinSelectivity(innerTable,cd,allPreds);
 
             innerScanLocalCost *= inputJoinSelectivity;
             innerScanRemoteCost *= outputJoinSelectivity;
             innerScanHeapSize *= outputJoinSelectivity;
             innerScanOutputRows*=outputJoinSelectivity;
-            innerSingleScanRowCount *= outputJoinSelectivity;
         }
         double perOuterRowInnerCost = innerScanLocalCost+innerScanRemoteCost;
         perOuterRowInnerCost+=innerCost.partitionCount()*(innerCost.getOpenCost()+innerCost.getCloseCost());
 
         double totalLocalCost=outerCost.localCost()+outerCost.rowCount()*perOuterRowInnerCost;
-        int totalPartitions=outerCost.partitionCount()*innerScanNumPartitions;
+        int totalPartitions=outerCost.partitionCount();
 
         /*
          * unlike other join strategies, NLJ's row count selectivity is determined entirely by
          * the predicates which are pushed to the right hand side. Therefore, the totalOutputRows
          * is actually outerCost.rowCount()*innerScanOutputRows
          */
-        double totalOutputRows=outerCost.rowCount()*innerScanOutputRows;
+        double totalOutputRows=outputJoinSelectivity*(outerCost.rowCount()*innerCost.rowCount());
         double totalHeapSize=outerCost.getEstimatedHeapSize()+outerCost.rowCount()*innerScanHeapSize;
 
         double perRowRemoteCost = outerCost.remoteCost()/outerRowCount;
@@ -374,7 +381,6 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         baseInnerCost.setRemoteCost(innerScanRemoteCost);
         baseInnerCost.setRowCount(innerScanOutputRows);
         baseInnerCost.setEstimatedHeapSize((long)innerScanHeapSize);
-        baseInnerCost.setSingleScanRowCount(innerSingleScanRowCount);
 
         innerCost.setEstimatedHeapSize((long)totalHeapSize);
         innerCost.setNumPartitions(totalPartitions);
@@ -475,8 +481,8 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
 
     private double estimateSelectivityOfJoinPredicate(Optimizable innerTable,ConglomerateDescriptor cd,Predicate predicate) throws StandardException{
         //TODO -sf- make this more accurate based on cardinalities etc.
-//        return predicate.selectivity(innerTable,cd);
-        return predicate.selectivity(innerTable);
+        return predicate.selectivity(innerTable,cd);
+//        return predicate.selectivity(innerTable);
     }
 
     private double estimateJoinSelectivity(Optimizable innerTable,ConglomerateDescriptor cd,List<Predicate> predicates) throws StandardException{
