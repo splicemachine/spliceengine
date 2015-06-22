@@ -60,7 +60,10 @@ public class UniformIntDistribution extends BaseDistribution<Integer> implements
 
     @Override
     public long rangeSelectivity(int start, int stop, boolean includeStart, boolean includeStop) {
-        if(start==stop &&(!includeStart || !includeStop)) return 0l; //empty interval has no data
+        if(start==stop){
+            if(!includeStart || !includeStop) return 0l; //empty interval has no data
+            else return selectivity(start); //return equals
+        }
         IntColumnStatistics ics = (IntColumnStatistics)columnStats;
         int min = ics.min();
         if(min>stop||(!includeStop && stop==min)) return 0l;
