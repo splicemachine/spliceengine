@@ -153,12 +153,12 @@ public class BroadcastJoinStrategy extends BaseCostedHashableJoinStrategy {
         totalLocalCost+= innerCost.partitionCount()*(innerCost.getOpenCost()+innerCost.getCloseCost());
 
 
-        double totalOutputRows = joinSelectivity*(outerRowCount*innerRowCount);
+        double totalOutputRows = joinSelectivity*outerRowCount*innerRowCount;
 
         double totalRemoteCost=getTotalRemoteCost(outerRemoteCost,innerRemoteCost,outerRowCount,innerRowCount,totalOutputRows);
 
         //each partition of the outer table will see inner table's partitionCount
-        int totalPartitionCount = outerCost.partitionCount()*innerCost.partitionCount();
+        int totalPartitionCount = outerCost.partitionCount();
 
         double totalHeapSize=getTotalHeapSize(outerCost.getEstimatedHeapSize(),
                 innerCost.getEstimatedHeapSize(),
@@ -173,7 +173,7 @@ public class BroadcastJoinStrategy extends BaseCostedHashableJoinStrategy {
         innerCost.setRowOrdering(outerCost.getRowOrdering());
         innerCost.setRowCount(totalOutputRows);
         innerCost.setEstimatedHeapSize((long)totalHeapSize);
-        innerCost.setSingleScanRowCount(innerCost.rowCount());
+//        innerCost.setSingleScanRowCount(innerCost.rowCount());
 //        innerCost.setSingleScanRowCount(joinSelectivity*outerCost.singleScanRowCount());
     }
 

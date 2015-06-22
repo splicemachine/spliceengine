@@ -74,7 +74,7 @@ public abstract class BaseCostedHashableJoinStrategy extends HashableJoinStrateg
             /*
              * If we have a equality predicate on every join column, then we know that we will
              * basically perform a lookup for every row, so we should reduce innerCost's rowCount
-             * to 1 with our selectivity. Because we do this, we don't bother adding in any additional
+             * to 1 with our selectivity. Because we do this, we do(!includeStart || !includeStop)) return 0l; //empty interval has no data so don't bother adding in any additional
              * selectivity
              */
             return 1d/innerRowCount;
@@ -91,18 +91,19 @@ public abstract class BaseCostedHashableJoinStrategy extends HashableJoinStrateg
                                                ConglomerateDescriptor cd,
                                                OptimizablePredicateList predList) throws StandardException{
         double selectivity = 1.0d;
-        StoreCostController scc= ((FromTable)innerTable).getCompilerContext().getStoreCostController(cd);
+//        StoreCostController scc= ((FromTable)innerTable).getCompilerContext().getStoreCostController(cd);
         for(int i=0;i<predList.size();i++){
             Predicate p = (Predicate)predList.getOptPredicate(i);
             if(!p.isJoinPredicate()) continue;
-            ColumnReference columnOperand=p.getRelop().getColumnOperand(innerTable);
-            if(columnOperand==null) continue; //ignore predicates which are not on the join table
-            int colNumber = columnOperand.getColumnNumber();
-            double innerCard = scc.cardinalityFraction(colNumber);
-            /*
-             * We have the inner cardinality, which tells us the number of rows which
-             */
-            selectivity*=innerCard;
+            selectivity*=p.selectivity(innerTable,cd);
+//            ColumnReference columnOperand=p.getRelop().getColumnOperand(innerTable);
+//            if(columnOperand==null) continue; //ignore predicates which are not on the join table
+//            int colNumber = columnOperand.getColumnNumber();
+//            double innerCard = scc.cardinalityFraction(colNumber);
+//            /*
+//             * We have the inner cardinality, which tells us the number of rows which
+//             */
+//            selectivity*=innerCard;
         }
         return selectivity;
     }
