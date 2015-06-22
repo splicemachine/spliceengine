@@ -123,6 +123,7 @@ public class FromBaseTable extends FromTable{
 
     private double singleScanRowCount;
 
+    FormatableBitSet heapReferencedCols;
     private FormatableBitSet referencedCols;
     private ResultColumnList templateColumns;
     private boolean resultColumnsCompacted=false;
@@ -2246,7 +2247,7 @@ public class FromBaseTable extends FromTable{
 		 */
         // Get the BitSet for all of the referenced columns
         FormatableBitSet indexReferencedCols=null;
-        FormatableBitSet heapReferencedCols;
+        //FormatableBitSet heapReferencedCols;
         if((bulkFetch==UNSET) && (requalificationRestrictionList==null || requalificationRestrictionList.size()==0)){
 			/* No BULK FETCH or requalification, XOR off the columns coming from the heap 
 			 * to get the columns coming from the index.
@@ -2412,14 +2413,15 @@ public class FromBaseTable extends FromTable{
         if(authorizeSYSUSERS){
             int passwordColNum=SYSUSERSRowFactory.PASSWORD_COL_NUM;
 
-            if(
-                    (referencedCols==null) || // select * from sys.sysusers results in a null referecedCols
-                            (
-                                    (referencedCols.getLength()>=passwordColNum) && referencedCols.isSet(passwordColNum-1)
-                            )
-                    ){
+            //if we are using index we still must not be able to access PASSWORD column
+            //so use heapReferencedColumns to check original columns referenced
+            if((referencedCols==null) || // select * from sys.sysusers results in a null referecedCols
+                    ((referencedCols.getLength()>=passwordColNum) && referencedCols.isSet(passwordColNum-1)) ||
+                    ((heapReferencedCols != null) &&
+                            ((heapReferencedCols.getLength()>=passwordColNum) && heapReferencedCols.isSet(passwordColNum-1))))
+            {
                 throw StandardException.newException
-                        (SQLState.HIDDEN_COLUMN,SYSUSERSRowFactory.TABLE_NAME,SYSUSERSRowFactory.PASSWORD_COL_NAME);
+                    (SQLState.HIDDEN_COLUMN,SYSUSERSRowFactory.TABLE_NAME,SYSUSERSRowFactory.PASSWORD_COL_NAME);
             }
         }
 
