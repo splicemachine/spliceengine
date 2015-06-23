@@ -206,6 +206,11 @@ public class SpliceWatcher extends TestWatcher {
         Statement s = getStatement();
         return s.executeUpdate(sql);
     }
+    
+    public boolean execute(String sql) throws Exception {
+    	Statement s = getStatement();
+    	return s.execute(sql);
+    }
 
     public int executeUpdate(String sql, String userName, String password) throws Exception {
         Statement s = getStatement(userName, password);
