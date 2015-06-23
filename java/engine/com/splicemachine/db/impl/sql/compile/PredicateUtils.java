@@ -131,8 +131,13 @@ public class PredicateUtils {
             }
         } else if(operand instanceof CastNode){
             return opToString(((CastNode)operand).getCastOperand());
+        } else if(operand instanceof ParameterNode){
+            ParameterNode node = (ParameterNode)operand;
+            return "?["+node.getParameterNumber()+"]:"+node.getTypeServices();
+        } else if(operand instanceof JavaToSQLValueNode){
+            return ((JavaToSQLValueNode)operand).getJavaValueNode().toString().replace("\n", " ");
         } else{
-            return operand.toString().replace("\n", " ");
+            return operand.getClass().getSimpleName()+": "+ operand.toString().replace("\n", " ");
         }
     }
 
