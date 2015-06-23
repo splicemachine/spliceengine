@@ -1,9 +1,8 @@
 package com.splicemachine.encoding;
 
 import com.splicemachine.encoding.debug.BitFormat;
-import org.junit.Assert;
 import org.apache.hadoop.hbase.util.Bytes;
-import org.junit.Ignore;
+import org.junit.Assert;
 import org.junit.Test;
 
 import java.util.Arrays;
@@ -33,17 +32,20 @@ public class ScalarEncoding_FixedTest {
 
     @Test
     public void testLongWithEncodingThatContainsZeroByte() {
-        byte[] bytes = ScalarEncoding.toBytes(-9219236770852362184L, false);
-        assertEquals("[4, -128, 14, -79, 0, -91, 32, 40, 56]", Arrays.toString(bytes));
-        long orig = ScalarEncoding.toLong(bytes, false);
-        assertEquals(-9219236770852362184L, orig);
+        long actual=-9219236770852362184L;
+        byte[] bytes = ScalarEncoding.writeLong(actual,false);
+//        assertEquals("[4, -128, 14, -79, 0, -91, 32, 40, 56]", Arrays.toString(bytes));
+        long orig = ScalarEncoding.readLong(bytes,false);
+        assertEquals(actual, orig);
     }
 
     @Test
     public void testEncodeDecodeInteger() throws Exception {
-        byte[] data = new byte[]{(byte) 0xE0, (byte) 0x47, (byte) 0x66};
-        int val = Encoding.decodeInt(data);
-        assertEquals(18278, val);
+        int actual = 18278;
+//        byte[] data = new byte[]{(byte) 0xE0, (byte) 0x47, (byte) 0x66};
+        byte[] data = ScalarEncoding.writeLong(actual,false);
+        int decoded = ScalarEncoding.readInt(data,false);
+        assertEquals(actual, decoded);
     }
 
     @Test
@@ -94,11 +96,29 @@ public class ScalarEncoding_FixedTest {
     }
 
     @Test
-    @Ignore("DB-3421")
-    public void testEncodeDecodeNegativeBigInt() throws Exception {
-        byte[] test = ScalarEncoding.toBytes(-9208636019293794487l,false);
-        byte[] test2 = ScalarEncoding.toBytes(-9169196554323565708l,false);
-        Assert.assertTrue("encoding incorrect", Bytes.compareTo(test,test2)<0);
+    public void testCanEncodeAndDecodeSpecificNumbers() throws Exception{
+        /*
+         * Tests related to DB-3421, to ensure that the numbers themselves encode and decode properly
+         */
+        long num = -9208636019293794487l;
+        byte[] encoded = ScalarEncoding.writeLong(num,false);
+        long decoded = ScalarEncoding.readLong(encoded,false);
+        Assert.assertEquals("Decoded value does not match actual!",num,decoded);
+
+        num = -9169196554323565708l;
+        encoded = ScalarEncoding.writeLong(num,false);
+        decoded = ScalarEncoding.readLong(encoded,false);
+        Assert.assertEquals("Decoded value does not match actual!",num,decoded);
+    }
+
+    @Test
+    public void testCanOrderSpecificLargeNegativeNumbers() throws Exception {
+        /*
+         * Regression test for DB-3421
+         */
+        byte[] test = ScalarEncoding.writeLong(-9208636019293794487l,false);
+        byte[] test2 = ScalarEncoding.writeLong(-9169196554323565708l,false);
+        Assert.assertTrue("incorrect sort order!", Bytes.compareTo(test,test2)<0);
     }
 
 

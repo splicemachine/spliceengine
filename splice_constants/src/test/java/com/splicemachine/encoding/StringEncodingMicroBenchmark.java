@@ -48,7 +48,7 @@ public class StringEncodingMicroBenchmark {
         for(int i=0;i<numSerializations;i++){
             String next = getRandomString(random);
             long start = System.nanoTime();
-            byte[] data = StringEncoding.toBytes(next, false);
+            byte[] data = StringEncoding.writeLong(next, false);
             long end = System.nanoTime();
             serAccum.tick(1,end-start);
             byteLength+=data.length;

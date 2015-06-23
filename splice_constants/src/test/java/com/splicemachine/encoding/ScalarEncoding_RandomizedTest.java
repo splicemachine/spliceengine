@@ -6,7 +6,7 @@ import org.junit.Assert;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import java.nio.ByteBuffer;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Random;
@@ -18,7 +18,7 @@ import java.util.Random;
 @RunWith(Parameterized.class)
 public class ScalarEncoding_RandomizedTest {
 
-    private static final int numTests=0;
+    private static final int numTests=100;
     private static final int testSize=100;
 
     @Parameterized.Parameters
@@ -54,8 +54,8 @@ public class ScalarEncoding_RandomizedTest {
     public void testIntToBytesAndBackAgain() throws Exception {
         //makes sure we can serialize and deserialize correctly
         for(int datum:data){
-            byte[] serialized = ScalarEncoding.toBytes(datum, false);
-            long deserialized = ScalarEncoding.getInt(serialized, false);
+            byte[] serialized = ScalarEncoding.writeLong(datum,false);
+            long deserialized = ScalarEncoding.readInt(serialized,false);
             Assert.assertEquals("Incorrect deserialization of value "+ datum, datum,deserialized);
         }
     }
@@ -65,7 +65,7 @@ public class ScalarEncoding_RandomizedTest {
         //randomize the elements in the original
         byte[][] dataElements = new byte[data.length][];
         for(int pos=0;pos<data.length;pos++){
-            dataElements[pos] = ScalarEncoding.toBytes(data[pos], false);
+            dataElements[pos] = ScalarEncoding.writeLong(data[pos],false);
         }
 
         //sort dataElements
@@ -74,7 +74,7 @@ public class ScalarEncoding_RandomizedTest {
         //deserialize
         int[] sortedData = new int[data.length];
         for(int pos=0;pos<dataElements.length;pos++){
-            sortedData[pos] = ScalarEncoding.getInt(dataElements[pos], false);
+            sortedData[pos] = ScalarEncoding.readInt(dataElements[pos],false);
         }
 
         //sort the original data set

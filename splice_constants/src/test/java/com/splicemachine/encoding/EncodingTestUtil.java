@@ -60,22 +60,22 @@ public class EncodingTestUtil {
     }
 
     public static void assertEncodeDecode(int numberIn) {
-        byte[] bytesDes = ScalarEncoding.toBytes(numberIn, true);
-        byte[] bytesAsc = ScalarEncoding.toBytes(numberIn, false);
+        byte[] bytesDes = ScalarEncoding.writeLong(numberIn,true);
+        byte[] bytesAsc = ScalarEncoding.writeLong(numberIn,false);
 
-        int numberOutDes = ScalarEncoding.getInt(bytesDes, true);
-        int numberOutAsc = ScalarEncoding.getInt(bytesAsc, false);
+        int numberOutDes = ScalarEncoding.readInt(bytesDes,true);
+        int numberOutAsc = ScalarEncoding.readInt(bytesAsc,false);
 
         assertEquals(numberIn, numberOutAsc);
         assertEquals(numberIn, numberOutDes);
     }
 
     public static void assertEncodeDecode(long numberIn) {
-        byte[] bytesDes = ScalarEncoding.toBytes(numberIn, true);
-        byte[] bytesAsc = ScalarEncoding.toBytes(numberIn, false);
+        byte[] bytesDes = ScalarEncoding.writeLong(numberIn,true);
+        byte[] bytesAsc = ScalarEncoding.writeLong(numberIn,false);
 
-        long numberOutDes = ScalarEncoding.toLong(bytesDes, true);
-        long numberOutAsc = ScalarEncoding.toLong(bytesAsc, false);
+        long numberOutDes = ScalarEncoding.readLong(bytesDes,true);
+        long numberOutAsc = ScalarEncoding.readLong(bytesAsc,false);
 
         assertEquals(numberIn, numberOutAsc);
         assertEquals(numberIn, numberOutDes);
