@@ -1,9 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.carrotsearch.hppc.BitSet;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
@@ -14,7 +11,6 @@ import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.client.Scan;
-
 import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
@@ -22,6 +18,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
+ *
+ * XXX - TODO JL Move Scan to implementation detail.
+ *
  * @author Scott Fines
  *         Created on: 10/1/13
  */

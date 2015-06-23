@@ -3,7 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.operations.framework;
 import com.splicemachine.db.iapi.error.SQLWarningFactory;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.derby.impl.sql.execute.operations.WarningCollector;
+import com.splicemachine.derby.impl.sql.execute.operations.iapi.WarningCollector;
 
 public class SpliceWarningCollector implements WarningCollector {
 	private Activation activation;

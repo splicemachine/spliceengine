@@ -9,6 +9,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGener
 import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.GroupedAggregateBuffer;
 import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.ScanGroupedAggregateIterator;
 import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.SinkGroupedAggregateIterator;
+import com.splicemachine.derby.impl.sql.execute.operations.iapi.WarningCollector;
 import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.derby.utils.StandardIterators;
 import com.splicemachine.derby.utils.StandardSupplier;

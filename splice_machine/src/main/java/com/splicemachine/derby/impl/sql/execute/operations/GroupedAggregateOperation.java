@@ -2,6 +2,8 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.impl.sql.execute.operations.iapi.AggregateContext;
+import com.splicemachine.derby.impl.sql.execute.operations.iapi.OperationInformation;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.*;
 import com.splicemachine.derby.stream.iapi.DataSet;

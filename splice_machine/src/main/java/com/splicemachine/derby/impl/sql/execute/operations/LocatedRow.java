@@ -4,7 +4,6 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.KeyableRow;
 import com.splicemachine.db.iapi.types.RowLocation;
-
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;

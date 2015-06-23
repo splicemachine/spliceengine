@@ -4,6 +4,7 @@ import com.google.common.collect.Lists;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.GroupedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate.GroupedAggregateBuffer;
+import com.splicemachine.derby.impl.sql.execute.operations.iapi.WarningCollector;
 import com.splicemachine.derby.utils.StandardSupplier;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.metrics.Metrics;

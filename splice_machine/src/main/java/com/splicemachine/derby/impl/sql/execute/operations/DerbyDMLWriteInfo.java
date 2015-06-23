@@ -4,6 +4,7 @@ import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.actions.WriteCursorConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.iapi.DMLWriteInfo;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.db.catalog.UUID;

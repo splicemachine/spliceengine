@@ -29,12 +29,10 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 public class AnyOperation extends SpliceBaseOperation {
 	private static Logger LOG = Logger.getLogger(AnyOperation.class);
     protected static final String NAME = AnyOperation.class.getSimpleName().replaceAll("Operation","");
-
 	@Override
 	public String getName() {
 			return NAME;
 	}
-    
     
 	/* Used to cache row with nulls for case when subquery result set
 	 * is empty.

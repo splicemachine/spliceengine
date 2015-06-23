@@ -8,9 +8,7 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.function.KeyerFunction;
-import com.splicemachine.derby.impl.sql.execute.operations.sort.DistinctSortAggregateBuffer;
 import com.splicemachine.derby.stream.function.RowComparator;
-import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -40,13 +38,6 @@ public class SortOperation extends SpliceBaseOperation {
 		public String getName() {
 				return NAME;
 		}
-
-
-		private PairDecoder rowDecoder;
-		private DistinctSortAggregateBuffer buffer;
-		private byte[] groupingKey;
-		private ArrayList keyValues;
-
 
 		/*
 		 * Used for serialization. DO NOT USE

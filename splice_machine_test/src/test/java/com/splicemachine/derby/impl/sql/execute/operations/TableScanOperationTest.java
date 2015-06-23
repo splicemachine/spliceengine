@@ -6,6 +6,8 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.impl.sql.execute.operations.iapi.OperationInformation;
+import com.splicemachine.derby.impl.sql.execute.operations.iapi.ScanInformation;
 import com.splicemachine.derby.utils.test.TestingDataType;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.MeasuredRegionScanner;

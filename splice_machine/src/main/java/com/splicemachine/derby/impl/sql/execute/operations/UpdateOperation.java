@@ -11,7 +11,6 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.temporary.WriteReadUtils;
-import com.splicemachine.derby.stream.temporary.insert.InsertTableWriterBuilder;
 import com.splicemachine.derby.stream.temporary.update.*;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.RecordingCallBuffer;

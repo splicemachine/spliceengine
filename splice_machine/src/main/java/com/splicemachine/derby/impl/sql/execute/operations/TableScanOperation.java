@@ -3,6 +3,8 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.splicemachine.derby.hbase.*;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.impl.sql.execute.operations.iapi.OperationInformation;
+import com.splicemachine.derby.impl.sql.execute.operations.iapi.ScanInformation;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
@@ -224,5 +226,7 @@ public class TableScanOperation extends ScanOperation {
                     .rowDecodingMap(baseColumnMap);
             return dsp.getTableScanner(this,tsb,tableName);
         }
+
+
 
 }

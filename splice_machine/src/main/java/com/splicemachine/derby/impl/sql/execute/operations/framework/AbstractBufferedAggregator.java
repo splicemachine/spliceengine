@@ -1,7 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations.framework;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.derby.impl.sql.execute.operations.WarningCollector;
+import com.splicemachine.derby.impl.sql.execute.operations.iapi.WarningCollector;
 import com.splicemachine.derby.utils.StandardSupplier;
 /*
  * Abstract Class for DistinctBufferedAggregator

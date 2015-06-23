@@ -4,6 +4,8 @@ import com.google.common.base.Strings;
 import com.splicemachine.db.impl.sql.execute.*;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.impl.sql.execute.actions.WriteCursorConstantOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.iapi.DMLWriteInfo;
+import com.splicemachine.derby.impl.sql.execute.operations.iapi.OperationInformation;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;

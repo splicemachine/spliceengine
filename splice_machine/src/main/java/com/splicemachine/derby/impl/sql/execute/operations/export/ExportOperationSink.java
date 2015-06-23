@@ -4,7 +4,7 @@ package com.splicemachine.derby.impl.sql.execute.operations.export;
 import com.google.common.base.Throwables;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.impl.sql.execute.operations.OperationSink;
+import com.splicemachine.derby.impl.sql.execute.operations.iapi.OperationSink;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.metrics.Metrics;

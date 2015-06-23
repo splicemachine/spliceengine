@@ -1,11 +1,10 @@
 package com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.sql.execute.operations.AggregateContext;
-import com.splicemachine.derby.impl.sql.execute.operations.WarningCollector;
+import com.splicemachine.derby.impl.sql.execute.operations.iapi.AggregateContext;
+import com.splicemachine.derby.impl.sql.execute.operations.iapi.WarningCollector;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
 
 import java.io.Externalizable;
 

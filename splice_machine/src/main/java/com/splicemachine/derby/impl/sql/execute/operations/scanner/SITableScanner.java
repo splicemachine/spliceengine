@@ -49,8 +49,6 @@ import java.util.List;
  */
 public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoCloseable{
     private static Logger LOG = Logger.getLogger(SITableScanner.class);
-//    private final Timer timer;
-//    private final Counter filterCounter;
     private MeasuredRegionScanner<Data> regionScanner;
     private final TransactionalRegion region;
     private final Scan scan;
@@ -101,7 +99,6 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
         this.rowDecodingMap = rowDecodingMap;
         this.keyColumnSortOrder = keyColumnSortOrder;
         this.indexName = indexName;
-//        this.filterCounter = metricFactory.newCounter();
         this.regionScanner = scanner;
         this.keyDecodingMap = keyDecodingMap;
         this.accessedKeys = accessedPks;

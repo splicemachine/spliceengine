@@ -2,7 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.sql.execute.operations.AggregateContext;
+import com.splicemachine.derby.impl.sql.execute.operations.iapi.AggregateContext;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 
 import com.splicemachine.db.iapi.error.SQLWarningFactory;

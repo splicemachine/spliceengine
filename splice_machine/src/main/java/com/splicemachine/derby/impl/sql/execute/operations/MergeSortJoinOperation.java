@@ -95,10 +95,7 @@ public class MergeSortJoinOperation extends JoinOperation {
 			return NAME;
 	}
 
-
-    private Joiner joiner;
-
-		public MergeSortJoinOperation() {
+	public MergeSortJoinOperation() {
         super();
     }
 

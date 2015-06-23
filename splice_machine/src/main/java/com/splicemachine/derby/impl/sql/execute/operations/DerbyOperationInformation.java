@@ -2,10 +2,8 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.store.access.SpliceTransaction;
-import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.si.api.Txn;
-import com.splicemachine.si.api.TxnView;
+import com.splicemachine.derby.impl.sql.execute.operations.iapi.OperationInformation;
+import com.splicemachine.derby.impl.sql.execute.operations.iapi.ScanInformation;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.uuid.UUIDGenerator;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -14,7 +12,6 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.sql.execute.NoPutResultSet;
-import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
 import java.io.Externalizable;
