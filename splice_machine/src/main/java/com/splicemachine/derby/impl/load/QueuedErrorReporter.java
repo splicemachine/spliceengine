@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.load;
 
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.pipeline.api.RecordingCallBuffer;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.pipeline.impl.WriteResult;
 
@@ -41,6 +42,8 @@ public class QueuedErrorReporter implements ImportErrorReporter {
 		private volatile boolean closed = false;
 		private AtomicLong errorsReported  = new AtomicLong(0l);
 
+        private RecordingCallBuffer<KVPair> writeBuffer;
+
 		private static final Logger LOG = Logger.getLogger(QueuedErrorReporter.class);
 		public QueuedErrorReporter(int maxQueuedRows,
 															 long maxWaitTimeMs,
@@ -55,7 +58,9 @@ public class QueuedErrorReporter implements ImportErrorReporter {
 		public void close() throws IOException {
 				closed = true;
 				loggerThreads.shutdownNow();
+
 				try {
+                        writeBuffer.close();
 						loggerThreads.awaitTermination(Long.MAX_VALUE,TimeUnit.NANOSECONDS);
 				} catch (InterruptedException e) {
 						/*
@@ -66,11 +71,23 @@ public class QueuedErrorReporter implements ImportErrorReporter {
 						//ensure interrupt flag is set
 						Thread.currentThread().interrupt();
 				}
+                catch (Exception e) {
+                    throw new IOException(e.getCause());
+                }
 		}
 
 		@Override
-		public boolean reportError(KVPair kvPair, WriteResult result) {
-				return !closed && offer(new KVPairErrorRow(kvPair, result));
+		public boolean reportError(KVPair kvPair, WriteResult result, boolean cancel) throws ExecutionException{
+            try {
+                if (cancel) {
+                    writeBuffer.add(new KVPair(kvPair.getRowKey(), new byte[0], KVPair.Type.CANCEL));
+                }
+            }
+            catch (Exception e) {
+                new ExecutionException(e.getCause());
+            }
+
+			return !closed && offer(new KVPairErrorRow(kvPair, result));
 		}
 
 
@@ -84,6 +101,11 @@ public class QueuedErrorReporter implements ImportErrorReporter {
 				return errorsReported.get();
 		}
 
+
+        @Override
+        public void setWriteBuffer(RecordingCallBuffer<KVPair> writeBuffer) {
+            this.writeBuffer = writeBuffer;
+        }
 
 		/*private helper methods*/
 		private boolean offer(ErrorRow errorRow) {
