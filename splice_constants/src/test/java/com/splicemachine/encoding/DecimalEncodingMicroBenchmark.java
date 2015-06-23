@@ -47,7 +47,7 @@ public class DecimalEncodingMicroBenchmark {
             BigInteger next = new BigInteger(maxBitsPerBigInteger,random);
             BigDecimal n = new BigDecimal(next,random.nextInt(maxBitsPerBigInteger));
             long start = System.nanoTime();
-            byte[] data = DecimalEncoding.toBytes(n,false);
+            byte[] data = DecimalEncoding.writeLong(n,false);
             long end = System.nanoTime();
             accumulator.tick(1,end-start);
             sum+=data.length;

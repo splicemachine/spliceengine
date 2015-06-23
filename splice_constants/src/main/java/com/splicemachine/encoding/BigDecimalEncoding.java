@@ -118,7 +118,7 @@ class BigDecimalEncoding {
         int precision = value.precision();
         long exp = precision - value.scale() - 1;
         /*
-         * We need to serialize the exponent using the same format as ScalarEncoding.toBytes(), but
+         * We need to serialize the exponent using the same format as ScalarEncoding.writeLong(), but
          * with 2 additional bits in the header to describe the signum of the decimal. We use the following
          * mapping for signum values:
          *
@@ -129,7 +129,7 @@ class BigDecimalEncoding {
          *
          */
         byte extraHeader = (unscaled.signum() < 0 ? HEADER_NEG : HEADER_POS);
-        byte[] expBytes = ScalarEncoding.toBytes(exp, extraHeader, HEADER_SIZE_BITS);
+        byte[] expBytes = ScalarEncoding.writeLong(exp,extraHeader,HEADER_SIZE_BITS);
         int expLength = expBytes.length;
 
         //our string encoding only requires 1 byte for 2 digits
@@ -199,7 +199,7 @@ class BigDecimalEncoding {
             }
         }
 
-        long[] expOffset = ScalarEncoding.toLongWithOffset(data, dataOffset, HEADER_SIZE_BITS);
+        long[] expOffset = ScalarEncoding.readLong(data,dataOffset,HEADER_SIZE_BITS);
         long exp = expOffset[0];
         int offset = (int) (expOffset[1]);
 
