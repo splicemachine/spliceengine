@@ -796,7 +796,11 @@ public class ColumnReference extends ValueNode {
          * level predicate somewhere up the call stack and see if we could push
          * the predicate through.
          */
-        
+
+        if (source == null || source.getExpression() == null) {
+            // prevent an NPE
+            return null;
+        }
         return source.getExpression().getSourceResultColumn();
 	}
 
@@ -1277,7 +1281,11 @@ public class ColumnReference extends ValueNode {
          * level predicate somewhere up the call stack and see if we could push
          * the predicate through.
          */
-        
+
+        if (origSource == null || origSource.getExpression() == null) {
+            // prevent an NPE
+            return null;
+        }
         return origSource.getExpression().getSourceResultColumn();
 	}
     
