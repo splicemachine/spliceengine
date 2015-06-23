@@ -108,8 +108,11 @@ public class PredicateUtils {
             if (source == null) {
                 source = cr.getOrigSourceResultColumn();
             }
+            if (source == null) {
+                source = cr.getSource();
+            }
             return format("%s%s%s",table==null?"":format("%s.",table),
-                          cr.getColumnName(),source==null?"": getSource(source));
+                          cr.getColumnName(), getSource(source));
         } else if (operand instanceof VirtualColumnNode) {
             VirtualColumnNode vcn = (VirtualColumnNode) operand;
             ResultColumn source = vcn.getSourceResultColumn();
@@ -142,14 +145,16 @@ public class PredicateUtils {
     }
 
     private static String getSource(ResultColumn rc) {
+        if (rc == null) {
+            return "";
+        }
         int from = rc.getResultSetNumber();
         String originalTable = from +"";
         if (from == -1) {
             try {
                 originalTable = rc.getSchemaName()+"."+rc.getTableName();
             } catch (StandardException e) {
-                // TODO: JC
-                e.printStackTrace();
+                return e.getMessage();
             }
         }
         return format("[%s:%s]", originalTable,rc.getColumnPosition());
