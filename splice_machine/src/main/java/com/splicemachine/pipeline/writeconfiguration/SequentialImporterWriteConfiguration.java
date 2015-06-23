@@ -59,7 +59,7 @@ public class SequentialImporterWriteConfiguration extends ForwardingWriteConfigu
 						WriteResult value = resultCursor.value;
 						int rowNum = resultCursor.key;
 						if(!value.canRetry()){
-								if(!errorReporter.reportError(kvPairList.get(rowNum),value)){
+								if(!errorReporter.reportError(kvPairList.get(rowNum),value, value.shouldCancel())){
 										if(errorReporter ==FailAlwaysReporter.INSTANCE)
 												return WriteResponse.THROW_ERROR;
 										else

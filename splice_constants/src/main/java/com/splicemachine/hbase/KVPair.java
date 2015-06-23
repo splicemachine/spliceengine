@@ -21,7 +21,9 @@ public class KVPair implements Comparable<KVPair> {
         /* For checking the existence of the rowKey in a parent (referenced) table's primary-key or unique-index  */
         FOREIGN_KEY_PARENT_EXISTENCE_CHECK((byte)0x06),
         /* For checking the existence of the rowKey in the FK backing-index(s) of referencing child table(s) */
-        FOREIGN_KEY_CHILDREN_EXISTENCE_CHECK((byte)0x07);
+        FOREIGN_KEY_CHILDREN_EXISTENCE_CHECK((byte)0x07),
+        /* For import process to cancel out an inserted row that violates a unique constraint */
+        CANCEL((byte)0x08);
 
         private final byte typeCode;
 

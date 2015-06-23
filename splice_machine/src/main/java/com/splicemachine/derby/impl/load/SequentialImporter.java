@@ -59,6 +59,7 @@ public class SequentialImporter implements Importer{
 						writeCoordinator.defaultWriteConfiguration(), this,metricFactory, errorReporter);
 							
 				writeBuffer = writeCoordinator.writeBuffer(importContext.getTableName().getBytes(), txn,config);
+                errorReporter.setWriteBuffer(writeCoordinator.writeBuffer(importContext.getTableName().getBytes(), txn,config));
 		}
 
 		@Override
