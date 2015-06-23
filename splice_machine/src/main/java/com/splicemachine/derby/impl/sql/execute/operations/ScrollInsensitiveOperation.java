@@ -24,6 +24,8 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 
 /**
  *
+ * TODO Implement Cursor Functionality JL
+ *
  * Provide insensitive scrolling functionality for the underlying
  * result set.  We build a disk backed hash table of rows as the
  * user scrolls forward, with the position as the key.

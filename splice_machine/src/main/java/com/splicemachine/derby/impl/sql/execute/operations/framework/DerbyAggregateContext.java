@@ -6,7 +6,7 @@ import com.splicemachine.db.impl.sql.execute.AggregatorInfo;
 import com.splicemachine.db.impl.sql.execute.AggregatorInfoList;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.SpliceMethod;
-import com.splicemachine.derby.impl.sql.execute.operations.AggregateContext;
+import com.splicemachine.derby.impl.sql.execute.operations.iapi.AggregateContext;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;

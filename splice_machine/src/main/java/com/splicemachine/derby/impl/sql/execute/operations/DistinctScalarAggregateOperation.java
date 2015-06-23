@@ -2,11 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
-import com.splicemachine.derby.impl.sql.execute.operations.distinctscalar.DistinctAggregateBuffer;
-import com.splicemachine.derby.impl.sql.execute.operations.distinctscalar.DistinctScalarAggregateIterator;
-import com.splicemachine.derby.impl.sql.execute.operations.distinctscalar.SingleDistinctScalarAggregateIterator;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.*;
-import com.splicemachine.derby.impl.storage.SpliceResultScanner;
 import com.splicemachine.derby.stream.function.KeyerFunction;
 import com.splicemachine.derby.stream.function.MergeAllAggregatesFunction;
 import com.splicemachine.derby.stream.function.MergeNonDistinctAggregatesFunction;
@@ -21,7 +17,6 @@ import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.store.access.ColumnOrdering;
-import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 import java.io.IOException;
 import java.io.ObjectInput;
@@ -29,51 +24,17 @@ import java.io.ObjectOutput;
 
 /**
  *
- * The Distinct Scalar Aggregate is a three step process.  The steps occur as a CombinedRowProvider (first 2 steps) and then 
- * the reduce scan combines the last results.
  *
- *
- *
- * Step 1 Reading from Source and Writing to temp buckets with extraUniqueSequenceID prefix (Not needed in the case that data is sorted)
- *      If Distinct Keys Match
- * 				Merge Non Distinct Aggregates
- *      Else
- *      	add to buffer
- * 		Write to temp buckets
- *
- * Sorted
- *
- * Step2: Shuffle Intermediate Results to temp with uniqueSequenceID prefix
- *
- * 		If Keys Match
- * 			Merge Non Distinct Aggregates
- * 		else
- * 			Merge Distinct and Non Distinct Aggregates
- * 		Write to temp buckets
- *
- * Step 3: Combine N outputs
- * 		Merge Distinct and Non Distinct Aggregates
- * 		Flow through output of stack
  *
  * @author Scott Fines
  * Created on: 5/21/13
  */
 public class DistinctScalarAggregateOperation extends GenericAggregateOperation {
     private static final long serialVersionUID = 1l;
-    private byte[] extraUniqueSequenceID;
     private boolean isInSortedOrder;
     private int orderItem;
     private int[] keyColumns;
     private static final Logger LOG = Logger.getLogger(DistinctScalarAggregateOperation.class);
-    private byte[] currentKey;
-    private Scan baseScan;
-    private DistinctScalarAggregateIterator step1Aggregator;
-    private DistinctScalarAggregateIterator step2Aggregator;
-    private SingleDistinctScalarAggregateIterator step3Aggregator;
-    private boolean step3Closed;
-    private DistinctAggregateBuffer buffer;
-    private SpliceResultScanner scanner;
-
     protected static final String NAME = DistinctScalarAggregateOperation.class.getSimpleName().replaceAll("Operation", "");
 
     @Override
@@ -141,7 +102,6 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation 
         for (int index = 0; index < order.length; index++) {
             keyColumns[index] = order[index].getColumnId();
         }
-        baseScan = context.getScan();
     }
 
     @Override

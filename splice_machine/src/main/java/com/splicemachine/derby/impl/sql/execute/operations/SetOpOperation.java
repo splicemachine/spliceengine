@@ -19,6 +19,9 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
+ *
+ * XXX-TODO IMPLEMENT THE FULL SPEC WITH DUPLICATES
+ *
  * Created by jleach on 4/23/15.
  */
 public class SetOpOperation extends SpliceBaseOperation {

@@ -1,6 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations.groupedaggregate;
 
-import com.splicemachine.derby.impl.sql.execute.operations.WarningCollector;
+import com.splicemachine.derby.impl.sql.execute.operations.iapi.WarningCollector;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.AbstractAggregateBuffer;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.BufferedAggregator;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;

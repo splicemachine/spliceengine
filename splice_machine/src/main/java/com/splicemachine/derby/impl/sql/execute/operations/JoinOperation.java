@@ -14,6 +14,7 @@ import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.derby.impl.sql.execute.operations.iapi.Restriction;
 import org.apache.log4j.Logger;
 import com.splicemachine.utils.SpliceLogUtils;
 

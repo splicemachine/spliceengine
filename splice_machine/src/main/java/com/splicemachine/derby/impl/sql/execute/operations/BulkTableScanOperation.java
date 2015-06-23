@@ -5,7 +5,6 @@ import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.utils.SpliceLogUtils;
 
 /**

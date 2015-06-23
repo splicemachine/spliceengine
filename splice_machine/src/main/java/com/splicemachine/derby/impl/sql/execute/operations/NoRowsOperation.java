@@ -87,11 +87,6 @@ public abstract class NoRowsOperation extends SpliceBaseOperation {
 			return;
 		try {
 			super.close();
-            // Cannot Close Activation!
-        //            if (activation.isSingleExecution())
-        //                activation.close();
-
-
 		} catch (Exception e) {
 			SpliceLogUtils.error(LOG, e);
 		}

@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.iapi.OperationSink;
 import com.splicemachine.si.api.TxnView;
 import java.io.IOException;
 

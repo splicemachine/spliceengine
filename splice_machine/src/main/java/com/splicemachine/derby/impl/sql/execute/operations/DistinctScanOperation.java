@@ -4,10 +4,7 @@ import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
-import com.splicemachine.derby.impl.sql.execute.operations.sort.DistinctSortAggregateBuffer;
-import com.splicemachine.derby.impl.sql.execute.operations.sort.SinkSortIterator;
 import com.splicemachine.derby.utils.*;
-import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableArrayHolder;
@@ -33,26 +30,21 @@ public class DistinctScanOperation extends ScanOperation {
     private static final long serialVersionUID = 3l;
     private static Logger LOG = Logger.getLogger(DistinctScanOperation.class);
 
-	    protected static final String NAME = DistinctScanOperation.class.getSimpleName().replaceAll("Operation","");
+	protected static final String NAME = DistinctScanOperation.class.getSimpleName().replaceAll("Operation","");
 
-		@Override
-		public String getName() {
+	@Override
+	public String getName() {
 				return NAME;
 		}
 
 
-		@SuppressWarnings("UnusedDeclaration")
-		public DistinctScanOperation() { }
+	@SuppressWarnings("UnusedDeclaration")
+	public DistinctScanOperation() { }
 
     private int hashKeyItem;
     private String tableName;
     private String indexName;
     private int[] keyColumns;
-    private PairDecoder rowDecoder;
-
-		private SinkSortIterator sinkIterator;
-		private DistinctSortAggregateBuffer buffer;
-
 
     @SuppressWarnings("UnusedParameters")
 		public DistinctScanOperation(long conglomId,

@@ -8,6 +8,7 @@ import com.google.common.base.Strings;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.db.impl.sql.execute.BaseActivation;
+import com.splicemachine.derby.impl.sql.execute.operations.iapi.Restriction;
 import com.splicemachine.derby.stream.function.ProjectRestrictFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;

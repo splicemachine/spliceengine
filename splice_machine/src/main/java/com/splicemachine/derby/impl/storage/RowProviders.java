@@ -11,7 +11,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
 import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.job.scheduler.JobFutureFromResults;
-import com.splicemachine.derby.impl.sql.execute.operations.OperationSink;
+import com.splicemachine.derby.impl.sql.execute.operations.iapi.OperationSink;
 import com.splicemachine.derby.impl.sql.execute.operations.OperationSinkFactory;
 import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.job.*;
