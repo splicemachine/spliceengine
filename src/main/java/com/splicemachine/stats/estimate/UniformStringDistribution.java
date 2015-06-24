@@ -67,13 +67,23 @@ public class UniformStringDistribution extends BaseDistribution<String> {
             this.a = BigDecimal.valueOf(0.0);
             this.b = BigDecimal.valueOf(0.0);
         } else {
-            BigDecimal at = BigDecimal.valueOf(columnStats.nonNullCount() - columnStats.minCount());
-            BigDecimal maxPosition = computePosition(columnStats.maxValue());
-            BigDecimal overallDistance = maxPosition.subtract(computePosition(columnStats.minValue()));
-            at = at.divide(overallDistance, MathContext.DECIMAL64);
+            String maxV = columnStats.maxValue();
+            String minV = columnStats.minValue();
+            if(maxV.equals(minV)){
+                /*
+                 * the start and stop values are the same, so we just assume a constant line
+                 */
+                this.a = BigDecimal.ZERO;
+                this.b = BigDecimal.valueOf(columnStats.nonNullCount()-columnStats.minCount());
+            }else{
+                BigDecimal maxPosition=computePosition(columnStats.maxValue());
+                BigDecimal at=BigDecimal.valueOf(columnStats.nonNullCount()-columnStats.minCount());
+                BigDecimal overallDistance=maxPosition.subtract(computePosition(columnStats.minValue()));
+                at=at.divide(overallDistance,MathContext.DECIMAL64);
 
-            this.a = at;
-            this.b = BigDecimal.valueOf(columnStats.nonNullCount()).subtract(a.multiply(maxPosition));
+                this.a=at;
+                this.b=BigDecimal.valueOf(columnStats.nonNullCount()).subtract(a.multiply(maxPosition));
+            }
         }
     }
 
