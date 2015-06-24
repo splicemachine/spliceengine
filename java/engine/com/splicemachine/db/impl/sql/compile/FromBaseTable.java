@@ -123,7 +123,7 @@ public class FromBaseTable extends FromTable{
 
     private double singleScanRowCount;
 
-    FormatableBitSet heapReferencedCols;
+    private FormatableBitSet heapReferencedCols;
     private FormatableBitSet referencedCols;
     private ResultColumnList templateColumns;
     private boolean resultColumnsCompacted=false;
