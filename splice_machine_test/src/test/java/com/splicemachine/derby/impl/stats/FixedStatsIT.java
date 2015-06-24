@@ -4,13 +4,14 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
-import com.splicemachine.test.SerialTest;
 import org.junit.*;
-import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
-import java.sql.*;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
 
 /**
  * Specific ITs for statistics tests.
@@ -68,6 +69,26 @@ public class FixedStatsIT{
 
             conn.collectStats(schema.schemaName,charDelete.tableName);
             assertExpectedCount(s,0);
+        }
+    }
+
+    @Test
+    public void testUpdateDoesNotThrowError() throws Exception{
+        /*
+         * Regression test for DB-3469
+         */
+        try(PreparedStatement ps=conn.prepareStatement("insert into "+charDelete+" (c) values (?)")){
+            ps.setString(1,"1");
+            ps.execute();
+        }
+
+        conn.collectStats(schema.schemaName,charDelete.tableName);
+        try(Statement s = conn.createStatement()){
+            assertExpectedCount(s,1);
+
+            //the bug is that this throws an error, so we just want to make sure that it doesn't blow up here
+            int changed = s.executeUpdate("update "+ charDelete+" set c='2' where c = '1'");
+            Assert.assertEquals("did not properly delete values!",1,changed);
         }
     }
 
