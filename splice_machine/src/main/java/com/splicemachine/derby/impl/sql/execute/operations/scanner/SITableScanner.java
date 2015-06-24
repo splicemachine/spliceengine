@@ -13,6 +13,7 @@ import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.impl.storage.KeyValueUtils;
 import com.splicemachine.derby.impl.store.ExecRowAccumulator;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
 import com.splicemachine.derby.utils.Scans;
@@ -36,6 +37,8 @@ import com.splicemachine.storage.*;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.hbase.Cell;
+import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.log4j.Logger;
@@ -78,6 +81,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
     private ExecRowAccumulator accumulator;
     private final SDataLib dataLib;
     private EntryDecoder entryDecoder;
+    private final Counter outputBytesCounter;
 
 
     protected SITableScanner(final SDataLib dataLib, MeasuredRegionScanner<Data> scanner,
@@ -104,6 +108,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
         this.indexName = indexName;
         this.timer = metricFactory.newTimer();
         this.filterCounter = metricFactory.newCounter();
+        this.outputBytesCounter = metricFactory.newCounter();
         this.regionScanner = scanner;
         this.keyDecodingMap = keyDecodingMap;
         this.accessedKeys = accessedPks;
@@ -176,6 +181,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
                     if (LOG.isTraceEnabled())
                         SpliceLogUtils.trace(LOG,"miss columns=%d",template.nColumns());
                 }
+                measureOutputSize();
                 currentKeyValue = keyValues.get(0);
                 setRowLocation(currentKeyValue);
                 return template;
@@ -183,6 +189,25 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
         }while(hasRow);
         currentRowLocation = null;
         return null;
+    }
+
+    public long getBytesOutput(){
+        return outputBytesCounter.getTotal();
+    }
+
+    private void measureOutputSize(){
+        if(outputBytesCounter.isActive()){
+            for(Data cell:keyValues){
+                long len = 0;
+                Cell c = (Cell)cell;
+                len+=c.getRowLength();
+                len+=c.getFamilyLength();
+                len+=c.getQualifierLength();
+                len+=c.getValueLength();
+                outputBytesCounter.add(len);
+            }
+        }
+
     }
 
     public void recordFieldLengths(int[] columnLengths){
