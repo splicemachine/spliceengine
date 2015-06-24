@@ -335,10 +335,15 @@ public class BroadcastJoinOperation extends JoinOperation {
                 rightRowCounter.add(1l);
                 hashKey = ByteBuffer.wrap(keyEncoder.getKey(right));
                 if ((rows = cache.get(hashKey)) != null) {
-                    // Only add additional row for same hash if we need it
-                    if (!oneRowRightSide) {
-                        rows.add(right.getClone());
-                    }
+                	// Previously, we added the row for same hash conditionally:
+                	//     if (!oneRowRightSide)
+                	// This was an optimization for exists & not exists where we only need
+                	// to find one row. However, this broke cases where although where it's
+                	// true that we only need to FIND one row, we still need to allow for multiple
+                	// entries from which we need to search for that one row. In particular,
+                	// this can happen when inequality join criteria are present,
+                	// such as TPCH query 21, which exposed this issue.
+                    rows.add(right.getClone());
                 } else {
                     rows = Lists.newArrayListWithExpectedSize(1);
                     rows.add(right.getClone());
