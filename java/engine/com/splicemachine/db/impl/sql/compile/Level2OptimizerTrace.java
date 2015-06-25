@@ -279,7 +279,7 @@ public class Level2OptimizerTrace implements OptimizerTrace{
         trace(flag.level(),traceString);
     }
 
-    private void trace(TraceLevel level,String traceString){
+    protected void trace(TraceLevel level,String traceString){
         lcc.appendOptimizerTraceOutput(traceString+"\n");
     }
 
