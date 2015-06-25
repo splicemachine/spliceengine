@@ -16,11 +16,29 @@ public class UniformDoubleDistribution extends BaseDistribution<Double> implemen
     private final double b;
     public UniformDoubleDistribution(DoubleColumnStatistics columnStats) {
         super(columnStats, ComparableComparator.<Double>newComparator());
-        double at = columnStats.nonNullCount()-columnStats.minCount();
-        at/=(columnStats.max()-columnStats.min());
+        if(columnStats.nonNullCount()==0){
+            /*
+             * the distribution is empty, so our interpolation function is the 0 function
+             */
+            this.a = 0d;
+            this.b = 0d;
+        }else if(columnStats.max()==columnStats.min()){
+            /*
+             * The distribution contains only a single element, so our interpolation is the constant function
+             */
+            this.a = 0d;
+            this.b = columnStats.minCount();
+        }else{
+            /*
+             * Create a linear interpolator to estimate to the Cumulative probability function of a uniform
+             * distribution
+             */
+            double at=columnStats.nonNullCount()-columnStats.minCount();
+            at/=(columnStats.max()-columnStats.min());
 
-        this.a = at;
-        this.b = columnStats.nonNullCount()-a*columnStats.max();
+            this.a=at;
+            this.b=columnStats.nonNullCount()-a*columnStats.max();
+        }
     }
 
     @Override

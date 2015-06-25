@@ -18,11 +18,23 @@ public class UniformShortDistribution extends BaseDistribution<Short> implements
     public UniformShortDistribution(ShortColumnStatistics columnStats) {
         super(columnStats, ComparableComparator.<Short>newComparator());
 
-        double at = columnStats.nonNullCount()-columnStats.minCount();
-        at/=(columnStats.max()-columnStats.min());
+        if(columnStats.nonNullCount()==0){
+            //the distribution is empty, so the CDF is the 0 function
+            this.a = this.b = 0d;
+        }else if(columnStats.max()==columnStats.min()){
+            //the distribution contains a single element, so the CDF is the constant function
+            this.a = 0d;
+            this.b = columnStats.minValue();
+        }else{
+            /*
+             * The uniform CDF is a constant line from (min,minCount) to (max,nonNullCount)
+             */
+            double at=columnStats.nonNullCount()-columnStats.minCount();
+            at/=(columnStats.max()-columnStats.min());
 
-        this.a = at;
-        this.b = columnStats.nonNullCount()-a*columnStats.max();
+            this.a=at;
+            this.b=columnStats.nonNullCount()-a*columnStats.max();
+        }
     }
 
     @Override

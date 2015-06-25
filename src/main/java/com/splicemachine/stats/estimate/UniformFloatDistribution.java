@@ -18,11 +18,25 @@ public class UniformFloatDistribution extends BaseDistribution<Float> implements
     public UniformFloatDistribution(FloatColumnStatistics columnStats) {
         super(columnStats, ComparableComparator.<Float>newComparator());
 
-        double at = columnStats.nonNullCount()-columnStats.minCount();
-        at/=(columnStats.max()-columnStats.min());
+        if(columnStats.nonNullCount()==0){
+            /*
+             * The distribution is empty, so the interpolation function is 0
+             */
+            this.a = 0d;
+            this.b = 0d;
+        }else if(columnStats.max()==columnStats.min()){
+            /*
+             * The distribution contains a single element, so the interpolation function is a constant
+             */
+            this.a = 0d;
+            this.b = columnStats.minCount();
+        }else{
+            double at=columnStats.nonNullCount()-columnStats.minCount();
+            at/=(columnStats.max()-columnStats.min());
 
-        this.a = at;
-        this.b = columnStats.nonNullCount()-a*columnStats.max();
+            this.a=at;
+            this.b=columnStats.nonNullCount()-a*columnStats.max();
+        }
     }
 
     @Override

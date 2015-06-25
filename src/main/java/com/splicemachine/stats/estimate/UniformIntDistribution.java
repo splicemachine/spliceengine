@@ -18,11 +18,28 @@ public class UniformIntDistribution extends BaseDistribution<Integer> implements
     public UniformIntDistribution(IntColumnStatistics columnStats) {
         super(columnStats, ComparableComparator.<Integer>newComparator());
 
-        double at = columnStats.nonNullCount()-columnStats.minCount();
-        at/=(columnStats.max()-columnStats.min());
+        if(columnStats.nonNullCount()==0){
+            /*
+             * There is nothing but null elements in this distribution. In
+             * this case, we want to make sure we return 0 for everything else.
+             */
+            this.a = 0d;
+            this.b = 0d;
+        }
+        else if(columnStats.max()==columnStats.min()||columnStats.nonNullCount()==0){
+            /*
+             * We only have a single record in the distribution, so we
+             * change from being a line to being a constant
+             */
+            this.a = 0;
+            this.b = columnStats.minCount();
+        }else{
+            double at=columnStats.nonNullCount()-columnStats.minCount();
+            at/=(columnStats.max()-columnStats.min());
 
-        this.a = at;
-        this.b = columnStats.nonNullCount()-a*columnStats.max();
+            this.a=at;
+            this.b=columnStats.nonNullCount()-a*columnStats.max();
+        }
     }
 
     @Override

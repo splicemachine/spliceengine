@@ -19,11 +19,30 @@ public class UniformDecimalDistribution extends BaseDistribution<BigDecimal> {
     public UniformDecimalDistribution(ColumnStatistics<BigDecimal> columnStats) {
         super(columnStats, ComparableComparator.<BigDecimal>newComparator());
 
-        BigDecimal at = BigDecimal.valueOf(columnStats.nonNullCount()-columnStats.minCount());
-        at = at.divide(columnStats.maxValue().subtract(columnStats.minValue()),MathContext.DECIMAL64);
+        if(columnStats.nonNullCount()==0){
+            /*
+             * We have an empty distribution. Make sure that our linear interpolation
+             * is 0
+             */
+            this.a = BigDecimal.ZERO;
+            this.b = BigDecimal.ZERO;
+        }else if(columnStats.maxValue().compareTo(columnStats.minValue())==0){
+            /*
+             * There is only one record in the distribution, so treat the line as a constant
+             * function
+             */
+            this.a = BigDecimal.ZERO;
+            this.b = BigDecimal.valueOf(columnStats.minCount());
+        }else{
+            /*
+             * Create a linear function to interpolate between the min and max values.
+             */
+            BigDecimal at=BigDecimal.valueOf(columnStats.nonNullCount()-columnStats.minCount());
+            at=at.divide(columnStats.maxValue().subtract(columnStats.minValue()),MathContext.DECIMAL64);
 
-        this.a = at;
-        this.b = BigDecimal.valueOf(columnStats.nonNullCount()).subtract(a.multiply(columnStats.maxValue()));
+            this.a=at;
+            this.b=BigDecimal.valueOf(columnStats.nonNullCount()).subtract(a.multiply(columnStats.maxValue()));
+        }
     }
 
     @Override

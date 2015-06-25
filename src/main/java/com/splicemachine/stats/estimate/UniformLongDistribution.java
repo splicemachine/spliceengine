@@ -17,11 +17,20 @@ public class UniformLongDistribution extends BaseDistribution<Long> implements L
 
     public UniformLongDistribution(LongColumnStatistics columnStats) {
         super(columnStats, ComparableComparator.<Long>newComparator());
-        double at = columnStats.nonNullCount()-columnStats.minCount();
-        at/=(columnStats.max()-columnStats.min());
+        if(columnStats.nonNullCount()==0){
+           //the distribution is empty, so the CumulativeDistribution Function is the 0 line
+            this.a = this.b = 0d;
+        }else if(columnStats.max()==columnStats.min()){
+            //the distribution is a single record, so the CDF is a constant function
+            this.a = 0d;
+            this.b = columnStats.minCount();
+        }else{
+            double at=columnStats.nonNullCount()-columnStats.minCount();
+            at/=(columnStats.max()-columnStats.min());
 
-        this.a = at;
-        this.b = columnStats.nonNullCount()-a*columnStats.max();
+            this.a=at;
+            this.b=columnStats.nonNullCount()-a*columnStats.max();
+        }
     }
 
     @Override
