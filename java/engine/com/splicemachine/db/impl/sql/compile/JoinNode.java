@@ -220,6 +220,8 @@ public class JoinNode extends TableOperatorNode{
                 continue;
             }
             joinPredicates.removeElementAt(index);
+            optimizer.tracer().trace(OptimizerFlag.JOIN_NODE_PREDICATE_MANIPULATION,0,0,0.0,
+                                     "JoinNode pushing predicate right.",predicate);
             getRightPredicateList().addElement(predicate);
         }
 
@@ -278,6 +280,8 @@ public class JoinNode extends TableOperatorNode{
         assert !optimizablePredicate.hasSubquery() && !optimizablePredicate.hasMethodCall():
                 "optimizablePredicate either has a subquery or a method call";
 
+        optimizeTrace(OptimizerFlag.JOIN_NODE_PREDICATE_MANIPULATION, 0, 0, 0.0,
+                      "JoinNode pushing join predicate.", optimizablePredicate);
 		/* Add the matching predicate to the joinPredicates */
         joinPredicates.addPredicate((Predicate)optimizablePredicate);
 
@@ -305,6 +309,7 @@ public class JoinNode extends TableOperatorNode{
         assert !optimizablePredicate.hasSubquery() && !optimizablePredicate.hasMethodCall():
                 "optimizablePredicate either has a subquery or a method call";
 
+        optimizeTrace(OptimizerFlag.JOIN_NODE_PREDICATE_MANIPULATION,0,0,0.0,"JoinNode adding join predicate.",optimizablePredicate);
         joinPredicates.addPredicate((Predicate)optimizablePredicate);
 
         return true;
@@ -662,6 +667,8 @@ public class JoinNode extends TableOperatorNode{
 			/* Pull apart the expression trees */
             joinPredicates.pullExpressions(numTables,joinClause);
             joinPredicates.categorize();
+            optimizeTrace(OptimizerFlag.JOIN_NODE_PREDICATE_MANIPULATION, 0, 0, 0.0,
+                          "JoinNode pulled join expressions.", joinPredicates);
             joinClause=null;
         }
 
@@ -847,6 +854,8 @@ public class JoinNode extends TableOperatorNode{
 
 
         if(joinPredicates.size()>0){
+            optimizeTrace(OptimizerFlag.JOIN_NODE_PREDICATE_MANIPULATION,0,0,0.0,
+                                     "JoinNode flattening join predicates to outer query.",joinPredicates);
             outerPList.destructiveAppend(joinPredicates);
         }
 
@@ -1106,6 +1115,8 @@ public class JoinNode extends TableOperatorNode{
 			/* Do we have a match? */
             if(leftReferencedTableMap.contains(curBitSet)){
 				/* Add the matching predicate to the push list */
+                optimizeTrace(OptimizerFlag.JOIN_NODE_PREDICATE_MANIPULATION, 0, 0, 0.0,
+                              "JoinNode pushing outer predicate left.", predicate);
                 getLeftPredicateList().addPredicate(predicate);
 
 				/* Remap all of the ColumnReferences to point to the
@@ -1618,6 +1629,8 @@ public class JoinNode extends TableOperatorNode{
 			/* Do we have a match? */
             if(rightReferencedTableMap.contains(curBitSet)){
 				/* Add the matching predicate to the push list */
+                optimizeTrace(OptimizerFlag.JOIN_NODE_PREDICATE_MANIPULATION, 0, 0, 0.0,
+                              "JoinNode pushing outer predicate right.", predicate);
                 getRightPredicateList().addPredicate(predicate);
 
 				/* Remap all of the ColumnReferences to point to the
@@ -1672,6 +1685,8 @@ public class JoinNode extends TableOperatorNode{
             innerBitSet.or(leftReferencedTableMap);
             if(innerBitSet.contains(curBitSet)){
 				/* Add the matching predicate to the push list */
+                optimizeTrace(OptimizerFlag.JOIN_NODE_PREDICATE_MANIPULATION, 0, 0, 0.0,
+                              "JoinNode pushing outer join predicate.", predicate);
                 joinPredicates.addPredicate(predicate);
 
 				/* Remap all of the ColumnReferences to point to the

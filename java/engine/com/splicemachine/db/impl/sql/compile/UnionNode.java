@@ -322,15 +322,25 @@ public class UnionNode extends SetOperatorNode{
         // Note, it is OK not to push these predicates since they are also evaluated
         // in the ProjectRestrictNode. There are other types of operations possible
         // here in addition to UnionNode or SelectNode, like RowResultSetNode.
-        if(leftResultSet instanceof UnionNode)
-            ((UnionNode)leftResultSet).pushExpressions(predicateList);
-        else if(leftResultSet instanceof SelectNode)
-            predicateList.pushExpressionsIntoSelect((SelectNode)leftResultSet,true);
+        if(leftResultSet instanceof UnionNode) {
+            optimizeTrace(OptimizerFlag.JOIN_NODE_PREDICATE_MANIPULATION, 0, 0, 0.0,
+                          "UnionNode pushing predicates into left UnionNode.", predicateList);
+            ((UnionNode) leftResultSet).pushExpressions(predicateList);
+        } else if(leftResultSet instanceof SelectNode) {
+            optimizeTrace(OptimizerFlag.JOIN_NODE_PREDICATE_MANIPULATION, 0, 0, 0.0,
+                          "UnionNode pushing predicates into left SelectNode.", predicateList);
+            predicateList.pushExpressionsIntoSelect((SelectNode) leftResultSet, true);
+        }
 
-        if(rightResultSet instanceof UnionNode)
-            ((UnionNode)rightResultSet).pushExpressions(predicateList);
-        else if(rightResultSet instanceof SelectNode)
-            predicateList.pushExpressionsIntoSelect((SelectNode)rightResultSet,true);
+        if(rightResultSet instanceof UnionNode) {
+            optimizeTrace(OptimizerFlag.JOIN_NODE_PREDICATE_MANIPULATION, 0, 0, 0.0,
+                          "UnionNode pushing predicates into right UnionNode.", predicateList);
+            ((UnionNode) rightResultSet).pushExpressions(predicateList);
+        } else if(rightResultSet instanceof SelectNode) {
+            optimizeTrace(OptimizerFlag.JOIN_NODE_PREDICATE_MANIPULATION,0,0,0.0,
+                                     "UnionNode pushing predicates into right SelectNode.",predicateList);
+            predicateList.pushExpressionsIntoSelect((SelectNode) rightResultSet, true);
+        }
     }
 
     @Override

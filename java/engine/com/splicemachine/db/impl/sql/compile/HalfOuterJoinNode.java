@@ -27,6 +27,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.compile.OptimizablePredicate;
+import com.splicemachine.db.iapi.sql.compile.OptimizerFlag;
 import com.splicemachine.db.iapi.util.JBitSet;
 
 /**
@@ -192,6 +193,8 @@ public class HalfOuterJoinNode extends JoinNode{
                 continue;
             }
 
+            optimizeTrace(OptimizerFlag.JOIN_NODE_PREDICATE_MANIPULATION,0,0,0.0,
+                                     "HalfOuterJoinNode pushing predicate right.",predicate);
             getRightPredicateList().addPredicate(predicate);
 
 			/* Remove the matching predicate from the outer list */

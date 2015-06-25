@@ -1482,6 +1482,13 @@ public abstract class ResultSetNode extends QueryTreeNode{
         adjustForSortElimination();
     }
 
+    void optimizeTrace(OptimizerFlag flag, int intParam1, int intParam2, double doubleParam, Object... objectParams) {
+        Optimizer optimizer = this.getOptimizerImpl();
+        if (optimizer != null) {
+            optimizer.tracer().trace(flag, intParam1, intParam2, doubleParam, objectParams);
+        }
+    }
+
     /**
      * Generate the RC/expression for an unspecified column in an insert.
      * Use the default if one exists.

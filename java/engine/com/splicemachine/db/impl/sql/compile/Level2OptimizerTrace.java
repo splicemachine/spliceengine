@@ -127,6 +127,15 @@ public class Level2OptimizerTrace implements OptimizerTrace{
             case CALLING_ON_JOIN_NODE:
                 traceString="Calling optimizeIt() for join node";
                 break;
+            case JOIN_NODE_PREDICATE_MANIPULATION:
+                String preds = null;
+                if (objectParam2 instanceof PredicateList) {
+                    preds = PredicateUtils.toString((PredicateList)objectParam2);
+                } else {
+                    preds = PredicateUtils.toString((Predicate)objectParam2);
+                }
+                traceString = "Predicate manipulation in join nodeL: "+objectParam1+": "+preds;
+                break;
             case CONSIDERING_JOIN_STRATEGY:
                 JoinStrategy js=(JoinStrategy) objectParam1;
                 traceString="Considering join strategy "+js+" for table "+intParam1;
@@ -270,7 +279,7 @@ public class Level2OptimizerTrace implements OptimizerTrace{
         trace(flag.level(),traceString);
     }
 
-    protected void trace(TraceLevel level,String traceString){
+    private void trace(TraceLevel level,String traceString){
         lcc.appendOptimizerTraceOutput(traceString+"\n");
     }
 
