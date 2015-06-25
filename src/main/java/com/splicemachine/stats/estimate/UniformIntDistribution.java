@@ -18,22 +18,30 @@ public class UniformIntDistribution extends BaseDistribution<Integer> implements
     public UniformIntDistribution(IntColumnStatistics columnStats) {
         super(columnStats, ComparableComparator.<Integer>newComparator());
 
+        /*
+         * The CumulativeDistributionFunction(CDF) is a line from (min,minCount) to (max,nonNullCount),
+         * but there are edges cases:
+         *
+         * 1. Empty distribution--when there are no elements in the distribution,
+         * 2. Distribution consisting of a single element
+         * 3. distribution containing multiple elements.
+         *
+         * In situation 1 and 2, the slope is undefinied (since you have 0/0). In shear correctness
+         * terms, we have checks elsewhere in the function that will handle these scenarios gracefully without
+         * recourse to using the linear interpolation. However, we put checks here for clarity and extra
+         * safety in case the code changes in the future (and also so that we can put this note somewhere)
+         */
         if(columnStats.nonNullCount()==0){
-            /*
-             * There is nothing but null elements in this distribution. In
-             * this case, we want to make sure we return 0 for everything else.
-             */
+            //the distribution is empty, so the CDF is the 0 function
             this.a = 0d;
             this.b = 0d;
         }
         else if(columnStats.max()==columnStats.min()||columnStats.nonNullCount()==0){
-            /*
-             * We only have a single record in the distribution, so we
-             * change from being a line to being a constant
-             */
+            //the dist. contains only a single element, so the CDF is a constant
             this.a = 0;
             this.b = columnStats.minCount();
         }else{
+            //base case
             double at=columnStats.nonNullCount()-columnStats.minCount();
             at/=(columnStats.max()-columnStats.min());
 

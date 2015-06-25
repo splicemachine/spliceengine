@@ -18,6 +18,19 @@ public class UniformFloatDistribution extends BaseDistribution<Float> implements
     public UniformFloatDistribution(FloatColumnStatistics columnStats) {
         super(columnStats, ComparableComparator.<Float>newComparator());
 
+        /*
+         * The CumulativeDistributionFunction(CDF) is a line from (min,minCount) to (max,nonNullCount),
+         * but there are edges cases:
+         *
+         * 1. Empty distribution--when there are no elements in the distribution,
+         * 2. Distribution consisting of a single element
+         * 3. distribution containing multiple elements.
+         *
+         * In situation 1 and 2, the slope is undefinied (since you have 0/0). In shear correctness
+         * terms, we have checks elsewhere in the function that will handle these scenarios gracefully without
+         * recourse to using the linear interpolation. However, we put checks here for clarity and extra
+         * safety in case the code changes in the future (and also so that we can put this note somewhere)
+         */
         if(columnStats.nonNullCount()==0){
             /*
              * The distribution is empty, so the interpolation function is 0

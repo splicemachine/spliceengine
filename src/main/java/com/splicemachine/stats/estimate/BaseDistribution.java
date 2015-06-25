@@ -18,6 +18,13 @@ public abstract class BaseDistribution<T> implements Distribution<T> {
     protected ColumnStatistics<T> columnStats;
     protected Comparator<? super T> comparator;
 
+    /**
+     * Create a new BaseDistribution, with the specified statistics and comparator.
+     *
+     * @param columnStats the base statistics to use
+     * @param comparator the comparator to use. NOTE: This comparator must be <em>null-safe</em>--that is,
+     *                   it must be able to compare a null element.
+     */
     protected BaseDistribution(ColumnStatistics<T> columnStats,Comparator<? super T> comparator) {
         this.columnStats = columnStats;
         this.comparator = comparator;
