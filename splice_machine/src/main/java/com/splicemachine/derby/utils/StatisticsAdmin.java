@@ -56,6 +56,19 @@ public class StatisticsAdmin {
     public static void DISABLE_COLUMN_STATISTICS(String schema,
                                                 String table,
                                                 String columnName) throws SQLException{
+
+        if(schema==null)
+            schema = "SPLICE";
+        else
+            schema = schema.toUpperCase();
+        if(table==null)
+            throw PublicAPI.wrapStandardException(ErrorState.TABLE_NAME_CANNOT_BE_NULL.newException());
+        else
+            table = table.toUpperCase();
+        if(columnName==null)
+            throw PublicAPI.wrapStandardException(ErrorState.LANG_COLUMN_ID.newException());
+        else
+            columnName = columnName.toUpperCase();
         EmbedConnection conn = (EmbedConnection)SpliceAdmin.getDefaultConn();
         try {
             TableDescriptor td = verifyTableExists(conn,schema,table);
@@ -88,9 +101,19 @@ public class StatisticsAdmin {
     public static void ENABLE_COLUMN_STATISTICS(String schema,
                                                 String table,
                                                 String columnName) throws SQLException{
+        if(schema==null)
+            schema = "SPLICE";
+        else
+            schema = schema.toUpperCase();
+        if(table==null)
+            throw PublicAPI.wrapStandardException(ErrorState.TABLE_NAME_CANNOT_BE_NULL.newException());
+        else
+            table = table.toUpperCase();
         if(columnName==null)
             throw PublicAPI.wrapStandardException(ErrorState.LANG_COLUMN_ID.newException());
-        columnName = columnName.toUpperCase();
+        else
+            columnName = columnName.toUpperCase();
+
         EmbedConnection conn = (EmbedConnection)SpliceAdmin.getDefaultConn();
         try {
             TableDescriptor td = verifyTableExists(conn,schema,table);
