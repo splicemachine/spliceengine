@@ -15,6 +15,11 @@ public class ComparableComparator<E extends Comparable<E>> implements Comparator
     }
 
     public int compare(E o1, E o2) {
-        return o1.compareTo(o2);
+        if(o1==null){
+            if(o2==null) return 0;
+            return -1;
+        }else if(o2==null) return 1;
+        else
+            return o1.compareTo(o2);
     }
 }
