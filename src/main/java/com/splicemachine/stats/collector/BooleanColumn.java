@@ -29,13 +29,13 @@ class BooleanColumn implements BooleanColumnStatsCollector {
                 frequencies,
                 totalBytes,
                 count,
-                nullCount,frequencies.equalsTrue().count());
+                nullCount);
     }
 
     @Override public void updateSize(int size) { totalBytes+=size; }
     @Override public void updateNull() { updateNull(1l); }
     @Override public void update(boolean item) { update(item,1l); }
-    @Override public void update(Boolean item) { update(item,count); }
+    @Override public void update(Boolean item) { update(item,1l); }
 
     @Override
     public void updateNull(long count) {

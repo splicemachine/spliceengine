@@ -22,6 +22,10 @@ public abstract class BaseColumnStatistics<T extends Comparable<T>> implements C
         this.minCount = minCount;
     }
 
+    public BaseColumnStatistics(int columnId, long totalBytes, long totalCount, long nullCount) {
+        this(columnId,totalBytes,totalCount,nullCount,0l);
+    }
+
     @Override public int columnId() { return columnId; }
 
     @Override
@@ -30,7 +34,7 @@ public abstract class BaseColumnStatistics<T extends Comparable<T>> implements C
         return (int)(totalBytes/totalCount);
     }
 
-    @Override public long nonNullCount() { return totalCount; }
+    @Override public long nonNullCount() { return totalCount-nullCount; }
     @Override public long nullCount() { return nullCount; }
     @Override public long minCount() { return minCount; }
 

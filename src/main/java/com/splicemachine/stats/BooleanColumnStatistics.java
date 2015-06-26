@@ -24,9 +24,8 @@ public class BooleanColumnStatistics extends BaseColumnStatistics<Boolean> {
                                     BooleanFrequentElements frequentElements,
                                     long totalBytes,
                                     long totalCount,
-                                    long nullCount,
-                                    long minCount) {
-        super(columnId,totalBytes,totalCount,nullCount,minCount);
+                                    long nullCount) {
+        super(columnId,totalBytes,totalCount,nullCount);
         this.frequentElements = frequentElements;
     }
 
@@ -34,25 +33,41 @@ public class BooleanColumnStatistics extends BaseColumnStatistics<Boolean> {
         long c = 0;
         if(frequentElements.equalsTrue().count()>0) c++;
         if(frequentElements.equalsFalse().count()>0) c++;
-        if(nullCount()>0)c++;
         return c;
     }
 
     @Override public FrequentElements<Boolean> topK() { return frequentElements; }
-    @Override public Boolean minValue() { return Boolean.TRUE; }
-    @Override public Boolean maxValue() { return Boolean.FALSE; }
+    @Override
+    public Boolean minValue() {
+        if(frequentElements.equalsTrue().count()>0||frequentElements.totalFrequentElements()<=0) {
+            return Boolean.TRUE;
+        }
+        return Boolean.FALSE;
+    }
+
+    @Override public Boolean maxValue() {
+        if(frequentElements.equalsFalse().count()>0) return Boolean.FALSE;
+        return Boolean.TRUE;
+    }
 
     public BooleanFrequencyEstimate trueCount(){
         return frequentElements.equalsTrue();
     }
 
     public BooleanFrequencyEstimate falseCount(){
-        return frequentElements.equalsTrue();
+        return frequentElements.equalsFalse();
+    }
+
+    @Override
+    public long minCount(){
+        if(frequentElements.equalsTrue().count()>0 || frequentElements.totalFrequentElements()<=0)
+            return frequentElements.equalsTrue().count();
+        return frequentElements.equalsFalse().count();
     }
 
     @Override
     public ColumnStatistics<Boolean> getClone() {
-        return new BooleanColumnStatistics(columnId,frequentElements.getClone(),totalBytes,totalCount,nullCount,minCount);
+        return new BooleanColumnStatistics(columnId,frequentElements.getClone(),totalBytes,totalCount,nullCount);
     }
 
     @Override
@@ -93,9 +108,8 @@ public class BooleanColumnStatistics extends BaseColumnStatistics<Boolean> {
             long totalBytes = decoder.readLong();
             long totalCount = decoder.readLong();
             long nullCount = decoder.readLong();
-            long minCount = decoder.readLong();
             BooleanFrequentElements frequentElements = FrequencyCounters.booleanEncoder().decode(decoder);
-            return new BooleanColumnStatistics(columnId,frequentElements,totalBytes,totalCount,nullCount,minCount);
+            return new BooleanColumnStatistics(columnId,frequentElements,totalBytes,totalCount,nullCount);
         }
     }
 }
