@@ -49,6 +49,11 @@ class SimpleBooleanFrequentElements implements BooleanFrequentElements {
     }
 
     @Override
+    public String toString(){
+        return trueValue.toString()+","+falseValue.toString();
+    }
+
+    @Override
     public Set<? extends FrequencyEstimate<Boolean>> frequentElementsBetween(Boolean start, Boolean stop, boolean includeMin, boolean includeStop) {
         /*
          * we arbitrarily decided that true < false. Why, do you ask? Because we can, that's why. If you don't like it,
@@ -136,5 +141,10 @@ class SimpleBooleanFrequentElements implements BooleanFrequentElements {
         }
 
         @Override public int hashCode() { return (value ? 1 : 0); }
+
+        @Override
+        public String toString(){
+            return "("+value+","+count+")";
+        }
     }
 }
