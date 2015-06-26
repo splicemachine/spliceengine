@@ -230,7 +230,7 @@ public class ExplainTree{
             sb = sb.append(spaceToLevel())
                     .append(className).append("(")
                     .append("n=").append(order)
-                    .append(",").append(cost.prettyString());
+                    .append(",").append((cost == null ? "" : cost.prettyString()));
             String extras = getExtraInformation();
             if(extras!=null)
                 sb = sb.append(",").append(extras);

@@ -1,31 +1,61 @@
 package com.splicemachine.derby.impl.ast;
 
 /**
+ * bla
  * Created by yifuma on 6/12/15.
  */
 
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.PriorityQueue;
+import java.util.Set;
+
 import com.google.common.base.Function;
 import com.google.common.base.Strings;
-
 import com.google.common.collect.Lists;
+import org.apache.hadoop.hbase.util.Pair;
+import org.apache.log4j.Logger;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.compile.JoinStrategy;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.impl.sql.compile.*;
-import org.apache.hadoop.hbase.util.Pair;
-import org.apache.log4j.Level;
-import org.apache.log4j.Logger;
-
-import java.util.*;
+import com.splicemachine.db.impl.sql.compile.ColumnReference;
+import com.splicemachine.db.impl.sql.compile.ConstantNode;
+import com.splicemachine.db.impl.sql.compile.DMLStatementNode;
+import com.splicemachine.db.impl.sql.compile.ExplainNode;
+import com.splicemachine.db.impl.sql.compile.FromBaseTable;
+import com.splicemachine.db.impl.sql.compile.FromVTI;
+import com.splicemachine.db.impl.sql.compile.IndexToBaseRowNode;
+import com.splicemachine.db.impl.sql.compile.JoinNode;
+import com.splicemachine.db.impl.sql.compile.Predicate;
+import com.splicemachine.db.impl.sql.compile.PredicateList;
+import com.splicemachine.db.impl.sql.compile.ProjectRestrictNode;
+import com.splicemachine.db.impl.sql.compile.ResultColumn;
+import com.splicemachine.db.impl.sql.compile.ResultColumnList;
+import com.splicemachine.db.impl.sql.compile.ResultSetNode;
+import com.splicemachine.db.impl.sql.compile.RowResultSetNode;
+import com.splicemachine.db.impl.sql.compile.ScrollInsensitiveResultSetNode;
+import com.splicemachine.db.impl.sql.compile.SingleChildResultSetNode;
+import com.splicemachine.db.impl.sql.compile.SubqueryNode;
+import com.splicemachine.db.impl.sql.compile.TableOperatorNode;
+import com.splicemachine.db.impl.sql.compile.ValueNode;
+import com.splicemachine.db.impl.sql.compile.VirtualColumnNode;
+import com.splicemachine.db.impl.sql.compile.WindowResultSetNode;
 
 
 /**
+ * To use, add to SpliceDatabase "afterxxxVisitor" list(s) of choice, turn on logger:
+ * call SYSCS_UTIL.SYSCS_SET_LOGGER_LEVEL('com.splicemachine.derby.impl.ast.PlanDebugger', 'TRACE');
+ *
  * @author Yifu Ma
  */
 public class PlanDebugger extends AbstractSpliceVisitor {
@@ -33,9 +63,7 @@ public class PlanDebugger extends AbstractSpliceVisitor {
     public static Logger LOG = Logger.getLogger(PlanDebugger.class);
 
     public static final String spaces = "  ";
-    private static final Logger COST_LOG=Logger.getLogger(PlanDebugger.class.getName()+".CostLog");
 
-    private boolean explain = false;
     public static ThreadLocal<Map<String,ExplainTree>> planMap = new ThreadLocal<Map<String,ExplainTree>>(){
         @Override
         protected Map<String,ExplainTree> initialValue(){
@@ -57,7 +85,6 @@ public class PlanDebugger extends AbstractSpliceVisitor {
 
     @Override
     public Visitable visit(ExplainNode node) throws StandardException{
-        explain = true;
         return visit(node.getPlanRoot());
     }
 
@@ -65,26 +92,17 @@ public class PlanDebugger extends AbstractSpliceVisitor {
     public Visitable defaultVisit(Visitable node) throws StandardException {
 
         ResultSetNode rsn;
-        if ((explain || LOG.isInfoEnabled()) &&
-                node instanceof DMLStatementNode &&
+        if (node instanceof DMLStatementNode &&
                 (rsn = ((DMLStatementNode) node).getResultSetNode()) != null) {
 
             ExplainTree tree = buildExplainTree(rsn);
-//            List<Pair<String,Integer>> plan = planToString(rsn);
             Map<String, ExplainTree> m=planMap.get();
             m.put(query, tree);
 
-            if (LOG.isInfoEnabled()){
-                String treeToString = treeToString(rsn);
-                LOG.info(String.format("Plan nodes for query <<\n\t%s\n>>\n%s",
-                        query, treeToString));
-            }
-//            if (PLAN_LOG.isTraceEnabled()){
-//                Gson gson = new GsonBuilder().setPrettyPrinting().create();
-//                PLAN_LOG.trace(gson.toJson(ImmutableMap.of("query", query, "plan", nodeInfo(rsn, 0))));
-//            }
+            String treeToString = treeToString(rsn);
+            LOG.info(String.format("Plan nodes in phase %s for query <<\n\t%s\n>>\n%s",
+                                   PlanPrinter.phaseString(phase), query, treeToString));
         }
-        explain = false;
         return node;
     }
 
@@ -189,19 +207,13 @@ public class PlanDebugger extends AbstractSpliceVisitor {
     }
 
     private void pushExplain(ResultSetNode rsn,ExplainTree.Builder builder) throws StandardException{
-        CostEstimate ce = rsn.getFinalCostEstimate().getBase();
-        if(COST_LOG.isTraceEnabled()){
-            COST_LOG.trace("RowOrdering for node "+ rsn.getClass().getSimpleName()+" is "+ ce.getRowOrdering());
-        }
         int rsNum = rsn.getResultSetNumber();
 
         if(rsn instanceof FromBaseTable){
             FromBaseTable fbt=(FromBaseTable)rsn;
-            if(COST_LOG.isTraceEnabled()){
-                COST_LOG.trace(fbt.getTableName()+":"+fbt.getTableNumber());
-            }
+            String fbtName = fbt.getTableName()+":"+fbt.getTableNumber();
             TableDescriptor tableDescriptor=fbt.getTableDescriptor();
-            String tableName = String.format("%s(%s)",tableDescriptor.getName(),tableDescriptor.getHeapConglomerateId());
+            String tableName = String.format("%s(%s)[%s]",tableDescriptor.getName(),tableDescriptor.getHeapConglomerateId(),fbtName);
 
             ConglomerateDescriptor cd = fbt.getTrulyTheBestAccessPath().getConglomerateDescriptor();
             String indexName = null;
@@ -209,19 +221,19 @@ public class PlanDebugger extends AbstractSpliceVisitor {
                 indexName = String.format("%s(%s)", cd.getConglomerateName(), cd.getConglomerateNumber());
             }
             List<String> qualifiers =  Lists.transform(preds(rsn), PredicateUtils.predToString);
-            builder.addBaseTable(rsNum,ce,tableName,indexName,qualifiers,fbt.isMultiProbing());
+            builder.addBaseTable(rsNum,null,tableName,indexName,qualifiers,fbt.isMultiProbing());
         }else if(rsn instanceof RowResultSetNode){
-            builder.pushValuesNode(rsNum,ce);
+            builder.pushValuesNode(rsNum,null);
         } else if(rsn instanceof ProjectRestrictNode){
             pushExplain(((SingleChildResultSetNode)rsn).getChildResult(),builder);
             if(!((ProjectRestrictNode)rsn).nopProjectRestrict()){
                 List<String> predicates=Lists.transform(preds(rsn),PredicateUtils.predToString);
-                builder.pushProjection(rsNum,ce,predicates);
+                builder.pushProjection(rsNum,null,predicates);
             }
         }else if(rsn instanceof IndexToBaseRowNode){
             pushExplain(((IndexToBaseRowNode)rsn).getSource(),builder);
             long heapTable=((IndexToBaseRowNode)rsn).getBaseConglomerateDescriptor().getConglomerateNumber();
-            builder.pushIndexFetch(rsNum,ce,heapTable);
+            builder.pushIndexFetch(rsNum,null,heapTable);
         }else if(rsn instanceof ScrollInsensitiveResultSetNode){
             pushExplain(((ScrollInsensitiveResultSetNode)rsn).getChildResult(),builder);
         }else if(rsn instanceof JoinNode){
@@ -233,22 +245,22 @@ public class PlanDebugger extends AbstractSpliceVisitor {
             //push the left side directly
             pushExplain(j.getLeftResultSet(),builder);
 
-            builder.pushJoin(rsNum,ce,joinStrategy,joinPreds,rightBuilder);
+            builder.pushJoin(rsNum,null,joinStrategy,joinPreds,rightBuilder);
         } else if(rsn instanceof SingleChildResultSetNode){
 
             pushExplain(((SingleChildResultSetNode)rsn).getChildResult(),builder);
             String nodeName=rsn.getClass().getSimpleName().replace("Node","");
-            builder.pushNode(nodeName,rsNum,ce);
+            builder.pushNode(nodeName,rsNum,null);
         } else if(rsn instanceof TableOperatorNode){
             //we have two tables to work with
             ExplainTree.Builder rightBuilder = new ExplainTree.Builder();
             pushExplain(((TableOperatorNode)rsn).getRightResultSet(),rightBuilder);
             pushExplain(((TableOperatorNode)rsn).getLeftResultSet(),builder);
-            builder.pushTableOperator(rsn.getClass().getSimpleName().replace("Node",""),rsNum,ce,rightBuilder);
+            builder.pushTableOperator(rsn.getClass().getSimpleName().replace("Node",""),rsNum,null,rightBuilder);
         } else if(rsn instanceof FromVTI){
             FromVTI vti = (FromVTI)rsn;
             String tableName = vti.getName();
-            builder.addBaseTable(rsNum,ce,"VTI:"+tableName,null,null,false);
+            builder.addBaseTable(rsNum,null,"VTI:"+tableName,null,null,false);
         }
 
         //collect subqueries
@@ -268,33 +280,23 @@ public class PlanDebugger extends AbstractSpliceVisitor {
 
     public static Map<String,Object> nodeInfo(final ResultSetNode rsn, final int level) throws StandardException {
         Map<String,Object> info = new HashMap<>();
-        // CostEstimate co = rsn.getFinalCostEstimate().getBase();
         info.put("class", JoinInfo.className.apply(rsn));
         info.put("n", rsn.getResultSetNumber());
         info.put("level", level);
-        //  info.put("cost", co.prettyString());
-        if (Level.TRACE.equals(LOG.getLevel())) {
-//        if(LOG.isTraceEnabled()){
-            // FIXME: FIND OUT WHY LOG.isTraceEnabled() always returns false
 
-            // we only want to see exec row info when THIS logger is set to trace:
-            // com.splicemachine.derby.impl.ast.PlanPrinter=TRACE
-            // or
-            // call SYSCS_UTIL.SYSCS_SET_LOGGER_LEVEL('com.splicemachine.derby.impl.ast.PlanDebugger', 'TRACE');
-
-            List<Map<String, Object>> columnInfo =  getResultColumnInfo(rsn);
-            int count = 1;
-            for(Map<String, Object> m : columnInfo){
-                String colName = (String)m.get("column");
-                if(colName != null && !colName.equals("") && !colName.equals("null")){
-                    Object src = m.get("src");
-                    if(src != null && !src.equals("") && !src.equals("null")){
-                        info.put(Integer.toString(count), src);
-                    }
+        List<Map<String, Object>> columnInfo =  getResultColumnInfo(rsn);
+        int count = 1;
+        for(Map<String, Object> m : columnInfo){
+            String colName = (String)m.get("column");
+            if(colName != null && !colName.equals("") && !colName.equals("null")){
+                Object src = m.get("src");
+                if(src != null && !src.equals("") && !src.equals("null")){
+                    info.put(Integer.toString(count), src);
                 }
-                count++;
             }
+            count++;
         }
+
         List<ResultSetNode> children = RSUtils.getChildren(rsn);
         info.put("children", Lists.reverse(Lists.transform(children, new Function<ResultSetNode, Map<String,Object>>() {
             @Override
