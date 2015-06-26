@@ -7,6 +7,7 @@ import com.google.common.collect.Lists;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.compile.ASTVisitor;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.compile.JoinStrategy;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
@@ -73,13 +74,13 @@ public class PlanPrinter extends AbstractSpliceVisitor {
             m.put(query, tree);
 
             if (LOG.isInfoEnabled()){
-                String treeToString = treeToString(rsn);
-                LOG.info(String.format("Plan nodes for query <<\n\t%s\n>>\n%s",
-                        query, treeToString));
+                String treeToString = treeToString(rsn, phase);
+                LOG.info(String.format("Plan nodes in phase %s for query <<\n\t%s\n>>\n%s",
+                        phaseString(phase), query, treeToString));
             }
             if (PLAN_LOG.isTraceEnabled()){
                 Gson gson = new GsonBuilder().setPrettyPrinting().create();
-                PLAN_LOG.trace(gson.toJson(ImmutableMap.of("query", query, "plan", nodeInfo(rsn, 0))));
+                PLAN_LOG.trace(gson.toJson(ImmutableMap.of("query", query, "plan", nodeInfo(rsn, 0, phase))));
             }
         }
         explain = false;
@@ -87,6 +88,17 @@ public class PlanPrinter extends AbstractSpliceVisitor {
     }
 
 
+    public static String phaseString(int phase) {
+        switch (phase) {
+            case 0:
+                return "AFTER_PARSE";
+            case 1:
+                return "AFTER_BIND";
+            case 2:
+                return "AFTER_OPTIMIZE";
+        }
+        return "UNKNOWN";
+    }
 
     public static Map without(Map m, Object... keys){
         for (Object k: keys){
@@ -153,9 +165,13 @@ public class PlanPrinter extends AbstractSpliceVisitor {
     }
 
     private void pushExplain(ResultSetNode rsn,ExplainTree.Builder builder) throws StandardException{
-        CostEstimate ce = rsn.getFinalCostEstimate().getBase();
-        if(COST_LOG.isTraceEnabled()){
-            COST_LOG.trace("RowOrdering for node "+ rsn.getClass().getSimpleName()+" is "+ ce.getRowOrdering());
+        CostEstimate ce = null;
+        if(COST_LOG.isTraceEnabled() && phase != ASTVisitor.AFTER_PARSE){
+            ce = rsn.getFinalCostEstimate();
+            if (ce != null) {
+                ce.getBase();
+            }
+            COST_LOG.trace("RowOrdering for node "+ rsn.getClass().getSimpleName()+" is "+ (ce == null ? "" : ce.getRowOrdering()));
         }
         int rsNum = rsn.getResultSetNumber();
 
@@ -230,13 +246,19 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         }
     }
 
-    public static Map<String,Object> nodeInfo(final ResultSetNode rsn, final int level) throws StandardException {
+    public static Map<String,Object> nodeInfo(final ResultSetNode rsn, final int level, final int phase) throws StandardException {
         Map<String,Object> info = new HashMap<>();
-        CostEstimate co = rsn.getFinalCostEstimate().getBase();
+        CostEstimate co = null;
+        if (phase != ASTVisitor.AFTER_PARSE) {
+            co = rsn.getFinalCostEstimate();
+        }
+        if (co != null) {
+            co.getBase();
+        }
         info.put("class", JoinInfo.className.apply(rsn));
         info.put("n", rsn.getResultSetNumber());
         info.put("level", level);
-        info.put("cost", co.prettyString());
+        info.put("cost", (co == null ? "" : co.prettyString()));
         if (Level.TRACE.equals(LOG.getLevel())) {
 //        if(LOG.isTraceEnabled()){
           // FIXME: FIND OUT WHY LOG.isTraceEnabled() always returns false
@@ -252,7 +274,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
             @Override
             public Map<String,Object> apply(ResultSetNode child) {
                 try {
-                    return nodeInfo(child, level + 1);
+                    return nodeInfo(child, level + 1, phase);
                 } catch (StandardException e) {
                     throw new RuntimeException(e);
                 }
@@ -264,7 +286,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
             public Map apply(SubqueryNode subq) {
                 try {
                     HashMap<String, Object> subInfo = new HashMap<>();
-                    subInfo.put("node", nodeInfo(subq.getResultSet(), 1));
+                    subInfo.put("node", nodeInfo(subq.getResultSet(), 1, phase));
                     subInfo.put("expression?", subq.getSubqueryType() == SubqueryNode.EXPRESSION_SUBQUERY);
                     subInfo.put("correlated?", subq.hasCorrelatedCRs());
                     subInfo.put("invariant?", subq.isInvariant());
@@ -385,12 +407,12 @@ public class PlanPrinter extends AbstractSpliceVisitor {
                 subInfo.get("invariant?"),subInfo.get("correlated?"));
     }
 
-    public static String treeToString(ResultSetNode rsn, int initLevel) throws StandardException {
-        return treeToString(nodeInfo(rsn, initLevel));
+    public static String treeToString(ResultSetNode rsn, int initLevel, int phase) throws StandardException {
+        return treeToString(nodeInfo(rsn, initLevel, phase));
     }
 
-    public static String treeToString(ResultSetNode rsn) throws StandardException {
-        return treeToString(rsn,0);
+    public static String treeToString(ResultSetNode rsn, int phase) throws StandardException {
+        return treeToString(rsn,0,phase);
     }
 
     private static List<Predicate> preds(ResultSetNode t) throws StandardException {
@@ -407,8 +429,8 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         return PredicateUtils.PLtoList(pl);
     }
 
-    private static List<Pair<String,Integer>> planToString(ResultSetNode rsn) throws StandardException{
-        Map<String, Object> nodeInfo=nodeInfo(rsn,0);
+    private static List<Pair<String,Integer>> planToString(ResultSetNode rsn, int phase) throws StandardException{
+        Map<String, Object> nodeInfo=nodeInfo(rsn,0,phase);
         List<Pair<String,Integer>> flattenedPlanMap = new LinkedList<>();
 //        Map<Integer,String> planMap = new HashMap<>();
         pushPlanInfo(nodeInfo,flattenedPlanMap);
