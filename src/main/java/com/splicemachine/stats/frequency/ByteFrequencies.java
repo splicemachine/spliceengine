@@ -33,7 +33,8 @@ class ByteFrequencies implements ByteFrequentElements {
 
         this.size = 0;
         for(int i=0;i<counts.length;i++){
-            push(new Frequency((byte)i,counts[i]));
+            if(counts[i]>0)
+                push(new Frequency((byte)i,counts[i]));
         }
     }
 
@@ -124,7 +125,7 @@ class ByteFrequencies implements ByteFrequentElements {
     public long totalFrequentElements() {
         long totalRowSize=0;
         for (FrequencyEstimate<Byte> estimate : allFrequentElements()) {
-            totalRowSize+=estimate.getValue();
+            totalRowSize+=estimate.count();
         }
         return totalRowSize;
     }
@@ -142,13 +143,18 @@ class ByteFrequencies implements ByteFrequentElements {
          */
         Set<ByteFrequencyEstimate> oFe = other.frequentBetween(Byte.MIN_VALUE,Byte.MAX_VALUE,true,true); //get everything
         Frequency[] oldHeap = heap;
+        boolean[] oldValuesFound = new boolean[oldHeap.length];
         heap = new Frequency[oldHeap.length]; //keep the same number of entries
+        int oldSize = size;
+        size=0;
         for(ByteFrequencyEstimate oe: oFe){
             boolean found = false;
-            for(int i=0;i<size;i++){
+            for(int i=0;i<oldSize;i++){
+                if(oldValuesFound[i]) continue; //we already saw this one
                 Frequency f = oldHeap[i];
                 if(f!=null && f.value==oe.value()){
                     f.count+=oe.count();
+                    oldValuesFound[i]=true;
                     push(f); //push it into the new heap
                     found = true;
                     break;
@@ -159,6 +165,12 @@ class ByteFrequencies implements ByteFrequentElements {
                 Frequency f = new Frequency(oe.value(),oe.count());
                 push(f);
             }
+        }
+        for(int i=0;i<oldSize;i++){
+            //push the old elements which haven't been found yet
+            if(oldValuesFound[i]) continue;
+            Frequency f = oldHeap[i];
+            push(f);
         }
         return this;
     }

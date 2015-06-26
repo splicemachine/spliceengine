@@ -360,11 +360,13 @@ public class FrequencyCounters {
 
         @Override
         public void encode(ByteFrequentElements item, DataOutput dataInput) throws IOException {
-           if(item instanceof ByteFrequencies)
+           if(item instanceof ByteFrequencies){
                dataInput.writeByte(0x00);
-            else if(item instanceof ByteHeavyHitters)
+               ByteFrequencies.EncoderDecoder.INSTANCE.encode((ByteFrequencies)item,dataInput);
+           }else if(item instanceof ByteHeavyHitters){
                dataInput.writeByte(0x01);
-            else throw new IllegalArgumentException("Cannot encode ByteFrequentElements of type "+ item.getClass());
+               ByteHeavyHitters.EncoderDecoder.INSTANCE.encode((ByteHeavyHitters)item,dataInput);
+           } else throw new IllegalArgumentException("Cannot encode ByteFrequentElements of type "+ item.getClass());
         }
 
         @Override

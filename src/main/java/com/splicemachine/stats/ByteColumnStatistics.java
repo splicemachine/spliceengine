@@ -65,10 +65,15 @@ public class ByteColumnStatistics extends BaseColumnStatistics<Byte> {
         ByteColumnStatistics o = (ByteColumnStatistics)other;
         cardinalityEstimator = cardinalityEstimator.merge(o.cardinalityEstimator);
         frequentElements = (ByteFrequentElements)frequentElements.merge(o.frequentElements);
-        if(o.min<min)
-            min = o.min;
+        if(o.min<min){
+            min=o.min;
+            minCount = o.minCount;
+        }else if(o.min==min){
+            minCount+=o.minCount;
+        }
         if(o.max>max)
             max = o.max;
+
         totalBytes+=o.totalBytes;
         totalCount+=o.totalCount;
         nullCount+=o.nullCount;

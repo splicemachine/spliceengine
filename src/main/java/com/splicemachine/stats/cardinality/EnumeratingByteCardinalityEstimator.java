@@ -83,7 +83,7 @@ public class EnumeratingByteCardinalityEstimator implements ByteCardinalityEstim
             assert item instanceof EnumeratingByteCardinalityEstimator: "Cannot serialize estimator instance of type "+item.getClass();
             EnumeratingByteCardinalityEstimator it = (EnumeratingByteCardinalityEstimator)item;
             byte[] bytes = it.bitSet.toByteArray();
-            encoder.write(bytes.length);
+            encoder.writeInt(bytes.length);
             encoder.write(bytes);
         }
 

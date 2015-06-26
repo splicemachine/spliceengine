@@ -28,6 +28,8 @@ public class UniformByteDistribution extends BaseDistribution<Byte> implements B
         ByteFrequencyEstimate byteFrequencyEstimate = bfe.countEqual(value);
         if(byteFrequencyEstimate.count()>0) return byteFrequencyEstimate.count();
 
+        long cardinality=columnStats.cardinality();
+        if(cardinality<=0) return 0l; //there is actually no data here
         /*
          * We don't have a frequent element, so assume that we have a uniform distribution of
          * other elements. This estimate is computed by the formula
@@ -38,7 +40,7 @@ public class UniformByteDistribution extends BaseDistribution<Byte> implements B
          * all frequent elements
          */
         long adjustedRowCount = getAdjustedRowCount();
-        return adjustedRowCount/columnStats.cardinality();
+        return adjustedRowCount/cardinality;
     }
 
     @Override
