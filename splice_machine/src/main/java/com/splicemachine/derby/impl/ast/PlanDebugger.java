@@ -101,11 +101,22 @@ public class PlanDebugger extends AbstractSpliceVisitor {
 
             String treeToString = treeToString(rsn);
             LOG.info(String.format("Plan nodes in phase %s for query <<\n\t%s\n>>\n%s",
-                                   PlanPrinter.phaseString(phase), query, treeToString));
+                                   phaseString(phase), query, treeToString));
         }
         return node;
     }
 
+    private static String phaseString(int phase) {
+        switch (phase) {
+            case 0:
+                return "AFTER_PARSE";
+            case 1:
+                return "AFTER_BIND";
+            case 2:
+                return "AFTER_OPTIMIZE";
+        }
+        return "UNKNOWN";
+    }
 
 
     public static Map without(Map m, Object... keys){
