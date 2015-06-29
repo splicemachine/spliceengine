@@ -47,7 +47,6 @@ import java.util.Hashtable;
  * and bring the system down if the state is not correct. Debug checks
  * are meant to display internal information about a running system.
  * <p>
- * @see com.splicemachine.db.iapi.services.sanity.AssertFailure
  */
 public class SanityManager {
     /**
@@ -88,20 +87,19 @@ public class SanityManager {
      * A message about the assertion failing is
      * printed.
      * <p>
-     * @see com.splicemachine.db.iapi.services.sanity.AssertFailure
      */
-    public static final void ASSERT(boolean mustBeTrue) {
+    public static void ASSERT(boolean mustBeTrue) {
         if (DEBUG)
             if (! mustBeTrue) {
                 if (DEBUG) {
-                    AssertFailure af = new AssertFailure("ASSERT FAILED");
+                    IllegalStateException af = new IllegalStateException("ASSERT FAILED");
                     if (DEBUG_ON("AssertFailureTrace")) {
                         showTrace(af);
                     }
                     throw af;
                 }
                 else
-                    throw new AssertFailure("ASSERT FAILED");
+                    throw new IllegalStateException("ASSERT FAILED");
             }
     }
 
@@ -110,20 +108,19 @@ public class SanityManager {
      * false, throws AssertFailure. The message will
      * be printed and included in the assertion.
      * <p>
-     * @see com.splicemachine.db.iapi.services.sanity.AssertFailure
      */
-    public static final void ASSERT(boolean mustBeTrue, String msgIfFail) {
+    public static void ASSERT(boolean mustBeTrue, String msgIfFail) {
         if (DEBUG)
             if (! mustBeTrue) {
                 if (DEBUG) {
-                    AssertFailure af = new AssertFailure("ASSERT FAILED " + msgIfFail);
+                    IllegalStateException af = new IllegalStateException("ASSERT FAILED " + msgIfFail);
                     if (DEBUG_ON("AssertFailureTrace")) {
                         showTrace(af);
                     }
                     throw af;
                 }
                 else
-                    throw new AssertFailure("ASSERT FAILED " + msgIfFail);
+                    throw new IllegalStateException("ASSERT FAILED " + msgIfFail);
             }
     }
 
@@ -137,9 +134,8 @@ public class SanityManager {
      * <p>
      * @param msgIfFail message to print with the assertion
      *
-     * @see com.splicemachine.db.iapi.services.sanity.AssertFailure
      */
-    public static final void THROWASSERT(String msgIfFail) {
+    public static void THROWASSERT(String msgIfFail) {
         // XXX (nat) Hmm, should we check ASSERT here?  The caller is
         // not expecting this function to return, whether assertions
         // are compiled in or not.
@@ -155,10 +151,9 @@ public class SanityManager {
      * @param msg message to print with the assertion
      * @param t exception to print with the assertion
      *
-     * @see com.splicemachine.db.iapi.services.sanity.AssertFailure
      */
-    public static final void THROWASSERT(String msg, Throwable t) {
-        AssertFailure af = new AssertFailure("ASSERT FAILED " + msg, t);
+    public static void THROWASSERT(String msg, Throwable t) {
+        IllegalStateException af = new IllegalStateException("ASSERT FAILED " + msg, t);
         if (DEBUG) {
             if (DEBUG_ON("AssertFailureTrace")) {
                 showTrace(af);
@@ -176,9 +171,8 @@ public class SanityManager {
      * <p>
      * @param t exception to print with the assertion
      *
-     * @see com.splicemachine.db.iapi.services.sanity.AssertFailure
      */
-    public static final void THROWASSERT(Throwable t) {
+    public static void THROWASSERT(Throwable t) {
         THROWASSERT(t.toString(), t);
     }
 
@@ -196,7 +190,7 @@ public class SanityManager {
      * If the debugStream stream cannot be found, the message is printed to
      * System.out.
      */
-    public static final void DEBUG(String flag, String message) {
+    public static void DEBUG(String flag, String message) {
         if (DEBUG) {
             if (DEBUG_ON(flag)) {
                 DEBUG_PRINT(flag, message);
@@ -249,7 +243,7 @@ public class SanityManager {
      *
      * @param flag	The name of the debug flag to set to true
      */
-    public static final void DEBUG_SET(String flag) {
+    public static void DEBUG_SET(String flag) {
         if (DEBUG) {
             if (! DEBUGDEBUG.equals(flag)) {
                 if (DEBUG_ON(DEBUGDEBUG))
@@ -271,7 +265,7 @@ public class SanityManager {
      *
      * @param flag	The name of the debug flag to set to false
      */
-    public static final void DEBUG_CLEAR(String flag) {
+    public static void DEBUG_CLEAR(String flag) {
         if (DEBUG) {
             if (! DEBUGDEBUG.equals(flag)) {
                 if (DEBUG_ON(DEBUGDEBUG))
@@ -318,7 +312,7 @@ public class SanityManager {
         return debugStream;
     }
 
-    static private void showTrace(AssertFailure af) {
+    static private void showTrace(IllegalStateException af) {
         af.printStackTrace();
         java.io.PrintWriter assertStream = GET_DEBUG_STREAM();
 

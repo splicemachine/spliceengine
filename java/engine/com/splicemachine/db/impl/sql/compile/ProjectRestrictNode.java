@@ -898,6 +898,8 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
             // Similarly, don't push if we have OFFSET and/or FETCH FROM.
             //
             if((!childSelect.hasWindows() && childSelect.fetchFirst==null && childSelect.offset==null)){
+                optimizeTrace(OptimizerFlag.JOIN_NODE_PREDICATE_MANIPULATION,0,0,0.0,
+                                         "ProjectRestrictNode pushing predicates.",pushPList);
                 pushPList.pushExpressionsIntoSelect((SelectNode)childResult,false);
             }
         }

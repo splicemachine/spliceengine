@@ -274,6 +274,22 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         return null;
     }
 
+    public ResultColumn getResultColumnFullName(String fullName,boolean markIfReferenced){
+        int size=size();
+        for(int index=0;index<size;index++){
+            ResultColumn resultColumn=elementAt(index);
+
+            if(fullName.equals(resultColumn.getFullName())){
+                /* Mark ResultColumn as referenced and return it */
+                if(markIfReferenced){
+                    resultColumn.setReferenced();
+                }
+                return resultColumn;
+            }
+        }
+        return null;
+    }
+
     /**
      * Return a result column, if any found, which contains in its
      * expression/&#123;VCN,CR&#125; chain a result column with the given

@@ -3360,6 +3360,11 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         return selectivity;
     }
 
+    @Override
+    public String toString() {
+        return PredicateUtils.toString(this);
+    }
+
     /* assign a weight to each predicate-- the maximum weight that a predicate
      * can have is numUsefulPredicates. If a predicate corresponds to the first
      * index position then its weight is numUsefulPredicates. The weight of a

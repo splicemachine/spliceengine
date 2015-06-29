@@ -24,6 +24,7 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
+import com.splicemachine.db.iapi.sql.compile.AggregateDefinition;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 
@@ -40,7 +41,7 @@ import com.splicemachine.db.iapi.reference.ClassName;
  *
  */
 public class SumAvgAggregateDefinition
-		implements AggregateDefinition 
+		implements AggregateDefinition
 {
 	private boolean isSum;
     private boolean isWindowFunction;

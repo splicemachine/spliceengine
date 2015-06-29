@@ -35,10 +35,12 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
 		/* If the innerTable is a VTI, then we must check to see if there are any
 		 * join columns in the VTI's parameters.  If so, then hash join is not feasible.
 		 */
+        /*
         if (! innerTable.isMaterializable()) {
             tracer.trace(OptimizerFlag.HJ_SKIP_NOT_MATERIALIZABLE,0,0,0.0,null);
             return false;
         }
+        */
 
 		/* Don't consider hash join on the target table of an update/delete.
 		 * RESOLVE - this is a temporary restriction.  Problem is that we

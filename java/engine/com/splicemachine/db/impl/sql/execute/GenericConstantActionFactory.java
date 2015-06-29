@@ -49,13 +49,14 @@ import java.sql.Timestamp;
 /**
  * Factory for creating ConstantActions.
  *
- * <P>Implemetation note: For most operations, the ResultSetFactory
+ * <P>Implementation note: For most operations, the ResultSetFactory
  *    determines if the operation is allowed in a readonly/target database.
  *    Because we perform JAR add/drop/replace with a utility rather than
  *    using normal language processing we never get a result set for these
  *    operations. For this reason, the ConstantActionFactory rather than
  *    the ResultSetFactory checks if the these operations are allowed.
  *
+ * See SpliceGenericConstantActionFactory in spliceengine repo
  */
 public abstract class GenericConstantActionFactory
 {
@@ -88,17 +89,13 @@ public abstract class GenericConstantActionFactory
 	 *	@param ddlList		Replication list of actions to propagate,
 	 *						null unless a replication source
 	 */
-	public	ConstantAction getSetConstraintsConstantAction
+	public abstract ConstantAction getSetConstraintsConstantAction
 	(
 		ConstraintDescriptorList	cdl,
 		boolean						enable,
 		boolean						unconditionallyEnforce,
 		Object[]					ddlList
-    )
-	{
-		// ignore rep arg
-		return new SetConstraintsConstantAction(cdl, enable, unconditionallyEnforce);
-	}
+    );
 
 
 	/**
@@ -133,7 +130,7 @@ public abstract class GenericConstantActionFactory
 	 *  	updateStatistics/dropStatistics is set to true.
 	 *  .
 	 */
-	public	ConstantAction	getAlterTableConstantAction
+	public abstract ConstantAction	getAlterTableConstantAction
 	(
 		SchemaDescriptor			sd,
 		String						tableName,
@@ -155,19 +152,7 @@ public abstract class GenericConstantActionFactory
 		boolean						dropStatistics,
 		boolean						dropStatisticsAll,
 		String						indexNameForStatistics
-    )
-	{
-		return new	AlterTableConstantAction( sd, tableName, tableId, tableConglomerateId, 
-											  tableType, columnInfo, constraintActions, 
-											  lockGranularity, compressTable,
-											  behavior, sequential, truncateTable,
-											  purge, defragment, truncateEndOfTable,
-											  updateStatistics, 
-											  updateStatisticsAll,
-											  dropStatistics, 
-											  dropStatisticsAll,
-											  indexNameForStatistics);
-	}
+    );
 
 	/**
 	 *	Make a ConstantAction for a constraint.
@@ -186,7 +171,7 @@ public abstract class GenericConstantActionFactory
 	 *	@param otherConstraint	The referenced constraint, if a foreign key constraint
 	 *  @param providerInfo Information on all the Providers
 	 */
-	public	ConstantAction	getCreateConstraintConstantAction
+	public abstract	ConstantAction getCreateConstraintConstantAction
 	(
 		String				constraintName,
 		int					constraintType,
@@ -200,13 +185,7 @@ public abstract class GenericConstantActionFactory
 		boolean				enabled,
 		ConstraintInfo		otherConstraint,
 		ProviderInfo[]		providerInfo
-	)
-	{
-		return new CreateConstraintConstantAction
-			( constraintName, constraintType, forCreateTable, tableName, 
-			  tableId, schemaName, columnNames, indexAction, constraintText, 
-			  enabled, otherConstraint, providerInfo );
-	}
+	);
 
 
 	/**
@@ -231,7 +210,7 @@ public abstract class GenericConstantActionFactory
      * @param conglomerateUUID	ID of conglomerate
      * @param properties	The optional properties list associated with the index.
      */
-	public	ConstantAction	getCreateIndexConstantAction
+	public abstract	ConstantAction	getCreateIndexConstantAction
 	(
         boolean forCreateTable,
 		boolean			unique,
@@ -246,14 +225,7 @@ public abstract class GenericConstantActionFactory
 		boolean			isConstraint,
 		UUID			conglomerateUUID,
 		Properties		properties
-    )
-	{
-		return	new CreateIndexConstantAction
-			( forCreateTable, unique, uniqueWithDuplicateNulls, indexType, 
-				schemaName, indexName, tableName, tableId,
-			  columnNames, isAscending, isConstraint,
-			  conglomerateUUID, properties );
-	}
+    );
 
 
 	/**
@@ -264,17 +236,13 @@ public abstract class GenericConstantActionFactory
 	 *  @param javaClassName	Name of java class.
 	 *  @param aliasType		The alias type
 	 */
-	public	ConstantAction	getCreateAliasConstantAction
+	public abstract ConstantAction	getCreateAliasConstantAction
 	(
 		String	aliasName,
 		String	schemaName,
 		String	javaClassName,
 		AliasInfo	aliasInfo,
-		char	aliasType)
-	{
-		return new CreateAliasConstantAction
-			(aliasName, schemaName, javaClassName, aliasInfo, aliasType );
-	}
+		char	aliasType);
 
 	/**
 	 * Make the ConstantAction for a CREATE SCHEMA statement.
@@ -282,13 +250,10 @@ public abstract class GenericConstantActionFactory
 	 *  @param schemaName	Name of table.
 	 *  @param aid			Authorizaton id
 	 */
-	public	ConstantAction	getCreateSchemaConstantAction
+	public abstract ConstantAction	getCreateSchemaConstantAction
 	(
 		String			schemaName,
-		String			aid)
-	{
-		return new CreateSchemaConstantAction(schemaName, aid);
-	}
+		String			aid);
 
 
     /**
@@ -296,10 +261,7 @@ public abstract class GenericConstantActionFactory
 	 *
 	 * @param roleName	Name of role.
 	 */
-	public	ConstantAction	getCreateRoleConstantAction(String roleName)
-	{
-		return new CreateRoleConstantAction(roleName);
-	}
+	public abstract ConstantAction	getCreateRoleConstantAction(String roleName);
 
 
 	/**
@@ -309,24 +271,15 @@ public abstract class GenericConstantActionFactory
 	 * @param type      Literal (== 0)
 	 *                  or ?    (== StatementType.SET_ROLE_DYNAMIC)
 	 */
-	public ConstantAction getSetRoleConstantAction(String roleName,
-												   int type)
-	{
-		return new SetRoleConstantAction(roleName, type);
-	}
+	public abstract ConstantAction getSetRoleConstantAction(String roleName,
+												   int type);
 
     /**
 	 * Make the ConstantAction for a CREATE SEQUENCE statement.
 	 *
 	 * @param sequenceName	Name of sequence.
-     * @param dataType
-     * @param initialValue
-     * @param stepValue
-     * @param maxValue
-     * @param minValue
-     * @param cycle
 	 */
-	public	ConstantAction	getCreateSequenceConstantAction
+	public abstract ConstantAction	getCreateSequenceConstantAction
     (
             TableName sequenceName,
             DataTypeDescriptor dataType,
@@ -335,17 +288,7 @@ public abstract class GenericConstantActionFactory
             long        maxValue,
             long        minValue,
             boolean     cycle
-    )
-	{
-        return new CreateSequenceConstantAction(sequenceName.getSchemaName(),
-                sequenceName.getTableName(),
-                dataType,
-                initialValue,
-                stepValue,
-                maxValue,
-                minValue,
-                cycle);
-	}
+    );
 
     /**
 	 *	Make the ConstantAction for a CREATE TABLE statement.
@@ -363,7 +306,7 @@ public abstract class GenericConstantActionFactory
 	 * @param insertNode if not null, a statement that needs to execute to insert data into the table once fully created. If null, then nothing to be inserted
 		 *                 If not null, this MUST be bound and optimized AFTER the table has been created, or else it will break
 	 */
-	public	ConstantAction	getCreateTableConstantAction
+	public abstract	ConstantAction	getCreateTableConstantAction
 	(
 		String			schemaName,
 		String			tableName,
@@ -375,12 +318,7 @@ public abstract class GenericConstantActionFactory
 		boolean			onCommitDeleteRows,
 		boolean			onRollbackDeleteRows,
 		StatementNode insertNode
-		)
-	{
-		return new CreateTableConstantAction( schemaName, tableName, tableType, columnInfo,
-											  constraintActions, properties,
-											  lockGranularity, onCommitDeleteRows, onRollbackDeleteRows);
-	}
+		);
 
 	/**
 	 *	Make the ConstantAction for a savepoint statement (ROLLBACK savepoint, RELASE savepoint and SAVEPOINT).
@@ -388,13 +326,10 @@ public abstract class GenericConstantActionFactory
 	 *  @param savepointName	name for the savepoint.
 	 *  @param statementType	Type of savepoint statement ie rollback, release or set savepoint
 	 */
-	public	ConstantAction	getSavepointConstantAction
+	public abstract ConstantAction	getSavepointConstantAction
 	(
 		String			savepointName,
-		int				statementType)
-	{
-		return new SavepointConstantAction( savepointName, statementType);
-	}
+		int				statementType);
 
 
 	/**
@@ -411,7 +346,7 @@ public abstract class GenericConstantActionFactory
 	 *						when accessed in the future.
 	 *		 (REMIND tableDescriptor ignored)
 	 */
-	public	ConstantAction	getCreateViewConstantAction
+	public abstract ConstantAction getCreateViewConstantAction
 	(
 		String	schemaName,
 		String			tableName,
@@ -420,12 +355,7 @@ public abstract class GenericConstantActionFactory
 		int				checkOption,
 		ColumnInfo[]	columnInfo,
 		ProviderInfo[]  providerInfo,
-		UUID			compSchemaId)
-	{
-		return new CreateViewConstantAction( schemaName, tableName, tableType, 
-											 viewText, checkOption, columnInfo,
-											 providerInfo, compSchemaId );
-	}
+		UUID			compSchemaId);
 
 
 
@@ -466,7 +396,7 @@ public abstract class GenericConstantActionFactory
 	 *
 	 *  @exception StandardException		Thrown on failure
 	 */
-	public	ConstantAction	getDeleteConstantAction
+	public abstract ConstantAction getDeleteConstantAction
 	(
 								long				conglomId,
 								int					tableType,
@@ -497,31 +427,7 @@ public abstract class GenericConstantActionFactory
 								boolean				singleRowSource,
 								ConstantAction[]	dependentConstantActions
 	)
-			throws StandardException
-	{
-		// ignore replication args, which should be null
-		return new DeleteConstantAction(
-										conglomId,
-										heapSCOCI,
-                                        pkColumns,
-										irgs,
-										indexCIDS,
-										indexSCOCIs,
-										emptyHeapRow,
-										deferred,
-										tableID,
-										lockMode,
-										fkInfo,
-										triggerInfo,
-										baseRowReadList,
-										baseRowReadMap,
-										streamStorableHeapColIds,
-										numColumns,
-										singleRowSource,
-										resultDescription,
-										dependentConstantActions
-										);
-	}
+			throws StandardException;
 
 
 	/**
@@ -536,7 +442,7 @@ public abstract class GenericConstantActionFactory
 	 *	@param behavior			The drop behavior (e.g. StatementType.RESTRICT)
      *  @param verifyType       Verify that the constraint is of this type.
 	 */
-	public	ConstantAction	getDropConstraintConstantAction
+	public abstract ConstantAction	getDropConstraintConstantAction
 	(
 		String					constraintName,
 		String					constraintSchemaName,
@@ -546,11 +452,7 @@ public abstract class GenericConstantActionFactory
 		ConstantAction indexAction,
 		int						behavior,
         int                     verifyType
-    )
-	{
-		return	new DropConstraintConstantAction( constraintName, constraintSchemaName, tableName, 
-												  tableId, tableSchemaName, indexAction, behavior, verifyType);
-	}
+    );
 
 
 	/**
@@ -565,7 +467,7 @@ public abstract class GenericConstantActionFactory
 	 *  @param  tableConglomerateId	heap conglomerate ID for table
 	 *
 	 */
-	public	ConstantAction	getDropIndexConstantAction
+	public abstract	ConstantAction	getDropIndexConstantAction
 	(
 		String				fullIndexName,
 		String				indexName,
@@ -573,25 +475,16 @@ public abstract class GenericConstantActionFactory
 		String				schemaName,
 		UUID				tableId,
 		long				tableConglomerateId
-    )
-	{
-		return	new DropIndexConstantAction( fullIndexName, indexName, tableName, schemaName,
-											 tableId, tableConglomerateId );
-	}
+    );
 
 
 	/**
 	 *	Make the ConstantAction for a DROP ALIAS statement.
 	 *
-	 *
 	 *	@param	aliasName			Alias name.
 	 *	@param	aliasType			Alias type.
-	 *
 	 */
-	public	ConstantAction	getDropAliasConstantAction(SchemaDescriptor	sd, String aliasName, char aliasType)
-	{
-		return	new DropAliasConstantAction(sd, aliasName, aliasType );
-	}
+	public abstract ConstantAction	getDropAliasConstantAction(SchemaDescriptor	sd, String aliasName, char aliasType);
 
 	/**
 	 *	Make the ConstantAction for a DROP ROLE statement.
@@ -599,10 +492,7 @@ public abstract class GenericConstantActionFactory
 	 *	@param	roleName			role name to be dropped
 	 *
 	 */
-	public ConstantAction getDropRoleConstantAction(String roleName)
-	{
-		return new DropRoleConstantAction(roleName);
-	}
+	public abstract ConstantAction getDropRoleConstantAction(String roleName);
 
     /**
 	 *	Make the ConstantAction for a DROP SEQUENCE statement.
@@ -611,22 +501,15 @@ public abstract class GenericConstantActionFactory
 	 *	@param	seqName	name of sequence to be dropped
 	 *
 	 */
-	public ConstantAction getDropSequenceConstantAction(SchemaDescriptor sd, String seqName)
-	{
-		return new DropSequenceConstantAction(sd, seqName);
-	}
+	public abstract ConstantAction getDropSequenceConstantAction(SchemaDescriptor sd, String seqName);
 
 
     /**
 	 *	Make the ConstantAction for a DROP SCHEMA statement.
 	 *
 	 *	@param	schemaName			Table name.
-	 *
 	 */
-	public	ConstantAction	getDropSchemaConstantAction(String	schemaName)
-	{
-		return	new DropSchemaConstantAction( schemaName );
-	}
+	public abstract ConstantAction	getDropSchemaConstantAction(String	schemaName);
 
 
 	/**
@@ -641,7 +524,7 @@ public abstract class GenericConstantActionFactory
 	 *  @param  behavior			drop behavior, CASCADE, RESTRICT or DEFAULT
 	 *
 	 */
-	public	ConstantAction	getDropTableConstantAction
+	public abstract ConstantAction	getDropTableConstantAction
 	(
 		String				fullTableName,
 		String				tableName,
@@ -649,10 +532,7 @@ public abstract class GenericConstantActionFactory
 		long				conglomerateNumber,
 		UUID				tableId,
 		int					behavior
-	)
-	{
-		return	new DropTableConstantAction( fullTableName, tableName, sd, conglomerateNumber, tableId, behavior );
-	}
+	);
 
 
 	/**
@@ -664,15 +544,12 @@ public abstract class GenericConstantActionFactory
 	 *	@param	sd					Schema that view lives in.
 	 *
 	 */
-	public	ConstantAction	getDropViewConstantAction
+	public abstract ConstantAction	getDropViewConstantAction
 	(
 		String				fullTableName,
 		String				tableName,
 		SchemaDescriptor	sd
-    )
-	{
-		return new DropViewConstantAction( fullTableName, tableName, sd );
-	}
+    );
 
 	/**
 	 *	Make the ConstantAction for a RENAME TABLE/COLUMN/INDEX statement.
@@ -687,7 +564,7 @@ public abstract class GenericConstantActionFactory
 	 *  @param	renamingWhat	Value indicates if Rename Column/Index.
 	 *
 	 */
-	public	ConstantAction	getRenameConstantAction
+	public abstract	ConstantAction	getRenameConstantAction
 	(
 		String				fullTableName,
 		String				tableName,
@@ -697,11 +574,7 @@ public abstract class GenericConstantActionFactory
 		UUID				tableId,
 		boolean				usedAlterTable,
 		int				renamingWhat
-	)
-	{
-		return	new RenameConstantAction( fullTableName, tableName, oldObjectName, newObjectName,
-		sd, tableId, usedAlterTable, renamingWhat );
-	}
+	);
 
 	/**
 	 *	Make the ConstantAction for a Replicated INSERT statement.
@@ -732,7 +605,7 @@ public abstract class GenericConstantActionFactory
 	 *
 	 * @exception StandardException		Thrown on failure
 	 */
-	public	ConstantAction getInsertConstantAction(
+	public abstract	ConstantAction getInsertConstantAction(
 								TableDescriptor		tableDescriptor,
 								long				conglomId,
 								StaticCompiledOpenConglomInfo heapSCOCI,
@@ -758,57 +631,26 @@ public abstract class GenericConstantActionFactory
 								boolean				singleRowSource,
 								RowLocation[]		autoincRowLocation
 							)
-			throws StandardException
-	{
-		return new InsertConstantAction(tableDescriptor,
-										conglomId,
-										heapSCOCI,
-                                        pkColumns,
-										irgs,
-										indexCIDS,
-										indexSCOCIs,
-										indexNames,
-										deferred,
-										targetProperties,
-										tableID,
-										lockMode,
-										fkInfo,
-										triggerInfo,
-										streamStorableHeapColIds,
-										indexedCols,
-										singleRowSource,
-										autoincRowLocation
-										);
-	}
+			throws StandardException;
 
 	/**
 	 *	Make the ConstantAction for an updatable VTI statement.
 	 *
 	 * @param deferred					Deferred mode?
-	 *
-	 * @exception StandardException		Thrown on failure
 	 */
-	public ConstantAction getUpdatableVTIConstantAction( int statementType, boolean deferred)
-			throws StandardException
-	{
-		return new UpdatableVTIConstantAction( statementType, deferred, null);
-	}
+	public abstract ConstantAction getUpdatableVTIConstantAction(int statementType, boolean deferred)
+			throws StandardException;
 
 	/**
 	 *	Make the ConstantAction for an updatable VTI statement.
 	 *
 	 * @param deferred					Deferred mode?
      * @param changedColumnIds Array of ids of changed columns
-	 *
-	 * @exception StandardException		Thrown on failure
 	 */
-	public ConstantAction getUpdatableVTIConstantAction( int statementType,
+	public abstract ConstantAction getUpdatableVTIConstantAction( int statementType,
                                                          boolean deferred,
                                                          int[] changedColumnIds)
-			throws StandardException
-	{
-		return new UpdatableVTIConstantAction( statementType, deferred, changedColumnIds);
-	}
+			throws StandardException;
 
 	/**
 	 * Make the ConstantAction for a LOCK TABLE statement.
@@ -817,13 +659,9 @@ public abstract class GenericConstantActionFactory
 	 *  @param conglomerateNumber	Conglomerate number for the heap
 	 *  @param exclusiveMode		Whether or not to get an exclusive lock.
 	 */
-	public	ConstantAction	getLockTableConstantAction(
+	public abstract ConstantAction	getLockTableConstantAction(
 					String fullTableName,
-					long conglomerateNumber, boolean exclusiveMode)
-	{
-		return new LockTableConstantAction( 
-						fullTableName, conglomerateNumber, exclusiveMode );
-	}
+					long conglomerateNumber, boolean exclusiveMode);
 
 
 	/**
@@ -832,20 +670,14 @@ public abstract class GenericConstantActionFactory
 	 *  @param schemaName	Name of schema.
 	 *  @param type			Literal, USER or ?
 	 */
-	public	ConstantAction	getSetSchemaConstantAction(String schemaName, int type)
-	{
-		return new SetSchemaConstantAction( schemaName , type );
-	}
+	public abstract ConstantAction	getSetSchemaConstantAction(String schemaName, int type);
 
 	/**
 	 * Make the ConstantAction for a SET TRANSACTION ISOLATION statement.
 	 *
 	 * @param isolationLevel	The new isolation level.
 	 */
-	public ConstantAction getSetTransactionIsolationConstantAction(int isolationLevel)
-	{
-		return new SetTransactionIsolationConstantAction(isolationLevel);
-	}
+	public abstract ConstantAction getSetTransactionIsolationConstantAction(int isolationLevel);
 
 
 	/**
@@ -878,7 +710,7 @@ public abstract class GenericConstantActionFactory
 	 *
 	 *  @exception StandardException Thrown on failure
 	 */
-	public	ConstantAction	getUpdateConstantAction(
+	public abstract ConstantAction	getUpdateConstantAction(
 								long				conglomId,
 								int					tableType,
 								StaticCompiledOpenConglomInfo heapSCOCI,
@@ -904,38 +736,7 @@ public abstract class GenericConstantActionFactory
 								boolean				positionedUpdate,
 								boolean				singleRowSource
 							)
-			throws StandardException
-	{
-		return new UpdateConstantAction(
-										conglomId,
-										heapSCOCI,
-                                        pkColumns,
-										irgs,
-										indexCIDS,
-										indexSCOCIs,
-										indexNames,
-										emptyHeapRow,
-										deferred,
-										targetUUID,
-										lockMode,
-										changedColumnIds,
-										fkInfo,
-										triggerInfo,
-										baseRowReadList,
-										baseRowReadMap,
-										streamStorableHeapColIds,
-										numColumns,
-										positionedUpdate,
-										singleRowSource
-										);
-	}
-
-	static protected Authorizer getAuthorizer()
-	{
-		LanguageConnectionContext lcc = (LanguageConnectionContext)
-			ContextService.getContext(LanguageConnectionContext.CONTEXT_ID);
-		return lcc.getAuthorizer();
-	}
+			throws StandardException;
 
 	/**
 	 *	Make the ConstantAction for a CREATE TRIGGER statement.
@@ -996,15 +797,12 @@ public abstract class GenericConstantActionFactory
 	 * @param	triggerName			Name of the Trigger
 	 * @param	tableId				The table this trigger is defined upon
 	 */
-	public ConstantAction getDropTriggerConstantAction
+	public abstract ConstantAction getDropTriggerConstantAction
 	(
 		SchemaDescriptor	sd,
 		String				triggerName,
 		UUID				tableId
-	)
-	{
-		return new DropTriggerConstantAction(sd, triggerName, tableId);
-	}
+	);
 
 	/**
 	 * Make the constant action for Drop Statistics statement.
@@ -1017,11 +815,8 @@ public abstract class GenericConstantActionFactory
 	 * @param forTable 		 is it an index or table whose statistics aer being
 	 * consigned to the garbage heap?
 	 */
-	public ConstantAction getDropStatisticsConstantAction
-		(SchemaDescriptor sd, String fullTableName, String objectName, boolean forTable)
-	{
-		return new DropStatisticsConstantAction(sd, fullTableName, objectName, forTable);
-	}
+	public abstract ConstantAction getDropStatisticsConstantAction
+		(SchemaDescriptor sd, String fullTableName, String objectName, boolean forTable);
 
 	/**
 	 * Make the constant action for a Grant statement
@@ -1029,11 +824,7 @@ public abstract class GenericConstantActionFactory
 	 * @param privileges The list of privileges to be granted
 	 * @param grantees The list of grantees
 	 */
-	public ConstantAction getGrantConstantAction( PrivilegeInfo privileges,
-								List grantees)
-	{
-		return new GrantRevokeConstantAction( true, privileges, grantees);
-	}
+	public abstract ConstantAction getGrantConstantAction( PrivilegeInfo privileges, List grantees);
 
 
     /**
@@ -1043,11 +834,7 @@ public abstract class GenericConstantActionFactory
 	 * @param grantees  list of authentication ids (user or roles) to
 	 *                  which roles(s) are to be granted
 	 */
-	public ConstantAction getGrantRoleConstantAction(List roleNames,
-													 List grantees)
-	{
-		return new GrantRoleConstantAction(roleNames, grantees);
-	}
+	public abstract ConstantAction getGrantRoleConstantAction(List roleNames, List grantees);
 
 
 	/**
@@ -1056,12 +843,7 @@ public abstract class GenericConstantActionFactory
 	 * @param privileges The list of privileges to be revokeed
 	 * @param grantees The list of grantees
 	 */
-	public ConstantAction getRevokeConstantAction( PrivilegeInfo privileges,
-								List grantees)
-	{
-		return new GrantRevokeConstantAction( false, privileges, grantees);
-	}
-
+	public abstract ConstantAction getRevokeConstantAction( PrivilegeInfo privileges, List grantees);
 
     /**
 	 * Make the ConstantAction for a REVOKE role statement.
@@ -1070,15 +852,9 @@ public abstract class GenericConstantActionFactory
 	 * @param grantees  list of authentication ids (user or roles) for whom
 	 *                  roles are to be revoked
 	 */
-	public ConstantAction getRevokeRoleConstantAction(List roleNames,
-													  List grantees)
-	{
-		return new RevokeRoleConstantAction(roleNames, grantees);
-	}
+	public abstract ConstantAction getRevokeRoleConstantAction(List roleNames, List grantees);
 	
-    public ConstantAction[] createConstraintConstantActionArray(int size) {
-    	return new CreateConstraintConstantAction[size];
-    }
+    public abstract ConstantAction[] createConstraintConstantActionArray(int size);
     
     public boolean primaryKeyConstantActionCheck(ConstantAction constantAction) {
 		return (constantAction instanceof CreateConstraintConstantAction) && ((CreateConstraintConstantAction) constantAction).getConstraintType() == DataDictionary.PRIMARYKEY_CONSTRAINT;

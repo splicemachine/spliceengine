@@ -246,7 +246,7 @@ public class FromBaseTable extends FromTable{
         ConglomerateDescriptor currentConglomerateDescriptor=ap.getConglomerateDescriptor();
 
         OptimizerTrace tracer=optimizer.tracer();
-        tracer.trace(OptimizerFlag.CALLING_NEXT_ACCESS_PATH,((predList==null)?0:predList.size()),0,0.0,getExposedName());
+        tracer.trace(OptimizerFlag.CALLING_NEXT_ACCESS_PATH,((predList==null)?0:predList.size()),0,0.0,getExposedName(), predList);
 
 		/*
 		 ** Remove the ordering of the current conglomerate descriptor,
@@ -372,7 +372,7 @@ public class FromBaseTable extends FromTable{
 	             * though.)
 	             */
                 if(!isOneRowResultSet(predList)){
-                    tracer.trace(OptimizerFlag.ADDING_UNORDERED_OPTIMIZABLE,((predList==null)?0:predList.size()),0,0.0,null);
+                    tracer.trace(OptimizerFlag.ADDING_UNORDERED_OPTIMIZABLE,((predList==null)?0:predList.size()),0,0.0,predList);
 
                     rowOrdering.addUnorderedOptimizable(this);
                 }else{

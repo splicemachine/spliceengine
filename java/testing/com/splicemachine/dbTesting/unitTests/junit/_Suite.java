@@ -51,7 +51,6 @@ public class _Suite extends BaseTestCase {
         suite.addTest(SystemPrivilegesPermissionTest.suite());
         suite.addTest(UTF8UtilTest.suite());
         suite.addTestSuite(CompressedNumberTest.class);
-        suite.addTest(AssertFailureTest.suite());
         suite.addTest(InputStreamUtilTest.suite());
         suite.addTest(CharacterStreamDescriptorTest.suite());
         suite.addTest(BlockedByteArrayTest.suite());

@@ -141,8 +141,7 @@ public class OptimizerFactoryImpl
 		 */
 		if (joinStrategySet == null)
 		{
-			JoinStrategy[] jss = new JoinStrategy[1];
-			jss[0] = new NestedLoopJoinStrategy();
+			JoinStrategy[] jss = new JoinStrategy[0];
 			joinStrategySet = jss;
 		}
 

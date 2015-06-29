@@ -12,5 +12,5 @@ public interface OptimizerTrace{
         WARN,
         ERROR
     }
-    void trace(OptimizerFlag flag, int intParam1,int intParam2, double doubleParam,Object objectParam1);
+    void trace(OptimizerFlag flag, int intParam1, int intParam2, double doubleParam, Object... objectParams);
 }
