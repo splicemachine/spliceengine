@@ -33,86 +33,13 @@ import com.splicemachine.uuid.BasicUUIDGenerator;
 import org.apache.log4j.Logger;
 
 public class SMRecordWriterImpl extends RecordWriter<RowLocation, ExecRow> {
-	protected TableContext tableContext;
-	protected KeyEncoder keyEncoder;
-	protected DataHash<ExecRow> dataHash;
-	protected PairEncoder encoder;
-	protected KVPair.Type pairType;
-	protected int rowsWritten = 0;
-	protected byte[] tableName;
-	protected TxnView txn;
-	protected RecordingCallBuffer<KVPair> callBuffer;
-	protected int[] pkCols;
-	protected int[] execRowFormatIds;
-	protected SpliceSequence[] sequences;
-	protected boolean hasSequence = false;
-	protected ExecRow execRowDefn;
-	protected SMSQLUtil sqlUtil;
-	protected Connection conn;
-	protected Configuration conf;
-	protected long childTxsID;
 
 	public SMRecordWriterImpl(TableContext tableContext, Configuration conf) throws IOException {
-		this.tableContext = tableContext;
-		this.pkCols = tableContext.pkCols;
-		this.execRowFormatIds = tableContext.execRowFormatIds;
-		ColumnContext[] columns = tableContext.columns;
-		this.sequences = new SpliceSequence[columns.length];
-		for(int i=0;i< columns.length;i++){
-				ColumnContext cc = columns[i];
-				if(columns[i].isAutoIncrement()){
-						hasSequence = true;
-						sequences[i] = new SpliceSequence(
-										50*cc.getAutoIncrementIncrement(),
-										cc.getSequenceRowLocation(),
-										cc.getAutoIncrementStart(),
-										cc.getAutoIncrementIncrement());
-				}
-		}
-		execRowDefn = SMSQLUtil.getExecRow(execRowFormatIds);
-		sqlUtil = SMSQLUtil.getInstance(conf.get(MRConstants.SPLICE_JDBC_STR));
-		this.conf = conf;
+
 	}
-
-
 	@Override
 	public void write(RowLocation ignore, ExecRow value) throws IOException,
 			InterruptedException {
-		try {
-			if(callBuffer == null){
-				conn = sqlUtil.createConn();
-				sqlUtil.disableAutoCommit(conn);
-				long parentTxnID = Long.parseLong(conf.get(MRConstants.SPLICE_TRANSACTION_ID));
-
-				childTxsID = sqlUtil.getChildTransactionID(conn,
-								parentTxnID,
-								conf.get(MRConstants.SPLICE_TABLE_NAME));
-
-				String strSize = conf.get(MRConstants.SPLICE_WRITE_BUFFER_SIZE);
-
-                int size = 1024;
-				if((strSize != null) && (!strSize.equals("")))
-					size = Integer.valueOf(strSize);
-
-				txn = new ActiveWriteTxn(childTxsID,childTxsID);
-
-				callBuffer = WriteCoordinator.create(conf).writeBuffer(Bytes.toBytes(tableContext.conglomerateId),
-								txn, size);
-
-				keyEncoder = getKeyEncoder();
-				dataHash = getRowHash();
-
-			}
-			byte[] key = this.keyEncoder.getKey(value);
-			dataHash.setRow(value);
-
-			byte[] bdata = dataHash.encode();
-			KVPair kv = new KVPair(key,bdata);
-			callBuffer.add(kv);
-
-		} catch (Exception e) {
-			throw new IOException(e);
-		}
 	}
 
 	@Override
@@ -120,32 +47,4 @@ public class SMRecordWriterImpl extends RecordWriter<RowLocation, ExecRow> {
 			InterruptedException {
 
 	}
-		public KeyEncoder getKeyEncoder() throws StandardException {
-				HashPrefix prefix;
-				DataHash<ExecRow> dataHash;
-				KeyPostfix postfix = NoOpPostfix.INSTANCE;
-				if(pkCols==null){
-						prefix = new SaltedPrefix(new BasicUUIDGenerator());
-						dataHash = NoOpDataHash.INSTANCE;
-				}else{
-						int[] keyColumns = new int[pkCols.length];
-						for(int i=0;i<keyColumns.length;i++){
-								keyColumns[i] = pkCols[i] -1;
-						}
-						prefix = NoOpPrefix.INSTANCE;
-						DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(true).getSerializers(execRowDefn);
-						dataHash = BareKeyHash.encoder(keyColumns,null,serializers);
-				}
-
-				return new KeyEncoder(prefix,dataHash,postfix);
-		}
-
-		public DataHash<ExecRow> getRowHash() throws StandardException {
-//				int[] columns = InsertOperation.getEncodingColumns(execRowDefn.nColumns(),pkCols);
-//				DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(true).getSerializers(execRowDefn);
-//				return new EntryDataHash(columns,null,serializers);
-            return null;
-		}
-
-
 }

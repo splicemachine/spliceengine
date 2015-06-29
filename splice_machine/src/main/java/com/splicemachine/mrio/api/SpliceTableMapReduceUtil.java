@@ -31,6 +31,8 @@ import org.apache.hadoop.hbase.mapreduce.HRegionPartitioner;
 import org.apache.hadoop.hbase.mapreduce.TableInputFormat;
 import org.apache.hadoop.hbase.mapreduce.TableOutputFormat;
 import org.apache.hadoop.hbase.mapreduce.TableReducer;
+import org.apache.hadoop.hbase.protobuf.ProtobufUtil;
+import org.apache.hadoop.hbase.protobuf.generated.ClientProtos;
 import org.apache.hadoop.hbase.util.Base64;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.zookeeper.ZKUtil;
@@ -46,9 +48,6 @@ import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.mrio.api.core.SMSQLUtil;
 
-/**
- * Utility for {@link TableMapper} and {@link TableReducer}
- */
 @SuppressWarnings("unchecked")
 public class SpliceTableMapReduceUtil {
 	  protected static DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
@@ -124,7 +123,7 @@ public class SpliceTableMapReduceUtil {
     if (outputValueClass != null) job.setMapOutputValueClass(outputValueClass);
     if (outputKeyClass != null) job.setMapOutputKeyClass(outputKeyClass);
     if (mapper != null) job.setMapperClass(mapper);
-    job.getConfiguration().set(MRConstants.SPLICE_TABLE_NAME, table);
+    job.getConfiguration().set(MRConstants.SPLICE_INPUT_TABLE_NAME, table);
     job.getConfiguration().set(TableInputFormat.SCAN, convertScanToString(scan));
     if (addDependencyJars) {
       addDependencyJars(job);
@@ -218,12 +217,9 @@ public class SpliceTableMapReduceUtil {
   public static String convertScanToString(Scan scan) throws IOException {
 	  ObjectOutput dos = null;
 	  try {
-	    ByteArrayOutputStream out = new ByteArrayOutputStream();
-	    dos = new ObjectOutputStream(out);
-	    derbyFactory.writeScanExternal(dos, scan);
-	    dos.flush();
-	    String stringy = Base64.encodeBytes(out.toByteArray());
-		  return stringy;
+	    byte[] bytes = ProtobufUtil.toScan(scan).toByteArray();
+	    String stringy = Base64.encodeBytes(bytes);
+		return stringy;
 	  } finally {
     	if (dos!=null)
     		dos.close();
@@ -238,15 +234,9 @@ public class SpliceTableMapReduceUtil {
    * @throws IOException When reading the scan instance fails.
    */
   public static Scan convertStringToScan(String base64) throws IOException {
-	  ObjectInput dis = null;
-    try {
-	    ByteArrayInputStream bis = new ByteArrayInputStream(Base64.decode(base64));
-	    dis = new ObjectInputStream(bis);
-	    return derbyFactory.readScanExternal(dis);
-	} finally {
-		if (dis!=null)
-			dis.close();
-	}
+      byte[] bytes = Base64.decode(base64);
+      ClientProtos.Scan scan = ClientProtos.Scan.parseFrom(bytes);
+      return ProtobufUtil.toScan(scan);
   }
   
   /**
@@ -349,7 +339,7 @@ public class SpliceTableMapReduceUtil {
 	Configuration conf = job.getConfiguration();    
     job.setOutputFormatClass(outputformatClass);
     if (reducer != null) job.setReducerClass(reducer);
-    conf.set(MRConstants.SPLICE_TABLE_NAME, table);
+    conf.set(MRConstants.SPLICE_OUTPUT_TABLE_NAME, table);
     if(sqlUtil == null)
     	sqlUtil = SMSQLUtil.getInstance(conf.get(MRConstants.SPLICE_JDBC_STR));
     // If passed a quorum/ensemble address, pass it on to TableOutputFormat.
@@ -361,7 +351,7 @@ public class SpliceTableMapReduceUtil {
 		e.printStackTrace();
 		throw new IOException(e);
 	}
-    conf.set(MRConstants.HBASE_OUTPUT_TABLE_NAME, hbaseTableID);
+    conf.set(MRConstants.HBASE_OUTPUT_TABLE_NAME, table);
    
     if (quorumAddress != null) {
       // Calling this will validate the format

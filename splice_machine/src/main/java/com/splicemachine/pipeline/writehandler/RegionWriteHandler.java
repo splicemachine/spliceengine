@@ -32,10 +32,10 @@ import java.util.List;
 public class RegionWriteHandler implements WriteHandler {
     protected static final DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
     static final Logger LOG = Logger.getLogger(RegionWriteHandler.class);
-    private final TransactionalRegion region;
-    private List<KVPair> mutations = Lists.newArrayList();
-    private ResettableCountDownLatch writeLatch;
-    private BatchConstraintChecker constraintChecker;
+    protected final TransactionalRegion region;
+    protected List<KVPair> mutations = Lists.newArrayList();
+    protected ResettableCountDownLatch writeLatch;
+    protected BatchConstraintChecker constraintChecker;
 
     public RegionWriteHandler(TransactionalRegion region,
                               ResettableCountDownLatch writeLatch,
@@ -61,7 +61,11 @@ public class RegionWriteHandler implements WriteHandler {
         else if(!region.rowInRange(kvPair.rowKeySlice()))
             ctx.failed(kvPair, WriteResult.wrongRegion());
         else {
-            mutations.add(kvPair);
+            if (kvPair.getType() == KVPair.Type.CANCEL){
+                mutations.add(new KVPair(kvPair.getRowKey(), kvPair.getValue(), KVPair.Type.DELETE));
+            }
+            else
+                mutations.add(kvPair);
             ctx.sendUpstream(kvPair);
         }
     }

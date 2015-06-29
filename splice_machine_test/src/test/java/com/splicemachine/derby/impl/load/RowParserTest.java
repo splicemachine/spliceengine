@@ -5,6 +5,7 @@ import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import com.splicemachine.derby.utils.test.TestingDataType;
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.pipeline.api.RecordingCallBuffer;
 import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -259,7 +260,7 @@ public class RowParserTest {
 				final Set<String> badRows = Sets.newHashSet();
 				final RowParser parser = getRowParser(row, new ImportErrorReporter() {
 						@Override
-						public boolean reportError(KVPair kvPair, WriteResult result) {
+						public boolean reportError(KVPair kvPair, WriteResult result, boolean cancel) {
 								Assert.fail("How did a KVPair get created?!");
 								return false;
 						}
@@ -274,6 +275,8 @@ public class RowParserTest {
 						@Override public void close() throws IOException {  }
 
 						@Override public long errorsReported() { return 0; }
+
+                        @Override public void setWriteBuffer(RecordingCallBuffer<KVPair> writeBuffer) {};
 				});
 
 				final ColumnContext[] columnCtxs = new ColumnContext[dataTypes.size()];
@@ -335,11 +338,12 @@ public class RowParserTest {
         final ExecRow row = getExecRow();
 
         final RowParser parser = getRowParser(row,new ImportErrorReporter() {
-						@Override public boolean reportError(KVPair kvPair, WriteResult result) { return false; }
+						@Override public boolean reportError(KVPair kvPair, WriteResult result, boolean cancel) { return false; }
 						@Override public boolean reportError(String row, WriteResult result) { return false; }
 						@Override public void close() throws IOException {  }
 
 						@Override public long errorsReported() { return 0; }
+                        @Override public void setWriteBuffer(RecordingCallBuffer<KVPair> writeBuffer) {};
 				});
 
         final ColumnContext[] columnCtxs = new ColumnContext[dataTypes.size()];

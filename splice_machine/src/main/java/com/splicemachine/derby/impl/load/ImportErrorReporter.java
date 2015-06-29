@@ -2,8 +2,10 @@ package com.splicemachine.derby.impl.load;
 
 import com.splicemachine.annotations.ThreadSafe;
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.pipeline.api.RecordingCallBuffer;
 import com.splicemachine.pipeline.impl.WriteResult;
 import java.io.Closeable;
+import java.util.concurrent.ExecutionException;
 
 /**
  * Report irrecoverable errors (such as UniqueConstraint or Write-Write conflicts)
@@ -27,7 +29,7 @@ public interface ImportErrorReporter extends Closeable{
 		 * @return true if the import can proceed, or {@code false} if
 		 * the import should stop.
 		 */
-		public boolean reportError(KVPair kvPair,WriteResult result);
+		public boolean reportError(KVPair kvPair,WriteResult result, boolean cancel) throws ExecutionException;
 
 		/**
 		 * Report an erroneous row. If the reporter decides that
@@ -43,5 +45,7 @@ public interface ImportErrorReporter extends Closeable{
 		public boolean reportError(String row,WriteResult result);
 
 		long errorsReported();
+
+        void setWriteBuffer(RecordingCallBuffer<KVPair> writeBuffer);
 
 }

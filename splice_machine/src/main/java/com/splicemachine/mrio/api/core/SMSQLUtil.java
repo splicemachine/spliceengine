@@ -146,7 +146,7 @@ public class SMSQLUtil extends SIConstants {
      * */
     public String getConglomID(String tableName) throws SQLException{
         String[] schemaTableName = parseTableName(tableName);
-        long[] conglomIds = SpliceAdmin.getConglomids(connect, schemaTableName[0], schemaTableName[1]);
+        long[] conglomIds = SpliceAdmin.getConglomNumbers(connect, schemaTableName[0], schemaTableName[1]);
         StringBuffer str = new StringBuffer();
         str.append(conglomIds[0]);
         return str.toString();

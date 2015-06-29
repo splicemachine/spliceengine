@@ -6,10 +6,7 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.pipeline.exception.ErrorState;
 
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -170,6 +167,7 @@ public class ImportErrorIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore
     public void testCannotInsertADoubleIntoAFloatField() throws Exception {
         runImportTest("double_float.csv", new ErrorCheck() {
             @Override

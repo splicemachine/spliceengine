@@ -6,7 +6,7 @@ import com.splicemachine.pipeline.api.WriteContext;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
 import com.splicemachine.pipeline.constraint.ConstraintViolation;
 import com.splicemachine.pipeline.impl.WriteResult;
-import com.splicemachine.db.iapi.sql.dictionary.ForeignKeyConstraintDescriptor;
+import com.splicemachine.pipeline.writecontextfactory.FKConstraintInfo;
 import org.apache.hadoop.hbase.client.RetriesExhaustedWithDetailsException;
 
 /**
@@ -54,18 +54,18 @@ class ForeignKeyViolationProcessor {
     /**
      * For the FK violation error message we need: table name, constraint name, and fk columns.  There is a
      * factory method in ConstraintContext for creating a ConstraintContext with just this information from a
-     * ForeignKeyConstraintDescriptor.  A slight complication is that how we get a ForeignKeyConstraintDescriptor
-     * depends on where the failure happened, etc. Thus the abstraction below.
+     * FKConstraintInfo.  A slight complication is that how we get a FKConstraintInfo depends on where the
+     * failure happened, etc. Thus the abstraction below.
      */
     interface FkConstraintContextProvider {
         ConstraintContext get(ConstraintViolation.ForeignKeyConstraintViolation cause);
     }
 
     static class ChildFkConstraintContextProvider implements FkConstraintContextProvider {
-        private ForeignKeyConstraintDescriptor fkConstraintDescriptor;
+        private FKConstraintInfo fkConstraintInfo;
 
-        public ChildFkConstraintContextProvider(ForeignKeyConstraintDescriptor fkConstraintDescriptor) {
-            this.fkConstraintDescriptor = fkConstraintDescriptor;
+        public ChildFkConstraintContextProvider(FKConstraintInfo fkConstraintInfo) {
+            this.fkConstraintInfo = fkConstraintInfo;
         }
 
         @Override
@@ -74,7 +74,7 @@ class ForeignKeyViolationProcessor {
             //
             // Error message looks like: INSERT on table 'C' caused a violation of foreign key constraint 'FK_1' for key (5).
             //
-            return ConstraintContext.foreignKey(fkConstraintDescriptor);
+            return ConstraintContext.foreignKey(fkConstraintInfo);
         }
     }
 

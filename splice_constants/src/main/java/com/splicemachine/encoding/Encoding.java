@@ -36,7 +36,7 @@ public final class Encoding {
      * @return an ascending sort-order-preserving encoding.
      */
     public static byte[] encode(boolean value){
-        return ScalarEncoding.toBytes(value, false);
+        return ScalarEncoding.writeBoolean(value,false);
     }
 
 
@@ -51,7 +51,7 @@ public final class Encoding {
      * encoding, false otherwise.
      */
     public static boolean decodeBoolean(byte[] data,int offset){
-        return ScalarEncoding.toBoolean(data,offset,false);
+        return ScalarEncoding.readBoolean(data,offset,false);
     }
 
     /**
@@ -65,7 +65,7 @@ public final class Encoding {
      * encoding, false otherwise.
      */
     public static boolean decodeBoolean(byte[] data){
-        return ScalarEncoding.toBoolean(data,false);
+        return ScalarEncoding.readBoolean(data,false);
     }
 
     /**
@@ -81,7 +81,7 @@ public final class Encoding {
      * @return an order-preserving encoding respecting the ascending/descending order specified by {@code desc}.
      */
     public static byte[] encode(boolean value, boolean desc){
-        return ScalarEncoding.toBytes(value, desc);
+        return ScalarEncoding.writeBoolean(value,desc);
     }
 
     /**
@@ -102,7 +102,7 @@ public final class Encoding {
      * @return an order-preserving encoding respecting the ascending/descending order specified by {@code desc}.
      */
     public static boolean decodeBoolean(byte[] data,int offset,boolean desc){
-        return ScalarEncoding.toBoolean(data,offset, desc);
+        return ScalarEncoding.readBoolean(data,offset,desc);
     }
 
     /**
@@ -123,7 +123,7 @@ public final class Encoding {
      * @return an order-preserving encoding respecting the ascending/descending order specified by {@code desc}.
      */
     public static boolean decodeBoolean(byte[] data,boolean desc){
-        return ScalarEncoding.toBoolean(data, desc);
+        return ScalarEncoding.readBoolean(data,desc);
     }
 
     /**
@@ -133,7 +133,7 @@ public final class Encoding {
      * @return an order-preserving byte encoding.
      */
     public static byte[] encode(byte value){
-        return ScalarEncoding.toBytes(value,false);
+        return ScalarEncoding.writeLong(value,false);
 //        return encode(new byte[]{value}); //have to encode this to avoid 0-entries
     }
 
@@ -144,7 +144,7 @@ public final class Encoding {
      * @return the decoded byte.
      */
     public static byte decodeByte(byte[] data){
-        return (byte)ScalarEncoding.toLong(data,false);
+        return (byte)ScalarEncoding.readLong(data,false);
     }
 
     /**
@@ -159,7 +159,7 @@ public final class Encoding {
      * @return an order-preserving representation of {@code value}
      */
     public static byte[] encode(byte value,boolean desc){
-        return ScalarEncoding.toBytes(value,desc);
+        return ScalarEncoding.writeLong(value,desc);
     }
 
     /**
@@ -173,19 +173,19 @@ public final class Encoding {
      * @return the byte represented by {@code data}
      */
     public static byte decodeByte(byte[] data,boolean desc){
-        return (byte)ScalarEncoding.toLong(data,desc);
+        return (byte)ScalarEncoding.readLong(data,desc);
     }
 
     public static byte decodeByte(byte[] data, int offset){
-        return (byte)ScalarEncoding.toLong(data,offset,false);
+        return (byte)ScalarEncoding.readLong(data,offset,false);
     }
 
     public static byte decodeByte(byte[] data, int offset,boolean desc){
-        return (byte)ScalarEncoding.toLong(data,offset, desc);
+        return (byte)ScalarEncoding.readLong(data,offset,desc);
     }
 
     public static byte decodeByte(byte[] data, int offset,boolean desc,long[] lengthHolder){
-        ScalarEncoding.toLong(data,offset, desc,lengthHolder);
+        ScalarEncoding.readLong(data,offset,desc,lengthHolder);
         return (byte)lengthHolder[0];
     }
 
@@ -198,7 +198,7 @@ public final class Encoding {
      * @return an ascending, order-preserving encoding of {@code value}
      */
     public static byte[] encode(short value){
-        return ScalarEncoding.toBytes(value,false);
+        return ScalarEncoding.writeLong(value,false);
     }
 
     /**
@@ -210,7 +210,7 @@ public final class Encoding {
      * @return the short represented by {@code data}
      */
     public static short decodeShort(byte[] data){
-        return (short)ScalarEncoding.toLong(data,false);
+        return (short)ScalarEncoding.readLong(data,false);
     }
 
     /**
@@ -225,7 +225,7 @@ public final class Encoding {
      * @return an order-preserving encoding of a short.
      */
     public static byte[] encode(short value,boolean desc){
-        return ScalarEncoding.toBytes(value,desc);
+        return ScalarEncoding.writeLong(value,desc);
     }
 
 
@@ -241,19 +241,19 @@ public final class Encoding {
      * @return the short encoded by {@code data}
      */
     public static short decodeShort(byte[] data,boolean desc){
-        return (short)ScalarEncoding.toLong(data, desc);
+        return (short)ScalarEncoding.readLong(data,desc);
     }
 
     public static short decodeShort(byte[] data, int offset){
-        return (short)ScalarEncoding.toLong(data,offset,false);
+        return (short)ScalarEncoding.readLong(data,offset,false);
     }
 
     public static short decodeShort(byte[] data, int offset,boolean desc){
-        return (short)ScalarEncoding.toLong(data,offset,desc);
+        return (short)ScalarEncoding.readLong(data,offset,desc);
     }
 
     public static short decodeShort(byte[] data, int offset,boolean desc,long[] lengthHolder){
-        ScalarEncoding.toLong(data, offset, desc, lengthHolder);
+        ScalarEncoding.readLong(data,offset,desc,lengthHolder);
         return (short)lengthHolder[0];
     }
 
@@ -266,7 +266,7 @@ public final class Encoding {
      * @return an ascending, order-preserving encoding of {@code value}.
      */
     public static byte[] encode(int value){
-        return ScalarEncoding.toBytes(value,false);
+        return ScalarEncoding.writeLong(value,false);
     }
 
     public static int encode(int value, byte[] buffer, int offset){
@@ -274,15 +274,11 @@ public final class Encoding {
     }
 
     public static int encode(int value, byte[] buffer, int offset, boolean desc){
-        return ScalarEncoding.toBytes(value,buffer,offset,desc);
+        return ScalarEncoding.writeLong(value,buffer,offset,desc);
     }
 
     public static int encodedLength(int value){
-        return ScalarEncoding.encodedLength(value,false);
-    }
-
-    public static int encodedLength(int value,boolean desc){
-        return ScalarEncoding.encodedLength(value,desc);
+        return ScalarEncoding.encodedLength(value);
     }
 
     /**
@@ -294,7 +290,7 @@ public final class Encoding {
      * @return the int represented by {@code data}
      */
     public static int decodeInt(byte[] data){
-        return (int)ScalarEncoding.toLong(data,false);
+        return ScalarEncoding.readInt(data,false);
     }
 
 
@@ -310,7 +306,7 @@ public final class Encoding {
      * @return an order-preserving encoding of {@code value}
      */
     public static byte[] encode(int value,boolean desc){
-        return ScalarEncoding.toBytes(value,desc);
+        return ScalarEncoding.writeLong(value,desc);
     }
 
     /**
@@ -325,19 +321,19 @@ public final class Encoding {
      * @return the int represented by {@code data}
      */
     public static int decodeInt(byte[] data,boolean desc){
-        return (int)ScalarEncoding.toLong(data,desc);
+        return ScalarEncoding.readInt(data,desc);
     }
 
     public static int decodeInt(byte[] data, int offset){
-        return (int)ScalarEncoding.toLong(data,offset,false);
+        return (int)ScalarEncoding.readLong(data,offset,false);
     }
 
     public static int decodeInt(byte[] data, int offset,boolean desc){
-        return (int)ScalarEncoding.toLong(data,offset,desc);
+        return (int)ScalarEncoding.readLong(data,offset,desc);
     }
 
     public static int decodeInt(byte[] data, int offset,boolean desc,long[] lengthHolder){
-        ScalarEncoding.toLong(data,offset,desc,lengthHolder);
+        ScalarEncoding.readLong(data,offset,desc,lengthHolder);
         return (int)lengthHolder[0];
     }
 
@@ -350,7 +346,7 @@ public final class Encoding {
      * @return an ascending, order-preserving encoding of {@code value}
      */
     public static byte[] encode(long value){
-        return ScalarEncoding.toBytes(value, false);
+        return ScalarEncoding.writeLong(value,false);
     }
 
     /**
@@ -362,7 +358,7 @@ public final class Encoding {
      * @return the long represented by {@code data}.
      */
     public static long decodeLong(byte[] data){
-        return ScalarEncoding.toLong(data, false);
+        return ScalarEncoding.readLong(data,false);
     }
 
     /**
@@ -377,7 +373,7 @@ public final class Encoding {
      * @return an order-preserving encoding of {@code value}
      */
     public static byte[] encode(long value,boolean desc){
-        return ScalarEncoding.toBytes(value, desc);
+        return ScalarEncoding.writeLong(value,desc);
     }
 
     /**
@@ -392,15 +388,15 @@ public final class Encoding {
      * @return the long represented by {@code data}
      */
     public static long decodeLong(byte[] data,boolean desc){
-        return ScalarEncoding.toLong(data, desc);
+        return ScalarEncoding.readLong(data,desc);
     }
 
     public static long decodeLong(byte[] data, int offset,boolean desc){
-        return ScalarEncoding.toLong(data,offset,desc);
+        return ScalarEncoding.readLong(data,offset,desc);
     }
 
     public static void decodeLongWithLength(byte[] data, int offset, boolean  desc, long[] valueAndLength){
-        ScalarEncoding.toLong(data,offset,desc,valueAndLength);
+        ScalarEncoding.readLong(data,offset,desc,valueAndLength);
     }
 
     /**

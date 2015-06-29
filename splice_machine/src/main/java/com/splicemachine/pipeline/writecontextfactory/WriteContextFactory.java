@@ -40,18 +40,6 @@ public interface WriteContextFactory<T> {
 
     void addIndex(DDLChange ddlChange, int[] columnOrdering, int[] typeIds);
 
-    /**
-     * A new FK has been created referencing this context's conglomerate, add or update FK write handler that does
-     * existence checks.
-     */
-    void addForeignKeyParentCheckWriteFactory(int[] backingIndexFormatIds, String parentTableVersion);
-
-    /**
-     * A new FK has been created referencing this context's conglomerate, add or update FK write handler that
-     * intercepts UPDATES/DELETES.
-     */
-    void addForeignKeyParentInterceptWriteFactory(String parentTableName, List<Long> backingIndexConglomIds);
-
     void addDDLChange(DDLChange ddlChange);
 
     void close();

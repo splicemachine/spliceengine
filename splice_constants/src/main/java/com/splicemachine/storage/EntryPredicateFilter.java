@@ -14,7 +14,7 @@ import java.io.IOException;
  * Created on: 7/8/13
  */
 public class EntryPredicateFilter {
-    public static EntryPredicateFilter EMPTY_PREDICATE = new EntryPredicateFilter(new BitSet(), new ObjectArrayList<Predicate>());
+    public static final EntryPredicateFilter EMPTY_PREDICATE = new EntryPredicateFilter(new BitSet(), new ObjectArrayList<Predicate>());
     private BitSet fieldsToReturn;
     private ObjectArrayList<Predicate> valuePredicates;
     private boolean returnIndex;

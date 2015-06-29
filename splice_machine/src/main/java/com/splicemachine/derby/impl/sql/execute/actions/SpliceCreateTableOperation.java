@@ -20,8 +20,6 @@ import com.splicemachine.db.impl.sql.CursorInfo;
 import com.splicemachine.db.impl.sql.GenericStorablePreparedStatement;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
-import com.splicemachine.db.impl.sql.execute.CreateConstraintConstantAction;
-import com.splicemachine.db.impl.sql.execute.CreateTableConstantAction;
 import com.splicemachine.db.impl.sql.execute.DDLConstantAction;
 import com.splicemachine.db.shared.common.reference.SQLState;
 

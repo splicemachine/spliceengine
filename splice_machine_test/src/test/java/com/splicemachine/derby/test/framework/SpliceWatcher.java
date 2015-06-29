@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import com.google.common.collect.Lists;
 import org.apache.hadoop.hbase.client.HTable;
@@ -41,11 +42,13 @@ public class SpliceWatcher extends TestWatcher {
     private TestConnection currentConnection;
     private final String defaultSchema;
 
-    /* Collections below can be accessed concurrently when a @Test(timeout=) annotated test fails. */
+    /* Collections below can be accessed concurrently when a @Test(timeout=) annotated test fails. This
+     * class is NOT meant to be thread safe-- we use concurrent structures here just so that we don't
+     * obscure @Test(timeout=) related exceptions with ConcurrentModification exceptions */
 
-    private final List<Connection> connections = Collections.synchronizedList(new ArrayList<Connection>());
-    private final List<Statement> statements = Collections.synchronizedList(new ArrayList<Statement>());
-    private final List<ResultSet> resultSets = Collections.synchronizedList(new ArrayList<ResultSet>());
+    private final List<Connection> connections = new CopyOnWriteArrayList<>();
+    private final List<Statement> statements = new CopyOnWriteArrayList<>();
+    private final List<ResultSet> resultSets = new CopyOnWriteArrayList<>();
 
     public SpliceWatcher() {
         this(null);
@@ -89,7 +92,7 @@ public class SpliceWatcher extends TestWatcher {
     public TestConnection createConnection(String userName, String password) throws Exception {
         currentConnection = new TestConnection(SpliceNetConnection.getConnectionAs(userName, password));
         connections.add(currentConnection);
-        if(!isNullOrEmpty(defaultSchema)) {
+        if (!isNullOrEmpty(defaultSchema)) {
             setSchema(defaultSchema);
         }
         return currentConnection;
@@ -102,49 +105,43 @@ public class SpliceWatcher extends TestWatcher {
     }
 
     private void closeConnections() {
-        synchronized (connections) {
-            try {
-                for (Connection connection : connections) {
-                    if (connection != null && !connection.isClosed()) {
-                        try {
-                            connection.close();
-                        } catch (SQLException e) {
-                            connection.rollback();
-                            connection.close();
-                        }
+        try {
+            for (Connection connection : connections) {
+                if (connection != null && !connection.isClosed()) {
+                    try {
+                        connection.close();
+                    } catch (SQLException e) {
+                        connection.rollback();
+                        connection.close();
                     }
                 }
-            } catch (Exception e) {
-                throw new RuntimeException(e);
             }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
     private void closeStatements() {
-        synchronized (statements) {
-            try {
-                for (Statement s : statements) {
-                    if (!s.isClosed())
-                        s.close();
-                }
-            } catch (Exception e) {
-                throw new RuntimeException(e);
+        try {
+            for (Statement s : statements) {
+                if (!s.isClosed())
+                    s.close();
             }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
     }
 
     private void closeResultSets() {
         List<Throwable> t = Lists.newArrayListWithExpectedSize(0);
-        synchronized (resultSets) {
-            for (ResultSet r : resultSets) {
-                try {
-                    if (!r.isClosed()) {
-                        r.close();
-                    }
-                } catch (Exception e) {
-                    e.printStackTrace();
-                    t.add(e);
+        for (ResultSet r : resultSets) {
+            try {
+                if (!r.isClosed()) {
+                    r.close();
                 }
+            } catch (Exception e) {
+                e.printStackTrace();
+                t.add(e);
             }
         }
         try {
@@ -208,6 +205,11 @@ public class SpliceWatcher extends TestWatcher {
     public int executeUpdate(String sql) throws Exception {
         Statement s = getStatement();
         return s.executeUpdate(sql);
+    }
+    
+    public boolean execute(String sql) throws Exception {
+    	Statement s = getStatement();
+    	return s.execute(sql);
     }
 
     public int executeUpdate(String sql, String userName, String password) throws Exception {

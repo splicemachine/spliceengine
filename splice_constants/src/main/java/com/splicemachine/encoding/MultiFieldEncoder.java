@@ -44,7 +44,7 @@ public class MultiFieldEncoder {
 
     public MultiFieldEncoder encodeNext(boolean value,boolean desc){
 //        assert currentPos<fields.length;
-        byte[] next = ScalarEncoding.toBytes(value, desc);
+        byte[] next = ScalarEncoding.writeBoolean(value,desc);
         currentSize+=next.length;
         fields[currentPos] = next;
         currentPos++;
@@ -70,7 +70,7 @@ public class MultiFieldEncoder {
 
     public MultiFieldEncoder encodeNext(short value,boolean desc){
 //        assert currentPos<fields.length;
-        byte[]  next = ScalarEncoding.toBytes(value, desc);
+        byte[]  next = ScalarEncoding.writeLong(value,desc);
         currentSize+=next.length;
         fields[currentPos] = next;
         currentPos++;
@@ -84,7 +84,7 @@ public class MultiFieldEncoder {
 
     public MultiFieldEncoder encodeNext(int value,boolean desc){
 //        assert currentPos<fields.length;
-        byte[] bytes = ScalarEncoding.toBytes(value, desc);
+        byte[] bytes = ScalarEncoding.writeLong(value,desc);
         currentSize+=bytes.length;
         fields[currentPos] = bytes;
         currentPos++;
@@ -99,7 +99,7 @@ public class MultiFieldEncoder {
 
     public MultiFieldEncoder encodeNext(long value,boolean desc){
 //        assert currentPos<fields.length;
-        byte[] bytes = ScalarEncoding.toBytes(value, desc);
+        byte[] bytes = ScalarEncoding.writeLong(value,desc);
         currentSize+=bytes.length;
         fields[currentPos] = bytes;
         currentPos++;

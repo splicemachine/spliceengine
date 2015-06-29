@@ -21,8 +21,10 @@ import com.splicemachine.derby.utils.marshall.dvd.TypeProvider;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.hbase.MeasuredRegionScanner;
+import com.splicemachine.metrics.Counter;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.TimeView;
+import com.splicemachine.metrics.Timer;
 import com.splicemachine.si.api.SIFilter;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.TxnView;
@@ -34,10 +36,10 @@ import com.splicemachine.storage.*;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.filter.Filter;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
@@ -49,6 +51,8 @@ import java.util.List;
  */
 public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoCloseable{
     private static Logger LOG = Logger.getLogger(SITableScanner.class);
+    private final Timer timer;
+    private final Counter filterCounter;
     private MeasuredRegionScanner<Data> regionScanner;
     private final TransactionalRegion region;
     private final Scan scan;
@@ -74,7 +78,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
     private ExecRowAccumulator accumulator;
     private final SDataLib dataLib;
     private EntryDecoder entryDecoder;
-
+    private final Counter outputBytesCounter;
 
     protected SITableScanner(final SDataLib dataLib, MeasuredRegionScanner<Data> scanner,
                              final TransactionalRegion region,
@@ -99,6 +103,9 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
         this.rowDecodingMap = rowDecodingMap;
         this.keyColumnSortOrder = keyColumnSortOrder;
         this.indexName = indexName;
+        this.timer = metricFactory.newTimer();
+        this.filterCounter = metricFactory.newCounter();
+        this.outputBytesCounter = metricFactory.newCounter();
         this.regionScanner = scanner;
         this.keyDecodingMap = keyDecodingMap;
         this.accessedKeys = accessedPks;
@@ -160,17 +167,18 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
                 if(template.nColumns()>0){
                     if(!filterRowKey(currentKeyValue)||!filterRow(filter)){
                         //filter the row first, then filter the row key
-                        //filterCounter.increment();
+                        filterCounter.increment();
                         continue;
                     }
                 }else if(!filterRow(filter)){
                     //still need to filter rows to deal with transactional issues
-                    //filterCounter.increment();
+                    filterCounter.increment();
                     continue;
                 } else {
                     if (LOG.isTraceEnabled())
                         SpliceLogUtils.trace(LOG,"miss columns=%d",template.nColumns());
                 }
+                measureOutputSize();
                 currentKeyValue = keyValues.get(0);
                 setRowLocation(currentKeyValue);
                 return template;
@@ -178,6 +186,25 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
         }while(hasRow);
         currentRowLocation = null;
         return null;
+    }
+
+    public long getBytesOutput(){
+        return outputBytesCounter.getTotal();
+    }
+
+    private void measureOutputSize(){
+        if(outputBytesCounter.isActive()){
+            for(Data cell:keyValues){
+                long len = 0;
+                Cell c = (Cell)cell;
+                len+=c.getRowLength();
+                len+=c.getFamilyLength();
+                len+=c.getQualifierLength();
+                len+=c.getValueLength();
+                outputBytesCounter.add(len);
+            }
+        }
+
     }
 
     public void recordFieldLengths(int[] columnLengths){

@@ -75,7 +75,7 @@ public class SMSerDe implements SerDe {
         if (hbaseDir == null)
         	throw new SerDeException("hbase root directory not set, please include hbase.rootdir in config or via -D system property ...");
         if (conf != null) {
-            conf.set(MRConstants.SPLICE_TABLE_NAME, spliceInputTableName);
+            conf.set(MRConstants.SPLICE_INPUT_TABLE_NAME, spliceInputTableName);
             conf.set(MRConstants.SPLICE_JDBC_STR, tbl.getProperty(MRConstants.SPLICE_JDBC_STR));
             conf.set(HConstants.HBASE_DIR, hbaseDir);
             if (conf.get(HiveConf.ConfVars.POSTEXECHOOKS.varname) == null) {

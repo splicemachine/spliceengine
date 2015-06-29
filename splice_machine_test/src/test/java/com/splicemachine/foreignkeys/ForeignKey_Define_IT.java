@@ -254,24 +254,6 @@ public class ForeignKey_Define_IT {
         methodWatcher.executeUpdate("insert into C values(100,100)");
     }
 
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-    // dropping table
-    // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
-    @Test
-    public void dropTable_FailsIfTableWithDependentFKExists() throws Exception {
-        methodWatcher.executeUpdate("create table P (a int, b int, constraint pk1 primary key(a))");
-        methodWatcher.executeUpdate("create table C (a int, CONSTRAINT fk1 FOREIGN KEY(a) REFERENCES P(a))");
-        try {
-            methodWatcher.executeUpdate("drop table P");
-            fail("Should not be able to drop P");
-        } catch (Exception e) {
-            assertEquals("Operation 'DROP CONSTRAINT' cannot be performed on object 'PK1' because CONSTRAINT 'FK1' is dependent on that object.", e.getMessage());
-        }
-        // This order should succeed.
-        methodWatcher.executeUpdate("drop table C");
-        methodWatcher.executeUpdate("drop table P");
-    }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     // misc other FK definition tests
@@ -317,6 +299,15 @@ public class ForeignKey_Define_IT {
         }
         assertEquals(6L, methodWatcher.query("select count(*) from P"));
         assertEquals(3L, methodWatcher.query("select count(*) from C"));
+    }
+
+    private void assertQueryFail(String sql, String expectedExceptionMessage) {
+        try {
+            methodWatcher.executeUpdate(sql);
+            fail(String.format("Expected query '%s' to fail with error message '%s'", sql, expectedExceptionMessage));
+        } catch (Exception e) {
+            assertEquals(expectedExceptionMessage, e.getMessage());
+        }
     }
 
 }

@@ -70,7 +70,7 @@ public class SpliceJob extends Job {
 				
 				PreparedStatement ps = conn.prepareStatement("call SYSCS_UTIL.SYSCS_ELEVATE_TRANSACTION(?)");
 		
-				ps.setString(1,super.getConfiguration().get(MRConstants.SPLICE_TABLE_NAME));
+				ps.setString(1,super.getConfiguration().get(MRConstants.SPLICE_OUTPUT_TABLE_NAME));
 				ps.executeUpdate();
 
 				super.getConfiguration().set(

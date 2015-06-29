@@ -33,6 +33,7 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
     private final IndexTransformer transformer;
     private CallBuffer<KVPair> indexBuffer;
     private final int expectedWrites;
+    private final boolean unique;
 
     public IndexDeleteWriteHandler(BitSet indexedColumns,
                                    int[] mainColToIndexPosMap,
@@ -80,10 +81,14 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
 								null,
 								keyDecodingMap,
 								destAscDescColumns);
+                this.unique = unique;
     }
 
     @Override
 	public boolean updateIndex(KVPair mutation, WriteContext ctx) {
+        if (unique && mutation.getType() == KVPair.Type.CANCEL) {
+            return true;
+        }
         if(indexBuffer==null){
             try{
                 indexBuffer = getWriteBuffer(ctx,expectedWrites);
@@ -99,7 +104,7 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
 
     @Override
     protected boolean isHandledMutationType(KVPair.Type type) {
-        return type == KVPair.Type.DELETE;
+        return type == KVPair.Type.DELETE || type == KVPair.Type.CANCEL;
     }
 
     @Override

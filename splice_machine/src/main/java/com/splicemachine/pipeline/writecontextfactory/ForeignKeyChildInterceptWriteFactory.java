@@ -1,8 +1,8 @@
 package com.splicemachine.pipeline.writecontextfactory;
 
+import com.google.common.primitives.Longs;
 import com.splicemachine.pipeline.writecontext.PipelineWriteContext;
 import com.splicemachine.pipeline.writehandler.foreignkey.ForeignKeyChildInterceptWriteHandler;
-import com.splicemachine.db.iapi.sql.dictionary.ForeignKeyConstraintDescriptor;
 
 import java.io.IOException;
 
@@ -11,22 +11,37 @@ import java.io.IOException;
  */
 class ForeignKeyChildInterceptWriteFactory implements LocalWriteFactory {
 
-    private final byte[] parentTableName;
-    private final ForeignKeyConstraintDescriptor foreignKeyConstraintDescriptor;
+    /* The base-table or unique-index conglomerate that this FK references. */
+    private final long referencedConglomerateNumber;
+    private final FKConstraintInfo fkConstraintInfo;
 
-    ForeignKeyChildInterceptWriteFactory(byte[] parentTableName, ForeignKeyConstraintDescriptor foreignKeyConstraintDescriptor) {
-        this.parentTableName = parentTableName;
-        this.foreignKeyConstraintDescriptor = foreignKeyConstraintDescriptor;
+    ForeignKeyChildInterceptWriteFactory(long referencedConglomerateNumber, FKConstraintInfo fkConstraintInfo) {
+        this.referencedConglomerateNumber = referencedConglomerateNumber;
+        this.fkConstraintInfo = fkConstraintInfo;
     }
 
     @Override
     public void addTo(PipelineWriteContext ctx, boolean keepState, int expectedWrites) throws IOException {
-        ctx.addLast(new ForeignKeyChildInterceptWriteHandler(parentTableName, foreignKeyConstraintDescriptor));
+        ctx.addLast(new ForeignKeyChildInterceptWriteHandler(referencedConglomerateNumber, fkConstraintInfo));
     }
 
     @Override
     public long getConglomerateId() {
-        return 0;
+        throw new UnsupportedOperationException("not used");
     }
 
+
+
+    @Override
+    public int hashCode() {
+        return Longs.hashCode(this.referencedConglomerateNumber);
+    }
+
+    // Equality is based on the referenced conglomerate.  Within the FK backing index where the WriteHandlers from
+    // this factory will be installed we only need one WriteHandler for each referenced conglomerate number.
+    @Override
+    public boolean equals(Object o) {
+        return o == this || (o instanceof ForeignKeyChildInterceptWriteFactory) &&
+                ((ForeignKeyChildInterceptWriteFactory)o).referencedConglomerateNumber == this.referencedConglomerateNumber;
+    }
 }

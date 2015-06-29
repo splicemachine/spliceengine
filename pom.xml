@@ -24,7 +24,7 @@
 		</repository>
 	</repositories>
 	<properties>
-		<derby.version>1.1.1.4-SNAPSHOT</derby.version>
+		<derby.version>1.1.1.5-SNAPSHOT</derby.version>
 		<excluded.categories>com.splicemachine.test.SlowTest, com.splicemachine.test.FinalTest, com.splicemachine.test.BackupTest</excluded.categories>
 		<failTasksRandomly>true</failTasksRandomly>
 		<!-- run chaos monkey -->
@@ -692,6 +692,7 @@
 						<groupId>org.codehaus.mojo</groupId>
 						<artifactId>findbugs-maven-plugin</artifactId>
 						<configuration>
+							<excludeFilterFile>${basedir}/../../findbugs-exclude.xml</excludeFilterFile>
 							<!-- defaults for findbugs:findbugs
 							<classFilesDirectory>${project.build.outputDirectory}</classFilesDirectory>
 							<findbugsXmlOutputDirectory>${project.build.directory}</findbugsXmlOutputDirectory>
@@ -702,7 +703,6 @@
 							<debug>false</debug>
 							<effort>Default</effort>
 							<excludeBugsFile></excludeBugsFile>
-							<excludeFilterFile></excludeFilterFile>
 							<failOnError>true</failOnError>
 							<findbugsXmlOutput>true</findbugsXmlOutput>
 							<fork>true</fork>

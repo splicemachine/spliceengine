@@ -116,7 +116,7 @@ public class SpliceAdminIT {
         List<Map> tableCluster = TestUtils.tableLookupByNumberNoPrint(methodWatcher);
 
         List<Long> actualConglomIDs = new ArrayList<Long>();
-        long[] conglomids = SpliceAdmin.getConglomids(methodWatcher.getOrCreateConnection(),CLASS_NAME,TABLE_NAME);
+        long[] conglomids = SpliceAdmin.getConglomNumbers(methodWatcher.getOrCreateConnection(), CLASS_NAME, TABLE_NAME);
         Assert.assertTrue(conglomids.length > 0);
         for (long conglomID : conglomids) {
             actualConglomIDs.add(conglomID);
@@ -143,7 +143,7 @@ public class SpliceAdminIT {
         List<Map> tableCluster = TestUtils.tableLookupByNumberNoPrint(methodWatcher);
 
         List<Long> actualConglomIDs = new ArrayList<Long>();
-        long[] conglomids = SpliceAdmin.getConglomids(methodWatcher.getOrCreateConnection(),CLASS_NAME,null);
+        long[] conglomids = SpliceAdmin.getConglomNumbers(methodWatcher.getOrCreateConnection(), CLASS_NAME, null);
         Assert.assertTrue(conglomids.length > 0);
         for (long conglomID : conglomids) {
             actualConglomIDs.add(conglomID);
