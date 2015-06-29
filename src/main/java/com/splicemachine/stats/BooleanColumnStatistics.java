@@ -98,7 +98,10 @@ public class BooleanColumnStatistics extends BaseColumnStatistics<Boolean> {
 
         @Override
         public void encode(BooleanColumnStatistics item,DataOutput encoder) throws IOException {
-            BaseColumnStatistics.write(item, encoder);
+            encoder.writeInt(item.columnId);
+            encoder.writeLong(item.totalBytes);
+            encoder.writeLong(item.totalCount);
+            encoder.writeLong(item.nullCount);
             FrequencyCounters.booleanEncoder().encode(item.frequentElements,encoder);
         }
 
