@@ -187,7 +187,7 @@ public abstract class ColumnAverage implements ColumnStatistics<DataValueDescrip
         public Distribution<DataValueDescriptor> getDistribution() {
             BooleanFrequentElements bfe = adjustedFrequencies();
             BooleanColumnStatistics stats = new BooleanColumnStatistics(columnId,bfe,
-                    avgColumnWidth()*nonNullCount(),nonNullCount(),nullCount(),trueCount);
+                    avgColumnWidth()*nonNullCount(),nonNullCount(),nullCount());
             return new BooleanStats.BooleanDist(stats);
         }
 
