@@ -1,5 +1,7 @@
 package com.splicemachine.derby.impl.job.fk;
 
+import com.splicemachine.derby.ddl.FKTentativeDDLDesc;
+import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.job.coprocessor.RegionTask;
 import com.splicemachine.job.Task;
@@ -13,32 +15,32 @@ import java.util.Collections;
 import java.util.Map;
 
 /**
- * See docs in CreateFKTask for details.
+ * See docs in FKTask for details.
  */
-public class CreateFkJob implements CoprocessorJob {
+public class FkJob implements CoprocessorJob {
 
     private final HTableInterface table;
+    /* Transaction that is adding a FK */
     private final TxnView txn;
-    private final int[] backingIndexFormatIds;
-    private final long referencedConglomerateId;
-    private final long referencingBackingIndexConglomId;
-    private final String referencedTableName;
-    private final String referencedTableVersion;
+    /* Info necessary to create the FK */
+    private final FKTentativeDDLDesc ddlDescriptor;
+    /* Run this task on all regions for this conglomerate number  */
+    private final long jobTargetConglomerateNumber;
+    /* Used to indicate if this job is adding or dropping a FK */
+    private final DDLChangeType ddlChangeType;
 
-    public CreateFkJob(HTableInterface table, TxnView txn, int referencedConglomerateId, int[] backingIndexFormatIds,
-                       long referencingBackingIndexConglomId, String referncedTableName, String referencedTableVersion) {
+    public FkJob(HTableInterface table, TxnView txn, long targetConglomerateNumber, DDLChangeType ddlChangeType,
+                 FKTentativeDDLDesc ddlDescriptor) {
         this.table = table;
         this.txn = txn;
-        this.backingIndexFormatIds = backingIndexFormatIds;
-        this.referencedConglomerateId = referencedConglomerateId;
-        this.referencingBackingIndexConglomId = referencingBackingIndexConglomId;
-        this.referencedTableName = referncedTableName;
-        this.referencedTableVersion = referencedTableVersion;
+        this.jobTargetConglomerateNumber = targetConglomerateNumber;
+        this.ddlChangeType = ddlChangeType;
+        this.ddlDescriptor = ddlDescriptor;
     }
 
     @Override
     public Map<? extends RegionTask, Pair<byte[], byte[]>> getTasks() throws Exception {
-        CreateFkTask task = new CreateFkTask(getJobId(), backingIndexFormatIds, referencedConglomerateId, referencingBackingIndexConglomId, referencedTableName, referencedTableVersion);
+        FkTask task = new FkTask(getJobId(), txn, jobTargetConglomerateNumber, ddlChangeType, ddlDescriptor);
         return Collections.singletonMap(task, Pair.newPair(HConstants.EMPTY_START_ROW, HConstants.EMPTY_END_ROW));
     }
 
@@ -59,7 +61,7 @@ public class CreateFkJob implements CoprocessorJob {
 
     @Override
     public byte[] getDestinationTable() {
-        return null;
+        return this.table.getName().getName();
     }
 
     @Override

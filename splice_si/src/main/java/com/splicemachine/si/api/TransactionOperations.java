@@ -11,7 +11,7 @@ import com.splicemachine.si.impl.SimpleOperationFactory;
 public class TransactionOperations {
 
     private static volatile TxnOperationFactory operationFactory;
-    private static final Object lock = new String("5");
+    private static final Object lock = new Object();
 
     public static TxnOperationFactory getOperationFactory(){
         TxnOperationFactory factory = operationFactory;

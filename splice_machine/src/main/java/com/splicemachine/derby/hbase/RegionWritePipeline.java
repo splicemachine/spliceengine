@@ -1,6 +1,7 @@
 package com.splicemachine.derby.hbase;
 
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.pipeline.api.Code;
 import com.splicemachine.pipeline.api.WriteContext;
 import com.splicemachine.pipeline.writecontextfactory.WriteContextFactory;
 import com.splicemachine.pipeline.exception.IndexNotSetUpException;
@@ -119,6 +120,12 @@ public class RegionWritePipeline {
             int i=0;
             for(KVPair kvPair:kvPairs){
                 WriteResult result = rowResultMap.get(kvPair);
+                if (result == null) {
+                    /* in case a kvPair is of CANCEL type, it may be ignored and no result is returned.
+                     * Mark the result as SUCCESS
+                     * */
+                    result = new WriteResult(Code.SUCCESS);
+                }
                 if(!result.isSuccess())
                     failed++;
                 response.addResult(i,result);

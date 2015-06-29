@@ -5,7 +5,6 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.hbase.DerbyFactory;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.hbase.backup.BackupUtils;
 import com.splicemachine.tools.version.SpliceMachineVersion;
 import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.job.scheduler.StealableTaskSchedulerManagement;
@@ -64,8 +63,6 @@ import com.splicemachine.db.impl.jdbc.ResultSetBuilder.RowBuilder;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
-import com.splicemachine.db.iapi.db.Factory;
-import com.splicemachine.db.iapi.db.PropertyInfo;
 
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.*;
@@ -730,7 +727,7 @@ public class SpliceAdmin extends BaseAdminProcedures {
         try {
             admin = SpliceUtils.getAdmin();
             // sys query for table conglomerate for in schema
-            for (long conglomID : getConglomids(getDefaultConn(), schemaName, tableName)) {
+            for (long conglomID : getConglomNumbers(getDefaultConn(), schemaName, tableName)) {
                 try {
                     admin.majorCompact(Bytes.toBytes(Long.toString(conglomID)));
                 } catch (Exception e) {
@@ -977,35 +974,43 @@ public class SpliceAdmin extends BaseAdminProcedures {
      * as well as the table itself. While the first conglomerate SHOULD be the main table, there
      * really isn't a guarantee, and it shouldn't be relied upon for correctness in all cases.
      */
-    public static long[] getConglomids(Connection conn, String schemaName, String tableName) throws SQLException {
+    public static long[] getConglomNumbers(Connection conn, String schemaName, String tableName) throws SQLException {
         List<Long> conglomIDs = new ArrayList<Long>();
         if (schemaName == null)
             // default schema
             schemaName = SpliceConstants.SPLICE_USER;
 
-        String allTablesInSchema =  "SELECT C.CONGLOMERATENUMBER FROM SYS.SYSCONGLOMERATES C, SYS.SYSTABLES T, SYS.SYSSCHEMAS S " +
-                "WHERE T.TABLEID = C.TABLEID AND T.SCHEMAID = S.SCHEMAID AND S.SCHEMANAME = ?";
+        String query;
+        boolean isTableNameEmpty;
 
-        String query =  "SELECT C.CONGLOMERATENUMBER FROM SYS.SYSCONGLOMERATES C, SYS.SYSTABLES T, SYS.SYSSCHEMAS S " +
-                "WHERE T.TABLEID = C.TABLEID AND T.SCHEMAID = S.SCHEMAID AND S.SCHEMANAME = ? AND T.TABLENAME = ?";
-
-        if (tableName == null)
+        if (tableName == null) {
             // all tables in schema
-            query = allTablesInSchema;
+            query = "SELECT C.CONGLOMERATENUMBER FROM SYS.SYSCONGLOMERATES C, SYS.SYSTABLES T, SYS.SYSSCHEMAS S " +
+                    "WHERE T.TABLEID = C.TABLEID AND T.SCHEMAID = S.SCHEMAID AND S.SCHEMANAME = ?";
+            isTableNameEmpty = true;
+        } else {
+            query = "SELECT C.CONGLOMERATENUMBER FROM SYS.SYSCONGLOMERATES C, SYS.SYSTABLES T, SYS.SYSSCHEMAS S " +
+                    "WHERE T.TABLEID = C.TABLEID AND T.SCHEMAID = S.SCHEMAID AND S.SCHEMANAME = ? AND T.TABLENAME = ?";
+            isTableNameEmpty = false;
+        }
 
         ResultSet rs = null;
         PreparedStatement s = null;
         try {
             s = conn.prepareStatement(query);
             s.setString(1, schemaName.toUpperCase());
-            if (tableName != null) {
+            if (!isTableNameEmpty) {
                 s.setString(2, tableName.toUpperCase());
             }
             rs = s.executeQuery();
             while (rs.next()) {
                 conglomIDs.add(rs.getLong(1));
             }
+
             if (conglomIDs.isEmpty()) {
+                if (isTableNameEmpty) {
+                    throw PublicAPI.wrapStandardException(ErrorState.LANG_SCHEMA_DOES_NOT_EXIST.newException(schemaName));
+                }
                 throw PublicAPI.wrapStandardException(ErrorState.LANG_TABLE_NOT_FOUND.newException(tableName));
             }
         } finally {
@@ -1027,6 +1032,7 @@ public class SpliceAdmin extends BaseAdminProcedures {
         Arrays.sort(congloms);
         return congloms;
     }
+
 
     private static class Trip<T, U, V> {
         private final T first;

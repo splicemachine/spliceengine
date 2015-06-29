@@ -1,10 +1,10 @@
+package com.splicemachine.derby.utils.marshall.dvd;
+
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.shared.common.reference.SQLState;
-import com.splicemachine.derby.utils.marshall.dvd.TimestampV2DescriptorSerializer;
 import org.junit.Test;
 
 import java.sql.Timestamp;
-import java.util.Date;
 import java.util.GregorianCalendar;
 
 import static org.junit.Assert.assertEquals;
@@ -13,12 +13,12 @@ import static org.junit.Assert.assertEquals;
 /**
  * Created by dmustafin on 5/13/15.
  */
-public class TimestampTest {
+public class TimestampV2DescriptorSerializerTest {
 
     @Test
     public void shouldSerialize() throws StandardException {
         long l = TimestampV2DescriptorSerializer.formatLong(getTimestamp(2000));
-        assertEquals(  950162400000000000L, l);
+        assertEquals(950162400000000000L, l);
 
         l = TimestampV2DescriptorSerializer.formatLong(getTimestamp(1678));
         assertEquals(-9211082400000000000L, l);
@@ -29,14 +29,13 @@ public class TimestampTest {
     }
 
 
-
     @Test
     public void shouldFailOnSmallDate() {
         String errorCode = "N/A";
         try {
             TimestampV2DescriptorSerializer.formatLong(getTimestamp(1677));
         } catch (StandardException e) {
-             errorCode = e.getSqlState();
+            errorCode = e.getSqlState();
         }
 
         assertEquals(SQLState.LANG_DATE_TIME_ARITHMETIC_OVERFLOW, errorCode);

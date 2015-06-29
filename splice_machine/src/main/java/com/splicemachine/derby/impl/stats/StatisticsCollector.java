@@ -107,8 +107,8 @@ public class StatisticsCollector {
             List<ColumnStatistics> columnStats = getFinalColumnStats(dvdCollectors);
 
             TimeView readTime = scanner.getTime();
-            long byteCount = scanner.getBytesVisited();
-            long rowCount = scanner.getRowsVisited();
+            long byteCount = scanner.getBytesOutput();
+            long rowCount = scanner.getRowsVisited()-scanner.getRowsFiltered();
 
             String tableId = txnRegion.getTableName();
             String regionId = txnRegion.getRegionName();

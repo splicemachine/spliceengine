@@ -1,9 +1,11 @@
 package com.splicemachine.derby.impl.load;
 
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.pipeline.api.RecordingCallBuffer;
 import com.splicemachine.pipeline.impl.WriteResult;
 
 import java.io.IOException;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicLong;
 
 /**
@@ -25,7 +27,7 @@ public class ThresholdErrorReporter implements ImportErrorReporter {
 		}
 
 		@Override
-		public boolean reportError(KVPair kvPair, WriteResult result) {
+		public boolean reportError(KVPair kvPair, WriteResult result, boolean cancel) throws ExecutionException{
 				/*
 				 * This is written this way to tolerate multiple concurrent access.
 				 *
@@ -37,7 +39,7 @@ public class ThresholdErrorReporter implements ImportErrorReporter {
 				 */
 				long errorCount = errors.incrementAndGet();
 				if(errorCount> maxErrorCount) return false;
-				delegate.reportError(kvPair,result);
+				delegate.reportError(kvPair,result, cancel);
 				return errorCount< maxErrorCount;
 		}
 
@@ -61,4 +63,9 @@ public class ThresholdErrorReporter implements ImportErrorReporter {
 		@Override public long errorsReported() { return errors.get(); }
 
 		@Override public void close() throws IOException { delegate.close();		 }
+
+        @Override
+        public void setWriteBuffer(RecordingCallBuffer<KVPair> writeBuffer) {
+            delegate.setWriteBuffer(writeBuffer);
+        }
 }

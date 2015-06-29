@@ -10,6 +10,7 @@ import com.splicemachine.pipeline.api.WriteContext;
 import com.splicemachine.pipeline.api.WriteHandler;
 import com.splicemachine.pipeline.constraint.ConstraintContext;
 import com.splicemachine.pipeline.impl.WriteResult;
+import com.splicemachine.pipeline.writecontextfactory.FKConstraintInfo;
 import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.TransactionalRegion;
 import com.splicemachine.si.api.TxnOperationFactory;
@@ -35,13 +36,13 @@ public class ForeignKeyChildCheckWriteHandler implements WriteHandler {
     private final TransactionalRegion transactionalRegion;
     private final TxnOperationFactory txnOperationFactory;
     private final RegionCoprocessorEnvironment env;
-    private final ForeignKeyConstraintDescriptor foreignKeyConstraintDescriptor;
+    private final FKConstraintInfo fkConstraintInfo;
     private final SDataLib dataLib;
 
-    public ForeignKeyChildCheckWriteHandler(TransactionalRegion transactionalRegion, RegionCoprocessorEnvironment env, ForeignKeyConstraintDescriptor foreignKeyConstraintDescriptor) {
+    public ForeignKeyChildCheckWriteHandler(TransactionalRegion transactionalRegion, RegionCoprocessorEnvironment env, FKConstraintInfo fkConstraintInfo) {
         this.transactionalRegion = transactionalRegion;
         this.env = env;
-        this.foreignKeyConstraintDescriptor = foreignKeyConstraintDescriptor;
+        this.fkConstraintInfo = fkConstraintInfo;
         this.txnOperationFactory = TransactionOperations.getOperationFactory();
         this.dataLib = HTransactorFactory.getTransactor().getDataLib();
     }
@@ -58,7 +59,7 @@ public class ForeignKeyChildCheckWriteHandler implements WriteHandler {
                     List rowsReferencingParent = scanForReferences(kvPair, ctx);
                     if (!rowsReferencingParent.isEmpty()) {
                         String failedKvAsHex = BytesUtil.toHex(kvPair.getRowKey());
-                        ConstraintContext context = ConstraintContext.foreignKey(foreignKeyConstraintDescriptor).withInsertedMessage(0, failedKvAsHex);
+                        ConstraintContext context = ConstraintContext.foreignKey(fkConstraintInfo).withInsertedMessage(0, failedKvAsHex);
                         WriteResult foreignKeyConstraint = new WriteResult(Code.FOREIGN_KEY_VIOLATION, context);
                         ctx.failed(kvPair, foreignKeyConstraint);
                     } else {
@@ -86,7 +87,11 @@ public class ForeignKeyChildCheckWriteHandler implements WriteHandler {
 
         List result = Lists.newArrayList();
         RegionScanner regionScanner = env.getRegion().getScanner(scan);
-        dataLib.regionScannerNext(regionScanner, result);
+        try {
+            dataLib.regionScannerNext(regionScanner, result);
+        } finally {
+            regionScanner.close();
+        }
         return result;
     }
 

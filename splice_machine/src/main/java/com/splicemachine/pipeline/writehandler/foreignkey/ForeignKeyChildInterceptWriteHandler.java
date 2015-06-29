@@ -6,7 +6,7 @@ import com.splicemachine.pipeline.api.RecordingCallBuffer;
 import com.splicemachine.pipeline.api.WriteContext;
 import com.splicemachine.pipeline.api.WriteHandler;
 import com.splicemachine.pipeline.impl.WriteCoordinator;
-import com.splicemachine.db.iapi.sql.dictionary.ForeignKeyConstraintDescriptor;
+import com.splicemachine.pipeline.writecontextfactory.FKConstraintInfo;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.util.Bytes;
 
@@ -20,17 +20,15 @@ import java.util.List;
 public class ForeignKeyChildInterceptWriteHandler implements WriteHandler {
 
     private final WriteCoordinator writeCoordinator;
-    private final byte[] parentTableName;
-    private final String parentTableNameString;
+    private final long referencedConglomerateNumber;
     private final ForeignKeyViolationProcessor violationProcessor;
 
     private RecordingCallBuffer<KVPair> referencedTableCallBuffer;
 
-    public ForeignKeyChildInterceptWriteHandler(byte[] parentTableName, ForeignKeyConstraintDescriptor constraintDescriptor) {
-        this.parentTableName = parentTableName;
-        this.parentTableNameString = Bytes.toString(parentTableName);
+    public ForeignKeyChildInterceptWriteHandler(long referencedConglomerateNumber, FKConstraintInfo fkConstraintInfo) {
+        this.referencedConglomerateNumber = referencedConglomerateNumber;
         this.writeCoordinator = SpliceDriver.driver().getTableWriter();
-        this.violationProcessor = new ForeignKeyViolationProcessor(new ForeignKeyViolationProcessor.ChildFkConstraintContextProvider(constraintDescriptor));
+        this.violationProcessor = new ForeignKeyViolationProcessor(new ForeignKeyViolationProcessor.ChildFkConstraintContextProvider(fkConstraintInfo));
     }
 
     @Override
@@ -79,13 +77,14 @@ public class ForeignKeyChildInterceptWriteHandler implements WriteHandler {
     /* Only need to create the CallBuffer once, but not until we have a WriteContext */
     private void initTargetCallBuffer(WriteContext ctx) {
         if (referencedTableCallBuffer == null) {
-            referencedTableCallBuffer = writeCoordinator.writeBuffer(parentTableName, ctx.getTxn());
+            byte[] hbaseTableBytes = Bytes.toBytes(String.valueOf(referencedConglomerateNumber));
+            referencedTableCallBuffer = writeCoordinator.writeBuffer(hbaseTableBytes, ctx.getTxn());
         }
     }
 
     @Override
     public String toString() {
-        return "ForeignKeyInterceptWriteHandler{parentTable='" + parentTableNameString + '\'' + '}';
+        return "ForeignKeyChildInterceptWriteHandler{parentTable='" + referencedConglomerateNumber + '\'' + '}';
     }
 
 

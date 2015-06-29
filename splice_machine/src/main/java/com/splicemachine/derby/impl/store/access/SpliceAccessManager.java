@@ -70,7 +70,6 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
     protected LockingPolicy record_level_policy[];
     protected ConglomerateFactory conglom_map[];
     private CacheManager    conglom_cache;
-    private ConglomerateDescriptorCache conglomerateDescriptorCache = ConglomerateDescriptorCache.INSTANCE;
     private volatile DDLFilter ddlDemarcationPoint = null;
     private volatile boolean cacheDisabled = false;
     private ConcurrentMap<String, DDLChange> ongoingDDLChanges = new ConcurrentHashMap<String, DDLChange>();
@@ -289,7 +288,6 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
      * @exception  StandardException  Standard exception policy.
      **/
     protected void conglomCacheInvalidate() {
-        conglomerateDescriptorCache.invalidateAll();
         synchronized (conglom_cache) {
             conglom_cache.discard(null);
         }
@@ -328,8 +326,6 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
                     conglom_cache.create(conglomid_obj, new_conglom);
             conglom_cache.release(conglom_entry);
         }
-
-        return;
     }
 
     /**

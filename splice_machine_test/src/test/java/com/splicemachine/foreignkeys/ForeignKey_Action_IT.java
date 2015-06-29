@@ -2,6 +2,7 @@ package com.splicemachine.foreignkeys;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.test_dao.TableDAO;
 import org.junit.*;
@@ -34,7 +35,9 @@ public class ForeignKey_Action_IT {
 
     @Before
     public void deleteTables() throws Exception {
-        new TableDAO(connection()).drop(SCHEMA, "C", "P");
+        Connection connection = methodWatcher.getOrCreateConnection();
+        connection.setAutoCommit(false);
+        new TableDAO(connection).drop(SCHEMA, "C", "P");
     }
 
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -82,7 +85,7 @@ public class ForeignKey_Action_IT {
         assertQueryFail("update P set a=-1 where a = 2", "Operation on table 'P' caused a violation of foreign key constraint 'FK_1' for key (A).  The statement has been rolled back.");
     }
 
-    /* Make sure FKs still work when we create the parent, write to it first, then create the child that actually has the FK? */
+    /* Make sure FKs still work when we create the parent, write to it first, then create the child that actually has the FK */
     @Test
     public void onDeleteNoAction_primaryKey_initializeWriteContextOfParentFirst() throws Exception {
         methodWatcher.executeUpdate("create table P (a int primary key, b int unique)");
@@ -130,16 +133,10 @@ public class ForeignKey_Action_IT {
     //
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    private Connection connection() throws Exception {
-        Connection connection = methodWatcher.getOrCreateConnection();
-        connection.setAutoCommit(false);
-        return connection;
-    }
-
     private void assertQueryFail(String sql, String expectedExceptionMessage) {
         try {
             methodWatcher.executeUpdate(sql);
-            fail();
+            fail("expected query to fail: " + sql);
         } catch (Exception e) {
             assertEquals(expectedExceptionMessage, e.getMessage());
             assertEquals(SQLIntegrityConstraintViolationException.class, e.getClass());

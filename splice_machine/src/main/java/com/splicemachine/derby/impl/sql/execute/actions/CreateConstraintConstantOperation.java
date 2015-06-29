@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import com.splicemachine.derby.impl.job.fk.CreateFkJobSubmitter;
+import com.splicemachine.derby.ddl.DDLChangeType;
+import com.splicemachine.derby.impl.job.fk.FkJobSubmitter;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
@@ -244,7 +245,7 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
 				
 				/* Create stored dependency on the referenced constraint */
 				dm.addDependency(conDesc, referencedConstraint, lcc.getContextManager());
-				//store constraint's dependency on REFERENCES privileges in the dependeny system
+				//store constraint's dependency on REFERENCES privileges in the dependency system
 				storeConstraintDependenciesOnPrivileges
 					(activation,
 					 conDesc,
@@ -253,7 +254,7 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
 
 
                 // Use the task framework to add FK Write handler on remote nodes.
-                new CreateFkJobSubmitter(dd, (SpliceTransactionManager) tc, referencedConstraint, conDesc).submit();
+                new FkJobSubmitter(dd, (SpliceTransactionManager) tc, referencedConstraint, conDesc, DDLChangeType.ADD_FOREIGN_KEY).submit();
 
                 break;
 
@@ -268,13 +269,12 @@ public class CreateConstraintConstantOperation extends ConstraintConstantOperati
 
 		/* Create stored dependencies for each provider */
 		if (providerInfo != null) {
-			for (int ix = 0; ix < providerInfo.length; ix++) {
-				Provider provider = null;
-				/* We should always be able to find the Provider */
-					provider = (Provider) providerInfo[ix].
-						getDependableFinder().getDependable(dd, providerInfo[ix].getObjectId());
-				dm.addDependency(conDesc, provider, lcc.getContextManager());
-			}
+            for (ProviderInfo aProviderInfo : providerInfo) {
+                /* We should always be able to find the Provider */
+                Provider provider = (Provider) aProviderInfo.
+                        getDependableFinder().getDependable(dd, aProviderInfo.getObjectId());
+                dm.addDependency(conDesc, provider, lcc.getContextManager());
+            }
 		}
 
 		/* Finally, invalidate off of the table descriptor(s)

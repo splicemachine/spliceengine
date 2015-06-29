@@ -6,9 +6,9 @@ import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.util.Arrays;
 import com.splicemachine.hbase.MeasuredRegionScanner;
+import com.splicemachine.metrics.*;
 import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.TransactionalRegion;
-import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.mrio.api.SpliceTableMapReduceUtil;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.SIFactoryDriver;
@@ -220,7 +220,7 @@ public class TableScannerBuilder implements Externalizable {
 				return new SITableScanner(SIFactoryDriver.siFactory.getDataLib(),scanner,
 								region,
 								template,
-								metricFactory,
+								metricFactory==null?Metrics.noOpMetricFactory():metricFactory,
 								scan,
 								rowColumnMap,
 								txn,
@@ -314,5 +314,5 @@ public class TableScannerBuilder implements Externalizable {
 		public int[] getExecRowTypeFormatIds() {
 			return execRowTypeFormatIds;
 		}
-		
+
 }

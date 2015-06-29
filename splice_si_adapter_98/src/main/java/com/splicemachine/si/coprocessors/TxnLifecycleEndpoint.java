@@ -58,7 +58,7 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
     private volatile boolean isTxnTable=false;
     private String regionNameAsString;
 
-    public static CountedReference<TransactionResolver> resolverRef=new CountedReference<TransactionResolver>(new Supplier<TransactionResolver>(){
+    public static final CountedReference<TransactionResolver> resolverRef=new CountedReference<TransactionResolver>(new Supplier<TransactionResolver>(){
         @Override
         public TransactionResolver get(){
             return new TransactionResolver(TransactionStorage.getTxnSupplier(),2,128);

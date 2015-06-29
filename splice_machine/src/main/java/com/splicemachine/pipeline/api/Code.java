@@ -75,6 +75,9 @@ public enum Code {
     INDEX_NOT_SETUP_EXCEPTION{ @Override public boolean canRetry() { return true; }},
     ;
 
+    public boolean shouldCancel() {
+        return this == UNIQUE_VIOLATION;
+    }
     public boolean canRetry(){ return false; }
     public boolean isSuccess(){ return this == SUCCESS; }
     public boolean isPartial(){ return this == PARTIAL; }

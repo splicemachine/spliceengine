@@ -71,6 +71,9 @@ public class WriteResult implements Externalizable {
         return constraintContext;
     }
 
+    public boolean shouldCancel() {
+        return code.shouldCancel();
+    }
     public boolean canRetry() {
         return code.canRetry();
     }

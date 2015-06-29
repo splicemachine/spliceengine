@@ -27,7 +27,7 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 class SpliceTestPlatformConfig {
 
     private static final List<Class<?>> REGION_SERVER_COPROCESSORS = ImmutableList.<Class<?>>of(
-            SpliceDerbyCoprocessor.class
+            ShutdownRegionServerObserver.class
     );
 
     private static final List<Class<?>> REGION_COPROCESSORS = ImmutableList.<Class<?>>of(

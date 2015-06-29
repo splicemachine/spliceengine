@@ -45,13 +45,13 @@ public class IntegerEncodingMicroBenchmark {
         for(int i=0;i<numSerializations;i++){
             int next = random.nextInt();
             long start = System.nanoTime();
-            byte[] data = ScalarEncoding.toBytes(next, false);
+            byte[] data = ScalarEncoding.writeLong(next, false);
             long end = System.nanoTime();
             accumulator.tick(1,end-start);
             sum+=data.length;
 
             start = System.nanoTime();
-            int val = ScalarEncoding.getInt(data, false);
+            int val = ScalarEncoding.readInt(data, false);
             end = System.nanoTime();
             deAccum.tick(1,end-start);
             otherSum+=val;

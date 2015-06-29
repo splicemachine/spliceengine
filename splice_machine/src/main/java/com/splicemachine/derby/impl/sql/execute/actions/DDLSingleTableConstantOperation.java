@@ -8,14 +8,13 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.KeyConstraintDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.store.access.ConglomerateController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
+import com.splicemachine.derby.ddl.DDLChangeType;
+import com.splicemachine.derby.impl.job.fk.FkJobSubmitter;
+import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.utils.SpliceLogUtils;
@@ -99,6 +98,14 @@ public abstract class DDLSingleTableConstantOperation extends DDLConstantOperati
 					.getIndexConglomerateDescriptor(lcc.getDataDictionary()),ixProps);
 		}
 		ConglomerateDescriptor newBackingConglomCD = consDesc.drop(lcc, clearDeps);
+
+        if (consDesc.getConstraintType() == DataDictionary.FOREIGNKEY_CONSTRAINT) {
+            DataDictionary dd = lcc.getDataDictionary();
+            ForeignKeyConstraintDescriptor d = (ForeignKeyConstraintDescriptor) consDesc;
+            TransactionController tc = lcc.getTransactionExecute();
+            final ReferencedKeyConstraintDescriptor referencedConstraint = d.getReferencedConstraint();
+            new FkJobSubmitter(dd, (SpliceTransactionManager) tc, referencedConstraint, consDesc, DDLChangeType.DROP_FOREIGN_KEY).submit();
+        }
 
 		/* If we don't need a new conglomerate then there's nothing
 		 * else to do.

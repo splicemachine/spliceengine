@@ -70,8 +70,7 @@ public class TransactionResolver<Transaction,TableBuffer> {
     private final RingBuffer<TxnResolveEvent<Transaction>> ringBuffer;
     private final Disruptor<TxnResolveEvent<Transaction>> disruptor;
     private final ThreadPoolExecutor consumerThreads;
-    private volatile boolean stopped;
-    protected static STransactionLib transactionLib = SIFactoryDriver.siFactory.getTransactionLib();
+    protected static final STransactionLib transactionLib = SIFactoryDriver.siFactory.getTransactionLib();
 
     public TransactionResolver(TxnSupplier txnSupplier, int numThreads, int bufferSize) {
         this.txnSupplier = txnSupplier;
@@ -82,10 +81,10 @@ public class TransactionResolver<Transaction,TableBuffer> {
         while(bSize<bufferSize)
             bSize<<=1;
 
-        disruptor = new Disruptor<TxnResolveEvent<Transaction>>(new EventFactory<TxnResolveEvent<Transaction>>() {
+        disruptor = new Disruptor<>(new EventFactory<TxnResolveEvent<Transaction>>() {
 			@Override
 			public TxnResolveEvent<Transaction> newInstance() {
-	                return new TxnResolveEvent<Transaction>();
+	                return new TxnResolveEvent<>();
 			}
         },bSize,consumerThreads,
                 ProducerType.MULTI,
@@ -96,7 +95,6 @@ public class TransactionResolver<Transaction,TableBuffer> {
     }
 
     public void resolveTimedOut(HRegion txnRegion,Transaction txn,boolean oldForm){
-        if(stopped) return; //we aren't running, so do nothing
         long sequence;
         try{
             sequence = ringBuffer.tryNext();
@@ -118,7 +116,6 @@ public class TransactionResolver<Transaction,TableBuffer> {
     }
 
     public void resolveGlobalCommitTimestamp(HRegion txnRegion, Transaction txn,boolean oldForm){
-        if(stopped) return; //we aren't running, so do nothing
         long sequence;
         try{
             sequence = ringBuffer.tryNext();

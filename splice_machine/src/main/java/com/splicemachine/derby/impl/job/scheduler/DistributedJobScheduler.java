@@ -57,10 +57,6 @@ public class DistributedJobScheduler implements JobScheduler<CoprocessorJob>{
     	try{
     		String jobPath = createJobNode(job);
     		return submitTasks(job,jobPath);
-    	} catch (InterruptedException e) {
-    		throw new ExecutionException(e);
-    	} catch (KeeperException e) {
-    		throw new ExecutionException(e);
     	} catch (Exception e) {
     		throw new ExecutionException(e);
     	}
@@ -134,17 +130,17 @@ public class DistributedJobScheduler implements JobScheduler<CoprocessorJob>{
     }
 
 
-		private void submitTransactionalTasks(TxnView parentTxn,
-																					BaseJobControl control,
-																					Map<? extends RegionTask, Pair<byte[], byte[]>> tasks,
-																					HTableInterface table,
-																					byte[] destTable) throws ExecutionException {
-				for(Map.Entry<? extends RegionTask,Pair<byte[],byte[]>> taskEntry:tasks.entrySet()){
-						RegionTask task = taskEntry.getKey();
+    private void submitTransactionalTasks(TxnView parentTxn,
+                                          BaseJobControl control,
+                                          Map<? extends RegionTask, Pair<byte[], byte[]>> tasks,
+                                          HTableInterface table,
+                                          byte[] destTable) throws ExecutionException {
+        for (Map.Entry<? extends RegionTask, Pair<byte[], byte[]>> taskEntry : tasks.entrySet()) {
+            RegionTask task = taskEntry.getKey();
             task.setParentTxnInformation(parentTxn);
-						control.submit(task,taskEntry.getValue(),table,0);
-				}
-		}
+            control.submit(task, taskEntry.getValue(), table, 0);
+        }
+    }
 
 		private void submitNonTransactionalTasks(BaseJobControl control, Map<? extends RegionTask, Pair<byte[], byte[]>> tasks, HTableInterface table) throws ExecutionException {
 				for(Map.Entry<? extends RegionTask,Pair<byte[],byte[]>> taskEntry:tasks.entrySet()){

@@ -695,7 +695,7 @@ public class SITransactor<Data, Table,
         }
 
         public Builder ignoreTxnStore(IgnoreTxnCacheSupplier ignoreTxnCacheStore) {
-            this.ignoreTxnStore = ignoreTxnStore;
+            this.ignoreTxnStore = ignoreTxnCacheStore;
             return this;
         }
 
