@@ -21,6 +21,7 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.iapi.sql.compile.AggregateDefinition;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 
 import com.splicemachine.db.iapi.reference.ClassName;
@@ -31,7 +32,7 @@ import com.splicemachine.db.iapi.reference.ClassName;
  *
  */
 public class CountAggregateDefinition 
-		implements AggregateDefinition 
+		implements AggregateDefinition
 {
     private boolean isWindowFunction;
 

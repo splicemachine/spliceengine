@@ -19,7 +19,7 @@
 
  */
 
-package com.splicemachine.db.impl.sql.compile;
+package com.splicemachine.db.iapi.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
@@ -44,8 +44,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
  *
  * @see com.splicemachine.db.catalog.TypeDescriptor
  */
-interface AggregateDefinition
-{
+public interface AggregateDefinition {
 	/**
 	 * Get the aggregator that performs the aggregation on the
 	 * input datatype at execution time.  If the input type can be handled, 

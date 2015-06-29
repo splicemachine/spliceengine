@@ -24,7 +24,6 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-
 import java.util.List;
 
 public class AndNode extends BinaryLogicalOperatorNode{

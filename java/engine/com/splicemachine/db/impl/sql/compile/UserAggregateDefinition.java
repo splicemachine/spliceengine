@@ -28,6 +28,7 @@ import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
+import com.splicemachine.db.iapi.sql.compile.AggregateDefinition;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.TypeCompilerFactory;
 import com.splicemachine.db.iapi.sql.dictionary.AliasDescriptor;

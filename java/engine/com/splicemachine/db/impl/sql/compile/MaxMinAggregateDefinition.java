@@ -23,6 +23,7 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.services.context.ContextService;
+import com.splicemachine.db.iapi.sql.compile.AggregateDefinition;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
@@ -32,7 +33,7 @@ import com.splicemachine.db.iapi.types.TypeId;
  *
  */
 public class MaxMinAggregateDefinition 
-		implements AggregateDefinition 
+		implements AggregateDefinition
 {
 	private boolean isMax;
     private boolean isWindowFunction;

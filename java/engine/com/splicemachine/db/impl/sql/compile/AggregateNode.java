@@ -22,7 +22,6 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import java.util.List;
-import java.util.Vector;
 
 import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -31,6 +30,7 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.services.loader.ClassInspector;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.AggregateDefinition;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.dictionary.AliasDescriptor;
@@ -48,7 +48,7 @@ public class AggregateNode extends UnaryOperatorNode
 {
 	protected boolean					distinct;
 
-	protected AggregateDefinition		uad;
+	protected AggregateDefinition uad;
 	protected TableName           userAggregateName;
 	protected StringBuffer			aggregatorClassName;
 	private String					aggregateDefinitionClassName;
