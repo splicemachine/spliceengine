@@ -4,7 +4,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
 import com.google.common.base.*;
 import com.google.common.base.Predicate;
 import com.google.common.base.Predicates;
@@ -16,8 +15,6 @@ import com.google.common.collect.Sets;
 import com.splicemachine.derby.impl.sql.compile.MergeSortJoinStrategy;
 import com.splicemachine.derby.impl.sql.compile.NestedLoopJoinStrategy;
 import com.splicemachine.derby.impl.sql.compile.OrderByNode;
-
-import com.splicemachine.storage.*;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.AccessPath;
 import com.splicemachine.db.iapi.sql.compile.JoinStrategy;
