@@ -1,5 +1,6 @@
 package com.splicemachine.async;
 
+import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.stumbleupon.async.Callback;
@@ -24,6 +25,7 @@ public class QueueingAsyncScanner extends BaseAsyncScanner{
     private final BlockingQueue<List<KeyValue>> buffer;
     private final int maxQueueSize;
     private volatile Deferred<ArrayList<ArrayList<KeyValue>>> outstandingRequest;
+    private byte[] lastRowSeen = null;
 
     private volatile boolean closed = false;
     private volatile boolean done = false;
@@ -48,22 +50,29 @@ public class QueueingAsyncScanner extends BaseAsyncScanner{
 
     @Override
     public List<KeyValue> nextKeyValues() throws Exception {
-        assert !closed: "Scanner already closed!";
+
+        List<KeyValue> kvs = null;
+        assert !closed : "Scanner already closed!";
         timer.startTiming();
         submitNewRequestIfPossible();
-
-        List<KeyValue> kvs = buffer.poll();
-        if(kvs==null && outstandingRequest!=null) {
-            outstandingRequest.join();
+        if (scanner.isReopened()) {
+            kvs = getNextKeyValuesOnReopen();
+        }
+        else {
             kvs = buffer.poll();
+            if (kvs == null && outstandingRequest != null) {
+                outstandingRequest.join();
+                kvs = buffer.poll();
+            }
         }
 
-        if(kvs==null || kvs.size()<=0) {
+        if (kvs == null || kvs.size() <= 0) {
             timer.stopTiming();
             return null;
-        }else{
+        } else {
+            lastRowSeen = kvs.get(kvs.size() - 1).key();
             timer.tick(1);
-            if(remoteBytesCounter.isActive()){
+            if (remoteBytesCounter.isActive()) {
                 countKeyValues(kvs);
             }
         }
@@ -126,5 +135,34 @@ public class QueueingAsyncScanner extends BaseAsyncScanner{
             //we should issue the next request only if our buffer doesn't have very much data in it
             outstandingRequest = scanner.nextRows().addCallback(callback);
         }
+    }
+
+    private List<KeyValue> getNextKeyValuesOnReopen() throws Exception {
+
+        List<KeyValue> kvs = null;
+
+        // Keep reading until scanner passes the last row seen
+        do {
+            kvs = buffer.poll();
+            if (kvs == null && outstandingRequest != null) {
+                outstandingRequest.join();
+                kvs = buffer.poll();
+            }
+            if (kvs == null || kvs.size() <= 0) return kvs; // Should not happen
+            submitNewRequestIfPossible();
+        } while (BytesUtil.compareBytes(false, lastRowSeen, kvs.get(kvs.size() - 1).key()) >= 0);
+
+        // remove rows that are before last row seen in the list
+        List<KeyValue> result = new ArrayList<>();
+        if (BytesUtil.compareBytes(false, lastRowSeen, kvs.get(0).key()) >= 0) {
+            for (KeyValue kv : kvs) {
+                if (BytesUtil.compareBytes(false, lastRowSeen, kv.key()) < 0) {
+                    result.add(kv);
+                }
+            }
+        } else {
+            result = kvs;
+        }
+        return result;
     }
 }
