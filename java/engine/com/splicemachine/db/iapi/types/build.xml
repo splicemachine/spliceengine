@@ -61,7 +61,7 @@
                 srcdir="${derby.engine.src.dir}"
                 destdir="${out.dir}">
             <classpath>
-                <pathelement path="${log4j};${joda-time};${main.classpath}"/>
+                <pathelement path="${log4j};${joda-time};${guava};${commonslang};${gson};${main.classpath}"/>
             </classpath>
             <include name="${splice.package}/iapi/types/*.java"/>
         </javac>
