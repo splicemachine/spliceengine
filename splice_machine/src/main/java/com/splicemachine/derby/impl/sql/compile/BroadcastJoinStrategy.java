@@ -181,5 +181,10 @@ public class BroadcastJoinStrategy extends BaseCostedHashableJoinStrategy {
     public String toString(){
         return "BroadcastJoin";
     }
+
+    @Override
+    public JoinStrategyType getJoinStrategyType() {
+        return JoinStrategyType.BROADCAST;
+    }
 }
 
