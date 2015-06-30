@@ -208,4 +208,8 @@ public class MergeSortJoinStrategy extends BaseCostedHashableJoinStrategy {
         innerCost.setRowOrdering(null);
     }
 
+    @Override
+    public JoinStrategyType getJoinStrategyType() {
+        return JoinStrategyType.MERGE_SORT;
+    }
 }

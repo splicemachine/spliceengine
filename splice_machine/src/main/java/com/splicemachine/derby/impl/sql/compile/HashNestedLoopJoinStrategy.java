@@ -161,4 +161,9 @@ public class HashNestedLoopJoinStrategy extends HashableJoinStrategy {
 				originalRestrictionList.setPredicatesAndProperties(storeRestrictionList);
 	};
 
+    @Override
+    public JoinStrategyType getJoinStrategyType() {
+        return JoinStrategyType.NESTED_LOOP;
+    }
+
 }

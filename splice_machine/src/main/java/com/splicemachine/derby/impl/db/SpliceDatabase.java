@@ -1,8 +1,7 @@
 package com.splicemachine.derby.impl.db;
 
-import com.google.common.collect.Lists;
-import com.google.common.io.Closeables;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.db.iapi.ast.ISpliceVisitor;
 import com.splicemachine.db.iapi.error.ShutdownException;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
@@ -10,43 +9,26 @@ import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.property.PropertyFactory;
-import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
 import com.splicemachine.db.iapi.store.access.AccessFactory;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.SQLVarchar;
+import com.splicemachine.db.impl.ast.*;
 import com.splicemachine.db.impl.db.BasicDatabase;
-import com.splicemachine.db.impl.jdbc.EmbedConnection;
-import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
-import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
-import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
-import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
 import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.derby.ddl.DDLWatcher;
+import com.splicemachine.derby.impl.ast.XPlainTraceVisitor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.hadoop.hbase.protobuf.generated.HBaseProtos;
 import org.apache.log4j.Logger;
 
-import com.splicemachine.derby.hbase.SpliceDriver;
-import com.splicemachine.derby.impl.ast.*;
-import com.splicemachine.derby.impl.job.JobInfo;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
-import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.hbase.HBaseRegionLoads;
-import com.splicemachine.hbase.backup.*;
-import com.splicemachine.hbase.backup.Backup.BackupScope;
-import com.splicemachine.job.JobFuture;
 import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.TxnView;
@@ -54,18 +36,10 @@ import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceUtilities;
 import com.splicemachine.utils.ZkUtils;
-import org.apache.hadoop.hbase.HTableDescriptor;
-import org.apache.hadoop.hbase.client.HBaseAdmin;
-import org.apache.hadoop.hbase.client.HTableInterface;
-import org.apache.log4j.Logger;
 
 import javax.security.auth.login.Configuration;
-import java.sql.Connection;
-import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.sql.Types;
 import java.util.*;
-import java.util.concurrent.CancellationException;
 
 public class SpliceDatabase extends BasicDatabase{
 
