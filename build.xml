@@ -57,7 +57,8 @@
 
     <antcall target="install_junit"/>
     <antcall target="install_joda-time"/>
-    <antcall target="install_log4j"/>
+      <antcall target="install_guava"/>
+      <antcall target="install_log4j"/>
   	<tstamp/>
     <mkdir dir="${out.dir}"/>
     <antcall target="make-generated-dirs"/>
@@ -163,7 +164,46 @@
    <target name="install_junit" depends="junit_check" unless="junit.exists" description="installs junit.jar into derby">
        <get src="${junit.url}" dest="${basedir}/tools/java/junit.jar" verbose="true" ignoreerrors="true"/>
    </target>
-	
+
+
+
+
+    <!-- ==================================================================== -->
+    <!--                     Download guava 11.0.2                            -->
+    <!-- ==================================================================== -->
+
+    <!-- You can override this property in local.properties to fetch from an alternative location -->
+    <property name="guava.url" value="http://repo1.maven.org/maven2/com/google/guava/guava/11.0.2/guava-11.0.2.jar"/>
+    <target name="guava_check">
+        <!-- check if guava is set, if set, if guava.jar is really there, if not, error out  -->
+        <fail message="guava property is set to ${guava}, but there is no log4j.jar there.">
+            <condition>
+                <and>
+                    <isset property="gauva"/>
+                    <not>
+                        <available file="${guava}"/>
+                    </not>
+                </and>
+            </condition>
+        </fail>
+        <condition property="guavafile" value="${guava}">
+            <and>
+                <isset property="guava"/>
+            </and>
+        </condition>
+        <condition property="guavafile" value="${basedir}/tools/java/guava-11.0.2.jar">
+            <not>
+                <isset property="guava"/>
+            </not>
+        </condition>
+        <available file="${guavafile}" property="guava.exists"/>
+    </target>
+
+    <target name="install_guava" depends="guava_check" unless="guava.exists" description="installs guava.jar into derby">
+        <get src="${guava.url}" dest="${basedir}/tools/java/guava-11.0.2.jar" verbose="true" ignoreerrors="true"/>
+    </target>
+
+
 	<!-- ==================================================================== -->
 	<!--                     Install JODA-TIME		                          -->
 	<!-- ==================================================================== -->
