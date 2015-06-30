@@ -37,10 +37,10 @@
         <ant dir="${derby.engine.dir}/iapi/util"/>
         <ant dir="${derby.engine.dir}/iapi/db"/>
         <ant dir="${derby.engine.dir}/iapi/jdbc"/>
-
         <ant dir="${derby.engine.dir}/iapi/services"/>
         <ant dir="${derby.engine.dir}/iapi/store"/>
         <ant dir="${derby.engine.dir}/iapi/sql"/>
+        <ant dir="${derby.engine.dir}/iapi/ast"/>
     </target>
 
 
