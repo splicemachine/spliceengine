@@ -23,7 +23,7 @@ import com.splicemachine.db.impl.sql.compile.ProjectRestrictNode;
 import com.splicemachine.db.impl.sql.compile.ResultColumn;
 import com.splicemachine.db.impl.sql.compile.ResultColumnList;
 import com.splicemachine.db.impl.sql.compile.ResultSetNode;
-import org.apache.hadoop.hbase.util.Pair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
 
 import java.util.*;
@@ -240,7 +240,7 @@ public class JoinConditionVisitor extends AbstractSpliceVisitor {
                     new Function<ColumnReference, Integer>() {
                         @Override
                         public Integer apply(ColumnReference cr) {
-                            return ColumnUtils.RSCoordinate(cr.getSource()).getFirst();
+                            return ColumnUtils.RSCoordinate(cr.getSource()).getLeft();
                         }}));
     }
 
