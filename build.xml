@@ -58,6 +58,8 @@
     <antcall target="install_junit"/>
     <antcall target="install_joda-time"/>
       <antcall target="install_guava"/>
+      <antcall target="install_gson"/>
+      <antcall target="install_commonslang"/>
       <antcall target="install_log4j"/>
   	<tstamp/>
     <mkdir dir="${out.dir}"/>
@@ -164,6 +166,78 @@
    <target name="install_junit" depends="junit_check" unless="junit.exists" description="installs junit.jar into derby">
        <get src="${junit.url}" dest="${basedir}/tools/java/junit.jar" verbose="true" ignoreerrors="true"/>
    </target>
+
+    <!-- ==================================================================== -->
+    <!--                     Download gson 2.2                                -->
+    <!-- ==================================================================== -->
+
+
+    <!-- You can override this property in local.properties to fetch from an alternative location -->
+    <property name="gson.url" value="http://repo1.maven.org/maven2/com/google/code/gson/gson/2.2/gson-2.2.jar"/>
+    <target name="gson_check">
+        <!-- check if guava is set, if set, if guava.jar is really there, if not, error out  -->
+        <fail message="guava property is set to ${gson}, but there is no gson.jar there.">
+            <condition>
+                <and>
+                    <isset property="gson"/>
+                    <not>
+                        <available file="${gson}"/>
+                    </not>
+                </and>
+            </condition>
+        </fail>
+        <condition property="gsonfile" value="${gson}">
+            <and>
+                <isset property="gson"/>
+            </and>
+        </condition>
+        <condition property="gsonfile" value="${basedir}/tools/java/gson-2.2.jar">
+            <not>
+                <isset property="gson"/>
+            </not>
+        </condition>
+        <available file="${gsonfile}" property="gson.exists"/>
+    </target>
+
+    <target name="install_gson" depends="gson_check" unless="gson.exists" description="installs gson.jar into derby">
+        <get src="${gson.url}" dest="${basedir}/tools/java/gson-2.2.jar" verbose="true" ignoreerrors="true"/>
+    </target>
+
+
+    <!-- ==================================================================== -->
+    <!--                     Download commons-lang 2.5                        -->
+    <!-- ==================================================================== -->
+
+    <!-- You can override this property in local.properties to fetch from an alternative location -->
+    <property name="commonslang.url" value="http://repo1.maven.org/maven2/org/apache/commons/commons-lang3/3.1/commons-lang3-3.1.jar"/>
+    <target name="commonslang_check">
+        <!-- check if guava is set, if set, if guava.jar is really there, if not, error out  -->
+        <fail message="guava property is set to ${commonslang}, but there is no log4j.jar there.">
+            <condition>
+                <and>
+                    <isset property="commonslang"/>
+                    <not>
+                        <available file="${commonslang}"/>
+                    </not>
+                </and>
+            </condition>
+        </fail>
+        <condition property="commonslangfile" value="${commonslang}">
+            <and>
+                <isset property="commonslang"/>
+            </and>
+        </condition>
+        <condition property="commonslangfile" value="${basedir}/tools/java/commons-lang3-3.1.jar">
+            <not>
+                <isset property="commonslang"/>
+            </not>
+        </condition>
+        <available file="${commonslangfile}" property="commonslang.exists"/>
+    </target>
+
+    <target name="install_commonslang" depends="commonslang_check" unless="commonslang.exists" description="installs commonslang.jar into derby">
+        <get src="${commonslang.url}" dest="${basedir}/tools/java/commons-lang3-3.1.jar" verbose="true" ignoreerrors="true"/>
+    </target>
 
 
 

@@ -39,6 +39,22 @@ import com.splicemachine.db.iapi.error.StandardException;
  */
 
 public interface JoinStrategy {
+
+    public enum JoinStrategyType {
+        NESTED_LOOP ("NESTED_LOOP",0),
+        MERGE_SORT ("MERGE_SORT",1),
+        BROADCAST ("BROADCAST",2),
+        MERGE ("MERGE",3);
+        private final String name;
+        private final int strategyId;
+        JoinStrategyType(String name, int strategyId) {
+            this.name = name;
+            this.strategyId = strategyId;
+        }
+        public String getName() { return name;}
+        public int getStrategyId() { return strategyId;}
+    }
+
 	/**
 	 * Is this join strategy feasible under the circumstances?
 	 *
@@ -315,4 +331,7 @@ public interface JoinStrategy {
 	 * @param costEstimate the cost estimate to set the ordering on.
 	 */
 	void setRowOrdering(CostEstimate costEstimate);
+
+    public abstract JoinStrategyType getJoinStrategyType();
+
 }
