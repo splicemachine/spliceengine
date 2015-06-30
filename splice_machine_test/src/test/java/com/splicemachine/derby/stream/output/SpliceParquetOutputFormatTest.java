@@ -1,5 +1,5 @@
 package com.splicemachine.derby.stream.output;
-
+/*
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.stream.BaseStreamTest;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
@@ -18,12 +18,12 @@ import parquet.schema.OriginalType;
 import parquet.schema.Types;
 
 import java.io.IOException;
-
+*/
 /**
  * Created by jleach on 5/15/15.
  */
-@Ignore
-public class SpliceParquetOutputFormatTest extends BaseStreamTest {
+//@Ignore
+public class SpliceParquetOutputFormatTest {} /*extends BaseStreamTest {
     protected String baseParquetDirectory = SpliceUnitTest.getBaseDirectory()+"/target/parquet";
 
     @Test
@@ -42,4 +42,5 @@ public class SpliceParquetOutputFormatTest extends BaseStreamTest {
     }
 
 }
+*/
 

@@ -99,7 +99,6 @@ public class SpliceOutputCommitter extends OutputCommitter {
         return false;
     }
 
-    @Override
     public boolean isRecoverySupported(org.apache.hadoop.mapreduce.JobContext jobContext) throws IOException {
         return false;
     }
