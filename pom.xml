@@ -39,7 +39,7 @@
 			<dependency>
 				<groupId>com.splicemachine</groupId>
 				<artifactId>asynchbase</artifactId>
-				<version>1.5.5</version>
+				<version>1.5.6-SNAPSHOT</version>
 				<exclusions>
 					<exclusion>
 						<groupId>org.slf4j</groupId>
