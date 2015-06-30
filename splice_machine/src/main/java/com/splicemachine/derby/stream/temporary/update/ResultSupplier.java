@@ -5,6 +5,7 @@ import com.carrotsearch.hppc.ObjectArrayList;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.utils.SpliceUtils;
+import com.splicemachine.hbase.CellUtils;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
@@ -57,7 +58,7 @@ public class ResultSupplier{
             //we assume that r !=null, because otherwise, what are we updating?
             KeyValue[] rawKvs = r.raw();
             for(KeyValue kv:rawKvs){
-                if(kv.matchingColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,SpliceConstants.PACKED_COLUMN_BYTES)){
+                if(CellUtils.singleMatchingColumn(kv,SpliceConstants.DEFAULT_FAMILY_BYTES,SpliceConstants.PACKED_COLUMN_BYTES)){
                     result = kv;
                     break;
                 }
@@ -65,7 +66,7 @@ public class ResultSupplier{
             //we also assume that PACKED_COLUMN_KEY is properly set by the time we get here
 //								getTimer.tick(1);
         }
-        decoder.set(result.getBuffer(),result.getValueOffset(),result.getValueLength());
+        decoder.set(result.getValueArray(),result.getValueOffset(),result.getValueLength());
     }
 
     public void close() throws IOException {
