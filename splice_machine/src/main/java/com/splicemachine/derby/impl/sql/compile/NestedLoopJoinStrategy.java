@@ -495,5 +495,11 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         return selectivity;
     }
 
+
+    @Override
+    public JoinStrategyType getJoinStrategyType() {
+        return JoinStrategyType.NESTED_LOOP;
+    }
+
 }
 

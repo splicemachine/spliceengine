@@ -1,9 +1,8 @@
 package com.splicemachine.derby.impl.ast;
 
+import com.splicemachine.db.impl.ast.AbstractSpliceVisitor;
 import com.splicemachine.derby.hbase.DerbyFactory;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
-import com.splicemachine.hbase.HBaseRegionLoads;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
@@ -15,7 +14,7 @@ import java.util.TreeSet;
 /**
  * Created by jyuan on 7/8/14.
  */
-public class XPlainTraceVisitor extends AbstractSpliceVisitor  {
+public class XPlainTraceVisitor extends AbstractSpliceVisitor {
 	protected static DerbyFactory derbyFactory = DerbyFactoryDriver.derbyFactory;
     private static TreeSet<String> xplainTables;
 
