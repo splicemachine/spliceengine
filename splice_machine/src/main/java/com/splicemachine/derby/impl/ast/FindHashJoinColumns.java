@@ -7,9 +7,8 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.impl.sql.compile.Predicate;
-import org.apache.hadoop.hbase.util.Pair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
-
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -39,8 +38,8 @@ public class FindHashJoinColumns extends AbstractSpliceVisitor {
                         PredicateUtils.isEquiJoinPred);
         Pair<List<Integer>, List<Integer>> indices = findHashIndices(node, equiJoinPreds);
         LOG.info(String.format("Hash key indices found for Join n=%s: %s", node.getResultSetNumber(), indices));
-        node.leftHashKeys = Ints.toArray(indices.getFirst());
-        node.rightHashKeys = Ints.toArray(indices.getSecond());
+        node.leftHashKeys = Ints.toArray(indices.getLeft());
+        node.rightHashKeys = Ints.toArray(indices.getRight());
 
         for (Predicate p : equiJoinPreds) {
             // cleanup joinPredicates, as equijoin preds are handled by hashing
@@ -84,6 +83,6 @@ public class FindHashJoinColumns extends AbstractSpliceVisitor {
             }
         }
 
-        return new Pair<List<Integer>, List<Integer>>(leftIndices, rightIndices);
+        return Pair.of(leftIndices, rightIndices);
     }
 }

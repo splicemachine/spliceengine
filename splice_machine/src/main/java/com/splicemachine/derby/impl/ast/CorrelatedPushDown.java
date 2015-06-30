@@ -3,16 +3,14 @@ package com.splicemachine.derby.impl.ast;
 
 import com.google.common.base.Function;
 import com.google.common.collect.Collections2;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.Iterables;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.impl.sql.compile.Predicate;
-import org.apache.hadoop.hbase.util.Pair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
-
 import java.util.*;
 
 /**
@@ -122,9 +120,9 @@ public class CorrelatedPushDown extends AbstractSpliceVisitor {
             Pair<Integer, Integer> lastLink = chain.get(chain.size() - 1);
             List<ResultSetNode> subTree = RSUtils.getSelfAndDescendants(rsn);
             Map<Integer, ResultSetNode> nodeMap = zipMap(Iterables.transform(subTree, RSUtils.rsNum), subTree);
-            ResultSetNode targetRSN = nodeMap.get(lastLink.getFirst());
-            rc.setResultSetNumber(lastLink.getFirst());
-            rc.setVirtualColumnId(lastLink.getSecond());
+            ResultSetNode targetRSN = nodeMap.get(lastLink.getLeft());
+            rc.setResultSetNumber(lastLink.getLeft());
+            rc.setVirtualColumnId(lastLink.getRight());
             ((Optimizable)targetRSN).pushOptPredicate(pred);
         } catch (StandardException e) {
             LOG.warn("Exception pushing down topmost subquery predicate:", e);

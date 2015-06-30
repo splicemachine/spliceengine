@@ -2,8 +2,7 @@ package com.splicemachine.derby.impl.ast;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.impl.sql.compile.*;
-import org.apache.hadoop.hbase.util.Pair;
-
+import org.apache.commons.lang3.tuple.Pair;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -80,6 +79,6 @@ public class ColumnUtils {
             VirtualColumnNode vcn = (VirtualColumnNode)((CastNode) vn).getCastOperand();
             resultColumn = vcn.getSourceColumn();
         }
-        return Pair.newPair(resultColumn.getResultSetNumber(), resultColumn.getVirtualColumnId());
+        return Pair.of(resultColumn.getResultSetNumber(), resultColumn.getVirtualColumnId());
     }
 }
