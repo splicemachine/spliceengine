@@ -324,4 +324,9 @@ public class MergeJoinStrategy extends BaseCostedHashableJoinStrategy{
         return outerColumn;
     }
 
+    @Override
+    public JoinStrategyType getJoinStrategyType() {
+        return JoinStrategyType.MERGE;
+    }
+
 }

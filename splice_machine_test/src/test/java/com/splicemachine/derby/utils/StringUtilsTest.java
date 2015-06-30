@@ -1,5 +1,6 @@
 package com.splicemachine.derby.utils;
 
+import com.splicemachine.db.impl.ast.StringUtils;
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -12,7 +13,7 @@ public class StringUtilsTest {
 	public void testStrip() throws Exception {
 		String escape = "\"";
 		String value = "\"10000\"";
-		String result = StringUtils.strip(value,escape,'\\');
+		String result = StringUtils.strip(value, escape, '\\');
 		Assert.assertEquals("10000",result);
 	}
 

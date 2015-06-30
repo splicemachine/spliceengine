@@ -2,10 +2,9 @@ package com.splicemachine.derby.impl.load;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
-import com.splicemachine.derby.utils.StringUtils;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.impl.ast.StringUtils;
 import org.apache.hadoop.fs.Path;
-
 import java.io.Externalizable;
 import java.io.IOException;
 import java.io.ObjectInput;
