@@ -7,6 +7,7 @@ import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.metrics.Metrics;
+import com.splicemachine.mrio.MRConstants;
 import com.splicemachine.si.api.Txn.IsolationLevel;
 import com.splicemachine.si.impl.ReadOnlyTxn;
 import com.splicemachine.utils.IntArrays;
@@ -451,4 +452,36 @@ public class SMSQLUtil extends SIConstants {
         }
     }
 
+    public TableContext createTableContext(String tableName,
+                                           TableScannerBuilder tableScannerBuilder) throws SQLException {
+        int[] execRowIds = tableScannerBuilder.getExecRowTypeFormatIds();
+        Map<String, ColumnContext.Builder> columns = getColumns(tableName);
+        ColumnContext[] columnContexts = new ColumnContext[columns.size()];
+        int index = 0;
+        for(ColumnContext.Builder colBuilder : columns.values()) {
+            ColumnContext context = colBuilder.build();
+            columnContexts[index++] = context;
+        }
+        String conglomerateId = getConglomID(tableName);
+
+        List<PKColumnNamePosition> pkColumnNamePositions = getPrimaryKeys(tableName);
+        List<NameType> nameTypes = getTableStructure(tableName);
+
+        List<String>  columnNames = new ArrayList<String>(nameTypes.size());
+        for (int i = 0; i< nameTypes.size(); i++) {
+            columnNames.add(nameTypes.get(i).getName());
+        }
+
+        int[] columnOrdering = getKeyColumnEncodingOrder(nameTypes,pkColumnNamePositions);
+        int[] pkCols = new int[0];
+        if (columnOrdering != null && columnOrdering.length > 0) {
+            pkCols = new int[columnOrdering.length];
+            for (int i = 0; i < columnOrdering.length; ++i) {
+                pkCols[i] = columnOrdering[i] + 1;
+            }
+        }
+
+        TableContext tableContext = new TableContext(columnContexts, pkCols, execRowIds, new Long(conglomerateId));
+        return tableContext;
+    }
 }
