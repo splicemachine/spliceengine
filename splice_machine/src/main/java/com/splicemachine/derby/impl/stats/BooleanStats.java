@@ -206,6 +206,8 @@ public class BooleanStats extends BaseDvdStatistics {
             baseEstimate = (BooleanFrequencyEstimate)baseEstimate.merge(((BooleanFreq) other).baseEstimate);
             return this;
         }
+
+        @Override public String toString(){ return baseEstimate.toString(); }
     }
 
     private static final Function<BooleanFrequencyEstimate,FrequencyEstimate<DataValueDescriptor>> conversionFunction
