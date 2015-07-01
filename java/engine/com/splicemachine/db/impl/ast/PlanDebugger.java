@@ -15,11 +15,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Set;
+
 import com.google.common.base.Function;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.log4j.Logger;
+
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.JoinStrategy;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
@@ -32,6 +34,7 @@ import com.splicemachine.db.impl.sql.compile.DMLStatementNode;
 import com.splicemachine.db.impl.sql.compile.ExplainNode;
 import com.splicemachine.db.impl.sql.compile.FromBaseTable;
 import com.splicemachine.db.impl.sql.compile.FromVTI;
+import com.splicemachine.db.impl.sql.compile.HalfOuterJoinNode;
 import com.splicemachine.db.impl.sql.compile.IndexToBaseRowNode;
 import com.splicemachine.db.impl.sql.compile.JoinNode;
 import com.splicemachine.db.impl.sql.compile.Predicate;
@@ -254,7 +257,14 @@ public class PlanDebugger extends AbstractSpliceVisitor {
             //push the left side directly
             pushExplain(j.getLeftResultSet(),builder);
 
-            builder.pushJoin(rsNum,null,joinStrategy,joinPreds,rightBuilder);
+            int joinType=JoinNode.INNERJOIN;
+            if(j instanceof HalfOuterJoinNode){
+                if(((HalfOuterJoinNode)j).isRightOuterJoin())
+                    joinType = JoinNode.RIGHTOUTERJOIN;
+                else joinType = JoinNode.LEFTOUTERJOIN;
+            }
+
+            builder.pushJoin(rsNum,null,joinStrategy,joinPreds,joinType,rightBuilder);
         } else if(rsn instanceof SingleChildResultSetNode){
 
             pushExplain(((SingleChildResultSetNode)rsn).getChildResult(),builder);
