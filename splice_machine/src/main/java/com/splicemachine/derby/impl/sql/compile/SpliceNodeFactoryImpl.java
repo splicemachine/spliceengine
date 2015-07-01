@@ -415,7 +415,7 @@ public class SpliceNodeFactoryImpl extends NodeFactory implements ModuleControl,
 		  	return C_NodeNames.SCROLL_INSENSITIVE_RESULT_SET_NODE_NAME;
 
 		  case C_NodeTypes.ORDER_BY_NODE:
-		  	return "com.splicemachine.derby.impl.sql.compile.OrderByNode";
+              return C_NodeNames.ORDER_BY_NODE_NAME;
 
 		  case C_NodeTypes.DISTINCT_NODE:
 		  	return C_NodeNames.DISTINCT_NODE_NAME;
