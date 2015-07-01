@@ -47,8 +47,9 @@ public class ExplainTree{
                                 CostEstimate ce,
                                 JoinStrategy joinStrategy,
                                 List<String> predicates,
+                                int joinType,
                                 Builder rightSide){
-            JoinNode jn = new JoinNode(rsNum,ce,predicates,joinStrategy);
+            JoinNode jn = new JoinNode(rsNum,ce,predicates,joinStrategy,joinType);
             jn.inner = rightSide.topNode;
             rightSide.incrementLevel();
             assert topNode!=null: "Must push over left side!";
@@ -324,15 +325,31 @@ public class ExplainTree{
                 return outer;
             }
         }
-
     }
+
     private static class JoinNode extends TwoChildPredicatedNode{
 
         public JoinNode(int resultSetNUmber,
                         CostEstimate cost,
                         List<String> predicateStrings,
-                        JoinStrategy joinStrategy){
-            super(joinStrategy.toString(),resultSetNUmber,cost,predicateStrings);
+                        JoinStrategy joinStrategy,
+                        int joinType){
+            super(getJoinStrategyName(joinType,joinStrategy.toString()),resultSetNUmber,cost,predicateStrings);
+        }
+
+        private static String getJoinStrategyName(int joinType,String baseName){
+            switch(joinType){
+                case com.splicemachine.db.impl.sql.compile.JoinNode.LEFTOUTERJOIN:
+                    return "LeftOuter"+baseName;
+                case com.splicemachine.db.impl.sql.compile.JoinNode.RIGHTOUTERJOIN:
+                    return "RightOuter"+baseName;
+                case com.splicemachine.db.impl.sql.compile.JoinNode.FULLOUTERJOIN:
+                    return "Outer"+baseName;
+                case com.splicemachine.db.impl.sql.compile.JoinNode.UNIONJOIN:
+                    return "Union"+baseName;
+                default:
+                    return baseName;
+            }
         }
     }
 
