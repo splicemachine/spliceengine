@@ -190,6 +190,13 @@ public class PlanPrinter extends AbstractSpliceVisitor {
             pushExplain(((ScrollInsensitiveResultSetNode)rsn).getChildResult(),builder);
         }else if(rsn instanceof JoinNode){
             JoinNode j  = (JoinNode)rsn;
+            int joinType=JoinNode.INNERJOIN;
+            if(j instanceof HalfOuterJoinNode){
+               if(((HalfOuterJoinNode)j).isRightOuterJoin())
+                   joinType = JoinNode.RIGHTOUTERJOIN;
+                else joinType = JoinNode.LEFTOUTERJOIN;
+            }
+
             JoinStrategy joinStrategy = RSUtils.ap(j).getJoinStrategy();
             List<String> joinPreds =  Lists.transform(PredicateUtils.PLtoList(j.joinPredicates),PredicateUtils.predToString);
             ExplainTree.Builder rightBuilder = new ExplainTree.Builder();
@@ -197,7 +204,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
             //push the left side directly
             pushExplain(j.getLeftResultSet(),builder);
 
-            builder.pushJoin(rsNum,ce,joinStrategy,joinPreds,rightBuilder);
+            builder.pushJoin(rsNum,ce,joinStrategy,joinPreds,joinType,rightBuilder);
         } else if(rsn instanceof SingleChildResultSetNode){
 
             pushExplain(((SingleChildResultSetNode)rsn).getChildResult(),builder);

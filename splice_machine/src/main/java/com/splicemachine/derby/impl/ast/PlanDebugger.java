@@ -19,6 +19,7 @@ import java.util.Set;
 import com.google.common.base.Function;
 import com.google.common.base.Strings;
 import com.google.common.collect.Lists;
+import com.splicemachine.db.impl.sql.compile.*;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
@@ -28,28 +29,6 @@ import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.impl.sql.compile.ColumnReference;
-import com.splicemachine.db.impl.sql.compile.ConstantNode;
-import com.splicemachine.db.impl.sql.compile.DMLStatementNode;
-import com.splicemachine.db.impl.sql.compile.ExplainNode;
-import com.splicemachine.db.impl.sql.compile.FromBaseTable;
-import com.splicemachine.db.impl.sql.compile.FromVTI;
-import com.splicemachine.db.impl.sql.compile.IndexToBaseRowNode;
-import com.splicemachine.db.impl.sql.compile.JoinNode;
-import com.splicemachine.db.impl.sql.compile.Predicate;
-import com.splicemachine.db.impl.sql.compile.PredicateList;
-import com.splicemachine.db.impl.sql.compile.ProjectRestrictNode;
-import com.splicemachine.db.impl.sql.compile.ResultColumn;
-import com.splicemachine.db.impl.sql.compile.ResultColumnList;
-import com.splicemachine.db.impl.sql.compile.ResultSetNode;
-import com.splicemachine.db.impl.sql.compile.RowResultSetNode;
-import com.splicemachine.db.impl.sql.compile.ScrollInsensitiveResultSetNode;
-import com.splicemachine.db.impl.sql.compile.SingleChildResultSetNode;
-import com.splicemachine.db.impl.sql.compile.SubqueryNode;
-import com.splicemachine.db.impl.sql.compile.TableOperatorNode;
-import com.splicemachine.db.impl.sql.compile.ValueNode;
-import com.splicemachine.db.impl.sql.compile.VirtualColumnNode;
-import com.splicemachine.db.impl.sql.compile.WindowResultSetNode;
 
 
 /**
@@ -256,7 +235,14 @@ public class PlanDebugger extends AbstractSpliceVisitor {
             //push the left side directly
             pushExplain(j.getLeftResultSet(),builder);
 
-            builder.pushJoin(rsNum,null,joinStrategy,joinPreds,rightBuilder);
+            int joinType=JoinNode.INNERJOIN;
+            if(j instanceof HalfOuterJoinNode){
+                if(((HalfOuterJoinNode)j).isRightOuterJoin())
+                    joinType = JoinNode.RIGHTOUTERJOIN;
+                else joinType = JoinNode.LEFTOUTERJOIN;
+            }
+
+            builder.pushJoin(rsNum,null,joinStrategy,joinPreds,joinType,rightBuilder);
         } else if(rsn instanceof SingleChildResultSetNode){
 
             pushExplain(((SingleChildResultSetNode)rsn).getChildResult(),builder);
