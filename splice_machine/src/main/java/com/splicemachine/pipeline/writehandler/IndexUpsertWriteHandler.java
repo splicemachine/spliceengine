@@ -98,9 +98,18 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
     public boolean updateIndex(KVPair mutation, WriteContext ctx) {
         ensureBufferReader(mutation, ctx);
 
-        if (mutation.getType().isUpdateOrUpsert() && doUpdate(mutation, ctx)) {
-            // The doUpdate() method either updated the index or determined that it doesn't need to be updated.
-            return false;
+        if (mutation.getType().isUpdateOrUpsert()) {
+            if(mutation.getType().equals(KVPair.Type.UNIQUE_UPDATE)) {
+                // If this is a unique index update, we need to change the type so that it passes constraint checking.
+                // The mutation type is shared between main table update and the index update. Uniqueness constraint
+                // check must be made against the main table update but, if that passes, there's no need to do it
+                // against the unique index update.
+                mutation.setType(KVPair.Type.UPDATE);
+            }
+            if (doUpdate(mutation, ctx)) {
+                // The doUpdate() method either updated the index or determined that it doesn't need to be updated.
+                return false;
+            }
         }
 
         // If we arrive here we are an INSERT or an UPDATE/UPSERT that has not yet updated the index.
@@ -120,7 +129,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
 
     @Override
     protected boolean isHandledMutationType(KVPair.Type type) {
-        return type == KVPair.Type.UPDATE || type == KVPair.Type.INSERT || type == KVPair.Type.UPSERT;
+        return type == KVPair.Type.UPDATE || type == KVPair.Type.INSERT || type == KVPair.Type.UPSERT || type == KVPair.Type.UNIQUE_UPDATE;
     }
 
     private void ensureBufferReader(KVPair mutation, WriteContext ctx) {

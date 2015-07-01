@@ -36,6 +36,23 @@ public class PrimaryKeyIT {
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
 
+    // DB-3315: Updating row with primary key does not fail when it should.
+    @Test
+    public void updatePrimaryKeyOnRow() throws Exception {
+        methodWatcher.executeUpdate("create table X(a varchar(9) primary key)");
+        methodWatcher.executeUpdate("insert into X values('AAA')");
+        methodWatcher.executeUpdate("insert into X values('MMM')");
+        // should be a PK violation
+        try {
+            methodWatcher.executeUpdate("update X set a ='AAA' where a='MMM'");
+            fail("Did not throw an exception on duplicate records on primary key");
+        } catch (SQLException e) {
+            assertTrue(e.getMessage(),e.getMessage().contains("it would have caused a duplicate key value in a unique or primary key constraint") &&
+                e.getMessage().contains("defined on 'X'"));
+            assertEquals("Expected 2 rows in table X", 2L, methodWatcher.query("select count(*) from X"));
+        }
+    }
+
     // DB-3013: Updating row with primary key and unique index fails.
     @Test
     public void updatePrimaryKeyOnRowWithUniqueIndex() throws Exception {
