@@ -309,7 +309,7 @@ public class TriggerDescriptor extends TupleDescriptor implements UniqueSQLObjec
                     referencedCols,
                     referencedColsInTriggerAction,
                     0,
-                    td,
+                    getTableDescriptor(),
                     null,
                     false
             ));
