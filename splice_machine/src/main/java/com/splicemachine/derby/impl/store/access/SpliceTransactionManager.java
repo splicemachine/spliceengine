@@ -1998,6 +1998,7 @@ public class SpliceTransactionManager implements XATransactionController,
             LOG.trace("startNestedUserTransaction ");
 	    if (LOG.isDebugEnabled())
 	    	SpliceLogUtils.debug(LOG, "Before startNestedUserTransaction: parentTxn=%s, readOnly=%b, nestedTxnStack=\n%s", getRawTransaction(), readOnly, getNestedTransactionStackString());
+        assert (rawtran instanceof SpliceTransaction) : "rawtran is not an instance of SpliceTransaction";
         // Get the context manager.
         ContextManager cm = getContextManager();
 
