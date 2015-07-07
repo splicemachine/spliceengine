@@ -1,0 +1,110 @@
+\documentclass[10pt]{amsart}
+\usepackage[top=1.5in, bottom=1.25in, left=1.25in, right=1.25in]{geometry}
+\usepackage[backend=biber]{biblatex}
+
+\usepackage{mathtools}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage[]{algorithm2e}
+\RestyleAlgo{boxed}
+\usepackage{algpseudocode}
+\usepackage{listings}
+\usepackage{courier}
+\usepackage{outlines}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{exmp}{Example}[section]
+\newtheorem{defn}{Definition}[section]
+
+\begin{document}
+\title{Statistics Collection Overview}
+\author{Scott Fines}
+
+\begin{abstract}
+This document serves as an outline summary of how Statistics are used in SpliceMachine to serve the query optimizer. This is in outline form, rather than prose, to facilitate reading.
+\end{abstract}
+
+\maketitle
+
+\section{Collection}
+\begin{outline}[enumerate]
+\1 Reading Data
+	\2 We use the task framework to read data
+		\3 Each Region collects statistics for its region only, and a Global statistical view is constructed by merging together statistics for each region
+			\4[*] This is possible because of two things: using Linear transforms for the Statistics algorithms, and the fact that individual regions are \emph{disjoint}--a row is contained in one and only one region. More on the process of merging statistics in the section on the Query Optimizer.
+			\4[*] There is no reason why the region must collect statistics for its \emph{entire} data set with each collection--it is possible to separate a single region into smaller \emph{partitions} which each collect statistics independently. As long as these partitions are disjoint, then we can do this instead.
+	\2 We rate limit reads during the collection to avoid damaging concurrent query performance.
+\1 IO Footprint
+	\2 Compute stats during compaction?
+		\3[*] When multiple versions of the same row have been written (as is the case during an insertion), then there is a high likelihood that the two versions of the data are contained in separate StoreFiles (or worse yet, one in the Memstore and one in a StoreFile). Thus, when compacting files, there is always a possibility that a later version of your row is contained in a storefile which wasn't part of this compaction (and hence isn't included). This will result in multiple different statistics which \emph{cannot be merged together}, because they are not taken over disjoint data sets
+	\2 Sample the Store Files?
+		\3[*] One must read all store files, and somehow compute from them the row which is "10 rows ahead". This may be possible by using the StoreFile indices, but would not include versions contained in the memstore. Therefore, one must fully read the memstore and discard any rows between the current position and the row contained "10 rows ahead". At best, this is problematic to implement, and (when the memstore is full) will still result in a lot of wasted row access. This \emph{may} be possible at some point in the future, but is likely to be convoluted and difficult. 
+	\2 Stripe the Region
+		\3[*] A simpler approach is mentioned above. Because Regions don't have to be the atomic unit of work in the statistical system, we can stripe each region into multiple subpartitions, each with a relatively fixed data size. A simple approach would be to do the following:
+			\4 Compute statistics for the initial region in its entirety
+			\4 Use those statistics to separate the region into $b$ buckets of roughly equal size
+			\4 When recomputation is desired, recompute for each of these buckets instead.
+		\3[] This approach would allow use to ensure that any given statistics collection only reads data of fixed size, in exchange for which we have more partial results (More on this in the Query Optimizer section)
+		\3[*] In the Near-to immediate term, this seems the most promising approach; in the longer term, Sampling the store files is a possibility (although frankly I feel it is likely more trouble than it will be worth).
+\1 Statistics Collected
+	\2 Cardinality
+		\3 Uses $2^p$ bytes for each column(where $4\leq p \leq 14$. This requires a maximum of $2^{p+10}$ bytes (when the table has 1024 collectable columns). This is at most 16 MB for each region.
+			\4[*] Encourages us to not collect statistics for all columns (More on this in the Configuration section)
+	\2 Frequent Elements
+		\3 PRD calls for collecting top 5 most frequent elements, and their frequencies. This has negligiable space constraints (only the space required to store the top 5 elements, plus 80 bytes for frequency and error measures)
+			\4[*] There's no reason not to make this configurable, at least globally, so the initial design has this as a configurable parameter, whose default is 5.
+	\2 Distributions
+		\3 Distributions are hard. Most Histograms are not linear functions, so computing them blindly will result in a high degree of error. 
+			\4[*]We could compute Equi-depth histograms for each partition, then just merge them up with no regard for the equi-depth constraint (resulting in a variation of the Equi-width histogram), but the observable error metrics are very high ($\>50\%$ in one observed experiment). 
+			\4[*] We want to use Wavelet Histograms, because they are linear functions (and thus easily merged). Unfortunately, one-pass wavelet construction algorithms are non-trivial to implement efficiently(relative to cardinality or Frequent Elements).
+		\3 Time constraints force us to do without histograms in the immediate term--the interest is in getting \emph{something} working right away, and iterate on it rapidly afterwards. The expectation is to have this within a short time after initial code drop
+\end{outline}
+
+\section{Configuration}
+\begin{outline}[enumerate]
+\1 Stored Procedures
+	\2 Enabling and Disabling Statistics Collections:
+		\3[*] There can be up to 1024 columns in a single table (this is a derby-supplied restriction). In most cases, collecting statistics for all 1024 columns is prohibitively expensive in terms of memory resources. Therefore, we want a way to collect only a subset of those columns
+		\3 We add a column to \texttt{SYS.SYSCOLUMNS} called \texttt{COLLECTSTATS}, which is a boolean. When that value is true, statistics for that column are collected
+			\4 Non-collectible columns (e.g. blobs) will always be set to false, and will not be allowed to be set to true. Only orderable columns are collectible (for now), although unordered columns may be partially collectible in the future.
+			\4 Only users with DDL access priviledges can enable or disable statistics collection on a column (as it modifies a system table)
+			\4 All primary key and indexed columns are \emph{enabled} by default (but may be disabled by administrator command)
+			\4 All non-keyed columns are \emph{disabled} by default(but may be enabled by administrator command, as long as that column is collectible).
+			\4 The design is open to suggestion w.r.t other columns which should be enabled by default.
+	\2 Stale Partitions
+		\3[*] Over time, all statistics collections will become out of date. Thus, it is important for us to keep track of whether or not a given statistics set is \emph{stale}. When a statistics set is stale, then it should be collected again to ensure up-to-date statistics.
+		\3 Staleness is determined on a \emph{per-partition} basis
+			\4 When a partition knows that it is stale, then it marks itself as such to indicate that the system \emph{knows} those statistics are out of date. 
+			\4 A \emph{table} is considered stale when $\>50\%$ of partitions are known to be stale. 
+			\4 Collections which do not require it do not need to recollect partitions which are known to not be stale (although this can be forced by an administrator).
+		\3 Staleness is detected optimistically
+			\4[*] As a given partition receives mutations, if a (configurable) number of rows are modified, then the partition is marked as stale. At this point, it may trigger an automatic collection (if Automatic Collections are enabled for this table).
+	\2 Triggering Manual Collections
+		\3 All Stored Procedures include a \texttt{staleOnly} flag. When this flag is set to true, then only partitions which are known to be stale will be collected. When set to false, then all partitions will be collected. When set to true, if no partition is stale, then no work is done, but a warning will be emitted to the client to inform them of the situation.
+			\4[*] The purpose of this flag is to allow incremental statistics collections periodically in order to avoid the excessive IO of a full table scan.
+		\3 The following Stored Procedures are available:
+			\4 \texttt{SYSCS\_UTIL.COLLECT\_ALL\_STATISTICS()}: Collect all statistics for \emph{all} tables and indices in the database. 
+			\4 \texttt{SYSCS\_UTIL.COLLECT\_SCHEMA\_STATISTICS()}: Collect all statistics for all tables and indices in the specified schema. Throws an error if the schema does not exist
+			\4 \texttt{SYSCS\_UTIL.COLLECT\_TABLE\_STATISTICS()}: Collect all statistics for the specified table \emph{and its indices}. Throws an error if the table or schema does not exist
+			\4 \texttt{SYSCS\_UTIL.COLLECT\_COLUMN\_STATISTICS()}: Collect statistics for the specified columns only, \emph{even if those columns are not enabled}, as long as those columns are collectible. If any column is not collectible, an error will be thrown. If no columns are specified, then no work is done, and a warning is emitted to the user. If a column is specified which is not enabled, then a warning is emitted to the client.
+			\4 \texttt{SYSCS\_UTIL.COLLECT\_PARTITION\_STATISTICS()}: Collect statistics for the specified partition. If the partition does not exist, an error is thrown. If \texttt{staleOnly == true} and the specified partition is not stale, then no work is done, and a warning will be emitted to the client.
+	\2 Automatic Collections
+		\3[*] Each partition will be responsible for determining its own staleness. If Automatic Collection is enabled for that table, then when the partition is determined to be stale, it will submit a re-collection task automatically (to be performed in the background)
+
+\end{outline}
+
+\section{Storage Format}
+\begin{outline}
+\1 \texttt{SYS\_TABLE\_STATS}
+	\2 Holds statistics about the table itself (row count, \# of partitions, and so forth). Rows in the table are stored on a per-partition basis, with a primary key of \texttt{(conglomerate\_id, partition\_id)}.
+	\2 Also has view \texttt{SYS\_TABLE\_STATISTICS}, which presents an administrator friendly view of the data, to enable easy reading
+\1 \texttt{SYS\_COLUMN\_STATS}
+	\2 Holds logical statistics for each column collected. Rows in the table are stored on a per-partition basis, with a primary key of \texttt{(conglomerate\_id, partition\_id,column\_id)}
+	\2 Column statistics are stored as a binary-formated User Data Type (to support correct logical merging)
+	\2 Also has view \texttt{SYS\_COLUMN\_STATISTICS} which merges together all partitions, and presents a global version of all column statistics
+\1 \texttt{SYS\_PHYSICAL\_STATS}
+	\2 Holds physical statistics for a specific server. Rows are stored on a per-server basis, with a primary key of \texttt{(hostname)}.
+\end{outline}
+
+\end{document}

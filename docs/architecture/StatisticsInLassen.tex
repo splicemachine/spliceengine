@@ -1,0 +1,33 @@
+This appendix contains a brief mapping between the features in this document and those described the in the PRD, along with information about its presence (or absence) in the Lassen release of SpliceMachine.
+
+\section{PRD features}
+This is an overview of the features which were explicitly requested as part of the PRD document. Most are already completed; those which are not were likely deferred because of a change in design course.
+\subsection{TableStatistics} 
+	Completed as designed in this document. Contents of \texttt{systablestatistics} and \texttt{systablestats} are complete, with the exception of Query counts
+\subsection{ColumnStatistics}: Completed as designed in this document. Contents of \texttt{syscolumnstats} and \texttt{syscolumnstatistics} are complete.
+\subsection{IndexStatistics}: Are merged with TableStatistics and ColumnStatistics. Index fetch latency (the latency to fetch a single base table for a given index row) is stored as \texttt{remote\_read\_latency} in \texttt{systablestats}
+\subsection{Update and Report Statistics}
+Updates for synchronous collections are completed for individual tables and schemas. All other calls described in \ref{sec:ManualCollection} were deferred for lack of time, although they would be trivial to implement (requiring only an additional Stored Procedure).
+\subsection{Stats on a Region} Manual collection is supported at the engine layer, but no Stored Procedure yet exists. It would be trivial to complete this(require $<$ 1 day).
+\subsection{Stats on a greater sample set of data} Does not match with this design, as it refers to sampling data points (an infeasible proposition over an LSM tree structure such as HBase)
+\subsection{Failure Semantics} Are supported within the engine as proper error messages, similarly to any other Stored Procedure. Collections are transactional, so they are rolledback on failure similarly to insertion or imports.
+\subsection{Resource Management} The Task framework is used to manage statistics collections. Rate limiting was deemed unnecessary for forcible manual collections, but will be present for automatic collections when implemented
+
+\section{Implicit PRD features}
+These are features mentioned in the PRD, but which are not given a relative priority.
+\subsection{Historical Statistics} Deferred due to complexity, and a relative lack of interest in the feature overall.
+
+\section{Design document Features}
+These are features which are present in the design document, but are not explicit features in the PRD. The difficulty of each task varies.
+
+\subsection{AutoCollect} Due to confusion about its purpose and design, this was deferred to post-Lassen.
+\subsection{Collection for Specific Columns} Is trivial to implement, but has not seen much demand, so was deferred
+\subsection{Collection for Specific Key Range} Identical to "Stats on a region" in PRD design. Was deferred due to lack of interest in the feature.
+\subsection{Stale-partition detection} Was deferred to avoid scope-creep. Necessary for AutoCollect. Would require ~ 1-2 days to fully implement.
+\subsection{Histograms} Very difficult algorithmically. Will require significant resources to implement and test for correctness. Deferred as a result. 
+
+\section{Other features}
+These are features which are not present in the design document or in the PRD document, but which have arisen in discussions. Addressing these will require a design (with an associated update to this document) plus implementation effort, and should be considered at the upper edge of difficulty unless otherwise mentioned.
+
+\subsection{Finer-grained partitioning} Separate a region into smaller partitions, to allow more parallelism and to prevent traversing the entire region's data set on collection. This was deferred due to relative complexity.
+\subsection{Enable/Disable statistics for all columns} Trivial to implement (<1 day). Various parties expressed interest as well. Good candidate for Lassen.

@@ -1,0 +1,38 @@
+There are three main components of the Statistics engine in SpliceMachine:
+\begin{enumerate}
+\item[Collection] approaches what statistics are collected, and how that collection will occur
+\item[Storage] resolves issues around storing statistical data so that it may be efficiently accessed, and human visibility
+\item[Access] describes the structure of accessing statistical data quickly for internal systems
+\end{enumerate}
+
+\subsection{Collection} 
+Statistics are collected through the use of a periodically executed maintenance tasks, which can be triggered on a single region in one of two modes. Manual mode will collect statistics when the administrator issues the appropriate request. There will be some variations on those procedures to ensure that statistics can be collected with varying degrees of thoroughness (and with varying performance characteristics); for example, statistics may be collected on individual tables and schemas.
+
+Automatic mode, by contrast, will attempt to refresh statistics whenever the system can reasonably detect that new statistics be helpful. In particular, whenever a region detects that it has received a significant number of successful writes, it will assume that it needs new statistics, and will submit a task for execution. However, this maintenance task will wait to be executed until the region detects a substantial decrease in it's overall write load (Should such a situation never occur, it will eventually execute anyway).
+
+As automatic mode may choose to use resources at an inopurtune time, it will come with an associated disable call, which an administrator can use to disable automatic collection for high-load databases.  
+
+\subsection{Storage}
+Once collected for a given partition, Statistics must be made available for the query optimizers on \emph{all} nodes to use. 
+
+The most obvious way to do this is to store the data into an HBase table. In particular, there will be two tables: 
+
+\begin{description}
+				\item[\texttt{systablestats}] maintains statistics for the table as a whole, including latency and other physical statistics.
+				\item[\texttt{syscolumnstats}] maintains statistics for each individual column
+\end{description}
+
+Each partition will update a single row in each table, making the storage format partition-specific. This allows individual partitions to update themselves without requiring the entire table to update.
+
+These two tables will hold data in binary formats which are efficient to store and can be combined correctly, but will not be human readable in any direct sense. To allow human visibility into the system, we will also create two read-only views:
+
+\begin{description}
+				\item[\texttt{systablestatistics}] is a human-readable view of the table as a whole
+				\item[\texttt{syscolumnstatistics}] is a human-readable view of for each individual column
+\end{description}
+Only the statistics engine itself will be able to modify these views.
+
+\subsection{Access}
+There is a significant downside to this strategy that we must deal with. We note that table access is a relatively expensive operation to conduct remotely, and even more expensive when that data is stored in only a single region (which it is reasonable to expect, since a single cluster will have thousands of regions at most). However, we are helped by the realization that statistics updates will occur relatively rarely in our system\footnote{Rarely in this case can be anywhere between once a month for a reference data set to once every hour for high-volume OLTP tables}. Because of this, we can safely cache statistics data locally on each RegionServer on the cluster. We refer to this cache as the \emph{PartitionCache}, which contains a cached version of statistics both as a global view and as a partition-specific view. 
+
+We internally represent statistics as a global view, where the overall statistic is computed by merging together the results from all known partitions. This merging process is different for each specific algorithm and data structure\footnote{For example, computing the global average is different than averaging the averages}
