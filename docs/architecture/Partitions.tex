@@ -1,0 +1,25 @@
+The Statistics engine consists of 2 major components: \textbf{Collection} is the mechanism by which statistics are calculated, while \textbf{Storage} is the aspects of storing and accessing statistics information in an efficient and effective manner. In order to properly describe them, we settle on our terminology first with a few definitions:
+
+\begin{definition}
+A \emph{conglomerate} $C$ is an sequence of $(key,value)$ pairs, ordered according to $key$, where $K = \lbrace key \rbrace$ is a set (it does not allow duplicates) and $V = \lbrace value \rbrace$ is a multiset. When references to the value are not necessary, we will occasionally use the notation $[a,b]$ to define a conglomerate whose minimum key is $a$, and whose maximum key is $b$
+\end{definition}
+
+More concretely, a conglomerate is usually referred to as a logical abstraction of a single on-disk storage unit, such as B-tree or HBase table\footnote{in SpliceMachine, it directly corresponds to an HBase table}. However, the mathematical definition is important in defining other units (such as the partition).
+
+It's important to note a few practical aspects of a conglomerate. Firstly, a conglomerate is \emph{ordered} by definition, but that ordering does not need to correspond to the values in any way--in particular, there is no requirement that keys have any meaning at all beyond the fact that they are required.
+
+In SpliceMachine, a SQL table consists of one or more conglomerates, with one conglomerate holding the contents of the base table; for each index, an additional conglomerate is added. Therefore, a table can own many conglomerates, but each conglomerate is associated with one \emph{and only one} SQL table.
+
+Conglomerates are an easy enough system to work with, but a parallel database needs to access data in parallel while a distributed database may need to manage subsets of the conglomerate as a distinct entitity. Thus, we have
+
+\begin{definition}
+A \emph{partitioning} of a conglomerate is the separation of a single conglomerate into 1 or more contiguous, ordered multisets of byte arrays which do not overlap, and which are contained by the conglomerate multiset. Each ordered multiset is referred to as a \emph{partition} of the conglomerate.
+\end{definition}
+
+For example, suppose $C$ is a conglomerate represented as the interval $[a,b]$, and that $c$ is a byte array. Then, we can separate $C$ into the partitioning $\lbrace P_1,P_2 \rbrace$ $P_1 = [a,c)$ and $P_2 = [c,b]$. Notice that $c$ can only be contained in one partition (otherwise the two partitions would overlap). 
+
+It is worth noting that, in the loose notation of a conglomerate as $[a,b]$, there is always a partition which consists of the entire conglomerate (even if the conglomerate contains no elements). However, there may not be any additional partitionings\footnote{Consider the conglomerate which has no elements--there is no way to separate $\varnothing$ into two non-overlapping partitions}
+
+In the context of SpliceMachine, the obvious, canonical partitioning of any conglomerate is that of the \emph{region}--a conglomerate is separated into one or more regions based on HBase's internal rules for splitting and merging regions. This is also the typical way of understanding partitions, but it is not required. For example, it may be possible to identify certain \emph{guidepost} keys within a region which can be used to further divide the region into a finer-grained partitioning. In the final limit, one could define a partition for every key which is present in the conglomerate, although there is little reason to do so in practice.
+
+
