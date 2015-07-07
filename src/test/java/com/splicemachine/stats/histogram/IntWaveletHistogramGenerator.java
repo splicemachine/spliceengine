@@ -2,7 +2,9 @@ package com.splicemachine.stats.histogram;
 
 import com.carrotsearch.hppc.IntLongOpenHashMap;
 import com.carrotsearch.hppc.cursors.IntLongCursor;
-import com.splicemachine.testutils.GaussianRandom;
+import com.splicemachine.stats.random.GaussianGenerator;
+import com.splicemachine.stats.random.RandomGenerator;
+import com.splicemachine.stats.random.UniformGenerator;
 
 import java.io.BufferedWriter;
 import java.io.FileWriter;
@@ -24,7 +26,7 @@ public class IntWaveletHistogramGenerator {
     public static void main(String...args)throws Exception{
         int numRecords = 10000;
         IntLongOpenHashMap actualData = IntLongOpenHashMap.newInstance();
-        GaussianRandom random = new GaussianRandom(new Random(0l));
+        RandomGenerator random = new GaussianGenerator(new UniformGenerator(new Random(0)));
 
         IntGroupedCountBuilder builder = IntGroupedCountBuilder.build(0.1f,512);
         for(int i=0;i<numRecords;i++){

@@ -16,13 +16,13 @@ public class DistributionPrinter {
 //        RandomDistribution dist = new ParetoDistribution(new UniformDistribution(new Random(0l),1,3));
 //        RandomDistribution dist = new ParetoDistribution(new UniformDistribution(new Random()),.1d,.9d);
 //        RandomDistribution dist = new ExponentialDistribution(new UniformDistribution(new Random()));
-        RandomDistribution dist = new GaussianDistribution(new UniformDistribution(new Random(0l)));
+        RandomGenerator dist = new GaussianGenerator(new UniformGenerator(new Random(0l)));
 //        boolean useLogScale=true;
         boolean useLogScale=false;
         runTest(numElements, dist,useLogScale);
     }
 
-    private static void runTest(int numElements, RandomDistribution dist,boolean useLogScale) {
+    private static void runTest(int numElements, RandomGenerator dist,boolean useLogScale) {
         IntLongOpenHashMap data = new IntLongOpenHashMap();
         int scale = 10;
         int maxKey = 0;

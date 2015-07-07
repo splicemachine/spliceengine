@@ -3,8 +3,12 @@ package com.splicemachine.stats.estimate;
 import com.splicemachine.stats.LongColumnStatistics;
 import com.splicemachine.stats.frequency.LongFrequencyEstimate;
 import com.splicemachine.stats.frequency.LongFrequentElements;
+import com.splicemachine.stats.random.LongEmpiricalRejectionGenerator;
+import com.splicemachine.stats.random.RandomGenerator;
+import com.splicemachine.stats.random.UniformGenerator;
 import com.splicemachine.utils.ComparableComparator;
 
+import java.util.Random;
 import java.util.Set;
 
 /**
@@ -106,6 +110,21 @@ public class UniformLongDistribution extends BaseDistribution<Long> implements L
             includeStop= true;
         }
         return rangeSelectivity(start,stop,includeStart,includeStop,isMin);
+    }
+
+    @Override
+    public long min(){
+        return ((LongColumnStatistics)columnStats).min();
+    }
+
+    @Override
+    public long max(){
+        return ((LongColumnStatistics)columnStats).max();
+    }
+
+    @Override
+    public long totalCount(){
+        return columnStats.nonNullCount();
     }
 
     /* ****************************************************************************************************************/

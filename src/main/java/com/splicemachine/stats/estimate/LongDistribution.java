@@ -13,4 +13,10 @@ public interface LongDistribution extends Distribution<Long>{
     long selectivityAfter(long start, boolean includeStart);
 
     long rangeSelectivity(long start, long stop, boolean includeStart, boolean includeStop);
+
+    long min();
+
+    long max();
+
+    long totalCount();
 }

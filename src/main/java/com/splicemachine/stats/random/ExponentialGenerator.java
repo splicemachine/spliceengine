@@ -4,8 +4,8 @@ package com.splicemachine.stats.random;
  * @author Scott Fines
  *         Date: 12/2/14
  */
-public class ExponentialDistribution extends ZigguratDistribution{
-    public ExponentialDistribution(RandomDistribution baseRandom) {
+public class ExponentialGenerator extends ZigguratGenerator{
+    public ExponentialGenerator(RandomGenerator baseRandom) {
         super(baseRandom);
     }
 

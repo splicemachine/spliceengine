@@ -6,10 +6,10 @@ import java.util.Random;
  * @author Scott Fines
  *         Date: 12/2/14
  */
-public class UniformDistribution implements RandomDistribution{
+public class UniformGenerator implements RandomGenerator{
     private final Random random;
 
-    public UniformDistribution(Random random) {
+    public UniformGenerator(Random random) {
         this.random = random;
     }
 
@@ -21,6 +21,11 @@ public class UniformDistribution implements RandomDistribution{
     @Override
     public int nextInt() {
         return random.nextInt();
+    }
+
+    @Override
+    public long nextLong() {
+        return random.nextLong();
     }
 
     @Override

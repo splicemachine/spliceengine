@@ -1,15 +1,10 @@
 package com.splicemachine.stats.histogram;
 
-import com.carrotsearch.hppc.IntDoubleOpenHashMap;
 import com.carrotsearch.hppc.IntIntOpenHashMap;
-import com.carrotsearch.hppc.IntLongOpenHashMap;
 import com.carrotsearch.hppc.cursors.IntIntCursor;
-import com.google.common.base.Strings;
-import com.splicemachine.testutils.GaussianRandom;
+import com.splicemachine.stats.random.RandomGenerator;
 
-import java.util.Arrays;
 import java.util.Iterator;
-import java.util.List;
 import java.util.Random;
 
 /**
@@ -172,7 +167,7 @@ public class IntWaveletQuerySolverDistortionMeasure {
 		}
 
     private static class GaussianGenerator implements Iterator<IntIntPair>{
-        private final GaussianRandom random;
+        private final RandomGenerator random;
         private final int maxInt;
         private final int numIterations;
         private int iterationCount = 0;
@@ -180,7 +175,7 @@ public class IntWaveletQuerySolverDistortionMeasure {
 
         private IntIntPair retPair = new IntIntPair();
         private GaussianGenerator(int numIterations, int maxInt, Random random) {
-            this.random = new GaussianRandom(random);
+            this.random = new com.splicemachine.stats.random.GaussianGenerator(new com.splicemachine.stats.random.UniformGenerator(random));
             this.numIterations = numIterations;
             int s = 2*maxInt;
             if(s<maxInt){

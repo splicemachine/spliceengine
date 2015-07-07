@@ -2,7 +2,6 @@ package com.splicemachine.stats;
 
 import com.splicemachine.stats.estimate.Distribution;
 import com.splicemachine.stats.estimate.EmptyDistribution;
-import com.splicemachine.stats.random.Distributions;
 
 import java.util.ArrayList;
 import java.util.List;

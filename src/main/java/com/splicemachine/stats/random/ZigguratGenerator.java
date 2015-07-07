@@ -4,13 +4,13 @@ package com.splicemachine.stats.random;
  * @author Scott Fines
  *         Date: 12/2/14
  */
-public abstract class ZigguratDistribution implements RandomDistribution {
-    protected final RandomDistribution baseRandom;
+public abstract class ZigguratGenerator implements RandomGenerator{
+    protected final RandomGenerator baseRandom;
 
     protected double[] x;
     private double[] y;
 
-    public ZigguratDistribution(RandomDistribution baseRandom) {
+    public ZigguratGenerator(RandomGenerator baseRandom) {
         this.baseRandom = baseRandom;
 
         buildTables();
@@ -60,6 +60,11 @@ public abstract class ZigguratDistribution implements RandomDistribution {
     @Override
     public int nextInt() {
         return (int)(nextDouble()*Integer.MAX_VALUE);
+    }
+
+    @Override
+    public long nextLong() {
+        return (long)(nextDouble()*Long.MAX_VALUE);
     }
 
     @Override public boolean nextBoolean() { return baseRandom.nextBoolean(); }

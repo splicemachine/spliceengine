@@ -4,9 +4,9 @@ import com.carrotsearch.hppc.IntLongOpenHashMap;
 import com.carrotsearch.hppc.cursors.IntLongCursor;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
-import com.splicemachine.stats.random.Distributions;
-import com.splicemachine.stats.random.ParetoDistribution;
-import com.splicemachine.stats.random.RandomDistribution;
+import com.splicemachine.stats.random.Generators;
+import com.splicemachine.stats.random.ParetoGenerator;
+import com.splicemachine.stats.random.RandomGenerator;
 import org.junit.Test;
 
 import java.util.*;
@@ -23,7 +23,7 @@ public class RandomIntSpaceSaverTest {
 
     @Test
     public void testParetoDistributionTopK() throws Exception {
-        RandomDistribution distribution = new ParetoDistribution(Distributions.uniform(),1.0,1.0);
+        RandomGenerator distribution = new ParetoGenerator(Generators.uniform(),1.0,1.0);
         IntLongOpenHashMap actualDistribution = new IntLongOpenHashMap();
         IntFrequencyCounter counter = FrequencyCounters.intCounter(100);
 
@@ -49,7 +49,7 @@ public class RandomIntSpaceSaverTest {
     public void testParetoDistributionHeavyHitters() throws Exception {
         long time = System.currentTimeMillis();
         Random random = new Random(time);
-        RandomDistribution distribution = new ParetoDistribution(Distributions.uniform(random),1.0,1.0);
+        RandomGenerator distribution = new ParetoGenerator(Generators.uniform(random),1.0,1.0);
         IntLongOpenHashMap actualDistribution = new IntLongOpenHashMap();
         IntFrequencyCounter counter = FrequencyCounters.intCounter(100);
 
@@ -71,7 +71,7 @@ public class RandomIntSpaceSaverTest {
 
     /*****************************************************************************************************************/
     /*private helper methods*/
-    private void addData(RandomDistribution distribution,
+    private void addData(RandomGenerator distribution,
                          IntLongOpenHashMap actualDistribution,
                          IntFrequencyCounter counter) {
         for(int i=0;i<numIterations;i++){

@@ -6,11 +6,13 @@ package com.splicemachine.stats.random;
  * @author Scott Fines
  *         Date: 12/2/14
  */
-public interface RandomDistribution {
+public interface RandomGenerator{
 
     double nextDouble();
 
     int nextInt();
 
     boolean nextBoolean();
+
+    long nextLong();
 }

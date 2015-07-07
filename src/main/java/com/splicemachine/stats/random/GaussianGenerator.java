@@ -4,8 +4,8 @@ package com.splicemachine.stats.random;
  * @author Scott Fines
  *         Date: 12/2/14
  */
-public class GaussianDistribution extends ZigguratDistribution{
-    public GaussianDistribution(RandomDistribution baseRandom) {
+public class GaussianGenerator extends ZigguratGenerator{
+    public GaussianGenerator(RandomGenerator baseRandom) {
         super(baseRandom);
     }
 
@@ -15,6 +15,7 @@ public class GaussianDistribution extends ZigguratDistribution{
         if(baseRandom.nextBoolean()) return -d;
         return d;
     }
+
 
     @Override
     protected double tail(double u0, double u1) {
