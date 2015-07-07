@@ -5,7 +5,7 @@
 	<artifactId>stats</artifactId>
 	<version>1.0.0-SNAPSHOT</version>
 	<packaging>jar</packaging>
-	<name>stats</name>
+	<name>${project.artifactId}</name>
 	<description>High Performance Summary Statistics over Data Streams</description>
 	<parent>
 		<groupId>com.splicemachine</groupId>
