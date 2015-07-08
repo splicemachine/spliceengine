@@ -375,7 +375,7 @@ public class TernaryOperatorNode extends OperatorNode
 		** Store the result of the method call in the field, so we can re-use
 		** the object.
 		*/
-		mb.putField(field);
+//		mb.putField(field);
 	}
 
     public String getOperator(){

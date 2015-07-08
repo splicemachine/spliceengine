@@ -1028,6 +1028,11 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         // Generate the code to create the row in the constructor
         genCreateRow(acb,field,"getValueRow",ClassName.ExecRow,size());
 
+        acb.pushGetExecutionFactoryExpression(userExprFun); // instance
+        userExprFun.push(size());
+        userExprFun.callMethod(VMOpcode.INVOKEINTERFACE,null,"getValueRow",ClassName.ExecRow,1);
+        userExprFun.setField(field);
+
         ResultColumn rc;
         int size=size();
 
@@ -1165,20 +1170,20 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
 		 	 * to handle (beetle 4293).  We set constant columns in other
 		 	 * methods if constructor has too many statements already.
 		 	 */
-            if((!genNulls) &&
-                    (rc.getExpression() instanceof ConstantNode) &&
-                    !((ConstantNode)rc.getExpression()).isNull() &&
-                    !cb.statementNumHitLimit(1)){
-
-
-                cb.getField(field); // instance
-                cb.push(index+1); // first arg;
-
-                rc.generateExpression(acb,cb);
-                cb.cast(ClassName.DataValueDescriptor); // second arg
-                cb.callMethod(VMOpcode.INVOKEINTERFACE,ClassName.Row,"setColumn","void",2);
-                continue;
-            }
+//            if((!genNulls) &&
+//                    (rc.getExpression() instanceof ConstantNode) &&
+//                    !((ConstantNode)rc.getExpression()).isNull() &&
+//                    !cb.statementNumHitLimit(1)){
+//
+//
+//                cb.getField(field); // instance
+//                cb.push(index+1); // first arg;
+//
+//                rc.generateExpression(acb,cb);
+//                cb.cast(ClassName.DataValueDescriptor); // second arg
+//                cb.callMethod(VMOpcode.INVOKEINTERFACE,ClassName.Row,"setColumn","void",2);
+//                continue;
+//            }
 
             userExprFun.getField(field); // instance
             userExprFun.push(index+1); // arg1

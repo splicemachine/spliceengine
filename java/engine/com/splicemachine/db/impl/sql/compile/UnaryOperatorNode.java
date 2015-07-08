@@ -631,7 +631,7 @@ public class UnaryOperatorNode extends OperatorNode
 			** Store the result of the method call in the field, so we can re-use
 			** the object.
 			*/
-			mb.putField(field);
+//			mb.putField(field);
 		} else {
 			mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null,
 				methodName, resultTypeName, 0);

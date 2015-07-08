@@ -674,7 +674,7 @@ public class BinaryOperatorNode extends OperatorNode
 			** the object.
 			*/
 
-			mb.putField(resultField);
+//			mb.putField(resultField);
 		}
 	}
 
