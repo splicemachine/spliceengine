@@ -69,6 +69,12 @@ public class CachedByteSlice extends ByteSlice {
     }
 
     @Override
+    public void reverse() {
+        cachedCopy = null;
+        super.reverse();
+    }
+
+    @Override
     public String toString() {
         return "cachedCopy.length=" + (cachedCopy == null ? 0 : cachedCopy.length);
     }
