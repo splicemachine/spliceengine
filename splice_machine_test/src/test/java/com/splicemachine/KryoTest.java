@@ -169,32 +169,6 @@ public class KryoTest  {
     }
 
     @Test
-    public void testByteSliceBufferTooSmall() {
-        ByteSlice.wrap(new byte[]{0}, 0, 1);
-
-        ByteSlice.wrap(new byte[]{0}, 1, 0);
-
-        try {
-            ByteSlice.wrap(new byte[] {0}, 1, 1);
-            fail("Expected too small exception");
-        } catch (Throwable e) {
-            assertTrue(e.getMessage().contains("is too short for"));
-        }
-        try {
-            ByteSlice.wrap(new byte[0], 0, 1);
-            fail("Expected too small exception");
-        } catch (Throwable e) {
-            assertTrue(e.getMessage().contains("is too short for"));
-        }
-        try {
-            ByteSlice.wrap(new byte[0], 1, 0);
-            fail("Expected too small exception");
-        } catch (Throwable e) {
-            assertTrue(e.getMessage().contains("is too short for"));
-        }
-    }
-
-    @Test
     public void testEmptyByteSlice() {
         ByteSlice byteSliceIn = ByteSlice.wrap(new byte[] {0, 1, 2,3,4,5,6,7,8,9}, 5, 0);
 
