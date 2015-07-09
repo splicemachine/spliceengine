@@ -20,34 +20,39 @@ public class Bytes {
     public static final ByteComparator BASE_COMPARATOR = new ByteComparator() {
         @Override
         public int compare(byte[] b1, int b1Offset, int b1Length, byte[] b2, int b2Offset, int b2Length) {
-            int lLength = b1Length+b1Offset> b1.length? b1.length: b1Length;
-            int rLength = b2Length+b2Offset> b2.length? b2.length: b2Length;
-            int length = lLength<=rLength? lLength: rLength;
-            for (int i = 0; i < length; i++) {
-                byte leftByte = b1[b1Offset + i];
-                byte rightByte = b2[b2Offset + i];
-                if (leftByte < rightByte) {
-                    return -1;
-                }else if(rightByte<leftByte) return 1;
+            if(b1 == b2 && b1Offset == b2Offset && b1Length == b2Length) {
+                return 0;
+            } else {
+                int end1 = b1Offset + b1Length;
+                int end2 = b2Offset + b2Length;
+                int i = b1Offset;
+
+                for(int j = b2Offset; i < end1 && j < end2; ++j) {
+                    int a = b1[i] & 255;
+                    int b = b2[j] & 255;
+                    if(a != b) {
+                        return a - b;
+                    }
+
+                    ++i;
+                }
+
+                return b1Length - b2Length;
             }
-            return 0;
         }
 
         @Override
         public int compare(ByteBuffer buffer, byte[] b2, int b2Offset, int b2Length) {
             buffer.mark();
             try {
-                int lLength = buffer.remaining();
-                int rLength = b2Length + b2Offset > b2.length ? b2.length : b2Length;
-                int length = lLength <= rLength ? lLength : rLength;
+                int b1Length = buffer.remaining();
+                int length = b1Length <= b2Length ? b1Length : b2Length;
                 for (int i = 0; i < length; i++) {
-                    byte leftByte = buffer.get();
-                    byte rightByte = b2[b2Offset + i];
-                    if (leftByte < rightByte) {
-                        return -1;
-                    } else if (rightByte < leftByte) return 1;
+                    int leftByte = buffer.get() & 0xff;
+                    int rightByte = b2[b2Offset + i] & 0xff;
+                    if(leftByte!=rightByte) return leftByte-rightByte;
                 }
-                return 0;
+                return b1Length-b2Length;
             }finally{
                 buffer.reset();
             }
@@ -63,8 +68,8 @@ public class Bytes {
                 int rLength = rBuffer.remaining();
                 int length = lLength <= rLength ? lLength : rLength;
                 for (int i = 0; i < length; i++) {
-                    byte leftByte = lBuffer.get();
-                    byte rightByte = rBuffer.get();
+                    int leftByte = lBuffer.get() & 0xff;
+                    int rightByte = rBuffer.get() & 0xff;
                     if (leftByte < rightByte) {
                         return -1;
                     } else if (rightByte < leftByte) return 1;
@@ -82,13 +87,18 @@ public class Bytes {
             int rLength = b2Length+b2Offset> b2.length? b2.length: b2Length;
             int length = lLength<=rLength? lLength: rLength;
             for (int i = 0; i < length; i++) {
-                byte leftByte = b1[b1Offset + i];
-                byte rightByte = b2[b2Offset + i];
+                int leftByte = b1[b1Offset + i] & 0xff;
+                int rightByte = b2[b2Offset + i] & 0xff;
                 if (leftByte != rightByte) {
                     return false;
                 }
             }
             return true;
+        }
+
+        @Override
+        public boolean equals(byte[] b1,byte[] b2){
+            return equals(b1,0,b1.length,b2,0,b2.length);
         }
 
         @Override
@@ -99,8 +109,8 @@ public class Bytes {
                 int rLength = b2Length + b2Offset > b2.length ? b2.length : b2Length;
                 int length = lLength <= rLength ? lLength : rLength;
                 for (int i = 0; i < length; i++) {
-                    byte leftByte = buffer.get();
-                    byte rightByte = b2[b2Offset + i];
+                    int leftByte = buffer.get() & 0xff;
+                    int rightByte = b2[b2Offset + i] & 0xff;
                     if (leftByte != rightByte) {
                         return false;
                     }
@@ -121,8 +131,8 @@ public class Bytes {
                 int rLength = rBuffer.remaining();
                 int length = lLength <= rLength ? lLength : rLength;
                 for (int i = 0; i < length; i++) {
-                    byte leftByte = lBuffer.get();
-                    byte rightByte = rBuffer.get();
+                    int leftByte = lBuffer.get() & 0xff;
+                    int rightByte = rBuffer.get() & 0xff;
                     if (leftByte != rightByte) {
                         return false;
                     }

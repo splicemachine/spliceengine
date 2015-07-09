@@ -22,6 +22,8 @@ public interface ByteComparator extends Comparator<byte[]> {
 
     boolean equals(byte[] b1, int b1Offset,int b1Length, byte[] b2,int b2Offset,int b2Length);
 
+    boolean equals(byte[] b1, byte[] b2);
+
     boolean equals(ByteBuffer buffer, byte[] b2,int b2Offset,int b2Length);
 
     boolean equals(ByteBuffer lBuffer, ByteBuffer rBuffer);
