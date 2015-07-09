@@ -895,8 +895,8 @@ public class SpliceRealResultSetStatisticsFactory
 											urs.rowsReturned,
 											urs.getEstimatedRowCount(),
 											urs.getEstimatedCost(),
-											getResultSetStatistics(urs.firstResultSet),
-											getResultSetStatistics(urs.secondResultSet)
+											getResultSetStatistics(urs.leftResultSet),
+											getResultSetStatistics(urs.rightResultSet)
 											);
 		}
 		else if (rs instanceof AnyOperation)
