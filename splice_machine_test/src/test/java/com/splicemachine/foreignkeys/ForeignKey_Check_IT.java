@@ -82,6 +82,25 @@ public class ForeignKey_Check_IT {
         assertQueryFail("update C set a='Z' where a='A'", "Operation on table 'C' caused a violation of foreign key constraint 'C_FK_1' for key (A).  The statement has been rolled back.");
     }
 
+    /* DB-694 */
+    @Test
+    public void childRowsCannotReferenceDeletedRowsInParent() throws Exception {
+        // given -- C -> P
+        methodWatcher.executeUpdate("create table P(a int primary key)");
+        methodWatcher.executeUpdate("create table C(a int references P(a))");
+        methodWatcher.executeUpdate("insert into P values(1),(2),(3),(4)");
+        methodWatcher.executeUpdate("insert into C values(1),(2),(3),(4)");
+
+        // when -- we delete rows from the parent (after deleting child rows, to allow this)
+        methodWatcher.executeUpdate("delete from C");
+        methodWatcher.executeUpdate("delete from P");
+
+        // then -- we should not be able to insert rows (that were previously there) into C
+        assertQueryFailMatch("insert into C values(1),(2),(3),(4)", "Operation on table 'C' caused a violation of foreign key constraint 'SQL\\d+' for key \\(A\\).  The statement has been rolled back.");
+        // then -- we should not be able to insert rows (that were NOT previously there) into C
+        assertQueryFailMatch("insert into C values(5)", "Operation on table 'C' caused a violation of foreign key constraint 'SQL\\d+' for key \\(A\\).  The statement has been rolled back.");
+    }
+
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //
     // multi-column foreign keys
@@ -676,7 +695,7 @@ public class ForeignKey_Check_IT {
     private void assertQueryFail(String sql, String expectedExceptionMessage) {
         try {
             methodWatcher.executeUpdate(sql);
-            fail();
+            fail(String.format("query '%s', did not fail/throw. Expected exception is '%s'", sql, expectedExceptionMessage));
         } catch (Exception e) {
             assertEquals(expectedExceptionMessage, e.getMessage());
         }
@@ -685,7 +704,7 @@ public class ForeignKey_Check_IT {
     private void assertQueryFailMatch(String sql, String expectedExceptionMessagePattern) {
         try {
             methodWatcher.executeUpdate(sql);
-            fail();
+            fail(String.format("query '%s', did not fail/throw. Expected exception pattern is '%s'", sql, expectedExceptionMessagePattern));
         } catch (Exception e) {
             assertTrue(String.format("exception '%s' did not match expected pattern '%s'", e.getMessage(), expectedExceptionMessagePattern),
                     Pattern.compile(expectedExceptionMessagePattern).matcher(e.getMessage()).matches());
