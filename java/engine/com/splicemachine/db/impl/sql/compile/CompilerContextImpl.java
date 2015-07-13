@@ -167,6 +167,10 @@ public class CompilerContextImpl extends ContextImpl
 		return nextTableNumber;
 	}
 
+	public void setNumTables(int num){
+		nextTableNumber = num;
+	}
+
 	/**
 	 * Get the current next subquery number from this CompilerContext.
 	 *

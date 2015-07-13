@@ -213,6 +213,8 @@ public interface CompilerContext extends Context
 
 	int getNumTables();
 
+	void setNumTables(int num);
+
 	/**
 	 * Get the current next subquery number from this CompilerContext.
 	 *

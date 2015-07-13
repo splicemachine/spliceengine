@@ -142,8 +142,9 @@ public abstract class DMLStatementNode extends StatementNode{
      */
     @Override
     public void optimizeStatement() throws StandardException{
+        AggregateSubqueryFlatteningVisitor subqueryAggregateFlatteningVisitor = new AggregateSubqueryFlatteningVisitor();
+        resultSet.accept(subqueryAggregateFlatteningVisitor);
         resultSet=resultSet.preprocess(getCompilerContext().getNumTables(),null,null);
-
         // Evaluate expressions with constant operands here to simplify the
         // query tree and to reduce the runtime cost. Do it before optimize()
         // since the simpler tree may have more accurate information for
@@ -154,8 +155,8 @@ public abstract class DMLStatementNode extends StatementNode{
         accept(new ConstantExpressionVisitor());
 
         resultSet=resultSet.optimize(getDataDictionary(),null,1.0d);
-
         resultSet=resultSet.modifyAccessPaths();
+
     }
 
     /**
