@@ -74,7 +74,7 @@ public class Bytes {
                         return -1;
                     } else if (rightByte < leftByte) return 1;
                 }
-                return 0;
+                return lLength-rLength;
             }finally{
                 lBuffer.reset();
                 rBuffer.reset();
@@ -83,17 +83,7 @@ public class Bytes {
 
         @Override
         public boolean equals(byte[] b1, int b1Offset, int b1Length, byte[] b2, int b2Offset, int b2Length) {
-            int lLength = b1Length+b1Offset> b1.length? b1.length: b1Length;
-            int rLength = b2Length+b2Offset> b2.length? b2.length: b2Length;
-            int length = lLength<=rLength? lLength: rLength;
-            for (int i = 0; i < length; i++) {
-                int leftByte = b1[b1Offset + i] & 0xff;
-                int rightByte = b2[b2Offset + i] & 0xff;
-                if (leftByte != rightByte) {
-                    return false;
-                }
-            }
-            return true;
+            return compare(b1,b1Offset,b1Length,b2,b2Offset,b2Length)==0;
         }
 
         @Override
@@ -103,45 +93,12 @@ public class Bytes {
 
         @Override
         public boolean equals(ByteBuffer buffer, byte[] b2, int b2Offset, int b2Length) {
-            buffer.mark();
-            try {
-                int lLength = buffer.remaining();
-                int rLength = b2Length + b2Offset > b2.length ? b2.length : b2Length;
-                int length = lLength <= rLength ? lLength : rLength;
-                for (int i = 0; i < length; i++) {
-                    int leftByte = buffer.get() & 0xff;
-                    int rightByte = b2[b2Offset + i] & 0xff;
-                    if (leftByte != rightByte) {
-                        return false;
-                    }
-                }
-                return true;
-            }finally{
-                buffer.reset();
-            }
+            return compare(buffer,b2,b2Offset,b2Length)==0;
         }
 
         @Override
         public boolean equals(ByteBuffer lBuffer, ByteBuffer rBuffer) {
-            if(lBuffer==rBuffer) return true;
-            lBuffer.mark();
-            rBuffer.mark();
-            try {
-                int lLength = lBuffer.remaining();
-                int rLength = rBuffer.remaining();
-                int length = lLength <= rLength ? lLength : rLength;
-                for (int i = 0; i < length; i++) {
-                    int leftByte = lBuffer.get() & 0xff;
-                    int rightByte = rBuffer.get() & 0xff;
-                    if (leftByte != rightByte) {
-                        return false;
-                    }
-                }
-                return true;
-            }finally{
-                lBuffer.reset();
-                rBuffer.reset();
-            }
+            return compare(lBuffer,rBuffer)==0;
         }
 
         @Override
