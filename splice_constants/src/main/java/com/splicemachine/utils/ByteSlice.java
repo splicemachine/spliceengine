@@ -186,6 +186,11 @@ public class ByteSlice implements Externalizable,Comparable<ByteSlice> {
         return equals(that, that.length());
     }
 
+    @Override
+    public String toString() {
+        return String.format("ByteSlice {buffer=%s}", BytesUtil.toHex(buffer, offset, length));
+    }
+
     public boolean equals(ByteSlice currentData, int equalsLength) {
         if(this.length<=0)
             return currentData.length<=0;
