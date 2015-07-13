@@ -86,28 +86,34 @@ public class SequentialImporter implements Importer{
         writeTimer.startTiming();
         SpliceLogUtils.trace(LOG,"processing %d parsed rows",parsedRows.length);
         int count = 0;
-        for(String[] line : parsedRows){
+        for (String[] line : parsedRows) {
+            if (line == null) {
+                SpliceLogUtils.trace(LOG, "actually processing %d rows", count);
+                break;
+            }
+
+            ExecRow row;
             try {
-                if (line == null) {
-                    SpliceLogUtils.trace(LOG, "actually processing %d rows", count);
-                    break;
-                }
-                ExecRow row = rowParser.process(line, importContext.getColumnInformation());
-                count++;
+                row = rowParser.process(line, importContext.getColumnInformation());
+            } catch (Exception e) {
+                handleImportError(line, e, "Cannot parse import command: ");
+                row = null;
+            }
 
-                if (row == null) continue; //unable to parse the row, so skip it.
+            count++;
 
-                if (entryEncoder == null)
-                    entryEncoder = ImportUtils.newEntryEncoder(row, importContext, getRandomGenerator(), importType);
+            if (row == null) continue; //unable to parse the row, so skip it.
 
-                // Don't write any rows if we are just doing a pre-import ("check") scan.
-                if (!importContext.isCheckScan()) {
+            if (entryEncoder == null)
+                entryEncoder = ImportUtils.newEntryEncoder(row, importContext, getRandomGenerator(), importType);
+
+            // Don't write any rows if we are just doing a pre-import ("check") scan.
+            if (!importContext.isCheckScan()) {
+                try {
                     writeBuffer.add(entryEncoder.encode(row));
+                } catch (StandardException se) {
+                    handleImportError(line, se, "Cannot encode row for import command: ");
                 }
-            } catch(StandardException se) {
-                String currentTextLine = getStrValue(line);
-                SpliceLogUtils.warn(LOG, "Cannot run import command: " + currentTextLine + " Exception: %s", se.getMessage());
-                errorReporter.reportError(currentTextLine, null);
             }
         }
 
@@ -118,6 +124,8 @@ public class SequentialImporter implements Importer{
 
         return count == parsedRows.length; //return true if the batch was full
     }
+
+
 
     @Override
     public boolean isClosed() {
@@ -160,5 +168,12 @@ public class SequentialImporter implements Importer{
         }
 
         return arr[0];
+    }
+
+
+    private void handleImportError(String[] line, Exception e, String messagePrefix) {
+        String currentTextLine = getStrValue(line);
+        SpliceLogUtils.warn(LOG, messagePrefix + currentTextLine + " Exception: %s", e.getMessage());
+        errorReporter.reportError(currentTextLine, null);
     }
 }
