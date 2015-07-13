@@ -363,10 +363,33 @@ public class StatsStoreCostController extends GenericController implements Store
         if(startKeyValue==null && stopKeyValue==null){
            return pStats.rowCount();
         }else{
-            int size=startKeyValue!=null?startKeyValue.length:stopKeyValue.length;
+            /*
+             * DB-3517. It appears that sometimes the start and stop key value array lengths
+             * can differ while not being null. This is weird, and we have to decide what to do.
+             * We could A) stop at the min, in which case we only use the keys which are shared in our
+             * estimate (bad), or B) treat running off the end of the array as "no bound" on the selectivity
+             * estimate. This essentially forces a >= on a start key, or a <= on a stop key.
+             */
+            int size;
+            int stopLen;
+            int startLen;
+            if(startKeyValue!=null){
+                startLen = startKeyValue.length;
+                if(stopKeyValue!=null){
+                    size=Math.max(startKeyValue.length,stopKeyValue.length);
+                    stopLen = stopKeyValue.length;
+                }else{
+                    size=startKeyValue.length;
+                    stopLen = 0;
+                }
+            }else{
+                size=stopLen=stopKeyValue.length;
+                startLen = 0;
+            }
+
             for(int i=0;i<size;i++){
-                DataValueDescriptor start=startKeyValue!=null?startKeyValue[i]:null;
-                DataValueDescriptor stop=stopKeyValue!=null?stopKeyValue[i]:null;
+                DataValueDescriptor start=startKeyValue!=null&&size<startLen?startKeyValue[i]:null;
+                DataValueDescriptor stop=stopKeyValue!=null &&size<stopLen?stopKeyValue[i]:null;
                 ColumnStatistics<DataValueDescriptor> cStats=pStats.columnStatistics(keyMap[i]);
                 if(cStats!=null){
                     double rc=cStats.getDistribution().rangeSelectivity(start,stop,includeStart,includeStop);
