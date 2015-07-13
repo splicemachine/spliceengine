@@ -55,7 +55,7 @@ import static org.mockito.Mockito.when;
  * @author Scott Fines
  * Created on: 10/4/13
  */
-@RunWith(Parameterized.class)
+//@RunWith(Parameterized.class)
 public class IndexRowReaderTest {
 /*
     private static final KryoPool kryoPool = mock(KryoPool.class);
