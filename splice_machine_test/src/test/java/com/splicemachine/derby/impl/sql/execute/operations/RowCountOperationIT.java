@@ -411,6 +411,7 @@ public class RowCountOperationIT {
     }
 
     @Test
+    @Ignore("DB-3519")
     public void testRepeatedOverJoin_offset() throws Exception {
         for(int i=0;i<10;i++){
             overJoin_offset();
@@ -423,6 +424,7 @@ public class RowCountOperationIT {
     }
 
     @Test
+    @Ignore("DB-3519")
     public void overJoin_offset() throws Exception {
         validateUnOrdered(8, "select A.a from A join B on A.a=B.a offset 4 rows");
     }
