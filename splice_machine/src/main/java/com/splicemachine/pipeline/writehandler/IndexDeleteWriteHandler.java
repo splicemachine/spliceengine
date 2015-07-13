@@ -143,7 +143,7 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
             Result result = ctx.getRegion().get(get);
             if(result==null||result.isEmpty()){
             	if (LOG.isTraceEnabled())
-            		SpliceLogUtils.trace(LOG, "already deleted, wierd but ok %s", mutation);
+            		SpliceLogUtils.trace(LOG, "already deleted, weird but ok %s", mutation);
                 //already deleted? Weird, but okay, we can deal with that
                 ctx.success(mutation);
                 return;
