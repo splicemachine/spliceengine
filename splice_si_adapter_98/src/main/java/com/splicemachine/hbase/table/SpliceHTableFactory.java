@@ -76,27 +76,6 @@ public class SpliceHTableFactory implements HTableInterfaceFactory {
                 new ThreadPoolExecutor.CallerRunsPolicy());
     }
 
-    private static ExecutorService createConnectionPool(Configuration conf) {
-        int coreThreads = conf.getInt("hbase.hconnection.threads.core", 10);
-        if (coreThreads == 0) {
-            coreThreads = 10;
-        }
-        int maxThreads = conf.getInt("hbase.hconnection.threads.max", 32);
-        if (maxThreads == 0) {
-            maxThreads = Runtime.getRuntime().availableProcessors() * 8;
-        }
-        long keepAliveTime = conf.getLong("hbase.hconnection.threads.keepalivetime", 60);
-        LinkedBlockingQueue<Runnable> workQueue =
-                new LinkedBlockingQueue<Runnable>(maxThreads *
-                        conf.getInt(HConstants.HBASE_CLIENT_MAX_TOTAL_TASKS,
-                                HConstants.DEFAULT_HBASE_CLIENT_MAX_TOTAL_TASKS));
-        return new ThreadPoolExecutor(coreThreads,  maxThreads, keepAliveTime, TimeUnit.SECONDS,
-                workQueue,
-                new NamedThreadFactory("connection-pool-"),
-                new ThreadPoolExecutor.AbortPolicy());
-
-    }
-
     private static class NamedThreadFactory implements ThreadFactory {
         private ThreadGroup group;
         private String namePrefix;
