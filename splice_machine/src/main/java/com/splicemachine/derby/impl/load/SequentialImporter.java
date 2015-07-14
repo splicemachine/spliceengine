@@ -92,14 +92,7 @@ public class SequentialImporter implements Importer{
                 break;
             }
 
-            ExecRow row;
-            try {
-                row = rowParser.process(line, importContext.getColumnInformation());
-            } catch (Exception e) {
-                handleImportError(line, e, "Cannot parse import command: ");
-                row = null;
-            }
-
+            ExecRow row = rowParser.process(line, importContext.getColumnInformation());
             count++;
 
             if (row == null) continue; //unable to parse the row, so skip it.
