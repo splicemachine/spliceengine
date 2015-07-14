@@ -103,6 +103,8 @@ public class SequentialImporter implements Importer{
             // Don't write any rows if we are just doing a pre-import ("check") scan.
             if (!importContext.isCheckScan()) {
                 try {
+                    // sometimes we can parse the text of a field ok, but cannot encode it.
+                    // For example, Datetime fields that are outside of the range we can encode
                     writeBuffer.add(entryEncoder.encode(row));
                 } catch (StandardException se) {
                     handleImportError(line, se, "Cannot encode row for import command: ");
