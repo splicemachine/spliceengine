@@ -592,14 +592,14 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String expected =
                 "EMPNUM |DEPT |SALARY |SUMSAL |\n" +
                         "------------------------------\n" +
-                        "  90   |  2  | 51000 |103000 |\n" +
-                        "  40   |  2  | 52000 |155000 |\n" +
-                        "  44   |  2  | 52000 |157000 |\n" +
-                        "  49   |  2  | 53000 |105000 |\n" +
                         "  100  |  3  | 55000 |130000 |\n" +
                         "  120  |  3  | 75000 |209000 |\n" +
                         "  80   |  3  | 79000 |238000 |\n" +
                         "  30   |  3  | 84000 |163000 |\n" +
+                        "  90   |  2  | 51000 |103000 |\n" +
+                        "  40   |  2  | 52000 |155000 |\n" +
+                        "  44   |  2  | 52000 |157000 |\n" +
+                        "  49   |  2  | 53000 |105000 |\n" +
                         "  10   |  1  | 50000 |102000 |\n" +
                         "  50   |  1  | 52000 |154000 |\n" +
                         "  55   |  1  | 52000 |157000 |\n" +
@@ -685,14 +685,14 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String expected =
                 "EMPNUM |DEPT |SALARY |COUNTSAL |\n" +
                         "--------------------------------\n" +
-                        "  90   |  2  | 51000 |    4    |\n" +
-                        "  40   |  2  | 52000 |    3    |\n" +
-                        "  44   |  2  | 52000 |    2    |\n" +
-                        "  49   |  2  | 53000 |    1    |\n" +
                         "  100  |  3  | 55000 |    4    |\n" +
                         "  120  |  3  | 75000 |    3    |\n" +
                         "  80   |  3  | 79000 |    2    |\n" +
                         "  30   |  3  | 84000 |    1    |\n" +
+                        "  90   |  2  | 51000 |    4    |\n" +
+                        "  40   |  2  | 52000 |    3    |\n" +
+                        "  44   |  2  | 52000 |    2    |\n" +
+                        "  49   |  2  | 53000 |    1    |\n" +
                         "  10   |  1  | 50000 |    7    |\n" +
                         "  50   |  1  | 52000 |    6    |\n" +
                         "  55   |  1  | 52000 |    5    |\n" +
@@ -871,14 +871,14 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String expected =
                 "EMPNUM |DEPT |SALARY |   4   |\n" +
                         "------------------------------\n" +
-                        "  90   |  2  | 51000 |208000 |\n" +
-                        "  40   |  2  | 52000 |157000 |\n" +
-                        "  44   |  2  | 52000 |105000 |\n" +
-                        "  49   |  2  | 53000 | 53000 |\n" +
                         "  100  |  3  | 55000 |293000 |\n" +
                         "  120  |  3  | 75000 |238000 |\n" +
                         "  80   |  3  | 79000 |163000 |\n" +
                         "  30   |  3  | 84000 | 84000 |\n" +
+                        "  90   |  2  | 51000 |208000 |\n" +
+                        "  40   |  2  | 52000 |157000 |\n" +
+                        "  44   |  2  | 52000 |105000 |\n" +
+                        "  49   |  2  | 53000 | 53000 |\n" +
                         "  10   |  1  | 50000 |436000 |\n" +
                         "  50   |  1  | 52000 |386000 |\n" +
                         "  55   |  1  | 52000 |334000 |\n" +
@@ -1090,14 +1090,14 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String expected =
                 "EMPNUM |DEPT |SALARY | ROWNUMBER |\n" +
                         "----------------------------------\n" +
-                        "  40   |  2  | 52000 |     1     |\n" +
-                        "  44   |  2  | 52000 |     2     |\n" +
-                        "  49   |  2  | 53000 |     3     |\n" +
-                        "  90   |  2  | 51000 |     4     |\n" +
                         "  30   |  3  | 84000 |     1     |\n" +
                         "  80   |  3  | 79000 |     2     |\n" +
                         "  100  |  3  | 55000 |     3     |\n" +
                         "  120  |  3  | 75000 |     4     |\n" +
+                        "  40   |  2  | 52000 |     1     |\n" +
+                        "  44   |  2  | 52000 |     2     |\n" +
+                        "  49   |  2  | 53000 |     3     |\n" +
+                        "  90   |  2  | 51000 |     4     |\n" +
                         "  10   |  1  | 50000 |     1     |\n" +
                         "  20   |  1  | 75000 |     2     |\n" +
                         "  50   |  1  | 52000 |     3     |\n" +
@@ -1149,14 +1149,14 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String expected =
                 "EMPNUM |DEPT |SALARY |RANK |\n" +
                         "----------------------------\n" +
-                        "  40   |  2  | 52000 |  1  |\n" +
-                        "  44   |  2  | 52000 |  2  |\n" +
-                        "  49   |  2  | 53000 |  3  |\n" +
-                        "  90   |  2  | 51000 |  4  |\n" +
                         "  30   |  3  | 84000 |  1  |\n" +
                         "  80   |  3  | 79000 |  2  |\n" +
                         "  100  |  3  | 55000 |  3  |\n" +
                         "  120  |  3  | 75000 |  4  |\n" +
+                        "  40   |  2  | 52000 |  1  |\n" +
+                        "  44   |  2  | 52000 |  2  |\n" +
+                        "  49   |  2  | 53000 |  3  |\n" +
+                        "  90   |  2  | 51000 |  4  |\n" +
                         "  10   |  1  | 50000 |  1  |\n" +
                         "  20   |  1  | 75000 |  2  |\n" +
                         "  50   |  1  | 52000 |  3  |\n" +
@@ -1395,14 +1395,14 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String expected =
                 "EMPNUM |DEPT |SALARY | DENSERANK |\n" +
                         "----------------------------------\n" +
-                        "  40   |  2  | 52000 |     1     |\n" +
-                        "  44   |  2  | 52000 |     2     |\n" +
-                        "  49   |  2  | 53000 |     3     |\n" +
-                        "  90   |  2  | 51000 |     4     |\n" +
                         "  30   |  3  | 84000 |     1     |\n" +
                         "  80   |  3  | 79000 |     2     |\n" +
                         "  100  |  3  | 55000 |     3     |\n" +
                         "  120  |  3  | 75000 |     4     |\n" +
+                        "  40   |  2  | 52000 |     1     |\n" +
+                        "  44   |  2  | 52000 |     2     |\n" +
+                        "  49   |  2  | 53000 |     3     |\n" +
+                        "  90   |  2  | 51000 |     4     |\n" +
                         "  10   |  1  | 50000 |     1     |\n" +
                         "  20   |  1  | 75000 |     2     |\n" +
                         "  50   |  1  | 52000 |     3     |\n" +
@@ -1455,14 +1455,14 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String expected =
                 "EMPNUM |SALARY | DENSERANK |\n" +
                         "----------------------------\n" +
-                        "  40   | 52000 |     1     |\n" +
-                        "  44   | 52000 |     2     |\n" +
-                        "  49   | 53000 |     3     |\n" +
-                        "  90   | 51000 |     4     |\n" +
                         "  30   | 84000 |     1     |\n" +
                         "  80   | 79000 |     2     |\n" +
                         "  100  | 55000 |     3     |\n" +
                         "  120  | 75000 |     4     |\n" +
+                        "  40   | 52000 |     1     |\n" +
+                        "  44   | 52000 |     2     |\n" +
+                        "  49   | 53000 |     3     |\n" +
+                        "  90   | 51000 |     4     |\n" +
                         "  10   | 50000 |     1     |\n" +
                         "  20   | 75000 |     2     |\n" +
                         "  50   | 52000 |     3     |\n" +
@@ -1562,25 +1562,25 @@ public class WindowFunctionIT extends SpliceUnitTest {
     public void testScalarAggWithOrderBy() throws Exception {
         // DB-1775
         String sqlText =
-                String.format("SELECT sum(price) over (Partition by item ORDER BY date) as  sumprice from %s",
+                String.format("SELECT sum(price) over (Partition by item ORDER BY date) as  sumprice from %s order by item",
                         this.getTableReference(TABLE2_NAME));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
                 "SUMPRICE |\n" +
                         "----------\n" +
-                        "  10.0   |\n" +
-                        "  12.0   |\n" +
-                        "  20.0   |\n" +
+                        "   1.0   |\n" +
+                        "   2.0   |\n" +
+                        "   9.0   |\n" +
                         "   6.0   |\n" +
                         "  11.0   |\n" +
                         "  23.0   |\n" +
                         "   3.0   |\n" +
                         "  10.0   |\n" +
                         "  20.0   |\n" +
-                        "   1.0   |\n" +
-                        "   2.0   |\n" +
-                        "   9.0   |\n" +
+                        "  10.0   |\n" +
+                        "  12.0   |\n" +
+                        "  20.0   |\n" +
                         "  11.0   |\n" +
                         "  15.0   |\n" +
                         "  25.0   |";
@@ -1593,25 +1593,25 @@ public class WindowFunctionIT extends SpliceUnitTest {
         // DB-1774
         String sqlText =
                 String.format("SELECT item, price, sum(price) over (Partition by item ORDER BY date) as sumsal, date " +
-                                "from %s",
+                                "from %s order by item",
                         this.getTableReference(TABLE2_NAME));
 
         ResultSet rs = methodWatcher.executeQuery(sqlText);
         String expected =
                 "ITEM | PRICE |SUMSAL |         DATE           |\n" +
                         "-----------------------------------------------\n" +
-                        "  4  | 10.0  | 10.0  |2014-09-08 17:50:17.182 |\n" +
-                        "  4  |  2.0  | 12.0  |2014-09-08 18:05:47.166 |\n" +
-                        "  4  |  8.0  | 20.0  |2014-09-08 18:08:04.986 |\n" +
+                        "  1  |  1.0  |  1.0  |2014-09-08 17:45:15.204 |\n" +
+                        "  1  |  1.0  |  2.0  |2014-09-08 18:27:48.881 |\n" +
+                        "  1  |  7.0  |  9.0  |2014-09-08 18:33:46.446 |\n" +
                         "  2  |  6.0  |  6.0  |2014-09-08 17:50:17.182 |\n" +
                         "  2  |  5.0  | 11.0  |2014-09-08 18:26:51.387 |\n" +
                         "  2  | 12.0  | 23.0  |2014-09-08 18:40:15.48  |\n" +
                         "  3  |  3.0  |  3.0  |2014-09-08 17:36:55.414 |\n" +
                         "  3  |  7.0  | 10.0  |2014-09-08 18:00:44.742 |\n" +
                         "  3  | 10.0  | 20.0  |2014-09-08 18:25:42.387 |\n" +
-                        "  1  |  1.0  |  1.0  |2014-09-08 17:45:15.204 |\n" +
-                        "  1  |  1.0  |  2.0  |2014-09-08 18:27:48.881 |\n" +
-                        "  1  |  7.0  |  9.0  |2014-09-08 18:33:46.446 |\n" +
+                        "  4  | 10.0  | 10.0  |2014-09-08 17:50:17.182 |\n" +
+                        "  4  |  2.0  | 12.0  |2014-09-08 18:05:47.166 |\n" +
+                        "  4  |  8.0  | 20.0  |2014-09-08 18:08:04.986 |\n" +
                         "  5  | 11.0  | 11.0  |2014-09-08 17:41:56.353 |\n" +
                         "  5  |  4.0  | 15.0  |2014-09-08 17:46:26.428 |\n" +
                         "  5  | 10.0  | 25.0  |2014-09-08 18:11:23.645 |";
@@ -1867,12 +1867,12 @@ public class WindowFunctionIT extends SpliceUnitTest {
                             "     -9166.3333      |\n"+
                             "      9333.6666      |\n"+
                             "      -167.3333      |\n"+
-                            "     -2500.0000      |\n"+
-                            "     -2000.0000      |\n"+
-                            "      4500.0000      |\n"+
                             "     -3499.6666      |\n"+
                             "     -2999.6666      |\n"+
-                            "      6499.3333      |";
+                            "      6499.3333      |\n"+
+                            "     -2500.0000      |\n"+
+                            "     -2000.0000      |\n"+
+                            "      4500.0000      |";
             assertEquals("\n"+sqlText+"\n",expected,TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
     }
@@ -1939,6 +1939,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String expected =
                 "YR | EMPRANK | ENAME | HIREDATE  |\n" +
                         "----------------------------------\n" +
+                        "80 |    1    | SMITH |1980-12-17 |\n" +
                         "81 |    1    | ALLEN |1981-02-20 |\n" +
                         "81 |    2    | WARD  |1981-02-22 |\n" +
                         "81 |    3    | JONES |1981-04-02 |\n" +
@@ -1951,8 +1952,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
                         "81 |    9    | JAMES |1981-12-03 |\n" +
                         "83 |    1    | ADAMS |1983-01-12 |\n" +
                         "82 |    1    |MILLER |1982-01-23 |\n" +
-                        "82 |    2    | SCOTT |1982-12-09 |\n" +
-                        "80 |    1    | SMITH |1980-12-17 |";
+                        "82 |    2    | SCOTT |1982-12-09 |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
@@ -1966,6 +1966,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
         String expected =
                 "EMPRANK | ENAME | HIREDATE  |\n" +
                         "------------------------------\n" +
+                        "    1    | SMITH |1980-12-17 |\n" +
                         "    1    | ALLEN |1981-02-20 |\n" +
                         "    2    | WARD  |1981-02-22 |\n" +
                         "    3    | JONES |1981-04-02 |\n" +
@@ -1978,8 +1979,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
                         "    9    | JAMES |1981-12-03 |\n" +
                         "    1    | ADAMS |1983-01-12 |\n" +
                         "    1    |MILLER |1982-01-23 |\n" +
-                        "    2    | SCOTT |1982-12-09 |\n" +
-                        "    1    | SMITH |1980-12-17 |";
+                        "    2    | SCOTT |1982-12-09 |";
         assertEquals("\n"+sqlText+"\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         rs.close();
     }
