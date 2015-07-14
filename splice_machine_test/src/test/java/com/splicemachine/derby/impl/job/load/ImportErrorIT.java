@@ -47,6 +47,8 @@ public class ImportErrorIT extends SpliceUnitTest {
      */
     private static final String TABLE = "errorTable";
 
+    private final String SE009 = ErrorState.LANG_IMPORT_TOO_MANY_BAD_RECORDS.getSqlState();
+
     private static final SpliceSchemaWatcher schema = new SpliceSchemaWatcher(CLASS_NAME);
     private static final SpliceTableWatcher tableWatcher = new SpliceTableWatcher(TABLE,schema.schemaName,"(a int not null, b bigint, c real, d double, e varchar(5),f date not null,g time not null, h timestamp not null)");
     private static final SpliceTableWatcher decimalTable = new SpliceTableWatcher("DECIMALTABLE", schema.schemaName, "(d decimal(2))");
@@ -97,13 +99,13 @@ public class ImportErrorIT extends SpliceUnitTest {
 
     @Test
     public void testCannotInsertNullFieldIntoNonNullColumn() throws Exception {
-        runImportTest("null_col.csv",new ErrorCheck() {
+        runImportTest("null_col.csv", new ErrorCheck() {
             @Override
             public void check(String table, String location, SQLException se) {
                 //make sure the error code is correct
-                Assert.assertEquals("Incorrect sql state!","23502",se.getSQLState());
+                Assert.assertEquals("Incorrect sql state!", SE009, se.getSQLState());
 
-                String correctErrorMessage = "Column 'A'  cannot accept a NULL value.";
+                String correctErrorMessage = "Too many bad records in import"; //"Column 'A'  cannot accept a NULL value.";
                 Assert.assertEquals("Incorrect error message!", correctErrorMessage, se.getMessage());
             }
         });
@@ -115,10 +117,10 @@ public class ImportErrorIT extends SpliceUnitTest {
             @Override
             public void check(String table, String location, SQLException se) {
                 //make sure the error code is correct
-                Assert.assertEquals("Incorrect sql state!","22001",se.getSQLState());
+                Assert.assertEquals("Incorrect sql state!", SE009, se.getSQLState());
 
-                String correctErrorMessage = "A truncation error was encountered trying to shrink VARCHAR " +
-                        "'thisstringhasmorethanfivecharacters' to length 5.";
+                String correctErrorMessage = "Too many bad records in import"; //"A truncation error was encountered trying to shrink VARCHAR " +
+                        //"'thisstringhasmorethanfivecharacters' to length 5.";
                 Assert.assertEquals("Incorrect error message!", correctErrorMessage, se.getMessage());
             }
         });
@@ -130,9 +132,9 @@ public class ImportErrorIT extends SpliceUnitTest {
             @Override
             public void check(String table, String location, SQLException se) {
                 //make sure the error code is correct
-                Assert.assertEquals("Incorrect sql state!","22018",se.getSQLState());
+                Assert.assertEquals("Incorrect sql state!", SE009, se.getSQLState());
 
-                String correctErrorMessage = "Invalid character string format for type INTEGER.";
+                String correctErrorMessage = "Too many bad records in import"; //"Invalid character string format for type INTEGER.";
                 Assert.assertEquals("Incorrect error message!", correctErrorMessage, se.getMessage());
             }
         });
@@ -144,9 +146,9 @@ public class ImportErrorIT extends SpliceUnitTest {
             @Override
             public void check(String table, String location, SQLException se) {
                 //make sure the error code is correct
-                Assert.assertEquals("Incorrect sql state!","22018",se.getSQLState());
+                Assert.assertEquals("Incorrect sql state!", SE009, se.getSQLState());
 
-                String correctErrorMessage = "Invalid character string format for type INTEGER.";
+                String correctErrorMessage = "Too many bad records in import"; //"Invalid character string format for type INTEGER.";
                 Assert.assertEquals("Incorrect error message!", correctErrorMessage, se.getMessage());
             }
         });
@@ -158,9 +160,9 @@ public class ImportErrorIT extends SpliceUnitTest {
             @Override
             public void check(String table, String location, SQLException se) {
                 //make sure the error code is correct
-                Assert.assertEquals("Incorrect sql state!","22018",se.getSQLState());
+                Assert.assertEquals("Incorrect sql state!", SE009, se.getSQLState());
 
-                String correctErrorMessage = "Invalid character string format for type BIGINT.";
+                String correctErrorMessage = "Too many bad records in import"; //"Invalid character string format for type BIGINT.";
                 Assert.assertEquals("Incorrect error message!", correctErrorMessage, se.getMessage());
             }
         });
@@ -187,9 +189,9 @@ public class ImportErrorIT extends SpliceUnitTest {
             @Override
             public void check(String table, String location, SQLException se) {
                 //make sure the error code is correct
-                Assert.assertEquals("Incorrect sql state!", "22007", se.getSQLState());
+                Assert.assertEquals("Incorrect sql state!", SE009, se.getSQLState());
 
-                String correctErrorMessage = "The syntax of the string representation of a datetime value is incorrect.";
+                String correctErrorMessage = "Too many bad records in import"; //"The syntax of the string representation of a datetime value is incorrect.";
                 Assert.assertEquals("Incorrect error message!", correctErrorMessage, se.getMessage());
             }
         });
@@ -201,9 +203,9 @@ public class ImportErrorIT extends SpliceUnitTest {
             @Override
             public void check(String table, String location, SQLException se) {
                 //make sure the error code is correct
-                Assert.assertEquals("Incorrect sql state!", "22007", se.getSQLState());
+                Assert.assertEquals("Incorrect sql state!", SE009, se.getSQLState());
 
-                String correctErrorMessage = "The syntax of the string representation of a datetime value is incorrect.";
+                String correctErrorMessage = "Too many bad records in import"; //"The syntax of the string representation of a datetime value is incorrect.";
                 Assert.assertEquals("Incorrect error message!", correctErrorMessage, se.getMessage());
             }
         });
@@ -215,9 +217,9 @@ public class ImportErrorIT extends SpliceUnitTest {
 						@Override
 						public void check(String table, String location, SQLException se) {
 								//make sure the error code is correct
-								Assert.assertEquals("Incorrect sql state!","23502",se.getSQLState());
+								Assert.assertEquals("Incorrect sql state!", SE009, se.getSQLState());
 
-								String correctErrorMessage = "Column 'F'  cannot accept a NULL value.";
+								String correctErrorMessage = "Too many bad records in import";
 								Assert.assertEquals("Incorrect error message!", correctErrorMessage, se.getMessage());
 						}
 				});
@@ -229,9 +231,9 @@ public class ImportErrorIT extends SpliceUnitTest {
 						@Override
 						public void check(String table, String location, SQLException se) {
 								//make sure the error code is correct
-								Assert.assertEquals("Incorrect sql state!","23502",se.getSQLState());
+								Assert.assertEquals("Incorrect sql state!", SE009, se.getSQLState());
 
-								String correctErrorMessage = "Column 'G'  cannot accept a NULL value.";
+								String correctErrorMessage = "Too many bad records in import"; //"Column 'G'  cannot accept a NULL value.";
 								Assert.assertEquals("Incorrect error message!", correctErrorMessage, se.getMessage());
 						}
 				});
@@ -243,9 +245,9 @@ public class ImportErrorIT extends SpliceUnitTest {
 						@Override
 						public void check(String table, String location, SQLException se) {
 								//make sure the error code is correct
-								Assert.assertEquals("Incorrect sql state!","23502",se.getSQLState());
+								Assert.assertEquals("Incorrect sql state!", SE009, se.getSQLState());
 
-								String correctErrorMessage = "Column 'H'  cannot accept a NULL value.";
+								String correctErrorMessage = "Too many bad records in import"; //"Column 'H'  cannot accept a NULL value.";
 								Assert.assertEquals("Incorrect error message!", correctErrorMessage, se.getMessage());
 						}
 				});
@@ -257,9 +259,9 @@ public class ImportErrorIT extends SpliceUnitTest {
             @Override
             public void check(String table, String location, SQLException se) {
                 //make sure the error code is correct
-                Assert.assertEquals("Incorrect sql state!", "22007", se.getSQLState());
+                Assert.assertEquals("Incorrect sql state!", SE009, se.getSQLState());
 
-                String correctErrorMessage = "The syntax of the string representation of a datetime value is incorrect.";
+                String correctErrorMessage = "Too many bad records in import"; //"The syntax of the string representation of a datetime value is incorrect.";
                 Assert.assertEquals("Incorrect error message!", correctErrorMessage, se.getMessage());
             }
         });
@@ -271,9 +273,9 @@ public class ImportErrorIT extends SpliceUnitTest {
             @Override
             public void check(String table, String location, SQLException se) {
                 //make sure the error code is correct
-                Assert.assertEquals("Incorrect sql state!",ErrorState.LANG_OUTSIDE_RANGE_FOR_DATATYPE.getSqlState(),se.getSQLState());
+                Assert.assertEquals("Incorrect sql state!", SE009 ,se.getSQLState());
 
-                String correctErrorMessage = "The resulting value is outside the range for the data type DECIMAL/NUMERIC(2,0).";
+                String correctErrorMessage = "Too many bad records in import"; //"The resulting value is outside the range for the data type DECIMAL/NUMERIC(2,0).";
                 Assert.assertEquals("Incorrect error message!", correctErrorMessage, se.getMessage());
             }
         });
@@ -310,11 +312,11 @@ public class ImportErrorIT extends SpliceUnitTest {
         String location = getResourceDirectory()+"test_data/bad_import/"+file;
         PreparedStatement ps = null;
         try{
-            ps = methodWatcher.prepareStatement("call SYSCS_UTIL.SYSCS_IMPORT_DATA(?,?,?,null, ?,',',null,null,null,null)");
-            ps.setString(1,schema.schemaName);
-            ps.setString(2,table);
+            ps = methodWatcher.prepareStatement("call SYSCS_UTIL.IMPORT_DATA(?, ?, ?, ?, ',', null, null, null, null, 1, null)");
+            ps.setString(1, schema.schemaName);
+            ps.setString(2, table);
             ps.setNull(3, Types.VARCHAR);
-            ps.setString(4,location);
+            ps.setString(4, location);
         } catch (SQLException e) {
             e.printStackTrace();
             Assert.fail("Incorrect setup for prepared statement");
