@@ -966,7 +966,10 @@ public class CastNode extends ValueNode
 		*/
 
 		if (!sourceCTI.userType() && !getTypeId().userType()) {
-			mb.getField(field); // targetDVD reference for the setValue method call
+			acb.generateNull(mb, getTypeCompiler(getTypeId()),
+					getTypeServices().getCollationType());
+			mb.dup();
+			mb.setField(field); // targetDVD reference for the setValue method call
 			mb.swap();
 			mb.upCast(ClassName.DataValueDescriptor);
 			mb.callMethod(VMOpcode.INVOKEINTERFACE, ClassName.DataValueDescriptor,
@@ -981,8 +984,10 @@ public class CastNode extends ValueNode
 					"getObject", "java.lang.Object", 0);
 
 			//castExpr
-
-			mb.getField(field); // instance for the setValue/setObjectForCast method call
+			acb.generateNull(mb, getTypeCompiler(getTypeId()),
+					getTypeServices().getCollationType());
+			mb.dup();
+			mb.setField(field); // instance for the setValue/setObjectForCast method call
 			mb.swap(); // push it before the value
 
 			/*

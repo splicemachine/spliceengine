@@ -194,7 +194,7 @@ abstract class BaseTypeCompiler implements TypeCompiler
 			/* Store the result of the method call in the field,
 			 * so we can re-use the wrapper.
 			 */
-			mb.putField(field);
+//			mb.putField(field);
 		}
 	}
 

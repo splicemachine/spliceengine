@@ -132,7 +132,7 @@ public final class DB2LengthOperatorNode extends UnaryOperatorNode
         ** Store the result of the method call in the field, so we can re-use
         ** the object.
         */
-        mb.putField(field);
+//        mb.putField(field);
     } // end of generateExpression
 
     private int getConstantLength( ) throws StandardException

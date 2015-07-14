@@ -138,7 +138,7 @@ public class CurrentRowLocationNode extends ValueNode
 		** Store the result of the method call in the field, so we can re-use
 		** the object.
 		*/
-		mb.putField(field);
+//		mb.putField(field);
 
 		/* Stuff the full expression into a return statement and add that to the
 		 * body of the new method.
