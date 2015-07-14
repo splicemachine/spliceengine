@@ -36,6 +36,7 @@ public class TableScannerBuilder implements Externalizable {
 		protected	int[] keyColumnTypes;
 		protected	int[] keyDecodingMap;
 		protected	FormatableBitSet accessedKeys;
+	    protected  boolean reuseRowLocation = true;
 		protected	String indexName;
 		protected	String tableVersion;
 		protected SIFilterFactory filterFactory;
@@ -101,6 +102,11 @@ public class TableScannerBuilder implements Externalizable {
 				assert rowDecodingMap!=null: "Null column maps are not allowed";
 				this.rowColumnMap = rowDecodingMap;
 				return this;
+		}
+
+		public TableScannerBuilder reuseRowLocation(boolean reuseRowLocation) {
+			this.reuseRowLocation = reuseRowLocation;
+			return this;
 		}
 
 
@@ -229,6 +235,7 @@ public class TableScannerBuilder implements Externalizable {
 								keyColumnTypes,
 								keyDecodingMap,
 								accessedKeys,
+						        reuseRowLocation,
 								indexName,
 								tableVersion,
 								filterFactory);

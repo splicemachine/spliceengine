@@ -217,6 +217,7 @@ public class TableScanOperation extends ScanOperation {
                     .template(currentTemplate)
                     .tableVersion(scanInformation.getTableVersion())
                     .indexName(indexName)
+					.reuseRowLocation(false)
                     .keyColumnEncodingOrder(scanInformation.getColumnOrdering())
                     .keyColumnSortOrder(scanInformation.getConglomerate().getAscDescInfo())
                     .keyColumnTypes(getKeyFormatIds())

@@ -169,6 +169,7 @@ public class DistinctScanOperation extends ScanOperation {
                 .metricFactory(null)
                 .tableVersion(scanInformation.getTableVersion())
                 .indexName(indexName)
+                .reuseRowLocation(false)
                 .keyColumnEncodingOrder(scanInformation.getColumnOrdering())
                 .keyColumnSortOrder(scanInformation.getConglomerate().getAscDescInfo())
                 .keyColumnTypes(getKeyFormatIds())
