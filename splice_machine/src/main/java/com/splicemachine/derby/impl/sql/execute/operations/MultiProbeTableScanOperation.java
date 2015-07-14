@@ -14,6 +14,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerB
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.temporary.WriteReadUtils;
+import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.TxnView;
 import org.apache.hadoop.hbase.client.Scan;
 // These are for javadoc "@see" tags.
@@ -168,6 +169,11 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                 stopSearchOperator,
                 probingVals
         );
+        try {
+            init(SpliceOperationContext.newContext(activation));
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
         recordConstructorTime();
     }
 
@@ -205,7 +211,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         TxnView txn = getCurrentTransaction();
-        List<Scan> scans = scanInformation.getScans(getCurrentTransaction(), null, activation);
+        List<Scan> scans = scanInformation.getScans(getCurrentTransaction(), null, activation, getKeyDecodingMap());
         DataSet<LocatedRow> dataSet = dsp.getEmpty();
         for (Scan scan: scans) {
             TableScannerBuilder tsb = new TableScannerBuilder()

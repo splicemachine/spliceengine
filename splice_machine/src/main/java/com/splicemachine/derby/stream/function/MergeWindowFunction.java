@@ -75,7 +75,7 @@ public class MergeWindowFunction<Op extends WindowOperation> extends SpliceFlatM
         private final ColumnComparator rowComparator;
 
         public LocatedRowComparator(int[] keyColumns, boolean[] keyOrders) {
-            this.rowComparator = new ColumnComparator(keyColumns, keyOrders, false);
+            this.rowComparator = new ColumnComparator(keyColumns, keyOrders, true);
         }
 
         @Override

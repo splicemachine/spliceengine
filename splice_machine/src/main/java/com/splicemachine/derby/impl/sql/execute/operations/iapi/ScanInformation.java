@@ -58,7 +58,7 @@ public interface ScanInformation<T> {
 
     long getConglomerateId();
     
-    List<Scan> getScans(TxnView txn, ExecRow startKeyOverride, Activation activation) throws StandardException;
+    List<Scan> getScans(TxnView txn, ExecRow startKeyOverride, Activation activation, int[] keyDecodingMap) throws StandardException;
 
     int[] getColumnOrdering() throws StandardException;
 

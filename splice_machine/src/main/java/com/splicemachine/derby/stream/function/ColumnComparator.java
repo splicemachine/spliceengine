@@ -62,6 +62,8 @@ public class ColumnComparator implements Comparator<ExecRow>, Serializable, Exte
                 throw new RuntimeException(e);
             }
             if (result != 0) {
+                if (nullsOrderedLow && (c1.isNull() || c2.isNull()))
+                    return result; // nulls go first independently of descColumns
                 return descColumns==null ||descColumns[i] ? result : -result;
             }
         }

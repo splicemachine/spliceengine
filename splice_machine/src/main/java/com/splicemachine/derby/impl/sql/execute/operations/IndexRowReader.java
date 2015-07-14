@@ -134,14 +134,10 @@ public class IndexRowReader implements Iterator<LocatedRow>, Iterable<LocatedRow
             if (!sourceIterator.hasNext())
                 break;
             LocatedRow next = sourceIterator.next();
-            if(!populated){
-                for(int index=0;index<indexCols.length;index++){
-                    if(indexCols[index]!=-1){
-                        outputTemplate.setColumn(index + 1, next.getRow().getColumn(indexCols[index] + 1));
-                    }
+            for(int index=0;index<indexCols.length;index++){
+                if(indexCols[index]!=-1){
+                    outputTemplate.setColumn(index + 1, next.getRow().getColumn(indexCols[index] + 1));
                 }
-                populated=true;
-                toReturn.setRow(outputTemplate);
             }
             sourceRows.add(new LocatedRow((RowLocation) next.getRow().getColumn(next.getRow().nColumns()),
                     outputTemplate.getClone()));
