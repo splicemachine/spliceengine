@@ -58,6 +58,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
     private final Scan scan;
     private ScopedPredicates<Data> scopedPredicates;
     private final ExecRow template;
+    private final boolean reuseRowLocation;
     private final String tableVersion;
     private final int[] rowDecodingMap;
     private SIFilter<Data> siFilter;
@@ -92,6 +93,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
                              int[] keyColumnTypes,
                              int[] keyDecodingMap,
                              FormatableBitSet accessedPks,
+                             boolean reuseRowLocation,
                              String indexName,
                              final String tableVersion,
                              SIFilterFactory filterFactory) {
@@ -103,6 +105,7 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
         this.rowDecodingMap = rowDecodingMap;
         this.keyColumnSortOrder = keyColumnSortOrder;
         this.indexName = indexName;
+        this.reuseRowLocation = reuseRowLocation;
         this.timer = metricFactory.newTimer();
         this.filterCounter = metricFactory.newCounter();
         this.outputBytesCounter = metricFactory.newCounter();
@@ -344,8 +347,13 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
                             dataLib.getDataValuelength(sampleKv));
 
                     MultiFieldDecoder decoder = entryDecoder.getEntryDecoder();
-                    slice.set(decoder.decodeNextBytesUnsorted());
-                    if(currentRowLocation==null)
+                    byte[] bytes = decoder.decodeNextBytesUnsorted();
+                    if (reuseRowLocation) {
+                        slice.set(bytes);
+                    } else {
+                        slice = ByteSlice.wrap(bytes);
+                    }
+                    if(currentRowLocation==null || !reuseRowLocation)
                         currentRowLocation = new HBaseRowLocation(slice);
                     else
                         currentRowLocation.setValue(slice);
@@ -355,9 +363,14 @@ public class SITableScanner<Data> implements StandardIterator<ExecRow>,AutoClose
                 }
             }
         } else {
-            slice.set(dataLib.getDataRowBuffer(sampleKv), dataLib.getDataRowOffset(sampleKv),
-                    dataLib.getDataRowlength(sampleKv));
-            if(currentRowLocation==null)
+            if (reuseRowLocation) {
+                slice.set(dataLib.getDataRowBuffer(sampleKv), dataLib.getDataRowOffset(sampleKv),
+                        dataLib.getDataRowlength(sampleKv));
+            } else {
+                slice = ByteSlice.wrap(dataLib.getDataRowBuffer(sampleKv), dataLib.getDataRowOffset(sampleKv),
+                        dataLib.getDataRowlength(sampleKv));
+            }
+            if(currentRowLocation==null || !reuseRowLocation)
                 currentRowLocation = new HBaseRowLocation(slice);
             else
                 currentRowLocation.setValue(slice);

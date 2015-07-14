@@ -355,7 +355,8 @@
 								<argument>-Dsplice.spark.enabled=${splice.spark.enabled}</argument>
 								<argument>-Xmx8g</argument>
 								<argument>-Xms1g</argument>
-								<!-- G1 Garbage Collection -->
+								
+								<argument>-Dderby.debug.true=DumpClassFile</argument>
 								<!--
 								<argument>-XX:MaxPermSize=256M</argument>
 								<argument>-XX:MaxDirectMemorySize=1g</argument>

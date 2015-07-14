@@ -210,7 +210,8 @@ public class ProjectRestrictOperation extends SpliceBaseOperation {
 						execRowDefinition = doProjection(clone);
                     ((BaseActivation) activation).setIgnoreSequence(false);
                 }
-                    SpliceUtils.resultValuesToNull(execRowDefinition.getRowArray());
+				execRowDefinition = execRowDefinition.getClone();
+                SpliceUtils.resultValuesToNull(execRowDefinition.getRowArray());
 				return execRowDefinition;
 		}
 

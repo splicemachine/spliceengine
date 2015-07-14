@@ -20,7 +20,6 @@ public class ProjectRestrictFlatMapFunction<Op extends SpliceOperation> extends 
     protected boolean initialized;
     protected ProjectRestrictOperation op;
     protected ExecutionFactory executionFactory;
-    protected int numberOfColumns;
 
     public ProjectRestrictFlatMapFunction() {
         super();
@@ -46,7 +45,6 @@ public class ProjectRestrictFlatMapFunction<Op extends SpliceOperation> extends 
             initialized = true;
             op = (ProjectRestrictOperation) getOperation();
             executionFactory = op.getExecutionFactory();
-            numberOfColumns = op.getExecRowDefinition().nColumns();
         }
         op.source.setCurrentRow(from.getRow());
         if (!op.getRestriction().apply(from.getRow())) {
@@ -54,10 +52,9 @@ public class ProjectRestrictFlatMapFunction<Op extends SpliceOperation> extends 
             StreamLogUtils.logOperationRecordWithMessage(from,operationContext,"filtered");
             return Collections.EMPTY_LIST;
         }
-        ExecRow execRow = executionFactory.getValueRow(numberOfColumns);
+//        ExecRow execRow = executionFactory.getValueRow(numberOfColumns);
         ExecRow preCopy = op.doProjection(from.getRow());
-        LocatedRow locatedRow = new LocatedRow(from.getRowLocation(),
-                ProjectRestrictOperation.copyProjectionToNewRow(preCopy, execRow));
+        LocatedRow locatedRow = new LocatedRow(from.getRowLocation(), preCopy);
         op.setCurrentLocatedRow(locatedRow);
         StreamLogUtils.logOperationRecord(locatedRow,operationContext);
         return Collections.singletonList(locatedRow);
