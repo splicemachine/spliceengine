@@ -29,6 +29,7 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.context.ContextManager;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.store.access.TransactionController;
@@ -256,12 +257,25 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
                                     childResult.getClass().getName());
                 }
             }
-            childResult=childResult.optimize(optimizer.getDataDictionary(), restrictionList, outerCost.rowCount());
 
+            // Set outer table rows to be 1, because select node should be evaluated independently with outer table
+            childResult=childResult.optimize(optimizer.getDataDictionary(), restrictionList, 1);
+
+            // If only select from one table, use the table statistics to estimate cost
+            //Table
+            SelectNode selectNode = (SelectNode)childResult;
+            List<FromBaseTable> baseTables = new ArrayList<FromBaseTable>();
+            ConglomerateDescriptor cd = null;
+
+            if (selectNode.getFromList().size() == 1) {
+                collectBaseTables((FromTable)selectNode.getFromList().elementAt(0), baseTables);
+                if (baseTables.size() == 1) {
+                    cd = baseTables.get(0).baseConglomerateDescriptor;
+                }
+            }
 			/* Copy child cost to this node's cost */
-            childCost=childResult.costEstimate;
-
-            costEstimate.setCost(childCost);
+            costEstimate=childResult.costEstimate;
+            getCurrentAccessPath().getJoinStrategy().estimateCost(this,restrictionList,cd,outerCost,optimizer,costEstimate);
 
 			/* Note: Prior to the fix for DERBY-781 we had calls here
 			 * to set the cost estimate for BestAccessPath and
@@ -307,6 +321,22 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         }
 
         return costEstimate;
+    }
+
+    private void collectBaseTables(ResultSetNode node, List<FromBaseTable> baseTables) {
+
+        if (node == null) {
+            return;
+        }
+        
+        if (node instanceof FromBaseTable) {
+            baseTables.add((FromBaseTable) node);
+            return;
+        }
+
+        if (node instanceof SingleChildResultSetNode) {
+            collectBaseTables(((SingleChildResultSetNode) node).childResult, baseTables);
+        }
     }
 
     @Override
@@ -1053,6 +1083,10 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
             // we already set it, so just return it.
             return finalCostEstimate;
 
+        if (hasTrulyTheBestAccessPath) {
+            finalCostEstimate = getTrulyTheBestAccessPath().getCostEstimate();
+            return finalCostEstimate;
+        }
         // If the child result set is an Optimizable, then this node's
         // final cost is that of the child.  Otherwise, this node must
         // hold "trulyTheBestAccessPath" for it's child so we pull
