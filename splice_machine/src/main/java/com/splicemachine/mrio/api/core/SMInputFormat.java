@@ -8,11 +8,13 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.impl.job.scheduler.SubregionSplitter;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import org.apache.hadoop.conf.Configurable;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.hbase.HBaseConfiguration;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.HTable;
+import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.mapreduce.TableInputFormat;
 import org.apache.hadoop.mapreduce.InputFormat;
@@ -36,7 +38,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 public class SMInputFormat extends InputFormat<RowLocation, ExecRow> implements Configurable {
     protected static final Logger LOG = Logger.getLogger(SMInputFormat.class);
     protected Configuration conf;
-    protected HTable table;
+    protected HTableInterface table;
     protected Scan scan;
     protected SMSQLUtil util;
     protected SMRecordReaderImpl rr;
@@ -53,13 +55,15 @@ public class SMInputFormat extends InputFormat<RowLocation, ExecRow> implements 
         conf.setBoolean("splice.spark", spark);
         String jdbcString = conf.get(MRConstants.SPLICE_JDBC_STR);
         String rootDir = conf.get(HConstants.HBASE_DIR);
-        if (util==null)
+        if (!spark && util==null)
             util = SMSQLUtil.getInstance(jdbcString);
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "setConf tableName=%s, conglomerate=%s, tableScannerAsString=%s"
                     + "jdbcString=%s, rootDir=%s",tableName,conglomerate,tableScannerAsString,jdbcString, rootDir);
-
-
+        if (conglomerate ==null && !spark) {
+            LOG.error("Conglomerate not provided when spark is activated");
+            throw new RuntimeException("Conglomerate not provided when spark is activated");
+        }
         if (tableName == null && conglomerate == null) {
             LOG.error("Table Name Supplied is null");
             throw new RuntimeException("Table Name Supplied is Null");
@@ -78,7 +82,10 @@ public class SMInputFormat extends InputFormat<RowLocation, ExecRow> implements 
             }
         }
         try {
-            setHTable(new HTable(new Configuration(conf), conglomerate));
+            if (spark)
+                setHTable(SpliceAccessManager.getHTable(conglomerate));
+            else
+                setHTable(new HTable(conf,conglomerate));
         } catch (Exception e) {
             LOG.error(StringUtils.stringifyException(e));
         }
@@ -160,7 +167,7 @@ public class SMInputFormat extends InputFormat<RowLocation, ExecRow> implements 
     /**
      * Allows subclasses to get the {@link HTable}.
      */
-    protected HTable getHTable() {
+    protected HTableInterface getHTable() {
         return this.table;
     }
 
@@ -169,7 +176,7 @@ public class SMInputFormat extends InputFormat<RowLocation, ExecRow> implements 
      *
      * @param table  The table to get the data from.
      */
-    protected void setHTable(HTable table) {
+    protected void setHTable(HTableInterface table) {
         this.table = table;
     }
 

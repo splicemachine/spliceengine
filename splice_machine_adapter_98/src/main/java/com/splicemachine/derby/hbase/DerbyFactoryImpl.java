@@ -15,12 +15,12 @@ import java.util.Map;
 import java.util.NavigableSet;
 import java.util.SortedSet;
 import java.util.concurrent.atomic.AtomicReference;
-
 import javax.management.MBeanServerConnection;
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import javax.management.remote.JMXConnector;
 
+import com.splicemachine.hbase.TableRegionsInRange;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
@@ -563,8 +563,8 @@ public class DerbyFactoryImpl implements DerbyFactory<TxnMessage.TxnInfo> {
         }
 
 		@Override
-		public SpliceRegionScanner getSplitRegionScanner(Scan scan, HTable htable) throws IOException {
-			return new SplitRegionScanner(scan,htable,htable.getRegionsInRange(scan.getStartRow(), scan.getStopRow(), false));
+		public SpliceRegionScanner getSplitRegionScanner(Scan scan, HTableInterface htable) throws IOException {
+			return new SplitRegionScanner(scan,htable, ((TableRegionsInRange) htable).getRegionsInRange(scan.getStartRow(), scan.getStopRow(), false));
 		}
 
 		@Override
@@ -580,7 +580,7 @@ public class DerbyFactoryImpl implements DerbyFactory<TxnMessage.TxnInfo> {
     public SubregionSplitter getSubregionSplitter() {
         return new SubregionSplitter() {
             @Override
-            public List<InputSplit> getSubSplits(HTable table, List<InputSplit> splits) {
+            public List<InputSplit> getSubSplits(HTableInterface table, List<InputSplit> splits) {
                 List<InputSplit> results = new ArrayList<>();
                 for (InputSplit split : splits) {
                     final TableSplit tableSplit = (TableSplit) split;

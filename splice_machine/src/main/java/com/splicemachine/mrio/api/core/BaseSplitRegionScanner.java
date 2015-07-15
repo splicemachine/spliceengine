@@ -9,6 +9,7 @@ import org.apache.hadoop.hbase.DoNotRetryIOException;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HRegionLocation;
 import org.apache.hadoop.hbase.client.HTable;
+import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.hadoop.hbase.regionserver.RegionScanner;
@@ -33,12 +34,12 @@ public abstract class BaseSplitRegionScanner<T> implements SpliceRegionScanner {
 	protected int scannerPosition = 1;
 	protected int scannerCount = 0;
 	protected Scan scan;
-	protected HTable htable;
+	protected HTableInterface htable;
 	protected List<T> holderResults = new ArrayList<T>();
 	protected boolean holderReturn;
 	SDataLib dataLib = HTransactorFactory.getTransactor().getDataLib();
 	
-	public BaseSplitRegionScanner(Scan scan, HTable table, List<HRegionLocation> locations) throws IOException {
+	public BaseSplitRegionScanner(Scan scan, HTableInterface table, List<HRegionLocation> locations) throws IOException {
 		if (LOG.isDebugEnabled()) {
 			SpliceLogUtils.debug(LOG, "init split scanner with scan=%s, table=%s, location_number=%d ,locations=%s",scan,table,locations.size(),locations);
 		}
@@ -85,7 +86,7 @@ public abstract class BaseSplitRegionScanner<T> implements SpliceRegionScanner {
 	
 	abstract List<HRegionLocation> getRegionsInRange(Scan scan) throws IOException;
 	
-	abstract void createAndRegisterClientSideRegionScanner(HTable table, Scan newScan) throws IOException;
+	abstract void createAndRegisterClientSideRegionScanner(HTableInterface table, Scan newScan) throws IOException;
 	
 	public void registerRegionScanner(RegionScanner regionScanner) {
 		if (LOG.isTraceEnabled())

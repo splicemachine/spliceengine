@@ -1,14 +1,12 @@
 package com.splicemachine.mrio.api.core;
 
 import java.io.IOException;
-
-import com.splicemachine.constants.bytes.BytesUtil;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.si.impl.TransactionalRegions;
 import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.hbase.client.HTable;
+import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.mapreduce.TableSplit;
 import org.apache.hadoop.hbase.regionserver.HRegion;
@@ -28,7 +26,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 
 public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
     protected static final Logger LOG = Logger.getLogger(SMRecordReaderImpl.class);
-	protected HTable htable;
+	protected HTableInterface htable;
 	protected HRegion hregion;
 	protected Configuration config;
 	protected MeasuredRegionScanner mrs;
@@ -124,7 +122,7 @@ public class SMRecordReaderImpl extends RecordReader<RowLocation, ExecRow> {
 		this.scan = scan;
 	}
 	
-	public void setHTable(HTable htable) {
+	public void setHTable(HTableInterface htable) {
 		this.htable = htable;
 	}
 	
