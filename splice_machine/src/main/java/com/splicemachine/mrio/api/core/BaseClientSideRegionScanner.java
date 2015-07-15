@@ -8,7 +8,7 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HTableDescriptor;
-import org.apache.hadoop.hbase.client.HTable;
+import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.IsolationLevel;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.client.metrics.ScanMetrics;
@@ -40,13 +40,13 @@ public abstract class BaseClientSideRegionScanner<T> implements RegionScanner {
 	T topCell;
 	protected List<KeyValueScanner>	memScannerList = new ArrayList<KeyValueScanner>(1);
 	protected boolean flushed;
-	protected HTable table;
+	protected HTableInterface table;
 	SDataLib dataLib = HTransactorFactory.getTransactor().getDataLib();
 	private List<T> nextResults = new ArrayList<>();
 	private boolean nextResponse;
 	
 	
-	public BaseClientSideRegionScanner(HTable htable, Configuration conf, FileSystem fs,
+	public BaseClientSideRegionScanner(HTableInterface htable, Configuration conf, FileSystem fs,
 			Path rootDir, HTableDescriptor htd, HRegionInfo hri, Scan scan,
 			ScanMetrics scanMetrics)
 			throws IOException {

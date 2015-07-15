@@ -71,7 +71,6 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
     private volatile DDLFilter ddlDemarcationPoint = null;
     private volatile boolean cacheDisabled = false;
     private ConcurrentMap<String, DDLChange> ongoingDDLChanges = new ConcurrentHashMap<String, DDLChange>();
-    private static final HTableInterfaceFactory autoFlushTableFactory = new SpliceHTableFactory(false);
     private static final HTableInterfaceFactory tableFactory = new SpliceHTableFactory();
 
     public SpliceAccessManager() {
@@ -1014,21 +1013,15 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
         return this.rawstore;
     }
 
+    public static HTableInterface getHTable(String id) {
+        return tableFactory.createHTableInterface(SpliceConstants.config,id.getBytes());
+    }
+
     public static HTableInterface getHTable(Long id) {
-//		if (LOG.isTraceEnabled())
-//			LOG.trace("Getting HTable " + id);
-        return autoFlushTableFactory.createHTableInterface(SpliceConstants.config,Long.toString(id).getBytes());
+        return tableFactory.createHTableInterface(SpliceConstants.config,Long.toString(id).getBytes());
     }
 
     public static HTableInterface getHTable(byte[] tableName) {
-//		if (LOG.isTraceEnabled())
-//			LOG.trace("Getting HTable " + Bytes.toString(tableName));
-        return autoFlushTableFactory.createHTableInterface(SpliceConstants.config,tableName);
-    }
-
-    public static HTableInterface getFlushableHTable(byte[] tableName) {
-//		if (LOG.isTraceEnabled())
-//			LOG.trace("Getting HTable " + Bytes.toString(tableName));
         return tableFactory.createHTableInterface(SpliceConstants.config,tableName);
     }
 

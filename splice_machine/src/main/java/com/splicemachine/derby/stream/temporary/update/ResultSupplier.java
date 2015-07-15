@@ -48,7 +48,7 @@ public class ResultSupplier{
         if(result==null) {
             //need to fetch the latest results
             if(htable==null){
-                htable = SpliceAccessManager.getFlushableHTable(Bytes.toBytes(Long.toString(heapConglom)));
+                htable = SpliceAccessManager.getHTable(Bytes.toBytes(Long.toString(heapConglom)));
             }
             Get remoteGet = SpliceUtils.createGet(txnView, location);
             remoteGet.addColumn(SpliceConstants.DEFAULT_FAMILY_BYTES,SpliceConstants.PACKED_COLUMN_BYTES);

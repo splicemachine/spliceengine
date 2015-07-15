@@ -41,7 +41,7 @@ import java.util.concurrent.Executors;
  * @author Scott Fines
  *         Created on: 10/23/13
  */
-public abstract class SpliceBaseHTable implements HTableInterface {
+public abstract class SpliceBaseHTable implements HTableInterface, TableRegionsInRange {
     private static Logger LOG = Logger.getLogger(SpliceBaseHTable.class);
     private final HConnection connection;
     private final ExecutorService tableExecutor;
@@ -61,6 +61,14 @@ public abstract class SpliceBaseHTable implements HTableInterface {
         this.tableExecutor = Executors.newCachedThreadPool(new DaemonThreadFactory("table-thread"));
         this.connection = table.getConnection();
         this.noRetry = !retryAutomatically;
+    }
+
+    public List<HRegionLocation> getRegionsInRange(byte[] startKey, byte[] endKey, boolean reload) throws IOException {
+        return table.getRegionsInRange(startKey, endKey, reload);
+    }
+
+    public HRegionLocation getRegionLocation(byte[] row) throws IOException {
+        return table.getRegionLocation(row);
     }
 
     public SpliceBaseHTable(byte[] tableName, HConnection connection, ExecutorService pool,

@@ -9,18 +9,15 @@ import java.util.List;
 import java.util.NavigableSet;
 import java.util.SortedSet;
 import java.util.concurrent.atomic.AtomicReference;
-
 import javax.management.MalformedObjectNameException;
 import javax.management.ObjectName;
 import javax.management.remote.JMXConnector;
-
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.client.HConnection;
-import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
@@ -90,7 +87,7 @@ public interface DerbyFactory<Transaction> {
 		ServerName getServerName(String serverName);
 		ExceptionTranslator getExceptionHandler();
         SparkUtils getSparkUtils();
-        SpliceRegionScanner getSplitRegionScanner(Scan scan, HTable htable) throws IOException;
+        SpliceRegionScanner getSplitRegionScanner(Scan scan, HTableInterface htable) throws IOException;
         KeyValueScanner getMemstoreFlushAwareScanner(HRegion region, Store store, ScanInfo scanInfo, Scan scan,
 				final NavigableSet<byte[]> columns, long readPt, AtomicReference<MemstoreAware> memstoreAware, MemstoreAware initialValue) throws IOException;
         SubregionSplitter getSubregionSplitter();
