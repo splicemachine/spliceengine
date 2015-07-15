@@ -58,7 +58,12 @@ public class UniformDoubleDistribution extends BaseDistribution<Double> implemen
         if(doubleFrequencyEstimate.count()>0) return doubleFrequencyEstimate.count();
 
         //not a frequent element, so estimate the value using cardinality and adjusted row counts
-        return getAdjustedRowCount()/fcs.cardinality();
+        long adjustedRowCount = getAdjustedRowCount();
+        long cardinality = fcs.cardinality();
+        if (cardinality > adjustedRowCount && adjustedRowCount > 0) {
+            cardinality = adjustedRowCount;
+        }
+        return adjustedRowCount/cardinality;
     }
 
     @Override
@@ -127,6 +132,11 @@ public class UniformDoubleDistribution extends BaseDistribution<Double> implemen
     }
 
     private long getPerRowCount() {
-        return getAdjustedRowCount()/columnStats.cardinality();
+        long cardinality = columnStats.cardinality();
+        long adjustedRowCount = getAdjustedRowCount();
+        if (cardinality > adjustedRowCount && adjustedRowCount > 0) {
+            cardinality = adjustedRowCount;
+        }
+        return adjustedRowCount/cardinality;
     }
 }

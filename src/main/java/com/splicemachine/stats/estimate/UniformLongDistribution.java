@@ -133,6 +133,11 @@ public class UniformLongDistribution extends BaseDistribution<Long> implements L
     }
 
     private long getPerRowCount() {
-        return getAdjustedRowCount()/columnStats.cardinality();
+        long cardinality = columnStats.cardinality();
+        long adjustedRowCount = getAdjustedRowCount();
+        if (cardinality > adjustedRowCount && adjustedRowCount > 0) {
+            cardinality = adjustedRowCount;
+        }
+        return adjustedRowCount/cardinality;
     }
 }

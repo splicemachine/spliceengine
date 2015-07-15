@@ -136,6 +136,11 @@ public class UniformShortDistribution extends BaseDistribution<Short> implements
     }
 
     private long getPerRowCount() {
-        return getAdjustedRowCount()/columnStats.cardinality();
+        long cardinality = columnStats.cardinality();
+        long adjustedRowCount = getAdjustedRowCount();
+        if (cardinality > adjustedRowCount && adjustedRowCount > 0) {
+            cardinality = adjustedRowCount;
+        }
+        return adjustedRowCount/cardinality;
     }
 }

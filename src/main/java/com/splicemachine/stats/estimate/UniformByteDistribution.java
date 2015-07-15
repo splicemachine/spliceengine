@@ -40,6 +40,9 @@ public class UniformByteDistribution extends BaseDistribution<Byte> implements B
          * all frequent elements
          */
         long adjustedRowCount = getAdjustedRowCount();
+        if (cardinality > adjustedRowCount && adjustedRowCount > 0) {
+            cardinality = adjustedRowCount;
+        }
         return adjustedRowCount/cardinality;
     }
 
@@ -120,7 +123,11 @@ public class UniformByteDistribution extends BaseDistribution<Byte> implements B
          *
          */
         long adjustedRowCount = getAdjustedRowCount();
-        long perRowCount = adjustedRowCount/columnStats.cardinality();
+        long cardinality = columnStats.cardinality();
+        if (cardinality > adjustedRowCount && adjustedRowCount > 0) {
+            cardinality = adjustedRowCount;
+        }
+        long perRowCount = adjustedRowCount/cardinality;
         long baseEst = perRowCount*(stop-start);
         if(!includeStart) {
             baseEst -= perRowCount;

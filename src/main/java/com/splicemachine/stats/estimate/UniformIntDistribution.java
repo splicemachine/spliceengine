@@ -64,7 +64,14 @@ public class UniformIntDistribution extends BaseDistribution<Integer> implements
 
         IntFrequencyEstimate est = ((IntFrequentElements)ics.topK()).countEqual(value);
         if(est.count()>0) return est.count();
-        else return getAdjustedRowCount()/columnStats.cardinality();
+        else {
+            long adjustedRowCount = getAdjustedRowCount();
+            long cardinality = columnStats.cardinality();
+            if (cardinality > adjustedRowCount && adjustedRowCount > 0) {
+                cardinality = adjustedRowCount;
+            }
+            return adjustedRowCount/cardinality;
+        }
     }
 
     @Override
@@ -136,6 +143,11 @@ public class UniformIntDistribution extends BaseDistribution<Integer> implements
     }
 
     private long getPerRowCount() {
-        return getAdjustedRowCount()/columnStats.cardinality();
+        long cardinality = columnStats.cardinality();
+        long adjustedRowCount = getAdjustedRowCount();
+        if (cardinality > adjustedRowCount && adjustedRowCount > 0) {
+            cardinality = adjustedRowCount;
+        }
+        return adjustedRowCount/cardinality;
     }
 }
