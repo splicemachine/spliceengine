@@ -182,34 +182,36 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
         return new ColumnDescriptor[]{
                 new ColumnDescriptor("SCHEMANAME"               ,1,varcharType,null,null,view,viewId,0,0),
                 new ColumnDescriptor("TABLENAME"                ,2,varcharType,null,null,view,viewId,0,0),
-                new ColumnDescriptor("TOTAL_ROW_COUNT"          ,3,longType,null,null,view,viewId,0,0),
-                new ColumnDescriptor("AVG_ROW_COUNT"            ,4,longType,null,null,view,viewId,0,0),
-                new ColumnDescriptor("TOTAL_SIZE"               ,5,longType,null,null,view,viewId,0,0),
-                new ColumnDescriptor("NUM_PARTITIONS"           ,6,longType,null,null,view,viewId,0,0),
-                new ColumnDescriptor("AVG_PARTITION_SIZE"       ,7,longType,null,null,view,viewId,0,0),
-                new ColumnDescriptor("ROW_WIDTH"                ,8,longType,null,null,view,viewId,0,0),
-                new ColumnDescriptor("TOTAL_QUERY_COUNT"        ,9,longType,null,null,view,viewId,0,0),
-                new ColumnDescriptor("AVG_QUERY_COUNT"          ,10,longType,null,null,view,viewId,0,0),
-                new ColumnDescriptor("AVG_LOCAL_READ_LATENCY"   ,11,longType,null,null,view,viewId,0,0),
-                new ColumnDescriptor("AVG_REMOTE_READ_LATENCY"  ,12,longType,null,null,view,viewId,0,0),
-                new ColumnDescriptor("AVG_WRITE_LATENCY"        ,13,longType,null,null,view,viewId,0,0),
+                new ColumnDescriptor("CONGLOMERATENAME"         ,3,varcharType,null,null,view,viewId,0,0),
+                new ColumnDescriptor("TOTAL_ROW_COUNT"          ,4,longType,null,null,view,viewId,0,0),
+                new ColumnDescriptor("AVG_ROW_COUNT"            ,5,longType,null,null,view,viewId,0,0),
+                new ColumnDescriptor("TOTAL_SIZE"               ,6,longType,null,null,view,viewId,0,0),
+                new ColumnDescriptor("NUM_PARTITIONS"           ,7,longType,null,null,view,viewId,0,0),
+                new ColumnDescriptor("AVG_PARTITION_SIZE"       ,8,longType,null,null,view,viewId,0,0),
+                new ColumnDescriptor("ROW_WIDTH"                ,9,longType,null,null,view,viewId,0,0),
+                new ColumnDescriptor("TOTAL_QUERY_COUNT"        ,10,longType,null,null,view,viewId,0,0),
+                new ColumnDescriptor("AVG_QUERY_COUNT"          ,11,longType,null,null,view,viewId,0,0),
+                new ColumnDescriptor("AVG_LOCAL_READ_LATENCY"   ,12,longType,null,null,view,viewId,0,0),
+                new ColumnDescriptor("AVG_REMOTE_READ_LATENCY"  ,13,longType,null,null,view,viewId,0,0),
+                new ColumnDescriptor("AVG_WRITE_LATENCY"        ,14,longType,null,null,view,viewId,0,0),
         };
     }
 
     public static final String STATS_VIEW_SQL = "create view systablestatistics as select " +
             "s.schemaname" +
             ",t.tablename" + // 1
-            ",sum(ts.rowCount) as TOTAL_ROW_COUNT" +  //2
-            ",avg(ts.rowCount) as AVG_ROW_COUNT" +      //3
-            ",sum(ts.partition_size) as TOTAL_SIZE" + //4
-            ",count(ts.rowCount) as NUM_PARTITIONS" + //5
-            ",avg(ts.partition_size) as AVG_PARTITION_SIZE" + //6
-            ",max(ts.meanrowWidth) as ROW_WIDTH" + //7
-            ",sum(ts.queryCount) as TOTAL_QUERY_COUNT" + //8
-            ",avg(ts.queryCount) as AVG_QUERY_COUNT" + //9
-            ",avg(CASE WHEN ts.rowCount>0 then ts.localReadLatency/ts.rowCount ELSE 0 END) as AVG_LOCAL_READ_LATENCY" + //10
-            ",avg(CASE WHEN ts.rowCount>0 then ts.remoteReadLatency/ts.rowCount ELSE 0 END) as AVG_REMOTE_READ_LATENCY" + //11
-            ",avg(CASE WHEN ts.rowCount>0 then ts.writeLatency/ts.rowCount ELSE 0 END) as AVG_WRITE_LATENCY" + //12
+            ",c.conglomeratename" + //2
+            ",sum(ts.rowCount) as TOTAL_ROW_COUNT" +  //3
+            ",avg(ts.rowCount) as AVG_ROW_COUNT" +      //4
+            ",sum(ts.partition_size) as TOTAL_SIZE" + //5
+            ",count(ts.rowCount) as NUM_PARTITIONS" + //6
+            ",avg(ts.partition_size) as AVG_PARTITION_SIZE" + //7
+            ",max(ts.meanrowWidth) as ROW_WIDTH" + //8
+            ",sum(ts.queryCount) as TOTAL_QUERY_COUNT" + //9
+            ",avg(ts.queryCount) as AVG_QUERY_COUNT" + //10
+            ",avg(CASE WHEN ts.rowCount>0 then ts.localReadLatency/ts.rowCount ELSE 0 END) as AVG_LOCAL_READ_LATENCY" + //11
+            ",avg(CASE WHEN ts.rowCount>0 then ts.remoteReadLatency/ts.rowCount ELSE 0 END) as AVG_REMOTE_READ_LATENCY" + //12
+            ",avg(CASE WHEN ts.rowCount>0 then ts.writeLatency/ts.rowCount ELSE 0 END) as AVG_WRITE_LATENCY" + //13
             " from " +
             "sys.systables t" +
             ",sys.sysschemas s" +
@@ -222,7 +224,8 @@ public class SYSTABLESTATISTICSRowFactory extends CatalogRowFactory {
             "and PARTITION_EXISTS(ts.conglomerateId,ts.partitionid)" +
             " group by " +
             "s.schemaname" +
-            ",t.tablename";
+            ",t.tablename"+
+            ",c.conglomeratename";
 
     public static void main(String...args) {
         System.out.println(STATS_VIEW_SQL);
