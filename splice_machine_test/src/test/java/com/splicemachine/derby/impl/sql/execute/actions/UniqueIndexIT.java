@@ -1,5 +1,9 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.fail;
+
 import java.sql.*;
 import java.util.Arrays;
 import java.util.List;
@@ -25,10 +29,10 @@ public class UniqueIndexIT extends SpliceUnitTest {
 
     private static final String TABLE_A = "A", TABLE_B = "B", TABLE_C = "C", TABLE_D = "D", TABLE_E = "E",
             TABLE_F = "F", TABLE_G = "G", TABLE_H = "H", TABLE_I = "I", TABLE_J = "J", TABLE_K = "K",
-            TABLE_M = "M",
+            TABLE_M = "M", TABLE_2 = "T2",
 
     INDEX_A = "IDX_A1", INDEX_B = "IDX_B1", INDEX_C = "IDX_C1", INDEX_D = "IDX_D1", INDEX_E = "IDX_E1",
-            INDEX_F = "IDX_F1", INDEX_G = "IDX_G1", INDEX_K = "IDX_K1", INDEX_M = "IDX_M1";
+            INDEX_F = "IDX_F1", INDEX_G = "IDX_G1", INDEX_K = "IDX_K1", INDEX_M = "IDX_M1", INDEX_2 = "IDX_2";
 
     @Override
     public String getSchemaName() {
@@ -130,7 +134,7 @@ public class UniqueIndexIT extends SpliceUnitTest {
         //add some more data
         String name = "jzhang";
         int value =2;
-        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",TABLE_C,name,value));
+        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)", TABLE_C, name, value));
 
         //now check that we can get data out for the proper key
         ResultSet resultSet = methodWatcher.executeQuery(format("select * from %s where name = '%s'",TABLE_C,name));
@@ -164,7 +168,7 @@ public class UniqueIndexIT extends SpliceUnitTest {
             if(se.getMessage().contains("unique"))
                 throw se;
         }
-        Assert.fail("Did not report a duplicate key violation!");
+        fail("Did not report a duplicate key violation!");
     }
     /**
      * Tests that we can safely drop the index, and constraints
@@ -186,14 +190,14 @@ public class UniqueIndexIT extends SpliceUnitTest {
         methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",TABLE_E,name,value));
         try{
             methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",TABLE_E,name,value));
-            Assert.fail("Uniqueness constraint violated");
+            fail("Uniqueness constraint violated");
         }catch(SQLException se){
             Assert.assertEquals(ErrorState.LANG_DUPLICATE_KEY_CONSTRAINT.getSqlState(),se.getSQLState());
         }
         indexWatcher.finished(null);
 
         //validate that we can add duplicates now
-        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)",TABLE_E,name,value));
+        methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)", TABLE_E, name, value));
 
         ResultSet resultSet = methodWatcher.executeQuery(format("select * from %s where name = '%s'",TABLE_E,name));
         List<String> results = Lists.newArrayListWithExpectedSize(1);
@@ -443,7 +447,7 @@ public class UniqueIndexIT extends SpliceUnitTest {
         String tableName = "T";
         new MyWatcher(tableName, CLASS_NAME, "(c1 int, c2 smallint)").create(null);
         methodWatcher.getStatement().execute(format("insert into %s (c1,c2) values (%s,%s)",
-                tableName, 8, 12));
+                                                    tableName, 8, 12));
         methodWatcher.getStatement().execute(format("insert into %s (c1,c2) values (%s,%s)",
                 tableName, 56, -3));
 
@@ -560,7 +564,51 @@ public class UniqueIndexIT extends SpliceUnitTest {
             Assert.assertTrue(se.getMessage().contains("identified by 'FOO' defined on 'H'"));
             throw se;
         }
-        Assert.fail("Did not report a duplicate key violation!");
+        fail("Did not report a duplicate key violation!");
+    }
+
+    @Test
+    public void testUpdateUniqueIndex() throws Exception {
+        // DB-2578: Update unique index causes 0 length row error
+        // also "uniqueWithDuplicateNulls" index column became non-unique when null value updated to non-null
+        new MyWatcher(TABLE_2, CLASS_NAME, "(id int, name varchar(10))").create(null);
+        new SpliceIndexWatcher(TABLE_2, CLASS_NAME, INDEX_2, CLASS_NAME, "(id)", true).starting(null);
+        methodWatcher.getStatement().execute("insert into t2 values(null, 'able')");
+        methodWatcher.getStatement().execute("insert into t2 values(null, 'baker')");
+
+        // update a previously null unique column to non-null value
+        methodWatcher.getStatement().execute("update t2 set id=1 where name='able'");
+        // make sure we can see it via the index
+        ResultSet rs2 = methodWatcher.executeQuery("select * from t2 --SPLICE-PROPERTIES index="+INDEX_2+" \n where name='able'");
+
+        String expected = "" +
+            "ID |NAME |\n" +
+            "----------\n" +
+            " 1 |able |";
+
+        assertEquals("verify using index", expected, TestUtils.FormattedResult.ResultFactory.toString(rs2));
+
+        // try update that would be a unique index violation
+        try {
+            methodWatcher.getStatement().execute("update t2 set id=1 where name='baker'");
+            fail("Should have failed with unique constraint violation.");
+        } catch (SQLException e) {
+            // expected
+            assertEquals("Expected SQLIntegrityConstraintViolationException",
+                         SQLIntegrityConstraintViolationException.class.getSimpleName(), e.getClass().getSimpleName());
+            assertEquals(SQLState.LANG_DUPLICATE_KEY_CONSTRAINT, e.getSQLState());
+        }
+
+        ResultSet rs = methodWatcher.executeQuery("select * from t2 where name='baker'");
+        List<String> results = Lists.newArrayListWithExpectedSize(1);
+        while(rs.next()){
+            Object id = rs.getObject(1);
+            String name = rs.getString(2);
+            assertEquals("Incorrect name returned!","baker",name);
+            assertNull("Expected 'baker' id to remain null", id);
+            results.add(String.format("id:%s,name:%s", id, name));
+        }
+        assertEquals("Incorrect number of rows returned!", 1, results.size());
     }
 
 }
