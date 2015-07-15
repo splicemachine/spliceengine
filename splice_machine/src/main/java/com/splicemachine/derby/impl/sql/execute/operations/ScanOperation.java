@@ -184,7 +184,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
                     scan.setSmall(true);
 					scan.setCaching(1); // Limit the batch size for performance
 				}
-				deSiify(scan);
+				//deSiify(scan);
 				return scan;
 		}
 
