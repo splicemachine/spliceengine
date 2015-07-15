@@ -59,8 +59,6 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
     private Hashtable implhash;
     private HBaseStore rawstore;
     private int system_lock_level = TransactionController.MODE_RECORD;
-    protected static BetterHTablePool singleRPCPool;
-    protected static BetterHTablePool flushablePool;
     private Hashtable formathash;
     private Properties serviceProperties;
     LockingPolicy system_default_locking_policy;
@@ -79,16 +77,6 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
     public SpliceAccessManager() {
         implhash   = new Hashtable();
         formathash = new Hashtable();
-        singleRPCPool = new BetterHTablePool(autoFlushTableFactory,
-                SpliceConstants.tablePoolCleanerInterval,
-                TimeUnit.SECONDS,
-                SpliceConstants.tablePoolMaxSize,
-                SpliceConstants.tablePoolCoreSize);
-        flushablePool = new BetterHTablePool(tableFactory,
-                SpliceConstants.tablePoolCleanerInterval,
-                TimeUnit.SECONDS,
-                SpliceConstants.tablePoolMaxSize,
-                SpliceConstants.tablePoolCoreSize);
     }
 
     protected LockingPolicy getDefaultLockingPolicy() {
@@ -116,14 +104,6 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
         }
         conglom_map[ConglomerateFactory.BTREE_FACTORY_ID] = (ConglomerateFactory) mfactory;
     }
-
-//	public static HTablePool getHTableRPCPool() {
-//		return singleRPCPool;
-//	}
-
-//	public static HTablePool getHTableFlushablePool() {
-//		return flushablePool;
-//	}
 
     protected int getSystemLockLevel() {
         return system_lock_level;
@@ -1038,15 +1018,12 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
 //		if (LOG.isTraceEnabled())
 //			LOG.trace("Getting HTable " + id);
         return autoFlushTableFactory.createHTableInterface(SpliceConstants.config,Long.toString(id).getBytes());
-//        return new HTable(SpliceConstants.config, HConnectionManager.getConnection(SpliceConstants.config), SpliceHConnection.)
-//				return singleRPCPool.getTable(Long.toString(id));
     }
 
     public static HTableInterface getHTable(byte[] tableName) {
 //		if (LOG.isTraceEnabled())
 //			LOG.trace("Getting HTable " + Bytes.toString(tableName));
         return autoFlushTableFactory.createHTableInterface(SpliceConstants.config,tableName);
-//				return singleRPCPool.getTable(Bytes.toString(tableName));
     }
 
     public static HTableInterface getFlushableHTable(byte[] tableName) {
