@@ -164,8 +164,6 @@ public class TableScanOperation extends ScanOperation {
 
 		@Override
 		public void	close() throws StandardException {
-				if(rowDecoder!=null)
-						rowDecoder.close();
 				SpliceLogUtils.trace(LOG, "close in TableScan");
 				beginTime = getCurrentTimeMillis();
 				if (forUpdate && scanInformation.isKeyed()) {
