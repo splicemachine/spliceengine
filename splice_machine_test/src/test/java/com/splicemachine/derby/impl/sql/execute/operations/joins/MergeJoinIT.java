@@ -286,6 +286,7 @@ public class MergeJoinIT extends SpliceUnitTest {
     }
 
     @Test
+    @Ignore
     public void testBCastOverMerge() throws Exception {
         String query = "select count(*) " +
                 "from --splice-properties joinOrder=fixed\n" +
