@@ -8,9 +8,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.OperationInformation;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.ScanInformation;
 import com.splicemachine.derby.impl.store.access.hbase.HBaseRowLocation;
-import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.si.api.TransactionalRegion;
-import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryPredicateFilter;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -43,8 +41,6 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 		protected ExecRow currentTemplate;
 		protected int[] columnOrdering;
 		protected int[] getColumnOrdering;
-		protected EntryDecoder rowDecoder;
-		protected MultiFieldDecoder keyDecoder;
 		protected EntryPredicateFilter predicateFilter;
 		protected int[] keyDecodingMap;
         protected TransactionalRegion txnRegion;
