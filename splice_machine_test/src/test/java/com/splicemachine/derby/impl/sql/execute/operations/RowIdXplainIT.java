@@ -4,10 +4,7 @@ import com.splicemachine.derby.management.XPlainTreeNode;
 import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.management.BaseXplainIT;
 import com.splicemachine.test.SerialTest;
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -18,6 +15,7 @@ import java.sql.PreparedStatement;
 /**
  * Created by jyuan on 4/30/15.
  */
+@Ignore
 @Category(SerialTest.class)
 public class RowIdXplainIT extends BaseXplainIT {
 
