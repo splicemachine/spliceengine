@@ -30,7 +30,7 @@ public class StreamUtils {
 //        if ( (activation.getResultSet() == null && op.getEstimatedCost() > 40000.00)  || ((SpliceOperation)activation.getResultSet()).getEstimatedCost() > 40000.00) {
 //            return sparkDataSetProcessor;
  //       }
-        return controlDataSetProcessor;
+        return sparkDataSetProcessor;
     }
 
 
