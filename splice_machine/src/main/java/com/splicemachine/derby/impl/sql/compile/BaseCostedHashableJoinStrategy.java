@@ -42,8 +42,11 @@ public abstract class BaseCostedHashableJoinStrategy extends HashableJoinStrateg
                                              ConglomerateDescriptor cd,
                                              OptimizablePredicateList predList,
                                              double innerRowCount) throws StandardException{
-        IndexRowGenerator irg=cd.getIndexDescriptor();
-        if(irg==null||irg.getIndexDescriptor()==null){
+        IndexRowGenerator irg = null;
+        if (cd != null) {
+            irg = cd.getIndexDescriptor();
+        }
+        if(cd == null || irg==null||irg.getIndexDescriptor()==null){
             return estimateNonKeyedSelectivity(innerTable,cd,predList);
         }else{
             return estimateKeyedSelectivity(innerTable,cd,predList,irg,innerRowCount);
