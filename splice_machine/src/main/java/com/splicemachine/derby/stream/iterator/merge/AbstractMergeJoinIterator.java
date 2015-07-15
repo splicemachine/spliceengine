@@ -77,6 +77,7 @@ public abstract class AbstractMergeJoinIterator implements Iterator<LocatedRow>,
                 break;
             } else {
                 // if is less than left, read next right
+                rightRS.next();
             }
         }
         return currentRights.iterator();
