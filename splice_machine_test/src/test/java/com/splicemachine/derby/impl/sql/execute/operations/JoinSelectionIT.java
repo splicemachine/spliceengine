@@ -117,7 +117,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
             if (count == 2) {
     			String row = rs.getString(1);
     			String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER)+PLAN_LINE_LEADER.length(),row.indexOf(JOIN_STRATEGY_TERMINATOR));
-    			Assert.assertEquals(BROADCAST_JOIN, joinStrategy);
+    			Assert.assertEquals(MERGE_SORT_JOIN, joinStrategy);
             	break;
             }
         }   
@@ -285,7 +285,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
             if (count == 2) {
     			String row = rs.getString(1);
     			String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER)+PLAN_LINE_LEADER.length(),row.indexOf(JOIN_STRATEGY_TERMINATOR));
-    			Assert.assertEquals(BROADCAST_JOIN, joinStrategy);
+    			Assert.assertEquals(MERGE_SORT_JOIN, joinStrategy);
             	break;
             }
         }   
