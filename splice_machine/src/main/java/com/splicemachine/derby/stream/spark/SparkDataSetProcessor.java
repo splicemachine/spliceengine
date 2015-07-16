@@ -2,9 +2,11 @@ package com.splicemachine.derby.stream.spark;
 
 import com.clearspring.analytics.util.Lists;
 import com.splicemachine.constants.SIConstants;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.load.spark.WholeTextInputFormat;
 import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -17,6 +19,8 @@ import com.splicemachine.db.iapi.types.RowLocation;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import scala.Tuple2;
+
 import java.io.IOException;
 import java.io.Serializable;
 import java.util.Collections;
@@ -66,6 +70,18 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
     @Override
     public void setJobGroup(String jobName, String jobDescription) {
         SpliceSpark.getContext().setJobGroup(jobName, jobDescription);
+    }
+
+    @Override
+    public PairDataSet<String, String> readTextFile(String path) {
+        return new SparkPairDataSet<>(SpliceSpark.getContext().newAPIHadoopFile(
+                path, WholeTextInputFormat.class, String.class, String.class, SpliceConstants.config
+        ));
+    }
+
+    @Override
+    public <K, V> PairDataSet<K, V> getEmptyPair() {
+        return new SparkPairDataSet(SpliceSpark.getContext().parallelizePairs(Collections.<Tuple2<K,V>>emptyList(), 1));
     }
 
     @Override

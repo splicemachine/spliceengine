@@ -33,9 +33,11 @@ public interface PairDataSet<K,V> {
     public <W> PairDataSet<K,V> broadcastSubtractByKey(PairDataSet<K,W> rightDataSet);
     public <W> PairDataSet<K,Tuple2<Iterable<V>, Iterable<W>>> cogroup(PairDataSet<K,W> rightDataSet);
     public <W> PairDataSet<K,Tuple2<Iterable<V>, Iterable<W>>> broadcastCogroup(PairDataSet<K,W> rightDataSet);
+    public PairDataSet<K,V> union (PairDataSet<K,V> dataSet);
     public DataSet<V> insertData(InsertTableWriterBuilder builder, OperationContext operationContext);
     public DataSet<V> updateData(UpdateTableWriterBuilder builder, OperationContext operationContext);
     public DataSet<V> deleteData(DeleteTableWriterBuilder builder, OperationContext operationContext);
     public String toString();
+    public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op,Iterator<Tuple2<K,V>>, U> f);
 
 }

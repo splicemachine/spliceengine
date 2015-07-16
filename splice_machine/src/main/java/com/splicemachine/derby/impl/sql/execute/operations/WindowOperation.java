@@ -138,7 +138,7 @@ public class WindowOperation extends SpliceBaseOperation {
 
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        OperationContext<SpliceOperation> operationContext = dsp.createOperationContext(this);
+        OperationContext<WindowOperation> operationContext = dsp.createOperationContext(this);
         return source.getDataSet()
                 .keyBy(new KeyerFunction(operationContext, windowContext.getPartitionColumns()))
                 .groupByKey()

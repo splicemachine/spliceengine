@@ -205,6 +205,11 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     }
 
     @Override
+    public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op, Iterator<Tuple2<K, V>>, U> f) {
+        return null;
+    }
+
+    @Override
     public <Op extends SpliceOperation, U> DataSet<U> flatmap(SpliceFlatMapFunction<Op, Tuple2<K,V>, U> function) {
         try {
             Iterable<U> iterable = new ArrayList<U>(0);
@@ -235,6 +240,14 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     @Override
     public <W> PairDataSet<K, Tuple2<Iterable<V>, Iterable<W>>> broadcastCogroup(PairDataSet<K, W> rightDataSet) {
         return cogroup(rightDataSet);
+    }
+
+    @Override
+    public PairDataSet<K, V> union(PairDataSet<K, V> dataSet) {
+        Multimap<K, V> newMap = ArrayListMultimap.<K, V>create(source);
+        newMap.putAll(((ControlPairDataSet)dataSet).source);
+
+        return new ControlPairDataSet(newMap);
     }
 
     /*

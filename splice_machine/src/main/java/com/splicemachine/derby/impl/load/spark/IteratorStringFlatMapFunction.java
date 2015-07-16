@@ -8,10 +8,12 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.load.*;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.impl.storage.RegionAwareScanner;
 import com.splicemachine.derby.stats.TaskStats;
+import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.job.TaskStatus;
@@ -41,7 +43,8 @@ import java.util.concurrent.ExecutionException;
 /**
  * Created by dgomezferro on 7/15/15.
  */
-public class IteratorStringFlatMapFunction implements Externalizable, FlatMapFunction<Iterator<Tuple2<String, String>>, StandardException> {
+public class IteratorStringFlatMapFunction extends
+        SpliceFlatMapFunction<SpliceOperation,Iterator<Tuple2<String,String>>,StandardException> implements Externalizable {
 
     private static final Logger LOG = Logger.getLogger(IteratorStringFlatMapFunction.class);
 
@@ -71,6 +74,9 @@ public class IteratorStringFlatMapFunction implements Externalizable, FlatMapFun
 
     @Override
     public Iterable<StandardException> call(Iterator<Tuple2<String, String>> iterator) throws Exception {
+        if (!iterator.hasNext()) {
+            return Collections.emptyList();
+        }
         taskId = Bytes.toBytes(new Random().nextLong());
         Tuple2<String, String> tuple = iterator.next();
         String path = tuple._1();
