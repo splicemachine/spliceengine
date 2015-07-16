@@ -140,14 +140,14 @@ public class MergeJoinOperation extends JoinOperation {
     @Override
     public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         DataSet<LocatedRow> left = leftResultSet.getDataSet();
-        OperationContext<SpliceOperation> operationContext = dsp.createOperationContext(this);
+        OperationContext<MergeJoinOperation> operationContext = dsp.createOperationContext(this);
         if (isOuterJoin)
-            return left.mapPartitions(new MergeOuterJoinFlatMapFunction<SpliceOperation>(operationContext));
+            return left.mapPartitions(new MergeOuterJoinFlatMapFunction(operationContext));
         else {
             if (notExistsRightSide)
-                return left.mapPartitions(new MergeAntiJoinFlatMapFunction<SpliceOperation>(operationContext));
+                return left.mapPartitions(new MergeAntiJoinFlatMapFunction(operationContext));
             else {
-                return left.mapPartitions(new MergeInnerJoinFlatMapFunction<SpliceOperation>(operationContext));
+                return left.mapPartitions(new MergeInnerJoinFlatMapFunction(operationContext));
 
                 /*
                 if (oneRowRightSide)

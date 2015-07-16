@@ -228,7 +228,7 @@ public class MultiProbeTableScanOperation extends TableScanOperation  {
                     .accessedKeyColumns(scanInformation.getAccessedPkColumns())
                     .keyDecodingMap(getKeyDecodingMap())
                     .rowDecodingMap(baseColumnMap);
-            dataSet = dataSet.union(dsp.getTableScanner(this, tsb, tableName));
+            dataSet = dataSet.union(dsp.<MultiProbeTableScanOperation, LocatedRow>getTableScanner(this, tsb, tableName));
         }
         return dataSet;
     }

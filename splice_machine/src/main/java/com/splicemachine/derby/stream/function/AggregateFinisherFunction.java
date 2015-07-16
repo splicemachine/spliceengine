@@ -2,6 +2,7 @@ package com.splicemachine.derby.stream.function;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.GenericAggregateOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.GroupedAggregateOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.framework.SpliceGenericAggregator;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -12,7 +13,7 @@ import java.io.ObjectOutput;
 /**
  * Created by jleach on 4/24/15.
  */
-public class AggregateFinisherFunction extends SpliceFunction<SpliceOperation, LocatedRow, LocatedRow> {
+public class AggregateFinisherFunction extends SpliceFunction<GroupedAggregateOperation, LocatedRow, LocatedRow> {
         protected SpliceGenericAggregator[] aggregates;
         protected boolean initialized;
         protected GenericAggregateOperation op;
@@ -20,7 +21,7 @@ public class AggregateFinisherFunction extends SpliceFunction<SpliceOperation, L
             super();
         }
 
-        public AggregateFinisherFunction(OperationContext<SpliceOperation> operationContext) {
+        public AggregateFinisherFunction(OperationContext<GroupedAggregateOperation> operationContext) {
             super(operationContext);
         }
         @Override

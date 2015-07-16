@@ -159,7 +159,7 @@ public class ExportOperation extends SpliceBaseOperation {
         DataSet<LocatedRow> dataset = source.getDataSet(dsp);
         OperationContext<ExportOperation> operationContext = dsp.createOperationContext(this);
         dataset.mapPartitions(new ExportFunction(operationContext)).writeToDisk(exportParams.getDirectory());
-        return dsp.createDataSet(Collections.emptyList());
+        return dsp.getEmpty();
     }
 
     private ExportExecRowWriter initializeExecRowWriter(OutputStream outputStream) throws IOException {
