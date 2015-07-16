@@ -7,6 +7,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerB
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.derby.stream.iterator.TableScannerIterator;
 import com.splicemachine.si.impl.HTransactorFactory;
 import com.splicemachine.si.impl.TransactionStorage;
@@ -16,6 +17,7 @@ import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.rollforward.NoopRollForward;
 import org.apache.hadoop.hbase.util.*;
 import org.apache.log4j.Logger;
+import org.sparkproject.guava.common.collect.ArrayListMultimap;
 
 import java.util.Collections;
 
@@ -54,6 +56,16 @@ public class ControlDataSetProcessor implements DataSetProcessor {
     @Override
     public void setJobGroup(String jobName, String jobDescription) {
 
+    }
+
+    @Override
+    public PairDataSet<String, String> readTextFile(String s) {
+        return null;
+    }
+
+    @Override
+    public <K, V> PairDataSet<K, V> getEmptyPair() {
+        return new ControlPairDataSet(ArrayListMultimap.create());
     }
 
     @Override

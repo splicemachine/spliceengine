@@ -279,7 +279,7 @@ public class NormalizeOperation extends SpliceBaseOperation {
 
 
 
-    public static final class NormalizeSparkFunction extends SpliceFunction<SpliceOperation, LocatedRow, LocatedRow> {
+    public static final class NormalizeSparkFunction extends SpliceFunction<NormalizeOperation, LocatedRow, LocatedRow> {
         private static final long serialVersionUID = 7780564699906451370L;
 
         public NormalizeSparkFunction() {
@@ -288,7 +288,7 @@ public class NormalizeOperation extends SpliceBaseOperation {
         @Override
         public LocatedRow call(LocatedRow sourceRow) throws Exception {
 
-            NormalizeOperation normalize = (NormalizeOperation) operationContext.getOperation();
+            NormalizeOperation normalize = operationContext.getOperation();
             normalize.source.setCurrentRow(sourceRow.getRow());
             ExecRow normalized = null;
             if (sourceRow != null) {
@@ -299,7 +299,7 @@ public class NormalizeOperation extends SpliceBaseOperation {
             return new LocatedRow(sourceRow.getRowLocation(), normalized.getClone());
         }
 
-        public NormalizeSparkFunction(OperationContext<SpliceOperation> operationContext) {
+        public NormalizeSparkFunction(OperationContext<NormalizeOperation> operationContext) {
             super(operationContext);
         }
 

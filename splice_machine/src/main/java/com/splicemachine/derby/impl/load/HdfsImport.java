@@ -9,9 +9,15 @@ import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.load.spark.IteratorStringFlatMapFunction;
 import com.splicemachine.derby.impl.load.spark.WholeTextInputFormat;
 import com.splicemachine.derby.impl.spark.SpliceSpark;
+import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
+import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.PairDataSet;
+import com.splicemachine.derby.stream.utils.StreamUtils;
 import org.apache.commons.lang.WordUtils;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileSystem;
@@ -570,64 +576,27 @@ public class HdfsImport {
 						String logVerb = (context.isCheckScan() ? "check" : "import");
 
 						try {
-                            JavaPairRDD<String, String> combinedRDD = null;
-                                for (Path p : file.getPaths()) {
-                                    JavaPairRDD<String, String> rdd = SpliceSpark.getContext().newAPIHadoopFile(
-                                            p.toString(), WholeTextInputFormat.class, String.class, String.class, SpliceConstants.config
-                                    );
-                                    if (combinedRDD == null) {
-                                        combinedRDD = rdd;
-                                    } else {
-                                        combinedRDD = rdd.union(combinedRDD);
-                                    }
-                                }
-//								LOG.info(String.format("%sing files %s", logVerb, file.getPaths()));
-//								ImportJob importJob = new FileImportJob(table,context,statementId,file.getPaths(),operationId,txn);
-//								long start = System.currentTimeMillis();
-//								JobFuture jobFuture = SpliceDriver.driver().getJobScheduler().submit(importJob);
-//								info = new ImportJobInfo(importJob.getJobId(),jobFuture,start, jobStatusLogger, context);
-//								long estImportTime = estimateImportTime();
-//								jobStatusLogger.log(String.format("Expected time for %s is %s.  Expected finish is %s.",
-//										logVerb, StringUtils.formatTime(estImportTime), new Date(System.currentTimeMillis() + estImportTime)));
-//								jobStatusLogger.log(String.format("%sing %d files...", WordUtils.capitalize(logVerb), jobFuture.getNumTasks()));
-//								jobStatusLogger.log(String.format("Task status update interval is %s.", StringUtils.formatTime(SpliceConstants.importTaskStatusLoggingInterval)));
-//								info.tasksRunning(jobFuture.getAllTaskIds());
-//								if(opInfo!=null)
-//										opInfo.addJob(info);
-//								jobFutures.add(Pair.newPair(jobFuture,info));
-//
-//								info.logStatusOfImportFiles(jobFuture.getNumTasks(), jobFuture.getRemainingTasks());
-//								try{
-//										jobFuture.completeAll(info);
-//								}catch(ExecutionException e){
-//										info.failJob();
-//										throw e;
-//								}
-//								JobStats jobStats = jobFuture.getJobStats();
-//								List<TaskStats> taskStats = jobStats.getTaskStats();
-//								for(TaskStats stats:taskStats){
-//										long totalRowsWritten = stats.getTotalRowsWritten();
-//										long totalRead = stats.getTotalRowsProcessed();
-//										numImported+= totalRowsWritten;
-//										numBadRecords+=(totalRead-totalRowsWritten);
-//								}
-//								jobStatusLogger.log(String.format(
-//										"%s finished with success. Total rows %sed%s: %,d. Total rows rejected: %,d. Total time for %s: %s.",
-//										WordUtils.capitalize(logVerb), logVerb, (context.isCheckScan() ? " OK" : ""), numImported, numBadRecords, logVerb, StringUtils.formatTimeDiff(info.getJobFinishMs(), info.getJobStartMs())));
+                            DataSetProcessor dsp = StreamUtils.getDataSetProcessor();
+                            PairDataSet<String, String> combinedDataset = dsp.getEmptyPair();
 
-                                List<StandardException> exceptions = combinedRDD.mapPartitions(new IteratorStringFlatMapFunction(context, txn)).collect();
-                                if (!exceptions.isEmpty()) {
-                                    throw exceptions.get(0);
-                                }
+                            for (Path p : file.getPaths()) {
+                                PairDataSet<String, String> dataSet = dsp.readTextFile(p.toString());
+                                combinedDataset = combinedDataset.union(dataSet);
+                            }
+                            List<StandardException> exceptions =
+                                    combinedDataset.mapPartitions(new IteratorStringFlatMapFunction(context, txn)).collect();
+                            if (!exceptions.isEmpty()) {
+                                throw exceptions.get(0);
+                            }
 
-                                ExecRow result = new ValueRow(3);
-								result.setRowArray(new DataValueDescriptor[]{
-												new SQLInteger(file.getPaths().size()),
-												new SQLInteger(0), // TODO
-												new SQLLongint(Math.max(0,numImported)),
-												new SQLLongint(numBadRecords)
-								});
-								return result;
+                            ExecRow result = new ValueRow(3);
+                            result.setRowArray(new DataValueDescriptor[]{
+                                            new SQLInteger(file.getPaths().size()),
+                                            new SQLInteger(0), // TODO
+                                            new SQLLongint(Math.max(0,numImported)),
+                                            new SQLLongint(numBadRecords)
+                            });
+                            return result;
 						} catch (IOException e) {
 								jobStatusLogger.log(String.format(
 										"%s has failed due to an I/O error: %s. All imported rows will be rolled back. Total rows imported: %,d. Total rows rejected: %,d. Total time for import: %s.",
