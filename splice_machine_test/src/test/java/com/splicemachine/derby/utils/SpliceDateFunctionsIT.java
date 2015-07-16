@@ -9,6 +9,7 @@ import java.sql.DatabaseMetaData;
 import java.sql.ResultSet;
 import java.sql.SQLSyntaxErrorException;
 import java.text.SimpleDateFormat;
+import java.util.Date;
 
 import org.junit.ClassRule;
 import org.junit.Ignore;
@@ -286,6 +287,27 @@ public class SpliceDateFunctionsIT {
                     "2012-06-30 |2012-06-30 |";
             assertEquals("\n" + sqlText + "\n", expected, TestUtils.FormattedResult.ResultFactory.toStringUnsorted(rs));
         }
+    }
+
+    //test for DB-3439
+    @Test
+    public void testLastDayWithArithmetic() throws Exception {
+        Date queryResult1 = methodWatcher.query("values last_day(date('2015-07-30') + 5)");
+        assertEquals("2015-08-31", new SimpleDateFormat("YYYY-MM-dd").format(queryResult1));
+    }
+
+    //test for DB-3439
+    @Test
+    public void testLastDayWithoutArithmetic() throws Exception {
+        Date queryResult1 = methodWatcher.query("values last_day(date('2015-07-30'))");
+        assertEquals("2015-07-31", new SimpleDateFormat("YYYY-MM-dd").format(queryResult1));
+    }
+
+    //test for DB-3439
+    @Test
+    public void testLastDayWithoutArithmeticLeapYear() throws Exception {
+        Date queryResult1 = methodWatcher.query("values last_day(date('2016-02-24') + 5)");
+        assertEquals("2016-02-29", new SimpleDateFormat("YYYY-MM-dd").format(queryResult1));
     }
    
     @Test
