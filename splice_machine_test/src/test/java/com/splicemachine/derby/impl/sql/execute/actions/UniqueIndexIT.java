@@ -29,10 +29,11 @@ public class UniqueIndexIT extends SpliceUnitTest {
 
     private static final String TABLE_A = "A", TABLE_B = "B", TABLE_C = "C", TABLE_D = "D", TABLE_E = "E",
             TABLE_F = "F", TABLE_G = "G", TABLE_H = "H", TABLE_I = "I", TABLE_J = "J", TABLE_K = "K",
-            TABLE_M = "M", TABLE_2 = "T2",
+            TABLE_M = "M", TABLE_2 = "T2", TABLE_3 = "Tab3",
 
     INDEX_A = "IDX_A1", INDEX_B = "IDX_B1", INDEX_C = "IDX_C1", INDEX_D = "IDX_D1", INDEX_E = "IDX_E1",
-            INDEX_F = "IDX_F1", INDEX_G = "IDX_G1", INDEX_K = "IDX_K1", INDEX_M = "IDX_M1", INDEX_2 = "IDX_2";
+            INDEX_F = "IDX_F1", INDEX_G = "IDX_G1", INDEX_K = "IDX_K1", INDEX_M = "IDX_M1", INDEX_2 = "IDX_2",
+        INDEX_3 = "IDX_3";
 
     @Override
     public String getSchemaName() {
@@ -475,7 +476,8 @@ public class UniqueIndexIT extends SpliceUnitTest {
         String name = "sfines";
         int value = 2;
         methodWatcher.getOrCreateConnection().setAutoCommit(false);
-        methodWatcher.getStatement().execute(format("insert into %s (name, val) values ('%s', %s)", TABLE_F, name, value));
+        methodWatcher.getStatement().execute(format("insert into %s (name, val) values ('%s', %s)", TABLE_F, name,
+                                                    value));
         methodWatcher.getStatement().execute(format("delete from %s", TABLE_F, name));
         methodWatcher.getStatement().execute(format("insert into %s (name, val) values ('%s', %s)", TABLE_F, name, value));
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s where name = '%s'", TABLE_F, name));
@@ -609,6 +611,27 @@ public class UniqueIndexIT extends SpliceUnitTest {
             results.add(String.format("id:%s,name:%s", id, name));
         }
         assertEquals("Incorrect number of rows returned!", 1, results.size());
+    }
+
+    @Test
+    public void testUpdateCompoundIndex() throws Exception {
+        // DB-2578: Update unique index causes 0 length row error
+        // not really a unique index test but this was broken with first pass to fix DB-2578
+        new MyWatcher(TABLE_3, CLASS_NAME, "(a varchar(5) primary key, b varchar(5), c varchar(5), d varchar(5))").create(null);
+        new SpliceIndexWatcher(TABLE_3, CLASS_NAME, INDEX_3, CLASS_NAME, "(a, b desc, c)", true).starting(null);
+        methodWatcher.getStatement().execute("insert into "+TABLE_3+" values('A','A','A','A'), ('B','B','B','B'), ('C','C','C','C')");
+
+        // update a previously null unique column to non-null value
+        methodWatcher.getStatement().execute("update "+TABLE_3+" set a='M',b='M',c='M' where d='C'");
+        // make sure we can see it via the index
+        ResultSet rs2 = methodWatcher.executeQuery("select * from "+TABLE_3+" --SPLICE-PROPERTIES index="+INDEX_3+" \n where a='M'");
+
+        String expected = "" +
+            "A | B | C | D |\n" +
+            "----------------\n" +
+            " M | M | M | C |";
+
+        assertEquals("verify using index", expected, TestUtils.FormattedResult.ResultFactory.toString(rs2));
     }
 
 }
