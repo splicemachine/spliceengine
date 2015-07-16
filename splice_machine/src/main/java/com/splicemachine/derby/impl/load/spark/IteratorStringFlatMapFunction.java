@@ -17,6 +17,7 @@ import com.splicemachine.hbase.KVPair;
 import com.splicemachine.job.TaskStatus;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.Timer;
+import com.splicemachine.si.api.TransactionOperations;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnLifecycleManager;
 import com.splicemachine.si.api.TxnView;
@@ -32,18 +33,15 @@ import org.apache.spark.api.java.function.VoidFunction;
 import org.supercsv.prefs.CsvPreference;
 import scala.Tuple2;
 
-import java.io.IOException;
-import java.io.Reader;
-import java.io.StringReader;
+import java.io.*;
 import java.net.URI;
-import java.util.Iterator;
-import java.util.Random;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 
 /**
  * Created by dgomezferro on 7/15/15.
  */
-public class IteratorStringFlatMapFunction implements VoidFunction<Iterator<Tuple2<String, String>>> {
+public class IteratorStringFlatMapFunction implements Externalizable, FlatMapFunction<Iterator<Tuple2<String, String>>, StandardException> {
 
     private static final Logger LOG = Logger.getLogger(IteratorStringFlatMapFunction.class);
 
@@ -59,18 +57,20 @@ public class IteratorStringFlatMapFunction implements VoidFunction<Iterator<Tupl
     private long rowsRead = 0l;
     private long previouslyLoggedRowsRead = 0l;  // The number of rows read that was last logged.
     private ImportErrorReporter errorReporter;
+    private TxnView parentTxn;
     private Txn txn;
 
     public IteratorStringFlatMapFunction(){
 
     }
 
-    public IteratorStringFlatMapFunction(ImportContext importContext) {
+    public IteratorStringFlatMapFunction(ImportContext importContext, Txn txn) {
         this.importContext = importContext;
+        this.parentTxn = txn;
     }
 
     @Override
-    public void call(Iterator<Tuple2<String, String>> iterator) throws Exception {
+    public Iterable<StandardException> call(Iterator<Tuple2<String, String>> iterator) throws Exception {
         taskId = Bytes.toBytes(new Random().nextLong());
         Tuple2<String, String> tuple = iterator.next();
         String path = tuple._1();
@@ -120,6 +120,8 @@ public class IteratorStringFlatMapFunction implements VoidFunction<Iterator<Tupl
                     }while(shouldContinue);
 
                     previouslyLoggedRowsRead = rowsRead;
+                }catch(StandardException e){
+                    return Arrays.asList(e);
                 } catch (Exception e) {
                     throw new ExecutionException(e);
                 } finally{
@@ -146,8 +148,9 @@ public class IteratorStringFlatMapFunction implements VoidFunction<Iterator<Tupl
                 throw new ExecutionException(e);
             }
         } catch (StandardException e) {
-            throw new ExecutionException(e);
+            return Arrays.asList(e);
         }
+        return Collections.emptyList();
     }
 
     public static ExecRow getExecRow(ImportContext context) throws StandardException {
@@ -224,7 +227,7 @@ public class IteratorStringFlatMapFunction implements VoidFunction<Iterator<Tupl
 //        }
 
         try {
-            txn = TransactionLifecycle.getLifecycleManager().beginTransaction(Bytes.toBytes(importContext.getTableName()));
+            txn = beginChildTransaction(parentTxn, TransactionLifecycle.getLifecycleManager());
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -267,5 +270,17 @@ public class IteratorStringFlatMapFunction implements VoidFunction<Iterator<Tupl
                         importContext.getColumnDelimiter().charAt(0),
                         "\n",
                         SpliceConstants.importMaxQuotedColumnLines).useNullForEmptyColumns(false).build());
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        out.writeObject(importContext);
+        TransactionOperations.getOperationFactory().writeTxn(parentTxn, out);
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        importContext = (ImportContext) in.readObject();
+        parentTxn = TransactionOperations.getOperationFactory().readTxn(in);
     }
 }

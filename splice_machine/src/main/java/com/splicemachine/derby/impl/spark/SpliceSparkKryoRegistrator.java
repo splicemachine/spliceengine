@@ -619,6 +619,35 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator {
         instance.register(WindowFlatMapFunction.class,EXTERNALIZABLE_SERIALIZER);
         instance.register(ScrollInsensitiveOperation.class, EXTERNALIZABLE_SERIALIZER);
         instance.register(IndexRowReaderBuilder.class, EXTERNALIZABLE_SERIALIZER);
+        instance.register(StandardException.class, new Serializer<StandardException>() {
+            @Override
+            public void write(Kryo kryo, Output output, StandardException e) {
+                Object[] arguments = e.getArguments();
+                if (arguments != null) {
+                    output.writeInt(arguments.length);
+                } else {
+                    output.writeInt(0);
+                }
+                for (Object arg : arguments) {
+                    kryo.writeClassAndObject(output, arg);
+                }
+                output.writeString(e.getMessageId());
+            }
+
+            @Override
+            public StandardException read(Kryo kryo, Input input, Class aClass) {
+                int args = input.readInt();
+                Object[] arguments = null;
+                if (args > 0) {
+                    arguments = new Object[args];
+                    for (int i = 0; i < args; ++i) {
+                        arguments[i] = kryo.readClassAndObject(input);
+                    }
+                }
+                String messageId = input.readString();
+                return StandardException.newException(messageId, arguments);
+            }
+        });
 
 
 //        instance.register(Tuple2.class, new Serializer<Tuple2>() {
