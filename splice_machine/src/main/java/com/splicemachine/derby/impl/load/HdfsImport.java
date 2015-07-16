@@ -615,7 +615,10 @@ public class HdfsImport {
 //										"%s finished with success. Total rows %sed%s: %,d. Total rows rejected: %,d. Total time for %s: %s.",
 //										WordUtils.capitalize(logVerb), logVerb, (context.isCheckScan() ? " OK" : ""), numImported, numBadRecords, logVerb, StringUtils.formatTimeDiff(info.getJobFinishMs(), info.getJobStartMs())));
 
-                                combinedRDD.foreachPartition(new IteratorStringFlatMapFunction(context));
+                                List<StandardException> exceptions = combinedRDD.mapPartitions(new IteratorStringFlatMapFunction(context, txn)).collect();
+                                if (!exceptions.isEmpty()) {
+                                    throw exceptions.get(0);
+                                }
 
                                 ExecRow result = new ValueRow(3);
 								result.setRowArray(new DataValueDescriptor[]{
