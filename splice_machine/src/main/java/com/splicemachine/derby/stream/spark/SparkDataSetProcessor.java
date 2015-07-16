@@ -24,14 +24,14 @@ import java.util.Collections;
 /**
  * Created by jleach on 4/13/15.
  */
-public class SparkDataSetProcessor <Op extends SpliceOperation,K,V> implements DataSetProcessor<Op,K,V>, Serializable {
+public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
 
     public SparkDataSetProcessor() {
 
     }
 
     @Override
-    public DataSet< V> getTableScanner(final Op spliceOperation, TableScannerBuilder siTableBuilder, String tableName) throws StandardException {
+    public <Op extends SpliceOperation, V> DataSet<V> getTableScanner(final Op spliceOperation, TableScannerBuilder siTableBuilder, String tableName) throws StandardException {
         JavaSparkContext ctx = SpliceSpark.getContext();
         Configuration conf = new Configuration(SIConstants.config);
         conf.set(com.splicemachine.mrio.MRConstants.SPLICE_INPUT_CONGLOMERATE, tableName);
@@ -49,17 +49,17 @@ public class SparkDataSetProcessor <Op extends SpliceOperation,K,V> implements D
     }
 
     @Override
-    public DataSet<V> getEmpty() {
+    public <V> DataSet<V> getEmpty() {
         return new SparkDataSet(SpliceSpark.getContext().parallelize(Collections.<V>emptyList(),1));
     }
 
     @Override
-    public DataSet<V>  singleRowDataSet(V value) {
+    public <V> DataSet<V>  singleRowDataSet(V value) {
         return new SparkDataSet(SpliceSpark.getContext().parallelize(Collections.<V>singletonList(value),1));
     }
 
     @Override
-    public OperationContext<Op> createOperationContext(Op spliceOperation) {
+    public <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Op spliceOperation) {
         return new SparkOperationContext<Op>(spliceOperation);
     }
 
@@ -69,7 +69,7 @@ public class SparkDataSetProcessor <Op extends SpliceOperation,K,V> implements D
     }
 
     @Override
-    public DataSet< V> createDataSet(Iterable<V> value) {
+    public <V> DataSet< V> createDataSet(Iterable<V> value) {
         return new SparkDataSet(SpliceSpark.getContext().parallelize(Lists.newArrayList(value)));
     }
 
