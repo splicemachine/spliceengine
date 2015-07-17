@@ -22,6 +22,7 @@ import org.apache.spark.api.java.JavaSparkContext;
 import scala.Tuple2;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.Serializable;
 import java.util.Arrays;
 import java.util.Collections;
@@ -74,9 +75,9 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
     }
 
     @Override
-    public PairDataSet<String, String> readTextFile(String path) {
+    public PairDataSet<String, InputStream> readTextFile(String path) {
         return new SparkPairDataSet<>(SpliceSpark.getContext().newAPIHadoopFile(
-                path, WholeTextInputFormat.class, String.class, String.class, SpliceConstants.config
+                path, WholeTextInputFormat.class, String.class, InputStream.class, SpliceConstants.config
         ));
     }
 

@@ -4,6 +4,8 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 
+import java.io.InputStream;
+
 /**
  * Created by jleach on 4/13/15.
  */
@@ -17,6 +19,6 @@ public interface DataSetProcessor {
 
     <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Op spliceOperation);
     void setJobGroup(String jobName, String jobDescription);
-    PairDataSet<String,String> readTextFile(String path);
+    PairDataSet<String,InputStream> readTextFile(String path);
     <K,V> PairDataSet<K, V> getEmptyPair();
 }

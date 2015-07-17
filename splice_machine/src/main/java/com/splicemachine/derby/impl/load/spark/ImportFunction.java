@@ -40,7 +40,7 @@ import java.util.concurrent.ExecutionException;
  * Created by dgomezferro on 7/15/15.
  */
 public class ImportFunction extends
-        SpliceFlatMapFunction<SpliceOperation,Iterator<Tuple2<String,String>>,StandardException> implements Externalizable {
+        SpliceFlatMapFunction<SpliceOperation,Iterator<Tuple2<String,InputStream>>,StandardException> implements Externalizable {
 
     private static final Logger LOG = Logger.getLogger(ImportFunction.class);
 
@@ -69,16 +69,16 @@ public class ImportFunction extends
     }
 
     @Override
-    public Iterable<StandardException> call(Iterator<Tuple2<String, String>> iterator) throws Exception {
+    public Iterable<StandardException> call(Iterator<Tuple2<String, InputStream>> iterator) throws Exception {
         if (!iterator.hasNext()) {
             return Collections.emptyList();
         }
         while(iterator.hasNext()) {
             taskId = Bytes.toBytes(new Random().nextLong());
-            Tuple2<String, String> tuple = iterator.next();
+            Tuple2<String, InputStream> tuple = iterator.next();
             String path = tuple._1();
-            String text = tuple._2();
-            reader = getCsvReader(new StringReader(text), importContext);
+            InputStream inputStream = tuple._2();
+            reader = getCsvReader(new InputStreamReader(inputStream), importContext);
             fileSystem = FileSystem.get(URI.create(path), SpliceConstants.config);
             try {
                 ExecRow row = getExecRow(importContext);
@@ -141,6 +141,7 @@ public class ImportFunction extends
                             //close error reporter AFTER importer finishes
                             Closeables.closeQuietly(errorReporter);
                             Closeables.closeQuietly(errorLogger);
+                            Closeables.closeQuietly(inputStream);
                         }
                         TransactionLifecycle.getLifecycleManager().commit(txn.getTxnId());
                         stopTime = System.currentTimeMillis();
