@@ -1,17 +1,19 @@
 package com.splicemachine.derby.impl.load;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Types;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 
+import com.splicemachine.derby.impl.load.spark.ImportFunction;
+import com.splicemachine.derby.stream.iapi.DataSetProcessor;
+import com.splicemachine.derby.stream.iapi.PairDataSet;
+import com.splicemachine.derby.stream.utils.StreamUtils;
 import org.apache.commons.lang.WordUtils;
 import org.apache.hadoop.fs.ContentSummary;
 import org.apache.hadoop.fs.FileSystem;
@@ -22,7 +24,6 @@ import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
-import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Logger;
 
 import com.google.common.collect.Lists;
@@ -59,12 +60,10 @@ import com.splicemachine.derby.impl.store.access.SpliceTransaction;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.management.OperationInfo;
 import com.splicemachine.derby.management.StatementInfo;
-import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobStatusLogger;
-import com.splicemachine.job.JobStats;
 import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.Txn;
@@ -561,7 +560,7 @@ public class HdfsImport {
 								break;
 						}
 
-						ImportJobInfo info = null;
+//						ImportJobInfo info = null;
 						long numImported = 0l;
 						long numBadRecords = 0l;
 						/*
@@ -571,63 +570,32 @@ public class HdfsImport {
 						String logVerb = (context.isCheckScan() ? "check" : "import");
 
 						try {
-								LOG.info(String.format("%sing files %s", logVerb, file.getPaths()));
-								ImportJob importJob = new FileImportJob(table,context,statementId,file.getPaths(),operationId,txn);
-								long start = System.currentTimeMillis();
-								JobFuture jobFuture = SpliceDriver.driver().getJobScheduler().submit(importJob);
-								info = new ImportJobInfo(importJob.getJobId(),jobFuture,start, jobStatusLogger, context);
-								long estImportTime = estimateImportTime();
-								jobStatusLogger.log(String.format("Expected time for %s is %s.  Expected finish is %s.",
-										logVerb, StringUtils.formatTime(estImportTime), new Date(System.currentTimeMillis() + estImportTime)));
-								jobStatusLogger.log(String.format("%sing %d files...", WordUtils.capitalize(logVerb), jobFuture.getNumTasks()));
-								jobStatusLogger.log(String.format("Task status update interval is %s.", StringUtils.formatTime(SpliceConstants.importTaskStatusLoggingInterval)));
-								info.tasksRunning(jobFuture.getAllTaskIds());
-								if(opInfo!=null)
-										opInfo.addJob(info);
-								jobFutures.add(Pair.newPair(jobFuture,info));
+                            DataSetProcessor dsp = StreamUtils.getDataSetProcessor();
+                            PairDataSet<String, InputStream> combinedDataset = dsp.getEmptyPair();
 
-								info.logStatusOfImportFiles(jobFuture.getNumTasks(), jobFuture.getRemainingTasks());
-								try{
-										jobFuture.completeAll(info);
-								}catch(ExecutionException e){
-										info.failJob();
-										throw e;
-								}
-								JobStats jobStats = jobFuture.getJobStats();
-								List<TaskStats> taskStats = jobStats.getTaskStats();
-								for(TaskStats stats:taskStats){
-										long totalRowsWritten = stats.getTotalRowsWritten();
-										long totalRead = stats.getTotalRowsProcessed();
-										numImported+= totalRowsWritten;
-										numBadRecords+=(totalRead-totalRowsWritten);
-								}
-								jobStatusLogger.log(String.format(
-										"%s finished with success. Total rows %sed%s: %,d. Total rows rejected: %,d. Total time for %s: %s.",
-										WordUtils.capitalize(logVerb), logVerb, (context.isCheckScan() ? " OK" : ""), numImported, numBadRecords, logVerb, StringUtils.formatTimeDiff(info.getJobFinishMs(), info.getJobStartMs())));
-								ExecRow result = new ValueRow(3);
-								result.setRowArray(new DataValueDescriptor[]{
-												new SQLInteger(file.getPaths().size()),
-												new SQLInteger(jobFuture.getJobStats().getNumTasks()),
-												new SQLLongint(Math.max(0,numImported)),
-												new SQLLongint(numBadRecords)
-								});
-								return result;
-						} catch (InterruptedException e) {
-								jobStatusLogger.log(String.format(
-										"%s has been interrupted. All imported rows will be rolled back. Total rows imported: %,d. Total rows rejected: %,d. Total time for import: %s.",
-										WordUtils.capitalize(logVerb), numImported, numBadRecords, (info == null ? "Unknown" : StringUtils.formatTimeDiff(info.getJobFinishMs(), info.getJobStartMs()))));
-								throw Exceptions.parseException(e);
-						} catch (ExecutionException e) {
-								Throwable cause = e.getCause();
-								jobStatusLogger.log(String.format(
-										"%s has failed due to an execution error: %s. All imported rows will be rolled back. Total rows imported: %,d. Total rows rejected: %,d. Total time for import: %s.",
-										WordUtils.capitalize(logVerb), (cause == null ? "Unknown" : cause.getLocalizedMessage()), numImported, numBadRecords, (info == null ? "Unknown" : StringUtils.formatTimeDiff(info.getJobFinishMs(), info.getJobStartMs()))));
-								throw Exceptions.parseException(cause);
-						} // still need to cancel all other jobs ? // JL
-						catch (IOException e) {
+                            for (Path p : file.getPaths()) {
+                                PairDataSet<String, InputStream> dataSet = dsp.readTextFile(p.toString());
+                                combinedDataset = combinedDataset.union(dataSet);
+                            }
+                            List<StandardException> exceptions =
+                                    combinedDataset.mapPartitions(new ImportFunction(context, txn)).collect();
+                            if (!exceptions.isEmpty()) {
+                                throw exceptions.get(0);
+                            }
+
+                            ExecRow result = new ValueRow(3);
+                            result.setRowArray(new DataValueDescriptor[]{
+                                            new SQLInteger(file.getPaths().size()),
+                                            new SQLInteger(0), // TODO
+                                            new SQLLongint(Math.max(0,numImported)),
+                                            new SQLLongint(numBadRecords)
+                            });
+                            return result;
+						} catch (IOException e) {
 								jobStatusLogger.log(String.format(
 										"%s has failed due to an I/O error: %s. All imported rows will be rolled back. Total rows imported: %,d. Total rows rejected: %,d. Total time for import: %s.",
-										WordUtils.capitalize(logVerb), (e == null ? "Unknown" : e.getLocalizedMessage()), numImported, numBadRecords, (info == null ? "Unknown" : StringUtils.formatTimeDiff(info.getJobFinishMs(), info.getJobStartMs()))));
+										WordUtils.capitalize(logVerb), (e == null ? "Unknown" : e.getLocalizedMessage()),
+                                        numImported, numBadRecords,  "Unknown"));
 								throw Exceptions.parseException(e);
 						} finally{
 								Closeables.closeQuietly(table);
@@ -638,7 +606,7 @@ public class HdfsImport {
 												LOG.error("Exception cleaning up import future",e);
 										}
 								}
-								info.cleanup();
+//								info.cleanup();
 								jobStatusLogger.closeLogFile();
 						}
 				} catch (IOException e) {
@@ -861,6 +829,6 @@ public class HdfsImport {
 						throw PublicAPI.wrapStandardException(e);
 				}
 		}
-		
+
 
 }

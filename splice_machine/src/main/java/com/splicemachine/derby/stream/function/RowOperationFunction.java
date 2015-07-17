@@ -8,19 +8,19 @@ import com.splicemachine.derby.stream.iapi.OperationContext;
 /**
  * Created by jleach on 5/19/15.
  */
-public class RowOperationFunction extends SpliceFunction<SpliceOperation,LocatedRow,LocatedRow> {
+public class RowOperationFunction extends SpliceFunction<RowOperation,LocatedRow,LocatedRow> {
 
     public RowOperationFunction() {
         super();
     }
 
-    public RowOperationFunction(OperationContext<SpliceOperation> operationContext) {
+    public RowOperationFunction(OperationContext<RowOperation> operationContext) {
         super(operationContext);
     }
 
     @Override
     public LocatedRow call(LocatedRow o) throws Exception {
-        RowOperation rowOp = (RowOperation) operationContext.getOperation();
+        RowOperation rowOp = operationContext.getOperation();
         return new LocatedRow(rowOp.getRow());
     }
 

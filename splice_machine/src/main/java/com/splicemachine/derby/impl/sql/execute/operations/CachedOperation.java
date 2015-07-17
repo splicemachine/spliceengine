@@ -98,13 +98,13 @@ public class CachedOperation extends SpliceBaseOperation {
         return dsp.createDataSet(rows).map(new CacheFunction(dsp.createOperationContext(this)));
     }
 
-    public static class CacheFunction extends SpliceFunction<SpliceOperation, ExecRow, LocatedRow> {
+    public static class CacheFunction extends SpliceFunction<CachedOperation, ExecRow, LocatedRow> {
 
         public CacheFunction() {
 
         }
 
-        public CacheFunction(OperationContext<SpliceOperation> operationContext) {
+        public CacheFunction(OperationContext<CachedOperation> operationContext) {
             super(operationContext);
         }
 

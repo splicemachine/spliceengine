@@ -18,7 +18,7 @@ import java.util.Iterator;
 /**
  * Created by jleach on 6/9/15.
  */
-public class MergeAntiJoinFlatMapFunction<Op extends SpliceOperation> extends SpliceFlatMapFunction<Op,Iterator<LocatedRow>,LocatedRow> {
+public class MergeAntiJoinFlatMapFunction extends SpliceFlatMapFunction<MergeJoinOperation,Iterator<LocatedRow>,LocatedRow> {
     boolean initialized;
     protected MergeJoinOperation mergeJoinOperation;
 
@@ -26,7 +26,7 @@ public class MergeAntiJoinFlatMapFunction<Op extends SpliceOperation> extends Sp
         super();
     }
 
-    public MergeAntiJoinFlatMapFunction(OperationContext<Op> operationContext) {
+    public MergeAntiJoinFlatMapFunction(OperationContext<MergeJoinOperation> operationContext) {
         super(operationContext);
     }
 
@@ -44,7 +44,7 @@ public class MergeAntiJoinFlatMapFunction<Op extends SpliceOperation> extends Sp
     public Iterable<LocatedRow> call(Iterator<LocatedRow> locatedRows) throws Exception {
         PeekingIterator<LocatedRow> leftPeekingIterator = Iterators.peekingIterator(locatedRows);
         if (!initialized) {
-            mergeJoinOperation = (MergeJoinOperation) getOperation();
+            mergeJoinOperation = getOperation();
             initialized = true;
             if (!leftPeekingIterator.hasNext())
                 return Collections.EMPTY_LIST;
