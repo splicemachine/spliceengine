@@ -14,13 +14,8 @@ import org.apache.log4j.Logger;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
 import com.splicemachine.derby.impl.sql.execute.index.IndexTransformer;
-import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.derby.utils.SpliceUtils;
-import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.CallBuffer;
 import com.splicemachine.pipeline.api.WriteContext;
@@ -42,17 +37,7 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
     protected CallBuffer<KVPair> indexBuffer;
     public IndexTransformer transformer;
     private EntryDecoder newPutDecoder;
-    private EntryDecoder oldDataDecoder;
     private final int expectedWrites;
-    private final BitSet nonUniqueIndexColumn;
-    private int[] columnOrdering;
-    private int[] formatIds;
-    private BitSet pkColumns;
-    private BitSet pkIndexColumns;
-    private KeyData[] pkIndex;
-    private DataValueDescriptor[] kdvds;
-    private MultiFieldDecoder keyDecoder;
-    private int[] reverseColumnOrdering;
 
     public IndexUpsertWriteHandler(BitSet indexedColumns,
                                    int[] mainColToIndexPos,
@@ -69,18 +54,6 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
             SpliceLogUtils.debug(LOG, "instance");
 
         this.expectedWrites = expectedWrites;
-        nonUniqueIndexColumn = (BitSet) translatedIndexColumns.clone();
-        nonUniqueIndexColumn.set(translatedIndexColumns.length());
-        pkColumns = new BitSet();
-        this.formatIds = formatIds;
-        this.columnOrdering = columnOrdering;
-        if (columnOrdering != null) {
-            for (int col : columnOrdering) {
-                pkColumns.set(col);
-            }
-        }
-        pkIndexColumns = (BitSet) pkColumns.clone();
-        pkIndexColumns.and(indexedColumns);
 
         boolean[] destKeySortOrder = new boolean[formatIds.length];
         Arrays.fill(destKeySortOrder, true);
@@ -145,46 +118,6 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
         }
     }
 
-    private MultiFieldDecoder createKeyDecoder() {
-        if (keyDecoder == null)
-            keyDecoder = MultiFieldDecoder.create();
-        return keyDecoder;
-    }
-
-    private void buildKeyMap(KVPair mutation) throws StandardException {
-
-        // if index key column set and primary key column set do not intersect,
-        // no need to build a key map
-        pkIndexColumns = (BitSet) pkColumns.clone();
-        pkIndexColumns.and(indexedColumns);
-
-        if (pkIndexColumns.cardinality() > 0) {
-            int len = columnOrdering.length;
-            createKeyDecoder();
-            if (kdvds == null) {
-                kdvds = new DataValueDescriptor[len];
-                for (int i = 0; i < len; ++i) {
-                    kdvds[i] = LazyDataValueFactory.getLazyNull(formatIds[columnOrdering[i]]);
-                }
-            }
-            if (pkIndex == null)
-                pkIndex = new KeyData[len];
-            keyDecoder.set(mutation.getRowKey());
-            for (int i = 0; i < len; ++i) {
-                int offset = keyDecoder.offset();
-                DerbyBytesUtil.skip(keyDecoder, kdvds[i]);
-                int size = keyDecoder.offset() - 1 - offset;
-                pkIndex[i] = new KeyData(offset, size);
-            }
-        }
-        if (columnOrdering != null && columnOrdering.length > 0) {
-            reverseColumnOrdering = new int[formatIds.length];
-            for (int i = 0; i < columnOrdering.length; ++i) {
-                reverseColumnOrdering[columnOrdering[i]] = i;
-            }
-        }
-    }
-
     /**
      * @return TRUE if we update the index or otherwise determine that no further mutation of the index is necessary.
      * If this returns FALSE then we are indicating that the original mutation should be transformed and written to the
@@ -230,39 +163,26 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
          *
          * 1. Execute a get with all the indexed columns that is currently present (before the update)
          * 2. Create a KVPair reflecting the old get
-         * 3. Create a KVPair reflecting the updated get
-         * 4. Delete the old index row
+         * 3. Delete the old index row
+         * 4. Create a KVPair reflecting the updated get
          * 5. Insert the new index row
          */
 
-        //delete the old record
         try {
-            Get get = SpliceUtils.createGet(ctx.getTxn(), mutation.getRowKey());
-            EntryPredicateFilter predicateFilter = new EntryPredicateFilter(indexedColumns, new ObjectArrayList<Predicate>(),true);
-            get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
-            Result result = ctx.getRegion().get(get);
-            if(result==null||result.isEmpty()){
+            //delete the old record
+            KVPair indexDelete = transformer.createIndexDelete(mutation, ctx, indexedColumns);
+            if (indexDelete == null) {
                 // we can't find the old row, may have been deleted already, but we'll have to update the index anyway
+                // see calling method
                 return false;
             }
-
-            KeyValue resultValue = null;
-            for(KeyValue value:result.raw()){
-                 if(CellUtil.matchingFamily(value, SpliceConstants.DEFAULT_FAMILY_BYTES)
-                    && CellUtil.matchingQualifier(value,SpliceConstants.PACKED_COLUMN_BYTES)){
-                    resultValue = value;
-                    break;
-                }
-            }
-            KVPair toTransform = new KVPair(get.getRow(),resultValue.getValue(), KVPair.Type.DELETE);
-
-            KVPair indexDelete = transformer.translate(toTransform);
             if (keepState)
                 this.indexToMainMutationMap.put(indexDelete, mutation);
+
             doDelete(ctx, indexDelete);
 
             //create/add a new record
-            toTransform = new KVPair(mutation.getRowKey(),mutation.getValue(), KVPair.Type.INSERT);
+            KVPair toTransform = new KVPair(mutation.getRowKey(),mutation.getValue(), KVPair.Type.INSERT);
             KVPair newIndex = transformer.translate(toTransform);
             if (keepState)
                 indexToMainMutationMap.put(newIndex, mutation);
@@ -290,24 +210,6 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
     @Override
     public void next(List<KVPair> mutations, WriteContext ctx) {
         throw new RuntimeException("Not Supported");
-    }
-
-    private static class KeyData {
-        private int offset;
-        private int size;
-
-        public KeyData(int offset, int size) {
-            this.offset = offset;
-            this.size = size;
-        }
-
-        public int getOffset() {
-            return offset;
-        }
-
-        public int getSize() {
-            return size;
-        }
     }
 
     @Override

@@ -1,13 +1,22 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
 import com.carrotsearch.hppc.BitSet;
+import com.carrotsearch.hppc.ObjectArrayList;
+import org.apache.hadoop.hbase.CellUtil;
+import org.apache.hadoop.hbase.KeyValue;
+import org.apache.hadoop.hbase.client.Get;
+import org.apache.hadoop.hbase.client.Result;
+
 import com.splicemachine.SpliceKryoRegistry;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.derby.utils.SpliceUtils;
 import com.splicemachine.derby.utils.marshall.dvd.TypeProvider;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.KVPair;
+import com.splicemachine.pipeline.api.WriteContext;
 import com.splicemachine.storage.*;
 import com.splicemachine.storage.index.BitIndex;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -83,6 +92,35 @@ public class IndexTransformer {
         this.indexKeyEncodingMap = indexKeyEncodingMap;
         this.indexKeySortOrder = indexKeySortOrder;
         this.typeProvider = VersionedSerializers.typesForVersion(tableVersion);
+    }
+
+    public KVPair createIndexDelete(KVPair mutation, WriteContext ctx, BitSet indexedColumns) throws IOException, StandardException {
+        // do a Get() on all the indexed columns of the main table
+        Get get = SpliceUtils.createGet(ctx.getTxn(), mutation.getRowKey());
+        EntryPredicateFilter predicateFilter = new EntryPredicateFilter(indexedColumns, new ObjectArrayList<Predicate>(),true);
+        get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
+        Result result = ctx.getRegion().get(get);
+        if(result==null||result.isEmpty()){
+            // we can't find the old row, may have been deleted already
+            return null;
+        }
+
+        KeyValue resultValue = null;
+        for(KeyValue value:result.raw()){
+            if(CellUtil.matchingFamily(value, SpliceConstants.DEFAULT_FAMILY_BYTES)
+                && CellUtil.matchingQualifier(value,SpliceConstants.PACKED_COLUMN_BYTES)){
+                resultValue = value;
+                break;
+            }
+        }
+        if(resultValue==null){
+            // we can't find the old row, may have been deleted already
+            return null;
+        }
+
+        // transform the results into an index row (as if we were inserting it) but create a delete for it
+        KVPair toTransform = new KVPair(get.getRow(),resultValue.getValue(), KVPair.Type.DELETE);
+        return translate(toTransform);
     }
 
     public KVPair translate(KVPair mutation) throws IOException, StandardException {
