@@ -1,8 +1,10 @@
 package com.splicemachine.derby.stream.control;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.load.spark.WholeTextInputFormat;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
@@ -15,11 +17,20 @@ import com.splicemachine.si.impl.TxnDataStore;
 import com.splicemachine.si.impl.TxnRegion;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.rollforward.NoopRollForward;
+import org.apache.commons.io.IOUtils;
+import org.apache.hadoop.fs.FSDataInputStream;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.util.*;
 import org.apache.log4j.Logger;
 import org.sparkproject.guava.common.collect.ArrayListMultimap;
 
+import java.io.BufferedInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.Collections;
+import java.util.zip.GZIPInputStream;
+import java.util.zip.ZipException;
 
 /**
  * Created by jleach on 4/13/15.
@@ -49,6 +60,13 @@ public class ControlDataSetProcessor implements DataSetProcessor {
     }
 
     @Override
+    public <K,V> PairDataSet<K, V> singleRowPairDataSet(K key, V value) {
+        ArrayListMultimap<K,V> map = ArrayListMultimap.create();
+        map.put(key, value);
+        return new ControlPairDataSet<>(map);
+    }
+
+    @Override
     public <Op extends SpliceOperation> OperationContext createOperationContext(Op spliceOperation) {
         return new ControlOperationContext(spliceOperation);
     }
@@ -60,7 +78,34 @@ public class ControlDataSetProcessor implements DataSetProcessor {
 
     @Override
     public PairDataSet<String, String> readTextFile(String s) {
-        return null;
+        Path path = new Path(s);
+        InputStream rawStream = null;
+        GZIPInputStream unzippedStream;
+        try {
+            FileSystem fs = FileSystem.get(SpliceConstants.config);
+            rawStream = new BufferedInputStream(fs.open(path));
+            rawStream.mark(100);
+            String theFile;
+            try {
+                unzippedStream = new GZIPInputStream(rawStream);
+                theFile = IOUtils.toString(unzippedStream);
+            } catch (ZipException e) {
+                // not gzipped?
+                rawStream.reset();
+                theFile = IOUtils.toString(rawStream);
+            }
+            return singleRowPairDataSet(s, theFile);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        } finally {
+            if (rawStream != null) {
+                try {
+                    rawStream.close();
+                } catch (IOException e) {
+                    // ignore
+                }
+            }
+        }
     }
 
     @Override

@@ -23,6 +23,7 @@ import scala.Tuple2;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.Collections;
 
 /**
@@ -87,6 +88,11 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
     @Override
     public <V> DataSet< V> createDataSet(Iterable<V> value) {
         return new SparkDataSet(SpliceSpark.getContext().parallelize(Lists.newArrayList(value)));
+    }
+
+    @Override
+    public <K, V> PairDataSet<K, V> singleRowPairDataSet(K key, V value) {
+        return new SparkPairDataSet(SpliceSpark.getContext().parallelizePairs(Arrays.<Tuple2<K,V>>asList(new Tuple2(key, value)), 1));
     }
 
 }

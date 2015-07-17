@@ -12,6 +12,9 @@ public interface DataSetProcessor {
     <V> DataSet<V> getEmpty();
     <V> DataSet<V> singleRowDataSet(V value);
     <V> DataSet<V> createDataSet(Iterable<V> value);
+
+    <K,V> PairDataSet<K, V> singleRowPairDataSet(K key, V value);
+
     <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Op spliceOperation);
     void setJobGroup(String jobName, String jobDescription);
     PairDataSet<String,String> readTextFile(String path);
