@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.load;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -570,10 +571,10 @@ public class HdfsImport {
 
 						try {
                             DataSetProcessor dsp = StreamUtils.getDataSetProcessor();
-                            PairDataSet<String, String> combinedDataset = dsp.getEmptyPair();
+                            PairDataSet<String, InputStream> combinedDataset = dsp.getEmptyPair();
 
                             for (Path p : file.getPaths()) {
-                                PairDataSet<String, String> dataSet = dsp.readTextFile(p.toString());
+                                PairDataSet<String, InputStream> dataSet = dsp.readTextFile(p.toString());
                                 combinedDataset = combinedDataset.union(dataSet);
                             }
                             List<StandardException> exceptions =

@@ -22,6 +22,8 @@ import org.apache.hadoop.fs.FSDataInputStream;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.util.*;
+import org.apache.hadoop.io.compress.CompressionCodec;
+import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.log4j.Logger;
 import org.sparkproject.guava.common.collect.ArrayListMultimap;
 
@@ -77,24 +79,22 @@ public class ControlDataSetProcessor implements DataSetProcessor {
     }
 
     @Override
-    public PairDataSet<String, String> readTextFile(String s) {
+    public PairDataSet<String, InputStream> readTextFile(String s) {
         Path path = new Path(s);
         InputStream rawStream = null;
         GZIPInputStream unzippedStream;
         try {
+            CompressionCodecFactory factory = new CompressionCodecFactory(SpliceConstants.config);
+            CompressionCodec codec = factory.getCodec(path);
             FileSystem fs = FileSystem.get(SpliceConstants.config);
-            rawStream = new BufferedInputStream(fs.open(path));
-            rawStream.mark(100);
-            String theFile;
-            try {
-                unzippedStream = new GZIPInputStream(rawStream);
-                theFile = IOUtils.toString(unzippedStream);
-            } catch (ZipException e) {
-                // not gzipped?
-                rawStream.reset();
-                theFile = IOUtils.toString(rawStream);
+            FSDataInputStream fileIn = fs.open(path);
+            InputStream value;
+            if (codec != null) {
+                value = codec.createInputStream(fileIn);
+            } else {
+                value = fileIn;
             }
-            return singleRowPairDataSet(s, theFile);
+            return singleRowPairDataSet(s, value);
         } catch (IOException e) {
             throw new RuntimeException(e);
         } finally {
