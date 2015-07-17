@@ -11,8 +11,6 @@ import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.load.*;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
-import com.splicemachine.derby.impl.storage.RegionAwareScanner;
-import com.splicemachine.derby.stats.TaskStats;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.hbase.KVPair;
@@ -30,8 +28,6 @@ import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
-import org.apache.spark.api.java.function.FlatMapFunction;
-import org.apache.spark.api.java.function.VoidFunction;
 import org.supercsv.prefs.CsvPreference;
 import scala.Tuple2;
 
@@ -43,10 +39,10 @@ import java.util.concurrent.ExecutionException;
 /**
  * Created by dgomezferro on 7/15/15.
  */
-public class IteratorStringFlatMapFunction extends
+public class ImportFunction extends
         SpliceFlatMapFunction<SpliceOperation,Iterator<Tuple2<String,String>>,StandardException> implements Externalizable {
 
-    private static final Logger LOG = Logger.getLogger(IteratorStringFlatMapFunction.class);
+    private static final Logger LOG = Logger.getLogger(ImportFunction.class);
 
     protected ImportContext importContext;
     protected FileSystem fileSystem;
@@ -63,11 +59,11 @@ public class IteratorStringFlatMapFunction extends
     private TxnView parentTxn;
     private Txn txn;
 
-    public IteratorStringFlatMapFunction(){
+    public ImportFunction(){
 
     }
 
-    public IteratorStringFlatMapFunction(ImportContext importContext, Txn txn) {
+    public ImportFunction(ImportContext importContext, Txn txn) {
         this.importContext = importContext;
         this.parentTxn = txn;
     }
@@ -77,84 +73,87 @@ public class IteratorStringFlatMapFunction extends
         if (!iterator.hasNext()) {
             return Collections.emptyList();
         }
-        taskId = Bytes.toBytes(new Random().nextLong());
-        Tuple2<String, String> tuple = iterator.next();
-        String path = tuple._1();
-        String text = tuple._2();
-        reader = getCsvReader(new StringReader(text), importContext);
-        fileSystem = FileSystem.get(URI.create(path), SpliceConstants.config);
-        try{
-            ExecRow row = getExecRow(importContext);
+        while(iterator.hasNext()) {
+            taskId = Bytes.toBytes(new Random().nextLong());
+            Tuple2<String, String> tuple = iterator.next();
+            String path = tuple._1();
+            String text = tuple._2();
+            reader = getCsvReader(new StringReader(text), importContext);
+            fileSystem = FileSystem.get(URI.create(path), SpliceConstants.config);
+            try {
+                ExecRow row = getExecRow(importContext);
 
-            rowsRead = 0l;
-            previouslyLoggedRowsRead = 0l;  // The number of rows read that was last logged.
-            long stopTime;
-            Timer totalTimer = importContext.shouldRecordStats()? Metrics.newTimer(): Metrics.noOpTimer();
-            totalTimer.startTiming();
-            long startTime = System.currentTimeMillis();
-            RowErrorLogger errorLogger = getErrorLogger();
-            errorReporter = getErrorReporter(row.getClone(),errorLogger);
-            long maxRecords = importContext.getMaxRecords();  // The maximum number of records to import or check in the file.
+                rowsRead = 0l;
+                previouslyLoggedRowsRead = 0l;  // The number of rows read that was last logged.
+                long stopTime;
+                Timer totalTimer = importContext.shouldRecordStats() ? Metrics.newTimer() : Metrics.noOpTimer();
+                totalTimer.startTiming();
+                long startTime = System.currentTimeMillis();
+                RowErrorLogger errorLogger = getErrorLogger();
+                errorReporter = getErrorReporter(row.getClone(), errorLogger);
+                long maxRecords = importContext.getMaxRecords();  // The maximum number of records to import or check in the file.
 
-            try{
-                errorLogger.open();
-                if(importer==null){
+                try {
+                    errorLogger.open();
+                    if (importer == null) {
 
-                    importer = getImporter(row,errorReporter);
-                }
+                        importer = getImporter(row, errorReporter);
+                    }
 
-                try{
-                    boolean shouldContinue;
-                    do{
-                        SpliceBaseOperation.checkInterrupt(rowsRead, SpliceConstants.interruptLoopCheck);
-                        String[] lines = reader.readAsStringArray();
+                    try {
+                        boolean shouldContinue;
+                        do {
+                            SpliceBaseOperation.checkInterrupt(rowsRead, SpliceConstants.interruptLoopCheck);
+                            String[] lines = reader.readAsStringArray();
 
-                        shouldContinue = importer.processBatch(lines);
-                        rowsRead++;
+                            shouldContinue = importer.processBatch(lines);
+                            rowsRead++;
 
-                        if ((rowsRead - previouslyLoggedRowsRead) >= logRowCountInterval) {
-                            previouslyLoggedRowsRead = rowsRead;
-                            if (LOG.isDebugEnabled()) {
-                                SpliceLogUtils.debug(LOG, "Imported %d total rows.  Rejected %d total bad rows.  File is %s.", (rowsRead - errorReporter.errorsReported()), errorReporter.errorsReported(), path);
+                            if ((rowsRead - previouslyLoggedRowsRead) >= logRowCountInterval) {
+                                previouslyLoggedRowsRead = rowsRead;
+                                if (LOG.isDebugEnabled()) {
+                                    SpliceLogUtils.debug(LOG, "Imported %d total rows.  Rejected %d total bad rows.  File is %s.", (rowsRead - errorReporter.errorsReported()), errorReporter.errorsReported(), path);
+                                }
                             }
+
+                            if (maxRecords > 0 && rowsRead >= maxRecords) {
+                                shouldContinue = false;
+                            }
+
+                        } while (shouldContinue);
+
+                        previouslyLoggedRowsRead = rowsRead;
+                    } catch (StandardException e) {
+                        return Arrays.asList(e);
+                    } catch (Exception e) {
+                        throw new ExecutionException(e);
+                    } finally {
+                        Closeables.closeQuietly(reader);
+                        /*
+                         * We don't call closeQuietly(importer) here, because
+                         * we need to make sure that we get out any IOExceptions
+                         * that get thrown
+                         */
+                        try {
+                            importer.close();
+                            importer = null;
+                        } finally {
+                            //close error reporter AFTER importer finishes
+                            Closeables.closeQuietly(errorReporter);
+                            Closeables.closeQuietly(errorLogger);
                         }
-
-                        if (maxRecords > 0 && rowsRead >= maxRecords) {
-                            shouldContinue = false;
-                        }
-
-                    }while(shouldContinue);
-
-                    previouslyLoggedRowsRead = rowsRead;
-                }catch(StandardException e){
-                    return Arrays.asList(e);
+                        TransactionLifecycle.getLifecycleManager().commit(txn.getTxnId());
+                        stopTime = System.currentTimeMillis();
+                    }
+                    totalTimer.stopTiming();
+                    //                TaskStats stats = new TaskStats(stopTime-startTime,rowsRead,
+                    //                        rowsRead-errorReporter.errorsReported());
                 } catch (Exception e) {
                     throw new ExecutionException(e);
-                } finally{
-                    Closeables.closeQuietly(reader);
-                    /*
-                     * We don't call closeQuietly(importer) here, because
-                     * we need to make sure that we get out any IOExceptions
-                     * that get thrown
-                     */
-                    try{
-                        importer.close();
-                    }finally{
-                        //close error reporter AFTER importer finishes
-                        Closeables.closeQuietly(errorReporter);
-                        Closeables.closeQuietly(errorLogger);
-                    }
-                    TransactionLifecycle.getLifecycleManager().commit(txn.getTxnId());
-                    stopTime = System.currentTimeMillis();
                 }
-                totalTimer.stopTiming();
-//                TaskStats stats = new TaskStats(stopTime-startTime,rowsRead,
-//                        rowsRead-errorReporter.errorsReported());
-            }catch(Exception e){
-                throw new ExecutionException(e);
+            } catch (StandardException e) {
+                return Arrays.asList(e);
             }
-        } catch (StandardException e) {
-            return Arrays.asList(e);
         }
         return Collections.emptyList();
     }

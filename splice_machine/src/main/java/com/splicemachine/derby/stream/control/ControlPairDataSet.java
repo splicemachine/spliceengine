@@ -206,7 +206,17 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
 
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op, Iterator<Tuple2<K, V>>, U> f) {
-        return null;
+        try {
+            return new ControlDataSet<>(f.call(FluentIterable.from(source.entries()).transform(new Function<Map.Entry<K,V>, Tuple2<K,V>>() {
+                @Nullable
+                @Override
+                public Tuple2<K, V> apply(@Nullable Map.Entry<K, V> kvEntry) {
+                    return new Tuple2<K, V>(kvEntry.getKey(), kvEntry.getValue());
+                }
+            }).iterator()));
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

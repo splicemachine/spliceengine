@@ -9,12 +9,7 @@ import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
-import com.splicemachine.derby.impl.load.spark.IteratorStringFlatMapFunction;
-import com.splicemachine.derby.impl.load.spark.WholeTextInputFormat;
-import com.splicemachine.derby.impl.spark.SpliceSpark;
-import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
-import com.splicemachine.derby.stream.iapi.DataSet;
+import com.splicemachine.derby.impl.load.spark.ImportFunction;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.derby.stream.utils.StreamUtils;
@@ -28,7 +23,6 @@ import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.hadoop.hbase.util.Pair;
-import org.apache.hadoop.util.StringUtils;
 import org.apache.log4j.Logger;
 
 import com.google.common.collect.Lists;
@@ -75,7 +69,6 @@ import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.utils.SpliceUtilities;
-import org.apache.spark.api.java.JavaPairRDD;
 
 /**
  * Imports a delimiter-separated file located in HDFS in a parallel way.
@@ -584,7 +577,7 @@ public class HdfsImport {
                                 combinedDataset = combinedDataset.union(dataSet);
                             }
                             List<StandardException> exceptions =
-                                    combinedDataset.mapPartitions(new IteratorStringFlatMapFunction(context, txn)).collect();
+                                    combinedDataset.mapPartitions(new ImportFunction(context, txn)).collect();
                             if (!exceptions.isEmpty()) {
                                 throw exceptions.get(0);
                             }
