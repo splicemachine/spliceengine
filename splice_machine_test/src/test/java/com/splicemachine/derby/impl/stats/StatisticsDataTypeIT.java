@@ -773,9 +773,9 @@ public class StatisticsDataTypeIT {
                 Assert.assertTrue("No rows returned!", resultSet.next());
                 Assert.assertEquals("Incorrect schema returned!", schema.schemaName, resultSet.getString(1));
                 Assert.assertEquals("Incorrect table returned!", tableName, resultSet.getString(2));
-                Assert.assertEquals("Incorrect total row count!", size, resultSet.getInt(3));
-                Assert.assertEquals("Incorrect average row count!", size, resultSet.getInt(4));
-                Assert.assertEquals("Incorrect number of partitions!", 1, resultSet.getInt(6));
+                Assert.assertEquals("Incorrect total row count!", size, resultSet.getInt(4));
+                Assert.assertEquals("Incorrect average row count!", size, resultSet.getInt(5));
+                Assert.assertEquals("Incorrect number of partitions!", 1, resultSet.getInt(7));
                 Assert.assertFalse("More than one row returned!", resultSet.next());
             }
         }
