@@ -103,7 +103,7 @@ public class LastIndexKeyOperation extends ScanOperation {
     }
 
     @Override
-    public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
+    public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         TableScannerBuilder tsb = new TableScannerBuilder()
                 .transaction(getCurrentTransaction())
                 .scan(getReversedNonSIScan())
@@ -118,7 +118,7 @@ public class LastIndexKeyOperation extends ScanOperation {
                 .accessedKeyColumns(scanInformation.getAccessedPkColumns())
                 .keyDecodingMap(getKeyDecodingMap())
                 .rowDecodingMap(baseColumnMap);
-        return dsp.getTableScanner(this, tsb, tableName).take(1);
+        return dsp.<LastIndexKeyOperation, LocatedRow>getTableScanner(this, tsb, tableName).take(1);
     }
 }
 

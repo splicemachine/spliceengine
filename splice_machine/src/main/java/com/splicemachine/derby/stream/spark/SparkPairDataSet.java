@@ -161,8 +161,18 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
     }
 
     @Override
+    public PairDataSet<K, V> union(PairDataSet<K, V> dataSet) {
+        return new SparkPairDataSet<>(rdd.union(((SparkPairDataSet) dataSet).rdd));
+    }
+
+    @Override
     public String toString() {
         return rdd.toString();
+    }
+
+    @Override
+    public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op, Iterator<Tuple2<K, V>>, U> f) {
+        return new SparkDataSet(rdd.mapPartitions(f));
     }
 
 

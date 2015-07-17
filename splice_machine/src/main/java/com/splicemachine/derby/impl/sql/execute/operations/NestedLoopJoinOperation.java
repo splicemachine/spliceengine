@@ -86,18 +86,18 @@ public class NestedLoopJoinOperation extends JoinOperation {
 
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         DataSet<LocatedRow> left = leftResultSet.getDataSet();
-        OperationContext<SpliceOperation> operationContext = dsp.createOperationContext(this);
+        OperationContext<NestedLoopJoinOperation> operationContext = dsp.createOperationContext(this);
 
         if (isOuterJoin)
-            return left.flatMap(new NLJOuterJoinFunction<SpliceOperation>(operationContext));
+            return left.flatMap(new NLJOuterJoinFunction(operationContext));
         else {
             if (notExistsRightSide)
-                return left.flatMap(new NLJAntiJoinFunction<SpliceOperation>(operationContext));
+                return left.flatMap(new NLJAntiJoinFunction(operationContext));
             else {
                 if (oneRowRightSide)
-                    return left.flatMap(new NLJOneRowInnerJoinFunction<SpliceOperation>(operationContext));
+                    return left.flatMap(new NLJOneRowInnerJoinFunction(operationContext));
                 else
-                    return left.flatMap(new NLJInnerJoinFunction<SpliceOperation>(operationContext));
+                    return left.flatMap(new NLJInnerJoinFunction(operationContext));
             }
         }
     }

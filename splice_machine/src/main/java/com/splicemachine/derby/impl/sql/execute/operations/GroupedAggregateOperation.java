@@ -159,7 +159,7 @@ public class GroupedAggregateOperation extends GenericAggregateOperation {
 
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        OperationContext<SpliceOperation> operationContext = dsp.createOperationContext(this);
+        OperationContext<GroupedAggregateOperation> operationContext = dsp.createOperationContext(this);
         DataSet set = source.getDataSet();
         if (groupedAggregateContext.getNonGroupedUniqueColumns() != null &&
                 groupedAggregateContext.getNonGroupedUniqueColumns().length > 0) {

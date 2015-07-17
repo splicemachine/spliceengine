@@ -14,21 +14,21 @@ import com.splicemachine.derby.stream.spark.RDDUtils;
 /**
  * Created by jleach on 5/1/15.
  */
-public class ScalarAggregateFunction extends SpliceFunction2<SpliceOperation, LocatedRow, LocatedRow, LocatedRow> {
+public class ScalarAggregateFunction extends SpliceFunction2<ScalarAggregateOperation, LocatedRow, LocatedRow, LocatedRow> {
     private static final long serialVersionUID = -4150499166764796082L;
     protected boolean initialized;
     protected ScalarAggregateOperation op;
     public ScalarAggregateFunction() {
     }
 
-    public ScalarAggregateFunction(OperationContext<SpliceOperation> operationContext) {
+    public ScalarAggregateFunction(OperationContext<ScalarAggregateOperation> operationContext) {
         super(operationContext);
     }
 
     @Override
     public LocatedRow call(LocatedRow t1, LocatedRow t2) throws Exception {
         if (!initialized) {
-            op = (ScalarAggregateOperation) getOperation();
+            op = getOperation();
             initialized = true;
         }
         operationContext.recordRead();

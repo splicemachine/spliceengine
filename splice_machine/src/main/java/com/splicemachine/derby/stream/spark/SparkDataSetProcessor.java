@@ -2,9 +2,11 @@ package com.splicemachine.derby.stream.spark;
 
 import com.clearspring.analytics.util.Lists;
 import com.splicemachine.constants.SIConstants;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.load.spark.WholeTextInputFormat;
 import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -17,21 +19,25 @@ import com.splicemachine.db.iapi.types.RowLocation;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
+import scala.Tuple2;
+
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.Collections;
 
 /**
  * Created by jleach on 4/13/15.
  */
-public class SparkDataSetProcessor <Op extends SpliceOperation,K,V> implements DataSetProcessor<Op,K,V>, Serializable {
+public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
 
     public SparkDataSetProcessor() {
 
     }
 
     @Override
-    public DataSet< V> getTableScanner(final Op spliceOperation, TableScannerBuilder siTableBuilder, String tableName) throws StandardException {
+    public <Op extends SpliceOperation, V> DataSet<V> getTableScanner(final Op spliceOperation, TableScannerBuilder siTableBuilder, String tableName) throws StandardException {
         JavaSparkContext ctx = SpliceSpark.getContext();
         Configuration conf = new Configuration(SIConstants.config);
         conf.set(com.splicemachine.mrio.MRConstants.SPLICE_INPUT_CONGLOMERATE, tableName);
@@ -49,17 +55,17 @@ public class SparkDataSetProcessor <Op extends SpliceOperation,K,V> implements D
     }
 
     @Override
-    public DataSet<V> getEmpty() {
+    public <V> DataSet<V> getEmpty() {
         return new SparkDataSet(SpliceSpark.getContext().parallelize(Collections.<V>emptyList(),1));
     }
 
     @Override
-    public DataSet<V>  singleRowDataSet(V value) {
+    public <V> DataSet<V>  singleRowDataSet(V value) {
         return new SparkDataSet(SpliceSpark.getContext().parallelize(Collections.<V>singletonList(value),1));
     }
 
     @Override
-    public OperationContext<Op> createOperationContext(Op spliceOperation) {
+    public <Op extends SpliceOperation> OperationContext<Op> createOperationContext(Op spliceOperation) {
         return new SparkOperationContext<Op>(spliceOperation);
     }
 
@@ -69,8 +75,25 @@ public class SparkDataSetProcessor <Op extends SpliceOperation,K,V> implements D
     }
 
     @Override
-    public DataSet< V> createDataSet(Iterable<V> value) {
+    public PairDataSet<String, InputStream> readTextFile(String path) {
+        return new SparkPairDataSet<>(SpliceSpark.getContext().newAPIHadoopFile(
+                path, WholeTextInputFormat.class, String.class, InputStream.class, SpliceConstants.config
+        ));
+    }
+
+    @Override
+    public <K, V> PairDataSet<K, V> getEmptyPair() {
+        return new SparkPairDataSet(SpliceSpark.getContext().parallelizePairs(Collections.<Tuple2<K,V>>emptyList(), 1));
+    }
+
+    @Override
+    public <V> DataSet< V> createDataSet(Iterable<V> value) {
         return new SparkDataSet(SpliceSpark.getContext().parallelize(Lists.newArrayList(value)));
+    }
+
+    @Override
+    public <K, V> PairDataSet<K, V> singleRowPairDataSet(K key, V value) {
+        return new SparkPairDataSet(SpliceSpark.getContext().parallelizePairs(Arrays.<Tuple2<K,V>>asList(new Tuple2(key, value)), 1));
     }
 
 }

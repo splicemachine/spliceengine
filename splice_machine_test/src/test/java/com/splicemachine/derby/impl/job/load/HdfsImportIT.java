@@ -175,7 +175,7 @@ public class HdfsImportIT extends SpliceUnitTest {
             Assert.assertNotNull("Age is null!",age);
             results.add(String.format("name:%s,title:%s,age:%d",name,title,age));
         }
-        Assert.assertTrue("Incorrect number of rows imported", results.size() == importCount);
+        Assert.assertEquals("Incorrect number of rows imported", importCount, results.size());
         
     }
     
