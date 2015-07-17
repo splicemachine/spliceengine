@@ -1,5 +1,10 @@
 package com.splicemachine.derby.impl.sql.execute.index;
 
+import static com.google.common.base.Preconditions.checkArgument;
+
+import java.io.IOException;
+import java.util.Arrays;
+
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import org.apache.hadoop.hbase.CellUtil;
@@ -17,14 +22,13 @@ import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.WriteContext;
-import com.splicemachine.storage.*;
+import com.splicemachine.storage.ByteEntryAccumulator;
+import com.splicemachine.storage.EntryAccumulator;
+import com.splicemachine.storage.EntryDecoder;
+import com.splicemachine.storage.EntryEncoder;
+import com.splicemachine.storage.EntryPredicateFilter;
+import com.splicemachine.storage.Predicate;
 import com.splicemachine.storage.index.BitIndex;
-import com.splicemachine.db.iapi.error.StandardException;
-
-import java.io.IOException;
-import java.util.Arrays;
-
-import static com.google.common.base.Preconditions.checkArgument;
 
 /**
  * Builds an index table KVPair given a base table KVPair.
@@ -94,8 +98,21 @@ public class IndexTransformer {
         this.typeProvider = VersionedSerializers.typesForVersion(tableVersion);
     }
 
-    public KVPair createIndexDelete(KVPair mutation, WriteContext ctx, BitSet indexedColumns) throws IOException, StandardException {
-        // do a Get() on all the indexed columns of the main table
+    /**
+     * Create a KVPair that can be used to issue a delete on an index record associated with the given main
+     * table mutation.
+     * @param mutation the incoming modification. Its rowKey is used to get the the row in the base table
+     *                 that will be updated. Once we have that, we can create a new KVPair of type
+     *                 {@link com.splicemachine.hbase.KVPair.Type#DELETE DELETE} and call {@link #translate(KVPair)}
+     *                 to translate it to the index's rowKey.
+     * @param ctx the write context of the modification. Used to get transaction and region info.
+     * @param indexedColumns the columns which are part of this index. Used to filter the Get.
+     * @return An index row KVPair that can be used to delete the associated index row, or null if the mutated
+     * row is not found (may have already been deleted).
+     * @throws IOException for encoding/decoding problems.
+     */
+    public KVPair createIndexDelete(KVPair mutation, WriteContext ctx, BitSet indexedColumns) throws IOException {
+        // do a Get() on all the indexed columns of the base table
         Get get = SpliceUtils.createGet(ctx.getTxn(), mutation.getRowKey());
         EntryPredicateFilter predicateFilter = new EntryPredicateFilter(indexedColumns, new ObjectArrayList<Predicate>(),true);
         get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
@@ -123,7 +140,18 @@ public class IndexTransformer {
         return translate(toTransform);
     }
 
-    public KVPair translate(KVPair mutation) throws IOException, StandardException {
+    /**
+     * Translate the given base table record mutation into its associated, referencing index record.<br/>
+     * Encapsulates the logic required to create an index record for a given base table record with
+     * all the required discriminating and encoding rules (column is part of a PK, value is null, etc).
+     * @param mutation KVPair containing the rowKey of the base table record for which we want to
+     *                 translate to the associated index. This mutation should already have its requred
+     *                 {@link com.splicemachine.hbase.KVPair.Type Type} set.
+     * @return A KVPair representing the index record of the given base table mutation. This KVPair is
+     * suitable for performing the required modification of the index record associated with this mutation.
+     * @throws IOException for encoding/decoding problems.
+     */
+    public KVPair translate(KVPair mutation) throws IOException {
         if (mutation == null) {
             return null;
         }
@@ -226,7 +254,7 @@ public class IndexTransformer {
         return false;
     }
 
-    public byte[] getIndexRowKey(byte[] rowLocation, boolean nonUnique) {
+    private byte[] getIndexRowKey(byte[] rowLocation, boolean nonUnique) {
         byte[] data = indexKeyAccumulator.finish();
         if (nonUnique) {
             //append the row location to the end of the bytes
@@ -237,7 +265,7 @@ public class IndexTransformer {
         return data;
     }
 
-    public EntryEncoder getRowEncoder() {
+    private EntryEncoder getRowEncoder() {
         if (indexValueEncoder == null) {
             BitSet nonNullFields = new BitSet();
             int highestSetPosition = 0;
@@ -302,7 +330,7 @@ public class IndexTransformer {
         return srcKeyDecoder;
     }
 
-    public ByteEntryAccumulator getKeyAccumulator() {
+    private ByteEntryAccumulator getKeyAccumulator() {
         if (indexKeyAccumulator == null) {
             BitSet keyFields = BitSet.newInstance();
             for (int keyColumn : indexKeyEncodingMap) {
@@ -320,9 +348,4 @@ public class IndexTransformer {
             srcValueDecoder = new EntryDecoder();
         return srcValueDecoder;
     }
-
-    public boolean isUnique() {
-        return isUnique;
-    }
-
 }
