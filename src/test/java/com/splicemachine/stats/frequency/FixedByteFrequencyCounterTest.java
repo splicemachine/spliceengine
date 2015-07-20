@@ -13,6 +13,12 @@ import java.util.*;
 public class FixedByteFrequencyCounterTest {
 
     @Test
+    public void testAllFrequentElementsWithEmptySet() throws Exception{
+        ByteFrequentElements bfe= new ByteFrequencies(new long[256],10);
+        Assert.assertEquals("Incorrect frequent elements set!",0,bfe.allFrequentElements().size());
+    }
+
+    @Test
     public void testHeavyHittersCorrect() throws Exception {
         /*
          * We test that the heavy hitters works as follows:
