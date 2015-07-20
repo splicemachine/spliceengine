@@ -774,20 +774,29 @@ public class SystemProcedures  {
     String  indexname)
         throws SQLException
     {
-        String escapedSchema = IdUtil.normalToDelimited(schemaname);
-        String escapedTableName = IdUtil.normalToDelimited(tablename);
-        String query = "alter table " + escapedSchema + "." + escapedTableName;
-        if (indexname == null)
-        	query = query + " all drop statistics ";
-        else
-        	query = query + " statistics drop " + IdUtil.normalToDelimited(indexname);
-        Connection conn = getDefaultConn();
+    	// SYSCS_DROP_STATISTICS is supported in Derby but is not valid for Splice,
+    	// Rather than let the user think it was successful, we throw an exception
+    	// explicitly indicating this is not supported. When we choose to implement
+    	// the functionality, we can either repurpose this stored proc, or create a
+    	// different interface for it instead.
+    	throw new UnsupportedOperationException(
+			StandardException.newException(SQLState.SPLICE_NOT_IMPLEMENTED, "SYSCS_DROP_STATISTICS")
+    	);
 
-        PreparedStatement ps = conn.prepareStatement(query);
-        ps.executeUpdate();
-        ps.close();
-
-        conn.close();
+//        String escapedSchema = IdUtil.normalToDelimited(schemaname);
+//        String escapedTableName = IdUtil.normalToDelimited(tablename);
+//        String query = "alter table " + escapedSchema + "." + escapedTableName;
+//        if (indexname == null)
+//        	query = query + " all drop statistics ";
+//        else
+//        	query = query + " statistics drop " + IdUtil.normalToDelimited(indexname);
+//        Connection conn = getDefaultConn();
+//
+//        PreparedStatement ps = conn.prepareStatement(query);
+//        ps.executeUpdate();
+//        ps.close();
+//
+//        conn.close();
     }
 
     /**
