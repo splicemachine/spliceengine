@@ -7,6 +7,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_tools.TableCreator;
+import org.apache.commons.lang3.exception.ExceptionUtils;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
 import org.junit.Ignore;
@@ -15,6 +16,7 @@ import org.junit.Test;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -424,7 +426,7 @@ public class RowCountOperationIT {
     }
 
     @Test
-    @Ignore("DB-3519")
+    //@Ignore("DB-3519")
     public void overJoin_offset() throws Exception {
         validateUnOrdered(8, "select A.a from A join B on A.a=B.a offset 4 rows");
     }
@@ -435,7 +437,7 @@ public class RowCountOperationIT {
     }
 
     @Test
-    @Ignore
+    //@Ignore
     public void overJoin_offset_and_limit_MergeSort() throws Exception {
         validateUnOrdered(7, "select A.a from A join B --SPLICE-PROPERTIES joinStrategy=SORTMERGE \n" +
                 "on A.a=B.a offset 4 rows fetch next 7 row only");
