@@ -4,10 +4,7 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 import org.apache.commons.io.IOUtils;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -53,19 +50,18 @@ public class TPCHIT {
         spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", SCHEMA_NAME, PART, getResource("part.tbl"))).execute();
         spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", SCHEMA_NAME, NATION, getResource("nation.tbl"))).execute();
         spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", SCHEMA_NAME, REGION, getResource("region.tbl"))).execute();
+
+        // validate
+        assertEquals(9958L, spliceClassWatcher.query(format("select count(*) from %s.%s", SCHEMA_NAME, LINEITEM)));
+        assertEquals(2500L, spliceClassWatcher.query(format("select count(*) from %s.%s", SCHEMA_NAME, ORDERS)));
+        assertEquals(250L, spliceClassWatcher.query(format("select count(*) from %s.%s", SCHEMA_NAME, CUSTOMERS)));
+        assertEquals(1332L, spliceClassWatcher.query(format("select count(*) from %s.%s", SCHEMA_NAME, PARTSUPP)));
+        assertEquals(16L, spliceClassWatcher.query(format("select count(*) from %s.%s", SCHEMA_NAME, SUPPLIER)));
+        assertEquals(333L, spliceClassWatcher.query(format("select count(*) from %s.%s", SCHEMA_NAME, PART)));
+        assertEquals(25L, spliceClassWatcher.query(format("select count(*) from %s.%s", SCHEMA_NAME, NATION)));
+        assertEquals(5L, spliceClassWatcher.query(format("select count(*) from %s.%s", SCHEMA_NAME, REGION)));
     }
 
-    @Test
-    public void validateDataLoad() throws Exception {
-        assertEquals(9958L, methodWatcher.query(format("select count(*) from %s.%s", SCHEMA_NAME, LINEITEM)));
-        assertEquals(2500L, methodWatcher.query(format("select count(*) from %s.%s", SCHEMA_NAME, ORDERS)));
-        assertEquals(250L, methodWatcher.query(format("select count(*) from %s.%s", SCHEMA_NAME, CUSTOMERS)));
-        assertEquals(1332L, methodWatcher.query(format("select count(*) from %s.%s", SCHEMA_NAME, PARTSUPP)));
-        assertEquals(16L, methodWatcher.query(format("select count(*) from %s.%s", SCHEMA_NAME, SUPPLIER)));
-        assertEquals(333L, methodWatcher.query(format("select count(*) from %s.%s", SCHEMA_NAME, PART)));
-        assertEquals(25L, methodWatcher.query(format("select count(*) from %s.%s", SCHEMA_NAME, NATION)));
-        assertEquals(5L, methodWatcher.query(format("select count(*) from %s.%s", SCHEMA_NAME, REGION)));
-    }
 
     @Test
     public void sql1() throws Exception {
@@ -106,20 +102,19 @@ public class TPCHIT {
     public void sql8() throws Exception {
         executeQuery(getContent("8.sql"), "", true);
     }
-/*
+
     @Test
     public void sql9() throws Exception {
         executeQuery(getContent("9.sql"), "", true);
     }
-*/
-/*
+
     @Test
     public void sql9Repeated() throws Exception {
         for (int i = 0; i < 3; i++) {
             sql9();
         }
     }
-*/
+
     @Test
     public void sql10() throws Exception {
         executeQuery(getContent("10.sql"), "", true);
@@ -174,6 +169,16 @@ public class TPCHIT {
     @Test
     public void sql20() throws Exception {
         executeQuery(getContent("20.sql"), "", true);
+    }
+
+    @Test
+    public void sql21() throws Exception {
+        executeQuery(getContent("21.sql"), "", true);
+    }
+
+    @Test
+    public void sql22() throws Exception {
+        executeQuery(getContent("22.sql"), getContent("22.expected.txt"), true);
     }
 
     @Test(expected = SQLException.class)
