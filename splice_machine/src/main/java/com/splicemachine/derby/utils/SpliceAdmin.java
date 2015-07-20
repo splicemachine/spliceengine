@@ -1243,4 +1243,18 @@ public class SpliceAdmin extends BaseAdminProcedures {
     		}
     	});
     }
+
+    public static void SYSCS_EMPTY_GLOBAL_STATEMENT_CACHE() throws SQLException {
+    	// This procedure is essentially a wrapper around the Derby stored proc SYSCS_EMPTY_STATEMENT_CACHE
+    	// such that it is done on every node in the cluster.
+    	operate(new JMXServerOperation() {
+    		@Override
+    		public void operate(List<Pair<String, JMXConnector>> connections) throws MalformedObjectNameException, IOException, SQLException {
+                List<Pair<String, StatementManagement>> statementManagers = JMXUtils.getStatementManagers(connections);
+                for (Pair<String, StatementManagement> managementPair : statementManagers) {
+                    managementPair.getSecond().emptyStatementCache();
+    			}
+    		}
+    	});
+    }
 }
