@@ -4,6 +4,7 @@ import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.PartitionStatistics;
 import com.splicemachine.stats.estimate.Distribution;
 import com.splicemachine.stats.estimate.GlobalDistribution;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -213,7 +214,7 @@ public class GlobalStatistics implements OverheadManagedTableStatistics {
         List<ColumnStatistics> stats = null;
         for(OverheadManagedPartitionStatistics partStats:partitionStatistics){
             List<ColumnStatistics> colStats=partStats.columnStatistics();
-            if(colStats.size()<=0) continue;
+            if(colStats==null || colStats.size()<=0) continue;
             if(stats==null)
                 stats = new ArrayList<>(colStats.size());
             for(ColumnStatistics cStats:colStats){
