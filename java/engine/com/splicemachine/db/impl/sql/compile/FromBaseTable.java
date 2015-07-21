@@ -3605,7 +3605,24 @@ public class FromBaseTable extends FromTable{
             /* Is there a pushable equality predicate on this key column?
              * (IS NULL is also acceptable)
 			 */
-            if(!restrictionList.hasOptimizableEqualityPredicate(this,curCol,true))
+            List<Predicate> optimizableEqualityPredicateList =
+                    restrictionList.getOptimizableEqualityPredicateList(this,curCol,true);
+
+            // No equality predicate for this column, so this is not a one row result set
+            if (optimizableEqualityPredicateList == null)
+                return false;
+
+            // Look for equality predicate that is not a join predicate
+            boolean existsNonjoinPredicate = false;
+            for (int i = 0; i < optimizableEqualityPredicateList.size(); ++i) {
+                Predicate predicate = optimizableEqualityPredicateList.get(i);
+                if (!predicate.isJoinPredicate()) {
+                    existsNonjoinPredicate = true;
+                    break;
+                }
+            }
+            // If all equality predicates are join predicates, then this is NOT a one row result set
+            if (!existsNonjoinPredicate)
                 return false;
         }
 
