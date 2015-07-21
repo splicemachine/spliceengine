@@ -361,7 +361,13 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
         List<StoreFile> copy = Lists.newArrayList(candidates);
         try {
             SpliceDriver.driver().getTempTable().filterCompactionFiles(c.getEnvironment().getConfiguration(), copy);
-            if (copy.size() == 0) { // All candidates have been removed from list - can't delete any files
+            // If the 'copy' list is empty, then we can't delete any files. As a debugging convenience,
+            // this is a secret configuration to temporarily set it to a slightly higher value,
+            // but in practice this should not be used.
+    		int undeleteableSize = c.getEnvironment().getConfiguration().getInt("splice.compact.temp.undeleteable.size", 0);
+    		// All candidates have been removed from list - can't delete any files
+			if ((undeleteableSize == 0 && copy.size() == 0) ||
+				(undeleteableSize > 0 && copy.size() <= undeleteableSize && numCandidates > undeleteableSize)) { 
                 /*
                  * We need to keep all the files around. This leaves two situations: when we have exceeded the
                  * blocking store files and when we have not.
@@ -375,6 +381,10 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
                 if (numCandidates < blockingStoreFiles) {
                     //we are free to use the normal TEMP compaction procedure, which does nothing.
                     // TODO: Consider compacting some files even if we have not hit blocking limit yet
+                    if (LOG_COMPACT.isDebugEnabled())
+                        LOG_COMPACT.debug(String.format(
+                                "%s No removable files found in list of %d, so we will leave them alone.",
+                                LOG_COMPACT_PRE, numCandidates));
                     candidates.clear();
                 } else {
                     // if the above isn't met, then we do nothing to candidates, because we are falling back to normal TEMP
