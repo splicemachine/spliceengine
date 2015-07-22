@@ -221,7 +221,7 @@ public class StatsStoreCostController extends GenericController implements Store
         long nullCount = 0l;
         int missingStatsCount = partStats.size();
         for(PartitionStatistics pStats:partStats){
-            ColumnStatistics<DataValueDescriptor> cStats=pStats.columnStatistics(columnNumber-1);
+            ColumnStatistics<DataValueDescriptor> cStats=pStats.columnStatistics(columnNumber);
             if(cStats!=null){
                 nullCount+=cStats.nullCount();
                 missingStatsCount--;
