@@ -57,6 +57,11 @@ class OffsetScanRowProvider extends AbstractScanProvider {
     @Override
     public Result getResult() throws StandardException {
         if (currentScan == null) {
+            if (offsetScans == null) {
+                //TODO[DM]: add warning log message
+                return null;
+            }
+
             Scan next = offsetScans.poll();
 
             if (next == null) {
@@ -155,8 +160,13 @@ class OffsetScanRowProvider extends AbstractScanProvider {
         }
 
         List<Pair<byte[], byte[]>> ranges = Lists.newArrayListWithCapacity(regionInfos.size());
-        byte[] scanStart = fullScan.getStartRow();
-        byte[] scanStop = fullScan.getStopRow();
+
+        byte[] scanStart = new byte[0];
+        byte[] scanStop = new byte[0];
+        if (fullScan != null) {
+            scanStart = fullScan.getStartRow();
+            scanStop  = fullScan.getStopRow();
+        }
 
         if (Bytes.compareTo(scanStart, HConstants.EMPTY_START_ROW) == 0
                 && Bytes.compareTo(scanStop, HConstants.EMPTY_END_ROW) == 0) {
@@ -192,9 +202,11 @@ class OffsetScanRowProvider extends AbstractScanProvider {
             Scan scan = new Scan();
             scan.setStartRow(region.getFirst());
             scan.setStopRow(region.getSecond());
-            scan.setFilter(fullScan.getFilter());
-            if (totalOffset < fullScan.getCaching()) {
-                scan.setCaching((int) totalOffset);
+            if (fullScan != null) {
+                scan.setFilter(fullScan.getFilter());
+                if (totalOffset < fullScan.getCaching()) {
+                    scan.setCaching((int) totalOffset);
+                }
             }
             offsetScans.add(scan);
         }
