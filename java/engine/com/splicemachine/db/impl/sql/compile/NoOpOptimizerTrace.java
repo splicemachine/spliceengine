@@ -14,4 +14,8 @@ public class NoOpOptimizerTrace implements OptimizerTrace{
 
     //no-op
     @Override public void trace(OptimizerFlag flag,int intParam1,int intParam2,double doubleParam,Object... objectParams){  }
+
+    // no-op
+    @Override
+    public void trace(TraceLevel level, String traceString) {}
 }

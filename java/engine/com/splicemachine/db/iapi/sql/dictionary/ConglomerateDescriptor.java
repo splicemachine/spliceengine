@@ -305,7 +305,7 @@ public final class ConglomerateDescriptor extends TupleDescriptor
 	{
 		if (SanityManager.DEBUG)
 		{
-			StringBuffer keyString = new StringBuffer();
+			StringBuilder keyString = new StringBuilder();
 
 			if (indexable && columnNames != null )
 			{

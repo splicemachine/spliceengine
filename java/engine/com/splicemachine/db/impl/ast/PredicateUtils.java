@@ -40,6 +40,41 @@ public class PredicateUtils {
     };
 
     /**
+     * Return string representation of Derby PredicateList
+     */
+    public static Function<PredicateList, String> predListToString = new Function<PredicateList, String>() {
+        @Override
+        public String apply(PredicateList predicateList) {
+            if (predicateList == null) {
+                return null;
+            }
+            StringBuilder buf = new StringBuilder();
+            for (int i = 0, s = predicateList.size(); i < s; i++) {
+                OptimizablePredicate predicate = predicateList.getOptPredicate(i);
+                ValueNode operand = ((Predicate) predicate).getAndNode().getLeftOperand();
+                buf.append(opToString(operand)).append(", ");
+            }
+            if (buf.length() > 2) {
+                // trim last ", "
+                buf.setLength(buf.length() - 2);
+            }
+            return buf.toString();
+        }
+    };
+
+    /**
+     * Return a List of Predicates for a Derby PredicateList
+     */
+    public static List<Predicate> PLtoList(PredicateList pl) {
+        List<Predicate> preds = new ArrayList<>(pl.size());
+        for (int i = 0, s = pl.size(); i < s; i++) {
+            OptimizablePredicate p = pl.getOptPredicate(i);
+            preds.add((Predicate) p);
+        }
+        return preds;
+    }
+
+    /**
      * Return string representation of a Derby expression
      */
     public static String opToString(ValueNode operand){
@@ -105,20 +140,7 @@ public class PredicateUtils {
         } else if(operand instanceof CastNode){
             return opToString(((CastNode)operand).getCastOperand());
         } else{
-            return operand.toString().replace("\n", " ");
+            return StringUtils.replace(operand.toString(), "\n", " ");
         }
     }
-
-    /**
-     * Return a List of Predicates for a Derby PredicateList
-     */
-    public static List<Predicate> PLtoList(PredicateList pl) {
-        List<Predicate> preds = new ArrayList<Predicate>(pl.size());
-        for (int i = 0, s = pl.size(); i < s; i++) {
-            OptimizablePredicate p = pl.getOptPredicate(i);
-            preds.add((Predicate) p);
-        }
-        return preds;
-    }
-
 }

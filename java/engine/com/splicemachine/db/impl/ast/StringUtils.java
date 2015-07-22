@@ -99,7 +99,7 @@ public class StringUtils {
     }
 
     private static String unicodeToChar(char[] unicode){
-        return String.valueOf((char)Integer.parseInt(String.valueOf(unicode),16));
+        return String.valueOf((char) Integer.parseInt(String.valueOf(unicode), 16));
     }
 
     private static char toControlCharacter(char letter){
@@ -155,5 +155,35 @@ public class StringUtils {
     	sec -= mins * 60;
     	long secs = sec;
     	return String.format("%sd %sh %sm %ss", days, hours, mins, secs);
+    }
+
+    public static String replace(String text, String searchString, String replacement) {
+        return replace(text, searchString, replacement, -1);
+    }
+
+    public static String replace(String text, String searchString, String replacement, int max) {
+        if (text.isEmpty() || searchString.isEmpty() || replacement == null || max == 0) {
+            return text;
+        }
+        int start = 0;
+        int end = text.indexOf(searchString, start);
+        if (end == -1) {
+            return text;
+        }
+        int replLength = searchString.length();
+        int increase = replacement.length() - replLength;
+        increase = (increase < 0 ? 0 : increase);
+        increase *= (max < 0 ? 16 : (max > 64 ? 64 : max));
+        StringBuilder buf = new StringBuilder(text.length() + increase);
+        while (end != -1) {
+            buf.append(text.substring(start, end)).append(replacement);
+            start = end + replLength;
+            if (--max == 0) {
+                break;
+            }
+            end = text.indexOf(searchString, start);
+        }
+        buf.append(text.substring(start));
+        return buf.toString();
     }
 }

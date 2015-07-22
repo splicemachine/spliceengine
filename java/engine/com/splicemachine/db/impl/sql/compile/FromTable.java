@@ -415,7 +415,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
             // If the bestPlanMap already exists, search for an
             // AccessPath for the received key and use that if we can.
             if(bestPlanMap==null)
-                bestPlanMap=new HashMap<>();
+                bestPlanMap=new IdentityHashMap<>();
             else
                 ap=bestPlanMap.get(planKey);
 

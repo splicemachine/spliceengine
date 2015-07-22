@@ -21,14 +21,27 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.List;
+
 import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.LocalField;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
-import com.splicemachine.db.iapi.services.context.ContextManager;import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.services.context.ContextManager;
+import com.splicemachine.db.iapi.services.sanity.SanityManager;
+import com.splicemachine.db.iapi.sql.compile.AccessPath;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+import com.splicemachine.db.iapi.sql.compile.CompilerContext;
+import com.splicemachine.db.iapi.sql.compile.ExpressionClassBuilderInterface;
+import com.splicemachine.db.iapi.sql.compile.Optimizable;
+import com.splicemachine.db.iapi.sql.compile.OptimizablePredicate;
+import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
+import com.splicemachine.db.iapi.sql.compile.RequiredRowOrdering;
+import com.splicemachine.db.iapi.sql.compile.RowOrdering;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionFactory;
@@ -36,10 +49,6 @@ import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
-
-import java.lang.reflect.Modifier;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * A PredicateList represents the list of top level predicates.
@@ -3362,7 +3371,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 
     @Override
     public String toString() {
-        return PredicateUtils.toString(this);
+        return com.splicemachine.db.impl.ast.PredicateUtils.predListToString.apply(this);
     }
 
     /* assign a weight to each predicate-- the maximum weight that a predicate

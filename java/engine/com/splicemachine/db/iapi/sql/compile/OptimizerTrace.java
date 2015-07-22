@@ -5,6 +5,7 @@ package com.splicemachine.db.iapi.sql.compile;
  *         Date: 4/3/15
  */
 public interface OptimizerTrace{
+
     enum TraceLevel{
         TRACE,
         DEBUG,
@@ -13,4 +14,6 @@ public interface OptimizerTrace{
         ERROR
     }
     void trace(OptimizerFlag flag, int intParam1, int intParam2, double doubleParam, Object... objectParams);
+
+    void trace(TraceLevel level, String traceString);
 }
