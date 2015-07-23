@@ -40,7 +40,7 @@ import java.util.concurrent.ExecutionException;
  * Created by dgomezferro on 7/15/15.
  */
 public class ImportFunction extends
-        SpliceFlatMapFunction<SpliceOperation,Iterator<Tuple2<String,InputStream>>,StandardException> implements Externalizable {
+        SpliceFlatMapFunction<SpliceOperation,Iterator<Tuple2<String,InputStream>>,ImportResult> implements Externalizable {
 
     private static final Logger LOG = Logger.getLogger(ImportFunction.class);
 
@@ -69,10 +69,12 @@ public class ImportFunction extends
     }
 
     @Override
-    public Iterable<StandardException> call(Iterator<Tuple2<String, InputStream>> iterator) throws Exception {
+    public Iterable<ImportResult> call(Iterator<Tuple2<String, InputStream>> iterator) throws Exception {
         if (!iterator.hasNext()) {
-            return Collections.emptyList();
+            return Arrays.asList(new ImportResult(0, 0));
         }
+        int totalImported = 0;
+        int totalBad = 0;
         while(iterator.hasNext()) {
             taskId = Bytes.toBytes(new Random().nextLong());
             Tuple2<String, InputStream> tuple = iterator.next();
@@ -105,9 +107,11 @@ public class ImportFunction extends
                         do {
                             SpliceBaseOperation.checkInterrupt(rowsRead, SpliceConstants.interruptLoopCheck);
                             String[] lines = reader.readAsStringArray();
+                            if (lines!=null) {
+                                rowsRead++;
+                            }
 
                             shouldContinue = importer.processBatch(lines);
-                            rowsRead++;
 
                             if ((rowsRead - previouslyLoggedRowsRead) >= logRowCountInterval) {
                                 previouslyLoggedRowsRead = rowsRead;
@@ -124,7 +128,7 @@ public class ImportFunction extends
 
                         previouslyLoggedRowsRead = rowsRead;
                     } catch (StandardException e) {
-                        return Arrays.asList(e);
+                        return Arrays.asList(new ImportResult(e));
                     } catch (Exception e) {
                         throw new ExecutionException(e);
                     } finally {
@@ -138,6 +142,8 @@ public class ImportFunction extends
                             importer.close();
                             importer = null;
                         } finally {
+                            totalImported += rowsRead - errorReporter.errorsReported();
+                            totalBad += errorReporter.errorsReported();
                             //close error reporter AFTER importer finishes
                             Closeables.closeQuietly(errorReporter);
                             Closeables.closeQuietly(errorLogger);
@@ -153,10 +159,10 @@ public class ImportFunction extends
                     throw new ExecutionException(e);
                 }
             } catch (StandardException e) {
-                return Arrays.asList(e);
+                return Arrays.asList(new ImportResult(e));
             }
         }
-        return Collections.emptyList();
+        return Arrays.asList(new ImportResult(totalImported, totalBad));
     }
 
     public static ExecRow getExecRow(ImportContext context) throws StandardException {

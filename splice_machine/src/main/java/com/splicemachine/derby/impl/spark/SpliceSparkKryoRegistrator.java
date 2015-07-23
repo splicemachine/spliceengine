@@ -27,6 +27,7 @@ import com.splicemachine.derby.impl.load.ColumnContext;
 import com.splicemachine.derby.impl.load.FileImportReader;
 import com.splicemachine.derby.impl.load.ImportContext;
 import com.splicemachine.derby.impl.load.ImportTask;
+import com.splicemachine.derby.impl.load.spark.ImportResult;
 import com.splicemachine.derby.impl.spark.kryo.SparkValueRowSerializer;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueDescriptor;
 import com.splicemachine.derby.impl.sql.execute.LazyNumberDataValueDescriptor;
@@ -648,97 +649,6 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator {
                 return StandardException.newException(messageId, arguments);
             }
         });
-
-
-//        instance.register(Tuple2.class, new Serializer<Tuple2>() {
-//            @Override
-//            public Tuple2 read(Kryo kryo, Input input, Class type) {
-//                Object first = kryo.readClassAndObject(input);
-//                Object second = kryo.readClassAndObject(input);
-//                return new Tuple2(first, second);
-//            }
-//
-//            @Override
-//            public void write(Kryo kryo, Output output, Tuple2 object) {
-//                kryo.writeClassAndObject(output, object._1());
-//                kryo.writeClassAndObject(output, object._2());
-//            }
-//        });
-//        instance.register(MapStatus.class);
-//        instance.register(StorageLevel.class);
-    //        instance.register(PutBlock.class);
-    //        instance.register(GotBlock.class);
-//        instance.register(BlockManagerId.class);
-//        instance.register(IndexValueRow.class, new SparkValueRowSerializer<IndexValueRow>() {
-//            @Override
-//            protected IndexValueRow newType(int size) {
-//                return new IndexValueRow(new ValueRow(size));
-//            }
-//        });
-//        instance.register(scala.Array.class);
-//        instance.register(WrappedArray.class);
-//        instance.register(WrappedArray.ofRef.class, new Serializer<WrappedArray.ofRef>() {
-//            @Override
-//            public WrappedArray.ofRef read(Kryo kryo, Input input, Class type) {
-//                Object[] array = kryo.readObject(input, Object[].class);
-//                return new WrappedArray.ofRef(array);
-//            }
-//
-//            @Override
-//            public void write(Kryo kryo, Output output, WrappedArray.ofRef object) {
-//                kryo.writeObject(output, object.array());
-//            }
-//        });
-//        instance.register(ArrayBuffer.class, new TraversableSerializer(false, ArrayBuffer.canBuildFrom()));
-//        instance.register(ArrayBuffer[].class);
-//        Registration register = instance.register(SerializableWritable.class, new Serializer<SerializableWritable>() {
-//            @Override
-//            public void write(Kryo kryo, Output output, SerializableWritable object) {
-//                try {
-//                    ObjectOutputStream oos = new ObjectOutputStream(output);
-//                    oos.writeObject(object);
-//                } catch (IOException e) {
-//                    throw new RuntimeException(e);
-//                }
-//            }
-//
-//            @Override
-//            public SerializableWritable read(Kryo kryo, Input input, Class type) {
-//                ObjectInputStream ois = null;
-//                SerializableWritable sw = null;
-//                try {
-//                    ois = new ObjectInputStream(input);
-//                    sw = (SerializableWritable) ois.readObject();
-//                } catch (IOException e) {
-//                    throw new RuntimeException(e);
-//                } catch (ClassNotFoundException e) {
-//                    throw new RuntimeException(e);
-//                }
-//                return sw;
-//            }
-//        });
-//        instance.register(WrappedArray.ofBoolean.class, new Serializer<WrappedArray.ofBoolean>() {
-//            @Override
-//            public WrappedArray.ofBoolean read(Kryo kryo, Input input, Class type) {
-//                boolean[] array = kryo.readObject(input, Object[].class);
-//                return new WrappedArray.ofBoolean(array);
-//            }
-//
-//            @Override
-//            public void write(Kryo kryo, Output output, WrappedArray.ofBoolean object) {
-//                kryo.writeObject(output, object.array());
-//            }
-//        });
-//        instance.register(WrappedArray.ofByte.class);
-//        instance.register(WrappedArray.ofChar.class);
-//        instance.register(WrappedArray.ofDouble.class);
-//        instance.register(WrappedArray.ofFloat.class);
-//        instance.register(WrappedArray.ofInt.class);
-//        instance.register(WrappedArray.ofLong.class);
-//        instance.register(WrappedArray.ofShort.class);
-//        instance.register(WrappedArray.ofUnit.class);
-//        instance.register(Object[].class);
-//        instance.register(CompressedMapStatus.class);
-
+        instance.register(ImportResult.class);
     }
 }
