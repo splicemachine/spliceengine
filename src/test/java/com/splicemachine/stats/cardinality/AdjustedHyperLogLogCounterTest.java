@@ -1,43 +1,37 @@
 package com.splicemachine.stats.cardinality;
 
-import com.google.common.collect.Lists;
 import com.splicemachine.hash.HashFunctions;
+import com.splicemachine.testutil.ParallelTheoryRunner;
 import org.apache.commons.math3.distribution.NormalDistribution;
 import org.apache.commons.math3.stat.inference.KolmogorovSmirnovTest;
 import org.junit.Assert;
-import org.junit.Test;
+import org.junit.experimental.theories.DataPoint;
+import org.junit.experimental.theories.DataPoints;
+import org.junit.experimental.theories.Theory;
 import org.junit.runner.RunWith;
-import org.junit.runners.Parameterized;
 
-import java.util.Collection;
 import java.util.Random;
 
 /**
  * @author Scott Fines
  * Date: 3/27/14
  */
-@RunWith(Parameterized.class)
-//@Ignore
+@RunWith(ParallelTheoryRunner.class)
 public class AdjustedHyperLogLogCounterTest {
 
-    @Parameterized.Parameters
-    public static Collection<Object[]> data() {
-        Collection<Object[]> data = Lists.newArrayList();
-        for(int i=4;i<=16;i++){
-            data.add(new Object[]{i});
-        }
-        return data;
+    @DataPoint public static CardinalityTestData lowCardinality     = new CardinalityTestData(30,100        ,1000000);
+    @DataPoint public static CardinalityTestData lowMidCardinality  = new CardinalityTestData(30,10000      ,1000000);
+    @DataPoint public static CardinalityTestData midCardinality     = new CardinalityTestData(30,100000     ,1000000);
+    @DataPoint public static CardinalityTestData midHighCardinality = new CardinalityTestData(30,1000000    ,1000000);
+    @DataPoint public static CardinalityTestData highCardinality    = new CardinalityTestData(30,10000000   ,10000000);
+    @DataPoints public static int[] precisions = new int[]{4,5,6,7,8,9,10,11,12,13,14,15,16};
+
+    @Theory
+    public void errorIsNormallyDistributed(int precision,CardinalityTestData testData) throws Exception {
+        testErrorDistribution(testData.numTrials,precision,testData.cardinality,testData.size);
     }
 
-    private final int precision;
-
-    public AdjustedHyperLogLogCounterTest(int precision) {
-        this.precision = precision;
-    }
-
-    @Test
-//		@Ignore
-    public void testErrorIsNormallyDistributedHighCardinality() throws Exception {
+    protected void testErrorDistribution(int numTrials, int precision, int numDistincts, int numElements) {
 		/*
 		 * HyperLogLog is accurate within a Normal Distribution. That is,
 		 * with an error threshold of s = 1.04/sqrt(2^precision),
@@ -47,35 +41,7 @@ public class AdjustedHyperLogLogCounterTest {
 		 *
 		 * To test this, we run the same computation a couple hundred times, recording
 		 * the relative error each time, then make sure that the distributions match at the end.
-		 *
 		 */
-
-        int numTrials = 1000;
-        int numDistincts = 10000;
-        int numElements = 50000;
-        testErrorDistribution(numTrials, precision, numDistincts, numElements);
-    }
-
-    @Test
-    public void testErrorIsNormallyDistributedLowCardinality() throws Exception {
-				/*
-				 * HyperLogLog is accurate within a Normal Distribution. That is,
-				 * with an error threshold of s = 1.04/sqrt(2^precision),
-				 * 68% of the time, the relative error will be <= s,
-				 * 95% of the time, it will be <= 2*s, and 99.7% of the time, it will
-				 * be <= 3*s.
-				 *
-				 * To test this, we run the same computation a couple hundred times, recording
-				 * the relative error each time, then make sure that the distributions match at the end.
-				 */
-
-        int numTrials = 100;
-        int numDistincts = 10;
-        int numElements = 100;
-        testErrorDistribution(numTrials, precision, numDistincts, numElements);
-    }
-
-    protected void testErrorDistribution(int numTrials, int precision, int numDistincts, int numElements) {
         double sigma = 1.04d/Math.sqrt(1<<precision);
         NormalDistribution dist = new NormalDistribution(0,sigma);
 
@@ -88,7 +54,7 @@ public class AdjustedHyperLogLogCounterTest {
          */
         boolean hasPositiveError = false;
         for(int i=0;i<numTrials;i++){
-            BaseLogLogCounter estimator = new AdjustedHyperLogLogCounter(precision, HashFunctions.murmur2_64(0));
+            IntCardinalityEstimator estimator = CardinalityEstimators.hyperLogLogInt(precision,HashFunctions.murmur2_64(0));
             double rawError=CardinalityTest.test(estimator,numElements,numDistincts,random);
             error[i] =rawError;
             hasPositiveError = hasPositiveError || rawError!=0d;
@@ -99,4 +65,22 @@ public class AdjustedHyperLogLogCounterTest {
         KolmogorovSmirnovTest test=new KolmogorovSmirnovTest();
         Assert.assertTrue("Error is not normally distributed!",test.kolmogorovSmirnovTest(dist,error,0.01));
     }
+
+    private static class CardinalityTestData{
+        final int numTrials;
+        final int cardinality;
+        final int size;
+
+        public CardinalityTestData(int numTrials,int cardinality,int size){
+            this.numTrials=numTrials;
+            this.cardinality=cardinality;
+            this.size=size;
+        }
+
+        @Override
+        public String toString(){
+            return "("+numTrials+","+cardinality+","+size+")";
+        }
+    }
+
 }

@@ -15,7 +15,7 @@ import java.util.Arrays;
  * Date: 1/1/14
  */
 public class AdjustedHyperLogLogCounter extends BaseBiasAdjustedHyperLogLogCounter {
-		private final byte[] buckets;
+		final byte[] buckets;
 
 
 		public AdjustedHyperLogLogCounter(int size, Hash64 hashFunction) {
@@ -23,7 +23,7 @@ public class AdjustedHyperLogLogCounter extends BaseBiasAdjustedHyperLogLogCount
 				this.buckets = new byte[numRegisters];
 		}
 
-    public AdjustedHyperLogLogCounter(int precision, Hash64 hashFunction, byte[] bytes) {
+    private AdjustedHyperLogLogCounter(int precision, Hash64 hashFunction, byte[] bytes) {
         super(precision, hashFunction);
         this.buckets = bytes;
     }
