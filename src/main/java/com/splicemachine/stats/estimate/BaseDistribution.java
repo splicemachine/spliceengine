@@ -122,14 +122,13 @@ public abstract class BaseDistribution<T> implements Distribution<T> {
         return rowCount;
     }
 
-    protected long estimateEquals(T element) {
-        FrequentElements<T> elements = columnStats.topK();
-        FrequencyEstimate<? extends T> equal = elements.equal(element);
-        if(equal.count()>0) return equal.count();
-        //not a frequent element, so estimate using uniformity assumption
+    protected long getAdjustedCardinality(){
         long cardinality = columnStats.cardinality();
-        long rowCount = columnStats.nonNullCount();
-        return rowCount/cardinality;
+        FrequentElements<T> frequentElements = columnStats.topK();
+        cardinality-=frequentElements.allFrequentElements().size();
+        return cardinality;
     }
+
+    protected abstract long estimateEquals(T element);
 
 }

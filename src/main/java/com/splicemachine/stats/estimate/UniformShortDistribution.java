@@ -11,7 +11,7 @@ import java.util.Set;
  * @author Scott Fines
  *         Date: 3/5/15
  */
-public class UniformShortDistribution extends BaseDistribution<Short> implements ShortDistribution {
+public class UniformShortDistribution extends UniformDistribution<Short> implements ShortDistribution {
     private final double a;
     private final double b;
 
@@ -64,7 +64,7 @@ public class UniformShortDistribution extends BaseDistribution<Short> implements
         ShortFrequentElements fes = (ShortFrequentElements)scs.topK();
         ShortFrequencyEstimate shortFrequencyEstimate = fes.countEqual(value);
         if(shortFrequencyEstimate.count()>0) return shortFrequencyEstimate.count();
-        return getPerRowCount();
+        return uniformEstimate();
     }
 
     @Override
@@ -116,31 +116,12 @@ public class UniformShortDistribution extends BaseDistribution<Short> implements
     private long rangeSelectivity(short start, short stop, boolean includeStart, boolean includeStop, boolean isMin) {
         double baseEstimate = a*stop+b;
         baseEstimate-=a*start+b;
-        long perRowCount = getPerRowCount();
-        if(!includeStart){
-            baseEstimate-=perRowCount;
-        }
-        if(includeStop)
-            baseEstimate+=perRowCount;
 
         //adjust using Frequent Elements
         ShortFrequentElements sfe = (ShortFrequentElements)columnStats.topK();
         //if we are the min value, don't include the start key in frequent elements
         includeStart = includeStart &&!isMin;
         Set<ShortFrequencyEstimate> shortFrequencyEstimates = sfe.frequentBetween(start, stop, includeStart, includeStop);
-        baseEstimate-=shortFrequencyEstimates.size()*perRowCount;
-        for(ShortFrequencyEstimate est:shortFrequencyEstimates){
-            baseEstimate+=est.count()-est.error();
-        }
-        return (long)baseEstimate;
-    }
-
-    private long getPerRowCount() {
-        long cardinality = columnStats.cardinality();
-        long adjustedRowCount = getAdjustedRowCount();
-        if (cardinality > adjustedRowCount && adjustedRowCount > 0) {
-            cardinality = adjustedRowCount;
-        }
-        return adjustedRowCount/cardinality;
+        return uniformRangeCount(includeStart,includeStop,baseEstimate,shortFrequencyEstimates);
     }
 }

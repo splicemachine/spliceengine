@@ -11,7 +11,7 @@ import java.util.Set;
  * @author Scott Fines
  *         Date: 3/5/15
  */
-public class UniformFloatDistribution extends BaseDistribution<Float> implements FloatDistribution {
+public class UniformFloatDistribution extends UniformDistribution<Float> implements FloatDistribution {
     private final double a;
     private final double b;
 
@@ -69,12 +69,7 @@ public class UniformFloatDistribution extends BaseDistribution<Float> implements
         if(floatFrequencyEstimate.count()>0) return floatFrequencyEstimate.count();
 
         //not a frequent element, so estimate the value using cardinality and adjusted row counts
-        long adjustedRowCount = getAdjustedRowCount();
-        long cardinality = fcs.cardinality();
-        if (cardinality > adjustedRowCount && adjustedRowCount > 0) {
-            cardinality = adjustedRowCount;
-        }
-        return adjustedRowCount/cardinality;
+        return uniformEstimate();
     }
 
     @Override
@@ -123,30 +118,11 @@ public class UniformFloatDistribution extends BaseDistribution<Float> implements
     private long rangeSelectivity(float start, float stop, boolean includeStart, boolean includeStop,boolean isMin) {
         double baseEstimate = a*stop+b;
         baseEstimate-=a*start+b;
-        long perRowCount = getPerRowCount();
-        if(!includeStart){
-            baseEstimate-=perRowCount;
-        }
-        if(includeStop)
-            baseEstimate+=perRowCount;
 
         FloatFrequentElements ife = (FloatFrequentElements)columnStats.topK();
         //if we are the min value, don't include the start key in frequent elements
         includeStart = includeStart &&!isMin;
         Set<FloatFrequencyEstimate> ffe = ife.frequentBetween(start, stop, includeStart, includeStop);
-        baseEstimate-=perRowCount*ffe.size();
-        for(FloatFrequencyEstimate est:ffe){
-            baseEstimate+=est.count()-est.error();
-        }
-        return (long)baseEstimate;
-    }
-
-    private long getPerRowCount() {
-        long cardinality = columnStats.cardinality();
-        long adjustedRowCount = getAdjustedRowCount();
-        if (cardinality > adjustedRowCount && adjustedRowCount > 0) {
-            cardinality = adjustedRowCount;
-        }
-        return adjustedRowCount/cardinality;
+        return uniformRangeCount(includeStart,includeStop,baseEstimate,ffe);
     }
 }

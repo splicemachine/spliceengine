@@ -12,7 +12,7 @@ import java.util.Set;
  * @author Scott Fines
  *         Date: 3/5/15
  */
-public class UniformByteDistribution extends BaseDistribution<Byte> implements ByteDistribution{
+public class UniformByteDistribution extends UniformDistribution<Byte> implements ByteDistribution{
     public UniformByteDistribution(ColumnStatistics<Byte> columnStats) {
         super(columnStats, ComparableComparator.<Byte>newComparator());
     }
@@ -28,22 +28,7 @@ public class UniformByteDistribution extends BaseDistribution<Byte> implements B
         ByteFrequencyEstimate byteFrequencyEstimate = bfe.countEqual(value);
         if(byteFrequencyEstimate.count()>0) return byteFrequencyEstimate.count();
 
-        long cardinality=columnStats.cardinality();
-        if(cardinality<=0) return 0l; //there is actually no data here
-        /*
-         * We don't have a frequent element, so assume that we have a uniform distribution of
-         * other elements. This estimate is computed by the formula
-         *
-         * R = (N-Nmin)/cardinality
-         *
-         * where N = the total row count - the size of the min record (if it isn't a frequent element) - size of
-         * all frequent elements
-         */
-        long adjustedRowCount = getAdjustedRowCount();
-        if (cardinality > adjustedRowCount && adjustedRowCount > 0) {
-            cardinality = adjustedRowCount;
-        }
-        return adjustedRowCount/cardinality;
+        return uniformEstimate();
     }
 
     @Override
@@ -114,31 +99,8 @@ public class UniformByteDistribution extends BaseDistribution<Byte> implements B
     /* ***************************************************************************************************************/
     /*private helper methods*/
     private long rangeSelectivity(byte start, byte stop, boolean includeStart, boolean includeStop, boolean isMin) {
-        /*
-         * Compute the base estimate, then adjust it using Frequent elements.
-         *
-         * The base estimate is computed using the formula
-         *
-         * baseEst = (adjustedRowCount*(stop-start))/cardinality
-         *
-         */
-        long adjustedRowCount = getAdjustedRowCount();
-        long cardinality = columnStats.cardinality();
-        if (cardinality > adjustedRowCount && adjustedRowCount > 0) {
-            cardinality = adjustedRowCount;
-        }
-        long perRowCount = adjustedRowCount/cardinality;
+        long perRowCount = uniformEstimate();
         long baseEst = perRowCount*(stop-start);
-        if(!includeStart) {
-            baseEst -= perRowCount;
-        }else if(isMin){
-            //adjust the minimum
-            baseEst-=perRowCount;
-            baseEst+=columnStats.minCount();
-        }
-
-        if(includeStop) baseEst+=perRowCount;
-
         /*
          * Now adjust using Frequent Elements
          */
@@ -146,11 +108,7 @@ public class UniformByteDistribution extends BaseDistribution<Byte> implements B
         //if we are the min value, don't include the start key in frequent elements
         includeStart = includeStart &&!isMin;
         Set<ByteFrequencyEstimate> frequencyEstimates = bfe.frequentBetween(start, stop, includeStart, includeStop);
-        baseEst-=frequencyEstimates.size()*perRowCount;
-        for(ByteFrequencyEstimate est:frequencyEstimates){
-            baseEst+=est.count();
-        }
-        return baseEst;
+        return uniformRangeCount(includeStart,includeStop,baseEst,frequencyEstimates);
     }
 
 }

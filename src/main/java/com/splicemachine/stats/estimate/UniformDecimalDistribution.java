@@ -12,7 +12,7 @@ import java.util.Set;
  * @author Scott Fines
  *         Date: 3/5/15
  */
-public class UniformDecimalDistribution extends BaseDistribution<BigDecimal> {
+public class UniformDecimalDistribution extends UniformDistribution<BigDecimal> {
     private final BigDecimal a;
     private final BigDecimal b;
 
@@ -48,37 +48,19 @@ public class UniformDecimalDistribution extends BaseDistribution<BigDecimal> {
     @Override
     protected long estimateRange(BigDecimal start, BigDecimal stop, boolean includeStart, boolean includeStop, boolean isMin) {
         BigDecimal baseE = a.multiply(stop).add(b).subtract(a.multiply(start).add(b));
-        long rowsPerEntry = getPerRowCount();
         /*
          * This is safe, because the linear function we used has a max of maxValue on the range [minValue,maxValue),
          * with a maximum value of rowCount (we built the linear function to do this). Since rowCount is a long,
          * the value of baseE *MUST* fit within a long (and therefore, within a double).
          */
         double baseEstimate = baseE.doubleValue();
-        if(!includeStart){
-            baseEstimate-=rowsPerEntry;
-        }
-        if(includeStop)
-            baseEstimate+=rowsPerEntry;
 
 
         //if we are the min value, don't include the start key in frequent elements
         includeStart = includeStart &&!isMin;
         //now adjust for the frequent elements in the set
         Set<? extends FrequencyEstimate<BigDecimal>> fe = columnStats.topK().frequentElementsBetween(start,stop,includeStart,includeStop);
-        baseEstimate-= fe.size()*rowsPerEntry;
-        for(FrequencyEstimate<BigDecimal> est:fe){
-            baseEstimate+=est.count()-est.error();
-        }
-        return (long)baseEstimate;
+        return uniformRangeCount(includeStart,includeStop,baseEstimate,fe);
     }
 
-    private long getPerRowCount() {
-        long cardinality = columnStats.cardinality();
-        long adjustedRowCount = getAdjustedRowCount();
-        if (cardinality > adjustedRowCount && adjustedRowCount > 0) {
-            cardinality = adjustedRowCount;
-        }
-        return adjustedRowCount/cardinality;
-    }
 }

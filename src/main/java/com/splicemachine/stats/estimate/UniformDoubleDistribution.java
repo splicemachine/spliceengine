@@ -11,7 +11,7 @@ import java.util.Set;
  * @author Scott Fines
  *         Date: 3/5/15
  */
-public class UniformDoubleDistribution extends BaseDistribution<Double> implements DoubleDistribution {
+public class UniformDoubleDistribution extends UniformDistribution<Double> implements DoubleDistribution {
     private final double a;
     private final double b;
     public UniformDoubleDistribution(DoubleColumnStatistics columnStats) {
@@ -58,12 +58,7 @@ public class UniformDoubleDistribution extends BaseDistribution<Double> implemen
         if(doubleFrequencyEstimate.count()>0) return doubleFrequencyEstimate.count();
 
         //not a frequent element, so estimate the value using cardinality and adjusted row counts
-        long adjustedRowCount = getAdjustedRowCount();
-        long cardinality = fcs.cardinality();
-        if (cardinality > adjustedRowCount && adjustedRowCount > 0) {
-            cardinality = adjustedRowCount;
-        }
-        return adjustedRowCount/cardinality;
+        return uniformEstimate();
     }
 
     @Override
@@ -111,32 +106,13 @@ public class UniformDoubleDistribution extends BaseDistribution<Double> implemen
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private long rangeSelectivity(double start, double stop, boolean includeStart, boolean includeStop,boolean isMin) {
-        double baseEstimate = a*stop+b;
-        baseEstimate-=a*start+b;
-        long perRowCount = getPerRowCount();
-        if(!includeStart){
-            baseEstimate-=perRowCount;
-        }
-        if(includeStop)
-            baseEstimate+=perRowCount;
+        double baseEstimate = a*(stop-start);
 
         DoubleFrequentElements ife = (DoubleFrequentElements)columnStats.topK();
         //if we are the min value, don't include the start key in frequent elements
         includeStart = includeStart &&!isMin;
         Set<DoubleFrequencyEstimate> ffe = ife.frequentBetween(start, stop, includeStart, includeStop);
-        baseEstimate-=perRowCount*ffe.size();
-        for(DoubleFrequencyEstimate est:ffe){
-            baseEstimate+=est.count()-est.error();
-        }
-        return (long)baseEstimate;
+        return uniformRangeCount(includeStart,includeStop,baseEstimate,ffe);
     }
 
-    private long getPerRowCount() {
-        long cardinality = columnStats.cardinality();
-        long adjustedRowCount = getAdjustedRowCount();
-        if (cardinality > adjustedRowCount && adjustedRowCount > 0) {
-            cardinality = adjustedRowCount;
-        }
-        return adjustedRowCount/cardinality;
-    }
 }

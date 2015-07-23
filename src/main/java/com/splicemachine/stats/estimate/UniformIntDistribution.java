@@ -11,7 +11,7 @@ import java.util.Set;
  * @author Scott Fines
  *         Date: 3/5/15
  */
-public class UniformIntDistribution extends BaseDistribution<Integer> implements IntDistribution {
+public class UniformIntDistribution extends UniformDistribution<Integer> implements IntDistribution {
     private final double a;
     private final double b;
 
@@ -58,19 +58,16 @@ public class UniformIntDistribution extends BaseDistribution<Integer> implements
     @Override
     public long selectivity(int value) {
         IntColumnStatistics ics = (IntColumnStatistics)columnStats;
+        //we are outside the range, so we know it's 0
         if(value<ics.min()) return 0l;
-        else if(value==ics.min()) return ics.minCount();
-        else if(value>ics.max()) return 0l;
+        else if(value==ics.min()) return ics.minCount(); //we are asking for the min, we have an exact number!
+        else if(value>ics.max()) return 0l; //we are outside the range, so it's 0
 
+        //if we have an exact count provided by Frequent elements, use that
         IntFrequencyEstimate est = ((IntFrequentElements)ics.topK()).countEqual(value);
         if(est.count()>0) return est.count();
         else {
-            long adjustedRowCount = getAdjustedRowCount();
-            long cardinality = columnStats.cardinality();
-            if (cardinality > adjustedRowCount && adjustedRowCount > 0) {
-                cardinality = adjustedRowCount;
-            }
-            return adjustedRowCount/cardinality;
+            return uniformEstimate();
         }
     }
 
@@ -123,31 +120,13 @@ public class UniformIntDistribution extends BaseDistribution<Integer> implements
     private long rangeSelectivity(int start, int stop, boolean includeStart, boolean includeStop,boolean isMin) {
         double baseEstimate = a*stop+b;
         baseEstimate-=a*start+b;
-        long perRowCount = getPerRowCount();
-        if(!includeStart){
-            baseEstimate-=perRowCount;
-        }
-        if(includeStop)
-            baseEstimate+=perRowCount;
+        includeStart = includeStart &&!isMin;
 
         //adjust using Frequent Elements
         IntFrequentElements ife = (IntFrequentElements)columnStats.topK();
         //if we are the min value, don't include the start key in frequent elements
-        includeStart = includeStart &&!isMin;
         Set<IntFrequencyEstimate> intFrequencyEstimates = ife.frequentBetween(start, stop, includeStart, includeStop);
-        baseEstimate-=perRowCount*intFrequencyEstimates.size();
-        for(IntFrequencyEstimate estimate: intFrequencyEstimates){
-            baseEstimate+=estimate.count()-estimate.error();
-        }
-        return (long)baseEstimate;
+        return uniformRangeCount(includeStart,includeStop, baseEstimate,intFrequencyEstimates);
     }
 
-    private long getPerRowCount() {
-        long cardinality = columnStats.cardinality();
-        long adjustedRowCount = getAdjustedRowCount();
-        if (cardinality > adjustedRowCount && adjustedRowCount > 0) {
-            cardinality = adjustedRowCount;
-        }
-        return adjustedRowCount/cardinality;
-    }
 }
