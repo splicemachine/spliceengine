@@ -10,7 +10,10 @@ import java.util.*;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.load.spark.ImportFunction;
+import com.splicemachine.derby.impl.load.spark.ImportResult;
+import com.splicemachine.derby.stream.function.SpliceFunction2;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.derby.stream.utils.StreamUtils;
@@ -577,18 +580,30 @@ public class HdfsImport {
                                 PairDataSet<String, InputStream> dataSet = dsp.readTextFile(p.toString());
                                 combinedDataset = combinedDataset.union(dataSet);
                             }
-                            List<StandardException> exceptions =
-                                    combinedDataset.mapPartitions(new ImportFunction(context, txn)).collect();
-                            if (!exceptions.isEmpty()) {
-                                throw exceptions.get(0);
+                            ImportResult importResult = combinedDataset
+                                            .mapPartitions(new ImportFunction(context, txn))
+                                            .fold(new ImportResult(0, 0), new SpliceFunction2<SpliceOperation, ImportResult, ImportResult, ImportResult>() {
+                                                @Override
+                                                public ImportResult call(ImportResult r1, ImportResult r2) throws Exception {
+                                                    if (r1.getException() != null) {
+                                                        return r1;
+                                                    }
+                                                    if (r2.getException() != null) {
+                                                        return r2;
+                                                    }
+                                                    return new ImportResult(r1.getImported() + r2.getImported(), r1.getBadRecords() + r2.getBadRecords());
+                                                }
+                                            });
+                            if (importResult.getException() != null) {
+                                throw importResult.getException();
                             }
 
                             ExecRow result = new ValueRow(3);
                             result.setRowArray(new DataValueDescriptor[]{
                                             new SQLInteger(file.getPaths().size()),
                                             new SQLInteger(0), // TODO
-                                            new SQLLongint(Math.max(0,numImported)),
-                                            new SQLLongint(numBadRecords)
+                                            new SQLLongint(Math.max(0,importResult.getImported())),
+                                            new SQLLongint(importResult.getBadRecords())
                             });
                             return result;
 						} catch (IOException e) {
