@@ -5,10 +5,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.test_dao.TriggerBuilder;
 import com.splicemachine.test_dao.TriggerDAO;
 import org.apache.commons.lang.StringUtils;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 
 import java.sql.SQLException;
 
@@ -18,6 +15,7 @@ import static org.junit.Assert.fail;
 /**
  * Tests creating/defining triggers.
  */
+@Ignore("Temporary ignore in dataset")
 public class Trigger_Create_IT {
 
     private static final String SCHEMA = Trigger_Create_IT.class.getSimpleName();

@@ -72,7 +72,7 @@ public class ExportOperationIT {
                         )
                 ).create();
 
-        String exportSQL = buildExportSQL("select * from export_test");
+        String exportSQL = buildExportSQL("select * from export_test order by a");
 
         exportAndAssertExportResults(exportSQL,8);
         File[] files = temporaryFolder.getRoot().listFiles(new PatternFilenameFilter(".*csv"));
@@ -359,9 +359,9 @@ public class ExportOperationIT {
         ResultSet resultSet = methodWatcher.executeQuery(exportSQL);
         assertTrue(resultSet.next());
         long exportedRowCount = resultSet.getLong(1);
-        long exportTimeMs = resultSet.getLong(2);
+//        long exportTimeMs = resultSet.getLong(2);
         assertEquals(expectedExportRowCount, exportedRowCount);
-        assertTrue(exportTimeMs >= 0);
+//        assertTrue(exportTimeMs >= 0);
     }
 
     private Iterable<Iterable<Object>> getTestRows() {

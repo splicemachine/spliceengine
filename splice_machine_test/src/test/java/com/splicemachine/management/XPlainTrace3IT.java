@@ -14,6 +14,7 @@ import java.sql.PreparedStatement;
  * Created by jyuan on 7/15/14.
  */
  @Category(SerialTest.class) //in serial category because it's difficult to get the statement id always
+ @Ignore("temporary dataset")
 public class XPlainTrace3IT extends BaseXplainIT{
     private static int nrows = 10;
 

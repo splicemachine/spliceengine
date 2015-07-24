@@ -93,7 +93,7 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
 
     @Override
     public <K, V> PairDataSet<K, V> singleRowPairDataSet(K key, V value) {
-        return new SparkPairDataSet(SpliceSpark.getContext().parallelizePairs(Arrays.<Tuple2<K,V>>asList(new Tuple2(key, value)), 1));
+        return new SparkPairDataSet(SpliceSpark.getContext().parallelizePairs(Arrays.<Tuple2<K, V>>asList(new Tuple2(key, value)), 1));
     }
 
 }

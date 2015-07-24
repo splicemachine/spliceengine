@@ -1,9 +1,20 @@
 package com.splicemachine.derby.stream.control;
 
+import com.google.common.collect.Iterators;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.db.iapi.types.SQLInteger;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
+import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.export.ExportParams;
 import com.splicemachine.derby.stream.function.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
+import org.apache.hadoop.fs.*;
+import org.apache.hadoop.io.compress.CompressionCodec;
+import org.apache.hadoop.io.compress.GzipCodec;
+import org.apache.hadoop.util.ReflectionUtils;
 import org.sparkproject.guava.common.base.Function;
 import org.sparkproject.guava.common.collect.Iterables;
 import org.sparkproject.guava.common.collect.Multimaps;
@@ -11,13 +22,12 @@ import org.sparkproject.guava.common.collect.Sets;
 import org.sparkproject.guava.common.collect.FluentIterable;
 
 import javax.annotation.Nullable;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.List;
+import java.util.zip.GZIPOutputStream;
 
 /**
  * Created by jleach on 4/13/15.
@@ -156,24 +166,38 @@ public class ControlDataSet<V> implements DataSet<V> {
     }
 
     @Override
-    public void writeToDisk(String path) {
-        PrintWriter out = null;
+    public <Op extends SpliceOperation> DataSet<LocatedRow> writeToDisk(String path, SpliceFunction2<Op, OutputStream, Iterator<V>, Integer> exportFunction) {
+        Integer count;
+        String extension = ".csv";
+        ExportOperation op = (ExportOperation) exportFunction.getOperation();
+        boolean isCompressed = op.getExportParams().isCompression();
+        if (isCompressed) {
+            extension += ".gz";
+        }
         try {
-            File directory = new File(path);
-            directory.mkdir();
-            out = new PrintWriter(path + "/part-00000");
-        } catch (FileNotFoundException e) {
+            Path file = new Path(path);
+            FileSystem fs = file.getFileSystem(SpliceConstants.config);
+            fs.mkdirs(file);
+            OutputStream fileOut = fs.create(new Path(path + "/part-r-00000" + extension), false);
+            if (isCompressed) {
+                fileOut = new GZIPOutputStream(fileOut);
+            }
+            count = exportFunction.call(fileOut, iterable.iterator());
+            fileOut.close();
+        } catch (Exception e) {
             throw new RuntimeException(e);
         }
-        for (V value : iterable) {
-            out.write(value.toString());
-        }
-        out.close();
+
         File success = new File(path + "/_SUCCESS");
         try {
             success.createNewFile();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+
+        ValueRow valueRow = new ValueRow(2);
+        valueRow.setColumn(1,new SQLInteger(count));
+        valueRow.setColumn(2,new SQLInteger(0));
+        return new ControlDataSet<>(Arrays.asList(new LocatedRow(valueRow )));
     }
 }

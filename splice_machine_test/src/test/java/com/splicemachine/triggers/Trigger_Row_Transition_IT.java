@@ -10,11 +10,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.concurrent.TimeUnit;
 
-import org.junit.Before;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
@@ -24,6 +20,7 @@ import com.splicemachine.test_dao.TriggerDAO;
 /**
  * Test ROW triggers with transition variables.
  */
+@Ignore("Temporary ignore in dataset")
 public class Trigger_Row_Transition_IT {
 
     private static final String SCHEMA = Trigger_Row_Transition_IT.class.getSimpleName();

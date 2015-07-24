@@ -18,7 +18,7 @@ import static com.google.common.base.Preconditions.checkNotNull;
 /**
  * Writes ExecRows to a CSVWriter
  */
-class ExportExecRowWriter implements Closeable {
+public class ExportExecRowWriter implements Closeable {
 
     private CsvListWriter csvWriter;
     private NumberFormat decimalFormat = NumberFormat.getInstance();
