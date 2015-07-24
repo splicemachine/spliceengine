@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.splicemachine</groupId>
         <artifactId>db-project</artifactId>
-        <version>1.1.1.5-SNAPSHOT</version>
+        <version>1.5.0.0-SNAPSHOT</version>
     </parent>
     <artifactId>dbclient</artifactId>
     <name>Apache Derby Client JDBC Driver</name>
