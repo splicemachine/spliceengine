@@ -67,15 +67,15 @@ public class SpliceGenericConstantActionFactory extends GenericConstantActionFac
                                                        int tableType, ColumnInfo[] columnInfo,
                                                        ConstantAction[] constraintActions,
                                                        Properties properties,
-																											 char lockGranularity,
+                                                       char lockGranularity,
                                                        boolean onCommitDeleteRows,
-																											 boolean onRollbackDeleteRows,
-																											 StatementNode insertStatement) {
+                                                       boolean onRollbackDeleteRows,
+                                                       StatementNode insertStatement) throws StandardException {
     	SpliceLogUtils.trace(LOG, "getCreateTableConstantAction for {%s.%s} with columnInfo %s and constraintActions",
 							schemaName, tableName, Arrays.toString(columnInfo),Arrays.toString(constraintActions));
         return new SpliceCreateTableOperation(schemaName,tableName,tableType,columnInfo,
-                constraintActions,properties,lockGranularity,
-                onCommitDeleteRows,onRollbackDeleteRows,insertStatement);
+                    constraintActions,properties,lockGranularity,
+                    onCommitDeleteRows,onRollbackDeleteRows,insertStatement);
     }
 
     @Override
