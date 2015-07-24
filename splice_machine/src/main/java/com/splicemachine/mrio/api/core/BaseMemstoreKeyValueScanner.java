@@ -29,7 +29,6 @@ public abstract class BaseMemstoreKeyValueScanner<T> implements KeyValueScanner,
 		assert resultScanner != null:"Passed Result Scanner is null";
 		this.resultScanner = resultScanner;
 		nextResult();		
-		cells = (T[]) dataLib.getDataFromResult(currentResult);
 	}
 	
 	  public T current() {
