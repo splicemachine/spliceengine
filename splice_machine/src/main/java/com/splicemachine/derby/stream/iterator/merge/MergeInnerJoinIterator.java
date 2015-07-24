@@ -44,6 +44,9 @@ public class MergeInnerJoinIterator extends AbstractMergeJoinIterator {
                 while (currentRightIterator.hasNext()) {
                     currentLocatedRow = mergeRows(left, currentRightIterator.next());
                     if (mergeJoinOperation.getRestriction().apply(currentLocatedRow.getRow())) {
+                        if (mergeJoinOperation.isOneRowRightSide()) {
+                            left = null; // only one joined row needed, force iteration on left side next time
+                        }
                         return true;
                     }
                 }
