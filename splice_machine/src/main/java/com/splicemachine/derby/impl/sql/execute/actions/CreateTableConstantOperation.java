@@ -1,5 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
+import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -58,7 +60,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
             Properties		properties,
             char			lockGranularity,
             boolean			onCommitDeleteRows,
-            boolean			onRollbackDeleteRows) {
+            boolean			onRollbackDeleteRows) throws StandardException {
         this.schemaName = schemaName;
         this.tableName = tableName;
         this.tableType = tableType;
@@ -78,6 +80,28 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
                 SanityManager.THROWASSERT("Unexpected value for onRollbackDeleteRows = false");
             }
             SanityManager.ASSERT(schemaName != null, "SchemaName is null");
+        }
+
+        denyXmlColumns(columnInfo);
+    }
+
+    private void denyXmlColumns(ColumnInfo[] columnInfo) throws StandardException {
+        if (columnInfo == null) {
+            return;
+        }
+
+        for (ColumnInfo col : columnInfo) {
+            if (col != null) {
+                DataTypeDescriptor type = col.dataType;
+                if (type != null) {
+                    TypeId typeId = type.getTypeId();
+                    if (typeId != null) {
+                        if (typeId.isXMLTypeId()) {
+                            throw StandardException.newException("XML types are not supported yet");
+                        }
+                    }
+                }
+            }
         }
     }
 
