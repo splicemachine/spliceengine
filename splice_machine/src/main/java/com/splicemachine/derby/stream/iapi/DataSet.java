@@ -1,7 +1,12 @@
 package com.splicemachine.derby.stream.iapi;
 
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
+import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.export.ExportParams;
 import com.splicemachine.derby.stream.function.*;
+
+import java.io.OutputStream;
 import java.util.Iterator;
 import java.util.List;
 
@@ -92,5 +97,7 @@ public interface DataSet<V> {
 
     DataSet<V> take(int take);
 
-    void writeToDisk(String path);
- }
+//    DataSet<LocatedRow> writeToDisk(ExportParams exportParams);
+
+    <Op extends SpliceOperation> DataSet<LocatedRow> writeToDisk(String directory, SpliceFunction2<Op, OutputStream, Iterator<V>, Integer> exportFunction);
+}

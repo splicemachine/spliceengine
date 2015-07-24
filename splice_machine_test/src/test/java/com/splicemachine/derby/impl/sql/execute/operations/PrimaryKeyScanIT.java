@@ -197,6 +197,7 @@ public class PrimaryKeyScanIT extends SpliceUnitTest {
     }
 
 		@Test
+        @Ignore("temporary")
 		public void testRestrictedScanOnOutOfOrderPks() throws Exception {
 				ResultSet rs = methodWatcher.executeQuery(format("select pk_2,val from %s where pk_2 = 'pk_2_1'", spliceTableWatcher2));
 				List<String> results = Lists.newArrayListWithExpectedSize(1);

@@ -12,6 +12,7 @@ import static org.junit.Assert.fail;
 /**
  * Test STATEMENT triggers.
  */
+@Ignore("Temporary ignore in dataset")
 public class Trigger_Statement_IT {
 
     private static final String SCHEMA = Trigger_Statement_IT.class.getSimpleName();

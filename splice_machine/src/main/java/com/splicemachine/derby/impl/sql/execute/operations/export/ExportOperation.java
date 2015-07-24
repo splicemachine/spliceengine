@@ -7,6 +7,7 @@ import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
+import com.splicemachine.derby.stream.function.SpliceFunction2;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
@@ -158,16 +159,15 @@ public class ExportOperation extends SpliceBaseOperation {
     public <Op extends SpliceOperation> DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         DataSet<LocatedRow> dataset = source.getDataSet(dsp);
         OperationContext<ExportOperation> operationContext = dsp.createOperationContext(this);
-        dataset.mapPartitions(new ExportFunction(operationContext)).writeToDisk(exportParams.getDirectory());
-        return dsp.getEmpty();
+        return dataset.writeToDisk(exportParams.getDirectory(), new ExportFunction(operationContext));
     }
 
-    private ExportExecRowWriter initializeExecRowWriter(OutputStream outputStream) throws IOException {
-        CsvListWriter writer = new ExportCSVWriterBuilder().build(outputStream, getExportParams());
+    public static ExportExecRowWriter initializeRowWriter(OutputStream outputStream, ExportParams exportParams) throws IOException {
+        CsvListWriter writer = new ExportCSVWriterBuilder().build(outputStream, exportParams);
         return new ExportExecRowWriter(writer);
     }
 
-    private static class ExportFunction extends SpliceFlatMapFunction<ExportOperation, Iterator<LocatedRow>, String> {
+    private static class ExportFunction extends SpliceFunction2<ExportOperation, OutputStream, Iterator<LocatedRow>, Integer> {
         public ExportFunction() {
         }
 
@@ -176,18 +176,17 @@ public class ExportOperation extends SpliceBaseOperation {
         }
 
         @Override
-        public Iterable<String> call(Iterator<LocatedRow> locatedRowIterator) throws Exception {
+        public Integer call(OutputStream outputStream, Iterator<LocatedRow> locatedRowIterator) throws Exception {
             ExportOperation op = operationContext.getOperation();
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ExportExecRowWriter rowWriter = op.initializeExecRowWriter(baos);
+            ExportExecRowWriter rowWriter = initializeRowWriter(outputStream, op.getExportParams());
+            int count = 0;
             while (locatedRowIterator.hasNext()) {
+                count++;
                 LocatedRow lr = locatedRowIterator.next();
                 rowWriter.writeRow(lr.getRow(), op.getSourceResultColumnDescriptors());
             }
             rowWriter.close();
-            List result = new ArrayList(1);
-            result.add(baos.toString(op.getExportParams().getCharacterEncoding()));
-            return result;
+            return count;
         }
     }
 }

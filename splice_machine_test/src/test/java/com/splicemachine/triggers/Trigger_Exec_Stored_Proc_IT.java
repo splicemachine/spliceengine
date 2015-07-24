@@ -25,6 +25,8 @@ import com.splicemachine.test_dao.TriggerDAO;
  * Note the dependency on user-defined stored procedures in this test class.<br/>
  * See {@link TriggerProcs} for instructions on adding/modifying store procedures.
  */
+
+@Ignore("Temporary ignore in dataset")
 public class Trigger_Exec_Stored_Proc_IT {
 
     private static final String SCHEMA = Trigger_Exec_Stored_Proc_IT.class.getSimpleName();
