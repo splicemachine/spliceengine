@@ -122,7 +122,7 @@ public class SpliceSpark {
         conf.set("spark.io.compression.codec", SpliceConstants.config.get("spark.io.compression.codec","lz4"));
         conf.set("spark.io.compression.lz4.block.size","3276800");
         conf.set("spark.shuffle.compress","false");
-        conf.set("spark.kryoserializer.buffer.mb", "512");
+        conf.set("spark.kryoserializer.buffer.mb", "4");
         conf.set("spark.kryoserializer.buffer.max.mb", "512");
         conf.set("spark.executor.extraJavaOptions", extraOpts);
         conf.set("spark.shuffle.file.buffer.kb","128");
