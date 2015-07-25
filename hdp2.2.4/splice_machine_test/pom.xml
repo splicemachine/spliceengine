@@ -356,7 +356,7 @@
 								<argument>-Xmx8g</argument>
 								<argument>-Xms1g</argument>
 								
-								<argument>-Dderby.debug.true=DumpClassFile</argument>
+								<!-- G1 Collector -->
 								<!--
 								<argument>-XX:MaxPermSize=256M</argument>
 								<argument>-XX:MaxDirectMemorySize=1g</argument>
