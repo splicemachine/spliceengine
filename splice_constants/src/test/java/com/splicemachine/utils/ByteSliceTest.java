@@ -87,4 +87,29 @@ public class ByteSliceTest {
         assertArrayEquals(new byte[]{-1, -2, -3, -4}, byteSlice.array());
     }
 
+    @Test
+    public void byteSliceBufferTooSmall() {
+        ByteSlice.wrap(new byte[]{0}, 0, 1);
+
+        ByteSlice.wrap(new byte[]{0}, 1, 0);
+
+        try {
+            ByteSlice.wrap(new byte[] {0}, 1, 1);
+            fail("Expected too small exception");
+        } catch (Throwable e) {
+            assertTrue(e.getMessage().contains("is too short for"));
+        }
+        try {
+            ByteSlice.wrap(new byte[0], 0, 1);
+            fail("Expected too small exception");
+        } catch (Throwable e) {
+            assertTrue(e.getMessage().contains("is too short for"));
+        }
+        try {
+            ByteSlice.wrap(new byte[0], 1, 0);
+            fail("Expected too small exception");
+        } catch (Throwable e) {
+            assertTrue(e.getMessage().contains("is too short for"));
+        }
+    }
 }

@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.load;
 
 import com.google.common.io.Closeables;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.utils.marshall.PairEncoder;
 import com.splicemachine.hbase.KVPair;
@@ -27,18 +28,19 @@ import java.io.IOException;
  * Date: 1/31/14
  */
 public class SequentialImporter implements Importer{
-		private static final Logger LOG = Logger.getLogger(SequentialImporter.class);
-		private final ImportContext importContext;
+    private static final Logger LOG = Logger.getLogger(SequentialImporter.class);
+    private final ImportContext importContext;
     private final KVPair.Type importType;
     private final MetricFactory metricFactory;
 
-		private volatile boolean closed;
-		private final RecordingCallBuffer<KVPair> writeBuffer;
+    private volatile boolean closed;
+    private final RecordingCallBuffer<KVPair> writeBuffer;
 
-		private final RowParser rowParser;
+    private final RowParser rowParser;
 
-		private Timer writeTimer;
-		private PairEncoder entryEncoder;
+    private Timer writeTimer;
+    private PairEncoder entryEncoder;
+    private ImportErrorReporter errorReporter;
 
     public SequentialImporter(ImportContext importContext,
                               ExecRow templateRow,
@@ -46,93 +48,127 @@ public class SequentialImporter implements Importer{
                               WriteCoordinator writeCoordinator,
                               final ImportErrorReporter errorReporter,
                               KVPair.Type importType){
-				this.importContext = importContext;
+        this.importContext = importContext;
         this.importType = importType;
         this.rowParser = new RowParser(templateRow,importContext,errorReporter);
 
-				if(importContext.shouldRecordStats()){
-						metricFactory = Metrics.basicMetricFactory();
-				}else
-						metricFactory = Metrics.noOpMetricFactory();
+        if (importContext.shouldRecordStats()) {
+            metricFactory = Metrics.basicMetricFactory();
+        } else {
+            metricFactory = Metrics.noOpMetricFactory();
+        }
 
-				WriteConfiguration config = new SequentialImporterWriteConfiguration(
-						writeCoordinator.defaultWriteConfiguration(), this,metricFactory, errorReporter);
-							
-				writeBuffer = writeCoordinator.writeBuffer(importContext.getTableName().getBytes(), txn,config);
-                errorReporter.setWriteBuffer(writeCoordinator.writeBuffer(importContext.getTableName().getBytes(), txn,config));
-		}
+        WriteConfiguration config = new SequentialImporterWriteConfiguration(
+                writeCoordinator.defaultWriteConfiguration(), this,metricFactory, errorReporter);
 
-		@Override
-		public void process(String[] parsedRow) throws Exception {
-				processBatch(parsedRow);
-		}
+        writeBuffer = writeCoordinator.writeBuffer(importContext.getTableName().getBytes(), txn,config);
+        errorReporter.setWriteBuffer(writeCoordinator.writeBuffer(importContext.getTableName().getBytes(), txn,config));
 
-		public boolean isFailed(){
-				return false; //by default, Sequential Imports don't record failures, since they throw errors directly
-		}
+        this.errorReporter = errorReporter;
+    }
 
-		@Override
-		public boolean processBatch(String[]... parsedRows) throws Exception {
-			if(parsedRows==null) return false;
-			if(writeTimer==null)
-					writeTimer = metricFactory.newTimer();
 
-				writeTimer.startTiming();
-				SpliceLogUtils.trace(LOG,"processing %d parsed rows",parsedRows.length);
-				int count=0;
-				for(String[] line:parsedRows){
-						if(line==null) {
-								SpliceLogUtils.trace(LOG,"actually processing %d rows",count);
-								break;
-						}
-						ExecRow row = rowParser.process(line,importContext.getColumnInformation());
-						count++;
-						if(row==null) continue; //unable to parse the row, so skip it.
-						if(entryEncoder==null)
-								entryEncoder = ImportUtils.newEntryEncoder(row,importContext,getRandomGenerator(),importType);
-						// Don't write any rows if we are just doing a pre-import ("check") scan.
-						if(!importContext.isCheckScan())
-							writeBuffer.add(entryEncoder.encode(row));
-				}
-				if(count>0)
-						writeTimer.tick(count);
-				else
-						writeTimer.stopTiming();
-				return count==parsedRows.length; //return true if the batch was full
-		}
+    @Override
+    public void process(String[] parsedRow) throws Exception {
+        processBatch(parsedRow);
+    }
 
-		@Override
-		public boolean isClosed() {
-				return closed;
-		}
+    public boolean isFailed(){
+        return false; //by default, Sequential Imports don't record failures, since they throw errors directly
+    }
 
-		@Override public WriteStats getWriteStats() {
-				if(writeBuffer==null) return WriteStats.NOOP_WRITE_STATS;
-				return writeBuffer.getWriteStats();
-		}
-		@Override
-		public TimeView getTotalTime() {
-				if(writeTimer==null) return Metrics.noOpTimeView();
-				return writeTimer.getTime();
-		}
+    @Override
+    public boolean processBatch(String[]... parsedRows) throws Exception {
+        if(parsedRows==null) return false;
+        if(writeTimer==null)
+            writeTimer = metricFactory.newTimer();
 
-		@Override
-		public void close() throws IOException {
-				closed=true;
-				if(writeTimer==null) return; //we never wrote any records, so don't bother closing
-				try {
-						writeTimer.startTiming();
-						writeBuffer.close();
-						writeTimer.stopTiming();
-				} catch (Exception e) {
-						throw new IOException(e);
-				}finally{
-						Closeables.closeQuietly(entryEncoder);
-				}
-		}
+        writeTimer.startTiming();
+        SpliceLogUtils.trace(LOG,"processing %d parsed rows",parsedRows.length);
+        int count = 0;
+        for (String[] line : parsedRows) {
+            if (line == null) {
+                SpliceLogUtils.trace(LOG, "actually processing %d rows", count);
+                break;
+            }
 
-		protected UUIDGenerator getRandomGenerator(){
-				return SpliceDriver.driver().getUUIDGenerator().newGenerator(128);
-		}
+            ExecRow row = rowParser.process(line, importContext.getColumnInformation());
+            count++;
 
+            if (row == null) continue; //unable to parse the row, so skip it.
+
+            if (entryEncoder == null)
+                entryEncoder = ImportUtils.newEntryEncoder(row, importContext, getRandomGenerator(), importType);
+
+            // Don't write any rows if we are just doing a pre-import ("check") scan.
+            if (!importContext.isCheckScan()) {
+                try {
+                    // sometimes we can parse the text of a field ok, but cannot encode it.
+                    // For example, Datetime fields that are outside of the range we can encode
+                    writeBuffer.add(entryEncoder.encode(row));
+                } catch (StandardException se) {
+                    handleImportError(line, se, "Cannot encode row for import command: ");
+                }
+            }
+        }
+
+        if(count>0)
+            writeTimer.tick(count);
+        else
+            writeTimer.stopTiming();
+
+        return count == parsedRows.length; //return true if the batch was full
+    }
+
+
+
+    @Override
+    public boolean isClosed() {
+        return closed;
+    }
+
+    @Override public WriteStats getWriteStats() {
+        if(writeBuffer==null) return WriteStats.NOOP_WRITE_STATS;
+        return writeBuffer.getWriteStats();
+    }
+    @Override
+    public TimeView getTotalTime() {
+        if(writeTimer==null) return Metrics.noOpTimeView();
+        return writeTimer.getTime();
+    }
+
+    @Override
+    public void close() throws IOException {
+        closed=true;
+        if(writeTimer==null) return; //we never wrote any records, so don't bother closing
+        try {
+            writeTimer.startTiming();
+            writeBuffer.close();
+            writeTimer.stopTiming();
+        } catch (Exception e) {
+            throw new IOException(e);
+        }finally{
+            Closeables.closeQuietly(entryEncoder);
+        }
+    }
+
+    protected UUIDGenerator getRandomGenerator(){
+        return SpliceDriver.driver().getUUIDGenerator().newGenerator(128);
+    }
+
+
+    private String getStrValue(String[] arr) {
+        if (arr == null || arr.length <= 0) {
+            return "null";
+        }
+
+        return arr[0];
+    }
+
+
+    private void handleImportError(String[] line, Exception e, String messagePrefix) {
+        String currentTextLine = getStrValue(line);
+        SpliceLogUtils.warn(LOG, messagePrefix + currentTextLine + " Exception: %s", e.getMessage());
+        errorReporter.reportError(currentTextLine, null);
+    }
 }

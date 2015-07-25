@@ -137,28 +137,12 @@ public class IndexDeleteWriteHandler extends AbstractIndexWriteHandler {
          * 3. issue a delete against the index table
          */
         try {
-            Get get = SpliceUtils.createGet(ctx.getTxn(), mutation.getRowKey());
-            EntryPredicateFilter predicateFilter = new EntryPredicateFilter(indexedColumns, new ObjectArrayList<Predicate>(),true);
-            get.setAttribute(SpliceConstants.ENTRY_PREDICATE_LABEL,predicateFilter.toBytes());
-            Result result = ctx.getRegion().get(get);
-            if(result==null||result.isEmpty()){
-            	if (LOG.isTraceEnabled())
-            		SpliceLogUtils.trace(LOG, "already deleted, wierd but ok %s", mutation);
+            KVPair indexDelete = transformer.createIndexDelete(mutation, ctx, indexedColumns);
+            if (indexDelete == null) {
                 //already deleted? Weird, but okay, we can deal with that
                 ctx.success(mutation);
                 return;
             }
-
-            KeyValue resultValue = null;
-            for(KeyValue value:result.raw()){
-                if(CellUtil.matchingFamily(value,SpliceConstants.DEFAULT_FAMILY_BYTES)
-                        && CellUtil.matchingQualifier(value,SpliceConstants.PACKED_COLUMN_BYTES)){
-                    resultValue = value;
-                    break;
-                }
-            }
-            KVPair resultPair = new KVPair(get.getRow(),resultValue.getValue(), KVPair.Type.DELETE);
-            KVPair indexDelete = transformer.translate(resultPair);
             if(keepState)
                 this.indexToMainMutationMap.put(indexDelete,mutation);
         	if (LOG.isTraceEnabled())

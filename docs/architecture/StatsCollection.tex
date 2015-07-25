@@ -1,0 +1,52 @@
+Statistics collection occurs using a manual collection process (there is no automatic collection). There are two main stored procedures which are used to collect and process statistics:
+
+\begin{itemize}
+\item \collecttablestats collects statistics for an individual table and its associated indices
+\item \collectschemastats collects statistics for all tables and indices in a schema.
+\end{itemize}
+
+Both procedures are synchronous--once executed, the procedure will wait until statistics have been collected for every region of every involved table and index. The collection occurs using the task framework, and is not rate-limited (Rate limiting would behave counter to the understanding that a user initiated collection.
+
+A collection for a given conglomerate is a parallel execution where each region involved is \emph{fully scanned}, and data is collected for all rows in that region\footnote{This is because an LSM tree cannot be reasonably sampled}. 
+
+\subsection{Enabling and Disabling Column Statistics}
+Collecting statistics is not free, and should not be treated as free:
+
+\begin{enumerate}
+\item[Cardinality] requires between $2^{4}$ and $2^{16}$ bytes \emph{per column collected}. If the maximum number of columns ($1024$) is collected with maximum configured accuracy, then this will require $2^{26}$ bytes, or 64 MB of heap.
+\item[Frequent Elements] requires $K$ objects and $2K$ longs \emph{per column collected}, where $K$ is the number of frequent elements to keep. If the 100 most frequent elements are kept, then the counters alone require $1.5$ KB \emph{per column}. If the maximum number of columns are collected, then this requires $1.5*1024 \approx 1.5$ MB of heap.
+\item[Histograms] are not yet implemented, but when implemented will require $\Omega(\lg{N})$ space for each column (where $N$ is the number of rows in the region).
+\end{enumerate}
+
+This is not necessarily a \emph{huge} cost, but it should be considered. Thus, there is a mechanism for enabling and disabling collection for some columns. This can be done by invoking one of the following procedures:
+
+\begin{enumerate}
+\item \texttt{SYSCS\_UTIL.ENABLE\_COLUMN\_STATISTICS} 
+\item \texttt{SYSCS\_UTIL.DISABLE\_COLUMN\_STATISTICS} 
+\end{enumerate}
+by default, all columns are collected in Lassen. To determine whether or not a column is enabled for statistics collection, execute
+\begin{lstlisting}[frame=single,captionpos=b,caption=Determine if column has statistics enabled,language=SQL]
+select
+	c.columnname
+	,case 
+		when c.collectstats is null then true 
+		else c.collectstats 
+	end as collectstats
+from 
+	sys.systables t
+	,sys.sysschemas s,
+ 	,sys.syscolumns c
+where 
+	t.tableid = c.referenceid
+	and t.schemaid = s.schemaid
+	and t.tablename = '<Table>'
+	and s.schemaname = '<Schema>'
+\end{lstlisting}
+
+It should be noted that some column types (such as blobs and clobs) cannot be collected, and thus cannot be enabled. It is also worth noting that \emph{keyed} columns\footnote{That is, columns which are included in an index or a primary key} cannot be disabled--they must always be collected. This is because keyed columns are heavily used by the optimizer to ensure that scan selectivity is accurate, and that accuracy is undermined when no statistics are present for a given keyed column.
+
+\subsection{Stale-only collections}
+Efficiency dictates that, whenever possible, regions should not be collected unless one can reasonably know that the region needs to be collected. When a region needs a new statistics collection (either because of mutations, or because statistics does not exist), it is said to be \emph{stale}. When collecting statistics for the first time, all regions must be involved, but afterwards only stale regions need to be recollected.
+
+Staleness detection, and the accompanying stale-only collection, is not yet implemented. However, to allow a clean API when stale-only collections are implemented, a boolean \emph{stale-only} parameter is added to the \collecttablestats and \break \collectschemastats stored procedures. This parameter is currently ignored, but is reserved for future use.
+

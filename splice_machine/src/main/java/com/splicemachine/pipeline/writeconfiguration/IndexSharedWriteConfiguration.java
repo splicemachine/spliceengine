@@ -75,7 +75,12 @@ public class IndexSharedWriteConfiguration extends BaseWriteConfiguration {
                     for (Pair<WriteContext, ObjectObjectOpenHashMap<KVPair, KVPair>> pair : sharedMainMutationList) {
                         KVPair main = pair.getSecond().get(kvPair);
                         WriteContext context = pair.getFirst();
-                        assert main != null && context != null;
+                        // The "main" kvPair from the context may not match the one from the context that failed.
+                        // This can happen, for instance, when we have an index update - there's a delete ctx
+                        // and an update ctx. Both fail but it may be the constraint check on the update that
+                        // caused it.
+                        // However, ALL ctxs must NOT be null.
+                        assert context != null;
                         context.failed(main, mutationResult);
                     }
                 }

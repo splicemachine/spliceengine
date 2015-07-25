@@ -83,33 +83,7 @@ public class SMOutputFormat extends OutputFormat<RowLocation,ExecRow> implements
                     colNames.add(nameType.getName());
                 }
                 TableScannerBuilder tableScannerBuilder = util.getTableScannerBuilder(tableName, colNames);
-
-                int[] execRowIds = tableScannerBuilder.getExecRowTypeFormatIds();
-                Map<String, ColumnContext.Builder> columns = util.getColumns(tableName);
-                ColumnContext[] columnContexts = new ColumnContext[columns.size()];
-                int index = 0;
-                for (ColumnContext.Builder colBuilder : columns.values()) {
-                    ColumnContext context = colBuilder.build();
-                    columnContexts[index++] = context;
-                }
-                String conglomerateId = util.getConglomID(tableName);
-
-                List<PKColumnNamePosition> pkColumnNamePositions = util.getPrimaryKeys(tableName);
-
-                List<String> columnNames = new ArrayList<String>(nameTypes.size());
-                for (int i = 0; i < nameTypes.size(); i++) {
-                    columnNames.add(nameTypes.get(i).getName());
-                }
-
-                int[] columnOrdering = util.getKeyColumnEncodingOrder(nameTypes, pkColumnNamePositions);
-                int[] pkCols = new int[0];
-                if (columnOrdering != null && columnOrdering.length > 0) {
-                    pkCols = new int[columnOrdering.length];
-                    for (int i = 0; i < columnOrdering.length; ++i) {
-                        pkCols[i] = columnOrdering[i] + 1;
-                    }
-                }
-                TableContext tableContext = new TableContext(columnContexts, pkCols, execRowIds, new Long(conglomerateId));
+                TableContext tableContext = util.createTableContext(tableName, tableScannerBuilder);
                 conf.set(MRConstants.SPLICE_TBLE_CONTEXT, tableContext.getTableContextBase64String());
 
             } catch (Exception e) {

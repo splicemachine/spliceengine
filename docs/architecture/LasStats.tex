@@ -1,0 +1,131 @@
+\newcommand{\collecttablestats}{\texttt{SYSCS\_UTIL.COLLECT\_TABLE\_STATISTICS }}
+\newcommand{\collectschemastats}{\texttt{SYSCS\_UTIL.COLLECT\_SCHEMA\_STATISTICS }}
+\newcommand{\systablestats}{\texttt{SYS.SYSTABLESTATS }}
+\newcommand{\systablestatistics}{\texttt{SYS.SYSTABLESTATISTICS	}}
+\newcommand{\syscolumnstats}{\texttt{SYS.SYSCOLUMNSTATS }}
+\newcommand{\syscolumnstatistics}{\texttt{SYS.SYSCOLUMNSTATISTICS }}
+
+\section{Overview}
+Understanding the role of statistics in a relational database is typically tightly connected to understanding the role of the query optimizer. In most databases\footnote{see Appendix-\ref{OtherDbs}}, statistics information is a tool which is used only during the query planning and optimization stage, and is not used at any other stage of the execution process. This view that statistics is only helpful to the query optimizer has significant consequences on how the statistical systems in those databases have been implemented. There are variations, but the central theme of statistics in database products to this point is to acquire a small by statistically significant sample of data, and computing a simple set of statistics from this sample. This has the advantage of being relatively easy to understand and implement, but tends to destroy any bounds between two individual partitions of data. Because these partition boundaries are destroyed, implementations are then forced into the circular view that statistics is only global in nature.
+
+In most database products, this global view has a minimal impact, because its operations tend to be concentrated into a single operational server anyway\footnote{In the sense that there is typically some form of \emph{master} server which manages the actual query planning}. However, SpliceMachine has a fundamentally different approach. Because each server is able to share both the optimization \emph{and} the execution load of the entire system, we have an essentially distributed architecture. This allows us, with some careful consideration, to approach statistics as both a \emph{global} and a \emph{local} entity--that is, we can either consider statistics for the entire data set as a single, global entity, or we can consider statistics at each individual region. 
+
+There are two significant advantages that this grants us. Firstly, we can perform collections in a different way, as each region of data can be considered to own its data independently of all other regions in a table. Secondly, because each region is isolated, we can use statistics which are collected \emph{for an individual region} to optimize region-specific \emph{execution} resources; in turn, this allows us to ensure that SpliceMachine runs more predictably and stably even under the stress of many simultaneous and distinct workloads.
+
+This document is broken down into 5 sections. In the \textbf{Goals} section, we describe the high-level goals which we are aiming to acheive. These are essentially a restatement of user and product requirements. In the \textbf{Architecture} section, we will describe at a high level how the overall architecture will operate. From there, the \textbf{Collection} section describes how statistics information is to be collected, while the \textbf{Storage} section will describe what will be stored and how. Finally, we provide three significant appendices. \textbf{Appendix-\ref{OtherDBs}} describes statistics systems in other database products.\textbf{Appendix-\ref{Algorithms}} provides mathematical details and justifications for how individual statistics algorithms are to be collected. These appendices provide context about why some decisions were made, and how they affect the overall design of the statistic engine, but are not significant to understanding the design itself.  Finally, \textbf{Appendix-\ref{Future}} provides details about which features are still undeveloped, and slated for future releases. 
+
+\section{Goals}
+\input{StatGoals}
+
+\section{Architecture}
+\input{StatsArchitecture}
+
+\section{Statistics}
+\label{sec:Statistics}
+\input{StatsAlgorithms}
+
+\section{Collection}
+\input{StatsCollection}
+\section{Storage}
+Statistics data is stored in 3 distinct system tables:
+\begin{enumerate}
+\item \systablestats
+\item \syscolumnstats
+\item \texttt{SYS.SYSPHYSICALSTATS}
+\end{enumerate}
+
+\texttt{SYS.SYSPHYSICALSTATS} is currently unused--it is reserved for future improvements to the statistics library. 
+
+Statistics are collected and stored on a per-\emph{partition}\footnote{a \emph{partition} is simply a contiguous, uniquely identifiable collection of rows. In Lassen, a partition is the same thing as a region, but there is no reason that must remain true for all time} basis. Because of this, the \systablestats and \syscolumnstats tables are somewhat awkward for human visiblity; one would need to manually aggregate up values to construct a global view of statistics. 
+
+Due to that, we also introduce two major views: 
+
+\begin{enumerate}
+\item \systablestatistics
+\item \syscolumnstatistics
+\end{enumerate}
+
+These views should be treated as the primary mechanism for viewing human-readable statistics information.
+
+\subsection{Table Statistics}
+\systablestats stores statistical information about the conglomerate itself; its schema is described in Table-\ref{table:tableStats}. This table is partition-specific. For a human-readable view, use \systablestatistics instead(scheam in Table-\ref{table:tableStatistics}).
+
+\begin{table}
+	\begin{tabular}{|l|c|p{6cm}|}
+		\hline
+		\bf{Name}											&	\bf{Type}	& \bf{Description} \\ \hline
+		\texttt{conglomerateid}				&	bigint		& The id of the conglomerate \\ \hline
+		\texttt{partitionid}					&	varchar		&	The unique identifier for the partition \\ \hline
+		\texttt{last\_updated}				&	timestamp	&	The last time statistics was collected for this conglomerate \\ \hline
+		\texttt{is\_stale}						&	boolean		&	Whether or not these statistics are stale \\ \hline
+		\texttt{in\_progress}					&	boolean		&	Whether or not a collection is in progress \\ \hline
+		\texttt{rowcount}							&	bigint		&	The total number of rows in the partition \\ \hline
+		\texttt{partition\_size}			&	bigint		&	The total number of bytes in the partition \\ \hline
+		\texttt{meanrowwidth}					&	integer		&	The average width of a row in this partition \\ \hline
+		\texttt{querycount}						&	bigint		&	The total number of queries addressed to this region. \\ \hline
+		\texttt{localreadlatency}			&	bigint		&	The average time to read a single row within the same JVM (in microseconds) \\ \hline
+		\texttt{remotereadlatency}		&	bigint		&	The average time to read a single row over the network (in microseconds) \\ \hline
+		\texttt{writelatency}					&	bigint		&	The average time to write a single row over the network (in microseconds) \\ \hline
+		\texttt{openscannerlatency} 	&	bigint		&	The average time to open a remote scanner against this partition (in microseconds) \\ \hline
+		\texttt{closescannerlatency}	&	bigint		&	The average time to close a remote scanner against this partition (in microseconds) \\ \hline
+	\end{tabular}
+	\caption{\texttt{\systablestats table schema}}
+	\label{table:tableStats}
+\end{table}
+
+\begin{table}
+	\begin{tabular}{|l|c|p{6cm}|}
+		\hline
+		\bf{Name}											&	\bf{Type}	& \bf{Description} \\ \hline
+		\texttt{schemaname}						&	varchar		&	The name of the schema for this conglomerate \\ \hline
+		\texttt{tablename}						&	varchar		&	The name of the table for this conglomerate \\ \hline
+		\texttt{total\_row\_count}		&	bigint		&	The total number of rows in the conglomerate \\ \hline
+		\texttt{avg\_row\_count}			&	bigint		&	The average number of rows in a single partition \\ \hline
+		\texttt{total\_size}					&	bigint		&	The total number of bytes in the conglomerate \\ \hline
+		\texttt{num\_partitions}			&	bigint		&	The number of active partitions for this conglomerate \\ \hline
+		\texttt{avg\_partition\_size}	&	bigint		&	The average size of a single partition (in bytes) \\ \hline
+		\texttt{row\_width}						&	bigint		&	The average width of a single row (in bytes) \\ \hline
+		\texttt{total\_query\_count}	&	bigint		&	The total number of queries against any partition \\ \hline
+		\texttt{avg\_query\_count}		& bigint		&	The average number of queries addressed to a single partition \\ \hline
+		\texttt{avg\_local\_read\_latency}	&	bigint	&	The average local read latency, across all partitions (in microseconds) \\ \hline
+		\texttt{avg\_remote\_read\_latency}	&	bigint	&	The average remote read latency, across all partitions (in microseconds) \\ \hline
+		\texttt{avg\_write\_latency} 				&	bigint	&	the average write latency, across all partitions (in microseconds) \\ \hline
+	\end{tabular}
+\caption{\systablestatistics \texttt{table schema}}
+\label{table:columnStats}
+\end{table}
+
+\subsection{Column Statistics}
+\syscolumnstats stores the per-partition view of column data, particularly information about cardinality and distributions of column values; its schema can be found in Table-\ref{table:columnStats}. \syscolumnstatistics is used to present a human-readable view over \syscolumnstats, with a schema found in Table-\ref{table:columnStatistics}. 
+
+\begin{table}
+	\begin{tabular}{|l|c|p{6cm}|}
+		\hline
+		\bf{Name}											&	\bf{Type}	& \bf{Description} \\ \hline
+		\texttt{conglom\_id}					&	bigint		&	the unique id for the owning conglomerate \\ \hline
+		\texttt{partition\_id}				&	varchar		&	the unique id for the owning partition \\ \hline
+		\texttt{column\_id}						&	integer		&	the unique id for the column \\ \hline
+		\texttt{data}									&	binary		&	A binary-encoded representation of column data \\ \hline
+	\end{tabular}
+	\caption{\syscolumnstats \texttt{table schema}}
+	\label{table:columnStats}
+\end{table}
+
+\begin{table}
+	\begin{tabular}{|l|c|p{6cm}|}
+		\hline
+		\bf{Name}											&	\bf{Type}	& \bf{Description} \\ \hline
+		\texttt{schemaname}						&	varchar		&	The name of the schema for this conglomerate \\ \hline
+		\texttt{tablename}						&	varchar		&	The name of the table for this conglomerate \\ \hline
+		\texttt{columnname}						&	varchar		&	The name of the column \\ \hline
+		\texttt{cardinality}					&	bigint		&	The cardinality of the column \\ \hline
+		\texttt{null\_count}					&	bigint		&	The number of null values for the column \\ \hline
+		\texttt{null\_fraction}				&	real			&	The ratio of null to non-null records \\ \hline
+		\texttt{min\_value}						&	varchar		&	A string version of the minimum value of the column \\ \hline
+		\texttt{max\_value}						&	varchar		&	A string version of the maximum value of the column \\ \hline
+		\texttt{top\_k}								&	varchar		&	A comma-separated list of $(value,count,error)$ tuples representing the top $k$ most frequent non-null values for this column. \\ \hline
+	\end{tabular}
+	\caption{\syscolumnstatistics \texttt{table schema}}
+	\label{table:columnStatistics}
+\end{table}
+

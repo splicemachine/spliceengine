@@ -3,12 +3,16 @@ package com.splicemachine.derby.management;
 import com.google.common.collect.Lists;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.si.api.TxnView;
+import com.splicemachine.tools.EmbedConnectionMaker;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import com.splicemachine.db.iapi.error.StandardException;
+
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.sql.CallableStatement;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -163,5 +167,32 @@ public class StatementManager implements StatementManagement{
 			}
 		}
 		return null;
+	}
+
+	@Override
+	public void emptyStatementCache() throws SQLException {
+		// Only known usage of this would be from the back end of SYSCS_EMPTY_GLOBAL_STATEMENT_CACHE
+		// stored procedure, which calls this method for each region server. Once we are here,
+		// we unfortunately can't just call SystemProcedures.SYSCS_EMPTY_STATEMENT_CACHE directly,
+		// because like most code in that class, it assumes it's being called within the context
+		// of a SQL statement (it needs LanguageConnectionContext and such). But here in
+		// the StatementManager MBean, that is not available. We need to invoke the single node
+		// stored procedure directly. This is fine, and we do it in other cases too such as
+		// SYSCS_SET_GLOBAL_DATABASE_PROPERTY / SYSCS_SET_DATABASE_PROPERTY.
+		
+		SpliceLogUtils.info(LOG, "Emptying statement cache on this server...");
+		Connection dbConn = getConnection();
+		CallableStatement stmt = dbConn.prepareCall("CALL SYSCS_UTIL.SYSCS_EMPTY_STATEMENT_CACHE()");
+		try {
+			stmt.executeUpdate();
+		} finally {
+			stmt.close();
+		}
+		SpliceLogUtils.info(LOG, "Successfully emptied statement cache.");
+	}
+
+	private Connection getConnection() throws SQLException {
+		EmbedConnectionMaker connMaker = new EmbedConnectionMaker();
+		return connMaker.createNew();
 	}
 }

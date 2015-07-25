@@ -1,0 +1,45 @@
+\newcommand{\collecttablestats}{\texttt{SYSCS\_UTIL.COLLECT\_TABLE\_STATISTICS}}
+\newcommand{\collectschemastats}{\texttt{SYSCS\_UTIL.COLLECT\_SCHEMA\_STATISTICS}}
+\newcommand{\systablestats}{\texttt{SYS.SYSTABLESTATS}}
+\newcommand{\systablestatistics}]{\texttt{SYS.SYSTABLESTATISTICS}}
+\newcommand{\syscolumnstats}{\texttt{SYS.SYSCOLUMNSTATS}}
+\newcommand{\syscolumnstatistics}{\texttt{SYS.SYSCOLUMNSTATISTICS}}
+
+\section{Overview}
+
+\section{Collection}
+Statistics collection occurs using a manual collection process (there is no automatic collection). There are two main stored procedures which are used to collect and process statistics:
+
+\begin{list}
+\item \collecttablestats collects statistics for an individual table and its associated indices
+\item \collectschemastats collect statistics for all tables and indices in a schema.
+\end{list}
+
+Both procedures are synchronous--once executed, the procedure will wait until statistics have been collected for every region of every involved table and index. The collection occurs using the task framework, and is not rate-limited (Rate limiting would behave counter to the understanding that a user initiated collection.
+
+\subsection{Enabling and Disabling Column Statistics}
+Collecting statistics is not free, and should not be treated as free:
+
+\begin{enumerate}
+\item[Cardinality] requires between $2^{4}$ and $2^{16}$ bytes \emph{per column collected}. If the maximum number of columns ($1024$) is collected with maximum configured accuracy, then this will require $2^{26}$ bytes, or 64 MB of heap.
+\item[Frequent Elements] requires $K$ objects and $2K$ longs \emph{per column collected}, where $K$ is the number of frequent elements to keep. If the 100 most frequent elements are kept, then the counters alone require $1.5$ KB \emph{per column}. If the maximum number of columns are collected, then this requires $1.5*1024 \approx 1.5$ MB of heap.
+\item[Histograms] are not yet implemented, but when implemented will require $\Omega(\lg{N})$ space for each column (where $N$ is the number of rows in the region).
+\end{enumerate}
+
+This is not necessarily a \emph{huge} cost, but it should be considered. Thus, there is a mechanism for enabling and disabling collection for some columns. This can be done by invoking one of the following procedures:
+
+\begin{enumerate}
+\item \texttt{SYSCS\_UTIL.ENABLE\_COLUMN\_STATISTICS} 
+\item \texttt{SYSCS\_UTIL.DISABLE\_COLUMN\_STATISTICS} 
+\end{enumerate}
+by default, all columns are collected in Lassen.
+
+It should be noted that some column types (such as blobs and clobs) cannot be collected, and thus cannot be enabled. It is also worth noting that \emph{keyed} columns\footnote{That is, columns which are included in an index or a primary key} cannot be disabled--they must always be collected.
+
+\section{Storage}
+
+\section{Algorithms}
+
+\section{Usage in the Optimizer}
+
+\section{Missing Features}

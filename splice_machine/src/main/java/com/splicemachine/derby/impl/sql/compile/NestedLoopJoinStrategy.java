@@ -294,20 +294,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
          * to read the innerScan's rows over the network twice--once to pull them to the outer table's region,
          * and again to write that data across the network.
          */
-        List<Predicate> allPreds;
-        if(predList!=null && predList.size()>0){
-            allPreds=new ArrayList<>(predList.size());
-            for(int i=0;i<predList.size();i++){
-                allPreds.add((Predicate)predList.getOptPredicate(i));
-            }
-        }else
-            allPreds = Collections.emptyList();
-        /*
-         * We estimate the inputJoinSelectivity using just predicates which deal with the start and stop keys
-         * of the join.
-         *
-         * We estimate the outputJoinSelectivity using all the available predicates
-         */
+
         /*
          * If the row count is 1l, then we are either a keyed lookup (a special case handled
          * in FromBaseTable directly), or we are on a table with exactly 1 row returned (which is wild).
@@ -342,11 +329,8 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
 //                (long)innerCost.rowCount(),
 //                false,
 //                )
-        double outputJoinSelectivity = estimateJoinSelectivity(innerTable,cd,allPreds);
+        double outputJoinSelectivity = estimateJoinSelectivity(innerTable,cd,predList, innerScanOutputRows);
         if(innerCost.getEstimatedRowCount()!=1l){
-            double inputJoinSelectivity=getStartStopSelectivity(innerTable,cd,allPreds);
-
-            innerScanLocalCost *= inputJoinSelectivity;
             innerScanRemoteCost *= outputJoinSelectivity;
             innerScanHeapSize *= outputJoinSelectivity;
             innerScanOutputRows*=outputJoinSelectivity;
@@ -371,17 +355,6 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         }
         double totalRemoteCost=totalOutputRows*perRowRemoteCost;
 
-        /*
-         * NestedLoopJoin is unusual for a join, because it can actually change the underlying table
-         * costs with each scan. To correct for this, we will adjust the inner table's base costs as
-         * appropriate.
-         */
-        CostEstimate baseInnerCost=innerCost.getBase();
-        baseInnerCost.setLocalCost(innerScanLocalCost);
-        baseInnerCost.setRemoteCost(innerScanRemoteCost);
-        baseInnerCost.setRowCount(innerScanOutputRows);
-        baseInnerCost.setEstimatedHeapSize((long)innerScanHeapSize);
-
         innerCost.setEstimatedHeapSize((long)totalHeapSize);
         innerCost.setNumPartitions(totalPartitions);
         innerCost.setRowCount(totalOutputRows);
@@ -405,96 +378,6 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
 
     /* ****************************************************************************************************************/
     /*private helper methods*/
-    private double getStartStopSelectivity(Optimizable innerTable,
-                                           ConglomerateDescriptor cd,
-                                           List<Predicate> allPreds) throws StandardException{
-        /*
-         * Here we get the start and stop keys in the predicate list which are join predicates
-         */
-        List<Predicate> startKeys=new LinkedList<>();
-        List<Predicate> stopKeys=new LinkedList<>();
-        BitSet startKeyPositions=new BitSet();
-        BitSet stopKeyPositions=new BitSet();
-        for(Predicate pred : allPreds){
-            if(!pred.isStopKey() && !pred.isStartKey()) continue; //ignore non-key predicates
-
-            ColumnReference columnOperand=pred.getRelop().getColumnOperand(innerTable);
-            //we know that we are an index, because Primary keys are treated as indices for optimization
-            int keySpot=cd.getIndexDescriptor().getKeyColumnPosition(columnOperand.getColumnNumber());
-            /*
-             * We only care about the selectivity of the join predicates, because all the other
-             * predicates have already been taken into account. However, we still want to keep
-             * track of those positions, because they may fill in a gap in the start or stop key (and
-             * thus allow us to use start and stop selectivity even though it's not filled with join keys)
-             */
-            if(pred.isStartKey()){
-                startKeyPositions.set(keySpot);
-                if(pred.isJoinPredicate())
-                    startKeys.add(pred);
-            }
-
-            if(pred.isStopKey()){
-                stopKeyPositions.set(keySpot);
-                if(pred.isJoinPredicate())
-                    stopKeys.add(pred);
-            }
-        }
-        //TODO -sf- make this more accurate based on matching start and stop join predicates for != predicates
-        double startSelectivity=estimateKeySelectivity(innerTable,cd,startKeys,startKeyPositions);
-        double stopSelectivity=estimateKeySelectivity(innerTable,cd,stopKeys,stopKeyPositions);
-
-        return startSelectivity*stopSelectivity;
-    }
-
-    private double estimateKeySelectivity(Optimizable innerTable,
-                                          ConglomerateDescriptor cd,
-                                          List<Predicate> keys,
-                                          BitSet keyPositions) throws StandardException{
-    /*
-     * We can only use the start key for selectivity if there are no gaps. We don't know exactly
-     * how many key columns we are using, but we don't really care, as long as there aren't any gaps in the middle
-     * anywhere
-     */
-        int startKeySelectivityStop=keyPositions.length();
-        for(int i=0;i<keyPositions.length();i++){
-            if(!keyPositions.get(i)){
-                //we are done with the start key selectivity
-                startKeySelectivityStop=i;
-                break;
-            }
-        }
-        double selectivity=1.0d;
-        if(startKeySelectivityStop>0){
-            for(Predicate startKey : keys){
-                //we have a start join key. If we can apply it to the start key, then we are good
-                ColumnReference columnOperand=startKey.getRelop().getColumnOperand(innerTable);
-                //we know that we are an index, because Primary keys are treated as indices for optimization
-                int keySpot=cd.getIndexDescriptor().getKeyColumnPosition(columnOperand.getColumnNumber());
-                if(keySpot<startKeySelectivityStop){
-                    //we can apply this selectivity!
-                    selectivity*=estimateSelectivityOfJoinPredicate(innerTable,cd,startKey);
-                }
-            }
-        }
-        return selectivity;
-    }
-
-    private double estimateSelectivityOfJoinPredicate(Optimizable innerTable,ConglomerateDescriptor cd,Predicate predicate) throws StandardException{
-        //TODO -sf- make this more accurate based on cardinalities etc.
-        return predicate.selectivity(innerTable,cd);
-//        return predicate.selectivity(innerTable);
-    }
-
-    private double estimateJoinSelectivity(Optimizable innerTable,ConglomerateDescriptor cd,List<Predicate> predicates) throws StandardException{
-        double selectivity=1.0d;
-        for(Predicate predicate : predicates){
-            //ignore join predicates, because FromBaseTable takes those into account
-            if(!predicate.isJoinPredicate()) continue;
-            selectivity*=estimateSelectivityOfJoinPredicate(innerTable,cd,predicate);
-        }
-        return selectivity;
-    }
-
 
     @Override
     public JoinStrategyType getJoinStrategyType() {

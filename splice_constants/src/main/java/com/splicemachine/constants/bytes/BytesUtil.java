@@ -153,7 +153,7 @@ public class BytesUtil {
      *
      * @param emptyGreater indicates whether empty byte[] are greater or less than non-empty values.
      */
-    private static int compareBytes(boolean emptyGreater, byte[] x, byte[] y) {
+    public static int compareBytes(boolean emptyGreater, byte[] x, byte[] y) {
         if (empty(x)) {
             if (empty(y)) {
                 return 0;

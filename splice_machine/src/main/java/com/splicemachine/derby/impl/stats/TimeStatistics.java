@@ -111,6 +111,11 @@ public abstract class TimeStatistics extends BaseDvdStatistics{
         }
 
         protected abstract DataValueDescriptor wrap(long value);
+
+        @Override
+        public String toString(){
+            return "("+wrap(lfe.value())+","+lfe.count()+","+lfe.error()+")";
+        }
     }
 
     protected static abstract class TimeFrequentElems implements FrequentElements<DataValueDescriptor>{

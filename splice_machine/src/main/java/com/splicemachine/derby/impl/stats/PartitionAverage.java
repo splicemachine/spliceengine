@@ -146,9 +146,11 @@ public class PartitionAverage implements OverheadManagedPartitionStatistics {
 
     @Override
     public <T> ColumnStatistics<T> columnStatistics(int columnId){
-        for(ColumnStatistics stats:columnStats){
-            if(stats.columnId()==columnId) return stats;
-        }
+    	if (columnStats != null) {
+	        for(ColumnStatistics stats:columnStats){
+	            if(stats.columnId()==columnId) return stats;
+	        }
+    	}
         return null;
     }
 

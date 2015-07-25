@@ -1,0 +1,80 @@
+The strategy that we've outlined so far has expressed itself in the singular "Statistics", but what, exactly, are these statistics that we plan on collecting, and why are they considered useful for us?
+
+Roughly speaking, we would like to collect anything(and everything) that will give us more information about the data that is stored. We are tolerant to some degree of error in our estimates, as long as we can get accurate enough that we make the correct decisions during optimization. 
+
+We can safely group our statistics into two distinct categories: \emph{logical} and \emph{runtime}.  
+
+\subsection{Logical Statistics}
+Logical Statistics are what we generally think of when we think of statistics; they involve information that we can use to resolve a (slighty fuzzy) view of the data without requiring reference to the data itself.
+
+We separate our logical statistics into two distinct subcategories. On the global side, we maintain \emph{table}-level statistics, which provide us with information about the table as a whole, ignoring specific columns. For more precise information, we also maintain \emph{column}-level statistics, which provide us with information about the columns themselves.
+
+\subsection{Table-Level Statistics}
+Table-level statistics are reasonably simple to maintain and understand, as they deal with rows in the absence of additional column information. 
+
+We maintain the following set of statistics:
+
+\begin{enumerate}
+				\item Row Count
+				\item Total Size of table in bytes
+				\item Mean width of a Row in bytes (including RowKey)
+				\item Total Query Count
+				\item Region Count
+				\item Mean Region Size in bytes
+\end{enumerate}
+
+As a note, it is not always strictly necessary to keep all this information stored on disk--for example, the region count can be acquired directly, without reference to any tables.
+
+\subsection{Column Statistics}
+Column Statistics manage information about individual columns, and are often the more interesting (and more difficult) algorithms to implement. While table-level metrics are easy to acquire\footnote{In fact, one could simply maintain the correct values for all table-level metrics and have a reasonable degree of accuracy}, column statistics are significantly more complex. 
+
+To start with, we will collect the following statistics:
+
+\begin{enumerate}
+				\item Cardinality
+				\item \emph{Null Fraction} = number of null elements / total number of rows in table
+				\item Frequent Elements
+				\item Distribution (if data type is ordered)
+				\item Minimum Value (if data type is ordered)
+				\item Frequency of Minimum Value
+				\item Maximum value (if data type is ordered)
+				\item Mean size of a column (in bytes)
+\end{enumerate}
+
+These statistics will be stored in an intermediate binary format which is easy to merge together\footnote{in particular, the algorithms which generate statistics are all linear functions}.
+
+\subsubsection{Cardinality}
+The first, and simplest, metric that we wish to record is the \emph{cardinality}. Mathematically, \emph{cardinality} is just the number of entries in a set. As we are dealing with multisets(sets which can contain more than one entry with the same value), cardinality is more appropriately stated as the number of \emph{distinct} elements in the data set. 
+
+There are a number of algorithms which can estimate the cardinality of a data set with varying degrees of accuracy. However, the most effective estimation strategy is \hyperref[sec:HyperLogLog]{\emph{HyperLogLog}}\cite{Flajolet07hyperloglog:the}. 
+
+HyperLogLog essentially strikes a balance between memory consumption and accuracy. A more accurate estimate requires more counters,and thus more total memory. However, once a given accuracy is specified, the space requirements are \emph{constant} with respect to the number of rows processed. Additionally, updates to the data structure are constant-time. 
+
+In practice, each counter requires only a byte of space, so the total memory space is the cost of a single object, a single array, and $2^b$ bytes. If $b=14$, this memory cost is $\approx 16$ kilobytes per column(Heule et. al's adjustments can reduce this cost for low cardinalities\cite{HyperLogLogGoogle}). Thus, over the maximum 1024 columns, the total memory footprint due to cardinality checking is $\approx 2^{b+10}$ bytes(for $b=14$, this is $\approx 16$ megabytes).
+
+\subsubsection{Frequent Elements}
+The next set of statistics to collect for SpliceMachine is referred to as the \emph{Frequent Elements}\footnote{Also referred to as the \emph{Heavy Hitters}, or the \emph{Iceberg Values}}. Frequent elements are simply the elements which occur most frequently in the data set; collecting them and their exact frequencies allows us to be more accurate for queries in which these frequent elements are involved.
+
+There are fewer algorithms available for solving the Frequent Elements problem, but there are still a reasonably large number to parse through. However, the \hyperref[sec:SpaceSaver]{\emph{SpaceSaver}} algorithm stands out as a particularly effective choice.
+
+The SpaceSaver algorithm keeps an approximate list of heavy hitters using constant space (controlled by the desired accuracy). It does this by keeping not just a fixed-size list of elements, but also a fixed-size list of error estimates, which it can use to eliminate errneously counted heavy hitters\footnote{We elide the details of the algorithm in this section. For those details, see Appendix-\ref{sec:SpaceSaver}}. As a result of the structural designs and a bit of clever data structure organization, SpaceSaver is able to allow constant-time updates with a bounded constant-space memory cost.
+
+Generally speaking, if one wishes to keep the top $N$ most frequent elements, then the SpaceSaver algorithm requires $N$ fields (the item itself), plus $2N$ counters (2 for each item in the data structure. 
+
+\subsection{Physical Statistics}
+In addition to logical statistics, we must collect some basic information about the physical world in which we are operating. Because we are durable, a large component of our cost is the cost of reading data off disk; because we are a clustered environment, the second largest power is the cost to write and read data over the network. Thus, we will need to collect disk and network I/O latency. 
+
+while variable measurements are:
+\begin{enumerate}
+				\item Local Read Latency
+				\item Remote Read Latency
+				\item Write network latency (to TEMP)
+				\item Open Scanner latency
+				\item Close Scanner latency
+				\item Index Fetch latency (if conglomerate is an index)
+\end{enumerate}
+
+These measurements are collected during the logical statistics gathering phase. If the table being measured is an index table, use the same sample to perform a simple index lookup on the main table, which will provide index lookup and write latency measures. Local read measures can be acquired merely by recording the read performance of the statistics gathering process.
+
+When automatic collection is enabled, a good way of obtaining these measurements is similar to that of PostgreSQL\cite{PGCollector} measures real time performance, and is referred to as \emph{query sampling}. When query sampling is enabled, a random sample of queries is taken\footnote{The sampling logic may be selective--for example, it may only only randomly sample from those queries which are expected to take a very short period of time, so that the added cost is not excessive.}. When a query is chosen, it will record the latency measurements that occurred during the execution of that query. This would allow more accurate variable measurements, but would have an adverse impact on performance for selected queries, so it would also require a shut-off valve to disable it when performance is critical.
+

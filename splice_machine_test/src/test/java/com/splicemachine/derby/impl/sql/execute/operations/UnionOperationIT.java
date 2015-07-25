@@ -246,9 +246,17 @@ public class UnionOperationIT {
         assertArrayEquals("Incorrect values, there should be no rounding error present!", correct, actual, 1e-5f);
     }
 
+    // Regression test for DB-2437
+    @Test
+    public void testValuesUnionQuery() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("values 2 union select a.col1 from empty_table_1 a where 1=0");
+        assertEquals(1, resultSetSize(rs));
+    }
+
     private void insert(long times, String sql) throws Exception {
         for (long i = 0; i < times; i++) {
             methodWatcher.executeUpdate(sql);
         }
     }
+
 }

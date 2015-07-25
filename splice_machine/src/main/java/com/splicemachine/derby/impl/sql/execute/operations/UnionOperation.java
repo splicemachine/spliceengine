@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.google.common.base.Strings;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.stream.function.SetCurrentLocatedRowFunction;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
@@ -31,13 +32,15 @@ import java.util.List;
  */
 public class UnionOperation extends SpliceBaseOperation {
 		private static final long serialVersionUID = 1l;
-		/* Pull rows from firstResultSet, then secondResultSet*/
-		public SpliceOperation firstResultSet;
-		public SpliceOperation secondResultSet;
+
+		/* Pull rows from firstResultSet, then rightResultSet*/
+		public SpliceOperation leftResultSet;
+		public SpliceOperation rightResultSet;
 		public int rowsSeenLeft = 0;
 		public int rowsSeenRight = 0;
 		public int rowsReturned= 0;
-		private Boolean isLeft = null;
+		private SpliceRuntimeContext.Side side = SpliceRuntimeContext.Side.LEFT;
+
 	    protected static final String NAME = UnionOperation.class.getSimpleName().replaceAll("Operation","");
 
 		@Override
@@ -45,21 +48,21 @@ public class UnionOperation extends SpliceBaseOperation {
 				return NAME;
 		}
 
-		
+
 		@SuppressWarnings("UnusedDeclaration")
 		public UnionOperation(){
 				super();
 		}
 
-		public UnionOperation(SpliceOperation firstResultSet,
-													SpliceOperation secondResultSet,
+		public UnionOperation(SpliceOperation leftResultSet,
+													SpliceOperation rightResultSet,
 													Activation activation,
 													int resultSetNumber,
 													double optimizerEstimatedRowCount,
 													double optimizerEstimatedCost) throws StandardException{
 				super(activation, resultSetNumber, optimizerEstimatedRowCount, optimizerEstimatedCost);
-				this.firstResultSet = firstResultSet;
-				this.secondResultSet = secondResultSet;
+				this.leftResultSet = leftResultSet;
+				this.rightResultSet = rightResultSet;
 				try {
 						init(SpliceOperationContext.newContext(activation));
 				} catch (IOException e) {
@@ -70,53 +73,62 @@ public class UnionOperation extends SpliceBaseOperation {
 		@Override
 		public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
 				super.readExternal(in);
-				firstResultSet = (SpliceOperation)in.readObject();
-				secondResultSet = (SpliceOperation)in.readObject();
-				isLeft = null;
+				leftResultSet = (SpliceOperation)in.readObject();
+				rightResultSet = (SpliceOperation)in.readObject();
 		}
 
 		@Override
 		public void writeExternal(ObjectOutput out) throws IOException {
 				super.writeExternal(out);
-				out.writeObject(firstResultSet);
-				out.writeObject(secondResultSet);
+				out.writeObject(leftResultSet);
+				out.writeObject(rightResultSet);
 		}
 
 		@Override
 		public ExecRow getExecRowDefinition() throws StandardException {
-				if(isLeft == null || isLeft)
-						return firstResultSet.getExecRowDefinition();
-				else return secondResultSet.getExecRowDefinition();
+			switch (side) {
+				case LEFT:
+					return leftResultSet.getExecRowDefinition();
+				case RIGHT:
+					return rightResultSet.getExecRowDefinition();
+				case MERGED: {
+					ExecRow leftExecRow = leftResultSet.getExecRowDefinition();
+					return leftExecRow != null ? leftExecRow : rightResultSet.getExecRowDefinition();
+				}
+				default:
+					return null;
+			}
 		}
 
 		@Override
 		public SpliceOperation getLeftOperation() {
-				return firstResultSet;
+				return leftResultSet;
 		}
 
 		@Override
 		public SpliceOperation getRightOperation() {
-				return secondResultSet;
+				return rightResultSet;
 		}
 
 		@Override
 		public void init(SpliceOperationContext context) throws StandardException, IOException {
 				super.init(context);
-				firstResultSet.init(context);
-				secondResultSet.init(context);
+				leftResultSet.init(context);
+				rightResultSet.init(context);
 				startExecutionTime = System.currentTimeMillis();
+				this.side = context.getRuntimeContext().getPathSide(resultSetNumber);
 		}
 
 		@Override
 		public List<SpliceOperation> getSubOperations() {
-				return Arrays.asList(firstResultSet,secondResultSet);
+				return Arrays.asList(leftResultSet, rightResultSet);
 		}
 
 		@Override
 		public String toString() {
 				return "UnionOperation{" +
-								"left=" + firstResultSet +
-								", right=" + secondResultSet +
+								"left=" + leftResultSet +
+								", right=" + rightResultSet +
 								'}';
 		}
 
@@ -125,29 +137,29 @@ public class UnionOperation extends SpliceBaseOperation {
 				String indent = "\n"+ Strings.repeat("\t",indentLevel);
 
 				return "Union:" + indent + "resultSetNumber:" + resultSetNumber
-								+ indent + "firstResultSet:" + firstResultSet
-								+ indent + "secondResultSet:" + secondResultSet;
+								+ indent + "leftResultSet:" + leftResultSet
+								+ indent + "rightResultSet:" + rightResultSet;
 		}
 
 		@Override
 		public int[] getRootAccessedCols(long tableNumber) throws StandardException {
-				if(firstResultSet.isReferencingTable(tableNumber))
-						return firstResultSet.getRootAccessedCols(tableNumber);
-				else if(secondResultSet.isReferencingTable(tableNumber))
-						return secondResultSet.getRootAccessedCols(tableNumber);
+				if(leftResultSet.isReferencingTable(tableNumber))
+						return leftResultSet.getRootAccessedCols(tableNumber);
+				else if(rightResultSet.isReferencingTable(tableNumber))
+						return rightResultSet.getRootAccessedCols(tableNumber);
 
 				return null;
 		}
 
 		@Override
 		public boolean isReferencingTable(long tableNumber) {
-				return firstResultSet.isReferencingTable(tableNumber) || secondResultSet.isReferencingTable(tableNumber);
+				return leftResultSet.isReferencingTable(tableNumber) || rightResultSet.isReferencingTable(tableNumber);
 
 		}
 
     @Override
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
-        return firstResultSet.getDataSet().union(secondResultSet.getDataSet())
+        return leftResultSet.getDataSet().union(rightResultSet.getDataSet())
                 .map(new SetCurrentLocatedRowFunction<SpliceOperation>(dsp.createOperationContext(this)));
     }
 }

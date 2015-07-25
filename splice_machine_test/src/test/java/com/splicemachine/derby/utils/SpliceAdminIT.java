@@ -439,4 +439,13 @@ public class SpliceAdminIT {
         }
         Assert.fail("Expected exception due to invalid statementUuid");
     }
+    
+    @Test
+    public void testEmptyGlobalStatementCache() throws Exception {
+    	// Placeholder - not much here other than making sure it is here and does not blow up.
+        CallableStatement cs = methodWatcher.prepareCall("call SYSCS_UTIL.SYSCS_EMPTY_GLOBAL_STATEMENT_CACHE()");
+        int count = cs.executeUpdate();
+        Assert.assertEquals(0, count);
+        DbUtils.closeQuietly(cs);
+    }
 }
