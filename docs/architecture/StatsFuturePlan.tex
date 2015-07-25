@@ -1,0 +1,36 @@
+This appendix consists of a brief listing of some features which are not (as of July 2015) included in the Statistics engine, but which are planned for future releases.
+
+\subsection{Collection}
+
+\begin{enumerate} 
+\item Automatic collection
+\item Partition-level collection
+\item Staleness detection
+\item Collection for specific columns
+\item Collection for a specific key range
+\item finer-grained partitions
+\item enable/disable statistics for all columns
+\end{enumerate}
+
+\subsubsection{Automatic Collection and Staleness Detection}
+A partition is considered \emph{stale} if there were sufficient mutations performed to that partition such that we can reasonable expect statistics to be qualitatively (rather than quantitatively) different than previous runs. This detection can be propagated out to \systablestats in order to inform administrators, or directly trigger an automatic collection. Because automatic collection requires a trigger event, it requires staleness detection.
+
+\subsubsection{Partition-level, Key-range, and Column collections}
+Partition-level collection is the collection of statistics only for specific partitions. Key-range collections are collections for a specified key-range, and can be considered a generalization of partition-level collection. Column-level collections refresh only specific columns.
+
+The primary use-case for partition-level collections is performance and resource management. Compared to collecting the entire conglomerate, collecting only a specific partition (or partitions) will require significantly fewer resources over (potentially) fewer servers. Key-range collections, since they are essentially selecting a subset of partitions to collect, behave similarly, with the added advantage of being able to specify partitions at a finer-grained level than partition-level statistics.
+
+These features were deferred as a usability experiment. Essentially, the intent was to determine if they were necessary before implementing. 
+
+\subsection{Statistics Algorithms}
+\begin{enumerate}
+\item More robust Frequent Elements (correctness under pathological data sets)
+\item Histograms and distributions
+\end{enumerate}
+
+\subsubsection{Robust Frequent Elements}
+There are some pathological datasets in which the SpaceSaver algorithm as written does not perform well--the error tends to be much higher than desirable, and some frequent elements are missed. There are relatively small changes which can be made to the algorithm which are expected to improve behavior in the event of those pathological data sets.
+
+\subsubsection{Histograms and Distributions}
+Histograms and distributions are computationally difficult, for two reasons. First, they occupy significant amounts of memory (because they essentially keep a sample of data elements per column). Secondly accurate, one-pass histogramming and distribution algorithms are complex to implement and test. Because of this, we opted to defer histograms until a future push. They \emph{will} be necessary at a future point, however.j
+

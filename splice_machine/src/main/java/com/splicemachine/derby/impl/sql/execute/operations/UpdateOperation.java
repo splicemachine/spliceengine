@@ -175,6 +175,10 @@ public class UpdateOperation extends DMLWriteOperation{
                                         if (!Bytes.equals(oldLocation, element.getRowKey())) {
                                             // only add the delete if we aren't overwriting the same row
 										    delegate.add(new KVPair(oldLocation, HConstants.EMPTY_BYTE_ARRAY, KVPair.Type.DELETE));
+                                            // ...then this is an update of a unique key/index, meaning
+                                            // that we'll be updating a unique col and may also have
+                                            // to update an index.  Say so.
+                                            element.setType(KVPair.Type.UNIQUE_UPDATE);
                                         }
 										delegate.add(element);
 								}

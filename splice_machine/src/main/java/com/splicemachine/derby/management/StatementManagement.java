@@ -1,6 +1,8 @@
 package com.splicemachine.derby.management;
 
 import javax.management.MXBean;
+
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Set;
 
@@ -26,4 +28,6 @@ public interface StatementManagement {
 		boolean killStatement(long statementUuid);
 
 		void killAllStatements();
+
+		void emptyStatementCache() throws SQLException;
 }

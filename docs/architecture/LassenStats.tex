@@ -1,0 +1,58 @@
+
+\documentclass[10pt]{amsart}
+\usepackage[top=1.5in, bottom=1.25in, left=1.25in, right=1.25in]{geometry}
+\usepackage[backend=biber]{biblatex}
+
+\usepackage{mathtools}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage[]{algorithm2e}
+\RestyleAlgo{boxed}
+\usepackage{algpseudocode}
+\usepackage{listings}
+\usepackage{appendix}
+\usepackage{courier}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{exmp}{Example}[section]
+\newtheorem{defn}{Definition}[section]
+
+\let\oldtocsection=\tocsection
+
+\let\oldtocsubsection=\tocsubsection
+
+\let\oldtocsubsubsection=\tocsubsubsection
+
+\renewcommand{\tocsection}[2]{\hspace{0em}\oldtocsection{#1}{#2}}
+\renewcommand{\tocsubsection}[2]{\hspace{1em}\oldtocsubsection{#1}{#2}}
+
+\bibliography{Stats}
+
+\begin{document}
+\title{Statistics in SpliceMachine}
+\author{Scott Fines}
+
+\maketitle
+
+\tableofcontents
+\input{LasStats}
+\clearpage
+\begin{subappendices}
+	\label{sec:Appendix}
+	\section*{Statistics In Other Database Products}
+	\label{sec:OtherDBs}
+	\input{StatisticsInOtherDbs}
+	\clearpage
+	\section*{Algorithms for Statistics}
+	\label{sec:Algorithms}
+	\input{StatisticsAlgorithms}
+	\section*{Future Features}
+	\label{sec:Future}
+	\input{StatsFuturePlan}
+\end{subappendices}
+
+\clearpage
+\printbibliography
+\end{document}
+

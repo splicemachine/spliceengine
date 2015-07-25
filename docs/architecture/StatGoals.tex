@@ -1,0 +1,51 @@
+It seems apparent, but is always worth restating that we do not collect statistics for our health. Indeed, they are critical to the well functioning of a modern database system, in particular when considering a cost-based query optimization engine. However, merely saying "we need statistics" is an insufficient target, we need more precise goals. 
+
+\subsubsection{Support Table-based statistics}
+The Statistics module should support table-level statistics, particularly
+\begin{enumerate}
+\item Number of rows in table
+\item Number of partitions in table 
+\item Number of Servers managing table
+\item Average length of a single row (in bytes)
+\item The average latency to read a single row within a single JVM
+\item The average latency to read a single row over the network
+\end{enumerate}
+
+\subsubsection{Support Column-based statitics}
+The module should support column-level statistics, particularly
+\begin{enumerate}
+\item Cardinality
+\item Null count
+\item average size of a column (in bytes)
+\item the $N$ most frequent elements and their counts (where $N$ is a configurable number).
+\end{enumerate}
+
+\subsubsection{Support Index Statistics}
+All table and column-level statistics should be collected for indices as well as base conglomerates, as well as the average latency to perform an index lookup for a single row.
+
+\subsubsection{Updating Statistics}
+It is important to be able to manually initiate statistics collection, so that administrators are able to manage statistics within their individual workloads. 
+
+\subsubsection{Reporting Statistics}
+It is often convenient for administrators to view statistics for individual tables, as rough approximations of the size and distribution of data for a table.
+
+\subsubsection{Automatic collection}
+In many use-cases (particularly heavy OLTP workloads), it is difficult to keep statistics up to date manually. Therefore, there must be a mechanism for automatically updating statistics (or a portion of statistics) in an efficient way as needed. Because this can be expensive, disabling it must be possible for workloads which do not wish it.
+
+\subsubsection{Partition-level Statistics collection}
+Because statistics on an entire table may require performing IO on the entire table (depending on the implementation), it should be made possible to collect statistics on an individual partition of data as well, in isolation from the other partitions of data.
+
+\subsubsection{Failure Semantics}
+Statistics collection failures should fit within the existing failure-reporting system, and not cause catastrophic failures.
+
+\subsubsection{Manage Resources used by Statistics}
+Statistics is fundamentally a maintenance operation, and should not interfere with the more important user-driven tasks. Typically, there are three major resources that must be managed:
+
+\begin{enumerate}
+\item Disk IO
+\item System Memory
+\item CPU cycles
+\end{enumerate}
+
+The statistics module should be constructed such that administrators are allowed to make tradeoffs between performance of statistics and interruption of other services.
+

@@ -113,9 +113,13 @@ public abstract class SpliceBaseOperationRegionScanner<Data> implements RegionSc
 								RowLocation location = topOperation.getCurrentRowLocation();
 								if(location!=null){
 										ByteSlice slice = ((HBaseRowLocation) location).getSlice();
-										slice.get(rowKey,0,rowKey.length);
-								}else
-									rowKey[0] = 0x00;
+										rowKey = slice.data(false);
+								}else {
+                                    if (rowKey == null || rowKey.length != 1) {
+                                        rowKey = new byte[1];
+                                    }
+                                    rowKey[0] = 0x00;
+                                }
 
 								if(rowEncoder==null){
 										DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(nextRow);

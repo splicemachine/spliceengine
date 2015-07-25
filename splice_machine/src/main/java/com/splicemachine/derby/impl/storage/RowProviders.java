@@ -240,11 +240,13 @@ public class RowProviders {
 				private final SpliceOperation source;
 				private final Logger log;
 				private ExecRow nextEntry;
+                private String tableName;
 
 				private SourceRowProvider(SpliceOperation source, Logger log, SpliceRuntimeContext spliceRuntimeContext) {
 						this.source = source;
 						this.log = log;
 						this.spliceRuntimeContext = spliceRuntimeContext;
+                        this.tableName = new String(spliceRuntimeContext.getTempTable().getTempTableName());
 				}
 
 				@Override
@@ -286,7 +288,9 @@ public class RowProviders {
 
 				@Override public RowLocation getCurrentRowLocation() { return null; }
 				@Override public Scan toScan() { return null; }
-				@Override public byte[] getTableName() { return null; }
+				@Override public byte[] getTableName() { //{ return null; }
+                    return tableName.getBytes();
+                }
 
 				@Override
 				public int getModifiedRowCount() {

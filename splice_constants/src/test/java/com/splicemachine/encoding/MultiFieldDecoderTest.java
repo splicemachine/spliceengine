@@ -6,6 +6,8 @@ import java.math.BigDecimal;
 
 import static org.junit.Assert.*;
 
+import com.splicemachine.constants.bytes.BytesUtil;
+
 public class MultiFieldDecoderTest {
 
     private MultiFieldDecoder decoder = MultiFieldDecoder.create();
@@ -233,4 +235,20 @@ public class MultiFieldDecoderTest {
         assertEquals(9, decoder.skipDouble());
     }
 
+    @Test
+    public void nullEncodedIndex() {
+        // create table T(a varchar(9), b varchar(9), c varchar(9), d varchar(9) unique, primary key(a,b,c));
+        // insert into T values('E', 'E', 'E', null);
+        // scan of INDEX for t shows: \x00\xA3\xC0\x88\xF0\x82\x9C    column=V:7, timestamp=3239, value=\x84\x00\xA3\xC0\x88\xF0\x82\x9C
+
+        String hexIndexRowKeySuffix = "\\xA3\\xC0\\x88\\xF0\\x82\\x9C".replace("\\", "").replaceAll("x", "");
+        byte[] indexRowKeySuffixBytes = BytesUtil.fromHex(hexIndexRowKeySuffix);
+        byte[] baseTableRowKeyBytes = ByteEncoding.decodeUnsorted(indexRowKeySuffixBytes, 0, indexRowKeySuffixBytes.length);
+
+        MultiFieldDecoder d = MultiFieldDecoder.create();
+        d.set(baseTableRowKeyBytes);
+        assertEquals("E", d.decodeNextString());
+        assertEquals("E", d.decodeNextString());
+        assertEquals("E", d.decodeNextString());
+    }
 }

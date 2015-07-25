@@ -64,8 +64,7 @@ public class SMSerDe implements SerDe {
     	if (Log.isDebugEnabled())
     		SpliceLogUtils.debug(Log, "initialize with conf=%s, tbl=%s",conf,tbl);
         // Get a list of the table's column names.
-        String spliceInputTableName = tbl.getProperty(MRConstants.SPLICE_TABLE_NAME);
-        tableName = spliceInputTableName;
+        tableName = tbl.getProperty(MRConstants.SPLICE_TABLE_NAME);
         String hbaseDir = null;
         if (conf != null) {
             hbaseDir = conf.get(HConstants.HBASE_DIR);
@@ -75,7 +74,7 @@ public class SMSerDe implements SerDe {
         if (hbaseDir == null)
         	throw new SerDeException("hbase root directory not set, please include hbase.rootdir in config or via -D system property ...");
         if (conf != null) {
-            conf.set(MRConstants.SPLICE_INPUT_TABLE_NAME, spliceInputTableName);
+            conf.set(MRConstants.SPLICE_INPUT_TABLE_NAME, tableName);
             conf.set(MRConstants.SPLICE_JDBC_STR, tbl.getProperty(MRConstants.SPLICE_JDBC_STR));
             conf.set(HConstants.HBASE_DIR, hbaseDir);
             if (conf.get(HiveConf.ConfVars.POSTEXECHOOKS.varname) == null) {
@@ -95,42 +94,16 @@ public class SMSerDe implements SerDe {
         String colTypesStr = tbl.getProperty(Constants.LIST_COLUMN_TYPES);
         colTypes = TypeInfoUtils.getTypeInfosFromTypeString(colTypesStr);
         objectCache = new ArrayList<Object>(colTypes.size());
-        if (spliceInputTableName != null) {
-            spliceInputTableName = spliceInputTableName.trim().toUpperCase();
+        if (tableName != null) {
+            tableName = tableName.trim().toUpperCase();
             try {
-                if (!sqlUtil.checkTableExists(spliceInputTableName))
-                	throw new SerDeException(String.format("table %s does not exist...",spliceInputTableName));
+                if (!sqlUtil.checkTableExists(tableName))
+                	throw new SerDeException(String.format("table %s does not exist...",tableName));
                 if (conf != null) {
-                    TableScannerBuilder tableScannerBuilder = sqlUtil.getTableScannerBuilder(spliceInputTableName, colNames);
+                    TableScannerBuilder tableScannerBuilder = sqlUtil.getTableScannerBuilder(tableName, colNames);
                     conf.set(MRConstants.SPLICE_SCAN_INFO, tableScannerBuilder.getTableScannerBuilderBase64String());
 
-                    int[] execRowIds = tableScannerBuilder.getExecRowTypeFormatIds();
-                    Map<String, ColumnContext.Builder> columns = sqlUtil.getColumns(tableName);
-                    ColumnContext[] columnContexts = new ColumnContext[columns.size()];
-                    int index = 0;
-                    for(ColumnContext.Builder colBuilder : columns.values()) {
-                        ColumnContext context = colBuilder.build();
-                        columnContexts[index++] = context;
-                    }
-                    String conglomerateId = sqlUtil.getConglomID(tableName);
-
-                    List<PKColumnNamePosition> pkColumnNamePositions = sqlUtil.getPrimaryKeys(tableName);
-                    List<NameType> nameTypes = sqlUtil.getTableStructure(tableName);
-
-                    List<String>  columnNames = new ArrayList<String>(nameTypes.size());
-                    for (int i = 0; i< nameTypes.size(); i++) {
-                        columnNames.add(nameTypes.get(i).getName());
-                    }
-
-                    int[] columnOrdering = sqlUtil.getKeyColumnEncodingOrder(nameTypes,pkColumnNamePositions);
-                    int[] pkCols = new int[0];
-                    if (columnOrdering != null && columnOrdering.length > 0) {
-                        pkCols = new int[columnOrdering.length];
-                        for (int i = 0; i < columnOrdering.length; ++i) {
-                            pkCols[i] = columnOrdering[i] + 1;
-                        }
-                    }
-                    TableContext tableContext = new TableContext(columnContexts, pkCols, execRowIds, new Long(conglomerateId));
+                    TableContext tableContext = sqlUtil.createTableContext(tableName, tableScannerBuilder);
                     conf.set(MRConstants.SPLICE_TBLE_CONTEXT, tableContext.getTableContextBase64String());
                 }
 			} catch (Exception e) {
@@ -228,13 +201,7 @@ public class SMSerDe implements SerDe {
 
         StructObjectInspector soi = (StructObjectInspector) oi;
         List<? extends StructField> fields = soi.getAllStructFieldRefs();
-        List<Object> list = soi.getStructFieldsDataAsList(obj);
-        List<? extends StructField> declaredFields =
-                (serdeParams.getRowTypeInfo() != null &&
-                        ((StructTypeInfo) serdeParams.getRowTypeInfo())
-                                .getAllStructFieldNames().size() > 0) ?
-                        ((StructObjectInspector) getObjectInspector()).getAllStructFieldRefs()
-                        : null;
+
         try {
 
         	DataValueDescriptor dvd;

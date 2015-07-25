@@ -29,6 +29,7 @@ public class ByteSlice implements Externalizable,Comparable<ByteSlice> {
             this.length = other.length;
             this.hashCode = other.hashCode;
             this.hashSet = other.hashSet;
+            assertLengthCorrect(buffer, offset, length);
         }
     }
 
@@ -73,6 +74,7 @@ public class ByteSlice implements Externalizable,Comparable<ByteSlice> {
     }
 
     protected ByteSlice(byte[] buffer, int offset, int length) {
+        assertLengthCorrect(buffer, offset, length);
         this.buffer = buffer;
         this.offset = offset;
         this.length = length;
@@ -115,6 +117,7 @@ public class ByteSlice implements Externalizable,Comparable<ByteSlice> {
         set(bytes,0,bytes.length);
     }
     public void set(byte[] buffer, int offset, int length) {
+        assertLengthCorrect(buffer, offset, length);
         this.buffer = buffer;
         this.offset = offset;
         this.length = length;
@@ -169,6 +172,7 @@ public class ByteSlice implements Externalizable,Comparable<ByteSlice> {
 
     public void reset(){
         length=0;
+        offset=0;
         buffer =null; //allow GC to collect
         hashSet=false;
     }
@@ -180,6 +184,11 @@ public class ByteSlice implements Externalizable,Comparable<ByteSlice> {
 
         ByteSlice that = (ByteSlice) o;
         return equals(that, that.length());
+    }
+
+    @Override
+    public String toString() {
+        return String.format("ByteSlice {buffer=%s}", BytesUtil.toHex(buffer, offset, length));
     }
 
     public boolean equals(ByteSlice currentData, int equalsLength) {
@@ -224,15 +233,25 @@ public class ByteSlice implements Externalizable,Comparable<ByteSlice> {
             in.readFully(buffer);
         }
         hashSet = false;
+        if (buffer.length > 0) {
+            assertLengthCorrect(buffer, offset, length);
+        } else {
+            // If there's nothing in the buffer, reset offset and length
+            // to prevent ArrayIndexOutOfBoundsException
+            offset = length = 0;
+        }
     }
 
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
-        out.writeInt(offset);
+        // the deserialized offset MUST be zero, since we're slicing the array
+        // using offset as a starting point.
+        out.writeInt(0);
         out.writeInt(length);
         if(length > 0) {
             out.write(buffer, offset, length);
         }
+        out.flush();
     }
 
     public void reverse() {
@@ -269,4 +288,8 @@ public class ByteSlice implements Externalizable,Comparable<ByteSlice> {
         return BytesUtil.toHex(buffer,offset,length);
     }
 
+    private static void assertLengthCorrect(byte[] buffer, int offset, int length) {
+        int buffLength = (buffer == null ? 0 : buffer.length);
+        assert  (offset + length <= buffLength) : String.format("buffer length, %d, is too short for offset, %d, length, %d", buffLength, offset, length);
+    }
 }

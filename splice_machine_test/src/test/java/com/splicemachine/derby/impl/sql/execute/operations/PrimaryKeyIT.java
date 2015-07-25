@@ -36,6 +36,22 @@ public class PrimaryKeyIT {
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
 
+    // DB-3315: Updating row with primary key does not fail when it should.
+    @Test
+    public void updatePrimaryKeyOnRow() throws Exception {
+        methodWatcher.executeUpdate("create table X(a varchar(9) primary key)");
+        methodWatcher.executeUpdate("insert into X values('AAA')");
+        methodWatcher.executeUpdate("insert into X values('MMM')");
+        // should be a PK violation
+        try {
+            methodWatcher.executeUpdate("update X set a ='AAA' where a='MMM'");
+            fail("Did not throw an exception on duplicate records on primary key");
+        } catch (SQLException e) {
+            assertEquals("Incorrect error returned.", "23505", e.getSQLState());
+            assertEquals("Expected 2 rows in table X", 2L, methodWatcher.query("select count(*) from X"));
+        }
+    }
+
     // DB-3013: Updating row with primary key and unique index fails.
     @Test
     public void updatePrimaryKeyOnRowWithUniqueIndex() throws Exception {
@@ -52,7 +68,7 @@ public class PrimaryKeyIT {
             methodWatcher.executeUpdate("insert into A values ('sfines',1)");
             fail("Did not throw an exception on duplicate records on primary key");
         } catch (SQLException e) {
-            assertTrue(e.getMessage().contains("identified by 'FOO' defined on 'A'"));
+            assertEquals("Incorrect error returned.", "23505", e.getSQLState());
             assertEquals(1L, methodWatcher.query("select count(*) from A where name = 'sfines'"));
         }
     }
@@ -97,7 +113,7 @@ public class PrimaryKeyIT {
         try {
             methodWatcher.executeUpdate("insert into A select * from A");
         } catch (SQLException sql) {
-            assertTrue("Incorrect error returned!", sql.getSQLState().contains("23505"));
+            assertEquals("Incorrect error returned.", "23505", sql.getSQLState());
             throw sql;
         }
     }

@@ -107,11 +107,10 @@ To start with, we will collect the following statistics:
 				\item Cardinality
 				\item \emph{Null Fraction} = number of null elements / total number of rows in table
 				\item Frequent Elements
-				\item Wavelet Representation (if data type is ordered)
+				\item Distribution (if data type is ordered)
 				\item Minimum Value (if data type is ordered)
 				\item Frequency of Minimum Value
 				\item Maximum value (if data type is ordered)
-				\item Frequency of Maximum Value
 				\item Mean size of a column (in bytes)
 \end{enumerate}
 
@@ -190,14 +189,15 @@ Now that we have a clear image of what, precisely, we are collecting within our 
 
 There will ultimately be two modes of collections: \emph{manual} and \emph{automatic}. Manual mode will be implemented first, as it is simpler to implement and test, while automatic mode will be initiated afterwards.
 
+When a collection is triggered (either automatically or manually), it will first mark itself as \emph{in progress}. While a collection is marked as in progress, concurrent attempts to force a collection of that region will not be initiated.
+
 \subsection{Staleness Detection and Progress Marking}
 Periodically collected statistics will become increasingly \emph{stale} over time, until a point at which it is unlikely that existing statistics will provide accurate information; new statistics will be required to correct for the changed data set. As most statistics are changed only after a mutation, we will keep track of the number of mutation operations against a region. When that number exceeds a (configurable) threshold, we know that that region's statistics are likely stale\footnote{We say \emph{likely} here because we are not accounting for rolled-back transactions. It's possible that the operations we record at each region will be rolled back at a later date, leaving statistics unchanged.}. 
 
 When an administrator requests a statistics collection, then she will have the option to only collect statistics for regions which are known to be stale. This will prevent extraneous collections from occurring when they are not necessary. However, there are some scenarios in which the administrator is likely to know better than our staleness detectors, so we will also include a mechanism to force a new collection for all regions.
 
-When a collection is triggered, it will first mark itself as \emph{in progress}. While a collection is marked as in progress, concurrent attempts to force a collection of that region will not be initiated.
-
 \subsection{Manual Collection Mode}
+\label{sec:ManualCollection}
 Manual collection mode consists of a set of stored procedures, which will be used to initiate statistics gathering in a variety of different ways.
 
 First, we will allow granularity of gathering, so that an administrator is not required to initiate collection for the entire database every time. In particular, we will have the following stored procedures:
@@ -212,7 +212,9 @@ First, we will allow granularity of gathering, so that an administrator is not r
 This will allow administrators some control over the resource usage of the collection tasks\footnote{Note that \emph{STALE\_ONLY} indicates that only regions which are known to be stale will be collected}. Note, however, that collection always occurs within a maintenance task frame, so the number of available tasks for execution are limited. 
 
 \subsection{Automatic Collection Mode}
-Ultimately, an automatic collection mode will be an effective tool. When automatic collection is enabled, an individual region will keep watch on how many mutations are received. When a threshold of mutations has been reached, it will schedule a new gathering task for itself, to be executed \emph{after} the rate of mutations received has decreased to a smaller volume. This way, individual regions can proactively adjust their statistics information without interfering excessively with ongoing writes. 
+Ultimately, an automatic collection mode will be an effective tool. When automatic collection is enabled, an individual region will automatically schedule a collection when its staleness detector determines that the region's statistics are stale. The scheduling should occur within the known resource management framework, and be rate-limited to reduce it's impact on user-defined workloads.
+
+This mode will (to the extent allowed by the resource manager) ensure that statistics are kept fresh and up-to-date without significant resource utilization or user-interaction. User interaction is minimized because of the automated nature of the system, while resource utilization is maintained by rate-limiting the collections themselves and by ensuring that only those regions which require refreshed statistics will initiate collections.
 
 These tasks will be queued in such a way as to guarantee that
 
@@ -240,21 +242,24 @@ We would like our statistics to be distributed in a straightforward and durable 
 In order to support the region-level isolation that our statistics engine requires, we will need to also separate writes out by individual regions. 
 
 \subsection{Table Statistics}
-Table statistics are stored in the \texttt{sys\_table\_statistics} table, whose schema is as in Table-\ref{table:tableStatistics}; it has an effective primary key of (\texttt{conglom\_id},\texttt{region\_id}).
+Table statistics are stored in the \texttt{systablestatistics} table, whose schema is as in Table-\ref{table:tableStatistics}; it has an effective primary key of (\texttt{schemaname},\texttt{tablename}).
 
 \begin{table}
 				\begin{tabular}{|l|c|p{6cm}|}
 								\hline
-								\bf{Name}									& \bf{Type}	&	\bf{Description} \\ \hline	
-								\texttt{conglom\_id}			&	bigint		&	Conglomerate id for the table \\ \hline
-								\texttt{region\_id}				&	varchar		&	Region identifier \\ \hline
-								\texttt{timestamp}				& timestamp	&	Timestamp of last collection \\ \hline	
-								\texttt{is\_stale}				&	boolean		&	Flag for when statistics are stale \\ \hline
-								\texttt{in\_progress}			&	boolean		&	Flag to indicate a collection is in progress \\ \hline
-								\texttt{num\_rows}				&	bigint		& RowCount \\ \hline
-								\texttt{region\_size}			&	bigint		&	Total size of region (in bytes) \\ \hline
-								\texttt{mean\_row\_width}	&	integer		&	Mean row width (in bytes) \\ \hline
-								\texttt{query\_count}			&	bigint		&	Total number of queries issued \\ \hline
+								\bf{Name}															& \bf{Type}	&	\bf{Description} \\ \hline	
+								\texttt{schemaname}										&	varchar		&	Schema for the table \\ \hline
+								\texttt{tablename}										&	varchar		&	Name of the table \\ \hline
+								\texttt{total\_row\_count}						&	bigint		& RowCount \\ \hline
+								\texttt{average\_row\_count}					&	bigint		& The mean number of rows in a single partition \\ \hline
+								\texttt{total\_size}									&	bigint		&	Total size of all partitions (in bytes) \\ \hline
+								\texttt{avg\_partition\_size}					&	bigint		&	Mean size of a single partition (in bytes) \\ \hline
+								\texttt{row\_width}										&	integer		&	Mean row width of a single row (in bytes) \\ \hline
+								\texttt{total\_query\_count}					&	bigint		&	Total number of queries issued to all regions\\ \hline
+								\texttt{avg\_query\_count}						&	bigint		&	Mean number of queries issued to a single partition\\ \hline
+								\texttt{avg\_local\_read\_latency}		&	bigint		&	Mean latency (in microseconds) to read a single row within the same JVM\\ \hline
+								\texttt{avg\_remote\_read\_latency}		&	bigint		&	Mean latency (in microseconds) to read a single row over the network.\\ \hline
+								\texttt{avg\_write\_latency}					&	bigint		&	Mean latency (in microseconds) to write a single row in microseconds\\ \hline
 				\end{tabular}
 				\caption{\texttt{sys\_table\_statistics} table schema}
 				\label{table:tableStatistics}
@@ -262,32 +267,28 @@ Table statistics are stored in the \texttt{sys\_table\_statistics} table, whose 
 
 Note that some table-level statistics (such as server information) are not stored. This is because the location of regions may change frequently, and it is relatively efficient for the system to collect that data on demand.
 
-It is important to note that \texttt{sys\_table\_statistics} has "virtual" columns--columns which can be considered part of the table, but which are not stored directly; this approach makes it difficult for us to provide direct user access through SQL, which is a very powerful visibility feature. In order to allow administrators such direct SQL access, we expose a read-only view call \texttt{sys\_table\_stats}. The full schema for \texttt{sys\_table\_stats} can be found in Table-\ref{table:tableStats}.
+It is important to note that \texttt{sys\_table\_statistics} has "virtual" columns--columns which can be considered part of the table, but which are not stored directly; this approach makes it difficult for us to provide direct user access through SQL, which is a very powerful visibility feature. In order to allow administrators such direct SQL access, we expose a read-only view call \texttt{systablestats}. The full schema for \texttt{systablestats} can be found in Table-\ref{table:tableStats}.
 
 \begin{table}
 				\begin{tabular}{|l|c|p{6cm}|}
 								\hline
 								\bf{Name}														& \bf{Type}	&	\bf{Description} \\ \hline	
-								\texttt{conglom\_id}								&	bigint		&	The conglomerate id for the table \\ \hline
-								\texttt{num\_rows}									&	bigint		&	The number of rows in the table \\ \hline
-								\texttt{mean\_row\_width}						&	integer		&	The mean width of a row (in bytes) 	\\ \hline
-								\texttt{mean\_key\_width}						&	integer		&	The mean width of a key (in bytes) \\ \hline
-								\texttt{mean\_region\_size}					&	bigint		&	The mean size of the region (in bytes) \\ \hline
-								\texttt{min\_region\_size}					&	bigint		&	The minimum region size (in bytes) \\ \hline
-								\texttt{max\_region\_size}					&	bigint		&	The maximum region size (in bytes) \\ \hline
-								\texttt{num\_regions}								&	integer		&	Region count	\\	\hline
-								\texttt{mean\_region\_query\_count}	&	bigint		&	The mean number of queries per region \\ \hline
-								\texttt{max\_region\_query\_count}	&	bigint		&	The max number of queries per region \\ \hline
-								\texttt{min\_region\_query\_count}	&	bigint		&	The min number of queries per region \\ \hline
-								\texttt{num\_servers}								&	integer		&	Server count \\ \hline
-								\texttt{mean\_server\_size}					&	bigint		&	The mean size per server (in bytes) \\ \hline
-								\texttt{min\_server\_size}					&	bigint		&	The minimum size per server (in bytes) \\ \hline
-								\texttt{max\_server\_size}					&	bigint		&	The maximum size per server (in bytes) \\ \hline
-								\texttt{mean\_server\_query\_count}	&	bigint		&	The mean number of queries per server  \\ \hline
-								\texttt{max\_server\_query\_count}	&	bigint		&	The max number of queries per server \\ \hline
-								\texttt{min\_server\_query\_count}	&	bigint		&	The min number of queries per server \\ \hline
+								\texttt{conglomerateid}								&	bigint		&	The conglomerate id for the table \\ \hline
+								\texttt{partitionid}								&	varchar		&	The unique identifier for this partition \\ \hline
+								\texttt{last\_updated}							&	timestamp	&	The timestamp when these statistics were last collected \\ \hline
+								\texttt{is\_stale}									&	boolean		&	Whether this partition's collection is known to be stale	\\ \hline
+								\texttt{in\_progress}								&	boolean		&	Whether this partition is currently collecting data \\ \hline
+								\texttt{rowcount}										&	bigint		&	The number of rows in the table \\ \hline
+								\texttt{partition\_size}						&	bigint		&	The total number of bytes contained in the partition \\ \hline
+								\texttt{meanrowwidth}								&	integer		&	The mean width of a row including its key (in bytes) \\ \hline
+								\texttt{querycount}									&	bigint		&	The total number of queries directed against this partion, or 0 if queries are not accumulated \\ \hline
+								\texttt{localreadlatency}						&	bigint		&	The mean latency to read a single row locally (within the same JVM) in microseconds\\ \hline
+								\texttt{remotereadlatency}					&	bigint		&	The mean latency to read a single row remotely (over the network) in microseconds. \\ \hline
+								\texttt{writelatency}								&	bigint		&	The mean latency to write a single row remotely (over the network) in microseconds. \\ \hline
+								\texttt{openscannerlatency}					&	bigint		&	The mean latency to open a remote scanner in microseconds. \\ \hline
+								\texttt{closescannerlatency}				&	bigint		&	The mean latency to close a remote scanner in microseconds. \\ \hline
 				\end{tabular}
-				\caption{\texttt{sys\_table\_stats} table schema}
+				\caption{\texttt{systablestats} table schema}
 				\label{table:tableStats}
 \end{table}
 \subsection{Column Statistics}
@@ -298,20 +299,17 @@ Column Statistics are stored in the \texttt{sys\_column\_statistics} table, whic
 				\begin{tabular}{|l|c|p{6cm}|}
 								\hline
 								\bf{Name}									& \bf{Type}	&	\bf{Description} \\ \hline	
-								\texttt{conglomerate\_id}	&	bigint		&	The conglomerate id for the table \\ \hline
-								\texttt{region\_id}				&	varchar		&	The region identifier \\ \hline
-								\texttt{column\_num}			&	smallint	& The column number \\ \hline
+								\texttt{schemaname}				&	varchar		&	The name of the owning schema \\ \hline
+								\texttt{tablename}				&	varchar		&	The name of the owning table \\ \hline
+								\texttt{columname}				&	varchar		&	The name of the column \\ \hline
 								\texttt{cardinality}			&	binary		&	cardinality estimate \\ \hline
+								\texttt{null\_count}			&	bigint		&	the number of null values \\ \hline
 								\texttt{null\_frac}				&	real			&	null fraction \\ \hline
-								\texttt{freq\_vals}				&	binary		&	encoded list of most frequent values \\ \hline
-								\texttt{freq\_freqs}			&	binary		&	encoded list of frequencies for most common values \\ \hline
-								\texttt{distribution}			&	binary		&	binary encoded representation of the distribution \\ \hline
-								\texttt{min\_val}					&	column type	&	the minimum column value	\\	\hline
-								\texttt{freq\_min\_val}		&	column type	&	The frequency of the minimum column value \\ \hline
-								\texttt{max\_val}					&	column type	&	the maximum column value	\\	\hline
-								\texttt{freq\_max\_val}		&	column type	&	The frequency of the maximum column value \\ \hline
+								\texttt{min\_value}				&	varchar		&	the minimum column value(as a varchar)	\\	\hline
+								\texttt{max\_value}				&	varchar		&	the maximum column value(as a varchar)	\\	\hline
+								\texttt{top\_k}						&	varchar		&	Comma-separated list of the top $k$ most frequent values \\ \hline
 				\end{tabular}
-				\caption{\texttt{sys\_column\_statistics} table schema}
+				\caption{\texttt{syscolumnstatistics} table schema}
 				\label{table:columnStatistics}
 \end{table}
 
@@ -321,18 +319,12 @@ In order to expose the binary structures in the column stats, we expose a read-o
 				\begin{tabular}{|l|c|p{6cm}|}
 								\hline
 								\bf{Name}									& \bf{Type}	&	\bf{Description} \\ \hline	
-								\texttt{conglomerate\_id}	&	bigint		&	The conglomerate id for the table \\ \hline
-								\texttt{column\_num}			&	smallint	&	The column number \\ \hline
-								\texttt{cardinality}			&	bigint		&	The cardinality estimate \\ \hline
-								\texttt{null\_frac}				&	real			& Null fraction \\ \hline
-								\texttt{freq\_vals}				&	varchar		&	comma-separated list of frequent values, and their frequencies \\ \hline	
-								\texttt{distribution}			&	varchar		&	functional representation of the distribution \\ \hline
-								\texttt{min\_val}					&	column type	&	the minimum column value	\\	\hline
-								\texttt{freq\_min\_val}		&	column type	&	The frequency of the minimum column value \\ \hline
-								\texttt{max\_val}					&	column type	&	the maximum column value	\\	\hline
-								\texttt{freq\_max\_val}		&	column type	&	The frequency of the maximum column value \\ \hline
+								\texttt{conglom\_id}			&	bigint		&	The conglomerate id for the table \\ \hline
+								\texttt{partition\_id}		&	varchar		&	The unique identifier for the reporting partition \\ \hline
+								\texttt{column\_id}				&	integer		&	the unique identifier for the column (within the table) \\ \hline
+								\texttt{data}							&	binary		&	An encoded representation of column data \\ \hline
 				\end{tabular}
-				\caption{\texttt{sys\_column\_stats} table schema}
+				\caption{\texttt{syscolumnstats} table schema}
 				\label{table:columnStats}
 \end{table}
 

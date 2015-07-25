@@ -212,4 +212,12 @@ public class MergeSortJoinStrategy extends BaseCostedHashableJoinStrategy {
     public JoinStrategyType getJoinStrategyType() {
         return JoinStrategyType.MERGE_SORT;
     }
+
+    // DB-3460: For an outer left join query, sort merge join was ruled out because it did not qualify memory
+    // requirement for hash joins. Sort merge join requires substantially less memory than other hash joins, so
+    // maxCapacity() is override to return a very large integer to bypass memory check.
+    @Override
+    public int maxCapacity(int userSpecifiedCapacity,int maxMemoryPerTable,double perRowUsage){
+        return Integer.MAX_VALUE;
+    }
 }

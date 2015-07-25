@@ -132,9 +132,9 @@ public class TxnRegion implements TransactionalRegion {
     public boolean verifyForeignKeyReferenceExists(TxnView txnView, byte[] rowKey) throws IOException {
         SRowLock rowLock = null;
         try {
-            rowLock = (SRowLock) hbRegion.getLock(rowKey, true);
+            rowLock = hbRegion.getLock(rowKey, true);
             Get get = TransactionOperations.getOperationFactory().newGet(txnView, rowKey);
-            get.addColumn(SIConstants.DEFAULT_FAMILY_BYTES, SIConstants.PACKED_COLUMN_BYTES);
+            get.addFamily(SIConstants.DEFAULT_FAMILY_BYTES);
             if (!hbRegion.get(get).isEmpty()) {
                 // Referenced row DOES exist, update counter.
                 transactor.updateCounterColumn(hbRegion, txnView, rowLock, rowKey);
