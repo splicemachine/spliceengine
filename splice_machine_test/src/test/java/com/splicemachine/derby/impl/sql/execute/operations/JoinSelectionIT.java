@@ -15,6 +15,9 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.RowId;
 
+import static org.hamcrest.core.AnyOf.anyOf;
+import static org.hamcrest.core.IsEqual.equalTo;
+
 // Note - we are using the format of the EXPLAIN output to pass these tests.  They will need to be updated if the EXPLAIN
 // output changes.
 
@@ -106,7 +109,6 @@ public class JoinSelectionIT extends SpliceUnitTest  {
     
     @Test
     public void testInnerJoinWithSubquery() throws Exception {
-
         ResultSet rs = methodWatcher.executeQuery(
               format("explain select a2.pid from %s a2 join " +
             		  "(select person.pid from %s) as a3 " +
@@ -116,8 +118,10 @@ public class JoinSelectionIT extends SpliceUnitTest  {
             count++;
             if (count == 2) {
     			String row = rs.getString(1);
-    			String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER)+PLAN_LINE_LEADER.length(),row.indexOf(JOIN_STRATEGY_TERMINATOR));
-    			Assert.assertEquals(MERGE_SORT_JOIN, joinStrategy);
+    			String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER) + PLAN_LINE_LEADER.length(),
+                        row.indexOf(JOIN_STRATEGY_TERMINATOR));
+                Assert.assertThat("Join strategy must be either MERGE_SORT_JOIN or BROADCAST_JOIN", joinStrategy,
+                        anyOf(equalTo(MERGE_SORT_JOIN), equalTo(BROADCAST_JOIN)));
             	break;
             }
         }   
@@ -284,8 +288,8 @@ public class JoinSelectionIT extends SpliceUnitTest  {
             count++;
             if (count == 2) {
     			String row = rs.getString(1);
-    			String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER)+PLAN_LINE_LEADER.length(),row.indexOf(JOIN_STRATEGY_TERMINATOR));
-    			Assert.assertEquals(MERGE_SORT_JOIN, joinStrategy);
+    			String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER)+PLAN_LINE_LEADER.length(), row.indexOf(JOIN_STRATEGY_TERMINATOR));
+                Assert.assertTrue(MERGE_SORT_JOIN.equals(joinStrategy) || BROADCAST_JOIN.equals(joinStrategy));
             	break;
             }
         }   
