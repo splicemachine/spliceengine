@@ -317,8 +317,8 @@ public abstract class GenericConstantActionFactory
 		char			lockGranularity,
 		boolean			onCommitDeleteRows,
 		boolean			onRollbackDeleteRows,
-		StatementNode insertNode
-		);
+		StatementNode   insertNode
+    ) throws StandardException;
 
 	/**
 	 *	Make the ConstantAction for a savepoint statement (ROLLBACK savepoint, RELASE savepoint and SAVEPOINT).
