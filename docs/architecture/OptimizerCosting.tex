@@ -354,16 +354,69 @@ where $N_{TS}$ is the number of rows returned from the table scan, and $C_f$ is 
 
 This construction is simple: the cost of an index lookup is the cost to read the local row plus the cost to perform the network read for each row. Unfortunately, SpliceMachine does not have a sequential index operation. Instead, it uses a parallel batch operation to improve performance, which has a significant effect on the expected cost.
 
-Firstly, we use a batch operation to group $M$ rows together into a \emph{block} of rows. Then a single network call is made to obtain the heap rows for all the index rows in a block. The statistics collection algorithm takes this into account, so the remote latency of an index conglomerate is actually the latency to fetch $M$ rows in a single block. This adjustment means that the cost formulas now become
+Firstly, we use a batch operation to group $M$ rows together into a \emph{block} of rows\footnote{$M$ is configurable, using the \textbf{splice.index.batchSize} parameter}. Then a single network call is made to obtain the heap rows for all the index rows in a block. The statistics collection algorithm takes this into account, so the remote latency of an index conglomerate is actually the latency to fetch $M$ rows in a single block. This adjustment means that the cost formulas now become
 
-\begin{equation}
+\begin{equation*}
 				\begin{aligned}
 								N_B &= \floor[\big]{\frac{N_{TS}}{M}} \\
 								P &= P_{TS} + L_r*N_B*C_f \\
 								T &= T_{TS} + L_r*N_B*C_f
 				\end{aligned}
+\end{equation*}
+where $N_B$ is the number of blocks which are found. Of course, if $N_{TS}$ does not evenly divide $M$, then we have an extra "partial" block. We get the cost of this partial block by computing $L_{rf}$ as the latency of the partial block, which is
+
+\begin{displaymath}
+				L_{rf} = \frac{N_{TS} \% M}{M}*L_r
+\end{displaymath}
+
+which makes our block formulas
+\begin{equation*}
+				\begin{aligned}
+								N_B &= \floor[\big]{\frac{N_{TS}}{M}} \\
+								P &= P_{TS} + L_r*N_B*C_f +L_{rf}*C_f\\
+								T &= T_{TS} + L_r*N_B*C_f +L_{rf}*C_f
+				\end{aligned}
+\end{equation*}
+
+This formula takes the block structure into account, but does not deal with the fact that SpliceMachine has a parallel index lookup mechanism, which further affects costs. 
+
+SpliceMachine uses $K$ parallel threads\footnote{this number is configurable, using the \textbf{splice.index.numConcurrentLookups} configuration parameter} to perform block lookups. Thus, we have an algorithm like
+
+\begin{enumerate}
+				\item fill block
+				\item submit for background lookup
+				\item repeat until $K$ blocks are in flight
+				\item  wait until the first block finishes
+				\item refill and resubmit block
+\end{enumerate}
+
+Thus, we have $N_B/K$ blocks in flight at any one point in time. As a result, our cost computations become more complex. The best way to understand this is to enumerate through the blocks.
+
+First, we have a minimum latency which is the time taken to fill one block. Then that block is submitted, and we have a latency to fill the next block. We don't wait for the first block (and therefore add latency) until we have filled all available blocks or run out of data. If the cost to fill a block is $T_f$, then the time spent filling all blocks after the first is $(K-1)*T_f$; therefore, the time spent waiting for the first block to return is $L_r - (K-1)*T_f$. This gives us several situations:
+
+\begin{description}
+				\item[$L_r <= (K-1)*T_f$] In this case there is no latency added by looking up the first block.
+				\item[$L_r >(K-1)*T_f$] In this case we have to add in some cost to the lookup
+\end{description}
+
+For each block where we have a full set of lookups, the cost is the same (either 0 or $(K-1)*T_f$. There are $\floor{N_B/K}*K$ such "full blocks". The remaining $N_B \% K$ blocks must be treated differently.
+
+With the first of those "partial" blocks, we know that there are $(N_B \% K) -1$ blocks which were filled after it, so the time spent waiting is $L_r - ((N_B \% K) -1)*T_f$, and sequentually on down until we are finished.
+
+Thus, we have a final formula for the overall latency to be
+
+\begin{equation*}
+				L_T = (\floor{N_B/K}*K)*(K-1)*T_f + \sum_{j=1}^{K} (L_r - ((N_B \% K)-j)*T_f
+\end{equation*}
+
+when $(K-1)*T_f < L_r$. This gives the overall formula of
+\begin{equation}
+				\begin{aligned}
+								N_B &= \floor[\big]{\frac{N_{TS}}{M}} \\
+								P &= L_T \\
+								T &= T_{TS} + C_f*\frac{T_{TS}}{N_{TS}}*L_{rf}
+				\end{aligned}
 \end{equation}
-where $N_B$ is the number of blocks which are found. Of course, if $N_{TS}$ does not evenly divide
 
 
 \section{Join Costs}
