@@ -118,6 +118,11 @@ public class DistinctScalarAggregateOperationIT extends SpliceUnitTest {
     }
 
     @Test
+    public void testDistinctCountOrderBy() throws Exception {
+        Assert.assertEquals(4L, methodWatcher.query("select count(distinct score) from" + this.getPaddedTableReference("ORDERSUMMARY")));
+    }
+
+    @Test
     public void testDistinctScalarAggregateReturnsZeroOnEmptyTable() throws Exception {
         ResultSet rs = methodWatcher.executeQuery("select count(distinct brand),min(distinct brand),max(distinct brand) from "+ this.getPaddedTableReference("EMPTY_TABLE"));
         Assert.assertTrue("No rows returned!",rs.next());
