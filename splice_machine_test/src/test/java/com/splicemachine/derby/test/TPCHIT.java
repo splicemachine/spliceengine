@@ -3,6 +3,7 @@ package com.splicemachine.derby.test;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
+
 import org.apache.commons.io.IOUtils;
 import org.junit.*;
 import org.junit.rules.RuleChain;
@@ -16,6 +17,9 @@ import java.sql.SQLException;
 
 import static com.splicemachine.derby.test.framework.SpliceUnitTest.format;
 import static com.splicemachine.derby.test.framework.SpliceUnitTest.getResourceDirectory;
+import static org.hamcrest.core.AnyOf.anyOf;
+import static org.hamcrest.core.IsEqual.equalTo;
+import static org.hamcrest.core.IsNot.not;
 import static org.junit.Assert.assertEquals;
 
 public class TPCHIT {
@@ -50,6 +54,8 @@ public class TPCHIT {
         spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", SCHEMA_NAME, PART, getResource("part.tbl"))).execute();
         spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", SCHEMA_NAME, NATION, getResource("nation.tbl"))).execute();
         spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", SCHEMA_NAME, REGION, getResource("region.tbl"))).execute();
+
+        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS('%s', false)", SCHEMA_NAME)).execute();
 
         // validate
         assertEquals(9958L, spliceClassWatcher.query(format("select count(*) from %s.%s", SCHEMA_NAME, LINEITEM)));
@@ -101,6 +107,18 @@ public class TPCHIT {
     @Test
     public void sql8() throws Exception {
         executeQuery(getContent("8.sql"), "", true);
+    }
+
+    @Test
+    public void sql8PlanNoNestedLoops() throws Exception {
+    	// This is a crude way to have at least one test that fails
+    	// when we have a regression in optimizer/stats causing
+    	// NestedLoopJoin to be chosen when it should not.
+    	// This keeps happening, so we need to guard against it.
+    	//
+    	// If this fails, DO NOT just comment it out or ignore it.
+    	// Let it fail until it is fixed.
+        explainQueryNoNestedLoops(getContent("8a.sql"), 0);
     }
 
     @Test
@@ -201,6 +219,35 @@ public class TPCHIT {
     private static String getContent(String fileName) throws IOException {
         String fullFileName = getResourceDirectory() + "tcph/query/" + fileName;
         return IOUtils.toString(new FileInputStream(new File(fullFileName)));
+    }
+    
+    private static final String EXPLAIN = "explain ";
+    private static final String PLAN_LINE_LEADER = "->  ";
+    private static final String JOIN_STRATEGY_TERMINATOR = "(";
+    private static final String NESTED_LOOP_JOIN = "NestedLoopJoin";
+	private static final String MERGE_SORT_JOIN = "MergeSortJoin";
+	private static final String MERGE_JOIN = "MergeJoin";
+	private static final String BROADCAST_JOIN = "BroadcastJoin";
+
+    private void explainQueryNoNestedLoops(String query, int maxJoinChecks) throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(EXPLAIN + query);
+
+        int rowCount = 0;
+        int joinCount = 0;
+        String joinStrategy = null;
+        while (rs.next()) {
+        	rowCount++;
+			String row = rs.getString(1);
+			if (!row.contains("Join")) continue;
+			if (rowCount == 1)
+			    joinStrategy = row.substring(0, row.indexOf(JOIN_STRATEGY_TERMINATOR));
+			else
+				joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER) + PLAN_LINE_LEADER.length(), row.indexOf(JOIN_STRATEGY_TERMINATOR));
+			joinCount++;
+            Assert.assertNotEquals("Found unexpected bad join strategy", NESTED_LOOP_JOIN, joinStrategy);
+            if (maxJoinChecks > 0 && joinCount >= maxJoinChecks) break;
+        }
+        Assert.assertTrue("Did not find join strategy in plan", joinCount > 0);
     }
 
     private void executeQuery(String query, String expected, boolean isResultSetOrdered) throws Exception {
