@@ -119,7 +119,7 @@ public class DistinctScalarAggregateOperationIT extends SpliceUnitTest {
 
     @Test
     public void testDistinctCountOrderBy() throws Exception {
-        Assert.assertEquals(4L, methodWatcher.query("select count(distinct score) from" + this.getPaddedTableReference("ORDERSUMMARY")));
+        Assert.assertEquals(4L, methodWatcher.query("select count(distinct score) from " + this.getPaddedTableReference("ORDERSUMMARY") + "order by 1"));
     }
 
     @Test
