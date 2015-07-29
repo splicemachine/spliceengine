@@ -75,9 +75,10 @@ public class FrequencyCounters {
      *                    in the resulting FrequentElements instance.
      * @return a FrequencyCounter specifically designed to be efficient with double data types.
      */
-		public static DoubleFrequencyCounter doubleCounter(int maxCounters, int initialSize){
-        return new DoubleSpaceSaver(TABLE_HASH_FUNCTION,maxCounters,initialSize, DEFAULT_LOAD_FACTOR);
-		}
+	public static DoubleFrequencyCounter doubleCounter(int maxCounters, int initialSize){
+		if (maxCounters < initialSize) throw new IllegalArgumentException("maxCounters must be >= initialSize");
+		return new DoubleSpaceSaver(TABLE_HASH_FUNCTION,maxCounters,initialSize, DEFAULT_LOAD_FACTOR);
+	}
 
     /**
      * @param maxCounters the maximum number of counters to use. This means that the maximum number of
@@ -103,9 +104,10 @@ public class FrequencyCounters {
      *                    in the resulting FrequentElements instance.
      * @return a FrequencyCounter specifically designed to be efficient with float data types.
      */
-		public static FloatFrequencyCounter floatCounter(int maxCounters, int initialSize){
-        return new FloatSpaceSaver(TABLE_HASH_FUNCTION,maxCounters,initialSize, DEFAULT_LOAD_FACTOR);
-		}
+	public static FloatFrequencyCounter floatCounter(int maxCounters, int initialSize){
+		if (maxCounters < initialSize) throw new IllegalArgumentException("maxCounters must be >= initialSize");
+		return new FloatSpaceSaver(TABLE_HASH_FUNCTION,maxCounters,initialSize, DEFAULT_LOAD_FACTOR);
+	}
 
     /**
      * @param maxCounters the maximum number of counters to use. This means that the maximum number of
@@ -131,9 +133,10 @@ public class FrequencyCounters {
      *                    in the resulting FrequentElements instance.
      * @return a FrequencyCounter specifically designed to be efficient with short data types.
      */
-		public static ShortFrequencyCounter shortCounter(short maxCounters, short initialSize){
-        return new ShortSpaceSaver(TABLE_HASH_FUNCTION,maxCounters,initialSize, DEFAULT_LOAD_FACTOR);
-		}
+	public static ShortFrequencyCounter shortCounter(short maxCounters, short initialSize){
+		if (maxCounters < initialSize) throw new IllegalArgumentException("maxCounters must be >= initialSize");
+		return new ShortSpaceSaver(TABLE_HASH_FUNCTION,maxCounters,initialSize, DEFAULT_LOAD_FACTOR);
+	}
 
     /**
      * @param maxCounters the maximum number of counters to use. This means that the maximum number of
@@ -143,9 +146,9 @@ public class FrequencyCounters {
      *                    in the resulting FrequentElements instance.
      * @return A FrequencyCounter specifically designed to be efficient with integer data types.
      */
-		public static IntFrequencyCounter intCounter(int maxCounters){
-        return new IntSpaceSaver(TABLE_HASH_FUNCTION,maxCounters);
-		}
+	public static IntFrequencyCounter intCounter(int maxCounters){
+		return new IntSpaceSaver(TABLE_HASH_FUNCTION,maxCounters);
+	}
 
     /**
      * @param initialSize the initial number of counters to keep. When the size of the data set is known
@@ -159,9 +162,10 @@ public class FrequencyCounters {
      *                    in the resulting FrequentElements instance.
      * @return a FrequencyCounter specifically designed to be efficient with integer data types.
      */
-		public static IntFrequencyCounter intCounter(int maxCounters, int initialSize){
-        return new IntSpaceSaver(TABLE_HASH_FUNCTION,maxCounters,initialSize, DEFAULT_LOAD_FACTOR);
-		}
+	public static IntFrequencyCounter intCounter(int maxCounters, int initialSize){
+		if (maxCounters < initialSize) throw new IllegalArgumentException("maxCounters must be >= initialSize");
+		return new IntSpaceSaver(TABLE_HASH_FUNCTION,maxCounters,initialSize, DEFAULT_LOAD_FACTOR);
+	}
 
     /**
      * @param maxCounters the maximum number of counters to use. This means that the maximum number of
@@ -171,9 +175,9 @@ public class FrequencyCounters {
      *                    in the resulting FrequentElements instance.
      * @return A FrequencyCounter specifically designed to be efficient with long data types.
      */
-		public static LongFrequencyCounter longCounter(int maxCounters){
-        return new LongSpaceSaver(TABLE_HASH_FUNCTION,maxCounters);
-		}
+	public static LongFrequencyCounter longCounter(int maxCounters){
+		return new LongSpaceSaver(TABLE_HASH_FUNCTION,maxCounters);
+	}
 
     /**
      * @param initialSize the initial number of counters to keep. When the size of the data set is known
@@ -187,9 +191,10 @@ public class FrequencyCounters {
      *                    in the resulting FrequentElements instance.
      * @return a FrequencyCounter specifically designed to be efficient with long data types.
      */
-		public static LongFrequencyCounter longCounter(int maxCounters, int initialSize){
-        return new LongSpaceSaver(TABLE_HASH_FUNCTION,maxCounters,initialSize, DEFAULT_LOAD_FACTOR);
-		}
+	public static LongFrequencyCounter longCounter(int maxCounters, int initialSize){
+    	if (maxCounters < initialSize) throw new IllegalArgumentException("maxCounters must be >= initialSize");
+		return new LongSpaceSaver(TABLE_HASH_FUNCTION,maxCounters,initialSize, DEFAULT_LOAD_FACTOR);
+	}
     /**
      * @param maxCounters the maximum number of counters to use. This means that the maximum number of
      *                    {@code Top-K} elements which can possibly recorded (within the bounds of the error
@@ -219,6 +224,7 @@ public class FrequencyCounters {
      * in the comparable itself.
      */
     public static <T extends Comparable<T>> FrequencyCounter<T> counter(int maxCounters,int initialCounters){
+    	if (maxCounters < initialCounters) throw new IllegalArgumentException("maxCounters must be >= initialCounters");
         return new ObjectSpaceSaver<>(ComparableComparator.<T>newComparator(),TABLE_HASH_FUNCTION,maxCounters,initialCounters, DEFAULT_LOAD_FACTOR);
     }
 
@@ -238,7 +244,8 @@ public class FrequencyCounters {
      * @return A FrequencyCounter for items which has a well-defined ordering.
      */
     public static <T> FrequencyCounter<T> counter(Comparator<T> comparator, int maxCounters,int initialCounters){
-        return new ObjectSpaceSaver<>(comparator,TABLE_HASH_FUNCTION,maxCounters,initialCounters, DEFAULT_LOAD_FACTOR);
+    	if (maxCounters < initialCounters) throw new IllegalArgumentException("maxCounters must be >= initialCounters");
+    	return new ObjectSpaceSaver<>(comparator,TABLE_HASH_FUNCTION,maxCounters,initialCounters, DEFAULT_LOAD_FACTOR);
     }
 
     /**

@@ -14,7 +14,7 @@ public class LongFrequencyCounterScaleTest{
     public void testSequentialOrdering() throws Exception{
         long size =1<<20;
 //        long size =Long.MAX_VALUE;
-        LongFrequencyCounter longFrequencyCounter=FrequencyCounters.longCounter(16,32);
+        LongFrequencyCounter longFrequencyCounter=FrequencyCounters.longCounter(32,16);
         for(long i=0;i<size;i++){
             longFrequencyCounter.update(i,1l);
         }

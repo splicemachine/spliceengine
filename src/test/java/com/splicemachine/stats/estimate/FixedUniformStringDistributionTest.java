@@ -7,6 +7,7 @@ import com.splicemachine.stats.frequency.FrequencyCounter;
 import com.splicemachine.stats.frequency.FrequencyCounters;
 import com.splicemachine.stats.frequency.FrequentElements;
 import com.splicemachine.utils.ComparableComparator;
+
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -17,10 +18,56 @@ import org.junit.Test;
  *         Date: 6/25/15
  */
 public class FixedUniformStringDistributionTest{
+
     @Test
+    public void distributionWorksWithFrequentElements() throws Exception {
+    	// This test was added to cover issue in DB-3608
+    	
+        FrequencyCounter<? super String> counter =
+			FrequencyCounters.counter(ComparableComparator.<String>newComparator(), 16, 1);
+
+        // Values repeated on purpose
+        counter.update("A");
+        counter.update("B");
+        counter.update("B");
+        counter.update("C");
+        counter.update("C");
+        counter.update("C");
+        counter.update("D");
+        counter.update("D");
+        counter.update("D");
+        counter.update("D");
+        
+        @SuppressWarnings("unchecked")
+		FrequentElements<String> fe = (FrequentElements<String>)counter.frequentElements(5);
+
+        // TODO: consider using ComparableColumn for stats integrity instead of
+        // having to construct everything perfectly with this constructor.
+        ColumnStatistics<String> colStats = new ComparableColumnStatistics<>(0,
+            CardinalityEstimators.hyperLogLogString(4),
+            fe,
+            "A",
+            "D",
+            200,
+            12,
+            0,
+            2,
+            UniformStringDistribution.factory(5));
+
+        UniformStringDistribution dist = new UniformStringDistribution(colStats, 5);
+
+        Assert.assertEquals(2, dist.selectivity("A")); // return min of 2, not actual 1
+        Assert.assertEquals(2, dist.selectivity("B"));
+        Assert.assertEquals(3, dist.selectivity("C"));
+        Assert.assertEquals(4, dist.selectivity("D"));
+        Assert.assertEquals(0, dist.selectivity("Z"));
+    }
+	
+	@Test
     public void distributionWorksWithASingleElement() throws Exception{
-        FrequencyCounter<? super String> counter=FrequencyCounters.counter(ComparableComparator.<String>newComparator(),1,16);
-        FrequentElements<String> fe =(FrequentElements<String>)counter.frequentElements(1);
+        FrequencyCounter<? super String> counter=FrequencyCounters.counter(ComparableComparator.<String>newComparator(),16,1);
+        @SuppressWarnings("unchecked")
+		FrequentElements<String> fe =(FrequentElements<String>)counter.frequentElements(1);
         ColumnStatistics<String> colStats = new ComparableColumnStatistics<>(0,
                 CardinalityEstimators.hyperLogLogString(4),
                 fe,
@@ -52,8 +99,9 @@ public class FixedUniformStringDistributionTest{
 
     @Test
     public void distributionWorksForNoElements() throws Exception{
-        FrequencyCounter<? super String> counter=FrequencyCounters.counter(ComparableComparator.<String>newComparator(),1,16);
-        FrequentElements<String> fe =(FrequentElements<String>)counter.frequentElements(1);
+        FrequencyCounter<? super String> counter=FrequencyCounters.counter(ComparableComparator.<String>newComparator(),16,1);
+        @SuppressWarnings("unchecked")
+		FrequentElements<String> fe =(FrequentElements<String>)counter.frequentElements(1);
         ColumnStatistics<String> colStats = new ComparableColumnStatistics<>(0,
                 CardinalityEstimators.hyperLogLogString(4),
                 fe,
