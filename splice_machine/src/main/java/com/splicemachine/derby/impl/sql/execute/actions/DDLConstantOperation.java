@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.pipeline.exception.Exceptions;
@@ -950,6 +951,28 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
 	 */
     protected boolean waitsForConcurrentTransactions() {
         return false;
+    }
+
+
+
+    protected void denyXmlColumns(ColumnInfo[] columnInfo) throws StandardException {
+        if (columnInfo == null) {
+            return;
+        }
+
+        for (ColumnInfo col : columnInfo) {
+            if (col != null) {
+                DataTypeDescriptor type = col.dataType;
+                if (type != null) {
+                    TypeId typeId = type.getTypeId();
+                    if (typeId != null) {
+                        if (typeId.isXMLTypeId()) {
+                            throw StandardException.newException("XML types are not supported yet");
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 

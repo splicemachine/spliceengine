@@ -85,25 +85,6 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
         denyXmlColumns(columnInfo);
     }
 
-    private void denyXmlColumns(ColumnInfo[] columnInfo) throws StandardException {
-        if (columnInfo == null) {
-            return;
-        }
-
-        for (ColumnInfo col : columnInfo) {
-            if (col != null) {
-                DataTypeDescriptor type = col.dataType;
-                if (type != null) {
-                    TypeId typeId = type.getTypeId();
-                    if (typeId != null) {
-                        if (typeId.isXMLTypeId()) {
-                            throw StandardException.newException("XML types are not supported yet");
-                        }
-                    }
-                }
-            }
-        }
-    }
 
     @Override
     public String toString() {
