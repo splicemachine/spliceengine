@@ -495,6 +495,7 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
 
         try {
             conn.createStatement().execute("alter table testAlterTableXml add column x xml");
+            Assert.fail("The test did not throw expected exception");
         } catch (SQLException se) {
             Assert.assertEquals(DDLConstantOperation.XML_NOT_SUPPORTED, se.getMessage());
         } finally {
