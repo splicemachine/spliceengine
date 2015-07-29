@@ -187,27 +187,14 @@ public class JoinSelectionIT extends SpliceUnitTest  {
         }     
     }
 
-    // RedPoint test - should return BroadcastJoin but not NestedLoopJoin
-    // un-Ignore once DB-3460 is fixed
-    @Ignore
     @Test
     public void testRPLeftOuterJoinWithNestedSubqueries() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery(
-              format("explain SELECT a2.pid FROM %s a2 " + 
-            		  "LEFT OUTER JOIN " +
+		explainQueryNoNestedLoops(
+        		format("explain SELECT a2.pid FROM %s a2 " + 
+        			  "LEFT OUTER JOIN " +
             		  "(SELECT a4.PID FROM %s a4 WHERE EXISTS " +
             				  "(SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
-            				  "ON a2.PID = a3.PID", spliceTableWatcher2, spliceTableWatcher2, spliceTableWatcher));
-        int count = 0;
-        while (rs.next()) {
-            count++;
-            if (count == 2) {
-    			String row = rs.getString(1);
-    			String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER)+PLAN_LINE_LEADER.length(),row.indexOf(JOIN_STRATEGY_TERMINATOR));
-    			Assert.assertEquals(BROADCAST_JOIN, joinStrategy);
-            	break;
-            }
-        }    
+            				  "ON a2.PID = a3.PID", spliceTableWatcher2, spliceTableWatcher2, spliceTableWatcher), 0);
     }
     
     @Test
@@ -445,7 +432,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
     	// This tests DB-3608 (wrong row estimate for frequent element match of type varchar).
     	// If it fails, do not ignore it or comment it out. Let it fail until it is fixed.
     	explainQueryNoNestedLoops(
-          "explain select * from region2, nation2 where n_regionkey = r_regionkey and r_name = 'AMERICA'", 0);
+            "explain select * from region2, nation2 where n_regionkey = r_regionkey and r_name = 'AMERICA'", 0);
     }
     
     private void explainQueryNoNestedLoops(String query, int maxJoinChecks) throws Exception {
