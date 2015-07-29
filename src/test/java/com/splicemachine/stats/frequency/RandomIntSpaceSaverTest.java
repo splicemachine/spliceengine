@@ -7,6 +7,8 @@ import com.google.common.primitives.Longs;
 import com.splicemachine.stats.random.Generators;
 import com.splicemachine.stats.random.ParetoGenerator;
 import com.splicemachine.stats.random.RandomGenerator;
+
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.*;
@@ -17,6 +19,7 @@ import java.util.*;
  * @author Scott Fines
  *         Date: 2/20/15
  */
+@Ignore("Not a relevant test. Needs to be redesigned.")
 public class RandomIntSpaceSaverTest {
 
     private int numIterations =10000;
