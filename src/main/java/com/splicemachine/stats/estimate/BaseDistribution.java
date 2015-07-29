@@ -3,7 +3,6 @@ package com.splicemachine.stats.estimate;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.frequency.FrequencyEstimate;
 import com.splicemachine.stats.frequency.FrequentElements;
-import com.splicemachine.stats.frequency.ObjectFrequentElements;
 
 import java.util.Comparator;
 
@@ -44,8 +43,8 @@ public abstract class BaseDistribution<T> implements Distribution<T> {
         if(compare<0) return 0l;
         
         //if we have an exact count from the frequent elements, use it.
-        @SuppressWarnings({ "rawtypes", "unchecked" })
-		FrequencyEstimate est = ((ObjectFrequentElements) columnStats.topK()).equal(element);
+		@SuppressWarnings("rawtypes")
+		FrequencyEstimate est = columnStats.topK().equal(element);
 		if (est != null && est.count()>0) return est.count();
 
         return estimateEquals(element);
