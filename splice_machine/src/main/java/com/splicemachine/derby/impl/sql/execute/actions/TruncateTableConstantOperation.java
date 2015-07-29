@@ -45,7 +45,7 @@ public class TruncateTableConstantOperation extends AlterTableConstantOperation{
                                           UUID tableId,
                                           char lockGranularity,
                                           int behavior,
-                                          String indexNameForStatistics) {
+                                          String indexNameForStatistics) throws StandardException {
         super(sd,tableName,tableId,null,null,lockGranularity,behavior,indexNameForStatistics);
     }
 

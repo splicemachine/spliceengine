@@ -123,7 +123,7 @@ public class SpliceGenericConstantActionFactory extends GenericConstantActionFac
                                                       boolean truncateTable, boolean purge, boolean defragment,
                                                       boolean truncateEndOfTable, boolean updateStatistics,
                                                       boolean updateStatisticsAll, boolean dropStatistics,
-                                                      boolean dropStatisticsAll, String indexNameForStatistics) {
+                                                      boolean dropStatisticsAll, String indexNameForStatistics) throws StandardException {
         SpliceLogUtils.trace(LOG, "getAlterTableConstantAction for {%s.%s} with columnInfo {%s}",(sd==null?"none":sd.getSchemaName()),tableName, Arrays.toString(columnInfo));
         if(truncateTable){
             return new TruncateTableConstantOperation(sd,tableName,tableId,
