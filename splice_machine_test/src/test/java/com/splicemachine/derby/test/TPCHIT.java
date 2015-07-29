@@ -3,6 +3,7 @@ package com.splicemachine.derby.test;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
+
 import org.apache.commons.io.IOUtils;
 import org.junit.*;
 import org.junit.rules.RuleChain;
@@ -50,6 +51,8 @@ public class TPCHIT {
         spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", SCHEMA_NAME, PART, getResource("part.tbl"))).execute();
         spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", SCHEMA_NAME, NATION, getResource("nation.tbl"))).execute();
         spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.SYSCS_IMPORT_DATA('%s','%s',null,null,'%s','|','\"',null,null,null)", SCHEMA_NAME, REGION, getResource("region.tbl"))).execute();
+
+        spliceClassWatcher.prepareStatement(format("call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS('%s', false)", SCHEMA_NAME)).execute();
 
         // validate
         assertEquals(9958L, spliceClassWatcher.query(format("select count(*) from %s.%s", SCHEMA_NAME, LINEITEM)));
@@ -202,6 +205,14 @@ public class TPCHIT {
         String fullFileName = getResourceDirectory() + "tcph/query/" + fileName;
         return IOUtils.toString(new FileInputStream(new File(fullFileName)));
     }
+    
+    private static final String EXPLAIN = "explain ";
+    private static final String PLAN_LINE_LEADER = "->  ";
+    private static final String JOIN_STRATEGY_TERMINATOR = "(";
+    private static final String NESTED_LOOP_JOIN = "NestedLoopJoin";
+	private static final String MERGE_SORT_JOIN = "MergeSortJoin";
+	private static final String MERGE_JOIN = "MergeJoin";
+	private static final String BROADCAST_JOIN = "BroadcastJoin";
 
     private void executeQuery(String query, String expected, boolean isResultSetOrdered) throws Exception {
         ResultSet resultSet = methodWatcher.executeQuery(query);
