@@ -19,8 +19,8 @@ public class UniformIntDistributionTest{
     public void distributionWorksWithFrequentElements() throws Exception {
  
     	IntFrequencyCounter counter = FrequencyCounters.intCounter(4);
-    	//.frequentElements(4)
-        // Values repeated on purpose
+
+    	// Values repeated on purpose
         counter.update(101);
         counter.update(102);
         counter.update(102);
@@ -34,8 +34,6 @@ public class UniformIntDistributionTest{
         
 		IntFrequentElements fe = (IntFrequentElements)counter.frequentElements(4);
 
-        // TODO: consider using ComparableColumn for stats integrity instead of
-        // having to construct everything perfectly with this constructor.
         IntColumnStatistics colStats = new IntColumnStatistics(0,
             CardinalityEstimators.hyperLogLogInt(4),
             fe,

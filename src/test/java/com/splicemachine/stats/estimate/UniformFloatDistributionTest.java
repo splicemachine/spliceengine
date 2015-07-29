@@ -2,7 +2,10 @@ package com.splicemachine.stats.estimate;
 
 import com.splicemachine.stats.FloatColumnStatistics;
 import com.splicemachine.stats.cardinality.CardinalityEstimators;
+import com.splicemachine.stats.frequency.FloatFrequencyCounter;
+import com.splicemachine.stats.frequency.FloatFrequentElements;
 import com.splicemachine.stats.frequency.FrequencyCounters;
+
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -12,6 +15,44 @@ import org.junit.Test;
  */
 public class UniformFloatDistributionTest{
 
+    @Test
+    public void distributionWorksWithFrequentElements() throws Exception {
+ 
+    	FloatFrequencyCounter counter = FrequencyCounters.floatCounter(4);
+
+        // Values repeated on purpose
+        counter.update(101);
+        counter.update(102);
+        counter.update(102);
+        counter.update(103);
+        counter.update(103);
+        counter.update(103);
+        counter.update(104);
+        counter.update(104);
+        counter.update(104);
+        counter.update(104);
+        
+		FloatFrequentElements fe = (FloatFrequentElements)counter.frequentElements(4);
+
+        FloatColumnStatistics colStats = new FloatColumnStatistics(0,
+            CardinalityEstimators.hyperLogLogFloat(4),
+            fe,
+            101,
+            104,
+            200,
+            12,
+            0,
+            2);
+
+        UniformFloatDistribution dist = new UniformFloatDistribution(colStats);
+
+        Assert.assertEquals(2, dist.selectivity(101)); // return min of 2, not actual 1
+        Assert.assertEquals(2, dist.selectivity(102));
+        Assert.assertEquals(3, dist.selectivity(103));
+        Assert.assertEquals(4, dist.selectivity(104));
+        Assert.assertEquals(0, dist.selectivity(105));
+    }
+	
     @Test
     public void testDistributionWorksWithSingleElement() throws Exception{
         //the test is to make sure that we can create the entity without it breaking

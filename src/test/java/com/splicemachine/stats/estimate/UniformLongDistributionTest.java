@@ -3,6 +3,9 @@ package com.splicemachine.stats.estimate;
 import com.splicemachine.stats.LongColumnStatistics;
 import com.splicemachine.stats.cardinality.CardinalityEstimators;
 import com.splicemachine.stats.frequency.FrequencyCounters;
+import com.splicemachine.stats.frequency.LongFrequencyCounter;
+import com.splicemachine.stats.frequency.LongFrequentElements;
+
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -12,6 +15,44 @@ import org.junit.Test;
  */
 public class UniformLongDistributionTest{
 
+    @Test
+    public void distributionWorksWithFrequentElements() throws Exception {
+ 
+    	LongFrequencyCounter counter = FrequencyCounters.longCounter(4);
+
+        // Values repeated on purpose
+        counter.update(101);
+        counter.update(102);
+        counter.update(102);
+        counter.update(103);
+        counter.update(103);
+        counter.update(103);
+        counter.update(104);
+        counter.update(104);
+        counter.update(104);
+        counter.update(104);
+        
+		LongFrequentElements fe = (LongFrequentElements)counter.frequentElements(4);
+
+        LongColumnStatistics colStats = new LongColumnStatistics(0,
+            CardinalityEstimators.hyperLogLogLong(4),
+            fe,
+            101,
+            104,
+            200,
+            12,
+            0,
+            2);
+
+        UniformLongDistribution dist = new UniformLongDistribution(colStats);
+
+        Assert.assertEquals(2, dist.selectivity(101)); // return min of 2, not actual 1
+        Assert.assertEquals(2, dist.selectivity(102));
+        Assert.assertEquals(3, dist.selectivity(103));
+        Assert.assertEquals(4, dist.selectivity(104));
+        Assert.assertEquals(0, dist.selectivity(105));
+    }
+	
     @Test
     public void testDistributionWorksWithSingleElement() throws Exception{
         //the test is to make sure that we can create the entity without it breaking

@@ -2,7 +2,10 @@ package com.splicemachine.stats.estimate;
 
 import com.splicemachine.stats.DoubleColumnStatistics;
 import com.splicemachine.stats.cardinality.CardinalityEstimators;
+import com.splicemachine.stats.frequency.DoubleFrequencyCounter;
+import com.splicemachine.stats.frequency.DoubleFrequentElements;
 import com.splicemachine.stats.frequency.FrequencyCounters;
+
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -12,6 +15,44 @@ import org.junit.Test;
  */
 public class UniformDoubleDistributionTest{
 
+    @Test
+    public void distributionWorksWithFrequentElements() throws Exception {
+ 
+    	DoubleFrequencyCounter counter = FrequencyCounters.doubleCounter(4);
+
+        // Values repeated on purpose
+        counter.update(101);
+        counter.update(102);
+        counter.update(102);
+        counter.update(103);
+        counter.update(103);
+        counter.update(103);
+        counter.update(104);
+        counter.update(104);
+        counter.update(104);
+        counter.update(104);
+        
+		DoubleFrequentElements fe = (DoubleFrequentElements)counter.frequentElements(4);
+
+		DoubleColumnStatistics colStats = new DoubleColumnStatistics(0,
+            CardinalityEstimators.hyperLogLogDouble(4),
+            fe,
+            101,
+            104,
+            200,
+            12,
+            0,
+            2);
+
+        UniformDoubleDistribution dist = new UniformDoubleDistribution(colStats);
+
+        Assert.assertEquals(2, dist.selectivity(101)); // return min of 2, not actual 1
+        Assert.assertEquals(2, dist.selectivity(102));
+        Assert.assertEquals(3, dist.selectivity(103));
+        Assert.assertEquals(4, dist.selectivity(104));
+        Assert.assertEquals(0, dist.selectivity(105));
+    }
+	
     @Test
     public void testDistributionWorksWithSingleElement() throws Exception{
         //the test is to make sure that we can create the entity without it breaking

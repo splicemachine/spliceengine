@@ -4,6 +4,9 @@ import com.splicemachine.stats.CombinedShortColumnStatistics;
 import com.splicemachine.stats.ShortColumnStatistics;
 import com.splicemachine.stats.cardinality.CardinalityEstimators;
 import com.splicemachine.stats.frequency.FrequencyCounters;
+import com.splicemachine.stats.frequency.ShortFrequencyCounter;
+import com.splicemachine.stats.frequency.ShortFrequentElements;
+
 import org.junit.Assert;
 import org.junit.Test;
 
@@ -13,6 +16,44 @@ import org.junit.Test;
  */
 public class UniformShortDistributionTest{
 
+    @Test
+    public void distributionWorksWithFrequentElements() throws Exception {
+ 
+    	ShortFrequencyCounter counter = FrequencyCounters.shortCounter((short)4);
+
+        // Values repeated on purpose
+        counter.update((short)101);
+        counter.update((short)102);
+        counter.update((short)102);
+        counter.update((short)103);
+        counter.update((short)103);
+        counter.update((short)103);
+        counter.update((short)104);
+        counter.update((short)104);
+        counter.update((short)104);
+        counter.update((short)104);
+        
+		ShortFrequentElements fe = (ShortFrequentElements)counter.frequentElements(4);
+
+        ShortColumnStatistics colStats = new CombinedShortColumnStatistics(0,
+            CardinalityEstimators.hyperLogLogShort(4),
+            fe,
+            (short)101,
+            (short)104,
+            200,
+            12,
+            0,
+            2);
+
+        UniformShortDistribution dist = new UniformShortDistribution(colStats);
+
+        Assert.assertEquals(2, dist.selectivity((short)101)); // return min of 2, not actual 1
+        Assert.assertEquals(2, dist.selectivity((short)102));
+        Assert.assertEquals(3, dist.selectivity((short)103));
+        Assert.assertEquals(4, dist.selectivity((short)104));
+        Assert.assertEquals(0, dist.selectivity((short)105));
+    }
+	
     @Test
     public void testDistributionWorksWithSingleElement() throws Exception{
         //the test is to make sure that we can create the entity without it breaking
