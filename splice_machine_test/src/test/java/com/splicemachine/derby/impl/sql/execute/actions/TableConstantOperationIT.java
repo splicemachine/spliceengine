@@ -271,25 +271,17 @@ public class TableConstantOperationIT extends SpliceUnitTest {
 
     @Test
     public void testCreateXmlTable() throws Exception {
-        final Connection connection = methodWatcher.createConnection();
-        try{
-            connection.setAutoCommit(false);
+        final Connection conn = methodWatcher.createConnection();
 
-            SQLClosures.execute(connection, new SQLClosures.SQLAction<Statement>() {
-                @Override
-                public void execute(Statement statement) throws Exception {
-                    try {
-                        statement.execute("create table testCreateXmlTable (i xml)");
-                    } catch (SQLException se) {
-                        Assert.assertEquals(DDLConstantOperation.XML_NOT_SUPPORTED, se.getMessage());
-                    } finally {
-                        connection.rollback();
-                    }
-                }
-            });
-
-        }finally{
-            connection.close();
+        conn.setAutoCommit(false);
+        try {
+            conn.createStatement().execute("create table testCreateXmlTable (i xml)");
+            Assert.fail("The test did not throw expected exception");
+        } catch (SQLException se) {
+            Assert.assertEquals(DDLConstantOperation.XML_NOT_SUPPORTED, se.getMessage());
+        } finally {
+            conn.rollback();
+            conn.close();
         }
     }
 }
