@@ -954,6 +954,7 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
     }
 
 
+    public static final String XML_NOT_SUPPORTED = "XML types are not supported yet";
 
     protected void denyXmlColumns(ColumnInfo[] columnInfo) throws StandardException {
         if (columnInfo == null) {
@@ -967,7 +968,7 @@ private static final Logger LOG = Logger.getLogger(DDLConstantOperation.class);
                     TypeId typeId = type.getTypeId();
                     if (typeId != null) {
                         if (typeId.isXMLTypeId()) {
-                            throw StandardException.newException("XML types are not supported yet");
+                            throw StandardException.newException(XML_NOT_SUPPORTED);
                         }
                     }
                 }
