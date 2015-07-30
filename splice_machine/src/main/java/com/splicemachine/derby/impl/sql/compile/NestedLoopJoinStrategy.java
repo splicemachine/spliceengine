@@ -321,19 +321,13 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         double innerScanRemoteCost = innerCost.remoteCost();
         double innerScanHeapSize = innerCost.getEstimatedHeapSize();
         double innerScanOutputRows = innerCost.rowCount();
-//        ScanCostFunction scf = new ScanCostFunction(null,null,innerTable,
-//                ((FromTable)innerTable).getCompilerContext().getStoreCostController(cd),
-//                optimizer.newCostEstimate(),null,
-//                ((FromTable)innerTable).getOutputRowTemplate(cd),
-//                cd.getIndexDescriptor()!=null?cd.getIndexDescriptor().baseColumnPositions():null,
-//                (long)innerCost.rowCount(),
-//                false,
-//                )
-        double outputJoinSelectivity = estimateJoinSelectivity(innerTable,cd,predList, innerScanOutputRows);
+        double joinSelectivity =JoinSelectivity.estimateJoinSelectivity(innerTable, cd, predList,(long) innerScanOutputRows,(long) outerRowCount,
+                JoinStrategyType.BROADCAST,outerCost);
+
         if(innerCost.getEstimatedRowCount()!=1l){
-            innerScanRemoteCost *= outputJoinSelectivity;
-            innerScanHeapSize *= outputJoinSelectivity;
-            innerScanOutputRows*=outputJoinSelectivity;
+            innerScanRemoteCost *= joinSelectivity;
+            innerScanHeapSize *= joinSelectivity;
+            innerScanOutputRows*=joinSelectivity;
         }
         double perOuterRowInnerCost = innerScanLocalCost+innerScanRemoteCost;
         perOuterRowInnerCost+=innerCost.partitionCount()*(innerCost.getOpenCost()+innerCost.getCloseCost());
@@ -346,7 +340,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
          * the predicates which are pushed to the right hand side. Therefore, the totalOutputRows
          * is actually outerCost.rowCount()*innerScanOutputRows
          */
-        double totalOutputRows=outputJoinSelectivity*(outerCost.rowCount()*innerCost.rowCount());
+        double totalOutputRows=joinSelectivity*(outerCost.rowCount()*innerCost.rowCount());
         double totalHeapSize=outerCost.getEstimatedHeapSize()+outerCost.rowCount()*innerScanHeapSize;
 
         double perRowRemoteCost = outerCost.remoteCost()/outerRowCount;

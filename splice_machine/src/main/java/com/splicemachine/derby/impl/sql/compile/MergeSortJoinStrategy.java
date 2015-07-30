@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.sql.compile;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.impl.sql.compile.JoinSelectivity;
 
 public class MergeSortJoinStrategy extends BaseCostedHashableJoinStrategy {
 
@@ -179,7 +180,9 @@ public class MergeSortJoinStrategy extends BaseCostedHashableJoinStrategy {
         double perRowLocalLatency = outerCost.localCost()/(2*outerRowCount);
         perRowLocalLatency+=innerCost.localCost()/(2*innerRowCount);
 
-        double joinSelectivity = estimateJoinSelectivity(innerTable,cd,predList,innerRowCount);
+        double joinSelectivity = JoinSelectivity.estimateJoinSelectivity(innerTable, cd, predList, (long) innerRowCount, (long) outerRowCount,
+                JoinStrategyType.BROADCAST, outerCost);
+
 
         double mergeRows = joinSelectivity*(outerRowCount*innerRowCount);
         int mergePartitions = (int)Math.round(Math.min(16,mergeRows));
@@ -190,8 +193,8 @@ public class MergeSortJoinStrategy extends BaseCostedHashableJoinStrategy {
         double mergeRemoteCost = getTotalRemoteCost(outerRemoteCost,innerRemoteCost,outerRowCount,innerRowCount,mergeRows);
         double mergeHeapSize = getTotalHeapSize(outerCost.getEstimatedHeapSize(),
                 innerCost.getEstimatedHeapSize(),
-                outerRowCount,
                 innerRowCount,
+                outerRowCount,
                 mergeRows);
 
         double totalLocalCost = sortCost+mergeLocalCost;
