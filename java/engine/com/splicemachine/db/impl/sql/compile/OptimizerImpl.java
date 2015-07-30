@@ -1244,6 +1244,8 @@ public class OptimizerImpl implements Optimizer{
 
     @Override public void setOuterRowOrdering(RowOrdering rowOrdering){ outermostCostEstimate.setRowOrdering(rowOrdering); }
 
+    @Override public void setIsOuterJoin(boolean isOuterJoin){ outermostCostEstimate.setOuterJoin(isOuterJoin); }
+
     @Override
     public int tableLockThreshold(){ return tableLockThreshold; }
 

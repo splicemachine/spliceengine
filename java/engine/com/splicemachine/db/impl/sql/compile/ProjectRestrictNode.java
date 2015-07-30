@@ -1552,7 +1552,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
      * Mark the underlying scan as a distinct scan.
      */
     @Override
-    void markForDistinctScan(){
+    void markForDistinctScan() throws StandardException {
         childResult.markForDistinctScan();
     }
 

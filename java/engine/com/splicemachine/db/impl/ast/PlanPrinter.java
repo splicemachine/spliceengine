@@ -172,7 +172,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
                 indexName = String.format("%s(%s)", cd.getConglomerateName(), cd.getConglomerateNumber());
             }
             List<String> qualifiers =  Lists.transform(preds(rsn), PredicateUtils.predToString);
-            builder.addBaseTable(rsNum,ce,tableName,indexName,qualifiers,fbt.isMultiProbing());
+            builder.addBaseTable(rsNum,ce,tableName,indexName,qualifiers,fbt.isMultiProbing(),fbt.isDistinctScan());
         }else if(rsn instanceof RowResultSetNode){
             builder.pushValuesNode(rsNum,ce);
         } else if(rsn instanceof ProjectRestrictNode){
@@ -219,7 +219,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         } else if(rsn instanceof FromVTI){
             FromVTI vti = (FromVTI)rsn;
             String tableName = vti.getName();
-            builder.addBaseTable(rsNum,ce,"VTI:"+tableName,null,null,false);
+            builder.addBaseTable(rsNum,ce,"VTI:"+tableName,null,null,false,false);
         }
 
         //collect subqueries

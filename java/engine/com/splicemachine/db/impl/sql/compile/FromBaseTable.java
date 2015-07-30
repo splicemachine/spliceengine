@@ -757,20 +757,24 @@ public class FromBaseTable extends FromTable{
              * have access to all the columns in the scanColumnList. Thus, we go through
              * the index baseColumnPositions, and remove everything else
              */
-            if(cd.isIndex() && !isCoveringIndex(cd)){
+// TODO JL
+            if (cd.isIndex() || cd.isPrimaryKey()) {
                 baseColumnPositions = cd.getIndexDescriptor().baseColumnPositions();
-                indexLookupList = new BitSet();
-                for(int i=scanColumnList.nextSetBit(0);i>=0;i=scanColumnList.nextSetBit(i+1)){
-                    boolean found = false;
-                    for(int j=0;j<baseColumnPositions.length;j++){
-                        if(i==baseColumnPositions[j]){
-                           found = true;
-                            break;
+               if (!isCoveringIndex(cd)) {
+                    baseColumnPositions = cd.getIndexDescriptor().baseColumnPositions();
+                    indexLookupList = new BitSet();
+                    for (int i = scanColumnList.nextSetBit(0); i >= 0; i = scanColumnList.nextSetBit(i + 1)) {
+                        boolean found = false;
+                        for (int j = 0; j < baseColumnPositions.length; j++) {
+                            if (i == baseColumnPositions[j]) {
+                                found = true;
+                                break;
+                            }
                         }
-                    }
-                    if(!found){
-                        indexLookupList.set(i);
-                        scanColumnList.clear(i);
+                        if (!found) {
+                            indexLookupList.set(i);
+                            scanColumnList.clear(i);
+                        }
                     }
                 }
             }
@@ -3108,6 +3112,8 @@ public class FromBaseTable extends FromTable{
         AccessPath ap=getTrulyTheBestAccessPath();
         JoinStrategy trulyTheBestJoinStrategy=ap.getJoinStrategy();
         PredicateList pl;
+        if (trulyTheBestJoinStrategy==null)
+            return false;
 
         if(trulyTheBestJoinStrategy.isHashJoin()){
             pl=(PredicateList)getNodeFactory().getNode(
@@ -3403,8 +3409,9 @@ public class FromBaseTable extends FromTable{
      * Mark the underlying scan as a distinct scan.
      */
     @Override
-    void markForDistinctScan(){
+    void markForDistinctScan() throws StandardException {
         distinctScan=true;
+        resultColumns.computeDistinctCardinality(getFinalCostEstimate());
     }
 
 
@@ -3572,7 +3579,7 @@ public class FromBaseTable extends FromTable{
     /**
      * Is this a one-row result set with the given conglomerate descriptor?
      */
-    private boolean isOneRowResultSet(ConglomerateDescriptor cd,
+    public boolean isOneRowResultSet(ConglomerateDescriptor cd,
                                       OptimizablePredicateList predList) throws StandardException{
         if(predList==null){
             return false;
@@ -3582,19 +3589,13 @@ public class FromBaseTable extends FromTable{
 
         @SuppressWarnings("ConstantConditions") PredicateList restrictionList=(PredicateList)predList;
 
-        if(!cd.isIndex()){
-            IndexDescriptor indexDec=cd.getIndexDescriptor();
-            if(indexDec==null || indexDec.indexType()==null || !indexDec.indexType().contains("PRIMARY")){
-                return false;
-            }
-        }
-
+        if(!cd.isIndex() && !cd.isPrimaryKey())
+            return false;
         IndexRowGenerator irg= cd.getIndexDescriptor();
 
         // is this a unique index
-        if(!irg.isUnique()){
+        if(!irg.isUnique())
             return false;
-        }
 
         int[] baseColumnPositions=irg.baseColumnPositions();
 
@@ -3762,6 +3763,10 @@ public class FromBaseTable extends FromTable{
     public ResultColumn getRowIdColumn(){
         return rowIdColumn;
     }
+
+    public boolean isDistinctScan() {
+        return distinctScan;
+    };
 
 /*
     public ConstantAction makeConstantAction() throws StandardException {

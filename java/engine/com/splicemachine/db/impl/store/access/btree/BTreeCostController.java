@@ -608,4 +608,9 @@ public class BTreeCostController extends OpenBTree implements StoreCostControlle
     public double nonNullCount(int columnNumber){
         return num_rows;
     }
+
+    @Override
+    public long cardinality(int columnNumber) {
+        return num_rows;
+    }
 }

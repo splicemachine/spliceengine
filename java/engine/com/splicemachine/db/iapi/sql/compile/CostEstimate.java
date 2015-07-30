@@ -42,6 +42,10 @@ public interface CostEstimate extends StoreCostResult {
 
     void setLocalCost(double remoteCost);
 
+    boolean isOuterJoin();
+
+    void setOuterJoin(boolean isOuterJoin);
+
     /**
      * Copy the values from the given cost estimate into this one.
      */

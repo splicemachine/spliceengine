@@ -121,4 +121,7 @@ public interface IndexDescriptor
 	 * column" where numberOfOrderedColumns is changed.
 	 */
 	public void     setNumberOfOrderedColumns(int numberOfOrderedColumns);
+
+
+    public boolean isPrimaryKey();
 }

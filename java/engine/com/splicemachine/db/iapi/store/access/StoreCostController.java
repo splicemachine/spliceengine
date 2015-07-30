@@ -386,4 +386,13 @@ public interface StoreCostController extends RowCountable{
      * @return an estimate of the percentage of rows in the data set which are null.
      */
     double nullSelectivity(int columnNumber);
+
+    /**
+     *
+     * Retrieve the cardinality for the specified column.  If not available, returns 0.
+     *
+     * @param columnNumber the id of the column to estimate (indexed from 1)
+     * @return an estimate of the number of distinct entries (cardinality).
+     */
+    long cardinality(int columnNumber);
 }

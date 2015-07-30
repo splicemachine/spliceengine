@@ -1426,7 +1426,7 @@ public abstract class ResultSetNode extends QueryTreeNode{
     /**
      * Mark the underlying scan as a distinct scan.
      */
-    void markForDistinctScan(){
+    void markForDistinctScan() throws StandardException {
         if(SanityManager.DEBUG){
             SanityManager.THROWASSERT(
                     "markForDistinctScan() not expected to be called for "+

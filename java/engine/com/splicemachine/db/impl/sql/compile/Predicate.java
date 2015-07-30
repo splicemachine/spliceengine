@@ -231,8 +231,8 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
     }
 
     @Override
-    public double selectivity(Optimizable table,ConglomerateDescriptor cd) throws StandardException{
-        return andNode.getLeftOperand().selectivity(table,cd);
+    public double joinSelectivity(Optimizable table,ConglomerateDescriptor cd, long innerRowCount, long outerRowCount,JoinSelectivity.SelectivityJoinType selectivityJoinType) throws StandardException{
+        return andNode.getLeftOperand().joinSelectivity(table,cd,innerRowCount,outerRowCount,selectivityJoinType);
     }
 
     @Override

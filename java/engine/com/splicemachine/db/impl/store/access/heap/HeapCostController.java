@@ -309,4 +309,10 @@ public class HeapCostController
         cost_result.setEstimatedRowCount(estimated_row_count);
 
     }
+
+    @Override
+    public long cardinality(int columnNumber) {
+        return num_rows;
+    }
+
 }
