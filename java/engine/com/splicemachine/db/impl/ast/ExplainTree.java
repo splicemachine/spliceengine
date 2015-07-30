@@ -105,8 +105,9 @@ public class ExplainTree{
                                     String tableName,
                                     String indexName,
                                     List<String> predicates,
-                                    boolean isMultiProbing){
-            Node newNode = new TableNode(resultSetNumber,cost,predicates,tableName,indexName,isMultiProbing);
+                                    boolean isMultiProbing,
+                                    boolean isDistinct){
+            Node newNode = new TableNode(resultSetNumber,cost,predicates,tableName,indexName,isMultiProbing,isDistinct);
             topNode = newNode;
             newNode.level = 0;
             return this;
@@ -396,19 +397,22 @@ public class ExplainTree{
     private static class TableNode extends PredicatedNode{
         private final String tableName;
         private final String indexName;
+        private final boolean isDistinct;
 
         public TableNode(int resultSetNUmber,
                          CostEstimate cost,
                          List<String> predicateStrings,
                          String tableName,
                          String indexName,
-                         boolean isMultiProbing){
-            super(getClassName(tableName,indexName,isMultiProbing),resultSetNUmber,cost,predicateStrings);
+                         boolean isMultiProbing,
+                         boolean isDistinct){
+            super(getClassName(tableName,indexName,isMultiProbing, isDistinct),resultSetNUmber,cost,predicateStrings);
             this.tableName=tableName;
             this.indexName=indexName;
+            this.isDistinct = isDistinct;
         }
 
-        private static String getClassName(String tableName,String indexName,boolean isMultiProbing){
+        private static String getClassName(String tableName,String indexName,boolean isMultiProbing, boolean isDistinct){
             String cName;
             if(indexName!=null){
                 cName = "IndexScan["+indexName+"]";
@@ -417,6 +421,8 @@ public class ExplainTree{
             }
             if(isMultiProbing)
                 cName = "MultiProbe"+cName;
+            if (isDistinct)
+                cName = "Distinct" + cName;
             return cName;
         }
 

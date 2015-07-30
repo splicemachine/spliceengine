@@ -225,8 +225,11 @@ public class JoinNode extends TableOperatorNode{
             getRightPredicateList().addElement(predicate);
         }
 
-        rightResultSet=optimizeSource(optimizer,rightResultSet,getRightPredicateList(),leftResultSet.getCostEstimate());
 
+        CostEstimate lrsCE = leftResultSet.getCostEstimate();
+        lrsCE.setOuterJoin(true);
+        rightResultSet=optimizeSource(optimizer,rightResultSet,getRightPredicateList(),lrsCE);
+        lrsCE.setOuterJoin(false);
         costEstimate=getCostEstimate(optimizer);
 
 		/*
@@ -250,6 +253,8 @@ public class JoinNode extends TableOperatorNode{
 		/*
 		** Get the cost of this result set in the context of the whole plan.
 		*/
+
+        costEstimate.setOuterJoin(true);
         getCurrentAccessPath().getJoinStrategy().estimateCost(this,
                 predList,
                 null,
@@ -257,7 +262,7 @@ public class JoinNode extends TableOperatorNode{
                 optimizer,
                 costEstimate
         );
-
+        costEstimate.setOuterJoin(false);
         optimizer.considerCost(this,predList,costEstimate,outerCost);
 
 		/* Optimize subqueries only once, no matter how many times we're called */

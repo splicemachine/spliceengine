@@ -34,6 +34,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.Orderable;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
+import org.apache.commons.lang3.tuple.Pair;
 
 import java.sql.Types;
 
@@ -1278,33 +1279,29 @@ public class BinaryRelationalOperatorNode
     }
 
     @Override
-    public double selectivity(Optimizable optTable,ConglomerateDescriptor currentCd) throws StandardException{
-        if(currentCd==null) return selectivity(optTable);
-        StoreCostController storeCostController=getCompilerContext().getStoreCostController(currentCd);
-        if(storeCostController==null) return selectivity(optTable);
-        ColumnReference colRef=getColumnOperand(optTable);
-        if(colRef==null)
-            return super.selectivity(optTable); //fall back on default behavior when we don't have what we need
-        int colId=colRef.getSource().getColumnPosition();
-        double rowCount=storeCostController.nonNullCount(colId);
-        if(rowCount==0d) return 1d; //nothing to select
-
-        double selectivity=1d;
-        switch(operatorType){
-            case RelationalOperator.EQUALS_RELOP:
-                selectivity*=storeCostController.cardinalityFraction(colId);
-                break;
-            case RelationalOperator.NOT_EQUALS_RELOP:
-                selectivity*=1-storeCostController.cardinalityFraction(colId);
-                break;
-            case RelationalOperator.LESS_THAN_RELOP:
-            case RelationalOperator.LESS_EQUALS_RELOP:
-                selectivity*=0.5d; //TODO -sf- make this more accurate
-            case RelationalOperator.GREATER_THAN_RELOP:
-            case RelationalOperator.GREATER_EQUALS_RELOP:
-                selectivity*=0.33d; //TODO -sf- make this more accurate
+    public double joinSelectivity(Optimizable optTable,
+                                  ConglomerateDescriptor currentCd,
+                                  long innerRowCount, long outerRowCount, JoinSelectivity.SelectivityJoinType selectivityJoinType) throws StandardException {
+        assert optTable != null:"null values passed into predicate joinSelectivity";
+            // Binary Relational Operator Node...
+        double selectivity;
+        if (rightOperand instanceof ColumnReference && ((ColumnReference) rightOperand).getSource().getTableColumnDescriptor() != null) {
+            ColumnReference right = (ColumnReference) rightOperand;
+            if (selectivityJoinType.equals(JoinSelectivity.SelectivityJoinType.OUTER)) {
+                selectivity = (1.0d - right.nullSelectivity()) / right.nonZeroCardinality(innerRowCount);
+            } else if (leftOperand instanceof ColumnReference && ((ColumnReference) leftOperand).getSource().getTableColumnDescriptor() != null) {
+                ColumnReference left = (ColumnReference) leftOperand;
+                selectivity = ((1.0d - left.nullSelectivity()) * (1.0d - right.nullSelectivity())) /
+                        Math.max(left.nonZeroCardinality(outerRowCount), right.nonZeroCardinality(innerRowCount));
+                selectivity = selectivityJoinType.equals(JoinSelectivity.SelectivityJoinType.INNER) ?
+                        selectivity : 1.0d - selectivity;
+            } else { // No Left Column Reference
+                selectivity = super.joinSelectivity(optTable, currentCd, innerRowCount, outerRowCount, selectivityJoinType);
+            }
+        } else { // No Right ColumnReference
+            selectivity = super.joinSelectivity(optTable, currentCd, innerRowCount, outerRowCount, selectivityJoinType);
         }
-
+        assert selectivity > 0.0d:"selectivity is out of bounds " + selectivity + this + " right-> " + rightOperand + " left -> " + leftOperand;
         return selectivity;
     }
 

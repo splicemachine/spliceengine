@@ -199,6 +199,11 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable
 		this.numberOfOrderedColumns = numberOfOrderedColumns;
 	}
 
+    @Override
+    public boolean isPrimaryKey() {
+        return indexType != null && indexType().contains("PRIMARY");
+    }
+
 	public String toString()
 	{
 		StringBuffer	sb = new StringBuffer(60);

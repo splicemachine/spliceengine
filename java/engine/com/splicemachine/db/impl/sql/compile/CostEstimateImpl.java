@@ -30,6 +30,7 @@ public class CostEstimateImpl implements CostEstimate {
     public double	cost;
     public double	rowCount;
     public double	singleScanRowCount;
+    public boolean isOuterJoin;
 
     public CostEstimateImpl() {
     }
@@ -380,4 +381,14 @@ public class CostEstimateImpl implements CostEstimate {
     }
 
     @Override public double getCloseCost(){ throw new UnsupportedOperationException(); }
+
+    @Override
+    public boolean isOuterJoin() {
+        return isOuterJoin;
+    }
+
+    @Override
+    public void setOuterJoin(boolean isOuterJoin) {
+        this.isOuterJoin = isOuterJoin;
+    }
 }

@@ -708,6 +708,8 @@ public abstract class TableOperatorNode extends FromTable{
 
             optimizer.setOuterRowOrdering(outerCost.getRowOrdering());
 
+            optimizer.setIsOuterJoin(outerCost.isOuterJoin());
+
 			/* Optimize the underlying result set */
             while(optimizer.nextJoinOrder()){
                 while(optimizer.getNextDecoratedPermutation()){

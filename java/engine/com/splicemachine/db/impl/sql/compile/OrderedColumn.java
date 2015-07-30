@@ -109,4 +109,19 @@ public abstract class OrderedColumn extends QueryTreeNode
 	}
 
     public abstract ValueNode getColumnExpression();
+
+    /**
+     *
+     * Retrieve the column Reference from the ordered column
+     *
+     * @return
+     */
+    public ColumnReference getColumnReference() {
+        ValueNode colExprValue = getColumnExpression();
+        if (colExprValue instanceof UnaryOperatorNode)
+            colExprValue = ((UnaryOperatorNode) colExprValue).getOperand();
+        assert colExprValue != null && colExprValue instanceof ColumnReference : "Programmer error: unexpected type or null:";
+        return (ColumnReference) colExprValue;
+    }
+
 }

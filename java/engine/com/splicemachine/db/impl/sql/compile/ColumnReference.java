@@ -23,6 +23,8 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.NodeFactory;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -1297,5 +1299,33 @@ public class ColumnReference extends ValueNode {
         return origSource.getExpression().getSourceResultColumn();
 	}
     
-	
+
+
+    public long cardinality() throws StandardException {
+            if (source.getTableColumnDescriptor() ==null) // Temporary JL
+                return 0;
+            ConglomerateDescriptor cd = getSource().getTableColumnDescriptor().getTableDescriptor().getConglomerateDescriptorList().get(0);
+            int leftPosition = getSource().getColumnPosition();
+            return getCompilerContext().getStoreCostController(cd).cardinality(leftPosition);
+    }
+
+    public long nonZeroCardinality(long numberOfRows) throws StandardException {
+        long cardinality = cardinality();
+        return cardinality==0?numberOfRows:cardinality;
+    }
+
+    public double nullSelectivity() throws StandardException {
+        // Check for not null in declaration
+        if (!getSource().getType().isNullable())
+            return 0.0;
+        ConglomerateDescriptor cd = getSource().getTableColumnDescriptor().getTableDescriptor().getConglomerateDescriptorList().get(0);
+        int leftPosition = getSource().getColumnPosition();
+        return getCompilerContext().getStoreCostController(cd).nullSelectivity(leftPosition);
+    }
+
+    public double rowCountEstimate() throws StandardException {
+        ConglomerateDescriptor cd = getSource().getTableColumnDescriptor().getTableDescriptor().getConglomerateDescriptorList().get(0);
+        return getCompilerContext().getStoreCostController(cd).rowCount();
+    }
+
 }
