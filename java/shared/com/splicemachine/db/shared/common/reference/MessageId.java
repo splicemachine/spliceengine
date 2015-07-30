@@ -243,10 +243,23 @@ public interface MessageId {
      */
     String SPLICE_GENERIC_EXCEPTION                      = "SE001";
     String SPLICE_UNSUPPORTED_OPERATION                  = "SE002";
-		String SPLICE_WRITE_ATTEMPTS_FAILED									 = "SE003";
-	  String SPLICE_NOT_SERVING_REGION									   = "SE004";
-	  String SPLICE_REGION_TOO_BUSY									   		 = "SE005";
-	  String ZOOKEEPER_FAILURE									   				 = "SE006.C.3";
-	  String QUERY_TIMEOUT									   				 		 = "SE007";
-
+    String SPLICE_WRITE_ATTEMPTS_FAILED                  = "SE003";
+    String SPLICE_NOT_SERVING_REGION                     = "SE004";
+    String SPLICE_REGION_TOO_BUSY                        = "SE005";
+    String ZOOKEEPER_FAILURE                             = "SE006.C.3";
+    String QUERY_TIMEOUT                                 = "SE007";
+    String SPLICE_CANCELLATION_EXCEPTION                 = "SE008";
+    String LANG_IMPORT_TOO_MANY_BAD_RECORDS              = "SE009";
+    String LANG_NO_WRITE_PERMISSION                      = "SE010";
+    String LANG_NO_READ_PERMISSION                       = "SE011";
+    String LANG_NOT_A_DIRECTORY                          = "SE012";
+    String DDL_ACTIVE_TRANSACTIONS                       = "SE013";
+    String WRITE_WRITE_CONFLICT                          = "SE014";
+    String CANNOT_COMMIT                                 = "SE015";
+    String XPLAIN_STATEMENT_ID                           = "SE016";
+    String DDL_TIMEOUT                                   = "SE017";
+    String UPSERT_NO_PRIMARY_KEYS                        = "SE018";
+    String IMPORT_MISSING_NOT_NULL_KEY                   = "SE019";
+    String LANG_COLUMN_STATISTICS_NOT_POSSIBLE           = "SE020";
+    String LANG_DISABLE_STATS_FOR_KEYED_COLUMN           = "SE021";
 }

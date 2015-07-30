@@ -252,8 +252,10 @@ public class ScanCostFunction{
          */
         double outputRows = nonQualifierSelectivity*scanCost.rowCount();
         double outputHeap = nonQualifierSelectivity*scanCost.getEstimatedHeapSize();
+        double outputRemoteCost = nonQualifierSelectivity*scanCost.remoteCost();
         scanCost.setRowCount(outputRows);
         scanCost.setEstimatedHeapSize((long)outputHeap);
+        scanCost.setRemoteCost(outputRemoteCost);
         outputCostComputed = true;
     }
 

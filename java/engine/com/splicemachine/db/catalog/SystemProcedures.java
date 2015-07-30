@@ -900,7 +900,7 @@ public class SystemProcedures  {
 
     /**
      * 
-     * @param backupDir the name of the directory where the backup should be
+     * @param restoreDir the name of the directory where the backup should be
      *                  stored. This directory will be created if it 
      *                  does not exist.
      * @exception StandardException thrown on error
@@ -1851,7 +1851,14 @@ public class SystemProcedures  {
             if (userName == null)
                  throw StandardException.newException(SQLState.AUTH_INVALID_USER_NAME,
                          userName);
-            
+
+			 LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+			 DataDictionary dd = lcc.getDataDictionary();
+			 if (dd.getUser(userName) == null)
+			 {
+				 throw StandardException.newException(SQLState.AUTH_INVALID_USER_NAME, userName);
+			 }
+
             String addListProperty;
             if (Property.FULL_ACCESS.equals(connectionPermission))
             {
@@ -1920,7 +1927,14 @@ public class SystemProcedures  {
             if (userName == null)
                 throw StandardException.newException(SQLState.AUTH_INVALID_USER_NAME,
                         userName);
-           
+
+			LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+			DataDictionary dd = lcc.getDataDictionary();
+			if (dd.getUser(userName) == null)
+			{
+				return Property.NO_ACCESS;
+			}
+
             String fullUserList =
                 SYSCS_GET_DATABASE_PROPERTY(Property.FULL_ACCESS_USERS_PROPERTY);
             if (IdUtil.idOnList(userName, fullUserList))

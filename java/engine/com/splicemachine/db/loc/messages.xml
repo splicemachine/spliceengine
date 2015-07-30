@@ -7166,6 +7166,36 @@ MessageId.java.
             </msg>
 
             <msg>
+                <name>43X9D.U</name>
+                <text>Merge Sort Exists Join</text>
+            </msg>
+
+            <msg>
+                <name>43X9E.U</name>
+                <text>Merge Sort Exists Join ResultSet</text>
+            </msg>
+
+            <msg>
+                <name>43X9F.U</name>
+                <text>Merge Sort Join</text>
+            </msg>
+
+            <msg>
+                <name>43X9G.U</name>
+                <text>Merge Sort Join ResultSet</text>
+            </msg>
+
+            <msg>
+                <name>43X9H.U</name>
+                <text>Merge Sort Left Outer Join</text>
+            </msg>
+
+            <msg>
+                <name>43X9I.U</name>
+                <text>Merge Sort Left Outer Join ResultSet</text>
+            </msg>
+
+            <msg>
                 <name>43Y00.U</name>
                 <text>Scalar Aggregate ResultSet</text>
             </msg>
