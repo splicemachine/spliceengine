@@ -62,7 +62,7 @@ final class Murmur64 implements Hash64 {
         }
 
         length = byteBuffer.remaining();
-        byteBuffer.get(block);
+        byteBuffer.get(block,0,length);
         h = updatePartial(block,length,h,0);
 
         return finalize(h);
@@ -76,7 +76,8 @@ final class Murmur64 implements Hash64 {
     @Override
     public long hash(int element) {
         long h = initialize(seed,4);
-        h ^=Long.reverseBytes(((long)element)<<32);
+        long e =Integer.reverseBytes(element)&0x00000000ffffffffl;
+        h ^= e;
         return finalize(h);
     }
 
