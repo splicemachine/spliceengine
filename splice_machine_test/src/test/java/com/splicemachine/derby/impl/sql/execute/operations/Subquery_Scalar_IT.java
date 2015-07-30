@@ -2,10 +2,14 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.pipeline.exception.ErrorState;
+import junit.framework.*;
 import org.junit.*;
+import org.junit.Assert;
+import org.junit.Test;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -27,6 +31,7 @@ public class Subquery_Scalar_IT {
 
     @ClassRule
     public static SpliceWatcher classWatcher = new SpliceWatcher(SCHEMA);
+
 
     @BeforeClass
     public static void createdSharedTables() throws Exception {
@@ -51,6 +56,38 @@ public class Subquery_Scalar_IT {
         classWatcher.executeUpdate("create table sT2 (userid int,pmnew int,pmtotal int)");
         classWatcher.executeUpdate("insert into sT2 values (1,0,0),(2,0,0)");
 
+        classWatcher.executeUpdate("CREATE TABLE STAFF\n" +
+                "   (EMPNUM   VARCHAR(3) NOT NULL,\n" +
+                "    EMPNAME  VARCHAR(20),\n" +
+                "    GRADE    DECIMAL(4),\n" +
+                "    CITY     VARCHAR(15))");
+        classWatcher.executeUpdate("CREATE TABLE PROJ\n" +
+                "   (PNUM     VARCHAR(3) NOT NULL,\n" +
+                "    PNAME  VARCHAR(20),\n" +
+                "    PTYPE    CHAR(6),\n" +
+                "    BUDGET   DECIMAL(9),\n" +
+                "    CITY     VARCHAR(15)) ");
+        classWatcher.executeUpdate("CREATE TABLE WORKS\n" +
+                "   (EMPNUM   VARCHAR(3) NOT NULL,\n" +
+                "    PNUM     VARCHAR(3) NOT NULL,\n" +
+                "    HOURS    DECIMAL(5)\n" +
+                "    )");
+        classWatcher.getStatement().executeUpdate("insert into STAFF VALUES ('E1','Alice',12,'Deale')");
+        classWatcher.getStatement().executeUpdate("insert into STAFF VALUES ('E2','Betty',10,'Vienna')");
+        classWatcher.getStatement().executeUpdate("insert into STAFF VALUES ('E3','Carmen',13,'Vienna')");
+        classWatcher.getStatement().executeUpdate("insert into STAFF VALUES ('E4','Don',12,'Deale')");
+        classWatcher.getStatement().executeUpdate("insert into STAFF VALUES ('E5','Ed',13,'Akron')");
+        classWatcher.getStatement().executeUpdate("insert into PROJ VALUES ('P1','MXSS','Design',10000,'Deale')");
+        classWatcher.getStatement().executeUpdate("insert into PROJ VALUES ('P2','CALM','Code',30000,'Vienna')");
+        classWatcher.getStatement().executeUpdate("insert into PROJ VALUES ('P3','SDP','Test',30000,'Tampa')");
+        classWatcher.getStatement().executeUpdate("insert into PROJ VALUES ('P4','SDP','Design',20000,'Deale')");
+        classWatcher.getStatement().executeUpdate("insert into PROJ VALUES ('P5','IRM','Test',10000,'Vienna')");
+        classWatcher.getStatement().executeUpdate("insert into PROJ VALUES ('P6','PAYR','Design',50000,'Deale')");
+        classWatcher.getStatement().executeUpdate("insert into WORKS VALUES ('E1','P1',40), ('E1','P3',80), ('E1','P2',20), ('E1','P4',20), ('E1','P5',12), ('E1','P6',12)");
+        classWatcher.getStatement().executeUpdate("insert into WORKS VALUES ('E2','P1',40), ('E2','P2',80)");
+        classWatcher.getStatement().executeUpdate("insert into WORKS VALUES ('E3','P2',20)");
+        classWatcher.getStatement().executeUpdate("insert into WORKS VALUES ('E4','P2',20), ('E4','P4',40), ('E4','P5',80)");
+
         TestUtils.executeSqlFile(classWatcher, "test_data/employee.sql", SCHEMA);
 
         TestUtils.executeSql(classWatcher, "" +
@@ -58,6 +95,8 @@ public class Subquery_Scalar_IT {
                 "create table tWithNulls2 (c1 int, c2 int); \n" +
                 "insert into tWithNulls1 values (null, null), (1,1), (null, null), (2,1), (3,1), (10,10); \n" +
                 "insert into tWithNulls2 values (null, null), (1,1), (null, null), (2,1), (3,1), (10,10); ", SCHEMA);
+
+
 
     }
 
@@ -146,6 +185,25 @@ public class Subquery_Scalar_IT {
                 "  E2   | P2  |  80   |\n" +
                 "  E3   | P2  |  20   |\n" +
                 "  E4   | P4  |  40   |");
+    }
+
+    @Test
+    public void  testDoublyNestedNotExistsSubquery() throws Exception{
+        methodWatcher.executeUpdate("SET SCHEMA " + schemaWatcher.schemaName);
+        ResultSet rs = methodWatcher.executeQuery("SELECT STAFF.EMPNAME\n" +
+                "          FROM STAFF\n" +
+                "          WHERE NOT EXISTS\n" +
+                "                 (SELECT *\n" +
+                "                       FROM PROJ\n" +
+                "                       WHERE NOT EXISTS\n" +
+                "                             (SELECT *\n" +
+                "                                   FROM WORKS\n" +
+                "                                   WHERE STAFF.EMPNUM = WORKS.EMPNUM\n" +
+                "                                   AND WORKS.PNUM=PROJ.PNUM))");
+
+        assertEquals("the returned resultset has no entry!", true, rs.next());
+        assertEquals("The returned result is not correct!", "Alice", rs.getString(1));
+        assertEquals("The returned resultset has more than 1 entry!", false, rs.next());
     }
 
     @Test

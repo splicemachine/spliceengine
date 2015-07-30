@@ -102,6 +102,7 @@ public class SpliceLevel2OptimizerImpl extends Level2OptimizerImpl{
     private final OptimizerTrace tracer = new Level2OptimizerTrace(null,this){
         @Override
         public void trace(TraceLevel level, String traceString){
+
             Priority prio = Level.INFO;
             switch(level){
                 case TRACE:
