@@ -170,6 +170,15 @@ public abstract class ValueNode extends QueryTreeNode
 				);
 	}
 
+	/**
+	 * Check if this node and its children contains any column reference
+	 * that has a source level smaller than level.
+	 * @param level
+	 * @return
+	 */
+	public boolean checkCRLevel(int level){
+		return false;
+	}
 			
 	/**
 	 * Convert this object to a String.  See comments in QueryTreeNode.java

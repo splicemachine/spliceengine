@@ -536,6 +536,9 @@ public class SubqueryNode extends ValueNode{
         }
         preprocessed=true;
 
+
+
+
         boolean flattenable;
         ValueNode topNode=this;
 
@@ -671,8 +674,11 @@ public class SubqueryNode extends ValueNode{
                         parentComparisonOperator!=null);
 
         if(flattenable){
+
             SelectNode select=(SelectNode)resultSet;
-            if((!select.hasAggregatesInSelectList()) && (select.havingClause==null)){
+            int topSelectNodeLevel =select.getNestingLevel() - 1;
+            boolean nestedColumnReference = hasNestedCR(((SelectNode) resultSet).wherePredicates, topSelectNodeLevel);
+            if((!select.hasAggregatesInSelectList()) && (select.havingClause==null) && !nestedColumnReference){
                 ValueNode origLeftOperand=leftOperand;
 
 				/* Check for uniqueness condition. */
@@ -826,6 +832,19 @@ public class SubqueryNode extends ValueNode{
         foundVariant=visitor.hasVariant();
         return !foundVariant;
     }
+
+    public static boolean hasNestedCR(PredicateList predList, int level){
+        boolean check = false;
+        for(Predicate pred : predList){
+            ValueNode node = pred.andNode.getLeftOperand();
+            check = node.checkCRLevel(level);
+            if(check){
+                break;
+            }
+        }
+        return check;
+    }
+    
 
     /**
      * Check to see if this subquery has correlated
@@ -1849,6 +1868,10 @@ public class SubqueryNode extends ValueNode{
         // Replace the FromBaseTables in the from list with ExistBaseTables
         select.getFromList().genExistsBaseTables(resultSet.getReferencedTableMap(),
                 outerFromList,flattenableNotExists);
+
+        for(Predicate pred : ((SelectNode) resultSet).getWherePredicates()){
+            pred.pushable = false;
+        }
 
 		/* NOTE: Because we are currently only flattening single table subqueries
 		 * whose predicates are all pushable, we simply follow the rest of the

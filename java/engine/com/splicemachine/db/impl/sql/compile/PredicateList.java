@@ -1628,6 +1628,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 			 */
             if(cr1!=null){
                 int sourceTable=cr1.getTableNumber();
+                cr1.setNestingLevel(cr1.getNestingLevel() - decrement);
                 //noinspection ForLoopReplaceableByForEach
                 for(int inner=0;inner<tableNumbers.length;inner++){
                     if(tableNumbers[inner]==sourceTable && cr1.getSourceLevel()>0){
@@ -1639,6 +1640,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 
             if(cr2!=null){
                 int sourceTable=cr2.getTableNumber();
+                cr2.setNestingLevel(cr2.getNestingLevel() - decrement);
                 //noinspection ForLoopReplaceableByForEach
                 for(int inner=0;inner<tableNumbers.length;inner++){
                     if(tableNumbers[inner]==sourceTable && cr2.getSourceLevel()>0){
