@@ -126,7 +126,7 @@ public class ExplainRow{
         public static Cost parse(String cost){
             Matcher m = overallCostP.matcher(cost);
             Assert.assertTrue("No Overall cost found!",m.find());
-            double oc = Double.parseDouble(m.group().substring("overallCost=".length()));
+            double oc = Double.parseDouble(m.group().substring("totalCost=".length()));
 
             m = localCostP.matcher(cost);
             Assert.assertTrue("No Local cost found!",m.find());

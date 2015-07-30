@@ -133,7 +133,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
             ConstantAction[] constraintActions,
             char lockGranularity,
             int behavior,
-            String indexNameForStatistics) {
+            String indexNameForStatistics) throws StandardException {
         super(tableId);
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "instantiating AlterTableConstantOperation for table {%s.%s} with ColumnInfo {%s} and constraintActions {%s}",sd!=null?sd.getSchemaName():"default",tableName, Arrays.toString(columnInfo), Arrays.toString(constraintActions));
@@ -146,6 +146,8 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         this.indexNameForStatistics = indexNameForStatistics;
         if (SanityManager.DEBUG)
             SanityManager.ASSERT(sd != null, "schema descriptor is null");
+
+        denyXmlColumns(columnInfo);
     }
 
     public	String	toString() {

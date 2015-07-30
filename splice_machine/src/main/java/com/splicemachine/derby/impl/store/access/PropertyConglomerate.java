@@ -473,8 +473,7 @@ public class PropertyConglomerate {
 
 		//
 		//Try service properties first.
-		if(PropertyUtil.isServiceProperty(key) || serviceProperties.containsKey(key) ||
-				key.equals("derby.database.fullAccessUsers") || key.equals("derby.database.readOnlyAccessUsers"))
+		if(PropertyUtil.isServiceProperty(key) || serviceProperties.containsKey(key))
 			return serviceProperties.getProperty(key);
 		//
 		//Return the property value if it is defined.
