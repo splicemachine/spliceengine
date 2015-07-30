@@ -2,7 +2,6 @@ package com.splicemachine.derby.utils.marshall.dvd;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.shared.common.reference.SQLState;
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.sql.Timestamp;
@@ -17,7 +16,6 @@ import static org.junit.Assert.assertEquals;
 public class TimestampV2DescriptorSerializerTest {
 
     @Test
-    @Ignore
     public void shouldSerialize() throws StandardException {
         long l = TimestampV2DescriptorSerializer.formatLong(getTimestamp(2000));
         assertEquals(950162400000000000L, l);
