@@ -124,6 +124,8 @@ service SpliceSchedulerService {
 service SpliceDerbyCoprocessorService {
 	rpc computeSplits(SpliceSplitServiceRequest)
 		returns (SpliceSplitServiceResponse);
+	rpc computeRegionSize(SpliceRegionSizeRequest)
+		returns (SpliceRegionSizeResponse);
 }
 
 message SpliceSplitServiceRequest {
@@ -135,3 +137,11 @@ message SpliceSplitServiceResponse {
     repeated bytes cutPoint = 1;
 }
 
+
+message SpliceRegionSizeRequest {
+}
+
+message SpliceRegionSizeResponse {
+    required string encodedName = 1;
+    required int64 sizeInBytes = 2;
+}
