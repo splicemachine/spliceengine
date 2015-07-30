@@ -11,6 +11,7 @@ import org.apache.hadoop.hbase.ServerLoad;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HConnection;
+import org.apache.hadoop.hbase.client.HTable;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
@@ -31,10 +32,7 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class HBaseRegionLoads {
     private static final Logger LOG = Logger.getLogger(HBaseRegionLoads.class);
-    private static HBaseAdmin admin;
     // Periodic updating
-    private static final int UPDATE_MULTIPLE = 15;
-    private static final int SMALLEST_UPDATE_INTERVAL = 200;
     private static final AtomicBoolean started = new AtomicBoolean(false);
     // The cache is a map from tablename to map of regionname to RegionLoad
     private static final AtomicReference<Map<String, Map<String,RegionLoad>>> cache = new AtomicReference<>();
