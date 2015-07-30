@@ -1,0 +1,601 @@
+\documentclass[10pt]{amsart}
+\usepackage[top=1.5in, bottom=1.25in, left=1.25in, right=1.25in]{geometry}
+\usepackage[backend=biber]{biblatex}
+
+\usepackage{mathtools}
+\usepackage{hyperref}
+\usepackage{amsmath}
+\usepackage{amsthm}
+\usepackage[]{algorithm2e}
+\RestyleAlgo{boxed}
+\usepackage{algpseudocode}
+\usepackage{listings}
+\usepackage{appendix}
+\usepackage{courier}
+
+\DeclarePairedDelimiter{\floor}{\lfloor}{\rfloor}
+
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{exmp}{Example}[section]
+\newtheorem{defn}{Definition}[section]
+
+\let\oldtocsection=\tocsection
+
+\let\oldtocsubsection=\tocsubsection
+
+\let\oldtocsubsubsection=\tocsubsubsection
+
+\renewcommand{\tocsection}[2]{\hspace{0em}\oldtocsection{#1}{#2}}
+\renewcommand{\tocsubsection}[2]{\hspace{1em}\oldtocsubsection{#1}{#2}}
+
+\begin{document}
+\title{The SpliceMachine Cost Model}
+\author{Scott Fines}
+
+\begin{abstract}
+The Cost Model in SpliceMachine is fairly different from that of other databases, in large part because it reflects the underlying architectural differences of SpliceMachine versus other databases. This document seeks to explain the model, as well as its main applications.
+\end{abstract}
+
+\maketitle
+
+\section{Overview}
+
+\section{Measured quantities}
+SpliceMachine's statistics entry measures the following quantities for each table and index:
+
+\begin{enumerate}
+				\item $L_l$ = the latency (in microseconds) to read a single row from HBase within the same HBase JVM. This is referred to as the \emph{local latency}
+				\item $L_r$ = the latency (in microseconds) to read a single row from HBase across the network. This is referred to as the \emph{remote latency}
+				\item $W$ = the latency (in microseconds) to write a single row into storage across the network. This is referred to as the \emph{write latency}\footnote{In the Lassen release, the remote read latency is used as an approximation for write latency, due to desires to keep statistics collections cost low. That is irrelevant to this document, however.}
+				\item $O$ = the latency (in microseconds) to open a remote scanner to perform a remote read
+				\item $C_s$ = the latency (in microseconds) to close the remote scanner once finished.
+				\item $N$ = the number of rows in the table
+				\item $B_r$ = the average size of a single row (in bytes)
+\end{enumerate}
+
+Further, for each (enabled) column, the statistics engine collects:
+
+\begin{enumerate}
+				\item $B_c$ the average size of a single column (in bytes)
+				\item $N_n$ the number of null values for this column
+				\item a distribution function $C(x)$, described below.
+\end{enumerate}
+
+The distribution function $C(x)$ is a function which can estimate the following quantities:
+
+\begin{enumerate}
+				\item the number of rows equal to $x$. This is denoted by $C(y=x)$ and is referred to as the \emph{equality selectivity}
+				\item the number of rows which are less than or equal to $x$, denoted by $C(y\leq x)$. This is referred to as the \emph{less-than selectivity}
+				\item the number of rows which are greater than or equal to $x$, denoted by $C(y\geq x)$. This is referred to as the \emph{greater-than selectivity}
+\end{enumerate}
+Overall, these three values are collectively called the \emph{predicate selectivity}, or just \emph{selectivity} for short. The clauses are referred to as a \emph{predicate}, and will often be denoted by $P(x)$. Thus, we have three types of predicates:
+
+\begin{description}
+	\item[\textbf{Equality Predicates}] are predicates $P(x) = \lbrace y \in X | y = x \rbrace$
+	\item[\textbf{Less-than Predicates}] are predicates $P(x) = \lbrace y \in X | y < x \rbrace$
+	\item[\textbf{Less-Equals Predicates}] are predicates $P(x) = \lbrace y \in X | y \leq x \rbrace$
+	\item[\textbf{Greater-than Predicates}] are predicates $P(x) = \lbrace y \in X | y > x \rbrace$
+	\item[\textbf{Greater-Equals Predicates}] are predicates $P(x) = \lbrace y \in X | y \geq x \rbrace$
+\end{description}
+
+Note that predicates are actually multisets. As a result, we know that $||P(x)||$ is the number of rows in the multiset which match the predicates condition.
+
+Often multiple predicates will be combined in particular ways using the set operators \emph{and} and \emph{or}. We use the normal set notation to understand these: $P_1(x) \cup P_2(x)  = \lbrace y \in X | y \in P_1(x) \text{ or } y \in P_2(x) \rbrace$, and $P_1(x) \cap P_2(x) = \lbrace y \in X | y \in P_1(x) \text{ and } y \in P_2(x) \rbrace$. As a result, we know that the number of rows matching an \emph{and} predicate is 
+
+\begin{equation*}
+||P_1(x) \cap P_2(x)|| = ||P_1(x)||*||P_2(x)||
+\end{equation*}
+
+and the number of rows matching an \emph{or} predicate is
+
+\begin{equation*}
+||P_1(x) \cup P_2(x)|| = ||P_1(x)||+||P_2(x)||
+\end{equation*}
+
+We also note that, where $||P||$ is used  to denote the number of entries in the multiset, we use $||$ to denote the cardinality of that multiset.
+
+\section{Cost Model Architecture}
+The Cost model in SpliceMachine is \emph{latency-based}, where the total cost is (loosely speaking), the time taken waiting for the operation to "complete". "Complete" in this instance means for the last row to return to the user. Thus, the total cost of an operation is the time taken to perform all internal operations and return a successful result to the end user. It does \emph{not} include the time taken to perform overhead and maintenance operations (such as parsing and planning, Dictionary references, or committing/aborting internal transactions).
+
+Currently, the total cost $T$ of an operation is broken into two categories: the \emph{processing cost} $P$ and \emph{transfer cost}  $T$. The processing cost is the cost to perform all internal operations, including building hash tables, writing data into temporary storage, or reading data locally.  Transfer cost, by contrast, is the cost taken to move the \emph{final results} of the operation across the network to the control node. The total cost is then considered $processingCost + transferCost$.
+
+It's important to note, however, that transfer cost is not always considered when computing the cost of a complex query. The Splice execution engine will compound multiple contiguous operations into a single execution in a single JVM. In that situation, there is no transfer cost, because the transfer cost is 0. In particular, the following operations are "pushed" over their underlying operations:
+
+\begin{enumerate}
+				\item ProjectRestrict
+				\item IndexToBaseRow
+				\item BroadcastJoin
+				\item MergeJoin
+				\item NestedLoopJoin 
+				\item Limit and Offset operations
+				\item Union All
+				\item Any operation over a VALUES() clause
+\end{enumerate}
+
+In those situations,  the pushed operation will incorporate only the processing cost of the operation below it. This can be somewhat confusing because the total cost of the operation below may appear to be larger than the operation above!
+
+The best way to resolve this is to understand that total cost is the cost of executing that subtree \emph{as if it were the topmost operation}. As a result, the "total cost" metric is only meaningful when considered at the very topmost operation in the execution plan.
+
+It is also important to note that operations in SpliceMachine are sometimes parallel. These operations are distributed amongst multiple different servers and executed on multiple different threads simultaneously. As a result, the processing cost is distributed across the total number of partitions involved. The following operations have a parallel component:
+
+\begin{enumerate}
+\item	MergeSortJoin
+\item GroupedAggregate
+\item ScalarAggregate
+\item Sort
+\item Union
+\item Distinct Scan
+\item Insert
+\item Update
+\item Delete
+\end{enumerate}
+
+This can lead to slightly confusing results. For example, the $totalCost$ of performing a table scan may be $x$, over 10 partitions\footnote{"partition" is loosely analogous to "region", but the correlation is not required to be exact: when running in external systems, we may end up with partitions which are not contained in HBase.}. However, when running a parallel operation, the cost of that table scan is divided by its partitions, making an effective cost of a table scan be $x/10$ instead of $x$. This can lead to situations where the parallel operation appears to be cheaper than the underlying table scan.
+
+Overall, we have two scenarios which can lead to the total cost for one node to be less than the total cost for the node below it. As this is confusing, we are lead to ask the question: why can't we adjust the underlying cost estimates to reflect the upper operations and therefore be less confusing?
+
+The reason for this is twofold. 
+
+First, if we were to adjust the cost of a node based on what is occuring above it, some information about that node is lost, which may make it more difficult to identify potential trouble spots\footnote{this is based on the author's experiences during testing. When queries get complex, tracing the costs in detail can be very useful}. Re-using the example made above, if we were to just represent the total cost of the tablescan as $x/10$ to begin with, then the overall operation would be made clear. However, the user would \emph{also} be lead to believe that the cost of performing the bare table scan is actually $x/10$, and then said user would be very surprised to find out that the true cost is ten times higher.
+
+Secondly, and more practically, adjusting the cost of underlying nodes can result in contamination during the optimization phase. Because of the way the query optimizer is written, cost estimates for a table scan are re-used from one plan estimate to the next. As a result, modifying the underlying cost estimate may affect the estimate for different plans, leading to incorrect planning estimates.
+
+\section{Cost of a Table Scan}
+The cost of a table scan is described as 
+
+\begin{equation}
+	\begin{aligned}
+				P = C_i*L_l   \\
+				T = C_o*L_r
+	\end{aligned}
+\end{equation}
+where $C_i$ is the number of records matching any key predicates, and $C_o$ is the number of rows matching all predicates (we refer to $C_o$ as the \emph{scan predicate selectivity}).
+
+ In order to compute $C_i$ and $C_o$, we first note that there are 3 different types of predicates which can be applied at the TableScan level:
+
+ \begin{description}
+				 \item[\textbf{Key Qualifiers}] Are predicates which are applied to a keyed column (such as a primary key or indexed column).
+				 \item[\textbf{Non-Key Qualifiers}] Are predicates which are directly applied to a column of data \emph{without} first deserializing that data
+				 \item[\textbf{Constant Predicates}] Are all other predicates.
+ \end{description}
+
+Each type of predicate is applied at a different stage of processing, and therefore has a distinct impact on the estimated cost of an individual scan. 
+
+\subsection{Key Qualifiers}
+Key Qualifiers can directly affect the bounds of a scan, but only in restricted ways. Consider a compound key $A|B|C$. In this case, data is sorted first by column $A$, then column $B$, and finally column $C$. Thus, if we have a predicate $P_A(a)$ which applies only to column $A$, we can know that all rows which match our query are those determined by the predicate:
+
+\begin{description}
+				\item[Equality Predicate] All rows which match must have a value for column $A$ in the range $[a,a]$.
+				\item[Less-than Predicate] All rows which match must have a value for column $A$ in the range $(-\infty,a)$
+				\item[Less-equal Predicate] All rows which match must have a value for column $A$ in the range $(-\infty,a]$
+				\item[Greater-than Predicate] All rows which match must have a value for column $A$ in the range $(a,\infty)$
+				\item[Greater-equal Predicate] All rows which match must have a value for column $A$ in the range $[a,\infty)$
+				\item[IsNull Predicate] All rows which have a null value for column $A$
+				\item[IsNotNull Predicate] All rows which have a non-null value for column $A$
+\end{description}
+
+As a result, we can adjust our scan boundaries such that we never touch rows which don't fit within those known ranges.
+
+Now, consider a predicate $P_B(b)$ on column $B$. If there is no predicate on column $A$, then we know nothing about the location of rows matching the predicate--we must therefore perform a full table scan. In that case, even though we are applying a predicate to a keyed column, this predicate is actually categorized as a non-keyed qualifier.
+
+If, however, we have an \emph{and} predicate on column $A$ and column $B$, then the predicate $P_A \cap P_B$ \emph{is} a keyed qualifier, because we have information about the location of rows matching the compound predicate. Note, however, than an \emph{or} predicate is not similar: $P_A \cup P_B$ will require a full table scan.
+
+When key-bounds are available, we can use statistics to estimate the number of rows which will be touched by the scan system. Thus, we have $C_i =C_o= \prod_k ||P_k||$
+
+\subsection{Non-keyed Qualifiers}
+Non-keyed qualifiers are predicates which can be applied by the direct application of byte comparisons, but which cannot be used as part of a key qualification. 
+
+The primary distinction between keyed and non-keyed qualifiers is where they are applied: a keyed qualifiers is used to adjust scan boundaries, and therefore reduced the number of rows visited by the scan, while a non-keyed qualifier must visit each row within the scan boundary to determine which rows match. As a result, non-keyed qualifiers do not change the processing cost. Because they can filter data though, they will affect $C_o$ (and therefore $T$).
+
+\subsection{Constant Predicates}
+Constant Predicates can be applied at the table scan level, but they require deserialization of the data to do so. As a result, they are placed into a Restriction node in the optimizer, so they do not affect $C_o$ directly. 
+
+Unfortunately, the original optimizer implementors decided to treat Keyed Qualifiers, Non-Keyed qualifiers, Index lookup costs, and Constant Predicates at the same location, so we are compelled to mention them here.
+
+Another unfortunate reality is that constant predicates are not amenable to statistical estimation in general\footnote{Particularly as they include \textbf{Like} and arithmetic clauses}. As a result, we use a constant predicate selecitivy value when including them in selectivity estimates. This value depends on the type of predicate being applied.
+
+\subsection{Estimating the selectivity of a scan predicate}
+For the following sections, let $N$ be the total number of rows in the table.
+\subsubsection{Equality Predicate}
+We can break the selectivity estimate into relatively simple psuedo code:
+\begin{algorithm}[ht]
+				\KwData{$N$ the total number of rows}
+				\KwData{$Fe$ a set of the $k$ most frequent elements, where $Fe[x] = $ the number of occurrences of $x$, or 0 if $x$ is not a frequent element.}
+				\KwData{$C$ the cardinality of the data set}
+				\KwData{$x$ the value to estimate}
+				\KwResult{$T = $ the number of rows which have a column value = $x$}
+				\Begin{
+								\Switch{$x$}{
+									\Case{$x$ is null} { \Return $nullCount$}
+									\Case{$x = minValue$} {\Return $minCount$}
+									\Case{$x$ a FrequentElement}{ \Return $Fe[$x$]$}
+									\Other{
+													\Return $(N-Fe.totalCount())/(C-Fe.size())$
+									}
+								}
+				}
+				\caption{Computing the selectivity of an Equals predicate}
+\end{algorithm}
+
+\subsubsection{Range Predicates}
+A range predicate is a predicate of the form $x \in [a,b)$, where $a$ and $b$ are allowed to be outside the known range of $[minValue,maxValue]$ for the data set. In this case, we have the following algorithm:
+
+\begin{algorithm}
+				\KwData{$N$ the total number of rows}
+				\KwData{$Fe$ a set of the $k$ most frequent elements, where $Fe[x] = $ the number of occurrences of $x$, or 0 if $x$ is not a frequent element.}
+				\KwData{$C$ the cardinality of the data set}
+				\KwData{$s$ the start of the range of interest}
+				\KwData{$e$ the start of the range of interest}
+				\KwResult{$T =$ the number of rows which fall in the range $[s,e)$}
+								\Begin{
+												\If{$e\leq min$ or $s > max$ or $e==s$ }{ \Return 0}
+												\If{$s<min$}{$s = min$ }
+												\If{$e>max$}{$e = max+1$ }
+												\tcp{compute the linear coefficients}
+												set $a=(N-minCount())/(max-min)$\;
+												set $b=(N-a*max)$\;
+												\tcp{Compute the base estimate, assuming uniform distribution}
+												set $T=a*(e-s)$\;
+												set $r=(N-Fe.totalCount())/(C-Fe.size())$\;
+												\If{$e>max$}{$T=T+r$}
+												\tcp{adjust the count by incorporating frequent elements}
+												set $F = $ the frequent elements which fall in $[s,e)$ \;
+												\For {$f \in F$}{ 
+													$T = T-r+F[f]$
+												}
+
+												\Return T
+								}
+								\caption{Computing the selectivity of a range of constant data values}
+\end{algorithm}
+This algorithm is used for all operators $>,>=,<,<=$, and for compound predicates $< \&\& >,< \&\& \geq, \leq \&\& >, \leq \&\& \geq$.
+
+Note that this can be easily modified to account for the range $[s,e]$(by estimating $[s,e+1)$) and $(s,e)$ (by estimating $[s+1,e)$), although implementations are likely to handle these via special cases instead.
+
+\subsection{Estimating Scan costs across multiple partitions}
+Statistics are collected on a per-partition basis--that is, there is one set of statistics information for each partition. To determine the total selectivity, we compute the selectivity for each partition independently, then add the results together.
+
+\begin{exmp}
+				Consider the table \textbf{Foo}, with the schema defined as
+				\begin{lstlisting}[frame=single,language=SQL]
+create table FOO (A int, B int, C varchar(10,PRIMARY KEY(A))
+				\end{lstlisting}
+				The table statistics for \textbf{FOO} are:
+				\begin{enumerate}
+\item $L_l = 1$
+\item $L_r = 10$
+\item $N = 1000$
+\item $numPartitions = 1$
+\item $O = 2$
+\item $C = 1$
+				\end{enumerate}
+and the column statistics are
+\begin{table}
+				\begin{tabular}{|l|c|c|c|}
+				\hline
+				Statistic	&	A	&	B	&	C \\ \hline
+				nullCount					& 0							&	8									&	12 \\ \hline
+				FrequentElements	&	[(1,1),(2,1)]	&	[(12,33),(6,18)]	&	[('hello',200)] \\ \hline
+				min								&	0							&	-4								&	'h' \\ \hline
+				minCount					&	1							&	2									&	100 \\ \hline
+				max								&	1000					&	100								&	'hellr' \\ \hline
+				cardinality				&	1000					&	878								& 10
+				\end{tabular}
+\end{table}
+Consider the unqualified query
+				\begin{lstlisting}[frame=single,language=SQL]
+select * from FOO
+				\end{lstlisting}
+In this case, we begin with $R= 1000$, because it's the total number of rows returned in the full table scan. The processing cost $P = L_l*R = 1000$ and the transfer cost $T = L_l*R = 10000$. The total cost is then $P+T = 11000$. 
+
+Now consider the query
+\begin{lstlisting}[frame=single,language=SQL]
+select * from FOO where A = 1
+\end{lstlisting}
+In this scenario, we begin with $R=1000$. We then compute the predicate \textbf{A = 1}. Since $A$ is a primary key column and the value is a constant (1), this is a keyed qualifier, which matches 1 row. Thus $R=1$. Because we are dealing with a keyed qualifier, this also adjusts the processing and the transfer cost. We therefore have $P = R*L_l = 1$ and $T = R*L_r = 10$, giving a total cost of $Cost = 11$
+
+To extend this example further, consider the query
+\begin{lstlisting}[frame=single,language=SQL]
+select * from FOO where B = 12
+\end{lstlisting}
+We begin, as always, with $R=1000$. Since $B$ is not a keyed column, but the clause is a constant, the predicate \textbf{B = 12} is non-keyed qualifier. Non-keyed qualifiers do not affect the processing cost(since they require a full table scan), so we have $P = 1000*L_l = 1000$. However, it \emph{does} affect $R$ and the transfer cost $T$. 
+
+Because 12 is a frequent element of $B$, we know that the predicate will match exactly 33 rows. Thus $R = 33$, and the transfer cost becomes $T = 33*L_r = 330$. Therefore, the total cost is expected to be $Cost = T+P = 1000+3330 = 1330$.
+
+\end{exmp}
+
+\subsection{Restricted column scans}
+Previously, we've only considered full column scans where all columns are to be returned. However, many queries restrict the number of columns of interest, and we must take this into account. To do this, we first define the \emph{column fraction}, or $C_f$ for short. The column fraction is defined as the ratio of column sizes that are to be returned to the total size of the row. Thus, if a row has a width of $N$ bytes of $M$ columns, then we have
+\begin{equation}
+				C_f = \frac{1}{avgRowWidth}\sum_k width(c_k)
+\end{equation}
+where $width(c_k)$ is the width of the $kth$ column, and only the columns to be returned are involved. As a concrete
+
+\begin{exmp}[Computing the Column fraction]
+				Suppose that a table \textbf{FOO} has an average width $W= 100$ bytes, over 4 columns $A,B,C,D$. Suppose that we also have average column widths $w_A = 15,w_B = 25,w_C = 10,w_D = 50$. Now consider the query
+
+\begin{lstlisting}[frame=single, language=SQL]
+select A from FOO
+\end{lstlisting}
+In this case, we are only intersted in the width of $A$, so we know that 
+
+\begin{displaymath}
+				C_f = \frac{w_A}{W} = \frac{15}{100} = 0.15 
+\end{displaymath}
+
+Now consider the query
+\begin{lstlisting}[frame=single, language=SQL]
+select A,B from FOO where C = 12
+\end{lstlisting}
+In this case, we must consider three columns--$A,B$ and $C$. Thus, our column fraction is
+
+\begin{displaymath}
+				C_f = \frac{w_A+w_B+w_C}{W} = \frac{15+25+10}{100} = 0.5
+\end{displaymath}
+
+\end{exmp}
+
+Note that the column fraction is only taken into account during transfer time, because when reading the row initially, you must perform IO on the entire row, due to the nature of SpliceMachine's packed encoding structure.
+
+\section{Cost of an Index Fetch}
+Index fetches occur whenever scanning over a \emph{non-covering} index--that is, an index where not all columns of interest to the query are present. In this case, there is an additional cost to look up the base table row. In the typical Splice index (a remote,dense index), this means a movement over the network.
+
+First, it's important to note that index conglomerates have a slightly different statistics set. The remote latency recorded for an index conglomerate is actually the cost to perform an index fetch for a \emph{block} of records(more on this later), while the remote scan cost is computed from the remote scan cost of the base table \footnote{This is acceptable due to the assumption that network performance is relatively constant--that is, it requires the same amount of time per byte to move data from any region across the network. In future implementations, we may no longer record remote latency directly, but instead compute it from overall averages}.
+
+In a sequential algorithm, the cost of a non-covering index scan can be constructed as
+
+\begin{equation}
+				\begin{aligned}
+								P	&= P_{TS}+L_r*N_{TS}*C_f \\
+								T &= T_{TS} + L_r*N_{TS}*C_f
+				\end{aligned}
+\end{equation}
+where $N_{TS}$ is the number of rows returned from the table scan, and $C_f$ is the column fraction of \emph{heap rows}. 
+
+This construction is simple: the cost of an index lookup is the cost to read the local row plus the cost to perform the network read for each row. Unfortunately, SpliceMachine does not have a sequential index operation. Instead, it uses a parallel batch operation to improve performance, which has a significant effect on the expected cost.
+
+Firstly, we use a batch operation to group $M$ rows together into a \emph{block} of rows\footnote{$M$ is configurable, using the \textbf{splice.index.batchSize} parameter}. Then a single network call is made to obtain the heap rows for all the index rows in a block. The statistics collection algorithm takes this into account, so the remote latency of an index conglomerate is actually the latency to fetch $M$ rows in a single block. This adjustment means that the cost formulas now become
+
+\begin{equation*}
+				\begin{aligned}
+								N_B &= \floor[\big]{\frac{N_{TS}}{M}} \\
+								P &= P_{TS} + L_r*N_B*C_f \\
+								T &= T_{TS} + L_r*N_B*C_f
+				\end{aligned}
+\end{equation*}
+where $N_B$ is the number of blocks which are found. Of course, if $N_{TS}$ does not evenly divide $M$, then we have an extra "partial" block. We get the cost of this partial block by computing $L_{rf}$ as the latency of the partial block, which is
+
+\begin{displaymath}
+				L_{rf} = \frac{N_{TS} \% M}{M}*L_r
+\end{displaymath}
+
+which makes our block formulas
+\begin{equation*}
+				\begin{aligned}
+								N_B &= \floor[\big]{\frac{N_{TS}}{M}} \\
+								P &= P_{TS} + L_r*N_B*C_f +L_{rf}*C_f\\
+								T &= T_{TS} + L_r*N_B*C_f +L_{rf}*C_f
+				\end{aligned}
+\end{equation*}
+
+This formula takes the block structure into account, but does not deal with the fact that SpliceMachine has a parallel index lookup mechanism, which further affects costs. 
+
+SpliceMachine uses $K$ parallel threads\footnote{this number is configurable, using the \textbf{splice.index.numConcurrentLookups} configuration parameter} to perform block lookups. Thus, we have an algorithm like
+
+\begin{enumerate}
+				\item fill block
+				\item submit for background lookup
+				\item repeat until $K$ blocks are in flight
+				\item  wait until the first block finishes
+				\item refill and resubmit block
+\end{enumerate}
+
+Thus, we have $N_B/K$ blocks in flight at any one point in time. As a result, our cost computations become more complex. The best way to understand this is to enumerate through the blocks.
+
+First, we have a minimum latency which is the time taken to fill one block. Then that block is submitted, and we have a latency to fill the next block. We don't wait for the first block (and therefore add latency) until we have filled all available blocks or run out of data. If the cost to fill a block is $T_f$, then the time spent filling all blocks after the first is $(K-1)*T_f$; therefore, the time spent waiting for the first block to return is $L_r - (K-1)*T_f$. This gives us several situations:
+
+\begin{description}
+				\item[$L_r <= (K-1)*T_f$] In this case there is no latency added by looking up the first block.
+				\item[$L_r >(K-1)*T_f$] In this case we have to add in some cost to the lookup
+\end{description}
+
+For each block where we have a full set of lookups, the cost is the same (either 0 or $(K-1)*T_f$. There are $\floor{N_B/K}*K$ such "full blocks". The remaining $N_B \% K$ blocks must be treated differently.
+
+With the first of those "partial" blocks, we know that there are $(N_B \% K) -1$ blocks which were filled after it, so the time spent waiting is $L_r - ((N_B \% K) -1)*T_f$, and sequentually on down until we are finished.
+
+Thus, we have a final formula for the overall latency to be
+
+\begin{equation*}
+				L_T = (\floor{N_B/K}*K)*(K-1)*T_f + \sum_{j=1}^{K} (L_r - ((N_B \% K)-j)*T_f
+\end{equation*}
+
+when $(K-1)*T_f < L_r$. This gives the overall formula of
+\begin{equation}
+				\begin{aligned}
+								N_B &= \floor[\big]{\frac{N_{TS}}{M}} \\
+								P &= L_T \\
+								T &= T_{TS} + C_f*\frac{T_{TS}}{N_{TS}}*L_{rf}
+				\end{aligned}
+\end{equation}
+
+
+\section{Join Costs}
+We have a slightly more complex costing strategy here, because of the fact that there are two subtrees: the left subtree $T_L$ and the right subtree $T_R$. We denote with the superscript $L$ and $R$ which side elements come from. For example, the processing cost of the left subtree is referred to as $P^L$, while the right subtree's is $P^R$. Similarly, $T^L$ is the transfer cost of the left subtree, while $T^R$ is the transfer cost of the right subtree.
+
+We also note that for all join strategies, the transfer cost can be computed as 
+
+\begin{equation}
+	T = J*(\frac{T^L}{C_o^L}+\frac{T^R}{C_o^R})
+\end{equation}
+where $J$ is the \emph{join selectivity}. The join selectivity is defined as the number of rows which match all join predicates. This selectivity is given by the formula
+
+\begin{equation*}
+	J = J_f*C_o^L*C_o^R
+\end{equation*}
+where $J_f$ is denoted the \emph{selectivity fraction}.
+
+In english, this is saying that, for each row output from the left subtree, $J_f*C_o^R$ rows will match the join criteria on the right subtree. Thus, the total number of rows which satisfy the join criteria is $J$.
+
+In general, we compute
+
+\begin{equation}
+				J_f(x) = \frac{1}{\max{\lbrace|P^L(x)|,|P^R(x)|\rbrace}}
+\end{equation}
+Note that $J_f$ can never exceed 1, since $J_f = 1$ implies that all rows match.
+
+Then we know that the compound selectivity is the same as that for and and or predicates: $J_f(P_1 \cap P_2) = J_f(P_1) * J_f(P_2)$, and that $J_f(P_1 \cup P_2) = J_f(P_1) + J_f(P_2)$. 
+
+\subsection{Cost of a Broadcast Join}
+The broadcast join algorithm is as follows:
+
+\begin{enumerate}
+				\item Compute right subtree's intermediate data (if any)
+				\item open scanner to read final results of right subtree
+				\item scan all right subtree results into hash table based on the join keys
+				\item close the right subtree scanner
+				\item read each left subtree row, matching each row against any right subtree rows contained in the hash table
+\end{enumerate}
+
+When considering this algorithm, it is relatively easy to see that the cost to perform a broadcast is 
+\begin{equation}
+				\begin{aligned}
+					P = P^L + P^R+O^R+T^R+C_s^R \\
+				\end{aligned}
+\end{equation}
+
+\subsection{Cost of a Merge Join}
+The merge join algorithm cannot be applied unless both the left and right subtree are sorted according to the join predicates in the same order. This, along with the fact that we currently support only left-deep trees, makes the merge join algorithm as follows:
+
+\begin{enumerate}
+				\item Open right subtree scanner
+				\item For each row on the left subtree, read rows from the right scanner until the left join criteria is exhausted, or the right scanner is exhausted.
+				\item close the right subtree scanner.
+\end{enumerate}
+
+This makes ones believe that the cost to perform a merge join is
+
+\begin{equation}
+P = P^L + P^R+O^R+T^R+C_S^R
+\end{equation}
+
+Note that this is identical to that of Broadcast. However, in practice Merge tends to be faster, because we are able to use the first row seen from the left subtree to adjust the starting bound of the right subtree. This leads to a reduced IO and network footprint, but since the first left subtree row cannot be known at plan time, we aren't able to take that into account.
+
+\subsection{Cost of a MergeSort Join}
+Merge-Sort is a parallel algorithm, which means that it has an algorithm based on the TEMP table. If the TEMP table is replaced, the cost of a MergeSort join will change based on the changed algorithm.
+
+\subsubsection{TEMP-based}
+the algorithm for MergeSort is relatively simple. At a high level, it first sorts the left and right subtree results according to the join predicates, then it applies the merge algorithm to compute the final join output. In practice, in order to be more efficient, it sorts the right and left subtrees into the same storage locations, then for each left row, any matching right subtree rows are first read (and subsequently held) in memory. Thus, we have. The sorting phase is performed in parallel, while the merge phase is performed sequentially.
+
+\begin{enumerate}
+				\item (In Parallel) sort the left subtree rows into TEMP
+				\item (In Parallel) sort the right subtree rows into TEMP
+				\item Open scanner against TEMP
+				\item Read and merge all join rows
+				\item Close Scanner against TEMP
+\end{enumerate}
+
+The first two operations are performed simultaneously, and in parallel against all partitions involved in the left and right subtrees. This leads us to note that the cost is
+
+\begin{equation}
+				P = max\lbrace(\frac{P^L+T^L}{R^L},\frac{P^R+T^R}{R^R}\rbrace + O_T+\frac{T^L}{2C_o^L}+\frac{T^R}{2C_o^R}+C_{Ts}
+\end{equation}
+where
+\begin{equation*}
+				\begin{aligned}
+				O_T = \frac{O^L+O^R}{2} \\
+				C_{Ts} = \frac{C_s^L+C_s^R}{2}
+				\end{aligned}
+\end{equation*}
+and $R^L$ is the number of partition active in the left subtree, and $R^R$ is the number of partitions active in the right subtree.
+
+The first term in this equation is the cost to sort the left and right subtrees into temporary storage, while the remaining terms encompass the cost to perform the final merge phase. Note that we don't consider the processing costs to perform the join logic once rows are held in memory, only the IO and network costs.
+
+\subsection{Cost of a NestedLoop Join}
+The algorithm for a nested loop join is as follows:
+
+\begin{enumerate}
+				\item for each row output from the left subtree:
+								\begin{enumerate}
+												\item compute right subtree intermediate data (if needed)
+												\item open a scanner against the right subtree's results
+												\item read all right subtree result rows, and emit them one entry at a time as they match the join criteria
+												\item close the right scanner
+								\end{enumerate}
+\end{enumerate}
+Therefore, the cost of a NestedLoopJoin is
+
+\begin{equation}
+				P = P^L + C_o^L*(P^R + O^R + T^R + C^R)
+\end{equation}
+
+\subsubsection{Low-row-count costs}
+We want to consider what happens when statistics indicates that very few rows will be involved in the join. 
+
+Imagine that $C_o^L = 1$. In that scenario, we see that the nested loop join's estimated cost will be
+
+\begin{equation*}
+	P = P^L + P^R + O^R + T^R + C^R
+\end{equation*}
+which is identical to that of Broadcast and Merge joins! This has problematic implementation consequences. Since Merge, Broadcast, and NestedLoop all have the same processing cost, there is no reason to move from the first chosen join strategy, which is usually NestedLoop. As a result, when statistics are not present or are significantly out of date, NestedLoop may end up being favored even when not desirable.
+
+
+\section{Cost of a Sort}
+Sorting is a parallel operation.
+\subsection{TEMP-based}
+The algorithm is:
+
+\begin{enumerate}
+				\item write the subtree's data into a single region in TEMP, sorted according to the sort fields
+				\item read the sorted data.
+\end{enumerate}
+
+Thus, we have a cost of 
+\begin{equation}
+				\begin{aligned}
+								P &= \frac{P^S +T^S}{R^S} \\
+					T &= O^S + T^S + C_s^S
+				\end{aligned}
+\end{equation}
+
+\section{Cost of a GroupBy}
+\subsection{TEMP-based}
+The Group-by algorithm performs as follows:
+\begin{enumerate}
+				\item Aggregate intermediate results of subtree in memory, evicting a minimum of 1 row per grouping key into 16 different "buckets" in TEMP, hashed uniformly according to the grouping key
+				\item read and merge together the aggregated results
+\end{enumerate}
+This operation is performed in paralle, so the cost is
+
+\begin{equation}
+				\begin{aligned}
+								P &= \frac{P^s +T^S}{F_c*R^S} \\
+								T &= F_cT^S
+				\end{aligned}
+\end{equation}
+where $F_c$ is the \emph{cardinality fraction} of the grouping keys. For each Grouping key $k$, we define $g_k(X)$ to be the cardinality of column $k$, divided by the number of rows in $X$. Then, for two grouping keys, we see that $F_c = g(k_1) + g(k_2) - g(k_1)*g(k_2)$. Thus, over many grouping columns, we compute 
+
+\begin{equation*}
+				F_c= \sum_k g(k) - \prod_k g(k)
+\end{equation*}
+since each $g(k)$ falls in the range $[0,1]$, we know that $\prod_k g(k) < \sum_k g(k)$.
+
+\section{Cost of a Scalar Aggregate}
+\subsection{TEMP-based}
+The Scalar Aggregate algorithm performs as:
+\begin{enumerate}
+				\item Aggregate all results for the partition into memory
+				\item write a single row to a single region in TEMP
+				\item read and merge the rows from TEMP
+\end{enumerate}
+
+thus, the cost is
+\begin{equation}
+				\begin{aligned}
+								P &= P^S + \frac{R^ST^S}{C_o^S} \\
+								T &= \frac{T^S}{C_o^S}
+				\end{aligned}
+\end{equation}
+
+
+\end{document}
+

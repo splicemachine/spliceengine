@@ -200,8 +200,10 @@ public class StatsStoreCostController extends GenericController implements Store
     public double cardinalityFraction(int columnNumber){
         ColumnStatistics<DataValueDescriptor> colStats=getColumnStats(columnNumber);
         if(colStats!=null){
-            long c = colStats.cardinality();
-            return c>0?1d/c:0d;
+            double nullFraction=colStats.nullFraction();
+            long c=colStats.cardinality();
+
+            return c>0?(1-nullFraction)/c:0d;
         }
         /*
          * If we can't find any statistics for this column, then use a fallback number--arbitrary
@@ -219,7 +221,7 @@ public class StatsStoreCostController extends GenericController implements Store
         long nullCount = 0l;
         int missingStatsCount = partStats.size();
         for(PartitionStatistics pStats:partStats){
-            ColumnStatistics<DataValueDescriptor> cStats=pStats.columnStatistics(columnNumber-1);
+            ColumnStatistics<DataValueDescriptor> cStats=pStats.columnStatistics(columnNumber);
             if(cStats!=null){
                 nullCount+=cStats.nullCount();
                 missingStatsCount--;

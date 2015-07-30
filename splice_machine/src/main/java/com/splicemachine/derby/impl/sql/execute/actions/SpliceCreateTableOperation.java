@@ -52,20 +52,20 @@ public class SpliceCreateTableOperation extends CreateTableConstantOperation {
      * @param onRollbackDeleteRows If true, on rollback, delete rows from temp tables which were logically modified. true is the only supported value
      */
     public SpliceCreateTableOperation(String schemaName,
-																			String tableName,
-																			int tableType,
-																			ColumnInfo[] columnInfo,
-																			ConstantAction[] constraintActions,
-																			Properties properties,
-																			char lockGranularity,
-																			boolean onCommitDeleteRows,
-																			boolean onRollbackDeleteRows,
-																			StatementNode insertNode) {
+                                      String tableName,
+                                      int tableType,
+                                      ColumnInfo[] columnInfo,
+                                      ConstantAction[] constraintActions,
+                                      Properties properties,
+                                      char lockGranularity,
+                                      boolean onCommitDeleteRows,
+                                      boolean onRollbackDeleteRows,
+                                      StatementNode insertNode) throws StandardException {
         super(schemaName, tableName, tableType, columnInfo, constraintActions, properties, lockGranularity, onCommitDeleteRows, onRollbackDeleteRows);
         this.tableType = tableType;
         this.tableName = tableName;
         this.schemaName = schemaName;
-				this.insertNode = insertNode;
+        this.insertNode = insertNode;
     }
 
     @Override

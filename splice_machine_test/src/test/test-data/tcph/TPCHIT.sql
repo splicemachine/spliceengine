@@ -18,9 +18,6 @@ CREATE TABLE LINEITEM (
   PRIMARY KEY (L_ORDERKEY, L_LINENUMBER)
 );
 
-CREATE INDEX partkey ON lineitem (l_partkey, l_quantity, l_extendedprice);
-CREATE INDEX lineItemq20 ON lineitem (l_partkey, l_suppkey);
-
 CREATE TABLE orders (
   O_ORDERKEY      INTEGER NOT NULL PRIMARY KEY,
   O_CUSTKEY       INTEGER,
