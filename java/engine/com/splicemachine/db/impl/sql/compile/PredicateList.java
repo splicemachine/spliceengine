@@ -300,6 +300,30 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         return null;
     }
 
+    public List<Predicate> getOptimizableEqualityPredicateList(Optimizable optTable,int columnNumber,boolean isNullOkay) throws StandardException{
+        int size=size();
+        List<Predicate> predicateList = null;
+        for(int index=0;index<size;index++){
+            AndNode andNode;
+            Predicate predicate;
+            predicate=elementAt(index);
+
+            andNode=predicate.getAndNode();
+
+            // skip non-equality predicates
+            ValueNode opNode=andNode.getLeftOperand();
+
+            if(opNode.optimizableEqualityNode(optTable,columnNumber,isNullOkay)){
+                if (predicateList == null) {
+                    predicateList = new ArrayList<Predicate>();
+                }
+                predicateList.add(predicate);
+            }
+        }
+
+        return predicateList;
+    }
+
     @Override
     public boolean hasOptimizableEquijoin(Optimizable optTable,int columnNumber) throws StandardException{
         int size=size();

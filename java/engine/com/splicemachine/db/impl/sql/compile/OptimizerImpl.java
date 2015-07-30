@@ -1492,7 +1492,7 @@ public class OptimizerImpl implements Optimizer{
         currentSortAvoidanceCost.setBase(null);
         currentSortAvoidanceCost.setRowOrdering(null);
         assignedTableMap.clearAll();
-        outermostCostEstimate.setCost(0.0d,0d,0d);
+        outermostCostEstimate.setCost(0.0d,outermostCostEstimate.getEstimatedRowCount(),0d);
         outermostCostEstimate.setBase(null);
         outermostCostEstimate.setRowOrdering(null);
     }

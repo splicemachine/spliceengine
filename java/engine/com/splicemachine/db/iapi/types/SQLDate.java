@@ -46,6 +46,7 @@ import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.ParseException;
 import com.splicemachine.db.iapi.types.DataValueFactoryImpl.Format;
+import org.joda.time.Days;
 import org.joda.time.LocalDate;
 
 /**
@@ -1239,18 +1240,44 @@ public final class SQLDate extends DataType
 
     @Override
     public DateTimeDataValue plus(DateTimeDataValue leftOperand, NumberDataValue daysToAdd, DateTimeDataValue returnValue) throws StandardException {
-        return toTimestamp().plus(leftOperand, daysToAdd, returnValue);
-    }
+		if( returnValue == null)
+			returnValue = new SQLDate();
+		if( isNull() || daysToAdd.isNull())
+		{
+			returnValue.restoreToNull();
+			return returnValue;
+		}
+		DateTime dateAdd = new DateTime(leftOperand.getDateTime()).plusDays(daysToAdd.getInt());
+		returnValue.setValue(dateAdd);
+		return returnValue;
+	}
 
     @Override
     public DateTimeDataValue minus(DateTimeDataValue leftOperand, NumberDataValue daysToSubtract, DateTimeDataValue returnValue) throws StandardException {
-        return toTimestamp().minus(leftOperand, daysToSubtract, returnValue);
-    }
+		if( returnValue == null)
+			returnValue = new SQLDate();
+		if(leftOperand.isNull() || isNull() || daysToSubtract.isNull()) {
+			returnValue.restoreToNull();
+			return returnValue;
+		}
+		DateTime diff = leftOperand.getDateTime().minusDays(daysToSubtract.getInt());
+		returnValue.setValue(diff);
+		return returnValue;
+	}
 
     @Override
     public NumberDataValue minus(DateTimeDataValue leftOperand, DateTimeDataValue rightOperand, NumberDataValue returnValue) throws StandardException {
-        return toTimestamp().minus(leftOperand, rightOperand, returnValue);
-    }
+		if( returnValue == null)
+			returnValue = new SQLInteger();
+		if(leftOperand.isNull() || isNull() || rightOperand.isNull()) {
+			returnValue.restoreToNull();
+			return returnValue;
+		}
+		DateTime thatDate = rightOperand.getDateTime();
+		Days diff = Days.daysBetween(thatDate, leftOperand.getDateTime());
+		returnValue.setValue(diff.getDays());
+		return returnValue;
+	}
 
     public Format getFormat() {
     	return Format.DATE;

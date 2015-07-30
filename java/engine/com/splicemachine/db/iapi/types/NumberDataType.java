@@ -476,15 +476,15 @@ public abstract class NumberDataType extends DataType
 	*/
     public static float normalizeREAL(float v) throws StandardException
 	{
-        /* Remove DB2 Check on Float DB-
-        if ( (Float.isNaN(v) || Float.isInfinite(v)) ||
+        if (Float.isNaN(v) || Float.isInfinite(v) )
+        /* Remove DB2 Check on Float DB- ||
              ((v < Limits.DB2_SMALLEST_REAL) || (v > Limits.DB2_LARGEST_REAL)) ||
              ((v > 0) && (v < Limits.DB2_SMALLEST_POSITIVE_REAL)) ||
              ((v < 0) && (v > Limits.DB2_LARGEST_NEGATIVE_REAL)) )
+             */
         {
 			throw StandardException.newException(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE, TypeId.REAL_NAME);
         }
-        */
         // Normalize negative floats to be "positive" (can't detect easily without using Float object because -0.0f = 0.0f)
         // DERBY-2447: It shouldn't matter whether we compare to 0.0f or -0.0f,
         // both should match negative zero, but comparing to 0.0f triggered

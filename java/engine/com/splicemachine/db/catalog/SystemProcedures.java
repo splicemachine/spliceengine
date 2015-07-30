@@ -774,20 +774,29 @@ public class SystemProcedures  {
     String  indexname)
         throws SQLException
     {
-        String escapedSchema = IdUtil.normalToDelimited(schemaname);
-        String escapedTableName = IdUtil.normalToDelimited(tablename);
-        String query = "alter table " + escapedSchema + "." + escapedTableName;
-        if (indexname == null)
-        	query = query + " all drop statistics ";
-        else
-        	query = query + " statistics drop " + IdUtil.normalToDelimited(indexname);
-        Connection conn = getDefaultConn();
+    	// SYSCS_DROP_STATISTICS is supported in Derby but is not valid for Splice,
+    	// Rather than let the user think it was successful, we throw an exception
+    	// explicitly indicating this is not supported. When we choose to implement
+    	// the functionality, we can either repurpose this stored proc, or create a
+    	// different interface for it instead.
+    	throw new UnsupportedOperationException(
+			StandardException.newException(SQLState.SPLICE_NOT_IMPLEMENTED, "SYSCS_DROP_STATISTICS")
+    	);
 
-        PreparedStatement ps = conn.prepareStatement(query);
-        ps.executeUpdate();
-        ps.close();
-
-        conn.close();
+//        String escapedSchema = IdUtil.normalToDelimited(schemaname);
+//        String escapedTableName = IdUtil.normalToDelimited(tablename);
+//        String query = "alter table " + escapedSchema + "." + escapedTableName;
+//        if (indexname == null)
+//        	query = query + " all drop statistics ";
+//        else
+//        	query = query + " statistics drop " + IdUtil.normalToDelimited(indexname);
+//        Connection conn = getDefaultConn();
+//
+//        PreparedStatement ps = conn.prepareStatement(query);
+//        ps.executeUpdate();
+//        ps.close();
+//
+//        conn.close();
     }
 
     /**
@@ -891,7 +900,7 @@ public class SystemProcedures  {
 
     /**
      * 
-     * @param backupDir the name of the directory where the backup should be
+     * @param restoreDir the name of the directory where the backup should be
      *                  stored. This directory will be created if it 
      *                  does not exist.
      * @exception StandardException thrown on error
@@ -1842,7 +1851,14 @@ public class SystemProcedures  {
             if (userName == null)
                  throw StandardException.newException(SQLState.AUTH_INVALID_USER_NAME,
                          userName);
-            
+
+			 LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+			 DataDictionary dd = lcc.getDataDictionary();
+			 if (dd.getUser(userName) == null)
+			 {
+				 throw StandardException.newException(SQLState.AUTH_INVALID_USER_NAME, userName);
+			 }
+
             String addListProperty;
             if (Property.FULL_ACCESS.equals(connectionPermission))
             {
@@ -1911,7 +1927,14 @@ public class SystemProcedures  {
             if (userName == null)
                 throw StandardException.newException(SQLState.AUTH_INVALID_USER_NAME,
                         userName);
-           
+
+			LanguageConnectionContext lcc = ConnectionUtil.getCurrentLCC();
+			DataDictionary dd = lcc.getDataDictionary();
+			if (dd.getUser(userName) == null)
+			{
+				return Property.NO_ACCESS;
+			}
+
             String fullUserList =
                 SYSCS_GET_DATABASE_PROPERTY(Property.FULL_ACCESS_USERS_PROPERTY);
             if (IdUtil.idOnList(userName, fullUserList))

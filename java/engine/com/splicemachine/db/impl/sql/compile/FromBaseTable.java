@@ -123,9 +123,9 @@ public class FromBaseTable extends FromTable{
 
     private double singleScanRowCount;
 
+    private FormatableBitSet heapReferencedCols;
     private FormatableBitSet referencedCols;
     private ResultColumnList templateColumns;
-    private boolean resultColumnsCompacted=false;
 
     /* A 0-based array of column names for this table used
      * for optimizer trace.
@@ -2161,12 +2161,11 @@ public class FromBaseTable extends FromTable{
 			/* Template must reflect full row.
 			 * Compact RCL down to partial row.
 			 */
-            if(!resultColumnsCompacted){
-                templateColumns=resultColumns;
-                referencedCols=resultColumns.getReferencedFormatableBitSet(cursorTargetTable,isSysstatements,false);
-                resultColumns=resultColumns.compactColumns(cursorTargetTable,isSysstatements);
-                resultColumnsCompacted=true;
-            }
+
+            templateColumns=resultColumns;
+            referencedCols=resultColumns.getReferencedFormatableBitSet(cursorTargetTable,isSysstatements,false);
+            resultColumns=resultColumns.compactColumns(cursorTargetTable,isSysstatements);
+
             return this;
         }
 		
@@ -2246,7 +2245,7 @@ public class FromBaseTable extends FromTable{
 		 */
         // Get the BitSet for all of the referenced columns
         FormatableBitSet indexReferencedCols=null;
-        FormatableBitSet heapReferencedCols;
+        //FormatableBitSet heapReferencedCols;
         if((bulkFetch==UNSET) && (requalificationRestrictionList==null || requalificationRestrictionList.size()==0)){
 			/* No BULK FETCH or requalification, XOR off the columns coming from the heap 
 			 * to get the columns coming from the index.
@@ -2412,14 +2411,15 @@ public class FromBaseTable extends FromTable{
         if(authorizeSYSUSERS){
             int passwordColNum=SYSUSERSRowFactory.PASSWORD_COL_NUM;
 
-            if(
-                    (referencedCols==null) || // select * from sys.sysusers results in a null referecedCols
-                            (
-                                    (referencedCols.getLength()>=passwordColNum) && referencedCols.isSet(passwordColNum-1)
-                            )
-                    ){
+            //if we are using index we still must not be able to access PASSWORD column
+            //so use heapReferencedColumns to check original columns referenced
+            if((referencedCols==null) || // select * from sys.sysusers results in a null referecedCols
+                    ((referencedCols.getLength()>=passwordColNum) && referencedCols.isSet(passwordColNum-1)) ||
+                    ((heapReferencedCols != null) &&
+                            ((heapReferencedCols.getLength()>=passwordColNum) && heapReferencedCols.isSet(passwordColNum-1))))
+            {
                 throw StandardException.newException
-                        (SQLState.HIDDEN_COLUMN,SYSUSERSRowFactory.TABLE_NAME,SYSUSERSRowFactory.PASSWORD_COL_NAME);
+                    (SQLState.HIDDEN_COLUMN,SYSUSERSRowFactory.TABLE_NAME,SYSUSERSRowFactory.PASSWORD_COL_NAME);
             }
         }
 
@@ -3605,7 +3605,24 @@ public class FromBaseTable extends FromTable{
             /* Is there a pushable equality predicate on this key column?
              * (IS NULL is also acceptable)
 			 */
-            if(!restrictionList.hasOptimizableEqualityPredicate(this,curCol,true))
+            List<Predicate> optimizableEqualityPredicateList =
+                    restrictionList.getOptimizableEqualityPredicateList(this,curCol,true);
+
+            // No equality predicate for this column, so this is not a one row result set
+            if (optimizableEqualityPredicateList == null)
+                return false;
+
+            // Look for equality predicate that is not a join predicate
+            boolean existsNonjoinPredicate = false;
+            for (int i = 0; i < optimizableEqualityPredicateList.size(); ++i) {
+                Predicate predicate = optimizableEqualityPredicateList.get(i);
+                if (!predicate.isJoinPredicate()) {
+                    existsNonjoinPredicate = true;
+                    break;
+                }
+            }
+            // If all equality predicates are join predicates, then this is NOT a one row result set
+            if (!existsNonjoinPredicate)
                 return false;
         }
 

@@ -9691,31 +9691,36 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         }
 
         // void SYSCS_UTIL.SYSCS_DROP_STATISTICS(varchar(128), varchar(128), varchar(128))
-        {
-            // procedure argument names
-            String[] arg_names={"SCHEMANAME","TABLENAME","INDEXNAME"};
 
-            // procedure argument types
-            TypeDescriptor[] arg_types={
-                    CATALOG_TYPE_SYSTEM_IDENTIFIER,
-                    CATALOG_TYPE_SYSTEM_IDENTIFIER,
-                    CATALOG_TYPE_SYSTEM_IDENTIFIER
-
-            };
-
-            createSystemProcedureOrFunction(
-                    "SYSCS_DROP_STATISTICS",
-                    sysUtilUUID,
-                    arg_names,
-                    arg_types,
-                    0,
-                    0,
-                    RoutineAliasInfo.MODIFIES_SQL_DATA,
-                    false,
-                    null,
-                    newlyCreatedRoutines,
-                    tc);
-        }
+        // SYSCS_DROP_STATISTICS works in Derby but is not valid for Splice.
+        // Leave it out of dictionary until we implement it properly.
+        // If it is invoked from a system where this is already present,
+        // it will throw an unsupported operation exception.
+//        {
+//            // procedure argument names
+//            String[] arg_names={"SCHEMANAME","TABLENAME","INDEXNAME"};
+//
+//            // procedure argument types
+//            TypeDescriptor[] arg_types={
+//                    CATALOG_TYPE_SYSTEM_IDENTIFIER,
+//                    CATALOG_TYPE_SYSTEM_IDENTIFIER,
+//                    CATALOG_TYPE_SYSTEM_IDENTIFIER
+//
+//            };
+//
+//            createSystemProcedureOrFunction(
+//                    "SYSCS_DROP_STATISTICS",
+//                    sysUtilUUID,
+//                    arg_names,
+//                    arg_types,
+//                    0,
+//                    0,
+//                    RoutineAliasInfo.MODIFIES_SQL_DATA,
+//                    false,
+//                    null,
+//                    newlyCreatedRoutines,
+//                    tc);
+//        }
     }
 
 

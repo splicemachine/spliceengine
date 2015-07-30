@@ -530,15 +530,19 @@ public class DefaultSystemProcedureGenerator implements SystemProcedureGenerator
                 .catalog("sequenceName")
                 .build()
             ,
-            Procedure.newBuilder().name("SYSCS_DROP_STATISTICS")
-                .numOutputParams(0).numResultSets(0).modifiesSql()
-                .returnType(null).isDeterministic(false)
-                .ownerClass(SYSTEM_PROCEDURES)
-                .catalog("SCHEMANAME")
-                .catalog("TABLENAME")
-                .catalog("INDEXNAME")
-                .build()
-            ,
+            // SYSCS_DROP_STATISTICS works in Derby but is not valid for Splice.
+            // Leave it out of dictionary until we implement it properly.
+            // If it is invoked from a system where this is already present,
+            // it will throw an unsupported operation exception.
+//            Procedure.newBuilder().name("SYSCS_DROP_STATISTICS")
+//                .numOutputParams(0).numResultSets(0).modifiesSql()
+//                .returnType(null).isDeterministic(false)
+//                .ownerClass(SYSTEM_PROCEDURES)
+//                .catalog("SCHEMANAME")
+//                .catalog("TABLENAME")
+//                .catalog("INDEXNAME")
+//                .build()
+//            ,
             Procedure.newBuilder().name("SYSCS_RECOMPILE_INVALID_STORED_STATEMENTS")
                 .numOutputParams(0).numResultSets(0).modifiesSql()
                 .returnType(null).isDeterministic(false)
