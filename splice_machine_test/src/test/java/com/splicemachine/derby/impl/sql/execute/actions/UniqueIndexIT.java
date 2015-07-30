@@ -570,7 +570,6 @@ public class UniqueIndexIT extends SpliceUnitTest {
     }
 
     @Test
-    @Ignore
     public void testUpdateUniqueIndex() throws Exception {
         // DB-2578: Update unique index causes 0 length row error
         // also "uniqueWithDuplicateNulls" index column became non-unique when null value updated to non-null
