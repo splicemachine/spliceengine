@@ -13,7 +13,7 @@ import java.text.DecimalFormat;
  */
 public class SimpleCostEstimate implements CostEstimate{
     private static final String[] displayHeapUnits = new String[]{" B"," KB"," MB"," GB"," TB"};
-
+    private boolean isOuterJoin;
     private double localCost = Double.MAX_VALUE;
     private double remoteCost;
     private int numPartitions;
@@ -279,5 +279,15 @@ public class SimpleCostEstimate implements CostEstimate{
 
     public void setEstimatedHeapSize(long estHeapSize){
         this.estimatedHeapSize = estHeapSize;
+    }
+
+    @Override
+    public boolean isOuterJoin() {
+        return isOuterJoin;
+    }
+
+    @Override
+    public void setOuterJoin(boolean isOuterJoin) {
+        this.isOuterJoin = isOuterJoin;
     }
 }

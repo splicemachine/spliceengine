@@ -5,6 +5,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.impl.sql.compile.JoinSelectivity;
 import com.splicemachine.db.impl.sql.compile.Predicate;
 import com.splicemachine.db.impl.sql.compile.PredicateList;
 
@@ -147,7 +148,9 @@ public class BroadcastJoinStrategy extends BaseCostedHashableJoinStrategy {
         double outerRemoteCost=outerCost.remoteCost();
         double innerRemoteCost=innerCost.remoteCost();
 
-        double joinSelectivity = estimateJoinSelectivity(innerTable,cd,predList,innerRowCount);
+        double joinSelectivity =JoinSelectivity.estimateJoinSelectivity(innerTable, cd, predList,(long) innerRowCount,(long) outerRowCount,
+                JoinStrategyType.BROADCAST,outerCost);
+
         double totalLocalCost = outerCost.localCost()+innerCost.localCost()+innerRemoteCost;
         //add in the overhead to open the inner table scan
         totalLocalCost+= innerCost.partitionCount()*(innerCost.getOpenCost()+innerCost.getCloseCost());
@@ -162,8 +165,8 @@ public class BroadcastJoinStrategy extends BaseCostedHashableJoinStrategy {
 
         double totalHeapSize=getTotalHeapSize(outerCost.getEstimatedHeapSize(),
                 innerCost.getEstimatedHeapSize(),
-                outerRowCount,
                 innerRowCount,
+                outerRowCount,
                 totalOutputRows);
 
         innerCost.setNumPartitions(totalPartitionCount);

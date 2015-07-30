@@ -197,6 +197,15 @@ public class StatsStoreCostController extends GenericController implements Store
     }
 
     @Override
+    public long cardinality(int columnNumber){
+        ColumnStatistics<DataValueDescriptor> colStats=getColumnStats(columnNumber);
+        if(colStats!=null)
+            return colStats.cardinality();
+        return 0;
+    }
+
+
+    @Override
     public double cardinalityFraction(int columnNumber){
         ColumnStatistics<DataValueDescriptor> colStats=getColumnStats(columnNumber);
         if(colStats!=null){
@@ -233,7 +242,7 @@ public class StatsStoreCostController extends GenericController implements Store
              * We have no statistics for this column, so we fall back on an arbitrarily configured
              * selectivity criteria
              */
-            return SpliceConstants.extraQualifierMultiplier;
+            return StatsConstants.fallbackNullFraction;
         }else if(missingStatsCount>0){
             /*
              * We have a situation where statistics are missing from some, but not all
@@ -396,6 +405,8 @@ public class StatsStoreCostController extends GenericController implements Store
                 if(cStats!=null){
                     double rc=cStats.getDistribution().rangeSelectivity(start,stop,includeStart,includeStop);
                     selectivity*=rc/cStats.nonNullCount();
+                } else {
+                    selectivity*=StatsConstants.fallbackIndexSelectivityFraction;
                 }
             }
             return (long)Math.ceil(selectivity*pStats.rowCount());

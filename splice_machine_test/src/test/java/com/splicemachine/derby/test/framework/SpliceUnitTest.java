@@ -5,6 +5,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 
+import org.junit.Assert;
 import org.junit.runner.Description;
 
 public class SpliceUnitTest {
@@ -82,6 +83,18 @@ public class SpliceUnitTest {
         public void create(Description desc) {
             super.starting(desc);
         }
+    }
+
+    protected void firstRowContainsQuery(String query, String contains,SpliceWatcher methodWatcher) throws Exception {
+        String result = methodWatcher.<String>query(query);
+        Assert.assertTrue("failed query: " + query + " -> " + result, result.contains(contains));
+    }
+
+    protected void secondRowContainsQuery(String query, String contains,SpliceWatcher methodWatcher) throws Exception {
+        ResultSet resultSet = methodWatcher.executeQuery(query);
+        resultSet.next();
+        resultSet.next();
+        Assert.assertTrue("failed query: " + query + " -> " + resultSet.getString(1),resultSet.getString(1).contains(contains));
     }
 
 

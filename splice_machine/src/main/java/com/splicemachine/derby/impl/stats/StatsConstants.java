@@ -68,9 +68,21 @@ public class StatsConstants extends SpliceConstants {
      * compute statistics on the column of interest to get more precise values. This is only here as an absolute
      * fallback when the algorithm can do nothing else.
      */
+    /**
+     *
+     */
     public static double fallbackCardinalityFraction;
     @Parameter public static final String FALLBACK_CARDINALITY_FRACTION = "splice.statistics.defaultCardinalityFraction";
     @DefaultValue(value=FALLBACK_CARDINALITY_FRACTION)public static final double DEFAULT_FALLBACK_CARDINALITY_FRACTION=.1d;
+
+
+    public static double fallbackNullFraction;
+    @Parameter public static final String FALLBACK_NULL_FRACTION = "splice.statistics.defaultNullFraction";
+    @DefaultValue(value=FALLBACK_NULL_FRACTION)public static final double DEFAULT_FALLBACK_NULL_FRACTION=.1d;
+
+    public static double fallbackIndexSelectivityFraction;
+    @Parameter public static final String FALLBACK_INDEX_SELECTIVITY_FRACTION = "splice.statistics.defaultIndexSelectivityFraction";
+    @DefaultValue(value=FALLBACK_INDEX_SELECTIVITY_FRACTION)public static final double DEFAULT_FALLBACK_INDEX_SELECTIVITY_FRACTION=.1d;
 
     /**
      *  The fallback size of a region, when no statistics at all are present. Generally, it's much preferable
@@ -120,6 +132,9 @@ public class StatsConstants extends SpliceConstants {
 
         fallbackRemoteLatencyRatio= config.getLong(FALLBACK_REMOTE_LATENCY_RATIO,DEFAULT_FALLBACK_REMOTE_LATENCY_RATIO);
         fallbackCardinalityFraction = config.getDouble(FALLBACK_CARDINALITY_FRACTION,DEFAULT_FALLBACK_CARDINALITY_FRACTION);
+        fallbackNullFraction = config.getDouble(FALLBACK_NULL_FRACTION,DEFAULT_FALLBACK_NULL_FRACTION);
+        fallbackIndexSelectivityFraction = config.getDouble(FALLBACK_INDEX_SELECTIVITY_FRACTION,DEFAULT_FALLBACK_INDEX_SELECTIVITY_FRACTION);
+
         fetchRepetitionCount = config.getInt(INDEX_FETCH_REPETITION_COUNT,DEFAULT_INDEX_FETCH_REPETITION_COUNT);
 
         fallbackRegionRowCount = config.getLong(FALLBACK_REGION_ROW_COUNT,DEFAULT_FALLBACK_REGION_COUNT);

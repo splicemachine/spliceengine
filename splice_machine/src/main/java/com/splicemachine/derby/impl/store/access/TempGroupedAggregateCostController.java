@@ -60,63 +60,35 @@ public class TempGroupedAggregateCostController implements AggregateCostControll
 
     @Override
     public CostEstimate estimateAggregateCost(CostEstimate baseCost) throws StandardException{
-        double overallCardinalityFraction = 1d;
-        double sumCardFrac = 0d;
-        for(OrderedColumn oc:groupingList){
-            ValueNode colExprValue=oc.getColumnExpression();
-            if(colExprValue instanceof UnaryOperatorNode){
-                colExprValue=((UnaryOperatorNode)colExprValue).getOperand();
-            }
-            assert colExprValue!=null;
-            assert colExprValue instanceof ColumnReference:"Programmer error: unexpected type:"+colExprValue.getClass();
-
-            ColumnReference ref=(ColumnReference)colExprValue;
-            StoreCostController storeCostController=getStoreCostForColumn(ref);
-            double card;
-            if(storeCostController!=null)
-                card=storeCostController.cardinalityFraction(ref.getSourceResultColumn().getColumnPosition());
-            else
-                card = 1d; //when in doubt, say it doesn't reduce anything
-            overallCardinalityFraction*=card;
-            sumCardFrac+=card;
+        double outputRows = 1;
+        for(OrderedColumn oc:groupingList) {
+            ColumnReference ref = oc.getColumnReference();
+            long returnedRows = ref.nonZeroCardinality((long) baseCost.rowCount());
+            outputRows *= returnedRows <= baseCost.rowCount()?returnedRows:returnedRows*(baseCost.rowCount()/ref.rowCountEstimate());
         }
-
-        double cardFraction = sumCardFrac-overallCardinalityFraction;
-        if(overallCardinalityFraction==1d||cardFraction>1d){
-            /*
-             * If the overallCardinalityFraction (e.g. the cardinality of the intersection) is 1,
-             * then we will return an entry for every row in the base table, in which case
-             * we really shouldn't multiply or divide by anything.
-             */
-            cardFraction=1d;
-        }
-        double baseRc = baseCost.rowCount();
-
-        double outputRows;
-        if(baseRc==0d)
-            outputRows = 0d;
-        else
-            outputRows = cardFraction*baseRc;
         /*
          * If the baseCost claims it's not returning any rows, or our cardinality
          * fraction is too aggressive, we may think that we don't need to do anything. This
          * is rarely correct. To make out math easier, we just always assume that we'll have at least
          * one row returned.
          */
+        if (outputRows >= baseCost.rowCount())
+            outputRows = baseCost.rowCount();
         if(outputRows<1d) outputRows=1;
+
         double parallelCost = (baseCost.localCost()+baseCost.remoteCost()/outputRows)/baseCost.partitionCount();
 
         double localCostPerRow;
         double remoteCostPerRow;
         double heapPerRow;
-        if(baseRc==0d){
+        if(baseCost.rowCount()==0d){
             localCostPerRow = 0d;
             remoteCostPerRow = 0d;
             heapPerRow = 0d;
         }else{
-            localCostPerRow=baseCost.localCost()/baseRc;
-            remoteCostPerRow=baseCost.remoteCost()/baseRc;
-            heapPerRow=baseCost.getEstimatedHeapSize()/baseRc;
+            localCostPerRow=baseCost.localCost()/baseCost.rowCount();
+            remoteCostPerRow=baseCost.remoteCost()/baseCost.rowCount();
+            heapPerRow=baseCost.getEstimatedHeapSize()/baseCost.rowCount();
         }
 
         double seqLocalCost = parallelCost+outputRows*localCostPerRow;

@@ -136,7 +136,9 @@ public class MergeJoinStrategy extends BaseCostedHashableJoinStrategy{
              */
             innerRowCount = 1d;
         }
-        double joinSelectivity = estimateJoinSelectivity(innerTable,cd,predList,innerRowCount);
+        double joinSelectivity =JoinSelectivity.estimateJoinSelectivity(innerTable, cd, predList,(long) innerRowCount,(long) outerRowCount,
+                JoinStrategyType.BROADCAST,outerCost);
+
         double outerRemoteCost=outerCost.remoteCost();
 
         double rowCount = joinSelectivity*outerRowCount*innerRowCount;
@@ -161,8 +163,8 @@ public class MergeJoinStrategy extends BaseCostedHashableJoinStrategy{
                 rowCount)-5;
         double heapSize = getTotalHeapSize(outerCost.getEstimatedHeapSize(),
                 innerCost.getEstimatedHeapSize(),
-                outerRowCount,
                 innerRowCount,
+                outerRowCount,
                 rowCount);
         int numPartitions = outerCost.partitionCount()*innerCost.partitionCount();
 
