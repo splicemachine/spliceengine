@@ -116,10 +116,11 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {
         LocatedRow result = source.getDataSet()
                 .fold(null,new ScalarAggregateFunction(dsp.createOperationContext(this)));
-        if (result==null)
-            return dsp.singleRowDataSet(new LocatedRow(getExecRowDefinition()));
+        if (result==null) {
+			return returnDefault ?
+					dsp.singleRowDataSet(new LocatedRow(getExecRowDefinition())) : null;
+		}
         if (!(result.getRow() instanceof ExecIndexRow)) {
-            sourceExecIndexRow.execRowToExecIndexRow(result.getRow());
             initializeVectorAggregation(result.getRow());
         }
         finishAggregation(result.getRow());
