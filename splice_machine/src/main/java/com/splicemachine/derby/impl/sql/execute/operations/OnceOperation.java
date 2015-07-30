@@ -242,6 +242,7 @@ public class OnceOperation extends SpliceBaseOperation {
         } catch (IOException e) {
             throw Exceptions.parseException(e);
         }
+
         return dsp.singleRowDataSet(new LocatedRow(result));
     }
 

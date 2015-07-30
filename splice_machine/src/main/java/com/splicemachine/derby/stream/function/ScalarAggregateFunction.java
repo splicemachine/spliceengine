@@ -33,7 +33,7 @@ public class ScalarAggregateFunction extends SpliceFunction2<ScalarAggregateOper
         }
         operationContext.recordRead();
         if (t2 == null) return t1;
-        if (t1 == null) return t2;
+        if (t1 == null) return t2.getClone();
         if (RDDUtils.LOG.isDebugEnabled())
             RDDUtils.LOG.debug(String.format("Reducing %s and %s", t1, t2));
 
