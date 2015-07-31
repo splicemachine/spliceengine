@@ -410,13 +410,13 @@ public class CardinalityEstimators {
         }
 
         @Override
-        protected SparseAdjustedHyperLogLogCounter getCounter(ShortCardinalityEstimator item) {
+        protected SparseHyperLogLog getCounter(ShortCardinalityEstimator item) {
             assert item instanceof ShortHyperLogLog : "Cannot encode estimator of type "+ item.getClass();
-            return (SparseAdjustedHyperLogLogCounter)((ShortHyperLogLog) item).counter;
+            return (SparseHyperLogLog)((ShortHyperLogLog) item).counter;
         }
 
         @Override
-        protected ShortCardinalityEstimator newEstimator(SparseAdjustedHyperLogLogCounter count) {
+        protected ShortCardinalityEstimator newEstimator(SparseHyperLogLog count) {
             return new ShortHyperLogLog(count);
         }
     }
@@ -428,13 +428,13 @@ public class CardinalityEstimators {
         }
 
         @Override
-        protected SparseAdjustedHyperLogLogCounter getCounter(IntCardinalityEstimator item) {
+        protected SparseHyperLogLog getCounter(IntCardinalityEstimator item) {
             assert item instanceof IntHyperLogLog : "Cannot encode estimator of type "+ item.getClass();
-            return (SparseAdjustedHyperLogLogCounter)((IntHyperLogLog) item).counter;
+            return (SparseHyperLogLog)((IntHyperLogLog) item).counter;
         }
 
         @Override
-        protected IntCardinalityEstimator newEstimator(SparseAdjustedHyperLogLogCounter count) {
+        protected IntCardinalityEstimator newEstimator(SparseHyperLogLog count) {
             return new IntHyperLogLog(count);
         }
     }
@@ -446,13 +446,13 @@ public class CardinalityEstimators {
         }
 
         @Override
-        protected SparseAdjustedHyperLogLogCounter getCounter(LongCardinalityEstimator item) {
+        protected SparseHyperLogLog getCounter(LongCardinalityEstimator item) {
             assert item instanceof LongHyperLogLog : "Cannot encode estimator of type "+ item.getClass();
-            return (SparseAdjustedHyperLogLogCounter)((LongHyperLogLog) item).counter;
+            return (SparseHyperLogLog)((LongHyperLogLog) item).counter;
         }
 
         @Override
-        protected LongCardinalityEstimator newEstimator(SparseAdjustedHyperLogLogCounter count) {
+        protected LongCardinalityEstimator newEstimator(SparseHyperLogLog count) {
             return new LongHyperLogLog(count);
         }
     }
@@ -464,13 +464,13 @@ public class CardinalityEstimators {
         }
 
         @Override
-        protected SparseAdjustedHyperLogLogCounter getCounter(FloatCardinalityEstimator item) {
+        protected SparseHyperLogLog getCounter(FloatCardinalityEstimator item) {
             assert item instanceof FloatHyperLogLog : "Cannot encode estimator of type "+ item.getClass();
-            return (SparseAdjustedHyperLogLogCounter)((FloatHyperLogLog) item).counter;
+            return (SparseHyperLogLog)((FloatHyperLogLog) item).counter;
         }
 
         @Override
-        protected FloatCardinalityEstimator newEstimator(SparseAdjustedHyperLogLogCounter count) {
+        protected FloatCardinalityEstimator newEstimator(SparseHyperLogLog count) {
             return new FloatHyperLogLog(count);
         }
     }
@@ -482,13 +482,13 @@ public class CardinalityEstimators {
         }
 
         @Override
-        protected SparseAdjustedHyperLogLogCounter getCounter(DoubleCardinalityEstimator item) {
+        protected SparseHyperLogLog getCounter(DoubleCardinalityEstimator item) {
             assert item instanceof DoubleHyperLogLog : "Cannot encode estimator of type "+ item.getClass();
-            return (SparseAdjustedHyperLogLogCounter)((DoubleHyperLogLog) item).counter;
+            return (SparseHyperLogLog)((DoubleHyperLogLog) item).counter;
         }
 
         @Override
-        protected DoubleCardinalityEstimator newEstimator(SparseAdjustedHyperLogLogCounter count) {
+        protected DoubleCardinalityEstimator newEstimator(SparseHyperLogLog count) {
             return new DoubleHyperLogLog(count);
         }
     }
@@ -500,13 +500,13 @@ public class CardinalityEstimators {
         }
 
         @Override
-        protected SparseAdjustedHyperLogLogCounter getCounter(BytesCardinalityEstimator item) {
+        protected SparseHyperLogLog getCounter(BytesCardinalityEstimator item) {
             assert item instanceof BytesHyperLogLog : "Cannot encode estimator of type "+ item.getClass();
-            return (SparseAdjustedHyperLogLogCounter)((BytesHyperLogLog) item).counter;
+            return (SparseHyperLogLog)((BytesHyperLogLog) item).counter;
         }
 
         @Override
-        protected BytesCardinalityEstimator newEstimator(SparseAdjustedHyperLogLogCounter count) {
+        protected BytesCardinalityEstimator newEstimator(SparseHyperLogLog count) {
             return new BytesHyperLogLog(count);
         }
     }
@@ -518,22 +518,22 @@ public class CardinalityEstimators {
         }
 
         @Override
-        protected SparseAdjustedHyperLogLogCounter getCounter(CardinalityEstimator<T> item) {
+        protected SparseHyperLogLog getCounter(CardinalityEstimator<T> item) {
             assert item instanceof HyperLogLog : "Cannot encode estimator of type "+ item.getClass();
-            return (SparseAdjustedHyperLogLogCounter)((HyperLogLog) item).counter;
+            return (SparseHyperLogLog)((HyperLogLog) item).counter;
         }
 
         @Override
-        protected CardinalityEstimator<T> newEstimator(SparseAdjustedHyperLogLogCounter count) {
+        protected CardinalityEstimator<T> newEstimator(SparseHyperLogLog count) {
             return new HyperLogLog<>(count);
         }
     }
 
     private static abstract class SparseEncoder<T> implements Encoder<T> {
-        protected final Encoder<SparseAdjustedHyperLogLogCounter> baseEncoder;
+        protected final Encoder<SparseHyperLogLog> baseEncoder;
 
         public SparseEncoder(Hash64 hashFunction) {
-            this.baseEncoder = new SparseAdjustedHyperLogLogCounter.EncoderDecoder(hashFunction);
+            this.baseEncoder = new SparseHyperLogLog.EncoderDecoder(hashFunction);
         }
 
         @Override
@@ -543,12 +543,12 @@ public class CardinalityEstimators {
 
         @Override
         public T decode(DataInput input) throws IOException {
-            SparseAdjustedHyperLogLogCounter count = baseEncoder.decode(input);
+            SparseHyperLogLog count = baseEncoder.decode(input);
             return newEstimator(count);
         }
 
-        protected abstract SparseAdjustedHyperLogLogCounter getCounter(T item);
+        protected abstract SparseHyperLogLog getCounter(T item);
 
-        protected abstract T newEstimator(SparseAdjustedHyperLogLogCounter count);
+        protected abstract T newEstimator(SparseHyperLogLog count);
     }
 }

@@ -1,9 +1,13 @@
 package com.splicemachine.stats.cardinality;
 
+import com.splicemachine.encoding.Encoder;
 import com.splicemachine.hash.Hash64;
 import com.splicemachine.primitives.MoreArrays;
 import com.splicemachine.stats.DoubleFunction;
 
+import java.io.DataInput;
+import java.io.DataOutput;
+import java.io.IOException;
 import java.util.Arrays;
 
 /**
@@ -128,6 +132,40 @@ public class SparseHyperLogLog extends BaseBiasAdjustedHyperLogLogCounter{
     }
 
     private SparseHyperLogLog(int precision,
+                              Hash64 hashFunction,
+                              DoubleFunction biasAdjuster,
+                              int sparseSize,
+                              int[] sparseArray){
+        super(precision,hashFunction,biasAdjuster);
+        this.sparseArray = sparseArray;
+        this.sparseSize = sparseSize;
+        int denseSize = 8*(1<<(precision));
+        /*
+         * We want a sparse representation to always be smaller than the dense size--otherwise,
+         * it's cheaper to just use the dense implementation. Since the sparse implementation uses
+         * a buffer and a sparse array, we have
+         *
+         * buffer.length+sparseArray.length<denseSize/4
+         *
+         * will satisfy our goals. We divvy up the two by making the buffer equal to 1/4, and the sparse
+         * array 3/4 of the total size.
+         *
+         * Note, if the size is really small, we don't care so much if we exactly save--nothing we do is going to make
+         * it larger
+         */
+        int maxTotalSize = denseSize>>2;
+        int bSize;
+        if(maxTotalSize>4)
+            bSize = maxTotalSize>>2;
+        else bSize = maxTotalSize;
+
+        buffer = new int[bSize];
+        this.maxSparseSize = 3*bSize;
+        bufferSize = 0;
+        this.isSparse = true;
+    }
+
+    private SparseHyperLogLog(int precision,
                              Hash64 hashFunction,
                              DoubleFunction biasAdjuster,
                              byte[] denseRegisters){
@@ -135,7 +173,6 @@ public class SparseHyperLogLog extends BaseBiasAdjustedHyperLogLogCounter{
         this.denseRegisters =Arrays.copyOf(denseRegisters,denseRegisters.length);
         this.maxSparseSize = 0;
         this.isSparse = false;
-
     }
 
     @Override
@@ -468,5 +505,75 @@ public class SparseHyperLogLog extends BaseBiasAdjustedHyperLogLogCounter{
         }
         //de-reference the sparse array to allow GC and save memory
         sparseArray=null;
+    }
+
+    /*
+     * Inner class to maintain the logic for serialization/deserialization
+     */
+    static class EncoderDecoder implements Encoder<SparseHyperLogLog>{
+        private final Hash64 hashFunction;
+
+        public EncoderDecoder(Hash64 hashFunction){
+            this.hashFunction=hashFunction;
+        }
+
+        @Override
+        public void encode(SparseHyperLogLog item,DataOutput encoder) throws IOException{
+            if(item.isSparse){
+                item.mergeBuffer();
+                if(item.isSparse){
+                    encodeSparse(item,encoder);
+                }
+            }
+            encodeDense(item,encoder);
+        }
+
+        @Override
+        public SparseHyperLogLog decode(DataInput input) throws IOException{
+            if(input.readByte()==0x01){
+                return decodeSparse(input);
+            }else return decodeDense(input);
+        }
+
+        private SparseHyperLogLog decodeSparse(DataInput input) throws IOException{
+            int precision=input.readInt();
+            int size=input.readInt();
+            int c=1;
+            while(c<size){
+                c<<=1;
+            }
+            int[] sparse=new int[c];
+            for(int i=0;i<size;i++){
+                sparse[i]=input.readInt();
+            }
+            DoubleFunction biasAdjuster=HyperLogLogBiasEstimators.biasEstimate(precision);
+            return new SparseHyperLogLog(precision,hashFunction,biasAdjuster,size,sparse);
+        }
+
+        private SparseHyperLogLog decodeDense(DataInput input) throws IOException{
+            int precision=input.readInt();
+            int numRegisters=1<<precision;
+            byte[] registers=new byte[numRegisters];
+            input.readFully(registers);
+
+            DoubleFunction biasAdjuster=HyperLogLogBiasEstimators.biasEstimate(precision);
+            return new SparseHyperLogLog(precision,hashFunction,biasAdjuster,registers);
+        }
+
+        private void encodeSparse(SparseHyperLogLog item,DataOutput encoder) throws IOException{
+            encoder.writeByte(0x01);
+            encoder.writeInt(item.precision);
+            encoder.writeInt(item.sparseSize);
+            for(int i=0;i<item.sparseSize;i++){
+                encoder.writeInt(item.sparseArray[i]);
+            }
+        }
+
+        private void encodeDense(SparseHyperLogLog item,DataOutput encoder) throws IOException{
+            encoder.writeByte(0x00);
+            encoder.writeInt(item.precision);
+            //we don't need the register length, because we can reconstruct it from the precision
+            encoder.write(item.denseRegisters);
+        }
     }
 }
