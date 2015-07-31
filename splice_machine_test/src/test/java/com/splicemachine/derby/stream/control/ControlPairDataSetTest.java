@@ -8,7 +8,6 @@ import org.junit.Ignore;
  * Created by jleach on 4/15/15.
  */
 
-@Ignore("spark")
 public class ControlPairDataSetTest extends AbstractPairDataSetTest {
 
     @Override
