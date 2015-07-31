@@ -360,8 +360,6 @@ public class SelectNode extends ResultSetNode{
      */
     public SubqueryList getWhereSubquerys(){ return whereSubquerys; }
 
-    public int getNestingLevel(){ return nestingLevel;}
-
     /**
      * Bind the tables in this SelectNode.  This includes getting their
      * TableDescriptors from the DataDictionary and numbering the FromTables.
