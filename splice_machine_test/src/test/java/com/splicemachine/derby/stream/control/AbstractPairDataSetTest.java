@@ -55,7 +55,6 @@ public abstract class AbstractPairDataSetTest extends BaseStreamTest {
 
 
     @Test
-    @Ignore // ignoring to let Spark ITs complete
     public void testReduceByKey() throws StandardException {
         PairDataSet<ExecRow, ExecRow> pairDataSet = getTenRows();
         PairDataSet<ExecRow, ExecRow> transformedDS = pairDataSet.reduceByKey(new ReduceByKeyFunction());
@@ -313,9 +312,9 @@ public abstract class AbstractPairDataSetTest extends BaseStreamTest {
         @Override
         public ExecRow call(ExecRow execRow, ExecRow execRow2) throws Exception {
             if (execRow == null)
-                return execRow2;
+                return getExecRow(1, 1);
             if (execRow2 == null)
-                return execRow;
+                return getExecRow(1, 1);
             ExecRow row = getExecRow(1, 1);
             row.getColumn(1).setValue(execRow.getColumn(1).getInt() + 1);
             return row;

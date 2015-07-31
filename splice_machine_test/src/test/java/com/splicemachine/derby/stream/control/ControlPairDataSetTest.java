@@ -2,10 +2,13 @@ package com.splicemachine.derby.stream.control;
 
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
+import org.junit.Ignore;
 
 /**
  * Created by jleach on 4/15/15.
  */
+
+@Ignore("spark")
 public class ControlPairDataSetTest extends AbstractPairDataSetTest {
 
     @Override
