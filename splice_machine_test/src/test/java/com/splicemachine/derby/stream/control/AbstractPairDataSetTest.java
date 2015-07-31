@@ -61,10 +61,17 @@ public abstract class AbstractPairDataSetTest extends BaseStreamTest {
         Assert.assertEquals("records not reduced", 2, transformedDS.keys().collect().size());
         Assert.assertEquals("records not reduced", 2, transformedDS.values().collect().size());
         Iterator<ExecRow> it = transformedDS.values().toLocalIterator();
+        int total = 0;
+        int items = 0;
         while (it.hasNext()) {
+            items++;
             ExecRow er = it.next();
-            Assert.assertEquals("value not 5", 5, er.getColumn(1).getInt());
+            total += er.getColumn(1).getInt();
         }
+
+        // There should have been 4 reductions
+        Assert.assertEquals("not 2 keys", 2, items);
+        Assert.assertEquals("sum not 45", 45, total);
     }
 
     @Test
@@ -312,12 +319,11 @@ public abstract class AbstractPairDataSetTest extends BaseStreamTest {
         @Override
         public ExecRow call(ExecRow execRow, ExecRow execRow2) throws Exception {
             if (execRow == null)
-                return getExecRow(1, 1);
+                return execRow2.getClone();
             if (execRow2 == null)
-                return getExecRow(1, 1);
-            ExecRow row = getExecRow(1, 1);
-            row.getColumn(1).setValue(execRow.getColumn(1).getInt() + 1);
-            return row;
+                return execRow;
+            execRow.getColumn(1).setValue(execRow.getColumn(1).getInt() + execRow2.getColumn(1).getInt());
+            return execRow;
         }
     }
 

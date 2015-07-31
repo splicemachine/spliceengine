@@ -15,7 +15,6 @@ import java.util.List;
  * Created by jleach on 4/15/15.
  */
 
-@Ignore("spark")
 public class SparkPairDataSetTest extends AbstractPairDataSetTest {
 
     @Override
@@ -25,6 +24,6 @@ public class SparkPairDataSetTest extends AbstractPairDataSetTest {
 
     @Override
     protected PairDataSet<ExecRow, ExecRow> getEvenRows() {
-        return new SparkPairDataSet(SpliceSpark.getContext().parallelizePairs(tenRows));
+        return new SparkPairDataSet(SpliceSpark.getContext().parallelizePairs(evenRows));
     }
 }

@@ -204,7 +204,7 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
         return new ControlPairDataSet<K, V>(FluentIterable.from(source).filter(new Predicate<Tuple2<K, V>>() {
             @Override
             public boolean apply(@Nullable Tuple2<K, V> t) {
-                return !rightSide.get(t._1()).isEmpty();
+                return rightSide.get(t._1()).isEmpty();
             }
         }));
     }
