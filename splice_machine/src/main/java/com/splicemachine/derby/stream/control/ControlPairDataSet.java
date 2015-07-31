@@ -17,6 +17,7 @@ import com.splicemachine.derby.stream.temporary.insert.InsertTableWriterBuilder;
 import com.splicemachine.derby.stream.temporary.update.UpdateTableWriter;
 import com.splicemachine.derby.stream.temporary.update.UpdateTableWriterBuilder;
 import org.sparkproject.guava.common.base.Function;
+import org.sparkproject.guava.common.base.Predicate;
 import org.sparkproject.guava.common.base.Supplier;
 import org.sparkproject.guava.common.collect.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
@@ -30,6 +31,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
+import static com.splicemachine.derby.stream.control.ControlUtils.entryToTuple;
+import static com.splicemachine.derby.stream.control.ControlUtils.multimapFromIterable;
+
 /**
  *
  *
@@ -39,24 +43,37 @@ import java.util.TreeMap;
  *
  */
 public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
-    public Multimap<K,V> source;
-    public ControlPairDataSet(Multimap<K,V> source) {
+    public Iterable<Tuple2<K,V>> source;
+    public ControlPairDataSet(Iterable<Tuple2<K,V>> source) {
         this.source = source;
     }
 
     @Override
     public DataSet<V> values() {
-        return new ControlDataSet(source.values());
+        return new ControlDataSet(FluentIterable.from(source).transform(new Function<Tuple2<K,V>, V>() {
+            @Nullable
+            @Override
+            public V apply(@Nullable Tuple2<K,V>t) {
+                return t._2();
+            }
+        }));
     }
 
     @Override
     public DataSet<K> keys() {
-        return new ControlDataSet(source.keys());
+        return new ControlDataSet(FluentIterable.from(source).transform(new Function<Tuple2<K, V>, K>() {
+            @Nullable
+            @Override
+            public K apply(@Nullable Tuple2<K, V> t) {
+                return t._1();
+            }
+        }));
     }
 
     @Override
     public <Op extends SpliceOperation> PairDataSet<K, V> reduceByKey(final SpliceFunction2<Op,V, V, V> function2) {
-        return new ControlPairDataSet<K,V>(Multimaps.forMap(Maps.transformValues(source.asMap(),new Function<Collection<V>, V>() {
+        Multimap<K,V> newMap = multimapFromIterable(source);
+        return new ControlPairDataSet<K,V>(entryToTuple(Multimaps.forMap(Maps.transformValues(newMap.asMap(), new Function<Collection<V>, V>() {
             @Override
             public V apply(@Nullable Collection<V> vs) {
                 try {
@@ -69,96 +86,100 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
                     throw new RuntimeException(e);
                 }
             }
-        })));
+        })).entries()));
     }
 
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> map(final SpliceFunction<Op,Tuple2<K, V>, U> function) {
-        return new ControlDataSet<U>(Multimaps.transformEntries(source,new Maps.EntryTransformer<K,V,U>(){
-            @Override
-            public U transformEntry(@Nullable K k, @Nullable V v) {
-                try {
-                    return function.call(new Tuple2<K, V>(k, v));
-                } catch (Exception e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        }).values());
+        return new ControlDataSet<U>(FluentIterable.from(source).transform(function));
     }
 
     @Override
-    public PairDataSet<K, V> sortByKey(Comparator<K> comparator) {
-        Multimap<K,V> newSource = Multimaps.newListMultimap(
-                new TreeMap<K, Collection<V>>(comparator),
-                new Supplier<List<V>>() {
-                    public List<V> get() {
-                        return Lists.newArrayList();
-                    }
-                });
-        newSource.putAll(source);
-        return new ControlPairDataSet<>(newSource);
+    public PairDataSet<K, V> sortByKey(final Comparator<K> comparator) {
+        return new ControlPairDataSet<>(FluentIterable.from(source).toSortedList(new Comparator<Tuple2<K, V>>() {
+            @Override
+            public int compare(Tuple2<K, V> o1, Tuple2<K, V> o2) {
+                return comparator.compare(o1._1(), o2._1());
+            }
+        }));
     }
 
     @Override
     public PairDataSet<K, Iterable<V>> groupByKey() {
-        Multimap<K, Iterable<V>> multiMap = ArrayListMultimap.create();
-        for (Map.Entry<K, Collection<V>> entry : source.asMap().entrySet()) {
-            multiMap.put(entry.getKey(), entry.getValue());
-        }
-        return new ControlPairDataSet<>(multiMap);
+        Multimap<K,V> newMap = multimapFromIterable(source);
+        return new ControlPairDataSet<>(FluentIterable.from(newMap.asMap().entrySet()).transform(new Function<Map.Entry<K, Collection<V>>, Tuple2<K, Iterable<V>>>() {
+            @Nullable
+            @Override
+            public Tuple2<K, Iterable<V>> apply(@Nullable Map.Entry<K, Collection<V>> e) {
+                return new Tuple2<K, Iterable<V>>(e.getKey(), e.getValue());
+            }
+        }));
     }
 
     @Override
     public <W> PairDataSet< K, Tuple2<V, Optional<W>>> hashLeftOuterJoin(final PairDataSet< K, W> rightDataSet) {
-        // Initialize the left side
-        Multimap<K, Tuple2<V, Optional<W>>> newMap = ArrayListMultimap.<K, Tuple2<V, Optional<W>>>create();
         // Materializes the right side
-        Multimap<K,W> rightSide = ArrayListMultimap.<K,W>create();
-        rightSide.putAll(((ControlPairDataSet) rightDataSet).source);
+        final Multimap<K,W> rightSide = multimapFromIterable(((ControlPairDataSet) rightDataSet).source);
 
-        for (Map.Entry<K,V> entry : source.entries()) {
-            if (rightSide.containsKey(entry.getKey())) {
-                for (W rightValue: rightSide.get(entry.getKey())) {
-                    newMap.put(entry.getKey(),new Tuple2<V, Optional<W>>(entry.getValue(),Optional.<W>of(rightValue)));
-                }
-            } else
-                newMap.put(entry.getKey(),new Tuple2<V, Optional<W>>(entry.getValue(),Optional.<W>absent()));
-        }
-        return new ControlPairDataSet< K, Tuple2<V, Optional<W>>>(newMap);
+        return new ControlPairDataSet<>(FluentIterable.from(source).transformAndConcat(new Function<Tuple2<K, V>, Iterable<? extends Tuple2<K, Tuple2<V, Optional<W>>>>>() {
+            @Nullable
+            @Override
+            public Iterable<? extends Tuple2<K, Tuple2<V, Optional<W>>>> apply(@Nullable Tuple2<K, V> t) {
+                List result = new ArrayList();
+                K key = t._1();
+                V value = t._2();
+                if (rightSide.containsKey(key)) {
+                    for (W rightValue : rightSide.get(key)) {
+                        result.add(new Tuple2(key, new Tuple2<V, Optional<W>>(value, Optional.<W>of(rightValue))));
+                    }
+                } else
+                    result.add(new Tuple2(key, new Tuple2<V, Optional<W>>(value, Optional.<W>absent())));
+                return result;
+            }
+        }));
     }
 
     @Override
     public <W> PairDataSet< K, Tuple2<Optional<V>, W>> hashRightOuterJoin(PairDataSet< K, W> rightDataSet) {
-        // Initialize the right side
-        Multimap<K, Tuple2<Optional<V>, W>> newMap = ArrayListMultimap.<K, Tuple2<Optional<V>, W>>create();
         // Materializes the left side
-        Multimap<K,V> leftSide = ArrayListMultimap.<K,V>create();
-        leftSide.putAll(source);
-        for (Map.Entry<K,W> entry : ((ControlPairDataSet<K,W>) rightDataSet).source.entries()) {
-            if (leftSide.containsKey(entry.getKey())) {
-                for (V leftValue: leftSide.get(entry.getKey())) {
-                    newMap.put(entry.getKey(),new Tuple2<Optional<V>, W>(Optional.<V>of(leftValue),entry.getValue()));
-                }
-            } else
-                newMap.put(entry.getKey(),new Tuple2<Optional<V>, W>(Optional.<V>absent(),entry.getValue()));
-        }
-        return new ControlPairDataSet< K, Tuple2<Optional<V>, W>>(newMap);
+        final Multimap<K, V> leftSide = multimapFromIterable(source);
+
+
+        return new ControlPairDataSet<>(FluentIterable.from(((ControlPairDataSet<K,W>) rightDataSet).source).transformAndConcat(new Function<Tuple2<K, W>, Iterable<? extends Tuple2<K, Tuple2<Optional<V>, W>>>>() {
+            @Nullable
+            @Override
+            public Iterable<? extends Tuple2<K, Tuple2<Optional<V>, W>>> apply(@Nullable Tuple2<K, W> t) {
+                List result = new ArrayList();
+                K key = t._1();
+                W value = t._2();
+                if (leftSide.containsKey(key)) {
+                    for (V leftValue: leftSide.get(key)) {
+                        result.add(new Tuple2(key,new Tuple2<Optional<V>, W>(Optional.<V>of(leftValue),value)));
+                    }
+                } else
+                    result.add(new Tuple2(key,new Tuple2<Optional<V>, W>(Optional.<V>absent(),value)));
+                return result;
+            }
+        }));
     }
 
     @Override
     public <W> PairDataSet< K, Tuple2<V, W>> hashJoin(PairDataSet< K, W> rightDataSet) {
-        // Initialize the left side
-        Multimap<K, Tuple2<V, W>> newMap = ArrayListMultimap.<K, Tuple2<V, W>>create();
         // Materializes the right side
-        Multimap<K,W> rightSide = ArrayListMultimap.<K,W>create();
-        rightSide.putAll(((ControlPairDataSet) rightDataSet).source);
-        for (Map.Entry<K,V> entry : source.entries()) {
-            Collection<W> right = rightSide.get(entry.getKey());
-            for (W w: right) {
-                newMap.put(entry.getKey(),new Tuple2<V, W>(entry.getValue(),w));
+        final Multimap<K,W> rightSide = multimapFromIterable(((ControlPairDataSet) rightDataSet).source);
+        return new ControlPairDataSet<>(FluentIterable.from(source).transformAndConcat(new Function<Tuple2<K, V>, Iterable<? extends Tuple2<K, Tuple2<V, W>>>>() {
+            @Nullable
+            @Override
+            public Iterable<? extends Tuple2<K, Tuple2<V, W>>> apply(@Nullable Tuple2<K, V> t) {
+                List result = new ArrayList();
+                K key = t._1();
+                V value = t._2();
+                for (W rightValue : rightSide.get(key)) {
+                    result.add(new Tuple2(key, new Tuple2<V, W>(value, rightValue)));
+                }
+                return result;
             }
-        }
-        return new ControlPairDataSet< K, Tuple2<V, W>>(newMap);
+        }));
     }
 
     @Override
@@ -178,24 +199,21 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
 
     @Override
     public <W> PairDataSet< K, V> subtractByKey(PairDataSet< K, W> rightDataSet) {
-        // Initialize the left side
-        Multimap<K,V> newMap = ArrayListMultimap.<K,V>create();
         // Materializes the right side
-        Multimap<K,W> rightSide = ArrayListMultimap.<K,W>create();
-        rightSide.putAll(((ControlPairDataSet) rightDataSet).source);
-        for (Map.Entry<K,V> entry : source.entries()) {
-            Collection<W> right = rightSide.get(entry.getKey());
-            if (right.size() == 0)
-                newMap.put(entry.getKey(),entry.getValue());
-        }
-        return new ControlPairDataSet< K, V>(newMap);
+        final Multimap<K,W> rightSide = multimapFromIterable(((ControlPairDataSet) rightDataSet).source);
+        return new ControlPairDataSet<K, V>(FluentIterable.from(source).filter(new Predicate<Tuple2<K, V>>() {
+            @Override
+            public boolean apply(@Nullable Tuple2<K, V> t) {
+                return !rightSide.get(t._1()).isEmpty();
+            }
+        }));
     }
 
     @Override
     public String toString() {
         StringBuffer sb = new StringBuffer("ControlPairDataSet [");
         int i = 0;
-        for (Map.Entry<K,V> entry: source.entries()) {
+        for (Tuple2<K,V> entry: source) {
             if (i++ != 0)
                 sb.append(",");
             sb.append(entry);
@@ -207,13 +225,7 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> mapPartitions(SpliceFlatMapFunction<Op, Iterator<Tuple2<K, V>>, U> f) {
         try {
-            return new ControlDataSet<>(f.call(FluentIterable.from(source.entries()).transform(new Function<Map.Entry<K,V>, Tuple2<K,V>>() {
-                @Nullable
-                @Override
-                public Tuple2<K, V> apply(@Nullable Map.Entry<K, V> kvEntry) {
-                    return new Tuple2<K, V>(kvEntry.getKey(), kvEntry.getValue());
-                }
-            }).iterator()));
+            return new ControlDataSet<>(f.call(source.iterator()));
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
@@ -223,8 +235,8 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     public <Op extends SpliceOperation, U> DataSet<U> flatmap(SpliceFlatMapFunction<Op, Tuple2<K,V>, U> function) {
         try {
             Iterable<U> iterable = new ArrayList<U>(0);
-            for (Map.Entry<K, V> entry : source.entries()) {
-                iterable = Iterables.concat(iterable, function.call(new Tuple2<K, V>(entry.getKey(),entry.getValue())));
+            for (Tuple2<K, V> entry : source) {
+                iterable = Iterables.concat(iterable, function.call(new Tuple2<K, V>(entry._1(),entry._2())));
             }
             return new ControlDataSet<>(iterable);
         } catch (Exception e) {
@@ -239,12 +251,13 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
 
     @Override
     public <W> PairDataSet<K, Tuple2<Iterable<V>, Iterable<W>>> cogroup(PairDataSet<K, W> rightDataSet) {
-        Multimap<K, Tuple2<Iterable<V>, Iterable<W>>> newMap = ArrayListMultimap.create();
-        Multimap<K,W> rightSide = ((ControlPairDataSet) rightDataSet).source;
-        Sets.union(source.keySet(),rightSide.keySet());
-        for (K key: Sets.union(source.keySet(),rightSide.keySet()))
-            newMap.put(key, new Tuple2(source.get(key), rightSide.get(key)));
-        return new ControlPairDataSet<>(newMap);
+        Multimap<K, V> left = multimapFromIterable(source);
+        Multimap<K, W> right = multimapFromIterable(((ControlPairDataSet<K, W>) rightDataSet).source);
+
+        List<Tuple2<K, Tuple2<Iterable<V>, Iterable<W>>>> result = new ArrayList<>();
+        for (K key: Sets.union(left.keySet(),right.keySet()))
+            result.add(new Tuple2<K, Tuple2<Iterable<V>, Iterable<W>>>(key, new Tuple2(left.get(key), right.get(key))));
+        return new ControlPairDataSet<>(result);
     }
 
     @Override
@@ -254,10 +267,7 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
 
     @Override
     public PairDataSet<K, V> union(PairDataSet<K, V> dataSet) {
-        Multimap<K, V> newMap = ArrayListMultimap.<K, V>create(source);
-        newMap.putAll(((ControlPairDataSet)dataSet).source);
-
-        return new ControlPairDataSet(newMap);
+        return new ControlPairDataSet(Iterables.concat(source,((ControlPairDataSet)dataSet).source));
     }
 
     /*

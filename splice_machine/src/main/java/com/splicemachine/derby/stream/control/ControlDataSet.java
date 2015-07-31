@@ -20,14 +20,14 @@ import org.sparkproject.guava.common.collect.Iterables;
 import org.sparkproject.guava.common.collect.Multimaps;
 import org.sparkproject.guava.common.collect.Sets;
 import org.sparkproject.guava.common.collect.FluentIterable;
+import scala.Tuple2;
 
 import javax.annotation.Nullable;
 import java.io.*;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Iterator;
-import java.util.List;
+import java.util.*;
 import java.util.zip.GZIPOutputStream;
+
+import static com.splicemachine.derby.stream.control.ControlUtils.entryToTuple;
 
 /**
  * Created by jleach on 4/13/15.
@@ -75,25 +75,22 @@ public class ControlDataSet<V> implements DataSet<V> {
 
     @Override
     public <Op extends SpliceOperation, K,U>PairDataSet<K, U> index(final SplicePairFunction<Op,V,K,U> function) {
-        return new ControlPairDataSet<K,U>(Multimaps.transformValues(Multimaps.index(iterable, new Function<V, K>() {
+        return new ControlPairDataSet<>(FluentIterable.from(iterable).transform(new Function<V, Tuple2<K, U>>() {
             @Nullable
             @Override
-            public K apply(@Nullable V v) {
-                return function.genKey(v);
-            }
-        }),new Function<V, U>() {
-            @Nullable
-            @Override
-            public U apply(@Nullable V v) {
-                return function.genValue(v);
+            public Tuple2<K, U> apply(@Nullable V v) {
+                try {
+                    return function.call(v);
+                } catch (Exception e) {
+                    throw new RuntimeException(e);
+                }
             }
         }));
-
     }
 
     @Override
     public <Op extends SpliceOperation, U> DataSet<U> map(SpliceFunction<Op,V,U> function) {
-        return new ControlDataSet<U>(Iterables.transform(iterable,function));
+        return new ControlDataSet<U>(Iterables.transform(iterable, function));
     }
 
     @Override
@@ -101,11 +98,9 @@ public class ControlDataSet<V> implements DataSet<V> {
         return iterable.iterator();
     }
 
-
     @Override
-    public <Op extends SpliceOperation, K> PairDataSet< K, V> keyBy(SpliceFunction<Op, V, K> function) {
-
-        return new ControlPairDataSet<K,V>(Multimaps.index(iterable,function));
+    public <Op extends SpliceOperation, K> PairDataSet< K, V> keyBy(final SpliceFunction<Op, V, K> function) {
+        return new ControlPairDataSet<K,V>(entryToTuple(FluentIterable.from(iterable).index(function).entries()));
     }
 
     @Override

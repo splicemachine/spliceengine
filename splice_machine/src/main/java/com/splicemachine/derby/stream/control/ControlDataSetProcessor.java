@@ -26,10 +26,12 @@ import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.log4j.Logger;
 import org.sparkproject.guava.common.collect.ArrayListMultimap;
+import scala.Tuple2;
 
 import java.io.BufferedInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.ZipException;
@@ -63,9 +65,7 @@ public class ControlDataSetProcessor implements DataSetProcessor {
 
     @Override
     public <K,V> PairDataSet<K, V> singleRowPairDataSet(K key, V value) {
-        ArrayListMultimap<K,V> map = ArrayListMultimap.create();
-        map.put(key, value);
-        return new ControlPairDataSet<>(map);
+        return new ControlPairDataSet<>(Arrays.asList(new Tuple2<K, V>(key, value)));
     }
 
     @Override
@@ -110,7 +110,7 @@ public class ControlDataSetProcessor implements DataSetProcessor {
 
     @Override
     public <K, V> PairDataSet<K, V> getEmptyPair() {
-        return new ControlPairDataSet(ArrayListMultimap.create());
+        return new ControlPairDataSet(Collections.emptyList());
     }
 
     @Override
