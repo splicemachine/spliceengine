@@ -77,8 +77,15 @@ public final class SQLTimestamp extends DataType
     static final int FRACTION_TO_NANO = 1; // 10**(9 - MAX_FRACTION_DIGITS)
 
     static final int ONE_BILLION = 1000000000;
-    
-	private int	encodedDate;
+
+    private static final int MICROS_TO_SECOND = 1000000;
+    // edges for our internal Timestamp in microseconds
+    // from ~21 Sep 1677 00:12:44 GMT to ~11 Apr 2262 23:47:16 GMT
+    public static final long MAX_TIMESTAMP = Long.MAX_VALUE / MICROS_TO_SECOND - 1;
+    public static final long MIN_TIMESTAMP = Long.MIN_VALUE / MICROS_TO_SECOND + 1;
+
+
+    private int	encodedDate;
 	private int	encodedTime;
 	private int	nanos;
 	/*
@@ -87,6 +94,17 @@ public final class SQLTimestamp extends DataType
 	*/
 
     private static final int BASE_MEMORY_USAGE = ClassSize.estimateBaseFromCatalog( SQLTimestamp.class);
+
+
+    public static long checkBounds(Timestamp timestamp) throws StandardException{
+        long millis = timestamp.getTime();
+        if (millis > MAX_TIMESTAMP || millis < MIN_TIMESTAMP) {
+            throw StandardException.newException(SQLState.LANG_DATE_TIME_ARITHMETIC_OVERFLOW, timestamp.toString());
+        }
+
+        return millis;
+    }
+
 
     public int estimateMemoryUsage()
     {
@@ -1012,6 +1030,8 @@ public final class SQLTimestamp extends DataType
 		}
 		if (value != null)
 		{
+            checkBounds(value);
+
             if( cal == null){
             	DateTime dt = new DateTime(value);
             	encodedDate = computeEncodedDate(dt);
@@ -1026,6 +1046,7 @@ public final class SQLTimestamp extends DataType
 		}
 		/* encoded date should already be 0 for null */
 	}
+
 
     private void setNumericTimestamp(DateTime dt) throws StandardException
     {
