@@ -375,29 +375,29 @@
 
     <antcall target="infowriter">
       <param name="info.buildnumber" value="1"/>
-      <param name="info.iname" value="Apache Derby Embedded Engine"/>
-      <param name="info.ename" value="Apache Derby"/>
+      <param name="info.iname" value="Splice Machine Embedded Engine"/>
+      <param name="info.ename" value="Splice Machine"/>
       <param name="info.productfile" value="codeline"/>
       <param name="info.file" value="${out.dir}/${splice.package}/info/DBMS.properties"/>
     </antcall>
     <antcall target="infowriter">
       <param name="info.buildnumber" value="1"/>
-      <param name="info.iname" value="Apache Derby Tools"/>
-      <param name="info.ename" value="Apache Derby"/>
+      <param name="info.iname" value="Splice Machine Tools"/>
+      <param name="info.ename" value="Splice Machine"/>
       <param name="info.productfile" value="codeline"/>
       <param name="info.file" value="${out.dir}/${splice.package}/info/tools.properties"/>
     </antcall>
     <antcall target="infowriter">
       <param name="info.buildnumber" value="1"/>
-      <param name="info.iname" value="Apache Derby Network Server"/>
-      <param name="info.ename" value="Apache Derby"/>
+      <param name="info.iname" value="Splice Machine Network Server"/>
+      <param name="info.ename" value="Splice Machine"/>
       <param name="info.productfile" value="codeline"/>
       <param name="info.file" value="${out.dir}/${splice.package}/info/net.properties"/>
     </antcall>
     <antcall target="infowriter">
       <param name="info.buildnumber" value="1"/>
-      <param name="info.iname" value="Apache Derby Network Client"/>
-      <param name="info.ename" value="Apache Derby"/>
+      <param name="info.iname" value="Splice Machine Network Client"/>
+      <param name="info.ename" value="Splice Machine"/>
       <param name="info.productfile" value="codeline"/>
       <param name="info.file" value="${out.dir}/${splice.package}/info/dnc.properties"/>
     </antcall>
@@ -957,8 +957,8 @@
 
     <echo level="info" message="creating new DBMS.properties file"/>
     <antcall target="infowriter">
-      <param name="info.iname" value="Apache Derby Embedded Engine"/>
-      <param name="info.ename" value="Apache Derby"/>
+      <param name="info.iname" value="Splice Machine Embedded Engine"/>
+      <param name="info.ename" value="Splice Machine"/>
       <param name="info.buildnumber" value="${changenumber}"/>
       <param name="info.productfile" value="derby.jar"/>
       <param name="info.file" value="${out.dir}//${splice.package}/info/DBMS.properties"/>
@@ -1041,8 +1041,8 @@
     <mkdir dir="${out.dir}/${splice.package}/info/"/>
     <antcall target="infowriter">
       <param name="info.buildnumber" value="${changenumber}"/>
-      <param name="info.iname" value="Apache Derby Network Client"/>
-      <param name="info.ename" value="Apache Derby"/>
+      <param name="info.iname" value="Splice Machine Network Client"/>
+      <param name="info.ename" value="Splice Machine"/>
       <param name="info.productfile" value="codeline"/>
       <param name="info.file" value="${out.dir}/${splice.package}/info/dnc.properties"/>
     </antcall>
