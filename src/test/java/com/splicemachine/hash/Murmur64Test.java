@@ -28,7 +28,9 @@ public class Murmur64Test{
             byte[] dataPoint = new byte[i+1];
             random.nextBytes(dataPoint);
             data.add(new Object[]{dataPoint,random.nextInt(), random.nextLong()});
+            data.add(new Object[]{dataPoint,random.nextInt(), random.nextInt()<<random.nextInt(30)});
         }
+        data.add(new Object[]{new byte[2],Integer.MAX_VALUE,Long.MAX_VALUE});
         return data;
     }
 
@@ -69,6 +71,6 @@ public class Murmur64Test{
 
         long actual = hasher.hash(sampleLong);
 
-        Assert.assertEquals("Incorrect int hash!",correct,actual);
+        Assert.assertEquals("Incorrect long hash!",correct,actual);
     }
 }
