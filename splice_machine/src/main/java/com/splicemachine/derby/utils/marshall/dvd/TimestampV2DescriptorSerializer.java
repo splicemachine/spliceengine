@@ -2,6 +2,7 @@ package com.splicemachine.derby.utils.marshall.dvd;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.StoredFormatIds;
+import com.splicemachine.db.iapi.types.SQLTimestamp;
 import com.splicemachine.db.shared.common.reference.SQLState;
 
 import java.sql.Timestamp;
@@ -26,11 +27,6 @@ public class TimestampV2DescriptorSerializer extends TimestampV1DescriptorSerial
     private static final int MICROS_TO_SECOND = 1000000;
     private static final int NANOS_TO_MICROS = 1000;
 
-    // edges for our internal Timestamp in microseconds
-    // from ~21 Sep 1677 00:12:44 GMT to ~11 Apr 2262 23:47:16 GMT
-    private static final long MAX_TIMESTAMP = Long.MAX_VALUE / MICROS_TO_SECOND - 1;
-    private static final long MIN_TIMESTAMP = Long.MIN_VALUE / MICROS_TO_SECOND + 1;
-
     @Override
     protected long toLong(Timestamp timestamp) throws StandardException {
         return formatLong(timestamp);
@@ -43,13 +39,8 @@ public class TimestampV2DescriptorSerializer extends TimestampV1DescriptorSerial
 
 
     public static long formatLong(Timestamp timestamp) throws StandardException {
-        long millis = timestamp.getTime();
-        if (millis > MAX_TIMESTAMP || millis < MIN_TIMESTAMP) {
-            throw StandardException.newException(SQLState.LANG_DATE_TIME_ARITHMETIC_OVERFLOW, timestamp.toString());
-        }
-
+        long millis = SQLTimestamp.checkBounds(timestamp);
         long micros = timestamp.getNanos() / NANOS_TO_MICROS;
-
         return millis * MICROS_TO_SECOND + micros;
     }
 
