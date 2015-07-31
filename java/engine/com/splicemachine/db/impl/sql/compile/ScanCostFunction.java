@@ -52,7 +52,8 @@ public class ScanCostFunction{
                             long baseRowCount,
                             boolean forUpdate,
                             int startOperator,
-                            int stopOperator){
+                            int stopOperator,
+                            ResultColumnList resultColumns){
         this.scanColumns = scanColumns;
         this.lookupColumns = lookupColumns;
         this.baseTable=baseTable;
@@ -63,11 +64,13 @@ public class ScanCostFunction{
         this.forUpdate=forUpdate;
         this.startOperator=startOperator;
         this.stopOperator=stopOperator;
+        /*
         int nonKeyLen = rowTemplate.length; //always non-null, but not always right, if there's a mapping
         if(scanColumns!=null)
             nonKeyLen = Math.max(scanColumns.length(),nonKeyLen); //choose the larger of the two, to make room
         //noinspection unchecked
-        this.nonKeyQualifiers = new List[nonKeyLen];
+        */
+        this.nonKeyQualifiers = new List[resultColumns.size()];
         this.rowTemplate = rowTemplate;
         if(keyColumns!=null && keyColumns.length>0)
             keyQualifiers = new RangeQualifier[keyColumns.length];
@@ -343,15 +346,24 @@ public class ScanCostFunction{
     }
 
     private void addNonKeyQualifier(Predicate p,int colNum) throws StandardException{
-        List<RangeQualifier> quals = nonKeyQualifiers[colNum-1];
-        if(quals==null){
-            quals = nonKeyQualifiers[colNum-1] = new LinkedList<>();
-        }
-        DataValueDescriptor compareValue=p.getCompareValue(baseTable);
-        RelationalOperator relop=getRelop(p);
-        int relationalOperator = relop.getOperator();
-        if(!addRangeQualifier(quals,compareValue,relationalOperator,colNum)){
-            nonQualifierSelectivity*=p.selectivity(baseTable);
+        try {
+            List<RangeQualifier> quals = nonKeyQualifiers[colNum - 1];
+            if (quals == null) {
+                quals = nonKeyQualifiers[colNum - 1] = new LinkedList<>();
+            }
+            DataValueDescriptor compareValue=p.getCompareValue(baseTable);
+            RelationalOperator relop=getRelop(p);
+            int relationalOperator = relop.getOperator();
+            if(!addRangeQualifier(quals,compareValue,relationalOperator,colNum)){
+                nonQualifierSelectivity*=p.selectivity(baseTable);
+            }
+        } catch (Exception e) {
+            System.out.println("baseTable ->" + baseTable);
+            System.out.println("nonKeyQualifiers.length ->" + nonKeyQualifiers.length);
+            System.out.println("nonKeyQualifiers.colNum ->" + colNum);
+            System.out.println("rowTemplate ->" + rowTemplate.length);
+            System.out.println("predicate ->" + p);
+            throw StandardException.plainWrapException(e);
         }
     }
 

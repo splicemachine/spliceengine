@@ -5,6 +5,10 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
+import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
+import com.splicemachine.db.iapi.sql.compile.Optimizer;
+import com.splicemachine.db.iapi.sql.compile.RowOrdering;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 
 public class OrderByNode extends SingleChildResultSetNode {
     OrderByList		orderByList;
@@ -118,25 +122,19 @@ public class OrderByNode extends SingleChildResultSetNode {
         resultSetNumber = orderByList.getResultSetNumber();
         resultColumns.setResultSetNumber(resultSetNumber);
     }
-/*
-	@Override
-	public CostEstimate estimateCost(OptimizablePredicateList predList,
-			ConglomerateDescriptor cd, CostEstimate outerCost,
-			Optimizer optimizer, RowOrdering rowOrdering)
-			throws StandardException {
-		CostEstimate costEstimate = super.estimateCost(predList, cd, outerCost, optimizer, rowOrdering);
-		costEstimate.setEstimatedCost(costEstimate.getEstimatedCost()+ ((double) costEstimate.getEstimatedRowCount()*SpliceConstants.optimizerWriteCost));
-		return costEstimate;
-	}
 
+    @Override
+    protected CostEstimate getCostEstimate(Optimizer optimizer) {
+        return super.getCostEstimate(optimizer);
+    }
 
+    @Override
+    public CostEstimate estimateCost(OptimizablePredicateList predList,
+                                     ConglomerateDescriptor cd, CostEstimate outerCost,
+                                     Optimizer optimizer, RowOrdering rowOrdering)
+            throws StandardException {
+        return super.estimateCost(predList,cd,outerCost,optimizer,rowOrdering);
+    }
 
-	@Override
-	public CostEstimate getFinalCostEstimate() throws StandardException {
-		CostEstimate costEstimate = super.getFinalCostEstimate();
-		costEstimate.setEstimatedCost(costEstimate.getEstimatedCost()+ ((double) costEstimate.getEstimatedRowCount()*SpliceConstants.optimizerWriteCost));
-		return costEstimate;
-	}
-	*/
 
 }

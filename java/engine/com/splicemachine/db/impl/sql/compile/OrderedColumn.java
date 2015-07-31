@@ -21,6 +21,7 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
 /**
@@ -122,6 +123,22 @@ public abstract class OrderedColumn extends QueryTreeNode
             colExprValue = ((UnaryOperatorNode) colExprValue).getOperand();
         assert colExprValue != null && colExprValue instanceof ColumnReference : "Programmer error: unexpected type or null:";
         return (ColumnReference) colExprValue;
+    }
+
+    /**
+     * Compute Non-Zero Cardinality, take into account unary operators where appropriate
+     *
+     * @param numberOfRows
+     * @return
+     * @throws StandardException
+     */
+    public long nonZeroCardinality(long numberOfRows) throws StandardException {
+        long columnReturnedRows = getColumnReference().nonZeroCardinality(numberOfRows);
+        if (getColumnExpression() instanceof UnaryOperatorNode) { // Adjust for extact methods, soon to push down
+            UnaryOperatorNode node = (UnaryOperatorNode) getColumnExpression();
+            columnReturnedRows = (node.getCardinalityEstimate() < columnReturnedRows)?node.getCardinalityEstimate():columnReturnedRows;
+        }
+        return columnReturnedRows;
     }
 
 }

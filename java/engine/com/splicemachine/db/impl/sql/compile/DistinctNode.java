@@ -317,4 +317,10 @@ public class DistinctNode extends SingleChildResultSetNode
 		mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getSortResultSet",
                 ClassName.NoPutResultSet, 9);
 	}
+
+
+    @Override
+    public CostEstimate getFinalCostEstimate() throws StandardException {
+        return super.getFinalCostEstimate();
+    }
 }

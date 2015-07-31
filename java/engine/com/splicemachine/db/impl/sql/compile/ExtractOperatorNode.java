@@ -53,6 +53,11 @@ public class ExtractOperatorNode extends UnaryOperatorNode {
 		"getYear","getQuarter","getMonth","getMonthName","getWeek","getWeekDay","getWeekDayName","getDayOfYear","getDate","getHours","getMinutes","getSeconds"
 	};
 
+    static private final long fieldCardinality[] = {
+        5l, 4l, 12l, 12l, 52l, 7l, 7l, 365l, 730l, 24l, 60l, 60l
+
+    };
+
 	private int extractField;
 
 	/**
@@ -188,5 +193,9 @@ public class ExtractOperatorNode extends UnaryOperatorNode {
 		}
 	}
 
+    @Override
+    public long getCardinalityEstimate() {
+        return fieldCardinality[extractField];
+    }
 
 }

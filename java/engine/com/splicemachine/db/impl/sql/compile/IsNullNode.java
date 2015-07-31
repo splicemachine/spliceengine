@@ -248,4 +248,10 @@ public final class IsNullNode extends UnaryComparisonOperatorNode  {
 		return cr!=null;
 	}
 
+    @Override
+    public long getCardinalityEstimate() {
+        return 2l;
+    }
+
+
 }

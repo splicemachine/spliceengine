@@ -1033,10 +1033,10 @@ public abstract class ValueNode extends QueryTreeNode
                 selectivity = 1.0d/innerRowCount;
                 break;
             case INNER:
-                selectivity = (1.0d-.1d)*(1.0d-.1d)/Math.max(innerRowCount,outerRowCount);
+                selectivity = (1.0d-.1d)*(1.0d-.1d)/Math.min(innerRowCount,outerRowCount);
                 break;
             case ANTIJOIN:
-                selectivity = 1.0d-((1.0d-.1d)*(1.0d-.1d)/Math.max(innerRowCount,outerRowCount));
+                selectivity = 1.0d-((1.0d-.1d)*(1.0d-.1d)/Math.min(innerRowCount,outerRowCount));
                 break;
         }
         return selectivity;

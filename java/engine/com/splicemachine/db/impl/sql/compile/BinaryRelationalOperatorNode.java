@@ -1292,7 +1292,7 @@ public class BinaryRelationalOperatorNode
             } else if (leftOperand instanceof ColumnReference && ((ColumnReference) leftOperand).getSource().getTableColumnDescriptor() != null) {
                 ColumnReference left = (ColumnReference) leftOperand;
                 selectivity = ((1.0d - left.nullSelectivity()) * (1.0d - right.nullSelectivity())) /
-                        Math.max(left.nonZeroCardinality(outerRowCount), right.nonZeroCardinality(innerRowCount));
+                        Math.min(left.nonZeroCardinality(outerRowCount), right.nonZeroCardinality(innerRowCount));
                 selectivity = selectivityJoinType.equals(JoinSelectivity.SelectivityJoinType.INNER) ?
                         selectivity : 1.0d - selectivity;
             } else { // No Left Column Reference
