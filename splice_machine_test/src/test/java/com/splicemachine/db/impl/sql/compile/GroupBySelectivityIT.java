@@ -8,6 +8,10 @@ import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.Timestamp;
+import java.util.Date;
+
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 
@@ -41,7 +45,22 @@ public class GroupBySelectivityIT extends SpliceUnitTest {
         for (int i = 0; i < 10; i++) {
             spliceClassWatcher.executeUpdate("insert into ts_low_cardinality select * from ts_low_cardinality");
         }
+        new TableCreator(conn)
+                .withCreate("create table ts_high_cardinality (c1 int, c2 varchar(56), c3 timestamp, c4 boolean)").create();
 
+        PreparedStatement insert = spliceClassWatcher.prepareStatement("insert into ts_high_cardinality values (?,?,?,?)");
+
+        long time = System.currentTimeMillis();
+        for (int i = 0; i < 1000; i++) {
+            insert.setInt(1,i);
+            insert.setString(2, "" + i);
+            insert.setTimestamp(3,new Timestamp(time-i));
+            insert.setBoolean(4,false);
+            insert.addBatch();
+            if (1%100==0)
+                insert.executeBatch();
+        }
+        insert.executeBatch();
         conn.commit();
         conn.createStatement().executeQuery(format(
                 "call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS('%s',false)",
@@ -81,5 +100,19 @@ public class GroupBySelectivityIT extends SpliceUnitTest {
     public void testSelectivityEffectOnGroupBy() throws Exception {
         secondRowContainsQuery("explain select count(*), c1,c2 from ts_low_cardinality where c1 = 1 group by c1,c2", "outputRows=25", methodWatcher);
     }
+
+
+    @Test
+    public void testMonthSelectivity() throws Exception {
+        secondRowContainsQuery("explain select count(*), month(c3) from ts_low_cardinality group by month(c3)", "outputRows=5", methodWatcher);
+        secondRowContainsQuery("explain select count(*), month(c3) from ts_high_cardinality group by month(c3)", "outputRows=12", methodWatcher);
+    }
+
+    @Test
+    public void testQuarterSelectivity() throws Exception {
+        secondRowContainsQuery("explain select count(*), quarter(c3) from ts_low_cardinality group by quarter(c3)", "outputRows=4", methodWatcher);
+        secondRowContainsQuery("explain select count(*), quarter(c3) from ts_high_cardinality group by quarter(c3)", "outputRows=4", methodWatcher);
+    }
+
 
 }

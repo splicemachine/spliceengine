@@ -4,10 +4,7 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.test_tools.TableCreator;
-import org.junit.BeforeClass;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
@@ -63,6 +60,13 @@ public class DistinctScanSelectivityIT extends SpliceUnitTest {
         firstRowContainsQuery("explain select distinct c1,c2,c3,c4 from ts_low_cardinality", "outputRows=125", methodWatcher);
 
         // Add For Non Stats?
+    }
+
+
+    @Test
+    @Ignore
+    public void testDistinctNodeCount() throws Exception {
+        firstRowContainsQuery("explain select distinct month(c3) from ts_low_cardinality", "outputRows=5", methodWatcher);
     }
 
 }
