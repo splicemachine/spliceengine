@@ -523,6 +523,7 @@ public class SparseHyperLogLog extends BaseBiasAdjustedHyperLogLogCounter{
                 item.mergeBuffer();
                 if(item.isSparse){
                     encodeSparse(item,encoder);
+                    return;
                 }
             }
             encodeDense(item,encoder);
