@@ -120,18 +120,6 @@ public class SparseHyperLogLog extends BaseBiasAdjustedHyperLogLogCounter{
     }
 
     private SparseHyperLogLog(int precision,
-                             Hash64 hashFunction,
-                             DoubleFunction biasAdjuster,
-                             int[] sparse,
-                             int currSparseSize,
-                             int maxSparseSize){
-        super(precision,hashFunction,biasAdjuster);
-        this.sparseArray =Arrays.copyOf(sparse,sparse.length);
-        this.maxSparseSize = maxSparseSize;
-        this.sparseSize = currSparseSize;
-    }
-
-    private SparseHyperLogLog(int precision,
                               Hash64 hashFunction,
                               DoubleFunction biasAdjuster,
                               int sparseSize,
@@ -178,7 +166,7 @@ public class SparseHyperLogLog extends BaseBiasAdjustedHyperLogLogCounter{
     @Override
     public BaseLogLogCounter getClone(){
         if(isSparse)
-            return new SparseHyperLogLog(precision,hashFunction,biasAdjuster,sparseArray,sparseSize,maxSparseSize);
+            return new SparseHyperLogLog(precision,hashFunction,biasAdjuster,sparseSize,sparseArray);
         else
             return new SparseHyperLogLog(precision,hashFunction,biasAdjuster,denseRegisters);
     }
