@@ -20,7 +20,6 @@ import com.splicemachine.test_dao.TriggerDAO;
 /**
  * Test ROW triggers with transition variables.
  */
-@Ignore("Temporary ignore in dataset")
 public class Trigger_Row_Transition_IT {
 
     private static final String SCHEMA = Trigger_Row_Transition_IT.class.getSimpleName();

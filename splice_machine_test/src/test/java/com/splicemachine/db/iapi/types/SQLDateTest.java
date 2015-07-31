@@ -12,7 +12,6 @@ import static org.junit.Assert.assertEquals;
 /**
  * Created by dmustafin on 5/7/15.
  */
-@Ignore      // ignore for Spark
 public class SQLDateTest {
 
     private static final int GREGORIAN_YEAR = 1582;
@@ -47,6 +46,7 @@ public class SQLDateTest {
     }
 
     @Test
+    @Ignore("spark")
     public void shouldConvertArrayOfDates() throws StandardException {
         for (int i = MAX_SUPPORTED_YEAR; i >= MIN_SUPPORTED_YEAR; i--) {
             if (i != GREGORIAN_YEAR) {  // Gregorian calendar was applied, some days were skipped in October

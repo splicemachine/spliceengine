@@ -15,7 +15,6 @@ import static org.junit.Assert.fail;
 /**
  * Tests that triggers are dropped when the table or column(s) they depend on are dropped.
  */
-@Ignore("Temporary ignore in dataset")
 public class Trigger_Dependency_IT {
 
     private static final String SCHEMA = Trigger_Dependency_IT.class.getSimpleName();
