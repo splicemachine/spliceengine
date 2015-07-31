@@ -1,5 +1,7 @@
 package com.splicemachine.primitives;
 
+import java.util.Arrays;
+
 /**
  * @author Scott Fines
  *         Date: 10/22/14
@@ -115,5 +117,52 @@ public class MoreArrays {
                 from = r+1;
         }
         return elements[k];
+    }
+
+    public static void unsignedSort(int[] sort, int offset, int length){
+        int stop = offset+length;
+        if(stop>sort.length)
+            stop = sort.length;
+
+        /*
+         * Sort in general ascending order first, then move the positives to before the negatives
+         * using a cuckoo-style bounce strategy.
+         */
+        Arrays.sort(sort,offset,stop);
+
+        int p=offset;
+        while(p<stop){
+            if(sort[p]>=0)
+                break;
+            p++;
+        }
+        if(p==offset ||p==stop) return; //we are done, it's already in unsigned order because the signs are all the same
+
+        for(int cS=0,nM=length;nM>0;cS++){
+            int displaced = sort[cS];
+            int i = cS;
+            do{
+                i-=p;
+                if(i<offset)
+                    i+=stop;
+                int t = sort[i];
+                sort[i] = displaced;
+                displaced = t;
+                nM--;
+            }while(i!=cS);
+        }
+    }
+
+    public static void unsignedSort(int[] sort){
+        unsignedSort(sort,0,sort.length);
+    }
+
+    public static void main(String...args) throws Exception{
+//        int[] data = new int[]{-1,1,2,3};
+//        unsignedSort(data);
+//        System.out.println(Arrays.toString(data));
+        int[] data = new int[]{-2,-1,2,3};
+        unsignedSort(data);
+        System.out.println(Arrays.toString(data));
     }
 }
