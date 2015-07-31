@@ -34,6 +34,24 @@ public class SelectivityIT extends SpliceUnitTest {
     public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 
     public static void createData(Connection conn, String schemaName) throws Exception {
+
+        new TableCreator(conn)
+                .withCreate("create table ts_low_cardinality (c1 int, c2 varchar(56), c3 timestamp, c4 boolean)")
+                .withInsert("insert into ts_low_cardinality values(?,?,?,?)")
+                .withRows(rows(
+                        row(1, "1", "1960-01-01 23:03:20", false),
+                        row(2, "2", "1980-01-01 23:03:20", false),
+                        row(3, "3", "1985-01-01 23:03:20", false),
+                        row(4, "4", "1990-01-01 23:03:20", false),
+                        row(5, "5", "1995-01-01 23:03:20", false),
+                        row(null, null, null, null),
+                        row(null, null, null, null),
+                        row(null, null, null, null)))
+                .create();
+/*        for (int i = 0; i < 10; i++) {
+            spliceClassWatcher.executeUpdate("insert into ts_low_cardinality select * from ts_low_cardinality");
+        }
+*/
         new TableCreator(conn)
                 .withCreate("create table ts_nulls (c1 int, c2 varchar(56), c3 timestamp, c4 boolean)")
                 .withInsert("insert into ts_nulls values(?,?,?,?)")
@@ -369,6 +387,13 @@ public class SelectivityIT extends SpliceUnitTest {
     @Ignore("10% Selectivity")
     public void testProjectionSelectivity() throws Exception {
         ResultSet rs = methodWatcher.executeQuery("explain select * from ts_nulls where c2 like '%1%'");
+        rs.next();
+        Assert.assertTrue("row count inaccurate " + rs.getString(1), rs.getString(1).contains("outputRows=1"));
+    }
+
+    @Test
+    public void testExtractOperatorNodeSelectivity() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("explain select * from ts_low_cardinality where month(c3) = 1");
         rs.next();
         Assert.assertTrue("row count inaccurate " + rs.getString(1), rs.getString(1).contains("outputRows=1"));
     }

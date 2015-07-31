@@ -62,9 +62,8 @@ public class TempGroupedAggregateCostController implements AggregateCostControll
     public CostEstimate estimateAggregateCost(CostEstimate baseCost) throws StandardException{
         double outputRows = 1;
         for(OrderedColumn oc:groupingList) {
-            ColumnReference ref = oc.getColumnReference();
-            long returnedRows = ref.nonZeroCardinality((long) baseCost.rowCount());
-            outputRows *= returnedRows <= baseCost.rowCount()?returnedRows:returnedRows*(baseCost.rowCount()/ref.rowCountEstimate());
+            long returnedRows = oc.nonZeroCardinality((long) baseCost.rowCount());
+            outputRows *= returnedRows <= baseCost.rowCount()?returnedRows:baseCost.rowCount();
         }
         /*
          * If the baseCost claims it's not returning any rows, or our cardinality
