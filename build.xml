@@ -1028,7 +1028,7 @@
     <copy file="${basedir}/tools/jar/dnc.properties"
           tofile="${derby.jar.dir}/lists/dnc.properties"/>
 
-    <java classname="com.splicemachine.derbyBuild.classlister" fork="yes">
+    <java classname="com.splicemachine.derbyBuild.classlister" fork="yes" failonerror="true">
       <jvmarg value="-Doutputfile=${derby.jar.dir}/lists/dnc.list"/>
       <arg value="${derby.jar.dir}/lists/dnc.properties"/>
       <classpath>

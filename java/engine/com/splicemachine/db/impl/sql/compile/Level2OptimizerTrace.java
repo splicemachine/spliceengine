@@ -5,7 +5,6 @@ import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
-import com.splicemachine.db.impl.ast.PredicateUtils;
 
 /**
  * @author Scott Fines
@@ -131,9 +130,9 @@ public class Level2OptimizerTrace implements OptimizerTrace{
             case JOIN_NODE_PREDICATE_MANIPULATION:
                 String preds = null;
                 if (objectParam2 instanceof PredicateList) {
-                    preds = PredicateUtils.predListToString.apply((PredicateList)objectParam2);
+                    preds = OperatorToString.toString((PredicateList) objectParam2);
                 } else {
-                    preds = PredicateUtils.predToString.apply((Predicate)objectParam2);
+                    preds = OperatorToString.toString((Predicate) objectParam2);
                 }
                 traceString = "Predicate manipulation in join nodeL: "+objectParam1+": "+preds;
                 break;
@@ -159,7 +158,7 @@ public class Level2OptimizerTrace implements OptimizerTrace{
                 break;
             case ADDING_UNORDERED_OPTIMIZABLE:
                 traceString="Adding unordered optimizable, # of predicates = "+intParam1+": "+
-                    PredicateUtils.predListToString.apply((PredicateList)objectParam1);
+                    OperatorToString.toString((PredicateList) objectParam1);
                 break;
             case CHANGING_ACCESS_PATH_FOR_TABLE:
                 traceString="Changing access path for table "+intParam1;
@@ -190,7 +189,7 @@ public class Level2OptimizerTrace implements OptimizerTrace{
                 break;
             case CALLING_NEXT_ACCESS_PATH:
                 traceString="Calling nextAccessPath() for base table "+ objectParam1 +" with "+intParam1+" predicates: "+
-                PredicateUtils.predListToString.apply((PredicateList) objectParam2);
+                OperatorToString.toString((PredicateList) objectParam2);
                 break;
             case TABLE_LOCK_OVER_THRESHOLD:
                 traceString=lockModeThreshold("MODE_TABLE","greater",doubleParam,intParam1);
@@ -277,7 +276,7 @@ public class Level2OptimizerTrace implements OptimizerTrace{
                 throw new IllegalStateException("Unexpected Trace flag: "+ flag);
         }
         assert traceString!=null: "TraceString expected to be non-null";
-        trace(flag.level(),traceString);
+        trace(flag.level(), traceString);
     }
 
     @Override
@@ -350,5 +349,4 @@ public class Level2OptimizerTrace implements OptimizerTrace{
     private String bestCost(){
         return "Best cost = "+optimizer.bestCost+"\n";
     }
-
 }
