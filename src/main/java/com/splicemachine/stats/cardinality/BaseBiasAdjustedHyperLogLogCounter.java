@@ -77,13 +77,13 @@ public abstract class BaseBiasAdjustedHyperLogLogCounter extends BaseHyperLogLog
         double E=alphaM*Math.pow(numRegisters,2)/z;
         if(E<=5*numRegisters){
             E=E-biasAdjuster.y(E); //adjust for low-cardinality bias
-            if(zeroRegisterCount!=0){
-                //perform linear counting
-                double h=numRegisters*Math.log((double)numRegisters/zeroRegisterCount);
-                if(h<=adjustmentThreshold){
-                    //we are below the bias threshold, use linear counting instead
-                    E=h;
-                }
+        }
+        if(zeroRegisterCount!=0){
+            //perform linear counting
+            double h=numRegisters*Math.log((double)numRegisters/zeroRegisterCount);
+            if(h<=adjustmentThreshold){
+                //we are below the bias threshold, use linear counting instead
+                E=h;
             }
         }
         return (long)E;

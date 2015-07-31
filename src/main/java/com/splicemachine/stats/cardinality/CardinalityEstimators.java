@@ -21,7 +21,7 @@ public class CardinalityEstimators {
 
     private CardinalityEstimators(){} //can't make me, I'm a utility class!
 
-		public static ByteCardinalityEstimator byteEstimator(){ return new EnumeratingByteCardinalityEstimator(); }
+    public static ByteCardinalityEstimator byteEstimator(){ return new EnumeratingByteCardinalityEstimator(); }
 
     public static Encoder<ByteCardinalityEstimator> byteEncoder(){
         return EnumeratingByteCardinalityEstimator.newEncoder();
@@ -32,91 +32,91 @@ public class CardinalityEstimators {
         return hyperLogLogShort(precision,DEFAULT_HASH_FUNCTION);
     }
 
-		public static ShortCardinalityEstimator hyperLogLogShort(int precision, Hash64 hashFunction){
-				BaseLogLogCounter counter = SparseAdjustedHyperLogLogCounter.adjustedCounter(precision, hashFunction);
-				return new ShortHyperLogLog(counter);
-		}
+    public static ShortCardinalityEstimator hyperLogLogShort(int precision, Hash64 hashFunction){
+        BaseLogLogCounter counter = new SparseHyperLogLog(precision, hashFunction);
+        return new ShortHyperLogLog(counter);
+    }
 
     public static Encoder<ShortCardinalityEstimator> shortEncoder(){
         return new ShortEncoder(DEFAULT_HASH_FUNCTION);
     }
 
-		public static IntCardinalityEstimator hyperLogLogInt(int precision){
+    public static IntCardinalityEstimator hyperLogLogInt(int precision){
         return hyperLogLogInt(precision, DEFAULT_HASH_FUNCTION);
-		}
+    }
 
-		public static IntCardinalityEstimator hyperLogLogInt(int precision,Hash64 hashFunction){
-        BaseLogLogCounter counter = SparseAdjustedHyperLogLogCounter.adjustedCounter(precision, hashFunction);
-				return new IntHyperLogLog(counter);
-		}
+    public static IntCardinalityEstimator hyperLogLogInt(int precision,Hash64 hashFunction){
+        BaseLogLogCounter counter = new SparseHyperLogLog(precision, hashFunction);
+        return new IntHyperLogLog(counter);
+    }
 
     public static Encoder<IntCardinalityEstimator> intEncoder(){
         return new IntEncoder(DEFAULT_HASH_FUNCTION);
     }
 
-		public static LongCardinalityEstimator hyperLogLogLong(int precision){
-				return hyperLogLogLong(precision, DEFAULT_HASH_FUNCTION);
-		}
+    public static LongCardinalityEstimator hyperLogLogLong(int precision){
+        return hyperLogLogLong(precision, DEFAULT_HASH_FUNCTION);
+    }
 
-		public static LongCardinalityEstimator hyperLogLogLong(int precision,Hash64 hashFunction){
-        BaseLogLogCounter counter = SparseAdjustedHyperLogLogCounter.adjustedCounter(precision, hashFunction);
-				return new LongHyperLogLog(counter);
-		}
+    public static LongCardinalityEstimator hyperLogLogLong(int precision,Hash64 hashFunction){
+        BaseLogLogCounter counter = new SparseHyperLogLog(precision, hashFunction);
+        return new LongHyperLogLog(counter);
+    }
 
     public static Encoder<LongCardinalityEstimator> longEncoder(){
         return new LongEncoder(DEFAULT_HASH_FUNCTION);
     }
 
-		public static FloatCardinalityEstimator hyperLogLogFloat(int precision){
-				return hyperLogLogFloat(precision, DEFAULT_HASH_FUNCTION);
-		}
+    public static FloatCardinalityEstimator hyperLogLogFloat(int precision){
+        return hyperLogLogFloat(precision, DEFAULT_HASH_FUNCTION);
+    }
 
-		public static FloatCardinalityEstimator hyperLogLogFloat(int precision,Hash64 hashFunction){
-        BaseLogLogCounter counter = SparseAdjustedHyperLogLogCounter.adjustedCounter(precision, hashFunction);
-				return new FloatHyperLogLog(counter);
-		}
+    public static FloatCardinalityEstimator hyperLogLogFloat(int precision,Hash64 hashFunction){
+        BaseLogLogCounter counter = new SparseHyperLogLog(precision, hashFunction);
+        return new FloatHyperLogLog(counter);
+    }
 
     public static Encoder<FloatCardinalityEstimator> floatEncoder(){
         return new FloatEncoder(DEFAULT_HASH_FUNCTION);
     }
 
-		public static DoubleCardinalityEstimator hyperLogLogDouble(int precision){
-				return hyperLogLogDouble(precision, DEFAULT_HASH_FUNCTION);
-		}
+    public static DoubleCardinalityEstimator hyperLogLogDouble(int precision){
+        return hyperLogLogDouble(precision, DEFAULT_HASH_FUNCTION);
+    }
 
-		public static DoubleCardinalityEstimator hyperLogLogDouble(int precision,Hash64 hashFunction){
-        BaseLogLogCounter counter = SparseAdjustedHyperLogLogCounter.adjustedCounter(precision, hashFunction);
-				return new DoubleHyperLogLog(counter);
-		}
+    public static DoubleCardinalityEstimator hyperLogLogDouble(int precision,Hash64 hashFunction){
+        BaseLogLogCounter counter = new SparseHyperLogLog(precision, hashFunction);
+        return new DoubleHyperLogLog(counter);
+    }
 
     public static Encoder<DoubleCardinalityEstimator> doubleEncoder(){
         return new DoubleEncoder(DEFAULT_HASH_FUNCTION);
     }
 
-		public static CardinalityEstimator<String> hyperLogLogString(int precision){
-				return hyperLogLogString(precision, DEFAULT_HASH_FUNCTION);
-		}
+    public static CardinalityEstimator<String> hyperLogLogString(int precision){
+        return hyperLogLogString(precision, DEFAULT_HASH_FUNCTION);
+    }
 
-		public static CardinalityEstimator<String> hyperLogLogString(int precision,Hash64 hashFunction){
-        BaseLogLogCounter counter = SparseAdjustedHyperLogLogCounter.adjustedCounter(precision, hashFunction);
-				return new HyperLogLog<String>(counter){
+    public static CardinalityEstimator<String> hyperLogLogString(int precision,Hash64 hashFunction){
+        BaseLogLogCounter counter = new SparseHyperLogLog(precision, hashFunction);
+        return new HyperLogLog<String>(counter){
             @Override
             public void update(String item, long count) {
             }
         };
-		}
+    }
     public static Encoder<CardinalityEstimator<String>> stringEncoder(){
         return new ObjectEncoder<>(DEFAULT_HASH_FUNCTION);
     }
 
-		public static CardinalityEstimator<BigDecimal> hyperLogLogBigDecimal(int precision){
-				return hyperLogLogBigDecimal(precision, DEFAULT_HASH_FUNCTION);
-		}
+    public static CardinalityEstimator<BigDecimal> hyperLogLogBigDecimal(int precision){
+        return hyperLogLogBigDecimal(precision, DEFAULT_HASH_FUNCTION);
+    }
 
-		public static CardinalityEstimator<BigDecimal> hyperLogLogBigDecimal(int precision,Hash64 hashFunction){
-        BaseLogLogCounter counter = SparseAdjustedHyperLogLogCounter.adjustedCounter(precision, hashFunction);
-				return new HyperLogLog<>(counter);
-		}
+    public static CardinalityEstimator<BigDecimal> hyperLogLogBigDecimal(int precision,Hash64 hashFunction){
+        BaseLogLogCounter counter = new SparseHyperLogLog(precision, hashFunction);
+        return new HyperLogLog<>(counter);
+    }
 
     public static Encoder<CardinalityEstimator<BigDecimal>> bigDecimalEncoder(){
         return new ObjectEncoder<>(DEFAULT_HASH_FUNCTION);
@@ -127,7 +127,7 @@ public class CardinalityEstimators {
     }
 
     public static <T> CardinalityEstimator<T> hyperLogLog(int precision,Hash64 hashFunction){
-        BaseLogLogCounter counter = SparseAdjustedHyperLogLogCounter.adjustedCounter(precision, hashFunction);
+        BaseLogLogCounter counter = new SparseHyperLogLog(precision, hashFunction);
         return new HyperLogLog<>(counter);
     }
 
@@ -137,14 +137,14 @@ public class CardinalityEstimators {
 
 
     public static BytesCardinalityEstimator hyperLogLogBytes(int precision){
-        BaseLogLogCounter counter = SparseAdjustedHyperLogLogCounter.adjustedCounter(precision, DEFAULT_HASH_FUNCTION);
+        BaseLogLogCounter counter = new SparseHyperLogLog(precision, DEFAULT_HASH_FUNCTION);
         return new BytesHyperLogLog(counter);
     }
 
-		public static BytesCardinalityEstimator hyperLogLogBytes(int precision, Hash64 hashFunction){
-        BaseLogLogCounter counter = SparseAdjustedHyperLogLogCounter.adjustedCounter(precision, hashFunction);
-				return new BytesHyperLogLog(counter);
-		}
+    public static BytesCardinalityEstimator hyperLogLogBytes(int precision, Hash64 hashFunction){
+        BaseLogLogCounter counter = new SparseHyperLogLog(precision, hashFunction);
+        return new BytesHyperLogLog(counter);
+    }
 
     public static Encoder<BytesCardinalityEstimator> bytesEncoder(){
         return new BytesEncoder(DEFAULT_HASH_FUNCTION);
@@ -152,15 +152,15 @@ public class CardinalityEstimators {
 
     /* ****************************************************************************************************************/
     /*private classes*/
-		private static class BytesHyperLogLog implements BytesCardinalityEstimator {
-				private final BaseLogLogCounter counter;
+    private static class BytesHyperLogLog implements BytesCardinalityEstimator {
+        private final BaseLogLogCounter counter;
 
-				private BytesHyperLogLog(BaseLogLogCounter counter) { this.counter = counter; }
-				@Override public long getEstimate() { return counter.getEstimate(); }
-				@Override public void update(byte[] bytes, int offset, int length) { counter.update(bytes,offset,length);	 }
-				@Override public void update(byte[] bytes, int offset, int length, long count) { counter.update(bytes,offset,length); }
-				@Override public void update(ByteBuffer bytes) { counter.update(bytes); }
-				@Override public void update(ByteBuffer bytes, long count) { counter.update(bytes); }
+        private BytesHyperLogLog(BaseLogLogCounter counter) { this.counter = counter; }
+        @Override public long getEstimate() { return counter.getEstimate(); }
+        @Override public void update(byte[] bytes, int offset, int length) { counter.update(bytes,offset,length);	 }
+        @Override public void update(byte[] bytes, int offset, int length, long count) { counter.update(bytes,offset,length); }
+        @Override public void update(ByteBuffer bytes) { counter.update(bytes); }
+        @Override public void update(ByteBuffer bytes, long count) { counter.update(bytes); }
 
         @Override
         public CardinalityEstimator<ByteBuffer> merge(CardinalityEstimator<ByteBuffer> otherEstimator) {
@@ -181,29 +181,29 @@ public class CardinalityEstimators {
         }
     }
 
-		private static class DoubleHyperLogLog implements DoubleCardinalityEstimator {
-				private final BaseLogLogCounter counter;
+    private static class DoubleHyperLogLog implements DoubleCardinalityEstimator {
+        private final BaseLogLogCounter counter;
 
-				private DoubleHyperLogLog(BaseLogLogCounter counter) { this.counter = counter; }
-				@Override public long getEstimate() { return counter.getEstimate(); }
+        private DoubleHyperLogLog(BaseLogLogCounter counter) { this.counter = counter; }
+        @Override public long getEstimate() { return counter.getEstimate(); }
 
         @Override public CardinalityEstimator<Double> getClone() { return newCopy();}
         @Override public DoubleCardinalityEstimator newCopy(){ return new DoubleHyperLogLog(counter.getClone()); }
 
         @Override public void update(double item) { counter.update(item); }
-				@Override public void update(double item, long count) { counter.update(item); }
+        @Override public void update(double item, long count) { counter.update(item); }
 
-				@Override
-				public void update(Double item) {
-						assert item!=null: "Cannot estimate the cardinality of null values";
-						update(item.doubleValue(),1);
-				}
+        @Override
+        public void update(Double item) {
+            assert item!=null: "Cannot estimate the cardinality of null values";
+            update(item.doubleValue(),1);
+        }
 
-				@Override
-				public void update(Double item, long count) {
-						assert item!=null: "Cannot estimate the cardinality of null values";
-						update(item.floatValue());
-				}
+        @Override
+        public void update(Double item, long count) {
+            assert item!=null: "Cannot estimate the cardinality of null values";
+            update(item.floatValue());
+        }
 
         @Override
         public CardinalityEstimator<Double> merge(CardinalityEstimator<Double> otherEstimator) {
@@ -217,27 +217,27 @@ public class CardinalityEstimators {
             counter.merge(((DoubleHyperLogLog)otherEstimator).counter);
             return this;
         }
-		}
+    }
 
-		private static class FloatHyperLogLog implements FloatCardinalityEstimator {
-				private final BaseLogLogCounter counter;
+    private static class FloatHyperLogLog implements FloatCardinalityEstimator {
+        private final BaseLogLogCounter counter;
 
-				private FloatHyperLogLog(BaseLogLogCounter counter) { this.counter = counter; }
-				@Override public long getEstimate() { return counter.getEstimate(); }
-				@Override public void update(float item) { counter.update(item); }
-				@Override public void update(float item, long count) { counter.update(item); }
+        private FloatHyperLogLog(BaseLogLogCounter counter) { this.counter = counter; }
+        @Override public long getEstimate() { return counter.getEstimate(); }
+        @Override public void update(float item) { counter.update(item); }
+        @Override public void update(float item, long count) { counter.update(item); }
 
-				@Override
-				public void update(Float item) {
-						assert item!=null: "Cannot estimate the cardinality of null values";
-						update(item.floatValue(),1);
-				}
+        @Override
+        public void update(Float item) {
+            assert item!=null: "Cannot estimate the cardinality of null values";
+            update(item.floatValue(),1);
+        }
 
-				@Override
-				public void update(Float item, long count) {
-						assert item!=null: "Cannot estimate the cardinality of null values";
-						update(item.floatValue());
-				}
+        @Override
+        public void update(Float item, long count) {
+            assert item!=null: "Cannot estimate the cardinality of null values";
+            update(item.floatValue());
+        }
 
         @Override public CardinalityEstimator<Float> getClone() { return newCopy(); }
         @Override public FloatCardinalityEstimator newCopy(){ return new FloatHyperLogLog(counter.getClone()); }
@@ -254,30 +254,30 @@ public class CardinalityEstimators {
             counter.merge(((FloatHyperLogLog)otherEstimator).counter);
             return this;
         }
-		}
+    }
 
-		private static class LongHyperLogLog implements LongCardinalityEstimator {
-				private final BaseLogLogCounter counter;
+    private static class LongHyperLogLog implements LongCardinalityEstimator {
+        private final BaseLogLogCounter counter;
 
-				private LongHyperLogLog(BaseLogLogCounter counter) { this.counter = counter; }
-				@Override public long getEstimate() { return counter.getEstimate(); }
-				@Override public void update(long item) { counter.update(item); }
-				@Override public void update(long item, long count) { counter.update(item); }
+        private LongHyperLogLog(BaseLogLogCounter counter) { this.counter = counter; }
+        @Override public long getEstimate() { return counter.getEstimate(); }
+        @Override public void update(long item) { counter.update(item); }
+        @Override public void update(long item, long count) { counter.update(item); }
 
         @Override public CardinalityEstimator<Long> getClone() { return newCopy(); }
         @Override public LongCardinalityEstimator newCopy(){ return new LongHyperLogLog(counter.getClone()); }
 
-				@Override
-				public void update(Long item) {
-						assert item!=null: "Cannot estimate the cardinality of null values";
-						update(item.shortValue(),1);
-				}
+        @Override
+        public void update(Long item) {
+            assert item!=null: "Cannot estimate the cardinality of null values";
+            update(item.shortValue(),1);
+        }
 
-				@Override
-				public void update(Long item, long count) {
-						assert item!=null: "Cannot estimate the cardinality of null values";
-						update(item.shortValue(),count);
-				}
+        @Override
+        public void update(Long item, long count) {
+            assert item!=null: "Cannot estimate the cardinality of null values";
+            update(item.shortValue(),count);
+        }
 
         @Override
         public CardinalityEstimator<Long> merge(CardinalityEstimator<Long> otherEstimator) {
@@ -291,31 +291,31 @@ public class CardinalityEstimators {
             counter.merge(((LongHyperLogLog)otherEstimator).counter);
             return this;
         }
-		}
+    }
 
-		private static class IntHyperLogLog implements IntCardinalityEstimator{
-				private final BaseLogLogCounter counter;
+    private static class IntHyperLogLog implements IntCardinalityEstimator{
+        private final BaseLogLogCounter counter;
 
-				private IntHyperLogLog(BaseLogLogCounter counter) { this.counter = counter; }
-				@Override public long getEstimate() { return counter.getEstimate(); }
+        private IntHyperLogLog(BaseLogLogCounter counter) { this.counter = counter; }
+        @Override public long getEstimate() { return counter.getEstimate(); }
 
-				@Override public void update(int item) { update(item,1l); }
-				@Override public void update(int item, long count) { counter.update(item,count); }
+        @Override public void update(int item) { update(item,1l); }
+        @Override public void update(int item, long count) { counter.update(item,count); }
 
         @Override public CardinalityEstimator<Integer> getClone() { return newCopy(); }
         @Override public IntCardinalityEstimator newCopy(){ return new IntHyperLogLog(counter.getClone()); }
 
-				@Override
-				public void update(Integer item) {
-						assert item!=null: "Cannot estimate the cardinality of null values";
-						update(item.shortValue(),1);
-				}
+        @Override
+        public void update(Integer item) {
+            assert item!=null: "Cannot estimate the cardinality of null values";
+            update(item.shortValue(),1);
+        }
 
-				@Override
-				public void update(Integer item, long count) {
-						assert item!=null: "Cannot estimate the cardinality of null values";
-						update(item.shortValue(),count);
-				}
+        @Override
+        public void update(Integer item, long count) {
+            assert item!=null: "Cannot estimate the cardinality of null values";
+            update(item.shortValue(),count);
+        }
 
         @Override
         public CardinalityEstimator<Integer> merge(CardinalityEstimator<Integer> other) {
@@ -331,13 +331,13 @@ public class CardinalityEstimators {
         }
     }
 
-		private static class ShortHyperLogLog implements ShortCardinalityEstimator{
-				private final BaseLogLogCounter counter;
+    private static class ShortHyperLogLog implements ShortCardinalityEstimator{
+        private final BaseLogLogCounter counter;
 
-				private ShortHyperLogLog(BaseLogLogCounter counter) { this.counter = counter; }
-				@Override public long getEstimate() { return counter.getEstimate(); }
-				@Override public void update(short item) { counter.update(item,1l); }
-				@Override public void update(short item, long count) { counter.update(item,count); }
+        private ShortHyperLogLog(BaseLogLogCounter counter) { this.counter = counter; }
+        @Override public long getEstimate() { return counter.getEstimate(); }
+        @Override public void update(short item) { counter.update(item,1l); }
+        @Override public void update(short item, long count) { counter.update(item,count); }
 
         @Override public CardinalityEstimator<Short> getClone() { return newCopy(); }
 
@@ -346,17 +346,17 @@ public class CardinalityEstimators {
             return new ShortHyperLogLog(counter.getClone());
         }
 
-				@Override
-				public void update(Short item) {
-						assert item!=null: "Cannot estimate the cardinality of null values";
-						update(item.shortValue());
-				}
+        @Override
+        public void update(Short item) {
+            assert item!=null: "Cannot estimate the cardinality of null values";
+            update(item.shortValue());
+        }
 
-				@Override
-				public void update(Short item, long count) {
-						assert item!=null: "Cannot estimate the cardinality of null values";
-						update(item.shortValue());
-				}
+        @Override
+        public void update(Short item, long count) {
+            assert item!=null: "Cannot estimate the cardinality of null values";
+            update(item.shortValue());
+        }
 
         @Override
         public CardinalityEstimator<Short> merge(CardinalityEstimator<Short> otherEstimator) {
@@ -372,11 +372,11 @@ public class CardinalityEstimators {
         }
     }
 
-		private static class HyperLogLog<T> implements CardinalityEstimator<T> {
-				private final BaseLogLogCounter counter;
+    private static class HyperLogLog<T> implements CardinalityEstimator<T> {
+        private final BaseLogLogCounter counter;
 
-				public HyperLogLog(BaseLogLogCounter counter) { this.counter = counter; }
-				@Override public long getEstimate() { return counter.getEstimate(); }
+        public HyperLogLog(BaseLogLogCounter counter) { this.counter = counter; }
+        @Override public long getEstimate() { return counter.getEstimate(); }
 
 
         @Override
@@ -384,16 +384,16 @@ public class CardinalityEstimators {
             return new HyperLogLog<>(counter.getClone());
         }
 
-				@Override
-				public void update(T item) {
+        @Override
+        public void update(T item) {
             update(item,1l);
-				}
+        }
 
-				@Override
-				public void update(T item, long count) {
-						assert item!=null: "Cannot collect cardinality estimates for null values";
-						counter.update(item.hashCode());
-				}
+        @Override
+        public void update(T item, long count) {
+            assert item!=null: "Cannot collect cardinality estimates for null values";
+            counter.update(item.hashCode());
+        }
 
         @Override
         public CardinalityEstimator<T> merge(CardinalityEstimator<T> otherEstimator) {
@@ -401,7 +401,7 @@ public class CardinalityEstimators {
             counter.merge(((HyperLogLog)otherEstimator).counter);
             return this;
         }
-		}
+    }
 
     private static class ShortEncoder extends SparseEncoder<ShortCardinalityEstimator>{
 
