@@ -27,12 +27,7 @@ public class SpliceRetryingCaller<T> implements SpliceRetryingCall<T>{
 
     @Override
     public T call(int callTimeout) throws Exception{
-        RpcClient.setRpcTimeout(callTimeout);
-        try{
-            return callable.call();
-        }finally{
-            RpcClient.resetRpcTimeout();
-        }
+        return callable.call(callTimeout);
     }
 
     @Override

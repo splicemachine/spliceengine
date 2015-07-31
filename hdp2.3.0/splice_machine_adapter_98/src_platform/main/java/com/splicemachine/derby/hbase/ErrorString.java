@@ -1,6 +1,7 @@
 package com.splicemachine.derby.hbase;
 
-import org.apache.hadoop.hbase.ipc.RpcClient;
+import org.apache.hadoop.hbase.ipc.CallTimeoutException;
+import org.apache.hadoop.hbase.ipc.FailedServerException;
 
 /**
  * @author Scott Fines
@@ -9,14 +10,14 @@ import org.apache.hadoop.hbase.ipc.RpcClient;
 public class ErrorString{
 
     public static String getCallTimeoutString(){
-        return RpcClient.CallTimeoutException.class.getCanonicalName();
+        return CallTimeoutException.class.getCanonicalName();
     }
 
     public static String getFailedServerString(){
-        return RpcClient.FailedServerException.class.getCanonicalName();
+        return FailedServerException.class.getCanonicalName();
     }
 
     public static Throwable failedServer(String s){
-        return new RpcClient.FailedServerException(s);
+        return new FailedServerException(s);
     }
 }

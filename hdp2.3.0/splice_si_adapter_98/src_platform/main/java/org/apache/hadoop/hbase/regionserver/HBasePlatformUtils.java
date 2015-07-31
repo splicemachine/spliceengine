@@ -1,21 +1,11 @@
 package org.apache.hadoop.hbase.regionserver;
 
-import com.splicemachine.collections.NavigableCastingSet;
 import org.apache.hadoop.hbase.Cell;
-import org.apache.hadoop.hbase.KeyValue;
-import org.cliffc.high_scale_lib.Counter;
+import org.apache.hadoop.hbase.util.Counter;
 
 import java.util.NavigableSet;
 
 public class HBasePlatformUtils{
-	public static NavigableSet<Cell> getKvset(HStore store) {
-		return new NavigableCastingSet<>(store.memstore.kvset,KeyValue.COMPARATOR);
-	}
-
-	public static NavigableSet<Cell> getSnapshot(HStore store) {
-		return new NavigableCastingSet<>(store.memstore.snapshot,KeyValue.COMPARATOR);
-	}
-
 	public static void updateWriteRequests(HRegion region, long numWrites) {
 		Counter writeRequestsCount = region.writeRequestsCount;
 		if (writeRequestsCount != null)
@@ -28,5 +18,11 @@ public class HBasePlatformUtils{
 			readRequestsCount.add(numReads);
 	}
 
+	public static NavigableSet<Cell> getKvset(HStore store) {
+		return ((DefaultMemStore) store.memstore).cellSet;
+	}
 
+	public static NavigableSet<Cell> getSnapshot(HStore store) {
+		return ((DefaultMemStore) store.memstore).snapshot;
+	}
 }
