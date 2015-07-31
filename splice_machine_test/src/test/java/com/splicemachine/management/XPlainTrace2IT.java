@@ -16,7 +16,7 @@ import java.sql.PreparedStatement;
  * Created by jyuan on 7/14/14.
  */
 @Category(SerialTest.class)
-@Ignore("temporary dataset")
+@Ignore // ignore for Spark
 public class XPlainTrace2IT extends BaseXplainIT{
 
     public static int nrows = 10;

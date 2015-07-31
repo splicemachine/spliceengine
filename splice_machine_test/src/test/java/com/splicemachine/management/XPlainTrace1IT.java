@@ -24,7 +24,7 @@ import java.util.regex.Pattern;
  * Created by jyuan on 7/7/14.
  */
 @Category(SerialTest.class) //in serial category because of trying to get the correct statement id
-@Ignore("temporary dataset")
+@Ignore // ignore for Spark
 public class XPlainTrace1IT extends BaseXplainIT {
 
     public static final String CLASS_NAME = XPlainTrace1IT.class.getSimpleName().toUpperCase();

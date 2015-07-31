@@ -8,6 +8,8 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.utils.test.TestingDataType;
+import scala.Tuple2;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,8 +18,8 @@ import java.util.List;
  */
 public class BaseStreamTest {
     public static List<ExecRow> tenRowsTwoDuplicateRecords;
-    public static Multimap<ExecRow,ExecRow> tenRows;
-    public static Multimap<ExecRow,ExecRow> evenRows;
+    public static List<Tuple2<ExecRow,ExecRow>> tenRows;
+    public static List<Tuple2<ExecRow,ExecRow>> evenRows;
 
     public BaseStreamTest() {
 
@@ -26,13 +28,13 @@ public class BaseStreamTest {
     static {
         ClassSize.setDummyCatalog();
         tenRowsTwoDuplicateRecords = new ArrayList<ExecRow>(10);
-        tenRows = ArrayListMultimap.create();
-        evenRows = ArrayListMultimap.create();
+        tenRows = new ArrayList<>();
+        evenRows = new ArrayList<>();
         for (int i = 0; i< 10; i++) {
             tenRowsTwoDuplicateRecords.add(getExecRow(i));
-            tenRows.put(getExecRow(i%2,1),getExecRow(i,10));
+            tenRows.add(new Tuple2<ExecRow, ExecRow>(getExecRow(i % 2, 1), getExecRow(i, 10)));
             if (i%2==0)
-                evenRows.put(getExecRow(i%2,1),getExecRow(i,10));
+                evenRows.add(new Tuple2<ExecRow, ExecRow>(getExecRow(i % 2, 1), getExecRow(i, 10)));
             if (i==2)
                 tenRowsTwoDuplicateRecords.add(getExecRow(i));
         }

@@ -19,7 +19,6 @@ import java.sql.Statement;
  * @author Scott Fines
  *         Date: 6/24/15
  */
-@Ignore("temporary")
 public class FixedStatsIT{
     private static final SpliceWatcher classWatcher = new SpliceWatcher();
     private static final SpliceSchemaWatcher schema = new SpliceSchemaWatcher(FixedStatsIT.class.getSimpleName().toUpperCase());

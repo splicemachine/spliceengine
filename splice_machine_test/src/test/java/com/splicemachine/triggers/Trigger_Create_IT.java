@@ -15,7 +15,6 @@ import static org.junit.Assert.fail;
 /**
  * Tests creating/defining triggers.
  */
-@Ignore("Temporary ignore in dataset")
 public class Trigger_Create_IT {
 
     private static final String SCHEMA = Trigger_Create_IT.class.getSimpleName();
