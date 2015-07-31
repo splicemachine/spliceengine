@@ -558,6 +558,7 @@
 				<module>cdh5.4.1</module>
 				<module>hdp2.1.7</module>
 				<module>hdp2.2.4</module>
+				<module>hdp2.3.0</module>
 				<module>mapr0.98.4</module>
 				<!--module>mapr0.98.7</module-->
 				<!--module>mapr0.98.9</module-->
@@ -898,6 +899,12 @@
 			<id>hdp2.2.4</id>
 			<modules>
 				<module>hdp2.2.4</module>
+			</modules>
+		</profile>
+		<profile>
+			<id>hdp2.3.0</id>
+			<modules>
+				<module>hdp2.3.0</module>
 			</modules>
 		</profile>
 		<profile>
