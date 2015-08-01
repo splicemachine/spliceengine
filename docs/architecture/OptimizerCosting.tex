@@ -13,6 +13,8 @@
 \usepackage{appendix}
 \usepackage{courier}
 
+\DeclarePairedDelimiter{\floor}{\lfloor}{\rfloor}
+
 \newtheorem{theorem}{Theorem}[section]
 \newtheorem{exmp}{Example}[section]
 \newtheorem{defn}{Definition}[section]
@@ -168,6 +170,8 @@ Key Qualifiers can directly affect the bounds of a scan, but only in restricted 
 				\item[Less-equal Predicate] All rows which match must have a value for column $A$ in the range $(-\infty,a]$
 				\item[Greater-than Predicate] All rows which match must have a value for column $A$ in the range $(a,\infty)$
 				\item[Greater-equal Predicate] All rows which match must have a value for column $A$ in the range $[a,\infty)$
+				\item[IsNull Predicate] All rows which have a null value for column $A$
+				\item[IsNotNull Predicate] All rows which have a non-null value for column $A$
 \end{description}
 
 As a result, we can adjust our scan boundaries such that we never touch rows which don't fit within those known ranges.
@@ -188,7 +192,232 @@ Constant Predicates can be applied at the table scan level, but they require des
 
 Unfortunately, the original optimizer implementors decided to treat Keyed Qualifiers, Non-Keyed qualifiers, Index lookup costs, and Constant Predicates at the same location, so we are compelled to mention them here.
 
+Another unfortunate reality is that constant predicates are not amenable to statistical estimation in general\footnote{Particularly as they include \textbf{Like} and arithmetic clauses}. As a result, we use a constant predicate selecitivy value when including them in selectivity estimates. This value depends on the type of predicate being applied.
+
+\subsection{Estimating the selectivity of a scan predicate}
+For the following sections, let $N$ be the total number of rows in the table.
+\subsubsection{Equality Predicate}
+We can break the selectivity estimate into relatively simple psuedo code:
+\begin{algorithm}[ht]
+				\KwData{$N$ the total number of rows}
+				\KwData{$Fe$ a set of the $k$ most frequent elements, where $Fe[x] = $ the number of occurrences of $x$, or 0 if $x$ is not a frequent element.}
+				\KwData{$C$ the cardinality of the data set}
+				\KwData{$x$ the value to estimate}
+				\KwResult{$T = $ the number of rows which have a column value = $x$}
+				\Begin{
+								\Switch{$x$}{
+									\Case{$x$ is null} { \Return $nullCount$}
+									\Case{$x = minValue$} {\Return $minCount$}
+									\Case{$x$ a FrequentElement}{ \Return $Fe[$x$]$}
+									\Other{
+													\Return $(N-Fe.totalCount())/(C-Fe.size())$
+									}
+								}
+				}
+				\caption{Computing the selectivity of an Equals predicate}
+\end{algorithm}
+
+\subsubsection{Range Predicates}
+A range predicate is a predicate of the form $x \in [a,b)$, where $a$ and $b$ are allowed to be outside the known range of $[minValue,maxValue]$ for the data set. In this case, we have the following algorithm:
+
+\begin{algorithm}
+				\KwData{$N$ the total number of rows}
+				\KwData{$Fe$ a set of the $k$ most frequent elements, where $Fe[x] = $ the number of occurrences of $x$, or 0 if $x$ is not a frequent element.}
+				\KwData{$C$ the cardinality of the data set}
+				\KwData{$s$ the start of the range of interest}
+				\KwData{$e$ the start of the range of interest}
+				\KwResult{$T =$ the number of rows which fall in the range $[s,e)$}
+								\Begin{
+												\If{$e\leq min$ or $s > max$ or $e==s$ }{ \Return 0}
+												\If{$s<min$}{$s = min$ }
+												\If{$e>max$}{$e = max+1$ }
+												\tcp{compute the linear coefficients}
+												set $a=(N-minCount())/(max-min)$\;
+												set $b=(N-a*max)$\;
+												\tcp{Compute the base estimate, assuming uniform distribution}
+												set $T=a*(e-s)$\;
+												set $r=(N-Fe.totalCount())/(C-Fe.size())$\;
+												\If{$e>max$}{$T=T+r$}
+												\tcp{adjust the count by incorporating frequent elements}
+												set $F = $ the frequent elements which fall in $[s,e)$ \;
+												\For {$f \in F$}{ 
+													$T = T-r+F[f]$
+												}
+
+												\Return T
+								}
+								\caption{Computing the selectivity of a range of constant data values}
+\end{algorithm}
+This algorithm is used for all operators $>,>=,<,<=$, and for compound predicates $< \&\& >,< \&\& \geq, \leq \&\& >, \leq \&\& \geq$.
+
+Note that this can be easily modified to account for the range $[s,e]$(by estimating $[s,e+1)$) and $(s,e)$ (by estimating $[s+1,e)$), although implementations are likely to handle these via special cases instead.
+
+\subsection{Estimating Scan costs across multiple partitions}
+Statistics are collected on a per-partition basis--that is, there is one set of statistics information for each partition. To determine the total selectivity, we compute the selectivity for each partition independently, then add the results together.
+
+\begin{exmp}
+				Consider the table \textbf{Foo}, with the schema defined as
+				\begin{lstlisting}[frame=single,language=SQL]
+create table FOO (A int, B int, C varchar(10,PRIMARY KEY(A))
+				\end{lstlisting}
+				The table statistics for \textbf{FOO} are:
+				\begin{enumerate}
+\item $L_l = 1$
+\item $L_r = 10$
+\item $N = 1000$
+\item $numPartitions = 1$
+\item $O = 2$
+\item $C = 1$
+				\end{enumerate}
+and the column statistics are
+\begin{table}
+				\begin{tabular}{|l|c|c|c|}
+				\hline
+				Statistic	&	A	&	B	&	C \\ \hline
+				nullCount					& 0							&	8									&	12 \\ \hline
+				FrequentElements	&	[(1,1),(2,1)]	&	[(12,33),(6,18)]	&	[('hello',200)] \\ \hline
+				min								&	0							&	-4								&	'h' \\ \hline
+				minCount					&	1							&	2									&	100 \\ \hline
+				max								&	1000					&	100								&	'hellr' \\ \hline
+				cardinality				&	1000					&	878								& 10
+				\end{tabular}
+\end{table}
+Consider the unqualified query
+				\begin{lstlisting}[frame=single,language=SQL]
+select * from FOO
+				\end{lstlisting}
+In this case, we begin with $R= 1000$, because it's the total number of rows returned in the full table scan. The processing cost $P = L_l*R = 1000$ and the transfer cost $T = L_l*R = 10000$. The total cost is then $P+T = 11000$. 
+
+Now consider the query
+\begin{lstlisting}[frame=single,language=SQL]
+select * from FOO where A = 1
+\end{lstlisting}
+In this scenario, we begin with $R=1000$. We then compute the predicate \textbf{A = 1}. Since $A$ is a primary key column and the value is a constant (1), this is a keyed qualifier, which matches 1 row. Thus $R=1$. Because we are dealing with a keyed qualifier, this also adjusts the processing and the transfer cost. We therefore have $P = R*L_l = 1$ and $T = R*L_r = 10$, giving a total cost of $Cost = 11$
+
+To extend this example further, consider the query
+\begin{lstlisting}[frame=single,language=SQL]
+select * from FOO where B = 12
+\end{lstlisting}
+We begin, as always, with $R=1000$. Since $B$ is not a keyed column, but the clause is a constant, the predicate \textbf{B = 12} is non-keyed qualifier. Non-keyed qualifiers do not affect the processing cost(since they require a full table scan), so we have $P = 1000*L_l = 1000$. However, it \emph{does} affect $R$ and the transfer cost $T$. 
+
+Because 12 is a frequent element of $B$, we know that the predicate will match exactly 33 rows. Thus $R = 33$, and the transfer cost becomes $T = 33*L_r = 330$. Therefore, the total cost is expected to be $Cost = T+P = 1000+3330 = 1330$.
+
+\end{exmp}
+
+\subsection{Restricted column scans}
+Previously, we've only considered full column scans where all columns are to be returned. However, many queries restrict the number of columns of interest, and we must take this into account. To do this, we first define the \emph{column fraction}, or $C_f$ for short. The column fraction is defined as the ratio of column sizes that are to be returned to the total size of the row. Thus, if a row has a width of $N$ bytes of $M$ columns, then we have
+\begin{equation}
+				C_f = \frac{1}{avgRowWidth}\sum_k width(c_k)
+\end{equation}
+where $width(c_k)$ is the width of the $kth$ column, and only the columns to be returned are involved. As a concrete
+
+\begin{exmp}[Computing the Column fraction]
+				Suppose that a table \textbf{FOO} has an average width $W= 100$ bytes, over 4 columns $A,B,C,D$. Suppose that we also have average column widths $w_A = 15,w_B = 25,w_C = 10,w_D = 50$. Now consider the query
+
+\begin{lstlisting}[frame=single, language=SQL]
+select A from FOO
+\end{lstlisting}
+In this case, we are only intersted in the width of $A$, so we know that 
+
+\begin{displaymath}
+				C_f = \frac{w_A}{W} = \frac{15}{100} = 0.15 
+\end{displaymath}
+
+Now consider the query
+\begin{lstlisting}[frame=single, language=SQL]
+select A,B from FOO where C = 12
+\end{lstlisting}
+In this case, we must consider three columns--$A,B$ and $C$. Thus, our column fraction is
+
+\begin{displaymath}
+				C_f = \frac{w_A+w_B+w_C}{W} = \frac{15+25+10}{100} = 0.5
+\end{displaymath}
+
+\end{exmp}
+
+Note that the column fraction is only taken into account during transfer time, because when reading the row initially, you must perform IO on the entire row, due to the nature of SpliceMachine's packed encoding structure.
+
 \section{Cost of an Index Fetch}
+Index fetches occur whenever scanning over a \emph{non-covering} index--that is, an index where not all columns of interest to the query are present. In this case, there is an additional cost to look up the base table row. In the typical Splice index (a remote,dense index), this means a movement over the network.
+
+First, it's important to note that index conglomerates have a slightly different statistics set. The remote latency recorded for an index conglomerate is actually the cost to perform an index fetch for a \emph{block} of records(more on this later), while the remote scan cost is computed from the remote scan cost of the base table \footnote{This is acceptable due to the assumption that network performance is relatively constant--that is, it requires the same amount of time per byte to move data from any region across the network. In future implementations, we may no longer record remote latency directly, but instead compute it from overall averages}.
+
+In a sequential algorithm, the cost of a non-covering index scan can be constructed as
+
+\begin{equation}
+				\begin{aligned}
+								P	&= P_{TS}+L_r*N_{TS}*C_f \\
+								T &= T_{TS} + L_r*N_{TS}*C_f
+				\end{aligned}
+\end{equation}
+where $N_{TS}$ is the number of rows returned from the table scan, and $C_f$ is the column fraction of \emph{heap rows}. 
+
+This construction is simple: the cost of an index lookup is the cost to read the local row plus the cost to perform the network read for each row. Unfortunately, SpliceMachine does not have a sequential index operation. Instead, it uses a parallel batch operation to improve performance, which has a significant effect on the expected cost.
+
+Firstly, we use a batch operation to group $M$ rows together into a \emph{block} of rows\footnote{$M$ is configurable, using the \textbf{splice.index.batchSize} parameter}. Then a single network call is made to obtain the heap rows for all the index rows in a block. The statistics collection algorithm takes this into account, so the remote latency of an index conglomerate is actually the latency to fetch $M$ rows in a single block. This adjustment means that the cost formulas now become
+
+\begin{equation*}
+				\begin{aligned}
+								N_B &= \floor[\big]{\frac{N_{TS}}{M}} \\
+								P &= P_{TS} + L_r*N_B*C_f \\
+								T &= T_{TS} + L_r*N_B*C_f
+				\end{aligned}
+\end{equation*}
+where $N_B$ is the number of blocks which are found. Of course, if $N_{TS}$ does not evenly divide $M$, then we have an extra "partial" block. We get the cost of this partial block by computing $L_{rf}$ as the latency of the partial block, which is
+
+\begin{displaymath}
+				L_{rf} = \frac{N_{TS} \% M}{M}*L_r
+\end{displaymath}
+
+which makes our block formulas
+\begin{equation*}
+				\begin{aligned}
+								N_B &= \floor[\big]{\frac{N_{TS}}{M}} \\
+								P &= P_{TS} + L_r*N_B*C_f +L_{rf}*C_f\\
+								T &= T_{TS} + L_r*N_B*C_f +L_{rf}*C_f
+				\end{aligned}
+\end{equation*}
+
+This formula takes the block structure into account, but does not deal with the fact that SpliceMachine has a parallel index lookup mechanism, which further affects costs. 
+
+SpliceMachine uses $K$ parallel threads\footnote{this number is configurable, using the \textbf{splice.index.numConcurrentLookups} configuration parameter} to perform block lookups. Thus, we have an algorithm like
+
+\begin{enumerate}
+				\item fill block
+				\item submit for background lookup
+				\item repeat until $K$ blocks are in flight
+				\item  wait until the first block finishes
+				\item refill and resubmit block
+\end{enumerate}
+
+Thus, we have $N_B/K$ blocks in flight at any one point in time. As a result, our cost computations become more complex. The best way to understand this is to enumerate through the blocks.
+
+First, we have a minimum latency which is the time taken to fill one block. Then that block is submitted, and we have a latency to fill the next block. We don't wait for the first block (and therefore add latency) until we have filled all available blocks or run out of data. If the cost to fill a block is $T_f$, then the time spent filling all blocks after the first is $(K-1)*T_f$; therefore, the time spent waiting for the first block to return is $L_r - (K-1)*T_f$. This gives us several situations:
+
+\begin{description}
+				\item[$L_r <= (K-1)*T_f$] In this case there is no latency added by looking up the first block.
+				\item[$L_r >(K-1)*T_f$] In this case we have to add in some cost to the lookup
+\end{description}
+
+For each block where we have a full set of lookups, the cost is the same (either 0 or $(K-1)*T_f$. There are $\floor{N_B/K}*K$ such "full blocks". The remaining $N_B \% K$ blocks must be treated differently.
+
+With the first of those "partial" blocks, we know that there are $(N_B \% K) -1$ blocks which were filled after it, so the time spent waiting is $L_r - ((N_B \% K) -1)*T_f$, and sequentually on down until we are finished.
+
+Thus, we have a final formula for the overall latency to be
+
+\begin{equation*}
+				L_T = (\floor{N_B/K}*K)*(K-1)*T_f + \sum_{j=1}^{K} (L_r - ((N_B \% K)-j)*T_f
+\end{equation*}
+
+when $(K-1)*T_f < L_r$. This gives the overall formula of
+\begin{equation}
+				\begin{aligned}
+								N_B &= \floor[\big]{\frac{N_{TS}}{M}} \\
+								P &= L_T \\
+								T &= T_{TS} + C_f*\frac{T_{TS}}{N_{TS}}*L_{rf}
+				\end{aligned}
+\end{equation}
+
 
 \section{Join Costs}
 We have a slightly more complex costing strategy here, because of the fact that there are two subtrees: the left subtree $T_L$ and the right subtree $T_R$. We denote with the superscript $L$ and $R$ which side elements come from. For example, the processing cost of the left subtree is referred to as $P^L$, while the right subtree's is $P^R$. Similarly, $T^L$ is the transfer cost of the left subtree, while $T^R$ is the transfer cost of the right subtree.

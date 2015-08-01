@@ -11,9 +11,10 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
-import java.sql.Connection;
 import java.sql.ResultSet;
-import java.sql.RowId;
+
+import static org.hamcrest.core.AnyOf.anyOf;
+import static org.hamcrest.core.IsEqual.equalTo;
 
 // Note - we are using the format of the EXPLAIN output to pass these tests.  They will need to be updated if the EXPLAIN
 // output changes.
@@ -25,6 +26,10 @@ public class JoinSelectionIT extends SpliceUnitTest  {
     public static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
     public static final SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("PERSON",CLASS_NAME,"(pid int NOT NULL GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1), i int)");
     public static final SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("RP_BC_14_1",CLASS_NAME,"(pid int NOT NULL GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1), i int)");
+    public static final SpliceTableWatcher spliceTableRegion = new SpliceTableWatcher("REGION2",CLASS_NAME,
+    	"(R_REGIONKEY INTEGER NOT NULL PRIMARY KEY, R_NAME VARCHAR(25))");
+    public static final SpliceTableWatcher spliceTableNation = new SpliceTableWatcher("NATION2",CLASS_NAME,
+		"(N_NATIONKEY INTEGER NOT NULL PRIMARY KEY, N_NAME VARCHAR(25), N_REGIONKEY INTEGER NOT NULL)");
     
     private static final String PLAN_LINE_LEADER = "->  ";
     private static final String JOIN_STRATEGY_TERMINATOR = "(";
@@ -38,13 +43,15 @@ public class JoinSelectionIT extends SpliceUnitTest  {
     public static TestRule rule = RuleChain.outerRule(spliceSchemaWatcher)
             .around(spliceTableWatcher)
             .around(spliceTableWatcher2)
+            .around(spliceTableRegion)
+            .around(spliceTableNation)
             .around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
                     try {
                         spliceClassWatcher.setAutoCommit(true);
                         spliceClassWatcher.executeUpdate(format("insert into %s (i) values 1,2,3,4,5,6,7,8,9,10",
-                                                                spliceTableWatcher));
+							spliceTableWatcher));
                         spliceClassWatcher.executeUpdate(format("insert into %s (i) select i from %s", spliceTableWatcher, spliceTableWatcher));
                         spliceClassWatcher.executeUpdate(format("insert into %s (i) select i from %s", spliceTableWatcher, spliceTableWatcher));
                         spliceClassWatcher.executeUpdate(format("insert into %s (i) select i from %s", spliceTableWatcher, spliceTableWatcher));
@@ -60,7 +67,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
                         spliceClassWatcher.executeUpdate(format("insert into %s (i) select i from %s", spliceTableWatcher, spliceTableWatcher));
 
                         spliceClassWatcher.executeUpdate(format("insert into %s (i) values 1,2,3,4,5,6,7,8,9,10",
-                                spliceTableWatcher2));
+							spliceTableWatcher2));
                         spliceClassWatcher.executeUpdate(format("insert into %s (i) select i from %s", spliceTableWatcher2, spliceTableWatcher2));
                         spliceClassWatcher.executeUpdate(format("insert into %s (i) select i from %s", spliceTableWatcher2, spliceTableWatcher2));
                         spliceClassWatcher.executeUpdate(format("insert into %s (i) select i from %s", spliceTableWatcher2, spliceTableWatcher2));
@@ -69,8 +76,24 @@ public class JoinSelectionIT extends SpliceUnitTest  {
                         spliceClassWatcher.executeUpdate(format("insert into %s (i) select i from %s", spliceTableWatcher2, spliceTableWatcher2));
                         spliceClassWatcher.executeUpdate(format("insert into %s (i) select i from %s", spliceTableWatcher2, spliceTableWatcher2));
 
-                        //TODO: move call to statistics in setup here
-                        spliceClassWatcher.execute(format("call syscs_util.COLLECT_SCHEMA_STATISTICS('%s',false)",CLASS_NAME));
+                        spliceClassWatcher.executeUpdate(format(
+                    		"insert into %s (r_regionkey, r_name) values " +
+                            "(0, 'AFRICA'), (1, 'AMERICA'), (2, 'ASIA'), (3, 'EUROPE'), (4, 'MIDDLE EAST'), " +
+                            "(5, 'AMERICA'), (6, 'AMERICA'), (7, 'AMERICA'), (8, 'AMERICA'), (9, 'AMERICA')",
+                            spliceTableRegion));
+                        
+                        spliceClassWatcher.executeUpdate(format(
+                    		"insert into %s (n_nationkey, n_name, n_regionkey) values " +
+                            "(0, 'ALGERIA', 0), " +
+                            "(1, 'ARGENTINA', 1), " +
+                            "(2, 'BRAZIL', 1), " +
+                            "(4, 'EGYPT', 4), " +
+                            "(5, 'ETHIOPIA', 0), " +
+                            "(6, 'FRANCE', 3)",
+                            spliceTableNation));
+
+						//TODO: move call to statistics in setup here
+						spliceClassWatcher.execute(format("call syscs_util.COLLECT_SCHEMA_STATISTICS('%s',false)",CLASS_NAME));
                         
                     } catch (Exception e) {
                         throw new RuntimeException(e);
@@ -106,7 +129,6 @@ public class JoinSelectionIT extends SpliceUnitTest  {
     
     @Test
     public void testInnerJoinWithSubquery() throws Exception {
-
         ResultSet rs = methodWatcher.executeQuery(
               format("explain select a2.pid from %s a2 join " +
             		  "(select person.pid from %s) as a3 " +
@@ -116,8 +138,10 @@ public class JoinSelectionIT extends SpliceUnitTest  {
             count++;
             if (count == 2) {
     			String row = rs.getString(1);
-    			String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER)+PLAN_LINE_LEADER.length(),row.indexOf(JOIN_STRATEGY_TERMINATOR));
-    			Assert.assertEquals(MERGE_SORT_JOIN, joinStrategy);
+    			String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER) + PLAN_LINE_LEADER.length(),
+                        row.indexOf(JOIN_STRATEGY_TERMINATOR));
+                Assert.assertThat("Join strategy must be either MERGE_SORT_JOIN or BROADCAST_JOIN", joinStrategy,
+                        anyOf(equalTo(MERGE_SORT_JOIN), equalTo(BROADCAST_JOIN)));
             	break;
             }
         }   
@@ -163,29 +187,14 @@ public class JoinSelectionIT extends SpliceUnitTest  {
         }     
     }
 
-
-    
-    // RedPoint test - should return BroadcastJoin but not NestedLoopJoin
-    // un-Ignore once DB-3460 is fixed
-    @Ignore
     @Test
     public void testRPLeftOuterJoinWithNestedSubqueries() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery(
-              format("explain SELECT a2.pid FROM %s a2 " + 
-            		  "LEFT OUTER JOIN " +
+		explainQueryNoNestedLoops(
+        		format("explain SELECT a2.pid FROM %s a2 " + 
+        			  "LEFT OUTER JOIN " +
             		  "(SELECT a4.PID FROM %s a4 WHERE EXISTS " +
             				  "(SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
-            				  "ON a2.PID = a3.PID", spliceTableWatcher2, spliceTableWatcher2, spliceTableWatcher));
-        int count = 0;
-        while (rs.next()) {
-            count++;
-            if (count == 2) {
-    			String row = rs.getString(1);
-    			String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER)+PLAN_LINE_LEADER.length(),row.indexOf(JOIN_STRATEGY_TERMINATOR));
-    			Assert.assertEquals(BROADCAST_JOIN, joinStrategy);
-            	break;
-            }
-        }    
+            				  "ON a2.PID = a3.PID", spliceTableWatcher2, spliceTableWatcher2, spliceTableWatcher), 0);
     }
     
     @Test
@@ -284,8 +293,8 @@ public class JoinSelectionIT extends SpliceUnitTest  {
             count++;
             if (count == 2) {
     			String row = rs.getString(1);
-    			String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER)+PLAN_LINE_LEADER.length(),row.indexOf(JOIN_STRATEGY_TERMINATOR));
-    			Assert.assertEquals(MERGE_SORT_JOIN, joinStrategy);
+    			String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER)+PLAN_LINE_LEADER.length(), row.indexOf(JOIN_STRATEGY_TERMINATOR));
+                Assert.assertTrue(MERGE_SORT_JOIN.equals(joinStrategy) || BROADCAST_JOIN.equals(joinStrategy));
             	break;
             }
         }   
@@ -416,6 +425,35 @@ public class JoinSelectionIT extends SpliceUnitTest  {
             	break;
             }
         }   
+    }
+
+    @Test
+    public void testNoNestedLoops1() throws Exception {
+    	// This tests DB-3608 (wrong row estimate for frequent element match of type varchar).
+    	// If it fails, do not ignore it or comment it out. Let it fail until it is fixed.
+    	explainQueryNoNestedLoops(
+            "explain select * from region2, nation2 where n_regionkey = r_regionkey and r_name = 'AMERICA'", 0);
+    }
+    
+    private void explainQueryNoNestedLoops(String query, int maxJoinChecks) throws Exception {
+        ResultSet rs = methodWatcher.executeQuery(query);
+
+        int rowCount = 0;
+        int joinCount = 0;
+        String joinStrategy = null;
+        while (rs.next()) {
+        	rowCount++;
+			String row = rs.getString(1);
+			if (!row.contains("Join")) continue;
+			if (rowCount == 1)
+			    joinStrategy = row.substring(0, row.indexOf(JOIN_STRATEGY_TERMINATOR));
+			else
+				joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER) + PLAN_LINE_LEADER.length(), row.indexOf(JOIN_STRATEGY_TERMINATOR));
+			joinCount++;
+            Assert.assertNotEquals("Found unexpected bad join strategy", NESTED_LOOP_JOIN, joinStrategy);
+            if (maxJoinChecks > 0 && joinCount >= maxJoinChecks) break;
+        }
+        Assert.assertTrue("Did not find join strategy in plan", joinCount > 0);
     }
 
 }

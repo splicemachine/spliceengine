@@ -101,7 +101,8 @@ public class SpliceLevel2OptimizerImpl extends Level2OptimizerImpl{
     private static final Logger TRACE_LOGGER=Logger.getLogger("optimizer.trace");
     private final OptimizerTrace tracer = new Level2OptimizerTrace(null,this){
         @Override
-        protected void trace(TraceLevel level,String traceString){
+        public void trace(TraceLevel level, String traceString){
+
             Priority prio = Level.INFO;
             switch(level){
                 case TRACE:
@@ -118,7 +119,9 @@ public class SpliceLevel2OptimizerImpl extends Level2OptimizerImpl{
                     break;
             }
 
-            TRACE_LOGGER.log(prio,traceString);
+            if (TRACE_LOGGER.isTraceEnabled()) {
+                TRACE_LOGGER.log(prio,traceString);
+            }
         }
     };
 
@@ -180,6 +183,12 @@ public class SpliceLevel2OptimizerImpl extends Level2OptimizerImpl{
 
     @Override
     public OptimizerTrace tracer(){
-        return tracer;
+        if (TRACE_LOGGER.isTraceEnabled()) {
+            optimizerTrace = true;
+            return tracer;
+        } else {
+            optimizerTrace = false;
+        }
+        return super.tracer();
     }
 }
