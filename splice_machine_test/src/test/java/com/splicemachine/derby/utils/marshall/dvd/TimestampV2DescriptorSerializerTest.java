@@ -17,7 +17,6 @@ import static org.junit.Assert.assertEquals;
 public class TimestampV2DescriptorSerializerTest {
 
     @Test
-    @Ignore("spark")
     public void shouldSerialize() throws StandardException {
         long l = TimestampV2DescriptorSerializer.formatLong(getTimestamp(2000));
         assertEquals(950162400000000000L, l);
