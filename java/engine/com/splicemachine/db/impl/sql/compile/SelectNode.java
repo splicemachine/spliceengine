@@ -220,6 +220,9 @@ public class SelectNode extends ResultSetNode{
 
     public void clearDistinct(){ isDistinct=false; }
 
+    public int getNestingLevel(){
+        return nestingLevel;
+    }
     /**
      * Prints the sub-nodes of this object.  See QueryTreeNode.java for
      * how tree printing is supposed to work.

@@ -383,7 +383,7 @@ public class ExplainTree{
         @Override
         protected String getExtraInformation(){
             return String.format("correlated?%b, expression?%b, invariant?%b",
-                    expression,invariant,correlated);
+                    correlated,expression,invariant);
         }
 
         @Override

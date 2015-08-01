@@ -242,6 +242,11 @@ public class UnaryOperatorNode extends OperatorNode
 		}
 	}
 
+	@Override
+	public boolean checkCRLevel(int level){
+		return operand.checkCRLevel(level);
+	}
+
 	/**
 	 * Get the operand of this unary operator.
 	 *

@@ -2,25 +2,21 @@ package com.splicemachine.db.impl.sql.compile;
 
 import static java.lang.String.format;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.OptimizablePredicate;
 
 /**
- * PredicateUtils copied from splice code.
+ * Utility to get the string representation of a given operator.
+ * <p/>
+ * Used for debugging.
  */
-public class PredicateUtils {
+public class OperatorToString {
 
-    public static boolean isEquiJoinPred(Predicate p) {
-        return p != null &&
-            p.isJoinPredicate() &&
-            p.getAndNode().getLeftOperand().isBinaryEqualsOperatorNode();
-    }
 
     /**
-     * Return string representation of Derby Predicate
+     * Satisfy non-guava (derby client) compile dependency.
+     * @param predicate the predicate
+     * @return Return string representation of Derby Predicate
      */
     public static String toString(Predicate predicate) {
         if (predicate == null) {
@@ -31,7 +27,9 @@ public class PredicateUtils {
     }
 
     /**
-     * Return string representation of Derby Predicate
+     * Satisfy non-guava (derby client) compile dependency.
+     * @param predicateList the predicate list
+     * @return Return string representation of Derby Predicates in a predicate list
      */
     public static String toString(PredicateList predicateList) {
         if (predicateList == null || predicateList.size() == 0) {
@@ -44,22 +42,10 @@ public class PredicateUtils {
             buf.append(opToString(operand)).append(", ");
         }
         if (buf.length() > 2) {
-            // trim of last ", "
+            // trim last ", "
             buf.setLength(buf.length() - 2);
         }
         return buf.toString();
-    }
-
-    /**
-     * Return a List of Predicates for a Derby PredicateList
-     */
-    public static List<Predicate> PLtoList(PredicateList pl) {
-        List<Predicate> preds = new ArrayList<>(pl.size());
-        for (int i = 0, s = pl.size(); i < s; i++) {
-            OptimizablePredicate p = pl.getOptPredicate(i);
-            preds.add((Predicate) p);
-        }
-        return preds;
     }
 
     /**
@@ -104,24 +90,17 @@ public class PredicateUtils {
         } else if (operand instanceof ColumnReference) {
             ColumnReference cr = (ColumnReference) operand;
             String table = cr.getTableName();
-            ResultColumn source = cr.getSourceResultColumn();
-            if (source == null) {
-                source = cr.getOrigSourceResultColumn();
-            }
-            if (source == null) {
-                source = cr.getSource();
-            }
+            ResultColumn source = cr.getSource();
             return format("%s%s%s",table==null?"":format("%s.",table),
-                          cr.getColumnName(), getSource(source));
+                          cr.getColumnName(),source==null?"":
+                              format("[%s:%s]",source.getResultSetNumber(),source.getVirtualColumnId()));
         } else if (operand instanceof VirtualColumnNode) {
             VirtualColumnNode vcn = (VirtualColumnNode) operand;
-            ResultColumn source = vcn.getSourceResultColumn();
-            if (source == null) {
-                source = vcn.getSourceColumn();
-            }
+            ResultColumn source = vcn.getSourceColumn();
             String table = source.getTableName();
             return format("%s%s%s", table == null ? "" : format("%s.", table),
-                          source.getName(), getSource(source));
+                          source.getName(),
+                          format("[%s:%s]", source.getResultSetNumber(), source.getVirtualColumnId()));
         } else if (operand instanceof SubqueryNode) {
             SubqueryNode subq = (SubqueryNode) operand;
             return format("subq=%s", subq.getResultSet().getResultSetNumber());
@@ -134,29 +113,40 @@ public class PredicateUtils {
             }
         } else if(operand instanceof CastNode){
             return opToString(((CastNode)operand).getCastOperand());
-        } else if(operand instanceof ParameterNode){
-            ParameterNode node = (ParameterNode)operand;
-            return "?["+node.getParameterNumber()+"]:"+node.getTypeServices();
-        } else if(operand instanceof JavaToSQLValueNode){
-            return ((JavaToSQLValueNode)operand).getJavaValueNode().toString().replace("\n", " ");
         } else{
-            return operand.getClass().getSimpleName()+": "+ operand.toString().replace("\n", " ");
+            return replace(operand.toString(), "\n", " ");
         }
     }
 
-    private static String getSource(ResultColumn rc) {
-        if (rc == null) {
-            return "";
-        }
-        int from = rc.getResultSetNumber();
-        String originalTable = from +"";
-        if (from == -1) {
-            try {
-                originalTable = rc.getSchemaName()+"."+rc.getTableName();
-            } catch (StandardException e) {
-                return e.getMessage();
-            }
-        }
-        return format("[%s:%s]", originalTable,rc.getColumnPosition());
+
+    private static String replace(String text, String searchString, String replacement) {
+        return replace(text, searchString, replacement, -1);
     }
+
+    private static String replace(String text, String searchString, String replacement, int max) {
+        if (text.isEmpty() || searchString.isEmpty() || replacement == null || max == 0) {
+            return text;
+        }
+        int start = 0;
+        int end = text.indexOf(searchString, start);
+        if (end == -1) {
+            return text;
+        }
+        int replLength = searchString.length();
+        int increase = replacement.length() - replLength;
+        increase = (increase < 0 ? 0 : increase);
+        increase *= (max < 0 ? 16 : (max > 64 ? 64 : max));
+        StringBuilder buf = new StringBuilder(text.length() + increase);
+        while (end != -1) {
+            buf.append(text.substring(start, end)).append(replacement);
+            start = end + replLength;
+            if (--max == 0) {
+                break;
+            }
+            end = text.indexOf(searchString, start);
+        }
+        buf.append(text.substring(start));
+        return buf.toString();
+    }
+
 }

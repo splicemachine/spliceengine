@@ -375,29 +375,29 @@
 
     <antcall target="infowriter">
       <param name="info.buildnumber" value="1"/>
-      <param name="info.iname" value="Apache Derby Embedded Engine"/>
-      <param name="info.ename" value="Apache Derby"/>
+      <param name="info.iname" value="Splice Machine Embedded Engine"/>
+      <param name="info.ename" value="Splice Machine"/>
       <param name="info.productfile" value="codeline"/>
       <param name="info.file" value="${out.dir}/${splice.package}/info/DBMS.properties"/>
     </antcall>
     <antcall target="infowriter">
       <param name="info.buildnumber" value="1"/>
-      <param name="info.iname" value="Apache Derby Tools"/>
-      <param name="info.ename" value="Apache Derby"/>
+      <param name="info.iname" value="Splice Machine Tools"/>
+      <param name="info.ename" value="Splice Machine"/>
       <param name="info.productfile" value="codeline"/>
       <param name="info.file" value="${out.dir}/${splice.package}/info/tools.properties"/>
     </antcall>
     <antcall target="infowriter">
       <param name="info.buildnumber" value="1"/>
-      <param name="info.iname" value="Apache Derby Network Server"/>
-      <param name="info.ename" value="Apache Derby"/>
+      <param name="info.iname" value="Splice Machine Network Server"/>
+      <param name="info.ename" value="Splice Machine"/>
       <param name="info.productfile" value="codeline"/>
       <param name="info.file" value="${out.dir}/${splice.package}/info/net.properties"/>
     </antcall>
     <antcall target="infowriter">
       <param name="info.buildnumber" value="1"/>
-      <param name="info.iname" value="Apache Derby Network Client"/>
-      <param name="info.ename" value="Apache Derby"/>
+      <param name="info.iname" value="Splice Machine Network Client"/>
+      <param name="info.ename" value="Splice Machine"/>
       <param name="info.productfile" value="codeline"/>
       <param name="info.file" value="${out.dir}/${splice.package}/info/dnc.properties"/>
     </antcall>
@@ -957,8 +957,8 @@
 
     <echo level="info" message="creating new DBMS.properties file"/>
     <antcall target="infowriter">
-      <param name="info.iname" value="Apache Derby Embedded Engine"/>
-      <param name="info.ename" value="Apache Derby"/>
+      <param name="info.iname" value="Splice Machine Embedded Engine"/>
+      <param name="info.ename" value="Splice Machine"/>
       <param name="info.buildnumber" value="${changenumber}"/>
       <param name="info.productfile" value="derby.jar"/>
       <param name="info.file" value="${out.dir}//${splice.package}/info/DBMS.properties"/>
@@ -1028,7 +1028,23 @@
     <copy file="${basedir}/tools/jar/dnc.properties"
           tofile="${derby.jar.dir}/lists/dnc.properties"/>
 
-    <java classname="com.splicemachine.derbyBuild.classlister" fork="yes">
+   <!--
+     This is terrible. We compile all derby classes into one output directory, then when building the the client jar
+     (jdbc driver) we open dnc.properties which has a list of classes and we included those classes and transitive
+     dependencies in the jar. This task does not have any third party jars on its classpath, and so will fail if any
+     of the jdbc-driver classes have dependencies on third party jars. I think we want to keep that behavior (customers
+     will want to murder us if we ship them a jdbc-driver jar that depends on guava 11 for instance).
+
+     If you build and see something like this, you've inadvertently included an unauthorized dependency:
+
+     derbyclientjar:
+     [echo] Beginning derbyclient.jar sane build
+     [copy] Copying 1 file to /Users/<user>/dev/Derby/jars/sane/lists
+
+    BUILD FAILED
+    /Users/jeff/dev/Derby/build.xml:1047: Java returned: 1
+   -->
+    <java classname="com.splicemachine.derbyBuild.classlister" fork="yes" failonerror="true">
       <jvmarg value="-Doutputfile=${derby.jar.dir}/lists/dnc.list"/>
       <arg value="${derby.jar.dir}/lists/dnc.properties"/>
       <classpath>
@@ -1041,8 +1057,8 @@
     <mkdir dir="${out.dir}/${splice.package}/info/"/>
     <antcall target="infowriter">
       <param name="info.buildnumber" value="${changenumber}"/>
-      <param name="info.iname" value="Apache Derby Network Client"/>
-      <param name="info.ename" value="Apache Derby"/>
+      <param name="info.iname" value="Splice Machine Network Client"/>
+      <param name="info.ename" value="Splice Machine"/>
       <param name="info.productfile" value="codeline"/>
       <param name="info.file" value="${out.dir}/${splice.package}/info/dnc.properties"/>
     </antcall>

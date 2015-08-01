@@ -152,7 +152,7 @@ public abstract class GenericConstantActionFactory
 		boolean						dropStatistics,
 		boolean						dropStatisticsAll,
 		String						indexNameForStatistics
-    );
+    ) throws StandardException;
 
 	/**
 	 *	Make a ConstantAction for a constraint.
@@ -317,8 +317,8 @@ public abstract class GenericConstantActionFactory
 		char			lockGranularity,
 		boolean			onCommitDeleteRows,
 		boolean			onRollbackDeleteRows,
-		StatementNode insertNode
-		);
+		StatementNode   insertNode
+    ) throws StandardException;
 
 	/**
 	 *	Make the ConstantAction for a savepoint statement (ROLLBACK savepoint, RELASE savepoint and SAVEPOINT).

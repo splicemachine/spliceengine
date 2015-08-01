@@ -237,9 +237,17 @@ public class ColumnReference extends ValueNode {
 	 *
 	 * @return	The nesting level for this CR.
 	 */
-	private int getNestingLevel()
+	int getNestingLevel()
 	{
 		return nestingLevel;
+	}
+
+	@Override
+	public boolean checkCRLevel(int level){
+		if(sourceLevel < level){
+			return true;
+		}
+		return false;
 	}
 
 	/**

@@ -464,6 +464,11 @@ public class BinaryOperatorNode extends OperatorNode
 		return this;
 	}
 
+	@Override
+	public boolean checkCRLevel(int level){
+		return leftOperand.checkCRLevel(level) || rightOperand.checkCRLevel(level);
+	}
+
 	/**
 	 * Do code generation for this binary operator.
 	 *

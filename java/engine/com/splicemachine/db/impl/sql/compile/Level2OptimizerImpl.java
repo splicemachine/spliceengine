@@ -22,12 +22,15 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.sql.compile.*;
+import com.splicemachine.db.iapi.sql.compile.CostEstimate;
+import com.splicemachine.db.iapi.sql.compile.JoinStrategy;
+import com.splicemachine.db.iapi.sql.compile.OptimizableList;
+import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
+import com.splicemachine.db.iapi.sql.compile.OptimizerFlag;
+import com.splicemachine.db.iapi.sql.compile.OptimizerTrace;
+import com.splicemachine.db.iapi.sql.compile.RequiredRowOrdering;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
-import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 
 /**
  * This is the Level 2 Optimizer.
@@ -51,10 +54,10 @@ public class Level2OptimizerImpl extends OptimizerImpl{
                         int numTablesInQuery,
                         LanguageConnectionContext lcc)
             throws StandardException{
-        super(optimizableList,predicateList,dDictionary,
-                ruleBasedOptimization,noTimeout,useStatistics,maxMemoryPerTable,
-                joinStrategies,tableLockThreshold,requiredRowOrdering,
-                numTablesInQuery);
+        super(optimizableList, predicateList, dDictionary,
+              ruleBasedOptimization, noTimeout, useStatistics, maxMemoryPerTable,
+              joinStrategies, tableLockThreshold, requiredRowOrdering,
+              numTablesInQuery);
 
         // Remember whether or not optimizer trace is on;
         optimizerTrace=lcc.getOptimizerTrace();
