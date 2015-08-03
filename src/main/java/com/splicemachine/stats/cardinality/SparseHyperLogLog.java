@@ -179,6 +179,45 @@ public class SparseHyperLogLog extends BaseBiasAdjustedHyperLogLogCounter{
     }
 
     @Override
+    public void merge(BaseLogLogCounter otherCounter){
+        mergeBuffer();
+        if(!(otherCounter instanceof SparseHyperLogLog) || !this.isSparse){
+            /*
+             * If the other counter isn't a SparseHyperLogLog, then convert this to dense,
+             * and then defer to the default behavior.
+             *
+             * This condition is also applicable if we've already converted to a dense encoding,
+             * because the algorithm becomes the same as the default under those cicumstances
+             */
+            convertToDense();
+            super.merge(otherCounter);
+            return;
+        }
+
+        SparseHyperLogLog other = (SparseHyperLogLog)otherCounter;
+        other.mergeBuffer(); //ensure that the other has merged its buffer
+        if(other.isSparse){
+            int[] otherSparse=other.sparseArray;
+            int otherSparseSize=other.sparseSize;
+            for(int i=0;i<otherSparseSize;i++){
+                int r=otherSparse[i];
+                if(this.isSparse)
+                    buffer(r);
+                else
+                    insertIntoDense(r);
+            }
+        }else{
+            /*
+             * The other element is large enough that it determined to be better
+             * off as a dense version, which means that we will also be that large after
+             * merging, so we may as well convert to dense and defer to default behavior
+             */
+            convertToDense();
+            super.merge(other);
+        }
+    }
+
+    @Override
     protected int getRegister(int register){
         return denseRegisters[register];
     }
@@ -216,14 +255,18 @@ public class SparseHyperLogLog extends BaseBiasAdjustedHyperLogLogCounter{
             r |=p;
         }
 
+        buffer(r);
+    }
+
+
+    /* ****************************************************************************************************************/
+    /*private helper methods*/
+    private void buffer(int r){
         buffer[bufferSize]= r;
         bufferSize++;
         if(bufferSize==buffer.length)
             mergeBuffer();
     }
-
-    /* ****************************************************************************************************************/
-    /*private helper methods*/
 
     private void mergeBuffer(){
         /*
