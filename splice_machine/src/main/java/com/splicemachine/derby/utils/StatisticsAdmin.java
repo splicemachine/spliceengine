@@ -18,6 +18,7 @@ import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.stats.StatisticsJob;
@@ -206,13 +207,32 @@ public class StatisticsAdmin {
 
     private static void authorize(List<TableDescriptor> tableDescriptorList) throws SQLException, StandardException {
         EmbedConnection conn = (EmbedConnection)SpliceAdmin.getDefaultConn();
+        LanguageConnectionContext lcc=conn.getLanguageConnection();
         Activation activation = conn.getLanguageConnection().getLastActivation();
         List requiredPermissionsList = activation.getPreparedStatement().getRequiredPermissionsList();
         for (TableDescriptor tableDescriptor : tableDescriptorList) {
-            StatementTablePermission key = new StatementTablePermission(tableDescriptor.getUUID(), Authorizer.INSERT_PRIV);
-            requiredPermissionsList.add(key);
+            StatementTablePermission key = null;
+            try {
+                key = new StatementTablePermission(tableDescriptor.getUUID(), Authorizer.INSERT_PRIV);
+                requiredPermissionsList.add(key);
+                activation.getLanguageConnectionContext().getAuthorizer().authorize(activation, 1);
+            } catch (StandardException e) {
+                if (e.getSqlState().compareTo(SQLState.AUTH_NO_TABLE_PERMISSION) == 0) {
+                    throw StandardException.newException(
+                            com.splicemachine.db.iapi.reference.SQLState.AUTH_NO_TABLE_PERMISSION_FOR_ANALYZE,
+                            lcc.getCurrentUserId(activation),
+                            "INSERT",
+                            tableDescriptor.getSchemaName(),
+                            tableDescriptor.getName());
+                }
+                else throw e;
+            }
+            finally {
+                if (key != null) {
+                    requiredPermissionsList.remove(key);
+                }
+            }
         }
-        activation.getLanguageConnectionContext().getAuthorizer().authorize(activation, 1);
     }
     @SuppressWarnings("UnusedDeclaration")
     public static void COLLECT_TABLE_STATISTICS(String schema,
