@@ -74,13 +74,6 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
         ensureBufferReader(mutation, ctx);
 
         if (mutation.getType().isUpdateOrUpsert()) {
-            if(mutation.getType().equals(KVPair.Type.UNIQUE_UPDATE)) {
-                // If this is a unique index update, we need to change the type so that it passes constraint checking.
-                // The mutation type is shared between main table update and the index update. Uniqueness constraint
-                // check must be made against the main table update but, if that passes, there's no need to do it
-                // against the unique index update.
-                mutation.setType(KVPair.Type.UPDATE);
-            }
             if (doUpdate(mutation, ctx)) {
                 // The doUpdate() method either updated the index or determined that it doesn't need to be updated.
                 return false;
@@ -154,6 +147,13 @@ public class IndexUpsertWriteHandler extends AbstractIndexWriteHandler {
         // (1) We are an UPDATE or UPSERT
         // (2) We are modifying non-primary keys.
         // (3) WE MAY-BE modifying primary keys.
+        if(mutation.getType().equals(KVPair.Type.UNIQUE_UPDATE)) {
+            // If this is a unique index update, we need to change the type so that it passes constraint checking.
+            // The mutation type is shared between main table update and the index update. Uniqueness constraint
+            // check must be made against the main table update but, if that passes, there's no need to do it
+            // against the unique index update.
+            mutation.setType(KVPair.Type.UPDATE);
+        }
 
         /*
          * To update the index now, we must find the old index row and delete it, then
