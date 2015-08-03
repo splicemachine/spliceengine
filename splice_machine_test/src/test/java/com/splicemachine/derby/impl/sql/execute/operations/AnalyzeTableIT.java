@@ -76,30 +76,39 @@ public class AnalyzeTableIT {
 
     @Test
     public void testAnalyzeTablePrivilege() throws Exception {
+        String message = null;
+        String expected = null;
         try {
             Connection connection = methodWatcher.createConnection("analyzeuser", "passwd");
             Statement statement = connection.createStatement();
             statement.execute("analyze table AnalyzeTableIT.T2");
         }
         catch (SQLSyntaxErrorException e) {
-            String expected = "User 'ANALYZEUSER' does not have INSERT permission on table 'ANALYZETABLEIT'.'T2'.";
-            String message = e.getMessage();
-            Assert.assertTrue(message.compareTo(expected)==0);
+            expected = "4251M";
+            message = e.getSQLState();
         }
+        Assert.assertNotNull(message);
+        Assert.assertNotNull(expected);
+        Assert.assertTrue(message.compareTo(expected) == 0);
     }
 
     @Test
     public void testAnalyzeSchemaPrivilege() throws Exception {
 
+        String message = null;
+        String expected = null;
         try {
             Connection connection = methodWatcher.createConnection("analyzeuser", "passwd");
             Statement statement = connection.createStatement();
             statement.execute("analyze schema AnalyzeTableIT");
         }
         catch (SQLSyntaxErrorException e) {
-            String expected = "User 'ANALYZEUSER' does not have INSERT permission on table";
-            String message = e.getMessage();
-            Assert.assertTrue(message.contains(expected));
+            expected = "4251M";
+            message = e.getSQLState();
         }
+
+        Assert.assertNotNull(message);
+        Assert.assertNotNull(expected);
+        Assert.assertTrue(message.compareTo(expected) == 0);
     }
 }
