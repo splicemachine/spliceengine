@@ -118,7 +118,7 @@ public class JoinSelectivityIT extends SpliceUnitTest {
 
     @Test
     public void leftInnerJoinNoRelationships() throws Exception {
-        firstRowContainsQuery("explain select * from ts_10_npk, ts_5_npk where ts_10_npk.c1 = ts_5_npk.c1","outputRows=5",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_10_npk, ts_5_npk where ts_10_npk.c1 = ts_5_npk.c1","outputRows=10",methodWatcher);
     }
 
     @Test
@@ -128,7 +128,7 @@ public class JoinSelectivityIT extends SpliceUnitTest {
 
     @Test
     public void leftAntiJoinNoRelationships() throws Exception {
-        firstRowContainsQuery("explain select * from ts_10_npk where not exists (select * from ts_5_npk where ts_10_npk.c1 = ts_5_npk.c1)","outputRows=5",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_10_npk where not exists (select * from ts_5_npk where ts_10_npk.c1 = ts_5_npk.c1)","outputRows=10",methodWatcher);
     }
 
 

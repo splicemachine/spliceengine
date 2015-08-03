@@ -9,6 +9,8 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.Timestamp;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
@@ -44,7 +46,24 @@ public class DistinctScanSelectivityIT extends SpliceUnitTest {
             spliceClassWatcher.executeUpdate("insert into ts_low_cardinality select * from ts_low_cardinality");
         }
 
+        new TableCreator(conn)
+                .withCreate("create table ts_high_cardinality (c1 int, c2 varchar(56), c3 timestamp, c4 boolean)").create();
+
+        PreparedStatement insert = spliceClassWatcher.prepareStatement("insert into ts_high_cardinality values (?,?,?,?)");
+
+        long time = System.currentTimeMillis();
+        for (int i = 0; i < 1000; i++) {
+            insert.setInt(1,i);
+            insert.setString(2, "" + i);
+            insert.setTimestamp(3,new Timestamp(time-i));
+            insert.setBoolean(4,false);
+            insert.addBatch();
+            if (1%100==0)
+                insert.executeBatch();
+        }
+        insert.executeBatch();
         conn.commit();
+
         conn.createStatement().executeQuery(format(
                 "call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS('%s',false)",
                 spliceSchemaWatcher));
@@ -64,9 +83,10 @@ public class DistinctScanSelectivityIT extends SpliceUnitTest {
 
 
     @Test
-    @Ignore
+    @Ignore("DB-3622")
     public void testDistinctNodeCount() throws Exception {
         firstRowContainsQuery("explain select distinct month(c3) from ts_low_cardinality", "outputRows=5", methodWatcher);
+        firstRowContainsQuery("explain select distinct month(c3) from ts_high_cardinality", "outputRows=12", methodWatcher);
     }
 
 }
