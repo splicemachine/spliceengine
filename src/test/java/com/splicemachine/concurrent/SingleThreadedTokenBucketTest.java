@@ -32,13 +32,20 @@ public class SingleThreadedTokenBucketTest {
 
     @Test
     public void testCanAcquireAfterWaiting() throws Exception {
-        TrafficController tb = TrafficShaping.fixedRateTrafficShaper(10,1,TimeUnit.MILLISECONDS);
+        IncrementingClock c = new IncrementingClock();
+        TrafficController tb = TrafficShaping.fixedRateTrafficShaper(10,1,TimeUnit.MILLISECONDS,c);
         Assert.assertTrue(tb.tryAcquire(10));
-
         Assert.assertFalse("Could acquire when full!", tb.tryAcquire(1));
 
-        LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(1));
+        c.increment(TimeUnit.MILLISECONDS.toNanos(1));
         Assert.assertTrue(tb.tryAcquire(1));
+    }
+
+    @Test
+    public void testRepeatedCanAcquireAfterWaiting() throws Exception{
+        for(int i=0;i<1000;i++){
+            testCanAcquireAfterWaiting();
+        }
     }
 
     @Test(timeout=100)

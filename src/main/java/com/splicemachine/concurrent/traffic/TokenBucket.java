@@ -1,5 +1,8 @@
 package com.splicemachine.concurrent.traffic;
 
+import com.splicemachine.concurrent.Clock;
+import com.splicemachine.concurrent.SystemClock;
+
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
@@ -30,13 +33,19 @@ public class TokenBucket implements TrafficController {
     private volatile AtomicLong fuzzyTime;
     private volatile int maxTokens;
     private final WaitStrategy waitStrategy;
+    private final Clock clock;
 
     public TokenBucket(int maxTokens,TokenStrategy tokenStrategy, WaitStrategy waitStrategy) {
+        this(maxTokens,tokenStrategy,waitStrategy,SystemClock.INSTANCE);
+    }
+
+    public TokenBucket(int maxTokens,TokenStrategy tokenStrategy, WaitStrategy waitStrategy,Clock clock) {
         this.waitStrategy = waitStrategy;
         this.tokenAdder = tokenStrategy;
         this.maxTokens = maxTokens;
         this.numTokens = new AtomicInteger(maxTokens);
-        this.fuzzyTime = new AtomicLong(System.currentTimeMillis());
+        this.clock = clock;
+        this.fuzzyTime = new AtomicLong(clock.currentTimeMillis());
     }
 
     @Override
@@ -131,14 +140,14 @@ public class TokenBucket implements TrafficController {
     }
 
     private long timedWait(int numToAcquire, int iterationCount, long timeLeftNanos) {
-        long ts = System.nanoTime();
+        long ts = clock.nanoTime();
         waitStrategy.wait(iterationCount,timeLeftNanos,(numToAcquire<10? numToAcquire: 10)*tokenAdder.minWaitTimeNanos());
-        ts= System.nanoTime()-ts;
+        ts= clock.nanoTime()-ts;
         return ts;
     }
 
     private synchronized void addNewTokens(){
-        long ct = System.currentTimeMillis();
+        long ct = clock.currentTimeMillis();
         long ft = fuzzyTime.get();
         if(ct<=ft) return; //nothing to do
         /*
