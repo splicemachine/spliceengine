@@ -527,6 +527,7 @@ public class SparseHyperLogLog extends BaseBiasAdjustedHyperLogLogCounter{
     }
 
     private void convertToDense(){
+        if(!isSparse) return; //if we are already dense, don't do anything
         isSparse = false;
         denseRegisters = new byte[1<<precision];
         for(int i=0;i<sparseSize;i++){
