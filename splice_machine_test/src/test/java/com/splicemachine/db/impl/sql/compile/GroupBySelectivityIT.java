@@ -66,14 +66,16 @@ public class GroupBySelectivityIT extends SpliceUnitTest {
                 "call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS('%s',false)",
                 spliceSchemaWatcher));
         conn.commit();
+
     }
 
     @Test
     public void testGroupByCardinality() throws Exception {
-        secondRowContainsQuery("explain select count(*), c1,c2 from ts_low_cardinality group by c1,c2", "outputRows=25", methodWatcher);
+        secondRowContainsQuery("explain select count(*), c1 from ts_low_cardinality group by c1", "outputRows=5", methodWatcher);
         secondRowContainsQuery("explain select count(*), c2 from ts_low_cardinality group by c2", "outputRows=5", methodWatcher);
         secondRowContainsQuery("explain select count(*), c3 from ts_low_cardinality group by c3", "outputRows=5", methodWatcher);
         secondRowContainsQuery("explain select count(*), c4 from ts_low_cardinality group by c4", "outputRows=1", methodWatcher);
+
     }
 
     /**

@@ -179,11 +179,11 @@ public class SelectivityIT extends SpliceUnitTest {
         firstRowContainsQuery("explain select * from ts_singlepk where c1 is null","outputRows=1",methodWatcher); // FIX-JL
         firstRowContainsQuery("explain select * from ts_multiplepk where c1 is null","outputRows=0",methodWatcher);
         // without stats
-//        firstRowContainsQuery("explain select * from tns_nulls where c1 is null","outputRows=2",methodWatcher);
-//        firstRowContainsQuery("explain select * from tns_nonulls where c1 is null","outputRows=3",methodWatcher);
-//        firstRowContainsQuery("explain select * from tns_notnulls where c1 is null","outputRows=0",methodWatcher);
-//        firstRowContainsQuery("explain select * from tns_singlepk where c1 is null","outputRows=3",methodWatcher);
-//        firstRowContainsQuery("explain select * from tns_multiplepk where c1 is null","outputRows=3",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_nulls where c1 is null","outputRows=2",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_nonulls where c1 is null","outputRows=2",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_notnulls where c1 is null","outputRows=2",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_singlepk where c1 is null","outputRows=1",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_multiplepk where c1 is null","outputRows=2",methodWatcher);
     }
 
     @Test
@@ -195,45 +195,46 @@ public class SelectivityIT extends SpliceUnitTest {
         firstRowContainsQuery("explain select * from ts_singlepk where c1 is not null","outputRows=5",methodWatcher); // FIX-JL
         firstRowContainsQuery("explain select * from ts_multiplepk where c1 is not null","outputRows=5",methodWatcher);
         // without stats
-//        firstRowContainsQuery("explain select * from tns_nulls where c1 is not null","outputRows=2",methodWatcher);
-//        firstRowContainsQuery("explain select * from tns_nonulls where c1 is not null","outputRows=3",methodWatcher);
-//        firstRowContainsQuery("explain select * from tns_notnulls where c1 is not null","outputRows=0",methodWatcher);
-//        firstRowContainsQuery("explain select * from tns_singlepk where c1 is not null","outputRows=3",methodWatcher);
-//        firstRowContainsQuery("explain select * from tns_multiplepk where c1 is not null","outputRows=3",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_nulls where c1 is not null","outputRows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_nonulls where c1 is not null","outputRows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_notnulls where c1 is not null","outputRows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_singlepk where c1 is not null","outputRows=1",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_multiplepk where c1 is not null","outputRows=18",methodWatcher);
     }
 
 
     @Test
+    @Ignore("DB-3629")
     public void testInSelectivity() throws Exception {
         // with stats
-//        secondRowContainsQuery("explain select * from ts_nulls where c1 in (1,2,3)","outputRows=4",methodWatcher);
-//        secondRowContainsQuery("explain select * from ts_nonulls where c1 in (1,2,3)","outputRows=4",methodWatcher);
-//        secondRowContainsQuery("explain select * from ts_notnulls where c1 in (1,2,3)","outputRows=4",methodWatcher);
+        secondRowContainsQuery("explain select * from ts_nulls where c1 in (1,2,3)","outputRows=4",methodWatcher);
+        secondRowContainsQuery("explain select * from ts_nonulls where c1 in (1,2,3)","outputRows=4",methodWatcher);
+        secondRowContainsQuery("explain select * from ts_notnulls where c1 in (1,2,3)","outputRows=4",methodWatcher);
         firstRowContainsQuery("explain select * from ts_singlepk where c1 in (1,2,3)","outputRows=3",methodWatcher);
         firstRowContainsQuery("explain select * from ts_multiplepk where c1 in (1,2,3)","outputRows=3",methodWatcher);
         // without stats
-//        firstRowContainsQuery("explain select * from tns_nulls where c1 in (1,2,3)","outputRows=2",methodWatcher);
-//        firstRowContainsQuery("explain select * from tns_nonulls where c1 in (1,2,3)","outputRows=3",methodWatcher);
-//        firstRowContainsQuery("explain select * from tns_notnulls where c1 in (1,2,3)","outputRows=0",methodWatcher);
-//        firstRowContainsQuery("explain select * from tns_singlepk where c1 in (1,2,3)","outputRows=3",methodWatcher);
-//        firstRowContainsQuery("explain select * from tns_multiplepk where c1 in (1,2,3)","outputRows=3",methodWatcher);
+        secondRowContainsQuery("explain select * from tns_nulls where c1 in (1,2,3)","outputRows=2",methodWatcher);
+        secondRowContainsQuery("explain select * from tns_nonulls where c1 in (1,2,3)","outputRows=3",methodWatcher);
+        secondRowContainsQuery("explain select * from tns_notnulls where c1 in (1,2,3)","outputRows=0",methodWatcher);
+        secondRowContainsQuery("explain select * from tns_singlepk where c1 in (1,2,3)","outputRows=3",methodWatcher);
+        secondRowContainsQuery("explain select * from tns_multiplepk where c1 in (1,2,3)","outputRows=3",methodWatcher);
 
     }
 
     @Test
     public void testWildcardLikeSelectivity() throws Exception {
         // with stats
-//        secondRowContainsQuery("explain select * from ts_nulls where c2 like '%1'","outputRows=4",methodWatcher);
-//        secondRowContainsQuery("explain select * from ts_nonulls where c2 like '%1'","outputRows=4",methodWatcher);
-//        secondRowContainsQuery("explain select * from ts_notnulls where c2 like '%1'","outputRows=4",methodWatcher);
+        secondRowContainsQuery("explain select * from ts_nulls where c2 like '%1'","outputRows=4",methodWatcher);
+        secondRowContainsQuery("explain select * from ts_nonulls where c2 like '%1'","outputRows=3",methodWatcher);
+        secondRowContainsQuery("explain select * from ts_notnulls where c2 like '%1'","outputRows=3",methodWatcher);
         firstRowContainsQuery("explain select * from ts_singlepk where c2 like '%1'","outputRows=3",methodWatcher); // FIX-JL
-        firstRowContainsQuery("explain select * from ts_multiplepk where c1 c2 like '%1'","outputRows=3",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_multiplepk where c2 like '%1'","outputRows=3",methodWatcher);
         // without stats
-//        firstRowContainsQuery("explain select * from tns_nulls where c2 like '%1'","outputRows=2",methodWatcher);
-//        firstRowContainsQuery("explain select * from tns_nonulls where c2 like '%1'","outputRows=3",methodWatcher);
-//        firstRowContainsQuery("explain select * from tns_notnulls where c2 like '%1'","outputRows=0",methodWatcher);
-//        firstRowContainsQuery("explain select * from tns_singlepk where c2 like '%1'","outputRows=3",methodWatcher);
-//        firstRowContainsQuery("explain select * from tns_multiplepk where c2 like '%1'","outputRows=3",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_nulls where c2 like '%1'","outputRows=10",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_nonulls where c2 like '%1'","outputRows=10",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_notnulls where c2 like '%1'","outputRows=10",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_singlepk where c2 like '%1'","outputRows=10",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_multiplepk where c2 like '%1'","outputRows=10",methodWatcher);
 
     }
 
