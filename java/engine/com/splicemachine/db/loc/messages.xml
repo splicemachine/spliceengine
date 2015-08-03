@@ -1299,6 +1299,14 @@ Guide.
                  <arg>dbName</arg>
            </msg>
 
+           <msg>
+                <name>4251M</name>
+                <text>User '{0}' does not have {1} permission to analyze table '{2}'.{3}'.</text>
+                <arg>authorizationID</arg>
+                <arg>permissionType</arg>
+                <arg>schemaName</arg>
+                <arg>tableName</arg>
+            </msg>
             <msg>
                 <name>42601</name>
                 <text>In an ALTER TABLE statement, the column '{0}' has been specified as NOT NULL and either the DEFAULT clause was not specified or was specified as DEFAULT NULL.</text>
