@@ -26,7 +26,6 @@ import com.splicemachine.si.impl.DataStore;
 import com.splicemachine.si.impl.readresolve.NoOpReadResolver;
 import com.splicemachine.si.impl.rollforward.NoopRollForward;
 import com.splicemachine.si.impl.store.IgnoreTxnCacheSupplier;
-import com.splicemachine.uuid.Snowflake;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import org.apache.hadoop.hbase.HConstants;
@@ -60,7 +59,7 @@ import com.splicemachine.pipeline.api.Writer;
 import com.splicemachine.pipeline.impl.BulkWrites;
 import com.splicemachine.pipeline.impl.WriteResult;
 import com.splicemachine.pipeline.writecontext.PipelineWriteContext;
-import com.splicemachine.pipeline.writehandler.IndexUpsertWriteHandler;
+import com.splicemachine.pipeline.writehandler.IndexWriteHandler;
 import com.splicemachine.pipeline.writehandler.RegionWriteHandler;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.storage.index.BitIndex;
@@ -101,7 +100,8 @@ public class IndexedPipelineTest {
 
         BitSet indexedColumns = new BitSet(1);
         indexedColumns.set(0);
-        final IndexUpsertWriteHandler writeHandler = getIndexWriteHandler(indexedColumns);
+        IndexTransformer transformer = createIndexTransformer(indexedColumns);
+        final IndexWriteHandler writeHandler = getIndexWriteHandler(indexedColumns, transformer);
         /*
         when(testCtx.getWriteBuffer(any(byte[].class), any(PreFlushHook.class), any(WriteConfiguration.class),any(int.class)))
                 .thenAnswer(new Answer<PipingCallBuffer>() {
@@ -169,7 +169,7 @@ public class IndexedPipelineTest {
         final ActiveWriteTxn txn = new ActiveWriteTxn(1l, 1l);
         RegionCoprocessorEnvironment env = mock(RegionCoprocessorEnvironment.class);
         when(env.getRegion()).thenReturn(testRegion);
-        final PipelineWriteContext testCtx = spy(new PipelineWriteContext(new IndexCallBufferFactory(),txn,txnRegion, env));
+        final PipelineWriteContext testCtx = spy(new PipelineWriteContext(new IndexCallBufferFactory(), txn, txnRegion, env));
 
         //get a fake PipingWriteBuffer
 //        final String txnId = "1";
@@ -183,7 +183,8 @@ public class IndexedPipelineTest {
 
         BitSet indexedColumns = new BitSet(1);
         indexedColumns.set(0);
-        final IndexUpsertWriteHandler writeHandler = getIndexWriteHandler(indexedColumns);
+        IndexTransformer transformer = createIndexTransformer(indexedColumns);
+        final IndexWriteHandler writeHandler = getIndexWriteHandler(indexedColumns, transformer);
         /*
         when(testCtx.getWriteBuffer(any(byte[].class), any(PreFlushHook.class), any(WriteConfiguration.class),any(int.class)))
                 .thenAnswer(new Answer<PipingCallBuffer>() {
@@ -238,7 +239,7 @@ public class IndexedPipelineTest {
 
         //make sure nothing has been written yet
         Assert.assertEquals("Writes have made it to the main table before finish has been called!",0,mainTableWrites.size());
-        Assert.assertEquals("Writes have made it to the index table before finish has been called!",0,indexedRows.size());
+        Assert.assertEquals("Writes have made it to the index table before finish has been called!", 0, indexedRows.size());
 
         Map<KVPair, WriteResult> finishedResults = testCtx.close();
 
@@ -281,7 +282,8 @@ public class IndexedPipelineTest {
 
         BitSet indexedColumns = new BitSet(1);
         indexedColumns.set(0);
-        final IndexUpsertWriteHandler writeHandler = getIndexWriteHandler(indexedColumns);
+        IndexTransformer transformer = createIndexTransformer(indexedColumns);
+        final IndexWriteHandler writeHandler = getIndexWriteHandler(indexedColumns, transformer);
         /*
         when(testCtx.getWriteBuffer(any(byte[].class), any(PreFlushHook.class), any(WriteConfiguration.class),any(int.class)))
                 .thenAnswer(new Answer<PipingCallBuffer>() {
@@ -344,7 +346,7 @@ public class IndexedPipelineTest {
         Assert.assertEquals("Incorrect number of writes have made it to the main table!",mainTablePairs.size(),mainTableWrites.size());
         Assert.assertEquals("Incorrect number of writes have made it to the index table!", mainTablePairs.size(), indexedRows.size());
 
-        assertMainAndIndexRowsMatch(mainTableWrites,indexedRows,mainTablePairs,finishedResults,writeHandler.transformer);
+        assertMainAndIndexRowsMatch(mainTableWrites, indexedRows, mainTablePairs, finishedResults, transformer);
         //make sure everything in failed reports WRONG_REGION
         for(KVPair pair:failedPairs){
             Assert.assertEquals("Incorrect status!", Code.WRONG_REGION,finishedResults.get(pair).getCode());
@@ -365,7 +367,7 @@ public class IndexedPipelineTest {
         final TxnView txn = new ActiveWriteTxn(1l,1l);
         RegionCoprocessorEnvironment env = mock(RegionCoprocessorEnvironment.class);
         when(env.getRegion()).thenReturn(testRegion);
-        final PipelineWriteContext testCtx = spy(new PipelineWriteContext(new IndexCallBufferFactory(),txn,txnRegion, env));
+        final PipelineWriteContext testCtx = spy(new PipelineWriteContext(new IndexCallBufferFactory(), txn, txnRegion, env));
 
         //get a fake PipingWriteBuffer
         final ObjectArrayList<KVPair> indexedRows = ObjectArrayList.newInstance();
@@ -378,7 +380,7 @@ public class IndexedPipelineTest {
 
         BitSet indexedColumns = new BitSet(1);
         indexedColumns.set(0);
-        final IndexUpsertWriteHandler writeHandler = getIndexWriteHandler(indexedColumns);
+        final IndexWriteHandler writeHandler = getIndexWriteHandler(indexedColumns, createIndexTransformer(indexedColumns));
         /*
         when(testCtx.getWriteBuffer(any(byte[].class), any(PreFlushHook.class), any(WriteConfiguration.class),any(int.class)))
                 .thenAnswer(new Answer<PipingCallBuffer>() {
@@ -421,7 +423,7 @@ public class IndexedPipelineTest {
 
         //make sure nothing has been written yet
         Assert.assertEquals("Writes have made it to the main table before finish has been called!",0,mainTableWrites.size());
-        Assert.assertEquals("Writes have made it to the index table before finish has been called!",0,indexedRows.size());
+        Assert.assertEquals("Writes have made it to the index table before finish has been called!", 0, indexedRows.size());
 
         Map<KVPair, WriteResult> finishedResults = testCtx.close();
 
@@ -478,7 +480,8 @@ public class IndexedPipelineTest {
 */
         BitSet indexedColumns = new BitSet(1);
         indexedColumns.set(0);
-        IndexUpsertWriteHandler writeHandler = getIndexWriteHandler(indexedColumns);
+        IndexTransformer transformer = createIndexTransformer(indexedColumns);
+        IndexWriteHandler writeHandler = getIndexWriteHandler(indexedColumns, transformer);
 
         BitIndex index = BitIndexing.uncompressedBitMap(indexedColumns, new BitSet(), new BitSet(), new BitSet());
 
@@ -519,27 +522,26 @@ public class IndexedPipelineTest {
          * 3 is hard to do--we basically have to compare the first N bytes of every row key, instead of
          * just doing a direct equality
          */
-        IndexTransformer transformer = writeHandler.transformer;
         assertMainAndIndexRowsMatch(mainTableWrites, indexedRows, mainTablePairs, finishedResults, transformer);
     }
 
     private Writer mockSuccessWriter(final Collection<KVPair> indexedRows) throws ExecutionException {
         Writer fakeWriter = mock(Writer.class);
-        when(fakeWriter.write(any(byte[].class),any(BulkWrites.class),any(WriteConfiguration.class)))
-                .then(new Answer<Future<WriteStats>>() {
-                    @Override
-                    public Future<WriteStats> answer(InvocationOnMock invocation) throws Throwable {
-                        BulkWrites write = (BulkWrites) invocation.getArguments()[1];
-                        Collection<BulkWrite> bws = write.getBulkWrites();
-                        for(BulkWrite bw:bws){
-                            indexedRows.addAll(bw.getMutations());
-                        }
-
-                        @SuppressWarnings("unchecked") Future<WriteStats> future = mock(Future.class);
-                        when(future.get()).thenReturn(WriteStats.NOOP_WRITE_STATS);
-                        return future;
+        when(fakeWriter.write(any(byte[].class), any(BulkWrites.class), any(WriteConfiguration.class)))
+            .then(new Answer<Future<WriteStats>>() {
+                @Override
+                public Future<WriteStats> answer(InvocationOnMock invocation) throws Throwable {
+                    BulkWrites write = (BulkWrites) invocation.getArguments()[1];
+                    Collection<BulkWrite> bws = write.getBulkWrites();
+                    for (BulkWrite bw : bws) {
+                        indexedRows.addAll(bw.getMutations());
                     }
-                });
+
+                    @SuppressWarnings("unchecked") Future<WriteStats> future = mock(Future.class);
+                    when(future.get()).thenReturn(WriteStats.NOOP_WRITE_STATS);
+                    return future;
+                }
+            });
         return fakeWriter;
     }
 
@@ -553,27 +555,41 @@ public class IndexedPipelineTest {
         return fakeCache;
     }
 
-    private IndexUpsertWriteHandler getIndexWriteHandler(BitSet indexedColumns) {
+    private IndexWriteHandler getIndexWriteHandler(BitSet indexedColumns, IndexTransformer transformer) {
         int[] mainColToIndexPos = new int[]{0};
         BitSet descColumns = new BitSet(1);
         boolean keepState = true;
-        boolean unique = false;
-        boolean uniqueWithDuplicateNulls = false;
         int expectedWrites = 10;
         byte[] indexConglomBytes = Bytes.toBytes("1184");
-        int[] format_ids = new int[]{80};
 
-        Snowflake snowflake = new Snowflake((short)1);
-        Snowflake.Generator generator = snowflake.newGenerator(100);
+//        Snowflake snowflake = new Snowflake((short)1);
+//        Snowflake.Generator generator = snowflake.newGenerator(100);
 
-        IndexUpsertWriteHandler writeHandler = new IndexUpsertWriteHandler(indexedColumns,
+        return new IndexWriteHandler(indexedColumns,
                 mainColToIndexPos,
                 indexConglomBytes,
                 descColumns,
-                keepState,unique,
-                uniqueWithDuplicateNulls,expectedWrites,null,format_ids);
+                                           keepState,
+                                           expectedWrites,
+                                           transformer);
+    }
 
-        return writeHandler;
+    private IndexTransformer createIndexTransformer(BitSet indexedColumns) {
+        int[] mainColToIndexPos = new int[]{0};
+        int[] srcPKIndicies = null;
+        int[] format_ids = new int[]{80};
+        boolean unique = false;
+        boolean uniqueWithDuplicateNulls = false;
+        BitSet descColumns = new BitSet(1);
+        return new IndexTransformer(unique,
+                                    uniqueWithDuplicateNulls,
+                                    null,
+                                    srcPKIndicies,
+                                    format_ids,
+                                    null,
+                                    mainColToIndexPos,
+                                    descColumns,
+                                    indexedColumns);
     }
 
     private void assertMainAndIndexRowsMatch(ObjectArrayList<Mutation> mainTableWrites,

@@ -6,23 +6,17 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
 
 import com.carrotsearch.hppc.BitSet;
-import com.carrotsearch.hppc.ObjectArrayList;
 import com.carrotsearch.hppc.ObjectObjectOpenHashMap;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
-import com.splicemachine.SpliceKryoRegistry;
-import com.splicemachine.constants.SIConstants;
-import com.splicemachine.constants.SpliceConstants;
-import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
-import com.splicemachine.derby.utils.DerbyBytesUtil;
-
-import com.splicemachine.pipeline.api.PreFlushHook;
-import com.splicemachine.pipeline.api.WriteConfiguration;
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
@@ -33,16 +27,24 @@ import org.junit.Test;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
+import com.splicemachine.SpliceKryoRegistry;
+import com.splicemachine.constants.SIConstants;
+import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
+import com.splicemachine.derby.utils.DerbyBytesUtil;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.encoding.MultiFieldDecoder;
 import com.splicemachine.encoding.MultiFieldEncoder;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.pipeline.api.BufferConfiguration;
 import com.splicemachine.pipeline.api.CallBuffer;
+import com.splicemachine.pipeline.api.PreFlushHook;
+import com.splicemachine.pipeline.api.WriteConfiguration;
 import com.splicemachine.pipeline.writecontext.PipelineWriteContext;
-import com.splicemachine.pipeline.writehandler.IndexDeleteWriteHandler;
-import com.splicemachine.pipeline.writehandler.IndexUpsertWriteHandler;
+import com.splicemachine.pipeline.writehandler.IndexWriteHandler;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.storage.index.BitIndex;
@@ -52,7 +54,7 @@ import com.splicemachine.storage.index.BitIndexing;
  * @author Scott Fines
  * Created on: 9/25/13
  */
-public class IndexUpsertWriteHandlerTest {
+public class IndexWriteHandlerTest {
 
     @Test
     public void testDeleteFromIndexWorks() throws Exception {
@@ -84,10 +86,8 @@ public class IndexUpsertWriteHandlerTest {
         pairs.add(next);
 
         List<KVPair> indexPairs = checkInsertionCorrect(indexedColumns, pairs);
-        int[] formatIds = new int[]{80};
         //get a delete write handler
-        IndexDeleteWriteHandler deleteHandler = new IndexDeleteWriteHandler(
-                indexedColumns,mainColToIndexPos,Bytes.toBytes("1184"),new BitSet(),true,6, null, formatIds);
+        IndexWriteHandler deleteHandler = getIndexDeleteHandler(indexedColumns,mainColToIndexPos, 6);
 
         //delete every other row in pairs
         Set<KVPair> deletedPairs = Sets.newTreeSet();
@@ -184,7 +184,7 @@ public class IndexUpsertWriteHandlerTest {
         PipelineWriteContext testCtx = getWriteContext(indexPairs);
 
         int[] mainColToIndexPos = new int[]{0};
-        IndexUpsertWriteHandler writeHandler = getIndexUpsertWriteHandler(indexedColumns, mainColToIndexPos);
+        IndexWriteHandler writeHandler = getIndexWriteHandler(indexedColumns, mainColToIndexPos);
 
 				int i=0;
         for(KVPair pair:pairs){
@@ -200,7 +200,7 @@ public class IndexUpsertWriteHandlerTest {
         writeHandler.close(testCtx);
 
         //make sure everything got written through
-        Assert.assertEquals("Incorrect number of rows have been written!",pairs.size(),indexPairs.size());
+        Assert.assertEquals("Incorrect number of rows have been written!", pairs.size(), indexPairs.size());
         assertPresentInIndex(pairs, indexPairs);
 
 
@@ -257,22 +257,53 @@ public class IndexUpsertWriteHandlerTest {
         return testCtx;
     }
 
-    private IndexUpsertWriteHandler getIndexUpsertWriteHandler(BitSet indexedColumns, int[] mainColToIndexPos) {
+    private IndexWriteHandler getIndexDeleteHandler(BitSet indexedColumns,
+                                                         int[] mainColToIndexPos,
+                                                          int expectedWrites) {
         BitSet descColumns = new BitSet(1);
         boolean keepState = true;
-        boolean unique = false;
-        boolean uniqueWithDuplicateNulls = false;
+        byte[] indexConglomBytes = Bytes.toBytes("1184");
+
+        return new IndexWriteHandler(indexedColumns,
+                                           mainColToIndexPos,
+                                           indexConglomBytes,
+                                           descColumns,
+                                           keepState,
+                                           expectedWrites,
+                                           createIndexTransformer(indexedColumns,mainColToIndexPos));
+    }
+
+    private IndexWriteHandler getIndexWriteHandler(BitSet indexedColumns,
+                                                         int[] mainColToIndexPos) {
+        BitSet descColumns = new BitSet(1);
+        boolean keepState = true;
         int expectedWrites = 10;
         byte[] indexConglomBytes = Bytes.toBytes("1184");
-        int[] formatIds = new int[] {80};
-        IndexUpsertWriteHandler writeHandler = new IndexUpsertWriteHandler(indexedColumns,
+
+        return new IndexWriteHandler(indexedColumns,
                 mainColToIndexPos,
                 indexConglomBytes,
                 descColumns,
-                keepState,unique,
-                uniqueWithDuplicateNulls,expectedWrites, null, formatIds);
+                                           keepState,
+                                           expectedWrites,
+                                           createIndexTransformer(indexedColumns, mainColToIndexPos));
+    }
 
-        return writeHandler;
+    private IndexTransformer createIndexTransformer(BitSet indexedColumns, int[] mainColToIndexPos) {
+        int[] srcPKIndicies = null;
+        int[] format_ids = new int[]{80};
+        boolean unique = false;
+        boolean uniqueWithDuplicateNulls = false;
+        BitSet descColumns = new BitSet(1);
+        return new IndexTransformer(unique,
+                                    uniqueWithDuplicateNulls,
+                                    null,
+                                    srcPKIndicies,
+                                    format_ids,
+                                    null,
+                                    mainColToIndexPos,
+                                    descColumns,
+                                    indexedColumns);
     }
 
     private BufferConfiguration getConstantBufferConfiguration() {
