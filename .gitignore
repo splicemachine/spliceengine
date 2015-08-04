@@ -18,6 +18,7 @@
 *.pdf
 *.aux
 *.out
+**/*.diff
 rebuildAll.sh
 rebuild.sh
 out
