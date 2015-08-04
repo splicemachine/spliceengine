@@ -59,12 +59,12 @@ public abstract class TableStatsDecoder{
         long timestamp;
         boolean isStale;
         boolean inProgress;
-        timestamp=index.isSet(0)?decoder.decodeNextLong():System.currentTimeMillis();
-        isStale=!index.isSet(1) || decoder.decodeNextBoolean();
-        inProgress=index.isSet(2) && decoder.decodeNextBoolean();
+        timestamp=index.isSet(2)?decoder.decodeNextLong():System.currentTimeMillis();
+        isStale=!index.isSet(3) || decoder.decodeNextBoolean();
+        inProgress=index.isSet(4) && decoder.decodeNextBoolean();
 
         TableStatisticsDescriptor stats = null;
-        if(index.isSet(3))
+        if(index.isSet(5))
             stats=decode(decoder,conglomId,partitionId,timestamp,isStale,inProgress);
 
         return stats;
