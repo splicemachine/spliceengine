@@ -3,7 +3,9 @@ package com.splicemachine.derby.impl.stats;
 import com.google.common.base.Function;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.NumberDataType;
 import com.splicemachine.db.iapi.types.SQLDecimal;
+import com.splicemachine.db.iapi.types.SQLInteger;
 import com.splicemachine.encoding.Encoder;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.stats.ColumnStatistics;
@@ -125,7 +127,7 @@ public class NumericStats extends BaseDvdStatistics{
 
     private static BigDecimal safeGetDecimal(DataValueDescriptor value) {
         try {
-            return (BigDecimal)value.getObject();
+            return ((NumberDataType)value).getBigDecimal();
         } catch (StandardException se) {
             throw new RuntimeException(se);
         }
