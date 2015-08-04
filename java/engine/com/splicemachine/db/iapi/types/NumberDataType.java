@@ -548,6 +548,7 @@ public abstract class NumberDataType extends DataType
         return v;
 	}
 
-
+	@Override
+	public abstract BigDecimal getBigDecimal() throws StandardException;
 }
 
