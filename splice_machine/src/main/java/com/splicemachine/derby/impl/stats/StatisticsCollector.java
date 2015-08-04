@@ -229,7 +229,7 @@ public class StatisticsCollector {
             DataValueDescriptor dvd = dvds[i];
             int columnId = columnPositionMap[i];
             int columnLength = lengths[i];
-            collectors[i] = DvdStatsCollector.newCollector(columnId, dvd.getTypeFormatId(), columnLength, cardinalityPrecision, topKSize);
+            collectors[i] = DvdStatsCollector.newCollector(columnId, dvd.getTypeFormatId(), columnLength, topKSize,cardinalityPrecision);
         }
     }
 
