@@ -31,10 +31,11 @@ public class HyperLogLogBiasGenerator{
     }
 
     private static void generateBias() throws Exception{
-        int shift = 33;
+        int shift = 21;
         long maxCardinality = 1l<<shift;
+//        long maxCardinality=33;
 //        int cardStep = 1;
-        int p = 16;
+        int p = 14;
 
         System.out.println("Expected sigma="+(1.04d/Math.sqrt(1<<p)));
         File dest = new File("target/bias.out");
@@ -42,7 +43,7 @@ public class HyperLogLogBiasGenerator{
         Hash64 hashFunction=HashFunctions.murmur2_64(0);
 //        Hash64 hashFunction= new GoogleHasher();
         ExecutorService executor =Executors.newFixedThreadPool(4);
-        List<Future<String>> futures = new ArrayList<>(shift);
+        List<Future<String>> futures = new ArrayList<>(1);
         for(long i = maxCardinality;i>0;i>>>=1){
             futures.add(executor.submit(new Counter(i,hashFunction,p)));
         }
@@ -75,13 +76,13 @@ public class HyperLogLogBiasGenerator{
         public String call() throws Exception{
             BaseLogLogCounter count = new SparseHyperLogLog(p, hf, HyperLogLogBiasEstimators.biasEstimate(p));
             BaseLogLogCounter denseCount = new AdjustedHyperLogLogCounter(p,hf);
-            for(long j=Integer.MAX_VALUE;j<cardinality;j++){
+            for(long j=1;j<=cardinality;j++){
                 count.update(j);
                 denseCount.update(j);
             }
             double sparseRelErr = (double)((count.getEstimate()-cardinality))/cardinality;
             double denseRelErr = (double)((denseCount.getEstimate()-cardinality))/cardinality;
-            System.out.printf("[%s] %d,%f,%f%n",Thread.currentThread().getName(),cardinality,sparseRelErr,denseRelErr);
+            System.out.printf("[%s] %d,%d,%f,%f%n",Thread.currentThread().getName(),cardinality,count.getEstimate(),sparseRelErr,denseRelErr);
             return String.format("%d,%f",cardinality,sparseRelErr);
         }
     }

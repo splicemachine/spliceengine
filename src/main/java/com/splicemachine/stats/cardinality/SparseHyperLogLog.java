@@ -82,6 +82,7 @@ public class SparseHyperLogLog extends BaseBiasAdjustedHyperLogLogCounter{
     private byte[] denseRegisters;
 
     private int[] buffer;
+    private final int maxBufferSize;
     private int bufferSize;
 
     public SparseHyperLogLog(int size,Hash64 hashFunction){
@@ -114,8 +115,9 @@ public class SparseHyperLogLog extends BaseBiasAdjustedHyperLogLogCounter{
         else bSize = maxTotalSize;
 
         this.maxSparseSize =Math.min(maxTotalSize,3*bSize);
+        this.maxBufferSize = bSize;
         this.isSparse=true;
-        this.buffer = new int[bSize];
+        this.buffer = new int[Math.min(8,bSize)];
         this.bufferSize=0;
     }
 
@@ -147,8 +149,9 @@ public class SparseHyperLogLog extends BaseBiasAdjustedHyperLogLogCounter{
             bSize = maxTotalSize>>2;
         else bSize = maxTotalSize;
 
-        buffer = new int[bSize];
+        this.buffer = new int[Math.min(8,bSize)];
         this.maxSparseSize = 3*bSize;
+        this.maxBufferSize = bSize;
         bufferSize = 0;
         this.isSparse = true;
     }
@@ -161,6 +164,7 @@ public class SparseHyperLogLog extends BaseBiasAdjustedHyperLogLogCounter{
         this.denseRegisters =Arrays.copyOf(denseRegisters,denseRegisters.length);
         this.maxSparseSize = 0;
         this.isSparse = false;
+        this.maxBufferSize = 0;
     }
 
     @Override
@@ -264,8 +268,14 @@ public class SparseHyperLogLog extends BaseBiasAdjustedHyperLogLogCounter{
     private void buffer(int r){
         buffer[bufferSize]= r;
         bufferSize++;
-        if(bufferSize==buffer.length)
-            mergeBuffer();
+        if(bufferSize==buffer.length){
+            if(bufferSize==maxBufferSize)
+                mergeBuffer();
+            else{
+                int s = Math.min(maxBufferSize,2*buffer.length);
+                buffer = Arrays.copyOf(buffer,s);
+            }
+        }
     }
 
     private void mergeBuffer(){
@@ -288,10 +298,14 @@ public class SparseHyperLogLog extends BaseBiasAdjustedHyperLogLogCounter{
              * array, throwing it away is not a problem, so just point the sparse array to the buffer and return.
              * (In practice, sparseSize==0 implies that sparseArray is null anyway, so we are really just allocating
              * a single new array).
+             *
+             * However, since the buffer is allowed to contain duplicates, we need to first remove any such
+             * duplicates from the array; otherwise, we will violate the invariant that the sparseArray has
+             * no duplicate entries.
              */
             sortBuffer();
+            sparseSize = deduplicateBuffer(buffer);
             sparseArray=buffer;
-            sparseSize=bufferSize;
             buffer=new int[buffer.length];
         }else if(sparseSize+bufferSize>=maxSparseSize){
             /*
@@ -310,6 +324,25 @@ public class SparseHyperLogLog extends BaseBiasAdjustedHyperLogLogCounter{
             mergeInternal();
         }
         bufferSize=0;
+    }
+
+    private int deduplicateBuffer(int[] data){
+        /*
+         * One pass to de-duplicate elements in the buffer. This moves data around, compressing the
+         * values into the same array. It returns the new size of the array (after deduplicating).
+         */
+        int pos = 0;
+        int last = 0;
+        for(int i=0;i<data.length;i++){
+            int n = data[i];
+            if(n==0) continue; //skip 0 elements, since 0 is impossible
+            if(n!=last){
+                data[pos] = n;
+                last = n;
+                pos++;
+            }
+        }
+        return pos;
     }
 
     private void mergeInternal(){
@@ -376,9 +409,22 @@ public class SparseHyperLogLog extends BaseBiasAdjustedHyperLogLogCounter{
                 dPos +=(sparseSize-sPos);
                 break;
             }else if(buff==0){
-                //we need to advance b
-                buff = buffer[bPos];
-                buffReg = buff>>>INT_SPARSE_SHIFT;
+                /*
+                 * We need to advance b.
+                 *
+                 * We know that 0 is an impossible value for any entry in the register, because p(0) = 1, so
+                 * even if hash(x) = 0 (unlikely), then p(hash(x))!=0, meaning the int-encoded version also
+                 * is not 0.
+                 *
+                 * Unfortunately, the buffer may contain 0 elements (since we will construct a buffer of a fixed
+                 * size which may not be fully filled). Thus, we want to skip over 0 buffer entries. Since we are sorting
+                 * in an unsigned way, zeros should all be at the start of the buffer, but the do{}while() loop is
+                 * inexpensive when not looping, so it's not something that's particularly problematic.
+                 */
+                do{
+                    buff=buffer[bPos];
+                    buffReg=buff>>>INT_SPARSE_SHIFT;
+                }while(buff==0);
             }
 
             if(sPos >=sparseSize){
