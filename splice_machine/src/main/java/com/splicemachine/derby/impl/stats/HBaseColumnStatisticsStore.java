@@ -54,7 +54,7 @@ public class HBaseColumnStatisticsStore implements ColumnStatisticsStore {
 
     public void start() throws ExecutionException {
         try {
-            Txn txn = TransactionLifecycle.getLifecycleManager().beginTransaction(Txn.IsolationLevel.READ_UNCOMMITTED);
+            TxnView txn = TransactionLifecycle.getLifecycleManager().beginTransaction(Txn.IsolationLevel.READ_UNCOMMITTED);
             refreshThread.scheduleAtFixedRate(new Refresher(txn),0l,StatsConstants.partitionCacheExpiration,TimeUnit.MILLISECONDS);
         } catch (IOException e) {
             throw new ExecutionException(e);
@@ -166,7 +166,8 @@ public class HBaseColumnStatisticsStore implements ColumnStatisticsStore {
         throw new IllegalStateException("Programmer error: Did not find a data column!");
     }
 
-    private class Refresher implements Runnable {
+    @SuppressWarnings("unused")
+	private class Refresher implements Runnable {
         private final TxnView baseTxn; //should be read-only, and use READ_UNCOMMITTED isolation level
 
         public Refresher(TxnView baseTxn) {
@@ -177,9 +178,9 @@ public class HBaseColumnStatisticsStore implements ColumnStatisticsStore {
         public void run() {
         	boolean isTrace = LOG.isTraceEnabled();
             Kryo kryo = SpliceKryoRegistry.getInstance().get();
-            Map<String,List<ColumnStatistics>> toCacheMap = new HashMap<>();
-            SortedMultiScanner scanner = getScanner(baseTxn, -1, null);
-            try {
+			Map<String,List<ColumnStatistics>> toCacheMap = new HashMap<>();
+            
+            try(SortedMultiScanner scanner = getScanner(baseTxn, -1, null)) {
                 List<KeyValue> nextRow;
                 EntryDecoder decoder = new EntryDecoder();
                 while ((nextRow = scanner.nextKeyValues()) != null) {
@@ -208,8 +209,6 @@ public class HBaseColumnStatisticsStore implements ColumnStatisticsStore {
                 }
             } catch (Exception e) {
                 LOG.warn("Error encountered while refreshing Column Statistics Cache", e);
-	        } finally {
-	            scanner.close();
 	        }
         }
     }

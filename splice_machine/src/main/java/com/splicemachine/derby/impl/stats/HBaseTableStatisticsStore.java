@@ -148,9 +148,7 @@ public class HBaseTableStatisticsStore implements TableStatisticsStore {
 
         public void run() {
         	boolean isTrace = LOG.isTraceEnabled();
-            //SortedMultiScanner scanner = getScanner(refreshTxn, -1, null);
             com.splicemachine.async.Scanner scanner = getScanner(refreshTxn, -1, null);
-            //com.splicemachine.async.Scanner scanner = hbaseClient.newScanner(tableStatsConglom);
             Deferred<ArrayList<ArrayList<KeyValue>>> data = scanner.nextRows();
             ArrayList<ArrayList<KeyValue>> rowBatch;
             EntryDecoder decoder = new EntryDecoder();
