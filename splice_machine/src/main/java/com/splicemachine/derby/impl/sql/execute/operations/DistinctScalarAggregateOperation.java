@@ -105,6 +105,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
     private boolean step3Closed;
     private DistinctAggregateBuffer buffer;
     private SpliceResultScanner scanner;
+    private int step2Bucket;
 
     protected static final String NAME = DistinctScalarAggregateOperation.class.getSimpleName().replaceAll("Operation","");
 
@@ -188,6 +189,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
             SpliceRuntimeContext firstStep = SpliceRuntimeContext.generateSinkRuntimeContext(txn, true);
             firstStep.setStatementInfo(runtimeContext.getStatementInfo());
             SpliceRuntimeContext secondStep = SpliceRuntimeContext.generateSinkRuntimeContext(txn,false);
+            step2Bucket = ((int)secondStep.getHashBucket() & 0xFF) >>> 4;
             secondStep.setStatementInfo(runtimeContext.getStatementInfo());
             final RowProvider step1 = source.getMapRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext), firstStep); // Step 1
             final RowProvider step2 = getMapRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext), secondStep); // Step 2
@@ -293,10 +295,9 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
         boolean retval = true;
         if (region != null) {
             byte[] startKey = region.getStartKey();
-            byte[] endKey = region.getEndKey();
-            byte bucket = spliceRuntimeContext.getHashBucket();
             // see if this region was used to write intermediate results from step 2
-            if (!(startKey.length > 0 && startKey[0] == bucket || endKey.length > 0 && endKey[0]-1 == bucket)){
+            int thisBucket = startKey.length > 0 ? ((int)startKey[0] & 0xFF) >>> 4 : 0;
+            if (step2Bucket != thisBucket) {
                 retval = false;
             }
         }
@@ -402,6 +403,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
         out.writeInt(orderItem);
         out.writeInt(extraUniqueSequenceID.length);
         out.write(extraUniqueSequenceID);
+        out.writeInt(step2Bucket);
     }
 
     @Override
@@ -411,6 +413,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
         orderItem = in.readInt();
         extraUniqueSequenceID = new byte[in.readInt()];
         in.readFully(extraUniqueSequenceID);
+        step2Bucket = in.readInt();
     }
 
     @Override
@@ -521,6 +524,10 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
         };
         // reset baseScan to bucket# + uniqueId
         byte[] regionStart = region.getStartKey();
+        if(regionStart == null || regionStart.length == 0) {
+            regionStart = new byte[1];
+            regionStart[0] = 0;
+        }
         byte[] start = new byte[regionStart.length+uniqueID.length];
         System.arraycopy(regionStart, 0, start, 0, regionStart.length);
         System.arraycopy(uniqueID, 0, start, regionStart.length, uniqueID.length);
