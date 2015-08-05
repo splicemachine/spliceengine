@@ -87,7 +87,7 @@ public class IndexWriteHandlerTest {
 
         List<KVPair> indexPairs = checkInsertionCorrect(indexedColumns, pairs);
         //get a delete write handler
-        IndexWriteHandler deleteHandler = getIndexDeleteHandler(indexedColumns,mainColToIndexPos, 6);
+        IndexWriteHandler deleteHandler = getIndexWriteHandler(indexedColumns,mainColToIndexPos, 6);
 
         //delete every other row in pairs
         Set<KVPair> deletedPairs = Sets.newTreeSet();
@@ -184,7 +184,7 @@ public class IndexWriteHandlerTest {
         PipelineWriteContext testCtx = getWriteContext(indexPairs);
 
         int[] mainColToIndexPos = new int[]{0};
-        IndexWriteHandler writeHandler = getIndexWriteHandler(indexedColumns, mainColToIndexPos);
+        IndexWriteHandler writeHandler = getIndexWriteHandler(indexedColumns, mainColToIndexPos, 10);
 
 				int i=0;
         for(KVPair pair:pairs){
@@ -257,36 +257,19 @@ public class IndexWriteHandlerTest {
         return testCtx;
     }
 
-    private IndexWriteHandler getIndexDeleteHandler(BitSet indexedColumns,
-                                                         int[] mainColToIndexPos,
-                                                          int expectedWrites) {
-        BitSet descColumns = new BitSet(1);
-        boolean keepState = true;
-        byte[] indexConglomBytes = Bytes.toBytes("1184");
-
-        return new IndexWriteHandler(indexedColumns,
-                                           mainColToIndexPos,
-                                           indexConglomBytes,
-                                           descColumns,
-                                           keepState,
-                                           expectedWrites,
-                                           createIndexTransformer(indexedColumns,mainColToIndexPos));
-    }
-
     private IndexWriteHandler getIndexWriteHandler(BitSet indexedColumns,
-                                                         int[] mainColToIndexPos) {
+                                                   int[] mainColToIndexPos,
+                                                   int expectedWrites) {
         BitSet descColumns = new BitSet(1);
         boolean keepState = true;
-        int expectedWrites = 10;
         byte[] indexConglomBytes = Bytes.toBytes("1184");
 
         return new IndexWriteHandler(indexedColumns,
-                mainColToIndexPos,
-                indexConglomBytes,
-                descColumns,
-                                           keepState,
-                                           expectedWrites,
-                                           createIndexTransformer(indexedColumns, mainColToIndexPos));
+                                     indexConglomBytes,
+                                     descColumns,
+                                     keepState,
+                                     expectedWrites,
+                                     createIndexTransformer(indexedColumns, mainColToIndexPos));
     }
 
     private IndexTransformer createIndexTransformer(BitSet indexedColumns, int[] mainColToIndexPos) {
