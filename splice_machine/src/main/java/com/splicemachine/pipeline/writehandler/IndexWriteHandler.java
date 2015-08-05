@@ -29,13 +29,12 @@ public class IndexWriteHandler extends AbstractIndexWriteHandler {
     private final int expectedWrites;
 
     public IndexWriteHandler(BitSet indexedColumns,
-                             int[] keyEncodingMap,
                              byte[] indexConglomBytes,
                              BitSet descColumns,
                              boolean keepState,
                              int expectedWrites,
                              IndexTransformer transformer){
-        super(indexedColumns, keyEncodingMap, indexConglomBytes, descColumns, keepState);
+        super(indexedColumns, indexConglomBytes, descColumns, keepState);
         this.expectedWrites = expectedWrites;
         this.transformer = transformer;
     }

@@ -120,7 +120,7 @@ class IndexFactory implements LocalWriteFactory {
                                                             descColumns,
                                                             indexedColumns);
 
-        IndexWriteHandler writeHandler = new IndexWriteHandler(indexedColumns, mainColToIndexPosMap, indexConglomBytes,
+        IndexWriteHandler writeHandler = new IndexWriteHandler(indexedColumns, indexConglomBytes,
                                                        descColumns, keepState, expectedWrites, transformer);
 
         if (ddlChange == null) {

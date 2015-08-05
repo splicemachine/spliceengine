@@ -556,7 +556,6 @@ public class IndexedPipelineTest {
     }
 
     private IndexWriteHandler getIndexWriteHandler(BitSet indexedColumns, IndexTransformer transformer) {
-        int[] mainColToIndexPos = new int[]{0};
         BitSet descColumns = new BitSet(1);
         boolean keepState = true;
         int expectedWrites = 10;
@@ -566,12 +565,11 @@ public class IndexedPipelineTest {
 //        Snowflake.Generator generator = snowflake.newGenerator(100);
 
         return new IndexWriteHandler(indexedColumns,
-                mainColToIndexPos,
-                indexConglomBytes,
-                descColumns,
-                                           keepState,
-                                           expectedWrites,
-                                           transformer);
+                                     indexConglomBytes,
+                                     descColumns,
+                                     keepState,
+                                     expectedWrites,
+                                     transformer);
     }
 
     private IndexTransformer createIndexTransformer(BitSet indexedColumns) {

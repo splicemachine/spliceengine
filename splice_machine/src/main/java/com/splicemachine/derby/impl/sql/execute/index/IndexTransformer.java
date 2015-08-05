@@ -299,17 +299,7 @@ public class IndexTransformer {
                 break;
             }
         }
-
-        if (primaryKeyIndexColumnUpdatedOnly) {
-            /*
-             * This is an UPDATE or an UPSERT and we have ONLY updated primary key columns.  Return and send the mutation
-             * to the index as it is.  The old value will have been deleted by the UpdateOperation which sends
-             * a delete mutation when it sees that primary keys have changed.
-             */
-            ctx.sendUpstream(mutation);
-            return true;
-        }
-        return false;
+        return primaryKeyIndexColumnUpdatedOnly;
     }
 
     private boolean isSourceColumnPrimaryKey(int sourceColumnIndex) {
