@@ -189,7 +189,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
             SpliceRuntimeContext firstStep = SpliceRuntimeContext.generateSinkRuntimeContext(txn, true);
             firstStep.setStatementInfo(runtimeContext.getStatementInfo());
             SpliceRuntimeContext secondStep = SpliceRuntimeContext.generateSinkRuntimeContext(txn,false);
-            step2Bucket = ((int)secondStep.getHashBucket() & 0xFF) >>> 4;
+            step2Bucket = SpliceDriver.driver().getTempTable().getCurrentSpread().bucketIndex(secondStep.getHashBucket());
             secondStep.setStatementInfo(runtimeContext.getStatementInfo());
             final RowProvider step1 = source.getMapRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext), firstStep); // Step 1
             final RowProvider step2 = getMapRowProvider(this, OperationUtils.getPairDecoder(this, runtimeContext), secondStep); // Step 2
@@ -296,7 +296,8 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
         if (region != null) {
             byte[] startKey = region.getStartKey();
             // see if this region was used to write intermediate results from step 2
-            int thisBucket = startKey.length > 0 ? ((int)startKey[0] & 0xFF) >>> 4 : 0;
+            SpreadBucket currentSpread = SpliceDriver.driver().getTempTable().getCurrentSpread();
+            int thisBucket = startKey.length > 0 ? currentSpread.bucketIndex(startKey[0]) : 0;
             if (step2Bucket != thisBucket) {
                 retval = false;
             }
