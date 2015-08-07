@@ -70,7 +70,7 @@ public class Trigger_Row_Transition_IT {
         methodWatcher.executeUpdate("update T set b = 2000 where a='BBB'");
 
         // then -- updated row and row from trigger
-        assertEquals(2L, methodWatcher.query("select count(*) from T where a='BBB'"));
+        assertEquals(2L, methodWatcher.query("select count(*) from T where b=2000"));
     }
 
     @Test
@@ -120,6 +120,18 @@ public class Trigger_Row_Transition_IT {
         methodWatcher.executeUpdate("update T set b = 2000, a='ZZZ' where a='BBB'");
 
         assertEquals(1L, methodWatcher.query("select count(*) from RECORD_OLD where a='BBB' and b=2"));
+    }
+
+    @Test
+    public void afterUpdateTransitionNew() throws Exception {
+        // DB-3570: transition values - always seeing old
+        methodWatcher.executeUpdate(tb.named("trig4").after().update().on("T").referencing("NEW AS N")
+                                      .row().then("INSERT INTO RECORD_NEW VALUES(N.a, N.b)").build());
+
+        // when - update a row
+        methodWatcher.executeUpdate("update T set a='new', b=999 where a='CCC'");
+
+        assertEquals(1L, methodWatcher.query("select count(*) from RECORD_NEW where a='new' and b=999"));
     }
 
     @Test
