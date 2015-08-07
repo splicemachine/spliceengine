@@ -1,18 +1,18 @@
 package com.splicemachine.pipeline.writecontextfactory;
 
+import java.io.IOException;
+
 import com.carrotsearch.hppc.BitSet;
+
+import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.derby.ddl.TentativeIndexDesc;
+import com.splicemachine.derby.impl.sql.execute.index.IndexTransformer;
 import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.pipeline.writecontext.PipelineWriteContext;
-import com.splicemachine.pipeline.writehandler.IndexDeleteWriteHandler;
-import com.splicemachine.pipeline.writehandler.IndexUpsertWriteHandler;
+import com.splicemachine.pipeline.writehandler.IndexWriteHandler;
 import com.splicemachine.pipeline.writehandler.SnapshotIsolatedWriteHandler;
-import com.splicemachine.pipeline.writehandler.UniqueIndexUpsertWriteHandler;
 import com.splicemachine.si.impl.DDLFilter;
 import com.splicemachine.si.impl.HTransactorFactory;
-import com.splicemachine.db.catalog.IndexDescriptor;
-
-import java.io.IOException;
 
 /**
  * Creates WriteHandlers that intercept writes to base tables and send transformed writes to corresponding index tables.
@@ -111,25 +111,23 @@ class IndexFactory implements LocalWriteFactory {
 
     @Override
     public void addTo(PipelineWriteContext ctx, boolean keepState, int expectedWrites) throws IOException {
-        IndexDeleteWriteHandler deleteHandler =
-                new IndexDeleteWriteHandler(indexedColumns, mainColToIndexPosMap, indexConglomBytes, descColumns,
-                        keepState, isUnique, isUniqueWithDuplicateNulls, expectedWrites, baseTableColumnOrdering, formatIds);
-        IndexUpsertWriteHandler writeHandler;
-        if (isUnique) {
-            writeHandler = new UniqueIndexUpsertWriteHandler(indexedColumns, mainColToIndexPosMap,
-                    indexConglomBytes, descColumns, keepState, isUniqueWithDuplicateNulls, expectedWrites,
-                    baseTableColumnOrdering, formatIds);
-        } else {
-            writeHandler = new IndexUpsertWriteHandler(indexedColumns, mainColToIndexPosMap, indexConglomBytes,
-                    descColumns, keepState, false, false, expectedWrites, baseTableColumnOrdering, formatIds);
-        }
+        IndexTransformer transformer = new IndexTransformer(isUnique,isUniqueWithDuplicateNulls,
+                                                            null,
+                                                            baseTableColumnOrdering,
+                                                            formatIds,
+                                                            null,
+                                                            mainColToIndexPosMap,
+                                                            descColumns,
+                                                            indexedColumns);
+
+        IndexWriteHandler writeHandler = new IndexWriteHandler(indexedColumns, indexConglomBytes,
+                                                       descColumns, keepState, expectedWrites, transformer);
+
         if (ddlChange == null) {
-            ctx.addLast(deleteHandler);
             ctx.addLast(writeHandler);
         } else {
             DDLFilter ddlFilter = HTransactorFactory.getTransactionReadController()
                     .newDDLFilter(ddlChange.getTxn());
-            ctx.addLast(new SnapshotIsolatedWriteHandler(deleteHandler, ddlFilter));
             ctx.addLast(new SnapshotIsolatedWriteHandler(writeHandler, ddlFilter));
         }
     }
