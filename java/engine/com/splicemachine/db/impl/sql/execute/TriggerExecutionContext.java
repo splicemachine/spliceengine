@@ -24,6 +24,7 @@ import com.splicemachine.db.iapi.sql.execute.CursorResultSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.sql.execute.ExecutionStmtValidator;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.impl.jdbc.Util;
 
 /**
  * A trigger execution context (TEC) holds information that is available from the context of a trigger invocation.<br/>
@@ -59,14 +60,13 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
     private ExecRow afterResultSet;
     private TriggerDescriptor triggerd;
     private ExecRow afterRow;   // used exclusively for InsertResultSets which have autoincrement columns.
+    private TriggerEvent event;
 
     /* ========================
      * Not serialized
-     * TODO: JC Maybe some of these need to be serialized too but haven't seen the need yet. Test coverage?
      * ========================
      */
     private boolean cleanupCalled;
-    private TriggerEvent event;
 
     /*
      * Used to track all the result sets we have given out to users.  When the trigger context is no longer valid,
@@ -354,7 +354,9 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         if (beforeResultSet == null) {
             return null;
         }
-        resultSetList.add(beforeResultSet);
+        if (this.event != null && this.event.isUpdate()) {
+            return extractColumns(beforeResultSet, true);
+        }
         return beforeResultSet;
     }
 
@@ -373,7 +375,9 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         if (afterResultSet == null) {
             return null;
         }
-        resultSetList.add(afterResultSet);
+        if (this.event != null && this.event.isUpdate()) {
+            return extractColumns(afterResultSet, false);
+        }
         return afterResultSet;
     }
 
@@ -483,6 +487,12 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         out.writeObject(beforeResultSet);
         out.writeObject(afterResultSet);
         out.writeObject(afterRow);
+        if (event != null) {
+            out.writeBoolean(true);
+            out.write(event.ordinal());
+        } else {
+            out.writeBoolean(false);
+        }
     }
 
     @Override
@@ -500,5 +510,24 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         beforeResultSet = (ExecRow) in.readObject();
         afterResultSet = (ExecRow) in.readObject();
         afterRow = (ExecRow) in.readObject();
+        if (in.readBoolean()) {
+            event = TriggerEvent.values()[in.readInt()];
+        }
+    }
+
+    private static ExecRow extractColumns(ExecRow resultSet, boolean firstHalf) throws SQLException {
+        int nCols = (resultSet.nColumns() - 1) / 2;
+        ExecRow result = new ValueRow(nCols);
+        int sourceIndex = (firstHalf ? 1 : nCols + 1);
+        int stopIndex = (firstHalf ? nCols : (resultSet.nColumns()-1));
+        int targetIndex = 1;
+        for (; sourceIndex<=stopIndex; sourceIndex++) {
+            try {
+                result.setColumn(targetIndex++, resultSet.getColumn(sourceIndex).cloneValue(false));
+            } catch (StandardException e) {
+                throw Util.generateCsSQLException(e);
+            }
+        }
+        return result;
     }
 }
