@@ -326,6 +326,18 @@ public class Subquery_Scalar_IT {
                 " 3 |");
     }
 
+    /*Test for db-3649*/
+    @Test
+    @Ignore
+    public void testFromlistSubqueryWithGroupBy() throws Exception{
+        ResultSet rs = methodWatcher.executeQuery("select c1 from tWithNulls1, (select max(c1) as col from tWithNulls2 group by c2) foo where c1 = foo.col order by c1");
+        assertUnorderedResult(rs, "" +
+                "C1 |\n" +
+                "----\n" +
+                "10 |\n" +
+                " 3 |");
+    }
+
     /* Regression test for DB-1085 */
     @Test
     public void subqueryOverCountReturnsCorrectly() throws Exception {
