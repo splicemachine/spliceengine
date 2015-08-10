@@ -74,13 +74,11 @@ public abstract class GenericTriggerExecutor {
      * Fire the trigger based on the event.
      *
      * @param event             the trigger event
-     * @param brs               the before result set
-     * @param ars               the after result set
+     * @param rs                the triggering result set
      * @param colsReadFromTable columns required from the trigger table by the triggering sql
      */
     abstract void fireTrigger(TriggerEvent event,
-                              CursorResultSet brs,
-                              CursorResultSet ars,
+                              CursorResultSet rs,
                               int[] colsReadFromTable) throws StandardException;
 
     protected SPSDescriptor getWhenClause() throws StandardException {

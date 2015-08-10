@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.io.ObjectInput;
 import java.io.ObjectOutput;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -56,8 +55,7 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
     private String statementText;
     private UUID targetTableId;
     private String targetTableName;
-    private ExecRow beforeResultSet;
-    private ExecRow afterResultSet;
+    private ExecRow triggeringResultSet;
     private TriggerDescriptor triggerd;
     private ExecRow afterRow;   // used exclusively for InsertResultSets which have autoincrement columns.
     private TriggerEvent event;
@@ -67,13 +65,6 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
      * ========================
      */
     private boolean cleanupCalled;
-
-    /*
-     * Used to track all the result sets we have given out to users.  When the trigger context is no longer valid,
-     * we close all the result sets that may be in the user space because they can no longer provide meaningful
-     * results.
-     */
-    private List<ExecRow> resultSetList;
 
     /**
      * aiCounters is a list of AutoincrementCounters used to keep state which might be used by the trigger. This is
@@ -86,6 +77,8 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
      */
     private Map<String, Long> aiHT;
 
+    public TriggerExecutionContext() {}
+
     /**
      * Build me a big old nasty trigger execution context. Damnit.
      *
@@ -94,7 +87,7 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
      * @param changedColNames the names that correspond to changedColIds
      * @param targetTableId   the UUID of the table upon which the trigger fired
      * @param targetTableName the name of the table upon which the trigger fired
-     * @param aiCounters      A list of AutoincrementCounters to keep state of the ai columns in this insert trigger.a
+     * @param aiCounters      A list of AutoincrementCounters to keep state of the ai columns in this insert trigger.
      */
     public TriggerExecutionContext(String statementText,
                                    int[] changedColIds,
@@ -102,7 +95,7 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
                                    UUID targetTableId,
                                    String targetTableName,
                                    List<AutoincrementCounter> aiCounters) throws StandardException {
-        this();
+
         this.changedColIds = changedColIds;
         this.changedColNames = changedColNames;
         this.statementText = statementText;
@@ -123,24 +116,7 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         }
     }
 
-    public TriggerExecutionContext() {
-        this.resultSetList = new ArrayList<>();
-    }
-
-    public void setBeforeResultSet(CursorResultSet rs) throws StandardException {
-        if (rs == null) {
-            return;
-        }
-        beforeResultSet = rs.getCurrentRow();
-        try {
-            rs.close();
-        } catch (StandardException e) {
-            // ignore - close quietly. We have only a single row impl currently
-        }
-
-    }
-
-    public void setAfterResultSet(CursorResultSet rs) throws StandardException {
+    public void setTriggeringResultSet(CursorResultSet rs) throws StandardException {
         if (rs == null) {
             return;
         }
@@ -158,7 +134,7 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
                 }
             }
         }
-        afterResultSet = rs.getCurrentRow();
+        triggeringResultSet = rs.getCurrentRow();
         try {
             rs.close();
         } catch (StandardException e) {
@@ -181,14 +157,8 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
     public void clearTrigger() throws StandardException {
         event = null;
         triggerd = null;
-        if (afterResultSet != null) {
-            afterResultSet = null;
-        }
-        if (beforeResultSet != null) {
-            beforeResultSet = null;
-        }
-        if (resultSetList != null && ! resultSetList.isEmpty()) {
-            resultSetList.clear();
+        if (triggeringResultSet != null) {
+            triggeringResultSet = null;
         }
     }
 
@@ -202,13 +172,8 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
     public void cleanup() throws StandardException {
         if (!cleanupCalled) {
 
-            resultSetList = null;
-
-            if (afterResultSet != null) {
-                afterResultSet = null;
-            }
-            if (beforeResultSet != null) {
-                beforeResultSet = null;
+            if (triggeringResultSet != null) {
+                triggeringResultSet = null;
             }
         }
         cleanupCalled = true;
@@ -351,13 +316,13 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
     private ExecRow getOldRowSet() throws SQLException {
         // private currently since no callers currently and we have impl of only 1 exec row at a time
         ensureProperContext();
-        if (beforeResultSet == null) {
+        if (triggeringResultSet == null) {
             return null;
         }
         if (this.event != null && this.event.isUpdate()) {
-            return extractColumns(beforeResultSet, true);
+            return extractColumns(triggeringResultSet, true);
         }
-        return beforeResultSet;
+        return triggeringResultSet;
     }
 
     /**
@@ -372,13 +337,13 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
     private ExecRow getNewRowSet() throws SQLException {
         // private currently since no callers currently and we have impl of only 1 exec row at a time
         ensureProperContext();
-        if (afterResultSet == null) {
+        if (triggeringResultSet == null) {
             return null;
         }
         if (this.event != null && this.event.isUpdate()) {
-            return extractColumns(afterResultSet, false);
+            return extractColumns(triggeringResultSet, false);
         }
-        return afterResultSet;
+        return triggeringResultSet;
     }
 
     /**
@@ -484,8 +449,7 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         out.writeObject(targetTableId);
         out.writeObject(targetTableName);
         out.writeObject(triggerd);
-        out.writeObject(beforeResultSet);
-        out.writeObject(afterResultSet);
+        out.writeObject(triggeringResultSet);
         out.writeObject(afterRow);
         if (event != null) {
             out.writeBoolean(true);
@@ -507,8 +471,7 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         targetTableId = (UUID) in.readObject();
         targetTableName = (String) in.readObject();
         triggerd = (TriggerDescriptor) in.readObject();
-        beforeResultSet = (ExecRow) in.readObject();
-        afterResultSet = (ExecRow) in.readObject();
+        triggeringResultSet = (ExecRow) in.readObject();
         afterRow = (ExecRow) in.readObject();
         if (in.readBoolean()) {
             event = TriggerEvent.values()[in.readInt()];

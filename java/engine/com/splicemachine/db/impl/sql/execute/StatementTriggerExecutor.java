@@ -53,19 +53,16 @@ public class StatementTriggerExecutor extends GenericTriggerExecutor {
      * Fire the trigger based on the event.
      *
      * @param event             the trigger event
-     * @param brs               the before result set
-     * @param ars               the after result set
+     * @param rs                the triggering result set
      * @param colsReadFromTable columns required from the trigger table by the triggering sql
      * @throws StandardException on error or general trigger exception
      */
     @Override
     void fireTrigger(TriggerEvent event,
-                     CursorResultSet brs,
-                     CursorResultSet ars,
+                     CursorResultSet rs,
                      int[] colsReadFromTable) throws StandardException {
         tec.setTrigger(triggerd);
-        tec.setBeforeResultSet(brs);
-        tec.setAfterResultSet(ars);
+        tec.setTriggeringResultSet(rs);
 
         try {
             executeSPS(getAction());
