@@ -112,9 +112,8 @@ public class TriggerHandler {
 
     public void fireBeforeRowTriggers(ExecRow row) throws StandardException {
         if (row != null && hasBeforeRow) {
-            SingleRowCursorResultSet rowResultSet1 = new SingleRowCursorResultSet(resultDescription, row);
-            SingleRowCursorResultSet rowResultSet2 = new SingleRowCursorResultSet(resultDescription, row);
-            triggerActivator.notifyRowEvent(beforeEvent, rowResultSet1, rowResultSet2, null);
+            SingleRowCursorResultSet triggeringResultSet = new SingleRowCursorResultSet(resultDescription, row);
+            triggerActivator.notifyRowEvent(beforeEvent, triggeringResultSet, null);
         }
     }
 
@@ -137,9 +136,8 @@ public class TriggerHandler {
 
     private void fireAfterRowTriggers(ExecRow row) throws StandardException {
         if (row != null && hasAfterRow) {
-            SingleRowCursorResultSet rowResultSet1 = new SingleRowCursorResultSet(resultDescription, row);
-            SingleRowCursorResultSet rowResultSet2 = new SingleRowCursorResultSet(resultDescription, row);
-            triggerActivator.notifyRowEvent(afterEvent, rowResultSet1, rowResultSet2, null);
+            SingleRowCursorResultSet triggeringResultSet = new SingleRowCursorResultSet(resultDescription, row);
+            triggerActivator.notifyRowEvent(afterEvent, triggeringResultSet, null);
         }
     }
 
