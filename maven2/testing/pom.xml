@@ -14,15 +14,6 @@
         over a network connection using the Derby client JDBC driver.
     </description>
 
-    <dependencies>
-        <dependency>
-            <groupId>com.splicemachine</groupId>
-            <artifactId>db</artifactId>
-            <version>1.1.1.2-SNAPSHOT</version>
-            <optional>false</optional>
-        </dependency>
-    </dependencies>
-
     <build>
         <plugins>
             <plugin>
