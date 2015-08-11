@@ -5,9 +5,9 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
-import com.splicemachine.db.impl.sql.compile.JoinSelectivity;
 import com.splicemachine.db.impl.sql.compile.Predicate;
 import com.splicemachine.db.impl.sql.compile.PredicateList;
+import com.splicemachine.db.impl.sql.compile.SelectivityUtil;
 
 public class BroadcastJoinStrategy extends BaseCostedHashableJoinStrategy {
     public BroadcastJoinStrategy() { }
@@ -148,8 +148,8 @@ public class BroadcastJoinStrategy extends BaseCostedHashableJoinStrategy {
         double outerRemoteCost=outerCost.remoteCost();
         double innerRemoteCost=innerCost.remoteCost();
 
-        double joinSelectivity =JoinSelectivity.estimateJoinSelectivity(innerTable, cd, predList,(long) innerRowCount,(long) outerRowCount,
-                JoinStrategyType.BROADCAST,outerCost);
+        double joinSelectivity = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerRowCount, (long) outerRowCount,
+                JoinStrategyType.BROADCAST, outerCost);
 
         double totalLocalCost = outerCost.localCost()+innerCost.localCost()+innerRemoteCost;
         //add in the overhead to open the inner table scan

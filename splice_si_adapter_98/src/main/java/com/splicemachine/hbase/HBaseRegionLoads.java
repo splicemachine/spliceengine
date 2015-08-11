@@ -195,9 +195,6 @@ public class HBaseRegionLoads {
             return Collections.emptyList();
         }
         Map<String, RegionLoad> regions = loads.get(tableName);
-        for (String region : regions.keySet()) {
-            System.out.println("region -> " + region + ", load -> " + regions.get(region));
-        }
         if(regions.isEmpty()){
             regions = getCostWhenNoCachedRegionLoadsFound(tableName);
         }
