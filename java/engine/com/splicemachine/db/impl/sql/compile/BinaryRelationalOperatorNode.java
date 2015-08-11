@@ -29,12 +29,10 @@ import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.ScanController;
-import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.Orderable;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
-import org.apache.commons.lang3.tuple.Pair;
 
 import java.sql.Types;
 
@@ -1281,19 +1279,19 @@ public class BinaryRelationalOperatorNode
     @Override
     public double joinSelectivity(Optimizable optTable,
                                   ConglomerateDescriptor currentCd,
-                                  long innerRowCount, long outerRowCount, JoinSelectivity.SelectivityJoinType selectivityJoinType) throws StandardException {
+                                  long innerRowCount, long outerRowCount, SelectivityUtil.SelectivityJoinType selectivityJoinType) throws StandardException {
         assert optTable != null:"null values passed into predicate joinSelectivity";
             // Binary Relational Operator Node...
         double selectivity;
         if (rightOperand instanceof ColumnReference && ((ColumnReference) rightOperand).getSource().getTableColumnDescriptor() != null) {
             ColumnReference right = (ColumnReference) rightOperand;
-            if (selectivityJoinType.equals(JoinSelectivity.SelectivityJoinType.OUTER)) {
+            if (selectivityJoinType.equals(SelectivityUtil.SelectivityJoinType.OUTER)) {
                 selectivity = (1.0d - right.nullSelectivity()) / right.nonZeroCardinality(innerRowCount);
             } else if (leftOperand instanceof ColumnReference && ((ColumnReference) leftOperand).getSource().getTableColumnDescriptor() != null) {
                 ColumnReference left = (ColumnReference) leftOperand;
                 selectivity = ((1.0d - left.nullSelectivity()) * (1.0d - right.nullSelectivity())) /
                         Math.min(left.nonZeroCardinality(outerRowCount), right.nonZeroCardinality(innerRowCount));
-                selectivity = selectivityJoinType.equals(JoinSelectivity.SelectivityJoinType.INNER) ?
+                selectivity = selectivityJoinType.equals(SelectivityUtil.SelectivityJoinType.INNER) ?
                         selectivity : 1.0d - selectivity;
             } else { // No Left Column Reference
                 selectivity = super.joinSelectivity(optTable, currentCd, innerRowCount, outerRowCount, selectivityJoinType);

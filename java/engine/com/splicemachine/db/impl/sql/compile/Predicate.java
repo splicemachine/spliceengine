@@ -231,7 +231,7 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
     }
 
     @Override
-    public double joinSelectivity(Optimizable table,ConglomerateDescriptor cd, long innerRowCount, long outerRowCount,JoinSelectivity.SelectivityJoinType selectivityJoinType) throws StandardException{
+    public double joinSelectivity(Optimizable table,ConglomerateDescriptor cd, long innerRowCount, long outerRowCount,SelectivityUtil.SelectivityJoinType selectivityJoinType) throws StandardException{
         return andNode.getLeftOperand().joinSelectivity(table,cd,innerRowCount,outerRowCount,selectivityJoinType);
     }
 
@@ -1230,4 +1230,66 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
         ValueNode operand=getAndNode().getLeftOperand();
         return XPlainUtils.opToString(operand);
     }
+    /**
+         * Returns true if the predicate is a multi-probe qualifier.
+         *
+         * A Multi-probe qualifier satisfies 3 criteria:
+         * 1. It has an IN clause
+         * 2. It is applied against the first keyed column
+         * 3. There are only constant nodes in the IN list
+         */
+    public boolean isMultiProbeQualifier(int[] keyColumns){
+        if(keyColumns==null)
+            return false; //can't be a MPQ if there are no keyed columns
+        InListOperatorNode sourceInList=getSourceInList();
+        if(sourceInList==null)
+            return false; //not a multi-probe predicate
+        ValueNode lo = sourceInList.getLeftOperand();
+        //if it doesn't refer to a column, then it can't be a qualifier
+        if(!(lo instanceof ColumnReference))
+            return false;
+        ColumnReference colRef = (ColumnReference)lo;
+        int colNum = colRef.getColumnNumber();
+        if(keyColumns[0]!=colNum)
+            return false; //doesn't point to the first keyed column
+
+        ValueNodeList rightOperandList=sourceInList.getRightOperandList();
+        for(Object o:rightOperandList){
+            if(!(o instanceof ConstantNode))
+                return false; //not all constants in the IN list
+        }
+        return true;
+    }
+
+    /**
+     * Returns true if the predicate is a multi-probe qualifier.
+     *
+     * A Multi-probe qualifier satisfies 3 criteria:
+     * 1. It has an IN clause
+     * 2. It is applied against the first keyed column
+     * 3. There are only constant nodes in the IN list
+     */
+    public boolean isInQualifier(){
+        InListOperatorNode sourceInList=getSourceInList();
+        if(sourceInList==null)
+            return false; //not a multi-probe predicate
+        ValueNode lo = sourceInList.getLeftOperand();
+        //if it doesn't refer to a column, then it can't be a qualifier
+        if(!(lo instanceof ColumnReference))
+            return false;
+        ColumnReference colRef = (ColumnReference)lo;
+        int colNum = colRef.getColumnNumber();
+        ValueNodeList rightOperandList=sourceInList.getRightOperandList();
+        for(Object o:rightOperandList){
+            if(!(o instanceof ConstantNode))
+                return false; //not all constants in the IN list
+        }
+        return true;
+    }
+
+
+    public boolean isNullPredicate() throws StandardException {
+        return this.getAndNode() !=null && this.getAndNode().getLeftOperand()!= null && (this.getAndNode().getLeftOperand() instanceof IsNullNode);
+    }
+
 }

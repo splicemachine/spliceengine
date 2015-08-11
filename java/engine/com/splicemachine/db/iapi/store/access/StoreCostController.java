@@ -395,4 +395,18 @@ public interface StoreCostController extends RowCountable{
      * @return an estimate of the number of distinct entries (cardinality).
      */
     long cardinality(int columnNumber);
+
+
+    long getAvgRowWidth();
+
+    double getLocalLatency();
+
+    double getRemoteLatency();
+
+    int getNumPartitions();
+
+    double scanColumnSizeFactor(BitSet validColumns);
+
+    double lookupColumnSizeFactor(BitSet validColumns, int numberOfColumns);
+
 }

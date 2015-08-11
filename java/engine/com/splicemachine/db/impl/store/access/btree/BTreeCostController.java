@@ -613,4 +613,37 @@ public class BTreeCostController extends OpenBTree implements StoreCostControlle
     public long cardinality(int columnNumber) {
         return num_rows;
     }
+
+    @Override
+    public long getAvgRowWidth() {
+        return 20;
+    }
+
+    @Override
+    public double getLocalLatency() {
+        return 1.0d;
+    }
+
+    @Override
+    public double getRemoteLatency() {
+        return 40.0d;
+    }
+
+    @Override
+    public int getNumPartitions() {
+        return 1;
+    }
+
+    @Override
+    public double scanColumnSizeFactor(BitSet validColumns) {
+        return 1.0d;
+    }
+
+    @Override
+    public double lookupColumnSizeFactor(BitSet validColumns, int numberOfColumns) {
+        return 1.0d;
+    }
+
+
 }
+

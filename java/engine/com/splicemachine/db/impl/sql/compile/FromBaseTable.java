@@ -758,9 +758,10 @@ public class FromBaseTable extends FromTable{
              * the index baseColumnPositions, and remove everything else
              */
 
+//            if (cd.isIndex() || cd.isPrimaryKey()) {
             if (cd.isIndex() || cd.isPrimaryKey()) {
                 baseColumnPositions = cd.getIndexDescriptor().baseColumnPositions();
-               if (!isCoveringIndex(cd)) {
+               if (!isCoveringIndex(cd) && !cd.isPrimaryKey()) {
                     baseColumnPositions = cd.getIndexDescriptor().baseColumnPositions();
                     indexLookupList = new BitSet();
                     for (int i = scanColumnList.nextSetBit(0); i >= 0; i = scanColumnList.nextSetBit(i + 1)) {
@@ -853,19 +854,21 @@ public class FromBaseTable extends FromTable{
                 if(!p.isJoinPredicate()) //skip join predicates
                     scf.addPredicate(p);
             }
-
-            scf.computeBaseScanCost();
-            scf.computeLookupCost();
-            scf.computeOutputCost();
+            scf.generateCost();
             singleScanRowCount=costEstimate.singleScanRowCount();
         }
-
         tracer.trace(OptimizerFlag.COST_OF_CONGLOMERATE_SCAN1,tableNumber,0,0.0,cd);
         tracer.trace(OptimizerFlag.COST_OF_CONGLOMERATE_SCAN2,tableNumber,0,0d,costEstimate);
 
 
 
         costEstimate.setSingleScanRowCount(singleScanRowCount);
+
+        // Clamp to 1.0d anything under 1.0d
+        if (costEstimate.singleScanRowCount() < 1.0d || costEstimate.getEstimatedRowCount() < 1.0d) {
+            costEstimate.setSingleScanRowCount(1.0d);
+            costEstimate.setRowCount(1.0d);
+        }
 
         /*
          * Now compute the joinStrategy costs.

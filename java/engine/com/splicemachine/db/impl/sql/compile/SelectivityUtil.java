@@ -13,7 +13,8 @@ import java.util.List;
  * This class incorprorates all join selectivity algorithms for splice machine.
  *
  */
-public class JoinSelectivity {
+public class SelectivityUtil {
+
 
     public enum SelectivityJoinType {
         OUTER, INNER, ANTIJOIN
@@ -66,6 +67,7 @@ public class JoinSelectivity {
         }
         return selectivity;
     }
+
 
     public boolean isOneRowResultSet(ConglomerateDescriptor cd,
                                      OptimizablePredicateList predList) throws StandardException{
