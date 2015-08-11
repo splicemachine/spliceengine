@@ -98,5 +98,22 @@ public class SpliceUnitTest {
         Assert.assertTrue("failed query: " + query + " -> " + resultSet.getString(1),resultSet.getString(1).contains(contains));
     }
 
+    protected void thirdRowContainsQuery(String query, String contains,SpliceWatcher methodWatcher) throws Exception {
+        ResultSet resultSet = methodWatcher.executeQuery(query);
+        resultSet.next();
+        resultSet.next();
+        resultSet.next();
+        Assert.assertTrue("failed query: " + query + " -> " + resultSet.getString(1),resultSet.getString(1).contains(contains));
+    }
+
+    protected void fourthRowContainsQuery(String query, String contains,SpliceWatcher methodWatcher) throws Exception {
+        ResultSet resultSet = methodWatcher.executeQuery(query);
+        resultSet.next();
+        resultSet.next();
+        resultSet.next();
+        resultSet.next();
+        Assert.assertTrue("failed query: " + query + " -> " + resultSet.getString(1),resultSet.getString(1).contains(contains));
+    }
+
 
 }

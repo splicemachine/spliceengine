@@ -3,7 +3,7 @@ package com.splicemachine.derby.impl.sql.compile;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.impl.sql.compile.JoinSelectivity;
+import com.splicemachine.db.impl.sql.compile.SelectivityUtil;
 
 public class MergeSortJoinStrategy extends BaseCostedHashableJoinStrategy {
 
@@ -180,7 +180,7 @@ public class MergeSortJoinStrategy extends BaseCostedHashableJoinStrategy {
         double perRowLocalLatency = outerCost.localCost()/(2*outerRowCount);
         perRowLocalLatency+=innerCost.localCost()/(2*innerRowCount);
 
-        double joinSelectivity = JoinSelectivity.estimateJoinSelectivity(innerTable, cd, predList, (long) innerRowCount, (long) outerRowCount,
+        double joinSelectivity = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerRowCount, (long) outerRowCount,
                 JoinStrategyType.BROADCAST, outerCost);
 
 

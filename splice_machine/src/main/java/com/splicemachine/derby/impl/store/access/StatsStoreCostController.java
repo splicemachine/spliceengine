@@ -24,6 +24,7 @@ import com.splicemachine.stats.TableStatistics;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 
+import java.io.IOException;
 import java.util.BitSet;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -54,10 +55,24 @@ public class StatsStoreCostController extends GenericController implements Store
             throw Exceptions.parseException(e);
         }
     }
+
+    /**
+     *
+     * Returns the rowCount from the conglomerate statistics
+     *
+     * @return double rowCount
+     */
     @Override
     public double rowCount(){
         return conglomerateStatistics.rowCount();
     }
+
+    /**
+     *
+     * Returns the nonNullCount from the column statistics if available or returns the total row count
+     *
+     * @return double rowCount
+     */
 
     @Override
     public double nonNullCount(int columnNumber){
@@ -69,6 +84,12 @@ public class StatsStoreCostController extends GenericController implements Store
 
     @Override public void close() throws StandardException {  }
 
+    /**
+     * Returns the rowCount from the statistics as a long
+     *
+     * @return
+     * @throws StandardException
+     */
     @Override
     public long getEstimatedRowCount() throws StandardException {
         return conglomerateStatistics.rowCount();
@@ -78,23 +99,22 @@ public class StatsStoreCostController extends GenericController implements Store
     public void getFetchFromRowLocationCost(BitSet validColumns,
                                             int access_type,
                                             CostEstimate cost) throws StandardException {
-        /*
-         * This is useful when estimating the cost of an index lookup. We approximate it by using
-         * Remote Latency
-         */
-        double columnSizeFactor = columnSizeFactor(conglomerateStatistics,
-                ((SpliceConglomerate)baseConglomerate.getConglomerate()).getFormat_ids().length,
-                validColumns);
-        double scale = conglomerateStatistics.remoteReadLatency()*columnSizeFactor;
-        long bytes = (long)scale*conglomerateStatistics.avgRowWidth();
-        cost.setRemoteCost(cost.remoteCost()+cost.rowCount()*scale);
-        cost.setEstimatedHeapSize(cost.getEstimatedHeapSize()+bytes);
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"getFetchFromRowLocationCost={columnSizeFactor=%f, scale=%f, bytes=%d " +
-                    "estimatedCost=%d, estimatedHeapSize=%d, estimatedRowCount=%d",columnSizeFactor,scale,bytes,cost.getEstimatedCost(),
-            cost.getEstimatedHeapSize(), cost.getEstimatedRowCount());
+        throw StandardException.plainWrapException(new IOException("Cannot Fetch From Main Table"));
     }
 
+
+
+    @Override
+    public double scanColumnSizeFactor(BitSet validColumns) {
+        return columnSizeFactor(conglomerateStatistics,
+                ((SpliceConglomerate)baseConglomerate.getConglomerate()).getFormat_ids().length,
+                validColumns);
+    }
+
+    @Override
+    public double lookupColumnSizeFactor(BitSet validColumns, int numberOfColumns) {
+        throw new RuntimeException("Cannot Have Lookup Factor on Base Conglomerate");
+    }
 
     @Override
     public void getFetchFromFullKeyCost(BitSet validColumns, int access_type, CostEstimate cost) throws StandardException {
@@ -114,18 +134,16 @@ public class StatsStoreCostController extends GenericController implements Store
         double columnSizeFactor = columnSizeFactor(conglomerateStatistics,
                 ((SpliceConglomerate)baseConglomerate.getConglomerate()).getFormat_ids().length,
                 validColumns);
-        double scale = conglomerateStatistics.remoteReadLatency()*columnSizeFactor;
-        long bytes = (long)scale*conglomerateStatistics.avgRowWidth();
-        cost.setRemoteCost(scale);
+        cost.setRemoteCost(conglomerateStatistics.remoteReadLatency()*columnSizeFactor*conglomerateStatistics.avgRowWidth());
         cost.setLocalCost(conglomerateStatistics.localReadLatency());
-        cost.setEstimatedHeapSize(bytes);
+        cost.setEstimatedHeapSize((long) columnSizeFactor*conglomerateStatistics.avgRowWidth());
         cost.setNumPartitions(1);
         cost.setEstimatedRowCount(1l);
         cost.setOpenCost(conglomerateStatistics.openScannerLatency());
         cost.setCloseCost(conglomerateStatistics.closeScannerLatency());
         if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"getFetchFromFullKeyCost={columnSizeFactor=%f, scale=%f, bytes=%d " +
-                            "coset=%s",columnSizeFactor,scale,bytes,cost);
+            SpliceLogUtils.trace(LOG,"getFetchFromFullKeyCost={columnSizeFactor=%f, cost=%s" +
+                            "cost=%s",columnSizeFactor,cost);
 
 
 
@@ -154,11 +172,13 @@ public class StatsStoreCostController extends GenericController implements Store
         * the selectivity is rangeSelectivity(start,null) or rangeSelectivity(null,stop). The column
         * id for the keys is located in the conglomerate.
         */
+
+
         estimateCost(conglomerateStatistics,
                 ((SpliceConglomerate)baseConglomerate.getConglomerate()).getFormat_ids().length,
                 scanColumnList,
                 probeValues,startKeyValue,startSearchOperator,
-                stopKeyValue,stopSearchOperator,baseConglomerate.getColumnOrdering(),(CostEstimate)cost_result);
+                stopKeyValue,stopSearchOperator,convertToOneBased(baseConglomerate.getColumnOrdering()),(CostEstimate)cost_result);
         List<? extends PartitionStatistics> partStats=conglomerateStatistics.partitionStatistics();
         if(partStats==null||partStats.size()<=0 ||partStats.get(0) instanceof FakedPartitionStatistics){
             ((CostEstimate)cost_result).setIsRealCost(false);
@@ -174,7 +194,7 @@ public class StatsStoreCostController extends GenericController implements Store
 
     @Override
     public void extraQualifierSelectivity(CostEstimate costEstimate) throws StandardException {
-        //TODO -sf- implement!
+        //TODO -sf- implement! ??
         costEstimate.setCost(costEstimate.getEstimatedCost()*SpliceConstants.extraQualifierMultiplier,
                 (double)costEstimate.getEstimatedRowCount()*SpliceConstants.extraQualifierMultiplier,
                 costEstimate.singleScanRowCount()*SpliceConstants.extraQualifierMultiplier);
@@ -350,10 +370,10 @@ public class StatsStoreCostController extends GenericController implements Store
                 numPartitions++;
                 numRows+=partRc;
 
-                localCost+=pStats.localReadLatency()*partRc;
+                localCost+=pStats.localReadLatency()*partRc*pStats.avgRowWidth();
                 double colSizeAdjustment=columnSizeFactor(totalColumns,scanColumnList,pStats);
                 double remoteLatency = pStats.remoteReadLatency();
-                double size = partRc*colSizeAdjustment;
+                double size = partRc*colSizeAdjustment*pStats.avgRowWidth();
                 remoteCost+=remoteLatency*size;
                 bytes+=(colSizeAdjustment*pStats.avgRowWidth())*partRc;
             }
@@ -373,38 +393,15 @@ public class StatsStoreCostController extends GenericController implements Store
         double selectivity = 1.0d;
         if(startKeyValue==null && stopKeyValue==null){
            return pStats.rowCount();
-        }else{
-            /*
-             * DB-3517. It appears that sometimes the start and stop key value array lengths
-             * can differ while not being null. This is weird, and we have to decide what to do.
-             * We could A) stop at the min, in which case we only use the keys which are shared in our
-             * estimate (bad), or B) treat running off the end of the array as "no bound" on the selectivity
-             * estimate. This essentially forces a >= on a start key, or a <= on a stop key.
-             */
-            int size;
-            int stopLen;
-            int startLen;
-            if(startKeyValue!=null){
-                startLen = startKeyValue.length;
-                if(stopKeyValue!=null){
-                    size=Math.max(startKeyValue.length,stopKeyValue.length);
-                    stopLen = stopKeyValue.length;
-                }else{
-                    size=startKeyValue.length;
-                    stopLen = 0;
-                }
-            }else{
-                size=stopLen=stopKeyValue.length;
-                startLen = 0;
-            }
-
+        } else{
+            int size = startKeyValue.length;
             for(int i=0;i<size;i++){
-                DataValueDescriptor start=startKeyValue!=null&&size<startLen?startKeyValue[i]:null;
-                DataValueDescriptor stop=stopKeyValue!=null &&size<stopLen?stopKeyValue[i]:null;
-                ColumnStatistics<DataValueDescriptor> cStats=pStats.columnStatistics(keyMap[i]);
+                if (startKeyValue[i] == null && stopKeyValue[i] ==null)
+                    continue; // ignore
+                ColumnStatistics<DataValueDescriptor> cStats=pStats.columnStatistics(keyMap[i]); // Must be one based...
                 if(cStats!=null){
-                    double rc=cStats.getDistribution().rangeSelectivity(start,stop,includeStart,includeStop);
-                    selectivity*=rc/cStats.nonNullCount();
+                    double rc=cStats.getDistribution().rangeSelectivity(startKeyValue[i],stopKeyValue[i],includeStart,includeStop);
+                    selectivity*=rc/(cStats.nonNullCount()+cStats.nullCount());
                 } else {
                     selectivity*=StatsConstants.fallbackIndexSelectivityFraction;
                 }
@@ -499,7 +496,36 @@ public class StatsStoreCostController extends GenericController implements Store
     }
 
     private int getAdjustedRowSize(PartitionStatistics pStats){
-
         return pStats.avgRowWidth();
+    }
+
+    private int[] convertToOneBased(int[] columnOrdering) {
+        if (columnOrdering==null)
+            return null;
+        int[] oneBased = new int[columnOrdering.length];
+        for (int i = 0; i<columnOrdering.length; i++) {
+            oneBased[i] = columnOrdering[i]+1;
+        }
+        return oneBased;
+    }
+
+    @Override
+    public long getAvgRowWidth() {
+        return conglomerateStatistics.avgRowWidth();
+    }
+
+    @Override
+    public double getLocalLatency() {
+        return conglomerateStatistics.localReadLatency();
+    }
+
+    @Override
+    public double getRemoteLatency() {
+        return conglomerateStatistics.remoteReadLatency();
+    }
+
+    @Override
+    public int getNumPartitions() {
+        return conglomerateStatistics.partitionStatistics().size();
     }
 }

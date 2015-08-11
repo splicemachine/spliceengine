@@ -84,6 +84,7 @@ public class DistinctScanSelectivityIT extends SpliceUnitTest {
 
     @Test
     @Ignore("DB-3622")
+    // Need to compute cost in DistinctNode
     public void testDistinctNodeCount() throws Exception {
         firstRowContainsQuery("explain select distinct month(c3) from ts_low_cardinality", "outputRows=5", methodWatcher);
         firstRowContainsQuery("explain select distinct month(c3) from ts_high_cardinality", "outputRows=12", methodWatcher);
