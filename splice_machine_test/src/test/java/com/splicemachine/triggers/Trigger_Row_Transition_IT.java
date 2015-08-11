@@ -135,6 +135,25 @@ public class Trigger_Row_Transition_IT {
     }
 
     @Test
+    public void afterUpdateTransitionNewTwoTriggers() throws Exception {
+        // DB-3570: transition values - always seeing old (event being cleared prematurely)
+        methodWatcher.executeUpdate("create table t_master(id int, col1 int, col2 int, col3 int, col4 char(10), col5 varchar(20))");
+        methodWatcher.executeUpdate("insert into t_master values(1,1,1,1,'01','Master01')");
+        methodWatcher.executeUpdate("create table t_slave2(id int ,description varchar(20),tm_time timestamp)");
+
+        methodWatcher.executeUpdate(tb.named("Master45").after().update().on("t_master").referencing("NEW AS newt")
+                                      .row().then("INSERT INTO t_slave2 VALUES(newt.id,'Master45',CURRENT_TIMESTAMP)")
+                                      .build());
+        methodWatcher.executeUpdate(tb.named("Master48").after().update().of("col1").on("t_master").referencing("NEW AS newt")
+                                      .row().then("INSERT INTO t_slave2 VALUES(newt.id,'Master48',CURRENT_TIMESTAMP)").build());
+
+        // when - update a row
+        methodWatcher.executeUpdate("update t_master set id=778, col1=778,col4='778' where id=1");
+
+        assertEquals(2L, methodWatcher.query("select count(*) from t_slave2 where id=778"));
+    }
+
+    @Test
     public void simulateMySQLTimestampColumnToPopulateCreatedTimeColumnOnInsert() throws Exception {
         // given - table
         methodWatcher.executeUpdate("create table simulate(a int primary key, b int, createdtime timestamp)");
