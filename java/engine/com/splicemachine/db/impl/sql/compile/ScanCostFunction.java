@@ -142,9 +142,9 @@ public class ScanCostFunction{
         // Should be the same for each conglomerate
         scanCost.setRemoteCost((long)(totalRowCount*totalSelectivity*storeCost.getRemoteLatency()));
         // Base Cost + LookupCost + Projection Cost
-        double baseCost = totalRowCount*baseTableSelectivity*storeCost.getLocalLatency()*storeCost.scanColumnSizeFactor(scanColumns);
+        double baseCost = totalRowCount*baseTableSelectivity*storeCost.getLocalLatency()*storeCost.getAvgRowWidth();
         double lookupCost = lookupColumns == null?0.0d:
-                totalRowCount*filterBaseTableSelectivity*storeCost.getRemoteLatency()*storeCost.lookupColumnSizeFactor(lookupColumns,baseColumnCount);
+                totalRowCount*filterBaseTableSelectivity*storeCost.getRemoteLatency() + storeCost.lookupColumnSizeFactor(lookupColumns,baseColumnCount);
         double projectionCost = projectionSelectivity == 1.0d?0.0d:totalRowCount*filterBaseTableSelectivity*storeCost.getLocalLatency();
         scanCost.setLocalCost(baseCost+lookupCost+projectionCost);
         scanCost.setNumPartitions(storeCost.getNumPartitions());
