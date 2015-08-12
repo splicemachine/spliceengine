@@ -171,7 +171,7 @@ public class SpliceLevel2OptimizerImpl extends Level2OptimizerImpl{
     @Override
     public AggregateCostController newAggregateCostController(GroupByList groupingList,List<AggregateNode> aggregateVector){
         if(groupingList==null||groupingList.size()<=0) //we are a scalar aggregate
-            return new TempScalarAggregateCostController();
+            return new TempScalarAggregateCostController(aggregateVector);
         else //we are a grouped aggregate
         return new TempGroupedAggregateCostController(groupingList);
     }
