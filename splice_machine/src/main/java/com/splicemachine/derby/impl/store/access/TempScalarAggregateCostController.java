@@ -2,13 +2,26 @@ package com.splicemachine.derby.impl.store.access;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.AggregateCostController;
+import com.splicemachine.db.impl.sql.compile.*;
+import com.splicemachine.db.iapi.store.access.StoreCostController;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * @author Scott Fines
  *         Date: 3/25/15
  */
 public class TempScalarAggregateCostController implements AggregateCostController{
+
+    private List<AggregateNode> aggregateVector;
+
+    public TempScalarAggregateCostController (List<AggregateNode> aggregateVector) {
+        this.aggregateVector = aggregateVector;
+    }
+
     @Override
     public CostEstimate estimateAggregateCost(CostEstimate baseCost) throws StandardException{
         /*
@@ -70,7 +83,29 @@ public class TempScalarAggregateCostController implements AggregateCostControlle
 
         double reduceLocalCost = localCostPerRow*mapRows;
 
-        double totalLocalCost = reduceLocalCost+mapCost;
+        // Distinct scalar aggregate operation removes duplicates and shuffle all unique rows for each region
+        double shuffleCost = 0d;
+        for (AggregateNode aggregateNode : aggregateVector) {
+            if (aggregateNode.isDistinct()) {
+                ValueNode v = aggregateNode.getOperand();
+                List<ColumnReference> columnReferenceList = new ArrayList<>();
+                getReferencedColumns(v, columnReferenceList);
+                if (columnReferenceList.size() > 0) {
+                    double returnedRows = 0d;
+                    StoreCostController sc = null;
+                    for (ColumnReference cr : columnReferenceList) {
+                        ConglomerateDescriptor cd = cr.getSource().getTableColumnDescriptor().getTableDescriptor().getConglomerateDescriptorList().get(0);
+                        if (cr.nonZeroCardinality((long) baseCost.rowCount()) > returnedRows) {
+                            sc = cr.getCompilerContext().getStoreCostController(cd);
+                            returnedRows = cr.nonZeroCardinality((long) baseCost.rowCount());
+                        }
+                    }
+                    shuffleCost += returnedRows * sc.getRemoteLatency();
+                    outputHeapSize += returnedRows * sc.getAvgRowWidth();
+                }
+            }
+        }
+        double totalLocalCost = reduceLocalCost+mapCost+shuffleCost;
 
         newEstimate.setNumPartitions(1);
         newEstimate.setRemoteCost(remoteCostPerRow);
@@ -79,5 +114,24 @@ public class TempScalarAggregateCostController implements AggregateCostControlle
         newEstimate.setEstimatedHeapSize((long)outputHeapSize);
 
         return newEstimate;
+    }
+
+    private void getReferencedColumns(ValueNode v, List<ColumnReference> columnReferenceList) {
+
+        if (v instanceof ColumnReference) {
+            columnReferenceList.add((ColumnReference)v);
+        }
+        else if (v instanceof BinaryOperatorNode) {
+            BinaryOperatorNode b = (BinaryOperatorNode) v;
+            getReferencedColumns(b.getLeftOperand(), columnReferenceList);
+            getReferencedColumns(b.getRightOperand(), columnReferenceList);
+
+        }
+        else if (v instanceof CastNode) {
+            getReferencedColumns(((CastNode) v).getCastOperand(), columnReferenceList);
+        }
+        else if (v instanceof UnaryOperatorNode) {
+            getReferencedColumns(((UnaryOperatorNode) v).getOperand(), columnReferenceList);
+        }
     }
 }
