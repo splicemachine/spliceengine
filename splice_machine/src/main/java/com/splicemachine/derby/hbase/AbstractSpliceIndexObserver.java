@@ -91,7 +91,6 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
         String tableName = e.getEnvironment().getRegion().getTableDesc().getNameAsString();
         try {
             conglomId = Long.parseLong(tableName);
-
             operationFactory = new SimpleOperationFactory();
             region = TransactionalRegions.get(e.getEnvironment().getRegion());
         } catch (NumberFormatException nfe) {
@@ -151,10 +150,12 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
         }
         super.postCompact(e, store, resultFile, request);
     }
+    
     @Override
     public void postSplit(ObserverContext<RegionCoprocessorEnvironment> e, HRegion l, HRegion r) throws IOException {
         recordRegionSplitForBackup(e, l, r);
     }
+    
     /**
      * ***************************************************************************************************************
      */
@@ -361,6 +362,7 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
         List<StoreFile> copy = Lists.newArrayList(candidates);
         try {
             SpliceDriver.driver().getTempTable().filterCompactionFiles(c.getEnvironment().getConfiguration(), copy);
+            
             // If the 'copy' list is empty, then we can't delete any files. As a debugging convenience,
             // this is a secret configuration to temporarily set it to a slightly higher value,
             // but in practice this should not be used.
@@ -380,25 +382,24 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
                  */
                 if (numCandidates < blockingStoreFiles) {
                     //we are free to use the normal TEMP compaction procedure, which does nothing.
-                    // TODO: Consider compacting some files even if we have not hit blocking limit yet
                     if (LOG_COMPACT.isDebugEnabled())
                         LOG_COMPACT.debug(String.format(
-                                "%s No removable files found in list of %d, so we will leave them alone.",
-                                LOG_COMPACT_PRE, numCandidates));
+						"%s No removable files found in list of %d, so we will leave them alone.",
+						LOG_COMPACT_PRE, numCandidates));
                     candidates.clear();
                 } else {
                     // if the above isn't met, then we do nothing to candidates, because we are falling back to normal TEMP
                     if (LOG_COMPACT.isDebugEnabled())
                         LOG_COMPACT.debug(String.format(
-                                "%s No removable files found in list of %d. BlockingStoreFiles limit %d exceeded, so proceeding with default HBase compaction",
-                                LOG_COMPACT_PRE, numCandidates, blockingStoreFiles));
+                            "%s No removable files found in list of %d. BlockingStoreFiles limit %d exceeded, so proceeding with default HBase compaction",
+                            LOG_COMPACT_PRE, numCandidates, blockingStoreFiles));
                 }
             } else {
                 // there are at least some files to remove using the TEMP structure, so just go with it
                 if (LOG_COMPACT.isDebugEnabled())
                     LOG_COMPACT.debug(String.format(
-                            "%s %d removable files found in candidate list of %d.",
-                            LOG_COMPACT_PRE, copy.size(), numCandidates));
+                        "%s %d removable files found in candidate list of %d.",
+                        LOG_COMPACT_PRE, copy.size(), numCandidates));
                 candidates.retainAll(copy);
             }
 

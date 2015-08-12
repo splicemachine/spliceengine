@@ -44,7 +44,6 @@ public class TempTable {
      */
     public static final String LOG_COMPACT_PRE = "(splicecompact)";
 
-
 	public TempTable(byte[] tempTableName) {
 		this.tempTableName = tempTableName;
 		
@@ -81,14 +80,16 @@ public class TempTable {
 			StoreFile.Reader reader = storeFile.getReader();
 			long maxStoreTs = reader.getMaxTimestamp();
 			if (maxStoreTs >= deadDataThreshold) {
-				if(LOG.isTraceEnabled())
-		            LOG.trace(String.format("%s Not removing file with max timestamp %d (>= %d threshold) ", LOG_COMPACT_PRE, maxStoreTs, deadDataThreshold));
+				if (LOG.isTraceEnabled()) {
+		            LOG.trace(String.format("%s Not removing file %s: max timestamp = %d (>= %d threshold), rows = %d",
+		            	LOG_COMPACT_PRE, storeFile, maxStoreTs, deadDataThreshold, reader.getEntries()));
+				}
 				// Remove it from this candidate list, which means we keep the store file around,
 				// because it has data that's still interesting to us.
 				storeFileIterator.remove();
-			}else if(LOG.isTraceEnabled()){
-				LOG.trace(String.format("%s Removing file with max timestamp %d (< %d threshold) and %d rows",
-					LOG_COMPACT_PRE, maxStoreTs, deadDataThreshold, reader.getEntries()));
+			} else if (LOG.isTraceEnabled()) {
+	            LOG.trace(String.format("%s Removing file %s: max timestamp = %d (>= %d threshold), rows = %d",
+	            	LOG_COMPACT_PRE, storeFile, maxStoreTs, deadDataThreshold, reader.getEntries()));
 			}
 		}
 	}
@@ -96,19 +97,23 @@ public class TempTable {
 	private long getTempCompactionThreshold(Configuration c) throws ExecutionException {
 		long[] activeOperations = SpliceDriver.driver().getJobScheduler().getActiveOperations();
 
-        if(LOG.isDebugEnabled()){
-			LOG.debug("Detected "+ activeOperations.length+" active operations");
+        if (LOG.isDebugEnabled()) {
+			LOG.debug(String.format("Detected %d active operations", activeOperations.length));
 		}
 
-		if(activeOperations.length==0){
-			//we can remove everything!
+		if (activeOperations.length == 0) {
+			// Returning threshold timestamp of 'now' effectively means we can remove everything!
 			return System.currentTimeMillis();
 		}
+
 		//transform the operation ids into timestamps
 		long[] activeTimestamps = new long[activeOperations.length];
-		for(int i=0;i<activeOperations.length;i++){
-			if(activeOperations[i]!=-1)
+		for (int i = 0; i < activeOperations.length; i++) {
+			if (activeOperations[i] != -1) {
 				activeTimestamps[i] = Snowflake.timestampFromUUID(activeOperations[i]);
+			} else {
+	            SpliceLogUtils.debug(LOG, "%s Found active operation with uuid = -1. We will use timestamp = 0.");
+			}
 		}
 
 		/*
@@ -122,7 +127,7 @@ public class TempTable {
 		 * to maintain consistent system clocks).
 		 */
 		long maxClockSkew = c.getLong("hbase.master.maxclockskew", 30000);
-		maxClockSkew*=2; //unfortunate fudge factor to deal with the reality of different system clocks
+		maxClockSkew*=2; // unfortunate fudge factor to deal with the reality of different system clocks
 
 		// As extra safeguard against incorrectly allowing splice_temp files to be deleted
 		// while pending operations still need them, allow optional extra safeguard to protect
@@ -134,8 +139,7 @@ public class TempTable {
 		long safeguard = c.getLong("splice.compact.temp.safeguard", 0); // milliseconds;
 
 		long maxToUse = Longs.min(activeTimestamps) - maxClockSkew - safeguard;
-		if(LOG.isTraceEnabled()) {
-            LOG.trace(String.format("%s Extra safeguard duration is %d millis (%d mins)", LOG_COMPACT_PRE, safeguard, safeguard / 60000));
+		if (LOG.isTraceEnabled()) {
             LOG.trace(String.format("%s Looking to remove files with timestamp before: %d", LOG_COMPACT_PRE, maxToUse));
 		}
 		
