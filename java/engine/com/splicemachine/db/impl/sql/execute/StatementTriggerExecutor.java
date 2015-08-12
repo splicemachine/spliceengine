@@ -62,6 +62,7 @@ public class StatementTriggerExecutor extends GenericTriggerExecutor {
                      CursorResultSet rs,
                      int[] colsReadFromTable) throws StandardException {
         tec.setTrigger(triggerd);
+        tec.setCurrentTriggerEvent(event);
         tec.setTriggeringResultSet(rs);
 
         try {

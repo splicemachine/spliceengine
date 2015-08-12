@@ -11,10 +11,8 @@ import java.util.Map;
 import java.util.Objects;
 
 import com.splicemachine.db.catalog.UUID;
-import com.splicemachine.db.iapi.error.ExceptionSeverity;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
-import com.splicemachine.db.iapi.services.i18n.MessageService;
 import com.splicemachine.db.iapi.services.io.ArrayUtil;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
@@ -59,12 +57,6 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
     private TriggerDescriptor triggerd;
     private ExecRow afterRow;   // used exclusively for InsertResultSets which have autoincrement columns.
     private TriggerEvent event;
-
-    /* ========================
-     * Not serialized
-     * ========================
-     */
-    private boolean cleanupCalled;
 
     /**
      * aiCounters is a list of AutoincrementCounters used to keep state which might be used by the trigger. This is
@@ -146,10 +138,6 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         this.event = event;
     }
 
-    public void clearCurrentTriggerEvent() {
-        event = null;
-    }
-
     public void setTrigger(TriggerDescriptor triggerd) {
         this.triggerd = triggerd;
     }
@@ -157,37 +145,7 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
     public void clearTrigger() throws StandardException {
         event = null;
         triggerd = null;
-        if (triggeringResultSet != null) {
-            triggeringResultSet = null;
-        }
-    }
-
-    /**
-     * Cleanup the trigger execution context.  <B>MUST</B> be called when the caller is done with the trigger
-     * execution context.
-     * <p/>
-     * We go to somewhat exaggerated lengths to free up all our resources here because a user may hold on
-     * to a TEC after it is valid, so we clean everything up to be on the safe side.
-     */
-    public void cleanup() throws StandardException {
-        if (!cleanupCalled) {
-
-            if (triggeringResultSet != null) {
-                triggeringResultSet = null;
-            }
-        }
-        cleanupCalled = true;
-    }
-
-    /**
-     * Make sure that the user isn't trying to get a result set after we have cleaned up.
-     */
-    private void ensureProperContext() throws SQLException {
-        if (cleanupCalled) {
-            throw new SQLException(
-                    MessageService.getTextMessage(SQLState.LANG_STATEMENT_CLOSED_NO_REASON), "XCL31", ExceptionSeverity.STATEMENT_SEVERITY
-            );
-        }
+        triggeringResultSet = null;
     }
 
     /////////////////////////////////////////////////////////
@@ -315,7 +273,6 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
      */
     private ExecRow getOldRowSet() throws SQLException {
         // private currently since no callers currently and we have impl of only 1 exec row at a time
-        ensureProperContext();
         if (triggeringResultSet == null) {
             return null;
         }
@@ -336,7 +293,6 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
      */
     private ExecRow getNewRowSet() throws SQLException {
         // private currently since no callers currently and we have impl of only 1 exec row at a time
-        ensureProperContext();
         if (triggeringResultSet == null) {
             return null;
         }
@@ -478,6 +434,21 @@ public class TriggerExecutionContext implements ExecutionStmtValidator, External
         }
     }
 
+    /**
+     * Extract the appropriate columns from the given row.
+     * <p/>
+     * This method is used for update row triggers to get the appropriate transition values.<br/>
+     * When an update row trigger fires, we get a triggering result row for each row modified. This
+     * row (resultSet) will have both the old and new transition values in a form such as,
+     * <code>[old1, old2, ..., new1, new2, ..., {rowKey}]</code> (the rowKey) is appended.<br/>
+     * The transition row is always of size (number of columns in table * 2 + 1).
+     *
+     * @param resultSet the current triggering row
+     * @param firstHalf if true, return an ExecRow with the first (front) half of the columns in
+     *                  the given resultSet. If false, return the back half.
+     * @return an update exec row with either old or new transition values.
+     * @throws SQLException
+     */
     private static ExecRow extractColumns(ExecRow resultSet, boolean firstHalf) throws SQLException {
         int nCols = (resultSet.nColumns() - 1) / 2;
         ExecRow result = new ValueRow(nCols);

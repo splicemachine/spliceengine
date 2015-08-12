@@ -54,6 +54,7 @@ public class RowTriggerExecutor extends GenericTriggerExecutor {
     @Override
     void fireTrigger(TriggerEvent event, CursorResultSet rs, int[] colsReadFromTable) throws StandardException {
         tec.setTrigger(triggerd);
+        tec.setCurrentTriggerEvent(event);
 
         try {
             tec.setTriggeringResultSet(rs);

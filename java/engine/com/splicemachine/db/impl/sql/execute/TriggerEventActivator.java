@@ -121,7 +121,6 @@ public class TriggerEventActivator {
             return;
         }
 
-        tec.setCurrentTriggerEvent(event);
         try {
             lcc.pushExecutionStmtValidator(tec);
             if (! tecPushed) {
@@ -137,7 +136,6 @@ public class TriggerEventActivator {
             }
         } finally {
             lcc.popExecutionStmtValidator(tec);
-            tec.clearCurrentTriggerEvent();
         }
     }
 
@@ -160,7 +158,6 @@ public class TriggerEventActivator {
             return;
         }
 
-        tec.setCurrentTriggerEvent(event);
         try {
             lcc.pushExecutionStmtValidator(tec);
             if (! tecPushed) {
@@ -176,7 +173,6 @@ public class TriggerEventActivator {
             }
         } finally {
             lcc.popExecutionStmtValidator(tec);
-            tec.clearCurrentTriggerEvent();
         }
     }
 
@@ -185,7 +181,7 @@ public class TriggerEventActivator {
      */
     public void cleanup() throws StandardException {
         if (tec != null) {
-            tec.cleanup();
+            tec.clearTrigger();
             if (tecPushed) {
                 lcc.popTriggerExecutionContext(tec);
             }
