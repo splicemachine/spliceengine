@@ -88,7 +88,7 @@ public class TempTable {
 				// because it has data that's still interesting to us.
 				storeFileIterator.remove();
 			} else if (LOG.isTraceEnabled()) {
-	            LOG.trace(String.format("%s Removing file %s: max timestamp = %d (>= %d threshold), rows = %d",
+	            LOG.trace(String.format("%s Removing file %s: max timestamp = %d (< %d threshold), rows = %d",
 	            	LOG_COMPACT_PRE, storeFile, maxStoreTs, deadDataThreshold, reader.getEntries()));
 			}
 		}
