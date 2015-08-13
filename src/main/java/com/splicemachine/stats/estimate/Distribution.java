@@ -17,6 +17,15 @@ package com.splicemachine.stats.estimate;
  *         Date: 3/4/15
  */
 public interface Distribution<T> {
+
+    T minValue();
+
+    long minCount();
+
+    T maxValue();
+
+    long totalCount();
+
     /**
      * @param element the element to match
      * @return the number of entries which are <em>equal</em> to the specified element.

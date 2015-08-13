@@ -13,4 +13,8 @@ public interface IntDistribution extends Distribution<Integer> {
     long selectivityAfter(int start, boolean includeStart);
 
     long rangeSelectivity(int start, int stop, boolean includeStart, boolean includeStop);
+
+    int min();
+
+    int max();
 }

@@ -13,4 +13,9 @@ public interface ShortDistribution extends Distribution<Short>{
     long selectivityAfter(short start, boolean includeStart);
 
     long rangeSelectivity(short start, short stop, boolean includeStart, boolean includeStop);
+
+    short min();
+
+    short max();
+
 }

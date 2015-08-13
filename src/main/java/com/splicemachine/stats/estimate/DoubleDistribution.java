@@ -13,4 +13,8 @@ public interface DoubleDistribution extends Distribution<Double> {
     long selectivityAfter(double start, boolean includeStart);
 
     long rangeSelectivity(double start, double stop, boolean includeStart, boolean includeStop);
+
+    double min();
+
+    double max();
 }

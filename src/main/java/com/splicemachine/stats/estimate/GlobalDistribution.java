@@ -15,7 +15,7 @@ import java.util.List;
  * @author Scott Fines
  *         Date: 3/4/15
  */
-public class GlobalDistribution<T> implements Distribution<T> {
+public class GlobalDistribution<T extends Comparable<T>> implements Distribution<T> {
     /**
      * A reference to the underlying table statistics used for this distribution.
      *
@@ -56,4 +56,58 @@ public class GlobalDistribution<T> implements Distribution<T> {
         }
         return selectivityEstimate;
     }
+
+    @Override
+    public T minValue(){
+        T min = null;
+        for(PartitionStatistics pStats:tableStatistics.partitionStatistics()){
+            T minValue=(T)pStats.columnDistribution(columnId).minValue();
+            if(min==null){
+                min =minValue;
+            }else if(min.compareTo(minValue)>0)
+                min = minValue;
+        }
+        return min;
+    }
+
+    @Override
+    public long minCount(){
+        T min = null;
+        long minCount = 0l;
+        for(PartitionStatistics pStats:tableStatistics.partitionStatistics()){
+            Distribution<Object> distribution=pStats.columnDistribution(columnId);
+            T minValue=(T)distribution.minValue();
+            if(min==null){
+                min =minValue;
+                minCount = distribution.minCount();
+            }else if(min.compareTo(minValue)>0){
+                min=minValue;
+                minCount=distribution.minCount();
+            }
+        }
+        return minCount;
+    }
+
+    @Override
+    public T maxValue(){
+        T max = null;
+        for(PartitionStatistics pStats:tableStatistics.partitionStatistics()){
+            T maxValue=(T)pStats.columnDistribution(columnId).maxValue();
+            if(max==null){
+                max =maxValue;
+            }else if(max.compareTo(maxValue)>0)
+                max = maxValue;
+        }
+        return max;
+    }
+
+    @Override
+    public long totalCount(){
+        long tc = 0l;
+        for(PartitionStatistics pStats:tableStatistics.partitionStatistics()){
+            tc+=pStats.columnDistribution(columnId).totalCount();
+        }
+        return tc;
+    }
+
 }

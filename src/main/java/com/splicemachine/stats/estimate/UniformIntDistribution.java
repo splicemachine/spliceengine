@@ -115,6 +115,66 @@ public class UniformIntDistribution extends UniformDistribution<Integer> impleme
         return rangeSelectivity(start,stop,includeStart,includeStop,isMin);
     }
 
+    public long cardinalityBefore(int stop,boolean includeStop){
+        IntColumnStatistics ics = (IntColumnStatistics)columnStats;
+        if(stop<ics.min()||(!includeStop && stop==ics.min())) return 0l;
+
+        return rangeCardinality(ics.min(),stop,true,includeStop);
+    }
+
+    public long cardinalityAfter(int start,boolean includeStart){
+        IntColumnStatistics ics = (IntColumnStatistics)columnStats;
+        if(start>ics.max()||(!includeStart && start==ics.max())) return 0l;
+
+        return rangeCardinality(start,ics.max(),includeStart,true);
+    }
+
+    public long rangeCardinality(int start,int stop,boolean includeStart,boolean includeStop){
+        if(start==stop){
+            if(!includeStart || !includeStop) return 0l; //empty interval has no data
+            else return 1l; //return equals
+        }
+        IntColumnStatistics ics = (IntColumnStatistics)columnStats;
+        int min = ics.min();
+        if(min>stop||(!includeStop && stop==min)) return 0l;
+        else if(includeStop && stop==min) return 1l;
+
+        int max = ics.max();
+        if(max<start||(!includeStart && start==max)) return 0l;
+        else if(includeStart && start==max) return 1l;
+
+        if(start<=min){
+            includeStart = includeStart||start<min;
+            start = min;
+        }
+        if(stop>max){
+            stop = max;
+            includeStop = true;
+        }
+
+        int dist = stop-start;
+        if(!includeStart)dist--;
+        if(includeStop)dist++;
+        return dist;
+    }
+
+    @Override public int min(){ return ((IntColumnStatistics)columnStats).min(); }
+    @Override public int max(){ return ((IntColumnStatistics)columnStats).max(); }
+    @Override public Integer minValue(){ return min(); }
+    @Override public Integer maxValue(){ return max(); }
+    @Override public long totalCount(){ return columnStats.nonNullCount(); }
+    public long cardinality(){ return columnStats.cardinality(); }
+    @Override public long minCount(){ return columnStats.minCount(); }
+
+    public long cardinality(Integer start,Integer stop,boolean includeStart,boolean includeStop){
+        if(start==null){
+            if(stop==null) return cardinality();
+            return cardinalityBefore(stop,includeStop);
+        }else if(stop==null) return cardinalityAfter(start,includeStart);
+        else
+            return rangeCardinality(start,stop,includeStart,includeStop);
+    }
+
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private long rangeSelectivity(int start, int stop, boolean includeStart, boolean includeStop,boolean isMin) {

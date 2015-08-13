@@ -113,6 +113,63 @@ public class UniformFloatDistribution extends UniformDistribution<Float> impleme
         return rangeSelectivity(start,stop,includeStart,includeStop,isMin);
     }
 
+    public long cardinalityBefore(float stop,boolean includeStop){
+        FloatColumnStatistics fcs = (FloatColumnStatistics)columnStats;
+        float min = fcs.min();
+        if(stop<min||(!includeStop && stop==min)) return 0l;
+
+        return rangeCardinality(min,stop,true,includeStop);
+    }
+
+    public long cardinalityAfter(float start,boolean includeStart){
+        FloatColumnStatistics fcs = (FloatColumnStatistics)columnStats;
+        float max = fcs.max();
+        if(start>max ||(!includeStart &&start==max)) return 0l;
+        return rangeCardinality(start,max,includeStart,true);
+    }
+
+    public long rangeCardinality(float start,float stop,boolean includeStart,boolean includeStop){
+        FloatColumnStatistics fcs = (FloatColumnStatistics)columnStats;
+        float min = fcs.min();
+        if(stop<min||(!includeStop && stop==min)) return 0l;
+        else if(includeStop && stop==min) return selectivity(stop);
+
+        float max = fcs.max();
+        if(max<start||(!includeStart && start==max)) return 0l;
+        else if(includeStart && start==min) return selectivity(start);
+
+        if(start<=min){
+            includeStart = includeStart||start<min;
+            start = min;
+        }
+        if(stop>max){
+            stop = max;
+            includeStop = true;
+        }
+
+        //TODO -sf- is this correct?
+        float v=stop-start;
+        if(!includeStart)v--;
+        if(includeStop) v++;
+        return (long)v;
+    }
+
+    @Override public float min(){ return ((FloatColumnStatistics)columnStats).min(); }
+    @Override public float max(){ return ((FloatColumnStatistics)columnStats).max(); }
+    @Override public Float minValue(){ return min(); }
+    @Override public Float maxValue(){ return max(); }
+    @Override public long minCount(){ return columnStats.minCount(); }
+    @Override public long totalCount(){ return columnStats.nonNullCount(); }
+    public long cardinality(){ return columnStats.cardinality(); }
+
+    public long cardinality(Float start,Float stop,boolean includeStart,boolean includeStop){
+        if(start==null){
+            if(stop==null) return cardinality();
+            return cardinalityBefore(stop.floatValue(),includeStop);
+        }else if(stop==null) return cardinalityAfter(start.floatValue(),includeStart);
+        else return rangeCardinality(start.floatValue(),stop.floatValue(),includeStart,includeStop);
+    }
+
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private long rangeSelectivity(float start, float stop, boolean includeStart, boolean includeStop,boolean isMin) {

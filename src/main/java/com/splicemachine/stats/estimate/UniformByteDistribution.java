@@ -81,9 +81,69 @@ public class UniformByteDistribution extends UniformDistribution<Byte> implement
         return rangeSelectivity(start,stop,includeStart,includeStop,isMin);
     }
 
+    public long cardinalityBefore(byte stop,boolean includeStop){
+        ByteColumnStatistics bcs = (ByteColumnStatistics)columnStats;
+        byte min = bcs.min();
+        if(stop<min ||(!includeStop && stop==min)) return 0l;
+
+        return rangeCardinality(min,stop,true,includeStop);
+    }
+
+    public long cardinalityAfter(byte start,boolean includeStart){
+        ByteColumnStatistics bcs = (ByteColumnStatistics)columnStats;
+        byte max = bcs.max();
+        if(start>max||(!includeStart && start==max)) return 0l;
+
+        return rangeCardinality(start,max,includeStart,true);
+    }
+
+    public long rangeCardinality(byte start,byte stop,boolean includeStart,boolean includeStop){
+        ByteColumnStatistics bcs = (ByteColumnStatistics)columnStats;
+        byte min = bcs.min();
+        byte max = bcs.max();
+
+        if(stop< min ||(!includeStop && stop== min)) return 0l;
+        else if(includeStop && stop== min)
+            return selectivity(stop);
+        if(start> max ||(!includeStart && start== max)) return 0l;
+        else if(includeStart && start == max)
+            return selectivity(start);
+
+        /*
+         * Now adjust the range to deal with running off the end points of the range
+         */
+        if(start<=min) {
+            start = min;
+        }
+        if(stop> max)
+            stop = max;
+
+        int c = stop-start;
+        if(!includeStart) c--;
+        if(includeStop) c++;
+        return c;
+    }
+
+    @Override public byte min(){ return ((ByteColumnStatistics)columnStats).min(); }
+    @Override public byte max(){ return ((ByteColumnStatistics)columnStats).max(); }
+    @Override public Byte minValue(){ return min(); }
+    @Override public long minCount(){ return columnStats.minCount(); }
+    @Override public Byte maxValue(){ return max(); }
+    @Override public long totalCount(){ return columnStats.nonNullCount(); }
+
+    public long cardinality(){ return columnStats.cardinality(); }
+
+    public long cardinality(Byte start,Byte stop,boolean includeStart,boolean includeStop){
+        if(start==null){
+            if(stop==null) return cardinality();
+            else return cardinalityBefore(stop.byteValue(),includeStop);
+        }else if(stop==null) return cardinalityAfter(start.byteValue(),includeStart);
+        else return rangeCardinality(start,stop,includeStart,includeStop);
+    }
+
     @Override
     protected long estimateRange(Byte start, Byte stop, boolean includeStart, boolean includeStop, boolean isMin) {
-        return rangeSelectivity(start, stop, includeStart, includeStop,isMin);
+        return rangeSelectivity(start,stop,includeStart,includeStop,isMin);
     }
 
     @Override

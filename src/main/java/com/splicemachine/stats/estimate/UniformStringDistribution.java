@@ -109,6 +109,31 @@ public class UniformStringDistribution extends UniformDistribution<String> {
         return uniformRangeCount(includeStart,includeStop,baseEstimate,estimates);
     }
 
+    public long cardinality(String start,String stop,boolean includeStart,boolean includeStop){
+        if(start==null){
+            start = minValue();
+            includeStart = true;
+        }
+        if(stop==null){
+            stop=maxValue();
+            includeStart = true;
+        }
+
+        BigDecimal s = computePosition(start);
+        BigDecimal e = computePosition(stop);
+
+        BigDecimal c = e.subtract(s);
+        if(!includeStart) c = c.subtract(BigDecimal.ONE);
+        if(includeStop) c = c.add(BigDecimal.ONE);
+        return c.longValue();
+    }
+
+    @Override public String minValue(){ return columnStats.minValue(); }
+    @Override public long minCount(){ return columnStats.minCount(); }
+    @Override public String maxValue(){ return columnStats.maxValue(); }
+    @Override public long totalCount(){ return columnStats.nonNullCount(); }
+    public long cardinality(){ return columnStats.cardinality(); }
+
     /**
      * Compute the "position" of the specified string, relative to the total ordering of the defined string
      * set.

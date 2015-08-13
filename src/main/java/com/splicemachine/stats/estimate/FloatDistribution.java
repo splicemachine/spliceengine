@@ -13,4 +13,8 @@ public interface FloatDistribution extends Distribution<Float>  {
     long selectivityAfter(float start, boolean includeStart);
 
     long rangeSelectivity(float start, float stop, boolean includeStart, boolean includeStop);
+
+    float min();
+
+    float max();
 }

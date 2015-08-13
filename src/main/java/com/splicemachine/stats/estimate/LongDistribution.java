@@ -17,6 +17,4 @@ public interface LongDistribution extends Distribution<Long>{
     long min();
 
     long max();
-
-    long totalCount();
 }

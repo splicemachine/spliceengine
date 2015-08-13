@@ -53,12 +53,74 @@ public class ActualUniformLongDistribution implements LongDistribution{
     }
 
     @Override public long min(){ return min; }
-
+    @Override public Long minValue(){ return min(); }
     @Override public long max(){ return max; }
+    @Override public Long maxValue(){ return max(); }
+
+    public long cardinalityBefore(long stop,boolean includeStop){
+        if(stop>max) {
+            stop=max;
+            includeStop = true;
+        }
+        if(stop<min||(stop==min &&!includeStop)) return 0l;
+        long card = stop-min;
+        if(includeStop)card++;
+
+        return card;
+    }
+
+    public long cardinalityAfter(long start,boolean includeStart){
+        if(start<min){
+            start = min;
+            includeStart = true;
+        }
+        if(start>max||(start==max &&!includeStart)) return 0l;
+        long card = max-start+1;
+        if(!includeStart) card--;
+        return card;
+    }
+
+    public long rangeCardinality(long start,long stop,boolean includeStart,boolean includeStop){
+        if(start==stop){
+            if(includeStart&&includeStop) return 1l;
+            return 0l;
+        }
+        if(start<min){
+            start = min;
+            includeStart = true;
+        }
+        if(stop>max){
+            stop = max;
+            includeStop = true;
+        }
+
+        long card = stop-start;
+        if(includeStop) card++;
+        if(!includeStart)card--;
+        return card;
+    }
+
+
+    @Override public long minCount(){ return recordsPerEntry; }
+
+
+    public long cardinality(){
+        return (min-max)+1;
+    }
 
     @Override
     public long totalCount(){
         return recordsPerEntry*(max-min+1);
+    }
+
+    public long cardinality(Long start,Long stop,boolean includeStart,boolean includeStop){
+        if(start==null){
+            if(stop==null) return cardinality();
+            return cardinalityBefore(stop,includeStop);
+        }else if(stop==null) return cardinalityAfter(start,includeStart);
+        else{
+            return rangeCardinality(start,stop,includeStart,includeStop);
+        }
     }
 
     @Override
@@ -67,7 +129,6 @@ public class ActualUniformLongDistribution implements LongDistribution{
         return selectivity(element.longValue());
     }
 
-    @Override
     public long rangeSelectivity(Long start,Long stop,boolean includeStart,boolean includeStop){
         assert start!=null: "Cannot estimate the selectivity of null elements";
         assert stop!=null: "Cannot estimate the selectivity of null elements";

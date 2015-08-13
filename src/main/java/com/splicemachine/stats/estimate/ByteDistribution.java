@@ -13,4 +13,8 @@ public interface ByteDistribution extends Distribution<Byte>{
     long selectivityAfter(byte start, boolean includeStart);
 
     long rangeSelectivity(byte start, byte stop, boolean includeStart, boolean includeStop);
+
+    byte min();
+
+    byte max();
 }

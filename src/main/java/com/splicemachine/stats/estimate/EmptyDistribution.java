@@ -18,6 +18,9 @@ public class EmptyDistribution<T> implements Distribution<T>{
     }
 
     @Override public long selectivity(T element) { return 0; }
-
     @Override public long rangeSelectivity(T start, T stop, boolean includeStart, boolean includeStop) { return 0; }
+    @Override public T minValue(){ return null; }
+    @Override public long minCount(){ return 0; }
+    @Override public T maxValue(){ return null; }
+    @Override public long totalCount(){ return 0; }
 }

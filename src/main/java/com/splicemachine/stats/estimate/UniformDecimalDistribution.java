@@ -63,4 +63,30 @@ public class UniformDecimalDistribution extends UniformDistribution<BigDecimal> 
         return uniformRangeCount(includeStart,includeStop,baseEstimate,fe);
     }
 
+    public long cardinality(BigDecimal start,BigDecimal stop,boolean includeStart,boolean includeStop){
+        if(start==null){
+            start= columnStats.minValue();
+            includeStart = true;
+        }
+        if(stop==null){
+            stop = columnStats.maxValue();
+            includeStop = true;
+        }
+        if(stop.compareTo(start)<0) return 0l;
+        if(stop.compareTo(start)==0){
+            if(includeStart && includeStop) return 1l;
+            return 0l;
+        }
+
+        BigDecimal dist = stop.subtract(start);
+        if(includeStop)dist = dist.add(BigDecimal.ONE);
+        if(!includeStart) dist = dist.subtract(BigDecimal.ONE);
+        return dist.longValue();
+    }
+
+    @Override public BigDecimal minValue(){ return columnStats.minValue(); }
+    @Override public long minCount(){ return columnStats.minCount(); }
+    @Override public BigDecimal maxValue(){ return columnStats.maxValue(); }
+    @Override public long totalCount(){ return columnStats.nonNullCount(); }
+    public long cardinality(){ return columnStats.cardinality(); }
 }

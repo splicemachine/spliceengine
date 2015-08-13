@@ -27,6 +27,66 @@ public class BooleanDistribution implements Distribution<Boolean> {
         else return elements.equalsFalse().count();
     }
 
+    public long cardinality(Boolean start,Boolean stop,boolean includeStart,boolean includeStop){
+        if(start==null){
+            start=true;
+            includeStart = true;
+        }
+
+        if(stop==null){
+            stop = false;
+            includeStop = true;
+        }
+        boolean hasTrue = elements.equalsTrue().count()>0;
+        boolean hasFalse = elements.equalsFalse().count()>0;
+
+        if(start){
+            if(stop){
+                //start and stop
+                if(includeStart && includeStop) return hasTrue? 1:0l;
+                else return 0l;
+            }else{
+                //start and !stop
+                long c = 0l;
+                if(includeStart && hasTrue)
+                    c++;
+                if(includeStop && hasFalse)
+                    c++;
+                return c;
+            }
+        }else if(stop){
+            //!start and stop
+            return 0l;
+        }else{
+            //!start and !stop
+            if(includeStart &&includeStop)
+                return hasFalse? 1:0l;
+            return 0l;
+        }
+    }
+
+    @Override
+    public Boolean minValue(){
+        return elements.equalsTrue().count()>0? Boolean.TRUE: elements.equalsFalse().count()>0? Boolean.FALSE: null;
+    }
+
+    @Override public long minCount(){ return elements.equalsTrue().count(); }
+
+    @Override
+    public Boolean maxValue(){
+        return elements.equalsFalse().count()>0? Boolean.FALSE: elements.equalsTrue().count()>0? Boolean.TRUE: null;
+    }
+
+    @Override public long totalCount(){ return elements.totalFrequentElements(); }
+
+    public long cardinality(){
+        if(elements.equalsTrue().count()>0){
+            if(elements.equalsFalse().count()>0) return 2;
+            else return 1;
+        }else if(elements.equalsFalse().count()>0) return 1;
+        else return 0;
+    }
+
     public long rangeSelectivity(boolean start, boolean stop, boolean includeStart, boolean includeStop){
         if(start==stop){
             if(includeStart && includeStop) return elements.equals(start).count();

@@ -3,12 +3,8 @@ package com.splicemachine.stats.estimate;
 import com.splicemachine.stats.LongColumnStatistics;
 import com.splicemachine.stats.frequency.LongFrequencyEstimate;
 import com.splicemachine.stats.frequency.LongFrequentElements;
-import com.splicemachine.stats.random.LongEmpiricalRejectionGenerator;
-import com.splicemachine.stats.random.RandomGenerator;
-import com.splicemachine.stats.random.UniformGenerator;
 import com.splicemachine.utils.ComparableComparator;
 
-import java.util.Random;
 import java.util.Set;
 
 /**
@@ -112,19 +108,41 @@ public class UniformLongDistribution extends UniformDistribution<Long> implement
         return rangeSelectivity(start,stop,includeStart,includeStop,isMin);
     }
 
-    @Override
-    public long min(){
-        return ((LongColumnStatistics)columnStats).min();
-    }
+    @Override public long min(){ return ((LongColumnStatistics)columnStats).min(); }
+    @Override public long max(){ return ((LongColumnStatistics)columnStats).max(); }
+    @Override public long totalCount(){ return columnStats.nonNullCount(); }
+    @Override public Long minValue(){ return min(); }
+    @Override public Long maxValue(){ return max(); }
+    @Override public long minCount(){ return columnStats.minCount(); }
+    public long cardinality(){ return columnStats.cardinality(); }
 
-    @Override
-    public long max(){
-        return ((LongColumnStatistics)columnStats).max();
-    }
+    public long rangeCardinality(long start,long stop,boolean includeStart,boolean includeStop){
+        LongColumnStatistics scs = (LongColumnStatistics)columnStats;
+        if(start==stop &&(!includeStart || !includeStop)) return 0l; //asking for an empty range
+        long min = scs.min();
+        if(stop<min||(!includeStop && stop==min)) return 0l;
+        else if(includeStop && stop==min) return selectivity(min);
 
-    @Override
-    public long totalCount(){
-        return columnStats.nonNullCount();
+        long max = scs.max();
+        if(start>max||(!includeStart && start==max)) return 0l;
+        else if(includeStart && start==max) return selectivity(max);
+
+        /*
+         * We now have a range [a,b) which definitely overlaps, but it might not be wholly contained. Adjust
+         * it to fit wholly within the data range
+         */
+        if(start<=min){
+            includeStart=includeStart||start<min;
+            start = min;
+        }
+        if(stop>max) {
+            stop = max;
+            includeStop= true;
+        }
+        long c = stop-start;
+        if(!includeStart) c--;
+        if(includeStop) c++;
+        return c;
     }
 
     /* ****************************************************************************************************************/

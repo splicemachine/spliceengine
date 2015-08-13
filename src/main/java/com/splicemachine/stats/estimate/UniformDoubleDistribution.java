@@ -41,6 +41,63 @@ public class UniformDoubleDistribution extends UniformDistribution<Double> imple
         }
     }
 
+    public long cardinalityBefore(double stop,boolean includeStop){
+        DoubleColumnStatistics fcs = (DoubleColumnStatistics)columnStats;
+        double min = fcs.min();
+        if(stop<min ||(!includeStop && min==stop)) return 0l;
+
+        return rangeCardinality(min,stop,true,includeStop);
+    }
+
+    public long cardinalityAfter(double start,boolean includeStart){
+        DoubleColumnStatistics fcs = (DoubleColumnStatistics)columnStats;
+        double max = fcs.max();
+        if(start>max || (!includeStart &&start==max)) return 0l;
+
+        return rangeSelectivity(start,max,includeStart,true);
+    }
+
+    public long rangeCardinality(double start,double stop,boolean includeStart,boolean includeStop){
+        DoubleColumnStatistics fcs = (DoubleColumnStatistics)columnStats;
+        double min = fcs.min();
+        if(stop<min||(!includeStop && stop==min)) return 0l;
+        else if(includeStop && stop==min) return selectivity(stop);
+
+        double max = fcs.max();
+        if(max<start||(!includeStart && start==max)) return 0l;
+        else if(includeStart && start==min) return selectivity(start);
+
+        if(start<=min){
+            includeStart = includeStart||start<min;
+            start = min;
+        }
+        if(stop>max){
+            stop = max;
+            includeStop = true;
+        }
+
+        double diff = (stop-start);
+        if(includeStop)diff++;
+        if(!includeStart) diff--;
+        return (long)diff;
+    }
+
+    public long cardinality(Double start,Double stop,boolean includeStart,boolean includeStop){
+        if(start==null){
+            if(stop==null) return cardinality();
+            else return cardinalityBefore(stop,includeStop);
+        }else if(stop==null) return cardinalityAfter(start,includeStart);
+        else return rangeCardinality(start,stop,includeStart,includeStop);
+    }
+
+    @Override public double min(){ return ((DoubleColumnStatistics)columnStats).min(); }
+    @Override public double max(){ return ((DoubleColumnStatistics)columnStats).max(); }
+    @Override public Double minValue(){ return min(); }
+    @Override public Double maxValue(){ return max(); }
+    @Override public long totalCount(){ return columnStats.nonNullCount(); }
+    @Override public long minCount(){ return columnStats.minCount(); }
+    public long cardinality(){ return columnStats.cardinality(); }
+
     @Override
     protected long estimateRange(Double start, Double stop, boolean includeStart, boolean includeStop, boolean isMin) {
         return rangeSelectivity(start,stop,includeStart,includeStop,isMin);

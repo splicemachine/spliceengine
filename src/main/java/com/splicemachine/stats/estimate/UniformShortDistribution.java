@@ -111,6 +111,67 @@ public class UniformShortDistribution extends UniformDistribution<Short> impleme
         return rangeSelectivity(start,stop,includeStart,includeStop,isMin);
     }
 
+    public long cardinalityBefore(short stop,boolean includeStop){
+        ShortColumnStatistics scs = (ShortColumnStatistics)columnStats;
+        if(stop<scs.min()||(!includeStop && stop==scs.min())) return 0l;
+
+        return rangeCardinality(scs.min(),stop,true,includeStop);
+    }
+
+    public long cardinalityAfter(short start,boolean includeStart){
+        ShortColumnStatistics scs = (ShortColumnStatistics)columnStats;
+        if(start>scs.max()||(!includeStart && start==scs.max())) return 0l;
+        return rangeCardinality(start,scs.max(),includeStart,true);
+    }
+
+    public long rangeCardinality(short start,short stop,boolean includeStart,boolean includeStop){
+        ShortColumnStatistics scs = (ShortColumnStatistics)columnStats;
+        if(start==stop &&(!includeStart || !includeStop)) return 0l; //asking for an empty range
+        short min = scs.min();
+        if(stop<min||(!includeStop && stop==min)) return 0l;
+        else if(includeStop && stop==min) return selectivity(min);
+
+        short max = scs.max();
+        if(start>max||(!includeStart && start==max)) return 0l;
+        else if(includeStart && start==max) return selectivity(max);
+
+        /*
+         * We now have a range [a,b) which definitely overlaps, but it might not be wholly contained. Adjust
+         * it to fit wholly within the data range
+         */
+        if(start<=min){
+            includeStart=includeStart||start<min;
+            start = min;
+        }
+        if(stop>max) {
+            stop = max;
+            includeStop= true;
+        }
+
+        int d = (stop-start);
+        if(includeStop)d++;
+        if(!includeStart)d--;
+        return d;
+    }
+
+    public long cardinality(Short start,Short stop,boolean includeStart,boolean includeStop){
+        if(start==null){
+            if(stop==null) return cardinality();
+            else return cardinalityBefore(stop,includeStop);
+        }else if(stop==null) return cardinalityAfter(start,includeStart);
+        else{
+            return rangeCardinality(start,stop,includeStart,includeStop);
+        }
+    }
+
+    @Override public Short minValue(){ return min(); }
+    @Override public long minCount(){ return columnStats.minCount(); }
+    @Override public Short maxValue(){ return max(); }
+    @Override public long totalCount(){ return columnStats.nonNullCount(); }
+    public long cardinality(){ return columnStats.cardinality(); }
+    @Override public short min(){ return ((ShortColumnStatistics)columnStats).min(); }
+    @Override public short max(){ return ((ShortColumnStatistics)columnStats).max(); }
+
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private long rangeSelectivity(short start, short stop, boolean includeStart, boolean includeStop, boolean isMin) {
