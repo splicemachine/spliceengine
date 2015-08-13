@@ -381,7 +381,7 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
             // the large number of single empty file compaction requests which
             // end up overwhelming available threads in HBase and/or Hadoop.
 
-            int undeleteableSize = c.getEnvironment().getConfiguration().getInt("splice.compact.temp.undeleteable.size", 0);
+            int undeleteableSize = c.getEnvironment().getConfiguration().getInt("splice.compact.temp.undeleteable.size", 1);
 			if ((undeleteableSize == 0 && copy.size() == 0) ||
 				(undeleteableSize > 0 && copy.size() <= undeleteableSize && numCandidates > undeleteableSize)) { 
                 /*
