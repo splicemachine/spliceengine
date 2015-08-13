@@ -363,11 +363,25 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
         try {
             SpliceDriver.driver().getTempTable().filterCompactionFiles(c.getEnvironment().getConfiguration(), copy);
             
-            // If the 'copy' list is empty, then we can't delete any files. As a debugging convenience,
-            // this is a secret configuration to temporarily set it to a slightly higher value,
-            // but in practice this should not be used.
-    		int undeleteableSize = c.getEnvironment().getConfiguration().getInt("splice.compact.temp.undeleteable.size", 0);
-    		// All candidates have been removed from list - can't delete any files
+            // At this point, 'copy' has the remaining TEMP files still to be compacted (deleted).
+            // If the 'copy' list is empty (copy.size() == 0), then we can't delete any files.
+            // However, to avoid a storm of compaction requests consisting of a single empty file
+            // (see DB-3662), we have a secret internal configuration here which allows
+            // a non-zero value (default 1, which really shouldn't be changed) to also
+            // represent a candidate list size that should be considered 'empty',
+            // meaning we leave the files alone. If even this non-zero count is the same
+            // as the size of the list, though, then we delete the files anyway.
+            //
+            // Ideally, we would prevent the empty file from being created in the first place,
+            // during TEMP compaction, using one of the many pre and post compaction
+            // hooks provided by RegionObserver. However, none of these cleanly allow for
+            // prevention of the new file creation. In fact, DefaultCompactor#compact()
+            // has comments indicating the reasons an empty file MUST be created.
+            // There might be a way around this, but for now we just avoid creating
+            // the large number of single empty file compaction requests which
+            // end up overwhelming available threads in HBase and/or Hadoop.
+
+            int undeleteableSize = c.getEnvironment().getConfiguration().getInt("splice.compact.temp.undeleteable.size", 0);
 			if ((undeleteableSize == 0 && copy.size() == 0) ||
 				(undeleteableSize > 0 && copy.size() <= undeleteableSize && numCandidates > undeleteableSize)) { 
                 /*
@@ -382,24 +396,29 @@ public abstract class AbstractSpliceIndexObserver extends BaseRegionObserver {
                  */
                 if (numCandidates < blockingStoreFiles) {
                     //we are free to use the normal TEMP compaction procedure, which does nothing.
-                    if (LOG_COMPACT.isDebugEnabled())
-                        LOG_COMPACT.debug(String.format(
-						"%s No removable files found in list of %d, so we will leave them alone.",
-						LOG_COMPACT_PRE, numCandidates));
+                    if (LOG_COMPACT.isDebugEnabled()) {
+                    	if (undeleteableSize == 0) {
+	                        LOG_COMPACT.debug(String.format("%s No removable files found in list of %d, so we will leave them alone.",
+								LOG_COMPACT_PRE, numCandidates));
+                    	} else {
+	                        LOG_COMPACT.debug(String.format("%s %d removable files found in list of %d, but leaving alone for now.",
+								LOG_COMPACT_PRE, copy.size(), numCandidates));
+                    	}
+                    }
                     candidates.clear();
                 } else {
-                    // if the above isn't met, then we do nothing to candidates, because we are falling back to normal TEMP
-                    if (LOG_COMPACT.isDebugEnabled())
-                        LOG_COMPACT.debug(String.format(
-                            "%s No removable files found in list of %d. BlockingStoreFiles limit %d exceeded, so proceeding with default HBase compaction",
+                    // if the above isn't met, then we do nothing to candidates, because we are falling back to normal HBase compaction
+                    if (LOG_COMPACT.isDebugEnabled()) {
+                        LOG_COMPACT.debug(String.format("%s No removable files found in list of %d. BlockingStoreFiles limit %d exceeded, so proceeding with default HBase compaction",
                             LOG_COMPACT_PRE, numCandidates, blockingStoreFiles));
+                    }
                 }
             } else {
                 // there are at least some files to remove using the TEMP structure, so just go with it
-                if (LOG_COMPACT.isDebugEnabled())
-                    LOG_COMPACT.debug(String.format(
-                        "%s %d removable files found in candidate list of %d.",
+                if (LOG_COMPACT.isDebugEnabled()) {
+                    LOG_COMPACT.debug(String.format("%s %d removable files found in candidate list of %d.",
                         LOG_COMPACT_PRE, copy.size(), numCandidates));
+                }
                 candidates.retainAll(copy);
             }
 
