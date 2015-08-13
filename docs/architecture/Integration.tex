@@ -142,9 +142,14 @@ task.  In this case, we need to have a scanner that can combine N regions and
 act on them as if they are one task.  Example code can be found in
 SplitRegionScanner.
 
-\subsubsection{Hive SerDe}
-
-Please see Yannan's prior work.  Splice Machine will still need a Serde with
-hive but should use the InputFormat above.  TODO
+\subsection{Hive Integration}
+Splice implemented a storage handler SMStorageHandler to store Hive dta in an external table that resides in Splice database. SMStorageHandler is responsible for starting a Splice writable transaction. 
+\begin{enumerate}
+	\item SMHiveInputFormat: a wrapper of the above input format and input reader to read data stored in splice database.
+	\item SMHiveOutputFormat: provide a writer to write data to Splice database.
+	\item SMSerDer: implements serialization method to convert a Hive object to Splice data encoding, and deserialization method to convert splice data encoding to a Hive object.
+	\item PostExecHook: commit a transaction after successfully write to Splice database.
+	\item FailureExecHook: rollback a transaction if fail to write data to Splice database.
+\end{enumerate}
 
 %End Integration Chapter
