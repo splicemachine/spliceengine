@@ -61,7 +61,8 @@ public class GlobalDistribution<T extends Comparable<T>> implements Distribution
     public T minValue(){
         T min = null;
         for(PartitionStatistics pStats:tableStatistics.partitionStatistics()){
-            T minValue=(T)pStats.columnDistribution(columnId).minValue();
+            Distribution<T> dist=pStats.columnDistribution(columnId);
+            T minValue=dist.minValue();
             if(min==null){
                 min =minValue;
             }else if(min.compareTo(minValue)>0)
@@ -75,8 +76,8 @@ public class GlobalDistribution<T extends Comparable<T>> implements Distribution
         T min = null;
         long minCount = 0l;
         for(PartitionStatistics pStats:tableStatistics.partitionStatistics()){
-            Distribution<Object> distribution=pStats.columnDistribution(columnId);
-            T minValue=(T)distribution.minValue();
+            Distribution<T> distribution=pStats.columnDistribution(columnId);
+            T minValue=distribution.minValue();
             if(min==null){
                 min =minValue;
                 minCount = distribution.minCount();
@@ -92,7 +93,8 @@ public class GlobalDistribution<T extends Comparable<T>> implements Distribution
     public T maxValue(){
         T max = null;
         for(PartitionStatistics pStats:tableStatistics.partitionStatistics()){
-            T maxValue=(T)pStats.columnDistribution(columnId).maxValue();
+            Distribution<T> dist=pStats.columnDistribution(columnId);
+            T maxValue=dist.maxValue();
             if(max==null){
                 max =maxValue;
             }else if(max.compareTo(maxValue)>0)
