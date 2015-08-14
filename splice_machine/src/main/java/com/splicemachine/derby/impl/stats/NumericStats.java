@@ -215,5 +215,24 @@ public class NumericStats extends BaseDvdStatistics{
             return baseStats.getDistribution().rangeSelectivity(s,e,includeStart,includeStop);
         }
 
+        @Override
+        public DataValueDescriptor minValue(){
+            return new SQLDecimal(baseStats.minValue());
+        }
+
+        @Override
+        public long minCount(){
+            return baseStats.minCount();
+        }
+
+        @Override
+        public DataValueDescriptor maxValue(){
+            return new SQLDecimal(baseStats.maxValue());
+        }
+
+        @Override
+        public long totalCount(){
+            return baseStats.nonNullCount();
+        }
     }
 }

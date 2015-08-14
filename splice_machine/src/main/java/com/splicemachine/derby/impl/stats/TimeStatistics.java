@@ -55,7 +55,7 @@ public abstract class TimeStatistics extends BaseDvdStatistics{
 
     protected abstract DataValueDescriptor wrap(long value);
 
-    protected static abstract class TimeDistribution implements Distribution<DataValueDescriptor>{
+    protected abstract class TimeDistribution implements Distribution<DataValueDescriptor>{
         private final LongDistribution baseDist;
         private final LongColumnStatistics baseColStats;
 
@@ -86,6 +86,26 @@ public abstract class TimeStatistics extends BaseDvdStatistics{
                 long stopTime = unwrapTime(stop);
                 return baseDist.rangeSelectivity(startTime,stopTime,includeStart,includeStop);
             }
+        }
+
+        @Override
+        public DataValueDescriptor minValue(){
+            return wrap(baseDist.min());
+        }
+
+        @Override
+        public long minCount(){
+            return baseDist.minCount();
+        }
+
+        @Override
+        public DataValueDescriptor maxValue(){
+            return wrap(baseDist.max());
+        }
+
+        @Override
+        public long totalCount(){
+            return baseStats.nonNullCount();
         }
 
         protected abstract long unwrapTime(DataValueDescriptor dvd);

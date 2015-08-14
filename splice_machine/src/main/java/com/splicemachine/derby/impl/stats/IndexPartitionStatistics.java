@@ -49,7 +49,7 @@ public class IndexPartitionStatistics implements OverheadManagedPartitionStatist
 
     @Override public List<ColumnStatistics> columnStatistics(){ return indexPartitionStats.columnStatistics(); }
     @Override public <T> ColumnStatistics<T> columnStatistics(int columnId){ return indexPartitionStats.columnStatistics(columnId); }
-    @Override public <T> Distribution<T> columnDistribution(int columnId){ return indexPartitionStats.columnDistribution(columnId); }
+    @Override public <T extends Comparable<T>> Distribution<T> columnDistribution(int columnId){ return indexPartitionStats.columnDistribution(columnId); }
 
     @Override
     public PartitionStatistics merge(PartitionStatistics other){

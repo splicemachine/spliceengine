@@ -624,8 +624,10 @@ public abstract class ColumnAverage implements ColumnStatistics<DataValueDescrip
                     nullCount(),
                     minCount,DvdStatsCollector.stringDistributionFactory(maxLength)
             );
-            return new StringStatistics.StringDistribution(scs);
+            return newDistribution(scs);
         }
+
+        protected abstract Distribution<DataValueDescriptor> newDistribution(ColumnStatistics<String> scs);
 
         protected abstract DataValueDescriptor getDvd(String value);
 
@@ -642,6 +644,11 @@ public abstract class ColumnAverage implements ColumnStatistics<DataValueDescrip
         public CharAverage(int columnId, int maxLength) { super(columnId, maxLength,CharStats.conversionFunction); }
         @Override protected DataValueDescriptor getDvd(String value) { return new SQLChar(value); }
         @Override public ColumnStatistics<DataValueDescriptor> getClone() {return new CharAverage(columnId,maxLength);}
+
+        @Override
+        protected Distribution<DataValueDescriptor> newDistribution(ColumnStatistics<String> scs){
+            return new CharStats(scs,maxLength).getDistribution();
+        }
     }
 
     private static class VarcharAverage extends StringAverage{
@@ -651,6 +658,11 @@ public abstract class ColumnAverage implements ColumnStatistics<DataValueDescrip
 
         @Override public ColumnStatistics<DataValueDescriptor> getClone() {
             return new VarcharAverage(columnId,maxLength);
+        }
+
+        @Override
+        protected Distribution<DataValueDescriptor> newDistribution(ColumnStatistics<String> scs){
+            return new VarcharStats(scs,maxLength).getDistribution();
         }
     }
 
@@ -731,7 +743,7 @@ public abstract class ColumnAverage implements ColumnStatistics<DataValueDescrip
 
         @Override
         protected Distribution<DataValueDescriptor> newDistribution(LongColumnStatistics lcs){
-            return new TimeStats.TimeDist(lcs);
+            return new TimeStats(lcs).getDistribution();
         }
 
         @Override
@@ -774,7 +786,7 @@ public abstract class ColumnAverage implements ColumnStatistics<DataValueDescrip
 
         @Override
         protected Distribution<DataValueDescriptor> newDistribution(LongColumnStatistics lcs){
-            return new DateStatistics.DateDist(lcs);
+            return new DateStatistics(lcs).getDistribution();
         }
 
         @Override
@@ -817,7 +829,7 @@ public abstract class ColumnAverage implements ColumnStatistics<DataValueDescrip
 
         @Override
         protected Distribution<DataValueDescriptor> newDistribution(LongColumnStatistics lcs){
-            return new TimeStats.TimeDist(lcs);
+            return new TimeStats(lcs).getDistribution();
         }
 
         @Override
