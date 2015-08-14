@@ -188,5 +188,25 @@ public class BigintStats extends BaseDvdStatistics {
                     return dist.rangeSelectivity(s,safeGetLong(stop),includeStart,includeStop);
             }
         }
+
+        @Override
+        public DataValueDescriptor minValue(){
+            return new SQLLongint(stats.min());
+        }
+
+        @Override
+        public long minCount(){
+            return stats.minCount();
+        }
+
+        @Override
+        public DataValueDescriptor maxValue(){
+            return new SQLLongint(stats.max());
+        }
+
+        @Override
+        public long totalCount(){
+            return stats.nonNullCount();
+        }
     }
 }

@@ -52,7 +52,7 @@ public class IndexTableStatistics implements OverheadManagedTableStatistics{
     @Override public long collectionTime(){ return indexStats.collectionTime(); }
     @Override public List<ColumnStatistics> columnStatistics(){ return indexStats.columnStatistics(); }
     @Override public <T> ColumnStatistics<T> columnStatistics(int columnId){ return indexStats.columnStatistics(columnId); }
-    @Override public <T> Distribution<T> columnDistribution(int columnId){ return indexStats.columnDistribution(columnId); }
+    @Override public <T extends Comparable<T>> Distribution<T> columnDistribution(int columnId){ return indexStats.columnDistribution(columnId); }
 
     @Override
     public List<? extends PartitionStatistics> partitionStatistics(){

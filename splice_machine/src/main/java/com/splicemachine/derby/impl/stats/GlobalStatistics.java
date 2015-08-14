@@ -193,7 +193,7 @@ public class GlobalStatistics implements OverheadManagedTableStatistics {
     }
 
     @Override
-    public <T> Distribution<T> columnDistribution(int columnId) {
+    public <T extends Comparable<T>> Distribution<T> columnDistribution(int columnId) {
         return new GlobalDistribution<>(this,columnId);
     }
 

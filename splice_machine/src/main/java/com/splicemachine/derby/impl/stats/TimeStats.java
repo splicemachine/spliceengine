@@ -94,7 +94,7 @@ public class TimeStats extends TimeStatistics{
         }
     }
 
-    static class TimeDist extends TimeDistribution{
+    class TimeDist extends TimeDistribution{
         private Calendar calendar;
         public TimeDist(LongColumnStatistics baseColStats){ super(baseColStats); }
 

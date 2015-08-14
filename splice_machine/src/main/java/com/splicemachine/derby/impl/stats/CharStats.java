@@ -15,6 +15,7 @@ public class CharStats extends StringStatistics {
 
     public CharStats() { }
 
+
     public CharStats(ColumnStatistics<String> stats,int strLen) {
         super(stats,strLen);
     }
@@ -31,7 +32,6 @@ public class CharStats extends StringStatistics {
     public ColumnStatistics<DataValueDescriptor> getClone() {
         return new CharStats((ColumnStatistics<String>)baseStats.getClone(),strLen);
     }
-
 
     /* ***************************************************************************************************************/
     /*private helper methods*/
