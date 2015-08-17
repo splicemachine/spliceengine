@@ -68,7 +68,12 @@ public class SQLExceptionFactory40 extends SQLExceptionFactory {
 		// Create dummy exception which ferries arguments needed to serialize
 		// SQLExceptions across the DRDA network layer.
 		//
-		t = wrapArgsForTransportAcrossDRDA( message, messageId, next, severity, t, args );
+        String msg = messageId;
+        if (message != null && message.equals(messageId) && message.length() > 6) {
+            msg = messageId.substring(6);
+        }
+
+		t = wrapArgsForTransportAcrossDRDA( message, msg, next, severity, t, args );
 
         final SQLException ex;
         if (sqlState.startsWith(SQLState.CONNECTIVITY_PREFIX)) {
