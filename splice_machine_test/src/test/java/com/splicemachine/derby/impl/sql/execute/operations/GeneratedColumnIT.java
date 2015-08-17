@@ -1,10 +1,13 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import com.google.common.collect.Lists;
 import org.apache.log4j.Logger;
@@ -22,6 +25,7 @@ import com.splicemachine.derby.test.framework.SpliceDataWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_dao.TableDAO;
 
 /**
@@ -206,4 +210,72 @@ public class GeneratedColumnIT {
         }
 
     }
+
+    @Test
+    public void testInsertGeneratedUniqueData() throws Exception {
+        // DB-3665: generated identity column data jumps around
+        // This test shows that all values generated are unique, (at least)
+
+        // It also shows the nature of this bug when the SQL is specified as a 1-value increment when run on a cluster
+        // On a cluster, each node gets its own batch (default 1000) of in-memory sequence IDs to hand out. When more
+        // than one cluster node updates a table with one of these sequences each node has a different batch of IDs to
+        // hand out. Thus, These sequences may increase by the batch size of the node.
+        String tableName = "t1".toUpperCase();
+        String tableRef = schemaWatcher.schemaName+"."+tableName;
+        tableDAO.drop(schemaWatcher.schemaName, tableName);
+
+        methodWatcher.execute(String.format("create table %s(c1 int generated always as identity(start with 1, increment by 1), c2 int)",
+                                            tableRef));
+        for (int i=0; i<15; i++) {
+            methodWatcher.execute(String.format("insert into %s(c2) values (8),(9)", tableRef));
+            methodWatcher.execute(String.format("insert into %s(c2) select c1 from %s", tableRef,tableRef));
+        }
+
+        ResultSet rs = methodWatcher.executeQuery(String.format("SELECT * FROM %s", tableRef));
+        Set<Integer> uniques = new HashSet<>();
+        int i=0;
+        while (rs.next()) {
+            i++;
+            if (uniques.contains(rs.getInt(1))) {
+                fail("Duplicate identity values at "+i+": "+rs.getInt(1));
+            }
+            uniques.add(rs.getInt(1));
+        }
+        assertEquals("Expected "+i+" unique values but got "+ uniques.size(), i, uniques.size());
+    }
+
+    @Test
+    public void testInsertGenerateUniqueSequencedData() throws Exception {
+        // DB-3665: generated identity column data jumps around
+        // This test shows that, although all sequence values are unique, they are not in sequence order (1,2,...,n).
+        // TODO: This test will fail when running on a cluster
+
+        // The bug occurs when the SQL is specified as a 1-value increment when run on a cluster
+        // On a cluster, each node gets its own batch (default 1000) of in-memory sequence IDs to hand out. When more
+        // than one cluster node updates a table with one of these sequences each node has a different batch of IDs to
+        // hand out. Thus, these sequences may increase by the batch size of the node which may produce gaps in the
+        // sequence.
+        String tableName = "t2".toUpperCase();
+        String tableRef = schemaWatcher.schemaName+"."+tableName;
+        tableDAO.drop(schemaWatcher.schemaName, tableName);
+
+        methodWatcher.execute(String.format("create table %s(c1 int generated always as identity(start with 1, " +
+                                                "increment by 1), c2 int)",
+                                            tableRef));
+        for (int i=0; i<15; i++) {
+            methodWatcher.execute(String.format("insert into %s(c2) values (8),(9)", tableRef));
+            methodWatcher.execute(String.format("insert into %s(c2) select c1 from %s", tableRef,tableRef));
+        }
+
+        ResultSet rs = methodWatcher.executeQuery(String.format("SELECT * FROM %s order by c1", tableRef));
+        int lastValue = 0;
+        int i=0;
+        while (rs.next()) {
+            i++;
+            int currentValue = rs.getInt(1);
+            assertEquals("Expected " + i + " unique values but got " + currentValue, lastValue + 1, currentValue);
+            lastValue = currentValue;
+        }
+    }
+
 }
