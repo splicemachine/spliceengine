@@ -10,7 +10,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * @author Scott Fines
  *         Date: 8/14/15
  */
-public class ConcurrentTicker implements Clock{
+public class ConcurrentTicker implements TickingClock{
     private final AtomicLong ticker;
 
     public ConcurrentTicker(long seed){
@@ -27,11 +27,13 @@ public class ConcurrentTicker implements Clock{
         return ticker.get();
     }
 
-    public void tickMillis(long millis){
-       ticker.addAndGet(millis*1000);
+    @Override
+    public long tickMillis(long millis){
+       return ticker.addAndGet(millis*1000)/1000;
     }
 
-    public void tickNanos(long nanos){
-        ticker.addAndGet(nanos);
+    @Override
+    public long tickNanos(long nanos){
+        return ticker.addAndGet(nanos);
     }
 }
