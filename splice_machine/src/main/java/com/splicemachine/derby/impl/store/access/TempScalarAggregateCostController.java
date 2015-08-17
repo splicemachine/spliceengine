@@ -8,6 +8,7 @@ import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -118,6 +119,8 @@ public class TempScalarAggregateCostController implements AggregateCostControlle
 
     private void getReferencedColumns(ValueNode v, List<ColumnReference> columnReferenceList) {
 
+        if (v == null) return;
+
         if (v instanceof ColumnReference) {
             columnReferenceList.add((ColumnReference)v);
         }
@@ -132,6 +135,21 @@ public class TempScalarAggregateCostController implements AggregateCostControlle
         }
         else if (v instanceof UnaryOperatorNode) {
             getReferencedColumns(((UnaryOperatorNode) v).getOperand(), columnReferenceList);
+        }
+        else if (v instanceof TernaryOperatorNode) {
+            TernaryOperatorNode node = (TernaryOperatorNode) v;
+            getReferencedColumns(node.getReceiver(), columnReferenceList);
+            getReferencedColumns(node.getLeftOperand(), columnReferenceList);
+            getReferencedColumns(node.getRightOperand(), columnReferenceList);
+        }
+        else if (v instanceof CoalesceFunctionNode) {
+            CoalesceFunctionNode node = (CoalesceFunctionNode) v;
+            List valueNodeList = node.getChildren();
+            Iterator<ValueNode> valueNodeIterator = valueNodeList.iterator();
+            while (valueNodeIterator.hasNext()) {
+                ValueNode valueNode = valueNodeIterator.next();
+                getReferencedColumns(valueNode, columnReferenceList);
+            }
         }
     }
 }
