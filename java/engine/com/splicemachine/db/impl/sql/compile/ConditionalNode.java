@@ -744,9 +744,9 @@ public class ConditionalNode extends ValueNode
 		nodes.add(testCondition);
 		
 		Iterator it = thenElseList.getNodes().iterator();
-		
-		for(Object node = it.next();it.hasNext();){
-			nodes.add(node);
+
+		while(it.hasNext()) {
+			nodes.add(it.next());
 		}
 		
 		return nodes;

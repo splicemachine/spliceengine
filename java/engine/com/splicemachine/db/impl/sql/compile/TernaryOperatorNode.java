@@ -1113,6 +1113,7 @@ public class TernaryOperatorNode extends OperatorNode
 
 	public List getChildren() {
 		return new LinkedList(){{
+			add(receiver);
 			add(leftOperand);
 			add(rightOperand);
 		}};
