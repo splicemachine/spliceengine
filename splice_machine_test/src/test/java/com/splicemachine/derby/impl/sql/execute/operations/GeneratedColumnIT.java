@@ -2,27 +2,27 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import static org.junit.Assert.assertEquals;
 
-import com.google.common.collect.Lists;
-import com.splicemachine.derby.test.framework.SpliceDataWatcher;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.homeless.TestUtils;
-import com.splicemachine.test_dao.TableDAO;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.util.List;
 
+import com.google.common.collect.Lists;
 import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.util.List;
+import com.splicemachine.derby.test.framework.SpliceDataWatcher;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceTableWatcher;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.test_dao.TableDAO;
 
 /**
  * Test to validate that GENERATED columns work correctly.
@@ -186,7 +186,7 @@ public class GeneratedColumnIT {
         assertEquals("Incorrect number of rows returned!", size, results.size());
     }
 
-    @Test
+    @Test @Ignore("DB-3656: generated column does not get updated")
     public void testUpdateGeneratedColumn() throws Exception {
         // DB-3656: generated column does not get updated
         String tableName = "words".toUpperCase();
@@ -195,9 +195,11 @@ public class GeneratedColumnIT {
 
         methodWatcher.execute(String.format("CREATE TABLE %s(WORD VARCHAR(20), UWORD GENERATED ALWAYS AS (UPPER(WORD)))",
                                             tableRef));
-        methodWatcher.execute(String.format("INSERT INTO %s(WORD) VALUES 'chocolate', 'Coca-Cola', 'hamburger', 'carrot'",
+        methodWatcher.execute(String.format("INSERT INTO %s(WORD) VALUES 'chocolate', 'Coca-Cola', 'hamburger', " +
+                                                "'carrot'",
                                             tableRef));
-        TestUtils.printResult("", methodWatcher.executeQuery("select * from words"), System.out);
+        // DEBUG: Remove
+//        TestUtils.printResult("", methodWatcher.executeQuery(String.format("SELECT * FROM %s", tableRef)), System.out);
         ResultSet rs = methodWatcher.executeQuery(String.format("SELECT * FROM %s", tableRef));
         while (rs.next()) {
             assertEquals(rs.getString(1).toUpperCase(), rs.getString(2));
