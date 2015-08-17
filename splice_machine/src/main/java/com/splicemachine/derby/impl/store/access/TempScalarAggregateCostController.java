@@ -124,27 +124,8 @@ public class TempScalarAggregateCostController implements AggregateCostControlle
         if (v instanceof ColumnReference) {
             columnReferenceList.add((ColumnReference)v);
         }
-        else if (v instanceof BinaryOperatorNode) {
-            BinaryOperatorNode b = (BinaryOperatorNode) v;
-            getReferencedColumns(b.getLeftOperand(), columnReferenceList);
-            getReferencedColumns(b.getRightOperand(), columnReferenceList);
-
-        }
-        else if (v instanceof CastNode) {
-            getReferencedColumns(((CastNode) v).getCastOperand(), columnReferenceList);
-        }
-        else if (v instanceof UnaryOperatorNode) {
-            getReferencedColumns(((UnaryOperatorNode) v).getOperand(), columnReferenceList);
-        }
-        else if (v instanceof TernaryOperatorNode) {
-            TernaryOperatorNode node = (TernaryOperatorNode) v;
-            getReferencedColumns(node.getReceiver(), columnReferenceList);
-            getReferencedColumns(node.getLeftOperand(), columnReferenceList);
-            getReferencedColumns(node.getRightOperand(), columnReferenceList);
-        }
-        else if (v instanceof CoalesceFunctionNode) {
-            CoalesceFunctionNode node = (CoalesceFunctionNode) v;
-            List valueNodeList = node.getChildren();
+        else {
+            List valueNodeList = v.getChildren();
             Iterator<ValueNode> valueNodeIterator = valueNodeList.iterator();
             while (valueNodeIterator.hasNext()) {
                 ValueNode valueNode = valueNodeIterator.next();
