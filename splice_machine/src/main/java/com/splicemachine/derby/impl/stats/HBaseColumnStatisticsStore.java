@@ -21,6 +21,7 @@ import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.utils.kryo.KryoObjectInput;
+
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
@@ -37,7 +38,8 @@ import java.util.concurrent.TimeUnit;
  */
 public class HBaseColumnStatisticsStore implements ColumnStatisticsStore {
     private static final Logger LOG = Logger.getLogger(HBaseColumnStatisticsStore.class);
-    private final Cache<String,List<ColumnStatistics>> columnStatsCache;
+    @SuppressWarnings("rawtypes")
+	private final Cache<String,List<ColumnStatistics>> columnStatsCache;
     private ScheduledExecutorService refreshThread;
     private final byte[] columnStatsTable;
     private final HBaseClient hbaseClient;
@@ -52,7 +54,7 @@ public class HBaseColumnStatisticsStore implements ColumnStatisticsStore {
 
     public void start() throws ExecutionException {
         try {
-            Txn txn = TransactionLifecycle.getLifecycleManager().beginTransaction(Txn.IsolationLevel.READ_UNCOMMITTED);
+            TxnView txn = TransactionLifecycle.getLifecycleManager().beginTransaction(Txn.IsolationLevel.READ_UNCOMMITTED);
             refreshThread.scheduleAtFixedRate(new Refresher(txn),0l,StatsConstants.partitionCacheExpiration,TimeUnit.MILLISECONDS);
         } catch (IOException e) {
             throw new ExecutionException(e);
@@ -61,13 +63,16 @@ public class HBaseColumnStatisticsStore implements ColumnStatisticsStore {
 
     @Override
     public Map<String, List<ColumnStatistics>> fetchColumnStats(TxnView txn, long conglomerateId, Collection<String> partitions) throws ExecutionException {
+    	boolean isTrace = LOG.isTraceEnabled();
         Map<String,List<ColumnStatistics>> partitionIdToColumnMap = new HashMap<>();
         List<String> toFetch = new LinkedList<>();
         for(String partition:partitions){
             List<ColumnStatistics> colStats = columnStatsCache.getIfPresent(partition);
             if(colStats!=null){
+            	if (isTrace) LOG.trace(String.format("Column stats found in cache for conglomerate %d, partition %s", conglomerateId, partition));
                 partitionIdToColumnMap.put(partition,colStats);
             }else{
+            	if (isTrace) LOG.trace(String.format("Column stats NOT found in cache for conglomerate %d, partition %s", conglomerateId, partition));
                 toFetch.add(partition);
             }
         }
@@ -100,6 +105,7 @@ public class HBaseColumnStatisticsStore implements ColumnStatisticsStore {
             }
 
             for(Map.Entry<String,List<ColumnStatistics>> toCache:toCacheMap.entrySet()){
+            	if (isTrace) LOG.trace(String.format("Adding column stats to cache for partition %s", toCache.getKey()));
                 columnStatsCache.put(toCache.getKey(),toCache.getValue());
             }
 
@@ -160,7 +166,8 @@ public class HBaseColumnStatisticsStore implements ColumnStatisticsStore {
         throw new IllegalStateException("Programmer error: Did not find a data column!");
     }
 
-    private class Refresher implements Runnable {
+    @SuppressWarnings("unused")
+	private class Refresher implements Runnable {
         private final TxnView baseTxn; //should be read-only, and use READ_UNCOMMITTED isolation level
 
         public Refresher(TxnView baseTxn) {
@@ -169,9 +176,11 @@ public class HBaseColumnStatisticsStore implements ColumnStatisticsStore {
 
         @Override
         public void run() {
+        	boolean isTrace = LOG.isTraceEnabled();
             Kryo kryo = SpliceKryoRegistry.getInstance().get();
-            Map<String,List<ColumnStatistics>> toCacheMap = new HashMap<>();
-            try (SortedMultiScanner scanner = getScanner(baseTxn, -1, null)) {
+			Map<String,List<ColumnStatistics>> toCacheMap = new HashMap<>();
+            
+            try(SortedMultiScanner scanner = getScanner(baseTxn, -1, null)) {
                 List<KeyValue> nextRow;
                 EntryDecoder decoder = new EntryDecoder();
                 while ((nextRow = scanner.nextKeyValues()) != null) {
@@ -195,11 +204,12 @@ public class HBaseColumnStatisticsStore implements ColumnStatisticsStore {
                 }
 
                 for (Map.Entry<String, List<ColumnStatistics>> toCache : toCacheMap.entrySet()) {
+                	if (isTrace) LOG.trace(String.format("Refreshing cached column stats for partition %s", toCache.getKey()));
                     columnStatsCache.put(toCache.getKey(), toCache.getValue());
                 }
             } catch (Exception e) {
-                LOG.warn("Error encountered while refresshing Column Statistics Cache", e);
-            }
+                LOG.warn("Error encountered while refreshing Column Statistics Cache", e);
+	        }
         }
     }
 }

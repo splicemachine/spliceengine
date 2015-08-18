@@ -70,7 +70,7 @@ public class Trigger_Row_Transition_IT {
         methodWatcher.executeUpdate("update T set b = 2000 where a='BBB'");
 
         // then -- updated row and row from trigger
-        assertEquals(2L, methodWatcher.query("select count(*) from T where a='BBB'"));
+        assertEquals(2L, methodWatcher.query("select count(*) from T where b=2000"));
     }
 
     @Test
@@ -120,6 +120,37 @@ public class Trigger_Row_Transition_IT {
         methodWatcher.executeUpdate("update T set b = 2000, a='ZZZ' where a='BBB'");
 
         assertEquals(1L, methodWatcher.query("select count(*) from RECORD_OLD where a='BBB' and b=2"));
+    }
+
+    @Test
+    public void afterUpdateTransitionNew() throws Exception {
+        // DB-3570: transition values - always seeing old
+        methodWatcher.executeUpdate(tb.named("trig4").after().update().on("T").referencing("NEW AS N")
+                                      .row().then("INSERT INTO RECORD_NEW VALUES(N.a, N.b)").build());
+
+        // when - update a row
+        methodWatcher.executeUpdate("update T set a='new', b=999 where a='CCC'");
+
+        assertEquals(1L, methodWatcher.query("select count(*) from RECORD_NEW where a='new' and b=999"));
+    }
+
+    @Test
+    public void afterUpdateTransitionNewTwoTriggers() throws Exception {
+        // DB-3570: transition values - always seeing old (event being cleared prematurely)
+        methodWatcher.executeUpdate("create table t_master(id int, col1 int, col2 int, col3 int, col4 char(10), col5 varchar(20))");
+        methodWatcher.executeUpdate("insert into t_master values(1,1,1,1,'01','Master01')");
+        methodWatcher.executeUpdate("create table t_slave2(id int ,description varchar(20),tm_time timestamp)");
+
+        methodWatcher.executeUpdate(tb.named("Master45").after().update().on("t_master").referencing("NEW AS newt")
+                                      .row().then("INSERT INTO t_slave2 VALUES(newt.id,'Master45',CURRENT_TIMESTAMP)")
+                                      .build());
+        methodWatcher.executeUpdate(tb.named("Master48").after().update().of("col1").on("t_master").referencing("NEW AS newt")
+                                      .row().then("INSERT INTO t_slave2 VALUES(newt.id,'Master48',CURRENT_TIMESTAMP)").build());
+
+        // when - update a row
+        methodWatcher.executeUpdate("update t_master set id=778, col1=778,col4='778' where id=1");
+
+        assertEquals(2L, methodWatcher.query("select count(*) from t_slave2 where id=778"));
     }
 
     @Test

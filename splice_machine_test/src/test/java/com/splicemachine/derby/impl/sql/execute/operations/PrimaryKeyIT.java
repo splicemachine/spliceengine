@@ -1,10 +1,10 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
-import com.google.common.collect.Lists;
-import com.splicemachine.derby.test.framework.SQLClosures;
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
-import org.junit.*;
+import static java.lang.String.format;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -12,8 +12,16 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.List;
 
-import static java.lang.String.format;
-import static org.junit.Assert.*;
+import com.google.common.collect.Lists;
+import org.junit.Assert;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
+
+import com.splicemachine.derby.test.framework.SQLClosures;
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
 
 public class PrimaryKeyIT {
 
@@ -173,8 +181,7 @@ public class PrimaryKeyIT {
 
             PreparedStatement validator = conn.prepareStatement("select * from A where name = ?");
             validator.setString(1, "dgf");
-            ResultSet rs = validator.executeQuery();
-            try {
+            try (ResultSet rs = validator.executeQuery()) {
                 int matchCount = 0;
                 while (rs.next()) {
                     if ("dgf".equalsIgnoreCase(rs.getString(1))) {
@@ -184,7 +191,6 @@ public class PrimaryKeyIT {
                 }
                 assertEquals("Incorrect number of updated rows!", 1, matchCount);
             } finally {
-                rs.close();
                 validator.close();
             }
         } finally {
@@ -199,12 +205,12 @@ public class PrimaryKeyIT {
         try {
             methodWatcher.executeUpdate("update A set val = 20 where name = 'mzweben'");
 
-            SQLClosures.prepareExecute(conn, "select * from A where name = ?", new SQLClosures.SQLAction<PreparedStatement>() {
+            SQLClosures.prepareExecute(conn, "select * from A where name = ?", new SQLClosures
+                .SQLAction<PreparedStatement>() {
                 @Override
                 public void execute(PreparedStatement validator) throws Exception {
                     validator.setString(1, "mzweben");
-                    ResultSet rs = validator.executeQuery();
-                    try {
+                    try (ResultSet rs = validator.executeQuery()) {
                         int matchCount = 0;
                         while (rs.next()) {
                             if ("mzweben".equalsIgnoreCase(rs.getString(1))) {
@@ -214,8 +220,6 @@ public class PrimaryKeyIT {
                             }
                         }
                         assertEquals("Incorrect number of updated rows!", 1, matchCount);
-                    } finally {
-                        rs.close();
                     }
 
                 }
@@ -245,6 +249,24 @@ public class PrimaryKeyIT {
     @Test(timeout = 10000)
     public void testCanRetrievePrimaryKeysFromMetadataLowerCase() throws Exception {
         doCanRetrievePrimaryKeysFromMetadataLowerCase(null, SCHEMA.toLowerCase(), "a");
+    }
+
+    // DB-3528: creating non-unique index over a PK causes PK constraint to become non-affective.
+    @Test
+    public void testIndexOverPrimaryKey() throws Exception {
+        methodWatcher.executeUpdate("create table j (a varchar(5) primary key)");
+        methodWatcher.executeUpdate("insert into j values ('1'), ('2'), ('3')");
+        methodWatcher.executeUpdate("create index ij on j (A)");
+        try {
+            methodWatcher.executeUpdate("update j set A='3' where A='2'");
+            fail("Expected PK violation");
+        } catch (Exception e) {
+            // expected constraint violation
+            assertTrue(e instanceof SQLException);
+            assertEquals("23505", ((SQLException)e).getSQLState());
+        }
+        assertEquals(Lists.newArrayList("1","2","3"), methodWatcher.queryList("select * from j"));
+        assertEquals(Lists.newArrayList("1","2","3"), methodWatcher.queryList("select * from j --SPLICE-PROPERTIES index=ij"));
     }
 
     // Called by the two tests above to handle variations in schemaName and tableName like upper/lower case

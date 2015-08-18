@@ -63,7 +63,10 @@ public class ConstraintWriteHandler implements WriteHandler {
                 default:
                     ctx.sendUpstream(mutation);
             }
-            visitedRows.add(mutation.rowKeySlice());
+            // We don't need deletes in this set. delete -> insert/upsert to same rowkey is inefficient but valid
+            if (mutation.getType() != KVPair.Type.DELETE) {
+                visitedRows.add(mutation.rowKeySlice());
+            }
         } catch (NotServingRegionException nsre) {
             ctx.failed(mutation, WriteResult.notServingRegion());
             failed = true;

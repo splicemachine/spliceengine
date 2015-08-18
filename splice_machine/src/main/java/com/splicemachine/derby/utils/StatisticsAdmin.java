@@ -3,10 +3,10 @@ package com.splicemachine.derby.utils;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
+import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -18,6 +18,7 @@ import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.stats.StatisticsJob;
@@ -58,7 +59,7 @@ public class StatisticsAdmin {
                                                 String columnName) throws SQLException{
 
         if(schema==null)
-            schema = "SPLICE";
+            schema = getCurrentSchema();
         else
             schema = schema.toUpperCase();
         if(table==null)
@@ -102,7 +103,7 @@ public class StatisticsAdmin {
                                                 String table,
                                                 String columnName) throws SQLException{
         if(schema==null)
-            schema = "SPLICE";
+            schema = getCurrentSchema();
         else
             schema = schema.toUpperCase();
         if(table==null)
@@ -163,7 +164,7 @@ public class StatisticsAdmin {
             SchemaDescriptor sd = getSchemaDescriptor(schema,lcc,dd);
             //get a list of all the TableDescriptors in the schema
             List<TableDescriptor> tds = getAllTableDescriptors(sd,conn);
-
+            authorize(tds);
             ExecRow templateOutputRow = buildOutputTemplateRow();
             List<StatsJob> jobs = new ArrayList<>(tds.size());
             TransactionController transactionExecute = lcc.getTransactionExecute();
@@ -204,6 +205,35 @@ public class StatisticsAdmin {
 
     }
 
+    private static void authorize(List<TableDescriptor> tableDescriptorList) throws SQLException, StandardException {
+        EmbedConnection conn = (EmbedConnection)SpliceAdmin.getDefaultConn();
+        LanguageConnectionContext lcc=conn.getLanguageConnection();
+        Activation activation = conn.getLanguageConnection().getLastActivation();
+        List requiredPermissionsList = activation.getPreparedStatement().getRequiredPermissionsList();
+        for (TableDescriptor tableDescriptor : tableDescriptorList) {
+            StatementTablePermission key = null;
+            try {
+                key = new StatementTablePermission(tableDescriptor.getUUID(), Authorizer.INSERT_PRIV);
+                requiredPermissionsList.add(key);
+                activation.getLanguageConnectionContext().getAuthorizer().authorize(activation, 1);
+            } catch (StandardException e) {
+                if (e.getSqlState().compareTo(SQLState.AUTH_NO_TABLE_PERMISSION) == 0) {
+                    throw StandardException.newException(
+                            com.splicemachine.db.iapi.reference.SQLState.AUTH_NO_TABLE_PERMISSION_FOR_ANALYZE,
+                            lcc.getCurrentUserId(activation),
+                            "INSERT",
+                            tableDescriptor.getSchemaName(),
+                            tableDescriptor.getName());
+                }
+                else throw e;
+            }
+            finally {
+                if (key != null) {
+                    requiredPermissionsList.remove(key);
+                }
+            }
+        }
+    }
     @SuppressWarnings("UnusedDeclaration")
     public static void COLLECT_TABLE_STATISTICS(String schema,
                                                 String table,
@@ -212,13 +242,16 @@ public class StatisticsAdmin {
         EmbedConnection conn = (EmbedConnection)SpliceAdmin.getDefaultConn();
         try{
             if(schema==null)
-                schema = "SPLICE";
+                schema = getCurrentSchema();
             if(table==null)
                 throw ErrorState.TABLE_NAME_CANNOT_BE_NULL.newException();
 
             schema = schema.toUpperCase();
             table =table.toUpperCase();
             TableDescriptor tableDesc = verifyTableExists(conn,schema,table);
+            List<TableDescriptor> tableDescriptorList = new ArrayList<>();
+            tableDescriptorList.add(tableDesc);
+            authorize(tableDescriptorList);
             List<StatsJob> collectionFutures = new LinkedList<>();
 
             ExecRow outputRow=buildOutputTemplateRow();
@@ -665,5 +698,14 @@ public class StatisticsAdmin {
 
             return outputRow;
         }
+    }
+
+    private static String getCurrentSchema() throws SQLException {
+
+        EmbedConnection connection = (EmbedConnection)SpliceAdmin.getDefaultConn();
+        LanguageConnectionContext lcc=connection.getLanguageConnection();
+        String schema = lcc.getCurrentSchemaName();
+
+        return schema;
     }
 }

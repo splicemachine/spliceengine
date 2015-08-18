@@ -83,6 +83,41 @@ public class IndexTransformer {
                             int[] srcPrimaryKeyIndices,
                             int[] columnTypes,
                             boolean[] srcKeyColumnSortOrder,
+                            int[] mainColToIndexPosMap,
+                            BitSet descColumns,
+                            BitSet indexedColumns) {
+
+        checkArgument(!isUniqueWithDuplicateNulls || isUnique, "isUniqueWithDuplicateNulls only for use with unique indexes");
+
+        this.isUnique = isUnique;
+        this.isUniqueWithDuplicateNulls = isUniqueWithDuplicateNulls;
+        this.srcPrimaryKeyIndices = srcPrimaryKeyIndices;
+        this.columnTypes = columnTypes;
+        this.srcKeyColumnSortOrder = srcKeyColumnSortOrder;
+        this.typeProvider = VersionedSerializers.typesForVersion(tableVersion);
+
+        boolean[] destKeySortOrder = new boolean[columnTypes.length];
+        Arrays.fill(destKeySortOrder, true);
+        for (int i = descColumns.nextSetBit(0); i >= 0; i = descColumns.nextSetBit(i + 1)) {
+            destKeySortOrder[i] = false;
+        }
+        this.indexKeySortOrder = destKeySortOrder;
+
+        int[] keyDecodingMap = new int[(int) indexedColumns.length()];
+        Arrays.fill(keyDecodingMap, -1);
+        for (int i = indexedColumns.nextSetBit(0); i >= 0; i = indexedColumns.nextSetBit(i + 1)) {
+            keyDecodingMap[i] = mainColToIndexPosMap[i];
+        }
+        this.indexKeyEncodingMap = keyDecodingMap;
+    }
+
+    // For testing only
+    IndexTransformer(boolean isUnique,
+                            boolean isUniqueWithDuplicateNulls,
+                            String tableVersion,
+                            int[] srcPrimaryKeyIndices,
+                            int[] columnTypes,
+                            boolean[] srcKeyColumnSortOrder,
                             int[] indexKeyEncodingMap,
                             boolean[] indexKeySortOrder) {
 
@@ -96,6 +131,13 @@ public class IndexTransformer {
         this.indexKeyEncodingMap = indexKeyEncodingMap;
         this.indexKeySortOrder = indexKeySortOrder;
         this.typeProvider = VersionedSerializers.typesForVersion(tableVersion);
+    }
+
+    /**
+     * @return true if this is a unique index.
+     */
+    public boolean isUniqueIndex() {
+        return isUnique;
     }
 
     /**
@@ -241,6 +283,23 @@ public class IndexTransformer {
             indexRowKey = getIndexRowKey(srcRowKey, true);
 
         return new KVPair(indexRowKey, indexValue, mutation.getType());
+    }
+
+
+    public boolean primaryKeyUpdateOnly(KVPair mutation, WriteContext ctx, BitSet indexedColumns) {
+        // This gives us the non-primary-key columns that this mutation modifies.
+        EntryDecoder newPutDecoder = new EntryDecoder();
+        newPutDecoder.set(mutation.getValue());
+        BitIndex updateIndex = newPutDecoder.getCurrentIndex();
+
+        boolean primaryKeyIndexColumnUpdatedOnly = true;
+        for (int i = updateIndex.nextSetBit(0); i >= 0; i = updateIndex.nextSetBit(i + 1)) {
+            if (indexedColumns.get(i)) {
+                primaryKeyIndexColumnUpdatedOnly = false;
+                break;
+            }
+        }
+        return primaryKeyIndexColumnUpdatedOnly;
     }
 
     private boolean isSourceColumnPrimaryKey(int sourceColumnIndex) {
