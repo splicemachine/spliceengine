@@ -1,11 +1,43 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import static com.splicemachine.derby.impl.sql.execute.operations.DMLTriggerEventMapper.getAfterEvent;
+import static com.splicemachine.derby.impl.sql.execute.operations.DMLTriggerEventMapper.getBeforeEvent;
+
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.Callable;
+
 import com.google.common.base.Strings;
-import com.splicemachine.db.impl.sql.execute.*;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.log4j.Logger;
+import org.apache.spark.api.java.JavaRDD;
+
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
+import com.splicemachine.db.iapi.sql.ResultDescription;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.db.impl.sql.execute.TriggerInfo;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
-import com.splicemachine.derby.iapi.sql.execute.*;
+import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.impl.sql.execute.actions.WriteCursorConstantOperation;
 import com.splicemachine.derby.impl.storage.SingleScanRowProvider;
@@ -25,29 +57,6 @@ import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.pipeline.impl.WriteCoordinator;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.SpliceLogUtils;
-
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
-import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
-import com.splicemachine.db.iapi.sql.ResultDescription;
-import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.RowLocation;
-import org.apache.hadoop.hbase.client.Scan;
-import org.apache.log4j.Logger;
-import org.apache.spark.api.java.JavaRDD;
-
-import java.io.IOException;
-import java.io.ObjectInput;
-import java.io.ObjectOutput;
-import java.util.*;
-import java.util.concurrent.Callable;
-
-import static com.splicemachine.derby.impl.sql.execute.operations.DMLTriggerEventMapper.getAfterEvent;
-import static com.splicemachine.derby.impl.sql.execute.operations.DMLTriggerEventMapper.getBeforeEvent;
 
 
 /**
@@ -75,7 +84,11 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 
         private TriggerHandler triggerHandler;
 
-		public DMLWriteOperation(){
+    private SpliceMethod<ExecRow> generationClauses;
+    private String generationClausesFunMethodName;
+
+
+    public DMLWriteOperation(){
 				super();
 		}
 
@@ -97,7 +110,13 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 														 GeneratedMethod checkGM,
 														 Activation activation) throws StandardException{
 				this(source, activation);
-		}
+
+            if(generationClauses != null) {
+                this.generationClausesFunMethodName = generationClauses.getMethodName();
+                this.generationClauses = new SpliceMethod<>(generationClausesFunMethodName, activation);
+            }
+
+        }
 
 		DMLWriteOperation(SpliceOperation source,
 											OperationInformation opInfo,
@@ -118,6 +137,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 				super.readExternal(in);
 				source = (SpliceOperation)in.readObject();
 				writeInfo = (DMLWriteInfo)in.readObject();
+            generationClausesFunMethodName = readNullableString(in);
         heapConglom = in.readLong();
 		}
 
@@ -126,7 +146,9 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 				super.writeExternal(out);
 				out.writeObject(source);
 				out.writeObject(writeInfo);
-        out.writeLong(heapConglom);
+            writeNullableString(generationClausesFunMethodName, out);
+
+            out.writeLong(heapConglom);
 		}
 
 		@Override
@@ -159,7 +181,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
                     );
                 }
 
-				startExecutionTime = System.currentTimeMillis();
+            startExecutionTime = System.currentTimeMillis();
 		}
 
     public byte[] getDestinationTable(){
@@ -323,6 +345,44 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 
     public TriggerHandler getTriggerHandler() {
         return triggerHandler;
+    }
+
+    /**
+     * Compute the generation clauses, if any, on the current row in order to fill in
+     * computed columns.
+     *
+     * @param newRow the base row being evaluated
+     */
+    public void evaluateGenerationClauses(ExecRow newRow) throws StandardException {
+        if (generationClausesFunMethodName != null) {
+            // we only serialize the generated method name. if it's null, we don't have to generate
+            if (generationClauses == null) {
+                // create only if null
+                this.generationClauses = new SpliceMethod<>(generationClausesFunMethodName, activation);
+            }
+            ExecRow oldRow = (ExecRow) activation.getCurrentRow(source.resultSetNumber());
+
+            //
+            // The generation clause may refer to other columns in this row.
+            //
+            try {
+                source.setCurrentRow(newRow);
+                // this is where the magic happens
+                generationClauses.invoke();
+            } finally {
+                //
+                // We restore the Activation to its state before we ran the generation
+                // clause. This may not be necessary but I don't understand all of
+                // the paths through the Insert and Update operations. This
+                // defensive coding seems prudent to me.
+                //
+                if ( oldRow == null ) {
+                    source.clearCurrentRow();
+                } else {
+                    source.setCurrentRow(oldRow);
+                }
+            }
+        }
     }
 
     /**
