@@ -4655,6 +4655,7 @@ dataTypeCommon() throws StandardException :
 	typeDescriptor = LOBType()
 |
 	typeDescriptor = XMLType()
+
 )
 	{
 		return typeDescriptor;
@@ -5078,9 +5079,13 @@ XMLType() throws StandardException :
 {
 	<XML>
 	{
-		checkVersion(DataDictionary.DD_VERSION_DERBY_10_1, "XML");
-		return DataTypeDescriptor.getBuiltInDataTypeDescriptor(
-			JDBC40Translation.SQLXML);
+//		checkVersion(DataDictionary.DD_VERSION_DERBY_10_1, "XML");
+
+		// need to re-enable according to SQL standard
+		throw StandardException.newException(SQLState.NOT_IMPLEMENTED, TypeId.XML_NAME);
+		// return DataTypeDescriptor.getBuiltInDataTypeDescriptor(type, length);
+	//	return DataTypeDescriptor.getBuiltInDataTypeDescriptor(
+	//		JDBC40Translation.SQLXML);
 	}
 }
 
