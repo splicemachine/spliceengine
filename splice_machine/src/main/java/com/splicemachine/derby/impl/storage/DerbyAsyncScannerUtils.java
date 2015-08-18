@@ -40,6 +40,8 @@ public class DerbyAsyncScannerUtils {
     public static Scanner convertScanner(Scan scan, byte[] table, HBaseClient hbaseClient,boolean populateBlockCache){
         Scanner scanner = hbaseClient.newScanner(table);
         scanner.setStartKey(scan.getStartRow());
+
+        //Make sure that Asynchbase keeps the same batch size that we may have previously set the Scan to.
         scanner.setMaxNumKeyValues(scan.getBatch());
         byte[] stop = scan.getStopRow();
         if(stop.length>0)
