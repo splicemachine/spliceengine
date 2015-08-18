@@ -134,16 +134,19 @@ public class ByteColumnStatisticsTest{
     public void testCorrectForMultipleValues() throws Exception{
         ByteColumnStatsCollector byteColumnStatsCollector=ColumnStatsCollectors.byteCollector(0,5);
         byteColumnStatsCollector.update((byte)1);
-        byteColumnStatsCollector.update((byte)1,2);
-        byteColumnStatsCollector.update((byte)13);
+        byteColumnStatsCollector.update((byte) 1, 2);
+        byteColumnStatsCollector.update((byte) 13);
+        byteColumnStatsCollector.updateNull(3);
+        byteColumnStatsCollector.updateSize(4);
         ByteColumnStatistics build=byteColumnStatsCollector.build();
 
         Assert.assertEquals("Incorrect nonNull count",4l,build.nonNullCount());
-        Assert.assertEquals("Incorrect null count",0l,build.nullCount());
+        Assert.assertEquals("Incorrect null count",3l,build.nullCount());
         Assert.assertEquals("Incorrect cardinality!",2l,build.cardinality());
         Assert.assertEquals("Incorrect minCount!",3l,build.minCount());
         Assert.assertEquals("Incorrect minValue!",(byte)1,build.min());
         Assert.assertEquals("Incorrect maxValue!",(byte)13,build.max());
+        Assert.assertEquals("Incorrect avgColumnWidth", 1, build.avgColumnWidth());
 
         long[] correct = new long[256];
         correct[129] = 3l;
