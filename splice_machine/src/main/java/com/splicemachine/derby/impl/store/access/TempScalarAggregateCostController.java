@@ -102,7 +102,7 @@ public class TempScalarAggregateCostController implements AggregateCostControlle
                         }
                     }
                     shuffleCost += returnedRows * sc.getRemoteLatency();
-                    outputHeapSize += returnedRows * sc.getAvgRowWidth();
+                    outputHeapSize += returnedRows * sc.getConglomerateAvgRowWidth(); // TODO JL This is not right.
                 }
             }
         }

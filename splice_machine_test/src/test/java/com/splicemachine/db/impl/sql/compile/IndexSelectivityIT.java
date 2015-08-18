@@ -107,7 +107,7 @@ public class IndexSelectivityIT extends SpliceUnitTest {
         // 100/10000
         secondRowContainsQuery("explain select * from ts_high_cardinality where c1 > 1 and c1 < 100","IndexScan[TS_HIGH_CARDINALITY_IX",methodWatcher);
         // 200/10000
-        secondRowContainsQuery("explain select * from ts_high_cardinality where c1 > 1 and c1 < 200","IndexScan[TS_HIGH_CARDINALITY_IX",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_high_cardinality where c1 > 1 and c1 < 200","TableScan[TS_HIGH_CARDINALITY",methodWatcher);
         // 1000/10000
         firstRowContainsQuery("explain select * from ts_high_cardinality where c1 > 1 and c1 < 1000","TableScan[TS_HIGH_CARDINALITY",methodWatcher);
         // 2000/10000

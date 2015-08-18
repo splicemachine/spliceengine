@@ -26,6 +26,7 @@ public class IndexStatsCostController extends StatsStoreCostController {
     private final int totalColumns;
     private final IndexTableStatistics indexStats;
     private int[] indexColToHeapColMap;
+    private final OverheadManagedTableStatistics baseTableStatistics;
 
     public IndexStatsCostController(ConglomerateDescriptor cd,
                                     OpenSpliceConglomerate indexConglomerate,
@@ -46,7 +47,7 @@ public class IndexStatsCostController extends StatsStoreCostController {
         this.indexColToHeapColMap = new int[baseColumnPositions.length];
         System.arraycopy(baseColumnPositions,0,this.indexColToHeapColMap,0,indexColToHeapColMap.length);
         try {
-            OverheadManagedTableStatistics baseTableStatistics = StatisticsStorage.getPartitionStore().getStatistics(txn, heapConglomerateId);
+            baseTableStatistics = StatisticsStorage.getPartitionStore().getStatistics(txn, heapConglomerateId);
             indexStats = new IndexTableStatistics(conglomerateStatistics,baseTableStatistics);
             this.conglomerateStatistics = indexStats;
         } catch (ExecutionException e) {
@@ -56,17 +57,22 @@ public class IndexStatsCostController extends StatsStoreCostController {
     }
 
     @Override
-    public double scanColumnSizeFactor(BitSet validColumns) {
+    public double conglomerateColumnSizeFactor(BitSet validColumns) {
         return super.columnSizeFactor(indexStats,
+                indexColToHeapColMap.length,
+                validColumns);
+    }
+
+    @Override
+    public double baseTableColumnSizeFactor(BitSet validColumns) {
+        return super.columnSizeFactor(baseTableStatistics,
                 totalColumns,
                 validColumns);
     }
 
     @Override
-    public double lookupColumnSizeFactor(BitSet validColumns,int numberOfColumns) {
-        return super.columnSizeFactor(conglomerateStatistics,
-                numberOfColumns,
-                validColumns);
+    public long getBaseTableAvgRowWidth() {
+        return baseTableStatistics.avgRowWidth();
     }
 
 
