@@ -5,6 +5,7 @@ import com.splicemachine.testutil.ParallelTheoryRunner;
 import org.apache.commons.math3.distribution.NormalDistribution;
 import org.apache.commons.math3.stat.inference.KolmogorovSmirnovTest;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.experimental.theories.DataPoint;
 import org.junit.experimental.theories.DataPoints;
 import org.junit.experimental.theories.Theory;
@@ -17,6 +18,7 @@ import java.util.Random;
  * Date: 3/27/14
  */
 @RunWith(ParallelTheoryRunner.class)
+@Ignore("Not sure that this actually works")
 public class AdjustedHyperLogLogCounterTest {
 
     @DataPoint public static CardinalityTestData lowCardinality     = new CardinalityTestData(30,100        ,1000000);
