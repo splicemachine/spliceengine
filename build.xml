@@ -1028,7 +1028,23 @@
     <copy file="${basedir}/tools/jar/dnc.properties"
           tofile="${derby.jar.dir}/lists/dnc.properties"/>
 
-    <java classname="com.splicemachine.derbyBuild.classlister" fork="yes">
+   <!--
+     This is terrible. We compile all derby classes into one output directory, then when building the the client jar
+     (jdbc driver) we open dnc.properties which has a list of classes and we included those classes and transitive
+     dependencies in the jar. This task does not have any third party jars on its classpath, and so will fail if any
+     of the jdbc-driver classes have dependencies on third party jars. I think we want to keep that behavior (customers
+     will want to murder us if we ship them a jdbc-driver jar that depends on guava 11 for instance).
+
+     If you build and see something like this, you've inadvertently included an unauthorized dependency:
+
+     derbyclientjar:
+     [echo] Beginning derbyclient.jar sane build
+     [copy] Copying 1 file to /Users/<user>/dev/Derby/jars/sane/lists
+
+    BUILD FAILED
+    /Users/jeff/dev/Derby/build.xml:1047: Java returned: 1
+   -->
+    <java classname="com.splicemachine.derbyBuild.classlister" fork="yes" failonerror="true">
       <jvmarg value="-Doutputfile=${derby.jar.dir}/lists/dnc.list"/>
       <arg value="${derby.jar.dir}/lists/dnc.properties"/>
       <classpath>

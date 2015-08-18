@@ -2373,7 +2373,8 @@ public class Statement implements java.sql.Statement, StatementCallbackInterface
                 firstToken.equalsIgnoreCase("values")) // captures <values-clause> production
         {
             sqlMode_ = isQuery__;
-        } else if (firstToken.equalsIgnoreCase("call")) // captures CALL...and ?=CALL...
+        } else if (firstToken.equalsIgnoreCase("call") ||
+                firstToken.equalsIgnoreCase("analyze")) // captures CALL...and ?=CALL...
         {
             sqlMode_ = isCall__;
         } else {

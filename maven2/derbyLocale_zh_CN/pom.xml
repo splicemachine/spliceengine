@@ -6,7 +6,7 @@
     <parent>
         <groupId>com.splicemachine</groupId>
         <artifactId>db-project</artifactId>
-        <version>1.1.1.6-SNAPSHOT</version>
+        <version>1.1.1.7-SNAPSHOT</version>
     </parent>
     <artifactId>dbLocale_zh_CN</artifactId>
     <name>Apache Derby messages: Chinese (Simplified)</name>

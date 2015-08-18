@@ -3397,7 +3397,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 
     @Override
     public String toString() {
-        return com.splicemachine.db.impl.ast.PredicateUtils.predListToString.apply(this);
+        return OperatorToString.toString(this);
     }
 
     /* assign a weight to each predicate-- the maximum weight that a predicate

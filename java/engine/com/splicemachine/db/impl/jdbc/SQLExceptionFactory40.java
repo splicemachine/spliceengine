@@ -62,13 +62,21 @@ public class SQLExceptionFactory40 extends SQLExceptionFactory {
     
     public SQLException getSQLException(String message, String messageId,
             SQLException next, int severity, Throwable t, Object[] args) {
+
+        // this method just copy first 5 characters
         String sqlState = StandardException.getSQLStateFromIdentifier(messageId);
 
-		//
+        // if message and messageId are the same, first 5 characters are error code and let's cut them to avoid duplication
+        String msg = messageId;
+        if (message != null && message.equals(messageId) && message.length() > 6) {
+            msg = messageId.substring(6);
+        }
+
+        //
 		// Create dummy exception which ferries arguments needed to serialize
 		// SQLExceptions across the DRDA network layer.
 		//
-		t = wrapArgsForTransportAcrossDRDA( message, messageId, next, severity, t, args );
+		t = wrapArgsForTransportAcrossDRDA( message, msg, next, severity, t, args );
 
         final SQLException ex;
         if (sqlState.startsWith(SQLState.CONNECTIVITY_PREFIX)) {

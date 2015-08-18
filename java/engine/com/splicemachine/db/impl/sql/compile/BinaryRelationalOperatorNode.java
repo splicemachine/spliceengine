@@ -266,6 +266,23 @@ public class BinaryRelationalOperatorNode
             }
         }
 
+        if(leftOperand instanceof CastNode){
+            if(((CastNode) leftOperand).castOperand instanceof ColumnReference){
+                cr = (ColumnReference)(((CastNode) leftOperand).castOperand);
+                if(valNodeReferencesOptTable(cr, (FromTable)optTable, false, walkSubtree)){
+                    return cr;
+                }
+            }
+        }
+
+        if(rightOperand instanceof CastNode){
+            if(((CastNode) rightOperand).castOperand instanceof ColumnReference){
+                cr = (ColumnReference)(((CastNode) rightOperand).castOperand);
+                if(valNodeReferencesOptTable(cr, (FromTable)optTable, false, walkSubtree)){
+                    return cr;
+                }
+            }
+        }
 		/* Neither side is the column we're looking for */
         return null;
     }

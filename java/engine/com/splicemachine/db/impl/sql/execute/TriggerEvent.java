@@ -50,6 +50,14 @@ public enum TriggerEvent {
         return when == AFTER;
     }
 
+    /**
+     * Was it an update event that caused this trigger?
+     * @return true if was an update.
+     */
+    public boolean isUpdate() {
+        return dml == TriggerEventDML.UPDATE;
+    }
+
     public TriggerEventDML getDml() {
         return dml;
     }

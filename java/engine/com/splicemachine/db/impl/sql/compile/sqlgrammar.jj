@@ -2848,7 +2848,8 @@ TOKEN [IGNORE_CASE] :
  */
 TOKEN [IGNORE_CASE] :
 {	/* Additional JSQL reserved keywords -- non-SQL92 reserved Keywords */
-	<BOOLEAN: "boolean">
+  <ANALYZE: "analyze">
+|	<BOOLEAN: "boolean">
 |	<CALL: "call">
 |	<CURDATE: "curdate">
 |	<CURRENT_ROLE: "current_role">
@@ -3398,6 +3399,152 @@ StatementPart(Token[] tokenHolder) throws StandardException :
 }
 
 /*
+ * <A NAME="analyzeStatements">spsAnalyzeStatements</A>
+ */
+StatementNode
+analyzeStatements() throws StandardException :
+{
+	StatementNode statementNode;
+}
+{
+	<ANALYZE>
+		(
+      statementNode = analyzeTableStatement() |
+      statementNode = analyzeSchemaStatement()
+    )
+    {
+    }
+	{
+		return statementNode;
+	}
+}
+
+StatementNode
+analyzeTableStatement() throws StandardException :
+{
+  TableName           tableName;
+  TableName           routineName;
+  MethodCallNode      methodNode;
+  ValueNode           value;
+  StatementNode       callStatement;
+  BooleanConstantNode b;
+  ConstantNode        schema;
+}
+{
+  <TABLE> tableName = qualifiedName(Limits.MAX_IDENTIFIER_LENGTH)
+  {
+    routineName = (TableName)nodeFactory.getNode(
+             C_NodeTypes.TABLE_NAME,
+             "SYSCS_UTIL",
+             "COLLECT_TABLE_STATISTICS",
+             getContextManager());
+
+    Vector  parameterList = new Vector();
+    if (tableName.hasSchema()) {
+      schema = (CharConstantNode) nodeFactory.getNode(
+            C_NodeTypes.CHAR_CONSTANT_NODE,
+            tableName.getSchemaName(),
+            getContextManager());
+    }
+    else {
+      schema = (UntypedNullConstantNode) getNodeFactory().getNode(
+             C_NodeTypes.UNTYPED_NULL_CONSTANT_NODE,
+             getContextManager());
+    }
+    parameterList.addElement(schema);
+
+    CharConstantNode table = (CharConstantNode) nodeFactory.getNode(
+                                   C_NodeTypes.CHAR_CONSTANT_NODE,
+                                   tableName.getTableName(),
+                                   getContextManager());
+    parameterList.addElement(table);
+
+    b =(BooleanConstantNode)getNodeFactory().getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE,
+                    Boolean.FALSE,
+                    getContextManager());
+    parameterList.addElement(b);
+
+    methodNode = (MethodCallNode) nodeFactory.getNode(
+      C_NodeTypes.STATIC_METHOD_CALL_NODE,
+      routineName,
+      null,
+      getContextManager());
+    methodNode.addParms(parameterList);
+
+    value = (ValueNode) nodeFactory.getNode(
+      C_NodeTypes.JAVA_TO_SQL_VALUE_NODE,
+      methodNode,
+      getContextManager());
+  }
+  {
+    callStatement = (StatementNode) nodeFactory.getNode(
+  	C_NodeTypes.CALL_STATEMENT_NODE,
+  	value,
+  	getContextManager());
+
+    setUpAndLinkParameters();
+
+  	return callStatement;
+  }
+}
+
+
+StatementNode
+analyzeSchemaStatement() throws StandardException :
+{
+  String          schemaName;
+  TableName       routineName;
+  MethodCallNode  methodNode;
+  ValueNode       value;
+  StatementNode callStatement;
+  BooleanConstantNode b;
+}
+{
+  <SCHEMA> schemaName = identifier(Limits.MAX_IDENTIFIER_LENGTH, true)
+  {
+    routineName = (TableName)nodeFactory.getNode(
+               C_NodeTypes.TABLE_NAME,
+               "SYSCS_UTIL",
+               "COLLECT_SCHEMA_STATISTICS",
+               getContextManager());
+
+    Vector  parameterList = new Vector();
+    CharConstantNode schema = (CharConstantNode) nodeFactory.getNode(
+                C_NodeTypes.CHAR_CONSTANT_NODE,
+                schemaName,
+                getContextManager());
+    parameterList.addElement(schema);
+
+
+    b =(BooleanConstantNode)getNodeFactory().getNode(C_NodeTypes.BOOLEAN_CONSTANT_NODE,
+                Boolean.FALSE,
+                getContextManager());
+    parameterList.addElement(b);
+
+    methodNode = (MethodCallNode) nodeFactory.getNode(
+          C_NodeTypes.STATIC_METHOD_CALL_NODE,
+          routineName,
+          null,
+          getContextManager());
+    methodNode.addParms(parameterList);
+
+    value = (ValueNode) nodeFactory.getNode(
+          C_NodeTypes.JAVA_TO_SQL_VALUE_NODE,
+          methodNode,
+          getContextManager());
+  }
+  {
+    callStatement = (StatementNode) nodeFactory.getNode(
+      	C_NodeTypes.CALL_STATEMENT_NODE,
+      	value,
+      	getContextManager());
+
+    setUpAndLinkParameters();
+
+    return callStatement;
+  }
+}
+/*
  * <A NAME="createStatements">spsCreateStatement</A>
  */
 StatementNode
@@ -3561,6 +3708,10 @@ preparableSQLDataStatement() throws StandardException :
 	{
 		return dmlStatement;
 	}
+| dmlStatement = analyzeStatements()
+  {
+    return dmlStatement;
+  }
 }
 
 StatementNode
@@ -15524,6 +15675,7 @@ reservedKeyword() :
 |	tok = <WRITE>
 |	tok = <YEAR>
 	/* Additional JSQL reserved keywords -- non-SQL92 reserved Keywords */
+| tok = <ANALYZE>
 |	tok = <BOOLEAN>
 |	tok = <CALL>
 |   tok = <CURRENT_ROLE>
