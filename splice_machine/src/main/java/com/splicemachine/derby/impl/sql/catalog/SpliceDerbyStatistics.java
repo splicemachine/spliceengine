@@ -34,7 +34,7 @@ public class SpliceDerbyStatistics implements Statistics{
         if(predicates!=null && predicates.length>0){
             for(int i=0;i<predicates.length;i++){
                 //we assume that the predicates are = predicates
-                Distribution<Comparable> colDist=tableStats.columnDistribution(i+1);
+                Distribution colDist=tableStats.columnDistribution(i+1);
                 selectivity*=colDist.selectivity((Comparable)predicates[i]);
             }
         }
