@@ -486,25 +486,6 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
         }
     }
 
-
-    @Test
-    public void testAlterTableXml() throws Exception {
-        Connection conn = methodWatcher.createConnection();
-        conn.setAutoCommit(false);
-        conn.createStatement().execute("create table testAlterTableXml (i int)");
-
-        try {
-            conn.createStatement().execute("alter table testAlterTableXml add column x xml");
-            Assert.fail("The test did not throw expected exception");
-        } catch (SQLException se) {
-            Assert.assertEquals(DDLConstantOperation.XML_NOT_SUPPORTED, se.getMessage());
-        } finally {
-            conn.rollback();
-        }
-    }
-
-
-
     private void assertSqlFails(String sql, String expectedException, String tableName) {
         tableName = tableName.toUpperCase();
         try {
