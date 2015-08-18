@@ -615,7 +615,12 @@ public class BTreeCostController extends OpenBTree implements StoreCostControlle
     }
 
     @Override
-    public long getAvgRowWidth() {
+    public long getConglomerateAvgRowWidth() {
+        return 20;
+    }
+
+    @Override
+    public long getBaseTableAvgRowWidth() {
         return 20;
     }
 
@@ -635,12 +640,12 @@ public class BTreeCostController extends OpenBTree implements StoreCostControlle
     }
 
     @Override
-    public double scanColumnSizeFactor(BitSet validColumns) {
+    public double conglomerateColumnSizeFactor(BitSet validColumns) {
         return 1.0d;
     }
 
     @Override
-    public double lookupColumnSizeFactor(BitSet validColumns, int numberOfColumns) {
+    public double baseTableColumnSizeFactor(BitSet validColumns) {
         return 1.0d;
     }
 

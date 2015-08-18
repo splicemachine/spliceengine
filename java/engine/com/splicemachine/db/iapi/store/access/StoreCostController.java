@@ -397,7 +397,9 @@ public interface StoreCostController extends RowCountable{
     long cardinality(int columnNumber);
 
 
-    long getAvgRowWidth();
+    long getConglomerateAvgRowWidth();
+
+    long getBaseTableAvgRowWidth();
 
     double getLocalLatency();
 
@@ -405,8 +407,8 @@ public interface StoreCostController extends RowCountable{
 
     int getNumPartitions();
 
-    double scanColumnSizeFactor(BitSet validColumns);
+    double conglomerateColumnSizeFactor(BitSet validColumns);
 
-    double lookupColumnSizeFactor(BitSet validColumns, int numberOfColumns);
+    double baseTableColumnSizeFactor(BitSet validColumns);
 
 }

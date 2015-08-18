@@ -23,6 +23,7 @@ public class ScanCostFunction{
     private final StoreCostController storeCost;
     private final BitSet scanColumns; //the columns that we are scanning
     private final BitSet lookupColumns; //the columns we are performing a lookup for
+    private final BitSet totalColumns;
     private List<SelectivityHolder>[] selectivityHolder; //selectivity elements
     private final int[] keyColumns;
     private final int baseColumnCount;
@@ -77,6 +78,10 @@ public class ScanCostFunction{
         this.selectivityHolder = new List[resultColumns.size()+1];
         this.rowTemplate = rowTemplate;
         this.baseColumnCount = resultColumns.size();
+        totalColumns = new BitSet(baseColumnCount);
+        totalColumns.or(scanColumns);
+        if (lookupColumns != null)
+            totalColumns.or(lookupColumns);
     }
 
     private void addSelectivity(SelectivityHolder holder) {
@@ -136,19 +141,27 @@ public class ScanCostFunction{
         double totalRowCount = storeCost.rowCount();
         // Rows Returned is always the totalSelectivity (Conglomerate Independent)
         scanCost.setEstimatedRowCount((long) (totalRowCount*totalSelectivity));
+
+
+
+        // We use the base table so the estimated heap size and remote cost are the same for all conglomerates
+        double colSizeFactor = storeCost.getBaseTableAvgRowWidth()*storeCost.baseTableColumnSizeFactor(totalColumns);
         // Heap Size is the avg row width of the columns for the base table*total rows
         // Average Row Width
-        scanCost.setEstimatedHeapSize((long)(totalRowCount*totalSelectivity*storeCost.getAvgRowWidth()));
+        // This should be the same for every conglomerate path
+        scanCost.setEstimatedHeapSize((long)(totalRowCount*totalSelectivity*colSizeFactor));
         // Should be the same for each conglomerate
-        scanCost.setRemoteCost((long)(totalRowCount*totalSelectivity*storeCost.getRemoteLatency()));
+        scanCost.setRemoteCost((long)(totalRowCount*totalSelectivity*storeCost.getRemoteLatency()*colSizeFactor));
         // Base Cost + LookupCost + Projection Cost
-        double baseCost = totalRowCount*baseTableSelectivity*storeCost.getLocalLatency()*storeCost.getAvgRowWidth();
+        double congAverageWidth = storeCost.getConglomerateAvgRowWidth();
+        double congColSizeFactor = congAverageWidth*storeCost.conglomerateColumnSizeFactor(scanColumns);
+        double baseCost = totalRowCount*baseTableSelectivity*storeCost.getLocalLatency()*storeCost.getConglomerateAvgRowWidth();
+
         double lookupCost = lookupColumns == null?0.0d:
-                totalRowCount*filterBaseTableSelectivity*storeCost.getRemoteLatency() + storeCost.lookupColumnSizeFactor(lookupColumns,baseColumnCount);
-        double projectionCost = projectionSelectivity == 1.0d?0.0d:totalRowCount*filterBaseTableSelectivity*storeCost.getLocalLatency();
+                totalRowCount*filterBaseTableSelectivity*storeCost.getRemoteLatency()*storeCost.getBaseTableAvgRowWidth()*storeCost.baseTableColumnSizeFactor(lookupColumns);
+        double projectionCost = projectionSelectivity == 1.0d?0.0d:totalRowCount*filterBaseTableSelectivity*storeCost.getLocalLatency()*colSizeFactor;
         scanCost.setLocalCost(baseCost+lookupCost+projectionCost);
         scanCost.setNumPartitions(storeCost.getNumPartitions());
-
     }
 
     public static double computeTotalSelectivity(List<SelectivityHolder>[] selectivityHolder) throws StandardException {
