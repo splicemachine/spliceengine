@@ -43,7 +43,7 @@ public class IndexTableStatistics implements OverheadManagedTableStatistics{
 
     @Override
     public double remoteReadLatency(){
-        return indexSizeFactor*baseTableStats.remoteReadLatency();
+        return baseTableStats.remoteReadLatency();
     }
     @Override
     public long remoteReadTime(){

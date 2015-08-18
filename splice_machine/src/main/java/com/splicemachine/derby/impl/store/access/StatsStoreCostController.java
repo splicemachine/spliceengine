@@ -103,17 +103,16 @@ public class StatsStoreCostController extends GenericController implements Store
     }
 
 
-
     @Override
-    public double scanColumnSizeFactor(BitSet validColumns) {
+    public double conglomerateColumnSizeFactor(BitSet validColumns) {
         return columnSizeFactor(conglomerateStatistics,
                 ((SpliceConglomerate)baseConglomerate.getConglomerate()).getFormat_ids().length,
                 validColumns);
     }
 
     @Override
-    public double lookupColumnSizeFactor(BitSet validColumns, int numberOfColumns) {
-        throw new RuntimeException("Cannot Have Lookup Factor on Base Conglomerate");
+    public double baseTableColumnSizeFactor(BitSet validColumns) {
+        return conglomerateColumnSizeFactor(validColumns);
     }
 
     @Override
@@ -414,7 +413,7 @@ public class StatsStoreCostController extends GenericController implements Store
         //get the average columnSize factor across all regions
         double colFactorSum = 0d;
         List<? extends PartitionStatistics> partStats=tableStats.partitionStatistics();
-        if(partStats.size()<=0) return 0d; //no partitions present? huh?
+        if(partStats.size()<=0) return 1d; //no partitions present? huh?
 
         for(PartitionStatistics pStats: partStats){
             colFactorSum+=columnSizeFactor(totalColumns,validColumns,pStats);
@@ -510,7 +509,12 @@ public class StatsStoreCostController extends GenericController implements Store
     }
 
     @Override
-    public long getAvgRowWidth() {
+    public long getConglomerateAvgRowWidth() {
+        return conglomerateStatistics.avgRowWidth();
+    }
+
+    @Override
+    public long getBaseTableAvgRowWidth() {
         return conglomerateStatistics.avgRowWidth();
     }
 
