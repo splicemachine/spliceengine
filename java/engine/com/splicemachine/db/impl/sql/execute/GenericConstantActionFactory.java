@@ -152,7 +152,7 @@ public abstract class GenericConstantActionFactory
 		boolean						dropStatistics,
 		boolean						dropStatisticsAll,
 		String						indexNameForStatistics
-    ) throws StandardException;
+    );
 
 	/**
 	 *	Make a ConstantAction for a constraint.
