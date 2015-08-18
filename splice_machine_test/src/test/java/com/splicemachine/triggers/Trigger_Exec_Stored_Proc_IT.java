@@ -188,7 +188,7 @@ public class Trigger_Exec_Stored_Proc_IT {
      * Create/fire a row trigger that records username, timestamp, new transition values
      * for an row updated in another table.
      */
-    @Test @Ignore("DB-2375: Not seeing update row trigger transition values in procedure call.")
+    @Test
     public void testRowUpdateTriggerUserStoredProcNewTransitionValue() throws Exception {
 
         methodWatcher.executeUpdate("insert into S values (13, 'Joe')");
@@ -222,7 +222,7 @@ public class Trigger_Exec_Stored_Proc_IT {
      * Create/fire a row trigger that records username, timestamp, old transition values
      * for an row updated in another table.
      */
-    @Test @Ignore("DB-2375: Not seeing update row trigger transition values in procedure call.")
+    @Test
     public void testRowUpdateTriggerUserStoredProcOldTransitionValue() throws Exception {
 
         methodWatcher.executeUpdate("insert into S values (13, 'Joe')");
@@ -235,15 +235,14 @@ public class Trigger_Exec_Stored_Proc_IT {
         methodWatcher.executeUpdate("update S set id = 39 where id = 13");
 
         ResultSet rs = methodWatcher.executeQuery("select * from audit");
-//        TestUtils.printResult("select * from audit", rs, System.out);
         int count =0;
         while (rs.next()) {
             Assert.assertEquals("splice",rs.getString(1));
             Assert.assertNotNull(rs.getObject(2));
-//            Assert.assertNotNull(rs.getObject(3));
-            int id = rs.getInt(4);
-            Assert.assertNotNull(id);
-            Assert.assertEquals(39, id);
+            Assert.assertNull(rs.getObject(3));
+            int oldID = rs.getInt(4);
+            Assert.assertNotNull(oldID);
+            Assert.assertEquals(13, oldID);
             ++count;
         }
         Assert.assertEquals(1, count);
@@ -256,7 +255,7 @@ public class Trigger_Exec_Stored_Proc_IT {
      * Create/fire a row trigger that records username, timestamp, new transition values
      * for an row updated in another table.
      */
-    @Test @Ignore("DB-2375: Not seeing update row trigger transition values in procedure call.")
+    @Test
     public void testRowUpdateTriggerUserStoredProcNewAndOldTransitionValues() throws Exception {
 
         methodWatcher.executeUpdate("insert into S values (13, 'Joe')");
@@ -269,15 +268,16 @@ public class Trigger_Exec_Stored_Proc_IT {
         methodWatcher.executeUpdate("update S set id = 39 where id = 13");
 
         ResultSet rs = methodWatcher.executeQuery("select * from audit");
-//        TestUtils.printResult("select * from audit", rs, System.out);
         int count =0;
         while (rs.next()) {
-            Assert.assertEquals("splice",rs.getString(1));
+            Assert.assertEquals("splice", rs.getString(1));
             Assert.assertNotNull(rs.getObject(2));
-            Assert.assertNotNull(rs.getObject(3));
-            int id = rs.getInt(4);
-            Assert.assertNotNull(id);
-            Assert.assertEquals(39, id);
+            int newIDd = rs.getInt(3);
+            Assert.assertNotNull(newIDd);
+            Assert.assertEquals(39, newIDd);
+            int oldID = rs.getInt(4);
+            Assert.assertNotNull(oldID);
+            Assert.assertEquals(13, oldID);
             ++count;
         }
         Assert.assertEquals(1, count);

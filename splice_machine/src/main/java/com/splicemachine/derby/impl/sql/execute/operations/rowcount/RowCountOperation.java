@@ -20,6 +20,7 @@ import com.splicemachine.derby.metrics.OperationRuntimeStats;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.derby.impl.storage.RowProviders.SourceRowProvider;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
@@ -194,7 +195,9 @@ public class RowCountOperation extends SpliceBaseOperation {
                 setCurrentRow(row);
                 return row;
             } else if (rowsSkipped > 0) {
-                spliceScanner.addAdditionalColumnToReturn(OFFSET_RESULTS_COL, Bytes.toBytes(rowsSkipped));
+                if (spliceScanner != null) {
+                    spliceScanner.addAdditionalColumnToReturn(OFFSET_RESULTS_COL, Bytes.toBytes(rowsSkipped));
+                }
             }
         } while (row != null);
 
@@ -260,19 +263,24 @@ public class RowCountOperation extends SpliceBaseOperation {
         long offset = getTotalOffset();
 
         if (offset > 0) {
-            if (provider instanceof SingleScanRowProvider) {
-                SingleScanRowProvider scanProvider = (SingleScanRowProvider) provider;
-                provider = new OffsetScanRowProvider(this, top, decoder, scanProvider.toScan(), offset, provider.getTableName(), spliceRuntimeContext);
-            } else {
-                /* This is unfortunate.  If the underlying RowProvider works in parallel we need to set
-                 * this.parallelReduceScan to true and then re-fetch the RowProvider (to let it re-serialize instances
-                 * of this operation as part of the observer instructions so that parallelReduceScan will have the
-                 * correct value on each region server). A better approach might be asking the source operation directly
-                 * if it does a parallel reduce scan and then setting parallelReduceScan before getting the reduce row
-                 * provider above. Other things to cleanup before we get there however. */
-                this.parallelReduceScan = true;
-                provider = source.getReduceRowProvider(top, decoder, spliceRuntimeContext, returnDefaultValue);
-                provider = new OffsetParallelRowProvider(provider, offset);
+            // If the underlying row provider is SourceRowProvider, next() should be invoked from control side. In this
+            // case, do not use OffsetScanRowProvider because it will push operation to server side. Fetch limit and
+            // offset row can work correctly when reading from SourceRowProvider at control side.
+            if (!(provider instanceof SourceRowProvider)) {
+                if (provider instanceof SingleScanRowProvider) {
+                    SingleScanRowProvider scanProvider = (SingleScanRowProvider) provider;
+                    provider = new OffsetScanRowProvider(this, top, decoder, scanProvider.toScan(), offset, provider.getTableName(), spliceRuntimeContext);
+                } else {
+                    /* This is unfortunate.  If the underlying RowProvider works in parallel we need to set
+                     * this.parallelReduceScan to true and then re-fetch the RowProvider (to let it re-serialize instances
+                     * of this operation as part of the observer instructions so that parallelReduceScan will have the
+                     * correct value on each region server). A better approach might be asking the source operation directly
+                     * if it does a parallel reduce scan and then setting parallelReduceScan before getting the reduce row
+                     * provider above. Other things to cleanup before we get there however. */
+                    this.parallelReduceScan = true;
+                    provider = source.getReduceRowProvider(top, decoder, spliceRuntimeContext, returnDefaultValue);
+                    provider = new OffsetParallelRowProvider(provider, offset);
+                }
             }
         }
 

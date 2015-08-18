@@ -24,7 +24,7 @@ public class StatsConstants extends SpliceConstants {
      */
     public static int cardinalityPrecision;
     @Parameter public static final String CARDINALITY_PRECISION="splice.statistics.cardinality";
-    @DefaultValue(value = CARDINALITY_PRECISION)public static final int DEFAULT_CARDINALITY_PRECISION=8;
+    @DefaultValue(value = CARDINALITY_PRECISION)public static final int DEFAULT_CARDINALITY_PRECISION=14;
 
     /*
      * The number of "top-k" frequent elements to keep for each collection on each column in a partition.
