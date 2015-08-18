@@ -422,6 +422,7 @@ public class SparseHyperLogLog extends BaseBiasAdjustedHyperLogLogCounter{
                  * inexpensive when not looping, so it's not something that's particularly problematic.
                  */
                 do{
+										bPos++;
                     buff=buffer[bPos];
                     buffReg=buff>>>INT_SPARSE_SHIFT;
                 }while(buff==0);
