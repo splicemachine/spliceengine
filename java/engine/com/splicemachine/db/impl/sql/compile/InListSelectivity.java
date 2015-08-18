@@ -22,9 +22,12 @@ public class InListSelectivity extends AbstractSelectivityHolder {
             ValueNodeList rightOperandList=sourceInList.getRightOperandList();
             for(Object o: rightOperandList){
                 ConstantNode cn = (ConstantNode)o;
-                selectivity+=storeCost.getSelectivity(colNum,cn.getValue(),true,cn.getValue(),true);
+                if (selectivity==-1.0d)
+                    selectivity = storeCost.getSelectivity(colNum,cn.getValue(),true,cn.getValue(),true);
+                else
+                    selectivity+=storeCost.getSelectivity(colNum,cn.getValue(),true,cn.getValue(),true);
             }
         }
-        return selectivity;
+        return selectivity>1.0d?0.9d:selectivity;
     }
 }

@@ -33,6 +33,7 @@ import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
 
+import java.util.BitSet;
 import java.util.Hashtable;
 
 /**
@@ -1269,7 +1270,9 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
      * 2. It is applied against the first keyed column
      * 3. There are only constant nodes in the IN list
      */
-    public boolean isInQualifier(){
+    public boolean isInQualifier(BitSet bitSet){
+        if (bitSet == null)
+            return false;
         InListOperatorNode sourceInList=getSourceInList();
         if(sourceInList==null)
             return false; //not a multi-probe predicate
@@ -1279,6 +1282,8 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
             return false;
         ColumnReference colRef = (ColumnReference)lo;
         int colNum = colRef.getColumnNumber();
+        if (!bitSet.get(colNum)) // Miss
+            return false;
         ValueNodeList rightOperandList=sourceInList.getRightOperandList();
         for(Object o:rightOperandList){
             if(!(o instanceof ConstantNode))

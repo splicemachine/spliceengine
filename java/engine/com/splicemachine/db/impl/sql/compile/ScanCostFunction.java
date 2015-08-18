@@ -105,6 +105,10 @@ public class ScanCostFunction{
     public void addPredicate(Predicate p) throws StandardException{
         if (p.isMultiProbeQualifier(keyColumns)) // MultiProbeQualifier against keys (BASE)
             addSelectivity(new InListSelectivity(storeCost,p,QualifierPhase.BASE));
+        else if (p.isInQualifier(scanColumns)) // In Qualifier in Base Table (FILTER_BASE)
+            addSelectivity(new InListSelectivity(storeCost,p, QualifierPhase.FILTER_BASE));
+        else if (p.isInQualifier(lookupColumns)) // In Qualifier against looked up columns (FILTER_PROJECTION)
+            addSelectivity(new InListSelectivity(storeCost,p, QualifierPhase.FILTER_PROJECTION));
         else if (p.isStartKey() || p.isStopKey()) // Range Qualifier on Start/Stop Keys (BASE)
             performQualifierSelectivity(p,QualifierPhase.BASE);
         else if (p.isQualifier()) // Qualifier in Base Table (FILTER_BASE)
@@ -116,9 +120,7 @@ public class ScanCostFunction{
     }
 
     private void performQualifierSelectivity (Predicate p, QualifierPhase phase) throws StandardException {
-        if (p.isInQualifier()) // In List Qualifier
-                addSelectivity(new InListSelectivity(storeCost,p, phase));
-        else if(p.compareWithKnownConstant(baseTable, true) && p.getRelop().getColumnOperand(baseTable) != null) // Range Qualifier
+        if(p.compareWithKnownConstant(baseTable, true) && p.getRelop().getColumnOperand(baseTable) != null) // Range Qualifier
                 addRangeQualifier(p,phase);
         else // Predicate Cannot Be Transformed to Range, use Predicate Selectivity Defaults
             addSelectivity(new PredicateSelectivity(p,baseTable,phase));
