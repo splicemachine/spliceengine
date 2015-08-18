@@ -17,13 +17,12 @@ import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
-import java.util.Arrays;
 
 /**
  * @author Scott Fines
  *         Date: 8/18/15
  */
-public class MultiUpdateOperationIT{
+public class UpdateMultiOperationIT{
 
     private static final String SCHEMA = UpdateOperationIT.class.getSimpleName().toUpperCase();
 
