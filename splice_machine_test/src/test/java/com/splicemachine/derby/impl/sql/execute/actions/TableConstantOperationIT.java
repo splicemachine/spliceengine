@@ -7,6 +7,7 @@ import java.sql.Statement;
 import java.util.Arrays;
 import java.util.List;
 import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.pipeline.exception.ErrorState;
 import org.junit.Assert;
 import org.junit.ClassRule;
 import org.junit.Rule;
@@ -144,6 +145,29 @@ public class TableConstantOperationIT extends SpliceUnitTest {
             });
         }finally{
             connection.close();
+        }
+    }
+
+    @Test(expected=SQLException.class)
+    public void testCannotCreateTableWithXmlColumn() throws Exception {
+        Connection conn = methodWatcher.createConnection();
+        conn.setAutoCommit(false);
+
+        try {
+            conn.createStatement().execute("create table testAlterTableXml (i XML)");
+        } catch (SQLException se) {
+            /*
+             * The ErrorState.NOT_IMPLEMENTED ends with a .S, which won't be printed in the
+             * error message, so we need to be sure that we strip it if it ends that way
+             */
+            String sqlState=ErrorState.NOT_IMPLEMENTED.getSqlState();
+            int dotIdx = sqlState.indexOf(".");
+            if(dotIdx>0)
+                sqlState = sqlState.substring(0,dotIdx);
+            Assert.assertEquals(sqlState,se.getSQLState());
+            throw se;
+        } finally {
+            conn.rollback();
         }
     }
 
