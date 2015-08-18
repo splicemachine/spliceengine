@@ -1,7 +1,5 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.utils.SpliceLogUtils;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -60,7 +58,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
             Properties		properties,
             char			lockGranularity,
             boolean			onCommitDeleteRows,
-            boolean			onRollbackDeleteRows) throws StandardException {
+            boolean			onRollbackDeleteRows) {
         this.schemaName = schemaName;
         this.tableName = tableName;
         this.tableType = tableType;
@@ -81,10 +79,7 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
             }
             SanityManager.ASSERT(schemaName != null, "SchemaName is null");
         }
-
-        denyXmlColumns(columnInfo);
     }
-
 
     @Override
     public String toString() {
