@@ -90,7 +90,7 @@ public class OrderByNode extends SingleChildResultSetNode {
 
     @Override
     public CostEstimate getFinalCostEstimate() throws StandardException{
-        CostEstimate est = super.getFinalCostEstimate();
+        CostEstimate est = childResult.getFinalCostEstimate();
         CostEstimate base=est.getBase();
         if(base!=est){
             base.setRemoteCost(0d);
