@@ -212,7 +212,7 @@ public class SelectivityIT extends SpliceUnitTest {
         firstRowContainsQuery("explain select * from ts_nulls where c1 is not null","outputRows=5,",methodWatcher);
         firstRowContainsQuery("explain select * from ts_nonulls where c1 is not null","outputRows=5,",methodWatcher);
         firstRowContainsQuery("explain select * from ts_notnulls where c1 is not null","outputRows=5,",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_singlepk where c1 is not null","outputRows=5,",methodWatcher); // FIX-JL
+        firstRowContainsQuery("explain select * from ts_singlepk where c1 is not null","outputRows=5,",methodWatcher);
         firstRowContainsQuery("explain select * from ts_multiplepk where c1 is not null","outputRows=5,",methodWatcher);
         // without stats
         firstRowContainsQuery("explain select * from tns_nulls where c1 is not null","outputRows=18,",methodWatcher);
@@ -226,9 +226,9 @@ public class SelectivityIT extends SpliceUnitTest {
     @Ignore("DB-3629")
     public void testInSelectivity() throws Exception {
         // with stats
-        secondRowContainsQuery("explain select * from ts_nulls where c1 in (1,2,3)","outputRows=4",methodWatcher);
-        secondRowContainsQuery("explain select * from ts_nonulls where c1 in (1,2,3)","outputRows=4",methodWatcher);
-        secondRowContainsQuery("explain select * from ts_notnulls where c1 in (1,2,3)","outputRows=4",methodWatcher);
+        secondRowContainsQuery("explain select * from ts_nulls where c1 in (1,2,3)","outputRows=3",methodWatcher);
+        secondRowContainsQuery("explain select * from ts_nonulls where c1 in (1,2,3)","outputRows=3",methodWatcher);
+        secondRowContainsQuery("explain select * from ts_notnulls where c1 in (1,2,3)","outputRows=3",methodWatcher);
         firstRowContainsQuery("explain select * from ts_singlepk where c1 in (1,2,3)","outputRows=3",methodWatcher);
         firstRowContainsQuery("explain select * from ts_multiplepk where c1 in (1,2,3)","outputRows=3",methodWatcher);
         // without stats
@@ -243,11 +243,11 @@ public class SelectivityIT extends SpliceUnitTest {
     @Test
     public void testWildcardLikeSelectivity() throws Exception {
         // with stats
-        secondRowContainsQuery("explain select * from ts_nulls where c2 like '%1'","outputRows=4,",methodWatcher);
-        secondRowContainsQuery("explain select * from ts_nonulls where c2 like '%1'","outputRows=3,",methodWatcher);
-        secondRowContainsQuery("explain select * from ts_notnulls where c2 like '%1'","outputRows=3,",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_singlepk where c2 like '%1'","outputRows=3,",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_multiplepk where c2 like '%1'","outputRows=3,",methodWatcher);
+        secondRowContainsQuery("explain select * from ts_nulls where c2 like '%1'","outputRows=4,",methodWatcher); // ?JL
+        secondRowContainsQuery("explain select * from ts_nonulls where c2 like '%1'","outputRows=2,",methodWatcher);
+        secondRowContainsQuery("explain select * from ts_notnulls where c2 like '%1'","outputRows=2,",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_singlepk where c2 like '%1'","outputRows=2,",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_multiplepk where c2 like '%1'","outputRows=2,",methodWatcher);
         // without stats
         firstRowContainsQuery("explain select * from tns_nulls where c2 like '%1'","outputRows=10,",methodWatcher);
         firstRowContainsQuery("explain select * from tns_nonulls where c2 like '%1'","outputRows=10,",methodWatcher);
@@ -285,7 +285,7 @@ public class SelectivityIT extends SpliceUnitTest {
 
     @Test
     public void testMultiplePKMultiprobeScan() throws Exception {
-        firstRowContainsQuery("explain select * from ts_multiplepk where c1 in (3,6,4,5) and c2 = '3'","outputRows=3",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_multiplepk where c1 in (3,6,4,5) and c2 = '3'","outputRows=1",methodWatcher);
     }
 
     @Test
@@ -298,12 +298,11 @@ public class SelectivityIT extends SpliceUnitTest {
         firstRowContainsQuery("explain select * from ts_singlepk where c1 < 3","outputRows=3,",methodWatcher);
         firstRowContainsQuery("explain select * from ts_multiplepk where c1 < 3","outputRows=3,",methodWatcher);
         // without stats
-        firstRowContainsQuery("explain select * from tns_nulls where c1 < 3","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_nonulls where c1 < 3","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_notnulls where c1 < 3","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_singlepk where c1 < 3","outputRows=2",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_multiplepk where c1 < 3","outputRows=2",methodWatcher);
-
+        firstRowContainsQuery("explain select * from tns_nulls where c1 < 3","outputRows=17",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_nonulls where c1 < 3","outputRows=17",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_notnulls where c1 < 3","outputRows=17",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_singlepk where c1 < 3","outputRows=17",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_multiplepk where c1 < 3","outputRows=17",methodWatcher);
 
     }
 
@@ -345,7 +344,7 @@ public class SelectivityIT extends SpliceUnitTest {
         firstRowContainsQuery("explain select * from ts_high_cardinality where c1 <= 500 and c1 >= 0","outputRows=500,",methodWatcher);
         firstRowContainsQuery("explain select * from ts_high_cardinality where c1 <= 1000 and c1 >= 500","outputRows=501,",methodWatcher);
         firstRowContainsQuery("explain select * from ts_high_cardinality where c1 <= 2000 and c1 >= 500","outputRows=1501,",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_high_cardinality where c1 <= 8000 and c1 >= 1000","outputRows=7001,",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_high_cardinality where c1 <= 8000 and c1 >= 1000","outputRows=7000,",methodWatcher);
     }
 
 
