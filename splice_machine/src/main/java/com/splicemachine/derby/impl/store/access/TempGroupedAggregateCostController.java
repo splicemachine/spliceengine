@@ -4,12 +4,15 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.AccessPath;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
-import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
+
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.AggregateCostController;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.impl.sql.compile.*;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 /**
  * CostController for a TEMP-table based algorithm for computing Grouped Aggregates.
  *
@@ -61,10 +64,16 @@ public class TempGroupedAggregateCostController implements AggregateCostControll
     @Override
     public CostEstimate estimateAggregateCost(CostEstimate baseCost) throws StandardException{
         double outputRows = 1;
+        List<Long> cardinalityList = new ArrayList<>();
+
         for(OrderedColumn oc:groupingList) {
             long returnedRows = oc.nonZeroCardinality((long) baseCost.rowCount());
-            outputRows *= returnedRows <= baseCost.rowCount()?returnedRows:baseCost.rowCount();
+            cardinalityList.add(returnedRows);
+            //outputRows *= returnedRows <= baseCost.rowCount()?returnedRows:baseCost.rowCount();
         }
+        Collections.sort(cardinalityList);
+
+        outputRows = computeCardinality(cardinalityList);
         /*
          * If the baseCost claims it's not returning any rows, or our cardinality
          * fraction is too aggressive, we may think that we don't need to do anything. This
@@ -206,5 +215,20 @@ public class TempGroupedAggregateCostController implements AggregateCostControll
         } else{
             throw new IllegalStateException("Programmer Error: Unexpected node type: "+rsn.getClass());
         }
+    }
+
+    private long computeCardinality(List<Long> cardinalityList) {
+        long cardinality = 1;
+        for (int i = 0; i < cardinalityList.size(); ++i) {
+            long c = cardinalityList.get(i);
+            for (int j = 0; j < i; ++j) {
+                c = (long)Math.sqrt(c);
+            }
+            if (c > 0) {
+                cardinality *= c;
+            }
+        }
+
+        return cardinality;
     }
 }
