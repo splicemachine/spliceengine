@@ -185,6 +185,26 @@ public class BooleanStats extends BaseDvdStatistics {
 
             return stats.getDistribution().rangeSelectivity(s,e,includeStart,includeStop);
         }
+
+        @Override
+        public DataValueDescriptor minValue(){
+            return new SQLBoolean(stats.minValue());
+        }
+
+        @Override
+        public long minCount(){
+            return stats.minCount();
+        }
+
+        @Override
+        public DataValueDescriptor maxValue(){
+            return new SQLBoolean(stats.maxValue());
+        }
+
+        @Override
+        public long totalCount(){
+            return stats.nonNullCount();
+        }
     }
 
     private static class BooleanFreq implements FrequencyEstimate<DataValueDescriptor> {

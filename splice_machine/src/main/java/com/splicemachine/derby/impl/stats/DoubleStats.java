@@ -202,6 +202,48 @@ public class DoubleStats extends BaseDvdStatistics{
                 }
             }
         }
+
+        @Override
+        public DataValueDescriptor minValue(){
+            try{
+                return new SQLDouble(stats.min());
+            }catch(StandardException e){
+                /*
+                 * This shouldn't happen because we only generate max and min values from
+                 * the contents of an already stored data set; therefore, all rows in that data
+                 *  set should have already passed the bounds checking here.
+                 *
+                 *  Still, just to be safe, we throw it as a runtime so that it goes somewhere
+                 */
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
+        public long minCount(){
+            return stats.minCount();
+        }
+
+        @Override
+        public DataValueDescriptor maxValue(){
+            try{
+                return new SQLDouble(stats.max());
+            }catch(StandardException e){
+                /*
+                 * This shouldn't happen because we only generate max and min values from
+                 * the contents of an already stored data set; therefore, all rows in that data
+                 *  set should have already passed the bounds checking here.
+                 *
+                 *  Still, just to be safe, we throw it as a runtime so that it goes somewhere
+                 */
+                throw new RuntimeException(e);
+            }
+        }
+
+        @Override
+        public long totalCount(){
+            return stats.nonNullCount();
+        }
     }
 
     private static double safeGetDouble(DataValueDescriptor dvd){

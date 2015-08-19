@@ -11,6 +11,7 @@ import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.derby.test.framework.TestConnection;
 import com.splicemachine.homeless.TestUtils;
 
+import com.splicemachine.pipeline.exception.ErrorState;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -141,8 +142,8 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
     @Test
     public void testUpdatingAlteredColumns() throws Exception {
         Statement s = methodWatcher.getStatement();
-        s.executeUpdate(String.format("insert into %s values 1,2,3,4,5", this.getTableReference(TABLE_NAME_3)));
-        s.executeUpdate(String.format("alter table %s add column j int", this.getTableReference(TABLE_NAME_3)));
+        s.executeUpdate(String.format("insert into %s values 1,2,3,4,5",this.getTableReference(TABLE_NAME_3)));
+        s.executeUpdate(String.format("alter table %s add column j int",this.getTableReference(TABLE_NAME_3)));
         s.executeUpdate(String.format("update %s set j = 5",this.getTableReference(TABLE_NAME_3)));
         ResultSet rs = methodWatcher.executeQuery(String.format("select j from %s",this.getTableReference(TABLE_NAME_3)));
         int i=0;
@@ -150,7 +151,7 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
             i++;
             Assert.assertEquals("Update did not happen", 5, rs.getInt(1));
         }
-        Assert.assertEquals("returned values must match", 5, i);
+        Assert.assertEquals("returned values must match",5,i);
     }
 
     @Test
@@ -242,7 +243,7 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
 
         ps = connection1.prepareStatement(String.format("select * from %s", this.getTableReference(TABLE_NAME_7)));
         resultSet = ps.executeQuery();
-        Assert.assertEquals("Should have 3 rows.", 3, resultSetSize(resultSet));
+        Assert.assertEquals("Should have 3 rows.",3,resultSetSize(resultSet));
     }
 
 
@@ -339,7 +340,7 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
 
         ps = connection1.prepareStatement(String.format("select * from %s", this.getTableReference(TABLE_NAME_10)));
         resultSet = ps.executeQuery();
-        Assert.assertEquals("Should have 3 rows.", 3, resultSetSize(resultSet));
+        Assert.assertEquals("Should have 3 rows.",3,resultSetSize(resultSet));
         connection1.commit();
     }
 
@@ -392,16 +393,16 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
 
         ps = connection2.prepareStatement(String.format("select * from %s", this.getTableReference(TABLE_NAME_12)));
         resultSet = ps.executeQuery();
-        Assert.assertEquals("Should have 2 rows.", 2, resultSetSize(resultSet));
+        Assert.assertEquals("Should have 2 rows.",2,resultSetSize(resultSet));
 
         connection2.commit();
 
         ps = connection2.prepareStatement(String.format("select * from %s", this.getTableReference(TABLE_NAME_12)));
         resultSet = ps.executeQuery();
-        Assert.assertEquals("Should have 4 rows.", 4, resultSetSize(resultSet));
+        Assert.assertEquals("Should have 4 rows.",4,resultSetSize(resultSet));
 
-        ps = connection1.prepareStatement(String.format("select * from %s where age = 21", this.getTableReference
-            (TABLE_NAME_12)));
+        ps = connection1.prepareStatement(String.format("select * from %s where age = 21",this.getTableReference
+                (TABLE_NAME_12)));
         resultSet = ps.executeQuery();
         while (resultSet.next()) {
             Assert.assertEquals("Expecting Mary.", "Mary", resultSet.getString(1).trim());
@@ -411,11 +412,11 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
     @Test
     public void testAddPrimaryKeyEnforcementBefore() throws Exception {
         String tableRef = this.getTableReference("before");
-        methodWatcher.executeUpdate(String.format("create table %s (name char(14) not null, age int)", tableRef));
+        methodWatcher.executeUpdate(String.format("create table %s (name char(14) not null, age int)",tableRef));
 
         TestConnection connection1 = methodWatcher.createConnection();
         connection1.createStatement().execute(String.format("insert into %s values ('Bob',20)",tableRef));
-        connection1.createStatement().execute(String.format("insert into %s values ('Bob',19)", tableRef));
+        connection1.createStatement().execute(String.format("insert into %s values ('Bob',19)",tableRef));
         connection1.createStatement().execute(String.format("insert into %s values ('Mary',21)", tableRef));
 
         long count = connection1.count(String.format("select * from %s where name = 'Bob'",tableRef));
@@ -444,8 +445,8 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
         connection1.createStatement().execute(String.format("insert into %s values ('Bob',20)", tableRef));
         connection1.createStatement().execute(String.format("insert into %s values ('Mary',21)", tableRef));
 
-        long count = connection1.count(String.format("select * from %s where name = 'Mary'", tableRef));
-        Assert.assertEquals("incorrect row count!", 1, count);
+        long count = connection1.count(String.format("select * from %s where name = 'Mary'",tableRef));
+        Assert.assertEquals("incorrect row count!",1,count);
 
         Connection connection2 = methodWatcher.createConnection();
         connection2.setAutoCommit(false);
@@ -453,12 +454,12 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
                                                                 "key (name)", tableRef));
 
         count = connection1.count(String.format("select * from %s where name = 'Mary'",tableRef));
-        Assert.assertEquals("incorrect row count!", 1, count);
+        Assert.assertEquals("incorrect row count!",1,count);
 
         assertSqlFails(String.format("insert into %s values ('Mary',21)",tableRef),
-                       "The statement was aborted because it would have caused a duplicate key value in a unique or " +
-                           "primary key constraint or unique index identified by 'NAME_PK_T1_AFTER' defined on 'AFTER'.",
-                       "after");
+                "The statement was aborted because it would have caused a duplicate key value in a unique or "+
+                        "primary key constraint or unique index identified by 'NAME_PK_T1_AFTER' defined on 'AFTER'.",
+                "after");
 
         count = connection1.count(String.format("select * from %s where name = 'Mary'",tableRef));
         Assert.assertEquals("incorrect row count!", 1, count);
@@ -478,7 +479,7 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
         System.out.println(fr.toString());
 
         methodWatcher.getStatement().execute(String.format("insert into %s values ('Bob',20,1)", tableRef));
-        methodWatcher.getStatement().execute(String.format("insert into %s values ('Mary',22,2)", tableRef));
+        methodWatcher.getStatement().execute(String.format("insert into %s values ('Mary',22,2)",tableRef));
 
         rs = methodWatcher.getStatement().executeQuery(String.format("select * from %s",tableRef));
         while (rs.next()) {
@@ -486,8 +487,7 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
         }
     }
 
-
-    @Test
+    @Test(expected=SQLException.class)
     public void testAlterTableXml() throws Exception {
         Connection conn = methodWatcher.createConnection();
         conn.setAutoCommit(false);
@@ -495,15 +495,21 @@ public class AlterTableConstantOperationIT extends SpliceUnitTest {
 
         try {
             conn.createStatement().execute("alter table testAlterTableXml add column x xml");
-            Assert.fail("The test did not throw expected exception");
         } catch (SQLException se) {
-            Assert.assertEquals(DDLConstantOperation.XML_NOT_SUPPORTED, se.getMessage());
+            /*
+             * The ErrorState.NOT_IMPLEMENTED ends with a .S, which won't be printed in the
+             * error message, so we need to be sure that we strip it if it ends that way
+             */
+            String sqlState=ErrorState.NOT_IMPLEMENTED.getSqlState();
+            int dotIdx = sqlState.indexOf(".");
+            if(dotIdx>0)
+                sqlState = sqlState.substring(0,dotIdx);
+            Assert.assertEquals(sqlState,se.getSQLState());
+            throw se;
         } finally {
             conn.rollback();
         }
     }
-
-
 
     private void assertSqlFails(String sql, String expectedException, String tableName) {
         tableName = tableName.toUpperCase();

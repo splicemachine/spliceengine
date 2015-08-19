@@ -136,7 +136,7 @@ public class PartitionAverage implements OverheadManagedPartitionStatistics {
     }
 
     @Override
-    public <T> Distribution<T> columnDistribution(int columnId) {
+    public <T extends Comparable<T>> Distribution<T> columnDistribution(int columnId) {
         for(ColumnStatistics stats:columnStats){
             if(stats.columnId()==columnId) //noinspection unchecked
                 return stats.getDistribution();
