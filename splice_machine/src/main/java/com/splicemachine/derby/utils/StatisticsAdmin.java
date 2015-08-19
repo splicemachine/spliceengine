@@ -36,6 +36,7 @@ import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.utils.IntArrays;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.client.HTableInterface;
@@ -373,7 +374,12 @@ public class StatisticsAdmin {
                      * are special cases where the number of conglomerate descriptors is 0. We
                      * don't collect statistics for those views
                      */
-                    if(tableDescriptor.getConglomerateDescriptorList().size()>0){
+
+                    if (tableDescriptor == null || tableDescriptor.getConglomerateDescriptorList() == null) {
+                        // DEBUG: JC - changed logging to ERROR to make sure we get this message logged
+                        SpliceLogUtils.error(LOG,"tableDescriptor is null for this table/view tableid=%s, tableDescriptor=%s",tableId,tableDescriptor);
+                    }
+                    else if(tableDescriptor.getConglomerateDescriptorList().size() > 0){
                         tds.add(tableDescriptor);
                     }
                 }
