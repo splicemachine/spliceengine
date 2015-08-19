@@ -216,7 +216,7 @@ public class AggregateSubqueryFlatteningVisitor extends AbstractSpliceVisitor im
             rc.sourceTableName = colRef.tableName.tableName;
             rc.tableName = colRef.tableName.tableName;
         }
-
+        rc.isGroupingColumn = true;
         rc.setVirtualColumnId(subquerySelectNode.getResultColumns().size() + 1);
         subquerySelectNode.getResultColumns().addElement(rc);
 
