@@ -96,7 +96,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
     public ModifyColumnConstantOperation(SchemaDescriptor sd, String tableName, UUID tableId,
                                          ColumnInfo[] columnInfo, ConstantAction[] constraintActions,
                                          char lockGranularity, int behavior,
-                                         String indexNameForStatistics) throws StandardException {
+                                         String indexNameForStatistics) {
         super(sd, tableName, tableId,
                 columnInfo, constraintActions,
                 lockGranularity, behavior, indexNameForStatistics);

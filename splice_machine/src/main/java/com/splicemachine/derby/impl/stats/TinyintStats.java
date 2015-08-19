@@ -178,6 +178,26 @@ public class TinyintStats extends BaseDvdStatistics {
                     return dist.rangeSelectivity(s,safeGetByte(stop),includeStart,includeStop);
             }
         }
+
+        @Override
+        public DataValueDescriptor minValue(){
+            return new SQLTinyint(stats.min());
+        }
+
+        @Override
+        public long minCount(){
+            return stats.minCount();
+        }
+
+        @Override
+        public DataValueDescriptor maxValue(){
+            return new SQLTinyint(stats.max());
+        }
+
+        @Override
+        public long totalCount(){
+            return stats.nonNullCount();
+        }
     }
 
     private static byte safeGetByte(DataValueDescriptor element) {
