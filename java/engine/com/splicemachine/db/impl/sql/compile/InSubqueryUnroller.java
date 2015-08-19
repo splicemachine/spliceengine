@@ -13,7 +13,14 @@ import java.sql.Types;
 import java.util.ArrayList;
 
 /**
- * Created by yifuma on 8/4/15.
+ *  This Class is added by SpliceMachine. It unrolls In Subquery to a join if it
+ *  does not contain any column reference from the outside. In other words, any
+ *  In Subquery that can be executed on its on will be flattened.
+ *  Example:
+ *      Select c1 from t1 where c2 in (select d1 from t2)
+ *  will be flattened to:
+ *      Select c1, (select d1 from t2) foo where c1 = foo.d1
+ *
  */
 public class InSubqueryUnroller extends AbstractSpliceVisitor implements Visitor {
     int count = 0;
@@ -22,7 +29,16 @@ public class InSubqueryUnroller extends AbstractSpliceVisitor implements Visitor
         if(node instanceof SelectNode && ((SelectNode) node).getWhereSubquerys() != null){
             ArrayList<SubqueryNode> nodesToSwitch = new ArrayList<>();
             SelectNode select = (SelectNode)node;
+            /*
+                Check for every subquery and find In Subquery with no outside
+                ColumnReference, is invariant and does not contain a not node.
+                If the resultset of any subquery is not a select node, we do not
+                unroll the queries.
+             */
             for(SubqueryNode sub : select.getWhereSubquerys()){
+                if(!(sub.resultSet instanceof SelectNode)){
+                    return node;
+                }
                 HasOuterCRVisitor visitor = new HasOuterCRVisitor(select.getNestingLevel() + 1);
                 sub.resultSet.accept(visitor);
                 if(sub.subqueryType == SubqueryNode.IN_SUBQUERY && !visitor.hasCorrelatedCRs() && sub.isInvariant()
@@ -30,13 +46,20 @@ public class InSubqueryUnroller extends AbstractSpliceVisitor implements Visitor
                     nodesToSwitch.add(sub);
                 }
             }
+            /*
+                Update table numbers of ColumnReferences as we add more FromTables.
+             */
             int diff = nodesToSwitch.size();
             for(SubqueryNode sub : select.getWhereSubquerys()){
                 AggregateSubqueryFlatteningVisitor.updateTableNumbers((SelectNode)sub.resultSet, diff, ((SelectNode) sub.resultSet).getNestingLevel());
             }
+
             CompilerContext cpt = select.getCompilerContext();
             cpt.setNumTables(cpt.getNumTables() + nodesToSwitch.size());
-
+            /*
+                Process every qualified subquery node into FromSubquery and remove it
+                from the SubqueryList of its parent.
+             */
             for(SubqueryNode sub : nodesToSwitch){
                 SelectNode subquerySelectNode = (SelectNode)sub.resultSet;
                 select.getWhereSubquerys().removeElement(sub);
@@ -90,6 +113,10 @@ public class InSubqueryUnroller extends AbstractSpliceVisitor implements Visitor
         count++;
         return ret;
     }
+    /*
+        Transform the where clause of the parent select node. We remove the in subquery node
+        from the where clause and construct a BinaryRelationalOperator node to replace it.
+     */
     public static ValueNode switchPredReference(ValueNode node,
                                                 FromSubquery fsq, int level) throws StandardException {
         if (node instanceof BinaryOperatorNode) {
@@ -159,6 +186,10 @@ public class InSubqueryUnroller extends AbstractSpliceVisitor implements Visitor
         }
         return node;
     }
+    /*
+        check recursively if the where clause contains a not node. If it does,
+        we do not unroll this subquery.
+     */
 
     public static boolean checkNotIn(ValueNode whereClause, SubqueryNode sub){
         if(whereClause instanceof BinaryOperatorNode){

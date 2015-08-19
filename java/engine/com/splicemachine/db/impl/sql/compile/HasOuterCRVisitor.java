@@ -4,7 +4,9 @@ import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 
 /**
- * Created by yifuma on 8/5/15.
+ * This Visitor traverse the tree and check for any columnReference
+ * that has a sourceLevel less than the level that it is given when
+ * constructed.
  */
 public class HasOuterCRVisitor implements Visitor
 {
