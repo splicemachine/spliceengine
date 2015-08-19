@@ -86,10 +86,10 @@ public class GroupBySelectivityIT extends SpliceUnitTest {
      */
     @Test
     public void testGroupByCardinalityMultiplication() throws Exception {
-        secondRowContainsQuery("explain select count(*), c1,c2 from ts_low_cardinality group by c1,c2", "outputRows=25", methodWatcher);
-        secondRowContainsQuery("explain select count(*), c1,c3 from ts_low_cardinality group by c1,c3", "outputRows=25", methodWatcher);
-        secondRowContainsQuery("explain select count(*), c1,c4 from ts_low_cardinality group by c1,c4", "outputRows=5", methodWatcher);
-        secondRowContainsQuery("explain select count(*), c4,c2 from ts_low_cardinality group by c4,c2", "outputRows=5", methodWatcher);
+        secondRowContainsQuery("explain select count(*), c1,c2 from ts_low_cardinality group by c1,c2", "outputRows=10", methodWatcher);
+        secondRowContainsQuery("explain select count(*), c1,c3 from ts_low_cardinality group by c1,c3", "outputRows=10", methodWatcher);
+        secondRowContainsQuery("explain select count(*), c1,c4 from ts_low_cardinality group by c1,c4", "outputRows=2", methodWatcher);
+        secondRowContainsQuery("explain select count(*), c4,c2 from ts_low_cardinality group by c4,c2", "outputRows=2", methodWatcher);
     }
 
     /**
@@ -100,7 +100,7 @@ public class GroupBySelectivityIT extends SpliceUnitTest {
      */
     @Test
     public void testSelectivityEffectOnGroupBy() throws Exception {
-        secondRowContainsQuery("explain select count(*), c1,c2 from ts_low_cardinality where c1 = 1 group by c1,c2", "outputRows=25", methodWatcher);
+        secondRowContainsQuery("explain select count(*), c1,c2 from ts_low_cardinality where c1 = 1 group by c1,c2", "outputRows=10", methodWatcher);
     }
 
 
