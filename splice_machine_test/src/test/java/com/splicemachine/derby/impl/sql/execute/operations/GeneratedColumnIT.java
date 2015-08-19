@@ -1,10 +1,13 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -14,7 +17,6 @@ import org.apache.log4j.Logger;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -22,10 +24,10 @@ import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
 import com.splicemachine.derby.test.framework.SpliceDataWatcher;
+import com.splicemachine.derby.test.framework.SpliceIndexWatcher;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_dao.TableDAO;
 
 /**
@@ -190,9 +192,9 @@ public class GeneratedColumnIT {
         assertEquals("Incorrect number of rows returned!", size, results.size());
     }
 
-    @Test @Ignore("DB-3656: generated column does not get updated")
-    public void testUpdateGeneratedColumn() throws Exception {
-        // DB-3656: generated column does not get updated
+    @Test
+    public void testInsertGeneratedColumn() throws Exception {
+        // DB-3656: generated column does not get updated for insert
         String tableName = "words".toUpperCase();
         String tableRef = schemaWatcher.schemaName+"."+tableName;
         tableDAO.drop(schemaWatcher.schemaName, tableName);
@@ -202,13 +204,132 @@ public class GeneratedColumnIT {
         methodWatcher.execute(String.format("INSERT INTO %s(WORD) VALUES 'chocolate', 'Coca-Cola', 'hamburger', " +
                                                 "'carrot'",
                                             tableRef));
-        // DEBUG: Remove
-//        TestUtils.printResult("", methodWatcher.executeQuery(String.format("SELECT * FROM %s", tableRef)), System.out);
+
         ResultSet rs = methodWatcher.executeQuery(String.format("SELECT * FROM %s", tableRef));
         while (rs.next()) {
+            assertNotNull(rs.getString(2));
             assertEquals(rs.getString(1).toUpperCase(), rs.getString(2));
         }
 
+    }
+
+    @Test
+    public void testUpdateGeneratedColumn() throws Exception {
+        // DB-3656: generated column does not get updated for update
+        String tableName = "arithmetic".toUpperCase();
+        String tableRef = schemaWatcher.schemaName+"."+tableName;
+        tableDAO.drop(schemaWatcher.schemaName, tableName);
+
+        methodWatcher.execute(String.format("CREATE TABLE %s(COL1 INT, COL2 INT, COL3 GENERATED ALWAYS AS (COL1+COL2))",
+                                            tableRef));
+        methodWatcher.execute(String.format("INSERT INTO %s (COL1, COL2) VALUES (1,2), (3,4), (5,6)",
+                                            tableRef));
+
+        ResultSet rs = methodWatcher.executeQuery(String.format("SELECT * FROM %s", tableRef));
+        while (rs.next()) {
+            int col3expected = rs.getInt(1) + rs.getInt(2);
+            assertEquals(col3expected, rs.getInt(3));
+        }
+
+        methodWatcher.execute(String.format("UPDATE %s SET COL2 = 100 WHERE COL1 = 1", tableRef));
+
+        rs = methodWatcher.executeQuery(String.format("SELECT * FROM %s", tableRef));
+        while (rs.next()) {
+            int col3expected = rs.getInt(1) + rs.getInt(2);
+            assertEquals(col3expected, rs.getInt(3));
+        }
+
+        rs = methodWatcher.executeQuery(String.format("select col3 from %s where col2 = 100",tableRef));
+        assertTrue(rs.next());
+        assertNotNull(rs.getInt(1));
+        assertEquals(101, rs.getInt(1));
+    }
+
+    @Test
+    public void testInsertGeneratedColumnIndex() throws Exception {
+        // DB-3656: generated column does not get updated for insert
+        String tableName = "words".toUpperCase();
+        String tableRef = schemaWatcher.schemaName+"."+tableName;
+        tableDAO.drop(schemaWatcher.schemaName, tableName);
+
+        methodWatcher.execute(String.format("CREATE TABLE %s(WORD VARCHAR(20), UWORD VARCHAR(20) GENERATED ALWAYS AS (UPPER(WORD)))",
+                                            tableRef));
+        methodWatcher.execute(String.format("INSERT INTO %s(WORD) VALUES 'chocolate', 'Coca-Cola', 'hamburger', " +
+                                                "'carrot'",
+                                            tableRef));
+
+        ResultSet rs = methodWatcher.executeQuery(String.format("SELECT * FROM %s", tableRef));
+        while (rs.next()) {
+            assertNotNull(rs.getString(2));
+            assertEquals(rs.getString(1).toUpperCase(), rs.getString(2));
+        }
+        SpliceIndexWatcher.createIndex(methodWatcher.getOrCreateConnection(), schemaWatcher.schemaName, tableName,
+                                       "uword_idx", "(uword)", true);
+
+        rs = methodWatcher.executeQuery(String.format("select * from %s --SPLICE-PROPERTIES index = uword_idx \n" +
+                                                          "where uword = 'CARROT'", tableRef));
+        int n = 0;
+        while (rs.next()) {
+            assertNotNull(rs.getString(2));
+            assertEquals(rs.getString(1).toUpperCase(), rs.getString(2));
+            assertEquals("CARROT", rs.getString(2));
+            n++;
+        }
+        assertEquals(1, n);
+    }
+
+    @Test
+    public void testInsertGeneratedColumnUniqueConstraint() throws Exception {
+        // DB-3656: generated column does not get updated for insert
+        String tableName = "words".toUpperCase();
+        String tableRef = schemaWatcher.schemaName+"."+tableName;
+        tableDAO.drop(schemaWatcher.schemaName, tableName);
+
+        methodWatcher.execute(String.format("CREATE TABLE %s(WORD VARCHAR(20), UWORD VARCHAR(20) unique not null GENERATED ALWAYS AS (UPPER(WORD)))",
+                                            tableRef));
+        methodWatcher.execute(String.format("INSERT INTO %s(WORD) VALUES 'chocolate', 'Coca-Cola', 'hamburger', 'carrot'",
+                                            tableRef));
+
+        ResultSet rs = methodWatcher.executeQuery(String.format("SELECT * FROM %s", tableRef));
+        while (rs.next()) {
+            assertNotNull(rs.getString(2));
+            assertEquals(rs.getString(1).toUpperCase(), rs.getString(2));
+        }
+
+        try {
+            methodWatcher.execute(String.format("INSERT INTO %s(WORD) VALUES 'Chocolate'", tableRef));
+            fail("Expected unique constraint violation");
+        } catch (SQLException e) {
+            // expected
+            assertEquals("23505", e.getSQLState());
+        }
+    }
+
+    @Test
+    public void testInsertGeneratedColumnPrimaryKey() throws Exception {
+        // DB-3656: generated column does not get updated for insert
+        String tableName = "words".toUpperCase();
+        String tableRef = schemaWatcher.schemaName+"."+tableName;
+        tableDAO.drop(schemaWatcher.schemaName, tableName);
+
+        methodWatcher.execute(String.format("CREATE TABLE %s(WORD VARCHAR(20), UWORD VARCHAR(20) primary key GENERATED ALWAYS AS (UPPER(WORD)))",
+                                            tableRef));
+        methodWatcher.execute(String.format("INSERT INTO %s(WORD) VALUES 'chocolate', 'Coca-Cola', 'hamburger', 'carrot'",
+                                            tableRef));
+
+        ResultSet rs = methodWatcher.executeQuery(String.format("SELECT * FROM %s", tableRef));
+        while (rs.next()) {
+            assertNotNull(rs.getString(2));
+            assertEquals(rs.getString(1).toUpperCase(), rs.getString(2));
+        }
+
+        try {
+            methodWatcher.execute(String.format("INSERT INTO %s(WORD) VALUES 'Chocolate'", tableRef));
+            fail("Expected unique constraint violation");
+        } catch (SQLException e) {
+            // expected
+            assertEquals("23505", e.getSQLState());
+        }
     }
 
     @Test
