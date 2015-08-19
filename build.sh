@@ -124,7 +124,7 @@ fi
 shopt -u nocasematch
 
 if [ -z "$LOCALE" ]; then
-	MVN_COMMAND="${MVN_COMMAND} -pl engine,net,client,tools,run"
+	MVN_COMMAND="${MVN_COMMAND} -pl engine,client"
 	if [ -n "$TEST" ]; then
 					MVN_COMMAND="${MVN_COMMAND},testing"
 	fi
