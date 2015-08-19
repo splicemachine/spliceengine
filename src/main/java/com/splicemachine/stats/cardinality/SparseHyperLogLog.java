@@ -175,6 +175,14 @@ public class SparseHyperLogLog extends BaseBiasAdjustedHyperLogLogCounter{
             return new SparseHyperLogLog(precision,hashFunction,biasAdjuster,denseRegisters);
     }
 
+    /**
+     * exposed for testing.
+     * @return true if this is currently in sparse mode
+     */
+    boolean isSparse(){
+        return isSparse;
+    }
+
     @Override
     protected void updateRegister(int register,int value){
         byte curr = denseRegisters[register];
@@ -184,8 +192,7 @@ public class SparseHyperLogLog extends BaseBiasAdjustedHyperLogLogCounter{
 
     @Override
     public void merge(BaseLogLogCounter otherCounter){
-        mergeBuffer();
-        if(!(otherCounter instanceof SparseHyperLogLog) || !this.isSparse){
+        if(!(otherCounter instanceof SparseHyperLogLog)){
             /*
              * If the other counter isn't a SparseHyperLogLog, then convert this to dense,
              * and then defer to the default behavior.
@@ -216,7 +223,8 @@ public class SparseHyperLogLog extends BaseBiasAdjustedHyperLogLogCounter{
              * off as a dense version, which means that we will also be that large after
              * merging, so we may as well convert to dense and defer to default behavior
              */
-            convertToDense();
+            if(isSparse)
+                convertToDenseAndMerge();
             super.merge(other);
         }
     }
@@ -314,16 +322,22 @@ public class SparseHyperLogLog extends BaseBiasAdjustedHyperLogLogCounter{
              * from a p of PRECISION_BITS to the user-configured p instead), but it optimal from a space
              * utilization perspective.
              */
-            convertToDense();
-            for(int i=0;i<bufferSize;i++){
-                insertIntoDense(buffer[i]);
-            }
-            buffer = null; //null out to help the garbage collector
+            convertToDenseAndMerge();
         } else{
             //perform the raw merge between buffer and sparse array
             mergeInternal();
         }
         bufferSize=0;
+    }
+
+    private void convertToDenseAndMerge(){
+        convertToDense();
+        for(int i=0;i<bufferSize;i++){
+            int r=buffer[i];
+            assert r!=0: "Programmer error: buffer contains a 0 element!";
+            insertIntoDense(r);
+        }
+        buffer = null; //null out to help the garbage collector
     }
 
     private int deduplicateBuffer(int[] data){
