@@ -37,6 +37,7 @@ import java.io.ObjectOutput;
 import java.io.ObjectInput;
 import java.io.IOException;
 
+import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -743,5 +744,9 @@ public final class SQLTinyint
 	
 	public Format getFormat() {
 		return Format.TINYINT;
+	}
+
+	public BigDecimal getBigDecimal() {
+		return isNull() ? null : BigDecimal.valueOf(value);
 	}
 }

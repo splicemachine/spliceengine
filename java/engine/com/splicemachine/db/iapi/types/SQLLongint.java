@@ -37,6 +37,7 @@ import java.io.ObjectOutput;
 import java.io.ObjectInput;
 import java.io.IOException;
 
+import java.math.BigDecimal;
 import java.sql.ResultSet;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -904,5 +905,9 @@ public final class SQLLongint
 	public Format getFormat() {
 		return Format.LONGINT;
 		
+	}
+
+	public BigDecimal getBigDecimal() {
+		return isnull ? null : BigDecimal.valueOf(value);
 	}
 }
