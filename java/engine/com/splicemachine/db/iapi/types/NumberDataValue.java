@@ -23,6 +23,8 @@ package com.splicemachine.db.iapi.types;
 
 import com.splicemachine.db.iapi.error.StandardException;
 
+import java.math.BigDecimal;
+
 public interface NumberDataValue extends DataValueDescriptor
 {
 	/**
@@ -211,6 +213,13 @@ public interface NumberDataValue extends DataValueDescriptor
 		the return is undefined.
 	*/
 	public int getDecimalValueScale();
+
+	/**
+	 * Returns BigDecimal representation of value
+	 * @return BigDecimal value
+	 * @throws StandardException
+	 */
+	public BigDecimal getBigDecimal() throws StandardException;
 }
 
 

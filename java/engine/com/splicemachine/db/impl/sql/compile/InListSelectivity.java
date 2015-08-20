@@ -3,8 +3,11 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 
-/**
- * Created by jleach on 8/8/15.
+ /**
+ *
+ * Selectivity for an in clause list.  The selectivity is additive but if it ends up being over 1 it snaps back to 0.9.
+  *
+ *
  */
 public class InListSelectivity extends AbstractSelectivityHolder {
     private Predicate p;

@@ -213,11 +213,6 @@ public abstract class HashableJoinStrategy extends BaseJoinStrategy {
         return (int)(maxMemoryPerTable/perRowUsage);
     }
 
-    /** @see JoinStrategy#scanCostType */
-    public int scanCostType() {
-        return StoreCostController.STORECOST_SCAN_SET;
-    }
-
     /**
      * @see JoinStrategy#getScanArgs
      *

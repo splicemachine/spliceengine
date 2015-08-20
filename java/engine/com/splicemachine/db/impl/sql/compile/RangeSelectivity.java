@@ -5,7 +5,9 @@ import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
 /**
- * Created by jleach on 8/8/15.
+ *
+ * Range Selectivity Holder, allows one to modify the start or stop based on steps in the optimizer.
+ *
  */
 public class RangeSelectivity extends AbstractSelectivityHolder {
     public DataValueDescriptor start;

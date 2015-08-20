@@ -1034,31 +1034,7 @@ public class Heap
     public StoreCostController openStoreCost(ConglomerateDescriptor cd,
                                              TransactionManager  xact_manager,
                                              Transaction rawtran) throws StandardException {
-        OpenHeap open_conglom = new OpenHeap();
-
-        if (open_conglom.init(
-                null,
-                this,
-                this.format_ids,
-                this.collation_ids,
-                xact_manager,
-                rawtran,
-                false,
-                ContainerHandle.MODE_READONLY,
-                TransactionController.MODE_TABLE,
-                null,
-                null) == null) {
-            throw StandardException.newException(
-                    SQLState.HEAP_CONTAINER_NOT_FOUND,
-                    new Long(id.getContainerId()));
-        }
-
-
-        HeapCostController heapcost = new HeapCostController();
-
-        heapcost.init(open_conglom);
-
-		return(heapcost);
+        throw new RuntimeException("attempting to open store cost on heap");
     }
 
 

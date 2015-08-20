@@ -5,7 +5,9 @@ import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
 /**
- * Created by jleach on 8/8/15.
+ *
+ * Selectivity computation for not equals.
+ *
  */
 public class NotEqualsSelectivity extends AbstractSelectivityHolder {
     private DataValueDescriptor value;

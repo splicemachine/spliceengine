@@ -4,7 +4,8 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
 
 /**
- * Created by jleach on 8/8/15.
+ * Predicate Selectivity Computation
+ *
  */
     public class PredicateSelectivity extends AbstractSelectivityHolder {
         private Predicate p;
