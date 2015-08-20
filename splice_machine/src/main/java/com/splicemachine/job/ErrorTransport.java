@@ -129,6 +129,8 @@ public class ErrorTransport implements Externalizable {
             Constructor constructor = ConstructorUtils.getAccessibleConstructor(errorClazz, String.class);
             if (constructor != null) {
                 String constructorMayNotAcceptNullArg = messageId == null ? "null" : messageId;
+                // DEBUG: JC - changed logging to ERROR to make sure we get this message logged
+                SpliceLogUtils.error(LOG,"Constructing error: %s, msg: %s, args: %s", errorClazz, messageId, printArgs(this.args));
                 return (Throwable) ConstructorUtils.invokeConstructor(errorClazz, constructorMayNotAcceptNullArg);
             }
 
@@ -137,6 +139,18 @@ public class ErrorTransport implements Externalizable {
         } catch (ClassNotFoundException | InvocationTargetException | NoSuchMethodException | InstantiationException | IllegalAccessException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    private String printArgs(Object[] args) {
+        StringBuilder buf = new StringBuilder();
+        if (args == null || args.length == 0) {
+            buf.append("empty");
+        } else {
+            for (Object arg : args) {
+                buf.append(arg).append(",");
+            }
+        }
+        return buf.toString();
     }
 
     public boolean shouldRetry() {

@@ -390,12 +390,38 @@ public class StatisticsAdmin {
                 if (tds.isEmpty()) {
                     // DEBUG: JC - changed logging to ERROR to make sure we get this message logged
                     SpliceLogUtils.error(LOG,"No tables in schema ID=%s", sd.getUUID().toString());
+                } else {
+                    // DEBUG: JC - changed logging to ERROR to make sure we get this message logged
+                    SpliceLogUtils.error(LOG,"TableDescriptors: %s", printTDs(tds));
                 }
                 return tds;
             }
         }catch(StandardException e){
             throw PublicAPI.wrapStandardException(e);
         }
+    }
+
+    private static String printTDs(List<TableDescriptor> tds) {
+        StringBuilder buf = new StringBuilder();
+        for (TableDescriptor td : tds) {
+            try {
+                buf.append("[").append(td.getName()).append("(").append(td.getHeapConglomerateId()).append(")");
+            } catch (StandardException e) {
+                e.printStackTrace();
+            }
+            ConglomerateDescriptor[] cds = td.getConglomerateDescriptors();
+            if (cds == null || cds.length == 0) {
+                buf.append("No congloms in descriptor");
+            } else {
+                buf.append(" congloms: ");
+                for (ConglomerateDescriptor cd : cds) {
+                    buf.append(cd.getConglomerateName()).append(" ").append(cd.getConglomerateNumber()).append(",");
+                }
+                buf.append(" | ");
+            }
+            buf.append("]");
+        }
+        return buf.toString();
     }
 
     private static StatisticsJob getIndexJob(IndexRowGenerator irg,
