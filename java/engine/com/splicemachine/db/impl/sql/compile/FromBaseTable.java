@@ -832,10 +832,7 @@ public class FromBaseTable extends FromTable{
                     costEstimate,
                     rowTemplate,
                     baseColumnPositions,
-                    rowCount,
                     forUpdate(),
-                    startOperator,
-                    stopOperator,
                     resultColumns);
 
             int predListSize;
@@ -3343,19 +3340,4 @@ public class FromBaseTable extends FromTable{
         return distinctScan;
     };
 
-/*
-    public ConstantAction makeConstantAction() throws StandardException {
-        ConglomerateDescriptorList cdl = tableDescriptor.getConglomerateDescriptorList();
-        for(int index=0;index< cdl.size();index++){
-            ConglomerateDescriptor cd = (ConglomerateDescriptor) cdl.get(index);
-            IndexDescriptor indexDec = cd.getIndexDescriptor();
-            if(indexDec!=null){
-                String indexType = indexDec.indexType();
-                if(indexType!=null && indexType.contains("PRIMARY"))
-                    return new SelectConstantAction(cd.getIndexDescriptor().getIndexDescriptor().baseColumnPositions());
-            }
-        }
-        return super.makeConstantAction();    //To change body of overridden methods use File | Settings | File Templates.
-    }
-    */
 }

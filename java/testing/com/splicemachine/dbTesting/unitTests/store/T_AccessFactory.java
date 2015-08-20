@@ -2139,64 +2139,6 @@ public class T_AccessFactory extends T_Generic
         //     returned.
         StoreCostResult cost_result = new T_StoreCostResult();
 
-        scc.getScanCost(
-            -1,             // row count
-            false,          // forUpdate
-			null,  // validColumns
-            new T_AccessRow(2).getRowArray(),  // template
-            null,  			// probe position
-            null,           // start position - first row in conglomerate
-            0,              // unused if start position is null.
-            null,           // stop position - last row in conglomerate
-            0,              // unused if stop position is null.
-            cost_result);   // cost result.
-
-        REPORT("fetch scan cost (full row) of row loc = " + cost_result);
-
-        scc.getScanCost(
-            -1,             // row count
-            false,          // forUpdate
-            new BitSet(),  // validColumns
-            new T_AccessRow(2).getRowArray(),  // template
-            null,           // probe position
-            null,           // start position - first row in conglomerate
-            0,              // unused if start position is null.
-            null,           // stop position - last row in conglomerate
-            0,              // unused if stop position is null.
-            cost_result);   // cost result.
-
-        REPORT("fetch scan cost (no cols) of row loc = " + cost_result);
-
-        scc.getScanCost(
-            -1,             // row count
-            false,          // forUpdate
-            new BitSet(1),  // validColumns
-            new T_AccessRow(2).getRowArray(),  // template
-            null,           // probe position
-			null,           // start position - first row in conglomerate
-            0,              // unused if start position is null.
-            null,           // stop position - last row in conglomerate
-            0,              // unused if stop position is null.
-            cost_result);   // cost result.
-
-        REPORT("fetch scan cost (no cols) of row loc = " + cost_result);
-
-        bit_set = new BitSet(2);
-        bit_set.set(1);
-        scc.getScanCost(
-            -1,             // row count
-            false,          // forUpdate
-            bit_set,        // validColumns
-            new T_AccessRow(2).getRowArray(),  // template
-            null,           // probe position
-			null,           // start position - first row in conglomerate
-            0,              // unused if start position is null.
-            null,           // stop position - last row in conglomerate
-            0,              // unused if stop position is null.
-            cost_result);   // cost result.
-
-        REPORT("fetch scan cost (1 cols) of row loc = " + cost_result);
-
         // make sure you can get a row location.
 		rowloc1 = scc.newRowLocationTemplate();
 

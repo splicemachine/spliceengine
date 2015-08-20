@@ -215,114 +215,6 @@ public interface StoreCostController extends RowCountable{
                                  CostEstimate cost) throws StandardException;
 
     /**
-     * Calculate the cost of a scan.
-     * <p/>
-     * Cause this object to calculate the cost of performing the described
-     * scan.  The interface is setup such that first a call is made to
-     * calcualteScanCost(), and then subsequent calls to accessor routines
-     * are made to get various pieces of information about the cost of
-     * the scan.
-     * <p/>
-     * For the purposes of costing this routine is going to assume that
-     * a page will remain in cache between the time one next()/fetchNext()
-     * call and a subsequent next()/fetchNext() call is made within a scan.
-     * <p/>
-     * The result of costing the scan is placed in the "cost_result".
-     * The cost of the scan is stored by calling
-     * cost_result.setEstimatedCost(cost).
-     * The estimated row count is stored by calling
-     * cost_result.setEstimatedRowCount(row_count).
-     * <p/>
-     * The estimated cost of the scan assumes the caller will
-     * execute a fetchNext() loop for every row that qualifies between
-     * start and stop position.  Note that this cost is different than
-     * execution a next(),fetch() loop; or if the scan is going to be
-     * terminated by client prior to reaching the stop condition.
-     * <p/>
-     * The estimated number of rows returned from the scan
-     * assumes the caller will execute a fetchNext() loop for every
-     * row that qualifies between start and stop position.
-     * <p/>
-     *
-     * @param row_count           Estimated total row count of the table.  The
-     *                            current system tracks row counts in heaps better
-     *                            than btree's (btree's have "rows" which are not
-     *                            user rows - branch rows, control rows), so
-     *                            if available the client should
-     *                            pass in the base table's row count into this
-     *                            routine to be used as the index's row count.
-     *                            If the caller has no idea, pass in -1.
-     * @param forUpdate           Should be true if the caller intends to update
-     *                            through the scan.
-     * @param scanColumnList      A description of which columns to return from
-     *                            every fetch in the scan.  template,
-     *                            and scanColumnList work together
-     *                            to describe the row to be returned by the scan -
-     *                            see RowUtil for description of how these three
-     *                            parameters work together to describe a "row".
-     * @param template            A prototypical row which the scan may use to
-     *                            maintain its position in the conglomerate.  Not
-     *                            all access method scan types will require this,
-     *                            if they don't it's ok to pass in null.
-     *                            In order to scan a conglomerate one must
-     *                            allocate 2 separate "row" templates.  The "row"
-     *                            template passed into openScan is for the private
-     *                            use of the scan itself, and no access to it
-     *                            should be made by the caller while the scan is
-     *                            still open.  Because of this the scanner must
-     *                            allocate another "row" template to hold the
-     *                            values returned from fetch().  Note that this
-     *                            template must be for the full row, whether a
-     *                            partial row scan is being executed or not.
-     * @param startKeyValue       An indexable row which holds a (partial) key
-     *                            value which, in combination with the
-     *                            startSearchOperator, defines the starting
-     *                            position of the scan.  If null, the starting
-     *                            position of the scan is the first row of the
-     *                            conglomerate.  The startKeyValue must only
-     *                            reference columns included in the scanColumnList.
-     * @param startSearchOperator an operator which defines how the startKeyValue
-     *                            is to be searched for.  If startSearchOperation
-     *                            is ScanController.GE, the scan starts on the
-     *                            first row which is greater than or equal to the
-     *                            startKeyValue.  If startSearchOperation is
-     *                            ScanController.GT, the scan starts on the first
-     *                            row whose key is greater than startKeyValue.  The
-     *                            startSearchOperation parameter is ignored if the
-     *                            startKeyValue parameter is null.
-     * @param stopKeyValue        An indexable row which holds a (partial) key
-     *                            value which, in combination with the
-     *                            stopSearchOperator, defines the ending position
-     *                            of the scan.  If null, the ending position of the
-     *                            scan is the last row of the conglomerate.  The
-     *                            stopKeyValue must only reference columns included
-     *                            in the scanColumnList.
-     * @param stopSearchOperator  an operator which defines how the stopKeyValue
-     *                            is used to determine the scan stopping position.
-     *                            If stopSearchOperation is ScanController.GE, the
-     *                            scan stops just before the first row which is
-     *                            greater than or equal to the stopKeyValue.  If
-     *                            stopSearchOperation is ScanController.GT, the
-     *                            scan stops just before the first row whose key
-     *                            is greater than startKeyValue.  The
-     *                            stopSearchOperation parameter is ignored if the
-     *                            stopKeyValue parameter is null.
-     * @throws StandardException Standard exception policy.
-     * @see RowUtil
-     */
-    void getScanCost(long row_count,
-            boolean forUpdate,
-            BitSet scanColumnList,
-            DataValueDescriptor[] template,
-            List<DataValueDescriptor> probeValues,
-            DataValueDescriptor[] startKeyValue,
-            int startSearchOperator,
-            DataValueDescriptor[] stopKeyValue,
-            int stopSearchOperator,
-            StoreCostResult cost_result)
-            throws StandardException;
-
-    /**
      * Return an "empty" row location object of the correct type.
      * <p/>
      *
@@ -330,8 +222,6 @@ public interface StoreCostController extends RowCountable{
      * @throws StandardException Standard exception policy.
      */
     RowLocation newRowLocationTemplate() throws StandardException;
-
-    void extraQualifierSelectivity(CostEstimate costEstimate) throws StandardException;
 
     /**
      * Get the selectivity fraction for the specified range and the specified column.
@@ -352,21 +242,6 @@ public interface StoreCostController extends RowCountable{
                           DataValueDescriptor start,
                           boolean includeStart,
                           DataValueDescriptor stop,boolean includeStop);
-
-    /**
-     * Get the cardinality fraction of the specified column.
-     *
-     * The cardinality of a column is defined as the number of distinct values the specified column
-     * takes on in the table. The <em>cardinality fraction</em> is then the ratio of the cardinality
-     * of the column to the total number of rows in the data set.
-     *
-     * The cardinality of the column is at most the total size of the table, so the cardinality
-     * fraction falls in the range [0,1]
-     *
-     * @param columnNumber the column of interest (indexed from 1)
-     * @return the cardinality fraction of the data set
-     */
-    double cardinalityFraction(int columnNumber);
 
     /**
      * @return the total number of rows in the store (including null and non-null)

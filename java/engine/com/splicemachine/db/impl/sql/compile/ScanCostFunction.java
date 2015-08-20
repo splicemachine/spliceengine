@@ -14,6 +14,8 @@ import java.util.*;
  * a great deal on the type and nature of the predicates which are passed in. To resolve this complexity, and
  * to support flexible behaviors, we use this builder pattern instead of direct coding.
  *
+ *
+ *
  * @author Scott Fines
  *         Date: 5/15/15
  */
@@ -27,18 +29,22 @@ public class ScanCostFunction{
     private List<SelectivityHolder>[] selectivityHolder; //selectivity elements
     private final int[] keyColumns;
     private final int baseColumnCount;
-    private final long baseRowCount;
-    private final boolean forUpdate;
-    private final DataValueDescriptor[] rowTemplate;
-    private final int startOperator;
-    private final int stopOperator;
-    private transient boolean baseCostComputed;
-    private transient boolean lookupCostComputed;
-    private transient boolean outputCostComputed;
+    private final boolean forUpdate; // Will be used shortly
 
     /**
      *
-     * Applies Predicates at 3 levels (BASE,BASE_FILTER,PROJECTION_FILTER).
+     *
+     * <pre>
+     *
+     *     Selectivity is computed at 3 levels.
+     *
+     *     BASE -> Qualifiers on the row keys (start/stop Qualifiers, Multiprobe)
+     *     FILTER_BASE -> Qualifiers applied after the scan but before the index lookup.
+     *     FILTER_PROJECTION -> Qualifers and Predicates applied after any potential lookup, usually performed on the Projection Node in the scan.
+     *
+     *
+     * </pre>
+     *
      *
      * @param scanColumns
      * @param lookupColumns
@@ -47,10 +53,7 @@ public class ScanCostFunction{
      * @param scanCost
      * @param rowTemplate
      * @param keyColumns
-     * @param baseRowCount
      * @param forUpdate
-     * @param startOperator
-     * @param stopOperator
      * @param resultColumns
      */
     public ScanCostFunction(BitSet scanColumns,
@@ -60,10 +63,7 @@ public class ScanCostFunction{
                             CostEstimate scanCost,
                             DataValueDescriptor[] rowTemplate,
                             int[] keyColumns,
-                            long baseRowCount,
                             boolean forUpdate,
-                            int startOperator,
-                            int stopOperator,
                             ResultColumnList resultColumns){
         this.scanColumns = scanColumns;
         this.lookupColumns = lookupColumns;
@@ -71,12 +71,8 @@ public class ScanCostFunction{
         this.scanCost = scanCost;
         this.storeCost = storeCost;
         this.keyColumns = keyColumns;
-        this.baseRowCount=baseRowCount;
         this.forUpdate=forUpdate;
-        this.startOperator=startOperator;
-        this.stopOperator=stopOperator;
         this.selectivityHolder = new List[resultColumns.size()+1];
-        this.rowTemplate = rowTemplate;
         this.baseColumnCount = resultColumns.size();
         totalColumns = new BitSet(baseColumnCount);
         totalColumns.or(scanColumns);
@@ -177,6 +173,16 @@ public class ScanCostFunction{
         return computeSelectivity(totalSelectivity,holders);
     }
 
+
+    /**
+     *
+     * Gathers the selectivities for the phases and sorts them ascending (most selective first) and then supplied them to computeSelectivity.
+     *
+     * @param selectivityHolder
+     * @param phases
+     * @return
+     * @throws StandardException
+     */
     public static double computePhaseSelectivity(List<SelectivityHolder>[] selectivityHolder,QualifierPhase... phases) throws StandardException {
         double totalSelectivity = 1.0d;
         List<SelectivityHolder> holders = new ArrayList();
@@ -194,6 +200,15 @@ public class ScanCostFunction{
         return computeSelectivity(totalSelectivity,holders);
     }
 
+    /**
+     *
+     * Helper method to compute increasing sqrt levels.
+     *
+     * @param selectivity
+     * @param holders
+     * @return
+     * @throws StandardException
+     */
     public static double computeSelectivity(double selectivity, List<SelectivityHolder> holders) throws StandardException {
         for (int i = 0; i< holders.size();i++) {
             selectivity = computeSqrtLevel(selectivity,i,holders.get(i));
@@ -201,6 +216,16 @@ public class ScanCostFunction{
         return selectivity;
     }
 
+    /**
+     *
+     * Compute SQRT selectivity based on the level.
+     *
+     * @param selectivity
+     * @param level
+     * @param holder
+     * @return
+     * @throws StandardException
+     */
     public static double computeSqrtLevel(double selectivity, int level, SelectivityHolder holder) throws StandardException {
         if (level ==0) {
             selectivity *= holder.getSelectivity();
@@ -213,6 +238,16 @@ public class ScanCostFunction{
         selectivity*=incrementalSelectivity;
         return selectivity;
     }
+
+    /**
+     *
+     * Method to combine range qualifiers a>12 and a< 15 -> range qualifier (12<a<15)
+     *
+     * @param p
+     * @param phase
+     * @return
+     * @throws StandardException
+     */
 
     private boolean addRangeQualifier(Predicate p,QualifierPhase phase) throws StandardException{
         DataValueDescriptor value=p.getCompareValue(baseTable);
