@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.sql.execute;
 
 import java.util.List;
 
+import com.splicemachine.derby.impl.sql.execute.operations.batchonce.BatchOnceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 
 import com.splicemachine.db.iapi.error.StandardException;
@@ -1319,7 +1320,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
 
         return new OperationResultSet(source.getActivation(),op);
 	}
-	
+
 	public NoPutResultSet getLastIndexKeyResultSet
 	(
 		Activation 			activation,
@@ -1352,7 +1353,7 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
 					isolationLevel,
 					optimizerEstimatedRowCount,
 					optimizerEstimatedCost);
-		
+
 		return new OperationResultSet(activation, op);
 	}
 
@@ -1429,6 +1430,38 @@ public class SpliceGenericResultSetFactory extends GenericResultSetFactory {
                 quoteChar
         );
         OperationResultSet operationResultSet = new OperationResultSet(activation, op);
+        operationResultSet.markAsTopResultSet();
+        return operationResultSet;
+    }
+
+    /**
+     * BatchOnce
+     */
+    @Override
+    public NoPutResultSet getBatchOnceResultSet(NoPutResultSet source,
+                                                Activation activation,
+                                                int resultSetNumber,
+                                                NoPutResultSet subqueryResultSet,
+                                                String updateResultSetFieldName,
+                                                int sourceRowLocationColumnPosition,
+                                                int sourceCorrelatedColumnPosition,
+                                                int subqueryCorrelatedColumnPosition) throws StandardException {
+
+        ConvertedResultSet convertedResultSet = (ConvertedResultSet) source;
+        ConvertedResultSet convertedSubqueryResultSet = (ConvertedResultSet) subqueryResultSet;
+
+        BatchOnceOperation batchOnceOperation = new BatchOnceOperation(
+                convertedResultSet.getOperation(),
+                activation,
+                resultSetNumber,
+                convertedSubqueryResultSet.getOperation(),
+                updateResultSetFieldName,
+                sourceRowLocationColumnPosition,
+                sourceCorrelatedColumnPosition,
+                subqueryCorrelatedColumnPosition
+        );
+
+        OperationResultSet operationResultSet = new OperationResultSet(activation, batchOnceOperation);
         operationResultSet.markAsTopResultSet();
         return operationResultSet;
     }
