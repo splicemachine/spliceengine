@@ -6,13 +6,10 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-
-import java.util.*;
 
 public class NestedLoopJoinStrategy extends BaseJoinStrategy{
     private static final Logger LOG=Logger.getLogger(NestedLoopJoinStrategy.class);
@@ -88,11 +85,6 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
     @Override
     public String getName(){
         return "NESTEDLOOP";
-    }
-
-    @Override
-    public int scanCostType(){
-        return StoreCostController.STORECOST_SCAN_NORMAL;
     }
 
     @Override

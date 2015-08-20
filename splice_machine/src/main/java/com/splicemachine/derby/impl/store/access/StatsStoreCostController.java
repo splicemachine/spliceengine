@@ -3,14 +3,10 @@ package com.splicemachine.derby.impl.store.access;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
-import com.splicemachine.db.iapi.store.access.ScanController;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
-import com.splicemachine.db.iapi.store.access.StoreCostResult;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.impl.store.access.conglomerate.GenericController;
-import com.splicemachine.derby.impl.sql.compile.SimpleCostEstimate;
-import com.splicemachine.derby.impl.stats.FakedPartitionStatistics;
 import com.splicemachine.derby.impl.stats.OverheadManagedTableStatistics;
 import com.splicemachine.derby.impl.stats.StatisticsStorage;
 import com.splicemachine.derby.impl.stats.StatsConstants;
@@ -23,8 +19,6 @@ import com.splicemachine.stats.PartitionStatistics;
 import com.splicemachine.stats.TableStatistics;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-
-import java.io.IOException;
 import java.util.BitSet;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -96,14 +90,6 @@ public class StatsStoreCostController extends GenericController implements Store
     }
 
     @Override
-    public void getFetchFromRowLocationCost(BitSet validColumns,
-                                            int access_type,
-                                            CostEstimate cost) throws StandardException {
-        throw StandardException.plainWrapException(new IOException("Cannot Fetch From Main Table"));
-    }
-
-
-    @Override
     public double conglomerateColumnSizeFactor(BitSet validColumns) {
         return columnSizeFactor(conglomerateStatistics,
                 ((SpliceConglomerate)baseConglomerate.getConglomerate()).getFormat_ids().length,
@@ -144,59 +130,6 @@ public class StatsStoreCostController extends GenericController implements Store
             SpliceLogUtils.trace(LOG,"getFetchFromFullKeyCost={columnSizeFactor=%f, cost=%s" +
                             "cost=%s",columnSizeFactor,cost);
 
-
-
-    }
-
-    @Override
-    public void getScanCost(long row_count,
-                            boolean forUpdate,
-                            BitSet scanColumnList,
-                            DataValueDescriptor[] template,
-                            List<DataValueDescriptor> probeValues,
-                            DataValueDescriptor[] startKeyValue,
-                            int startSearchOperator,
-                            DataValueDescriptor[] stopKeyValue,
-                            int stopSearchOperator,
-                            StoreCostResult cost_result) throws StandardException {
-       /*
-        * We estimate the cost of the key scan. This is effectively the selectivity of the
-        * keys, times the cost to read a single row.
-        *
-        * TODO -sf- at some point,we will need to make a distinction between performing a local
-        * scan and a remote scan. For now, we will opt for remote scan always.
-        *
-        * Keys are handed in according to derby's rules. We may not have a start key (if the scan is
-        * PK1 < value), and we may not have an end key (if the scan is PK1 > value). In these cases,
-        * the selectivity is rangeSelectivity(start,null) or rangeSelectivity(null,stop). The column
-        * id for the keys is located in the conglomerate.
-        */
-
-
-        estimateCost(conglomerateStatistics,
-                ((SpliceConglomerate)baseConglomerate.getConglomerate()).getFormat_ids().length,
-                scanColumnList,
-                probeValues,startKeyValue,startSearchOperator,
-                stopKeyValue,stopSearchOperator,convertToOneBased(baseConglomerate.getColumnOrdering()),(CostEstimate)cost_result);
-        List<? extends PartitionStatistics> partStats=conglomerateStatistics.partitionStatistics();
-        if(partStats==null||partStats.size()<=0 ||partStats.get(0) instanceof FakedPartitionStatistics){
-            ((CostEstimate)cost_result).setIsRealCost(false);
-        }
-
-        if (LOG.isTraceEnabled())
-            SpliceLogUtils.trace(LOG,"getScanCost costEstimate=%s",cost_result);
-
-        if(cost_result instanceof SimpleCostEstimate){
-            ((SimpleCostEstimate)cost_result).setStoreCost(this);
-        }
-    }
-
-    @Override
-    public void extraQualifierSelectivity(CostEstimate costEstimate) throws StandardException {
-        //TODO -sf- implement! ??
-        costEstimate.setCost(costEstimate.getEstimatedCost()*SpliceConstants.extraQualifierMultiplier,
-                (double)costEstimate.getEstimatedRowCount()*SpliceConstants.extraQualifierMultiplier,
-                costEstimate.singleScanRowCount()*SpliceConstants.extraQualifierMultiplier);
     }
 
     @Override public RowLocation newRowLocationTemplate() throws StandardException { return null; }
@@ -221,23 +154,6 @@ public class StatsStoreCostController extends GenericController implements Store
         if(colStats!=null)
             return colStats.cardinality();
         return 0;
-    }
-
-
-    @Override
-    public double cardinalityFraction(int columnNumber){
-        ColumnStatistics<DataValueDescriptor> colStats=getColumnStats(columnNumber);
-        if(colStats!=null){
-            double nullFraction=colStats.nullFraction();
-            long c=colStats.cardinality();
-
-            return c>0?(1-nullFraction)/c:0d;
-        }
-        /*
-         * If we can't find any statistics for this column, then use a fallback number--arbitrary
-         * numbers are better than no numbers at all (although that is somewhat debatable in practice)
-         */
-        return StatsConstants.fallbackCardinalityFraction;
     }
 
     protected ColumnStatistics<DataValueDescriptor> getColumnStats(int columnNumber){
@@ -308,105 +224,6 @@ public class StatsStoreCostController extends GenericController implements Store
         }
         rc+=rowCount;
         return rc/stats.rowCount();
-    }
-
-
-
-    @SuppressWarnings("unchecked")
-    protected void estimateCost(OverheadManagedTableStatistics stats,
-                                int totalColumns, //the total number of columns in the store
-                                BitSet scanColumnList, //a list of the output columns, or null if fetch all
-                                List<DataValueDescriptor> probeValues,
-                                DataValueDescriptor[] startKeyValue,
-                                int startSearchOperator,
-                                DataValueDescriptor[] stopKeyValue,
-                                int stopSearchOperator,
-                                int[] keyMap,
-                                CostEstimate costEstimate) {
-        /*
-         * We need to estimate the scan selectivity.
-         *
-         * Unfortunately, we don't have multi-dimensional statistics (e.g. the statistics
-         * for pred(A) and pred(B)), so we can't do this easily. Instead, we use a fairly
-         * straightforward heuristic.
-         *
-         * First, we count the number of rows which match the first predicate. Because we
-         * use this to construct the row key range on the sorted table, we can say that
-         * this is the maximum number of rows that we are going to visit. Then we compute the
-         * number of rows that match the second predicate. That number is independent of
-         * the number of rows matching the first predicate, so we have two numbers: N1 and N2.
-         * We know that condition 1 has to hold, so N2 *should* be strictly less. However, we don't really
-         * know that that's true--the data could be elsewhere. So we assume that the distribution is
-         * evenly in or out, and the number of rows is then N2/size(partition)*N1. We then repeat
-         * this process recursively, to reduce the total number of rows down. Not as good a heuristic
-         * as maintaining a distribution of row keys directly, but for now it'll do.
-         */
-        List<? extends PartitionStatistics> partitionStatistics = stats.partitionStatistics();
-        boolean includeStop = stopSearchOperator == ScanController.GT;
-        boolean includeStart = startSearchOperator != ScanController.GT;
-        long numRows = 0l;
-        long bytes = 0l;
-        double localCost = 0d;
-        double remoteCost = stats.openScannerLatency()+stats.closeScannerLatency(); //always the cost to open a scanner
-        int numPartitions = 0;
-        for(PartitionStatistics pStats:partitionStatistics){
-            long partRc = 0l;
-            if(probeValues!=null){
-                /*
-                 * We have probe values, which means that the first entry in the startKeyValue and the stopKeyValue
-                 * are populated with an entry, so we loop through here, and if there are rows in this partition
-                 * for any of the probe values, then we add a partition in. Otherwise, we do not
-                 */
-                for(DataValueDescriptor probeValue:probeValues){
-                    startKeyValue[0] = probeValue;
-                    stopKeyValue[0] = probeValue;
-                    partRc+=partitionColumnSelectivity(pStats,startKeyValue,includeStart,stopKeyValue,includeStop,keyMap);
-                }
-            }else
-                partRc=partitionColumnSelectivity(pStats,startKeyValue,includeStart,stopKeyValue,includeStop,keyMap);
-
-            if(partRc>0){
-                numPartitions++;
-                numRows+=partRc;
-
-                localCost+=pStats.localReadLatency()*partRc*pStats.avgRowWidth();
-                double colSizeAdjustment=columnSizeFactor(totalColumns,scanColumnList,pStats);
-                double remoteLatency = pStats.remoteReadLatency();
-                double size = partRc*colSizeAdjustment*pStats.avgRowWidth();
-                remoteCost+=remoteLatency*size;
-                bytes+=(colSizeAdjustment*pStats.avgRowWidth())*partRc;
-            }
-        }
-
-        costEstimate.setEstimatedRowCount(numRows);
-        costEstimate.setLocalCost(localCost);
-        costEstimate.setRemoteCost(remoteCost);
-        //we always touch at least 1 partition
-        costEstimate.setNumPartitions(numPartitions>0?numPartitions:1);
-        costEstimate.setEstimatedHeapSize(bytes);
-        costEstimate.setOpenCost(stats.openScannerLatency());
-        costEstimate.setCloseCost(stats.closeScannerLatency());
-    }
-
-    private long partitionColumnSelectivity(PartitionStatistics pStats,DataValueDescriptor[] startKeyValue,boolean includeStart,DataValueDescriptor[] stopKeyValue,boolean includeStop,int[] keyMap){
-        double selectivity = 1.0d;
-        if(startKeyValue==null && stopKeyValue==null){
-           return pStats.rowCount();
-        } else{
-            int size = startKeyValue.length;
-            for(int i=0;i<size;i++){
-                if (startKeyValue[i] == null && stopKeyValue[i] ==null)
-                    continue; // ignore
-                ColumnStatistics<DataValueDescriptor> cStats=pStats.columnStatistics(keyMap[i]); // Must be one based...
-                if(cStats!=null){
-                    double rc=cStats.getDistribution().rangeSelectivity(startKeyValue[i],stopKeyValue[i],includeStart,includeStop);
-                    selectivity*=rc/(cStats.nonNullCount()+cStats.nullCount());
-                } else {
-                    selectivity*=StatsConstants.fallbackIndexSelectivityFraction;
-                }
-            }
-            return (long)Math.ceil(selectivity*pStats.rowCount());
-        }
     }
 
     protected double columnSizeFactor(TableStatistics tableStats,int totalColumns,BitSet validColumns){
@@ -496,16 +313,6 @@ public class StatsStoreCostController extends GenericController implements Store
 
     private int getAdjustedRowSize(PartitionStatistics pStats){
         return pStats.avgRowWidth();
-    }
-
-    private int[] convertToOneBased(int[] columnOrdering) {
-        if (columnOrdering==null)
-            return null;
-        int[] oneBased = new int[columnOrdering.length];
-        for (int i = 0; i<columnOrdering.length; i++) {
-            oneBased[i] = columnOrdering[i]+1;
-        }
-        return oneBased;
     }
 
     @Override
