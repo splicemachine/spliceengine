@@ -387,6 +387,10 @@ public class StatisticsAdmin {
                         tds.add(tableDescriptor);
                     }
                 }
+                if (tds.isEmpty()) {
+                    // DEBUG: JC - changed logging to ERROR to make sure we get this message logged
+                    SpliceLogUtils.error(LOG,"No tables in schema ID=%s", sd.getUUID().toString());
+                }
                 return tds;
             }
         }catch(StandardException e){
