@@ -1,5 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import java.util.concurrent.Callable;
+
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -14,11 +16,8 @@ import com.splicemachine.derby.utils.marshall.PairEncoder;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.job.JobResults;
 import com.splicemachine.job.SimpleJobResults;
-import com.splicemachine.pipeline.api.CallBuffer;
 import com.splicemachine.pipeline.api.RecordingCallBuffer;
 import com.splicemachine.pipeline.impl.WriteCoordinator;
-
-import java.util.concurrent.Callable;
 
 /**
  * Control side shuffle for DML write operations.
@@ -82,6 +81,9 @@ class DMLWriteOperationControlSide {
             while ((execRow = iterator.next(runtimeContext)) != null) {
                 TriggerHandler.fireBeforeRowTriggers(triggerHandler, execRow);
                 dmlOperation.setCurrentRow(execRow);
+
+                dmlOperation.evaluateGenerationClauses(execRow);
+
                 KVPair kvPair = pairEncoder.encode(execRow);
                 writeBuffer.add(kvPair);
                 rowsSunk++;
