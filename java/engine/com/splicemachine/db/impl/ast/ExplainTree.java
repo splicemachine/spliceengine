@@ -62,7 +62,7 @@ public class ExplainTree{
         public Builder pushSubquery(int rsNum,boolean exprSub,boolean corrSub,boolean invariant,Builder subqueryBuilder){
             //push up the subquery side
             subqueryBuilder.incrementLevel(2);
-            SubqueryNode subqueryNode = new SubqueryNode(rsNum,exprSub,corrSub,invariant);
+            SubqueryNode subqueryNode = new SubqueryNode(rsNum,exprSub,invariant, corrSub);
             subqueryNode.child = subqueryBuilder.topNode;
             subqueryNode.refNode = topNode;
             topNode.addSubquery(subqueryNode);
