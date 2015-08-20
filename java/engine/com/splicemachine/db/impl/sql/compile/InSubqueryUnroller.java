@@ -7,10 +7,12 @@ import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
+import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.impl.ast.AbstractSpliceVisitor;
 
 import java.sql.Types;
 import java.util.ArrayList;
+import java.util.HashSet;
 
 /**
  *  This Class is added by SpliceMachine. It unrolls In Subquery to a join if it
@@ -29,11 +31,17 @@ public class InSubqueryUnroller extends AbstractSpliceVisitor implements Visitor
         if(node instanceof SelectNode && ((SelectNode) node).getWhereSubquerys() != null){
             ArrayList<SubqueryNode> nodesToSwitch = new ArrayList<>();
             SelectNode select = (SelectNode)node;
+
+            HashSet<String> rcNames = new HashSet<>();
+            for(ResultColumn rc : select.resultColumns){
+                rcNames.add(rc.name);
+            }
+
             /*
                 Check for every subquery and find In Subquery with no outside
                 ColumnReference, is invariant and does not contain a not node.
                 If the resultset of any subquery is not a select node, we do not
-                unroll the queries.
+                unroll this query.
              */
             for(SubqueryNode sub : select.getWhereSubquerys()){
                 if(!(sub.resultSet instanceof SelectNode)){
@@ -42,7 +50,7 @@ public class InSubqueryUnroller extends AbstractSpliceVisitor implements Visitor
                 HasOuterCRVisitor visitor = new HasOuterCRVisitor(select.getNestingLevel() + 1);
                 sub.resultSet.accept(visitor);
                 if(sub.subqueryType == SubqueryNode.IN_SUBQUERY && !visitor.hasCorrelatedCRs() && sub.isInvariant()
-                        && !checkNotIn(select.whereClause, sub)){
+                        && !checkNotIn(select.whereClause, sub) && !checkNameCollision(rcNames, sub)){
                     nodesToSwitch.add(sub);
                 }
             }
@@ -201,4 +209,22 @@ public class InSubqueryUnroller extends AbstractSpliceVisitor implements Visitor
         }
         return false;
     }
+
+    /*
+        check for column name collision between the subquery's resultColumns and
+        its parent select node's resultColumns.
+     */
+    public static boolean checkNameCollision(HashSet<String> parent, SubqueryNode sub){
+        if(!(sub.resultSet instanceof SelectNode)){
+            return true;
+        }
+        for(ResultColumn rc : sub.resultSet.resultColumns){
+            if(parent.contains(rc.name)){
+                return true;
+            }
+        }
+        return false;
+    }
+
+
 }
