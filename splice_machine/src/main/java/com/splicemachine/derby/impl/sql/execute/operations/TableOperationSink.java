@@ -1,7 +1,14 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import static com.google.common.base.Throwables.propagateIfInstanceOf;
+
+import java.io.IOException;
+import java.util.concurrent.Callable;
+
 import com.google.common.base.Throwables;
 import com.google.common.io.Closeables;
+import org.apache.hadoop.hbase.util.Bytes;
+
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -17,20 +24,12 @@ import com.splicemachine.derby.utils.marshall.SpreadBucket;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.metrics.Metrics;
 import com.splicemachine.metrics.Timer;
-import com.splicemachine.pipeline.api.CallBuffer;
 import com.splicemachine.pipeline.api.RecordingCallBuffer;
-import com.splicemachine.pipeline.callbuffer.PipingCallBuffer;
 import com.splicemachine.pipeline.impl.WriteCoordinator;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.ActiveWriteTxn;
 import com.splicemachine.uuid.Snowflake;
-import org.apache.hadoop.hbase.util.Bytes;
-
-import java.io.IOException;
-import java.util.concurrent.Callable;
-
-import static com.google.common.base.Throwables.propagateIfInstanceOf;
 
 /**
  * OperationSink instance which writes to Hbase tables (temp tables, or non-temp in the case of DML operations).
@@ -136,6 +135,10 @@ public class TableOperationSink implements OperationSink {
             SpliceBaseOperation.checkInterrupt(rowsRead, SpliceConstants.interruptLoopCheck);
 
             TriggerHandler.fireBeforeRowTriggers(triggerHandler, row);
+
+            if (sourceIsDMLOp) {
+                ((DMLWriteOperation) operation).evaluateGenerationClauses(row);
+            }
 
             writeTimer.startTiming();
             KVPair kvPair = encoder.encode(row);
