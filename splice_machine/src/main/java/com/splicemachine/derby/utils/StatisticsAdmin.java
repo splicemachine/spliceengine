@@ -165,6 +165,10 @@ public class StatisticsAdmin {
             SchemaDescriptor sd = getSchemaDescriptor(schema,lcc,dd);
             //get a list of all the TableDescriptors in the schema
             List<TableDescriptor> tds = getAllTableDescriptors(sd,conn);
+            if (tds.isEmpty()) {
+                // DEBUG: JC - No point in continuing with empty TableDescriptor list, possible NPE
+                return;
+            }
             authorize(tds);
             ExecRow templateOutputRow = buildOutputTemplateRow();
             List<StatsJob> jobs = new ArrayList<>(tds.size());
