@@ -4,7 +4,10 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 
 /**
- * Created by jleach on 8/8/15.
+ *
+ * Not Null Selectivity Computation.
+ *
+ *
  */
 public class NotNullSelectivity extends AbstractSelectivityHolder {
     private StoreCostController storeCost;
