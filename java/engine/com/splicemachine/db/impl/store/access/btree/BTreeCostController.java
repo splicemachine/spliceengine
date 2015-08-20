@@ -230,52 +230,6 @@ public class BTreeCostController extends OpenBTree implements StoreCostControlle
     }
 
     /**
-     * Return the cost of calling ConglomerateController.fetch().
-     * <p/>
-     * Return the estimated cost of calling ConglomerateController.fetch()
-     * on the current conglomerate.  This gives the cost of finding a record
-     * in the conglomerate given the exact RowLocation of the record in
-     * question.
-     * <p/>
-     * The validColumns parameter describes what kind of row
-     * is being fetched, ie. it may be cheaper to fetch a partial row than a
-     * complete row.
-     * <p/>
-     *
-     * @param validColumns A description of which columns to return from
-     *                     row on the page into "templateRow."  templateRow,
-     *                     and validColumns work together to
-     *                     describe the row to be returned by the fetch -
-     *                     see RowUtil for description of how these three
-     *                     parameters work together to describe a fetched
-     *                     "row".
-     * @param access_type  Describe the type of access the query will be
-     *                     performing to the ConglomerateController.
-     *                     <p/>
-     *                     STORECOST_CLUSTERED - The location of one fetch
-     *                     is likely clustered "close" to the next
-     *                     fetch.  For instance if the query plan were
-     *                     to sort the RowLocations of a heap and then
-     *                     use those RowLocations sequentially to
-     *                     probe into the heap, then this flag should
-     *                     be specified.  If this flag is not set then
-     *                     access to the table is assumed to be
-     *                     random - ie. the type of access one gets
-     *                     if you scan an index and probe each row
-     *                     in turn into the base table is "random".
-     * @return The cost of the fetch.
-     * @throws StandardException Standard exception policy.
-     * @see com.splicemachine.db.iapi.store.access.RowUtil
-     */
-    public void getFetchFromRowLocationCost(
-            BitSet validColumns,
-            int access_type,CostEstimate costEstimate)
-            throws StandardException{
-        throw StandardException.newException(
-                SQLState.BTREE_UNIMPLEMENTED_FEATURE);
-    }
-
-    /**
      * Return the cost of exact key lookup.
      * <p/>
      * Return the estimated cost of calling ScanController.fetch()

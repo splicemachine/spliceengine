@@ -197,9 +197,6 @@ public interface JoinStrategy {
 	/** Get the name of this join strategy */
 	String getName();
 
-	/** Get the costing type, for use with StoreCostController.getScanCost */
-	int scanCostType();
-
 	/**
 	 * Get the name of the result set method for base table scans
 	 *

@@ -25,9 +25,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
-
 import java.util.BitSet;
-import java.util.List;
 
 /**
  * The StoreCostController interface provides methods that an access client
@@ -55,63 +53,6 @@ import java.util.List;
  */
 
 public interface StoreCostController extends RowCountable{
-    // The folllowing constants should only be used by StoreCostController
-    // implementors.
-
-    // The base cost to fetch a cached page, and select a single
-    // heap row by RowLocation, fetching 0 columns.
-    double BASE_CACHED_ROW_FETCH_COST=0.17;
-
-    // The base cost to page in a page from disk to cache, and select a single
-    // heap row by RowLocation, fetching 0 columns.
-    double BASE_UNCACHED_ROW_FETCH_COST=1.5;
-
-    // The base cost to fetch a single row as part of group fetch scan with
-    // 16 rows per group, fetching 0 columns.
-    double BASE_GROUPSCAN_ROW_COST=0.12;
-
-    // The base cost to fetch a single row as part of a nongroup fetch scan
-    // fetching 0 columns.
-    double BASE_NONGROUPSCAN_ROW_FETCH_COST=0.25;
-
-    // The base cost to fetch a single row as part of a nongroup fetch scan
-    // fetching 1 columns.
-    double BASE_HASHSCAN_ROW_FETCH_COST=0.14;
-
-
-    // This is an estimate of the per byte cost associated with fetching the 
-    // row from the table, it just assumes the cost scales per byte which is 
-    // probably not true, but a good first guess.  It is meant to be added
-    // to the above costs - for instance the cost of fetching a 100 byte 
-    // row from a page assumed to be in the cache is:
-    //     BASE_CACHED_ROW_FETCH_COST + (100 * BASE_ROW_PER_BYTECOST)
-    //
-    // The estimate for this number is the cost of retrieving all cost from
-    // a cached 100 byte row - the cost of getting 0 colums from cached row.
-    double BASE_ROW_PER_BYTECOST=(0.56-0.16)/100;
-
-    /**
-     * Indicates that access to the page necessary to fulfill the fetch
-     * request is likely to be a page "recently" used.  See
-     * getFetchFromFullKeyCost() and getScanCost().
-     */
-    int STORECOST_CLUSTERED=0x01;
-
-    /**
-     * Used for the scan_type parameter to the getScanCost() routine.
-     * STORECOST_SCAN_NORMAL indicates that the scan will use the standard
-     * next/fetch, where each fetch can retrieve 1 or many rows (if
-     * fetchNextGroup() interface is used).
-     */
-    int STORECOST_SCAN_SET=0x01;
-
-
-    /**
-     * Used for the scan_type parameter to the getScanCost() routine.
-     * STORECOST_SCAN_SET - The entire result set will be retrieved using the
-     * the fetchSet() interface.
-     */
-    int STORECOST_SCAN_NORMAL=0x02;
 
     /**
      * Close the controller.
@@ -125,48 +66,6 @@ public interface StoreCostController extends RowCountable{
      * @throws StandardException Standard exception policy.
      */
     void close() throws StandardException;
-
-    /**
-     * Return the cost of calling ConglomerateController.fetch().
-     * <p/>
-     * Return the estimated cost of calling ConglomerateController.fetch()
-     * on the current conglomerate.  This gives the cost of finding a record
-     * in the conglomerate given the exact RowLocation of the record in
-     * question.
-     * <p/>
-     * The validColumns parameter describe what kind of row
-     * is being fetched, ie. it may be cheaper to fetch a partial row than a
-     * complete row.
-     * <p/>
-     *
-     * @param validColumns A description of which columns to return from
-     *                     row on the page into "templateRow."  templateRow,
-     *                     and validColumns work together to
-     *                     describe the row to be returned by the fetch -
-     *                     see RowUtil for description of how these three
-     *                     parameters work together to describe a fetched
-     *                     "row".
-     * @param access_type  Describe the type of access the query will be
-     *                     performing to the ConglomerateController.
-     *                     <p/>
-     *                     STORECOST_CLUSTERED - The location of one fetch
-     *                     is likely clustered "close" to the next
-     *                     fetch.  For instance if the query plan were
-     *                     to sort the RowLocations of a heap and then
-     *                     use those RowLocations sequentially to
-     *                     probe into the heap, then this flag should
-     *                     be specified.  If this flag is not set then
-     *                     access to the table is assumed to be
-     *                     random - ie. the type of access one gets
-     *                     if you scan an index and probe each row
-     *                     in turn into the base table is "random".
-     * @return The cost of the fetch.
-     * @throws StandardException Standard exception policy.
-     * @see RowUtil
-     */
-    void getFetchFromRowLocationCost(BitSet validColumns,
-                                     int access_type,
-                                     CostEstimate cost) throws StandardException;
 
     /**
      * Return the cost of exact key lookup.
