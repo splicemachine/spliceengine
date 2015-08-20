@@ -147,7 +147,7 @@ public class InSubqueryUnroller extends AbstractSpliceVisitor implements Visitor
                         ncf,
                         cf,
                         root.getContextManager());
-                DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getNullabilityType(false);
+                DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN);
                 bro.setType(dtd);
                 root.setLeftOperand(bro);
                 return root;
@@ -158,7 +158,7 @@ public class InSubqueryUnroller extends AbstractSpliceVisitor implements Visitor
                         ncf,
                         cf,
                         root.getContextManager());
-                DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getNullabilityType(false);
+                DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN);
                 bro.setType(dtd);
                 root.setRightOperand(bro);
                 return root;
@@ -188,7 +188,7 @@ public class InSubqueryUnroller extends AbstractSpliceVisitor implements Visitor
                     ncf,
                     cf,
                     node.getContextManager());
-            DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN).getNullabilityType(false);
+            DataTypeDescriptor dtd = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.BOOLEAN);
             bro.setType(dtd);
             return bro;
         }

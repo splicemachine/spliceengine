@@ -447,9 +447,21 @@ public class AggregateSubqueryFlatteningVisitor extends AbstractSpliceVisitor im
                     ((ColumnReference) left).getSourceLevel() >= level) {
                 ((ColumnReference) left).setTableNumber(((ColumnReference) left).getTableNumber() + diff);
             }
+            else if (left instanceof CastNode){
+                ValueNode opn = ((CastNode) left).castOperand;
+                if(opn instanceof ColumnReference && ((ColumnReference) opn).getSourceLevel() >= level){
+                    ((ColumnReference) opn).setTableNumber(((ColumnReference) opn).getTableNumber() + diff);
+                }
+            }
             if (right instanceof ColumnReference &&
                     ((ColumnReference) right).getSourceLevel() >= level) {
                 ((ColumnReference) right).setTableNumber(((ColumnReference) right).getTableNumber() + diff);
+            }
+            else if (right instanceof CastNode){
+                ValueNode opn = ((CastNode) right).castOperand;
+                if(opn instanceof ColumnReference && ((ColumnReference) opn).getSourceLevel() >= level){
+                    ((ColumnReference) opn).setTableNumber(((ColumnReference) opn).getTableNumber() + diff);
+                }
             }
         } else if (node instanceof AndNode) {
             updateWhereClauseColRef(((AndNode) node).getLeftOperand(), diff, level);
@@ -478,6 +490,11 @@ public class AggregateSubqueryFlatteningVisitor extends AbstractSpliceVisitor im
             ((TernaryOperatorNode) node).receiver = receiver;
             ((TernaryOperatorNode) node).leftOperand = left;
             ((TernaryOperatorNode) node).rightOperand = right;
+        } else if (node instanceof CastNode){
+            ValueNode opn = ((CastNode) node).castOperand;
+            if(opn instanceof ColumnReference && ((ColumnReference) opn).getSourceLevel() >= level){
+                ((ColumnReference) opn).setTableNumber(((ColumnReference) opn).getTableNumber() + diff);
+            }
         }
     }
 
