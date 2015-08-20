@@ -3778,4 +3778,25 @@ public class FromBaseTable extends FromTable{
         return super.makeConstantAction();    //To change body of overridden methods use File | Settings | File Templates.
     }
     */
+
+    public void clearAllPredicates() {
+        if(this.baseTableRestrictionList != null) {
+            this.baseTableRestrictionList.getNodes().clear();
+        }
+        if(this.nonBaseTableRestrictionList != null) {
+            this.nonBaseTableRestrictionList.getNodes().clear();
+        }
+        if(this.restrictionList != null) {
+            this.restrictionList.getNodes().clear();
+        }
+        if(this.storeRestrictionList != null) {
+            this.storeRestrictionList.getNodes().clear();
+        }
+        if(this.nonStoreRestrictionList != null) {
+            this.nonStoreRestrictionList.getNodes().clear();
+        }
+        if(this.requalificationRestrictionList != null) {
+            this.requalificationRestrictionList.getNodes().clear();
+        }
+    }
 }
