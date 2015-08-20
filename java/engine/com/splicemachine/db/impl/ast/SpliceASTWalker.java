@@ -5,7 +5,10 @@ import com.splicemachine.db.iapi.ast.ISpliceVisitor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.MessageId;
 import com.splicemachine.db.iapi.sql.compile.ASTVisitor;
+import com.splicemachine.db.iapi.sql.compile.CompilationPhase;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
+import com.splicemachine.db.impl.sql.compile.QueryTreeNode;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -23,20 +26,20 @@ import java.util.Map;
  */
 public class SpliceASTWalker implements ASTVisitor {
     private List<ASTVisitor> visitors = new ArrayList<ASTVisitor>();
-    public final Map<Integer, List<Class<? extends ISpliceVisitor>>> visitorClasses;
+    public final Map<CompilationPhase, List<Class<? extends ISpliceVisitor>>> visitorClasses;
 
     public SpliceASTWalker(List<Class<? extends ISpliceVisitor>> afterParseClasses,
                            List<Class<? extends ISpliceVisitor>> afterBindClasses,
                            List<Class<? extends ISpliceVisitor>> afterOptimizeClasses) {
         visitorClasses = ImmutableMap.of(
-                ASTVisitor.AFTER_PARSE, afterParseClasses,
-                ASTVisitor.AFTER_BIND, afterBindClasses,
-                ASTVisitor.AFTER_OPTIMIZE, afterOptimizeClasses);
+                CompilationPhase.AFTER_PARSE, afterParseClasses,
+                CompilationPhase.AFTER_BIND, afterBindClasses,
+                CompilationPhase.AFTER_OPTIMIZE, afterOptimizeClasses);
     }
 
 
     @Override
-    public void begin(String statementText, int phase) throws StandardException {
+    public void begin(String statementText, CompilationPhase phase) throws StandardException {
         for (Class c : visitorClasses.get(phase)) {
             try {
                 ASTVisitor v = new SpliceDerbyVisitorAdapter((ISpliceVisitor) c.newInstance());
@@ -50,7 +53,7 @@ public class SpliceASTWalker implements ASTVisitor {
     }
 
     @Override
-    public void end(int phase) throws StandardException {
+    public void end(CompilationPhase phase) throws StandardException {
         for(ASTVisitor v: visitors){
             v.end(phase);
         }
@@ -58,7 +61,7 @@ public class SpliceASTWalker implements ASTVisitor {
     }
 
     @Override
-    public Visitable visit(Visitable node) throws StandardException {
+    public Visitable visit(Visitable node, QueryTreeNode parent) throws StandardException {
         for (ASTVisitor v : visitors) {
             node = node.accept(v);
         }

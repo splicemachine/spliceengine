@@ -1983,17 +1983,14 @@ abstract class DMLModStatementNode extends DMLStatementNode
 	 * Accept the visitor for all visitable children of this node.
 	 * 
 	 * @param v the visitor
-	 *
-	 * @exception StandardException on error
 	 */
-	public void acceptChildren(Visitor v)
-		throws StandardException
-	{
+    @Override
+	public void acceptChildren(Visitor v) throws StandardException {
 		super.acceptChildren(v);
 
 		if (targetTableName != null)
 		{
-			targetTableName.accept(v);
+			targetTableName.accept(v, this);
 		}
 	}
 }

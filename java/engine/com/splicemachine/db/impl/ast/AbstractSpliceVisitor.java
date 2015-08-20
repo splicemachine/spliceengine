@@ -1,6 +1,7 @@
 package com.splicemachine.db.impl.ast;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.compile.CompilationPhase;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.iapi.ast.ISpliceVisitor;
@@ -15,10 +16,10 @@ import com.splicemachine.db.iapi.ast.ISpliceVisitor;
  */
 public abstract class AbstractSpliceVisitor implements ISpliceVisitor {
     String query;
-    int phase;
+    CompilationPhase phase;
 
     @Override
-    public void setContext(String query, int phase) {
+    public void setContext(String query, CompilationPhase phase) {
         this.query = query;
         this.phase = phase;
     }

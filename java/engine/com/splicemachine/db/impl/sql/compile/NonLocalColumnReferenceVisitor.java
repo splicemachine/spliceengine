@@ -29,7 +29,7 @@ public class NonLocalColumnReferenceVisitor implements Visitor {
     }
 
 
-    public Visitable visit(Visitable node) throws StandardException {
+    public Visitable visit(Visitable node, QueryTreeNode parent) throws StandardException {
 
         if(node instanceof FromBaseTable){
 

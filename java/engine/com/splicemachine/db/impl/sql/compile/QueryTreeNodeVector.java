@@ -112,16 +112,14 @@ abstract class QueryTreeNodeVector<T extends QueryTreeNode> extends QueryTreeNod
      * Accept the visitor for all visitable children of this node.
      *
      * @param v the visitor
-     * @throws StandardException on error
      */
     @Override
     public void acceptChildren(Visitor v) throws StandardException{
         super.acceptChildren(v);
-
         int size=size();
         for(int index=0;index<size;index++){
             //noinspection unchecked
-            setElementAt((T)elementAt(index).accept(v),index);
+            setElementAt((T)elementAt(index).accept(v, this),index);
         }
     }
 

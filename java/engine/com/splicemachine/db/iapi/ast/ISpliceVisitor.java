@@ -1,6 +1,7 @@
 package com.splicemachine.db.iapi.ast;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.compile.CompilationPhase;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.impl.sql.compile.*;
 
@@ -11,7 +12,7 @@ import com.splicemachine.db.impl.sql.compile.*;
  * Date: 7/9/13
  */
 public interface ISpliceVisitor {
-    public void setContext(String query, int phase);
+    public void setContext(String query, CompilationPhase phase);
     public boolean isPostOrder();
     public boolean stopTraversal();
     public boolean skipChildren(Visitable node);

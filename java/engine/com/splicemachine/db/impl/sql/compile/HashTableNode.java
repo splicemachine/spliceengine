@@ -379,24 +379,21 @@ public class HashTableNode extends SingleChildResultSetNode
 
 	/**
 	 * Accept the visitor for all visitable children of this node.
-	 * 
-	 * @param v the visitor
 	 *
-	 * @exception StandardException on error
-	 */
-	public void acceptChildren(Visitor v)
-		throws StandardException
-	{
+     * @param v the visitor
+     */
+    @Override
+	public void acceptChildren(Visitor v) throws StandardException {
 		super.acceptChildren(v);
 
 		if (searchPredicateList != null)
 		{
-			searchPredicateList = (PredicateList)searchPredicateList.accept(v);
+			searchPredicateList = (PredicateList)searchPredicateList.accept(v, this);
 		}
 
 		if (joinPredicateList != null)
 		{
-			joinPredicateList = (PredicateList)joinPredicateList.accept(v);
+			joinPredicateList = (PredicateList)joinPredicateList.accept(v, this);
 		}
 	}
 

@@ -706,22 +706,19 @@ public class ConditionalNode extends ValueNode
 	 * Accept the visitor for all visitable children of this node.
 	 * 
 	 * @param v the visitor
-	 *
-	 * @exception StandardException on error
 	 */
-	public void acceptChildren(Visitor v)
-		throws StandardException
-	{
+    @Override
+	public void acceptChildren(Visitor v) throws StandardException {
 		super.acceptChildren(v);
 
 		if (testCondition != null)
 		{
-			testCondition = (ValueNode)testCondition.accept(v);
+			testCondition = (ValueNode)testCondition.accept(v, this);
 		}
 
 		if (thenElseList != null)
 		{
-			thenElseList = (ValueNodeList)thenElseList.accept(v);
+			thenElseList = (ValueNodeList)thenElseList.accept(v, this);
 		}
 	}
         

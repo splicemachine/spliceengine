@@ -364,14 +364,12 @@ public class IndexToBaseRowNode extends FromTable{
      * Accept the visitor for all visitable children of this node.
      *
      * @param v the visitor
-     * @throws StandardException on error
      */
     @Override
     public void acceptChildren(Visitor v) throws StandardException{
         super.acceptChildren(v);
-
         if(source!=null){
-            source=(FromBaseTable)source.accept(v);
+            source=(FromBaseTable)source.accept(v, this);
         }
     }
 

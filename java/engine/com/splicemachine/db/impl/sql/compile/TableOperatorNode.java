@@ -755,12 +755,11 @@ public abstract class TableOperatorNode extends FromTable{
     @Override
     public void acceptChildren(Visitor v) throws StandardException{
         super.acceptChildren(v);
-
         if(leftResultSet!=null){
-            leftResultSet=(ResultSetNode)leftResultSet.accept(v);
+            leftResultSet=(ResultSetNode)leftResultSet.accept(v, this);
         }
         if(rightResultSet!=null){
-            rightResultSet=(ResultSetNode)rightResultSet.accept(v);
+            rightResultSet=(ResultSetNode)rightResultSet.accept(v, this);
         }
     }
 

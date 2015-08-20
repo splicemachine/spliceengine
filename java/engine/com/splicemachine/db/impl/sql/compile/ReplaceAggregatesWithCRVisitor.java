@@ -86,12 +86,9 @@ public class ReplaceAggregatesWithCRVisitor implements Visitor
 	 * @param node 	the node to process
 	 *
 	 * @return me
-	 *
-	 * @exception StandardException on error
 	 */
-	public Visitable visit(Visitable node)
-		throws StandardException
-	{
+    @Override
+	public Visitable visit(Visitable node, QueryTreeNode parent) throws StandardException {
 		if (node instanceof AggregateNode && ! (node instanceof WindowFunctionNode))
 		{
 			/*

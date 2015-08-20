@@ -511,27 +511,18 @@ public class TernaryOperatorNode extends OperatorNode
 	 * Accept the visitor for all visitable children of this node.
 	 * 
 	 * @param v the visitor
-	 *
-	 * @exception StandardException on error
 	 */
-	public void acceptChildren(Visitor v)
-		throws StandardException
-	{
+	@Override
+    public void acceptChildren(Visitor v) throws StandardException {
 		super.acceptChildren(v);
-
-		if (receiver != null)
-		{
-			receiver = (ValueNode)receiver.accept(v);
+		if (receiver != null) {
+			receiver = (ValueNode)receiver.accept(v, this);
 		}
-
-		if (leftOperand != null)
-		{
-			leftOperand = (ValueNode)leftOperand.accept(v);
+		if (leftOperand != null) {
+			leftOperand = (ValueNode)leftOperand.accept(v, this);
 		}
-
-		if (rightOperand != null)
-		{
-			rightOperand = (ValueNode)rightOperand.accept(v);
+		if (rightOperand != null) {
+			rightOperand = (ValueNode)rightOperand.accept(v, this);
 		}
 	}
 	/**

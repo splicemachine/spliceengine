@@ -97,12 +97,8 @@ public class BaseTableNumbersVisitor implements Visitor
 	//
 	////////////////////////////////////////////////
 
-	/**
-	 * @see com.splicemachine.db.iapi.sql.compile.Visitor#visit
-	 */
-	public Visitable visit(Visitable node)
-		throws StandardException
-	{
+	@Override
+	public Visitable visit(Visitable node, QueryTreeNode parent) throws StandardException {
 		ResultColumn rc = null;
 		if (node instanceof ColumnReference)
 		{

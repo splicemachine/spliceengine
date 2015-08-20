@@ -22,22 +22,27 @@
 package com.splicemachine.db.iapi.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.impl.sql.compile.QueryTreeNode;
 
 /**
- * A Visitable is something that can be visited by
- * a Visitor
- *
+ * A Visitable is something that can be visited by a Visitor
  */
-public interface Visitable
-{
-	/**
-	 * Accept a visitor, and call v.visit()
-	 * on child nodes as necessary.  
-	 * 
-	 * @param v the visitor
-	 *
-	 * @exception StandardException on error
-	 */
-	abstract Visitable accept(Visitor v) 
-		throws StandardException;
+public interface Visitable {
+
+    /**
+     * Accept a visitor, and call visitor.visit(Visitable node) on child nodes as necessary.
+     *
+     * @param visitor the visitor
+     */
+    Visitable accept(Visitor visitor) throws StandardException;
+
+    /**
+     * Accept a visitor, and call v.visit(Visitable node, parentNode) on child nodes as necessary.
+     *
+     * @param visitor the visitor
+     * @param parent the parent node of the node upon which this method is invoked, can be null if none or unknown.
+     */
+    Visitable accept(Visitor visitor, QueryTreeNode parent) throws StandardException;
+
+
 }

@@ -495,14 +495,12 @@ public abstract class SingleChildResultSetNode extends FromTable{
      * Accept the visitor for all visitable children of this node.
      *
      * @param v the visitor
-     * @throws StandardException on error
      */
     @Override
     public void acceptChildren(Visitor v) throws StandardException{
         super.acceptChildren(v);
-
         if(childResult!=null){
-            childResult=(ResultSetNode)childResult.accept(v);
+            childResult=(ResultSetNode)childResult.accept(v, this);
         }
     }
 

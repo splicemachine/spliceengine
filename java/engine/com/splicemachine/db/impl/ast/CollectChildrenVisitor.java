@@ -3,6 +3,7 @@ package com.splicemachine.db.impl.ast;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
+import com.splicemachine.db.impl.sql.compile.QueryTreeNode;
 import com.splicemachine.db.impl.sql.compile.ResultSetNode;
 import java.util.LinkedList;
 import java.util.List;
@@ -21,7 +22,7 @@ public class CollectChildrenVisitor implements Visitor {
     }
 
     @Override
-    public Visitable visit(Visitable node) throws StandardException {
+    public Visitable visit(Visitable node, QueryTreeNode parentNode) throws StandardException {
         if (node instanceof ResultSetNode) {
             if (parent == null){
                 parent = node;

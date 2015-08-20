@@ -51,7 +51,8 @@ class SubstituteExpressionVisitor implements Visitor
 		return source;
 	}
 
-	public Visitable visit(Visitable node) throws StandardException 
+    @Override
+	public Visitable visit(Visitable node, QueryTreeNode parent) throws StandardException
 	{
 		if (!(node instanceof ValueNode))
 		{

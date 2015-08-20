@@ -368,13 +368,11 @@ public class CoalesceFunctionNode extends ValueNode
 	 * Accept the visitor for all visitable children of this node.
 	 *
 	 * @param v the visitor
-	 * @throws StandardException on error in the visitor
 	 */
-	public void acceptChildren(Visitor v) throws StandardException
-	{
+    @Override
+	public void acceptChildren(Visitor v) throws StandardException {
 		super.acceptChildren(v);
-
-        argumentsList = (ValueNodeList) argumentsList.accept(v);
+        argumentsList = (ValueNodeList) argumentsList.accept(v, this);
 	}
 
     /**
