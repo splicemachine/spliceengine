@@ -349,7 +349,10 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
 										.mainTableVersion(mainTableVersion)
 										.mainTableRowDecodingMap(operationInformation.getBaseColumnMap())
 										.mainTableAccessedRowColumns(getMainTableRowColumns())
-										.numConcurrentLookups(SpliceConstants.indexLookupBlocks)
+										.numConcurrentLookups(
+                                                (this.getEstimatedRowCount() < SpliceConstants.indexBatchSize)?
+                                                        -1:
+                                                SpliceConstants.indexLookupBlocks)
 										.lookupBatchSize(SpliceConstants.indexBatchSize)
 										.build();
 
