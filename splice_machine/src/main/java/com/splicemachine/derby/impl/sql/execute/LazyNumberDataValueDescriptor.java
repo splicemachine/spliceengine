@@ -9,6 +9,7 @@ import com.splicemachine.db.iapi.types.VariableSizeDataValue;
 
 import java.io.IOException;
 import java.io.ObjectInput;
+import java.math.BigDecimal;
 
 public class LazyNumberDataValueDescriptor extends LazyDataValueDescriptor implements NumberDataValue, VariableSizeDataValue{
 
@@ -161,5 +162,10 @@ public class LazyNumberDataValueDescriptor extends LazyDataValueDescriptor imple
         } catch (StandardException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public BigDecimal getBigDecimal() throws StandardException {
+        return ndv.getBigDecimal();
     }
 }

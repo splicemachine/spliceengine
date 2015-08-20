@@ -1,17 +1,21 @@
 package com.splicemachine.derby.impl.stats;
 
-import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
-import com.splicemachine.derby.test.framework.SpliceTableWatcher;
-import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.derby.test.framework.TestConnection;
+import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.homeless.TestUtils;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
+import org.junit.runner.Description;
 
+import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 /**
  * Specific ITs for statistics tests.
@@ -24,11 +28,29 @@ public class FixedStatsIT{
     private static final SpliceSchemaWatcher schema = new SpliceSchemaWatcher(FixedStatsIT.class.getSimpleName().toUpperCase());
 
     private static final SpliceTableWatcher charDelete = new SpliceTableWatcher("CHAR_DELETE",schema.schemaName,"(c char(10))");
+    private static final SpliceTableWatcher intDecimalBetween = new SpliceTableWatcher("BETWEEN_TEST",schema.schemaName,"(d DECIMAL, i int)");
+
 
     @ClassRule
     public static final TestRule rule = RuleChain.outerRule(classWatcher)
             .around(schema)
-            .around(charDelete);
+            .around(charDelete)
+            .around(intDecimalBetween)
+            .around(new SpliceDataWatcher() {
+                @Override
+                protected void starting(Description description) {
+                    try(PreparedStatement ps=classWatcher.prepareStatement(String.format("insert into %s values (?,?)", intDecimalBetween))){
+                        ps.setBigDecimal(1, new BigDecimal(1));
+                        ps.setInt(2, 1);
+                        ps.execute();
+                        ps.setBigDecimal(1, new BigDecimal(2));
+                        ps.setInt(2, 2);
+                        ps.execute();
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            });
 
     private static TestConnection conn;
 
@@ -60,7 +82,7 @@ public class FixedStatsIT{
             ps.execute();
         }
 
-        conn.collectStats(schema.schemaName,charDelete.tableName);
+        conn.collectStats(schema.schemaName, charDelete.tableName);
         try(Statement s = conn.createStatement()){
             assertExpectedCount(s,2);
 
@@ -88,7 +110,7 @@ public class FixedStatsIT{
 
             //the bug is that this throws an error, so we just want to make sure that it doesn't blow up here
             int changed = s.executeUpdate("update "+charDelete+" set c='2' where c = '1'");
-            Assert.assertEquals("did not properly delete values!",1,changed);
+            Assert.assertEquals("did not properly delete values!", 1, changed);
         }
     }
 
@@ -126,7 +148,7 @@ public class FixedStatsIT{
         Assert.assertTrue("Total costs is not lower!",qualifiedCost.overallCost()<unqualifiedCost.overallCost());
         Assert.assertTrue("row count is not lower!!",qualifiedCost.rowCount()<unqualifiedCost.rowCount());
         Assert.assertTrue("Transfer cost is not lower!!",qualifiedCost.remoteCost()<unqualifiedCost.remoteCost());
-        Assert.assertEquals("Local cost does not match!!",unqualifiedCost.localCost(),qualifiedCost.localCost(),1e-10);
+        Assert.assertEquals("Local cost does not match!!", unqualifiedCost.localCost(), qualifiedCost.localCost(), 1e-10);
     }
 
     private void assertExpectedCount(Statement s,int expectedCount) throws SQLException{
@@ -139,6 +161,87 @@ public class FixedStatsIT{
              * be careful!
              */
             Assert.assertEquals("Incorrect row count!",expectedCount,rowCount);
+        }
+    }
+
+    // regression for DB-3606
+    @Test
+    public void testBetweenBeforeStats() throws Exception {
+        String queryInt = String.format("SELECT i FROM %s WHERE i BETWEEN 0 AND 3", intDecimalBetween);
+        Statement statement = conn.createStatement();
+        try(ResultSet resultSet = statement.executeQuery(queryInt)) {
+            assertThat("", resultSet.next(),is(true));
+            assertThat(resultSet.getInt(1), is(1));
+            assertThat(resultSet.next(),is(true));
+            assertThat(resultSet.getInt(1), is(2));
+        } catch (Exception e) {
+            fail(String.format("SQL query: [%s] failed with: %s", queryInt, e.getMessage()));
+        }
+
+        String queryDecimal = String.format("SELECT d FROM %s WHERE d BETWEEN 0 AND 3", intDecimalBetween);
+        try(ResultSet resultSet = statement.executeQuery(queryDecimal)) {
+            assertThat(resultSet.next(), is(true));
+            assertThat(resultSet.getInt(1), is(1));
+            assertThat(resultSet.next(),is(true));
+            assertThat(resultSet.getInt(1), is(2));
+        } catch (Exception e) {
+            fail(String.format("SQL query: [%s] failed with: %s", queryDecimal, e.getMessage()));
+        }
+    }
+
+    // regression for DB-3606
+    @Test
+    public void testBetweenAfterSchemaStats() throws Exception {
+
+        conn.collectStats(schema.schemaName, null);
+
+        String queryInt = String.format("SELECT i FROM %s WHERE i BETWEEN 0 AND 3", intDecimalBetween);
+        Statement statement = conn.createStatement();
+        try(ResultSet resultSet = statement.executeQuery(queryInt)) {
+            assertThat(resultSet.next(),is(true));
+            assertThat(resultSet.getInt(1), is(1));
+            assertThat(resultSet.next(),is(true));
+            assertThat(resultSet.getInt(1), is(2));
+        } catch (Exception e) {
+            fail(String.format("SQL query: [%s] failed with: %s", queryInt, e.getMessage()));
+        }
+
+        String queryDecimal = String.format("SELECT d FROM %s WHERE d BETWEEN 0 AND 3", intDecimalBetween);
+        try(ResultSet resultSet = statement.executeQuery(queryDecimal)) {
+            assertThat(resultSet.next(),is(true));
+            assertThat(resultSet.getInt(1), is(1));
+            assertThat(resultSet.next(),is(true));
+            assertThat(resultSet.getInt(1), is(2));
+        } catch (Exception e) {
+            fail(String.format("SQL query: [%s] failed with: %s", queryDecimal, e.getMessage()));
+        }
+    }
+
+    // regression for DB-3606
+    @Test
+    public void testBetweenAfterTableStats() throws Exception {
+
+        conn.collectStats(schema.schemaName, intDecimalBetween.tableName);
+
+        String queryInt = String.format("SELECT i FROM %s WHERE i BETWEEN 0 AND 3", intDecimalBetween);
+        Statement statement = conn.createStatement();
+        try(ResultSet resultSet = statement.executeQuery(queryInt)) {
+            assertThat("", resultSet.next(),is(true));
+            assertThat(resultSet.getInt(1), is(1));
+            assertThat(resultSet.next(),is(true));
+            assertThat(resultSet.getInt(1), is(2));
+        } catch (Exception e) {
+            fail(String.format("SQL query: [%s] failed with: %s", queryInt, e.getMessage()));
+        }
+
+        String queryDecimal = String.format("SELECT d FROM %s WHERE d BETWEEN 0 AND 3", intDecimalBetween);
+        try(ResultSet resultSet = statement.executeQuery(queryDecimal)) {
+            assertThat(resultSet.next(),is(true));
+            assertThat(resultSet.getInt(1), is(1));
+            assertThat(resultSet.next(),is(true));
+            assertThat(resultSet.getInt(1), is(2));
+        } catch (Exception e) {
+            fail(String.format("SQL query: [%s] failed with: %s", queryDecimal, e.getMessage()));
         }
     }
 }
