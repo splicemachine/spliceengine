@@ -1,21 +1,15 @@
 package com.splicemachine.derby.impl.stats;
 
-import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.iapi.store.access.StoreCostResult;
 import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.impl.store.access.BaseSpliceTransaction;
 import com.splicemachine.derby.impl.store.access.StatsStoreCostController;
 import com.splicemachine.derby.impl.store.access.base.OpenSpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.TxnView;
-
 import java.util.BitSet;
-import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -75,37 +69,4 @@ public class IndexStatsCostController extends StatsStoreCostController {
         return baseTableStatistics.avgRowWidth();
     }
 
-
-    @Override
-    public void getFetchFromRowLocationCost(BitSet heapColumns,int access_type,CostEstimate cost) throws StandardException{
-        double rowsToFetch=cost.rowCount();
-        if(rowsToFetch==0d) return; //we don't expect to see any rows, so we won't perform a lookup either
-        double colSizeFactor=super.columnSizeFactor(indexStats,totalColumns,heapColumns);
-        cost.setLocalCost(cost.localCost()+indexStats.remoteReadLatency()*rowsToFetch*
-                indexStats.getBaseTableAvgRowWidth()*colSizeFactor);
-        cost.setRemoteCost(cost.localCost()+(indexStats.remoteReadLatency()*rowsToFetch*
-                indexStats.getBaseTableAvgRowWidth()*colSizeFactor));
-        cost.setEstimatedHeapSize(cost.getEstimatedHeapSize()+((long) (indexStats.avgRowWidth()*colSizeFactor*rowsToFetch)));
-    }
-
-    @Override
-    public void getScanCost(long row_count,
-                            boolean forUpdate,
-                            BitSet scanColumnList,
-                            DataValueDescriptor[] template,
-                            List<DataValueDescriptor> probeValues,
-                            DataValueDescriptor[] startKeyValue,
-                            int startSearchOperator,
-                            DataValueDescriptor[] stopKeyValue,
-                            int stopSearchOperator,
-                            StoreCostResult cost_result) throws StandardException {
-        super.estimateCost(conglomerateStatistics,
-                totalColumns,
-                scanColumnList,
-                probeValues,
-                startKeyValue, startSearchOperator,
-                stopKeyValue, stopSearchOperator,
-                indexColToHeapColMap,
-                (CostEstimate) cost_result);
-    }
 }
