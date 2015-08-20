@@ -72,6 +72,8 @@ public class ImportJobInfo extends JobInfo {
 		if (taskStatusThread != null) {
 			taskStatusThread.requestStop();  // Stop the task status logging thread.
 		}
+        if (jobImportAdmin != null)
+            jobImportAdmin.close();
 	}
 
 	/**
