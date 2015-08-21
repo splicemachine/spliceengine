@@ -199,6 +199,12 @@ public class IndexDescriptorImpl implements IndexDescriptor, Formatable
 		this.numberOfOrderedColumns = numberOfOrderedColumns;
 	}
 
+    /**
+     *
+     * Simple Check whether an Index Descriptor is a primary key.
+     *
+     * @return
+     */
     @Override
     public boolean isPrimaryKey() {
         return indexType != null && indexType().contains("PRIMARY");

@@ -213,6 +213,12 @@ public interface CompilerContext extends Context
 
 	int getNumTables();
 
+    /**
+     *
+     * Utility method for Subquery Flattening
+     *
+     * @param num
+     */
 	void setNumTables(int num);
 
 	/**

@@ -464,6 +464,11 @@ public class IndexRowGenerator implements IndexDescriptor, Formatable
 		return StoredFormatIds.INDEX_ROW_GENERATOR_V01_ID;
 	}
 
+    /**
+     * Is the IndexRowGenerator a Primary Key?
+     *
+     * @return
+     */
     @Override
     public boolean isPrimaryKey() {
         return indexType() != null && indexType().contains("PRIMARY");

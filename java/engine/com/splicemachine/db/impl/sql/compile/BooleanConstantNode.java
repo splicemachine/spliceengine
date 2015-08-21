@@ -165,11 +165,12 @@ public final class BooleanConstantNode extends ConstantNode
 	 * The default selectivity for value nodes is 50%.  This is overridden
 	 * in specific cases, such as the RelationalOperators.
 	 */
+    @Override
 	public double selectivity(Optimizable optTable) {
 		if (isBooleanTrue()) {
 			return 1.0;
 		} else {
-			return 0.0;
+			return 0.5;
 		}
 	}
 

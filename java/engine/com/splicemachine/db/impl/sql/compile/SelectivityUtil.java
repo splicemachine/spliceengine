@@ -10,7 +10,9 @@ import java.util.List;
 
 /**
  *
- * This class incorprorates all join selectivity algorithms for splice machine.
+ * This class incorporates all join selectivity algorithms for splice machine.  This still needs a little work with identifying situations where the
+ * relational structure (one to many, many to one) can provide better join selectivity estimates.
+ *
  *
  */
 public class SelectivityUtil {

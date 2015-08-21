@@ -1298,9 +1298,15 @@ public class ColumnReference extends ValueNode {
         }
         return origSource.getExpression().getSourceResultColumn();
 	}
-    
 
 
+    /**
+     *
+     * Returns the cardinality of the column reference from statistics if available.  If not, it returns 0.
+     *
+     * @return
+     * @throws StandardException
+     */
     public long cardinality() throws StandardException {
             if (source.getTableColumnDescriptor() ==null) // Temporary JL
                 return 0;
@@ -1309,11 +1315,27 @@ public class ColumnReference extends ValueNode {
             return getCompilerContext().getStoreCostController(cd).cardinality(leftPosition);
     }
 
+    /**
+     * Returns the cardinality of the column reference from statistics and if none available it will return the number
+     * of rows passed in.
+     *
+     * @param numberOfRows
+     * @return
+     * @throws StandardException
+     */
     public long nonZeroCardinality(long numberOfRows) throws StandardException {
         long cardinality = cardinality();
         return cardinality==0?numberOfRows:cardinality;
     }
 
+    /**
+     *
+     * Null Selectivity calculation from statistics.  It does check the type on the column and if it is not nullable it
+     * will automatically return 0.0.
+     *
+     * @return
+     * @throws StandardException
+     */
     public double nullSelectivity() throws StandardException {
         // Check for not null in declaration
         if (!getSource().getType().isNullable())
@@ -1323,6 +1345,13 @@ public class ColumnReference extends ValueNode {
         return getCompilerContext().getStoreCostController(cd).nullSelectivity(leftPosition);
     }
 
+    /**
+     *
+     * Get the row count estimate from the statistics for this column reference.
+     *
+     * @return
+     * @throws StandardException
+     */
     public double rowCountEstimate() throws StandardException {
         ConglomerateDescriptor cd = getSource().getTableColumnDescriptor().getTableDescriptor().getConglomerateDescriptorList().get(0);
         return getCompilerContext().getStoreCostController(cd).rowCount();

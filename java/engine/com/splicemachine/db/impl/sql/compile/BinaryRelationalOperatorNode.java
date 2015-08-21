@@ -1293,6 +1293,21 @@ public class BinaryRelationalOperatorNode
         return 0.0;
     }
 
+    /**
+     *
+     * Key Method for computing join selectivity when a.col1 = b.col1 (BinaryReleationalOperator).
+     *
+     * ColumnReferences are heavily used to determine when we can use statistics for computations.  It would be nice
+     * to remove the instance of bits and focus more on the implementation at the node level (TODO).
+     *
+     * @param optTable
+     * @param currentCd
+     * @param innerRowCount
+     * @param outerRowCount
+     * @param selectivityJoinType
+     * @return
+     * @throws StandardException
+     */
     @Override
     public double joinSelectivity(Optimizable optTable,
                                   ConglomerateDescriptor currentCd,

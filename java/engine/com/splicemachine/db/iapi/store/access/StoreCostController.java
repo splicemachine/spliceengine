@@ -170,19 +170,63 @@ public interface StoreCostController extends RowCountable{
      */
     long cardinality(int columnNumber);
 
-
+    /**
+     *
+     * Get Average Row Width of the Conglomerate
+     *
+     * @return
+     */
     long getConglomerateAvgRowWidth();
 
+    /**
+     *
+     * Get Average Row Width of the Base Table even if the conglomerate is an index.  This is critical for
+     * normalizing data between indexes and base tables.
+     *
+     * @return
+     */
     long getBaseTableAvgRowWidth();
 
+    /**
+     *
+     * Currently a static factor representing the cost of scanning one row of data.
+     *
+     * @return
+     */
     double getLocalLatency();
 
+    /**
+     *
+     * Currently a static factor representing the cost of doing a remote get on one row of data.
+     *
+     * @return
+     */
     double getRemoteLatency();
 
+    /**
+     *
+     * Number of partitions involved.  TODO: JL Need a better way of determining number of partitions involved in a query.
+     *
+     * @return
+     */
     int getNumPartitions();
 
+    /**
+     *
+     * Column Size factor of the current conglomerate.  This represents the ratio of data being returned.
+     *
+     * @param validColumns
+     * @return
+     */
     double conglomerateColumnSizeFactor(BitSet validColumns);
 
+    /**
+     * Column Size factor for the base table regardless of conglomerate being evaluated.  This represents the ratio
+     * of the data being returned.
+     *
+     * @param validColumns
+     * @return
+     */
     double baseTableColumnSizeFactor(BitSet validColumns);
 
 }
