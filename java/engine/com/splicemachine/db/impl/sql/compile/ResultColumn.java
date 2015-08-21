@@ -1935,6 +1935,13 @@ public class ResultColumn extends ValueNode
         castToType = type;
     }
 
+    /**
+     *
+     * Utilizes statistics cardinality if available, if not it returns 0.
+     *
+     * @return
+     * @throws StandardException
+     */
     public long cardinality() throws StandardException {
         if (this.getTableColumnDescriptor() ==null) // Temporary JL
             return 0;
@@ -1942,7 +1949,13 @@ public class ResultColumn extends ValueNode
         int leftPosition = getColumnPosition();
         return getCompilerContext().getStoreCostController(cd).cardinality(leftPosition);
     }
-
+    /**
+     *
+     * Utilizes statistics cardinality if available, if not it returns the number of rows passed in.
+     *
+     * @return
+     * @throws StandardException
+     */
     public long nonZeroCardinality(long numberOfRows) throws StandardException {
         long cardinality = cardinality();
         return cardinality==0?numberOfRows:cardinality;

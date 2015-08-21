@@ -3712,6 +3712,13 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
         }
     }
 
+    /**
+     *
+     * Compute Distinct Cardinality from statistics using the non-zero cardinality.
+     *
+     * @param costEstimate
+     * @throws StandardException
+     */
     public void computeDistinctCardinality(CostEstimate costEstimate) throws StandardException {
         assert costEstimate != null:"Null Cost Estimate passed in";
         double cardinality = 1.0d;

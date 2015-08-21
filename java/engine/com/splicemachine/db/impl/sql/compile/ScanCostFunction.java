@@ -80,6 +80,12 @@ public class ScanCostFunction{
             totalColumns.or(lookupColumns);
     }
 
+    /**
+     *
+     * Add Selectivity to the selectivity holder.
+     *
+     * @param holder
+     */
     private void addSelectivity(SelectivityHolder holder) {
         List<SelectivityHolder> holders = selectivityHolder[holder.getColNum()];
         if (holders == null) {
@@ -89,6 +95,13 @@ public class ScanCostFunction{
         holders.add(holder);
     }
 
+    /**
+     *
+     * Retrieve the selectivity for the columns.
+     *
+     * @param colNum
+     * @return
+     */
     private List<SelectivityHolder> getSelectivityListForColumn(int colNum) {
         List<SelectivityHolder> holders = selectivityHolder[colNum];
         if (holders == null) {
@@ -98,6 +111,13 @@ public class ScanCostFunction{
         return holders;
     }
 
+    /**
+     *
+     * Add Predicate and keep track of the selectivity
+     *
+     * @param p
+     * @throws StandardException
+     */
     public void addPredicate(Predicate p) throws StandardException{
         if (p.isMultiProbeQualifier(keyColumns)) // MultiProbeQualifier against keys (BASE)
             addSelectivity(new InListSelectivity(storeCost,p,QualifierPhase.BASE));
@@ -115,6 +135,14 @@ public class ScanCostFunction{
             addSelectivity(new PredicateSelectivity(p,baseTable,QualifierPhase.FILTER_PROJECTION));
     }
 
+    /**
+     *
+     * Performs qualifier selectivity based on a phase.
+     *
+     * @param p
+     * @param phase
+     * @throws StandardException
+     */
     private void performQualifierSelectivity (Predicate p, QualifierPhase phase) throws StandardException {
         if(p.compareWithKnownConstant(baseTable, true) && p.getRelop().getColumnOperand(baseTable) != null) // Range Qualifier
                 addRangeQualifier(p,phase);
@@ -162,6 +190,14 @@ public class ScanCostFunction{
         scanCost.setNumPartitions(storeCost.getNumPartitions());
     }
 
+    /**
+     *
+     * Computing the total selectivity.  All conglomerates need to have the same total selectivity.
+     *
+     * @param selectivityHolder
+     * @return
+     * @throws StandardException
+     */
     public static double computeTotalSelectivity(List<SelectivityHolder>[] selectivityHolder) throws StandardException {
         double totalSelectivity = 1.0d;
         List<SelectivityHolder> holders = new ArrayList();
