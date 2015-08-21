@@ -138,7 +138,7 @@ public class ScanCostFunction{
 
         double totalRowCount = storeCost.rowCount();
         // Rows Returned is always the totalSelectivity (Conglomerate Independent)
-        scanCost.setEstimatedRowCount((long) (totalRowCount*totalSelectivity));
+        scanCost.setEstimatedRowCount(Math.round(totalRowCount*totalSelectivity));
 
 
 
@@ -292,7 +292,7 @@ public class ScanCostFunction{
                         break OP_SWITCH;
                     }
                 }
-                columnHolder.add(new RangeSelectivity(storeCost,value,null,true,false,colNum,phase));
+                columnHolder.add(new RangeSelectivity(storeCost,value,null,false,true,colNum,phase));
                 break;
             case RelationalOperator.LESS_EQUALS_RELOP:
                 for(SelectivityHolder sh: columnHolder){

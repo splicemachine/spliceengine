@@ -20,7 +20,7 @@ public class NotEqualsSelectivity extends AbstractSelectivityHolder {
 
     public double getSelectivity() throws StandardException {
         if (selectivity == -1.0d)
-            selectivity = 1-storeCost.getSelectivity(colNum,value,true,value,false);
+            selectivity = 1-storeCost.getSelectivity(colNum,value,true,value,true);
         return selectivity;
     }
 }
