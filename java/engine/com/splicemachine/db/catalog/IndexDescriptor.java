@@ -123,9 +123,7 @@ public interface IndexDescriptor
 	public void     setNumberOfOrderedColumns(int numberOfOrderedColumns);
 
     /**
-     *
      * Checks whether the index descriptor is a primary key.
-     *
      * @return
      */
     public boolean isPrimaryKey();
