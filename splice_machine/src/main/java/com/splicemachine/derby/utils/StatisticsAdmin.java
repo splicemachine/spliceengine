@@ -1,5 +1,6 @@
 package com.splicemachine.derby.utils;
 
+import com.splicemachine.db.catalog.Statistics;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
@@ -19,9 +20,14 @@ import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.db.shared.common.reference.SQLState;
+import com.splicemachine.derby.ddl.ClearStatsCacheDDLDesc;
+import com.splicemachine.derby.ddl.DDLChangeType;
+import com.splicemachine.derby.ddl.DDLCoordinationFactory;
+import com.splicemachine.derby.ddl.DropTableDDLChangeDesc;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.stats.StatisticsJob;
+import com.splicemachine.derby.impl.stats.StatisticsStorage;
 import com.splicemachine.derby.impl.stats.StatisticsTask;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
@@ -32,10 +38,14 @@ import com.splicemachine.hbase.regioninfocache.HBaseRegionCache;
 import com.splicemachine.hbase.regioninfocache.RegionCache;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobScheduler;
+import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.TxnView;
+import com.splicemachine.stats.TableStatistics;
 import com.splicemachine.utils.IntArrays;
+import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.client.HTableInterface;
@@ -50,7 +60,7 @@ import java.util.concurrent.ExecutionException;
  * @author Scott Fines
  *         Date: 2/26/15
  */
-public class StatisticsAdmin {
+public class StatisticsAdmin extends BaseAdminProcedures {
     private static final Logger LOG=Logger.getLogger(StatisticsAdmin.class);
 
     @SuppressWarnings("UnusedDeclaration")
@@ -234,6 +244,7 @@ public class StatisticsAdmin {
             }
         }
     }
+
     @SuppressWarnings("UnusedDeclaration")
     public static void COLLECT_TABLE_STATISTICS(String schema,
                                                 String table,
@@ -278,6 +289,142 @@ public class StatisticsAdmin {
         }
     }
 
+    public static void DROP_SCHEMA_STATISTICS(String schema) throws SQLException{
+        EmbedConnection conn = (EmbedConnection)getDefaultConn();
+        PreparedStatement ps = null, ps2 = null;
+        String changeId = null;
+        
+		try {
+			if (schema == null)
+                throw ErrorState.TABLE_NAME_CANNOT_BE_NULL.newException();
+            schema = schema.toUpperCase();
+            LanguageConnectionContext lcc = conn.getLanguageConnection();
+            DataDictionary dd = lcc.getDataDictionary();
+
+            SchemaDescriptor sd = getSchemaDescriptor(schema, lcc, dd);
+            List<TableDescriptor> tds = getAllTableDescriptors(sd, conn);
+            authorize(tds);
+
+            long[] conglomIds = SpliceAdmin.getConglomNumbers(conn, schema, null);
+            assert conglomIds != null && conglomIds.length > 0;
+
+            TransactionController tc = conn.getLanguageConnection().getTransactionExecute();
+            tc.elevate("statistics");
+            TxnView txn = ((SpliceTransactionManager) tc).getRawTransaction().getActiveStateTxn();
+
+            ps = conn.prepareStatement("DELETE FROM sys.systablestats WHERE conglomerateid IN (SELECT C.CONGLOMERATENUMBER FROM SYS.SYSCONGLOMERATES C, SYS.SYSTABLES T, SYS.SYSSCHEMAS S " +
+            	"WHERE T.TABLEID = C.TABLEID AND T.SCHEMAID = S.SCHEMAID AND S.SCHEMANAME = ?)");
+            ps.setString(1, schema);
+            int deleteCount = ps.executeUpdate();
+            SpliceLogUtils.debug(LOG, "Deleted %d rows in sys.systablestats for schema %s", deleteCount, schema);
+            ps.close();
+            
+            ps2 = conn.prepareStatement("DELETE FROM sys.syscolumnstats WHERE conglom_id IN (SELECT C.CONGLOMERATENUMBER FROM SYS.SYSCONGLOMERATES C, SYS.SYSTABLES T, SYS.SYSSCHEMAS S " +
+                "WHERE T.TABLEID = C.TABLEID AND T.SCHEMAID = S.SCHEMAID AND S.SCHEMANAME = ?)");
+            ps2.setString(1, schema);
+            deleteCount = ps2.executeUpdate();
+            SpliceLogUtils.debug(LOG, "Deleted %d rows in sys.syscolumnstats for schema %s", deleteCount, schema);
+            ps2.close();
+
+            // Notify: listener on each region server will invalidate cache
+            // If this fails or times out, rethrow the exception as usual
+            // which will roll back the deletions.
+            
+            SpliceLogUtils.debug(LOG, "Notifying region servers to clear statistics caches for schema %s.", schema);
+
+            DDLChange change = new DDLChange(txn, DDLChangeType.CLEAR_STATS_CACHE);
+            change.setTentativeDDLDesc(new ClearStatsCacheDDLDesc(conglomIds, null));
+            changeId = DDLCoordinationFactory.getController().notifyMetadataChange(change);
+
+            SpliceLogUtils.debug(LOG, "Done dropping statistics for schema %s.", schema);
+        } catch (StandardException se) {
+            throw PublicAPI.wrapStandardException(se);
+        } finally {
+        	if (ps != null) ps.close();
+        	if (ps2 != null) ps2.close();
+        	if (conn != null) conn.close();
+			try {
+			    if (changeId != null) {
+		            // Finish (nothing more than clearing zk nodes)
+			        DDLCoordinationFactory.getController().finishMetadataChange(changeId);
+			    }
+			} catch (StandardException e) {
+			    SpliceLogUtils.error(LOG, "Error finishing dropping statistics", e);
+			}
+        }
+    }
+    
+    public static void DROP_TABLE_STATISTICS(String schema, String table) throws SQLException{
+        EmbedConnection conn = (EmbedConnection)getDefaultConn();
+        PreparedStatement ps = null, ps2 = null;
+        String changeId = null;
+        
+		try {
+			if (schema == null)
+                schema = "SPLICE";
+            if (table == null)
+                throw ErrorState.TABLE_NAME_CANNOT_BE_NULL.newException();
+
+            schema = schema.toUpperCase();
+            table = table.toUpperCase();
+            TableDescriptor tableDesc = verifyTableExists(conn, schema, table);
+            long[] conglomIds = SpliceAdmin.getConglomNumbers(conn, schema, table);
+            assert conglomIds != null && conglomIds.length > 0;
+
+            TransactionController tc = conn.getLanguageConnection().getTransactionExecute();
+            tc.elevate("statistics");
+            TxnView txn = ((SpliceTransactionManager) tc).getRawTransaction().getActiveStateTxn();
+
+            StringBuilder sb = new StringBuilder();
+            for (int i = 0; i < conglomIds.length; i++) {
+            	if (i > 0) sb.append(",");
+                sb.append("?");
+            }            
+            
+            ps = conn.prepareStatement("DELETE FROM sys.systablestats WHERE conglomerateid IN (" + sb + ")");
+            for (int i = 0; i < conglomIds.length; i++) {
+                ps.setLong(i + 1, conglomIds[i]);
+            }
+            int deleteCount = ps.executeUpdate();
+            SpliceLogUtils.debug(LOG, "Deleted %d rows in sys.systablestats for table %s", deleteCount, table);
+            ps.close();
+
+            ps2 = conn.prepareStatement("DELETE FROM sys.syscolumnstats WHERE conglom_id IN (" + sb + ")");
+            for (int i = 0; i < conglomIds.length; i++) {
+                ps2.setLong(i + 1, conglomIds[i]);
+            }
+            deleteCount = ps2.executeUpdate();
+            SpliceLogUtils.debug(LOG, "Deleted %d rows in sys.syscolumnstats for table %s", deleteCount, table);
+            ps2.close();
+
+            // Notify: listener on each region server will invalidate cache
+            // If this fails or times out, rethrow the exception as usual
+            // which will roll back the deletions.
+            
+            SpliceLogUtils.debug(LOG, "Notifying region servers to clear statistics caches for table %s.", table);
+
+            DDLChange change = new DDLChange(txn, DDLChangeType.CLEAR_STATS_CACHE);
+            change.setTentativeDDLDesc(new ClearStatsCacheDDLDesc(conglomIds, table));
+            changeId = DDLCoordinationFactory.getController().notifyMetadataChange(change);
+
+            SpliceLogUtils.debug(LOG, "Done dropping statistics for table %s.", table);
+        } catch(StandardException se) {
+            throw PublicAPI.wrapStandardException(se);
+        } finally {
+        	if (ps != null) ps.close();
+        	if (ps2 != null) ps2.close();
+        	if (conn != null) conn.close();
+			try {
+			    if (changeId != null) {
+		            // Finish (nothing more than clearing zk nodes)
+			        DDLCoordinationFactory.getController().finishMetadataChange(changeId);
+			    }
+			} catch (StandardException e) {
+			    SpliceLogUtils.error(LOG, "Error finishing dropping statistics", e);
+			}
+        }
+    }
+    
     /* ****************************************************************************************************************/
     /*private helper methods*/
 
