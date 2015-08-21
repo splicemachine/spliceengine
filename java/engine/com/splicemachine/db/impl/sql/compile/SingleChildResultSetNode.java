@@ -42,7 +42,7 @@ public abstract class SingleChildResultSetNode extends FromTable{
 
     // Does this node have the truly... for the underlying tree
     protected boolean hasTrulyTheBestAccessPath;
-
+    private boolean flattendInSubquery;
 
     @Override
     public boolean isParallelizable(){
@@ -61,7 +61,12 @@ public abstract class SingleChildResultSetNode extends FromTable{
         /* correlationName is always null */
         super.init(null,tableProperties);
         this.childResult=(ResultSetNode)childResult;
-
+        if(childResult instanceof SelectNode && ((SelectNode) childResult).isFlattenedInSubquery){
+            this.flattendInSubquery = true;
+        }
+        else{
+            this.flattendInSubquery = false;
+        }
 		/* Propagate the child's referenced table map, if one exists */
         if(this.childResult.getReferencedTableMap()!=null){
             referencedTableMap=
@@ -435,6 +440,9 @@ public abstract class SingleChildResultSetNode extends FromTable{
     @Override
     public boolean isOneRowResultSet() throws StandardException{
         // Default is false
+        if(flattendInSubquery){
+            return true;
+        }
         return childResult.isOneRowResultSet();
     }
 

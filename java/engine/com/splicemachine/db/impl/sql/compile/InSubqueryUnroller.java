@@ -70,6 +70,7 @@ public class InSubqueryUnroller extends AbstractSpliceVisitor implements Visitor
              */
             for(SubqueryNode sub : nodesToSwitch){
                 SelectNode subquerySelectNode = (SelectNode)sub.resultSet;
+                subquerySelectNode.isFlattenedInSubquery = true;
                 select.getWhereSubquerys().removeElement(sub);
                 ResultColumnList newRcl = subquerySelectNode.resultColumns.copyListAndObjects();
                 newRcl.genVirtualColumnNodes(subquerySelectNode, subquerySelectNode.resultColumns);
