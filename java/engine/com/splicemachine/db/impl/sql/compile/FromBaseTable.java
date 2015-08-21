@@ -3336,6 +3336,12 @@ public class FromBaseTable extends FromTable{
         return rowIdColumn;
     }
 
+    /**
+     *
+     * Is this FromBaseTable node a distinct scan (effects cost estimate)
+     *
+     * @return
+     */
     public boolean isDistinctScan() {
         return distinctScan;
     };

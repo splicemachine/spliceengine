@@ -248,6 +248,12 @@ public final class IsNullNode extends UnaryComparisonOperatorNode  {
 		return cr!=null;
 	}
 
+    /**
+     *
+     * The cardinality of a isNull UnaryOperator.  Always 2.
+     *
+     * @return
+     */
     @Override
     public long getCardinalityEstimate() {
         return 2l;

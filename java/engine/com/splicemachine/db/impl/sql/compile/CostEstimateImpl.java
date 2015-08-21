@@ -382,11 +382,23 @@ public class CostEstimateImpl implements CostEstimate {
 
     @Override public double getCloseCost(){ throw new UnsupportedOperationException(); }
 
+    /**
+     *
+     * Boolean flag that is set so we can take this into account for JoinSelectivity calculation.
+     *
+     * @return
+     */
     @Override
     public boolean isOuterJoin() {
         return isOuterJoin;
     }
 
+    /**
+     *
+     * Boolean flag that is set so we can take this into account for JoinSelectivity calculation.
+     *
+     * @return
+     */
     @Override
     public void setOuterJoin(boolean isOuterJoin) {
         this.isOuterJoin = isOuterJoin;

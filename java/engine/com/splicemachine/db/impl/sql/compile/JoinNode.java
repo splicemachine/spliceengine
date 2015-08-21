@@ -225,7 +225,6 @@ public class JoinNode extends TableOperatorNode{
             getRightPredicateList().addElement(predicate);
         }
 
-
         CostEstimate lrsCE = leftResultSet.getCostEstimate();
         lrsCE.setOuterJoin(true);
         rightResultSet=optimizeSource(optimizer,rightResultSet,getRightPredicateList(),lrsCE);

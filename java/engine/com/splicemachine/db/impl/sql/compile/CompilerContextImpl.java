@@ -162,11 +162,22 @@ public class CompilerContextImpl extends ContextImpl
 		return nextTableNumber++;
 	}
 
+    /**
+     *
+     * Utilized as a placeholder by the subquery unrolling logic.
+     *
+     * @return
+     */
 	public int getNumTables()
 	{
 		return nextTableNumber;
 	}
-
+    /**
+     *
+     * Utilized as a placeholder by the subquery unrolling logic.
+     *
+     * @return
+     */
 	public void setNumTables(int num){
 		nextTableNumber = num;
 	}
