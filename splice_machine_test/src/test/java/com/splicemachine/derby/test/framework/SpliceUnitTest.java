@@ -86,34 +86,25 @@ public class SpliceUnitTest {
     }
 
     protected void firstRowContainsQuery(String query, String contains,SpliceWatcher methodWatcher) throws Exception {
-        ResultSet resultSet = methodWatcher.executeQuery(query);
-        resultSet.next();
-        Assert.assertTrue("failed query: " + query + " -> " + resultSet.getString(1), resultSet.getString(1).contains(contains));
+        rowContainsQuery(1,query,contains,methodWatcher);
     }
 
     protected void secondRowContainsQuery(String query, String contains,SpliceWatcher methodWatcher) throws Exception {
-        ResultSet resultSet = methodWatcher.executeQuery(query);
-        resultSet.next();
-        resultSet.next();
-        Assert.assertTrue("failed query: " + query + " -> " + resultSet.getString(1),resultSet.getString(1).contains(contains));
+        rowContainsQuery(2,query,contains,methodWatcher);
     }
 
     protected void thirdRowContainsQuery(String query, String contains,SpliceWatcher methodWatcher) throws Exception {
-        ResultSet resultSet = methodWatcher.executeQuery(query);
-        resultSet.next();
-        resultSet.next();
-        resultSet.next();
-        Assert.assertTrue("failed query: " + query + " -> " + resultSet.getString(1),resultSet.getString(1).contains(contains));
+        rowContainsQuery(3,query,contains,methodWatcher);
     }
 
     protected void fourthRowContainsQuery(String query, String contains,SpliceWatcher methodWatcher) throws Exception {
-        ResultSet resultSet = methodWatcher.executeQuery(query);
-        resultSet.next();
-        resultSet.next();
-        resultSet.next();
-        resultSet.next();
-        Assert.assertTrue("failed query: " + query + " -> " + resultSet.getString(1),resultSet.getString(1).contains(contains));
+        rowContainsQuery(4,query,contains,methodWatcher);
     }
 
-
+    protected void rowContainsQuery(int level, String query, String contains,SpliceWatcher methodWatcher) throws Exception {
+        ResultSet resultSet = methodWatcher.executeQuery(query);
+        for (int i = 0; i< level;i++)
+            resultSet.next();
+        Assert.assertTrue("failed query: " + query + " -> " + resultSet.getString(1),resultSet.getString(1).contains(contains));
+    }
 }
