@@ -42,6 +42,10 @@ public abstract class SingleChildResultSetNode extends FromTable{
 
     // Does this node have the truly... for the underlying tree
     protected boolean hasTrulyTheBestAccessPath;
+    /*
+        this boolean is added so that derby knows when we need
+        it to generate a oneRowRightSide join for a flattenedInSubquery
+     */
     private boolean flattendInSubquery;
 
     @Override
@@ -440,6 +444,12 @@ public abstract class SingleChildResultSetNode extends FromTable{
     @Override
     public boolean isOneRowResultSet() throws StandardException{
         // Default is false
+
+        /*
+            if this SingleChildResultSetNode is on top of the
+            select node of a flattenedInSubquery, we return true
+            so that derby generates oneRowRightSide join.
+         */
         if(flattendInSubquery){
             return true;
         }

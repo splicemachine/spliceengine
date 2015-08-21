@@ -70,6 +70,13 @@ public class InSubqueryUnroller extends AbstractSpliceVisitor implements Visitor
              */
             for(SubqueryNode sub : nodesToSwitch){
                 SelectNode subquerySelectNode = (SelectNode)sub.resultSet;
+                /*
+                    This isFlattenedInSubquery variable is added to select node
+                    so that when a projectRestrict node is put on top of this
+                    select node, it would know that this is a flattened in subquery
+                    and it will return true when isOneRowResultSet on SingleChildResultset
+                    is called.
+                 */
                 subquerySelectNode.isFlattenedInSubquery = true;
                 select.getWhereSubquerys().removeElement(sub);
                 ResultColumnList newRcl = subquerySelectNode.resultColumns.copyListAndObjects();
@@ -125,6 +132,8 @@ public class InSubqueryUnroller extends AbstractSpliceVisitor implements Visitor
     /*
         Transform the where clause of the parent select node. We remove the in subquery node
         from the where clause and construct a BinaryRelationalOperator node to replace it.
+
+
      */
     public static ValueNode switchPredReference(ValueNode node,
                                                 FromSubquery fsq, int level) throws StandardException {
