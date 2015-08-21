@@ -8,14 +8,12 @@ import com.splicemachine.pipeline.ddl.TentativeDDLDesc;
 
 public class ClearStatsCacheDDLDesc implements TentativeDDLDesc {
     private long[] conglomerateIds;
-    private String tableName;
 
     public ClearStatsCacheDDLDesc() {
     }
 
-    public ClearStatsCacheDDLDesc(long[] conglomIds, String tableName) {
+    public ClearStatsCacheDDLDesc(long[] conglomIds) {
         this.conglomerateIds = conglomIds;
-        this.tableName = tableName;
     }
 
     @Override
@@ -32,19 +30,13 @@ public class ClearStatsCacheDDLDesc implements TentativeDDLDesc {
         return conglomerateIds;
     }
     
-    public String getTableName() {
-    	return tableName;
-    }
-    
     @Override
     public void writeExternal(ObjectOutput out) throws IOException {
         out.writeObject(conglomerateIds);
-        out.writeUTF(tableName);
     }
 
     @Override
     public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
         this.conglomerateIds = (long[])in.readObject();
-        this.tableName = (String)in.readUTF();
     }
 }
