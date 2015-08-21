@@ -9,6 +9,7 @@ import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.impl.ast.AbstractSpliceVisitor;
 
+import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -83,7 +84,15 @@ public class AggregateSubqueryFlatteningVisitor extends AbstractSpliceVisitor im
          */
         for (SubqueryNode subqueryNode : subqueryList) {
             if (subqueryNode.resultSet instanceof SelectNode) {
-                updateTableNumbers((SelectNode) subqueryNode.resultSet, handledSubqueryList.size());
+                updateTableNumbers((SelectNode) subqueryNode.resultSet, handledSubqueryList.size(), ((SelectNode) subqueryNode.resultSet).getNestingLevel());
+            }
+        }
+        for(QueryTreeNode qtn : topSelectNode.fromList){
+            if (qtn instanceof FromSubquery) {
+                if(((FromSubquery) qtn).getSubquery() instanceof SelectNode){
+                    SelectNode sn = (SelectNode)((FromSubquery) qtn).getSubquery();
+                    updateTableNumbers(sn, handledSubqueryList.size(), sn.getNestingLevel());
+                }
             }
         }
 
@@ -159,6 +168,7 @@ public class AggregateSubqueryFlatteningVisitor extends AbstractSpliceVisitor im
         }
         FromTable ft = (FromTable) fl.elementAt(ind);
         fromSubquery.tableNumber = ft.tableNumber + 1;
+        fromSubquery.level = ft.getLevel();
         fl.addFromTable(fromSubquery);
 
         /*
@@ -206,7 +216,7 @@ public class AggregateSubqueryFlatteningVisitor extends AbstractSpliceVisitor im
             rc.sourceTableName = colRef.tableName.tableName;
             rc.tableName = colRef.tableName.tableName;
         }
-
+        rc.isGroupingColumn = true;
         rc.setVirtualColumnId(subquerySelectNode.getResultColumns().size() + 1);
         subquerySelectNode.getResultColumns().addElement(rc);
 
@@ -225,8 +235,8 @@ public class AggregateSubqueryFlatteningVisitor extends AbstractSpliceVisitor im
         subquerySelectNode.groupByList.addGroupByColumn(gbc);
     }
 
-    private static ValueNode switchPredReference(ValueNode node,
-                                                 FromSubquery fsq, int level) throws StandardException {
+    public static ValueNode switchPredReference(ValueNode node,
+                                                FromSubquery fsq, int level) throws StandardException {
         if (node instanceof BinaryOperatorNode) {
             BinaryOperatorNode root = (BinaryOperatorNode) node;
             ValueNode left = root.getLeftOperand();
@@ -314,11 +324,56 @@ public class AggregateSubqueryFlatteningVisitor extends AbstractSpliceVisitor im
         return root;
     }
 
-    private static void updateTableNumbers(SelectNode node, int diff) {
-        int level = node.getNestingLevel();
+    public static void updateTableNumbers(SelectNode node, int diff, int level) {
+
         for (QueryTreeNode qtn : node.getFromList()) {
             if (qtn instanceof FromTable) {
                 ((FromTable) qtn).tableNumber += diff;
+                if(qtn instanceof FromSubquery) {
+                    ResultSetNode rsn = ((FromSubquery) qtn).subquery;
+                    if (rsn instanceof SelectNode) {
+                        updateTableNumbers((SelectNode) rsn, diff, level);
+                    }
+                }
+            }
+        }
+        if(node.getSelectSubquerys() != null){
+            for(SubqueryNode sbn : node.getSelectSubquerys()){
+                if(sbn.resultSet instanceof SelectNode){
+                    updateTableNumbers((SelectNode)sbn.resultSet, diff, level);
+                }
+                if(sbn.leftOperand != null && sbn.leftOperand instanceof ColumnReference){
+                    ColumnReference ref = (ColumnReference)sbn.leftOperand;
+                    if (ref.getSourceLevel() >= level) {
+                        ref.setTableNumber(ref.getTableNumber() + diff);
+                    }
+                }
+            }
+        }
+        if(node.getWhereSubquerys() != null){
+            for(SubqueryNode sbn : node.getWhereSubquerys()){
+                if(sbn.resultSet instanceof SelectNode){
+                    updateTableNumbers((SelectNode)sbn.resultSet, diff, level);
+                }
+                if(sbn.leftOperand != null && sbn.leftOperand instanceof ColumnReference){
+                    ColumnReference ref = (ColumnReference)sbn.leftOperand;
+                    if (ref.getSourceLevel() >= level) {
+                        ref.setTableNumber(ref.getTableNumber() + diff);
+                    }
+                }
+            }
+        }
+        if(node.havingSubquerys != null){
+            for(SubqueryNode sbn : node.havingSubquerys){
+                if(sbn.resultSet instanceof SelectNode){
+                    updateTableNumbers((SelectNode)sbn.resultSet, diff, level);
+                }
+                if(sbn.leftOperand != null && sbn.leftOperand instanceof ColumnReference){
+                    ColumnReference ref = (ColumnReference)sbn.leftOperand;
+                    if (ref.getSourceLevel() >= level) {
+                        ref.setTableNumber(ref.getTableNumber() + diff);
+                    }
+                }
             }
         }
         if (node.selectAggregates != null) {
@@ -392,9 +447,21 @@ public class AggregateSubqueryFlatteningVisitor extends AbstractSpliceVisitor im
                     ((ColumnReference) left).getSourceLevel() >= level) {
                 ((ColumnReference) left).setTableNumber(((ColumnReference) left).getTableNumber() + diff);
             }
+            else if (left instanceof CastNode){
+                ValueNode opn = ((CastNode) left).castOperand;
+                if(opn instanceof ColumnReference && ((ColumnReference) opn).getSourceLevel() >= level){
+                    ((ColumnReference) opn).setTableNumber(((ColumnReference) opn).getTableNumber() + diff);
+                }
+            }
             if (right instanceof ColumnReference &&
                     ((ColumnReference) right).getSourceLevel() >= level) {
                 ((ColumnReference) right).setTableNumber(((ColumnReference) right).getTableNumber() + diff);
+            }
+            else if (right instanceof CastNode){
+                ValueNode opn = ((CastNode) right).castOperand;
+                if(opn instanceof ColumnReference && ((ColumnReference) opn).getSourceLevel() >= level){
+                    ((ColumnReference) opn).setTableNumber(((ColumnReference) opn).getTableNumber() + diff);
+                }
             }
         } else if (node instanceof AndNode) {
             updateWhereClauseColRef(((AndNode) node).getLeftOperand(), diff, level);
@@ -423,6 +490,11 @@ public class AggregateSubqueryFlatteningVisitor extends AbstractSpliceVisitor im
             ((TernaryOperatorNode) node).receiver = receiver;
             ((TernaryOperatorNode) node).leftOperand = left;
             ((TernaryOperatorNode) node).rightOperand = right;
+        } else if (node instanceof CastNode){
+            ValueNode opn = ((CastNode) node).castOperand;
+            if(opn instanceof ColumnReference && ((ColumnReference) opn).getSourceLevel() >= level){
+                ((ColumnReference) opn).setTableNumber(((ColumnReference) opn).getTableNumber() + diff);
+            }
         }
     }
 

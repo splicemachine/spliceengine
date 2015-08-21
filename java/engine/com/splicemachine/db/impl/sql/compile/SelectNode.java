@@ -54,6 +54,7 @@ public class SelectNode extends ResultSetNode{
      */
     FromList fromList;
     FromTable targetTable;
+    boolean isFlattenedInSubquery;
 
     /* Aggregate Vectors for select and where clauses */
     List<AggregateNode> selectAggregates;
@@ -150,6 +151,7 @@ public class SelectNode extends ResultSetNode{
         this.originalWhereClause=(ValueNode)whereClause;
         this.groupByList=(GroupByList)groupByList;
         this.havingClause=(ValueNode)havingClause;
+        this.isFlattenedInSubquery = false;
 
         // This initially represents an explicit <window definition list>, as
         // opposed to <in-line window specifications>, see 2003, 6.10 and 6.11.

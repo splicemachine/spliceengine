@@ -206,6 +206,11 @@ public class CompilerContextImpl extends ContextImpl
 		return nextSubqueryNumber;
 	}
 
+	public void setNumSubqueries(int num){
+		nextSubqueryNumber = num;
+	}
+
+
 	public int getNextResultSetNumber()
 	{
 		return nextResultSetNumber++;

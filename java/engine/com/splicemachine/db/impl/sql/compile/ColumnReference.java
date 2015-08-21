@@ -95,7 +95,7 @@ public class ColumnReference extends ValueNode {
 	private boolean		replacesAggregate;
 	private boolean		replacesWindowFunctionCall;
 
-	private int			nestingLevel = -1;
+	int			nestingLevel = -1;
 	private int			sourceLevel = -1;
 
 	/* Whether or not this column reference been scoped for the
