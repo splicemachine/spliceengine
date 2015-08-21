@@ -24,30 +24,55 @@ import java.sql.ResultSet;
 @Category(SerialTest.class)
 public class StatisticsAdminIT {
 	private static final String SCHEMA = StatisticsAdminIT.class.getSimpleName().toUpperCase();
+	private static final String SCHEMA2 = SCHEMA + "2";
 
     private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA);
     private static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA);
+    private static final SpliceWatcher spliceClassWatcher2 = new SpliceWatcher(SCHEMA2);
+    private static final SpliceSchemaWatcher spliceSchemaWatcher2 = new SpliceSchemaWatcher(SCHEMA2);
 
     private static final String TABLE_EMPTY = "EMPTY";
     private static final String TABLE_OCCUPIED = "OCCUPIED";
+    private static final String TABLE_OCCUPIED2 = "OCCUPIED2";
     
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
     	.around(spliceSchemaWatcher);
 
+    @ClassRule
+    public static TestRule chain2 = RuleChain.outerRule(spliceClassWatcher2)
+    	.around(spliceSchemaWatcher2);
+
     @Rule
     public final SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
+
+    @Rule
+    public final SpliceWatcher methodWatcher2 = new SpliceWatcher(SCHEMA2);
 
     @BeforeClass
     public static void createSharedTables() throws Exception {
 
         Connection conn = spliceClassWatcher.getOrCreateConnection();
+        doCreateSharedTables(conn);
+        Connection conn2 = spliceClassWatcher2.getOrCreateConnection();
+        doCreateSharedTables(conn2);
+    }
+
+    private static void doCreateSharedTables(Connection conn) throws Exception {
 
         new TableCreator(conn)
                 .withCreate("create table " + TABLE_OCCUPIED + " (a int)")
                 .withInsert("insert into " + TABLE_OCCUPIED + " (a) values (?)")
+                .withIndex("create index idx_o on " + TABLE_OCCUPIED + " (a)")
                 .withRows(rows(row(1)))
                 .create();
+
+        new TableCreator(conn)
+		        .withCreate("create table " + TABLE_OCCUPIED2 + " (a int)")
+		        .withInsert("insert into " + TABLE_OCCUPIED2 + " (a) values (?)")
+		        .withIndex("create index idx_o2 on " + TABLE_OCCUPIED2 + " (a)")
+		        .withRows(rows(row(101)))
+		        .create();
 
         new TableCreator(conn)
                 .withCreate("create table " + TABLE_EMPTY + " (a int)")
@@ -121,7 +146,7 @@ public class StatisticsAdminIT {
         Assert.assertTrue("partition size != row width!",partitionSize==rowWidth);
 
         conn.rollback();
-		conn.reset();
+        conn.reset();
     }
 
     @Test
@@ -172,6 +197,144 @@ public class StatisticsAdminIT {
         resultSet.close();
 
         conn.rollback();
-		conn.reset();
+        conn.reset();
+    }
+    
+    @Test
+    public void testDropSchemaStatistics() throws Exception {
+        TestConnection conn = methodWatcher.getOrCreateConnection();
+        conn.setAutoCommit(false);
+
+        TestConnection conn2 = methodWatcher2.getOrCreateConnection();
+        conn2.setAutoCommit(false);
+
+        CallableStatement callableStatement = conn.prepareCall("call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS(?,?)");
+        callableStatement.setString(1, SCHEMA);
+        callableStatement.setBoolean(2, false);
+        callableStatement.execute();
+        callableStatement.close();
+
+        CallableStatement cs2 = conn2.prepareCall("call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS(?,?)");
+        cs2.setString(1, SCHEMA2);
+        cs2.setBoolean(2, false);
+        cs2.execute();
+        cs2.close();
+
+        // Check collected stats for both schemas
+        verifyStatsCounts(conn, SCHEMA, null, 5, 3);
+        verifyStatsCounts(conn2, SCHEMA2, null, 5, 3);
+
+        // Drop stats for schema 1
+        callableStatement = conn.prepareCall("call SYSCS_UTIL.DROP_SCHEMA_STATISTICS(?)");
+        callableStatement.setString(1, SCHEMA);
+        callableStatement.execute();
+        callableStatement.close();
+
+        // Make sure only schema 1 stats were dropped, not schema 2 stats
+        verifyStatsCounts(conn, SCHEMA, null, 0, 0);
+        verifyStatsCounts(conn2, SCHEMA2, null, 5, 3);
+
+        // Drop stats again for schema 1 to make sure it works with no stats
+        callableStatement = conn.prepareCall("call SYSCS_UTIL.DROP_SCHEMA_STATISTICS(?)");
+        callableStatement.setString(1, SCHEMA);
+        callableStatement.execute();
+        callableStatement.close();
+
+        // Make sure only schema 1 stats were dropped, not schema 2 stats
+        verifyStatsCounts(conn, SCHEMA, null, 0, 0);
+        verifyStatsCounts(conn2, SCHEMA2, null, 5, 3);
+
+        // Drop stats for schema 2
+        cs2 = conn2.prepareCall("call SYSCS_UTIL.DROP_SCHEMA_STATISTICS(?)");
+        cs2.setString(1, SCHEMA2);
+        cs2.execute();
+        cs2.close();
+
+        // Make sure stats are gone for both schemas
+        verifyStatsCounts(conn, SCHEMA, null, 0, 0);
+        verifyStatsCounts(conn2, SCHEMA2, null, 0, 0);
+
+        conn2.rollback();
+        conn2.reset();
+
+        conn.rollback();
+        conn.reset();
+    }
+    
+    @Test
+    public void testDropTableStatistics() throws Exception {
+        TestConnection conn = methodWatcher.getOrCreateConnection();
+        conn.setAutoCommit(false);
+
+        TestConnection conn2 = methodWatcher2.getOrCreateConnection();
+        conn2.setAutoCommit(false);
+
+        CallableStatement callableStatement = conn.prepareCall("call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS(?,?)");
+        callableStatement.setString(1, SCHEMA);
+        callableStatement.setBoolean(2, false);
+        callableStatement.execute();
+        callableStatement.close();
+
+        CallableStatement cs2 = conn2.prepareCall("call SYSCS_UTIL.COLLECT_SCHEMA_STATISTICS(?,?)");
+        cs2.setString(1, SCHEMA2);
+        cs2.setBoolean(2, false);
+        cs2.execute();
+        cs2.close();
+
+        // Check collected stats for both schemas
+        verifyStatsCounts(conn, SCHEMA, null, 5, 3);
+        verifyStatsCounts(conn2, SCHEMA2, null, 5, 3);
+
+        // Drop stats for schema 1, table 1
+        callableStatement = conn.prepareCall("call SYSCS_UTIL.DROP_TABLE_STATISTICS(?,?)");
+        callableStatement.setString(1, SCHEMA);
+        callableStatement.setString(2, TABLE_OCCUPIED);
+        callableStatement.execute();
+        callableStatement.close();
+
+        // Make sure stats for both table and index were dropped in schema 1.
+        verifyStatsCounts(conn, SCHEMA, null, 3, 2);
+        verifyStatsCounts(conn, SCHEMA, TABLE_OCCUPIED, 0, 0);
+        verifyStatsCounts(conn2, SCHEMA2, null, 5, 3);
+
+        // Drop stats again for schema 1 to make sure it works with no stats
+        callableStatement = conn.prepareCall("call SYSCS_UTIL.DROP_TABLE_STATISTICS(?,?)");
+        callableStatement.setString(1, SCHEMA);
+        callableStatement.setString(2, TABLE_OCCUPIED);
+        callableStatement.execute();
+        callableStatement.close();
+
+        // Same as prior check
+        verifyStatsCounts(conn, SCHEMA, null, 3, 2);
+        verifyStatsCounts(conn, SCHEMA, TABLE_OCCUPIED, 0, 0);
+        verifyStatsCounts(conn2, SCHEMA2, null, 5, 3);
+
+        conn2.rollback();
+        conn2.reset();
+
+        conn.rollback();
+        conn.reset();
+    }
+    
+    private void verifyStatsCounts(Connection conn, String schema, String table, int tableStatsCount, int colStatsCount)  throws Exception {
+        PreparedStatement check = (table == null) ?
+        	conn.prepareStatement("select count(*) from sys.systablestatistics where schemaname = ?") :
+            conn.prepareStatement("select count(*) from sys.systablestatistics where schemaname = ? and tablename = ?");
+        check.setString(1, schema);
+        if (table != null) check.setString(2, table);
+        ResultSet resultSet = check.executeQuery();
+        Assert.assertTrue("Unable to count stats for schema", resultSet.next());
+        Assert.assertEquals("Incorrect row count", tableStatsCount, resultSet.getInt(1));
+        check.close();
+    	
+        check = (table == null) ?
+        	conn.prepareStatement("select count(*) from sys.syscolumnstatistics where schemaname = ?") :
+            conn.prepareStatement("select count(*) from sys.syscolumnstatistics where schemaname = ? and tablename = ?");
+        check.setString(1, schema);
+        if (table != null) check.setString(2, table);
+        resultSet = check.executeQuery();
+        Assert.assertTrue("Unable to count stats for schema", resultSet.next());
+        Assert.assertEquals("Incorrect row count", colStatsCount, resultSet.getInt(1));
+        check.close();
     }
 }
