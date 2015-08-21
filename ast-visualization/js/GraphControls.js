@@ -15,20 +15,21 @@ sm.GraphControl = function () {
 
     // -  - - - - - - - - - - - - - - - Controls
 
-    this.paramLayoutSelect = $("#layout-param-select");
-    this.paramLayoutSelect.change(jQuery.proxy(this.paramChanged, this));
-
-    this.paramDirectionSelect = $("#direction-param-select");
-    this.paramDirectionSelect.change(jQuery.proxy(this.paramChanged, this));
-
-    this.paramShapeSelect = $("#node-shape-param-select");
-    this.paramShapeSelect.change(jQuery.proxy(this.paramChanged, this));
-
-    this.hierarchicalEnabledSelect = $("#hierarchical-enabled-select");
-    this.hierarchicalEnabledSelect.change(jQuery.proxy(this.paramChanged, this));
-
+    this.hierarchicalEnabledCheckbox = $("#hierarchical-enabled-checkbox");
     this.hierarchicalLevelInput = $("#hierarchical-level-separation-input");
-    this.hierarchicalLevelInput.change(jQuery.proxy(this.paramChanged, this));
+    this.paramLayoutSelect = $("#layout-param-select");
+    this.paramDirectionSelect = $("#direction-param-select");
+    this.paramShapeSelect = $("#node-shape-param-select");
+    this.nodeNameCheckbox = $("#short-node-names-checkbox");
+
+    var changedParamFuncRef = $.proxy(this.paramChanged, this);
+
+    this.hierarchicalEnabledCheckbox.change(changedParamFuncRef);
+    this.hierarchicalLevelInput.change(changedParamFuncRef);
+    this.paramLayoutSelect.change(changedParamFuncRef);
+    this.paramDirectionSelect.change(changedParamFuncRef);
+    this.paramShapeSelect.change(changedParamFuncRef);
+    this.nodeNameCheckbox.change(changedParamFuncRef);
 
     // -  - - - - - - - - - - - - - - - Control Values DEFAULTS
 
@@ -37,7 +38,7 @@ sm.GraphControl = function () {
     this.paramNodeShape = "box";
     this.paramHierarchicalEnabled = true;
     this.hierarchicalLevel = 125;
-
+    this.shortNodeNames = false;
 };
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
@@ -48,8 +49,9 @@ sm.GraphControl.prototype.paramChanged = function (event) {
     this.paramLayout = this.paramLayoutSelect.val();
     this.paramDirection = this.paramDirectionSelect.val();
     this.paramNodeShape = this.paramShapeSelect.val();
-    this.paramHierarchicalEnabled = this.hierarchicalEnabledSelect.val() === "true";
+    this.paramHierarchicalEnabled = this.hierarchicalEnabledCheckbox.is(":checked");
     this.hierarchicalLevel = this.hierarchicalLevelInput.val();
+    this.shortNodeNames = this.nodeNameCheckbox.is(":checked");
     this.draw();
 };
 
@@ -59,14 +61,14 @@ sm.GraphControl.prototype.paramChanged = function (event) {
 
 sm.GraphControl.prototype.setNewModel = function (model) {
     this.model = model;
+    this.saveOriginalNodeNames();
+
     this.draw();
 };
-
 
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 //
 // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
-
 
 sm.GraphControl.prototype.destroy = function destroy() {
     if (this.network !== null) {
@@ -77,7 +79,9 @@ sm.GraphControl.prototype.destroy = function destroy() {
 
 
 sm.GraphControl.prototype.draw = function () {
+
     this.destroy();
+    this.transformNodeNames();
 
     var options = {
         configure: {
@@ -126,7 +130,7 @@ sm.GraphControl.prototype.draw = function () {
             hierarchical: {
                 direction: this.paramDirection,
                 sortMethod: this.paramLayout,
-                levelSeparation: this.hierarchicalLevel,
+                levelSeparation: parseInt(this.hierarchicalLevel),
                 enabled: this.paramHierarchicalEnabled
 
             }
@@ -155,7 +159,6 @@ sm.GraphControl.prototype.draw = function () {
             initiallyActive: true,
             addNode: true,
             addEdge: true,
-            editNode: undefined,
             editEdge: true,
             deleteNode: true,
             deleteEdge: true,
@@ -166,4 +169,44 @@ sm.GraphControl.prototype.draw = function () {
     var container = document.getElementById('graph-container-div');
 
     this.network = new vis.Network(container, this.model, options);
+
+    // add click listener
+    this.network.on("selectNode", $.proxy(this.handleNodeClick, this));
+};
+
+
+/**
+ * If short names are enabled then display the full node name when the node is clicked.
+ */
+sm.GraphControl.prototype.handleNodeClick = function (event) {
+    if (this.shortNodeNames) {
+        var selectedNodeId = event.nodes[0];
+        console.log("selectedNodeId=" + selectedNodeId);
+        $.each(this.model.nodes, function (index, node) {
+            console.log("node.id=" + node.id);
+            if (node.id == selectedNodeId) {
+                alert("node: " + node.originalLabel);
+            }
+        });
+    }
+};
+
+sm.GraphControl.prototype.saveOriginalNodeNames = function () {
+    $.each(this.model.nodes, function (index, node) {
+        node.label = node.label.replace(/Node$/g, '');
+        node.originalLabel = node.label;
+    });
+};
+
+sm.GraphControl.prototype.transformNodeNames = function () {
+    var shortNodeNames = this.shortNodeNames;
+    $.each(this.model.nodes, function (index, node) {
+        if (shortNodeNames) {
+            if (node.label.length > 3) {
+                node.label = node.label.replace(/[^A-Z]/g, '');
+            }
+        } else {
+            node.label = node.originalLabel;
+        }
+    });
 };

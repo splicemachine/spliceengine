@@ -146,7 +146,7 @@ public class JsonTreeBuilderVisitor implements Visitor {
         public Node(int id, QueryTreeNode queryTreeNode) {
             this.id = id;
             this.queryTreeNode = queryTreeNode;
-            this.label = displayName(queryTreeNode);
+            this.label = queryTreeNode.getClass().getSimpleName();
             this.group = this.label.toLowerCase();
         }
 
@@ -178,16 +178,6 @@ public class JsonTreeBuilderVisitor implements Visitor {
             return queryTreeNode;
         }
 
-        /**
-         * From a given QueryTreeNode creates a display-friendly label.
-         */
-        private static String displayName(QueryTreeNode queryTreeNode) {
-            String n = queryTreeNode.getClass().getSimpleName();
-            if (n.endsWith("Node")) {
-                n = n.replaceAll("Node$", "");
-            }
-            return n;
-        }
     }
 
     private static class GraphContainer {
