@@ -311,8 +311,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         double innerScanRemoteCost = innerCost.remoteCost();
         double innerScanHeapSize = innerCost.getEstimatedHeapSize();
         double innerScanOutputRows = innerCost.rowCount();
-        double joinSelectivity =SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList,(long) innerScanOutputRows,(long) outerRowCount,
-                JoinStrategyType.BROADCAST,outerCost);
+        double joinSelectivity =SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList,(long) innerScanOutputRows,(long) outerRowCount, outerCost);
 
         if(innerCost.getEstimatedRowCount()!=1l){
             innerScanRemoteCost *= joinSelectivity;
