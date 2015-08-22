@@ -135,8 +135,7 @@ public class MergeJoinStrategy extends BaseCostedHashableJoinStrategy{
              */
             innerRowCount = 1d;
         }
-        double joinSelectivity =SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList,(long) innerRowCount,(long) outerRowCount,
-                JoinStrategyType.BROADCAST,outerCost);
+        double joinSelectivity =SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList,(long) innerRowCount,(long) outerRowCount, outerCost);
 
         double outerRemoteCost=outerCost.remoteCost();
 
