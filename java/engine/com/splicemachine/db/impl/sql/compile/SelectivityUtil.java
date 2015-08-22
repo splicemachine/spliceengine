@@ -25,32 +25,25 @@ public class SelectivityUtil {
     public static double estimateJoinSelectivity(Optimizable innerTable, ConglomerateDescriptor innerCD,
                             OptimizablePredicateList predList,
                             long innerRowCount,long outerRowCount,
-                            JoinStrategy.JoinStrategyType strategyType,
                             CostEstimate outerCost) throws StandardException {
         if (outerCost.isOuterJoin())
-            return estimateJoinSelectivity(innerTable,innerCD,predList,innerRowCount,outerRowCount,SelectivityJoinType.OUTER,strategyType);
-        return estimateJoinSelectivity(innerTable,innerCD,predList,innerRowCount,outerRowCount,SelectivityJoinType.INNER,strategyType);
-
+            return estimateJoinSelectivity(innerTable,innerCD,predList,innerRowCount,outerRowCount,SelectivityJoinType.OUTER);
+        else if (outerCost.isAntiJoin())
+            return estimateJoinSelectivity(innerTable,innerCD,predList,innerRowCount,outerRowCount,SelectivityJoinType.ANTIJOIN);
+        else
+            return estimateJoinSelectivity(innerTable,innerCD,predList,innerRowCount,outerRowCount,SelectivityJoinType.INNER);
     }
 
 
     public static double estimateJoinSelectivity(Optimizable innerTable, ConglomerateDescriptor innerCD,
                                                  OptimizablePredicateList predList,
                                                  long innerRowCount,long outerRowCount,
-                                                 SelectivityJoinType selectivityJoinType,
-                                                 JoinStrategy.JoinStrategyType strategyType) throws StandardException {
-        assert innerTable!=null:"Null values passed in to estimateJoinSelectivity " + innerTable ;
-        if (strategyType.equals(JoinStrategy.JoinStrategyType.NESTED_LOOP))
-            return hashJoinSelectivity(innerTable, innerCD, predList, innerRowCount, outerRowCount, selectivityJoinType);
-        return hashJoinSelectivity(innerTable,innerCD,predList,innerRowCount,outerRowCount,selectivityJoinType);
-    };
+                                                 SelectivityJoinType selectivityJoinType) throws StandardException {
 
-    public static double hashJoinSelectivity(Optimizable innerTable, ConglomerateDescriptor innerCD,
-                                            OptimizablePredicateList predList,
-                                            long innerRowCount,long outerRowCount,
-                                            SelectivityJoinType selectivityJoinType) throws StandardException {
+        assert innerTable!=null:"Null values passed in to estimateJoinSelectivity " + innerTable ;
         assert innerTable!=null:"Null values passed in to hashJoinSelectivity";
-        if (innerTable.isOneRowScan()) {
+
+        if (isOneRowResultSet(innerTable, innerCD, predList)) {
             switch (selectivityJoinType) {
                 case OUTER:
                 case INNER:
@@ -68,12 +61,11 @@ public class SelectivityUtil {
             }
         }
         return selectivity;
-    }
+    };
 
-
-    public boolean isOneRowResultSet(ConglomerateDescriptor cd,
+    public static boolean isOneRowResultSet(Optimizable innerTable, ConglomerateDescriptor cd,
                                      OptimizablePredicateList predList) throws StandardException{
-        if(predList==null){
+        if(predList==null || cd == null ){
             return false;
         }
 
@@ -90,6 +82,8 @@ public class SelectivityUtil {
 
         IndexRowGenerator irg= cd.getIndexDescriptor();
 
+        if (irg == null)
+            return false;
         // is this a unique index
         if(!irg.isUnique()){
             return false;
@@ -104,8 +98,8 @@ public class SelectivityUtil {
             /* Is there a pushable equality predicate on this key column?
              * (IS NULL is also acceptable)
 			 */
-            List<Predicate> optimizableEqualityPredicateList = null;
-// FIX JL                    restrictionList.getOptimizableEqualityPredicateList(this,curCol,true);
+            List<Predicate> optimizableEqualityPredicateList =
+                    restrictionList.getOptimizableEqualityPredicateList(innerTable, curCol, true);
 
             // No equality predicate for this column, so this is not a one row result set
             if (optimizableEqualityPredicateList == null)
@@ -128,5 +122,16 @@ public class SelectivityUtil {
         return true;
     }
 
+    public static double existsFraction(ConglomerateDescriptor cd, OptimizablePredicateList predList) {
+        double fraction = 1.0d;
+        if (predList != null) {
+            for (int i = 0; i < predList.size(); i++) {
+                Predicate p = (Predicate) predList.getOptPredicate(i);
+                if (!p.isJoinPredicate()) continue;
+
+            }
+        }
+        return fraction;
+    }
 
 }

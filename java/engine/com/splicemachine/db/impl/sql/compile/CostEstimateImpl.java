@@ -31,6 +31,7 @@ public class CostEstimateImpl implements CostEstimate {
     public double	rowCount;
     public double	singleScanRowCount;
     public boolean isOuterJoin;
+    public boolean isAntiJoin;
 
     public CostEstimateImpl() {
     }
@@ -402,5 +403,15 @@ public class CostEstimateImpl implements CostEstimate {
     @Override
     public void setOuterJoin(boolean isOuterJoin) {
         this.isOuterJoin = isOuterJoin;
+    }
+
+    @Override
+    public boolean isAntiJoin() {
+        return isAntiJoin;
+    }
+
+    @Override
+    public void setAntiJoin(boolean isAntiJoin) {
+        this.isAntiJoin = isAntiJoin;
     }
 }

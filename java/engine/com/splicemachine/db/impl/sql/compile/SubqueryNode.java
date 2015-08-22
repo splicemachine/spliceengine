@@ -742,6 +742,9 @@ public class SubqueryNode extends ValueNode{
                     if(fbt!=null && (!flattenableNotExists
                             || (select.getWherePredicates().allReference(fbt)
                             && rightOperandFlattenableToNotExists(numTables,fbt)))){
+                        if (flattenableNotExists) {
+                            fbt.setAntiJoin(true);
+                        }
                         return flattenToExistsJoin(
                                 outerFromList,outerSubqueryList,
                                 outerPredicateList,flattenableNotExists);

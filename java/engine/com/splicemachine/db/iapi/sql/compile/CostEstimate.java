@@ -60,6 +60,23 @@ public interface CostEstimate extends StoreCostResult {
     void setOuterJoin(boolean isOuterJoin);
 
     /**
+     *
+     *  Key flag to identify join type for computing join selectivity.
+     *
+     * @return
+     */
+    boolean isAntiJoin();
+
+    /**
+     *
+     * Set the flag on the cost so the join selectivity algorithm can understand if you are an outer or innner join.
+     *
+     *
+     * @param isAntiJoin
+     */
+    void setAntiJoin(boolean isAntiJoin);
+
+    /**
      * Copy the values from the given cost estimate into this one.
      */
     void setCost(CostEstimate other);

@@ -29,6 +29,7 @@ import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.ScanController;
+import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.Orderable;
 import com.splicemachine.db.iapi.types.TypeId;
@@ -1317,6 +1318,7 @@ public class BinaryRelationalOperatorNode
         assert optTable != null:"null values passed into predicate joinSelectivity";
             // Binary Relational Operator Node...
         double selectivity;
+
         if (rightOperand instanceof ColumnReference && ((ColumnReference) rightOperand).getSource().getTableColumnDescriptor() != null) {
             ColumnReference right = (ColumnReference) rightOperand;
             if (selectivityJoinType.equals(SelectivityUtil.SelectivityJoinType.OUTER)) {
@@ -1327,6 +1329,12 @@ public class BinaryRelationalOperatorNode
                         Math.min(left.nonZeroCardinality(outerRowCount), right.nonZeroCardinality(innerRowCount));
                 selectivity = selectivityJoinType.equals(SelectivityUtil.SelectivityJoinType.INNER) ?
                         selectivity : 1.0d - selectivity;
+                if (optTable instanceof FromBaseTable && ((FromBaseTable) optTable).getExistsBaseTable()) {
+                    selectivity = selectivity * left.nonZeroCardinality(outerRowCount)/outerRowCount;
+                    if (((FromBaseTable) optTable).isAntiJoin()) {
+                        selectivity = selectivity /(innerRowCount - innerRowCount/right.nonZeroCardinality(innerRowCount) + 1);
+                    }
+                }
             } else { // No Left Column Reference
                 selectivity = super.joinSelectivity(optTable, currentCd, innerRowCount, outerRowCount, selectivityJoinType);
             }

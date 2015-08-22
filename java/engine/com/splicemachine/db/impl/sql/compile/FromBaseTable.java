@@ -172,6 +172,8 @@ public class FromBaseTable extends FromTable{
 
     private ResultColumn rowIdColumn;
 
+    private boolean isAntiJoin;
+
     @Override
     public boolean isParallelizable(){
         return false;
@@ -870,7 +872,10 @@ public class FromBaseTable extends FromTable{
         /*
          * Now compute the joinStrategy costs.
          */
+        boolean oldIsAntiJoin = outerCost.isAntiJoin();
+        outerCost.setAntiJoin(isAntiJoin);
         currentJoinStrategy.estimateCost(this,baseTableRestrictionList,cd,outerCost,optimizer,costEstimate);
+        outerCost.setAntiJoin(oldIsAntiJoin);
         tracer.trace(OptimizerFlag.COST_OF_N_SCANS,tableNumber,0,outerCost.rowCount(),costEstimate);
 
 		/* Put the base predicates back in the predicate list */
@@ -978,7 +983,7 @@ public class FromBaseTable extends FromTable{
      * @return Whether or not this FBT represents
      * an EXISTS FBT.
      */
-    boolean getExistsBaseTable(){ return existsBaseTable; }
+    public boolean getExistsBaseTable(){ return existsBaseTable; }
 
     /*
      * Set whether or not this FBT represents an
@@ -3345,5 +3350,13 @@ public class FromBaseTable extends FromTable{
     public boolean isDistinctScan() {
         return distinctScan;
     };
+
+    public void setAntiJoin (boolean isAntiJoin) {
+        this.isAntiJoin = isAntiJoin;
+    }
+
+    public boolean isAntiJoin() {
+        return this.isAntiJoin;
+    }
 
 }
