@@ -69,7 +69,6 @@ public class TempGroupedAggregateCostController implements AggregateCostControll
         for(OrderedColumn oc:groupingList) {
             long returnedRows = oc.nonZeroCardinality((long) baseCost.rowCount());
             cardinalityList.add(returnedRows);
-            //outputRows *= returnedRows <= baseCost.rowCount()?returnedRows:baseCost.rowCount();
         }
         Collections.sort(cardinalityList);
 
@@ -117,104 +116,6 @@ public class TempGroupedAggregateCostController implements AggregateCostControll
         newEstimate.setRemoteCost(seqRemoteCost);
 
         return newEstimate;
-    }
-
-    /* ****************************************************************************************************************/
-    /*private helper methods*/
-    private StoreCostController getStoreCostForColumn(ColumnReference ref) throws StandardException{
-        ValueNode exprNode = ref.getSource().getExpression();
-        assert exprNode!=null;
-        assert exprNode instanceof VirtualColumnNode: "Programmer error: unexpected type "+ exprNode.getClass();
-
-        VirtualColumnNode col = (VirtualColumnNode)exprNode;
-
-        ValueNode newRef = ref.getSourceResultColumn().getExpression();
-        if(newRef instanceof UnaryOperatorNode){
-            newRef = ((UnaryOperatorNode)newRef).getOperand();
-        }
-        if(newRef instanceof ColumnReference)
-            ref = (ColumnReference)newRef; //get the base result column expression
-
-        ResultSetNode rsn = col.getSourceResultSet();
-        assert rsn!=null;
-        //get the underlying store controller for this node.
-        return findConglomerateDescriptor(ref,rsn);
-    }
-
-    private StoreCostController findConglomerateDescriptor(ColumnReference ref,ResultSetNode rsn) throws StandardException{
-        if(rsn instanceof FromBaseTable){
-            FromTable fbt = (FromTable)rsn;
-            AccessPath ap = fbt.getCurrentAccessPath();
-            ConglomerateDescriptor cd;
-            if(ap!=null){
-                cd = ap.getConglomerateDescriptor();
-                if(cd==null){
-                    /*
-                     * -sf- Derby sometimes does this to us if the current Access path hasn't been
-                     * initialized yet (which appears to happen if there are no joins in the query).
-                     * In this case, we defer to the bestAccessPath, which appears to always be populated.
-                     */
-                    cd = fbt.getBestAccessPath().getConglomerateDescriptor();
-                }
-            }else{
-                /*
-                 * -sf- We don't even HAVE a current access path. I don't believe that this
-                 * ever happens, but I'm not yet comfortable enough with how Derby constructs
-                 * access paths to be sure.
-                 */
-                ap = fbt.getBestAccessPath();
-                cd = ap.getConglomerateDescriptor();
-            }
-            //DB-3317 check just in case we can't find one for some reason.
-            if(cd==null) return null;
-            String[] columnNames=cd.getColumnNames();
-            for(String columnName:columnNames){
-                if(ref.getColumnName().equals(columnName)){
-                    return rsn.getCompilerContext().getStoreCostController(cd);
-                }
-            }
-            return null;
-        }else if(rsn instanceof JoinNode){
-            JoinNode joinNode=(JoinNode)rsn;
-            StoreCostController scc = findConglomerateDescriptor(ref,joinNode.getLeftResultSet());
-            if(scc==null)
-                scc = findConglomerateDescriptor(ref,joinNode.getRightResultSet());
-            return scc;
-        }else if(rsn instanceof SingleChildResultSetNode){
-            return findConglomerateDescriptor(ref,((SingleChildResultSetNode)rsn).getChildResult());
-        }else if(rsn instanceof IndexToBaseRowNode){
-            /*
-             * We have two options--either the conglomerate of the index OR the conglomerate
-             * of the base table is what we want, so we need to check both
-             */
-            FromBaseTable fbt = ((IndexToBaseRowNode)rsn).getSource();
-            StoreCostController scc = findConglomerateDescriptor(ref,fbt);
-            if(scc==null){
-                ConglomerateDescriptor cd = ((IndexToBaseRowNode)rsn).getBaseConglomerateDescriptor();
-                String[] columnNames=cd.getColumnNames();
-                if(columnNames==null) return null;
-                for(String columnName:columnNames){
-                    if(ref.getColumnName().equals(columnName)){
-                        return rsn.getCompilerContext().getStoreCostController(cd);
-                    }
-                }
-                return null;
-            }else return scc;
-        }else if(rsn instanceof SelectNode){
-            //aggregate over a join, look through each node in the FromList
-            SelectNode sn = (SelectNode)rsn;
-            FromList fl = sn.getFromList();
-            int size=fl.size();
-            for(int i=0;i<size;i++){
-                Optimizable o = fl.getOptimizable(i);
-                assert o instanceof ResultSetNode: "Programmer error: unexpected type "+ o.getClass();
-                StoreCostController scc = findConglomerateDescriptor(ref,(ResultSetNode)o);
-                if(scc!=null) return scc;
-            }
-            return null;
-        } else{
-            throw new IllegalStateException("Programmer Error: Unexpected node type: "+rsn.getClass());
-        }
     }
 
     private long computeCardinality(List<Long> cardinalityList) {
