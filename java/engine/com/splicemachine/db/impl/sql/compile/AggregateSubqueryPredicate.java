@@ -21,11 +21,15 @@ class AggregateSubqueryPredicate implements com.google.common.base.Predicate<Sub
     }
 
     private boolean doWeHandle(SubqueryNode subqueryNode) throws StandardException {
-        /* subquery cannot be a union */
         ResultSetNode subqueryResultSet = subqueryNode.getResultSet();
-        if (subqueryResultSet.getFromList().elementAt(0) instanceof UnionNode) {
-            return false;
+
+        /* subquery cannot contain a union */
+        for (Object fromNodeList : subqueryResultSet.getFromList().getNodes()) {
+            if (fromNodeList instanceof UnionNode) {
+                return false;
+            }
         }
+
         /* subquery must be a select node */
         if (!(subqueryResultSet instanceof SelectNode)) {
             return false;
