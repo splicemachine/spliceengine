@@ -389,10 +389,8 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
 		*/
         if(scc==null){
             scc=optimizer.newSortCostController(this);
-
-            columnOrdering=getColumnOrdering();
         }
-        scc.estimateSortCost(this,baseCost);
+        scc.estimateSortCost(baseCost);
     }
 
     @Override

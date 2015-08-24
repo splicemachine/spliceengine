@@ -21,6 +21,7 @@
 
 package com.splicemachine.db.impl.store.access.sort;
 
+import java.io.IOException;
 import java.util.Properties;
 
 import com.splicemachine.db.iapi.services.monitor.ModuleControl;
@@ -394,4 +395,8 @@ public class ExternalSortFactory implements
 	{
 	}
 
+    @Override
+    public void estimateSortCost(CostEstimate baseCost) throws StandardException {
+        throw StandardException.plainWrapException(new IOException());
+    }
 }

@@ -9,6 +9,7 @@ import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
 import com.splicemachine.db.iapi.sql.compile.Optimizer;
 import com.splicemachine.db.iapi.sql.compile.RowOrdering;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.store.access.SortCostController;
 
 public class OrderByNode extends SingleChildResultSetNode {
     OrderByList		orderByList;
@@ -90,13 +91,9 @@ public class OrderByNode extends SingleChildResultSetNode {
 
     @Override
     public CostEstimate getFinalCostEstimate() throws StandardException{
-        CostEstimate est = childResult.getFinalCostEstimate();
-        CostEstimate base=est.getBase();
-        if(base!=est){
-            base.setRemoteCost(0d);
-            est.setBase(null);
-        }
-        return est;
+        CostEstimate ce = childResult.getFinalCostEstimate();
+        orderByList.estimateCost(optimizer,null,ce);
+        return ce;
     }
 
     @Override
