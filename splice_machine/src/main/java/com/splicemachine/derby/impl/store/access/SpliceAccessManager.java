@@ -1035,23 +1035,14 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
     }
 
     public static HTableInterface getHTable(Long id) {
-//		if (LOG.isTraceEnabled())
-//			LOG.trace("Getting HTable " + id);
         return autoFlushTableFactory.createHTableInterface(SpliceConstants.config,Long.toString(id).getBytes());
-//        return new HTable(SpliceConstants.config, HConnectionManager.getConnection(SpliceConstants.config), SpliceHConnection.)
-//				return singleRPCPool.getTable(Long.toString(id));
     }
 
     public static HTableInterface getHTable(byte[] tableName) {
-//		if (LOG.isTraceEnabled())
-//			LOG.trace("Getting HTable " + Bytes.toString(tableName));
         return autoFlushTableFactory.createHTableInterface(SpliceConstants.config,tableName);
-//				return singleRPCPool.getTable(Bytes.toString(tableName));
     }
 
     public static HTableInterface getFlushableHTable(byte[] tableName) {
-//		if (LOG.isTraceEnabled())
-//			LOG.trace("Getting HTable " + Bytes.toString(tableName));
         return tableFactory.createHTableInterface(SpliceConstants.config,tableName);
     }
 

@@ -178,7 +178,7 @@ public class SpliceLevel2OptimizerImpl extends Level2OptimizerImpl{
 
     @Override
     public SortCostController newSortCostController(OrderByList orderByList){
-        return new TempSortController();
+        return new TempSortController(orderByList);
     }
 
     @Override
