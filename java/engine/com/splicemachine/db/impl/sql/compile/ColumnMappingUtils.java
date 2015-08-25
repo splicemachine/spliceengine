@@ -19,10 +19,12 @@ public class ColumnMappingUtils {
             ResultColumn rcToUpdate = colRef.getSource();
 
             if(rcToUpdate != null){
-                // TODO: handle column name collision
                 ResultColumn updateFromRC = colsToUpdateFrom.getResultColumnFullName(rcToUpdate.getFullName(), true);
-                rcToUpdate.setResultSetNumber(updateFromRC.getResultSetNumber());
-                rcToUpdate.setVirtualColumnId(updateFromRC.getVirtualColumnId());
+                if(updateFromRC != null){
+                    rcToUpdate.setResultSetNumber(updateFromRC.getResultSetNumber());
+                    rcToUpdate.setVirtualColumnId(updateFromRC.getVirtualColumnId());
+                }
+
             }
         }
     }

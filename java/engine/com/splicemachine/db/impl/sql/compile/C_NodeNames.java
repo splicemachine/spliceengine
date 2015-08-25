@@ -318,6 +318,8 @@ public interface C_NodeNames
 
     static final String TRUNC_NODE_NAME = "com.splicemachine.db.impl.sql.compile.TruncateOperatorNode";
 
+    static final String BATCH_ONCE_NODE_NAME = "com.splicemachine.db.impl.sql.compile.BatchOnceNode";
+
     // WARNING: WHEN ADDING NODE TYPES HERE, YOU MUST ALSO ADD
     // THEM TO tools/jar/DBMSnodes.properties
 

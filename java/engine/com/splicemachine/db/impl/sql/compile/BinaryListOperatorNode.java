@@ -341,11 +341,11 @@ public abstract class BinaryListOperatorNode extends ValueNode{
         super.acceptChildren(v);
 
         if(leftOperand!=null){
-            leftOperand=(ValueNode)leftOperand.accept(v);
+            leftOperand=(ValueNode)leftOperand.accept(v, this);
         }
 
         if(rightOperandList!=null){
-            rightOperandList=(ValueNodeList)rightOperandList.accept(v);
+            rightOperandList=(ValueNodeList)rightOperandList.accept(v, this);
         }
     }
 

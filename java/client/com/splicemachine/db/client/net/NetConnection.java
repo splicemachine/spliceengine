@@ -26,17 +26,13 @@ import java.sql.*;
 import java.util.Properties;
 import java.util.concurrent.Executor;
 
+import com.splicemachine.db.client.am.*;
 import com.splicemachine.db.client.am.CallableStatement;
 import com.splicemachine.db.client.am.DatabaseMetaData;
-import com.splicemachine.db.client.am.DisconnectException;
-import com.splicemachine.db.client.am.EncryptionManager;
 import com.splicemachine.db.client.am.PreparedStatement;
-import com.splicemachine.db.client.am.SqlException;
-import com.splicemachine.db.client.am.ClientMessageId;
-import com.splicemachine.db.impl.jdbc.Util;
+import com.splicemachine.db.client.am.Statement;
 import com.splicemachine.db.shared.common.reference.MessageId;
 import com.splicemachine.db.shared.common.i18n.MessageUtil;
-import com.splicemachine.db.client.am.Statement;
 import com.splicemachine.db.iapi.reference.Attribute;
 import com.splicemachine.db.jdbc.ClientBaseDataSource;
 import com.splicemachine.db.jdbc.ClientDriver;
@@ -1801,17 +1797,17 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
 
     @Override
     public NClob createNClob() throws SQLException{
-        throw Util.notImplemented("createNClob");
+        throw SQLExceptionFactory.notImplemented("createNClob");
     }
 
     @Override
     public SQLXML createSQLXML() throws SQLException{
-        throw Util.notImplemented("createSQLXML");
+        throw SQLExceptionFactory.notImplemented("createSQLXML");
     }
 
     @Override
     public boolean isValid(int timeout) throws SQLException{
-        throw Util.notImplemented("isValid");
+        throw SQLExceptionFactory.notImplemented("isValid");
     }
 
     @Override
@@ -1826,37 +1822,37 @@ public class NetConnection extends com.splicemachine.db.client.am.Connection {
 
     @Override
     public String getClientInfo(String name) throws SQLException{
-        throw Util.notImplemented("getClientInfo");
+        throw SQLExceptionFactory.notImplemented("getClientInfo");
     }
 
     @Override
     public Properties getClientInfo() throws SQLException{
-        throw Util.notImplemented("getClientInfo");
+        throw SQLExceptionFactory.notImplemented("getClientInfo");
     }
 
     @Override
     public Array createArrayOf(String typeName,Object[] elements) throws SQLException{
-        throw Util.notImplemented("createArrayOf");
+        throw SQLExceptionFactory.notImplemented("createArrayOf");
     }
 
     @Override
     public Struct createStruct(String typeName,Object[] attributes) throws SQLException{
-        throw Util.notImplemented("createStruct");
+        throw SQLExceptionFactory.notImplemented("createStruct");
     }
 
     @Override
     public void abort(Executor executor) throws SQLException{
-        throw Util.notImplemented("abort");
+        throw SQLExceptionFactory.notImplemented("abort");
     }
 
     @Override
     public void setNetworkTimeout(Executor executor,int milliseconds) throws SQLException{
-        throw Util.notImplemented("setNetworkTimeout");
+        throw SQLExceptionFactory.notImplemented("setNetworkTimeout");
     }
 
     @Override
     public int getNetworkTimeout() throws SQLException{
-        throw Util.notImplemented("getNetworkTimeout");
+        throw SQLExceptionFactory.notImplemented("getNetworkTimeout");
     }
 
     /**

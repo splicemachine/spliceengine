@@ -250,9 +250,10 @@ public interface C_NodeTypes
 
     static final int EXPORT_NODE = 250;
     static final int TRUNC_NODE = 251;
+    static final int BATCH_ONCE_NODE = 252;
 
     // Final value in set, keep up to date!
-    static final int FINAL_VALUE = TRUNC_NODE;
+    static final int FINAL_VALUE = BATCH_ONCE_NODE;
 
     /**
      * Extensions to this interface can use nodetypes > MAX_NODE_TYPE with out fear of collision

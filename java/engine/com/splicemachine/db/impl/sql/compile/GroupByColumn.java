@@ -22,7 +22,6 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import java.util.List;
-import java.util.Vector;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -138,17 +137,13 @@ public class GroupByColumn extends OrderedColumn
 	/**
 	 * Accept the visitor for all visitable children of this node.
 	 *
-	 * @param v the visitor
-	 *
-	 * @exception StandardException on error
-	 */
-	public void acceptChildren(Visitor v)
-		throws StandardException {
-
+     * @param v the visitor
+     */
+    @Override
+	public void acceptChildren(Visitor v) throws StandardException {
 		super.acceptChildren(v);
-
 		if (columnExpression != null) {
-			columnExpression = (ValueNode)columnExpression.accept(v);
+			columnExpression = (ValueNode)columnExpression.accept(v, this);
 		}
 	}
 }

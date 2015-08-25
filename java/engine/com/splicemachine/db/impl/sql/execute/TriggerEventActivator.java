@@ -121,7 +121,6 @@ public class TriggerEventActivator {
             return;
         }
 
-        tec.setCurrentTriggerEvent(event);
         try {
             lcc.pushExecutionStmtValidator(tec);
             if (! tecPushed) {
@@ -133,11 +132,10 @@ public class TriggerEventActivator {
                 // Reset the AI counters to the beginning before firing next trigger.
                 tec.resetAICounters(true);
                 // Fire the statement or row trigger.
-                triggerExecutor.fireTrigger(event, null, null, null);
+                triggerExecutor.fireTrigger(event, null, null);
             }
         } finally {
             lcc.popExecutionStmtValidator(tec);
-            tec.clearCurrentTriggerEvent();
         }
     }
 
@@ -145,13 +143,11 @@ public class TriggerEventActivator {
      * Handle the given row event.
      *
      * @param event             a trigger event
-     * @param brs               the before result set.  Typically a TemporaryRowHolderResultSet but sometimes a BulkTableScanResultSet
-     * @param ars               the after result set. Typically a TemporaryRowHolderResultSet but sometimes a BulkTableScanResultSet
+     * @param rs                the triggering result set.  Typically a TemporaryRowHolderResultSet but sometimes a BulkTableScanResultSet
      * @param colsReadFromTable columns required from the trigger table by the triggering sql
      */
     public void notifyRowEvent(TriggerEvent event,
-                               CursorResultSet brs,
-                               CursorResultSet ars,
+                               CursorResultSet rs,
                                int[] colsReadFromTable) throws StandardException {
 
         if (rowExecutorsMap.isEmpty()) {
@@ -162,7 +158,6 @@ public class TriggerEventActivator {
             return;
         }
 
-        tec.setCurrentTriggerEvent(event);
         try {
             lcc.pushExecutionStmtValidator(tec);
             if (! tecPushed) {
@@ -174,11 +169,10 @@ public class TriggerEventActivator {
                 // Reset the AI counters to the beginning before firing next trigger.
                 tec.resetAICounters(true);
                 // Fire the statement or row trigger.
-                triggerExecutor.fireTrigger(event, brs, ars, colsReadFromTable);
+                triggerExecutor.fireTrigger(event, rs, colsReadFromTable);
             }
         } finally {
             lcc.popExecutionStmtValidator(tec);
-            tec.clearCurrentTriggerEvent();
         }
     }
 
@@ -187,7 +181,7 @@ public class TriggerEventActivator {
      */
     public void cleanup() throws StandardException {
         if (tec != null) {
-            tec.cleanup();
+            tec.clearTrigger();
             if (tecPushed) {
                 lcc.popTriggerExecutionContext(tec);
             }

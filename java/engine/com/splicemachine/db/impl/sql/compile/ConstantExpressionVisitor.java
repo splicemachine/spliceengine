@@ -57,7 +57,8 @@ class ConstantExpressionVisitor implements Visitor {
      *
      * @see ValueNode#evaluateConstantExpressions()
      */
-    public Visitable visit(Visitable node) throws StandardException {
+    @Override
+    public Visitable visit(Visitable node, QueryTreeNode parent) throws StandardException {
         if (node instanceof ValueNode) {
             node = ((ValueNode) node).evaluateConstantExpressions();
         }

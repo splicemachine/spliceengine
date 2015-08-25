@@ -414,17 +414,14 @@ public class CreateViewNode extends DDLStatementNode
 	 * Accept the visitor for all visitable children of this node.
 	 * 
 	 * @param v the visitor
-	 *
-	 * @exception StandardException on error
 	 */
-	public void acceptChildren(Visitor v)
-		throws StandardException
-	{
+    @Override
+	public void acceptChildren(Visitor v) throws StandardException {
 		super.acceptChildren(v);
 
 		if (queryExpression != null)
 		{
-			queryExpression = (ResultSetNode)queryExpression.accept(v);
+			queryExpression = (ResultSetNode)queryExpression.accept(v, this);
 		}
 	}
 

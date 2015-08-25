@@ -22,10 +22,8 @@
 package com.splicemachine.db.client.am;
 
 import java.sql.SQLException;
-
 import com.splicemachine.db.iapi.reference.DRDAConstants;
 import com.splicemachine.db.iapi.reference.JDBC30Translation;
-import com.splicemachine.db.impl.jdbc.Util;
 import com.splicemachine.db.shared.common.reference.SQLState;
 
 // Under JDBC 2, we must new up our parameter meta data as column meta data instances
@@ -105,12 +103,12 @@ public class ColumnMetaData implements java.sql.ResultSetMetaData {
 
 //    @Override
     public <T> T unwrap(Class<T> iface) throws SQLException{
-        throw Util.notImplemented("unwrap");
+        throw SQLExceptionFactory.notImplemented("unwrap");
     }
 
 //    @Override
     public boolean isWrapperFor(Class<?> iface) throws SQLException{
-        throw Util.notImplemented("isWrapperFor");
+        throw SQLExceptionFactory.notImplemented("isWrapperFor");
     }
 
     void markClosed() {

@@ -4,6 +4,7 @@ import com.google.common.base.Predicate;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
+import com.splicemachine.db.impl.sql.compile.QueryTreeNode;
 
 /**
  * Visitor that applies a visitor along a traversal "axis" defined by a predicate. Only
@@ -23,8 +24,8 @@ public class AxisVisitor implements Visitor {
     }
 
     @Override
-    public Visitable visit(Visitable node) throws StandardException {
-        return v.visit(node);
+    public Visitable visit(Visitable node, QueryTreeNode parent) throws StandardException {
+        return v.visit(node, parent);
     }
 
     @Override

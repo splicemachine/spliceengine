@@ -553,4 +553,8 @@ public final class BigIntegerDecimal extends BinaryDecimal
 		else
 			return getString();
 	}
+
+	public BigDecimal getBigDecimal() {
+		return isNull() ? null : new BigDecimal(new BigInteger(data2c));
+	}
 }

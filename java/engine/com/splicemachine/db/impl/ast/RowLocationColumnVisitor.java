@@ -70,7 +70,7 @@ public class RowLocationColumnVisitor extends AbstractSpliceVisitor {
     	
     	// Fetch the closest PRN child
     	List<ProjectRestrictNode> prnAll = RSUtils.collectNodes(rsnRoot, ProjectRestrictNode.class);
-    	if (prnAll == null || prnAll.size() == 0) error("Unable to fetch descendent ProjectRestrictNodes for node %s", node);
+    	if (prnAll == null || prnAll.size() == 0) error("Unable to fetch descendant ProjectRestrictNodes for node %s", node);
     	ProjectRestrictNode prnUpper = (ProjectRestrictNode)prnAll.get(0);
     	if (prnUpper == null) error("Unable to fetch upper ProjectRestrictNode for node %s", node);
 

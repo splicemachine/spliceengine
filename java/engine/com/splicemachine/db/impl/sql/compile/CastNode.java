@@ -1043,17 +1043,14 @@ public class CastNode extends ValueNode
 	 * Accept the visitor for all visitable children of this node.
 	 * 
 	 * @param v the visitor
-	 *
-	 * @exception StandardException on error
 	 */
-	public void acceptChildren(Visitor v)
-		throws StandardException
-	{
+    @Override
+	public void acceptChildren(Visitor v) throws StandardException {
 		super.acceptChildren(v);
 
 		if (castOperand != null)
 		{
-			castOperand = (ValueNode)castOperand.accept(v);
+			castOperand = (ValueNode)castOperand.accept(v, this);
 		}
 	}
 

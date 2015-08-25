@@ -1563,7 +1563,7 @@ public class FromBaseTable extends FromTable{
                 CollectNodesVisitor cnv=
                         new CollectNodesVisitor(QueryTreeNode.class,null);
 
-                fsq.accept(cnv);
+                fsq.accept(cnv, null);
 
                 for(Object o : cnv.getList()){
                     ((QueryTreeNode)o).disablePrivilegeCollection();
@@ -3735,26 +3735,25 @@ public class FromBaseTable extends FromTable{
      * Accept the visitor for all visitable children of this node.
      *
      * @param v the visitor
-     * @throws StandardException on error
      */
     @Override
     public void acceptChildren(Visitor v)  throws StandardException{
         super.acceptChildren(v);
 
         if(nonStoreRestrictionList!=null){
-            nonStoreRestrictionList.accept(v);
+            nonStoreRestrictionList.accept(v, this);
         }
 
         if(restrictionList!=null){
-            restrictionList.accept(v);
+            restrictionList.accept(v, this);
         }
 
         if(nonBaseTableRestrictionList!=null){
-            nonBaseTableRestrictionList.accept(v);
+            nonBaseTableRestrictionList.accept(v, this);
         }
 
         if(requalificationRestrictionList!=null){
-            requalificationRestrictionList.accept(v);
+            requalificationRestrictionList.accept(v, this);
         }
     }
 
@@ -3778,4 +3777,25 @@ public class FromBaseTable extends FromTable{
         return super.makeConstantAction();    //To change body of overridden methods use File | Settings | File Templates.
     }
     */
+
+    public void clearAllPredicates() {
+        if(this.baseTableRestrictionList != null) {
+            this.baseTableRestrictionList.getNodes().clear();
+        }
+        if(this.nonBaseTableRestrictionList != null) {
+            this.nonBaseTableRestrictionList.getNodes().clear();
+        }
+        if(this.restrictionList != null) {
+            this.restrictionList.getNodes().clear();
+        }
+        if(this.storeRestrictionList != null) {
+            this.storeRestrictionList.getNodes().clear();
+        }
+        if(this.nonStoreRestrictionList != null) {
+            this.nonStoreRestrictionList.getNodes().clear();
+        }
+        if(this.requalificationRestrictionList != null) {
+            this.requalificationRestrictionList.getNodes().clear();
+        }
+    }
 }

@@ -22,8 +22,6 @@ package com.splicemachine.db.client.am;
 
 import java.sql.SQLException;
 import java.util.Arrays;
-
-import com.splicemachine.db.impl.jdbc.Util;
 import com.splicemachine.db.shared.common.reference.SQLState;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
 
@@ -210,7 +208,7 @@ public class Statement implements java.sql.Statement, StatementCallbackInterface
 
     @Override
     public <T> T unwrap(Class<T> iface) throws SQLException{
-        throw Util.notImplemented("unwrap");
+        throw SQLExceptionFactory.notImplemented("unwrap");
     }
 
     private void resetStatement() {
@@ -2373,7 +2371,8 @@ public class Statement implements java.sql.Statement, StatementCallbackInterface
                 firstToken.equalsIgnoreCase("values")) // captures <values-clause> production
         {
             sqlMode_ = isQuery__;
-        } else if (firstToken.equalsIgnoreCase("call")) // captures CALL...and ?=CALL...
+        } else if (firstToken.equalsIgnoreCase("call") ||
+                firstToken.equalsIgnoreCase("analyze")) // captures CALL...and ?=CALL...
         {
             sqlMode_ = isCall__;
         } else {

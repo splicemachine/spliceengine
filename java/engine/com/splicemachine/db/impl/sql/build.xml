@@ -124,7 +124,7 @@
       srcdir="${derby.engine.src.dir}:${generated.engine.dir}"
       destdir="${out.dir}">
       <classpath>
-        <pathelement path="${log4j};${joda-time};${main.classpath}"/>
+        <pathelement path="${log4j};${joda-time};${main.classpath};${gson}"/>
       	<path refid="lib.path.id"/>
       </classpath>
       <include name="${splice.package}/${cur.dir}/**"/>

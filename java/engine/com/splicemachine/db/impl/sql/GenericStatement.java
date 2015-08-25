@@ -9,10 +9,7 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.stream.HeaderPrintWriter;
 import com.splicemachine.db.iapi.sql.PreparedStatement;
 import com.splicemachine.db.iapi.sql.Statement;
-import com.splicemachine.db.iapi.sql.compile.ASTVisitor;
-import com.splicemachine.db.iapi.sql.compile.CompilerContext;
-import com.splicemachine.db.iapi.sql.compile.Parser;
-import com.splicemachine.db.iapi.sql.compile.Visitable;
+import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.conn.StatementContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
@@ -21,14 +18,21 @@ import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.execute.ExecutionContext;
 import com.splicemachine.db.iapi.util.ByteArray;
 import com.splicemachine.db.iapi.util.InterruptStatus;
+import com.splicemachine.db.impl.ast.JsonTreeBuilderVisitor;
 import com.splicemachine.db.impl.sql.compile.ExplainNode;
 import com.splicemachine.db.impl.sql.compile.StatementNode;
 import com.splicemachine.db.impl.sql.conn.GenericLanguageConnectionContext;
+import org.apache.log4j.Logger;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.sql.Timestamp;
 
 @SuppressWarnings("SynchronizeOnNonFinalField")
 public class GenericStatement implements Statement{
+
+    private static final Logger JSON_TREE_LOG = Logger.getLogger(JsonTreeBuilderVisitor.class);
 
     // these fields define the identity of the statement
     private final SchemaDescriptor compilationSchema;
@@ -459,7 +463,8 @@ public class GenericStatement implements Statement{
         timestamps[1]=getCurrentTimeMillis(lcc);
 
         // Call user-written tree-printer if it exists
-        walkAST(lcc,qt,ASTVisitor.AFTER_PARSE);
+        walkAST(lcc,qt, CompilationPhase.AFTER_PARSE);
+        saveTree(qt, CompilationPhase.AFTER_PARSE);
 
         dumpParseTree(lcc,qt,true);
         return qt;
@@ -483,7 +488,8 @@ public class GenericStatement implements Statement{
             timestamps[2]=getCurrentTimeMillis(lcc);
 
             // Call user-written tree-printer if it exists
-            walkAST(lcc,qt,ASTVisitor.AFTER_BIND);
+            walkAST(lcc,qt, CompilationPhase.AFTER_BIND);
+            saveTree(qt, CompilationPhase.AFTER_BIND);
 
             dumpBoundTree(lcc,qt);
 
@@ -534,7 +540,8 @@ public class GenericStatement implements Statement{
             timestamps[3]=getCurrentTimeMillis(lcc);
 
             // Call user-written tree-printer if it exists
-            walkAST(lcc,qt,ASTVisitor.AFTER_OPTIMIZE);
+            walkAST(lcc,qt, CompilationPhase.AFTER_OPTIMIZE);
+            saveTree(qt, CompilationPhase.AFTER_OPTIMIZE);
 
             // Statement logging if lcc.getLogStatementText() is true
             if(istream!=null){
@@ -686,14 +693,40 @@ public class GenericStatement implements Statement{
     }
 
     /**
-     * Walk the AST, using a (user-supplied) Visitor
+     * Walk the AST, using a (user-supplied) Visitor, write tree as JSON file if enabled.
      */
-    private void walkAST(LanguageConnectionContext lcc,Visitable queryTree,int phase) throws StandardException{
-        ASTVisitor visitor=lcc.getASTVisitor();
-        if(visitor!=null){
-            visitor.begin(statementText,phase);
+    private void walkAST(LanguageConnectionContext lcc, Visitable queryTree, CompilationPhase phase) throws StandardException {
+        ASTVisitor visitor = lcc.getASTVisitor();
+        if (visitor != null) {
+            visitor.begin(statementText, phase);
             queryTree.accept(visitor);
             visitor.end(phase);
+        }
+    }
+
+    /**
+     * Saves AST tree as JSON in files (in working directory for now) for each phase.  This is of course intended to be
+     * used ONLY by splice developers.  Enable using system property 'splice.save-ast-tree-as-json'.
+     *
+     * AFTER_PARSE.json
+     * AFTER_BIND.json
+     * AFTER_OPTIMIZE.json
+     *
+     * View using ast-visualization.html
+     */
+    private void saveTree(Visitable queryTree, CompilationPhase phase) throws StandardException {
+        if (JSON_TREE_LOG.isTraceEnabled()) {
+            JSON_TREE_LOG.warn("JSON AST logging is enabled");
+            try {
+                JsonTreeBuilderVisitor jsonVisitor = new JsonTreeBuilderVisitor();
+                queryTree.accept(jsonVisitor);
+                String destinationFileName = phase + ".json";
+                Files.write(Paths.get(destinationFileName), jsonVisitor.toJson().getBytes("UTF-8"));
+            } catch (IOException e) {
+                /* Don't let the exception propagate.  If we are trying to use this tool on a server where we can't
+                   write to the destination, for example, then warn but let the query run. */
+                JSON_TREE_LOG.warn("unable to save AST JSON file", e);
+            }
         }
     }
 }

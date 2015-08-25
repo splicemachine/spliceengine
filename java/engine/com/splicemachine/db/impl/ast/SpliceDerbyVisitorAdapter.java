@@ -6,7 +6,9 @@ import com.splicemachine.db.iapi.ast.ISpliceVisitor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.MessageId;
 import com.splicemachine.db.iapi.sql.compile.ASTVisitor;
+import com.splicemachine.db.iapi.sql.compile.CompilationPhase;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
+import com.splicemachine.db.impl.sql.compile.QueryTreeNode;
 import org.apache.log4j.Logger;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -31,14 +33,13 @@ public class SpliceDerbyVisitorAdapter implements ASTVisitor {
     // Method lookup
     private static Cache<Class, Method> methods = CacheBuilder.newBuilder().build();
 
-    private static Visitable invokeVisit(ISpliceVisitor visitor, Visitable node)
-            throws StandardException {
+    private static Visitable invokeVisit(ISpliceVisitor visitor, Visitable node) throws StandardException {
         final Class<? extends Visitable> nClass = node.getClass();
         try {
             Method m = methods.get(nClass, new Callable<Method>() {
                 @Override
                 public Method call() throws Exception {
-                    Method m = ISpliceVisitor.class.getMethod("visit", new Class[]{nClass});
+                    Method m = ISpliceVisitor.class.getMethod("visit", nClass);
                     m.setAccessible(true);
                     return m;
                 }
@@ -49,14 +50,10 @@ public class SpliceDerbyVisitorAdapter implements ASTVisitor {
             throw StandardException.newException(MessageId.SPLICE_GENERIC_EXCEPTION, e,
                                                     String.format("Problem finding ISpliceVisitor visit method for %s",
                                                                      nClass));
-        } catch (IllegalAccessException e) {
+        } catch (IllegalAccessException | InvocationTargetException e) {
              throw StandardException.newException(MessageId.SPLICE_GENERIC_EXCEPTION, e,
                                                     String.format("Problem invoking ISpliceVisitor visit method for %s",
                                                                      nClass));
-        } catch (InvocationTargetException e) {
-            throw StandardException.newException(MessageId.SPLICE_GENERIC_EXCEPTION, e,
-                    String.format("Problem invoking ISpliceVisitor visit method for %s",
-                            nClass));
         }
     }
 
@@ -74,13 +71,13 @@ public class SpliceDerbyVisitorAdapter implements ASTVisitor {
     }
 
     @Override
-    public void begin(String statementText, int phase) throws StandardException {
+    public void begin(String statementText, CompilationPhase phase) throws StandardException {
         v.setContext(statementText, phase);
         start = System.nanoTime();
     }
 
     @Override
-    public void end(int phase) throws StandardException {
+    public void end(CompilationPhase phase) throws StandardException {
         if (LOG.isDebugEnabled()) {
             float duration = (System.nanoTime() - start) / 1000000f;
             LOG.debug(String.format("%s visited %d nodes in %.2f ms", v.getClass().getSimpleName(), visited, duration));
@@ -89,7 +86,7 @@ public class SpliceDerbyVisitorAdapter implements ASTVisitor {
     }
 
     @Override
-    public Visitable visit(Visitable node) throws StandardException {
+    public Visitable visit(Visitable node, QueryTreeNode parent) throws StandardException {
         visited++;
         return invokeVisit(v, node);
     }

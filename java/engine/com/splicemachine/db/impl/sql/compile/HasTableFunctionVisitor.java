@@ -46,7 +46,8 @@ public class HasTableFunctionVisitor extends HasNodeVisitor
     //
     ///////////////////////////////////////////////////////////////////////////////////
 
-	public Visitable visit(Visitable node)
+    @Override
+	public Visitable visit(Visitable node, QueryTreeNode parent)
 	{
 		if ( node instanceof FromVTI )
 		{

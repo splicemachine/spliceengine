@@ -273,7 +273,7 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 		return value;
 	}
 
-	private BigDecimal	getBigDecimal()
+	public BigDecimal getBigDecimal()
 	{
 		if ((value == null) && (rawData != null)) 
 		{
@@ -1101,4 +1101,5 @@ public final class SQLDecimal extends NumberDataType implements VariableSizeData
 	public Format getFormat() {
 		return Format.DECIMAL;
 	}
+
 }

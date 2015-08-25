@@ -68,9 +68,8 @@ public class VerifyAggregateExpressionsVisitor implements Visitor
 	 * 	JavaValueNode that isn't under an
 	 * 	aggregate
 	 */
-	public Visitable visit(Visitable node)
-		throws StandardException
-	{
+    @Override
+	public Visitable visit(Visitable node, QueryTreeNode parent) throws StandardException {
 		if (node instanceof ColumnReference)
 		{
 			ColumnReference cr = (ColumnReference)node;

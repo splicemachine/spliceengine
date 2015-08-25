@@ -109,7 +109,7 @@ public class ExportNode extends DMLStatementNode {
     public void acceptChildren(Visitor v) throws StandardException {
         super.acceptChildren(v);
         if (node != null) {
-            node = (StatementNode) node.accept(v);
+            node = (StatementNode) node.accept(v, this);
         }
     }
 
