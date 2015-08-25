@@ -28,6 +28,7 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.util.JBitSet;
 
+import java.util.Collection;
 import java.util.Vector;
 
 /**
@@ -529,4 +530,11 @@ public abstract class SingleChildResultSetNode extends FromTable{
         if(childResult!=null) return childResult.makeConstantAction();
         return null;
     }
+    @Override
+    public void buildTree(Collection<QueryTreeNode> tree, int depth) {
+        setDepth(depth);
+        tree.add(this);
+        childResult.buildTree(tree,depth+1);
+    }
+
 }

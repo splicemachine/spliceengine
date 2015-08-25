@@ -43,6 +43,7 @@ import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 
+import java.io.IOException;
 import java.util.BitSet;
 
 /**
@@ -459,4 +460,41 @@ public class IntersectOrExceptNode extends SetOperatorNode
     {
         return getRowCountEstimate( leftSingleScanRowCount, rightSingleScanRowCount);
     }
+
+
+    @Override
+    public String printExplainInformation(int order) throws StandardException {
+        StringBuilder sb = new StringBuilder();
+        sb = sb.append(spaceToLevel())
+                .append(getExplainDisplay()).append("(")
+                .append("n=").append(order);
+        sb.append(",").append(getFinalCostEstimate().prettyProcessingString());
+        sb = sb.append(")");
+        return sb.toString();
+    }
+
+    @Override
+    public String printDebugInformation(int order) throws StandardException {
+        StringBuilder sb = new StringBuilder();
+        sb = sb.append(spaceToLevel())
+                .append(getExplainDisplay()).append("(")
+                .append("n=").append(order);
+        sb = sb.append(")");
+        return sb.toString();
+    }
+
+
+    public String getExplainDisplay() throws StandardException {
+        switch( opType)
+        {
+            case INTERSECT_OP:
+                return "INTERSECT";
+
+            case EXCEPT_OP:
+                return "EXCEPT";
+
+        }
+        throw StandardException.plainWrapException(new IOException("incorrent op type"));
+    }
+
 }

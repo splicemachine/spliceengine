@@ -377,7 +377,12 @@ public class CostEstimateImpl implements CostEstimate {
     }
 
     @Override
-    public String prettyString(){
+    public String prettyProcessingString(){
+        return toString();
+    }
+
+    @Override
+    public String prettyScrollInsensitiveString(){
         return toString();
     }
 
@@ -413,5 +418,65 @@ public class CostEstimateImpl implements CostEstimate {
     @Override
     public void setAntiJoin(boolean isAntiJoin) {
         this.isAntiJoin = isAntiJoin;
+    }
+
+    @Override
+    public void setFromBaseTableCost(double fromBaseTableCost) {
+
+    }
+
+    @Override
+    public double getProjectionRows() {
+        return 0;
+    }
+
+    @Override
+    public void setProjectionRows(double projectionRows) {
+
+    }
+
+    @Override
+    public double getProjectionCost() {
+        return 0;
+    }
+
+    @Override
+    public void setProjectionCost(double projectionCost) {
+
+    }
+
+    @Override
+    public double getIndexLookupRows() {
+        return 0;
+    }
+
+    @Override
+    public void setIndexLookupRows(double indexLookupRows) {
+
+    }
+
+    @Override
+    public double getIndexLookupCost() {
+        return 0;
+    }
+
+    @Override
+    public void setIndexLookupCost(double indexLookupCost) {
+
+    }
+
+    @Override
+    public double getFromBaseTableRows() {
+        return 0;
+    }
+
+    @Override
+    public void setFromBaseTableRows(double fromBaseTableRows) {
+
+    }
+
+    @Override
+    public double getFromBaseTableCost() {
+        return 0;
     }
 }

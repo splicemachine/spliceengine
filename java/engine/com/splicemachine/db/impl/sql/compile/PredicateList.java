@@ -1203,7 +1203,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         }
 
         /* Remove all predicates from the list */
-        removeAllElements();
+        //removeAllElements();
         return restriction;
     }
 

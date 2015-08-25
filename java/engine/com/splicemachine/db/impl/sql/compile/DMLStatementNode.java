@@ -30,6 +30,7 @@ import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 
+import java.util.Collection;
 import java.util.Vector;
 
 /**
@@ -378,5 +379,13 @@ public abstract class DMLStatementNode extends StatementNode{
      */
     int getPrivType(){
         return Authorizer.SELECT_PRIV;
+    }
+
+    @Override
+    public void buildTree(Collection<QueryTreeNode> tree, int depth) {
+        setDepth(depth);
+        tree.add(this);
+        if(resultSet!=null)
+            resultSet.buildTree(tree,depth+1);
     }
 }

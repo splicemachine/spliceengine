@@ -12,6 +12,8 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 
+import java.util.Collection;
+
 /**
  * @author Jun Yuan
  * Date: 6/9/14
@@ -80,4 +82,9 @@ public class ExplainNode extends DMLStatementNode {
         return	node.makeConstantAction();
     }
 
+
+    public void buildTree(Collection<QueryTreeNode> tree, int depth) {
+        if ( node!= null)
+            node.buildTree(tree,depth);
+    }
 }

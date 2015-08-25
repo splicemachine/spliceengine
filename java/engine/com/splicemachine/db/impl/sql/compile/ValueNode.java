@@ -1473,5 +1473,9 @@ public abstract class ValueNode extends QueryTreeNode
 	}
 	
 	public abstract List getChildren();
-	
+
+    public String explainDisplay() {
+        return "restriction";
+    }
+
 }

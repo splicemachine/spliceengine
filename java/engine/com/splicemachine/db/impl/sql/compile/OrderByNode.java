@@ -11,6 +11,8 @@ import com.splicemachine.db.iapi.sql.compile.RowOrdering;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.SortCostController;
 
+import java.util.Collection;
+
 public class OrderByNode extends SingleChildResultSetNode {
     OrderByList		orderByList;
     @Override
@@ -91,9 +93,11 @@ public class OrderByNode extends SingleChildResultSetNode {
 
     @Override
     public CostEstimate getFinalCostEstimate() throws StandardException{
-        CostEstimate ce = childResult.getFinalCostEstimate();
-        orderByList.estimateCost(optimizer,null,ce);
-        return ce;
+        if(costEstimate==null) {
+            costEstimate = childResult.getFinalCostEstimate();
+            orderByList.estimateCost(optimizer, null, costEstimate);
+        }
+        return costEstimate;
     }
 
     @Override
@@ -133,5 +137,25 @@ public class OrderByNode extends SingleChildResultSetNode {
         return super.estimateCost(predList,cd,outerCost,optimizer,rowOrdering);
     }
 
+    @Override
+    public String printExplainInformation(int order) throws StandardException {
+        StringBuilder sb = new StringBuilder();
+        sb = sb.append(spaceToLevel())
+                .append("OrderBy").append("(")
+                .append("n=").append(order);
+        sb.append(",").append(costEstimate.prettyProcessingString());
+        sb = sb.append(")");
+        return sb.toString();
+    }
+
+    @Override
+    public String printDebugInformation(int order) throws StandardException {
+        StringBuilder sb = new StringBuilder();
+        sb = sb.append(spaceToLevel())
+                .append("OrderBy").append("(")
+                .append("n=").append(order);
+        sb = sb.append(")");
+        return sb.toString();
+    }
 
 }

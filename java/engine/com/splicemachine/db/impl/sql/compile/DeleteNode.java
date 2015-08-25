@@ -1021,5 +1021,26 @@ public class DeleteNode extends DMLModStatementNode
 		}
 		
 	}
-	
+
+    @Override
+    public String printExplainInformation(int order) throws StandardException {
+        StringBuilder sb = new StringBuilder();
+        sb = sb.append(spaceToLevel())
+                .append("Delete").append("(")
+                .append("n=").append(order);
+                if (this.resultSet!=null) {
+                    sb.append(", totalCost=").append(this.resultSet.getFinalCostEstimate().getEstimatedCost());
+                    sb.append(", deletedRows=").append(this.resultSet.getFinalCostEstimate().getEstimatedRowCount());
+                }
+                sb.append(", targetTable=").append(targetTableName)
+                .append(")");
+        return sb.toString();
+    }
+
+    @Override
+    public String printDebugInformation(int order) throws StandardException {
+        return printExplainInformation(order);
+    }
+
+
 }

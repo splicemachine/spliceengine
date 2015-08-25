@@ -21,6 +21,8 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -35,6 +37,8 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.PropertyUtil;
+import com.splicemachine.db.impl.ast.PredicateUtils;
+import com.splicemachine.db.impl.ast.RSUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -1887,5 +1891,37 @@ public class JoinNode extends TableOperatorNode{
         return result;
     }
 
+    @Override
+    public String printExplainInformation(int order) throws StandardException {
+        JoinStrategy joinStrategy = RSUtils.ap(this).getJoinStrategy();
+        StringBuilder sb = new StringBuilder();
+        sb.append(spaceToLevel())
+                .append(joinStrategy.getJoinStrategyType().niceName()).append(rightResultSet.isNotExists()?"Anti":"").append("Join(")
+                .append("n=").append(order)
+                .append(",").append(getFinalCostEstimate().prettyProcessingString());
+        if (joinPredicates !=null) {
+            List<String> joinPreds = Lists.transform(PredicateUtils.PLtoList(joinPredicates), PredicateUtils.predToString);
+            if (joinPreds != null && joinPreds.size() > 0) //add
+                sb.append("preds=[" + Joiner.on(",").skipNulls().join(joinPreds) + "]");
+        }
+        sb.append(")");
+        return sb.toString();
+    }
+
+    @Override
+    public String printDebugInformation(int order) throws StandardException {
+        JoinStrategy joinStrategy = RSUtils.ap(this).getJoinStrategy();
+        StringBuilder sb = new StringBuilder();
+        sb.append(spaceToLevel())
+                .append(joinStrategy.getJoinStrategyType().niceName()).append(rightResultSet.isNotExists()?"Anti":"").append("Join(")
+                .append("n=").append(order);
+        if (joinPredicates !=null) {
+            List<String> joinPreds = Lists.transform(PredicateUtils.PLtoList(joinPredicates), PredicateUtils.predToString);
+            if (joinPreds != null && joinPreds.size() > 0) //add
+                sb.append("preds=[" + Joiner.on(",").skipNulls().join(joinPreds) + "]");
+        }
+        sb.append(")");
+        return sb.toString();
+    }
 
 }

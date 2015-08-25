@@ -21,6 +21,8 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
 import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
@@ -34,6 +36,8 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.util.JBitSet;
+import com.splicemachine.db.impl.ast.PredicateUtils;
+import com.splicemachine.db.impl.ast.RSUtils;
 
 import java.util.*;
 
@@ -1179,7 +1183,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
 			/* Allow the restrictionList to get garbage collected now
 			 * that we're done with it.
 			 */
-            restrictionList=null;
+             // restrictionList=null; DO NOT CLEANUP :JL Explain Plan Still needs this possibly.
         }
 
         // for the restriction, we generate an exprFun
@@ -1634,4 +1638,56 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
             restrictSubquerys.setPointOfAttachment(resultSetNumber);
         }
     }
+
+
+
+    @Override
+    public String printExplainInformation(int order) throws StandardException {
+        StringBuilder sb = new StringBuilder();
+        sb.append(spaceToLevel())
+                .append("ProjectRestrict").append("(")
+                .append("n=").append(order)
+                .append(",").append(getFinalCostEstimate().prettyProcessingString());
+        List<String> qualifiers =  Lists.transform(PredicateUtils.PLtoList(RSUtils.getPreds(this)), PredicateUtils.predToString);
+        if(qualifiers!=null && qualifiers.size()>0) //add
+            sb.append(",preds=["+ Joiner.on(",").skipNulls().join(qualifiers)+"]");
+        sb.append(")");
+        return sb.toString();
+    }
+
+    @Override
+    public String printDebugInformation(int order) throws StandardException {
+        StringBuilder sb = new StringBuilder();
+        sb.append(spaceToLevel())
+                .append("ProjectRestrict").append("(")
+                .append("n=").append(order);
+        List<String> qualifiers =  Lists.transform(PredicateUtils.PLtoList(RSUtils.getPreds(this)), PredicateUtils.predToString);
+        if(qualifiers!=null && qualifiers.size()>0) //add
+            sb.append(",preds=["+ Joiner.on(",").skipNulls().join(qualifiers)+"]");
+        sb.append(")");
+        return sb.toString();
+    }
+
+    public void buildTree(Collection<QueryTreeNode> tree, int depth) {
+        if (!nopProjectRestrict()) {
+            setDepth(depth);
+            tree.add(this);
+            if (projectSubquerys != null && projectSubquerys.size()>0) {
+                for (SubqueryNode node:projectSubquerys) {
+                    node.buildTree(tree,depth+1);
+                }
+            }
+            if (restrictSubquerys != null && restrictSubquerys.size()>0) {
+                for (SubqueryNode node:restrictSubquerys) {
+                    node.buildTree(tree,depth+1);
+                }
+            }
+            childResult.buildTree(tree, depth+1);
+        }
+        else {
+            childResult.buildTree(tree, depth);
+        }
+    }
+
+
 }

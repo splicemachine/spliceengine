@@ -29,6 +29,8 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
 
+import java.util.Collection;
+
 /**
  * A TableOperatorNode represents a relational operator like UNION, INTERSECT,
  * JOIN, etc. that takes two tables as parameters and returns a table.  The
@@ -770,4 +772,13 @@ public abstract class TableOperatorNode extends FromTable{
     public boolean needsSpecialRCLBinding(){
         return true;
     }
+
+    @Override
+    public void buildTree(Collection<QueryTreeNode> tree, int depth) {
+        setDepth(depth);
+        tree.add(this);
+        rightResultSet.buildTree(tree,depth+1);
+        leftResultSet.buildTree(tree,depth+1);
+    }
+
 }

@@ -21,6 +21,8 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
 import com.splicemachine.db.catalog.IndexDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
@@ -46,8 +48,9 @@ import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.iapi.util.StringUtil;
+import com.splicemachine.db.impl.ast.PredicateUtils;
+import com.splicemachine.db.impl.ast.RSUtils;
 import com.splicemachine.db.impl.sql.catalog.SYSUSERSRowFactory;
-
 import java.lang.reflect.Modifier;
 import java.util.*;
 
@@ -3357,6 +3360,69 @@ public class FromBaseTable extends FromTable{
 
     public boolean isAntiJoin() {
         return this.isAntiJoin;
+    }
+
+    @Override
+    public String printExplainInformation(int order) throws StandardException {
+        StringBuilder sb = new StringBuilder();
+        String indexName = getIndexName();
+        sb.append(spaceToLevel())
+                .append(getClassName(indexName)).append("(")
+                .append("n=").append(order)
+                .append(",").append(getFinalCostEstimate().prettyProcessingString());
+        if (indexName != null)
+            sb.append("baseTable=").append(getPrettyTableName());
+        List<String> qualifiers =  Lists.transform(PredicateUtils.PLtoList(RSUtils.getPreds(this)), PredicateUtils.predToString);
+        if(qualifiers!=null && qualifiers.size()>0) //add
+            sb.append(",preds=["+ Joiner.on(",").skipNulls().join(qualifiers)+"]");
+        sb.append(")");
+        return sb.toString();
+    }
+
+    @Override
+    public String printDebugInformation(int order) throws StandardException {
+        StringBuilder sb = new StringBuilder();
+        String indexName = getIndexName();
+        sb.append(spaceToLevel())
+                .append(getClassName(indexName)).append("(")
+                .append("n=").append(order);
+        if (indexName != null)
+            sb.append("baseTable=").append(getPrettyTableName());
+        List<String> qualifiers =  Lists.transform(PredicateUtils.PLtoList(RSUtils.getPreds(this)), PredicateUtils.predToString);
+        if(qualifiers!=null && qualifiers.size()>0) //add
+            sb.append(",preds=["+ Joiner.on(",").skipNulls().join(qualifiers)+"]");
+        sb.append(")");
+        return sb.toString();
+    }
+
+    private String getClassName(String niceIndexName) throws StandardException {
+        String cName = "";
+        if(niceIndexName!=null){
+            cName = "IndexScan["+niceIndexName+"]";
+        }else{
+            cName = "TableScan["+getPrettyTableName()+"]";
+        }
+        if(isMultiProbing())
+            cName = "MultiProbe"+cName;
+        if (isDistinctScan())
+            cName = "Distinct" + cName;
+        return cName;
+    }
+
+    private String getIndexName() {
+        ConglomerateDescriptor cd = getTrulyTheBestAccessPath().getConglomerateDescriptor();
+        if (cd.isIndex())
+            return String.format("%s(%s)", cd.getConglomerateName(), cd.getConglomerateNumber());
+        return null;
+    }
+
+    private String getPrettyTableName() throws StandardException {
+        TableDescriptor tableDescriptor=getTableDescriptor();
+        return String.format("%s(%s)",tableDescriptor.getName(),tableDescriptor.getHeapConglomerateId());
+    }
+    public void buildTree(Collection<QueryTreeNode> tree, int depth) {
+        setDepth(depth);
+        tree.add(this);
     }
 
 }

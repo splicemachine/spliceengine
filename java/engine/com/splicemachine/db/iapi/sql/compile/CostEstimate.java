@@ -199,5 +199,36 @@ public interface CostEstimate extends StoreCostResult {
     /**
      * @return a well-formatted display string
      */
-    String prettyString();
+    String prettyProcessingString();
+
+    /**
+     * @return a well-formatted display string
+     */
+    String prettyScrollInsensitiveString();
+
+    public double getProjectionRows();
+
+    public void setProjectionRows(double projectionRows);
+
+    public double getProjectionCost();
+
+    public void setProjectionCost(double projectionCost);
+
+    public double getIndexLookupRows() ;
+
+    public void setIndexLookupRows(double indexLookupRows) ;
+
+    public double getIndexLookupCost() ;
+
+    public void setIndexLookupCost(double indexLookupCost) ;
+
+    public double getFromBaseTableRows() ;
+
+    public void setFromBaseTableRows(double fromBaseTableRows);
+
+    public double getFromBaseTableCost();
+
+    public void setFromBaseTableCost(double fromBaseTableCost);
+
+
 }

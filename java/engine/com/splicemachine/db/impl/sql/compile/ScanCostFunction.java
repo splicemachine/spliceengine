@@ -22,7 +22,7 @@ import java.util.*;
 public class ScanCostFunction{
     private final Optimizable baseTable;
     private final CostEstimate scanCost;
-    private final StoreCostController storeCost;
+    private final StoreCostController scc;
     private final BitSet scanColumns; //the columns that we are scanning
     private final BitSet lookupColumns; //the columns we are performing a lookup for
     private final BitSet totalColumns;
@@ -49,7 +49,7 @@ public class ScanCostFunction{
      * @param scanColumns
      * @param lookupColumns
      * @param baseTable
-     * @param storeCost
+     * @param scc
      * @param scanCost
      * @param rowTemplate
      * @param keyColumns
@@ -59,7 +59,7 @@ public class ScanCostFunction{
     public ScanCostFunction(BitSet scanColumns,
                             BitSet lookupColumns,
                             Optimizable baseTable,
-                            StoreCostController storeCost,
+                            StoreCostController scc,
                             CostEstimate scanCost,
                             DataValueDescriptor[] rowTemplate,
                             int[] keyColumns,
@@ -69,7 +69,7 @@ public class ScanCostFunction{
         this.lookupColumns = lookupColumns;
         this.baseTable=baseTable;
         this.scanCost = scanCost;
-        this.storeCost = storeCost;
+        this.scc = scc;
         this.keyColumns = keyColumns;
         this.forUpdate=forUpdate;
         this.selectivityHolder = new List[resultColumns.size()+1];
@@ -120,11 +120,11 @@ public class ScanCostFunction{
      */
     public void addPredicate(Predicate p) throws StandardException{
         if (p.isMultiProbeQualifier(keyColumns)) // MultiProbeQualifier against keys (BASE)
-            addSelectivity(new InListSelectivity(storeCost,p,QualifierPhase.BASE));
+            addSelectivity(new InListSelectivity(scc,p,QualifierPhase.BASE));
         else if (p.isInQualifier(scanColumns)) // In Qualifier in Base Table (FILTER_BASE)
-            addSelectivity(new InListSelectivity(storeCost,p, QualifierPhase.FILTER_BASE));
+            addSelectivity(new InListSelectivity(scc,p, QualifierPhase.FILTER_BASE));
         else if (p.isInQualifier(lookupColumns)) // In Qualifier against looked up columns (FILTER_PROJECTION)
-            addSelectivity(new InListSelectivity(storeCost,p, QualifierPhase.FILTER_PROJECTION));
+            addSelectivity(new InListSelectivity(scc,p, QualifierPhase.FILTER_PROJECTION));
         else if (p.isStartKey() || p.isStopKey()) // Range Qualifier on Start/Stop Keys (BASE)
             performQualifierSelectivity(p,QualifierPhase.BASE);
         else if (p.isQualifier()) // Qualifier in Base Table (FILTER_BASE)
@@ -164,30 +164,51 @@ public class ScanCostFunction{
         double projectionSelectivity = computePhaseSelectivity(selectivityHolder,QualifierPhase.FILTER_PROJECTION);
         double totalSelectivity = computeTotalSelectivity(selectivityHolder);
 
-        double totalRowCount = storeCost.rowCount();
+        assert filterBaseTableSelectivity >= 0 && filterBaseTableSelectivity <= 1.0:"filterBaseTableSelectivity Out of Bounds -> " + filterBaseTableSelectivity;
+        assert baseTableSelectivity >= 0 && baseTableSelectivity <= 1.0:"baseTableSelectivity Out of Bounds -> " + baseTableSelectivity;
+        assert projectionSelectivity >= 0 && projectionSelectivity <= 1.0:"projectionSelectivity Out of Bounds -> " + projectionSelectivity;
+        assert totalSelectivity >= 0 && totalSelectivity <= 1.0:"totalSelectivity Out of Bounds -> " + totalSelectivity;
+
+
+        double totalRowCount = scc.rowCount();
         // Rows Returned is always the totalSelectivity (Conglomerate Independent)
         scanCost.setEstimatedRowCount(Math.round(totalRowCount*totalSelectivity));
 
 
 
         // We use the base table so the estimated heap size and remote cost are the same for all conglomerates
-        double colSizeFactor = storeCost.getBaseTableAvgRowWidth()*storeCost.baseTableColumnSizeFactor(totalColumns);
+        double colSizeFactor = scc.getBaseTableAvgRowWidth()*scc.baseTableColumnSizeFactor(totalColumns);
         // Heap Size is the avg row width of the columns for the base table*total rows
         // Average Row Width
         // This should be the same for every conglomerate path
         scanCost.setEstimatedHeapSize((long)(totalRowCount*totalSelectivity*colSizeFactor));
         // Should be the same for each conglomerate
-        scanCost.setRemoteCost((long)(totalRowCount*totalSelectivity*storeCost.getRemoteLatency()*colSizeFactor));
+        scanCost.setRemoteCost((long)(totalRowCount*totalSelectivity*scc.getRemoteLatency()*colSizeFactor));
         // Base Cost + LookupCost + Projection Cost
-        double congAverageWidth = storeCost.getConglomerateAvgRowWidth();
-        double congColSizeFactor = congAverageWidth*storeCost.conglomerateColumnSizeFactor(scanColumns);
-        double baseCost = totalRowCount*baseTableSelectivity*storeCost.getLocalLatency()*storeCost.getConglomerateAvgRowWidth();
-
-        double lookupCost = lookupColumns == null?0.0d:
-                totalRowCount*filterBaseTableSelectivity*storeCost.getRemoteLatency()*storeCost.getBaseTableAvgRowWidth();
-        double projectionCost = projectionSelectivity == 1.0d?0.0d:totalRowCount*filterBaseTableSelectivity*storeCost.getLocalLatency()*colSizeFactor;
+        double congAverageWidth = scc.getConglomerateAvgRowWidth();
+       // double congColSizeFactor = congAverageWidth*scc.conglomerateColumnSizeFactor(scanColumns);
+        double baseCost = totalRowCount*baseTableSelectivity*scc.getLocalLatency()*scc.getConglomerateAvgRowWidth();
+        scanCost.setFromBaseTableRows(filterBaseTableSelectivity * totalRowCount);
+        scanCost.setFromBaseTableCost(baseCost);
+        double lookupCost;
+        if (lookupColumns == null)
+            lookupCost = 0.0d;
+        else {
+            lookupCost = totalRowCount*filterBaseTableSelectivity*scc.getRemoteLatency()*scc.getBaseTableAvgRowWidth();
+            scanCost.setFromBaseTableRows(filterBaseTableSelectivity*totalRowCount);
+            scanCost.setFromBaseTableCost(lookupCost+baseCost);
+        }
+        double projectionCost;
+        if (projectionSelectivity == 1.0d)
+            projectionCost = 0.0d;
+        else {
+            projectionCost = totalRowCount * filterBaseTableSelectivity * scc.getLocalLatency() * colSizeFactor;
+            lookupCost = totalRowCount*filterBaseTableSelectivity*scc.getRemoteLatency()*scc.getBaseTableAvgRowWidth();
+            scanCost.setFromBaseTableRows(scanCost.getEstimatedRowCount());
+            scanCost.setFromBaseTableCost(lookupCost+baseCost+projectionCost);
+        }
         scanCost.setLocalCost(baseCost+lookupCost+projectionCost);
-        scanCost.setNumPartitions(storeCost.getNumPartitions());
+        scanCost.setNumPartitions(scc.getNumPartitions());
     }
 
     /**
@@ -293,16 +314,16 @@ public class ScanCostFunction{
         List<SelectivityHolder> columnHolder = getSelectivityListForColumn(colNum);
         OP_SWITCH: switch(relationalOperator){
             case RelationalOperator.EQUALS_RELOP:
-                columnHolder.add(new RangeSelectivity(storeCost,value,value,true,true,colNum,phase));
+                columnHolder.add(new RangeSelectivity(scc,value,value,true,true,colNum,phase));
                 break;
             case RelationalOperator.NOT_EQUALS_RELOP:
-                columnHolder.add(new NotEqualsSelectivity(storeCost,colNum,phase,value));
+                columnHolder.add(new NotEqualsSelectivity(scc,colNum,phase,value));
                 break;
             case RelationalOperator.IS_NULL_RELOP:
-                columnHolder.add(new NullSelectivity(storeCost,colNum,phase));
+                columnHolder.add(new NullSelectivity(scc,colNum,phase));
                 break;
             case RelationalOperator.IS_NOT_NULL_RELOP:
-                columnHolder.add(new NotNullSelectivity(storeCost,colNum,phase));
+                columnHolder.add(new NotNullSelectivity(scc,colNum,phase));
                 break;
             case RelationalOperator.GREATER_EQUALS_RELOP:
                 for(SelectivityHolder sh: columnHolder){
@@ -315,7 +336,7 @@ public class ScanCostFunction{
                         break OP_SWITCH;
                     }
                 }
-                columnHolder.add(new RangeSelectivity(storeCost,value,null,true,true,colNum,phase));
+                columnHolder.add(new RangeSelectivity(scc,value,null,true,true,colNum,phase));
                 break;
             case RelationalOperator.GREATER_THAN_RELOP:
                 for(SelectivityHolder sh: columnHolder){
@@ -328,7 +349,7 @@ public class ScanCostFunction{
                         break OP_SWITCH;
                     }
                 }
-                columnHolder.add(new RangeSelectivity(storeCost,value,null,false,true,colNum,phase));
+                columnHolder.add(new RangeSelectivity(scc,value,null,false,true,colNum,phase));
                 break;
             case RelationalOperator.LESS_EQUALS_RELOP:
                 for(SelectivityHolder sh: columnHolder){
@@ -341,7 +362,7 @@ public class ScanCostFunction{
                         break OP_SWITCH;
                     }
                 }
-                columnHolder.add(new RangeSelectivity(storeCost,null,value,true,true,colNum,phase));
+                columnHolder.add(new RangeSelectivity(scc,null,value,true,true,colNum,phase));
                 break;
             case RelationalOperator.LESS_THAN_RELOP:
                 for(SelectivityHolder sh: columnHolder){
@@ -354,7 +375,7 @@ public class ScanCostFunction{
                         break OP_SWITCH;
                     }
                 }
-                columnHolder.add(new RangeSelectivity(storeCost,null,value,true,false,colNum,phase));
+                columnHolder.add(new RangeSelectivity(scc,null,value,true,false,colNum,phase));
                 break;
             default:
                 throw new RuntimeException("Unknown Qualifier Type");
