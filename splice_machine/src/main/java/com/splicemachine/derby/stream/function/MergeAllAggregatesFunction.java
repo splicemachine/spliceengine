@@ -50,10 +50,6 @@ public class MergeAllAggregatesFunction<Op extends com.splicemachine.derby.iapi.
         ExecRow r1 = locatedRow1.getRow();
         ExecRow r2 = locatedRow2.getRow();
 
-        if (!(r1 instanceof ExecIndexRow)) {
-            r1 = new IndexValueRow(r1.getClone());
-        }
-
         for(SpliceGenericAggregator aggregator:aggregates) {
             if (!aggregator.isInitialized(r1)) {
                 aggregator.initializeAndAccumulateIfNeeded(r1, r1);

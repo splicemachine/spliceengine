@@ -39,21 +39,18 @@ public class ScalarAggregateFunction extends SpliceFunction2<ScalarAggregateOper
 
         ExecRow r1 = t1.getRow();
         ExecRow r2 = t2.getRow();
-        if (!(r1 instanceof ExecIndexRow)) {
-            r1 = new IndexValueRow(r1.getClone());
-        }
         if (!op.isInitialized(r1)) {
             op.initializeVectorAggregation(r1);
         }
         if (!op.isInitialized(r2)) {
-            accumulate(t2.getRow(), (ExecIndexRow) r1);
+            accumulate(t2.getRow(), r1);
         } else {
-            merge(t2.getRow(), (ExecIndexRow) r1);
+            merge(t2.getRow(), r1);
         }
         return new LocatedRow(r1);
     }
 
-    private void accumulate(ExecRow next, ExecIndexRow agg) throws StandardException {
+    private void accumulate(ExecRow next, ExecRow agg) throws StandardException {
         ScalarAggregateOperation op = (ScalarAggregateOperation) getOperation();
         if (RDDUtils.LOG.isDebugEnabled()) {
             RDDUtils.LOG.debug(String.format("Accumulating %s to %s", next, agg));
@@ -62,7 +59,7 @@ public class ScalarAggregateFunction extends SpliceFunction2<ScalarAggregateOper
             aggregate.accumulate(next, agg);
     }
 
-    private void merge(ExecRow next, ExecIndexRow agg) throws StandardException {
+    private void merge(ExecRow next, ExecRow agg) throws StandardException {
         ScalarAggregateOperation op = (ScalarAggregateOperation) getOperation();
         if (RDDUtils.LOG.isDebugEnabled()) {
             RDDUtils.LOG.debug(String.format("Merging %s to %s", next, agg));

@@ -106,16 +106,16 @@ public abstract class SparkValueRowSerializer<T extends ExecRow> extends Seriali
         int length = input.readInt(true);
         int position = input.position();
 
-        byte[] buffer = input.getBuffer();
-        if (position + length < buffer.length) {
-            decoder.set(input.getBuffer(), position, length);
-            input.setPosition(position + length);
-        } else {
-            byte[] toDecode = input.readBytes(length);
-            decoder.set(toDecode, 0, length);
-        }
         try {
-            decoder.decode(instance);
+            if (position + length < input.limit()) {
+                decoder.set(input.getBuffer(), position, length);
+                decoder.decode(instance);
+                input.setPosition(position + length);
+            } else {
+                byte[] toDecode = input.readBytes(length);
+                decoder.set(toDecode, 0, length);
+                decoder.decode(instance);
+            }
         } catch (StandardException e) {
             SpliceLogUtils.logAndThrowRuntime(LOG, "Exception while deserializing row with template " + instance, e);
         }

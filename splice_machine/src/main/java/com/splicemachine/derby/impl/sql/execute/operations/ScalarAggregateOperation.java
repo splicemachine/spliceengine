@@ -120,7 +120,7 @@ public class ScalarAggregateOperation extends GenericAggregateOperation {
 			return returnDefault ?
 					dsp.singleRowDataSet(new LocatedRow(getExecRowDefinition())) : null;
 		}
-        if (!(result.getRow() instanceof ExecIndexRow)) {
+        if (!isInitialized(result.getRow())) {
             initializeVectorAggregation(result.getRow());
         }
         finishAggregation(result.getRow());
