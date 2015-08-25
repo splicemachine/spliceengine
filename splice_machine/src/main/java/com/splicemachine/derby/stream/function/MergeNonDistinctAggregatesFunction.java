@@ -48,9 +48,6 @@ public class MergeNonDistinctAggregatesFunction<Op extends SpliceOperation> exte
             if (locatedRow2 == null) return locatedRow1;
             ExecRow r1 = locatedRow1.getRow();
             ExecRow r2 = locatedRow2.getRow();
-            if (!(r1 instanceof ExecIndexRow)) {
-                r1 = new IndexValueRow(r1.getClone());
-            }
 
         for (SpliceGenericAggregator aggregator : aggregates) {
                 if (!aggregator.isDistinct()) {
