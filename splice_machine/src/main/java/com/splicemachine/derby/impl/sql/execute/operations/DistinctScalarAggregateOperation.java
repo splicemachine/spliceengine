@@ -369,7 +369,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
                 new FixedBucketPrefix(spliceRuntimeContext.getHashBucket(),new FixedPrefix(uniqueSequenceID));
         final KeyPostfix uniquePostfix = new UniquePostfix(spliceRuntimeContext.getCurrentTaskId(),operationInformation.getUUIDGenerator());
 
-        return new KeyEncoder(prefix,spliceRuntimeContext.isFirstStepInMultistep()?hash:NoOpDataHash.INSTANCE,uniquePostfix) {
+        return new KeyEncoder(prefix,spliceRuntimeContext.isFirstStepInMultistep()?hash:getKeyHash(spliceRuntimeContext),uniquePostfix) {
             @Override
             public KeyDecoder getDecoder(){
                 try {
@@ -388,6 +388,13 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
         return EntryDataDecoder.decoder(rowColumns, null,serializers);
     }
 
+
+    public DataHash getKeyHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+        ExecRow execRowDefinition = getExecRowDefinition();
+        int[] rowColumns = IntArrays.intersect(keyColumns, execRowDefinition.nColumns());
+        DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(execRowDefinition);
+        return BareKeyHash.encoder(rowColumns, null, serializers);
+    }
 
     @Override
     public DataHash getRowHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
