@@ -170,10 +170,14 @@ public final class RowCountNode extends SingleChildResultSetNode{
         sb.append(spaceToLevel())
                 .append("Limit(")
                 .append("n=").append(order)
-                .append(",").append(getFinalCostEstimate().prettyProcessingString())
-                .append(", offset=").append(offset)
-                .append(", fetchFirst=").append(fetchFirst)
-                .append(")");
+                .append(",").append(getFinalCostEstimate().prettyProcessingString());
+                if (offset != null && offset instanceof NumericConstantNode) {
+                    sb.append(",offset=").append( ((NumericConstantNode)offset).getValue());
+                }
+                if (offset != null && offset instanceof NumericConstantNode) {
+                    sb.append(",fetchFirst=").append( ((NumericConstantNode)fetchFirst).getValue());
+                }
+                sb.append(")");
         return sb.toString();
     }
 
@@ -182,10 +186,14 @@ public final class RowCountNode extends SingleChildResultSetNode{
         StringBuilder sb = new StringBuilder();
         sb.append(spaceToLevel())
                 .append("Limit(")
-                .append("n=").append(order)
-                .append(", offset=").append(offset)
-                .append(", fetchFirst=").append(fetchFirst)
-                .append(")");
+                .append("n=").append(order);
+            if (offset != null && offset instanceof NumericConstantNode) {
+                sb.append(",offset=").append( ((NumericConstantNode)offset).getValue());
+            }
+            if (offset != null && offset instanceof NumericConstantNode) {
+                sb.append(",fetchFirst=").append( ((NumericConstantNode)fetchFirst).getValue());
+            }
+            sb.append(")");
         return sb.toString();
     }
 
