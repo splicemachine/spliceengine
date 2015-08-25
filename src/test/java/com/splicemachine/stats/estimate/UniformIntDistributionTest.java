@@ -2,6 +2,8 @@ package com.splicemachine.stats.estimate;
 
 import com.splicemachine.stats.IntColumnStatistics;
 import com.splicemachine.stats.cardinality.CardinalityEstimators;
+import com.splicemachine.stats.collector.ColumnStatsCollectors;
+import com.splicemachine.stats.collector.IntColumnStatsCollector;
 import com.splicemachine.stats.frequency.FrequencyCounters;
 import com.splicemachine.stats.frequency.IntFrequencyCounter;
 import com.splicemachine.stats.frequency.IntFrequentElements;
@@ -14,6 +16,33 @@ import org.junit.Test;
  *         Date: 6/25/15
  */
 public class UniformIntDistributionTest{
+
+    @Test
+    public void testGetPositiveCountForNegativeStartValues() throws Exception{
+        IntColumnStatsCollector col =ColumnStatsCollectors.intCollector(0,14,5);
+        for(int i=0;i<14;i++){
+            col.update(0);
+            col.update(1);
+            col.update(-1);
+            col.update(Integer.MIN_VALUE);
+            col.update(Integer.MAX_VALUE);
+        }
+
+        IntColumnStatistics lcs = col.build();
+        IntDistribution distribution = new UniformIntDistribution(lcs);
+
+        long l=distribution.rangeSelectivity(Integer.MIN_VALUE,0,false,false);
+        Assert.assertTrue("Negative Selectivity!",l>=0);
+        Assert.assertEquals("Incorrect selectivity!",14,l);
+
+        l=distribution.rangeSelectivity(Integer.MIN_VALUE,0,true,false);
+        Assert.assertTrue("Negative Selectivity!",l>=0);
+        Assert.assertEquals("Incorrect selectivity!",28,l);
+
+        l=distribution.rangeSelectivity(Integer.MIN_VALUE,0,true,true);
+        Assert.assertTrue("Negative Selectivity!",l>=0);
+        Assert.assertEquals("Incorrect selectivity!",3*14l,l);
+    }
 
     @Test
     public void distributionWorksWithFrequentElements() throws Exception {

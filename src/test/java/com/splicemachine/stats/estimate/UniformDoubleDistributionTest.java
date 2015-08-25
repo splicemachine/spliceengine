@@ -1,7 +1,11 @@
 package com.splicemachine.stats.estimate;
 
 import com.splicemachine.stats.DoubleColumnStatistics;
+import com.splicemachine.stats.FloatColumnStatistics;
 import com.splicemachine.stats.cardinality.CardinalityEstimators;
+import com.splicemachine.stats.collector.ColumnStatsCollectors;
+import com.splicemachine.stats.collector.DoubleColumnStatsCollector;
+import com.splicemachine.stats.collector.FloatColumnStatsCollector;
 import com.splicemachine.stats.frequency.DoubleFrequencyCounter;
 import com.splicemachine.stats.frequency.DoubleFrequentElements;
 import com.splicemachine.stats.frequency.FrequencyCounters;
@@ -14,6 +18,33 @@ import org.junit.Test;
  *         Date: 6/25/15
  */
 public class UniformDoubleDistributionTest{
+
+    @Test
+    public void testGetPositiveCountForNegativeStartValues() throws Exception{
+        DoubleColumnStatsCollector col =ColumnStatsCollectors.doubleCollector(0,14,5);
+        for(int i=0;i<14;i++){
+            col.update(0);
+            col.update(1);
+            col.update(-1);
+            col.update(-Double.MAX_VALUE);
+            col.update(Double.MAX_VALUE);
+        }
+
+        DoubleColumnStatistics lcs = col.build();
+        DoubleDistribution distribution = new UniformDoubleDistribution(lcs);
+
+        long l=distribution.rangeSelectivity(-Double.MAX_VALUE,0,false,false);
+        Assert.assertTrue("Negative Selectivity!",l>=0);
+        Assert.assertEquals("Incorrect selectivity!",14,l);
+
+        l=distribution.rangeSelectivity(-Double.MAX_VALUE,0,true,false);
+        Assert.assertTrue("Negative Selectivity!",l>=0);
+        Assert.assertEquals("Incorrect selectivity!",28,l);
+
+        l=distribution.rangeSelectivity(-Double.MAX_VALUE,0,true,true);
+        Assert.assertTrue("Negative Selectivity!",l>=0);
+        Assert.assertEquals("Incorrect selectivity!",3*14l,l);
+    }
 
     @Test
     public void distributionWorksWithFrequentElements() throws Exception {

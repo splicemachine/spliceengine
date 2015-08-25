@@ -2,7 +2,11 @@ package com.splicemachine.stats.estimate;
 
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.ComparableColumnStatistics;
+import com.splicemachine.stats.DoubleColumnStatistics;
 import com.splicemachine.stats.cardinality.CardinalityEstimators;
+import com.splicemachine.stats.collector.ColumnStatsCollector;
+import com.splicemachine.stats.collector.ColumnStatsCollectors;
+import com.splicemachine.stats.collector.DoubleColumnStatsCollector;
 import com.splicemachine.stats.frequency.FrequencyCounter;
 import com.splicemachine.stats.frequency.FrequencyCounters;
 import com.splicemachine.stats.frequency.FrequentElements;
@@ -18,6 +22,39 @@ import java.math.BigDecimal;
  *         Date: 6/25/15
  */
 public class UniformDecimalDistributionTest{
+
+    @Test
+    public void testGetPositiveCountForNegativeStartValues() throws Exception{
+        ColumnStatsCollector<BigDecimal> col =ColumnStatsCollectors.collector(0,14,5,new DistributionFactory<BigDecimal>(){
+            @Override
+            public Distribution<BigDecimal> newDistribution(ColumnStatistics<BigDecimal> statistics){
+                return new UniformDecimalDistribution(statistics);
+            }
+        });
+
+        for(int i=0;i<14;i++){
+            col.update(BigDecimal.ZERO);
+            col.update(BigDecimal.ONE);
+            col.update(BigDecimal.ONE.negate());
+            col.update(BigDecimal.valueOf(-Double.MAX_VALUE));
+            col.update(BigDecimal.valueOf(Double.MAX_VALUE));
+        }
+
+        ColumnStatistics<BigDecimal> lcs = col.build();
+        Distribution<BigDecimal> distribution = lcs.getDistribution();
+
+        long l=distribution.rangeSelectivity(BigDecimal.valueOf(-Double.MAX_VALUE),BigDecimal.ZERO,false,false);
+        Assert.assertTrue("Negative Selectivity!",l>=0);
+        Assert.assertEquals("Incorrect selectivity!",14,l);
+
+        l=distribution.rangeSelectivity(BigDecimal.valueOf(-Double.MAX_VALUE),BigDecimal.ZERO,true,false);
+        Assert.assertTrue("Negative Selectivity!",l>=0);
+        Assert.assertEquals("Incorrect selectivity!",28,l);
+
+        l=distribution.rangeSelectivity(BigDecimal.valueOf(-Double.MAX_VALUE),BigDecimal.ZERO,true,true);
+        Assert.assertTrue("Negative Selectivity!",l>=0);
+        Assert.assertEquals("Incorrect selectivity!",3*14l,l);
+    }
 
     @Test
     public void distributionWorksWithFrequentElements() throws Exception {

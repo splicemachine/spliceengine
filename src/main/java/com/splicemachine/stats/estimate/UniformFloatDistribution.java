@@ -98,7 +98,7 @@ public class UniformFloatDistribution extends UniformDistribution<Float> impleme
 
         float max = fcs.max();
         if(max<start||(!includeStart && start==max)) return 0l;
-        else if(includeStart && start==min) return selectivity(start);
+        else if(includeStart && start==max) return selectivity(start);
 
         boolean isMin = false;
         if(start<=min){
@@ -173,13 +173,15 @@ public class UniformFloatDistribution extends UniformDistribution<Float> impleme
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private long rangeSelectivity(float start, float stop, boolean includeStart, boolean includeStop,boolean isMin) {
-        double baseEstimate = a*stop+b;
-        baseEstimate-=a*start+b;
+        double baseEstimate = a*(stop-start);
 
         FloatFrequentElements ife = (FloatFrequentElements)columnStats.topK();
         //if we are the min value, don't include the start key in frequent elements
-        includeStart = includeStart &&!isMin;
-        Set<FloatFrequencyEstimate> ffe = ife.frequentBetween(start, stop, includeStart, includeStop);
-        return uniformRangeCount(includeStart,includeStop,baseEstimate,ffe);
+        boolean includeMinFreqs = includeStart &&!isMin;
+        Set<FloatFrequencyEstimate> ffe = ife.frequentBetween(start, stop, includeMinFreqs, includeStop);
+        long l=uniformRangeCount(includeMinFreqs,includeStop,baseEstimate,ffe);
+        if(includeStart && isMin)
+            l+=minCount();
+        return l;
     }
 }

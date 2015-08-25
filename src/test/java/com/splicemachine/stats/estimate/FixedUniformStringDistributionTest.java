@@ -3,6 +3,8 @@ package com.splicemachine.stats.estimate;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.ComparableColumnStatistics;
 import com.splicemachine.stats.cardinality.CardinalityEstimators;
+import com.splicemachine.stats.collector.ColumnStatsCollector;
+import com.splicemachine.stats.collector.ColumnStatsCollectors;
 import com.splicemachine.stats.frequency.FrequencyCounter;
 import com.splicemachine.stats.frequency.FrequencyCounters;
 import com.splicemachine.stats.frequency.FrequentElements;
@@ -11,6 +13,8 @@ import com.splicemachine.utils.ComparableComparator;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.math.BigDecimal;
+
 /**
  * Specific tests about the UniformStringDistribution
  *
@@ -18,6 +22,39 @@ import org.junit.Test;
  *         Date: 6/25/15
  */
 public class FixedUniformStringDistributionTest{
+
+    @Test
+    public void testGetPositiveCountForNegativeStartValues() throws Exception{
+        ColumnStatsCollector<String> col =ColumnStatsCollectors.collector(0,14,5,new DistributionFactory<String>(){
+            @Override
+            public Distribution<String> newDistribution(ColumnStatistics<String> statistics){
+                return new UniformStringDistribution(statistics,Double.toString(-Double.MAX_VALUE).length());
+            }
+        });
+
+        for(int i=0;i<14;i++){
+            col.update("0");
+            col.update("1");
+            col.update("-1");
+            col.update(Double.toString(-Double.MAX_VALUE));
+            col.update(Double.toString(Double.MAX_VALUE));
+        }
+
+        ColumnStatistics<String> lcs = col.build();
+        Distribution<String> distribution = lcs.getDistribution();
+
+        long l=distribution.rangeSelectivity("-1","0",false,false);
+        Assert.assertTrue("Negative Selectivity!",l>=0);
+        Assert.assertEquals("Incorrect selectivity!",14,l);
+
+        l=distribution.rangeSelectivity("-1","0",true,false);
+        Assert.assertTrue("Negative Selectivity!",l>=0);
+        Assert.assertEquals("Incorrect selectivity!",28,l);
+
+        l=distribution.rangeSelectivity("-1","0",true,true);
+        Assert.assertTrue("Negative Selectivity!",l>=0);
+        Assert.assertEquals("Incorrect selectivity!",3*14l,l);
+    }
 
     @Test
     public void distributionWorksWithFrequentElements() throws Exception {

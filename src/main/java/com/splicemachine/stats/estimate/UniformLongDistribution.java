@@ -148,14 +148,16 @@ public class UniformLongDistribution extends UniformDistribution<Long> implement
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private long rangeSelectivity(long start, long stop, boolean includeStart, boolean includeStop, boolean isMin) {
-        double baseEstimate = a*stop+b;
-        baseEstimate-=a*start+b;
-        includeStart = includeStart &&!isMin;
+        double baseEstimate = a*(stop-start);
 
         //adjust using Frequent Elements
         LongFrequentElements sfe = (LongFrequentElements)columnStats.topK();
         //if we are the min value, don't include the start key in frequent elements
-        Set<LongFrequencyEstimate> longFrequencyEstimates = sfe.frequentBetween(start, stop, includeStart, includeStop);
-        return uniformRangeCount(includeStart,includeStop,baseEstimate,longFrequencyEstimates);
+        boolean includeStartFreqs=includeStart && !isMin;
+        Set<LongFrequencyEstimate> longFrequencyEstimates = sfe.frequentBetween(start, stop,includeStartFreqs, includeStop);
+        long l=uniformRangeCount(includeStartFreqs,includeStop,baseEstimate,longFrequencyEstimates);
+        if(isMin&&includeStart)
+            l+=minCount();
+        return l;
     }
 }

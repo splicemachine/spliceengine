@@ -1,8 +1,12 @@
 package com.splicemachine.stats.estimate;
 
 import com.splicemachine.stats.CombinedShortColumnStatistics;
+import com.splicemachine.stats.IntColumnStatistics;
 import com.splicemachine.stats.ShortColumnStatistics;
 import com.splicemachine.stats.cardinality.CardinalityEstimators;
+import com.splicemachine.stats.collector.ColumnStatsCollectors;
+import com.splicemachine.stats.collector.IntColumnStatsCollector;
+import com.splicemachine.stats.collector.ShortColumnStatsCollector;
 import com.splicemachine.stats.frequency.FrequencyCounters;
 import com.splicemachine.stats.frequency.ShortFrequencyCounter;
 import com.splicemachine.stats.frequency.ShortFrequentElements;
@@ -15,6 +19,33 @@ import org.junit.Test;
  *         Date: 6/25/15
  */
 public class UniformShortDistributionTest{
+
+    @Test
+    public void testGetPositiveCountForNegativeStartValues() throws Exception{
+        ShortColumnStatsCollector col =ColumnStatsCollectors.shortCollector(0,(short)14,(short)5);
+        for(int i=0;i<14;i++){
+            col.update((short)0);
+            col.update((short)1);
+            col.update((short)-1);
+            col.update(Short.MIN_VALUE);
+            col.update(Short.MAX_VALUE);
+        }
+
+        ShortColumnStatistics lcs = col.build();
+        ShortDistribution distribution = new UniformShortDistribution(lcs);
+
+        long l=distribution.rangeSelectivity(Short.MIN_VALUE,(short)0,false,false);
+        Assert.assertTrue("Negative Selectivity!",l>=0);
+        Assert.assertEquals("Incorrect selectivity!",14,l);
+
+        l=distribution.rangeSelectivity(Short.MIN_VALUE,(short)0,true,false);
+        Assert.assertTrue("Negative Selectivity!",l>=0);
+        Assert.assertEquals("Incorrect selectivity!",28,l);
+
+        l=distribution.rangeSelectivity(Short.MIN_VALUE,(short)0,true,true);
+        Assert.assertTrue("Negative Selectivity!",l>=0);
+        Assert.assertEquals("Incorrect selectivity!",3*14l,l);
+    }
 
     @Test
     public void distributionWorksWithFrequentElements() throws Exception {

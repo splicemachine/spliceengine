@@ -42,6 +42,20 @@ public abstract class UniformDistribution<T> extends BaseDistribution<T>{
     protected final long uniformRangeCount(boolean includeStart,boolean includeStop,
                                            double baseEstimate, Set<? extends FrequencyEstimate<T>> frequentElements){
         long perRowCount = uniformEstimate();
+        if(perRowCount==0){
+            /*
+             * If perRowCount==0, then we have a situation where either
+             *
+             * 1) cardinality <=0
+             * 2) adjustedRowCount <=0
+             *
+             * in either case, this is telling us that all of the elements in the table are contained
+             * in the FrequentElements for this distribution, which implies that the uniform portion of
+             * the compressed histogram is in fact 0 (there is no uniform histogram to compute). In this case,
+             * we remove the baseEstimate, because all it's giving us is garbage anyway.
+             */
+            baseEstimate=0;
+        }
         if(!includeStart)
             baseEstimate-=perRowCount;
         if(includeStop)

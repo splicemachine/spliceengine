@@ -2,6 +2,8 @@ package com.splicemachine.stats.estimate;
 
 import com.splicemachine.stats.FloatColumnStatistics;
 import com.splicemachine.stats.cardinality.CardinalityEstimators;
+import com.splicemachine.stats.collector.ColumnStatsCollectors;
+import com.splicemachine.stats.collector.FloatColumnStatsCollector;
 import com.splicemachine.stats.frequency.FloatFrequencyCounter;
 import com.splicemachine.stats.frequency.FloatFrequentElements;
 import com.splicemachine.stats.frequency.FrequencyCounters;
@@ -14,6 +16,33 @@ import org.junit.Test;
  *         Date: 6/25/15
  */
 public class UniformFloatDistributionTest{
+
+    @Test
+    public void testGetPositiveCountForNegativeStartValues() throws Exception{
+        FloatColumnStatsCollector col =ColumnStatsCollectors.floatCollector(0,14,5);
+        for(int i=0;i<14;i++){
+            col.update(0);
+            col.update(1);
+            col.update(-1);
+            col.update(-Float.MAX_VALUE);
+            col.update(Float.MAX_VALUE);
+        }
+
+        FloatColumnStatistics lcs = col.build();
+        FloatDistribution distribution = new UniformFloatDistribution(lcs);
+
+        long l=distribution.rangeSelectivity(-Float.MAX_VALUE,0,false,false);
+        Assert.assertTrue("Negative Selectivity!",l>=0);
+        Assert.assertEquals("Incorrect selectivity!",14,l);
+
+        l=distribution.rangeSelectivity(-Float.MAX_VALUE,0,true,false);
+        Assert.assertTrue("Negative Selectivity!",l>=0);
+        Assert.assertEquals("Incorrect selectivity!",28,l);
+
+        l=distribution.rangeSelectivity(-Float.MAX_VALUE,0,true,true);
+        Assert.assertTrue("Negative Selectivity!",l>=0);
+        Assert.assertEquals("Incorrect selectivity!",3*14l,l);
+    }
 
     @Test
     public void distributionWorksWithFrequentElements() throws Exception {

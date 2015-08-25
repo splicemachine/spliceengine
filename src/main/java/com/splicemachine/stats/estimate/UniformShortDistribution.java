@@ -175,14 +175,16 @@ public class UniformShortDistribution extends UniformDistribution<Short> impleme
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private long rangeSelectivity(short start, short stop, boolean includeStart, boolean includeStop, boolean isMin) {
-        double baseEstimate = a*stop+b;
-        baseEstimate-=a*start+b;
+        double baseEstimate = a*(stop-start);
 
         //adjust using Frequent Elements
         ShortFrequentElements sfe = (ShortFrequentElements)columnStats.topK();
         //if we are the min value, don't include the start key in frequent elements
-        includeStart = includeStart &&!isMin;
-        Set<ShortFrequencyEstimate> shortFrequencyEstimates = sfe.frequentBetween(start, stop, includeStart, includeStop);
-        return uniformRangeCount(includeStart,includeStop,baseEstimate,shortFrequencyEstimates);
+        boolean includeMinFreqs = includeStart &&!isMin;
+        Set<ShortFrequencyEstimate> shortFrequencyEstimates = sfe.frequentBetween(start, stop, includeMinFreqs, includeStop);
+        long l=uniformRangeCount(includeMinFreqs,includeStop,baseEstimate,shortFrequencyEstimates);
+        if(includeStart && isMin)
+            l+=minCount();
+        return l;
     }
 }

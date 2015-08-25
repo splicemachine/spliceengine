@@ -180,13 +180,23 @@ public class UniformIntDistribution extends UniformDistribution<Integer> impleme
     private long rangeSelectivity(int start, int stop, boolean includeStart, boolean includeStop,boolean isMin) {
         double baseEstimate = a*stop+b;
         baseEstimate-=a*start+b;
-        includeStart = includeStart &&!isMin;
 
+        /*
+         * if includeStart is true, we want to include the minimum value. However, it's possible
+         * that the minimum value is contained in the frequent elements. In that situation, we would
+         * be double counting the min value if we included it in our frequent elements calculations, then
+         * added it explicitely. Since the explicit count in minCount() is more accurate than that of frequent
+         * elements, we use that instead.
+         */
+        boolean includeMinFreqs = includeStart &&!isMin;
         //adjust using Frequent Elements
         IntFrequentElements ife = (IntFrequentElements)columnStats.topK();
         //if we are the min value, don't include the start key in frequent elements
-        Set<IntFrequencyEstimate> intFrequencyEstimates = ife.frequentBetween(start, stop, includeStart, includeStop);
-        return uniformRangeCount(includeStart,includeStop, baseEstimate,intFrequencyEstimates);
+        Set<IntFrequencyEstimate> intFrequencyEstimates = ife.frequentBetween(start, stop, includeMinFreqs, includeStop);
+        long l=uniformRangeCount(includeMinFreqs,includeStop,baseEstimate,intFrequencyEstimates);
+        if(includeStart && isMin)
+            l+=minCount();
+        return l;
     }
 
 }

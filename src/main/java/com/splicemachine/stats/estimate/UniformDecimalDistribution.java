@@ -47,7 +47,7 @@ public class UniformDecimalDistribution extends UniformDistribution<BigDecimal> 
 
     @Override
     protected long estimateRange(BigDecimal start, BigDecimal stop, boolean includeStart, boolean includeStop, boolean isMin) {
-        BigDecimal baseE = a.multiply(stop).add(b).subtract(a.multiply(start).add(b));
+        BigDecimal baseE = a.multiply(stop.subtract(start));
         /*
          * This is safe, because the linear function we used has a max of maxValue on the range [minValue,maxValue),
          * with a maximum value of rowCount (we built the linear function to do this). Since rowCount is a long,
@@ -57,10 +57,13 @@ public class UniformDecimalDistribution extends UniformDistribution<BigDecimal> 
 
 
         //if we are the min value, don't include the start key in frequent elements
-        includeStart = includeStart &&!isMin;
+        boolean includeMinFreq = includeStart &&!isMin;
         //now adjust for the frequent elements in the set
-        Set<? extends FrequencyEstimate<BigDecimal>> fe = columnStats.topK().frequentElementsBetween(start,stop,includeStart,includeStop);
-        return uniformRangeCount(includeStart,includeStop,baseEstimate,fe);
+        Set<? extends FrequencyEstimate<BigDecimal>> fe = columnStats.topK().frequentElementsBetween(start,stop,includeMinFreq,includeStop);
+        long l=uniformRangeCount(includeMinFreq,includeStop,baseEstimate,fe);
+        if(isMin&&includeStart)
+            l+=minCount();
+        return l;
     }
 
     public long cardinality(BigDecimal start,BigDecimal stop,boolean includeStart,boolean includeStop){

@@ -2,6 +2,8 @@ package com.splicemachine.stats.estimate;
 
 import com.splicemachine.stats.LongColumnStatistics;
 import com.splicemachine.stats.cardinality.CardinalityEstimators;
+import com.splicemachine.stats.collector.ColumnStatsCollectors;
+import com.splicemachine.stats.collector.LongColumnStatsCollector;
 import com.splicemachine.stats.frequency.FrequencyCounters;
 import com.splicemachine.stats.frequency.LongFrequencyCounter;
 import com.splicemachine.stats.frequency.LongFrequentElements;
@@ -14,6 +16,33 @@ import org.junit.Test;
  *         Date: 6/25/15
  */
 public class UniformLongDistributionTest{
+
+    @Test
+    public void testGetPositiveCountForNegativeStartValues() throws Exception{
+        LongColumnStatsCollector col =ColumnStatsCollectors.longCollector(0,14,5);
+        for(int i=0;i<14;i++){
+            col.update(0l);
+            col.update(1l);
+            col.update(-1l);
+            col.update(Long.MIN_VALUE);
+            col.update(Long.MAX_VALUE);
+        }
+
+        LongColumnStatistics lcs = col.build();
+        LongDistribution distribution = new UniformLongDistribution(lcs);
+
+        long l=distribution.rangeSelectivity(-9223372036854775808l,0l,false,false);
+        Assert.assertTrue("Negative Selectivity!",l>=0);
+        Assert.assertEquals("Incorrect selectivity!",14,l);
+
+        l=distribution.rangeSelectivity(-9223372036854775808l,0l,true,false);
+        Assert.assertTrue("Negative Selectivity!",l>=0);
+        Assert.assertEquals("Incorrect selectivity!",28,l);
+
+        l=distribution.rangeSelectivity(-9223372036854775808l,0l,true,true);
+        Assert.assertTrue("Negative Selectivity!",l>=0);
+        Assert.assertEquals("Incorrect selectivity!",3*14l,l);
+    }
 
     @Test
     public void distributionWorksWithFrequentElements() throws Exception {

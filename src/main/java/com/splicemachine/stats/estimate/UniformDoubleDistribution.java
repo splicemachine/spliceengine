@@ -13,7 +13,6 @@ import java.util.Set;
  */
 public class UniformDoubleDistribution extends UniformDistribution<Double> implements DoubleDistribution {
     private final double a;
-    private final double b;
     public UniformDoubleDistribution(DoubleColumnStatistics columnStats) {
         super(columnStats, ComparableComparator.<Double>newComparator());
         if(columnStats.nonNullCount()==0){
@@ -21,13 +20,11 @@ public class UniformDoubleDistribution extends UniformDistribution<Double> imple
              * the distribution is empty, so our interpolation function is the 0 function
              */
             this.a = 0d;
-            this.b = 0d;
         }else if(columnStats.max()==columnStats.min()){
             /*
              * The distribution contains only a single element, so our interpolation is the constant function
              */
             this.a = 0d;
-            this.b = columnStats.minCount();
         }else{
             /*
              * Create a linear interpolator to estimate to the Cumulative probability function of a uniform
@@ -37,7 +34,6 @@ public class UniformDoubleDistribution extends UniformDistribution<Double> imple
             at/=(columnStats.max()-columnStats.min());
 
             this.a=at;
-            this.b=columnStats.nonNullCount()-a*columnStats.max();
         }
     }
 
@@ -145,7 +141,7 @@ public class UniformDoubleDistribution extends UniformDistribution<Double> imple
 
         double max = fcs.max();
         if(max<start||(!includeStart && start==max)) return 0l;
-        else if(includeStart && start==min) return selectivity(start);
+        else if(includeStart && start==max) return selectivity(start);
 
         boolean isMin = false;
         if(start<=min){
@@ -167,9 +163,12 @@ public class UniformDoubleDistribution extends UniformDistribution<Double> imple
 
         DoubleFrequentElements ife = (DoubleFrequentElements)columnStats.topK();
         //if we are the min value, don't include the start key in frequent elements
-        includeStart = includeStart &&!isMin;
-        Set<DoubleFrequencyEstimate> ffe = ife.frequentBetween(start, stop, includeStart, includeStop);
-        return uniformRangeCount(includeStart,includeStop,baseEstimate,ffe);
+        boolean includeMinFreqs = includeStart &&!isMin;
+        Set<DoubleFrequencyEstimate> ffe = ife.frequentBetween(start, stop, includeMinFreqs, includeStop);
+        long l=uniformRangeCount(includeMinFreqs,includeStop,baseEstimate,ffe);
+        if(includeStart && isMin)
+            l+=minCount();
+        return l;
     }
 
 }

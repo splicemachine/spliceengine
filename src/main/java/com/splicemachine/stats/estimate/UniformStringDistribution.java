@@ -57,7 +57,6 @@ public class UniformStringDistribution extends UniformDistribution<String> {
     protected final int strLen;
 
     private final BigDecimal a;
-    private final BigDecimal b;
 
     public UniformStringDistribution(ColumnStatistics<String> columnStats, int strLen) {
         super(columnStats, ComparableComparator.<String>newComparator());
@@ -65,7 +64,6 @@ public class UniformStringDistribution extends UniformDistribution<String> {
 
         if (columnStats.maxValue() == null) {
             this.a = BigDecimal.valueOf(0.0);
-            this.b = BigDecimal.valueOf(0.0);
         } else {
             String maxV = columnStats.maxValue();
             String minV = columnStats.minValue();
@@ -74,7 +72,6 @@ public class UniformStringDistribution extends UniformDistribution<String> {
                  * the start and stop values are the same, so we just assume a constant line
                  */
                 this.a = BigDecimal.ZERO;
-                this.b = BigDecimal.valueOf(columnStats.nonNullCount()-columnStats.minCount());
             }else{
                 BigDecimal maxPosition=computePosition(columnStats.maxValue());
                 BigDecimal at=BigDecimal.valueOf(columnStats.nonNullCount()-columnStats.minCount());
@@ -82,7 +79,6 @@ public class UniformStringDistribution extends UniformDistribution<String> {
                 at=at.divide(overallDistance,MathContext.DECIMAL64);
 
                 this.a=at;
-                this.b=BigDecimal.valueOf(columnStats.nonNullCount()).subtract(a.multiply(maxPosition));
             }
         }
     }
@@ -92,7 +88,7 @@ public class UniformStringDistribution extends UniformDistribution<String> {
         BigDecimal startPos = computePosition(start);
         BigDecimal stopPos = computePosition(stop);
 
-        BigDecimal baseE = a.multiply(stopPos).add(b).subtract(a.multiply(startPos).add(b));
+        BigDecimal baseE = a.multiply(stopPos.subtract(startPos));
 
         /*
          * This is safe, because the linear function we used has a max of maxValue on the range [minValue,maxValue),
@@ -104,9 +100,12 @@ public class UniformStringDistribution extends UniformDistribution<String> {
 
         FrequentElements<String> fe = columnStats.topK();
         //if we are the min value, don't include the start key in frequent elements
-        includeStart = includeStart &&!isMin;
-        Set<? extends FrequencyEstimate<String>> estimates = fe.frequentElementsBetween(start, stop, includeStart, includeStop);
-        return uniformRangeCount(includeStart,includeStop,baseEstimate,estimates);
+        boolean includeMinFreq = includeStart &&!isMin;
+        Set<? extends FrequencyEstimate<String>> estimates = fe.frequentElementsBetween(start, stop, includeMinFreq, includeStop);
+        long l=uniformRangeCount(includeMinFreq,includeStop,baseEstimate,estimates);
+        if(isMin&&includeStart)
+            l+=minCount();
+        return l;
     }
 
     public long cardinality(String start,String stop,boolean includeStart,boolean includeStop){
