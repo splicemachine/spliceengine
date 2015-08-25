@@ -163,12 +163,20 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                 new IndexColumnOrder(1)
         };
         addTableIfAbsent(tc,systemSchema,tableStatsInfo,tableStatsOrder);
-        TableDescriptor tableStatsDescriptor=getTableDescriptor(tableStatsInfo.getTableName(),systemSchema,tc);
 
-        int[] pks=new int[]{0,1};
-        ReferencedKeyConstraintDescriptor tablestatspk=dataDescriptorGenerator.newPrimaryKeyConstraintDescriptor(tableStatsDescriptor,
-                "TABLESTATSPK",false,false,pks,uuidFactory.createUUID(),tableStatsDescriptor.getUUID(),systemSchema,true,0);
-        addConstraintDescriptor(tablestatspk,tc);
+        // Don't create PKs for the stats related system tables. Doing so exposes nasty issue
+        // where trying to delete rows fails at a low level while derby tries to resolve its
+        // constraints. This action works fine when the primary key is created through a SQL DDL statement,
+        // but not when the primary key is programatically like this. Uncomment this later if
+        // this issue can be resolved, but even without this, the logical primary keys
+        // implemented at the row key definition level should be sufficient even without
+        // this meta data.
+
+//        TableDescriptor tableStatsDescriptor=getTableDescriptor(tableStatsInfo.getTableName(),systemSchema,tc);
+//        int pks=new int[]{0,1};
+//        ReferencedKeyConstraintDescriptor tablestatspk=dataDescriptorGenerator.newPrimaryKeyConstraintDescriptor(tableStatsDescriptor,
+//                "TABLESTATSPK",false,false,pks,uuidFactory.createUUID(),tableStatsDescriptor.getUUID(),systemSchema,true,0);
+//        addConstraintDescriptor(tablestatspk,tc);
 
         createSysTableStatsView(tc);
 
@@ -180,24 +188,25 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         };
         TabInfoImpl columnStatsInfo=getColumnStatisticsTable();
         addTableIfAbsent(tc,systemSchema,columnStatsInfo,columnPkOrder);
-        TableDescriptor columnStatsDescriptor=getTableDescriptor(columnStatsInfo.getTableName(),systemSchema,tc);
-        pks=new int[]{0,1,2};
-        ReferencedKeyConstraintDescriptor columnStatsPk=dataDescriptorGenerator.newPrimaryKeyConstraintDescriptor(columnStatsDescriptor,
-                "COLUMNSTATSPK",false,false,pks,uuidFactory.createUUID(),columnStatsDescriptor.getUUID(),systemSchema,true,0);
-        addConstraintDescriptor(columnStatsPk,tc);
+//        TableDescriptor columnStatsDescriptor=getTableDescriptor(columnStatsInfo.getTableName(),systemSchema,tc);
+//        pks=new int[]{0,1,2};
+//        ReferencedKeyConstraintDescriptor columnStatsPk=dataDescriptorGenerator.newPrimaryKeyConstraintDescriptor(columnStatsDescriptor,
+//                "COLUMNSTATSPK",false,false,pks,uuidFactory.createUUID(),columnStatsDescriptor.getUUID(),systemSchema,true,0);
+//        addConstraintDescriptor(columnStatsPk,tc);
 
         createSysColumnStatsView(tc);
+
         //sys_physical_statistics
         ColumnOrdering[] physicalPkOrder=new ColumnOrdering[]{
                 new IndexColumnOrder(0)
         };
         TabInfoImpl physicalStatsInfo=getPhysicalStatisticsTable();
         addTableIfAbsent(tc,systemSchema,physicalStatsInfo,physicalPkOrder);
-        TableDescriptor physicalStatsDescriptor=getTableDescriptor(physicalStatsInfo.getTableName(),systemSchema,tc);
-        pks=new int[]{0};
-        ReferencedKeyConstraintDescriptor physicalStatsPk=dataDescriptorGenerator.newPrimaryKeyConstraintDescriptor(physicalStatsDescriptor,
-                "PHYSICALSTATSPK",false,false,pks,uuidFactory.createUUID(),physicalStatsDescriptor.getUUID(),systemSchema,true,0);
-        addConstraintDescriptor(physicalStatsPk,tc);
+//        TableDescriptor physicalStatsDescriptor=getTableDescriptor(physicalStatsInfo.getTableName(),systemSchema,tc);
+//        pks=new int[]{0};
+//        ReferencedKeyConstraintDescriptor physicalStatsPk=dataDescriptorGenerator.newPrimaryKeyConstraintDescriptor(physicalStatsDescriptor,
+//                "PHYSICALSTATSPK",false,false,pks,uuidFactory.createUUID(),physicalStatsDescriptor.getUUID(),systemSchema,true,0);
+//        addConstraintDescriptor(physicalStatsPk,tc);
     }
 
 

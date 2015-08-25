@@ -1,12 +1,15 @@
 package com.splicemachine.derby.utils;
 
+import com.google.common.base.Joiner;
+import com.google.common.primitives.Longs;
+import com.splicemachine.db.catalog.Statistics;
 import com.splicemachine.db.iapi.error.PublicAPI;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
-import com.splicemachine.db.iapi.services.io.StoredFormatIds;
 import com.splicemachine.db.iapi.services.uuid.UUIDFactory;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
+import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.*;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
@@ -18,9 +21,15 @@ import com.splicemachine.db.impl.jdbc.EmbedResultSet40;
 import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.db.shared.common.reference.SQLState;
+import com.splicemachine.derby.ddl.ClearStatsCacheDDLDesc;
+import com.splicemachine.derby.ddl.DDLChangeType;
+import com.splicemachine.derby.ddl.DDLCoordinationFactory;
+import com.splicemachine.derby.ddl.DropTableDDLChangeDesc;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.impl.job.coprocessor.CoprocessorJob;
 import com.splicemachine.derby.impl.stats.StatisticsJob;
+import com.splicemachine.derby.impl.stats.StatisticsStorage;
 import com.splicemachine.derby.impl.stats.StatisticsTask;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
@@ -31,10 +40,14 @@ import com.splicemachine.hbase.regioninfocache.HBaseRegionCache;
 import com.splicemachine.hbase.regioninfocache.RegionCache;
 import com.splicemachine.job.JobFuture;
 import com.splicemachine.job.JobScheduler;
+import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.pipeline.exception.ErrorState;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.si.api.TxnView;
+import com.splicemachine.stats.TableStatistics;
 import com.splicemachine.utils.IntArrays;
+import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.client.HTableInterface;
@@ -49,7 +62,7 @@ import java.util.concurrent.ExecutionException;
  * @author Scott Fines
  *         Date: 2/26/15
  */
-public class StatisticsAdmin {
+public class StatisticsAdmin extends BaseAdminProcedures {
     private static final Logger LOG=Logger.getLogger(StatisticsAdmin.class);
 
     @SuppressWarnings("UnusedDeclaration")
@@ -58,7 +71,7 @@ public class StatisticsAdmin {
                                                 String columnName) throws SQLException{
 
         if(schema==null)
-            schema = "SPLICE";
+            schema = getCurrentSchema();
         else
             schema = schema.toUpperCase();
         if(table==null)
@@ -102,7 +115,7 @@ public class StatisticsAdmin {
                                                 String table,
                                                 String columnName) throws SQLException{
         if(schema==null)
-            schema = "SPLICE";
+            schema = getCurrentSchema();
         else
             schema = schema.toUpperCase();
         if(table==null)
@@ -163,7 +176,7 @@ public class StatisticsAdmin {
             SchemaDescriptor sd = getSchemaDescriptor(schema,lcc,dd);
             //get a list of all the TableDescriptors in the schema
             List<TableDescriptor> tds = getAllTableDescriptors(sd,conn);
-
+            authorize(tds);
             ExecRow templateOutputRow = buildOutputTemplateRow();
             List<StatsJob> jobs = new ArrayList<>(tds.size());
             TransactionController transactionExecute = lcc.getTransactionExecute();
@@ -204,6 +217,36 @@ public class StatisticsAdmin {
 
     }
 
+    private static void authorize(List<TableDescriptor> tableDescriptorList) throws SQLException, StandardException {
+        EmbedConnection conn = (EmbedConnection)SpliceAdmin.getDefaultConn();
+        LanguageConnectionContext lcc=conn.getLanguageConnection();
+        Activation activation = conn.getLanguageConnection().getLastActivation();
+        List requiredPermissionsList = activation.getPreparedStatement().getRequiredPermissionsList();
+        for (TableDescriptor tableDescriptor : tableDescriptorList) {
+            StatementTablePermission key = null;
+            try {
+                key = new StatementTablePermission(tableDescriptor.getUUID(), Authorizer.INSERT_PRIV);
+                requiredPermissionsList.add(key);
+                activation.getLanguageConnectionContext().getAuthorizer().authorize(activation, 1);
+            } catch (StandardException e) {
+                if (e.getSqlState().compareTo(SQLState.AUTH_NO_TABLE_PERMISSION) == 0) {
+                    throw StandardException.newException(
+                            com.splicemachine.db.iapi.reference.SQLState.AUTH_NO_TABLE_PERMISSION_FOR_ANALYZE,
+                            lcc.getCurrentUserId(activation),
+                            "INSERT",
+                            tableDescriptor.getSchemaName(),
+                            tableDescriptor.getName());
+                }
+                else throw e;
+            }
+            finally {
+                if (key != null) {
+                    requiredPermissionsList.remove(key);
+                }
+            }
+        }
+    }
+
     @SuppressWarnings("UnusedDeclaration")
     public static void COLLECT_TABLE_STATISTICS(String schema,
                                                 String table,
@@ -212,13 +255,16 @@ public class StatisticsAdmin {
         EmbedConnection conn = (EmbedConnection)SpliceAdmin.getDefaultConn();
         try{
             if(schema==null)
-                schema = "SPLICE";
+                schema = getCurrentSchema();
             if(table==null)
                 throw ErrorState.TABLE_NAME_CANNOT_BE_NULL.newException();
 
             schema = schema.toUpperCase();
             table =table.toUpperCase();
             TableDescriptor tableDesc = verifyTableExists(conn,schema,table);
+            List<TableDescriptor> tableDescriptorList = new ArrayList<>();
+            tableDescriptorList.add(tableDesc);
+            authorize(tableDescriptorList);
             List<StatsJob> collectionFutures = new LinkedList<>();
 
             ExecRow outputRow=buildOutputTemplateRow();
@@ -245,6 +291,119 @@ public class StatisticsAdmin {
         }
     }
 
+    public static void DROP_SCHEMA_STATISTICS(String schema) throws SQLException {
+        EmbedConnection conn = (EmbedConnection)getDefaultConn();
+        PreparedStatement ps = null, ps2 = null;
+        
+		try {
+			if (schema == null)
+                throw ErrorState.TABLE_NAME_CANNOT_BE_NULL.newException();
+            schema = schema.toUpperCase();
+            LanguageConnectionContext lcc = conn.getLanguageConnection();
+            DataDictionary dd = lcc.getDataDictionary();
+
+            SchemaDescriptor sd = getSchemaDescriptor(schema, lcc, dd);
+            List<TableDescriptor> tds = getAllTableDescriptors(sd, conn);
+            authorize(tds);
+
+            long[] conglomIds = SpliceAdmin.getConglomNumbers(conn, schema, null);
+            assert conglomIds != null && conglomIds.length > 0;
+
+            TransactionController tc = conn.getLanguageConnection().getTransactionExecute();
+            tc.elevate("statistics");
+            TxnView txn = ((SpliceTransactionManager) tc).getRawTransaction().getActiveStateTxn();
+            
+            // The following 2 queries use existing system indexes: SYSCONGLOMERATES_INDEX1, SYSTABLES_INDEX1.
+
+            ps = conn.prepareStatement("DELETE FROM sys.systablestats WHERE conglomerateid IN (" + SpliceAdmin.getSqlConglomsInSchema() + ")");
+            ps.setString(1, schema);
+            int deleteCount = ps.executeUpdate();
+            SpliceLogUtils.debug(LOG, "Deleted %d rows in sys.systablestats for schema %s", deleteCount, schema);
+            
+            ps2 = conn.prepareStatement("DELETE FROM sys.syscolumnstats WHERE conglom_id IN (" + SpliceAdmin.getSqlConglomsInSchema() + ")");
+            ps2.setString(1, schema);
+            deleteCount = ps2.executeUpdate();
+            SpliceLogUtils.debug(LOG, "Deleted %d rows in sys.syscolumnstats for schema %s", deleteCount, schema);
+
+            notifyServersClearStatsCache(txn, conglomIds);
+            
+            SpliceLogUtils.debug(LOG, "Done dropping statistics for schema %s.", schema);
+        } catch (StandardException se) {
+            throw PublicAPI.wrapStandardException(se);
+        } finally {
+        	if (ps != null) ps.close();
+        	if (ps2 != null) ps2.close();
+        	if (conn != null) conn.close();
+        }
+    }
+    
+    public static void DROP_TABLE_STATISTICS(String schema, String table) throws SQLException {
+        EmbedConnection conn = (EmbedConnection)getDefaultConn();
+        PreparedStatement ps = null, ps2 = null;
+        
+		try {
+			if (schema == null)
+                schema = "SPLICE";
+            if (table == null)
+                throw ErrorState.TABLE_NAME_CANNOT_BE_NULL.newException();
+
+            schema = schema.toUpperCase();
+            table = table.toUpperCase();
+            verifyTableExists(conn, schema, table);
+            long[] conglomIds = SpliceAdmin.getConglomNumbers(conn, schema, table);
+            assert conglomIds != null && conglomIds.length > 0;
+
+            TransactionController tc = conn.getLanguageConnection().getTransactionExecute();
+            tc.elevate("statistics");
+            TxnView txn = ((SpliceTransactionManager) tc).getRawTransaction().getActiveStateTxn();
+
+            String inConglomIds = Joiner.on(",").join(Longs.asList(conglomIds)); 
+            ps = conn.prepareStatement("DELETE FROM sys.systablestats WHERE conglomerateid IN (" + inConglomIds + ")");
+            int deleteCount = ps.executeUpdate();
+            SpliceLogUtils.debug(LOG, "Deleted %d rows in sys.systablestats for table %s", deleteCount, table);
+
+            ps2 = conn.prepareStatement("DELETE FROM sys.syscolumnstats WHERE conglom_id IN (" + inConglomIds + ")");
+            deleteCount = ps2.executeUpdate();
+            SpliceLogUtils.debug(LOG, "Deleted %d rows in sys.syscolumnstats for table %s", deleteCount, table);
+
+            notifyServersClearStatsCache(txn, conglomIds);
+
+            SpliceLogUtils.debug(LOG, "Done dropping statistics for table %s.", table);
+        } catch(StandardException se) {
+            throw PublicAPI.wrapStandardException(se);
+        } finally {
+        	if (ps != null) ps.close();
+        	if (ps2 != null) ps2.close();
+        	if (conn != null) conn.close();
+        }
+    }
+
+    private static void notifyServersClearStatsCache(TxnView txn, long[] conglomIds) throws SQLException {
+        // Notify: listener on each region server will invalidate cache
+        // If this fails or times out, rethrow the exception as usual
+        // which will roll back the deletions.
+        
+        SpliceLogUtils.debug(LOG, "Notifying region servers to clear statistics caches.");
+        String changeId = null;
+        DDLChange change = new DDLChange(txn, DDLChangeType.CLEAR_STATS_CACHE);
+        change.setTentativeDDLDesc(new ClearStatsCacheDDLDesc(conglomIds));
+        try {
+        	changeId = DDLCoordinationFactory.getController().notifyMetadataChange(change);
+        } catch(StandardException se) {
+            throw PublicAPI.wrapStandardException(se);
+        } finally {
+			try {
+			    if (changeId != null) {
+		            // Finish (nothing more than clearing zk nodes)
+			        DDLCoordinationFactory.getController().finishMetadataChange(changeId);
+			    }
+		        SpliceLogUtils.debug(LOG, "Notified servers are finished clearing statistics caches.");
+			} catch (StandardException e) {
+			    SpliceLogUtils.error(LOG, "Error finishing dropping statistics", e);
+			}
+        }
+    }
+    
     /* ****************************************************************************************************************/
     /*private helper methods*/
 
@@ -665,5 +824,14 @@ public class StatisticsAdmin {
 
             return outputRow;
         }
+    }
+
+    private static String getCurrentSchema() throws SQLException {
+
+        EmbedConnection connection = (EmbedConnection)SpliceAdmin.getDefaultConn();
+        LanguageConnectionContext lcc=connection.getLanguageConnection();
+        String schema = lcc.getCurrentSchemaName();
+
+        return schema;
     }
 }

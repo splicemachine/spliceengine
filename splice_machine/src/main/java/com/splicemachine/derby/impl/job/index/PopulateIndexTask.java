@@ -209,22 +209,13 @@ public class PopulateIndexTask extends ZkTask {
 						try{
 								List nextRow = Lists.newArrayListWithExpectedSize(mainColToIndexPosMap.length);
 								boolean shouldContinue = true;
-								boolean[] ascDescInfo = new boolean[format_ids.length];
-								Arrays.fill(ascDescInfo,true);
-								for(int i=descColumns.nextSetBit(0);i>=0;i=descColumns.nextSetBit(i+1))
-										ascDescInfo[i] = false;
-
-								int[] keyEncodingMap = new int[format_ids.length];
-								Arrays.fill(keyEncodingMap,-1);
-								for(int i=indexedColumns.nextSetBit(0);i>=0;i=indexedColumns.nextSetBit(i+1)){
-										keyEncodingMap[i] = mainColToIndexPosMap[i];
-								}
 								IndexTransformer transformer = new IndexTransformer(isUnique,isUniqueWithDuplicateNulls,null,
 												columnOrdering,
 												format_ids,
 												null,
-												keyEncodingMap,
-												ascDescInfo);
+                                                                                    mainColToIndexPosMap,
+                                                                                    descColumns,
+                                                                                    indexedColumns);
 
 								byte[] indexTableLocation = Bytes.toBytes(Long.toString(indexConglomId));
 								writeBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(indexTableLocation,getTxn(),metricFactory);

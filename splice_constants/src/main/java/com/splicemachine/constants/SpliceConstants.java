@@ -103,10 +103,6 @@ public class SpliceConstants {
     @DefaultValue(COMPACTION_QUEUE_SIZE_BLOCK) private static final int DEFAULT_COMPACTION_QUEUE_SIZE_BLOCK = 1000;
     public static int compactionQueueSizeBlock;
 
-    @Parameter public static final String PUSH_FORWARD_WRITE_BUFFER_SIZE = "splice.rollforward.pushForwardWriteBufferSize";
-    @DefaultValue(PUSH_FORWARD_WRITE_BUFFER_SIZE) private static final int DEFAULT_PUSH_FORWARD_WRITE_BUFFER_SIZE = 2048;
-    public static int pushForwardWriteBufferSize;
-
     @Parameter public static final String DELAYED_FORWARD_RING_BUFFER_SIZE = "splice.rollforward.delayedForwardRingBufferSize";
     @DefaultValue(PUSH_FORWARD_RING_BUFFER_SIZE) private static final int DEFAULT_DELAYED_FORWARD_RING_BUFFER_SIZE = 4096;
     public static int delayedForwardRingBufferSize;
@@ -1041,6 +1037,10 @@ public class SpliceConstants {
     @DefaultValue(TEMP_TABLE_BUCKET_COUNT) public static int DEFAULT_TEMP_TABLE_BUCKET_COUNT = 16;
     public static int tempTableBucketCount;
 
+    public static final String BATCH_ONCE_BATCH_SIZE = "splice.batchonce.batchsize";
+    public static int DEFAULT_BATCH_ONCE_BATCH_SIZE = 50_000;
+    public static int batchOnceBatchSize;
+
     public static final String TEMP_MAX_FILE_SIZE = "splice.temp.maxFileSize";
     public static long tempTableMaxFileSize;
 
@@ -1162,16 +1162,16 @@ public class SpliceConstants {
         if(coreWriteThreads<0)
             coreWriteThreads=0;
 
-        threadKeepAlive = config.getLong(HBASE_HTABLE_THREADS_KEEPALIVETIME, DEFAULT_HBASE_HTABLE_THREADS_KEEPALIVETIME);
-        numRetries = config.getInt(HBASE_CLIENT_RETRIES_NUMBER, DEFAULT_HBASE_CLIENT_RETRIES_NUMBER);
-        cacheUpdatePeriod = config.getLong(CACHE_UPDATE_PERIOD, DEFAULT_CACHE_UPDATE_PERIOD);
-        compression = config.get(COMPRESSION, DEFAULT_COMPRESSION);
+        threadKeepAlive = config.getLong(HBASE_HTABLE_THREADS_KEEPALIVETIME,DEFAULT_HBASE_HTABLE_THREADS_KEEPALIVETIME);
+        numRetries = config.getInt(HBASE_CLIENT_RETRIES_NUMBER,DEFAULT_HBASE_CLIENT_RETRIES_NUMBER);
+        cacheUpdatePeriod = config.getLong(CACHE_UPDATE_PERIOD,DEFAULT_CACHE_UPDATE_PERIOD);
+        compression = config.get(COMPRESSION,DEFAULT_COMPRESSION);
 
 
         delayedForwardRingBufferSize = config.getInt(DELAYED_FORWARD_RING_BUFFER_SIZE, DEFAULT_DELAYED_FORWARD_RING_BUFFER_SIZE);
         pushForwardRingBufferSize = config.getInt(PUSH_FORWARD_RING_BUFFER_SIZE, DEFAULT_PUSH_FORWARD_RING_BUFFER_SIZE);
-        pushForwardWriteBufferSize = config.getInt(PUSH_FORWARD_WRITE_BUFFER_SIZE, DEFAULT_PUSH_FORWARD_WRITE_BUFFER_SIZE);
-        delayedForwardWriteBufferSize = config.getInt(DELAYED_FORWARD_WRITE_BUFFER_SIZE, DEFAULT_DELAYED_FORWARD_WRITE_BUFFER_SIZE);
+//        pushForwardWriteBufferSize = config.getInt(PUSH_FORWARD_WRITE_BUFFER_SIZE, DEFAULT_PUSH_FORWARD_WRITE_BUFFER_SIZE);
+//        delayedForwardWriteBufferSize = config.getInt(DELAYED_FORWARD_WRITE_BUFFER_SIZE, DEFAULT_DELAYED_FORWARD_WRITE_BUFFER_SIZE);
         delayedForwardAsyncWriteDelay = config.getInt(DELAYED_FORWARD_ASYNCH_WRITE_DELAY, DEFAULT_DELAYED_FORWARD_ASYNCH_WRITE_DELAY);
         delayedForwardQueueLimit = config.getInt(DELAYED_FORWARD_QUEUE_LIMIT, DEFAULT_DELAYED_FORWARD_QUEUE_LIMIT);
 
@@ -1258,6 +1258,8 @@ public class SpliceConstants {
         numHConnections = config.getInt(NUM_CLIENT_HCONNECTIONS,DEFAULT_NUM_HCONNECTIONS);
 
         regionLoadUpdateInterval = config.getLong(REGION_LOAD_UPDATE_INTERVAL,DEFAULT_REGION_LOAD_UPDATE_INTERVAL);
+
+        batchOnceBatchSize = config.getInt(BATCH_ONCE_BATCH_SIZE, DEFAULT_BATCH_ONCE_BATCH_SIZE);
     }
 
     public static void reloadConfiguration(Configuration configuration) {

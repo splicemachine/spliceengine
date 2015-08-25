@@ -121,9 +121,9 @@ public class RowCountOperationIT {
     @Test
     public void firstRowOnly_overGroupBy() throws Exception {
         validateOrdered("" +
-                            "avg |\n" +
-                            "------\n" +
-                            " 18  |", "select avg(distinct a) as \"avg\" from A fetch first row only");
+                "avg |\n" +
+                "------\n" +
+                " 18  |", "select avg(distinct a) as \"avg\" from A fetch first row only");
     }
 
     @Test
@@ -134,6 +134,20 @@ public class RowCountOperationIT {
                 " 18  |", "select top 1 avg(distinct a) as \"avg\" from A");
     }
 
+    @Test
+    public void offset10Row_overGroupBy() throws Exception {
+        validateOrdered("" +
+                "sum |\n" +
+                "------\n" +
+                " 20  |\n" +
+                " 21  |\n" +
+                " 22  |\n" +
+                " 23  |\n" +
+                " 24  |\n" +
+                " 25  |\n" +
+                " 26  |\n" +
+                " 27  |", "select sum(a) as \"sum\" from A group by a order by a offset 10 rows");
+    }
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
     //
     // first x rows only
