@@ -7,8 +7,8 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLVarchar;
-import com.splicemachine.db.impl.ast.ExplainTree;
 import com.splicemachine.db.impl.ast.PlanPrinter;
+import com.splicemachine.db.impl.sql.compile.QueryTreeNode;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
@@ -19,7 +19,6 @@ import com.splicemachine.derby.impl.storage.RowProviders;
 import com.splicemachine.derby.utils.marshall.PairDecoder;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-
 import java.io.IOException;
 import java.util.*;
 
@@ -89,7 +88,7 @@ public class ExplainOperation extends SpliceBaseOperation {
     }
 
     protected void clearState(){
-        Map<String, ExplainTree> m=PlanPrinter.planMap.get();
+        Map<String, Collection<QueryTreeNode>> m=PlanPrinter.planMap.get();
         String sql = activation.getPreparedStatement().getSource();
         m.remove(sql);
     }
@@ -143,12 +142,12 @@ public class ExplainOperation extends SpliceBaseOperation {
     @Override public void close() throws StandardException,IOException { }
 
     @SuppressWarnings("unchecked")
-    private void getPlanInformation(){
-        Map<String,ExplainTree> m = PlanPrinter.planMap.get();
+    private void getPlanInformation() throws StandardException{
+        Map<String,Collection<QueryTreeNode>> m = PlanPrinter.planMap.get();
         String sql = activation.getPreparedStatement().getSource();
-        ExplainTree opPlanMap = m.get(sql);
+        Collection<QueryTreeNode> opPlanMap = m.get(sql);
         if(opPlanMap!=null){
-            explainStringIter = opPlanMap.treeToString();
+            explainStringIter = PlanPrinter.planToString(opPlanMap);
         }else
             explainStringIter =Iterators.emptyIterator();
     }

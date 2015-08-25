@@ -52,7 +52,7 @@ public class TempSortController implements SortCostController{
     public void estimateSortCost(CostEstimate baseCost) throws StandardException{
         if(baseCost.isUninitialized()) return; //don't do anything, we aren't real yet
         double parallelCost = (baseCost.localCost()+baseCost.remoteCost())/baseCost.partitionCount();
-        baseCost.setBase(baseCost.cloneMe());
+//        baseCost.setBase(baseCost.cloneMe());
         baseCost.setLocalCost(baseCost.localCost()+parallelCost);
     }
 }
