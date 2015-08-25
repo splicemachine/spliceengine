@@ -25,8 +25,8 @@ public class DistinctScalarAggregateOperationIT extends SpliceUnitTest {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
     private static Logger LOG = Logger.getLogger(DistinctScalarAggregateOperationIT.class);
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(DistinctScalarAggregateOperationIT.class.getSimpleName());
-    protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("ORDERSUMMARY",DistinctScalarAggregateOperationIT.class.getSimpleName(),"(oid int, catalog varchar(40), score int, brand varchar(40))");
-    protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("EMPTY_TABLE",DistinctScalarAggregateOperationIT.class.getSimpleName(),"(oid int, catalog varchar(40), score int, brand char(40))");
+    protected static SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher("ORDERSUMMARY",DistinctScalarAggregateOperationIT.class.getSimpleName(),"(oid int, catalog varchar(40), score float, brand varchar(40))");
+    protected static SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher("EMPTY_TABLE",DistinctScalarAggregateOperationIT.class.getSimpleName(),"(oid int, catalog varchar(40), score float, brand char(40))");
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)

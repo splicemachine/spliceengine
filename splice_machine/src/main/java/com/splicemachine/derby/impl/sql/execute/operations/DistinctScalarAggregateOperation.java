@@ -389,7 +389,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
     }
 
 
-    public DataHash getKeyHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
+    private DataHash getKeyHash(SpliceRuntimeContext spliceRuntimeContext) throws StandardException {
         ExecRow execRowDefinition = getExecRowDefinition();
         int[] rowColumns = IntArrays.intersect(keyColumns, execRowDefinition.nColumns());
         DescriptorSerializer[] serializers = VersionedSerializers.latestVersion(false).getSerializers(execRowDefinition);
