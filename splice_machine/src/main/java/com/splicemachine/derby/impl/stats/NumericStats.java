@@ -2,8 +2,7 @@ package com.splicemachine.derby.impl.stats;
 
 import com.google.common.base.Function;
 import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
-import com.splicemachine.db.iapi.types.SQLDecimal;
+import com.splicemachine.db.iapi.types.*;
 import com.splicemachine.encoding.Encoder;
 import com.splicemachine.encoding.Encoding;
 import com.splicemachine.stats.ColumnStatistics;
@@ -125,7 +124,7 @@ public class NumericStats extends BaseDvdStatistics{
 
     private static BigDecimal safeGetDecimal(DataValueDescriptor value) {
         try {
-            return (BigDecimal)value.getObject();
+            return ((NumberDataValue)value).getBigDecimal();
         } catch (StandardException se) {
             throw new RuntimeException(se);
         }
@@ -212,8 +211,27 @@ public class NumericStats extends BaseDvdStatistics{
             else
                 e = safeGetDecimal(stop);
 
-            return baseStats.getDistribution().rangeSelectivity(s,e,includeStart,includeStop);
+            return baseStats.getDistribution().rangeSelectivity(s, e, includeStart, includeStop);
         }
 
+        @Override
+        public DataValueDescriptor minValue(){
+            return new SQLDecimal(baseStats.minValue());
+        }
+
+        @Override
+        public long minCount(){
+            return baseStats.minCount();
+        }
+
+        @Override
+        public DataValueDescriptor maxValue(){
+            return new SQLDecimal(baseStats.maxValue());
+        }
+
+        @Override
+        public long totalCount(){
+            return baseStats.nonNullCount();
+        }
     }
 }

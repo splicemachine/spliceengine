@@ -207,8 +207,43 @@ public class RealStats extends BaseDvdStatistics {
                 }
             }
         }
+
+        @Override
+        public DataValueDescriptor minValue(){
+            return safeWrap(stats.min());
+        }
+
+        @Override
+        public long minCount(){
+            return stats.minCount();
+        }
+
+        @Override
+        public DataValueDescriptor maxValue(){
+            return safeWrap(stats.max());
+        }
+
+        @Override
+        public long totalCount(){
+            return stats.nonNullCount();
+        }
     }
 
+    private static SQLReal safeWrap(float value){
+        try{
+            return new SQLReal(value);
+        }catch(StandardException e){
+            /*
+             * This should never happen because we only populate statistics
+             * from data stored on a table; this data has already passed bounds checking
+             * to be stored in a SQLReal already, and thus we should be safe here.
+             *
+             * Still, just to be safe, rethrow so that the exception ends up somewhere when
+             * it inevitably happens due to some programmer (most likely me) screws up.
+             */
+            throw new RuntimeException(e);
+        }
+    }
     private static float safeGetFloat(DataValueDescriptor element) {
         try {
             return element.getFloat();

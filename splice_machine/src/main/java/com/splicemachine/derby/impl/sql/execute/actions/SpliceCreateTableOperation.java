@@ -9,6 +9,7 @@ import com.splicemachine.db.iapi.services.loader.GeneratedClass;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultSet;
 import com.splicemachine.db.iapi.sql.compile.ASTVisitor;
+import com.splicemachine.db.iapi.sql.compile.CompilationPhase;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.Dependent;
@@ -52,20 +53,20 @@ public class SpliceCreateTableOperation extends CreateTableConstantOperation {
      * @param onRollbackDeleteRows If true, on rollback, delete rows from temp tables which were logically modified. true is the only supported value
      */
     public SpliceCreateTableOperation(String schemaName,
-                                      String tableName,
-                                      int tableType,
-                                      ColumnInfo[] columnInfo,
-                                      ConstantAction[] constraintActions,
-                                      Properties properties,
-                                      char lockGranularity,
-                                      boolean onCommitDeleteRows,
-                                      boolean onRollbackDeleteRows,
-                                      StatementNode insertNode) throws StandardException {
+																			String tableName,
+																			int tableType,
+																			ColumnInfo[] columnInfo,
+																			ConstantAction[] constraintActions,
+																			Properties properties,
+																			char lockGranularity,
+																			boolean onCommitDeleteRows,
+																			boolean onRollbackDeleteRows,
+																			StatementNode insertNode) {
         super(schemaName, tableName, tableType, columnInfo, constraintActions, properties, lockGranularity, onCommitDeleteRows, onRollbackDeleteRows);
         this.tableType = tableType;
         this.tableName = tableName;
         this.schemaName = schemaName;
-        this.insertNode = insertNode;
+				this.insertNode = insertNode;
     }
 
     @Override
@@ -154,9 +155,9 @@ public class SpliceCreateTableOperation extends CreateTableConstantOperation {
 
 						ASTVisitor visitor = lcc.getASTVisitor();
 						if(visitor!=null){
-								visitor.begin(insertNode.statementToString(),ASTVisitor.AFTER_OPTIMIZE);
+								visitor.begin(insertNode.statementToString(), CompilationPhase.AFTER_OPTIMIZE);
 								insertNode.accept(visitor);
-								visitor.end(ASTVisitor.AFTER_OPTIMIZE);
+								visitor.end(CompilationPhase.AFTER_OPTIMIZE);
 						}
 
 

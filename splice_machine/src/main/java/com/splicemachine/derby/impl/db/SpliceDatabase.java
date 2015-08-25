@@ -21,6 +21,7 @@ import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.ddl.DDLCoordinationFactory;
 import com.splicemachine.derby.ddl.DDLWatcher;
 import com.splicemachine.derby.impl.ast.XPlainTraceVisitor;
+import com.splicemachine.derby.impl.sql.execute.operations.batchonce.BatchOnceVisitor;
 import org.apache.hadoop.hbase.HTableDescriptor;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.log4j.Logger;
@@ -130,6 +131,7 @@ public class SpliceDatabase extends BasicDatabase{
         afterOptVisitors.add(FindHashJoinColumns.class);
 //        afterOptVisitors.add(PlanDebugger.class);
         afterOptVisitors.add(FixSubqueryColRefs.class);
+        afterOptVisitors.add(BatchOnceVisitor.class);
  //       afterOptVisitors.add(PlanDebugger.class);
         afterOptVisitors.add(PlanPrinter.class);
         afterOptVisitors.add(XPlainTraceVisitor.class);

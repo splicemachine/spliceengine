@@ -3,18 +3,27 @@ package com.splicemachine.derby.impl.stats;
 import com.google.common.base.Function;
 import com.google.common.collect.Lists;
 import com.splicemachine.async.Bytes;
-import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.derby.ddl.ClearStatsCacheDDLDesc;
+import com.splicemachine.derby.ddl.DDLChangeType;
+import com.splicemachine.derby.ddl.DDLCoordinationFactory;
+import com.splicemachine.derby.ddl.DDLWatcher;
 import com.splicemachine.derby.iapi.catalog.TableStatisticsDescriptor;
+import com.splicemachine.derby.utils.SpliceAdmin;
 import com.splicemachine.hbase.regioninfocache.RegionCache;
+import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.si.api.Txn;
 import com.splicemachine.si.api.TxnView;
 import com.splicemachine.si.impl.TransactionLifecycle;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.PartitionStatistics;
+import com.splicemachine.utils.SpliceLogUtils;
+
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.util.Pair;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 import java.util.*;
@@ -27,6 +36,7 @@ import java.util.concurrent.ExecutionException;
  *         Date: 3/9/15
  */
 public class PartitionStatsStore {
+    private static final Logger LOG = Logger.getLogger(PartitionStatsStore.class);
     private final RegionCache regionCache;
     private final TableStatisticsStore tableStatsReader;
     private final ColumnStatisticsStore columnStatsReader;
@@ -37,11 +47,50 @@ public class PartitionStatsStore {
     public PartitionStatsStore(RegionCache regionCache,
                                TableStatisticsStore tableStatsReader,
                                ColumnStatisticsStore columnStatsReader) {
-        this.regionCache = regionCache;
+    	this.regionCache = regionCache;
         this.tableStatsReader = tableStatsReader;
         this.columnStatsReader = columnStatsReader;
-    }
 
+		LOG.debug("Registering listener for CLEAR_STATS_CACHE change type.");
+		DDLCoordinationFactory.getWatcher().registerDDLListener(
+            new DDLWatcher.DDLListener(){
+			    @Override
+			    public void startGlobalChange() {
+			    }
+			
+			    @Override
+			    public void finishGlobalChange() {
+			    }
+			
+			    @Override
+			    public void startChange(DDLChange change) throws StandardException {
+			        DDLChangeType changeType = change.getChangeType();
+			        if (changeType == null) return;
+			  	    switch (changeType) {
+			        case CLEAR_STATS_CACHE:
+			        	String tableName = null;
+			        	try {
+			        		long[] conglomIds = ((ClearStatsCacheDDLDesc)change.getTentativeDDLDesc()).getConglomerateIds();
+			        		SpliceLogUtils.debug(LOG, "Invalidating cached statistics in response to CLEAR_STATS_CACHE change type");
+			        		for (long conglomId : conglomIds) {
+				        		invalidateCachedStatistics(conglomId);
+			        		}
+			        	} catch (ExecutionException e) {
+			        		LOG.error(String.format("Error while trying to invalidate cached statistics", tableName), e);
+			        	}
+			            break;
+			        default:
+			            break;
+			        }
+			    }
+			
+			    @Override
+			    public void finishChange(String changeId) {
+			    }
+			}
+        );
+    }
+    
     @SuppressWarnings("ThrowFromFinallyBlock")
     public OverheadManagedTableStatistics getStatistics(TxnView wrapperTxn,long conglomerateId) throws ExecutionException {
         Txn txn = getTxn(wrapperTxn);
@@ -51,7 +100,7 @@ public class PartitionStatsStore {
             try {
                 txn.commit();
             } catch (IOException ignored) {
-               //this should never happen, since we are making a read-only transaction
+            	// this should never happen, since we are making a read-only transaction
                 throw new RuntimeException(ignored);
             }
         }

@@ -14,9 +14,10 @@ import java.util.concurrent.ExecutionException;
  */
 public interface ColumnStatisticsStore {
 
-    public Map<String,List<ColumnStatistics>> fetchColumnStats(TxnView txn, long conglomerateId, Collection<String> partitions) throws ExecutionException;
+    @SuppressWarnings("rawtypes")
+	public Map<String,List<ColumnStatistics>> fetchColumnStats(TxnView txn, long conglomerateId, Collection<String> partitions) throws ExecutionException;
 
     public void invalidate(long conglomerateId,Collection<String> partitions);
-
+    
     void start() throws ExecutionException;
 }

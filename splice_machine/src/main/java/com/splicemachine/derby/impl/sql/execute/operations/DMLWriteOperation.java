@@ -1,8 +1,44 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import static com.splicemachine.derby.impl.sql.execute.operations.DMLTriggerEventMapper.getAfterEvent;
+import static com.splicemachine.derby.impl.sql.execute.operations.DMLTriggerEventMapper.getBeforeEvent;
+
+import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.List;
+import java.util.concurrent.Callable;
+
 import com.google.common.base.Strings;
-import com.splicemachine.db.impl.sql.execute.*;
-import com.splicemachine.derby.iapi.sql.execute.*;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.log4j.Logger;
+import org.apache.spark.api.java.JavaRDD;
+
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
+import com.splicemachine.db.iapi.sql.ResultDescription;
+import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
+import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.db.impl.sql.execute.TriggerInfo;
+import com.splicemachine.db.impl.sql.execute.ValueRow;
+import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.hbase.SpliceObserverInstructions;
+import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceNoPutResultSet;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
+import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.iapi.storage.RowProvider;
+import com.splicemachine.derby.impl.SpliceMethod;
+import com.splicemachine.derby.impl.spark.SpliceSpark;
 import com.splicemachine.derby.impl.sql.execute.actions.WriteCursorConstantOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.DMLWriteInfo;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.OperationInformation;
@@ -42,9 +78,14 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 		private boolean isScan = true;
 		protected DMLWriteInfo writeInfo;
         protected long writeRowsFiltered;
-        private TriggerInfo triggerInfo;
-        private TriggerEventActivator triggerActivator;
-		public DMLWriteOperation(){
+
+        private TriggerHandler triggerHandler;
+
+    private SpliceMethod<ExecRow> generationClauses;
+    private String generationClausesFunMethodName;
+
+
+    public DMLWriteOperation(){
 				super();
 		}
 
@@ -66,7 +107,13 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 														 GeneratedMethod checkGM,
 														 Activation activation) throws StandardException{
 				this(source, activation);
-		}
+
+            if(generationClauses != null) {
+                this.generationClausesFunMethodName = generationClauses.getMethodName();
+                this.generationClauses = new SpliceMethod<>(generationClausesFunMethodName, activation);
+            }
+
+        }
 
 		DMLWriteOperation(SpliceOperation source,
 											OperationInformation opInfo,
@@ -82,7 +129,8 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 				super.readExternal(in);
 				source = (SpliceOperation)in.readObject();
 				writeInfo = (DMLWriteInfo)in.readObject();
-                heapConglom = in.readLong();
+            generationClausesFunMethodName = readNullableString(in);
+        heapConglom = in.readLong();
 		}
 
 		@Override
@@ -90,7 +138,9 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 				super.writeExternal(out);
 				out.writeObject(source);
 				out.writeObject(writeInfo);
-                out.writeLong(heapConglom);
+            writeNullableString(generationClausesFunMethodName, out);
+
+            out.writeLong(heapConglom);
 		}
 
 		@Override
@@ -115,7 +165,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
                     );
                 }
 */
-				startExecutionTime = System.currentTimeMillis();
+            startExecutionTime = System.currentTimeMillis();
 		}
 
     public byte[] getDestinationTable(){

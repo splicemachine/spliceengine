@@ -199,5 +199,25 @@ public class IntStats extends BaseDvdStatistics {
                 }
             }
         }
+
+        @Override
+        public DataValueDescriptor minValue(){
+            return new SQLInteger(intStats.min());
+        }
+
+        @Override
+        public long minCount(){
+            return intStats.minCount();
+        }
+
+        @Override
+        public DataValueDescriptor maxValue(){
+            return new SQLInteger(intStats.max());
+        }
+
+        @Override
+        public long totalCount(){
+            return intStats.nonNullCount();
+        }
     }
 }

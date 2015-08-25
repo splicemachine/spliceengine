@@ -166,7 +166,7 @@ public abstract class StringStatistics extends BaseDvdStatistics{
         }
     };
 
-    public static class StringDistribution implements Distribution<DataValueDescriptor> {
+    public class StringDistribution implements Distribution<DataValueDescriptor> {
         private ColumnStatistics<String> stats;
 
         public StringDistribution(ColumnStatistics<String> stats) {
@@ -189,6 +189,26 @@ public abstract class StringStatistics extends BaseDvdStatistics{
             if(stop==null||stop.isNull()) e = null;
             else e = safeGetString(stop);
             return stats.getDistribution().rangeSelectivity(s,e,includeStart,includeStop);
+        }
+
+        @Override
+        public DataValueDescriptor minValue(){
+            return getDvd(stats.minValue());
+        }
+
+        @Override
+        public long minCount(){
+            return stats.minCount();
+        }
+
+        @Override
+        public DataValueDescriptor maxValue(){
+            return getDvd(stats.maxValue());
+        }
+
+        @Override
+        public long totalCount(){
+            return stats.nonNullCount();
         }
     }
 

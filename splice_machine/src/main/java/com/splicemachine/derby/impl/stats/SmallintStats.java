@@ -190,6 +190,26 @@ public class SmallintStats extends BaseDvdStatistics {
                 }
             }
         }
+
+        @Override
+        public DataValueDescriptor minValue(){
+            return new SQLSmallint(distribution.min());
+        }
+
+        @Override
+        public long minCount(){
+            return distribution.minCount();
+        }
+
+        @Override
+        public DataValueDescriptor maxValue(){
+            return new SQLSmallint(distribution.max());
+        }
+
+        @Override
+        public long totalCount(){
+            return distribution.totalCount();
+        }
     }
 
     private static short safeGetShort(DataValueDescriptor element) {

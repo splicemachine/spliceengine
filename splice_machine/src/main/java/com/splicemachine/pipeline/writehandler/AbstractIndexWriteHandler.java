@@ -20,7 +20,7 @@ import com.splicemachine.utils.SpliceLogUtils;
  */
 public abstract class AbstractIndexWriteHandler implements WriteHandler {
     private static final Logger LOG = Logger.getLogger(AbstractIndexWriteHandler.class);
-    protected final byte[] indexConglomBytes;
+    private final byte[] indexConglomBytes;
     protected boolean failed;
     protected final ObjectObjectOpenHashMap<KVPair, KVPair> indexToMainMutationMap = ObjectObjectOpenHashMap.newInstance();
 
@@ -29,31 +29,14 @@ public abstract class AbstractIndexWriteHandler implements WriteHandler {
      */
     protected final BitSet indexedColumns;
 
-    /*
-     * The columns in the index table (e.g. mainColToIndexPosMap[indexedColumns.get()])
-     */
-    protected final BitSet translatedIndexColumns;
-    /*
-     * Mapping between the position in the main column's data stream, and the position in the index
-     * key. The length of this is the same as the number of columns in the main table, and if the
-     * fields isn't in the index, then the value of this map should be -1.
-     */
-    protected final int[] mainColToIndexPosMap;
-
     protected final BitSet descColumns;
     protected final boolean keepState;
 
-    protected AbstractIndexWriteHandler(BitSet indexedColumns, int[] mainColToIndexPosMap, byte[] indexConglomBytes, BitSet descColumns, boolean keepState) {
+    protected AbstractIndexWriteHandler(BitSet indexedColumns, byte[] indexConglomBytes, BitSet descColumns, boolean keepState) {
         this.indexedColumns = indexedColumns;
-        this.mainColToIndexPosMap = mainColToIndexPosMap;
         this.indexConglomBytes = indexConglomBytes;
         this.descColumns = descColumns;
         this.keepState = keepState;
-
-        this.translatedIndexColumns = new BitSet(indexedColumns.cardinality());
-        for (int i = indexedColumns.nextSetBit(0); i >= 0; i = indexedColumns.nextSetBit(i + 1)) {
-            translatedIndexColumns.set(mainColToIndexPosMap[i]);
-        }
     }
 
     @Override

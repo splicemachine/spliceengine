@@ -10,225 +10,203 @@ import com.splicemachine.db.iapi.types.DataValueFactoryImpl;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.db.shared.common.sanity.SanityManager;
 import com.splicemachine.utils.ByteSlice;
-
 import org.apache.hadoop.hbase.util.Bytes;
 
-import java.io.ObjectOutput;
-import java.io.ObjectInput;
 import java.io.IOException;
+import java.io.ObjectInput;
+import java.io.ObjectOutput;
+import java.util.Objects;
 
-/**     
- * 
- * 
- * 
+/**
+ *
  */
-
 public class HBaseRowLocation extends DataType implements RowLocation {
 
-	private ByteSlice slice;
     private static final int BASE_MEMORY_USAGE = ClassSize.estimateBaseFromCatalog(HBaseRowLocation.class);
-    private static final int RECORD_HANDLE_MEMORY_USAGE = ClassSize.estimateBaseFromCatalog( com.splicemachine.db.impl.store.raw.data.RecordId.class);
 
-	public HBaseRowLocation()
-	{
-	}
+    private ByteSlice slice;
 
-	public HBaseRowLocation(byte[] rowKey) {
-		this.slice = ByteSlice.wrap(rowKey);
-	}
-	
-	public HBaseRowLocation(ByteSlice slice) {
-		this.slice = slice;
-	}
-	
+    /**
+     * Factory method for creating a new HBaseRowLocation from an existing where the new shares NO references with the old.
+     */
+    public static HBaseRowLocation deepClone(HBaseRowLocation srcLocation) {
+        ByteSlice sourceSlice = srcLocation.getSlice();
+        ByteSlice newSlice = sourceSlice == null ? new ByteSlice() : ByteSlice.wrap(sourceSlice.getByteCopy());
+        return new HBaseRowLocation(newSlice);
+    }
+
+    public HBaseRowLocation() {
+    }
+
+    public HBaseRowLocation(byte[] rowKey) {
+        this.slice = ByteSlice.wrap(rowKey);
+    }
+
+    public HBaseRowLocation(ByteSlice slice) {
+        this.slice = slice;
+    }
+
+    /**
+     * For cloning
+     *
+     * CAUTION: returned object will share mutable ByteSlice and mutable byte[] array with this.
+     */
+    public HBaseRowLocation(HBaseRowLocation other) {
+        this.slice = other.slice;
+    }
+
+    @Override
     public int estimateMemoryUsage() {
         return BASE_MEMORY_USAGE;
-    } 
+    }
 
     @Override
     public final void setValue(byte[] theValue) {
-        if(slice==null)
+        if (slice == null) {
             slice = ByteSlice.wrap(theValue);
-        else
-            slice.set(theValue);
-	}
-    
-    public final byte[]	getBytes() {
-		return slice != null?slice.getByteCopy():null;
-	}
-    @Override
-	public String getTypeName() {
-		return "HBaseRowLocation";
-	}
-
-	public void setValueFromResultSet(java.sql.ResultSet resultSet, int colNumber,
-		boolean isNullable) {
-	}
-
-	public DataValueDescriptor getNewNull() {
-		return new HBaseRowLocation();
-	}
-	@Override
-	public Object getObject() {
-		return this.slice;
-	}
-
-	@Override
-	public void setValue(Object theValue) throws StandardException {
-		this.slice = (ByteSlice) theValue;
-	}
-
-	public DataValueDescriptor cloneValue(boolean forceMaterialization) {
-		return new HBaseRowLocation(this.getBytes());
-	}
-
-	public String getString() {
-		return toString();
-	}
-	
-	public int getLength() {
-		return this.slice == null ? 0 : this.slice.length();//what is the length of the primary key?
-	}
-
-	/*
-	** Methods of Orderable (from RowLocation)
-	**
-	** see description in
-	** protocol/Database/Storage/Access/Interface/Orderable.java 
-	**
-	*/
-
-	public boolean compare(int op,
-						   DataValueDescriptor other,
-						   boolean orderedNulls,
-						   boolean unknownRV) throws StandardException
-	{
-		// HeapRowLocation should not be null, ignore orderedNulls
-		int result = compare(other);
-
-		switch(op)
-		{
-		case ORDER_OP_LESSTHAN:
-			return (result < 0); // this < other
-		case ORDER_OP_EQUALS:
-			return (result == 0);  // this == other
-		case ORDER_OP_LESSOREQUALS:
-			return (result <= 0);  // this <= other
-		default:
-
-            if (SanityManager.DEBUG)
-                SanityManager.THROWASSERT("Unexpected operation");
-			return false;
-		}
-	}
-
-	public int compare(DataValueDescriptor other) throws StandardException
-	{
-        /* REVISIT: do we need this check?
-        if (SanityManager.DEBUG)
-            SanityManager.ASSERT(other instanceof HBaseRowLocation);
-        */
-
-        return Bytes.compareTo(getBytes(), other.getBytes());
-	}
-
-	/*
-	** Methods of HeapRowLocation
-	*/
-
-
-
-	/* For cloning */
-	public HBaseRowLocation(HBaseRowLocation other) {
-		this.slice = other.slice;
-	}
-
-	/*
-	 * Storable interface, implies Externalizable, TypedFormat
-	 */
-
-	/**
-		Return my format identifier.
-
-		@see com.splicemachine.db.iapi.services.io.TypedFormat#getTypeFormatId
-	*/
-	public int getTypeFormatId() {
-		return StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID;
-	}
-
-    public boolean isNull() {
-    	return slice == null;
-    }
-
-	public void writeExternal(ObjectOutput out) throws IOException {
-		out.writeObject(slice);
-	}
-	/**
-	  @exception java.lang.ClassNotFoundException A class needed to read the
-	  stored form of this object could not be found.
-	  @see java.io.Externalizable#readExternal
-	  */
-	public void readExternal(ObjectInput in)  throws IOException, ClassNotFoundException {
-		slice = (ByteSlice) in.readObject();
-	}
-	public void readExternalFromArray(ArrayInputStream in) throws IOException, ClassNotFoundException {
-		
-	}
-
-    public void restoreToNull() {
-    }
-    
-	protected void setFrom(DataValueDescriptor theValue)  {
-			if (SanityManager.DEBUG)
-					SanityManager.ASSERT(theValue instanceof HBaseRowLocation,
-									"Should only be set from another HeapRowLocation");
-			HBaseRowLocation that = (HBaseRowLocation) theValue;
-			ByteSlice otherSlice = that.slice;
-			this.slice.set(otherSlice.array(),otherSlice.offset(),otherSlice.length());
-	}
-	/*
-	**		Methods of Object
-	*/
-
-	/**
-		Implement value equality.
-		<BR>
-		MT - Thread safe
-	*/
-	public boolean equals(Object ref)  {
-		if ((ref instanceof HBaseRowLocation)) {
-            HBaseRowLocation other = (HBaseRowLocation) ref;
-            return((this.slice == other.slice) && (this.slice == other.slice));
         }
         else {
-			return false;
+            slice.set(theValue);
         }
+    }
 
-	}
+    @Override
+    public final byte[] getBytes() {
+        return slice != null ? slice.getByteCopy() : null;
+    }
 
-	/**
-		Return a hashcode based on value.
-		<BR>
-		MT - thread safe
-	*/
-	public int hashCode()  {
-		return this.slice.hashCode();
-	}
+    @Override
+    public String getTypeName() {
+        return "HBaseRowLocation";
+    }
 
-    /*
-     * Standard toString() method.
+    @Override
+    public void setValueFromResultSet(java.sql.ResultSet resultSet, int colNumber, boolean isNullable) {
+    }
+
+    public DataValueDescriptor getNewNull() {
+        return new HBaseRowLocation();
+    }
+
+    @Override
+    public Object getObject() {
+        return this.slice;
+    }
+
+    @Override
+    public void setValue(Object theValue) throws StandardException {
+        this.slice = (ByteSlice) theValue;
+    }
+
+    /**
+     * CAUTION: returned object will share mutable ByteSlice and mutable byte[] array with this.
      */
+    @Override
+    public HBaseRowLocation cloneValue(boolean forceMaterialization) {
+        return new HBaseRowLocation(this.getBytes());
+    }
+
+    @Override
+    public String getString() {
+        return toString();
+    }
+
+    @Override
+    public int getLength() {
+        return this.slice == null ? 0 : this.slice.length();//what is the length of the primary key?
+    }
+
+    @Override
+    public boolean compare(int op,
+                           DataValueDescriptor other,
+                           boolean orderedNulls,
+                           boolean unknownRV) throws StandardException {
+        // HeapRowLocation should not be null, ignore orderedNulls
+        int result = compare(other);
+
+        switch (op) {
+            case ORDER_OP_LESSTHAN:
+                return (result < 0); // this < other
+            case ORDER_OP_EQUALS:
+                return (result == 0);  // this == other
+            case ORDER_OP_LESSOREQUALS:
+                return (result <= 0);  // this <= other
+            default:
+
+                if (SanityManager.DEBUG)
+                    SanityManager.THROWASSERT("Unexpected operation");
+                return false;
+        }
+    }
+
+    @Override
+    public int compare(DataValueDescriptor other) throws StandardException {
+        return Bytes.compareTo(getBytes(), other.getBytes());
+    }
+
+    /**
+     * Return my format identifier.
+     */
+    @Override
+    public int getTypeFormatId() {
+        return StoredFormatIds.ACCESS_HEAP_ROW_LOCATION_V1_ID;
+    }
+
+    @Override
+    public boolean isNull() {
+        return slice == null;
+    }
+
+    @Override
+    public void writeExternal(ObjectOutput out) throws IOException {
+        out.writeObject(slice);
+    }
+
+    @Override
+    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
+        slice = (ByteSlice) in.readObject();
+    }
+
+    @Override
+    public void readExternalFromArray(ArrayInputStream in) throws IOException, ClassNotFoundException {
+    }
+
+    @Override
+    public void restoreToNull() {
+    }
+
+    @Override
+    protected void setFrom(DataValueDescriptor theValue) {
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(theValue instanceof HBaseRowLocation,
+                    "Should only be set from another HeapRowLocation");
+        HBaseRowLocation that = (HBaseRowLocation) theValue;
+        ByteSlice otherSlice = that.slice;
+        this.slice.set(otherSlice.array(), otherSlice.offset(), otherSlice.length());
+    }
+
+    @Override
+    public boolean equals(Object ref) {
+        return (this == ref) || (ref instanceof HBaseRowLocation) &&
+                Objects.equals(((HBaseRowLocation) ref).slice, this.slice);
+    }
+
+    @Override
+    public int hashCode() {
+        return this.slice == null ? 0 : this.slice.hashCode();
+    }
+
+    @Override
     public String toString() {
-        if(slice!=null)
-            return(this.slice.toHexString());
-        else return "null";
+        return slice != null ? slice.toHexString() : "null";
     }
 
+    @Override
     public DataValueFactoryImpl.Format getFormat() {
-    	return DataValueFactoryImpl.Format.ROW_LOCATION;
+        return DataValueFactoryImpl.Format.ROW_LOCATION;
     }
 
-		public ByteSlice getSlice() {
-				return slice;
-		}
+    public ByteSlice getSlice() {
+        return slice;
+    }
 }

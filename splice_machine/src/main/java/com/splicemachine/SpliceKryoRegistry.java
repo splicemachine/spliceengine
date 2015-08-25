@@ -12,6 +12,7 @@ import com.splicemachine.derby.impl.job.coprocessor.TaskFutureContext;
 import com.splicemachine.derby.impl.job.fk.FkTask;
 import com.splicemachine.derby.impl.sql.catalog.Splice_DD_Version;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
+import com.splicemachine.derby.impl.sql.execute.operations.batchonce.BatchOnceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.export.ExportParams;
 import com.splicemachine.derby.impl.sql.execute.operations.RowCountOperation;
@@ -196,10 +197,7 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
 			   * to be able to read either format (but only need to write in the new),
 			   * which will make your deserialization code complicated and difficult,
 			   * but that's the nature of the beast.
-			   *
-			   *
-			   * CURRENT HIGHEST VALUE: 260
-				 */
+	    	   */
     	instance.setReferences(false);
         instance.setRegistrationRequired(true);
 
@@ -857,15 +855,14 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(TriggerDescriptor.class, EXTERNALIZABLE_SERIALIZER, 254);
         instance.register(GenericPreparedStatement.class, EXTERNALIZABLE_SERIALIZER, 255);
         instance.register(TentativeDropPKConstraintDesc.class, EXTERNALIZABLE_SERIALIZER, 256);
-        instance.register(ScrollInsensitiveOperation.class, EXTERNALIZABLE_SERIALIZER,257);
-        instance.register(IndexRowReaderBuilder.class, EXTERNALIZABLE_SERIALIZER,258);
-        instance.register(TriggerExecutionStack.class, EXTERNALIZABLE_SERIALIZER, 259);
-        instance.register(TriggerExecutionContext.class, EXTERNALIZABLE_SERIALIZER, 260);
-        instance.register(ScrollInsensitiveOperation.class, EXTERNALIZABLE_SERIALIZER,261);
-        instance.register(IndexRowReaderBuilder.class, EXTERNALIZABLE_SERIALIZER,262);
-        instance.register(TriggerExecutionStack.class, EXTERNALIZABLE_SERIALIZER, 263);
-        instance.register(TriggerExecutionContext.class, EXTERNALIZABLE_SERIALIZER, 264);
-        instance.register(FKTentativeDDLDesc.class, EXTERNALIZABLE_SERIALIZER, 265);
-        instance.register(FKConstraintInfo.class, EXTERNALIZABLE_SERIALIZER, 266);
+        instance.register(TriggerExecutionStack.class, EXTERNALIZABLE_SERIALIZER, 257);
+        instance.register(TriggerExecutionContext.class, EXTERNALIZABLE_SERIALIZER, 258);
+
+        instance.register(FKTentativeDDLDesc.class, EXTERNALIZABLE_SERIALIZER, 259);
+        instance.register(FKConstraintInfo.class, EXTERNALIZABLE_SERIALIZER, 260);
+
+        instance.register(BatchOnceOperation.class, EXTERNALIZABLE_SERIALIZER, 261);
+        instance.register(ClearStatsCacheDDLDesc.class, EXTERNALIZABLE_SERIALIZER, 262);
+        instance.register(ScrollInsensitiveOperation.class, EXTERNALIZABLE_SERIALIZER, 263);
     }
 }
