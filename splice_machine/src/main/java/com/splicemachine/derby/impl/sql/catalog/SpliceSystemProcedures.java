@@ -415,6 +415,23 @@ public class SpliceSystemProcedures extends DefaultSystemProcedureGenerator {
                             .build();
                     procedures.add(collectStatsForTable);
 
+                    Procedure dropStatsForSchema = Procedure.newBuilder().name("DROP_SCHEMA_STATISTICS")
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .varchar("schema",128)
+                            .ownerClass(StatisticsAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(dropStatsForSchema);
+
+                    Procedure dropStatsForTable = Procedure.newBuilder().name("DROP_TABLE_STATISTICS")
+                            .numOutputParams(0)
+                            .numResultSets(0)
+                            .varchar("schema",128)
+                            .varchar("table",1024)
+                            .ownerClass(StatisticsAdmin.class.getCanonicalName())
+                            .build();
+                    procedures.add(dropStatsForTable);
+
                     Procedure collectStatsForSchema = Procedure.newBuilder().name("COLLECT_SCHEMA_STATISTICS")
                             .numOutputParams(0)
                             .numResultSets(1)
