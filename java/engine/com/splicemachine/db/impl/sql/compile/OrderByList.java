@@ -388,7 +388,14 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
 		** row size.
 		*/
         if(scc==null){
-            scc=optimizer.newSortCostController(this);
+            if(baseCost.isUninitialized()) return;
+            if (optimizer == null) {
+                double parallelCost = (baseCost.localCost()+baseCost.remoteCost())/baseCost.partitionCount();
+                baseCost.setLocalCost(baseCost.localCost()+parallelCost);
+                return;
+            } else {
+                scc = optimizer.newSortCostController(this);
+            }
         }
         scc.estimateSortCost(baseCost);
     }
