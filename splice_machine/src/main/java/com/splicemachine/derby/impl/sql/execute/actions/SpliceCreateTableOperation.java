@@ -9,6 +9,7 @@ import com.splicemachine.db.iapi.services.loader.GeneratedClass;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.ResultSet;
 import com.splicemachine.db.iapi.sql.compile.ASTVisitor;
+import com.splicemachine.db.iapi.sql.compile.CompilationPhase;
 import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.depend.Dependent;
@@ -154,9 +155,9 @@ public class SpliceCreateTableOperation extends CreateTableConstantOperation {
 
 						ASTVisitor visitor = lcc.getASTVisitor();
 						if(visitor!=null){
-								visitor.begin(insertNode.statementToString(),ASTVisitor.AFTER_OPTIMIZE);
+								visitor.begin(insertNode.statementToString(), CompilationPhase.AFTER_OPTIMIZE);
 								insertNode.accept(visitor);
-								visitor.end(ASTVisitor.AFTER_OPTIMIZE);
+								visitor.end(CompilationPhase.AFTER_OPTIMIZE);
 						}
 
 

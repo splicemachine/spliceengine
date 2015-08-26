@@ -1037,6 +1037,10 @@ public class SpliceConstants {
     @DefaultValue(TEMP_TABLE_BUCKET_COUNT) public static int DEFAULT_TEMP_TABLE_BUCKET_COUNT = 16;
     public static int tempTableBucketCount;
 
+    public static final String BATCH_ONCE_BATCH_SIZE = "splice.batchonce.batchsize";
+    public static int DEFAULT_BATCH_ONCE_BATCH_SIZE = 50_000;
+    public static int batchOnceBatchSize;
+
     public static final String TEMP_MAX_FILE_SIZE = "splice.temp.maxFileSize";
     public static long tempTableMaxFileSize;
 
@@ -1252,6 +1256,8 @@ public class SpliceConstants {
         numHConnections = config.getInt(NUM_CLIENT_HCONNECTIONS,DEFAULT_NUM_HCONNECTIONS);
 
         regionLoadUpdateInterval = config.getLong(REGION_LOAD_UPDATE_INTERVAL,DEFAULT_REGION_LOAD_UPDATE_INTERVAL);
+
+        batchOnceBatchSize = config.getInt(BATCH_ONCE_BATCH_SIZE, DEFAULT_BATCH_ONCE_BATCH_SIZE);
     }
 
     public static void reloadConfiguration(Configuration configuration) {

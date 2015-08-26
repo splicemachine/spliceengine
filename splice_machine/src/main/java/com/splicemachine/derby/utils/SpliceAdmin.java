@@ -969,6 +969,21 @@ public class SpliceAdmin extends BaseAdminProcedures {
         return typedProps;
     }
 
+    private static final String sqlConglomsInSchema =
+		"SELECT C.CONGLOMERATENUMBER FROM SYS.SYSCONGLOMERATES C, SYS.SYSTABLES T, SYS.SYSSCHEMAS S " +
+        "WHERE T.TABLEID = C.TABLEID AND T.SCHEMAID = S.SCHEMAID AND S.SCHEMANAME = ?";
+
+    private static final String sqlConglomsInTable =
+    	sqlConglomsInSchema + " AND T.TABLENAME = ?";
+    
+    public static String getSqlConglomsInSchema() {
+    	return sqlConglomsInSchema;
+    }
+    
+    public static String getSqlConglomsInTable() {
+    	return sqlConglomsInTable;
+    }
+    
     /**
      * Be Careful when using this, as it will return conglomerate ids for all the indices of a table
      * as well as the table itself. While the first conglomerate SHOULD be the main table, there
@@ -984,13 +999,10 @@ public class SpliceAdmin extends BaseAdminProcedures {
         boolean isTableNameEmpty;
 
         if (tableName == null) {
-            // all tables in schema
-            query = "SELECT C.CONGLOMERATENUMBER FROM SYS.SYSCONGLOMERATES C, SYS.SYSTABLES T, SYS.SYSSCHEMAS S " +
-                    "WHERE T.TABLEID = C.TABLEID AND T.SCHEMAID = S.SCHEMAID AND S.SCHEMANAME = ?";
+            query = getSqlConglomsInSchema();
             isTableNameEmpty = true;
         } else {
-            query = "SELECT C.CONGLOMERATENUMBER FROM SYS.SYSCONGLOMERATES C, SYS.SYSTABLES T, SYS.SYSSCHEMAS S " +
-                    "WHERE T.TABLEID = C.TABLEID AND T.SCHEMAID = S.SCHEMAID AND S.SCHEMANAME = ? AND T.TABLENAME = ?";
+            query = getSqlConglomsInTable();
             isTableNameEmpty = false;
         }
 

@@ -21,6 +21,7 @@ public enum DDLChangeType {
     DROP_SCHEMA(true),
     DROP_INDEX(true),
     DROP_FOREIGN_KEY(true),
+    CLEAR_STATS_CACHE(false),
     ENTER_RESTORE_MODE(false);
 
     private boolean tentative;
