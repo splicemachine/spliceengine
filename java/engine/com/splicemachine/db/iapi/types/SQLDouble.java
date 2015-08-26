@@ -133,8 +133,10 @@ public final class SQLDouble extends NumberDataType
 		return (float) value;
 	}
 
-	public double	getDouble()
-	{
+	public double	getDouble() throws StandardException {
+        if (Double.isInfinite(value)) {
+            throw StandardException.newException(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE, TypeId.DOUBLE_NAME);
+        }
 		/* This value is bogus if the SQLDouble is null */
 		return value;
 	}
