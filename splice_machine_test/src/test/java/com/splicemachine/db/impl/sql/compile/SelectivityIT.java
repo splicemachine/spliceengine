@@ -3,18 +3,15 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test_tools.TableCreator;
 import org.apache.log4j.Logger;
 import org.junit.*;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
-
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Timestamp;
-
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
 
@@ -243,9 +240,9 @@ public class SelectivityIT extends SpliceUnitTest {
     @Test
     public void testWildcardLikeSelectivity() throws Exception {
         // with stats
-        rowContainsQuery(4,"explain select * from ts_nulls where c2 like '%1'","outputRows=4,",methodWatcher); // ?JL
-        rowContainsQuery(4,"explain select * from ts_nonulls where c2 like '%1'","outputRows=3,",methodWatcher);
-        rowContainsQuery(4,"explain select * from ts_notnulls where c2 like '%1'","outputRows=3,",methodWatcher);
+        rowContainsQuery(3,"explain select * from ts_nulls where c2 like '%1'","outputRows=4,",methodWatcher); // ?JL
+        rowContainsQuery(3,"explain select * from ts_nonulls where c2 like '%1'","outputRows=3,",methodWatcher);
+        rowContainsQuery(3,"explain select * from ts_notnulls where c2 like '%1'","outputRows=3,",methodWatcher);
         rowContainsQuery(3,"explain select * from ts_singlepk where c2 like '%1'","outputRows=3,",methodWatcher);
         rowContainsQuery(3,"explain select * from ts_multiplepk where c2 like '%1'","outputRows=3,",methodWatcher);
         // without stats
