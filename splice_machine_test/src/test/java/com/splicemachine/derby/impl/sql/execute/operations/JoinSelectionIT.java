@@ -35,9 +35,9 @@ public class JoinSelectionIT extends SpliceUnitTest  {
     private static final String JOIN_STRATEGY_TERMINATOR = "(";
     private static final String NESTED_LOOP_JOIN = "NestedLoopJoin";
     private static final String MERGE_SORT_JOIN = "MergeSortJoin";
-    private static final String LO_MERGE_SORT_JOIN = "LeftOuterMergeSortJoin";
+    private static final String LO_MERGE_SORT_JOIN = "MergeSortLeftOuterJoin";
     private static final String BROADCAST_JOIN = "BroadcastJoin";
-    private static final String LO_BROADCAST_JOIN = "LeftOuterBroadcastJoin";
+    private static final String LO_BROADCAST_JOIN = "BroadcastLeftOuterJoin";
 
     @ClassRule
     public static TestRule rule = RuleChain.outerRule(spliceSchemaWatcher)
@@ -118,7 +118,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
         int count = 0;
         while (rs.next()) {
             count++;
-            if (count == 2) {
+            if (count == 4) {
     			String row = rs.getString(1);
     			String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER)+PLAN_LINE_LEADER.length(),row.indexOf(JOIN_STRATEGY_TERMINATOR));
     			Assert.assertEquals(NESTED_LOOP_JOIN, joinStrategy);
@@ -136,7 +136,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
         int count = 0;
         while (rs.next()) {
             count++;
-            if (count == 2) {
+            if (count == 4) {
     			String row = rs.getString(1);
     			String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER) + PLAN_LINE_LEADER.length(),
                         row.indexOf(JOIN_STRATEGY_TERMINATOR));
@@ -159,7 +159,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
         int count = 0;
         while (rs.next()) {
             count++;
-            if (count == 2) {
+            if (count == 4) {
     			String row = rs.getString(1);
     			String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER)+PLAN_LINE_LEADER.length(),row.indexOf(JOIN_STRATEGY_TERMINATOR));
     			Assert.assertEquals(LO_MERGE_SORT_JOIN, joinStrategy);
@@ -178,7 +178,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
         int count = 0;
         while (rs.next()) {
             count++;
-            if (count == 2) {
+            if (count == 4) {
     			String row = rs.getString(1);
     			String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER)+PLAN_LINE_LEADER.length(),row.indexOf(JOIN_STRATEGY_TERMINATOR));
     			Assert.assertEquals(LO_MERGE_SORT_JOIN, joinStrategy);
@@ -209,7 +209,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
         int count = 0;
         while (rs.next()) {
             count++;
-            if (count == 2) {
+            if (count == 4) {
     			String row = rs.getString(1);
     			String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER)+PLAN_LINE_LEADER.length(),row.indexOf(JOIN_STRATEGY_TERMINATOR));
     			Assert.assertEquals(LO_MERGE_SORT_JOIN, joinStrategy);
@@ -230,7 +230,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
         int count = 0;
         while (rs.next()) {
             count++;
-            if (count == 2) {
+            if (count == 4) {
     			String row = rs.getString(1);
     			String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER)+PLAN_LINE_LEADER.length(),row.indexOf(JOIN_STRATEGY_TERMINATOR));
     			Assert.assertEquals(BROADCAST_JOIN, joinStrategy);
@@ -251,7 +251,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
         int count = 0;
         while (rs.next()) {
             count++;
-            if (count == 2) {
+            if (count == 4) {
     			String row = rs.getString(1);
     			String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER)+PLAN_LINE_LEADER.length(),row.indexOf(JOIN_STRATEGY_TERMINATOR));
     			Assert.assertEquals(NESTED_LOOP_JOIN, joinStrategy);
@@ -272,7 +272,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
         int count = 0;
         while (rs.next()) {
             count++;
-            if (count == 2) {
+            if (count == 4) {
     			String row = rs.getString(1);
     			String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER)+PLAN_LINE_LEADER.length(),row.indexOf(JOIN_STRATEGY_TERMINATOR));
     			Assert.assertEquals(NESTED_LOOP_JOIN, joinStrategy);
@@ -291,7 +291,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
         int count = 0;
         while (rs.next()) {
             count++;
-            if (count == 2) {
+            if (count == 4) {
     			String row = rs.getString(1);
     			String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER)+PLAN_LINE_LEADER.length(), row.indexOf(JOIN_STRATEGY_TERMINATOR));
                 Assert.assertTrue(MERGE_SORT_JOIN.equals(joinStrategy) || BROADCAST_JOIN.equals(joinStrategy));
@@ -313,7 +313,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
         int count = 0;
         while (rs.next()) {
             count++;
-            if (count == 2) {
+            if (count == 4) {
     			String row = rs.getString(1);
     			String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER)+PLAN_LINE_LEADER.length(),row.indexOf(JOIN_STRATEGY_TERMINATOR));
     			Assert.assertEquals(NESTED_LOOP_JOIN, joinStrategy);
@@ -332,7 +332,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
         int count = 0;
         while (rs.next()) {
             count++;
-            if (count == 2) {
+            if (count == 4) {
     			String row = rs.getString(1);
     			String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER)+PLAN_LINE_LEADER.length(),row.indexOf(JOIN_STRATEGY_TERMINATOR));
     			Assert.assertEquals(LO_BROADCAST_JOIN, joinStrategy);
@@ -354,7 +354,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
         int count = 0;
         while (rs.next()) {
             count++;
-            if (count == 2) {
+            if (count == 4) {
     			String row = rs.getString(1);
     			String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER)+PLAN_LINE_LEADER.length(),row.indexOf(JOIN_STRATEGY_TERMINATOR));
     			Assert.assertEquals(NESTED_LOOP_JOIN, joinStrategy);
@@ -376,7 +376,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
         int count = 0;
         while (rs.next()) {
             count++;
-            if (count == 2) {
+            if (count == 4) {
     			String row = rs.getString(1);
     			String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER)+PLAN_LINE_LEADER.length(),row.indexOf(JOIN_STRATEGY_TERMINATOR));
     			Assert.assertEquals(NESTED_LOOP_JOIN, joinStrategy);
@@ -397,7 +397,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
         int count = 0;
         while (rs.next()) {
             count++;
-            if (count == 2) {
+            if (count == 4) {
     			String row = rs.getString(1);
     			String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER)+PLAN_LINE_LEADER.length(),row.indexOf(JOIN_STRATEGY_TERMINATOR));
     			Assert.assertEquals(BROADCAST_JOIN, joinStrategy);
@@ -418,7 +418,7 @@ public class JoinSelectionIT extends SpliceUnitTest  {
         int count = 0;
         while (rs.next()) {
             count++;
-            if (count == 2) {
+            if (count == 4) {
     			String row = rs.getString(1);
     			String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER)+PLAN_LINE_LEADER.length(),row.indexOf(JOIN_STRATEGY_TERMINATOR));
     			Assert.assertEquals(LO_BROADCAST_JOIN, joinStrategy);
