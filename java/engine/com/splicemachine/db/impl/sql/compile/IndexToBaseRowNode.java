@@ -393,17 +393,7 @@ public class IndexToBaseRowNode extends FromTable{
         sb.append(spaceToLevel())
                 .append("IndexLookup").append("(")
                 .append("n=").append(order)
-                .append(",").append(getFinalCostEstimate().prettyProcessingString());
-        sb.append(")");
-        return sb.toString();
-    }
-
-    @Override
-    public String printDebugInformation(int order) throws StandardException {
-        StringBuilder sb = new StringBuilder();
-        sb.append(spaceToLevel())
-                .append("IndexLookup").append("(")
-                .append("n=").append(order);
+                .append(",").append(getFinalCostEstimate().prettyIndexLookupString());
         sb.append(")");
         return sb.toString();
     }

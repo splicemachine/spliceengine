@@ -258,21 +258,4 @@ public final class RowCountNode extends SingleChildResultSetNode{
         return sb.toString();
     }
 
-    @Override
-    public String printDebugInformation(int order) throws StandardException {
-        StringBuilder sb = new StringBuilder();
-        sb.append(spaceToLevel())
-                .append("Limit(")
-                .append("n=").append(order);
-            if (offset != null && offset instanceof NumericConstantNode) {
-                sb.append(",offset=").append( ((NumericConstantNode)offset).getValue());
-            }
-            if (fetchFirst != null && fetchFirst instanceof NumericConstantNode) {
-                sb.append(",fetchFirst=").append( ((NumericConstantNode)fetchFirst).getValue());
-            }
-            sb.append(")");
-        return sb.toString();
-    }
-
-
 }

@@ -83,7 +83,7 @@ import java.util.*;
  * See CurrentOfNode for more information.
  */
 
-public class FromBaseTable extends FromTable{
+public class FromBaseTable extends FromTable {
     static final int UNSET=-1;
 
     /**
@@ -3369,23 +3369,7 @@ public class FromBaseTable extends FromTable{
         sb.append(spaceToLevel())
                 .append(getClassName(indexName)).append("(")
                 .append("n=").append(order)
-                .append(",").append(getFinalCostEstimate().prettyProcessingString());
-        if (indexName != null)
-            sb.append("baseTable=").append(getPrettyTableName());
-        List<String> qualifiers =  Lists.transform(PredicateUtils.PLtoList(RSUtils.getPreds(this)), PredicateUtils.predToString);
-        if(qualifiers!=null && qualifiers.size()>0) //add
-            sb.append(",preds=["+ Joiner.on(",").skipNulls().join(qualifiers)+"]");
-        sb.append(")");
-        return sb.toString();
-    }
-
-    @Override
-    public String printDebugInformation(int order) throws StandardException {
-        StringBuilder sb = new StringBuilder();
-        String indexName = getIndexName();
-        sb.append(spaceToLevel())
-                .append(getClassName(indexName)).append("(")
-                .append("n=").append(order);
+                .append(",").append(getFinalCostEstimate().prettyFromBaseTableString());
         if (indexName != null)
             sb.append("baseTable=").append(getPrettyTableName());
         List<String> qualifiers =  Lists.transform(PredicateUtils.PLtoList(RSUtils.getPreds(this)), PredicateUtils.predToString);

@@ -876,17 +876,6 @@ public class RowResultSetNode extends FromTable {
         return sb.toString();
     }
 
-    @Override
-    public String printDebugInformation(int order) throws StandardException {
-        StringBuilder sb = new StringBuilder();
-        sb.append(spaceToLevel())
-                .append("Values").append("(")
-                .append("n=").append(order)
-                .append(",").append(getFinalCostEstimate().prettyProcessingString());
-        sb.append(")");
-        return sb.toString();
-    }
-
     public void buildTree(Collection<QueryTreeNode> tree, int depth) {
         setDepth(depth);
         tree.add(this);

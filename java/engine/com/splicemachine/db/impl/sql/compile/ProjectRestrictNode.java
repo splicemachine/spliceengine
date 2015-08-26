@@ -1647,20 +1647,7 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         sb.append(spaceToLevel())
                 .append("ProjectRestrict").append("(")
                 .append("n=").append(order)
-                .append(",").append(getFinalCostEstimate().prettyProcessingString());
-        List<String> qualifiers =  Lists.transform(PredicateUtils.PLtoList(RSUtils.getPreds(this)), PredicateUtils.predToString);
-        if(qualifiers!=null && qualifiers.size()>0) //add
-            sb.append(",preds=["+ Joiner.on(",").skipNulls().join(qualifiers)+"]");
-        sb.append(")");
-        return sb.toString();
-    }
-
-    @Override
-    public String printDebugInformation(int order) throws StandardException {
-        StringBuilder sb = new StringBuilder();
-        sb.append(spaceToLevel())
-                .append("ProjectRestrict").append("(")
-                .append("n=").append(order);
+                .append(",").append(getFinalCostEstimate().prettyProjectionString());
         List<String> qualifiers =  Lists.transform(PredicateUtils.PLtoList(RSUtils.getPreds(this)), PredicateUtils.predToString);
         if(qualifiers!=null && qualifiers.size()>0) //add
             sb.append(",preds=["+ Joiner.on(",").skipNulls().join(qualifiers)+"]");

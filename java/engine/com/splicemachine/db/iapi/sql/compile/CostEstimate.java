@@ -206,6 +206,12 @@ public interface CostEstimate extends StoreCostResult {
      */
     String prettyScrollInsensitiveString();
 
+    String prettyFromBaseTableString();
+
+    String prettyIndexLookupString();
+
+    String prettyProjectionString();
+
     public double getProjectionRows();
 
     public void setProjectionRows(double projectionRows);

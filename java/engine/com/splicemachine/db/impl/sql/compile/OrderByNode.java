@@ -148,14 +148,4 @@ public class OrderByNode extends SingleChildResultSetNode {
         return sb.toString();
     }
 
-    @Override
-    public String printDebugInformation(int order) throws StandardException {
-        StringBuilder sb = new StringBuilder();
-        sb = sb.append(spaceToLevel())
-                .append("OrderBy").append("(")
-                .append("n=").append(order);
-        sb = sb.append(")");
-        return sb.toString();
-    }
-
 }

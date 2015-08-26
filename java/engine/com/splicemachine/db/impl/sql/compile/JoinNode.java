@@ -1908,20 +1908,4 @@ public class JoinNode extends TableOperatorNode{
         return sb.toString();
     }
 
-    @Override
-    public String printDebugInformation(int order) throws StandardException {
-        JoinStrategy joinStrategy = RSUtils.ap(this).getJoinStrategy();
-        StringBuilder sb = new StringBuilder();
-        sb.append(spaceToLevel())
-                .append(joinStrategy.getJoinStrategyType().niceName()).append(rightResultSet.isNotExists()?"Anti":"").append("Join(")
-                .append("n=").append(order);
-        if (joinPredicates !=null) {
-            List<String> joinPreds = Lists.transform(PredicateUtils.PLtoList(joinPredicates), PredicateUtils.predToString);
-            if (joinPreds != null && joinPreds.size() > 0) //add
-                sb.append("preds=[" + Joiner.on(",").skipNulls().join(joinPreds) + "]");
-        }
-        sb.append(")");
-        return sb.toString();
-    }
-
 }

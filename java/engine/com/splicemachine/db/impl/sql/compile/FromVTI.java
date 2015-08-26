@@ -2005,15 +2005,5 @@ public class FromVTI extends FromTable implements VTIEnvironment {
         return sb.toString();
     }
 
-    @Override
-    public String printDebugInformation(int order) throws StandardException {
-        StringBuilder sb = new StringBuilder();
-        sb.append(spaceToLevel())
-                .append("VTI:").append(getName()).append("(")
-                .append("n=").append(order);
-        sb.append(")");
-        return sb.toString();
-    }
-
 
 }

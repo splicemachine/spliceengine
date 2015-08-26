@@ -1037,10 +1037,4 @@ public class DeleteNode extends DMLModStatementNode
         return sb.toString();
     }
 
-    @Override
-    public String printDebugInformation(int order) throws StandardException {
-        return printExplainInformation(order);
-    }
-
-
 }

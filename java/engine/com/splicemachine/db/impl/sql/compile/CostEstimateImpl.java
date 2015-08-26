@@ -386,6 +386,21 @@ public class CostEstimateImpl implements CostEstimate {
         return toString();
     }
 
+    @Override
+    public String prettyFromBaseTableString() {
+        return toString();
+    }
+
+    @Override
+    public String prettyIndexLookupString() {
+        return toString();
+    }
+
+    @Override
+    public String prettyProjectionString() {
+        return toString();
+    }
+
     @Override public double getCloseCost(){ throw new UnsupportedOperationException(); }
 
     /**

@@ -2432,16 +2432,4 @@ public class SubqueryNode extends ValueNode{
         return sb.toString();
     }
 
-    @Override
-    public String printDebugInformation(int order) throws StandardException {
-        StringBuilder sb = new StringBuilder();
-        sb = sb.append(spaceToLevel())
-                .append("Subquery(")
-                .append("n=").append(order)
-                .append(String.format(", correlated=%b, expression=%b, invariant=%b",
-                        hasCorrelatedCRs(),getSubqueryType()==SubqueryNode.EXPRESSION_SUBQUERY,isInvariant()))
-                .append(")");
-        return sb.toString();
-    }
-
 }
