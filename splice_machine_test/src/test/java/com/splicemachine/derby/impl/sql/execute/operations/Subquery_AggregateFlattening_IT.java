@@ -518,7 +518,7 @@ public class Subquery_AggregateFlattening_IT {
      * Counts the number of Subquery nodes that appear in the explain plan text for a given query.
      */
     private static int countSubqueriesInPlan(String a) {
-        Pattern pattern = Pattern.compile("^.*?Subquery\\s+\\(", Pattern.MULTILINE | Pattern.CASE_INSENSITIVE);
+        Pattern pattern = Pattern.compile("^.*?Subquery\\s*\\(", Pattern.MULTILINE | Pattern.CASE_INSENSITIVE);
         int count = 0;
         Matcher matcher = pattern.matcher(a);
         while (matcher.find()) {
