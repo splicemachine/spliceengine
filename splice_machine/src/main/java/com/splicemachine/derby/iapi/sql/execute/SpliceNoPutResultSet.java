@@ -171,8 +171,11 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
         SpliceLogUtils.trace(LOG, "close=%s",closed);
         if(closed) return;
 
-        try{
+        StandardException result = null;
+
+        try {
             rowProvider.close();
+
 
             //if (LOG.isTraceEnabled()) {
             //    LOG.trace(String.format("close(): closing topOperation %s, result set number %d", topOperation.getClass().getName(),
@@ -194,26 +197,30 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
             // abstraction, but it was not intended to handle the life cycle of
             // operations.
             //
+
             topOperation.close();
             // get rid of the following if redundant
             JobResults jobResults = topOperation.getJobResults();
             if(jobResults!=null)
                 jobResults.cleanup();
-        }catch(RuntimeException | IOException r){
+        } catch(RuntimeException | IOException r) {
             throw Exceptions.parseException(r);
+        } finally {
+            closed = true;
         }
+
         boolean xplain = activation.isTraced();
         if(xplain){
             String xplainSchema = activation.getLanguageConnectionContext().getXplainSchema();
             long statementId = topOperation.getStatementId();
             if(scrollId==-1l) scrollId = Bytes.toLong(topOperation.getUniqueSequenceID());
             if(taskId==-1l) taskId = SpliceDriver.driver().getUUIDGenerator().nextUUID();
-        try {
-        rowProvider.reportStats(statementId,scrollId,taskId,xplainSchema,regionName);
-        } catch (IOException e) {
-        throw Exceptions.parseException(e);
+            try {
+                rowProvider.reportStats(statementId,scrollId,taskId,xplainSchema,regionName);
+            } catch (IOException e) {
+                throw Exceptions.parseException(e);
+            }
         }
-    }
         closed =true;
     }
 
