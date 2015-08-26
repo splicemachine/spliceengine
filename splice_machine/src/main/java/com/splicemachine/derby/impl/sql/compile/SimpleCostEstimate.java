@@ -310,7 +310,7 @@ public class SimpleCostEstimate implements CostEstimate{
     }
 
     public double getProjectionRows() {
-        return projectionRows;
+        return getBase().getProjectionRows() == -1.0d?getBase().getEstimatedRowCount():getBase().getProjectionRows();
     }
 
     public void setProjectionRows(double projectionRows) {
@@ -318,7 +318,7 @@ public class SimpleCostEstimate implements CostEstimate{
     }
 
     public double getProjectionCost() {
-        return projectionCost;
+        return getBase().getProjectionCost() == -1.0d?getBase().getEstimatedCost():getBase().getProjectionCost();
     }
 
     public void setProjectionCost(double projectionCost) {
@@ -326,7 +326,7 @@ public class SimpleCostEstimate implements CostEstimate{
     }
 
     public double getIndexLookupRows() {
-        return indexLookupRows;
+        return getBase().getIndexLookupRows() == -1.0d?getBase().getEstimatedRowCount():getBase().getIndexLookupRows();
     }
 
     public void setIndexLookupRows(double indexLookupRows) {
@@ -334,7 +334,7 @@ public class SimpleCostEstimate implements CostEstimate{
     }
 
     public double getIndexLookupCost() {
-        return indexLookupCost;
+        return getBase().getIndexLookupCost() == -1.0d?getBase().getEstimatedCost():getBase().getIndexLookupCost();
     }
 
     public void setIndexLookupCost(double indexLookupCost) {
@@ -342,7 +342,7 @@ public class SimpleCostEstimate implements CostEstimate{
     }
 
     public double getFromBaseTableRows() {
-        return fromBaseTableRows;
+        return getBase().getFromBaseTableRows() == -1.0d?getBase().getEstimatedRowCount():getBase().getFromBaseTableRows();
     }
 
     public void setFromBaseTableRows(double fromBaseTableRows) {
@@ -350,10 +350,20 @@ public class SimpleCostEstimate implements CostEstimate{
     }
 
     public double getFromBaseTableCost() {
-        return fromBaseTableCost;
+        return getBase().getFromBaseTableCost() == -1.0d?getBase().getEstimatedCost():getBase().getFromBaseTableCost();
     }
 
     public void setFromBaseTableCost(double fromBaseTableCost) {
         this.fromBaseTableCost = fromBaseTableCost;
+    }
+
+    @Override
+    public double getLocalCost() {
+        return localCost;
+    }
+
+    @Override
+    public double getRemoteCost() {
+        return remoteCost;
     }
 }
