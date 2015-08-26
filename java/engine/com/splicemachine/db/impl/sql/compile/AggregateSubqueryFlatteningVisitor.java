@@ -8,8 +8,6 @@ import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.impl.ast.AbstractSpliceVisitor;
-
-import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -52,7 +50,7 @@ public class AggregateSubqueryFlatteningVisitor extends AbstractSpliceVisitor im
     }
 
     @Override
-    public Visitable visit(Visitable node) throws StandardException {
+    public Visitable visit(Visitable node, QueryTreeNode parent) throws StandardException {
 
         /**
          * Stop if this is not a select node with a BinaryOperator where

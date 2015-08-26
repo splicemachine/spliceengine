@@ -30,7 +30,8 @@ public class HasOuterCRVisitor implements Visitor
      *
      * @return me
      */
-    public Visitable visit(Visitable node)
+    @Override
+    public Visitable visit(Visitable node, QueryTreeNode parent)
     {
         if (node instanceof ColumnReference)
         {

@@ -6,9 +6,7 @@ import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.impl.ast.RSUtils;
 import org.apache.log4j.Logger;
-
 import java.util.List;
-
 import static com.google.common.collect.Iterables.any;
 import static com.google.common.collect.Iterables.filter;
 
@@ -89,7 +87,7 @@ class AggregateSubqueryWhereVisitor implements Visitor {
     }
 
     @Override
-    public Visitable visit(Visitable node) throws StandardException {
+    public Visitable visit(Visitable node, QueryTreeNode parent) throws StandardException {
         if (node instanceof AndNode) {
             return node;
         }

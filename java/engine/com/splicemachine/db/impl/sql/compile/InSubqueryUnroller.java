@@ -7,9 +7,7 @@ import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
-import com.splicemachine.db.iapi.util.JBitSet;
 import com.splicemachine.db.impl.ast.AbstractSpliceVisitor;
-
 import java.sql.Types;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -27,7 +25,7 @@ import java.util.HashSet;
 public class InSubqueryUnroller extends AbstractSpliceVisitor implements Visitor {
     int count = 0;
     @Override
-    public Visitable visit(Visitable node) throws StandardException{
+    public Visitable visit(Visitable node, QueryTreeNode parent) throws StandardException {
         if(node instanceof SelectNode && ((SelectNode) node).getWhereSubquerys() != null){
             ArrayList<SubqueryNode> nodesToSwitch = new ArrayList<>();
             SelectNode select = (SelectNode)node;
