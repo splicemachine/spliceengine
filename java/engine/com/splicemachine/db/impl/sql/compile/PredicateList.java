@@ -2850,12 +2850,13 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
      * by (column #, selectivity) once the store does just in time
      * instantiation.
      */
-    private static final int QUALIFIER_ORDER_EQUALS=0;
-    private static final int QUALIFIER_ORDER_OTHER_RELOP=1;
-    private static final int QUALIFIER_ORDER_NOT_EQUALS=2;
-    private static final int QUALIFIER_ORDER_NON_QUAL=3;
-    private static final int QUALIFIER_ORDER_OR_CLAUSE=4;
-    private static final int QUALIFIER_NUM_CATEGORIES=5;
+    private static final int QUALIFIER_IN_LIST = 0;
+    private static final int QUALIFIER_ORDER_EQUALS=1;
+    private static final int QUALIFIER_ORDER_OTHER_RELOP=2;
+    private static final int QUALIFIER_ORDER_NOT_EQUALS=3;
+    private static final int QUALIFIER_ORDER_NON_QUAL=4;
+    private static final int QUALIFIER_ORDER_OR_CLAUSE=5;
+    private static final int QUALIFIER_NUM_CATEGORIES=6;
 
     private void orderQualifiers(){
         // Sort the predicates into buckets, sortList[0] is the most 
@@ -2890,6 +2891,15 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
 
                 switch(op){
                     case RelationalOperator.EQUALS_RELOP:
+                        BinaryRelationalOperatorNode brelop = (BinaryRelationalOperatorNode)relop;
+
+                        if (brelop.getInListOp() != null) {
+                            sortList[QUALIFIER_IN_LIST].addElement(pred);
+                        }
+                        else {
+                            sortList[QUALIFIER_ORDER_EQUALS].addElement(pred);
+                        }
+                        break;
                     case RelationalOperator.IS_NULL_RELOP:
                         sortList[QUALIFIER_ORDER_EQUALS].addElement(pred);
                         break;
