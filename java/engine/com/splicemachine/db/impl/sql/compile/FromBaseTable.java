@@ -2108,8 +2108,14 @@ public class FromBaseTable extends FromTable{
 		 * really need to completely disable bulk fetching here,
 		 * or can we do something else?
 		 */
-        for(int i=0;i<restrictionList.size();i++){
-            Predicate pred=restrictionList.elementAt(i);
+
+        /* Derby originally only looked in the restrictionList for InList predicates when considering whether or
+         * not to do multiProbing. Some implementations of JoinStrategy.divideUpPredicateLists() (but not all)
+         * will *move* InList predicates referencing this table from restrictionList to storeRestrictionList, other
+         * implementations *copy* the original predicates to restrictionList. To always multiProve when possible
+         * Splice changed the below loop to iterate over storeRestrictionList instead of restrictionList */
+        for(int i=0;i<storeRestrictionList.size();i++){
+            Predicate pred=storeRestrictionList.elementAt(i);
             if(pred.isInListProbePredicate() && pred.isStartKey()){
                 disableBulkFetch();
                 multiProbing=true;
