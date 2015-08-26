@@ -89,31 +89,31 @@ public class IndexSelectivityIT extends SpliceUnitTest {
     @Test
 //    @Ignore("DB-3641")
     public void testCoveringIndexScan() throws Exception {
-        firstRowContainsQuery("explain select c1 from ts_low_cardinality where c1 = 1","IndexScan[TS_LOW_CARDINALITY_IX_1",methodWatcher);
-        firstRowContainsQuery("explain select c1,c2 from ts_low_cardinality where c1 = 1","IndexScan[TS_LOW_CARDINALITY_IX_3",methodWatcher);
-        firstRowContainsQuery("explain select c2 from ts_low_cardinality where c2 = '1'","IndexScan[TS_LOW_CARDINALITY_IX_2",methodWatcher);
-        fourthRowContainsQuery("explain select count(*) from ts_low_cardinality where c2 = '1'","IndexScan[TS_LOW_CARDINALITY_IX_2",methodWatcher);
+        rowContainsQuery(3,"explain select c1 from ts_low_cardinality where c1 = 1","IndexScan[TS_LOW_CARDINALITY_IX_1",methodWatcher);
+        rowContainsQuery(3,"explain select c1,c2 from ts_low_cardinality where c1 = 1","IndexScan[TS_LOW_CARDINALITY_IX_3",methodWatcher);
+        rowContainsQuery(3,"explain select c2 from ts_low_cardinality where c2 = '1'","IndexScan[TS_LOW_CARDINALITY_IX_2",methodWatcher);
+        rowContainsQuery(6,"explain select count(*) from ts_low_cardinality where c2 = '1'","IndexScan[TS_LOW_CARDINALITY_IX_2",methodWatcher);
     }
 
     @Test
     public void testSingleRowIndexLookup() throws Exception {
-        secondRowContainsQuery("explain select * from ts_high_cardinality where c1 = 1","IndexScan[TS_HIGH_CARDINALITY_IX",methodWatcher);
+        rowContainsQuery(4,"explain select * from ts_high_cardinality where c1 = 1","IndexScan[TS_HIGH_CARDINALITY_IX_1",methodWatcher);
     }
 
     @Test
     public void testRangeIndexLookup() throws Exception {
         // 10/10000
-        secondRowContainsQuery("explain select * from ts_high_cardinality where c1 > 1 and c1 < 10","IndexScan[TS_HIGH_CARDINALITY_IX",methodWatcher);
+        rowContainsQuery(4,"explain select * from ts_high_cardinality where c1 > 1 and c1 < 10","IndexScan[TS_HIGH_CARDINALITY_IX",methodWatcher);
         // 100/10000
-        secondRowContainsQuery("explain select * from ts_high_cardinality where c1 > 1 and c1 < 100","IndexScan[TS_HIGH_CARDINALITY_IX",methodWatcher);
+        rowContainsQuery(4,"explain select * from ts_high_cardinality where c1 > 1 and c1 < 100","IndexScan[TS_HIGH_CARDINALITY_IX",methodWatcher);
         // 200/10000
-        firstRowContainsQuery("explain select * from ts_high_cardinality where c1 > 1 and c1 < 200","TableScan[TS_HIGH_CARDINALITY",methodWatcher);
+        rowContainsQuery(3,"explain select * from ts_high_cardinality where c1 > 1 and c1 < 200","TableScan[TS_HIGH_CARDINALITY",methodWatcher);
         // 1000/10000
-        firstRowContainsQuery("explain select * from ts_high_cardinality where c1 > 1 and c1 < 1000","TableScan[TS_HIGH_CARDINALITY",methodWatcher);
+        rowContainsQuery(3,"explain select * from ts_high_cardinality where c1 > 1 and c1 < 1000","TableScan[TS_HIGH_CARDINALITY",methodWatcher);
         // 2000/10000
-        firstRowContainsQuery("explain select * from ts_high_cardinality where c1 > 1 and c1 < 2000","TableScan[TS_HIGH_CARDINALITY",methodWatcher);
+        rowContainsQuery(3,"explain select * from ts_high_cardinality where c1 > 1 and c1 < 2000","TableScan[TS_HIGH_CARDINALITY",methodWatcher);
         // 5000/10000
-        firstRowContainsQuery("explain select * from ts_high_cardinality where c1 > 1 and c1 < 5000","TableScan[TS_HIGH_CARDINALITY",methodWatcher);
+        rowContainsQuery(3,"explain select * from ts_high_cardinality where c1 > 1 and c1 < 5000","TableScan[TS_HIGH_CARDINALITY",methodWatcher);
     }
 
     @Test

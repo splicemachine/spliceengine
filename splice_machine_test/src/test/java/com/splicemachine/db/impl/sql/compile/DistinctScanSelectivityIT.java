@@ -72,11 +72,11 @@ public class DistinctScanSelectivityIT extends SpliceUnitTest {
 
     @Test
     public void testDistinctCount() throws Exception {
-        firstRowContainsQuery("explain select distinct * from ts_low_cardinality", "outputRows=125", methodWatcher);
-        firstRowContainsQuery("explain select distinct c1 from ts_low_cardinality", "outputRows=5", methodWatcher);
-        firstRowContainsQuery("explain select distinct c1, c2 from ts_low_cardinality", "outputRows=25", methodWatcher);
-        firstRowContainsQuery("explain select distinct c1,c2,c3 from ts_low_cardinality", "outputRows=125", methodWatcher);
-        firstRowContainsQuery("explain select distinct c1,c2,c3,c4 from ts_low_cardinality", "outputRows=125", methodWatcher);
+        firstRowContainsQuery("explain select distinct * from ts_low_cardinality", "rows=125", methodWatcher);
+        firstRowContainsQuery("explain select distinct c1 from ts_low_cardinality", "rows=5", methodWatcher);
+        firstRowContainsQuery("explain select distinct c1, c2 from ts_low_cardinality", "rows=25", methodWatcher);
+        firstRowContainsQuery("explain select distinct c1,c2,c3 from ts_low_cardinality", "rows=125", methodWatcher);
+        firstRowContainsQuery("explain select distinct c1,c2,c3,c4 from ts_low_cardinality", "rows=125", methodWatcher);
 
         // Add For Non Stats?
     }

@@ -187,406 +187,406 @@ public class ScanSelectivityIT extends SpliceUnitTest {
 
     @Test
     public void testBoolSelectivity() throws Exception {
-        firstRowContainsQuery("explain select * from ts_bool where b=true","outputRows=2",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_bool where b=false","outputRows=3",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_bool where b is null","outputRows=3",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_bool where b is not null","outputRows=5",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_bool where b<>true","outputRows=6",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_bool where b<>false","outputRows=5",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_bool where b=true","rows=2",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_bool where b=false","rows=3",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_bool where b is null","rows=3",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_bool where b is not null","rows=5",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_bool where b<>true","rows=6",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_bool where b<>false","rows=5",methodWatcher);
 
         // no statistics
-        firstRowContainsQuery("explain select * from tns_bool where b=true","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_bool where b=false","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_bool where b is null","outputRows=2",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_bool where b is not null", "outputRows=18", methodWatcher);
-        firstRowContainsQuery("explain select * from tns_bool where b<>true","outputRows=2",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_bool where b<>false","outputRows=2",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_bool where b=true","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_bool where b=false","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_bool where b is null","rows=2",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_bool where b is not null", "rows=18", methodWatcher);
+        firstRowContainsQuery("explain select * from tns_bool where b<>true","rows=2",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_bool where b<>false","rows=2",methodWatcher);
     }
 
     @Test
     public void testSmallIntSelectivity() throws Exception {
-        firstRowContainsQuery("explain select * from ts_int where s=1","outputRows=1",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_int where s is null","outputRows=3",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_int where s is not null","outputRows=5",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_int where s<1","outputRows=1",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_int where s<=1","outputRows=1",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_int where s<2","outputRows=1",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_int where s<=2","outputRows=2",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_int where s>1","outputRows=8",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_int where s>1 and s<5","outputRows=7",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_int where s is not null and s>1","outputRows=5",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_int where s<>1","outputRows=7",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_int where s=1","rows=1",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_int where s is null","rows=3",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_int where s is not null","rows=5",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_int where s<1","rows=1",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_int where s<=1","rows=1",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_int where s<2","rows=1",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_int where s<=2","rows=2",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_int where s>1","rows=8",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_int where s>1 and s<5","rows=7",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_int where s is not null and s>1","rows=5",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_int where s<>1","rows=7",methodWatcher);
 
         // no statistics
-        firstRowContainsQuery("explain select * from tns_int where s=1","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_int where s is null","outputRows=2",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_int where s is not null","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_int where s<1","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_int where s<=1","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_int where s<2","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_int where s<=2","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_int where s>1","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_int where s>1 and s<5","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_int where s is not null and s>1","outputRows=17",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_int where s<>1","outputRows=2",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_int where s=1","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_int where s is null","rows=2",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_int where s is not null","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_int where s<1","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_int where s<=1","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_int where s<2","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_int where s<=2","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_int where s>1","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_int where s>1 and s<5","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_int where s is not null and s>1","rows=17",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_int where s<>1","rows=2",methodWatcher);
     }
 
     @Test
     public void testIntSelectivity() throws Exception {
-        firstRowContainsQuery("explain select * from ts_int where i=1","outputRows=1",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_int where i is null","outputRows=3",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_int where i is not null","outputRows=5",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_int where i<1","outputRows=1",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_int where i<=1","outputRows=1",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_int where i<2","outputRows=1",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_int where i<=2","outputRows=2",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_int where i>1","outputRows=8",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_int where i>1 and i<5","outputRows=7",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_int where i is not null and i>1","outputRows=5",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_int where i>3 or i<2","outputRows=4",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_int where i<>2","outputRows=7",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_int where i=1","rows=1",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_int where i is null","rows=3",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_int where i is not null","rows=5",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_int where i<1","rows=1",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_int where i<=1","rows=1",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_int where i<2","rows=1",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_int where i<=2","rows=2",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_int where i>1","rows=8",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_int where i>1 and i<5","rows=7",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_int where i is not null and i>1","rows=5",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_int where i>3 or i<2","rows=4",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_int where i<>2","rows=7",methodWatcher);
 
         // no statistics
-        firstRowContainsQuery("explain select * from tns_int where i=1","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_int where i is null","outputRows=2",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_int where i is not null","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_int where i<1","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_int where i<=1","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_int where i<2","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_int where i<=2","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_int where i>1","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_int where i>1 and i<5","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_int where i is not null and i>1","outputRows=17",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_int where i>3 or i<2","outputRows=10",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_int where i<>2","outputRows=2",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_int where i=1","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_int where i is null","rows=2",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_int where i is not null","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_int where i<1","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_int where i<=1","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_int where i<2","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_int where i<=2","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_int where i>1","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_int where i>1 and i<5","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_int where i is not null and i>1","rows=17",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_int where i>3 or i<2","rows=10",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_int where i<>2","rows=2",methodWatcher);
     }
 
     @Test
     public void testLongIntSelectivity() throws Exception {
-        firstRowContainsQuery("explain select * from ts_int where l=1","outputRows=1",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_int where l is null","outputRows=3",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_int where l is not null","outputRows=5",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_int where l<1","outputRows=1",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_int where l<=1","outputRows=1",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_int where l<2","outputRows=1",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_int where l<=2","outputRows=2",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_int where l>1","outputRows=8",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_int where l>1 and l<5","outputRows=7",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_int where l is not null and l>1","outputRows=5",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_int where l<>1","outputRows=7",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_int where l=1","rows=1",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_int where l is null","rows=3",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_int where l is not null","rows=5",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_int where l<1","rows=1",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_int where l<=1","rows=1",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_int where l<2","rows=1",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_int where l<=2","rows=2",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_int where l>1","rows=8",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_int where l>1 and l<5","rows=7",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_int where l is not null and l>1","rows=5",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_int where l<>1","rows=7",methodWatcher);
 
         // no statistics
-        firstRowContainsQuery("explain select * from tns_int where l=1","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_int where l is null","outputRows=2",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_int where l is not null","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_int where l<1","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_int where l<=1","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_int where l<2","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_int where l<=2","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_int where l>1","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_int where l>1 and l<5","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_int where l is not null and l>1","outputRows=17",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_int where l<>1","outputRows=2",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_int where l=1","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_int where l is null","rows=2",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_int where l is not null","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_int where l<1","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_int where l<=1","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_int where l<2","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_int where l<=2","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_int where l>1","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_int where l>1 and l<5","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_int where l is not null and l>1","rows=17",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_int where l<>1","rows=2",methodWatcher);
     }
 
     @Test
     public void testFloatSelectivity() throws Exception {
-        firstRowContainsQuery("explain select * from ts_float where f=1","outputRows=1",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where f is null","outputRows=3",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where f is not null","outputRows=5",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where f<1","outputRows=1",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where f<=1","outputRows=1",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where f<2","outputRows=1",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where f<=2","outputRows=2",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where f>1","outputRows=8",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where f>1 and f<5","outputRows=7",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where f is not null and f>1","outputRows=5",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where f<>1","outputRows=7",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where f=1","rows=1",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where f is null","rows=3",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where f is not null","rows=5",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where f<1","rows=1",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where f<=1","rows=1",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where f<2","rows=1",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where f<=2","rows=2",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where f>1","rows=8",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where f>1 and f<5","rows=7",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where f is not null and f>1","rows=5",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where f<>1","rows=7",methodWatcher);
 
         // no statistics
-        firstRowContainsQuery("explain select * from tns_float where f=1","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where f is null","outputRows=2",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where f is not null","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where f<1","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where f<=1","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where f<2","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where f<=2","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where f>1","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where f>1 and f<5","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where f is not null and f>1","outputRows=17",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where f<>1","outputRows=2",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where f=1","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where f is null","rows=2",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where f is not null","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where f<1","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where f<=1","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where f<2","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where f<=2","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where f>1","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where f>1 and f<5","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where f is not null and f>1","rows=17",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where f<>1","rows=2",methodWatcher);
     }
 
     @Test
     public void testDoubleSelectivity() throws Exception {
-        firstRowContainsQuery("explain select * from ts_float where d=1","outputRows=1",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where d is null","outputRows=3",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where d is not null","outputRows=5",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where d<1","outputRows=1",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where d<=1","outputRows=1",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where d<2","outputRows=1",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where d<=2","outputRows=2",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where d>1","outputRows=8",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where d>1 and d<5","outputRows=7",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where d is not null and d>1","outputRows=5",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where d<>1","outputRows=7",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where d=1","rows=1",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where d is null","rows=3",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where d is not null","rows=5",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where d<1","rows=1",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where d<=1","rows=1",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where d<2","rows=1",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where d<=2","rows=2",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where d>1","rows=8",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where d>1 and d<5","rows=7",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where d is not null and d>1","rows=5",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where d<>1","rows=7",methodWatcher);
 
         // no statistics
-        firstRowContainsQuery("explain select * from tns_float where d=1","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where d is null","outputRows=2",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where d is not null","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where d<1","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where d<=1","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where d<2","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where d<=2","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where d>1","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where d>1 and d<5","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where d is not null and d>1","outputRows=17",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where d<>1","outputRows=2",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where d=1","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where d is null","rows=2",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where d is not null","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where d<1","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where d<=1","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where d<2","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where d<=2","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where d>1","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where d>1 and d<5","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where d is not null and d>1","rows=17",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where d<>1","rows=2",methodWatcher);
     }
 
     @Test
     public void testNumericSelectivity() throws Exception {
-        firstRowContainsQuery("explain select * from ts_float where n=1.0","outputRows=1",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where n is null","outputRows=3",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where n is not null","outputRows=5",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where n<1.0","outputRows=1",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where n<=1.0","outputRows=1",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where n<2.0","outputRows=1",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where n<=2.0","outputRows=2",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where n>1.0","outputRows=8",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where n>1.0 and n<5.0","outputRows=7",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where n is not null and n>1.0","outputRows=5",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where n<>1.0","outputRows=7",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where n=1.0","rows=1",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where n is null","rows=3",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where n is not null","rows=5",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where n<1.0","rows=1",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where n<=1.0","rows=1",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where n<2.0","rows=1",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where n<=2.0","rows=2",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where n>1.0","rows=8",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where n>1.0 and n<5.0","rows=7",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where n is not null and n>1.0","rows=5",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where n<>1.0","rows=7",methodWatcher);
 
         // no statistics
-        firstRowContainsQuery("explain select * from tns_float where n=1.0","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where n is null","outputRows=2",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where n is not null","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where n<1.0","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where n<=1.0","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where n<2.0","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where n<=2.0","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where n>1.0","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where n>1.0 and n<5.0","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where n is not null and n>1.0","outputRows=17",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where n<>1.0","outputRows=2",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where n=1.0","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where n is null","rows=2",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where n is not null","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where n<1.0","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where n<=1.0","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where n<2.0","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where n<=2.0","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where n>1.0","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where n>1.0 and n<5.0","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where n is not null and n>1.0","rows=17",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where n<>1.0","rows=2",methodWatcher);
     }
 
     @Test
     public void testRealSelectivity() throws Exception {
-        firstRowContainsQuery("explain select * from ts_float where r=1.0","outputRows=1",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where r is null","outputRows=3",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where r is not null","outputRows=5",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where r<1.0","outputRows=1",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where r<=1.0","outputRows=1",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where r<2.0","outputRows=1",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where r<=2.0","outputRows=2",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where r>1.0","outputRows=8",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where r>1.0 and r<5.0","outputRows=7",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where r is not null and r>1.0","outputRows=5",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where r<>1.0","outputRows=7",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where r=1.0","rows=1",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where r is null","rows=3",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where r is not null","rows=5",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where r<1.0","rows=1",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where r<=1.0","rows=1",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where r<2.0","rows=1",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where r<=2.0","rows=2",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where r>1.0","rows=8",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where r>1.0 and r<5.0","rows=7",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where r is not null and r>1.0","rows=5",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where r<>1.0","rows=7",methodWatcher);
 
         // no statistics
-        firstRowContainsQuery("explain select * from tns_float where r=1.0","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where r is null","outputRows=2",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where r is not null","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where r<1.0","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where r<=1.0","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where r<2.0","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where r<=2.0","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where r>1.0","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where r>1.0 and r<5.0","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where r is not null and r>1.0","outputRows=17",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where r<>1.0","outputRows=2",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where r=1.0","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where r is null","rows=2",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where r is not null","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where r<1.0","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where r<=1.0","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where r<2.0","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where r<=2.0","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where r>1.0","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where r>1.0 and r<5.0","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where r is not null and r>1.0","rows=17",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where r<>1.0","rows=2",methodWatcher);
     }
 
     @Test
     public void testDecimalSelectivity() throws Exception {
-        firstRowContainsQuery("explain select * from ts_float where c=1.0","outputRows=1",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where c is null","outputRows=3",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where c is not null","outputRows=5",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where c<1.0","outputRows=1",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where c<=1.0","outputRows=1",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where c<2.0","outputRows=1",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where c<=2.0","outputRows=2",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where c>1.0","outputRows=8",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where c>1.0 and c<5.0","outputRows=7",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where c is not null and c>1.0","outputRows=5",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_float where c<>1.0","outputRows=7",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where c=1.0","rows=1",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where c is null","rows=3",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where c is not null","rows=5",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where c<1.0","rows=1",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where c<=1.0","rows=1",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where c<2.0","rows=1",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where c<=2.0","rows=2",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where c>1.0","rows=8",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where c>1.0 and c<5.0","rows=7",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where c is not null and c>1.0","rows=5",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_float where c<>1.0","rows=7",methodWatcher);
 
         // no statistics
-        firstRowContainsQuery("explain select * from tns_float where c=1.0","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where c is null","outputRows=2",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where c is not null","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where c<1.0","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where c<=1.0","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where c<2.0","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where c<=2.0","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where c>1.0","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where c>1.0 and c<5.0","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where c is not null and c>1.0","outputRows=17",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_float where c<>1.0","outputRows=2",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where c=1.0","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where c is null","rows=2",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where c is not null","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where c<1.0","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where c<=1.0","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where c<2.0","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where c<=2.0","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where c>1.0","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where c>1.0 and c<5.0","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where c is not null and c>1.0","rows=17",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_float where c<>1.0","rows=2",methodWatcher);
     }
 
     @Test
     public void testCharSelectivity() throws Exception {
-        firstRowContainsQuery("explain select * from ts_char where c='a'","outputRows=1",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where c>'a'","outputRows=8",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where c>='a'","outputRows=5",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where c<'e'","outputRows=7",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where c<='e'","outputRows=5",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where c>='a' and c<='e'","outputRows=5",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where c is null", "outputRows=3", methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where c is not null", "outputRows=5", methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where c>'a' and c is not null","outputRows=5",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where c<'e' and c is not null","outputRows=5",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where c<>'a'","outputRows=7",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where c='a'","rows=1",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where c>'a'","rows=8",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where c>='a'","rows=5",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where c<'e'","rows=7",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where c<='e'","rows=5",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where c>='a' and c<='e'","rows=5",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where c is null", "rows=3", methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where c is not null", "rows=5", methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where c>'a' and c is not null","rows=5",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where c<'e' and c is not null","rows=5",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where c<>'a'","rows=7",methodWatcher);
 
         // No statistics
-        firstRowContainsQuery("explain select * from tns_char where c='a'","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_char where c>'a'","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_char where c>='a'","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_char where c<'e'","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_char where c<='e'","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_char where c>='a' and c<='e'","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_char where c is null","outputRows=2",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_char where c is not null","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_char where c>'a' and c is not null", "outputRows=17", methodWatcher);
-        firstRowContainsQuery("explain select * from tns_char where c<'e' and c is not null", "outputRows=17", methodWatcher);
-        firstRowContainsQuery("explain select * from tns_char where c<>'a'","outputRows=2",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_char where c='a'","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_char where c>'a'","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_char where c>='a'","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_char where c<'e'","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_char where c<='e'","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_char where c>='a' and c<='e'","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_char where c is null","rows=2",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_char where c is not null","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_char where c>'a' and c is not null", "rows=17", methodWatcher);
+        firstRowContainsQuery("explain select * from tns_char where c<'e' and c is not null", "rows=17", methodWatcher);
+        firstRowContainsQuery("explain select * from tns_char where c<>'a'","rows=2",methodWatcher);
     }
 
     @Test
     public void testVarcharSelectivity() throws Exception {
-        firstRowContainsQuery("explain select * from ts_char where v='aaaa'","outputRows=1",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where v>'aaaa'","outputRows=8",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where v>='aaaa'","outputRows=5",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where v<'eee'","outputRows=7",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where v<='eee'","outputRows=5",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where v>='aaaa' and v<='eee'","outputRows=5",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where v is null","outputRows=3",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where v is not null","outputRows=5",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where v>'aaaa' and c is not null","outputRows=5",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where v<'eee' and c is not null","outputRows=5",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where v='aaaa'","rows=1",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where v>'aaaa'","rows=8",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where v>='aaaa'","rows=5",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where v<'eee'","rows=7",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where v<='eee'","rows=5",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where v>='aaaa' and v<='eee'","rows=5",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where v is null","rows=3",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where v is not null","rows=5",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where v>'aaaa' and c is not null","rows=5",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where v<'eee' and c is not null","rows=5",methodWatcher);
         secondRowContainsQuery("explain select * from ts_char where v like '%aa%'", "outputRows=4", methodWatcher);
         secondRowContainsQuery("explain select * from ts_char where v not like '%aa%'", "outputRows=1", methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where v<>'aaaa'", "outputRows=7", methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where v<>'aaaa'", "rows=7", methodWatcher);
 
         // No statistics
-        firstRowContainsQuery("explain select * from tns_char where c='a'", "outputRows=18", methodWatcher);
-        firstRowContainsQuery("explain select * from tns_char where c>'a'", "outputRows=18", methodWatcher);
-        firstRowContainsQuery("explain select * from tns_char where c>='a'","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_char where c<'e'","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_char where c<='e'","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_char where c>='a' and c<='e'","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_char where c is null","outputRows=2",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_char where c is not null","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_char where c>'a' and c is not null","outputRows=17",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_char where c<'e' and c is not null","outputRows=17",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_char where c='a'", "rows=18", methodWatcher);
+        firstRowContainsQuery("explain select * from tns_char where c>'a'", "rows=18", methodWatcher);
+        firstRowContainsQuery("explain select * from tns_char where c>='a'","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_char where c<'e'","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_char where c<='e'","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_char where c>='a' and c<='e'","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_char where c is null","rows=2",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_char where c is not null","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_char where c>'a' and c is not null","rows=17",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_char where c<'e' and c is not null","rows=17",methodWatcher);
         secondRowContainsQuery("explain select * from tns_char where v like '%aa%'", "outputRows=10", methodWatcher);
         secondRowContainsQuery("explain select * from tns_char where v not like '%aa%'", "outputRows=2", methodWatcher);
-        firstRowContainsQuery("explain select * from tns_char where v<>'aaaa'", "outputRows=2", methodWatcher);
+        firstRowContainsQuery("explain select * from tns_char where v<>'aaaa'", "rows=2", methodWatcher);
     }
 
     @Test
     public void testLongVarcharSelectivity() throws Exception {
-        firstRowContainsQuery("explain select * from ts_char where l like '%a%'","outputRows=4",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where l not like '%a%'","outputRows=1",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where l is null", "outputRows=3", methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where l is not null", "outputRows=5", methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where l like '%a%'","rows=4",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where l not like '%a%'","rows=1",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where l is null", "rows=3", methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where l is not null", "rows=5", methodWatcher);
 
         // No statistics
-        firstRowContainsQuery("explain select * from tns_char where l like '%a%'","outputRows=10",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_char where l not like '%a%'","outputRows=2",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_char where l is null", "outputRows=2", methodWatcher);
-        firstRowContainsQuery("explain select * from tns_char where l is not null", "outputRows=18", methodWatcher);
+        firstRowContainsQuery("explain select * from tns_char where l like '%a%'","rows=10",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_char where l not like '%a%'","rows=2",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_char where l is null", "rows=2", methodWatcher);
+        firstRowContainsQuery("explain select * from tns_char where l is not null", "rows=18", methodWatcher);
     }
 
     @Test
     public void testClobSelectivity() throws Exception {
-        firstRowContainsQuery("explain select * from ts_char where b like '%a%'","outputRows=4",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where b not like '%a%'","outputRows=1",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where b is null", "outputRows=1", methodWatcher);
-        firstRowContainsQuery("explain select * from ts_char where b is not null", "outputRows=7", methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where b like '%a%'","rows=4",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where b not like '%a%'","rows=1",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where b is null", "rows=1", methodWatcher);
+        firstRowContainsQuery("explain select * from ts_char where b is not null", "rows=7", methodWatcher);
 
         // No statistics
-        firstRowContainsQuery("explain select * from tns_char where b like '%a%'","outputRows=10",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_char where b not like '%a%'","outputRows=2",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_char where b is null", "outputRows=2", methodWatcher);
-        firstRowContainsQuery("explain select * from tns_char where b is not null", "outputRows=18", methodWatcher);
+        firstRowContainsQuery("explain select * from tns_char where b like '%a%'","rows=10",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_char where b not like '%a%'","rows=2",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_char where b is null", "rows=2", methodWatcher);
+        firstRowContainsQuery("explain select * from tns_char where b is not null", "rows=18", methodWatcher);
     }
 
     @Test
     public void testDateSelectivity() throws Exception {
-        firstRowContainsQuery("explain select * from ts_datetime where d>date('1994-02-23')","outputRows=8",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_datetime where d>=date('1994-02-23')","outputRows=8",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_datetime where d<date('1998-02-23')", "outputRows=7", methodWatcher);
-        firstRowContainsQuery("explain select * from ts_datetime where d<=date('1998-02-23')", "outputRows=8", methodWatcher);
-        firstRowContainsQuery("explain select * from ts_datetime where d is null","outputRows=3",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_datetime where d is not null","outputRows=5",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_datetime where d>date('1994-02-23') and d is not null", "outputRows=5", methodWatcher);
-        firstRowContainsQuery("explain select * from ts_datetime where d<date('1998-02-23') and d is not null", "outputRows=5", methodWatcher);
-        firstRowContainsQuery("explain select * from ts_datetime where d<>date('1994-02-23')","outputRows=7",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_datetime where d>date('1994-02-23')","rows=8",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_datetime where d>=date('1994-02-23')","rows=8",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_datetime where d<date('1998-02-23')", "rows=7", methodWatcher);
+        firstRowContainsQuery("explain select * from ts_datetime where d<=date('1998-02-23')", "rows=8", methodWatcher);
+        firstRowContainsQuery("explain select * from ts_datetime where d is null","rows=3",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_datetime where d is not null","rows=5",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_datetime where d>date('1994-02-23') and d is not null", "rows=5", methodWatcher);
+        firstRowContainsQuery("explain select * from ts_datetime where d<date('1998-02-23') and d is not null", "rows=5", methodWatcher);
+        firstRowContainsQuery("explain select * from ts_datetime where d<>date('1994-02-23')","rows=7",methodWatcher);
 
         // No statistics
-        firstRowContainsQuery("explain select * from tns_datetime where d>date('1994-02-23')","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_datetime where d>=date('1994-02-23')","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_datetime where d<date('1998-02-23')","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_datetime where d<=date('1998-02-23')","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_datetime where d is null","outputRows=2",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_datetime where d is not null","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_datetime where d>date('1994-02-23') and d is not null", "outputRows=17", methodWatcher);
-        firstRowContainsQuery("explain select * from tns_datetime where d<date('1998-02-23') and d is not null", "outputRows=17", methodWatcher);
-        firstRowContainsQuery("explain select * from tns_datetime where d<>date('1994-02-23')","outputRows=2",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_datetime where d>date('1994-02-23')","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_datetime where d>=date('1994-02-23')","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_datetime where d<date('1998-02-23')","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_datetime where d<=date('1998-02-23')","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_datetime where d is null","rows=2",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_datetime where d is not null","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_datetime where d>date('1994-02-23') and d is not null", "rows=17", methodWatcher);
+        firstRowContainsQuery("explain select * from tns_datetime where d<date('1998-02-23') and d is not null", "rows=17", methodWatcher);
+        firstRowContainsQuery("explain select * from tns_datetime where d<>date('1994-02-23')","rows=2",methodWatcher);
     }
 
     @Test
     public void testTimeSelectivity() throws Exception {
-        firstRowContainsQuery("explain select * from ts_datetime where t>time('15:09:02')","outputRows=8",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_datetime where t>=time('15:09:02')","outputRows=8",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_datetime where t<time('19:09:02')","outputRows=7",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_datetime where t<=time('19:09:02')","outputRows=8",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_datetime where t is null","outputRows=3",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_datetime where t is not null","outputRows=5",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_datetime where t>time('15:09:02') and t is not null", "outputRows=5", methodWatcher);
-        firstRowContainsQuery("explain select * from ts_datetime where t<time('19:09:02') and t is not null", "outputRows=5", methodWatcher);
-        firstRowContainsQuery("explain select * from ts_datetime where t<>time('15:09:02')","outputRows=7",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_datetime where t>time('15:09:02')","rows=8",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_datetime where t>=time('15:09:02')","rows=8",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_datetime where t<time('19:09:02')","rows=7",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_datetime where t<=time('19:09:02')","rows=8",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_datetime where t is null","rows=3",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_datetime where t is not null","rows=5",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_datetime where t>time('15:09:02') and t is not null", "rows=5", methodWatcher);
+        firstRowContainsQuery("explain select * from ts_datetime where t<time('19:09:02') and t is not null", "rows=5", methodWatcher);
+        firstRowContainsQuery("explain select * from ts_datetime where t<>time('15:09:02')","rows=7",methodWatcher);
 
         // No statistics
-        firstRowContainsQuery("explain select * from tns_datetime where t>time('15:09:02')","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_datetime where t>=time('15:09:02')","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_datetime where t<time('19:09:02')","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_datetime where t<=time('19:09:02')","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_datetime where t is null","outputRows=2",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_datetime where t is not null","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_datetime where t>time('15:09:02') and t is not null", "outputRows=17", methodWatcher);
-        firstRowContainsQuery("explain select * from tns_datetime where t<time('19:09:02') and t is not null", "outputRows=17", methodWatcher);
-        firstRowContainsQuery("explain select * from tns_datetime where t<>time('15:09:02')","outputRows=2",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_datetime where t>time('15:09:02')","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_datetime where t>=time('15:09:02')","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_datetime where t<time('19:09:02')","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_datetime where t<=time('19:09:02')","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_datetime where t is null","rows=2",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_datetime where t is not null","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_datetime where t>time('15:09:02') and t is not null", "rows=17", methodWatcher);
+        firstRowContainsQuery("explain select * from tns_datetime where t<time('19:09:02') and t is not null", "rows=17", methodWatcher);
+        firstRowContainsQuery("explain select * from tns_datetime where t<>time('15:09:02')","rows=2",methodWatcher);
     }
 
 
     @Test
     public void testTimestampSelectivity() throws Exception {
-        firstRowContainsQuery("explain select * from ts_datetime where ts>timestamp('1962-09-23 03:23:34.234')","outputRows=8",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_datetime where ts>=timestamp('1962-09-23 03:23:34.234')","outputRows=8",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_datetime where ts<timestamp('1962-09-27 03:23:34.234')","outputRows=7",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_datetime where ts<=timestamp('1962-09-27 03:23:34.234')","outputRows=8",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_datetime where ts is null","outputRows=3",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_datetime where ts is not null","outputRows=5",methodWatcher);
-        firstRowContainsQuery("explain select * from ts_datetime where ts>=timestamp('1962-09-23 03:23:34.234') and ts is not null", "outputRows=5", methodWatcher);
-        firstRowContainsQuery("explain select * from ts_datetime where ts<timestamp('1962-09-27 03:23:34.234') and ts is not null", "outputRows=5", methodWatcher);
-        firstRowContainsQuery("explain select * from ts_datetime where ts<>timestamp('1962-09-23 03:23:34.234')","outputRows=7",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_datetime where ts>timestamp('1962-09-23 03:23:34.234')","rows=8",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_datetime where ts>=timestamp('1962-09-23 03:23:34.234')","rows=8",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_datetime where ts<timestamp('1962-09-27 03:23:34.234')","rows=7",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_datetime where ts<=timestamp('1962-09-27 03:23:34.234')","rows=8",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_datetime where ts is null","rows=3",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_datetime where ts is not null","rows=5",methodWatcher);
+        firstRowContainsQuery("explain select * from ts_datetime where ts>=timestamp('1962-09-23 03:23:34.234') and ts is not null", "rows=5", methodWatcher);
+        firstRowContainsQuery("explain select * from ts_datetime where ts<timestamp('1962-09-27 03:23:34.234') and ts is not null", "rows=5", methodWatcher);
+        firstRowContainsQuery("explain select * from ts_datetime where ts<>timestamp('1962-09-23 03:23:34.234')","rows=7",methodWatcher);
 
         // No statistics
-        firstRowContainsQuery("explain select * from tns_datetime where ts>timestamp('1962-09-23 03:23:34.234')","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_datetime where ts>=timestamp('1962-09-23 03:23:34.234')","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_datetime where ts<timestamp('1962-09-27 03:23:34.234')","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_datetime where ts<=timestamp('1962-09-27 03:23:34.234')","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_datetime where ts is null","outputRows=2",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_datetime where ts is not null","outputRows=18",methodWatcher);
-        firstRowContainsQuery("explain select * from tns_datetime where ts>=timestamp('1962-09-23 03:23:34.234') and ts is not null", "outputRows=17", methodWatcher);
-        firstRowContainsQuery("explain select * from tns_datetime where ts<timestamp('1962-09-27 03:23:34.234') and ts is not null", "outputRows=17", methodWatcher);
-        firstRowContainsQuery("explain select * from tns_datetime where ts<>timestamp('1962-09-23 03:23:34.234')","outputRows=2",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_datetime where ts>timestamp('1962-09-23 03:23:34.234')","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_datetime where ts>=timestamp('1962-09-23 03:23:34.234')","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_datetime where ts<timestamp('1962-09-27 03:23:34.234')","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_datetime where ts<=timestamp('1962-09-27 03:23:34.234')","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_datetime where ts is null","rows=2",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_datetime where ts is not null","rows=18",methodWatcher);
+        firstRowContainsQuery("explain select * from tns_datetime where ts>=timestamp('1962-09-23 03:23:34.234') and ts is not null", "rows=17", methodWatcher);
+        firstRowContainsQuery("explain select * from tns_datetime where ts<timestamp('1962-09-27 03:23:34.234') and ts is not null", "rows=17", methodWatcher);
+        firstRowContainsQuery("explain select * from tns_datetime where ts<>timestamp('1962-09-23 03:23:34.234')","rows=2",methodWatcher);
     }
 }
