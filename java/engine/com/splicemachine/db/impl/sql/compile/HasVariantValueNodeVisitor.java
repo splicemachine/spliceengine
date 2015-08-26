@@ -111,7 +111,7 @@ public class HasVariantValueNodeVisitor implements Visitor
 	 *
 	 * @exception StandardException on error
 	 */
-	public Visitable visit(Visitable node) throws StandardException
+	public Visitable visit(Visitable node, QueryTreeNode parent) throws StandardException
 	{
 		if (node instanceof ValueNode)
 		{

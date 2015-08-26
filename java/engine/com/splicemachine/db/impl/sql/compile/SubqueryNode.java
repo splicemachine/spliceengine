@@ -47,7 +47,6 @@ import java.lang.reflect.Modifier;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Vector;
 
 /**
  * A SubqueryNode represents a subquery.  Subqueries return values to their
@@ -1307,25 +1306,21 @@ public class SubqueryNode extends ValueNode{
      * Accept the visitor for all visitable children of this node.
      *
      * @param v the visitor
-     * @throws StandardException on error
      */
     @Override
     public void acceptChildren(Visitor v) throws StandardException{
         super.acceptChildren(v);
 
-		/* shortcut if we've already done it
-		 */
+		/* shortcut if we've already done it*/
         if((v instanceof HasCorrelatedCRsVisitor) && doneCorrelationCheck){
             ((HasCorrelatedCRsVisitor)v).setHasCorrelatedCRs(foundCorrelation);
             return;
         }
-
         if(resultSet!=null){
-            resultSet=(ResultSetNode)resultSet.accept(v);
+            resultSet=(ResultSetNode)resultSet.accept(v, this);
         }
-
         if(leftOperand!=null){
-            leftOperand=(ValueNode)leftOperand.accept(v);
+            leftOperand=(ValueNode)leftOperand.accept(v, this);
         }
     }
 

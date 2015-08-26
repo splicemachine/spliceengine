@@ -550,25 +550,29 @@ public abstract class QueryTreeNode implements Node, Visitable{
      * necessary. Sub-classes should not override this method, but instead
      * override the {@link #acceptChildren(Visitor)} method.
      *
-     * @param v the visitor
-     * @throws StandardException on error
+     * @param visitor the visitor
      */
-    public final Visitable accept(Visitor v)
-            throws StandardException{
-        final boolean childrenFirst=v.visitChildrenFirst(this);
-        final boolean skipChildren=v.skipChildren(this);
+    @Override
+    public final Visitable accept(Visitor visitor, QueryTreeNode parent) throws StandardException{
+        final boolean childrenFirst= visitor.visitChildrenFirst(this);
+        final boolean skipChildren= visitor.skipChildren(this);
 
-        if(childrenFirst && !skipChildren && !v.stopTraversal()){
-            acceptChildren(v);
+        if(childrenFirst && !skipChildren && !visitor.stopTraversal()){
+            acceptChildren(visitor);
         }
 
-        final Visitable ret=v.stopTraversal()?this:v.visit(this);
+        final Visitable ret = visitor.stopTraversal() ? this : visitor.visit(this, parent);
 
-        if(!childrenFirst && !skipChildren && !v.stopTraversal()){
-            acceptChildren(v);
+        if(!childrenFirst && !skipChildren && !visitor.stopTraversal()){
+            acceptChildren(visitor);
         }
 
         return ret;
+    }
+
+    @Override
+    public final Visitable accept(Visitor visitor) throws StandardException{
+        return accept(visitor, null);
     }
 
     /**
@@ -579,7 +583,6 @@ public abstract class QueryTreeNode implements Node, Visitable{
      * defined by the super-class are accepted too.
      *
      * @param v the visitor
-     * @throws StandardException on errors raised by the visitor
      */
     public void acceptChildren(Visitor v) throws StandardException{
         // no children

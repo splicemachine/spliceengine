@@ -1,0 +1,30 @@
+html, body {
+    font: 10pt arial;
+    padding: 0;
+    margin: 0;
+    width: 100%;
+    height: 100%;
+    font-family: sans-serif;
+}
+
+#graph-container-div {
+    width: 100%;
+    height: 100%;
+}
+
+table.control {
+    border-collapse: collapse;
+    width: 75%;
+    margin: 0 auto 0 auto;
+    border: 1px solid black;
+    background: #FAF0E6;
+}
+
+table.control tr {
+    border: 5px solid white;
+}
+
+table.control td {
+    border: 5px solid white;
+    padding: 5px;
+}

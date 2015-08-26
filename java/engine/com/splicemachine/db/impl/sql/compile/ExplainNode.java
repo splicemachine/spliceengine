@@ -73,7 +73,7 @@ public class ExplainNode extends DMLStatementNode {
         super.acceptChildren(v);
 
         if ( node!= null) {
-            node = (StatementNode)node.accept(v);
+            node = (StatementNode)node.accept(v, this);
         }
     }
 

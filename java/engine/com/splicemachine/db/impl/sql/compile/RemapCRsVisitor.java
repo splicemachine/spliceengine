@@ -58,7 +58,7 @@ public class RemapCRsVisitor implements Visitor
 	 *
 	 * @exception StandardException on error
 	 */
-	public Visitable visit(Visitable node)
+	public Visitable visit(Visitable node, QueryTreeNode parent)
 		throws StandardException
 	{
 		/*

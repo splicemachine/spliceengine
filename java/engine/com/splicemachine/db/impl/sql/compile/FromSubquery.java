@@ -755,26 +755,22 @@ public class FromSubquery extends FromTable
 		origCompilationSchema = sd;
 	}
 
-    /**
-     * @see QueryTreeNode#acceptChildren
-     */
-    public void acceptChildren(Visitor v)
-        throws StandardException
-    {
+    @Override
+    public void acceptChildren(Visitor v) throws StandardException {
         super.acceptChildren(v);
 
-        subquery.accept(v);
+        subquery.accept(v, this);
 
         if (orderByList != null) {
-            orderByList.accept(v);
+            orderByList.accept(v, this);
         }
 
         if (offset != null) {
-            offset.accept(v);
+            offset.accept(v, this);
         }
 
         if (fetchFirst != null) {
-            fetchFirst.accept(v);
+            fetchFirst.accept(v, this);
         }
     }
 }

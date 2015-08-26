@@ -87,7 +87,8 @@ public class CollectNodesVisitor implements Visitor {
 	 *
 	 * @return me
 	 */
-	public Visitable visit(Visitable node)
+    @Override
+	public Visitable visit(Visitable node, QueryTreeNode parent)
 	{
 		if (nodeClass.isInstance(node))
 		{

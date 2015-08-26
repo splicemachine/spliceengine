@@ -46,13 +46,7 @@ import com.splicemachine.db.iapi.error.StandardException;
  * </pre></blockquote>
  *
  */
-public interface ASTVisitor extends Visitor
-{
-    // Compilation phases for tree handling
-
-    public static final int AFTER_PARSE = 0;
-    public static final int AFTER_BIND = 1;
-    public static final int AFTER_OPTIMIZE = 2;
+public interface ASTVisitor extends Visitor {
 
     /**
      * Initialize the Visitor before processing any trees. User-written code
@@ -75,13 +69,13 @@ public interface ASTVisitor extends Visitor
      * @param statementText Text used to create the tree.
      * @param phase of compilation (AFTER_PARSE, AFTER_BIND, or AFTER_OPTIMIZE).
      */
-    public void begin( String statementText, int phase ) throws StandardException;
+    public void begin( String statementText, CompilationPhase phase) throws StandardException;
     
     /**
      * The compiler calls this method when it's done walking a tree.
      *
      * @param phase of compilation (AFTER_PARSE, AFTER_BIND, or AFTER_OPTIMIZE).
      */
-    public void end( int phase ) throws StandardException;
+    public void end(CompilationPhase phase) throws StandardException;
     
 }	

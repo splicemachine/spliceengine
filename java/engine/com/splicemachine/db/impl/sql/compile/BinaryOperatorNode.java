@@ -849,22 +849,19 @@ public class BinaryOperatorNode extends OperatorNode
 	 * Accept the visitor for all visitable children of this node.
 	 * 
 	 * @param v the visitor
-	 *
-	 * @exception StandardException on error
 	 */
-	public void acceptChildren(Visitor v)
-		throws StandardException
-	{
+    @Override
+	public void acceptChildren(Visitor v) throws StandardException {
 		super.acceptChildren(v);
 
 		if (leftOperand != null)
 		{
-			leftOperand = (ValueNode)leftOperand.accept(v);
+			leftOperand = (ValueNode)leftOperand.accept(v, this);
 		}
 
 		if (rightOperand != null)
 		{
-			rightOperand = (ValueNode)rightOperand.accept(v);
+			rightOperand = (ValueNode)rightOperand.accept(v, this);
 		}
 	}
 

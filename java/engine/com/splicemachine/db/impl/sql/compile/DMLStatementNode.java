@@ -209,7 +209,7 @@ public abstract class DMLStatementNode extends StatementNode{
 		*/
         HasNodeVisitor visitor=new HasNodeVisitor(FromBaseTable.class,StaticMethodCallNode.class);
 
-        this.accept(visitor);
+        this.accept(visitor, null);
         return visitor.hasNode();
     }
 
@@ -217,14 +217,13 @@ public abstract class DMLStatementNode extends StatementNode{
      * Accept the visitor for all visitable children of this node.
      *
      * @param v the visitor
-     * @throws StandardException on error
      */
-    public void acceptChildren(Visitor v)
-            throws StandardException{
+    @Override
+    public void acceptChildren(Visitor v) throws StandardException{
         super.acceptChildren(v);
 
         if(resultSet!=null){
-            resultSet=(ResultSetNode)resultSet.accept(v);
+            resultSet=(ResultSetNode)resultSet.accept(v, this);
         }
     }
 

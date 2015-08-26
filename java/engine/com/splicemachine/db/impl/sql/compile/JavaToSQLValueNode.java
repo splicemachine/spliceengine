@@ -39,7 +39,6 @@ import com.splicemachine.db.iapi.util.JBitSet;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Vector;
 
 /**
  * This node type converts a value from the Java domain to the SQL domain.
@@ -331,19 +330,14 @@ public class JavaToSQLValueNode extends ValueNode
 
 	/**
 	 * Accept the visitor for all visitable children of this node.
-	 * 
-	 * @param v the visitor
 	 *
-	 * @exception StandardException on error
-	 */
-	public void acceptChildren(Visitor v)
-		throws StandardException
-	{
+     * @param v the visitor
+     */
+	@Override
+    public void acceptChildren(Visitor v) throws StandardException {
 		super.acceptChildren(v);
-
-		if (javaNode != null)
-		{
-			javaNode = (JavaValueNode)javaNode.accept(v);
+		if (javaNode != null) {
+			javaNode = (JavaValueNode)javaNode.accept(v, this);
 		}
 	}
         

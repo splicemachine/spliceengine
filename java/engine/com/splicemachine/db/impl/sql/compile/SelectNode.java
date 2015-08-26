@@ -1768,26 +1768,21 @@ public class SelectNode extends ResultSetNode{
      * Accept the visitor for all visitable children of this node.
      *
      * @param v the visitor
-     * @throws StandardException on error
      */
     @Override
     public void acceptChildren(Visitor v) throws StandardException{
         super.acceptChildren(v);
-
         if(fromList!=null){
-            fromList=(FromList)fromList.accept(v);
+            fromList=(FromList)fromList.accept(v, this);
         }
-
         if(whereClause!=null){
-            whereClause=(ValueNode)whereClause.accept(v);
+            whereClause=(ValueNode)whereClause.accept(v, this);
         }
-
         if(wherePredicates!=null){
-            wherePredicates=(PredicateList)wherePredicates.accept(v);
+            wherePredicates=(PredicateList)wherePredicates.accept(v, this);
         }
-
         if(havingClause!=null){
-            havingClause=(ValueNode)havingClause.accept(v);
+            havingClause=(ValueNode)havingClause.accept(v, this);
         }
     }
 

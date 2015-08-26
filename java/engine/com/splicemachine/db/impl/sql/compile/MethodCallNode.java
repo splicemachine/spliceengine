@@ -1273,14 +1273,11 @@ abstract class MethodCallNode extends JavaValueNode
 
 	/**
 	 * Accept the visitor for all visitable children of this node.
-	 * 
-	 * @param v the visitor
 	 *
-	 * @exception StandardException on error
-	 */
-	public void acceptChildren(Visitor v)
-		throws StandardException
-	{
+     * @param v the visitor
+     */
+	@Override
+    public void acceptChildren(Visitor v) throws StandardException {
 		super.acceptChildren(v);
 
 		for (int parm = 0; 
@@ -1289,7 +1286,7 @@ abstract class MethodCallNode extends JavaValueNode
 		{
 			if (methodParms[parm] != null)
 			{
-				methodParms[parm] = (JavaValueNode)methodParms[parm].accept(v);
+				methodParms[parm] = (JavaValueNode)methodParms[parm].accept(v, this);
 			}
 		}
 	}

@@ -1565,18 +1565,15 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
      * Accept the visitor for all visitable children of this node.
      *
      * @param v the visitor
-     * @throws StandardException on error
      */
     @Override
     public void acceptChildren(Visitor v) throws StandardException{
         super.acceptChildren(v);
-
         if(restriction!=null){
-            restriction=(ValueNode)restriction.accept(v);
+            restriction=(ValueNode)restriction.accept(v, this);
         }
-
         if(restrictionList!=null){
-            restrictionList=(PredicateList)restrictionList.accept(v);
+            restrictionList=(PredicateList)restrictionList.accept(v, this);
         }
     }
 

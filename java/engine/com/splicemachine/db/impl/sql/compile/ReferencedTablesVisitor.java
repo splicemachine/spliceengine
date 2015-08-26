@@ -59,7 +59,7 @@ public class ReferencedTablesVisitor implements Visitor
 	 *
 	 * @exception StandardException on error
 	 */
-	public Visitable visit(Visitable node)
+	public Visitable visit(Visitable node, QueryTreeNode parent)
 		throws StandardException
 	{
 		if (node instanceof ColumnReference)

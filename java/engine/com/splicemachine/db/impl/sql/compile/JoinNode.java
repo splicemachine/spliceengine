@@ -1023,25 +1023,21 @@ public class JoinNode extends TableOperatorNode{
      * Accept the visitor for all visitable children of this node.
      *
      * @param v the visitor
-     * @throws StandardException on error
      */
     @Override
     public void acceptChildren(Visitor v) throws StandardException{
         super.acceptChildren(v);
         if(resultColumns!=null){
-            resultColumns=(ResultColumnList)resultColumns.accept(v);
+            resultColumns=(ResultColumnList)resultColumns.accept(v, this);
         }
-
         if(joinClause!=null){
-            joinClause=(ValueNode)joinClause.accept(v);
+            joinClause=(ValueNode)joinClause.accept(v, this);
         }
-
         if(usingClause!=null){
-            usingClause=(ResultColumnList)usingClause.accept(v);
+            usingClause=(ResultColumnList)usingClause.accept(v, this);
         }
-
         if(joinPredicates!=null){
-            joinPredicates=(PredicateList)joinPredicates.accept(v);
+            joinPredicates=(PredicateList)joinPredicates.accept(v, this);
         }
     }
 

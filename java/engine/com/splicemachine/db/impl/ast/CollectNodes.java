@@ -5,6 +5,8 @@ import com.google.common.base.Predicates;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
+import com.splicemachine.db.impl.sql.compile.QueryTreeNode;
+
 import java.util.LinkedList;
 import java.util.List;
 
@@ -32,7 +34,8 @@ public class CollectNodes<T> implements Visitor {
         return false;
     }
 
-    public Visitable visit(Visitable node) {
+    @Override
+    public Visitable visit(Visitable node, QueryTreeNode parent) {
         if (pred.apply(node)) {
             nodeList.add((T) node);
         }

@@ -102,7 +102,7 @@ public abstract class WindowFunctionNode extends AggregateNode {
         int i=0;
         for (ValueNode overNode : operands) {
             if (overNode != null) {
-                visitedNodes[i++] = (ValueNode) overNode.accept(v);
+                visitedNodes[i++] = (ValueNode) overNode.accept(v, this);
             }
         }
         setOperands(visitedNodes);

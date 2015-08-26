@@ -955,14 +955,12 @@ public abstract class ResultSetNode extends QueryTreeNode{
      * Accept the visitor for all visitable children of this node.
      *
      * @param v the visitor
-     * @throws StandardException on error
      */
-    public void acceptChildren(Visitor v)
-            throws StandardException{
+    @Override
+    public void acceptChildren(Visitor v) throws StandardException {
         super.acceptChildren(v);
-
         if(resultColumns!=null){
-            resultColumns=(ResultColumnList)resultColumns.accept(v);
+            resultColumns=(ResultColumnList)resultColumns.accept(v, this);
         }
     }
 

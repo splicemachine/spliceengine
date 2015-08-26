@@ -156,7 +156,7 @@ public class AndNode extends BinaryLogicalOperatorNode{
      */
     @Override
     public boolean verifyPutAndsOnTop(){
-        boolean isValid;
+        boolean isValid = false;
 
         if(SanityManager.ASSERT){
             isValid=((rightOperand instanceof AndNode) || (rightOperand.isBooleanTrue()));
@@ -272,7 +272,7 @@ public class AndNode extends BinaryLogicalOperatorNode{
      */
     @Override
     public boolean verifyChangeToCNF(){
-        boolean isValid;
+        boolean isValid = false;
 
         if(SanityManager.ASSERT){
             isValid=((rightOperand instanceof AndNode) ||

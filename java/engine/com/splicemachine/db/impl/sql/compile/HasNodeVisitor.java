@@ -76,7 +76,7 @@ public class HasNodeVisitor implements Visitor
 	 *
 	 * @return me
 	 */
-	public Visitable visit(Visitable node)
+	public Visitable visit(Visitable node, QueryTreeNode parent)
 	{
 		if (nodeClass.isInstance(node))
 		{

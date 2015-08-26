@@ -1849,4 +1849,16 @@ public interface ResultSetFactory {
                                              String quoteChar,
                                              int srcResultDescriptionSavedObjectNum) throws StandardException;
 
+    /**
+     * Batch Once
+     */
+    public NoPutResultSet getBatchOnceResultSet(NoPutResultSet source,
+                                                Activation activation,
+                                                int resultSetNumber,
+                                                NoPutResultSet subqueryResultSet,
+                                                String updateResultSetFieldName,
+                                                int sourceRowLocationColumnPosition,
+                                                int sourceCorrelatedColumnPosition,
+                                                int subqueryCorrelatedColumnPosition) throws StandardException;
+
 }

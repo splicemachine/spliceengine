@@ -576,18 +576,13 @@ public class OrderByColumn extends OrderedColumn {
 	/**
 	 * Accept the visitor for all visitable children of this node.
 	 *
-	 * @param v the visitor
-	 *
-	 * @exception StandardException on error
-	 */
-	public void acceptChildren(Visitor v)
-		throws StandardException
-	{
+     * @param v the visitor
+     */
+	@Override
+    public void acceptChildren(Visitor v) throws StandardException {
 		super.acceptChildren(v);
-
-		if (expression != null)
-		{
-			expression = (ValueNode)expression.accept(v);
+		if (expression != null) {
+			expression = (ValueNode)expression.accept(v, this);
 		}
 	}
 

@@ -22,6 +22,7 @@
 package	com.splicemachine.db.iapi.sql.compile;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.impl.sql.compile.QueryTreeNode;
 
 /**
  * A visitor is an object that traverses the querytree
@@ -47,6 +48,8 @@ public interface Visitor
 	 * method which does the aggregate specific processing.
 	 *
 	 * @param node 	the node to process
+     * @param parent the parent of the node being visited, or, more generally, the node that contains a reference to
+     *               the node being visited.
 	 *
 	 * @return a query tree node.  Often times this is
 	 * the same node that was passed in, but Visitors that
@@ -61,8 +64,7 @@ public interface Visitor
 	 *	thing to do is just throw an error when we find the
 	 *	questionable node).
 	 */
-	public Visitable visit(Visitable node)
-		throws StandardException;
+	Visitable visit(Visitable node, QueryTreeNode parent) throws StandardException;
 
 	/**
 	 * Method that is called to see if {@code visit()} should be called on

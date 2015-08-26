@@ -1019,19 +1019,14 @@ public final class InsertNode extends DMLModStatementNode
 	
 	/**
 	 * Accept the visitor for all visitable children of this node.
-	 * 
-	 * @param v the visitor
 	 *
-	 * @exception StandardException on error
-	 */
-	public void acceptChildren(Visitor v)
-		throws StandardException
-	{
+     * @param v the visitor
+     */
+	@Override
+    public void acceptChildren(Visitor v) throws StandardException {
 		super.acceptChildren(v);
-
-		if (targetColumnList != null)
-		{
-			targetColumnList.accept(v);
+		if (targetColumnList != null) {
+			targetColumnList.accept(v, this);
 		}
 	}
 
@@ -1050,4 +1045,4 @@ public final class InsertNode extends DMLModStatementNode
         return sb.toString();
     }
 
-} // end of class InsertNode
+}

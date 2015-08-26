@@ -25,7 +25,6 @@ import java.lang.reflect.Modifier;
 import java.sql.Types;
 import java.util.Collections;
 import java.util.List;
-import java.util.Vector;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
@@ -694,17 +693,12 @@ public class UnaryOperatorNode extends OperatorNode
 	 * Accept the visitor for all visitable children of this node.
 	 * 
 	 * @param v the visitor
-	 *
-	 * @exception StandardException on error
 	 */
-	public void acceptChildren(Visitor v)
-		throws StandardException
-	{
+    @Override
+	public void acceptChildren(Visitor v) throws StandardException {
 		super.acceptChildren(v);
-
-		if (operand != null)
-		{
-			operand = (ValueNode)operand.accept(v);
+		if (operand != null) {
+			operand = (ValueNode)operand.accept(v, this);
 		}
 	}
 

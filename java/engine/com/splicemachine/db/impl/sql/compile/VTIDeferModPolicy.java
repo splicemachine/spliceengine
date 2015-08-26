@@ -130,9 +130,8 @@ class VTIDeferModPolicy implements Visitor
         }
     }
 
-    public Visitable visit(Visitable node)
-        throws StandardException
-    {
+    @Override
+    public Visitable visit(Visitable node, QueryTreeNode parent) throws StandardException {
         try
         {
             if( node instanceof ColumnReference && statementType != DeferModification.INSERT_STATEMENT)

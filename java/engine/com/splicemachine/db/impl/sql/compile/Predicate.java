@@ -661,14 +661,12 @@ public final class Predicate extends QueryTreeNode implements OptimizablePredica
      * Accept the visitor for all visitable children of this node.
      *
      * @param v the visitor
-     * @throws StandardException on error
      */
     @Override
     public void acceptChildren(Visitor v) throws StandardException{
         super.acceptChildren(v);
-
         if(andNode!=null){
-            andNode=(AndNode)andNode.accept(v);
+            andNode=(AndNode)andNode.accept(v, this);
         }
     }
 
