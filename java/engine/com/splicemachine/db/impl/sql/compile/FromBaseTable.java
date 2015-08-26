@@ -3409,30 +3409,33 @@ public class FromBaseTable extends FromTable {
         TableDescriptor tableDescriptor=getTableDescriptor();
         return String.format("%s(%s)",tableDescriptor.getName(),tableDescriptor.getHeapConglomerateId());
     }
+
     public void buildTree(Collection<QueryTreeNode> tree, int depth) {
         setDepth(depth);
         tree.add(this);
     }
 
-
-    public void clearAllPredicates() {
+    /**
+     * Added by splice because we, unfortunately, manipulate the AST from post-optimization visitors.
+     */
+    public void clearAllPredicates() throws StandardException {
         if(this.baseTableRestrictionList != null) {
-            this.baseTableRestrictionList.getNodes().clear();
+            this.baseTableRestrictionList.removeAllPredicates();
         }
         if(this.nonBaseTableRestrictionList != null) {
-            this.nonBaseTableRestrictionList.getNodes().clear();
+            this.nonBaseTableRestrictionList.removeAllPredicates();
         }
         if(this.restrictionList != null) {
-            this.restrictionList.getNodes().clear();
+            this.restrictionList.removeAllPredicates();
         }
         if(this.storeRestrictionList != null) {
-            this.storeRestrictionList.getNodes().clear();
+            this.storeRestrictionList.removeAllPredicates();
         }
         if(this.nonStoreRestrictionList != null) {
-            this.nonStoreRestrictionList.getNodes().clear();
+            this.nonStoreRestrictionList.removeAllPredicates();
         }
         if(this.requalificationRestrictionList != null) {
-            this.requalificationRestrictionList.getNodes().clear();
+            this.requalificationRestrictionList.removeAllPredicates();
         }
     }
 }

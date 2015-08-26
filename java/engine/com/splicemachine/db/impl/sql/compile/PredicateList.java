@@ -2181,6 +2181,12 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         }
     }
 
+    public void removeAllPredicates() throws StandardException {
+        for (int i = size() - 1; i >= 0; i--) {
+            removeOptPredicate(i);
+        }
+    }
+
     /**
      * Remove redundant predicates.  A redundant predicate has an equivalence
      * class (!= -1) and there are other predicates in the same equivalence
