@@ -105,6 +105,17 @@ public class MultiProbeTableScanOperatonIT {
         Assert.assertEquals("Incorrect count returned!",3,i);
     }
 
+	@Test
+    //DB-2575
+	public void testMultiProbeTableScanWithEqualPredicate() throws Exception {
+		ResultSet rs = methodWatcher.executeQuery("select user_id from "+t1Watcher+" where segment_id in (1,5,8,12) and unixtime = 1");
+		int i = 0;
+		while (rs.next()) {
+			i++;
+		}
+		Assert.assertEquals("Incorrect count returned!",3,i);
+	}
+
     @Test
     public void testMultiProbeTableScanSink() throws Exception {
     	ResultSet rs = methodWatcher.executeQuery("select count(user_id) from (" + 
