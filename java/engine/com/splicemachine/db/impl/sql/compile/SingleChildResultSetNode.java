@@ -529,7 +529,7 @@ public abstract class SingleChildResultSetNode extends FromTable{
         return null;
     }
     @Override
-    public void buildTree(Collection<QueryTreeNode> tree, int depth) {
+    public void buildTree(Collection<QueryTreeNode> tree, int depth) throws StandardException {
         setDepth(depth);
         tree.add(this);
         childResult.buildTree(tree,depth+1);

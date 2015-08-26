@@ -875,8 +875,8 @@ public class RowResultSetNode extends FromTable {
         sb.append(")");
         return sb.toString();
     }
-
-    public void buildTree(Collection<QueryTreeNode> tree, int depth) {
+    @Override
+    public void buildTree(Collection<QueryTreeNode> tree, int depth) throws StandardException {
         setDepth(depth);
         tree.add(this);
         if (subquerys != null && subquerys.size()>0) {

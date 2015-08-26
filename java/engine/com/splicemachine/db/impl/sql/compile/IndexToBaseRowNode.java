@@ -378,8 +378,8 @@ public class IndexToBaseRowNode extends FromTable{
             source=(FromBaseTable)source.accept(v, this);
         }
     }
-
-    public void buildTree(Collection<QueryTreeNode> tree, int depth) {
+    @Override
+    public void buildTree(Collection<QueryTreeNode> tree, int depth) throws StandardException{
         setDepth(depth);
         tree.add(this);
         source.buildTree(tree,depth+1);

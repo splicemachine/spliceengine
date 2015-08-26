@@ -2404,8 +2404,8 @@ public class SubqueryNode extends ValueNode{
 
         setType(dts.getNullabilityType(true));
     }
-
-    public void buildTree(Collection<QueryTreeNode> tree, int depth) {
+    @Override
+    public void buildTree(Collection<QueryTreeNode> tree, int depth) throws StandardException {
         setDepth(depth);
         tree.add(this);
         resultSet.buildTree(tree,depth+1);

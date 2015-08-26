@@ -110,8 +110,8 @@ public class BatchOnceNode extends SingleChildResultSetNode {
         sb.append(")");
         return sb.toString();
     }
-
-    public void buildTree(Collection<QueryTreeNode> tree, int depth) {
+    @Override
+    public void buildTree(Collection<QueryTreeNode> tree, int depth) throws StandardException {
         setDepth(depth);
         tree.add(this);
         subqueryNode.buildTree(tree,depth+1);

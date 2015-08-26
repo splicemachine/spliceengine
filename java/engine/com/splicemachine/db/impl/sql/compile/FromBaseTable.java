@@ -3410,9 +3410,12 @@ public class FromBaseTable extends FromTable {
         return String.format("%s(%s)",tableDescriptor.getName(),tableDescriptor.getHeapConglomerateId());
     }
 
-    public void buildTree(Collection<QueryTreeNode> tree, int depth) {
+    @Override
+    public void buildTree(Collection<QueryTreeNode> tree, int depth) throws StandardException {
         setDepth(depth);
         tree.add(this);
+        for (SubqueryNode sub: RSUtils.collectExpressionNodes(this, SubqueryNode.class))
+            sub.buildTree(tree,depth+1);
     }
 
     /**

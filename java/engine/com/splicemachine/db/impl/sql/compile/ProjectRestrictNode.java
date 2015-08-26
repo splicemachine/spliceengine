@@ -1651,8 +1651,8 @@ public class ProjectRestrictNode extends SingleChildResultSetNode{
         sb.append(")");
         return sb.toString();
     }
-
-    public void buildTree(Collection<QueryTreeNode> tree, int depth) {
+    @Override
+    public void buildTree(Collection<QueryTreeNode> tree, int depth) throws StandardException {
         if (!nopProjectRestrict()) {
             setDepth(depth);
             tree.add(this);

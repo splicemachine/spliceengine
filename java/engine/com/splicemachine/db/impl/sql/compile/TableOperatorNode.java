@@ -773,7 +773,7 @@ public abstract class TableOperatorNode extends FromTable{
     }
 
     @Override
-    public void buildTree(Collection<QueryTreeNode> tree, int depth) {
+    public void buildTree(Collection<QueryTreeNode> tree, int depth) throws StandardException {
         setDepth(depth);
         tree.add(this);
         rightResultSet.buildTree(tree,depth+1);

@@ -82,8 +82,8 @@ public class ExplainNode extends DMLStatementNode {
         return	node.makeConstantAction();
     }
 
-
-    public void buildTree(Collection<QueryTreeNode> tree, int depth) {
+    @Override
+    public void buildTree(Collection<QueryTreeNode> tree, int depth) throws StandardException {
         if ( node!= null)
             node.buildTree(tree,depth);
     }

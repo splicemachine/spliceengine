@@ -1612,7 +1612,7 @@ public abstract class QueryTreeNode implements Node, Visitable{
 
     private static final String spaces="  ";
 
-    public void buildTree(Collection<QueryTreeNode> tree, int depth) {
+    public void buildTree(Collection<QueryTreeNode> tree, int depth) throws StandardException {
         setDepth(depth);
         tree.add(this);
     }

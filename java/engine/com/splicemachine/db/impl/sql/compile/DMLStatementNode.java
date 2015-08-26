@@ -381,7 +381,7 @@ public abstract class DMLStatementNode extends StatementNode{
     }
 
     @Override
-    public void buildTree(Collection<QueryTreeNode> tree, int depth) {
+    public void buildTree(Collection<QueryTreeNode> tree, int depth) throws StandardException {
         setDepth(depth);
         tree.add(this);
         if(resultSet!=null)
