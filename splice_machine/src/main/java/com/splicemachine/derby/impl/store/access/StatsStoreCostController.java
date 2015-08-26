@@ -190,6 +190,8 @@ public class StatsStoreCostController extends GenericController implements Store
             nc*=missingStatsCount;
         }
         nc+=nullCount;
+        if (stats.rowCount() == 0)
+            return 0.0d;
         return nc/stats.rowCount();
     }
 
@@ -222,6 +224,8 @@ public class StatsStoreCostController extends GenericController implements Store
             rc = ((double)rowCount)/(partStats.size()-missingStatsCount);
             rc*=missingStatsCount;
         }
+        if (stats.rowCount() == 0)
+            return 0.0d;
         rc+=rowCount;
         return rc/stats.rowCount();
     }
