@@ -476,7 +476,13 @@ public class OperationResultSet implements NoPutResultSet, HasIncrement, CursorR
             statementInfo = null; //remove the field in case we call close twice
             ((GenericStorablePreparedStatement) activation.getPreparedStatement()).clearWarnings();
         }
-        if (delegate != null) delegate.close();
+        if (delegate != null) {
+            try {
+                delegate.close();
+            } finally {
+                closed = true;
+            }
+        }
         closed = true;
     }
 
