@@ -479,4 +479,14 @@ public class CostEstimateImpl implements CostEstimate {
     public double getFromBaseTableCost() {
         return 0;
     }
+
+    @Override
+    public double getLocalCost() {
+        return 0;
+    }
+
+    @Override
+    public double getRemoteCost() {
+        return 0;
+    }
 }

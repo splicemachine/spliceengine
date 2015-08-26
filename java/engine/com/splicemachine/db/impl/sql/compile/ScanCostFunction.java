@@ -121,8 +121,8 @@ public class ScanCostFunction{
     public void addPredicate(Predicate p) throws StandardException{
         if (p.isMultiProbeQualifier(keyColumns)) // MultiProbeQualifier against keys (BASE)
             addSelectivity(new InListSelectivity(scc,p,QualifierPhase.BASE));
-        else if (p.isInQualifier(scanColumns)) // In Qualifier in Base Table (FILTER_BASE)
-            addSelectivity(new InListSelectivity(scc,p, QualifierPhase.FILTER_BASE));
+        else if (p.isInQualifier(scanColumns)) // In Qualifier in Base Table (FILTER_PROJECTION) // This is not as expected, needs more research.
+            addSelectivity(new InListSelectivity(scc,p, QualifierPhase.FILTER_PROJECTION));
         else if (p.isInQualifier(lookupColumns)) // In Qualifier against looked up columns (FILTER_PROJECTION)
             addSelectivity(new InListSelectivity(scc,p, QualifierPhase.FILTER_PROJECTION));
         else if (p.isStartKey() || p.isStopKey()) // Range Qualifier on Start/Stop Keys (BASE)
@@ -195,8 +195,8 @@ public class ScanCostFunction{
             lookupCost = 0.0d;
         else {
             lookupCost = totalRowCount*filterBaseTableSelectivity*scc.getRemoteLatency()*scc.getBaseTableAvgRowWidth();
-            scanCost.setFromBaseTableRows(filterBaseTableSelectivity*totalRowCount);
-            scanCost.setFromBaseTableCost(lookupCost+baseCost);
+            scanCost.setIndexLookupRows(filterBaseTableSelectivity*totalRowCount);
+            scanCost.setIndexLookupCost(lookupCost+baseCost);
         }
         double projectionCost;
         if (projectionSelectivity == 1.0d)
@@ -204,8 +204,8 @@ public class ScanCostFunction{
         else {
             projectionCost = totalRowCount * filterBaseTableSelectivity * scc.getLocalLatency() * colSizeFactor;
             lookupCost = totalRowCount*filterBaseTableSelectivity*scc.getRemoteLatency()*scc.getBaseTableAvgRowWidth();
-            scanCost.setFromBaseTableRows(scanCost.getEstimatedRowCount());
-            scanCost.setFromBaseTableCost(lookupCost+baseCost+projectionCost);
+            scanCost.setProjectionRows(scanCost.getEstimatedRowCount());
+            scanCost.setProjectionCost(lookupCost+baseCost+projectionCost);
         }
         scanCost.setLocalCost(baseCost+lookupCost+projectionCost);
         scanCost.setNumPartitions(scc.getNumPartitions());

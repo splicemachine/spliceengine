@@ -863,6 +863,8 @@ public class RowResultSetNode extends FromTable {
 	}
 
 
+
+
     @Override
     public String printExplainInformation(int order) throws StandardException {
         StringBuilder sb = new StringBuilder();

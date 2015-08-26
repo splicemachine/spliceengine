@@ -230,5 +230,9 @@ public interface CostEstimate extends StoreCostResult {
 
     public void setFromBaseTableCost(double fromBaseTableCost);
 
+    public double getLocalCost();
+
+    public double getRemoteCost();
+
 
 }
