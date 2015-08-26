@@ -227,7 +227,9 @@ public class StatsStoreCostController extends GenericController implements Store
         if (stats.rowCount() == 0)
             return 0.0d;
         rc+=rowCount;
-        return rc/stats.rowCount();
+        double returnValue =rc/stats.rowCount();
+        assert returnValue >= 0.0d && returnValue <= 1.0d:"Incorrect Selectivity Fraction Returned from Statistics: Critical Error (DB-3729)";
+        return returnValue;
     }
 
     protected double columnSizeFactor(TableStatistics tableStats,int totalColumns,BitSet validColumns){
