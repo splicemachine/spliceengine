@@ -16,6 +16,10 @@ import org.junit.runner.Description;
 import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.SlowTest;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
+
 /**
  * Test for index stuff, more or less encompassing:
  *
@@ -120,7 +124,7 @@ public class IndexIT extends SpliceUnitTest {
             .around(emailableTableWatcher);
 
     @Rule
-    public SpliceWatcher methodWatcher = new SpliceWatcher();
+    public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA_NAME);
     
     // ===============================================================================
     // Create Index Tests
@@ -483,7 +487,7 @@ public class IndexIT extends SpliceUnitTest {
         String indexName = "IA";
         try {
             SpliceIndexWatcher.createIndex(methodWatcher.createConnection(),SCHEMA_NAME,A_TABLE_NAME,indexName,"(i)",false);
-            methodWatcher.executeUpdate(String.format("insert into %s.%s values 1,2,3,4,5", SCHEMA_NAME,A_TABLE_NAME));
+            methodWatcher.executeUpdate(String.format("insert into %s.%s values 1,2,3,4,5", SCHEMA_NAME, A_TABLE_NAME));
             ResultSet rs = methodWatcher.executeQuery(String.format("select count(*) from %s.%s --SPLICE-PROPERTIES index=%s",SCHEMA_NAME,A_TABLE_NAME,indexName));
             Assert.assertTrue(rs.next());
             Assert.assertEquals(5, rs.getInt(1));
@@ -494,7 +498,7 @@ public class IndexIT extends SpliceUnitTest {
             Assert.assertEquals(5, rs.getInt(1));
 
             // Test for DB-857 - trunc'ing table did not update index
-            methodWatcher.executeUpdate(String.format("truncate table %s.%s", SCHEMA_NAME,A_TABLE_NAME));
+            methodWatcher.executeUpdate(String.format("truncate table %s.%s", SCHEMA_NAME, A_TABLE_NAME));
             methodWatcher.executeUpdate(String.format("insert into %s.%s values 1,2,3,4,5", SCHEMA_NAME,A_TABLE_NAME));
             rs = methodWatcher.executeQuery(String.format("select count(*) from %s.%s --SPLICE-PROPERTIES index=%s",SCHEMA_NAME,A_TABLE_NAME,indexName));
             Assert.assertTrue(rs.next());
@@ -507,6 +511,32 @@ public class IndexIT extends SpliceUnitTest {
         }
 
     }
+
+    /* DB-3699: Tests a plan with a join over two index scans of compound indexes */
+    @Test
+    public void joinOverTwoCompoundIndexScans() throws Exception {
+        methodWatcher.executeUpdate("CREATE TABLE PERSON_ADDRESS (PID INTEGER, ADDR_ID INTEGER)");
+        methodWatcher.executeUpdate("CREATE TABLE ADDRESS (ADDR_ID INTEGER, STD_STATE_PROVENCE VARCHAR(30))");
+        methodWatcher.executeUpdate("CREATE INDEX a_idx ON ADDRESS (std_state_provence, addr_id)");
+        methodWatcher.executeUpdate("CREATE INDEX pa_idx ON PERSON_ADDRESS (pid, addr_id)");
+        methodWatcher.executeUpdate("INSERT INTO ADDRESS VALUES (100, 'MO'),(200, 'IA'),(300,'NY'),(400,'FL'),(500,'AL')");
+        methodWatcher.executeUpdate("INSERT INTO PERSON_ADDRESS VALUES (10, 100),(20, 200),(30,300),(40, 400),(50,500)");
+
+        ResultSet resultSet = methodWatcher.executeQuery("" +
+                "select pa.pid\n" +
+                "from PERSON_ADDRESS pa --SPLICE-PROPERTIES index=pa_idx\n" +
+                "join ADDRESS a         --SPLICE-PROPERTIES index=a_idx\n" +
+                "  on pa.addr_id=a.addr_id\n" +
+                "where a.std_state_provence in ('IA', 'FL', 'NY')");
+
+        assertEquals("" +
+                "PID |\n" +
+                "------\n" +
+                " 20  |\n" +
+                " 30  |\n" +
+                " 40  |", TestUtils.FormattedResult.ResultFactory.toString(resultSet));
+    }
+
 
     // ===============================================================================
     // Update Tests
