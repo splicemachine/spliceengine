@@ -56,9 +56,10 @@ public abstract class UniformDistribution<T> extends BaseDistribution<T>{
              */
             baseEstimate=0;
         }
-        if(!includeStart)
+        if(!includeStart){
             baseEstimate-=perRowCount;
-        if(includeStop)
+            if(baseEstimate<0) baseEstimate=0;
+        }if(includeStop)
             baseEstimate+=perRowCount;
         baseEstimate-= perRowCount*frequentElements.size();
         for(FrequencyEstimate<T> est: frequentElements){

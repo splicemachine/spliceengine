@@ -3,9 +3,11 @@ package com.splicemachine.stats.estimate;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.frequency.FrequencyEstimate;
 import com.splicemachine.stats.frequency.FrequentElements;
+import com.splicemachine.stats.util.UTFUtils;
 import com.splicemachine.utils.ComparableComparator;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.math.MathContext;
 import java.util.Set;
 
@@ -63,7 +65,7 @@ public class UniformStringDistribution extends UniformDistribution<String> {
         this.strLen = strLen;
 
         if (columnStats.maxValue() == null) {
-            this.a = BigDecimal.valueOf(0.0);
+            this.a = BigDecimal.ZERO;
         } else {
             String maxV = columnStats.maxValue();
             String minV = columnStats.minValue();
@@ -73,10 +75,14 @@ public class UniformStringDistribution extends UniformDistribution<String> {
                  */
                 this.a = BigDecimal.ZERO;
             }else{
-                BigDecimal maxPosition=computePosition(columnStats.maxValue());
-                BigDecimal at=BigDecimal.valueOf(columnStats.nonNullCount()-columnStats.minCount());
-                BigDecimal overallDistance=maxPosition.subtract(computePosition(columnStats.minValue()));
-                at=at.divide(overallDistance,MathContext.DECIMAL64);
+                BigInteger maxPosition=computePosition(columnStats.maxValue());
+                /*
+                 * The linear function is only used for the uniform portion of the histogram, so we
+                 * can't use the totalCount(), we have to adjust that count to account for frequent elements.
+                 */
+                BigDecimal at=BigDecimal.valueOf(getAdjustedRowCount()-columnStats.minCount());
+                BigInteger overallDistance=maxPosition.subtract(computePosition(columnStats.minValue()));
+                at=at.divide(new BigDecimal(overallDistance),MathContext.DECIMAL64);
 
                 this.a=at;
             }
@@ -85,10 +91,11 @@ public class UniformStringDistribution extends UniformDistribution<String> {
 
     @Override
     protected final long estimateRange(String start, String stop, boolean includeStart, boolean includeStop, boolean isMin) {
-        BigDecimal startPos = computePosition(start);
-        BigDecimal stopPos = computePosition(stop);
+        BigInteger startPos = computePosition(start);
+        BigInteger stopPos = computePosition(stop);
+        BigDecimal dist = new BigDecimal(stopPos.subtract(startPos));
 
-        BigDecimal baseE = a.multiply(stopPos.subtract(startPos));
+        BigDecimal baseE = a.multiply(dist);
 
         /*
          * This is safe, because the linear function we used has a max of maxValue on the range [minValue,maxValue),
@@ -101,7 +108,7 @@ public class UniformStringDistribution extends UniformDistribution<String> {
         FrequentElements<String> fe = columnStats.topK();
         //if we are the min value, don't include the start key in frequent elements
         boolean includeMinFreq = includeStart &&!isMin;
-        Set<? extends FrequencyEstimate<String>> estimates = fe.frequentElementsBetween(start, stop, includeMinFreq, includeStop);
+        Set<? extends FrequencyEstimate<String>> estimates = fe.frequentElementsBetween(start,stop,includeMinFreq,includeStop);
         long l=uniformRangeCount(includeMinFreq,includeStop,baseEstimate,estimates);
         if(isMin&&includeStart)
             l+=minCount();
@@ -118,12 +125,12 @@ public class UniformStringDistribution extends UniformDistribution<String> {
             includeStart = true;
         }
 
-        BigDecimal s = computePosition(start);
-        BigDecimal e = computePosition(stop);
+        BigInteger s = computePosition(start);
+        BigInteger e = computePosition(stop);
 
-        BigDecimal c = e.subtract(s);
-        if(!includeStart) c = c.subtract(BigDecimal.ONE);
-        if(includeStop) c = c.add(BigDecimal.ONE);
+        BigInteger c = e.subtract(s);
+        if(!includeStart) c = c.subtract(BigInteger.ONE);
+        if(includeStop) c = c.add(BigInteger.ONE);
         return c.longValue();
     }
 
@@ -160,8 +167,8 @@ public class UniformStringDistribution extends UniformDistribution<String> {
      * @return a numeric representation of the location of the string within the total ordering of all possible
      * strings.
      */
-    protected BigDecimal computePosition(String str) {
-        return unicodePosition(strLen,str);
+    protected BigInteger computePosition(String str) {
+        return UTFUtils.utf8Position(str,strLen);
     }
 
     /**
@@ -185,32 +192,4 @@ public class UniformStringDistribution extends UniformDistribution<String> {
             }
         };
     }
-
-    /* ****************************************************************************************************************/
-    /*private helper methods*/
-    private static final BigDecimal TWO_THIRTY_TWO = BigDecimal.valueOf(Integer.MAX_VALUE);
-    private static BigDecimal unicodePosition(int strLen,String str) {
-        /*
-         * Each UTF-8 encoded character takes up between 1 and 4 bytes, so if we represent each character
-         * with a single big-endian integer holding the character, then we can compute the absolute position
-         * in the ordering according to the rule
-         *
-         * 2^strLen*char[0]+2^(strLen-1)*char[1]+...char[strLen-1]
-         */
-        int len = str.length();
-
-        BigDecimal pos = BigDecimal.ZERO;
-        for(int codePoint = 0;codePoint<len;codePoint++){
-            int v = str.codePointAt(codePoint);
-            pos = BigDecimal.valueOf(v).add(TWO_THIRTY_TWO.multiply(pos));
-        }
-
-        //now shift the data over to account for string padding at the end
-        if(strLen>len){
-            BigDecimal scale = TWO_THIRTY_TWO.pow(strLen-len);
-            pos = pos.multiply(scale);
-        }
-        return pos;
-    }
-
 }

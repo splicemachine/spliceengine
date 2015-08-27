@@ -13,7 +13,6 @@ import java.util.Set;
  */
 public class UniformFloatDistribution extends UniformDistribution<Float> implements FloatDistribution {
     private final double a;
-    private final double b;
 
     public UniformFloatDistribution(FloatColumnStatistics columnStats) {
         super(columnStats, ComparableComparator.<Float>newComparator());
@@ -36,19 +35,16 @@ public class UniformFloatDistribution extends UniformDistribution<Float> impleme
              * The distribution is empty, so the interpolation function is 0
              */
             this.a = 0d;
-            this.b = 0d;
         }else if(columnStats.max()==columnStats.min()){
             /*
              * The distribution contains a single element, so the interpolation function is a constant
              */
             this.a = 0d;
-            this.b = columnStats.minCount();
         }else{
-            double at=columnStats.nonNullCount()-columnStats.minCount();
+            double at=getAdjustedRowCount()-columnStats.minCount();
             at/=(columnStats.max()-columnStats.min());
 
             this.a=at;
-            this.b=columnStats.nonNullCount()-a*columnStats.max();
         }
     }
 
@@ -59,6 +55,8 @@ public class UniformFloatDistribution extends UniformDistribution<Float> impleme
 
     @Override
     public long selectivity(float value) {
+        if(Float.isNaN(value))
+            throw new ArithmeticException("Cannot compute selectivity for NaN");
         FloatColumnStatistics fcs = (FloatColumnStatistics)columnStats;
         if(value<fcs.min()) return 0l;
         else if(value==fcs.min()) return fcs.minCount();
@@ -91,6 +89,8 @@ public class UniformFloatDistribution extends UniformDistribution<Float> impleme
 
     @Override
     public long rangeSelectivity(float start, float stop, boolean includeStart, boolean includeStop) {
+        if(Double.isNaN(start)||Double.isNaN(stop))
+            throw new ArithmeticException("cannot compute selectivity of NaN");
         FloatColumnStatistics fcs = (FloatColumnStatistics)columnStats;
         float min = fcs.min();
         if(stop<min||(!includeStop && stop==min)) return 0l;
@@ -165,9 +165,9 @@ public class UniformFloatDistribution extends UniformDistribution<Float> impleme
     public long cardinality(Float start,Float stop,boolean includeStart,boolean includeStop){
         if(start==null){
             if(stop==null) return cardinality();
-            return cardinalityBefore(stop.floatValue(),includeStop);
-        }else if(stop==null) return cardinalityAfter(start.floatValue(),includeStart);
-        else return rangeCardinality(start.floatValue(),stop.floatValue(),includeStart,includeStop);
+            return cardinalityBefore(stop,includeStop);
+        }else if(stop==null) return cardinalityAfter(start,includeStart);
+        else return rangeCardinality(start,stop,includeStart,includeStop);
     }
 
     /* ****************************************************************************************************************/

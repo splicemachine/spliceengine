@@ -13,7 +13,6 @@ import java.util.Set;
  */
 public class UniformLongDistribution extends UniformDistribution<Long> implements LongDistribution {
     private final double a;
-    private final double b;
 
     public UniformLongDistribution(LongColumnStatistics columnStats) {
         super(columnStats, ComparableComparator.<Long>newComparator());
@@ -32,17 +31,20 @@ public class UniformLongDistribution extends UniformDistribution<Long> implement
          */
         if(columnStats.nonNullCount()==0){
            //the distribution is empty, so the CumulativeDistribution Function is the 0 line
-            this.a = this.b = 0d;
+            this.a =0d;
         }else if(columnStats.max()==columnStats.min()){
             //the distribution is a single record, so the CDF is a constant function
             this.a = 0d;
-            this.b = columnStats.minCount();
         }else{
-            double at=columnStats.nonNullCount()-columnStats.minCount();
-            at/=(columnStats.max()-columnStats.min());
+            double at=getAdjustedRowCount()-columnStats.minCount();
+            /*
+             * we up-cast to a double here explicitly so that we avoid potential
+             * overflow issues with the subtraction of two values (e.g. if max()==Long.MAX_VALUE
+             * and min() ==Long.MIN_VALUE).
+             */
+            at/=((double)columnStats.max()-columnStats.min());
 
             this.a=at;
-            this.b=columnStats.nonNullCount()-a*columnStats.max();
         }
     }
 
@@ -148,7 +150,13 @@ public class UniformLongDistribution extends UniformDistribution<Long> implement
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private long rangeSelectivity(long start, long stop, boolean includeStart, boolean includeStop, boolean isMin) {
-        double baseEstimate = a*(stop-start);
+        /*
+         * distance is always positive, and we've checked before to ensure that stop>start; unfortunately,
+         * we could overflow with long subtraction here and still end up with a negative distance. We
+         * avoid this by upcasting to a double explicitly before proceeding.
+         */
+        double distance = (double)stop-start;
+        double baseEstimate = a*(distance);
 
         //adjust using Frequent Elements
         LongFrequentElements sfe = (LongFrequentElements)columnStats.topK();

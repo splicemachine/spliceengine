@@ -1,23 +1,199 @@
 package com.splicemachine.stats.estimate;
 
+import com.carrotsearch.hppc.DoubleArrayList;
 import com.splicemachine.stats.DoubleColumnStatistics;
-import com.splicemachine.stats.FloatColumnStatistics;
 import com.splicemachine.stats.cardinality.CardinalityEstimators;
 import com.splicemachine.stats.collector.ColumnStatsCollectors;
 import com.splicemachine.stats.collector.DoubleColumnStatsCollector;
-import com.splicemachine.stats.collector.FloatColumnStatsCollector;
 import com.splicemachine.stats.frequency.DoubleFrequencyCounter;
 import com.splicemachine.stats.frequency.DoubleFrequentElements;
 import com.splicemachine.stats.frequency.FrequencyCounters;
-
 import org.junit.Assert;
 import org.junit.Test;
+
+import java.util.Arrays;
 
 /**
  * @author Scott Fines
  *         Date: 6/25/15
  */
+@SuppressWarnings("ForLoopReplaceableByForEach")
 public class UniformDoubleDistributionTest{
+
+    @Test
+    public void testSelectivityRemainsBounded() throws Exception{
+        /*
+         * The idea here is to ensure that the selectivity estimates that we provide don't violate
+         * the invariants of falling within the range [0,totalCount()).
+         */
+        DoubleColumnStatsCollector col = ColumnStatsCollectors.doubleCollector(0,14,5);
+        double[] v=loadData(col);
+
+        DoubleDistribution distribution=(DoubleDistribution)col.build().getDistribution();
+        distribution.rangeSelectivity(Double.NEGATIVE_INFINITY,Double.POSITIVE_INFINITY,true,true);
+        for(int i=0;i<v.length;i++){
+            double mi = v[i];
+            long sel = distribution.selectivity(mi);
+
+            Assert.assertTrue("negative selectivity!",sel>=0);
+            Assert.assertTrue("overlarge selectivity!",sel<=v.length);
+            Assert.assertTrue("overlarge selectivity!",sel<=distribution.totalCount());
+
+            for(int j=i+1;j<v.length;j++){
+                double ma = v[j];
+
+                long rs=distribution.rangeSelectivity(mi,ma,true,true);
+                Assert.assertTrue("negative selectivity: mi=<"+mi+">, ma=<"+ma+">!rs="+rs,rs>=0);
+                Assert.assertTrue("overlarge selectivity: mi=<"+mi+">, ma=<"+ma+">!:rs="+rs,rs<=v.length);
+                Assert.assertTrue("overlarge selectivity!",rs<=distribution.totalCount());
+
+                rs=distribution.rangeSelectivity(mi,ma,true,false);
+                Assert.assertTrue("negative selectivity: mi=<"+mi+">, ma=<"+ma+">!rs="+rs,rs>=0);
+                Assert.assertTrue("overlarge selectivity: mi=<"+mi+">, ma=<"+ma+">!:rs="+rs,rs<=v.length);
+                Assert.assertTrue("overlarge selectivity!",rs<=distribution.totalCount());
+
+                rs=distribution.rangeSelectivity(mi,ma,false,true);
+                Assert.assertTrue("negative selectivity: mi=<"+mi+">, ma=<"+ma+">!rs="+rs,rs>=0);
+                Assert.assertTrue("overlarge selectivity: mi=<"+mi+">, ma=<"+ma+">!:rs="+rs,rs<=v.length);
+                Assert.assertTrue("overlarge selectivity!",rs<=distribution.totalCount());
+
+                rs=distribution.rangeSelectivity(mi,ma,false,false);
+                Assert.assertTrue("negative selectivity: mi=<"+mi+">, ma=<"+ma+">!rs="+rs,rs>=0);
+                Assert.assertTrue("overlarge selectivity: mi=<"+mi+">, ma=<"+ma+">!:rs="+rs,rs<=v.length);
+                Assert.assertTrue("overlarge selectivity!",rs<=distribution.totalCount());
+            }
+        }
+    }
+
+    @Test(expected=ArithmeticException.class)
+    public void testCannotGetSelectivityForNan() throws Exception{
+        DoubleColumnStatsCollector col = ColumnStatsCollectors.doubleCollector(0,14,5);
+        loadData(col);
+
+        DoubleDistribution distribution=(DoubleDistribution)col.build().getDistribution();
+        distribution.selectivity(Double.NaN);
+    }
+
+    @Test
+    public void testCannotGetRangeSelectivityForNanStop() throws Exception{
+        DoubleColumnStatsCollector col = ColumnStatsCollectors.doubleCollector(0,14,5);
+        double[] v=loadData(col);
+
+        DoubleDistribution distribution=(DoubleDistribution)col.build().getDistribution();
+        for(int i=0;i<v.length;i++){
+            double d = v[i];
+            try{
+                distribution.rangeSelectivity(d,Double.NaN,true,true);
+                Assert.fail("Was able to perform selectivity for ["+d+",Nan]!");
+            }catch(ArithmeticException ignored){}
+
+            try{
+                distribution.rangeSelectivity(d,Double.NaN,true,false);
+                Assert.fail("Was able to perform selectivity for ["+d+",Nan)!");
+            }catch(ArithmeticException ignored){}
+
+            try{
+                distribution.rangeSelectivity(d,Double.NaN,false,true);
+                Assert.fail("Was able to perform selectivity for ("+d+",Nan]!");
+            }catch(ArithmeticException ignored){}
+
+            try{
+                distribution.rangeSelectivity(d,Double.NaN,false,false);
+                Assert.fail("Was able to perform selectivity for ("+d+",Nan)!");
+            }catch(ArithmeticException ignored){}
+        }
+    }
+
+    @Test
+    public void testCannotGetRangeSelectivityForNanStart() throws Exception{
+        DoubleColumnStatsCollector col = ColumnStatsCollectors.doubleCollector(0,14,5);
+        double[] v=loadData(col);
+
+        DoubleDistribution distribution=(DoubleDistribution)col.build().getDistribution();
+        for(int i=0;i<v.length;i++){
+            double d = v[i];
+            try{
+                distribution.rangeSelectivity(Double.NaN,d,true,true);
+                Assert.fail("Was able to perform selectivity for [NaN,"+d+"]!");
+            }catch(ArithmeticException ignored){}
+
+            try{
+                distribution.rangeSelectivity(Double.NaN,d,true,false);
+                Assert.fail("Was able to perform selectivity for [NaN,"+d+")!");
+            }catch(ArithmeticException ignored){}
+
+            try{
+                distribution.rangeSelectivity(Double.NaN,d,false,true);
+                Assert.fail("Was able to perform selectivity for (NaN,"+d+"]!");
+            }catch(ArithmeticException ignored){}
+
+            try{
+                distribution.rangeSelectivity(Double.NaN,d,false,false);
+                Assert.fail("Was able to perform selectivity for (NaN,"+d+")!");
+            }catch(ArithmeticException ignored){}
+        }
+    }
+
+    @Test
+    public void testPositiveInfinitySelectivityCorrect(){
+        DoubleColumnStatsCollector col = ColumnStatsCollectors.doubleCollector(0,14,5);
+        double[] v=loadData(col);
+
+        DoubleDistribution distribution=(DoubleDistribution)col.build().getDistribution();
+        double mi = Double.POSITIVE_INFINITY;
+        long s = distribution.selectivity(mi);
+        Assert.assertEquals("Did not return 0 for nonexistent numbers!",0l,s);
+        double max = distribution.max();
+        for(int j=0;j<v.length;j++){
+            double ma = v[j];
+            long rs=distribution.rangeSelectivity(ma,mi,true,true);
+            long cs = distribution.rangeSelectivity(ma,max,true,true);
+            Assert.assertEquals("selectivity of ["+ma+",Inf] incorrect!",cs,rs);
+
+            rs=distribution.rangeSelectivity(ma,mi,true,false);
+            cs = distribution.rangeSelectivity(ma,max,true,true);
+            Assert.assertEquals("selectivity of ["+ma+",Inf) incorrect!",cs,rs);
+
+            rs=distribution.rangeSelectivity(ma,mi,false,true);
+            cs = distribution.rangeSelectivity(ma,max,false,true);
+            Assert.assertEquals("selectivity of ("+ma+",Inf] incorrect!",cs,rs);
+
+            rs=distribution.rangeSelectivity(ma,mi,false,false);
+            cs = distribution.rangeSelectivity(ma,max,false,true);
+            Assert.assertEquals("selectivity of ("+ma+",Inf) incorrect!",cs,rs);
+        }
+    }
+
+    @Test
+    public void testNegativeInfinitySelectivityCorrect(){
+        DoubleColumnStatsCollector col = ColumnStatsCollectors.doubleCollector(0,14,5);
+        double[] v=loadData(col);
+
+        DoubleDistribution distribution=(DoubleDistribution)col.build().getDistribution();
+        double mi = Double.NEGATIVE_INFINITY;
+        long s = distribution.selectivity(mi);
+        Assert.assertEquals("Did not return 0 for nonexistent numbers!",0l,s);
+        double min = distribution.min();
+        for(int j=0;j<v.length;j++){
+            double ma = v[j];
+            long rs=distribution.rangeSelectivity(mi,ma,true,true);
+            long cs = distribution.rangeSelectivity(min,ma,true,true);
+            Assert.assertEquals("selectivity of [-Inf,ma] incorrect!",cs,rs);
+
+            rs=distribution.rangeSelectivity(mi,ma,true,false);
+            cs = distribution.rangeSelectivity(min,ma,true,false);
+            Assert.assertEquals("selectivity of [-Inf,ma] incorrect!",cs,rs);
+
+            rs=distribution.rangeSelectivity(mi,ma,false,true);
+            cs = distribution.rangeSelectivity(min,ma,true,true);
+            Assert.assertEquals("selectivity of [-Inf,ma] incorrect!",cs,rs);
+
+            rs=distribution.rangeSelectivity(mi,ma,false,false);
+            cs = distribution.rangeSelectivity(min,ma,true,false);
+            Assert.assertEquals("selectivity of [-Inf,ma] incorrect!",cs,rs);
+        }
+    }
+
 
     @Test
     public void testGetPositiveCountForNegativeStartValues() throws Exception{
@@ -63,7 +239,7 @@ public class UniformDoubleDistributionTest{
         counter.update(104);
         counter.update(104);
         
-		DoubleFrequentElements fe = (DoubleFrequentElements)counter.frequentElements(4);
+		DoubleFrequentElements fe =counter.frequentElements(4);
 
 		DoubleColumnStatistics colStats = new DoubleColumnStatistics(0,
             CardinalityEstimators.hyperLogLogDouble(4),
@@ -77,10 +253,10 @@ public class UniformDoubleDistributionTest{
 
         UniformDoubleDistribution dist = new UniformDoubleDistribution(colStats);
 
-        Assert.assertEquals(2, dist.selectivity(101)); // return min of 2, not actual 1
+        Assert.assertEquals(2,dist.selectivity(101)); // return min of 2, not actual 1
         Assert.assertEquals(2, dist.selectivity(102));
         Assert.assertEquals(3, dist.selectivity(103));
-        Assert.assertEquals(4, dist.selectivity(104));
+        Assert.assertEquals(4,dist.selectivity(104));
         Assert.assertEquals(0, dist.selectivity(105));
     }
 	
@@ -140,5 +316,50 @@ public class UniformDoubleDistributionTest{
 
         Assert.assertEquals(0,dist.rangeSelectivity(scs.min(),(scs.min()+1),true,true));
         Assert.assertEquals(0,dist.rangeSelectivity(scs.min(),(scs.min()+1),false,true));
+    }
+
+    /* ****************************************************************************************************************/
+    /*private helper methods*/
+    private double[] loadData(DoubleColumnStatsCollector col){
+        DoubleArrayList values = new DoubleArrayList(1000);
+        for(int i=0;i<100;i++){
+            long il = 1l<<i;
+
+            double v = il;
+            col.update(v);
+            values.add(v);
+            v = -il;
+            col.update(v);
+            values.add(v);
+            v = 1d/il;
+            col.update(v);
+            values.add(v);
+            v = -1d/il;
+            col.update(v);
+            values.add(v);
+
+            v = 3d*il;
+            col.update(v);
+            values.add(v);
+            v = -3d*il;
+            col.update(v);
+            values.add(v);
+            v = 3d/il;
+            col.update(v);
+            values.add(v);
+            v = -3d/il;
+            col.update(v);
+            values.add(v);
+        }
+
+        values.add(-0d);
+        values.add(0d);
+        values.add(Double.MAX_VALUE);
+        values.add(-Double.MAX_VALUE);
+        values.add(Double.MIN_VALUE);
+        values.add(-Double.MIN_VALUE);
+        double[] doubles=values.toArray();
+        Arrays.sort(doubles);
+        return doubles;
     }
 }

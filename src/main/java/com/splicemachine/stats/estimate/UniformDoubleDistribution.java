@@ -30,7 +30,7 @@ public class UniformDoubleDistribution extends UniformDistribution<Double> imple
              * Create a linear interpolator to estimate to the Cumulative probability function of a uniform
              * distribution
              */
-            double at=columnStats.nonNullCount()-columnStats.minCount();
+            double at=getAdjustedRowCount()-columnStats.minCount();
             at/=(columnStats.max()-columnStats.min());
 
             this.a=at;
@@ -101,6 +101,8 @@ public class UniformDoubleDistribution extends UniformDistribution<Double> imple
 
     @Override
     public long selectivity(double value) {
+        if(Double.isNaN(value))
+            throw new ArithmeticException("Cannot get selectivity of NaN");
         DoubleColumnStatistics fcs = (DoubleColumnStatistics)columnStats;
         if(value<fcs.min()) return 0l;
         else if(value==fcs.min()) return fcs.minCount();
@@ -134,6 +136,9 @@ public class UniformDoubleDistribution extends UniformDistribution<Double> imple
 
     @Override
     public long rangeSelectivity(double start, double stop, boolean includeStart, boolean includeStop) {
+        if(Double.isNaN(start)||Double.isNaN(stop))
+            throw new ArithmeticException("Cannot compute selectivity of NaN");
+
         DoubleColumnStatistics fcs = (DoubleColumnStatistics)columnStats;
         double min = fcs.min();
         if(stop<min||(!includeStop && stop==min)) return 0l;

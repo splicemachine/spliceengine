@@ -1,5 +1,6 @@
 package com.splicemachine.stats.estimate;
 
+import com.carrotsearch.hppc.IntArrayList;
 import com.splicemachine.stats.IntColumnStatistics;
 import com.splicemachine.stats.cardinality.CardinalityEstimators;
 import com.splicemachine.stats.collector.ColumnStatsCollectors;
@@ -7,15 +8,77 @@ import com.splicemachine.stats.collector.IntColumnStatsCollector;
 import com.splicemachine.stats.frequency.FrequencyCounters;
 import com.splicemachine.stats.frequency.IntFrequencyCounter;
 import com.splicemachine.stats.frequency.IntFrequentElements;
-
 import org.junit.Assert;
 import org.junit.Test;
+
+import java.util.Arrays;
 
 /**
  * @author Scott Fines
  *         Date: 6/25/15
  */
 public class UniformIntDistributionTest{
+
+    @Test
+    public void testSelectivityRemainsBounded() throws Exception{
+        /*
+         * The idea here is to ensure that the selectivity estimates that we provide don't violate
+         * the invariants of falling within the range [0,totalCount()).
+         */
+        IntColumnStatsCollector col = ColumnStatsCollectors.intCollector(0,14,5);
+        IntArrayList values = new IntArrayList(100);
+        for(int i=0;i<35;i++){
+            int il = 1<<i;
+
+            int v = il;
+            col.update(v);
+            values.add(v);
+            v = -il;
+            col.update(v);
+            values.add(v);
+
+        }
+
+        values.add(0);
+        values.add(Integer.MAX_VALUE);
+        values.add(Integer.MIN_VALUE);
+
+        IntDistribution distribution=(IntDistribution)col.build().getDistribution();
+        int[] v = values.toArray();
+        Arrays.sort(v);
+        for(int i=0;i<v.length;i++){
+            int mi = v[i];
+            long sel = distribution.selectivity(mi);
+
+            Assert.assertTrue("negative selectivity!",sel>=0);
+            Assert.assertTrue("overlarge selectivity!",sel<=v.length);
+            Assert.assertTrue("overlarge selectivity!",sel<=distribution.totalCount());
+
+            for(int j=i+1;j<v.length;j++){
+                int ma = v[j];
+
+                long rs=distribution.rangeSelectivity(mi,ma,true,true);
+                Assert.assertTrue("negative selectivity: mi=<"+mi+">, ma=<"+ma+">!rs="+rs,rs>=0);
+                Assert.assertTrue("overlarge selectivity: mi=<"+mi+">, ma=<"+ma+">!:rs="+rs,rs<=v.length);
+                Assert.assertTrue("overlarge selectivity!",rs<=distribution.totalCount());
+
+                rs=distribution.rangeSelectivity(mi,ma,true,false);
+                Assert.assertTrue("negative selectivity: mi=<"+mi+">, ma=<"+ma+">!rs="+rs,rs>=0);
+                Assert.assertTrue("overlarge selectivity: mi=<"+mi+">, ma=<"+ma+">!:rs="+rs,rs<=v.length);
+                Assert.assertTrue("overlarge selectivity!",rs<=distribution.totalCount());
+
+                rs=distribution.rangeSelectivity(mi,ma,false,true);
+                Assert.assertTrue("negative selectivity: mi=<"+mi+">, ma=<"+ma+">!rs="+rs,rs>=0);
+                Assert.assertTrue("overlarge selectivity: mi=<"+mi+">, ma=<"+ma+">!:rs="+rs,rs<=v.length);
+                Assert.assertTrue("overlarge selectivity!",rs<=distribution.totalCount());
+
+                rs=distribution.rangeSelectivity(mi,ma,false,false);
+                Assert.assertTrue("negative selectivity: mi=<"+mi+">, ma=<"+ma+">!rs="+rs,rs>=0);
+                Assert.assertTrue("overlarge selectivity: mi=<"+mi+">, ma=<"+ma+">!:rs="+rs,rs<=v.length);
+                Assert.assertTrue("overlarge selectivity!",rs<=distribution.totalCount());
+            }
+        }
+    }
 
     @Test
     public void testGetPositiveCountForNegativeStartValues() throws Exception{

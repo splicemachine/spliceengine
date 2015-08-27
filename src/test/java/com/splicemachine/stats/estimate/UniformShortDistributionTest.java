@@ -1,18 +1,18 @@
 package com.splicemachine.stats.estimate;
 
+import com.carrotsearch.hppc.ShortArrayList;
 import com.splicemachine.stats.CombinedShortColumnStatistics;
-import com.splicemachine.stats.IntColumnStatistics;
 import com.splicemachine.stats.ShortColumnStatistics;
 import com.splicemachine.stats.cardinality.CardinalityEstimators;
 import com.splicemachine.stats.collector.ColumnStatsCollectors;
-import com.splicemachine.stats.collector.IntColumnStatsCollector;
 import com.splicemachine.stats.collector.ShortColumnStatsCollector;
 import com.splicemachine.stats.frequency.FrequencyCounters;
 import com.splicemachine.stats.frequency.ShortFrequencyCounter;
 import com.splicemachine.stats.frequency.ShortFrequentElements;
-
 import org.junit.Assert;
 import org.junit.Test;
+
+import java.util.Arrays;
 
 /**
  * @author Scott Fines
@@ -20,6 +20,65 @@ import org.junit.Test;
  */
 public class UniformShortDistributionTest{
 
+    @Test
+    public void testSelectivityRemainsBounded() throws Exception{
+        /*
+         * The idea here is to ensure that the selectivity estimates that we provide don't violate
+         * the invariants of falling within the range [0,totalCount()).
+         */
+        ShortColumnStatsCollector col = ColumnStatsCollectors.shortCollector(0,(short)14,(short)5);
+        ShortArrayList values = new ShortArrayList(100);
+        for(short i=1;i>0 &&i<Short.MAX_VALUE;i<<=1){
+
+            short v = i;
+            col.update(v);
+            values.add(v);
+            v = (short)-v;
+            col.update(v);
+            values.add(v);
+
+        }
+
+        values.add((short)0);
+        values.add(Short.MAX_VALUE);
+        values.add(Short.MIN_VALUE);
+
+        ShortDistribution distribution=(ShortDistribution)col.build().getDistribution();
+        short[] v = values.toArray();
+        Arrays.sort(v);
+        for(int i=0;i<v.length;i++){
+            short mi = v[i];
+            long sel = distribution.selectivity(mi);
+
+            Assert.assertTrue("negative selectivity!",sel>=0);
+            Assert.assertTrue("overlarge selectivity!",sel<=v.length);
+            Assert.assertTrue("overlarge selectivity!",sel<=distribution.totalCount());
+
+            for(int j=i+1;j<v.length;j++){
+                short ma = v[j];
+
+                long rs=distribution.rangeSelectivity(mi,ma,true,true);
+                Assert.assertTrue("negative selectivity: mi=<"+mi+">, ma=<"+ma+">!rs="+rs,rs>=0);
+                Assert.assertTrue("overlarge selectivity: mi=<"+mi+">, ma=<"+ma+">!:rs="+rs,rs<=v.length);
+                Assert.assertTrue("overlarge selectivity!",rs<=distribution.totalCount());
+
+                rs=distribution.rangeSelectivity(mi,ma,true,false);
+                Assert.assertTrue("negative selectivity: mi=<"+mi+">, ma=<"+ma+">!rs="+rs,rs>=0);
+                Assert.assertTrue("overlarge selectivity: mi=<"+mi+">, ma=<"+ma+">!:rs="+rs,rs<=v.length);
+                Assert.assertTrue("overlarge selectivity!",rs<=distribution.totalCount());
+
+                rs=distribution.rangeSelectivity(mi,ma,false,true);
+                Assert.assertTrue("negative selectivity: mi=<"+mi+">, ma=<"+ma+">!rs="+rs,rs>=0);
+                Assert.assertTrue("overlarge selectivity: mi=<"+mi+">, ma=<"+ma+">!:rs="+rs,rs<=v.length);
+                Assert.assertTrue("overlarge selectivity!",rs<=distribution.totalCount());
+
+                rs=distribution.rangeSelectivity(mi,ma,false,false);
+                Assert.assertTrue("negative selectivity: mi=<"+mi+">, ma=<"+ma+">!rs="+rs,rs>=0);
+                Assert.assertTrue("overlarge selectivity: mi=<"+mi+">, ma=<"+ma+">!:rs="+rs,rs<=v.length);
+                Assert.assertTrue("overlarge selectivity!",rs<=distribution.totalCount());
+            }
+        }
+    }
     @Test
     public void testGetPositiveCountForNegativeStartValues() throws Exception{
         ShortColumnStatsCollector col =ColumnStatsCollectors.shortCollector(0,(short)14,(short)5);

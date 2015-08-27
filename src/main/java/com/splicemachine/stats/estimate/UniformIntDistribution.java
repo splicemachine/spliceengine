@@ -13,7 +13,6 @@ import java.util.Set;
  */
 public class UniformIntDistribution extends UniformDistribution<Integer> implements IntDistribution {
     private final double a;
-    private final double b;
 
     public UniformIntDistribution(IntColumnStatistics columnStats) {
         super(columnStats, ComparableComparator.<Integer>newComparator());
@@ -34,19 +33,16 @@ public class UniformIntDistribution extends UniformDistribution<Integer> impleme
         if(columnStats.nonNullCount()==0){
             //the distribution is empty, so the CDF is the 0 function
             this.a = 0d;
-            this.b = 0d;
         }
         else if(columnStats.max()==columnStats.min()||columnStats.nonNullCount()==0){
             //the dist. contains only a single element, so the CDF is a constant
             this.a = 0;
-            this.b = columnStats.minCount();
         }else{
             //base case
             double at=columnStats.nonNullCount()-columnStats.minCount();
-            at/=(columnStats.max()-columnStats.min());
+            at/=((double)columnStats.max()-columnStats.min());
 
             this.a=at;
-            this.b=columnStats.nonNullCount()-a*columnStats.max();
         }
     }
 
@@ -178,8 +174,9 @@ public class UniformIntDistribution extends UniformDistribution<Integer> impleme
     /* ****************************************************************************************************************/
     /*private helper methods*/
     private long rangeSelectivity(int start, int stop, boolean includeStart, boolean includeStop,boolean isMin) {
-        double baseEstimate = a*stop+b;
-        baseEstimate-=a*start+b;
+        //upcast to double here to avoid potential overflow issues in the subtraction
+        double d = (double)stop-start;
+        double baseEstimate = a*d;
 
         /*
          * if includeStart is true, we want to include the minimum value. However, it's possible

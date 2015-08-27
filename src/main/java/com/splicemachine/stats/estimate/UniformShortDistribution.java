@@ -13,7 +13,6 @@ import java.util.Set;
  */
 public class UniformShortDistribution extends UniformDistribution<Short> implements ShortDistribution {
     private final double a;
-    private final double b;
 
     public UniformShortDistribution(ShortColumnStatistics columnStats) {
         super(columnStats, ComparableComparator.<Short>newComparator());
@@ -33,11 +32,10 @@ public class UniformShortDistribution extends UniformDistribution<Short> impleme
          */
         if(columnStats.nonNullCount()==0){
             //the distribution is empty, so the CDF is the 0 function
-            this.a = this.b = 0d;
+            this.a =0d;
         }else if(columnStats.max()==columnStats.min()){
             //the distribution contains a single element, so the CDF is the constant function
             this.a = 0d;
-            this.b = columnStats.minValue();
         }else{
             /*
              * The uniform CDF is a constant line from (min,minCount) to (max,nonNullCount)
@@ -46,7 +44,6 @@ public class UniformShortDistribution extends UniformDistribution<Short> impleme
             at/=(columnStats.max()-columnStats.min());
 
             this.a=at;
-            this.b=columnStats.nonNullCount()-a*columnStats.max();
         }
     }
 
