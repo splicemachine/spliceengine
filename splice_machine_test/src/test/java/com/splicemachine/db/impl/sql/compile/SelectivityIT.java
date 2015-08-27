@@ -291,11 +291,11 @@ public class SelectivityIT extends SpliceUnitTest {
     public void testLTSelectivity() throws Exception {
 
         // with stats
-        rowContainsQuery(3,"explain select * from ts_nulls where c1 < 3", "outputRows=3,", methodWatcher);
-        rowContainsQuery(3,"explain select * from ts_nonulls where c1 < 3", "outputRows=3,", methodWatcher);
-        rowContainsQuery(3,"explain select * from ts_notnulls where c1 < 3", "outputRows=3,", methodWatcher);
-        rowContainsQuery(3,"explain select * from ts_singlepk where c1 < 3","outputRows=3,",methodWatcher);
-        rowContainsQuery(3,"explain select * from ts_multiplepk where c1 < 3","outputRows=3,",methodWatcher);
+        rowContainsQuery(3,"explain select * from ts_nulls where c1 < 3", "outputRows=2,", methodWatcher);
+        rowContainsQuery(3,"explain select * from ts_nonulls where c1 < 3", "outputRows=2,", methodWatcher);
+        rowContainsQuery(3,"explain select * from ts_notnulls where c1 < 3", "outputRows=2,", methodWatcher);
+        rowContainsQuery(3,"explain select * from ts_singlepk where c1 < 3","outputRows=2,",methodWatcher);
+        rowContainsQuery(3,"explain select * from ts_multiplepk where c1 < 3","outputRows=2,",methodWatcher);
         // without stats
         rowContainsQuery(3,"explain select * from tns_nulls where c1 < 3","outputRows=18",methodWatcher);
         rowContainsQuery(3,"explain select * from tns_nonulls where c1 < 3","outputRows=18",methodWatcher);
@@ -308,15 +308,15 @@ public class SelectivityIT extends SpliceUnitTest {
     @Test
     public void testLTESelectivity() throws Exception {
         // with stats
-        rowContainsQuery(3,"explain select * from ts_nulls where c1 <= 3","outputRows=4,",methodWatcher);
-        rowContainsQuery(3,"explain select * from ts_nonulls where c1 <= 3","outputRows=4,",methodWatcher);
-        rowContainsQuery(3,"explain select * from ts_notnulls where c1 <= 3","outputRows=4,",methodWatcher);
-        rowContainsQuery(3,"explain select * from ts_singlepk where c1 <= 3","outputRows=4,",methodWatcher);
-        rowContainsQuery(3,"explain select * from ts_multiplepk where c1 <= 3","outputRows=4,",methodWatcher);
-        rowContainsQuery(3,"explain select * from ts_high_cardinality where c1 <= 500","outputRows=500,",methodWatcher);
-        rowContainsQuery(3,"explain select * from ts_high_cardinality where c1 <= 1000","outputRows=1000,",methodWatcher);
-        rowContainsQuery(3,"explain select * from ts_high_cardinality where c1 <= 2000","outputRows=2000,",methodWatcher);
-        rowContainsQuery(3,"explain select * from ts_high_cardinality where c1 <= 8000","outputRows=8000,",methodWatcher);
+        rowContainsQuery(3,"explain select * from ts_nulls where c1 <= 3","outputRows=3,",methodWatcher);
+        rowContainsQuery(3,"explain select * from ts_nonulls where c1 <= 3","outputRows=3,",methodWatcher);
+        rowContainsQuery(3,"explain select * from ts_notnulls where c1 <= 3","outputRows=3,",methodWatcher);
+        rowContainsQuery(3,"explain select * from ts_singlepk where c1 <= 3","outputRows=3,",methodWatcher);
+        rowContainsQuery(3,"explain select * from ts_multiplepk where c1 <= 3","outputRows=3,",methodWatcher);
+        rowContainsQuery(3,"explain select * from ts_high_cardinality where c1 <= 500","outputRows=501,",methodWatcher);
+        rowContainsQuery(3,"explain select * from ts_high_cardinality where c1 <= 1000","outputRows=1001,",methodWatcher);
+        rowContainsQuery(3,"explain select * from ts_high_cardinality where c1 <= 2000","outputRows=2001,",methodWatcher);
+        rowContainsQuery(3,"explain select * from ts_high_cardinality where c1 <= 8000","outputRows=8001,",methodWatcher);
 
         // without stats
 /*        firstRowContainsQuery("explain select * from tns_nulls where c1 <= 3","outputRows=10",methodWatcher);
@@ -340,7 +340,7 @@ public class SelectivityIT extends SpliceUnitTest {
 
     @Test
     public void testBetweenSelectivity() throws Exception {
-        rowContainsQuery(3,"explain select * from ts_high_cardinality where c1 <= 500 and c1 >= 0","outputRows=500,",methodWatcher);
+        rowContainsQuery(3,"explain select * from ts_high_cardinality where c1 <= 500 and c1 >= 0","outputRows=501,",methodWatcher);
         rowContainsQuery(3,"explain select * from ts_high_cardinality where c1 <= 1000 and c1 >= 500","outputRows=501,",methodWatcher);
         rowContainsQuery(3,"explain select * from ts_high_cardinality where c1 <= 2000 and c1 >= 500","outputRows=1501,",methodWatcher);
         rowContainsQuery(3,"explain select * from ts_high_cardinality where c1 <= 8000 and c1 >= 1000","outputRows=7001,",methodWatcher);
