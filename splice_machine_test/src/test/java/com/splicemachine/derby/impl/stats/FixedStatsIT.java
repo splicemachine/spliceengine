@@ -114,43 +114,6 @@ public class FixedStatsIT{
         }
     }
 
-    @Test
-    public void testQualifiedScanHasLowerCost() throws Exception{
-        try(PreparedStatement ps=conn.prepareStatement("insert into "+charDelete+" (c) values (?)")){
-            ps.setString(1,"1");
-            ps.execute();
-            ps.setString(1,"2");
-            ps.execute();
-            ps.setString(1,"3");
-            ps.execute();
-            ps.setString(1,"4");
-            ps.execute();
-            ps.setString(1,"5");
-            ps.execute();
-        }
-
-        conn.collectStats(schema.schemaName,charDelete.tableName);
-        ExplainRow unqualifiedRow;
-        ExplainRow qualifiedRow;
-        String baseSql = "explain select * from "+charDelete;
-        try(Statement s = conn.createStatement()){
-            try(ResultSet resultSet=s.executeQuery(baseSql)){
-                Assert.assertTrue("no row returned!",resultSet.next());
-                unqualifiedRow=ExplainRow.parse(resultSet.getString(1));
-            }
-            try(ResultSet resultSet=s.executeQuery(baseSql+" where c = '5         '")){
-                Assert.assertTrue("no row returned!",resultSet.next());
-                qualifiedRow=ExplainRow.parse(resultSet.getString(1));
-            }
-        }
-        ExplainRow.Cost qualifiedCost=qualifiedRow.cost();
-        ExplainRow.Cost unqualifiedCost=unqualifiedRow.cost();
-        Assert.assertTrue("Total costs is not lower!",qualifiedCost.overallCost()<unqualifiedCost.overallCost());
-        Assert.assertTrue("row count is not lower!!",qualifiedCost.rowCount()<unqualifiedCost.rowCount());
-        Assert.assertTrue("Transfer cost is not lower!!",qualifiedCost.remoteCost()<unqualifiedCost.remoteCost());
-        Assert.assertEquals("Local cost does not match!!", unqualifiedCost.localCost(), qualifiedCost.localCost(), 1e-10);
-    }
-
     private void assertExpectedCount(Statement s,int expectedCount) throws SQLException{
         try(ResultSet resultSet=s.executeQuery("select * from sys.systablestatistics "+
                 "where schemaname = '"+schema.schemaName+"' and tablename = '"+charDelete.tableName+"'")){
