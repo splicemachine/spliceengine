@@ -142,12 +142,14 @@ public class JsonTreeBuilderVisitor implements Visitor {
         private int id;
         private String label;
         private String group;
+        private String title;
 
         public Node(int id, QueryTreeNode queryTreeNode) {
             this.id = id;
             this.queryTreeNode = queryTreeNode;
             this.label = queryTreeNode.getClass().getSimpleName();
             this.group = this.label.toLowerCase();
+            this.title = queryTreeNode.toString();
         }
 
         public int getId() {
@@ -178,6 +180,13 @@ public class JsonTreeBuilderVisitor implements Visitor {
             return queryTreeNode;
         }
 
+        public String getTitle() {
+            return title;
+        }
+
+        public void setTitle(String title) {
+            this.title = title;
+        }
     }
 
     private static class GraphContainer {
