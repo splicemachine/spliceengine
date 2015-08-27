@@ -582,7 +582,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                     indexRow.setColumn(nextColPos,val);
                     keyTypes[nextColPos-1] = val.getTypeFormatId();
                     keyEncodingOrder[nextColPos-1] = colPos-1;
-                    fieldLengths[nextColPos] = type.getMaximumWidth();
+                    fieldLengths[nextColPos-1] = type.getMaximumWidth();
                     keyBasePositionMap[nextColPos-1] = colPos;
                     nextColPos++;
                     break;
