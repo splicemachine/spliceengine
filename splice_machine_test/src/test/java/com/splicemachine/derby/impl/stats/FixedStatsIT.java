@@ -23,6 +23,7 @@ import static org.junit.Assert.fail;
  * @author Scott Fines
  *         Date: 6/24/15
  */
+@Ignore("DB-3729")
 public class FixedStatsIT{
     private static final SpliceWatcher classWatcher = new SpliceWatcher();
     private static final SpliceSchemaWatcher schema = new SpliceSchemaWatcher(FixedStatsIT.class.getSimpleName().toUpperCase());
