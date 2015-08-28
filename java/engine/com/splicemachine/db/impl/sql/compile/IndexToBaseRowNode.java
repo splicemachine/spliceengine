@@ -21,6 +21,8 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
 import com.splicemachine.db.catalog.types.ReferencedColumnsDescriptorImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
@@ -30,7 +32,11 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
+import com.splicemachine.db.impl.ast.PredicateUtils;
+import com.splicemachine.db.impl.ast.RSUtils;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Vector;
 
 /**
@@ -371,6 +377,23 @@ public class IndexToBaseRowNode extends FromTable{
         if(source!=null){
             source=(FromBaseTable)source.accept(v, this);
         }
+    }
+    @Override
+    public void buildTree(Collection<QueryTreeNode> tree, int depth) throws StandardException{
+        setDepth(depth);
+        tree.add(this);
+        source.buildTree(tree,depth+1);
+    }
+
+    @Override
+    public String printExplainInformation(int order) throws StandardException {
+        StringBuilder sb = new StringBuilder();
+        sb.append(spaceToLevel())
+                .append("IndexLookup").append("(")
+                .append("n=").append(order)
+                .append(",").append(getFinalCostEstimate().prettyIndexLookupString());
+        sb.append(")");
+        return sb.toString();
     }
 
 }

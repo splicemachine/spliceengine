@@ -317,4 +317,21 @@ public class DistinctNode extends SingleChildResultSetNode
 		mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getSortResultSet",
                 ClassName.NoPutResultSet, 9);
 	}
+
+
+    @Override
+    public CostEstimate getFinalCostEstimate() throws StandardException {
+        return super.getFinalCostEstimate();
+    }
+
+    @Override
+    public String printExplainInformation(int order) throws StandardException {
+        StringBuilder sb = new StringBuilder();
+        sb = sb.append(spaceToLevel())
+                .append("Distinct").append("(")
+                .append("n=").append(order);
+        sb.append(",").append(getFinalCostEstimate().prettyProcessingString());
+        sb = sb.append(")");
+        return sb.toString();
+    }
 }

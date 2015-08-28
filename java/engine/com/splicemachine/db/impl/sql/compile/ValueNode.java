@@ -22,7 +22,6 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import java.util.List;
-import java.util.Vector;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -1023,8 +1022,23 @@ public abstract class ValueNode extends QueryTreeNode
 		}
 	}
 
-	public double selectivity(Optimizable optTable,ConglomerateDescriptor currentCd) throws StandardException {
-		return selectivity(optTable);
+	public double joinSelectivity(Optimizable optTable,
+                                  ConglomerateDescriptor currentCd,
+                                  long innerRowCount, long outerRowCount, SelectivityUtil.SelectivityJoinType selectivityJoinType) throws StandardException {
+//        assert outerRowCount != 0: "0 Rows Passed in";
+        double selectivity = 0.0d;
+        switch(selectivityJoinType) {
+            case OUTER:
+                selectivity = 1.0d/innerRowCount;
+                break;
+            case INNER:
+                selectivity = (1.0d-.1d)*(1.0d-.1d)/Math.min(innerRowCount,outerRowCount);
+                break;
+            case ANTIJOIN:
+                selectivity = 1.0d-((1.0d-.1d)*(1.0d-.1d)/Math.min(innerRowCount,outerRowCount));
+                break;
+        }
+        return selectivity;
 	}
 
 	/**
@@ -1459,5 +1473,9 @@ public abstract class ValueNode extends QueryTreeNode
 	}
 	
 	public abstract List getChildren();
-	
+
+    public String explainDisplay() {
+        return "restriction";
+    }
+
 }

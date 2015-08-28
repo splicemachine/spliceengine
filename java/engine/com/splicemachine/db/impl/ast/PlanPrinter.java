@@ -3,15 +3,14 @@ package com.splicemachine.db.impl.ast;
 import com.google.common.base.Function;
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.Iterators;
 import com.google.common.collect.Lists;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
-import com.splicemachine.db.iapi.sql.compile.JoinStrategy;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.compile.*;
 import org.apache.commons.lang3.tuple.Pair;
@@ -28,20 +27,17 @@ public class PlanPrinter extends AbstractSpliceVisitor {
 
     public static Logger LOG = Logger.getLogger(PlanPrinter.class);
     public static Logger PLAN_LOG = Logger.getLogger(PlanPrinter.class.getName() + ".JSONLog");
-
     public static final String spaces = "  ";
     private static final Logger COST_LOG=Logger.getLogger(PlanPrinter.class.getName()+".CostLog");
-
     private boolean explain = false;
-    public static ThreadLocal<Map<String,ExplainTree>> planMap = new ThreadLocal<Map<String,ExplainTree>>(){
+    public static ThreadLocal<Map<String,Collection<QueryTreeNode>>> planMap = new ThreadLocal<Map<String,Collection<QueryTreeNode>>>(){
         @Override
-        protected Map<String,ExplainTree> initialValue(){
+        protected Map<String,Collection<QueryTreeNode>> initialValue(){
             return new HashMap<>();
         }
     };
 
     // Only visit root node
-
     @Override
     public boolean isPostOrder() {
         return false;
@@ -60,18 +56,17 @@ public class PlanPrinter extends AbstractSpliceVisitor {
 
     @Override
     public Visitable defaultVisit(Visitable node) throws StandardException {
-
-        ResultSetNode rsn;
+        DMLStatementNode rsn;
         if ((explain || LOG.isInfoEnabled() || PLAN_LOG.isTraceEnabled()) &&
                 node instanceof DMLStatementNode &&
-                (rsn = ((DMLStatementNode) node).getResultSetNode()) != null) {
+                (((DMLStatementNode) node).getResultSetNode()) != null) {
+            rsn = (DMLStatementNode) node;
+            List<QueryTreeNode> orderedNodes = new ArrayList<QueryTreeNode>();
+            rsn.buildTree(orderedNodes,0);
+            Map<String, Collection<QueryTreeNode>> m=planMap.get();
+            m.put(query,orderedNodes);
 
-            ExplainTree tree = buildExplainTree(rsn);
-//            List<Pair<String,Integer>> plan = planToString(rsn);
-            Map<String, ExplainTree> m=planMap.get();
-            m.put(query, tree);
-
-            if (LOG.isInfoEnabled()){
+/*            if (LOG.isInfoEnabled()){
                 String treeToString = treeToString(rsn);
                 LOG.info(String.format("Plan nodes for query <<\n\t%s\n>>\n%s",
                         query, treeToString));
@@ -80,11 +75,11 @@ public class PlanPrinter extends AbstractSpliceVisitor {
                 Gson gson = new GsonBuilder().setPrettyPrinting().create();
                 PLAN_LOG.trace(gson.toJson(ImmutableMap.of("query", query, "plan", nodeInfo(rsn, 0))));
             }
+            */
         }
         explain = false;
         return node;
     }
-
 
 
     public static Map without(Map m, Object... keys){
@@ -145,105 +140,13 @@ public class PlanPrinter extends AbstractSpliceVisitor {
         return buf.toString();
     }
 
-    private ExplainTree buildExplainTree(ResultSetNode rsn) throws StandardException{
-        ExplainTree.Builder builder = new ExplainTree.Builder();
-        pushExplain(rsn,builder);
-        return builder.build();
-    }
-
-    private void pushExplain(ResultSetNode rsn,ExplainTree.Builder builder) throws StandardException{
-        CostEstimate ce = rsn.getFinalCostEstimate().getBase();
-        if(COST_LOG.isTraceEnabled()){
-            COST_LOG.trace("RowOrdering for node "+ rsn.getClass().getSimpleName()+" is "+ ce.getRowOrdering());
-        }
-        int rsNum = rsn.getResultSetNumber();
-
-        if(rsn instanceof FromBaseTable){
-            FromBaseTable fbt=(FromBaseTable)rsn;
-            if(COST_LOG.isTraceEnabled()){
-                COST_LOG.trace(fbt.getTableName()+":"+fbt.getTableNumber());
-            }
-            TableDescriptor tableDescriptor=fbt.getTableDescriptor();
-            String tableName = String.format("%s(%s)",tableDescriptor.getName(),tableDescriptor.getHeapConglomerateId());
-
-            ConglomerateDescriptor cd = fbt.getTrulyTheBestAccessPath().getConglomerateDescriptor();
-            String indexName = null;
-            if (cd.isIndex()) {
-                indexName = String.format("%s(%s)", cd.getConglomerateName(), cd.getConglomerateNumber());
-            }
-            List<String> qualifiers =  Lists.transform(preds(rsn), PredicateUtils.predToString);
-            builder.addBaseTable(rsNum,ce,tableName,indexName,qualifiers,fbt.isMultiProbing());
-        }else if(rsn instanceof RowResultSetNode){
-            builder.pushValuesNode(rsNum,ce);
-        } else if(rsn instanceof ProjectRestrictNode){
-            pushExplain(((SingleChildResultSetNode)rsn).getChildResult(),builder);
-            if(!((ProjectRestrictNode)rsn).nopProjectRestrict()){
-                List<String> predicates=Lists.transform(preds(rsn),PredicateUtils.predToString);
-                builder.pushProjection(rsNum,ce,predicates);
-            }
-        }else if(rsn instanceof IndexToBaseRowNode){
-            pushExplain(((IndexToBaseRowNode)rsn).getSource(),builder);
-            long heapTable=((IndexToBaseRowNode)rsn).getBaseConglomerateDescriptor().getConglomerateNumber();
-            builder.pushIndexFetch(rsNum,ce,heapTable);
-        }else if(rsn instanceof ScrollInsensitiveResultSetNode){
-            pushExplain(((ScrollInsensitiveResultSetNode)rsn).getChildResult(),builder);
-        }else if(rsn instanceof JoinNode){
-            JoinNode j  = (JoinNode)rsn;
-
-            int joinType=JoinNode.INNERJOIN;
-            if(j instanceof HalfOuterJoinNode){
-                if(((HalfOuterJoinNode)j).isRightOuterJoin())
-                    joinType = JoinNode.RIGHTOUTERJOIN;
-                else joinType = JoinNode.LEFTOUTERJOIN;
-            }
-
-            JoinStrategy joinStrategy = RSUtils.ap(j).getJoinStrategy();
-            List<String> joinPreds =  Lists.transform(PredicateUtils.PLtoList(j.joinPredicates),PredicateUtils.predToString);
-            ExplainTree.Builder rightBuilder = new ExplainTree.Builder();
-            pushExplain(j.getRightResultSet(),rightBuilder);
-            //push the left side directly
-            pushExplain(j.getLeftResultSet(),builder);
-
-            builder.pushJoin(rsNum,ce,joinStrategy,joinPreds, joinType,rightBuilder);
-        } else if(rsn instanceof SingleChildResultSetNode){
-
-            pushExplain(((SingleChildResultSetNode)rsn).getChildResult(),builder);
-            String nodeName=rsn.getClass().getSimpleName().replace("Node","");
-            builder.pushNode(nodeName,rsNum,ce);
-        } else if(rsn instanceof TableOperatorNode){
-            //we have two tables to work with
-            ExplainTree.Builder rightBuilder = new ExplainTree.Builder();
-            pushExplain(((TableOperatorNode)rsn).getRightResultSet(),rightBuilder);
-            pushExplain(((TableOperatorNode)rsn).getLeftResultSet(),builder);
-            builder.pushTableOperator(rsn.getClass().getSimpleName().replace("Node",""),rsNum,ce,rightBuilder);
-        } else if(rsn instanceof FromVTI){
-            FromVTI vti = (FromVTI)rsn;
-            String tableName = vti.getName();
-            builder.addBaseTable(rsNum,ce,"VTI:"+tableName,null,null,false);
-        }
-
-        //collect subqueries
-        List<SubqueryNode> subs = RSUtils.collectExpressionNodes(rsn,SubqueryNode.class);
-        if(subs.size()>0){
-            ExplainTree.Builder subqueryBuilder = new ExplainTree.Builder();
-            for(SubqueryNode subqueryNode : subs){
-                pushExplain(subqueryNode.getResultSet(),subqueryBuilder);
-                boolean exprSub = subqueryNode.getSubqueryType()==SubqueryNode.EXPRESSION_SUBQUERY;
-                boolean corrSub = subqueryNode.hasCorrelatedCRs();
-                boolean invariant = subqueryNode.isInvariant();
-                builder.pushSubquery(subqueryNode.getResultSet().getResultSetNumber(),exprSub,corrSub,invariant,subqueryBuilder);
-                subqueryBuilder.reset(); //reset for the next subquery in the list
-            }
-        }
-    }
-
     public static Map<String,Object> nodeInfo(final ResultSetNode rsn, final int level) throws StandardException {
         Map<String,Object> info = new HashMap<>();
         CostEstimate co = rsn.getFinalCostEstimate().getBase();
         info.put("class", JoinInfo.className.apply(rsn));
         info.put("n", rsn.getResultSetNumber());
         info.put("level", level);
-        info.put("cost", co.prettyString());
+        info.put("cost", co.prettyProcessingString());
         if (Level.TRACE.equals(LOG.getLevel())) {
 //        if(LOG.isTraceEnabled()){
           // FIXME: FIND OUT WHY LOG.isTraceEnabled() always returns false
@@ -440,6 +343,45 @@ public class PlanPrinter extends AbstractSpliceVisitor {
             String subqueryInfo = subqueryToString(subquery,subqueryNodeInfo);
             planMap.add(Pair.of(subqueryInfo,level));
         }
+    }
+
+
+    public class PlanToString implements Function<QueryTreeNode,String> {
+        int size;
+        int counter = 0;
+        public PlanToString(int size) {
+            this.size = size;
+        }
+
+        @Override
+        public String apply(QueryTreeNode o) {
+            try {
+                return o.printExplainInformation(size - counter);
+            } catch (StandardException se) {
+                throw new RuntimeException(se);
+            } finally {
+                counter++;
+            }
+        }
+    }
+
+
+    public static Iterator<String> planToString(final Collection<QueryTreeNode> orderedNodes) throws StandardException {
+
+
+        return Iterators.transform(orderedNodes.iterator(),new Function<QueryTreeNode,String>() {
+            int i = 0;
+            @Override
+            public String apply(QueryTreeNode queryTreeNode) {
+                try {
+                    return queryTreeNode.printExplainInformation(orderedNodes.size() - i);
+                } catch (StandardException se) {
+                    throw new RuntimeException(se);
+                } finally {
+                    i++;
+                }
+            }
+        });
     }
 
 }

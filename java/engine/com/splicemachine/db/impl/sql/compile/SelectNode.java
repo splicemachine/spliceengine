@@ -54,6 +54,7 @@ public class SelectNode extends ResultSetNode{
      */
     FromList fromList;
     FromTable targetTable;
+    boolean isFlattenedInSubquery;
 
     /* Aggregate Vectors for select and where clauses */
     List<AggregateNode> selectAggregates;
@@ -150,6 +151,7 @@ public class SelectNode extends ResultSetNode{
         this.originalWhereClause=(ValueNode)whereClause;
         this.groupByList=(GroupByList)groupByList;
         this.havingClause=(ValueNode)havingClause;
+        this.isFlattenedInSubquery = false;
 
         // This initially represents an explicit <window definition list>, as
         // opposed to <in-line window specifications>, see 2003, 6.10 and 6.11.
@@ -1139,14 +1141,10 @@ public class SelectNode extends ResultSetNode{
                     nestingLevel,
                     getContextManager());
             gbn.considerPostOptimizeOptimizations(originalWhereClause!=null);
+            // JL-TODO Interesting
             CostEstimate ce = gbn.estimateCost(null,null,optimizer.getOptimizedCost(),optimizer,null);
             gbn.assignCostEstimate(ce);
-//            gbn.assignCostEstimate(optimizer.getOptimizedCost());
-
-            //groupByList = null;
             prnRSN=gbn.getParent();
-
-            // Remember whether or not we can eliminate the sort.
             eliminateSort=gbn.getIsInSortedOrder();
         }
 
@@ -1173,6 +1171,7 @@ public class SelectNode extends ResultSetNode{
                                 getContextManager());
 
                 prnRSN=wrsn.getParent();
+                // TODO-JL NOT OPTIMAL
                 wrsn.assignCostEstimate(optimizer.getOptimizedCost());
             }
         }
@@ -1235,8 +1234,8 @@ public class SelectNode extends ResultSetNode{
                         inSortedOrder,
                         null,
                         getContextManager());
+                // TODO NOT-OPTIMAL
                 prnRSN.costEstimate=costEstimate.cloneMe();
-
                 // Remember whether or not we can eliminate the sort.
                 eliminateSort=eliminateSort || inSortedOrder;
             }
@@ -1256,7 +1255,8 @@ public class SelectNode extends ResultSetNode{
                         orderByList,
                         null,
                         getContextManager());
-                prnRSN.costEstimate=optimizer.getOptimizedCost().cloneMe();
+                // TODO JL NOT OPTIMAL
+//                prnRSN.costEstimate=optimizer.getOptimizedCost().cloneMe();
             }
 
             // There may be columns added to the select projection list
@@ -1360,8 +1360,8 @@ public class SelectNode extends ResultSetNode{
         }
 
 		/* Set the cost of this node in the generated node */
-        if(prnRSN.costEstimate==null)
-            prnRSN.costEstimate=costEstimate.cloneMe();
+//        if(prnRSN.costEstimate==null)
+//            prnRSN.costEstimate=costEstimate.cloneMe();
 
         return prnRSN;
     }

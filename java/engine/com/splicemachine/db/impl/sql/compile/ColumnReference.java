@@ -23,6 +23,8 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.NodeFactory;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -93,7 +95,7 @@ public class ColumnReference extends ValueNode {
 	private boolean		replacesAggregate;
 	private boolean		replacesWindowFunctionCall;
 
-	private int			nestingLevel = -1;
+	int			nestingLevel = -1;
 	private int			sourceLevel = -1;
 
 	/* Whether or not this column reference been scoped for the
@@ -1296,6 +1298,63 @@ public class ColumnReference extends ValueNode {
         }
         return origSource.getExpression().getSourceResultColumn();
 	}
-    
-	
+
+
+    /**
+     *
+     * Returns the cardinality of the column reference from statistics if available.  If not, it returns 0.
+     *
+     * @return
+     * @throws StandardException
+     */
+    public long cardinality() throws StandardException {
+            if (source.getTableColumnDescriptor() ==null) // Temporary JL
+                return 0;
+            ConglomerateDescriptor cd = getSource().getTableColumnDescriptor().getTableDescriptor().getConglomerateDescriptorList().get(0);
+            int leftPosition = getSource().getColumnPosition();
+            return getCompilerContext().getStoreCostController(cd).cardinality(leftPosition);
+    }
+
+    /**
+     * Returns the cardinality of the column reference from statistics and if none available it will return the number
+     * of rows passed in.
+     *
+     * @param numberOfRows
+     * @return
+     * @throws StandardException
+     */
+    public long nonZeroCardinality(long numberOfRows) throws StandardException {
+        long cardinality = cardinality();
+        return cardinality==0?numberOfRows:cardinality;
+    }
+
+    /**
+     *
+     * Null Selectivity calculation from statistics.  It does check the type on the column and if it is not nullable it
+     * will automatically return 0.0.
+     *
+     * @return
+     * @throws StandardException
+     */
+    public double nullSelectivity() throws StandardException {
+        // Check for not null in declaration
+        if (!getSource().getType().isNullable())
+            return 0.0;
+        ConglomerateDescriptor cd = getSource().getTableColumnDescriptor().getTableDescriptor().getConglomerateDescriptorList().get(0);
+        int leftPosition = getSource().getColumnPosition();
+        return getCompilerContext().getStoreCostController(cd).nullSelectivity(leftPosition);
+    }
+
+    /**
+     *
+     * Get the row count estimate from the statistics for this column reference.
+     *
+     * @return
+     * @throws StandardException
+     */
+    public double rowCountEstimate() throws StandardException {
+        ConglomerateDescriptor cd = getSource().getTableColumnDescriptor().getTableDescriptor().getConglomerateDescriptorList().get(0);
+        return getCompilerContext().getStoreCostController(cd).rowCount();
+    }
+
 }

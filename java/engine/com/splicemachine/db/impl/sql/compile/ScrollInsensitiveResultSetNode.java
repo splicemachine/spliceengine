@@ -99,4 +99,16 @@ public class ScrollInsensitiveResultSetNode  extends SingleChildResultSetNode
 		mb.callMethod(VMOpcode.INVOKEINTERFACE, (String) null, "getScrollInsensitiveResultSet",
 						ClassName.NoPutResultSet, 7);
 	}
+
+    @Override
+    public String printExplainInformation(int order) throws StandardException {
+        StringBuilder sb = new StringBuilder();
+        sb = sb.append(spaceToLevel())
+                .append("ScrollInsensitive").append("(")
+                .append("n=").append(order);
+            sb.append(",").append(getFinalCostEstimate().prettyScrollInsensitiveString());
+        sb = sb.append(")");
+        return sb.toString();
+    }
+
 }

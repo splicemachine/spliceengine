@@ -29,6 +29,8 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Vector;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
@@ -49,6 +51,8 @@ import com.splicemachine.db.iapi.sql.compile.RowOrdering;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.impl.ast.PredicateUtils;
+import com.splicemachine.db.impl.ast.RSUtils;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
 import com.splicemachine.db.impl.sql.execute.WindowFunctionInfo;
 import com.splicemachine.db.impl.sql.execute.WindowFunctionInfoList;
@@ -1273,6 +1277,17 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         public static Pair newPair(ResultColumn rc,ResultColumnList childRcl){
             return new Pair(rc,childRcl);
         }
+    }
+
+    @Override
+    public String printExplainInformation(int order) throws StandardException {
+        StringBuilder sb = new StringBuilder();
+        sb.append(spaceToLevel())
+                .append("WindowFunction").append("(")
+                .append("n=").append(order)
+                .append(",").append(getFinalCostEstimate().prettyProjectionString());
+        sb.append(")");
+        return sb.toString();
     }
 
 }

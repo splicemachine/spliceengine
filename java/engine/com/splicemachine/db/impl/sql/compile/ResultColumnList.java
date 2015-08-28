@@ -34,6 +34,7 @@ import com.splicemachine.db.iapi.services.loader.ClassFactory;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.compile.NodeFactory;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.*;
@@ -3715,4 +3716,26 @@ public class ResultColumnList extends QueryTreeNodeVector<ResultColumn>{
             this.cloneMap=cloneMap;
         }
     }
+
+    /**
+     *
+     * Compute Distinct Cardinality from statistics using the non-zero cardinality.
+     *
+     * @param costEstimate
+     * @throws StandardException
+     */
+    public void computeDistinctCardinality(CostEstimate costEstimate) throws StandardException {
+        assert costEstimate != null:"Null Cost Estimate passed in";
+        double cardinality = 1.0d;
+        for (ResultColumn column: this) {
+            cardinality*=column.nonZeroCardinality((long)costEstimate.rowCount());
+        }
+        if (cardinality > costEstimate.rowCount()) // Cannot create more rows than you have...
+            return;
+        costEstimate.setRowCount((double) cardinality);
+        costEstimate.setSingleScanRowCount((double) cardinality);
+        // TODO JL
+    }
+
+
 }

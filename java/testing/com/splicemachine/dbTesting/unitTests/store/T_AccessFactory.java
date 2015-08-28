@@ -1940,69 +1940,10 @@ public class T_AccessFactory extends T_Generic
     TransactionController tc)
 		throws StandardException, T_Fail
 	{
-        int key_value;
 
-		REPORT("(sortCost) starting");
+        REPORT("(storeCost) starting");
 
-		// Create a heap conglomerate.
-        T_AccessRow template_row = new T_AccessRow(2);
-		long conglomid = 
-            tc.createConglomerate(
-                "heap",       // create a heap conglomerate
-                template_row.getRowArray(), // 1 column template.
-				null, 	// column sort order not required for heap
-                null, 	// default collation
-                null,         // default properties
-                TransactionController.IS_DEFAULT);       // not temporary
-		// Open the conglomerate.
-		ConglomerateController cc =	
-            tc.openConglomerate(
-                conglomid, 
-                false,
-                TransactionController.OPENMODE_FORUPDATE, 
-                TransactionController.MODE_RECORD,
-                TransactionController.ISOLATION_SERIALIZABLE);
-
-		// Create a 2 column row.
-		T_AccessRow r1 = new T_AccessRow(2);
-		SQLInteger c1 = new SQLInteger(1);
-		SQLInteger c2 = new SQLInteger(100);
-		r1.setCol(0, c1);
-		r1.setCol(1, c2);
-
-		// Get a location template
-		RowLocation rowloc1 = cc.newRowLocationTemplate();
-
-		// Insert the row and remember its location.
-		cc.insertAndFetchLocation(r1.getRowArray(), rowloc1);
-
-        cc.close();
-
-        tc.commit();
-
-        // flush the cache to get the row count updated.
-        flush_cache();
-
-        // Test 1 - Just call for various types of sorts.  Not sure how 
-        // to test the validity.
-		SortCostController scc = tc.openSortCostController(null);
-
-        double estimated_cost = 
-            scc.getSortCost(
-                template_row.getRowArray(),
-                null,
-                false,
-                10000,
-                100,
-                100);
-
-        if (estimated_cost <= 0)
-        {
-            throw T_Fail.testFailMsg(
-                "(storeCost) estimated sort cost :" + estimated_cost);
-        }
-
-		REPORT("(sortCost) finishing");
+        REPORT("(sortCost) finishing");
 
         return true;
 	}
@@ -2138,64 +2079,6 @@ public class T_AccessFactory extends T_Generic
         //     should figure out some way to determine reasonable number is
         //     returned.
         StoreCostResult cost_result = new T_StoreCostResult();
-
-        scc.getScanCost(
-            -1,             // row count
-            false,          // forUpdate
-			null,  // validColumns
-            new T_AccessRow(2).getRowArray(),  // template
-            null,  			// probe position
-            null,           // start position - first row in conglomerate
-            0,              // unused if start position is null.
-            null,           // stop position - last row in conglomerate
-            0,              // unused if stop position is null.
-            cost_result);   // cost result.
-
-        REPORT("fetch scan cost (full row) of row loc = " + cost_result);
-
-        scc.getScanCost(
-            -1,             // row count
-            false,          // forUpdate
-            new BitSet(),  // validColumns
-            new T_AccessRow(2).getRowArray(),  // template
-            null,           // probe position
-            null,           // start position - first row in conglomerate
-            0,              // unused if start position is null.
-            null,           // stop position - last row in conglomerate
-            0,              // unused if stop position is null.
-            cost_result);   // cost result.
-
-        REPORT("fetch scan cost (no cols) of row loc = " + cost_result);
-
-        scc.getScanCost(
-            -1,             // row count
-            false,          // forUpdate
-            new BitSet(1),  // validColumns
-            new T_AccessRow(2).getRowArray(),  // template
-            null,           // probe position
-			null,           // start position - first row in conglomerate
-            0,              // unused if start position is null.
-            null,           // stop position - last row in conglomerate
-            0,              // unused if stop position is null.
-            cost_result);   // cost result.
-
-        REPORT("fetch scan cost (no cols) of row loc = " + cost_result);
-
-        bit_set = new BitSet(2);
-        bit_set.set(1);
-        scc.getScanCost(
-            -1,             // row count
-            false,          // forUpdate
-            bit_set,        // validColumns
-            new T_AccessRow(2).getRowArray(),  // template
-            null,           // probe position
-			null,           // start position - first row in conglomerate
-            0,              // unused if start position is null.
-            null,           // stop position - last row in conglomerate
-            0,              // unused if stop position is null.
-            cost_result);   // cost result.
-
-        REPORT("fetch scan cost (1 cols) of row loc = " + cost_result);
 
         // make sure you can get a row location.
 		rowloc1 = scc.newRowLocationTemplate();

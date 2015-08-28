@@ -6,6 +6,7 @@ import com.splicemachine.db.iapi.services.classfile.VMOpcode;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
+import java.util.Collection;
 
 /**
  * BatchOnceNode replaces a ProjectRestrictNode below an update that would otherwise invoke a Subquery for each row from
@@ -96,6 +97,25 @@ public class BatchOnceNode extends SingleChildResultSetNode {
     public void acceptChildren(Visitor v) throws StandardException {
         super.acceptChildren(v);
         subqueryNode = (SubqueryNode) subqueryNode.accept(v);
+    }
+
+
+    @Override
+    public String printExplainInformation(int order) throws StandardException {
+        StringBuilder sb = new StringBuilder();
+        sb.append(spaceToLevel())
+                .append("BatchOnce").append("(")
+                .append("n=").append(order)
+                .append(",").append(getFinalCostEstimate().prettyProcessingString());
+        sb.append(")");
+        return sb.toString();
+    }
+    @Override
+    public void buildTree(Collection<QueryTreeNode> tree, int depth) throws StandardException {
+        setDepth(depth);
+        tree.add(this);
+        subqueryNode.buildTree(tree,depth+1);
+        childResult.buildTree(tree,depth+1);
     }
 
 }

@@ -919,4 +919,10 @@ public final class LikeEscapeOperatorNode extends TernaryOperatorNode {
 
         return likeOpt;
     }
+
+    @Override
+    public String explainDisplay() {
+        return "like";
+    }
+
 }

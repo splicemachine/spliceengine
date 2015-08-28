@@ -21,6 +21,7 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.google.common.base.Strings;
 import com.splicemachine.db.catalog.types.DefaultInfoImpl;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
@@ -39,6 +40,7 @@ import com.splicemachine.db.iapi.store.access.TransactionController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Set;
 import java.util.Vector;
@@ -1424,7 +1426,7 @@ public abstract class ResultSetNode extends QueryTreeNode{
     /**
      * Mark the underlying scan as a distinct scan.
      */
-    void markForDistinctScan(){
+    void markForDistinctScan() throws StandardException {
         if(SanityManager.DEBUG){
             SanityManager.THROWASSERT(
                     "markForDistinctScan() not expected to be called for "+
@@ -1685,4 +1687,7 @@ public abstract class ResultSetNode extends QueryTreeNode{
 
         return newResultColumn;
     }
+
+
+
 }

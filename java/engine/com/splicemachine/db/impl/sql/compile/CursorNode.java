@@ -846,4 +846,23 @@ public class CursorNode extends DMLStatementNode{
 
         return names;
     }
+
+    @Override
+    public String printExplainInformation(int order) throws StandardException {
+        StringBuilder sb = new StringBuilder();
+        sb = sb.append(spaceToLevel())
+                .append("Cursor").append("(")
+                .append("n=").append(order);
+                if (name != null) {
+                    sb.append(",name=").append(name);
+                }
+                if (this.resultSet!=null) {
+                    sb.append(",rows=").append(this.resultSet.getFinalCostEstimate().getEstimatedRowCount());
+                }
+                sb.append(",updateMode=").append(updateModeString(updateMode))
+                .append(")");
+        return sb.toString();
+    }
+
+
 }

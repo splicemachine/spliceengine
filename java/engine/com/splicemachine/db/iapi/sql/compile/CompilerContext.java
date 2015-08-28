@@ -213,6 +213,14 @@ public interface CompilerContext extends Context
 
 	int getNumTables();
 
+    /**
+     * Utility method for Subquery Flattening.
+     * @see com.splicemachine.db.impl.sql.compile.AggregateSubqueryFlatteningVisitor#visit(Visitable)
+     *
+     * @param num
+     */
+	void setNumTables(int num);
+
 	/**
 	 * Get the current next subquery number from this CompilerContext.
 	 *
@@ -230,6 +238,8 @@ public interface CompilerContext extends Context
 	 */
 
 	int getNumSubquerys();
+
+	void setNumSubqueries(int num);
 
 	/**
 	 * Get the current next ResultSet number from this CompilerContext.

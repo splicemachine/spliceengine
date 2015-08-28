@@ -974,11 +974,7 @@ public class B2I extends BTree
     public StoreCostController openStoreCost(ConglomerateDescriptor cd,
                                              TransactionManager  xact_manager,
                                              Transaction         rawtran) throws StandardException {
-        B2ICostController b2icost = new B2ICostController();
-
-        b2icost.init(xact_manager, this, rawtran);
-
-        return(b2icost);
+        throw new RuntimeException("B2I open store cost");
     }
 
 	/**

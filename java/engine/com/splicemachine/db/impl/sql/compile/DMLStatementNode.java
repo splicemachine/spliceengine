@@ -30,6 +30,7 @@ import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 
+import java.util.Collection;
 import java.util.Vector;
 
 /**
@@ -142,8 +143,11 @@ public abstract class DMLStatementNode extends StatementNode{
      */
     @Override
     public void optimizeStatement() throws StandardException{
+        InSubqueryUnroller inSubqueryUnroller = new InSubqueryUnroller();
+        resultSet.accept(inSubqueryUnroller);
+        AggregateSubqueryFlatteningVisitor subqueryAggregateFlatteningVisitor = new AggregateSubqueryFlatteningVisitor();
+        resultSet.accept(subqueryAggregateFlatteningVisitor);
         resultSet=resultSet.preprocess(getCompilerContext().getNumTables(),null,null);
-
         // Evaluate expressions with constant operands here to simplify the
         // query tree and to reduce the runtime cost. Do it before optimize()
         // since the simpler tree may have more accurate information for
@@ -154,8 +158,8 @@ public abstract class DMLStatementNode extends StatementNode{
         accept(new ConstantExpressionVisitor());
 
         resultSet=resultSet.optimize(getDataDictionary(),null,1.0d);
-
         resultSet=resultSet.modifyAccessPaths();
+
     }
 
     /**
@@ -374,5 +378,13 @@ public abstract class DMLStatementNode extends StatementNode{
      */
     int getPrivType(){
         return Authorizer.SELECT_PRIV;
+    }
+
+    @Override
+    public void buildTree(Collection<QueryTreeNode> tree, int depth) throws StandardException {
+        setDepth(depth);
+        tree.add(this);
+        if(resultSet!=null)
+            resultSet.buildTree(tree,depth+1);
     }
 }

@@ -34,6 +34,7 @@ import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
@@ -1927,5 +1928,32 @@ public class ResultColumn extends ValueNode
     public void setCastToType(DataTypeDescriptor type) {
         castToType = type;
     }
+
+    /**
+     *
+     * Utilizes statistics cardinality if available, if not it returns 0.
+     *
+     * @return
+     * @throws StandardException
+     */
+    public long cardinality() throws StandardException {
+        if (this.getTableColumnDescriptor() ==null) // Temporary JL
+            return 0;
+        ConglomerateDescriptor cd = this.getTableColumnDescriptor().getTableDescriptor().getConglomerateDescriptorList().get(0);
+        int leftPosition = getColumnPosition();
+        return getCompilerContext().getStoreCostController(cd).cardinality(leftPosition);
+    }
+    /**
+     *
+     * Utilizes statistics cardinality if available, if not it returns the number of rows passed in.
+     *
+     * @return
+     * @throws StandardException
+     */
+    public long nonZeroCardinality(long numberOfRows) throws StandardException {
+        long cardinality = cardinality();
+        return cardinality==0?numberOfRows:cardinality;
+    }
+
 }
 

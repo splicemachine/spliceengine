@@ -5,7 +5,6 @@ import com.splicemachine.db.iapi.sql.compile.CostEstimate;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
-
 import java.util.*;
 
 /**
@@ -14,464 +13,375 @@ import java.util.*;
  * In practice, the act of estimating the cost of a table scan is really quite convoluted, as it depends
  * a great deal on the type and nature of the predicates which are passed in. To resolve this complexity, and
  * to support flexible behaviors, we use this builder pattern instead of direct coding.
+ *
+ *
+ *
  * @author Scott Fines
  *         Date: 5/15/15
  */
 public class ScanCostFunction{
     private final Optimizable baseTable;
     private final CostEstimate scanCost;
-    private final StoreCostController storeCost;
-
-    private double nonQualifierSelectivity = 1.0d; //applied after index lookups
-    private double extraQualifierSelectivity = 1d; //applied before index lookups
+    private final StoreCostController scc;
     private final BitSet scanColumns; //the columns that we are scanning
     private final BitSet lookupColumns; //the columns we are performing a lookup for
-
-    private List<RangeQualifier> firstKeyQualifiers;
-    private RangeQualifier[] keyQualifiers; //qualifiers which apply to key columns
-    private List<RangeQualifier>[] nonKeyQualifiers; //qualifiers which apply to non-key columns
+    private final BitSet totalColumns;
+    private List<SelectivityHolder>[] selectivityHolder; //selectivity elements
     private final int[] keyColumns;
-//    private final int scanType;
-    private final long baseRowCount;
-    private final boolean forUpdate;
-    private final DataValueDescriptor[] rowTemplate;
-    private final int startOperator;
-    private final int stopOperator;
+    private final int baseColumnCount;
+    private final boolean forUpdate; // Will be used shortly
 
-    private transient boolean baseCostComputed;
-    private transient boolean lookupCostComputed;
-    private transient boolean outputCostComputed;
-
+    /**
+     *
+     *
+     * <pre>
+     *
+     *     Selectivity is computed at 3 levels.
+     *
+     *     BASE -> Qualifiers on the row keys (start/stop Qualifiers, Multiprobe)
+     *     FILTER_BASE -> Qualifiers applied after the scan but before the index lookup.
+     *     FILTER_PROJECTION -> Qualifers and Predicates applied after any potential lookup, usually performed on the Projection Node in the scan.
+     *
+     *
+     * </pre>
+     *
+     *
+     * @param scanColumns
+     * @param lookupColumns
+     * @param baseTable
+     * @param scc
+     * @param scanCost
+     * @param rowTemplate
+     * @param keyColumns
+     * @param forUpdate
+     * @param resultColumns
+     */
     public ScanCostFunction(BitSet scanColumns,
                             BitSet lookupColumns,
                             Optimizable baseTable,
-                            StoreCostController storeCost,
+                            StoreCostController scc,
                             CostEstimate scanCost,
                             DataValueDescriptor[] rowTemplate,
                             int[] keyColumns,
-                            long baseRowCount,
                             boolean forUpdate,
-                            int startOperator,
-                            int stopOperator){
+                            ResultColumnList resultColumns){
         this.scanColumns = scanColumns;
         this.lookupColumns = lookupColumns;
         this.baseTable=baseTable;
         this.scanCost = scanCost;
-        this.storeCost = storeCost;
+        this.scc = scc;
         this.keyColumns = keyColumns;
-        this.baseRowCount=baseRowCount;
         this.forUpdate=forUpdate;
-        this.startOperator=startOperator;
-        this.stopOperator=stopOperator;
-        int nonKeyLen = rowTemplate.length; //always non-null, but not always right, if there's a mapping
-        if(scanColumns!=null)
-            nonKeyLen = Math.max(scanColumns.length(),nonKeyLen); //choose the larger of the two, to make room
-        //noinspection unchecked
-        this.nonKeyQualifiers = new List[nonKeyLen];
-        this.rowTemplate = rowTemplate;
-        if(keyColumns!=null && keyColumns.length>0)
-            keyQualifiers = new RangeQualifier[keyColumns.length];
+        this.selectivityHolder = new List[resultColumns.size()+1];
+        this.baseColumnCount = resultColumns.size();
+        totalColumns = new BitSet(baseColumnCount);
+        totalColumns.or(scanColumns);
+        if (lookupColumns != null)
+            totalColumns.or(lookupColumns);
+    }
+
+    /**
+     *
+     * Add Selectivity to the selectivity holder.
+     *
+     * @param holder
+     */
+    private void addSelectivity(SelectivityHolder holder) {
+        List<SelectivityHolder> holders = selectivityHolder[holder.getColNum()];
+        if (holders == null) {
+            holders = new LinkedList<SelectivityHolder>();
+            selectivityHolder[holder.getColNum()] = holders;
+        }
+        holders.add(holder);
+    }
+
+    /**
+     *
+     * Retrieve the selectivity for the columns.
+     *
+     * @param colNum
+     * @return
+     */
+    private List<SelectivityHolder> getSelectivityListForColumn(int colNum) {
+        List<SelectivityHolder> holders = selectivityHolder[colNum];
+        if (holders == null) {
+            holders = new LinkedList<SelectivityHolder>();
+            selectivityHolder[colNum] = holders;
+        }
+        return holders;
+    }
+
+    /**
+     *
+     * Add Predicate and keep track of the selectivity
+     *
+     * @param p
+     * @throws StandardException
+     */
+    public void addPredicate(Predicate p) throws StandardException{
+        if (p.isMultiProbeQualifier(keyColumns)) // MultiProbeQualifier against keys (BASE)
+            addSelectivity(new InListSelectivity(scc,p,QualifierPhase.BASE));
+        else if (p.isInQualifier(scanColumns)) // In Qualifier in Base Table (FILTER_PROJECTION) // This is not as expected, needs more research.
+            addSelectivity(new InListSelectivity(scc,p, QualifierPhase.FILTER_PROJECTION));
+        else if (p.isInQualifier(lookupColumns)) // In Qualifier against looked up columns (FILTER_PROJECTION)
+            addSelectivity(new InListSelectivity(scc,p, QualifierPhase.FILTER_PROJECTION));
+        else if (p.isStartKey() || p.isStopKey()) // Range Qualifier on Start/Stop Keys (BASE)
+            performQualifierSelectivity(p,QualifierPhase.BASE);
+        else if (p.isQualifier()) // Qualifier in Base Table (FILTER_BASE)
+            performQualifierSelectivity(p, QualifierPhase.FILTER_BASE);
+        else if (PredicateList.isQualifier(p,baseTable,false)) // Qualifier on Base Table After Index Lookup (FILTER_PROJECTION)
+            performQualifierSelectivity(p, QualifierPhase.FILTER_PROJECTION);
+        else // Project Restrict Selectivity Filter
+            addSelectivity(new PredicateSelectivity(p,baseTable,QualifierPhase.FILTER_PROJECTION));
+    }
+
+    /**
+     *
+     * Performs qualifier selectivity based on a phase.
+     *
+     * @param p
+     * @param phase
+     * @throws StandardException
+     */
+    private void performQualifierSelectivity (Predicate p, QualifierPhase phase) throws StandardException {
+        if(p.compareWithKnownConstant(baseTable, true) && p.getRelop().getColumnOperand(baseTable) != null) // Range Qualifier
+                addRangeQualifier(p,phase);
+        else // Predicate Cannot Be Transformed to Range, use Predicate Selectivity Defaults
+            addSelectivity(new PredicateSelectivity(p,baseTable,phase));
+    }
+
+    /**
+     *
+     * Compute the Base Scan Cost by utilizing the passed in StoreCostController
+     *
+     * @throws StandardException
+     */
+
+    public void generateCost() throws StandardException {
+
+        double baseTableSelectivity = computePhaseSelectivity(selectivityHolder,QualifierPhase.BASE);
+        double filterBaseTableSelectivity = computePhaseSelectivity(selectivityHolder,QualifierPhase.BASE,QualifierPhase.FILTER_BASE);
+        double projectionSelectivity = computePhaseSelectivity(selectivityHolder,QualifierPhase.FILTER_PROJECTION);
+        double totalSelectivity = computeTotalSelectivity(selectivityHolder);
+
+        assert filterBaseTableSelectivity >= 0 && filterBaseTableSelectivity <= 1.0:"filterBaseTableSelectivity Out of Bounds -> " + filterBaseTableSelectivity;
+        assert baseTableSelectivity >= 0 && baseTableSelectivity <= 1.0:"baseTableSelectivity Out of Bounds -> " + baseTableSelectivity;
+        assert projectionSelectivity >= 0 && projectionSelectivity <= 1.0:"projectionSelectivity Out of Bounds -> " + projectionSelectivity;
+        assert totalSelectivity >= 0 && totalSelectivity <= 1.0:"totalSelectivity Out of Bounds -> " + totalSelectivity;
+
+
+        double totalRowCount = scc.rowCount();
+        // Rows Returned is always the totalSelectivity (Conglomerate Independent)
+        scanCost.setEstimatedRowCount(Math.round(totalRowCount*totalSelectivity));
+
+
+
+        // We use the base table so the estimated heap size and remote cost are the same for all conglomerates
+        double colSizeFactor = scc.getBaseTableAvgRowWidth()*scc.baseTableColumnSizeFactor(totalColumns);
+        // Heap Size is the avg row width of the columns for the base table*total rows
+        // Average Row Width
+        // This should be the same for every conglomerate path
+        scanCost.setEstimatedHeapSize((long)(totalRowCount*totalSelectivity*colSizeFactor));
+        // Should be the same for each conglomerate
+        scanCost.setRemoteCost((long)(totalRowCount*totalSelectivity*scc.getRemoteLatency()*colSizeFactor));
+        // Base Cost + LookupCost + Projection Cost
+        double congAverageWidth = scc.getConglomerateAvgRowWidth();
+       // double congColSizeFactor = congAverageWidth*scc.conglomerateColumnSizeFactor(scanColumns);
+        double baseCost = totalRowCount*baseTableSelectivity*scc.getLocalLatency()*scc.getConglomerateAvgRowWidth();
+        scanCost.setFromBaseTableRows(filterBaseTableSelectivity * totalRowCount);
+        scanCost.setFromBaseTableCost(baseCost);
+        double lookupCost;
+        if (lookupColumns == null)
+            lookupCost = 0.0d;
+        else {
+            lookupCost = totalRowCount*filterBaseTableSelectivity*scc.getRemoteLatency()*scc.getBaseTableAvgRowWidth();
+            scanCost.setIndexLookupRows(filterBaseTableSelectivity*totalRowCount);
+            scanCost.setIndexLookupCost(lookupCost+baseCost);
+        }
+        double projectionCost;
+        if (projectionSelectivity == 1.0d)
+            projectionCost = 0.0d;
+        else {
+            projectionCost = totalRowCount * filterBaseTableSelectivity * scc.getLocalLatency() * colSizeFactor;
+            lookupCost = totalRowCount*filterBaseTableSelectivity*scc.getRemoteLatency()*scc.getBaseTableAvgRowWidth();
+            scanCost.setProjectionRows(scanCost.getEstimatedRowCount());
+            scanCost.setProjectionCost(lookupCost+baseCost+projectionCost);
+        }
+        scanCost.setLocalCost(baseCost+lookupCost+projectionCost);
+        scanCost.setNumPartitions(scc.getNumPartitions());
+    }
+
+    /**
+     *
+     * Computing the total selectivity.  All conglomerates need to have the same total selectivity.
+     *
+     * @param selectivityHolder
+     * @return
+     * @throws StandardException
+     */
+    public static double computeTotalSelectivity(List<SelectivityHolder>[] selectivityHolder) throws StandardException {
+        double totalSelectivity = 1.0d;
+        List<SelectivityHolder> holders = new ArrayList();
+        for (int i = 0; i< selectivityHolder.length; i++) {
+            if (selectivityHolder[i] != null)
+                holders.addAll(selectivityHolder[i]);
+        }
+        Collections.sort(holders);
+        return computeSelectivity(totalSelectivity,holders);
     }
 
 
-    void addPredicate(Predicate p) throws StandardException{
-        baseCostComputed = false;
-        lookupCostComputed = false;
-        outputCostComputed = false;
-        /*
-         * Predicates can be broken down into three categories:
-         *
-         * 1. Qualifier predicates --> These are predicates which compare to a constant
-         * node (or can be constructed to compare to a constant node). If the predicate can
-         * be serialized and applied to the byte-encoded version of the data, then it's a qualifier
-         * 2. NonQualifier predicates --> These are predicates which cannot be applied to the
-         * byte encoding of the data. Instead, a ProjectRestrict has to be used to apply the restriction
-         * 3. InList predicates --> these are predicates which are equivalent to an IN clause (either IN or
-         * OR).  If an InList Predicate can be applied to the first column of a keyed conglomerate, then
-         * it will also appear to be a qualifier, but will *not* be considered a start/stop key, and will
-         * *not* show up as "constant". In all other cases, the InList predicate will look like a non-qualifier
-         * predicate.
-         *
-         * It's also possible that an InList contains non-constant elements (e.g. subqueries). In that case,
-         * we have to consider the operation as a non-qualifier predicate, because it won't be converted to a
-         * MultiProbe scan in the future.
-         *
-         * Any InList clause which does not occur on the *FIRST KEYED COLUMN* should always be treated as a
-         * non-qualifier predicate
-         */
-        if(isMultiProbeQualifier(p)){
-            //add an EQUALS RangePredicate for each ConstantNode in the list
-            InListOperatorNode sourceInList=p.getSourceInList();
-            ValueNodeList rightOperandList=sourceInList.getRightOperandList();
-            for(Object o: rightOperandList){
-                ConstantNode cn = (ConstantNode)o;
-                DataValueDescriptor value=cn.getValue();
-                List<RangeQualifier> keyQualifier=firstKeyQualifiers;
-                if(keyQualifier ==null){
-                    keyQualifier=firstKeyQualifiers = new LinkedList<>();
-                }
-                keyQualifier.add(new RangeQualifier(value,value,true,true));
-            }
-        }  else if(p.isQualifier()){
-            boolean knownConstant = p.compareWithKnownConstant(baseTable,true);
-            if(knownConstant){
-                ColumnReference columnOperand=getRelop(p).getColumnOperand(baseTable);
-                if(columnOperand==null){
-                    nonQualifierSelectivity*=p.selectivity(baseTable);
-                    return;
-                }
-                int colNum=columnOperand.getColumnNumber();
-                boolean start = p.isStartKey();
-                boolean stop = p.isStopKey();
-                if(start || stop){
-                    if(keyColumns!=null){
-                        for(int i=0;i<keyColumns.length;i++){
-                            if(keyColumns[i]==colNum){
-                                addKeyQualifier(p,i);
-                            }
-                        }
+    /**
+     *
+     * Gathers the selectivities for the phases and sorts them ascending (most selective first) and then supplied them to computeSelectivity.
+     *
+     * @param selectivityHolder
+     * @param phases
+     * @return
+     * @throws StandardException
+     */
+    public static double computePhaseSelectivity(List<SelectivityHolder>[] selectivityHolder,QualifierPhase... phases) throws StandardException {
+        double totalSelectivity = 1.0d;
+        List<SelectivityHolder> holders = new ArrayList();
+        for (int i = 0; i< selectivityHolder.length; i++) {
+            if (selectivityHolder[i] != null) {
+                for (SelectivityHolder holder: selectivityHolder[i]) {
+                    for (QualifierPhase phase:phases) {
+                        if (holder.getPhase().equals(phase))
+                            holders.add(holder); // Only add Phased Qualifiers
                     }
-                }else{
-                    addNonKeyQualifier(p,colNum);
                 }
-            }else
-                nonQualifierSelectivity*=p.selectivity(baseTable);
-        } else if(!p.isJoinPredicate())
-            nonQualifierSelectivity*=p.selectivity(baseTable);
-    }
-
-    void computeBaseScanCost() throws StandardException{
-        if(baseCostComputed) return; //already computed, don't do it again
-        /*
-         * We create a key for scanning, in order to compute our base costs
-         */
-        if(firstKeyQualifiers!=null){
-            /*
-             * We are doing a multi-probe scan, so move any additional key qualifiers
-             * for the first entry to the non-key qualifiers list.
-             */
-            RangeQualifier firstQual = keyQualifiers[0];
-            if(firstQual!=null){
-                List<RangeQualifier> nonKeyQualifier=nonKeyQualifiers[keyColumns[0]];
-                if(nonKeyQualifier==null)
-                    nonKeyQualifiers[keyColumns[0]] = Collections.singletonList(firstQual);
-                else
-                    nonKeyQualifier.add(firstQual);
-                keyQualifiers[0] = null;
             }
         }
-
-        //get the first gap in key range
-        int startKeyLen = firstKeyQualifiers!=null? 1: 0;
-        int stopKeyLen = firstKeyQualifiers!=null? 1: 0;
-        boolean startGood = true, stopGood = true;
-        if(keyQualifiers!=null){
-            for(int i=startKeyLen;i<keyQualifiers.length&&(startGood || stopGood);i++){
-                RangeQualifier keyQualifier=keyQualifiers[i];
-                if(keyQualifier==null){
-                    break;
-                }
-                if(keyQualifier.start==null){
-                    startGood = false;
-                }else
-                    startKeyLen++;
-                if(keyQualifier.stop==null){
-                    stopGood = false;
-                }else
-                    stopKeyLen++;
-            }
-        }
-        DataValueDescriptor[] startKeys = new DataValueDescriptor[startKeyLen];
-        DataValueDescriptor[] stopKeys = new DataValueDescriptor[stopKeyLen];
-        for(int i=firstKeyQualifiers!=null?1:0;i<startKeyLen;i++){
-            //this is fine, because the loop won't happen if keyQualifiers is null(startKeyLen will be 0 or 1)
-            @SuppressWarnings("ConstantConditions") RangeQualifier keyQual = keyQualifiers[i];
-            startKeys[i] = keyQual.start;
-            if(i<stopKeyLen)
-                stopKeys[i] = keyQual.stop;
-        }
-        for(int i=startKeyLen;i<stopKeyLen;i++){
-            stopKeys[i] = keyQualifiers[i].stop;
-        }
-
-        List<DataValueDescriptor> probeStartKeys = null;
-        if(firstKeyQualifiers!=null){
-            probeStartKeys = new ArrayList<>(firstKeyQualifiers.size());
-            for(RangeQualifier probe:firstKeyQualifiers){
-                probeStartKeys.add(probe.start);
-            }
-        }
-        storeCost.getScanCost(baseRowCount,
-                forUpdate,
-                scanColumns,
-                rowTemplate,
-                probeStartKeys,
-                startKeys,
-                startOperator,
-                stopKeys,
-                stopOperator,
-                scanCost);
-
-        baseCostComputed = true;
+        Collections.sort(holders);
+        return computeSelectivity(totalSelectivity,holders);
     }
 
-    void computeLookupCost() throws StandardException{
-        if(lookupCostComputed) return; //nothing to do
-        this.computeBaseScanCost();
-        lookupCostComputed = true;
-
-        /*
-         * Reduce the number of rows which are fed to the index lookup by the
-         * extra qualifier selectivity
-         */
-        computeExtraQualifierSelectivity();
-        if(lookupColumns==null){
-            nonQualifierSelectivity*=extraQualifierSelectivity;
-            return;
+    /**
+     *
+     * Helper method to compute increasing sqrt levels.
+     *
+     * @param selectivity
+     * @param holders
+     * @return
+     * @throws StandardException
+     */
+    public static double computeSelectivity(double selectivity, List<SelectivityHolder> holders) throws StandardException {
+        for (int i = 0; i< holders.size();i++) {
+            selectivity = computeSqrtLevel(selectivity,i,holders.get(i));
         }
-        double qualifiedRows = extraQualifierSelectivity*scanCost.rowCount();
-        double qualifiedHeap = extraQualifierSelectivity*scanCost.getEstimatedHeapSize();
-        double qualifiedRemoteCost = extraQualifierSelectivity*scanCost.remoteCost();
-        scanCost.setRowCount(qualifiedRows);
-        scanCost.setRemoteCost(qualifiedRemoteCost);
-        scanCost.setEstimatedHeapSize((long)qualifiedHeap);
-
-        /*
-         * Multiply all the rows by the cost to perform the lookup
-         */
-        storeCost.getFetchFromRowLocationCost(lookupColumns,0,scanCost);
+        return selectivity;
     }
 
-
-    void computeOutputCost() throws StandardException{
-        if(outputCostComputed) return; //nothing to do
-        computeLookupCost();
-        /*
-         * The output rows are reduced by the non-qualifier predicates, but those predicates
-         * aren't applied until after the index lookups, so we apply them here.
-         */
-        double outputRows = nonQualifierSelectivity*scanCost.rowCount();
-        double outputHeap = nonQualifierSelectivity*scanCost.getEstimatedHeapSize();
-        double outputRemoteCost = nonQualifierSelectivity*scanCost.remoteCost();
-        scanCost.setRowCount(outputRows);
-        scanCost.setEstimatedHeapSize((long)outputHeap);
-        scanCost.setRemoteCost(outputRemoteCost);
-        outputCostComputed = true;
-    }
-
-    CostEstimate getScanCost() throws StandardException{
-        computeOutputCost(); //ensure that the output cost is computed
-        return scanCost;
-    }
-
-    /* ********************************************************************************/
-
-    private void computeExtraQualifierSelectivity(){
-        double eQuS = extraQualifierSelectivity;
-        int colNum = 0;
-        for(List<RangeQualifier> nonKeyQualifier: nonKeyQualifiers){
-            colNum++; //indexed from 1
-            if(nonKeyQualifier==null) continue; //skip null elements
-            for(RangeQualifier qual:nonKeyQualifier){
-                eQuS *= qual.selectivity(colNum);
-            }
+    /**
+     *
+     * Compute SQRT selectivity based on the level.
+     *
+     * @param selectivity
+     * @param level
+     * @param holder
+     * @return
+     * @throws StandardException
+     */
+    public static double computeSqrtLevel(double selectivity, int level, SelectivityHolder holder) throws StandardException {
+        if (level ==0) {
+            selectivity *= holder.getSelectivity();
+            return selectivity;
         }
-        extraQualifierSelectivity = eQuS;
+        double incrementalSelectivity = 0.0d;
+        incrementalSelectivity += holder.getSelectivity();
+        for (int i =1;i<=level;i++)
+            incrementalSelectivity=Math.sqrt(incrementalSelectivity);
+        selectivity*=incrementalSelectivity;
+        return selectivity;
     }
 
-    private void addKeyQualifier(Predicate p,int keyPos) throws StandardException{
-        RangeQualifier keyQual = keyQualifiers[keyPos];
-        if(keyQual==null)
-            keyQual = keyQualifiers[keyPos] = new RangeQualifier();
+    /**
+     *
+     * Method to combine range qualifiers a>12 and a< 15 -> range qualifier (12<a<15)
+     *
+     * @param p
+     * @param phase
+     * @return
+     * @throws StandardException
+     */
 
-        int colNum=keyColumns[keyPos];
-        if(keyQual.start!=null && keyQual.stop!=null){
-            //we have filled this position, so we are redundant
-            addNonKeyQualifier(p,colNum);
-            return;
-        }
-
-        DataValueDescriptor compareValue=p.getCompareValue(baseTable);
-        RelationalOperator relop=getRelop(p);
-        int relationalOperator = relop.getOperator();
-
-        switch(relationalOperator){
-            case RelationalOperator.EQUALS_RELOP:
-                keyQual.start=compareValue;
-                keyQual.stop=compareValue;
-                keyQual.includeStart=keyQual.includeStop=true;
-                break;
-            case RelationalOperator.NOT_EQUALS_RELOP:
-                double sel=1-storeCost.getSelectivity(colNum,compareValue,true,compareValue,true);
-                extraQualifierSelectivity*=sel;
-                break;
-            case RelationalOperator.GREATER_EQUALS_RELOP:
-                keyQual.start=compareValue;
-                keyQual.includeStart=true;
-                break;
-            case RelationalOperator.GREATER_THAN_RELOP:
-                keyQual.start=compareValue;
-                keyQual.includeStart=false;
-                break;
-            case RelationalOperator.LESS_EQUALS_RELOP:
-                keyQual.stop=compareValue;
-                keyQual.includeStop=true;
-                break;
-            case RelationalOperator.LESS_THAN_RELOP:
-                keyQual.stop=compareValue;
-                keyQual.includeStop=false;
-                break;
-            case RelationalOperator.IS_NULL_RELOP:
-                extraQualifierSelectivity*=storeCost.nullSelectivity(colNum);
-                break;
-            case RelationalOperator.IS_NOT_NULL_RELOP:
-                extraQualifierSelectivity*=(1-storeCost.nullSelectivity(colNum));
-                break;
-            default:
-                /*
-                 * This should never happen, but just in case we apply this to the non-qualifier
-                 * selectivity
-                 */
-                nonQualifierSelectivity*=p.selectivity(baseTable);
-        }
-    }
-
-    private RelationalOperator getRelop(Predicate p){
+    private boolean addRangeQualifier(Predicate p,QualifierPhase phase) throws StandardException{
+        DataValueDescriptor value=p.getCompareValue(baseTable);
         RelationalOperator relop=p.getRelop();
-        assert relop!=null: "Programmer error! unexpected null Relational Operator";
-        return relop;
-    }
-
-    private void addNonKeyQualifier(Predicate p,int colNum) throws StandardException{
-        List<RangeQualifier> quals = nonKeyQualifiers[colNum-1];
-        if(quals==null){
-            quals = nonKeyQualifiers[colNum-1] = new LinkedList<>();
-        }
-        DataValueDescriptor compareValue=p.getCompareValue(baseTable);
-        RelationalOperator relop=getRelop(p);
+        int colNum = relop.getColumnOperand(baseTable).getColumnNumber();
         int relationalOperator = relop.getOperator();
-        if(!addRangeQualifier(quals,compareValue,relationalOperator,colNum)){
-            nonQualifierSelectivity*=p.selectivity(baseTable);
-        }
-    }
-
-    private boolean addRangeQualifier(List<RangeQualifier> qualifiers,
-                                      DataValueDescriptor values,
-                                      int relationalOperator,
-                                      int colNum) throws StandardException{
+        List<SelectivityHolder> columnHolder = getSelectivityListForColumn(colNum);
         OP_SWITCH: switch(relationalOperator){
             case RelationalOperator.EQUALS_RELOP:
-                qualifiers.add(new RangeQualifier(values,values,true,true));
+                columnHolder.add(new RangeSelectivity(scc,value,value,true,true,colNum,phase));
                 break;
             case RelationalOperator.NOT_EQUALS_RELOP:
-                double sel = 1-storeCost.getSelectivity(colNum,values,true,values,false);
-                extraQualifierSelectivity *=sel;
+                columnHolder.add(new NotEqualsSelectivity(scc,colNum,phase,value));
+                break;
+            case RelationalOperator.IS_NULL_RELOP:
+                columnHolder.add(new NullSelectivity(scc,colNum,phase));
+                break;
+            case RelationalOperator.IS_NOT_NULL_RELOP:
+                columnHolder.add(new NotNullSelectivity(scc,colNum,phase));
                 break;
             case RelationalOperator.GREATER_EQUALS_RELOP:
-                for(RangeQualifier rq: qualifiers){
+                for(SelectivityHolder sh: columnHolder){
+                    if (!sh.isRangeSelectivity())
+                        continue;
+                    RangeSelectivity rq = (RangeSelectivity) sh;
                     if(rq.start==null){
-                        rq.start = values;
+                        rq.start = value;
                         rq.includeStart = true;
                         break OP_SWITCH;
                     }
                 }
-                qualifiers.add(new RangeQualifier(values,null,true,true));
+                columnHolder.add(new RangeSelectivity(scc,value,null,true,true,colNum,phase));
                 break;
             case RelationalOperator.GREATER_THAN_RELOP:
-                for(RangeQualifier rq: qualifiers){
+                for(SelectivityHolder sh: columnHolder){
+                    if (!sh.isRangeSelectivity())
+                        continue;
+                    RangeSelectivity rq = (RangeSelectivity) sh;
                     if(rq.start==null){
-                        rq.start = values;
+                        rq.start = value;
                         rq.includeStart = false;
                         break OP_SWITCH;
                     }
                 }
-                qualifiers.add(new RangeQualifier(values,null,true,false));
+                columnHolder.add(new RangeSelectivity(scc,value,null,false,true,colNum,phase));
                 break;
             case RelationalOperator.LESS_EQUALS_RELOP:
-                for(RangeQualifier rq: qualifiers){
+                for(SelectivityHolder sh: columnHolder){
+                    if (!sh.isRangeSelectivity())
+                        continue;
+                    RangeSelectivity rq = (RangeSelectivity) sh;
                     if(rq.stop==null){
-                        rq.stop = values;
+                        rq.stop = value;
                         rq.includeStop = true;
                         break OP_SWITCH;
                     }
                 }
-                qualifiers.add(new RangeQualifier(null,values,true,true));
+                columnHolder.add(new RangeSelectivity(scc,null,value,true,true,colNum,phase));
                 break;
             case RelationalOperator.LESS_THAN_RELOP:
-                for(RangeQualifier rq: qualifiers){
+                for(SelectivityHolder sh: columnHolder){
+                    if (!sh.isRangeSelectivity())
+                        continue;
+                    RangeSelectivity rq = (RangeSelectivity) sh;
                     if(rq.stop==null){
-                        rq.stop = values;
+                        rq.stop = value;
                         rq.includeStop = true;
                         break OP_SWITCH;
                     }
                 }
-                qualifiers.add(new RangeQualifier(null,values,true,false));
-                break;
-            case RelationalOperator.IS_NULL_RELOP:
-                extraQualifierSelectivity*= storeCost.nullSelectivity(colNum);
-                break;
-            case RelationalOperator.IS_NOT_NULL_RELOP:
-                extraQualifierSelectivity*= (1-storeCost.nullSelectivity(colNum));
+                columnHolder.add(new RangeSelectivity(scc,null,value,true,false,colNum,phase));
                 break;
             default:
-                /*
-                 * This should never happen, but just in case we apply this to the non-qualifier
-                 * selectivity
-                 */
-                return false;
-        }
+                throw new RuntimeException("Unknown Qualifier Type");
+         }
         return true;
     }
 
-    private boolean isMultiProbeQualifier(Predicate p){
-        /*
-         * Returns true if the predicate is a multi-probe qualifier.
-         *
-         * A Multi-probe qualifier satisfies 3 criteria:
-         * 1. It has an IN clause
-         * 2. It is applied against the first keyed column
-         * 3. There are only constant nodes in the IN list
-         */
-        if(keyColumns==null) return false; //can't be a MPQ if there are no keyed columns
-        InListOperatorNode sourceInList=p.getSourceInList();
-        if(sourceInList==null) return false; //not a multi-probe predicate
-        ValueNode lo = sourceInList.getLeftOperand();
-        //if it doesn't refer to a column, then it can't be a qualifier
-        if(!(lo instanceof ColumnReference)) return false;
-        ColumnReference colRef = (ColumnReference)lo;
-        int colNum = colRef.getColumnNumber();
-        if(keyColumns[0]!=colNum) return false; //doesn't point to the first keyed column
-
-        ValueNodeList rightOperandList=sourceInList.getRightOperandList();
-        for(Object o:rightOperandList){
-            if(!(o instanceof ConstantNode)) return false; //not all constants in the IN list
-        }
-        return true;
-    }
-
-    private class RangeQualifier{
-        DataValueDescriptor start;
-        boolean includeStart;
-        DataValueDescriptor stop;
-        boolean includeStop;
-
-        public RangeQualifier(DataValueDescriptor start, DataValueDescriptor stop,boolean includeStart, boolean includeStop){
-            this.start = start;
-            this.stop = stop;
-            this.includeStart = includeStart;
-            this.includeStop = includeStop;
-        }
-
-        public RangeQualifier(){
-        }
-
-        public double selectivity(int colNum){
-            return storeCost.getSelectivity(colNum,start,includeStart,stop,includeStop);
-        }
-    }
-
-    static class Builder{
-
-    }
 
 }

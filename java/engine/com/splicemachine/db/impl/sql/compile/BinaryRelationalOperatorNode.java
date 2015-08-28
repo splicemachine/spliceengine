@@ -29,7 +29,7 @@ import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.ScanController;
-import com.splicemachine.db.iapi.store.access.StoreCostController;
+import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.Orderable;
 import com.splicemachine.db.iapi.types.TypeId;
@@ -269,8 +269,10 @@ public class BinaryRelationalOperatorNode
 
         if(leftOperand instanceof CastNode){
             if(((CastNode) leftOperand).castOperand instanceof ColumnReference){
-                cr = (ColumnReference)(((CastNode) leftOperand).castOperand);
-                if(valNodeReferencesOptTable(cr, (FromTable)optTable, false, walkSubtree)){
+
+                cr = (ColumnReference)((CastNode) leftOperand).castOperand;
+                if(valNodeReferencesOptTable(cr, (FromTable) optTable, false, walkSubtree)){
+
                     return cr;
                 }
             }
@@ -278,8 +280,8 @@ public class BinaryRelationalOperatorNode
 
         if(rightOperand instanceof CastNode){
             if(((CastNode) rightOperand).castOperand instanceof ColumnReference){
-                cr = (ColumnReference)(((CastNode) rightOperand).castOperand);
-                if(valNodeReferencesOptTable(cr, (FromTable)optTable, false, walkSubtree)){
+                cr = (ColumnReference)((CastNode) rightOperand).castOperand;
+                if(valNodeReferencesOptTable(cr, (FromTable) optTable, false, walkSubtree)){
                     return cr;
                 }
             }
@@ -1294,34 +1296,52 @@ public class BinaryRelationalOperatorNode
         return 0.0;
     }
 
+    /**
+     *
+     * Key Method for computing join selectivity when a.col1 = b.col1 (BinaryReleationalOperator).
+     *
+     * ColumnReferences are heavily used to determine when we can use statistics for computations.  It would be nice
+     * to remove the instance of bits and focus more on the implementation at the node level (TODO).
+     *
+     * @param optTable
+     * @param currentCd
+     * @param innerRowCount
+     * @param outerRowCount
+     * @param selectivityJoinType
+     * @return
+     * @throws StandardException
+     */
     @Override
-    public double selectivity(Optimizable optTable,ConglomerateDescriptor currentCd) throws StandardException{
-        if(currentCd==null) return selectivity(optTable);
-        StoreCostController storeCostController=getCompilerContext().getStoreCostController(currentCd);
-        if(storeCostController==null) return selectivity(optTable);
-        ColumnReference colRef=getColumnOperand(optTable);
-        if(colRef==null)
-            return super.selectivity(optTable); //fall back on default behavior when we don't have what we need
-        int colId=colRef.getSource().getColumnPosition();
-        double rowCount=storeCostController.nonNullCount(colId);
-        if(rowCount==0d) return 1d; //nothing to select
+    public double joinSelectivity(Optimizable optTable,
+                                  ConglomerateDescriptor currentCd,
+                                  long innerRowCount, long outerRowCount, SelectivityUtil.SelectivityJoinType selectivityJoinType) throws StandardException {
+        assert optTable != null:"null values passed into predicate joinSelectivity";
+            // Binary Relational Operator Node...
+        double selectivity;
 
-        double selectivity=1d;
-        switch(operatorType){
-            case RelationalOperator.EQUALS_RELOP:
-                selectivity*=storeCostController.cardinalityFraction(colId);
-                break;
-            case RelationalOperator.NOT_EQUALS_RELOP:
-                selectivity*=1-storeCostController.cardinalityFraction(colId);
-                break;
-            case RelationalOperator.LESS_THAN_RELOP:
-            case RelationalOperator.LESS_EQUALS_RELOP:
-                selectivity*=0.5d; //TODO -sf- make this more accurate
-            case RelationalOperator.GREATER_THAN_RELOP:
-            case RelationalOperator.GREATER_EQUALS_RELOP:
-                selectivity*=0.33d; //TODO -sf- make this more accurate
+        if (rightOperand instanceof ColumnReference && ((ColumnReference) rightOperand).getSource().getTableColumnDescriptor() != null) {
+            ColumnReference right = (ColumnReference) rightOperand;
+            if (selectivityJoinType.equals(SelectivityUtil.SelectivityJoinType.OUTER)) {
+                selectivity = (1.0d - right.nullSelectivity()) / right.nonZeroCardinality(innerRowCount);
+            } else if (leftOperand instanceof ColumnReference && ((ColumnReference) leftOperand).getSource().getTableColumnDescriptor() != null) {
+                ColumnReference left = (ColumnReference) leftOperand;
+                selectivity = ((1.0d - left.nullSelectivity()) * (1.0d - right.nullSelectivity())) /
+                        Math.min(left.nonZeroCardinality(outerRowCount), right.nonZeroCardinality(innerRowCount));
+                selectivity = selectivityJoinType.equals(SelectivityUtil.SelectivityJoinType.INNER) ?
+                        selectivity : 1.0d - selectivity;
+                if (optTable instanceof FromBaseTable && ((FromBaseTable) optTable).getExistsBaseTable()) {
+                    selectivity = selectivity * left.nonZeroCardinality(outerRowCount)/outerRowCount;
+                    if (((FromBaseTable) optTable).isAntiJoin()) {
+                        selectivity = selectivity /(innerRowCount - innerRowCount/right.nonZeroCardinality(innerRowCount) + 1);
+                    }
+                }
+            } else { // No Left Column Reference
+                selectivity = super.joinSelectivity(optTable, currentCd, innerRowCount, outerRowCount, selectivityJoinType);
+            }
+        } else { // No Right ColumnReference
+            selectivity = super.joinSelectivity(optTable, currentCd, innerRowCount, outerRowCount, selectivityJoinType);
         }
-
+        assert selectivity > 0.0d:"selectivity is out of bounds " + selectivity + this + " right-> " + rightOperand + " left -> " + leftOperand;
         return selectivity;
     }
 

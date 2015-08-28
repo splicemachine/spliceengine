@@ -21,14 +21,17 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
-import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
-import com.splicemachine.db.iapi.sql.compile.CostEstimate;
-import com.splicemachine.db.iapi.sql.compile.OptimizablePredicate;
-import com.splicemachine.db.iapi.sql.compile.OptimizerFlag;
+import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.util.JBitSet;
+import com.splicemachine.db.impl.ast.PredicateUtils;
+import com.splicemachine.db.impl.ast.RSUtils;
+
+import java.util.List;
 
 /**
  * An HalfOuterJoinNode represents a left or a right outer join result set.
@@ -783,4 +786,22 @@ public class HalfOuterJoinNode extends JoinNode{
         else
             return leftResultSet.LOJgetReferencedTables(numTables);
     }
+
+    @Override
+    public String printExplainInformation(int order) throws StandardException {
+        JoinStrategy joinStrategy = RSUtils.ap(this).getJoinStrategy();
+        StringBuilder sb = new StringBuilder();
+        sb.append(spaceToLevel())
+                .append(joinStrategy.getJoinStrategyType().niceName()).append(isRightOuterJoin()?"RightOuter":"LeftOuter").append("Join(")
+                .append("n=").append(order)
+                .append(",").append(getFinalCostEstimate().prettyProcessingString());
+        if (joinPredicates !=null) {
+            List<String> joinPreds = Lists.transform(PredicateUtils.PLtoList(joinPredicates), PredicateUtils.predToString);
+            if (joinPreds != null && joinPreds.size() > 0) //add
+                sb.append("preds=[" + Joiner.on(",").skipNulls().join(joinPreds) + "]");
+        }
+        sb.append(")");
+        return sb.toString();
+    }
+
 }

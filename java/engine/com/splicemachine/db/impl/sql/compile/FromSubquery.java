@@ -33,6 +33,9 @@ import com.splicemachine.db.iapi.sql.compile.Visitor;
 
 import com.splicemachine.db.iapi.util.JBitSet;
 
+import java.util.HashMap;
+import java.util.HashSet;
+
 
 /**
  * A FromSubquery represents a subquery in the FROM list of a DML statement.
@@ -380,6 +383,31 @@ public class FromSubquery extends FromTable
 									FromList fromList)
 								throws StandardException
 	{
+
+		if(subquery != null && subquery instanceof SelectNode){
+			ResultColumnList rcl = subquery.resultColumns;
+			HashMap<String, ResultColumn> hs = new HashMap<>();
+
+			for(ResultColumn rc : rcl){
+
+				String cName = rc.name;
+				hs.put(cName, rc);
+			}
+
+			if(((SelectNode) subquery).groupByList != null){
+				for(OrderedColumn gbc : ((SelectNode) subquery).groupByList){
+					if(gbc.getColumnExpression() instanceof ColumnReference
+
+							&& hs.containsKey(((ColumnReference) gbc.getColumnExpression()).getSource().getName())){
+							ResultColumn rc = hs.get(((ColumnReference) gbc.getColumnExpression()).columnName);
+							rc.isGenerated = false;
+							rc.isReferenced = false;
+							rc.isGroupingColumn = true;
+					}
+				}
+			}
+		}
+
 		// Push the order by list down to the ResultSet
 		if (orderByList != null)
 		{

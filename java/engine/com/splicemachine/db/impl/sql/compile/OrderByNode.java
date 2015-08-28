@@ -5,6 +5,13 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.compile.CostEstimate;
+import com.splicemachine.db.iapi.sql.compile.OptimizablePredicateList;
+import com.splicemachine.db.iapi.sql.compile.Optimizer;
+import com.splicemachine.db.iapi.sql.compile.RowOrdering;
+import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
+import com.splicemachine.db.iapi.store.access.SortCostController;
+
+import java.util.Collection;
 
 public class OrderByNode extends SingleChildResultSetNode {
     OrderByList		orderByList;
@@ -86,13 +93,11 @@ public class OrderByNode extends SingleChildResultSetNode {
 
     @Override
     public CostEstimate getFinalCostEstimate() throws StandardException{
-        CostEstimate est = super.getFinalCostEstimate();
-        CostEstimate base=est.getBase();
-        if(base!=est){
-            base.setRemoteCost(0d);
-            est.setBase(null);
+        if(costEstimate==null) {
+            costEstimate = childResult.getFinalCostEstimate();
+            orderByList.estimateCost(optimizer, null, costEstimate);
         }
-        return est;
+        return costEstimate;
     }
 
     @Override
@@ -118,25 +123,29 @@ public class OrderByNode extends SingleChildResultSetNode {
         resultSetNumber = orderByList.getResultSetNumber();
         resultColumns.setResultSetNumber(resultSetNumber);
     }
-/*
-	@Override
-	public CostEstimate estimateCost(OptimizablePredicateList predList,
-			ConglomerateDescriptor cd, CostEstimate outerCost,
-			Optimizer optimizer, RowOrdering rowOrdering)
-			throws StandardException {
-		CostEstimate costEstimate = super.estimateCost(predList, cd, outerCost, optimizer, rowOrdering);
-		costEstimate.setEstimatedCost(costEstimate.getEstimatedCost()+ ((double) costEstimate.getEstimatedRowCount()*SpliceConstants.optimizerWriteCost));
-		return costEstimate;
-	}
 
+    @Override
+    protected CostEstimate getCostEstimate(Optimizer optimizer) {
+        return super.getCostEstimate(optimizer);
+    }
 
+    @Override
+    public CostEstimate estimateCost(OptimizablePredicateList predList,
+                                     ConglomerateDescriptor cd, CostEstimate outerCost,
+                                     Optimizer optimizer, RowOrdering rowOrdering)
+            throws StandardException {
+        return super.estimateCost(predList,cd,outerCost,optimizer,rowOrdering);
+    }
 
-	@Override
-	public CostEstimate getFinalCostEstimate() throws StandardException {
-		CostEstimate costEstimate = super.getFinalCostEstimate();
-		costEstimate.setEstimatedCost(costEstimate.getEstimatedCost()+ ((double) costEstimate.getEstimatedRowCount()*SpliceConstants.optimizerWriteCost));
-		return costEstimate;
-	}
-	*/
+    @Override
+    public String printExplainInformation(int order) throws StandardException {
+        StringBuilder sb = new StringBuilder();
+        sb = sb.append(spaceToLevel())
+                .append("OrderBy").append("(")
+                .append("n=").append(order);
+        sb.append(",").append(costEstimate.prettyProcessingString());
+        sb = sb.append(")");
+        return sb.toString();
+    }
 
 }

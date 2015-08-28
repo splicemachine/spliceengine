@@ -21,6 +21,8 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -37,9 +39,12 @@ import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.util.JBitSet;
+import com.splicemachine.db.impl.ast.PredicateUtils;
+import com.splicemachine.db.impl.ast.RSUtils;
 import com.splicemachine.db.impl.sql.execute.OnceResultSet;
 
 import java.lang.reflect.Modifier;
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -741,6 +746,9 @@ public class SubqueryNode extends ValueNode{
                     if(fbt!=null && (!flattenableNotExists
                             || (select.getWherePredicates().allReference(fbt)
                             && rightOperandFlattenableToNotExists(numTables,fbt)))){
+                        if (flattenableNotExists) {
+                            fbt.setAntiJoin(true);
+                        }
                         return flattenToExistsJoin(
                                 outerFromList,outerSubqueryList,
                                 outerPredicateList,flattenableNotExists);
@@ -1825,6 +1833,7 @@ public class SubqueryNode extends ValueNode{
                 int tableNumber=cr.getTableNumber();
                 for(int tn : tableNumbers){
                     if(tableNumber==tn){
+                        cr.setNestingLevel(cr.getNestingLevel() - 1);
                         cr.setSourceLevel(
                                 cr.getSourceLevel()-1);
                         break;
@@ -2394,6 +2403,28 @@ public class SubqueryNode extends ValueNode{
         }
 
         setType(dts.getNullabilityType(true));
+    }
+    @Override
+    public void buildTree(Collection<QueryTreeNode> tree, int depth) throws StandardException {
+        setDepth(depth);
+        tree.add(this);
+        resultSet.buildTree(tree,depth+1);
+    }
+
+    @Override
+    public String printExplainInformation(int order) throws StandardException {
+        // TODO JL Costs?
+        StringBuilder sb = new StringBuilder();
+        sb = sb.append(spaceToLevel())
+                .append("Subquery(")
+                .append("n=").append(order);
+                if (resultSet!=null) {
+                    sb.append(",").append(resultSet.getFinalCostEstimate().prettyScrollInsensitiveString());
+                }
+                sb.append(String.format(", correlated=%b, expression=%b, invariant=%b",
+                        hasCorrelatedCRs(),getSubqueryType()==SubqueryNode.EXPRESSION_SUBQUERY,isInvariant()))
+                .append(")");
+        return sb.toString();
     }
 
 }

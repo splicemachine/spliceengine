@@ -23,7 +23,6 @@ package com.splicemachine.db.impl.sql.compile;
 
 import com.splicemachine.db.catalog.DefaultInfo;
 import com.splicemachine.db.catalog.UUID;
-
 import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
@@ -31,39 +30,29 @@ import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.impl.sql.execute.FKInfo;
-
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.error.StandardException;
-
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptorList;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptorList;
 import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptor;
-import com.splicemachine.db.iapi.sql.dictionary.CheckConstraintDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.GenericDescriptorList;
 import com.splicemachine.db.iapi.sql.dictionary.TriggerDescriptor;
-
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.execute.ConstantAction;
 import com.splicemachine.db.iapi.sql.execute.ExecPreparedStatement;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
-
 import com.splicemachine.db.iapi.sql.StatementType;
-
 import com.splicemachine.db.iapi.store.access.StaticCompiledOpenConglomInfo;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-
 import com.splicemachine.db.vti.DeferModification;
-
 import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.reference.ClassName;
-
 import com.splicemachine.db.iapi.util.ReuseFactory;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
-
 import java.lang.reflect.Modifier;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -1513,4 +1502,20 @@ public final class UpdateNode extends DMLModStatementNode
             }
         }
     }
+
+    @Override
+    public String printExplainInformation(int order) throws StandardException {
+        StringBuilder sb = new StringBuilder();
+        sb = sb.append(spaceToLevel())
+                .append("Update").append("(")
+                .append("n=").append(order);
+                if (this.resultSet!=null) {
+                    sb.append(", totalCost=").append(this.resultSet.getFinalCostEstimate().getEstimatedCost());
+                    sb.append(", updatedRows=").append(this.resultSet.getFinalCostEstimate().getEstimatedRowCount());
+                }
+                sb.append(", targetTable=").append(targetTableName)
+                .append(")");
+        return sb.toString();
+    }
+
 } // end of UpdateNode

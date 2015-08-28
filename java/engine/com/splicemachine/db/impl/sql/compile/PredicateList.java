@@ -1203,7 +1203,7 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
         }
 
         /* Remove all predicates from the list */
-        removeAllElements();
+        //removeAllElements();
         return restriction;
     }
 
@@ -2178,6 +2178,12 @@ public class PredicateList extends QueryTreeNodeVector<Predicate> implements Opt
             if(predicate.transitiveSearchClauseAdded(equalsNode)){
                 removeElementAt(index);
             }
+        }
+    }
+
+    public void removeAllPredicates() throws StandardException {
+        for (int i = size() - 1; i >= 0; i--) {
+            removeOptPredicate(i);
         }
     }
 

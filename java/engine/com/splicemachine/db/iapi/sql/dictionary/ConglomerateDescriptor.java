@@ -218,6 +218,17 @@ public final class ConglomerateDescriptor extends TupleDescriptor
 		return indexRowGenerator;
 	}
 
+    /**
+     *
+     * Is the conglomerate a Primary Key...
+     *
+     * @return
+     */
+    public boolean isPrimaryKey() {
+        return indexRowGenerator!=null&& indexRowGenerator.getIndexDescriptor()!=null &&
+                indexRowGenerator.getIndexDescriptor().isPrimaryKey();
+    }
+
 
 	/**
 	 * Set the column names for this conglomerate descriptor.

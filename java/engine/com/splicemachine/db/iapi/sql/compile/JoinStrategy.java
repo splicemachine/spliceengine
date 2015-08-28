@@ -41,18 +41,21 @@ import com.splicemachine.db.iapi.error.StandardException;
 public interface JoinStrategy {
 
     public enum JoinStrategyType {
-        NESTED_LOOP ("NESTED_LOOP",0),
-        MERGE_SORT ("MERGE_SORT",1),
-        BROADCAST ("BROADCAST",2),
-        MERGE ("MERGE",3);
+        NESTED_LOOP ("NESTED_LOOP",0,"NestedLoop"),
+        MERGE_SORT ("MERGE_SORT",1,"MergeSort"),
+        BROADCAST ("BROADCAST",2,"Broadcast"),
+        MERGE ("MERGE",3, "Merge");
         private final String name;
         private final int strategyId;
-        JoinStrategyType(String name, int strategyId) {
+        private final String niceName;
+        JoinStrategyType(String name, int strategyId, String niceName) {
             this.name = name;
             this.strategyId = strategyId;
+            this.niceName = niceName;
         }
         public String getName() { return name;}
         public int getStrategyId() { return strategyId;}
+        public String niceName() { return niceName;}
     }
 
 	/**
@@ -196,9 +199,6 @@ public interface JoinStrategy {
     
 	/** Get the name of this join strategy */
 	String getName();
-
-	/** Get the costing type, for use with StoreCostController.getScanCost */
-	int scanCostType();
 
 	/**
 	 * Get the name of the result set method for base table scans

@@ -30,6 +30,8 @@ public class CostEstimateImpl implements CostEstimate {
     public double	cost;
     public double	rowCount;
     public double	singleScanRowCount;
+    public boolean isOuterJoin;
+    public boolean isAntiJoin;
 
     public CostEstimateImpl() {
     }
@@ -375,9 +377,131 @@ public class CostEstimateImpl implements CostEstimate {
     }
 
     @Override
-    public String prettyString(){
+    public String prettyProcessingString(){
+        return toString();
+    }
+
+    @Override
+    public String prettyScrollInsensitiveString(){
+        return toString();
+    }
+
+    @Override
+    public String prettyFromBaseTableString() {
+        return toString();
+    }
+
+    @Override
+    public String prettyIndexLookupString() {
+        return toString();
+    }
+
+    @Override
+    public String prettyProjectionString() {
         return toString();
     }
 
     @Override public double getCloseCost(){ throw new UnsupportedOperationException(); }
+
+    /**
+     *
+     * Boolean flag that is set so we can take this into account for JoinSelectivity calculation.
+     *
+     * @return
+     */
+    @Override
+    public boolean isOuterJoin() {
+        return isOuterJoin;
+    }
+
+    /**
+     *
+     * Boolean flag that is set so we can take this into account for JoinSelectivity calculation.
+     *
+     * @return
+     */
+    @Override
+    public void setOuterJoin(boolean isOuterJoin) {
+        this.isOuterJoin = isOuterJoin;
+    }
+
+    @Override
+    public boolean isAntiJoin() {
+        return isAntiJoin;
+    }
+
+    @Override
+    public void setAntiJoin(boolean isAntiJoin) {
+        this.isAntiJoin = isAntiJoin;
+    }
+
+    @Override
+    public void setFromBaseTableCost(double fromBaseTableCost) {
+
+    }
+
+    @Override
+    public double getProjectionRows() {
+        return 0;
+    }
+
+    @Override
+    public void setProjectionRows(double projectionRows) {
+
+    }
+
+    @Override
+    public double getProjectionCost() {
+        return 0;
+    }
+
+    @Override
+    public void setProjectionCost(double projectionCost) {
+
+    }
+
+    @Override
+    public double getIndexLookupRows() {
+        return 0;
+    }
+
+    @Override
+    public void setIndexLookupRows(double indexLookupRows) {
+
+    }
+
+    @Override
+    public double getIndexLookupCost() {
+        return 0;
+    }
+
+    @Override
+    public void setIndexLookupCost(double indexLookupCost) {
+
+    }
+
+    @Override
+    public double getFromBaseTableRows() {
+        return 0;
+    }
+
+    @Override
+    public void setFromBaseTableRows(double fromBaseTableRows) {
+
+    }
+
+    @Override
+    public double getFromBaseTableCost() {
+        return 0;
+    }
+
+    @Override
+    public double getLocalCost() {
+        return 0;
+    }
+
+    @Override
+    public double getRemoteCost() {
+        return 0;
+    }
 }

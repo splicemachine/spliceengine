@@ -36,6 +36,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
 
+import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -120,22 +121,26 @@ public class RowResultSetNode extends FromTable {
 	 *  Optimizable interface
 	 */
 
+
+    @Override
+    public CostEstimate getFinalCostEstimate() throws StandardException{
+        if(costEstimate==null){
+            costEstimate = super.getFinalCostEstimate();
+        }
+        return costEstimate;
+    }
+
 	@Override
 	public CostEstimate estimateCost(OptimizablePredicateList predList,
 									 ConglomerateDescriptor cd,
 									 CostEstimate outerCost,
 									 Optimizer optimizer,
 									 RowOrdering rowOrdering) throws StandardException {
-		/*
-		** Assume for now that the cost of a VALUES clause is zero, with one row
-		** fetched.  Is this true, and if not, does it make a difference?
-		** There's nothing to optimize in this case.
-		*/
 		if (costEstimate == null) {
 			costEstimate = optimizer.newCostEstimate();
 		}
+		costEstimate.setCost(0.1d, 1.0d, 1.0d);
 
-		costEstimate.setCost(0.0d, 1.0d, 1.0d);
 
 		/* A single row is always ordered */
 		rowOrdering.optimizableAlwaysOrdered(this);
@@ -490,6 +495,47 @@ public class RowResultSetNode extends FromTable {
 		return nonRowResultSetFound;
 	}
 
+
+    @Override
+    public CostEstimate optimizeIt(Optimizer optimizer,
+                                   OptimizablePredicateList predList,
+                                   CostEstimate outerCost,
+                                   RowOrdering rowOrdering) throws StandardException{
+        // It's possible that a call to optimize the left/right will cause
+        // a new "truly the best" plan to be stored in the underlying base
+        // tables.  If that happens and then we decide to skip that plan
+        // (which we might do if the call to "considerCost()" below decides
+        // the current path is infeasible or not the best) we need to be
+        // able to revert back to the "truly the best" plans that we had
+        // saved before we got here.  So with this next call we save the
+        // current plans using "this" node as the key.  If needed, we'll
+        // then make the call to revert the plans in OptimizerImpl's
+        // getNextDecoratedPermutation() method.
+        updateBestPlanMap(ADD_PLAN,this);
+
+        CostEstimate singleScanCost=estimateCost(predList, null, outerCost, optimizer, rowOrdering);
+
+		/* Make sure there is a cost estimate to set */
+        getCostEstimate(optimizer);
+
+        setCostEstimate(singleScanCost);
+
+		/* Optimize any subqueries that need to get optimized and
+		 * are not optimized any where else.  (Like those
+		 * in a RowResultSetNode.)
+		 */
+        optimizeSubqueries(getDataDictionary(),costEstimate.rowCount());
+
+		/*
+		** Get the cost of this result set in the context of the whole plan.
+		*/
+        getCurrentAccessPath().getJoinStrategy().estimateCost(this,predList,null,outerCost,optimizer,getCostEstimate());
+
+        optimizer.considerCost(this,predList,getCostEstimate(),outerCost);
+
+        return getCostEstimate();
+    }
+
 	/**
 	 * Optimize this SelectNode.  This means choosing the best access path
 	 * for each table, among other things.
@@ -518,13 +564,19 @@ public class RowResultSetNode extends FromTable {
 				predicateList,
 				dataDictionary,
 				null);
+
+
+
 		costEstimate = optimizer.newCostEstimate();
+        costEstimate.setCost(0.1d, outerRows, outerRows);
+        if (resultColumns != null)
+            costEstimate.setEstimatedHeapSize(resultColumns.getTotalColumnSize());
+        else
+            costEstimate.setEstimatedHeapSize(100); // Add at least 100 bytes
+        subquerys.optimize(dataDictionary, outerRows);
 
-		// RESOLVE: THE COST SHOULD TAKE SUBQUERIES INTO ACCOUNT
-		costEstimate.setCost(0.0d, outerRows, outerRows);
-
-		subquerys.optimize(dataDictionary, outerRows);
-		return this;
+        // TODO JL: RESOLVE: THE COST SHOULD TAKE SUBQUERIES INTO ACCOUNT
+        return this;
 	}
 
 	@Override
@@ -809,4 +861,29 @@ public class RowResultSetNode extends FromTable {
 		super.accept(visitor);
 		return !visitor.hasVariant();
 	}
+
+
+
+
+    @Override
+    public String printExplainInformation(int order) throws StandardException {
+        StringBuilder sb = new StringBuilder();
+        sb.append(spaceToLevel())
+                .append("Values").append("(")
+                .append("n=").append(order)
+                .append(",").append(getFinalCostEstimate().prettyProcessingString());
+        sb.append(")");
+        return sb.toString();
+    }
+    @Override
+    public void buildTree(Collection<QueryTreeNode> tree, int depth) throws StandardException {
+        setDepth(depth);
+        tree.add(this);
+        if (subquerys != null && subquerys.size()>0) {
+            for (SubqueryNode node:subquerys) {
+                node.buildTree(tree,depth+1);
+            }
+        }
+    }
+
 }

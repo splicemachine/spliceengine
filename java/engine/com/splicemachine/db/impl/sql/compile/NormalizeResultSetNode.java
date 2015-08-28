@@ -690,4 +690,17 @@ public class NormalizeResultSetNode extends SingleChildResultSetNode
     {
         childResult.pushOffsetFetchFirst( offset, fetchFirst, hasJDBClimitClause );
     }
+
+
+    @Override
+    public String printExplainInformation(int order) throws StandardException {
+        StringBuilder sb = new StringBuilder();
+        sb = sb.append(spaceToLevel())
+                .append("NormalizeResult").append("(")
+                .append("n=").append(order);
+        sb.append(",").append(getFinalCostEstimate().prettyScrollInsensitiveString());
+        sb = sb.append(")");
+        return sb.toString();
+    }
+
 }

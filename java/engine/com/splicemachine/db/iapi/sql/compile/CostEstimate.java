@@ -43,6 +43,40 @@ public interface CostEstimate extends StoreCostResult {
     void setLocalCost(double remoteCost);
 
     /**
+     *
+     *  Key flag to identify join type for computing join selectivity.
+     *
+     * @return
+     */
+    boolean isOuterJoin();
+
+    /**
+     *
+     * Set the flag on the cost so the join selectivity algorithm can understand if you are an outer or innner join.
+     * Anti-join is handled via another mechanism.
+     *
+     * @param isOuterJoin
+     */
+    void setOuterJoin(boolean isOuterJoin);
+
+    /**
+     *
+     *  Key flag to identify join type for computing join selectivity.
+     *
+     * @return
+     */
+    boolean isAntiJoin();
+
+    /**
+     *
+     * Set the flag on the cost so the join selectivity algorithm can understand if you are an outer or innner join.
+     *
+     *
+     * @param isAntiJoin
+     */
+    void setAntiJoin(boolean isAntiJoin);
+
+    /**
      * Copy the values from the given cost estimate into this one.
      */
     void setCost(CostEstimate other);
@@ -165,5 +199,46 @@ public interface CostEstimate extends StoreCostResult {
     /**
      * @return a well-formatted display string
      */
-    String prettyString();
+    String prettyProcessingString();
+
+    /**
+     * @return a well-formatted display string
+     */
+    String prettyScrollInsensitiveString();
+
+    String prettyFromBaseTableString();
+
+    String prettyIndexLookupString();
+
+    String prettyProjectionString();
+
+    public double getProjectionRows();
+
+    public void setProjectionRows(double projectionRows);
+
+    public double getProjectionCost();
+
+    public void setProjectionCost(double projectionCost);
+
+    public double getIndexLookupRows() ;
+
+    public void setIndexLookupRows(double indexLookupRows) ;
+
+    public double getIndexLookupCost() ;
+
+    public void setIndexLookupCost(double indexLookupCost) ;
+
+    public double getFromBaseTableRows() ;
+
+    public void setFromBaseTableRows(double fromBaseTableRows);
+
+    public double getFromBaseTableCost();
+
+    public void setFromBaseTableCost(double fromBaseTableCost);
+
+    public double getLocalCost();
+
+    public double getRemoteCost();
+
+
 }

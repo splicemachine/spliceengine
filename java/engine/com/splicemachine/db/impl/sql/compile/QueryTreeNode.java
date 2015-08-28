@@ -21,6 +21,7 @@
 
 package com.splicemachine.db.impl.sql.compile;
 
+import com.google.common.base.Strings;
 import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.TypeDescriptor;
 import com.splicemachine.db.catalog.types.RowMultiSetImpl;
@@ -54,6 +55,7 @@ import com.splicemachine.db.impl.sql.execute.GenericConstantActionFactory;
 import com.splicemachine.db.impl.sql.execute.GenericExecutionFactory;
 
 import java.sql.Types;
+import java.util.Collection;
 import java.util.Map;
 
 /**
@@ -63,6 +65,7 @@ import java.util.Map;
  */
 
 public abstract class QueryTreeNode implements Node, Visitable{
+    int depth;
     public static final int AUTOINCREMENT_START_INDEX=0;
     public static final int AUTOINCREMENT_INC_INDEX=1;
     public static final int AUTOINCREMENT_IS_AUTOINCREMENT_INDEX=2;
@@ -1585,6 +1588,37 @@ public abstract class QueryTreeNode implements Node, Visitable{
             sqlState=SQLState.LANG_UNRELIABLE_QUERY_FRAGMENT;
         }
         throw StandardException.newException(sqlState,fragmentType);
+    }
+
+    protected void setDepth(int depth) {
+        this.depth = depth;
+    }
+
+    protected String spaceToLevel(){
+        if(depth==0) return "";
+        else
+            return Strings.repeat(spaces, depth)+"->"+spaces;
+    }
+
+    /**
+     * By default, return nothing
+     *
+     * @return
+     * @throws StandardException
+     */
+    protected String getExtraInformation() throws StandardException {
+        return null;
+    }
+
+    private static final String spaces="  ";
+
+    public void buildTree(Collection<QueryTreeNode> tree, int depth) throws StandardException {
+        setDepth(depth);
+        tree.add(this);
+    }
+
+    public String printExplainInformation(int order) throws StandardException {
+        throw new RuntimeException("Not implemented" + this.getClass());
     }
 
 }

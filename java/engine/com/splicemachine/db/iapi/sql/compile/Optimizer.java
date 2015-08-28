@@ -270,6 +270,8 @@ public interface Optimizer{
      */
     void setOuterRowOrdering(RowOrdering rowOrdering);
 
+    void setIsOuterJoin(boolean isOuterJoin);
+
     /**
      * Get the number of join strategies supported by this optimizer.
      */

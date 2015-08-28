@@ -1985,4 +1985,21 @@ public class FromVTI extends FromTable implements VTIEnvironment {
         }
     }
 
+    public void buildTree(Collection<QueryTreeNode> tree, int depth) {
+        setDepth(depth);
+        tree.add(this);
+    }
+
+    @Override
+    public String printExplainInformation(int order) throws StandardException {
+        StringBuilder sb = new StringBuilder();
+        sb.append(spaceToLevel())
+                .append("VTI:").append(getName()).append("(")
+                .append("n=").append(order)
+                .append(",").append(getFinalCostEstimate().prettyProcessingString());
+        sb.append(")");
+        return sb.toString();
+    }
+
+
 }

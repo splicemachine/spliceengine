@@ -27,6 +27,7 @@ import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 
 import com.splicemachine.db.iapi.util.JBitSet;
+import com.splicemachine.db.impl.sql.compile.SelectivityUtil;
 
 /**
  * OptimizablePredicate provides services for optimizing predicates in a query.
@@ -137,7 +138,19 @@ public interface OptimizablePredicate
 	 */
 	double selectivity(Optimizable optTable) throws StandardException;
 
-	double selectivity(Optimizable table,ConglomerateDescriptor cd) throws StandardException;
+    /**
+     *
+     * Join Selectivity calculation for an optimizable predicate.
+     *
+     * @param table
+     * @param cd
+     * @param innerRowCount
+     * @param outerRowCount
+     * @param selectivityJoinType
+     * @return
+     * @throws StandardException
+     */
+	double joinSelectivity(Optimizable table,ConglomerateDescriptor cd, long innerRowCount, long outerRowCount, SelectivityUtil.SelectivityJoinType selectivityJoinType) throws StandardException;
 
 	/**
 	 * Get the position of the index column that this predicate restricts.
