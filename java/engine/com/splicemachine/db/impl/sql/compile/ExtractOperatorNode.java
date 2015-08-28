@@ -37,7 +37,6 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import java.sql.Types;
 
 import java.util.List;
-import java.util.Vector;
 
 /**
  * This node represents a unary extract operator, used to extract
@@ -54,8 +53,7 @@ public class ExtractOperatorNode extends UnaryOperatorNode {
 	};
 
     static private final long fieldCardinality[] = {
-        5l, 4l, 12l, 12l, 52l, 7l, 7l, 365l, 730l, 24l, 60l, 60l
-
+        5l, 4l, 12l, 12l, 52l, 7l, 7l, 365l, 31l, 24l, 60l, 60l
     };
 
 	private int extractField;
@@ -194,8 +192,7 @@ public class ExtractOperatorNode extends UnaryOperatorNode {
 	}
 
     @Override
-    public long getCardinalityEstimate() {
-        return fieldCardinality[extractField];
+    public long nonZeroCardinality(long numberOfRows) {
+        return Math.min(fieldCardinality[extractField], numberOfRows);
     }
-
 }

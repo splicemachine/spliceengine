@@ -136,7 +136,7 @@ public abstract class OrderedColumn extends QueryTreeNode
         long columnReturnedRows = getValueNode().nonZeroCardinality(numberOfRows);
         if (getColumnExpression() instanceof UnaryOperatorNode) { // Adjust for extact methods, soon to push down
             UnaryOperatorNode node = (UnaryOperatorNode) getColumnExpression();
-            columnReturnedRows = (node.getCardinalityEstimate() < columnReturnedRows)?node.getCardinalityEstimate():columnReturnedRows;
+            columnReturnedRows = (node.nonZeroCardinality(numberOfRows) < columnReturnedRows)?node.nonZeroCardinality(numberOfRows):columnReturnedRows;
         }
         return columnReturnedRows;
     }

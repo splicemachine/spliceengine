@@ -1235,9 +1235,9 @@ public class SelectNode extends ResultSetNode{
                         null,
                         getContextManager());
                 // TODO NOT-OPTIMAL
-                prnRSN.costEstimate=costEstimate.cloneMe();
                 // Remember whether or not we can eliminate the sort.
                 eliminateSort=eliminateSort || inSortedOrder;
+                ((DistinctNode)prnRSN).estimateCost(null, null, null, optimizer, null);
             }
         }
 

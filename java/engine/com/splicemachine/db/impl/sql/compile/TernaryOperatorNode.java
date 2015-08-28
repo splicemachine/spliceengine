@@ -1109,4 +1109,15 @@ public class TernaryOperatorNode extends OperatorNode
 			add(rightOperand);
 		}};
 	}
+
+
+    @Override
+    public long nonZeroCardinality(long numberOfRows) throws StandardException {
+        long c1 = leftOperand.nonZeroCardinality(numberOfRows);
+        long c2 = rightOperand.nonZeroCardinality(numberOfRows);
+        long c3 = receiver.nonZeroCardinality(numberOfRows);
+
+        return Math.max(Math.max(c1, c2), c3);
+    }
+
 }

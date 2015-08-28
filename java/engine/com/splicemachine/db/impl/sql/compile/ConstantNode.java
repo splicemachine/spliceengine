@@ -287,4 +287,10 @@ public abstract class ConstantNode extends ValueNode
 		return Collections.EMPTY_LIST;
 	}
 
+
+	@Override
+	public long nonZeroCardinality(long numberOfRows) throws StandardException {
+		return 1;
+	}
+
 }

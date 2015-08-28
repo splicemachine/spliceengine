@@ -430,7 +430,8 @@ public class UnionNode extends SetOperatorNode{
 			 * us would have a tableNumber of -1 instead of our tableNumber.)
 			 */
             ((FromTable)treeTop).setTableNumber(tableNumber);
-            treeTop.setReferencedTableMap((JBitSet)referencedTableMap.clone());
+            treeTop.setReferencedTableMap((JBitSet) referencedTableMap.clone());
+            ((DistinctNode)treeTop).estimateCost(null, null, null, optimizer, null);
             all=true;
         }
 
