@@ -118,7 +118,7 @@ public class GroupBySelectivityIT extends SpliceUnitTest {
 
     @Test
     public void testConcatenationSupport() throws Exception {
-        secondRowContainsQuery("explain select count(*), c2||c2 from TS_LOW_CARDINALITY group by c2||c2", "outputRows=8192", methodWatcher);
+        secondRowContainsQuery("explain select count(*), c2||c2 from TS_LOW_CARDINALITY group by c2||c2", "outputRows=5", methodWatcher);
     }
 
 }

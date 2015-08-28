@@ -77,17 +77,25 @@ public class DistinctScanSelectivityIT extends SpliceUnitTest {
         firstRowContainsQuery("explain select distinct c1, c2 from ts_low_cardinality", "rows=25", methodWatcher);
         firstRowContainsQuery("explain select distinct c1,c2,c3 from ts_low_cardinality", "rows=125", methodWatcher);
         firstRowContainsQuery("explain select distinct c1,c2,c3,c4 from ts_low_cardinality", "rows=125", methodWatcher);
+        firstRowContainsQuery("explain select distinct c1+1 from ts_low_cardinality", "rows=5", methodWatcher);
 
         // Add For Non Stats?
     }
 
-
     @Test
-    @Ignore("DB-3622")
-    // Need to compute cost in DistinctNode
     public void testDistinctNodeCount() throws Exception {
-        firstRowContainsQuery("explain select distinct month(c3) from ts_low_cardinality", "outputRows=5", methodWatcher);
-        firstRowContainsQuery("explain select distinct month(c3) from ts_high_cardinality", "outputRows=12", methodWatcher);
+        firstRowContainsQuery("explain select distinct year(c3) from ts_low_cardinality", "rows=5", methodWatcher);
+        firstRowContainsQuery("explain select distinct quarter(c3) from ts_low_cardinality", "rows=4", methodWatcher);
+        firstRowContainsQuery("explain select distinct month(c3) from ts_low_cardinality", "rows=12", methodWatcher);
+        firstRowContainsQuery("explain select distinct monthname(c3) from ts_low_cardinality", "rows=12", methodWatcher);
+        firstRowContainsQuery("explain select distinct week(c3) from ts_low_cardinality", "rows=52", methodWatcher);
+        firstRowContainsQuery("explain select distinct weekday(c3) from ts_low_cardinality", "rows=7", methodWatcher);
+        firstRowContainsQuery("explain select distinct weekdayname(c3) from ts_low_cardinality", "rows=7", methodWatcher);
+        firstRowContainsQuery("explain select distinct dayofyear(c3) from ts_low_cardinality", "rows=365", methodWatcher);
+        firstRowContainsQuery("explain select distinct day(c3) from ts_low_cardinality", "rows=31", methodWatcher);
+        firstRowContainsQuery("explain select distinct hour(c3) from ts_low_cardinality", "rows=24", methodWatcher);
+        firstRowContainsQuery("explain select distinct minute(c3) from ts_low_cardinality", "rows=60", methodWatcher);
+        firstRowContainsQuery("explain select distinct second(c3) from ts_low_cardinality", "rows=60", methodWatcher);
+        firstRowContainsQuery("explain select distinct month(c3) from ts_high_cardinality", "rows=12", methodWatcher);
     }
-
 }
