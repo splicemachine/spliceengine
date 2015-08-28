@@ -6,7 +6,6 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
@@ -23,7 +22,6 @@ import com.splicemachine.homeless.TestUtils;
 /**
  * Test multiple window functions in a query.
  */
-@Ignore("DB-3226")
 public class WindowFunctionMultiIT extends SpliceUnitTest {
     public static final String CLASS_NAME = WindowFunctionMultiIT.class.getSimpleName().toUpperCase();
 
