@@ -196,13 +196,11 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
             topOperation.close();
             // get rid of the following if redundant
         } catch (RuntimeException r) {
-            JobResults jobResults = topOperation.getJobResults();
-            if(jobResults!=null)
-                jobResults.cleanup();
             throw Exceptions.parseException(r);
         } finally {
             closed = true;
         }
+        closed = true;
 
     }
 
