@@ -507,10 +507,10 @@ public abstract class NumberDataType extends DataType
     public static float normalizeREAL(double v) throws StandardException
     {
         // can't just cast it to float and call normalizeFloat(float) since casting can round down to 0.0
-        if ( (Double.isNaN(v) || Double.isInfinite(v)) ||
-             ((v < Limits.DB2_SMALLEST_REAL) || (v > Limits.DB2_LARGEST_REAL)) ||
-             ((v > 0) && (v < Limits.DB2_SMALLEST_POSITIVE_REAL)) ||
-             ((v < 0) && (v > Limits.DB2_LARGEST_NEGATIVE_REAL)) )
+        if ( (Double.isNaN(v) || Double.isInfinite(v))) // ||
+             //((v < Limits.DB2_SMALLEST_REAL) || (v > Limits.DB2_LARGEST_REAL)) ||
+             //((v > 0) && (v < Limits.DB2_SMALLEST_POSITIVE_REAL)) ||
+             //((v < 0) && (v > Limits.DB2_LARGEST_NEGATIVE_REAL)) )
         {
 			throw StandardException.newException(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE, TypeId.REAL_NAME);
         }
