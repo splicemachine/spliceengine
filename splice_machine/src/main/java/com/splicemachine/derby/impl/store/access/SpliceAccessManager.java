@@ -1016,5 +1016,9 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
         return tableFactory.createHTableInterface(SpliceConstants.config,tableName);
     }
 
+    public static HTableInterface getHTable(String tableName) {
+        return tableFactory.createHTableInterface(SpliceConstants.config,tableName.getBytes());
+    }
+
 }
 
