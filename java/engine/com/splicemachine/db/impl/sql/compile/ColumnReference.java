@@ -1357,4 +1357,18 @@ public class ColumnReference extends ValueNode {
         return getCompilerContext().getStoreCostController(cd).rowCount();
     }
 
+    @Override
+    public String toHTMLString() {
+        return "columnName: " + columnName + "<br>" +
+                "tableNumber: " + tableNumber + "<br>" +
+                "columnNumber: " + columnNumber + "<br>" +
+                "replacesAggregate: " + replacesAggregate + "<br>" +
+                "replacesWindowFunctionCall: " +
+                replacesWindowFunctionCall + "<br>" +
+                "tableName: " + ( ( tableName != null) ?
+                tableName.toString() :
+                "null") + "<br>" +
+                "nestingLevel: " + nestingLevel + "<br>" +
+                "sourceLevel: " + sourceLevel + "<br>";
+    }
 }

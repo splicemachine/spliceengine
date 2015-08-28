@@ -1478,4 +1478,11 @@ public abstract class ValueNode extends QueryTreeNode
         return "restriction";
     }
 
+    @Override
+    public String toHTMLString() {
+            return "dataTypeServices: " +
+                    ( ( dataTypeServices != null) ?
+                            dataTypeServices.toString() : "null" ) + "<br>";
+    }
+
 }

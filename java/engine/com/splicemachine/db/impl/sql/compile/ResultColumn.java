@@ -1955,5 +1955,27 @@ public class ResultColumn extends ValueNode
         return cardinality==0?numberOfRows:cardinality;
     }
 
+    @Override
+    public String toHTMLString() {
+        return "exposedName: " + exposedName + "<br>" +
+                "name: " + name + "<br>" +
+                "tableName: " + tableName + "<br>" +
+                "isDefaultColumn: " + defaultColumn + "<br>" +
+                "wasDefaultColumn: " + wasDefault + "<br>" +
+                "isNameGenerated: " + isNameGenerated + "<br>" +
+                "sourceTableName: " + sourceTableName + "<br>" +
+                "type: " + getTypeServices() + "\n" +
+                "columnDescriptor: " + columnDescriptor + "<br>" +
+                "isGenerated: " + isGenerated + "<br>" +
+                "isGeneratedForUnmatchedColumnInInsert: " + isGeneratedForUnmatchedColumnInInsert + "<br>" +
+                "isGroupingColumn: " + isGroupingColumn + "<br>" +
+                "isReferenced: " + isReferenced + "<br>" +
+                "isRedundant: " + isRedundant + "<br>" +
+                "rightOuterJoinUsingClause: " + rightOuterJoinUsingClause + "<br>" +
+                "joinResultSet: " + joinResultSet + "<br>" +
+                "virtualColumnId: " + virtualColumnId + "<br>" +
+                "resultSetNumber: " + resultSetNumber + "<br>";
+    }
+
 }
 
