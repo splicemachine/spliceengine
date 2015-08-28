@@ -2,12 +2,15 @@ package com.splicemachine.mrio.api.core;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.HTableDescriptor;
+import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.client.IsolationLevel;
 import org.apache.hadoop.hbase.client.Scan;
@@ -102,16 +105,24 @@ public abstract class BaseClientSideRegionScanner<T> implements RegionScanner {
 	
 	public boolean nextInternalRaw(List<T> result) throws IOException {
 		boolean res = nextMerged(result, true);
+		Collections.sort(result, new Comparator<T>() {
+			@Override
+			public int compare(T o1, T o2) {
+				return -Long.compare(((KeyValue) o1).getTimestamp(), ((KeyValue) o2).getTimestamp());
+			}
+		});
 		return updateTopCell(res,result);
 	}
 
 	private boolean nextMerged(List<T> result, boolean recurse) throws IOException {
+		boolean res;
 		if (!nextResults.isEmpty()) {
 			result.addAll(nextResults);
 			nextResults.clear();
-			return nextResponse;
+			res = nextResponse;
+		} else {
+			res = dataLib.regionScannerNextRaw(scanner, result);
 		}
-		boolean res = dataLib.regionScannerNextRaw(scanner, result);
 		if (matchingFamily(result,MRConstants.HOLD)) {
 			result.clear();
 			return nextMerged(result, recurse);
@@ -122,7 +133,7 @@ public abstract class BaseClientSideRegionScanner<T> implements RegionScanner {
 				result.addAll(nextResults);
 				nextResults.clear();
 			}
-			return nextResponse;
+			return true;
 		}
 		return res;
 	}

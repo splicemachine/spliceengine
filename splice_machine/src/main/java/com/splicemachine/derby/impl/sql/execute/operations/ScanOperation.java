@@ -185,7 +185,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 				scan.setCaching(2); // Limit the batch size for performance
                     		// Setting caching to 2 instead of 1 removes an extra RPC during Single Row Result Scans
 				}
-				//deSiify(scan);
+				deSiify(scan);
 				return scan;
 		}
 
