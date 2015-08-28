@@ -4,6 +4,7 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.RpcCallback;
 import com.google.protobuf.RpcController;
 import com.google.protobuf.Service;
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.coprocessor.SpliceMessage.SpliceDerbyCoprocessorService;
 import com.splicemachine.coprocessor.SpliceMessage.SpliceSplitServiceRequest;
@@ -20,6 +21,9 @@ import org.apache.hadoop.hbase.client.Mutation;
 import org.apache.hadoop.hbase.coprocessor.*;
 import org.apache.hadoop.hbase.protobuf.generated.AdminProtos;
 import org.apache.hadoop.hbase.regionserver.HRegion;
+import org.apache.hadoop.hbase.regionserver.HRegionUtil;
+import org.apache.hadoop.hbase.regionserver.HStore;
+import org.apache.hadoop.hbase.regionserver.Store;
 import org.apache.hadoop.hbase.replication.ReplicationEndpoint;
 import org.apache.log4j.Logger;
 
@@ -81,8 +85,40 @@ public class SpliceDerbyCoprocessor extends SpliceDerbyCoprocessorService implem
         callback.run(writeResponse.build());
     }
 
+    @Override
+    public void computeRegionSize(RpcController controller, SpliceMessage.SpliceRegionSizeRequest request, RpcCallback<SpliceMessage.SpliceRegionSizeResponse> callback) {
+        if (LOG.isDebugEnabled())
+            SpliceLogUtils.debug(LOG, "computeRegionSize");
+        SpliceMessage.SpliceRegionSizeResponse.Builder writeResponse = SpliceMessage.SpliceRegionSizeResponse.newBuilder();
+        try {
+            writeResponse.setEncodedName(region.getRegionNameAsString());
+            writeResponse.setSizeInBytes(region.getMemstoreSize().longValue()+getStoreFileSize());
+        } catch (Exception e) {
+            org.apache.hadoop.hbase.protobuf.ResponseConverter.setControllerException(controller, new IOException(e));
+        }
+        callback.run(writeResponse.build());
+    }
+
     private static List<byte[]> computeSplits(HRegion region, byte[] beginKey, byte[] endKey) throws IOException {
         return BytesCopyTaskSplitter.getCutPoints(region, beginKey, endKey);
+    }
+
+    /**
+     * Compute Store File Size.  Performs it under a lock in case store files are changing underneath us.
+     *
+     * @see HRegionUtil#lockStore(org.apache.hadoop.hbase.regionserver.Store)
+     * @see HRegionUtil#unlockStore(org.apache.hadoop.hbase.regionserver.Store)
+     *
+     * @return
+     */
+    private long getStoreFileSize() {
+        Store store = region.getStore(SpliceConstants.DEFAULT_FAMILY_BYTES);
+        try {
+            HRegionUtil.lockStore(store);
+            return region.getStore(SpliceConstants.DEFAULT_FAMILY_BYTES).getStoreSizeUncompressed();
+        } finally {
+                HRegionUtil.unlockStore(store);
+        }
     }
 
 }

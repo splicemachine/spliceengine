@@ -195,6 +195,8 @@ public class IntStats extends BaseDvdStatistics {
                     return ((IntDistribution)intStats.getDistribution()).selectivityAfter(s, includeStart);
                 }else {
                     int e = safeGetInt(stop);
+                    if (s>e)
+                        return 0l;
                     return ((IntDistribution)intStats.getDistribution()).rangeSelectivity(s,e,includeStart,includeStop);
                 }
             }

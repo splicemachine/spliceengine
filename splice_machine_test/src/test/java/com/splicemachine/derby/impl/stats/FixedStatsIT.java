@@ -23,6 +23,7 @@ import static org.junit.Assert.fail;
  * @author Scott Fines
  *         Date: 6/24/15
  */
+@Ignore("DB-3729")
 public class FixedStatsIT{
     private static final SpliceWatcher classWatcher = new SpliceWatcher();
     private static final SpliceSchemaWatcher schema = new SpliceSchemaWatcher(FixedStatsIT.class.getSimpleName().toUpperCase());
@@ -112,43 +113,6 @@ public class FixedStatsIT{
             int changed = s.executeUpdate("update "+charDelete+" set c='2' where c = '1'");
             Assert.assertEquals("did not properly delete values!", 1, changed);
         }
-    }
-
-    @Test
-    public void testQualifiedScanHasLowerCost() throws Exception{
-        try(PreparedStatement ps=conn.prepareStatement("insert into "+charDelete+" (c) values (?)")){
-            ps.setString(1,"1");
-            ps.execute();
-            ps.setString(1,"2");
-            ps.execute();
-            ps.setString(1,"3");
-            ps.execute();
-            ps.setString(1,"4");
-            ps.execute();
-            ps.setString(1,"5");
-            ps.execute();
-        }
-
-        conn.collectStats(schema.schemaName,charDelete.tableName);
-        ExplainRow unqualifiedRow;
-        ExplainRow qualifiedRow;
-        String baseSql = "explain select * from "+charDelete;
-        try(Statement s = conn.createStatement()){
-            try(ResultSet resultSet=s.executeQuery(baseSql)){
-                Assert.assertTrue("no row returned!",resultSet.next());
-                unqualifiedRow=ExplainRow.parse(resultSet.getString(1));
-            }
-            try(ResultSet resultSet=s.executeQuery(baseSql+" where c = '5         '")){
-                Assert.assertTrue("no row returned!",resultSet.next());
-                qualifiedRow=ExplainRow.parse(resultSet.getString(1));
-            }
-        }
-        ExplainRow.Cost qualifiedCost=qualifiedRow.cost();
-        ExplainRow.Cost unqualifiedCost=unqualifiedRow.cost();
-        Assert.assertTrue("Total costs is not lower!",qualifiedCost.overallCost()<unqualifiedCost.overallCost());
-        Assert.assertTrue("row count is not lower!!",qualifiedCost.rowCount()<unqualifiedCost.rowCount());
-        Assert.assertTrue("Transfer cost is not lower!!",qualifiedCost.remoteCost()<unqualifiedCost.remoteCost());
-        Assert.assertEquals("Local cost does not match!!", unqualifiedCost.localCost(), qualifiedCost.localCost(), 1e-10);
     }
 
     private void assertExpectedCount(Statement s,int expectedCount) throws SQLException{

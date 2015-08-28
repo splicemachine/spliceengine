@@ -196,7 +196,7 @@ public class SpliceWatcher extends TestWatcher {
     public <T> T query(String sql) throws Exception {
         T result;
         ResultSet rs = executeQuery(sql);
-        assertTrue(rs.next());
+        assertTrue("does not have next",rs.next());
         result = (T) rs.getObject(1);
         assertFalse(rs.next());
         return result;

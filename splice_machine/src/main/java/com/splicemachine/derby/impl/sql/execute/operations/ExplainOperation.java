@@ -7,19 +7,14 @@ import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.SQLVarchar;
-import com.splicemachine.db.impl.ast.ExplainTree;
 import com.splicemachine.db.impl.ast.PlanPrinter;
+import com.splicemachine.db.impl.sql.compile.QueryTreeNode;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.pipeline.exception.Exceptions;
-import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
-import com.splicemachine.derby.iapi.storage.RowProvider;
-import com.splicemachine.derby.impl.storage.RowProviders;
-import com.splicemachine.derby.utils.marshall.PairDecoder;
-import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import org.sparkproject.guava.common.base.Function;
 import org.sparkproject.guava.common.collect.Iterables;
@@ -76,8 +71,8 @@ public class ExplainOperation extends SpliceBaseOperation {
         super.close();
     }
 
-    protected void clearState() {
-        Map<String, ExplainTree> m = PlanPrinter.planMap.get();
+    protected void clearState(){
+        Map<String, Collection<QueryTreeNode>> m=PlanPrinter.planMap.get();
         String sql = activation.getPreparedStatement().getSource();
         m.remove(sql);
     }
@@ -108,14 +103,14 @@ public class ExplainOperation extends SpliceBaseOperation {
     }
 
     @SuppressWarnings("unchecked")
-    private void getPlanInformation() {
-        Map<String, ExplainTree> m = PlanPrinter.planMap.get();
+    private void getPlanInformation() throws StandardException{
+        Map<String,Collection<QueryTreeNode>> m = PlanPrinter.planMap.get();
         String sql = activation.getPreparedStatement().getSource();
-        ExplainTree opPlanMap = m.get(sql);
-        if (opPlanMap != null) {
-            explainStringIter = opPlanMap.treeToString();
-        } else
-            explainStringIter = Iterators.emptyIterator();
+        Collection<QueryTreeNode> opPlanMap = m.get(sql);
+        if(opPlanMap!=null){
+            explainStringIter = PlanPrinter.planToString(opPlanMap);
+        }else
+            explainStringIter =Iterators.emptyIterator();
     }
 
     public DataSet<LocatedRow> getDataSet(DataSetProcessor dsp) throws StandardException {

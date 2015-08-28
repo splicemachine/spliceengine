@@ -4,10 +4,7 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.test_dao.TableDAO;
 import com.splicemachine.test_tools.TableCreator;
-import org.junit.Before;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 
 import java.sql.Connection;
 import java.util.regex.Pattern;
@@ -367,6 +364,7 @@ public class ForeignKey_Check_IT {
     }
 
     @Test
+    @Ignore("DB-3735")
     public void nullValues_referencing_twoColumnUniqueIndex() throws Exception {
 
         new TableCreator(connection())
@@ -388,6 +386,7 @@ public class ForeignKey_Check_IT {
     }
 
     @Test
+    @Ignore("DB-3735")
     public void nullValues_referencing_twoColumnDoubleUniqueIndex() throws Exception {
 
         new TableCreator(connection())
