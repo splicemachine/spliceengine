@@ -1,17 +1,23 @@
 package com.splicemachine.hbase;
 
 import com.google.common.collect.Maps;
+import com.google.protobuf.SpliceZeroCopyByteString;
 import com.splicemachine.concurrent.MoreExecutors;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.coprocessor.SpliceMessage;
 import com.splicemachine.hbase.table.SpliceConnectionPool;
+import com.splicemachine.hbase.table.SpliceRpcController;
 import com.splicemachine.utils.SpliceLogUtils;
-import org.apache.hadoop.hbase.ClusterStatus;
-import org.apache.hadoop.hbase.RegionLoad;
-import org.apache.hadoop.hbase.ServerLoad;
-import org.apache.hadoop.hbase.ServerName;
+import org.apache.hadoop.hbase.*;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.client.HConnection;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.coprocessor.Batch;
+import org.apache.hadoop.hbase.ipc.BlockingRpcCallback;
+import org.apache.hadoop.hbase.protobuf.generated.ClusterStatusProtos;
+import org.apache.hadoop.hbase.protobuf.generated.HBaseProtos;
 import org.apache.hadoop.hbase.util.Bytes;
+import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
@@ -31,10 +37,7 @@ import java.util.concurrent.atomic.AtomicReference;
  */
 public class HBaseRegionLoads {
     private static final Logger LOG = Logger.getLogger(HBaseRegionLoads.class);
-    private static HBaseAdmin admin;
     // Periodic updating
-    private static final int UPDATE_MULTIPLE = 15;
-    private static final int SMALLEST_UPDATE_INTERVAL = 200;
     private static final AtomicBoolean started = new AtomicBoolean(false);
     // The cache is a map from tablename to map of regionname to RegionLoad
     private static final AtomicReference<Map<String, Map<String,RegionLoad>>> cache = new AtomicReference<>();
@@ -144,21 +147,64 @@ public class HBaseRegionLoads {
 
     // Lookups
 
-    public static Collection<RegionLoad> getCachedRegionLoadsForTable(String tableName){
-        Map<String,Map<String,RegionLoad>> loads = cache.get();
-        if (loads == null){
+    public static Map<String, RegionLoad> getCostWhenNoCachedRegionLoadsFound(String tableName){
+        try{
+            HConnection conn = SpliceConnectionPool.INSTANCE.getConnection();
+            HTableInterface t = conn.getTable(tableName);
+
+            Map<byte[], Pair<String, Long>> ret = t.coprocessorService(SpliceMessage.SpliceDerbyCoprocessorService.class, HConstants.EMPTY_START_ROW,
+                    HConstants.EMPTY_END_ROW, new Batch.Call<SpliceMessage.SpliceDerbyCoprocessorService, Pair<String, Long>>() {
+                        @Override
+                        public Pair<String, Long> call(SpliceMessage.SpliceDerbyCoprocessorService inctance) throws IOException{
+                            SpliceRpcController controller = new SpliceRpcController();
+                            SpliceMessage.SpliceRegionSizeRequest message = SpliceMessage.SpliceRegionSizeRequest.newBuilder().build();
+                            BlockingRpcCallback<SpliceMessage.SpliceRegionSizeResponse> rpcCallback = new BlockingRpcCallback();
+                            inctance.computeRegionSize(controller, message, rpcCallback);
+                            SpliceMessage.SpliceRegionSizeResponse response = rpcCallback.get();
+                            Pair<String, Long> ret = Pair.newPair(response.getEncodedName(), response.getSizeInBytes());
+                            return ret;
+                        }
+                    });
+            Collection<Pair<String, Long>> collection = ret.values();
+            long factor = 1024 * 1024;
+            Map<String, RegionLoad> retMap = new HashMap<>();
+            for(Pair<String, Long> info : collection){
+                long sizeMB = info.getSecond() / factor;
+                ClusterStatusProtos.RegionLoad.Builder rl = ClusterStatusProtos.RegionLoad.newBuilder();
+                rl.setMemstoreSizeMB((int)(sizeMB / 2));
+                rl.setStorefileSizeMB((int) (sizeMB / 2));
+                rl.setRegionSpecifier(HBaseProtos.RegionSpecifier.newBuilder()
+                    .setType(HBaseProtos.RegionSpecifier.RegionSpecifierType.ENCODED_REGION_NAME).setValue(
+                                        SpliceZeroCopyByteString.copyFromUtf8(info.getFirst())).build());
+                ClusterStatusProtos.RegionLoad load = rl.build();
+                retMap.put(info.getFirst(), new RegionLoad(load));
+            }
+
+            return retMap;
+        } catch (Throwable th){
+            th.printStackTrace();
+        }
+        return null;
+    }
+
+    public static Collection<RegionLoad> getCachedRegionLoadsForTable(String tableName) {
+        Map<String, Map<String, RegionLoad>> loads = cache.get();
+        if (loads == null) {
             if (LOG.isDebugEnabled())
-                SpliceLogUtils.debug(LOG,"This should not happen");
+                SpliceLogUtils.debug(LOG, "This should not happen");
             return Collections.emptyList();
         }
         Map<String, RegionLoad> regions = loads.get(tableName);
+        if(regions.isEmpty()){
+            regions = getCostWhenNoCachedRegionLoadsFound(tableName);
+        }
         return regions == null ? null : regions.values();
     }
 
     public static Map<String, RegionLoad> getCachedRegionLoadsMapForTable(String tableName){
         Map<String,Map<String,RegionLoad>> loads = cache.get();
         if (loads == null){
-            return Collections.emptyMap();
+            return getCostWhenNoCachedRegionLoadsFound(tableName);
         }
         return loads.get(tableName);
     }

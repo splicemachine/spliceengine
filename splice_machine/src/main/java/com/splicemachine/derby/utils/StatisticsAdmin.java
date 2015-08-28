@@ -47,7 +47,6 @@ import com.splicemachine.si.api.TxnView;
 import com.splicemachine.stats.TableStatistics;
 import com.splicemachine.utils.IntArrays;
 import com.splicemachine.utils.SpliceLogUtils;
-
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.ServerName;
 import org.apache.hadoop.hbase.client.HTableInterface;
@@ -176,6 +175,10 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             SchemaDescriptor sd = getSchemaDescriptor(schema,lcc,dd);
             //get a list of all the TableDescriptors in the schema
             List<TableDescriptor> tds = getAllTableDescriptors(sd,conn);
+            if (tds.isEmpty()) {
+                // DEBUG: JC - No point in continuing with empty TableDescriptor list, possible NPE
+                return;
+            }
             authorize(tds);
             ExecRow templateOutputRow = buildOutputTemplateRow();
             List<StatsJob> jobs = new ArrayList<>(tds.size());
@@ -499,15 +502,50 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                      * are special cases where the number of conglomerate descriptors is 0. We
                      * don't collect statistics for those views
                      */
-                    if(tableDescriptor.getConglomerateDescriptorList().size()>0){
+
+                    if (tableDescriptor == null || tableDescriptor.getConglomerateDescriptorList() == null) {
+                        // DEBUG: JC - changed logging to ERROR to make sure we get this message logged
+                        SpliceLogUtils.error(LOG,"tableDescriptor is null for this table/view tableid=%s, tableDescriptor=%s",tableId,tableDescriptor);
+                    }
+                    else if(tableDescriptor.getConglomerateDescriptorList().size() > 0){
                         tds.add(tableDescriptor);
                     }
+                }
+                if (tds.isEmpty()) {
+                    // DEBUG: JC - changed logging to ERROR to make sure we get this message logged
+                    SpliceLogUtils.error(LOG,"No tables in schema ID=%s", sd.getUUID().toString());
+                } else {
+                    // DEBUG: JC - changed logging to ERROR to make sure we get this message logged
+                    SpliceLogUtils.error(LOG,"TableDescriptors: %s", printTDs(tds));
                 }
                 return tds;
             }
         }catch(StandardException e){
             throw PublicAPI.wrapStandardException(e);
         }
+    }
+
+    private static String printTDs(List<TableDescriptor> tds) {
+        StringBuilder buf = new StringBuilder();
+        for (TableDescriptor td : tds) {
+            try {
+                buf.append("[").append(td.getName()).append("(").append(td.getHeapConglomerateId()).append(")");
+            } catch (StandardException e) {
+                e.printStackTrace();
+            }
+            ConglomerateDescriptor[] cds = td.getConglomerateDescriptors();
+            if (cds == null || cds.length == 0) {
+                buf.append("No congloms in descriptor");
+            } else {
+                buf.append(" congloms: ");
+                for (ConglomerateDescriptor cd : cds) {
+                    buf.append(cd.getConglomerateName()).append(" ").append(cd.getConglomerateNumber()).append(",");
+                }
+                buf.append(" | ");
+            }
+            buf.append("]");
+        }
+        return buf.toString();
     }
 
     private static StatisticsJob getIndexJob(IndexRowGenerator irg,
@@ -544,7 +582,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                     indexRow.setColumn(nextColPos,val);
                     keyTypes[nextColPos-1] = val.getTypeFormatId();
                     keyEncodingOrder[nextColPos-1] = colPos-1;
-                    fieldLengths[nextColPos] = type.getMaximumWidth();
+                    fieldLengths[nextColPos-1] = type.getMaximumWidth();
                     keyBasePositionMap[nextColPos-1] = colPos;
                     nextColPos++;
                     break;

@@ -166,8 +166,11 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
         SpliceLogUtils.trace(LOG, "close=%s", closed);
         if (closed) return;
 
+        StandardException result = null;
+
         try {
             rowProvider.close();
+
 
             //if (LOG.isTraceEnabled()) {
             //    LOG.trace(String.format("close(): closing topOperation %s, result set number %d", topOperation.getClass().getName(),
@@ -189,12 +192,18 @@ public class SpliceNoPutResultSet implements NoPutResultSet, CursorResultSet {
             // abstraction, but it was not intended to handle the life cycle of
             // operations.
             //
+
             topOperation.close();
             // get rid of the following if redundant
         } catch (RuntimeException r) {
+            JobResults jobResults = topOperation.getJobResults();
+            if(jobResults!=null)
+                jobResults.cleanup();
             throw Exceptions.parseException(r);
+        } finally {
+            closed = true;
         }
-        closed = true;
+
     }
 
     @Override
