@@ -75,7 +75,7 @@ public class MemStoreFlushAwareScanner extends StoreScanner {
 				endRowNeedsToBeReturned = true;
 				return MRConstants.MEMSTORE_END;
 			}
-			return (KeyValue)super.peek();
+			return (KeyValue)peek;
 		}
 
 		@Override

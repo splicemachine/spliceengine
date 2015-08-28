@@ -40,7 +40,9 @@ public class SMRecordWriter extends RecordWriter<RowLocation,ExecRow> {
     public void close(TaskAttemptContext taskAttemptContext) throws IOException, InterruptedException {
         SpliceLogUtils.trace(LOG,"closing %s",taskAttemptContext);
         try {
-            tableWriter.close();
+            if (initialized) {
+                tableWriter.close();
+            }
         } catch (Exception e) {
             throw new IOException(e);
         }
