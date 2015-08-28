@@ -32,6 +32,7 @@ import com.splicemachine.homeless.TestUtils;
  *
  * Created by jyuan on 7/30/14.
  */
+@Ignore("DB-3226")
 public class WindowFunctionIT extends SpliceUnitTest {
     public static final String CLASS_NAME = WindowFunctionIT.class.getSimpleName().toUpperCase();
 
