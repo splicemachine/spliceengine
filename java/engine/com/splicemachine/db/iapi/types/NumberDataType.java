@@ -531,14 +531,14 @@ public abstract class NumberDataType extends DataType
     public static double normalizeDOUBLE(double v) throws StandardException
 	{
 
-/*        if ( (Double.isNaN(v) || Double.isInfinite(v)) ||
-             ((v < Limits.DB2_SMALLEST_DOUBLE) || (v > Limits.DB2_LARGEST_DOUBLE)) ||
-             ((v > 0) && (v < Limits.DB2_SMALLEST_POSITIVE_DOUBLE)) ||
-             ((v < 0) && (v > Limits.DB2_LARGEST_NEGATIVE_DOUBLE)) )
+        if ( (Double.isNaN(v) || Double.isInfinite(v))) //||
+             //((v < Limits.DB2_SMALLEST_DOUBLE) || (v > Limits.DB2_LARGEST_DOUBLE)) ||
+             //((v > 0) && (v < Limits.DB2_SMALLEST_POSITIVE_DOUBLE)) ||
+             //((v < 0) && (v > Limits.DB2_LARGEST_NEGATIVE_DOUBLE)) )
         {
 			throw StandardException.newException(SQLState.LANG_OUTSIDE_RANGE_FOR_DATATYPE, TypeId.DOUBLE_NAME);
         }
-*/
+
         // Normalize negative doubles to be "positive" (can't detect easily without using Double object because -0.0f = 0.0f)
         // DERBY-2447: It shouldn't matter whether we compare to 0.0d or -0.0d,
         // both should match negative zero, but comparing to 0.0d triggered
