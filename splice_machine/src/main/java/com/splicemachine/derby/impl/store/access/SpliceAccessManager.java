@@ -71,7 +71,17 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
     private volatile DDLFilter ddlDemarcationPoint = null;
     private volatile boolean cacheDisabled = false;
     private ConcurrentMap<String, DDLChange> ongoingDDLChanges = new ConcurrentHashMap<String, DDLChange>();
-    private static final HTableInterfaceFactory tableFactory = new SpliceHTableFactory();
+    private static final HTableInterfaceFactory tableFactory;
+
+    static {
+        HTableInterfaceFactory factory = null;
+        try {
+            factory = new SpliceHTableFactory();
+        } catch (Throwable t) {
+            LOG.error("Couldn't create SpliceHTableFactory", t);
+        }
+        tableFactory = factory;
+    }
 
     public SpliceAccessManager() {
         implhash   = new Hashtable();
