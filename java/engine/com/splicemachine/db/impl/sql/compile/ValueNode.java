@@ -1485,4 +1485,8 @@ public abstract class ValueNode extends QueryTreeNode
                             dataTypeServices.toString() : "null" ) + "<br>";
     }
 
+    public long nonZeroCardinality(long numberOfRows) throws StandardException {
+        return numberOfRows;
+    }
+
 }
