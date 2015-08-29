@@ -147,7 +147,7 @@ public class ExplainOperation extends SpliceBaseOperation {
         String sql = activation.getPreparedStatement().getSource();
         Collection<QueryTreeNode> opPlanMap = m.get(sql);
         if(opPlanMap!=null){
-            explainStringIter = PlanPrinter.planToString(opPlanMap);
+            explainStringIter = PlanPrinter.planToIterator(opPlanMap);
         }else
             explainStringIter =Iterators.emptyIterator();
     }
