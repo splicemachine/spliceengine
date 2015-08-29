@@ -116,5 +116,9 @@ public class GroupBySelectivityIT extends SpliceUnitTest {
         secondRowContainsQuery("explain select count(*), quarter(c3) from ts_high_cardinality group by quarter(c3)", "outputRows=4", methodWatcher);
     }
 
+    @Test
+    public void testConcatenationSupport() throws Exception {
+        secondRowContainsQuery("explain select count(*), c2||c2 from TS_LOW_CARDINALITY group by c2||c2;", "outputRows=8192", methodWatcher);
+    }
 
 }
