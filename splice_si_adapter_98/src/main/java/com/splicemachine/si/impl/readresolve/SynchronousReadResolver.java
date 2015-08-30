@@ -37,6 +37,7 @@ public class SynchronousReadResolver {
 		private SynchronousReadResolver(){}
 
 		public static final SynchronousReadResolver INSTANCE = new SynchronousReadResolver();
+    public static volatile boolean DISABLED_ROLLFORWARD = false;
 
     /**
      * @param region the region for the relevant read resolver
@@ -110,8 +111,8 @@ public class SynchronousReadResolver {
          *
          * This does a Put to the row, bypassing SI and the WAL, so it should be pretty low impact
          */
-        if(region.isClosed()||region.isClosing())
-            return; //do nothing if we are closing
+        if(DISABLED_ROLLFORWARD||region.isClosed()||region.isClosing())
+            return; //do nothing if we are closing or rollforward is disabled
 
         Put put = new Put(rowKey.getByteCopy());
         put.add(SIConstants.DEFAULT_FAMILY_BYTES,
@@ -137,7 +138,7 @@ public class SynchronousReadResolver {
          *
          * This does a Delete to the row, bypassing SI and the WAL, so it should be pretty low impact
          */
-        if(region.isClosed()||region.isClosing())
+        if(DISABLED_ROLLFORWARD||region.isClosed()||region.isClosing())
             return; //do nothing if we are closing
 
         Delete delete = new Delete(rowKey.getByteCopy(),txnId)
