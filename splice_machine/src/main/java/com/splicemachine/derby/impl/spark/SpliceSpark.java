@@ -13,6 +13,7 @@ import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.db.jdbc.EmbeddedDriver;
 
 import com.splicemachine.derby.stream.spark.SpliceMachineSource;
+import com.splicemachine.si.impl.readresolve.SynchronousReadResolver;
 import org.apache.log4j.Logger;
 import org.apache.spark.SparkConf;
 import org.apache.spark.api.java.JavaSparkContext;
@@ -67,6 +68,7 @@ public class SpliceSpark {
     public static synchronized void setupSpliceStaticComponents() throws IOException {
         try {
             if (!spliceStaticComponentsSetup) {
+                SynchronousReadResolver.DISABLED_ROLLFORWARD = true;
                 new EmbeddedDriver();
                 new SpliceAccessManager();
                 SpliceDriver driver = SpliceDriver.driver();
