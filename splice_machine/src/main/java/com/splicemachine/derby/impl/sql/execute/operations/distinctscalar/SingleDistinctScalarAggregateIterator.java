@@ -1,6 +1,7 @@
 package com.splicemachine.derby.impl.sql.execute.operations.distinctscalar;
 
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
 import com.splicemachine.derby.impl.sql.execute.operations.SpliceBaseOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.WarningCollector;
@@ -26,6 +27,7 @@ public class SingleDistinctScalarAggregateIterator extends AbstractStandardItera
 		private SpliceGenericAggregator[] aggregates;
 		private WarningCollector warningCollector;
 		private long rowsRead;
+        private DataValueDescriptor currentValue;
 
 
 		public SingleDistinctScalarAggregateIterator(StandardIterator<ExecRow> source, EmptyRowSupplier emptyRowSupplier, WarningCollector warningCollector, SpliceGenericAggregator[] aggregates) {
@@ -36,10 +38,19 @@ public class SingleDistinctScalarAggregateIterator extends AbstractStandardItera
 		}
 
 		public void merge(ExecRow newRow) throws StandardException{
-				for(SpliceGenericAggregator aggregator:aggregates) {
-						initialize(newRow);
-						aggregator.merge(newRow, currentRow);
-				}
+                if (currentValue == null) {
+                    if (currentRow != null) {
+                        currentValue = aggregates[0].getInputColumnValue(currentRow).cloneValue(false);
+                    }
+                }
+                DataValueDescriptor newValue = aggregates[0].getInputColumnValue(newRow);
+                if (currentValue == null || currentValue.compare(newValue) != 0) {
+                    for (SpliceGenericAggregator aggregator : aggregates) {
+                        initialize(newRow);
+                        aggregator.merge(newRow, currentRow);
+                    }
+                    currentValue = newValue.cloneValue(false);
+                }
 		}
 
 		public void initialize(ExecRow newRow) throws StandardException{
