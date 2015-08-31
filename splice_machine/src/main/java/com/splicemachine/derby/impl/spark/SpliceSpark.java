@@ -126,7 +126,7 @@ public class SpliceSpark {
         conf.set("spark.shuffle.compress","false");
         conf.set("spark.kryoserializer.buffer.mb", "4");
         conf.set("spark.kryoserializer.buffer.max.mb", "512");
-        conf.set("spark.executor.extraJavaOptions", extraOpts);
+//        conf.set("spark.executor.extraJavaOptions", extraOpts);
         conf.set("spark.shuffle.file.buffer.kb","128");
         conf.set("spark.executor.extraLibraryPath", extraLibraryPath);
         conf.set("spark.executor.extraClassPath", extraClassPath);
