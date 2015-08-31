@@ -133,6 +133,7 @@ public class Scans extends SpliceUtils {
                                  TxnView txn,
                                  boolean sameStartStopPosition,
                                  int[] formatIds,
+                                 int[] startScanKeys,
                                  int[] keyDecodingMap,
                                  int[] keyTablePositionMap,
                                  DataValueFactory dataValueFactory,
@@ -158,7 +159,7 @@ public class Scans extends SpliceUtils {
             }
             attachScanKeys(scan, startKeyValue, startSearchOperator,
                     stopKeyValue, stopSearchOperator,
-                    scanColumnList, sortOrder, formatIds, keyTablePositionMap, dataValueFactory, tableVersion, rowIdKey);
+                    sortOrder, formatIds, startScanKeys, keyTablePositionMap, keyDecodingMap, dataValueFactory, tableVersion, rowIdKey);
 
             if (!rowIdKey) {
                 PredicateBuilder pb = new PredicateBuilder(keyDecodingMap, sortOrder, formatIds, tableVersion);
@@ -170,6 +171,24 @@ public class Scans extends SpliceUtils {
             throw Exceptions.parseException(e);
         }
         return scan;
+    }
+
+    public static Scan setupScan(DataValueDescriptor[] startKeyValue, int startSearchOperator,
+                                 DataValueDescriptor[] stopKeyValue, int stopSearchOperator,
+                                 Qualifier[][] qualifiers,
+                                 boolean[] sortOrder,
+                                 FormatableBitSet scanColumnList,
+                                 TxnView txn,
+                                 boolean sameStartStopPosition,
+                                 int[] formatIds,
+                                 int[] keyDecodingMap,
+                                 int[] keyTablePositionMap,
+                                 DataValueFactory dataValueFactory,
+                                 String tableVersion,
+                                 boolean rowIdKey) throws StandardException {
+        return setupScan(startKeyValue, startSearchOperator, stopKeyValue, stopSearchOperator, qualifiers,
+                sortOrder, scanColumnList, txn, sameStartStopPosition, formatIds, null, keyDecodingMap,
+                keyTablePositionMap, dataValueFactory, tableVersion, rowIdKey);
     }
 
     public static void buildPredicateFilter(Qualifier[][] qualifiers,
@@ -261,16 +280,16 @@ public class Scans extends SpliceUtils {
     private static void attachScanKeys(Scan scan,
                                        DataValueDescriptor[] startKeyValue, int startSearchOperator,
                                        DataValueDescriptor[] stopKeyValue, int stopSearchOperator,
-                                       FormatableBitSet scanColumnList,
                                        boolean[] sortOrder,
                                        int[] columnTypes, //the types of the column in the ENTIRE Row
+                                       int[] startScanKeys,
                                        int[] keyTablePositionMap, //the location in the ENTIRE row of the key columns
+                                       int[] keyDecodingMap,
                                        DataValueFactory dataValueFactory,
                                        String tableVersion,
                                        boolean rowIdKey) throws IOException {
         try {
             // Determines whether we can generate a key and also handles type conversion...
-
             // gd according to Scott, startKey and stopKey are independent, so need to be evaluated as such
             boolean generateStartKey = false;
             boolean generateStopKey = false;
@@ -283,8 +302,17 @@ public class Scans extends SpliceUtils {
                         generateStartKey = false; // if any null encountered, don't make a start key
                         break;
                     }
-                    if(!ArrayUtils.isEmpty(keyTablePositionMap)) {
-                        int targetColFormatId = columnTypes[keyTablePositionMap[i]];
+                    // for merge join scan it can happen that we are joining by not all of the accessed columns
+                    // and we need to consider hashkeys positions for picked startKeyValues
+                    if(!ArrayUtils.isEmpty(startScanKeys) && !ArrayUtils.isEmpty(keyTablePositionMap)) {
+                        int targetColFormatId = columnTypes[keyTablePositionMap[startScanKeys[i]]];
+                        if (startDesc.getTypeFormatId() != targetColFormatId && !rowIdKey) {
+                            startKeyValue[i] = QualifierUtils.adjustDataValueDescriptor(startDesc, targetColFormatId, dataValueFactory);
+                        }
+                    }
+                    // for other scans we just rely on key table positions
+                    else if (!ArrayUtils.isEmpty(keyDecodingMap)) {
+                        int targetColFormatId = columnTypes[keyDecodingMap[i]];
                         if (startDesc.getTypeFormatId() != targetColFormatId && !rowIdKey) {
                             startKeyValue[i] = QualifierUtils.adjustDataValueDescriptor(startDesc, targetColFormatId, dataValueFactory);
                         }
@@ -299,8 +327,17 @@ public class Scans extends SpliceUtils {
                         generateStopKey = false; // if any null encountered, don't make a stop key
                         break;
                     }
-                    if(!ArrayUtils.isEmpty(keyTablePositionMap)) {
-                        int targetColFormatId = columnTypes[keyTablePositionMap[i]];
+                    // for merge join scan it can happen that we are joining by not all of the accessed columns
+                    // and we need to consider hashkeys positions for picked stopKeyValues
+                    if(!ArrayUtils.isEmpty(startScanKeys) && !ArrayUtils.isEmpty(keyTablePositionMap)) {
+                        int targetColFormatId = columnTypes[keyTablePositionMap[startScanKeys[i]]];
+                        if (stopDesc.getTypeFormatId() != targetColFormatId && !rowIdKey) {
+                            stopKeyValue[i] = QualifierUtils.adjustDataValueDescriptor(stopDesc, targetColFormatId, dataValueFactory);
+                        }
+                    }
+                    // for other scans we just rely on key table positions
+                    else if (!ArrayUtils.isEmpty(keyDecodingMap)) {
+                        int targetColFormatId = columnTypes[keyDecodingMap[i]];
                         if (stopDesc.getTypeFormatId() != targetColFormatId && !rowIdKey) {
                             stopKeyValue[i] = QualifierUtils.adjustDataValueDescriptor(stopDesc, targetColFormatId, dataValueFactory);
                         }

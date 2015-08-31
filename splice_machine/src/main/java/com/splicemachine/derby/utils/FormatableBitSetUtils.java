@@ -30,6 +30,17 @@ public class FormatableBitSetUtils {
 				return destArray;
 		}
 
+	public static int[] toCompactedIntArray(FormatableBitSet validColumns) {
+		if(validColumns == null) return null;
+		int[] result = new int[validColumns.getNumBitsSet()];
+		int count = 0;
+		for (int i = validColumns.anySetBit(); i >= 0; i = validColumns.anySetBit(i)) {
+			result[count] = i;
+			count++;
+		}
+		return result;
+	}
+
     public static FormatableBitSet fromIntArray(int bitSetSize, int[] columns){
         FormatableBitSet bitSet = new FormatableBitSet(bitSetSize);
         for (int baseColumnPosition : columns) {
