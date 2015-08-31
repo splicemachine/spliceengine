@@ -7,6 +7,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
 import com.splicemachine.db.iapi.sql.Activation;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.derby.impl.SpliceMethod;
 
 import java.io.IOException;
 
@@ -18,8 +19,7 @@ public class HashNestedLoopLeftOuterJoinOperation extends HashNestedLoopJoinOper
 
     private boolean seenRow;
     private int emptyRightRowsReturned;
-    private GeneratedMethod emptyRowFun;
-
+    protected SpliceMethod<ExecRow> emptyRowFun;
     public HashNestedLoopLeftOuterJoinOperation() {
     }
 
@@ -44,8 +44,7 @@ public class HashNestedLoopLeftOuterJoinOperation extends HashNestedLoopJoinOper
     public void init(SpliceOperationContext context) throws StandardException, IOException {
         super.init(context);
         emptyRightRowsReturned = 0;
-        emptyRowFun = (emptyRowFunMethodName == null) ? null :
-                context.getPreparedStatement().getActivationClass().getMethod(emptyRowFunMethodName);
+        emptyRowFun = (emptyRowFunMethodName == null) ? null : new SpliceMethod<ExecRow>(emptyRowFunMethodName,activation);
     }
 
     @Override
@@ -65,7 +64,7 @@ public class HashNestedLoopLeftOuterJoinOperation extends HashNestedLoopJoinOper
             emptyRightRowsReturned++;
             return null;
         }
-        rightRow = (ExecRow)emptyRowFun.invoke(activation);
+        rightRow = (ExecRow)emptyRowFun.invoke();
         seenRow=true;
         return rightRow;
     }
