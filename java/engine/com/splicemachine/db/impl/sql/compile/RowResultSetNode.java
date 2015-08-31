@@ -564,20 +564,22 @@ public class RowResultSetNode extends FromTable {
 				predicateList,
 				dataDictionary,
 				null);
+        // TODO JL: RESOLVE: THE COST SHOULD TAKE SUBQUERIES INTO ACCOUNT
+        generateCostWhenNull(outerRows);
+        subquerys.optimize(dataDictionary, outerRows);
+        return this;
+	}
 
-
-
-		costEstimate = optimizer.newCostEstimate();
-        costEstimate.setCost(0.1d, outerRows, outerRows);
+    private void generateCostWhenNull(double outerRows) {
+        costEstimate = optimizer.newCostEstimate();
+        costEstimate.setCost(1.0d, outerRows, outerRows);
+        costEstimate.setLocalCost(1.0d);
         if (resultColumns != null)
             costEstimate.setEstimatedHeapSize(resultColumns.getTotalColumnSize());
         else
             costEstimate.setEstimatedHeapSize(100); // Add at least 100 bytes
-        subquerys.optimize(dataDictionary, outerRows);
 
-        // TODO JL: RESOLVE: THE COST SHOULD TAKE SUBQUERIES INTO ACCOUNT
-        return this;
-	}
+    }
 
 	@Override
 	public Optimizable modifyAccessPath(JBitSet outerTables) throws StandardException {
