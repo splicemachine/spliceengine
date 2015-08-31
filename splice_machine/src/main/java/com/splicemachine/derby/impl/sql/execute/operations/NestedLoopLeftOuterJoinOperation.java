@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import java.io.IOException;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.iapi.sql.execute.SpliceRuntimeContext;
+import com.splicemachine.derby.impl.SpliceMethod;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
@@ -15,7 +16,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 
 public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 		private static Logger LOG = Logger.getLogger(NestedLoopLeftOuterJoinOperation.class);
-		protected GeneratedMethod emptyRowFun;
+        protected SpliceMethod<ExecRow> emptyRowFun;
 		protected Qualifier[][] qualifierProbe;
 		public int emptyRightRowsReturned = 0;
 
@@ -97,10 +98,9 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 		@Override
 		public void init(SpliceOperationContext context) throws StandardException, IOException {
 				SpliceLogUtils.trace(LOG, "init");
-        super.init(context);
-        emptyRightRowsReturned = 0;
-        emptyRowFun = (emptyRowFunMethodName == null) ? null :
-                context.getPreparedStatement().getActivationClass().getMethod(emptyRowFunMethodName);
+            super.init(context);
+            emptyRightRowsReturned = 0;
+            emptyRowFun = (emptyRowFunMethodName == null) ? null : new SpliceMethod<ExecRow>(emptyRowFunMethodName,activation);
 		}
 
 		@Override
@@ -134,7 +134,7 @@ public class NestedLoopLeftOuterJoinOperation extends NestedLoopJoinOperation {
 								close();
 								return null;
 						}
-						rightRow = (ExecRow) emptyRowFun.invoke(activation);
+						rightRow = (ExecRow) emptyRowFun.invoke();
 						seenRow=true;
 						return rightRow;
 				}
