@@ -161,6 +161,7 @@ public class MergeJoinOperation extends JoinOperation {
         if (firstLeft != null) {
             firstLeft = firstLeft.getClone();
             ctxWithOverride.addScanStartOverride(getKeyRow(firstLeft, leftHashKeys));
+            ctxWithOverride.addScanKeys(rightHashKeys);
             leftPushBack.pushBack(firstLeft);
         }
 
@@ -217,6 +218,7 @@ public class MergeJoinOperation extends JoinOperation {
     }
 
     private ExecRow getKeyRow(ExecRow row, int[] keyIndexes) throws StandardException {
+
         ExecRow keyRow = activation.getExecutionFactory().getValueRow(keyIndexes.length);
         for (int i = 0; i < keyIndexes.length; i++) {
             keyRow.setColumn(i + 1, row.getColumn(keyIndexes[i] + 1));
