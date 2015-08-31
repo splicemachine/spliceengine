@@ -7,11 +7,14 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.control.ControlDataSetProcessor;
 import com.splicemachine.derby.stream.spark.SparkDataSetProcessor;
+import org.apache.log4j.Logger;
 
 /**
  * Created by jleach on 4/16/15.
  */
 public class StreamUtils {
+
+    private static final Logger LOG = Logger.getLogger(StreamUtils.class);
     public static final DataSetProcessor controlDataSetProcessor = new ControlDataSetProcessor();
     public static final DataSetProcessor sparkDataSetProcessor = new SparkDataSetProcessor();
 
@@ -24,13 +27,15 @@ public class StreamUtils {
     }
 
     public static <Op extends SpliceOperation> DataSetProcessor getDataSetProcessorFromActivation(Activation activation, SpliceOperation op) {
-      //  System.out.println("activation rowCount=%d, estimatedCost=%d" + activation.getMaxRows());
-      //  System.out.println("activation2" + ((SpliceOperation) activation.getResultSet()).getEstimatedRowCount());
-      //  System.out.println("activation3" + ((SpliceOperation)activation.getResultSet()).getEstimatedCost());
+        LOG.warn("activation" + activation.getMaxRows());
+        if (activation.getResultSet() != null) {
+            LOG.warn("activation2" + ((SpliceOperation) activation.getResultSet()).getEstimatedRowCount());
+            LOG.warn("activation3" + ((SpliceOperation) activation.getResultSet()).getEstimatedCost());
+        }
 //        if ( (activation.getResultSet() == null && op.getEstimatedCost() > 40000.00)  || ((SpliceOperation)activation.getResultSet()).getEstimatedCost() > 40000.00) {
 //            return sparkDataSetProcessor;
  //       }
-        return sparkDataSetProcessor;
+        return controlDataSetProcessor;
     }
 
 
