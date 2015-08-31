@@ -28,6 +28,7 @@ import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.protobuf.generated.HBaseProtos;
@@ -660,7 +661,12 @@ public class BackupSystemProcedures {
         if (fs.exists(path)) {
             fs.delete(path, true);
         }
+        FileStatus[] fileStatuses = fs.listStatus(new Path(directory));
+        if (fileStatuses.length == 2) {
+            fs.delete(new Path(directory), true);
+        }
         BackupUtils.deleteBackup(backupId);
         BackupUtils.deleteBackupItem(backupId);
+
     }
 }
