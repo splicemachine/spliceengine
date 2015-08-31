@@ -8,19 +8,17 @@ import java.util.Arrays;
 import java.util.List;
 
 import com.google.common.base.Strings;
-
-import com.splicemachine.db.iapi.error.StandardException;
-import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
-import com.splicemachine.db.iapi.sql.Activation;
-import com.splicemachine.db.iapi.sql.execute.ExecIndexRow;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.constants.bytes.BytesUtil;
+import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
+import com.splicemachine.db.iapi.sql.Activation;
+import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.derby.hbase.SpliceDriver;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.SinkingOperation;
@@ -497,7 +495,7 @@ public class WindowOperation extends SpliceBaseOperation implements SinkingOpera
 
     @Override
     public String toString() {
-        return "WindowOperation {source="+source;
+        return "WindowOperation{"+windowContext+"}";
     }
 
     @Override

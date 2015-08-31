@@ -19,7 +19,6 @@ import com.splicemachine.derby.impl.sql.execute.operations.window.function.Splic
  *  
  */
 public class WindowAggregatorImpl implements WindowAggregator {
-//	private static Logger LOG = Logger.getLogger(WindowAggregatorImpl.class);
 	final int functionColumnId;
 	private final int[] inputColumnIds;
 	private final int resultColumnId;
@@ -82,8 +81,7 @@ public class WindowAggregatorImpl implements WindowAggregator {
 
     @Override
     public String toString() {
-        return "WindowAggregator{" +
-            "functionName='" + functionName + '\'' +
+        return "WindowAggregator{'" + functionName + '\'' +
             ", functionColumnId=" + functionColumnId +
             ", inputColumnIds=" + Arrays.toString(inputColumnIds) +
             ", resultColumnId=" + resultColumnId +
