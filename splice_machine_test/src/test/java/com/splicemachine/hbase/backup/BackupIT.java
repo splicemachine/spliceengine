@@ -69,6 +69,28 @@ public class BackupIT extends SpliceUnitTest {
     }
 
     @Test
+    public void negativeTests() throws Exception {
+
+        PreparedStatement ps = connection.prepareStatement("call SYSCS_UTIL.SYSCS_CANCEL_DAILY_BACKUP(333)");
+        ResultSet rs = ps.executeQuery();
+        Assert.assertNotNull(rs.next());
+        Assert.assertTrue(rs.getString(1).compareTo("Invalid job ID.")==0);
+
+        ps = connection.prepareStatement(
+                format("call SYSCS_UTIL.SYSCS_SCHEDULE_DAILY_BACKUP('%s', 'full', 200)", backupDir.getAbsolutePath()));
+        rs = ps.executeQuery();
+        Assert.assertNotNull(rs.next());
+        Assert.assertTrue(rs.getString(1).compareTo("Hour must be in range [0, 24).")==0);
+
+        ps = connection.prepareStatement(
+                format("call SYSCS_UTIL.SYSCS_SCHEDULE_DAILY_BACKUP('%s', 'full', -10)", backupDir.getAbsolutePath()));
+        rs = ps.executeQuery();
+        Assert.assertNotNull(rs.next());
+        Assert.assertTrue(rs.getString(1).compareTo("Hour must be in range [0, 24).")==0);
+
+    }
+
+    @Test
     public void testBackup() throws Exception{
 
         backup("full");
