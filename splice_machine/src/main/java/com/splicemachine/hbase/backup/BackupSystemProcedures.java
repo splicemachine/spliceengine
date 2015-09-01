@@ -233,8 +233,8 @@ public class BackupSystemProcedures {
                 throw StandardException.newException("Invalid backup type.");
             }
 
-            if (hour < 0) {
-                throw StandardException.newException("Hour must be greater than 0.");
+            if (hour < 0 || hour >= 24) {
+                throw StandardException.newException("Hour must be in range [0, 24).");
             }
 
             submitBackupJob(directory, type, hour);
@@ -306,7 +306,9 @@ public class BackupSystemProcedures {
         catch (Throwable t) {
 
             try{
-                txn.rollback();
+                if (txn != null) {
+                    txn.rollback();
+                }
             }
             catch (Exception e) {
                 throw StandardException.newException(e.getMessage());
@@ -612,7 +614,7 @@ public class BackupSystemProcedures {
                 }
             }, initialDelay, delay, TimeUnit.MILLISECONDS);
 
-            jobId = SpliceDriver.driver().getUUIDGenerator().nextUUID();
+            jobId = txn.getTxnId();
             backupJobMap.put(jobId, future);
             backupJobReporter.report(new BackupJob(jobId, directory, type, hour, new Timestamp(System.currentTimeMillis())), txn);
             txn.commit();
