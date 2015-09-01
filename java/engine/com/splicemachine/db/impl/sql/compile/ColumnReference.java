@@ -736,7 +736,7 @@ public class ColumnReference extends ValueNode {
 			{
 				// if dummy cr generated to replace aggregate, it may not have table number
 				// because underneath can be more than 1 table.
-				if (tableNumber == -1 && ! cr.getGeneratedToReplaceAggregate())
+				if (tableNumber == -1 && !cr.getGeneratedToReplaceAggregate() && !cr.getGeneratedToReplaceWindowFunctionCall())
 				{
 					SanityManager.THROWASSERT(
 						"tableNumber not expected to be -1, origName = " + origName);
