@@ -141,12 +141,10 @@ public class IndexWriteHandler extends AbstractIndexWriteHandler {
     }
 
     private boolean createIndex(KVPair mutation, WriteContext ctx, boolean toInsert) {
-        KVPair toTranslate = mutation;
-        if (toInsert) {
-            toTranslate = new KVPair(mutation.getRowKey(),mutation.getValue(), KVPair.Type.INSERT);
-        }
         try {
-            KVPair newIndex = transformer.translate(toTranslate);
+            KVPair newIndex = transformer.translate(mutation);
+            if(toInsert)
+                newIndex.setType(KVPair.Type.INSERT);
             if(keepState) {
                 this.indexToMainMutationMap.put(newIndex, mutation);
             }
