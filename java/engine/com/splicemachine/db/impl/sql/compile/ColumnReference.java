@@ -24,7 +24,6 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.NodeFactory;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -35,7 +34,6 @@ import com.splicemachine.db.iapi.util.JBitSet;
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Vector;
 
 /**
  * A ColumnReference represents a column in the query tree.  The parser generates a
@@ -95,7 +93,7 @@ public class ColumnReference extends ValueNode {
 	private boolean		replacesAggregate;
 	private boolean		replacesWindowFunctionCall;
 
-	int			nestingLevel = -1;
+	private int			nestingLevel = -1;
 	private int			sourceLevel = -1;
 
 	/* Whether or not this column reference been scoped for the
@@ -1301,14 +1299,10 @@ public class ColumnReference extends ValueNode {
 
 
     /**
-     *
      * Returns the cardinality of the column reference from statistics if available.  If not, it returns 0.
-     *
-     * @return
-     * @throws StandardException
      */
     public long cardinality() throws StandardException {
-            if (source == null || source.getTableColumnDescriptor() ==null) // Temporary JL
+            if (source == null || source.getTableColumnDescriptor() ==null)
                 return 0;
             ConglomerateDescriptor cd = getSource().getTableColumnDescriptor().getTableDescriptor().getConglomerateDescriptorList().get(0);
             int leftPosition = getSource().getColumnPosition();
@@ -1318,10 +1312,6 @@ public class ColumnReference extends ValueNode {
     /**
      * Returns the cardinality of the column reference from statistics and if none available it will return the number
      * of rows passed in.
-     *
-     * @param numberOfRows
-     * @return
-     * @throws StandardException
      */
 	@Override
     public long nonZeroCardinality(long numberOfRows) throws StandardException {
@@ -1330,12 +1320,8 @@ public class ColumnReference extends ValueNode {
     }
 
     /**
-     *
      * Null Selectivity calculation from statistics.  It does check the type on the column and if it is not nullable it
      * will automatically return 0.0.
-     *
-     * @return
-     * @throws StandardException
      */
     public double nullSelectivity() throws StandardException {
         // Check for not null in declaration
@@ -1347,11 +1333,7 @@ public class ColumnReference extends ValueNode {
     }
 
     /**
-     *
      * Get the row count estimate from the statistics for this column reference.
-     *
-     * @return
-     * @throws StandardException
      */
     public double rowCountEstimate() throws StandardException {
         ConglomerateDescriptor cd = getSource().getTableColumnDescriptor().getTableDescriptor().getConglomerateDescriptorList().get(0);

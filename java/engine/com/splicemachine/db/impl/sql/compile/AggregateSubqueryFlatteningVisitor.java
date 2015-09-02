@@ -8,6 +8,7 @@ import com.splicemachine.db.iapi.sql.compile.CompilerContext;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.impl.ast.AbstractSpliceVisitor;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -82,15 +83,7 @@ public class AggregateSubqueryFlatteningVisitor extends AbstractSpliceVisitor im
          */
         for (SubqueryNode subqueryNode : subqueryList) {
             if (subqueryNode.resultSet instanceof SelectNode) {
-                updateTableNumbers((SelectNode) subqueryNode.resultSet, handledSubqueryList.size(), ((SelectNode) subqueryNode.resultSet).getNestingLevel());
-            }
-        }
-        for(QueryTreeNode qtn : topSelectNode.fromList){
-            if (qtn instanceof FromSubquery) {
-                if(((FromSubquery) qtn).getSubquery() instanceof SelectNode){
-                    SelectNode sn = (SelectNode)((FromSubquery) qtn).getSubquery();
-                    updateTableNumbers(sn, handledSubqueryList.size(), sn.getNestingLevel());
-                }
+                updateTableNumbers((SelectNode) subqueryNode.resultSet, handledSubqueryList.size());
             }
         }
 
@@ -166,7 +159,6 @@ public class AggregateSubqueryFlatteningVisitor extends AbstractSpliceVisitor im
         }
         FromTable ft = (FromTable) fl.elementAt(ind);
         fromSubquery.tableNumber = ft.tableNumber + 1;
-        fromSubquery.level = ft.getLevel();
         fl.addFromTable(fromSubquery);
 
         /*
@@ -202,10 +194,6 @@ public class AggregateSubqueryFlatteningVisitor extends AbstractSpliceVisitor im
         topSelectNode.whereClause = newTopWhereClause;
     }
 
-
-    /**
-        Add a groupby column for every result column we add to the fromlist.
-     */
     private static void addGroupByColumnNode(SelectNode subquerySelectNode, ColumnReference colRef) throws StandardException {
         ResultColumn rc = (ResultColumn) subquerySelectNode.getNodeFactory().getNode(
                 C_NodeTypes.RESULT_COLUMN,
@@ -237,13 +225,8 @@ public class AggregateSubqueryFlatteningVisitor extends AbstractSpliceVisitor im
         subquerySelectNode.groupByList.addGroupByColumn(gbc);
     }
 
-    /**
-     * Switch the column reference of the outside where clause so that
-     * it points to the FromSubquery we just generated.
-     *
-     */
-    public static ValueNode switchPredReference(ValueNode node,
-                                                FromSubquery fsq, int level) throws StandardException {
+    private static ValueNode switchPredReference(ValueNode node,
+                                                 FromSubquery fsq, int level) throws StandardException {
         if (node instanceof BinaryOperatorNode) {
             BinaryOperatorNode root = (BinaryOperatorNode) node;
             ValueNode left = root.getLeftOperand();
@@ -330,64 +313,12 @@ public class AggregateSubqueryFlatteningVisitor extends AbstractSpliceVisitor im
         }
         return root;
     }
-    /**
-        As FromSubquerys are being added to the outside Fromlist,
-     we need to update the table numbers of the ColumnReferences
-     and FromTables that could be affected. This method recursively
-     goes through any part of the select node that might contain
-     ColumnReferences that needs update and update the table numbers.
 
-     */
-    public static void updateTableNumbers(SelectNode node, int diff, int level) {
-
+    private static void updateTableNumbers(SelectNode node, int diff) {
+        int level = node.getNestingLevel();
         for (QueryTreeNode qtn : node.getFromList()) {
             if (qtn instanceof FromTable) {
                 ((FromTable) qtn).tableNumber += diff;
-                if(qtn instanceof FromSubquery) {
-                    ResultSetNode rsn = ((FromSubquery) qtn).subquery;
-                    if (rsn instanceof SelectNode) {
-                        updateTableNumbers((SelectNode) rsn, diff, level);
-                    }
-                }
-            }
-        }
-        if(node.getSelectSubquerys() != null){
-            for(SubqueryNode sbn : node.getSelectSubquerys()){
-                if(sbn.resultSet instanceof SelectNode){
-                    updateTableNumbers((SelectNode)sbn.resultSet, diff, level);
-                }
-                if(sbn.leftOperand != null && sbn.leftOperand instanceof ColumnReference){
-                    ColumnReference ref = (ColumnReference)sbn.leftOperand;
-                    if (ref.getSourceLevel() >= level) {
-                        ref.setTableNumber(ref.getTableNumber() + diff);
-                    }
-                }
-            }
-        }
-        if(node.getWhereSubquerys() != null){
-            for(SubqueryNode sbn : node.getWhereSubquerys()){
-                if(sbn.resultSet instanceof SelectNode){
-                    updateTableNumbers((SelectNode)sbn.resultSet, diff, level);
-                }
-                if(sbn.leftOperand != null && sbn.leftOperand instanceof ColumnReference){
-                    ColumnReference ref = (ColumnReference)sbn.leftOperand;
-                    if (ref.getSourceLevel() >= level) {
-                        ref.setTableNumber(ref.getTableNumber() + diff);
-                    }
-                }
-            }
-        }
-        if(node.havingSubquerys != null){
-            for(SubqueryNode sbn : node.havingSubquerys){
-                if(sbn.resultSet instanceof SelectNode){
-                    updateTableNumbers((SelectNode)sbn.resultSet, diff, level);
-                }
-                if(sbn.leftOperand != null && sbn.leftOperand instanceof ColumnReference){
-                    ColumnReference ref = (ColumnReference)sbn.leftOperand;
-                    if (ref.getSourceLevel() >= level) {
-                        ref.setTableNumber(ref.getTableNumber() + diff);
-                    }
-                }
             }
         }
         if (node.selectAggregates != null) {
@@ -453,15 +384,6 @@ public class AggregateSubqueryFlatteningVisitor extends AbstractSpliceVisitor im
         return ret;
     }
 
-    /**
-     * Update the table number of ColumnReferences in a where clause. This method
-     * recursively goes through the where clause tree and check if any column reference
-     * needs to update its table number.
-     *
-     * If any bug relating to subquery unrolling appears, it most likely would be a
-     * ColumnReference contained in a unexpected node in the where clause  not being
-     * updated correctly.
-     */
     private static void updateWhereClauseColRef(ValueNode node, int diff, int level) {
         if (node instanceof BinaryRelationalOperatorNode) {
             ValueNode left = ((BinaryRelationalOperatorNode) node).getLeftOperand();

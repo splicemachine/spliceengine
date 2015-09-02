@@ -239,8 +239,6 @@ public interface CompilerContext extends Context
 
 	int getNumSubquerys();
 
-	void setNumSubqueries(int num);
-
 	/**
 	 * Get the current next ResultSet number from this CompilerContext.
 	 *

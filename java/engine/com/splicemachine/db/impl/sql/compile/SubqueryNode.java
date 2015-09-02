@@ -1833,7 +1833,6 @@ public class SubqueryNode extends ValueNode{
                 int tableNumber=cr.getTableNumber();
                 for(int tn : tableNumbers){
                     if(tableNumber==tn){
-                        cr.setNestingLevel(cr.getNestingLevel() - 1);
                         cr.setSourceLevel(
                                 cr.getSourceLevel()-1);
                         break;
