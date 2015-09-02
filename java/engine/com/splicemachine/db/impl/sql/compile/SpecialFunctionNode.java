@@ -279,4 +279,9 @@ public class SpecialFunctionNode extends ValueNode
 	public List getChildren() {
 		return Collections.EMPTY_LIST;
 	}
+
+    @Override
+    public long nonZeroCardinality(long numberOfRows) throws StandardException {
+        return 1;
+    }
 }

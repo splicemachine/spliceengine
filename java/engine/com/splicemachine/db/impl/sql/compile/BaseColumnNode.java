@@ -184,4 +184,14 @@ public class BaseColumnNode extends ValueNode
 	public List getChildren() {
 		return Collections.EMPTY_LIST;
 	}
+
+    @Override
+    public String toHTMLString() {
+        return "columnName: " + columnName + "<br>" +
+                "tableName: " +
+                ( ( tableName != null) ?
+                        tableName.toString() :
+                        "null") + "<br>" +
+                super.toString();
+    }
 }

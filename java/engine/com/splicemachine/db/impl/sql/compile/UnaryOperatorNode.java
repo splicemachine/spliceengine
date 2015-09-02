@@ -794,14 +794,8 @@ public class UnaryOperatorNode extends OperatorNode
 		return result;
 	}
 
-    /**
-     *
-     * Get the cardinality estimate
-     *
-     * @return
-     */
-    public long getCardinalityEstimate() {
-        return Long.MAX_VALUE;
+    @Override
+    public long nonZeroCardinality(long numberOfRows) throws StandardException {
+        return operand.nonZeroCardinality(numberOfRows);
     }
-
 }

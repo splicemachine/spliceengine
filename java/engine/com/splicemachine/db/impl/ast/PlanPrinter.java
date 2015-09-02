@@ -24,11 +24,8 @@ import java.util.*;
  *         Date: 30/09/2013
  */
 public class PlanPrinter extends AbstractSpliceVisitor {
-
     public static Logger LOG = Logger.getLogger(PlanPrinter.class);
-    public static Logger PLAN_LOG = Logger.getLogger(PlanPrinter.class.getName() + ".JSONLog");
     public static final String spaces = "  ";
-    private static final Logger COST_LOG=Logger.getLogger(PlanPrinter.class.getName()+".CostLog");
     private boolean explain = false;
     public static ThreadLocal<Map<String,Collection<QueryTreeNode>>> planMap = new ThreadLocal<Map<String,Collection<QueryTreeNode>>>(){
         @Override
@@ -57,7 +54,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
     @Override
     public Visitable defaultVisit(Visitable node) throws StandardException {
         DMLStatementNode rsn;
-        if ((explain || LOG.isInfoEnabled() || PLAN_LOG.isTraceEnabled()) &&
+        if ((explain || LOG.isDebugEnabled()) &&
                 node instanceof DMLStatementNode &&
                 (((DMLStatementNode) node).getResultSetNode()) != null) {
             rsn = (DMLStatementNode) node;
@@ -65,17 +62,14 @@ public class PlanPrinter extends AbstractSpliceVisitor {
             rsn.buildTree(orderedNodes,0);
             Map<String, Collection<QueryTreeNode>> m=planMap.get();
             m.put(query,orderedNodes);
-
-/*            if (LOG.isInfoEnabled()){
-                String treeToString = treeToString(rsn);
-                LOG.info(String.format("Plan nodes for query <<\n\t%s\n>>\n%s",
-                        query, treeToString));
+            if (LOG.isDebugEnabled()){
+                Iterator<String> nodes = planToIterator(orderedNodes);
+                StringBuffer sb = new StringBuffer();
+                while (nodes.hasNext())
+                    sb.append(nodes.next()+"\n");
+                LOG.info(String.format("Plan nodes for query <<\n\t%s\n>>%s\n",
+                        query,sb.toString()));
             }
-            if (PLAN_LOG.isTraceEnabled()){
-                Gson gson = new GsonBuilder().setPrettyPrinting().create();
-                PLAN_LOG.trace(gson.toJson(ImmutableMap.of("query", query, "plan", nodeInfo(rsn, 0))));
-            }
-            */
         }
         explain = false;
         return node;
@@ -366,9 +360,7 @@ public class PlanPrinter extends AbstractSpliceVisitor {
     }
 
 
-    public static Iterator<String> planToString(final Collection<QueryTreeNode> orderedNodes) throws StandardException {
-
-
+    public static Iterator<String> planToIterator(final Collection<QueryTreeNode> orderedNodes) throws StandardException {
         return Iterators.transform(orderedNodes.iterator(),new Function<QueryTreeNode,String>() {
             int i = 0;
             @Override

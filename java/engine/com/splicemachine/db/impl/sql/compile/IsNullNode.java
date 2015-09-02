@@ -255,8 +255,8 @@ public final class IsNullNode extends UnaryComparisonOperatorNode  {
      * @return
      */
     @Override
-    public long getCardinalityEstimate() {
-        return 2l;
+    public long nonZeroCardinality(long numberOfRows) {
+        return Math.min(2l, numberOfRows);
     }
 
 

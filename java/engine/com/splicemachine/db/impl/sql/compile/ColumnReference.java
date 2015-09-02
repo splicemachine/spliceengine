@@ -1308,7 +1308,7 @@ public class ColumnReference extends ValueNode {
      * @throws StandardException
      */
     public long cardinality() throws StandardException {
-            if (source.getTableColumnDescriptor() ==null) // Temporary JL
+            if (source == null || source.getTableColumnDescriptor() ==null) // Temporary JL
                 return 0;
             ConglomerateDescriptor cd = getSource().getTableColumnDescriptor().getTableDescriptor().getConglomerateDescriptorList().get(0);
             int leftPosition = getSource().getColumnPosition();
@@ -1323,6 +1323,7 @@ public class ColumnReference extends ValueNode {
      * @return
      * @throws StandardException
      */
+	@Override
     public long nonZeroCardinality(long numberOfRows) throws StandardException {
         long cardinality = cardinality();
         return cardinality==0?numberOfRows:cardinality;
@@ -1357,4 +1358,18 @@ public class ColumnReference extends ValueNode {
         return getCompilerContext().getStoreCostController(cd).rowCount();
     }
 
+    @Override
+    public String toHTMLString() {
+        return "columnName: " + columnName + "<br>" +
+                "tableNumber: " + tableNumber + "<br>" +
+                "columnNumber: " + columnNumber + "<br>" +
+                "replacesAggregate: " + replacesAggregate + "<br>" +
+                "replacesWindowFunctionCall: " +
+                replacesWindowFunctionCall + "<br>" +
+                "tableName: " + ( ( tableName != null) ?
+                tableName.toString() :
+                "null") + "<br>" +
+                "nestingLevel: " + nestingLevel + "<br>" +
+                "sourceLevel: " + sourceLevel + "<br>";
+    }
 }

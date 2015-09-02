@@ -297,4 +297,19 @@ public class VirtualColumnNode extends ValueNode
 	public List getChildren() {
 		return Collections.singletonList(sourceColumn);
 	}
+
+    @Override
+    public String toHTMLString() {
+        return "columnId: " + this.columnId + "<br>" +
+                "correlated: " + this.correlated + "<br>" +
+                ((sourceResultSet != null)?"sourceResultSetNumber: " + this.sourceResultSet.getResultSetNumber() + "<br>":"") +
+                ((sourceColumn != null)?"sourceColumnName: " + this.sourceColumn.getColumnName() + "<br>":"") +
+                ((sourceColumn != null)?"sourceColumnPosition: " + this.sourceColumn.getColumnPosition() + "<br>":"");
+    }
+
+
+    @Override
+    public long nonZeroCardinality(long numberOfRows) throws StandardException {
+        return sourceColumn.nonZeroCardinality(numberOfRows);
+    }
 }

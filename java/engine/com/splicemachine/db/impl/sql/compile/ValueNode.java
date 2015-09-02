@@ -1478,4 +1478,14 @@ public abstract class ValueNode extends QueryTreeNode
         return "restriction";
     }
 
+    @Override
+    public String toHTMLString() {
+            return "dataTypeServices: " +
+                    ( ( dataTypeServices != null) ?
+                            dataTypeServices.toString() : "null" ) + "<br>";
+    }
+
+    public long nonZeroCardinality(long numberOfRows) throws StandardException {
+        return numberOfRows > 0 ? numberOfRows : Long.MAX_VALUE;
+    }
 }

@@ -29,8 +29,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Vector;
 
-import com.google.common.base.Joiner;
-import com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.ClassName;
 import com.splicemachine.db.iapi.services.classfile.VMOpcode;
@@ -51,8 +49,6 @@ import com.splicemachine.db.iapi.sql.compile.RowOrdering;
 import com.splicemachine.db.iapi.sql.dictionary.ColumnDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.impl.ast.PredicateUtils;
-import com.splicemachine.db.impl.ast.RSUtils;
 import com.splicemachine.db.impl.sql.execute.IndexColumnOrder;
 import com.splicemachine.db.impl.sql.execute.WindowFunctionInfo;
 import com.splicemachine.db.impl.sql.execute.WindowFunctionInfoList;
@@ -86,7 +82,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
      * The list of aggregate nodes we've processed as
      * window functions
      */
-    private Vector<AggregateNode> processedAggregates = new Vector<AggregateNode>();
+    private Vector<AggregateNode> processedAggregates = new Vector<>();
 
     /**
      * Information that is used at execution time to
@@ -102,6 +98,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 
     // Is the source in sorted order
     private boolean isInSortedOrder;
+    private boolean aboveJoin;
 
     /**
      * Intializer for a WindowResultSetNode.
@@ -140,6 +137,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
                                               ", expected to be instanceof FromTable");
             }
         }
+        aboveJoin = isAboveJoin((ProjectRestrictNode)bottomPR);
 
         this.wdn = (WindowDefinitionNode) windowDef;
 
@@ -186,13 +184,8 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
         }
     }
 
-    /**
-     * Get the aggregates that were processed as window function
-     *
-     * @return list of aggregates processed as window functions
-     */
-    Vector<AggregateNode> getProcessedAggregates() {
-        return this.processedAggregates;
+    private boolean isAboveJoin(ProjectRestrictNode pr) {
+        return pr.getChildResult() instanceof JoinNode;
     }
 
     /**
@@ -233,7 +226,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
             getContextManager());
         int sz = resultColumns.size();
         for (int i = 0; i < sz; i++) {
-            ResultColumn rc = (ResultColumn) resultColumns.elementAt(i);
+            ResultColumn rc = resultColumns.elementAt(i);
             if (!rc.isGenerated()) {
                 rclNew.addElement(rc);
             }
@@ -750,7 +743,7 @@ public class WindowResultSetNode extends SingleChildResultSetNode {
 			** to be aggregated
 			*/
             // Create function references for all input operands
-            ResultColumn[] expressionResults = windowFunctionNode.getNewExpressionResultColumns();
+            ResultColumn[] expressionResults = windowFunctionNode.getNewExpressionResultColumns(aboveJoin);
             int[] inputVColIDs = new int[expressionResults.length];
             int i = 0;
             for (ResultColumn resultColumn : expressionResults) {

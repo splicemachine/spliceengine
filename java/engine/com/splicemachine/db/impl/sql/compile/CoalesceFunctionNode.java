@@ -435,4 +435,16 @@ public class CoalesceFunctionNode extends ValueNode
 		return argumentsList.getNodes();
 	}
 
+
+	@Override
+	public long nonZeroCardinality(long numberOfRows) throws StandardException {
+
+        long c = 0;
+        for (int i = 0; i < argumentsList.size(); ++i) {
+            ValueNode v = (ValueNode) argumentsList.elementAt(i);
+            c = Math.max(c, v.nonZeroCardinality(numberOfRows));
+        }
+		return c;
+	}
+
 }

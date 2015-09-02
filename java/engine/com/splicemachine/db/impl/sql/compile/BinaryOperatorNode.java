@@ -893,5 +893,14 @@ public class BinaryOperatorNode extends OperatorNode
 			add(rightOperand);
 			}};
 	}
+
+    @Override
+    public long nonZeroCardinality(long numberOfRows) throws StandardException {
+        long c1 = leftOperand.nonZeroCardinality(numberOfRows);
+        long c2 = rightOperand.nonZeroCardinality(numberOfRows);
+
+        return Math.max(c1, c2);
+    }
+
 }
 

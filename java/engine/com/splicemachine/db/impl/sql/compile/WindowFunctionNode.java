@@ -21,7 +21,6 @@
 package com.splicemachine.db.impl.sql.compile;
 
 import java.util.List;
-import java.util.Vector;
 
 import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.iapi.error.StandardException;
@@ -180,7 +179,7 @@ public abstract class WindowFunctionNode extends AggregateNode {
      * an operand of this operator.
      * @throws StandardException
      */
-    public ResultColumn[] getNewExpressionResultColumns() throws StandardException {
+    public ResultColumn[] getNewExpressionResultColumns(boolean aboveJoin) throws StandardException {
         ValueNode[] operands = getOperands();
         ResultColumn[] resultColumns = new ResultColumn[operands.length];
         int i = 0;
@@ -189,7 +188,7 @@ public abstract class WindowFunctionNode extends AggregateNode {
                 node = getNewNullResultExpression();
             }
             ValueNode lower = node;
-            if (node instanceof  ColumnReference && ! ((ColumnReference)node).getGeneratedToReplaceAggregate()) {
+            if (! aboveJoin && node instanceof  ColumnReference && ! ((ColumnReference)node).getGeneratedToReplaceAggregate()) {
                 // If "node" is a ColumnReference, it is a reference to the operand and
                 // lives at this level in the tree. We will need the underlying expression
                 // reference from the node below because our function will reference the
@@ -336,7 +335,7 @@ public abstract class WindowFunctionNode extends AggregateNode {
      *
      * @return this bound function.
      * @throws StandardException for unenumerable reasons
-     * @see org.apache.derby.impl.sql.compile.UnaryOperatorNode#bindExpression(FromList, SubqueryList, java.util.Vector)
+     * @see com.splicemachine.db.impl.sql.compile.UnaryOperatorNode#bindExpression(FromList, SubqueryList, java.util.List)
      */
     @Override
     public ValueNode bindExpression(FromList fromList,
@@ -469,9 +468,9 @@ public abstract class WindowFunctionNode extends AggregateNode {
      * We override this method because, unlike UnaryOperatorNode, window functions can
      * have more than one operand (n-ary operator). But, because we have to subclass
      * AggregateNode to fit in to the mold, we have to bind all our operands.<br/>
-     * This is called from {@link #bindExpression(FromList, SubqueryList, java.util.Vector)}
+     * This is called from {@link #bindExpression(FromList, SubqueryList, java.util.List)}
      * above.
-     * @see org.apache.derby.impl.sql.compile.UnaryOperatorNode#bindOperand(FromList, SubqueryList, java.util.Vector)
+     * @see com.splicemachine.db.impl.sql.compile.UnaryOperatorNode#bindOperand(FromList, SubqueryList, java.util.List)
      */
     @Override
     protected void bindOperand(FromList fromList, SubqueryList subqueryList, List<AggregateNode> aggregateVector)

@@ -117,12 +117,12 @@ public abstract class OrderedColumn extends QueryTreeNode
      *
      * @return
      */
-    public ColumnReference getColumnReference() {
+    public ValueNode getValueNode() {
         ValueNode colExprValue = getColumnExpression();
         if (colExprValue instanceof UnaryOperatorNode)
             colExprValue = ((UnaryOperatorNode) colExprValue).getOperand();
-        assert colExprValue != null && colExprValue instanceof ColumnReference : "Programmer error: unexpected type or null:";
-        return (ColumnReference) colExprValue;
+        assert colExprValue != null && colExprValue instanceof ValueNode : "Programmer error: unexpected type or null:";
+        return colExprValue;
     }
 
     /**
@@ -133,10 +133,10 @@ public abstract class OrderedColumn extends QueryTreeNode
      * @throws StandardException
      */
     public long nonZeroCardinality(long numberOfRows) throws StandardException {
-        long columnReturnedRows = getColumnReference().nonZeroCardinality(numberOfRows);
+        long columnReturnedRows = getValueNode().nonZeroCardinality(numberOfRows);
         if (getColumnExpression() instanceof UnaryOperatorNode) { // Adjust for extact methods, soon to push down
             UnaryOperatorNode node = (UnaryOperatorNode) getColumnExpression();
-            columnReturnedRows = (node.getCardinalityEstimate() < columnReturnedRows)?node.getCardinalityEstimate():columnReturnedRows;
+            columnReturnedRows = (node.nonZeroCardinality(numberOfRows) < columnReturnedRows)?node.nonZeroCardinality(numberOfRows):columnReturnedRows;
         }
         return columnReturnedRows;
     }

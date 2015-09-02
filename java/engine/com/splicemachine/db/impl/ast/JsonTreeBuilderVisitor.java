@@ -149,7 +149,7 @@ public class JsonTreeBuilderVisitor implements Visitor {
             this.queryTreeNode = queryTreeNode;
             this.label = queryTreeNode.getClass().getSimpleName();
             this.group = this.label.toLowerCase();
-            this.title = queryTreeNode.toString();
+            this.title = queryTreeNode.toHTMLString();
         }
 
         public int getId() {

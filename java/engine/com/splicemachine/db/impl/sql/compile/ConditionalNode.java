@@ -748,4 +748,15 @@ public class ConditionalNode extends ValueNode
 		
 		return nodes;
 	}
+
+    @Override
+    public long nonZeroCardinality(long numberOfRows) throws StandardException {
+        long c = 0;
+        for (int i = 0; i < thenElseList.size(); ++i) {
+            ValueNode v = (ValueNode) thenElseList.elementAt(i);
+            c = Math.max(c, v.nonZeroCardinality(numberOfRows));
+        }
+
+        return c;
+    }
 }
