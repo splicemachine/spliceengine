@@ -41,23 +41,18 @@ import com.splicemachine.db.impl.sql.compile.OrderedColumn;
  *         Date: 3/26/15
  */
 public class TempSortController implements SortCostController{
+    private OrderByList orderByList;
+    public TempSortController(OrderByList orderByList) {
+        this.orderByList = orderByList;
+    }
+
     @Override public void close(){  }
 
     @Override
-    public double getSortCost(DataValueDescriptor[] template,ColumnOrdering[] columnOrdering,boolean alreadyInOrder,long estimatedInputRows,long estimatedExportRows,int estimatedRowSize) throws StandardException{
-        return 0;
-    }
-
-    @Override
-    public void estimateSortCost(OrderByList orderByList,CostEstimate baseCost) throws StandardException{
+    public void estimateSortCost(CostEstimate baseCost) throws StandardException{
         if(baseCost.isUninitialized()) return; //don't do anything, we aren't real yet
         double parallelCost = (baseCost.localCost()+baseCost.remoteCost())/baseCost.partitionCount();
-
-        baseCost.setBase(baseCost.cloneMe());
-        baseCost.setLocalCost(parallelCost);
-
-        //since we execute in parallel, clear out our underlying remote cost
-//        baseCost.getBase().setRemoteCost(0);
-
+//        baseCost.setBase(baseCost.cloneMe());
+        baseCost.setLocalCost(baseCost.localCost()+parallelCost);
     }
 }

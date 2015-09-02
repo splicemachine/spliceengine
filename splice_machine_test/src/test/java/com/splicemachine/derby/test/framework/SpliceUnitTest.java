@@ -5,6 +5,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.List;
 
+import org.junit.Assert;
 import org.junit.runner.Description;
 
 public class SpliceUnitTest {
@@ -82,6 +83,36 @@ public class SpliceUnitTest {
         public void create(Description desc) {
             super.starting(desc);
         }
+    }
+
+    protected void firstRowContainsQuery(String query, String contains,SpliceWatcher methodWatcher) throws Exception {
+        rowContainsQuery(1,query,contains,methodWatcher);
+    }
+
+    protected void secondRowContainsQuery(String query, String contains,SpliceWatcher methodWatcher) throws Exception {
+        rowContainsQuery(2,query,contains,methodWatcher);
+    }
+
+    protected void thirdRowContainsQuery(String query, String contains,SpliceWatcher methodWatcher) throws Exception {
+        rowContainsQuery(3,query,contains,methodWatcher);
+    }
+
+    protected void fourthRowContainsQuery(String query, String contains,SpliceWatcher methodWatcher) throws Exception {
+        rowContainsQuery(4,query,contains,methodWatcher);
+    }
+
+    protected void rowContainsQuery(int level, String query, String contains,SpliceWatcher methodWatcher) throws Exception {
+        ResultSet resultSet = methodWatcher.executeQuery(query);
+        for (int i = 0; i< level;i++)
+            resultSet.next();
+        Assert.assertTrue("failed query: " + query + " -> " + resultSet.getString(1),resultSet.getString(1).contains(contains));
+    }
+    protected void rowManyContainsQuery(int level, String query, SpliceWatcher methodWatcher,String... contains) throws Exception {
+        ResultSet resultSet = methodWatcher.executeQuery(query);
+        for (int i = 0; i< level;i++)
+            resultSet.next();
+        for (String contain: contains)
+            Assert.assertTrue("failed query: " + query + " -> " + resultSet.getString(1),resultSet.getString(1).contains(contain));
     }
 
 

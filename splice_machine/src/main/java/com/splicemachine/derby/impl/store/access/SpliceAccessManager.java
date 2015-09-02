@@ -5,18 +5,14 @@ import java.io.Serializable;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.TimeUnit;
-
 import com.google.common.base.Preconditions;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.utils.ConglomerateUtils;
-import com.splicemachine.hbase.table.BetterHTablePool;
 import com.splicemachine.hbase.table.SpliceHTableFactory;
 import com.splicemachine.si.api.*;
 import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.si.impl.DDLFilter;
 import com.splicemachine.si.impl.HTransactorFactory;
-
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.Property;
@@ -50,7 +46,6 @@ import com.splicemachine.db.iapi.store.raw.Transaction;
 import com.splicemachine.db.shared.common.reference.Attribute;
 import org.apache.hadoop.hbase.client.*;
 import org.apache.log4j.Logger;
-
 import com.splicemachine.utils.SpliceLogUtils;
 
 
@@ -1023,16 +1018,16 @@ public class SpliceAccessManager implements AccessFactory, CacheableFactory, Mod
         return this.rawstore;
     }
 
-    public static HTableInterface getHTable(String id) {
-        return tableFactory.createHTableInterface(SpliceConstants.config,id.getBytes());
-    }
-
     public static HTableInterface getHTable(Long id) {
         return tableFactory.createHTableInterface(SpliceConstants.config,Long.toString(id).getBytes());
     }
 
     public static HTableInterface getHTable(byte[] tableName) {
         return tableFactory.createHTableInterface(SpliceConstants.config,tableName);
+    }
+
+    public static HTableInterface getHTable(String tableName) {
+        return tableFactory.createHTableInterface(SpliceConstants.config,tableName.getBytes());
     }
 
 }

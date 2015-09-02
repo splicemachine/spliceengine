@@ -13,8 +13,7 @@ import java.util.*;
  */
 public class RegionLoadStatistics{
     public static GlobalStatistics getParameterStatistics(String table, List<HRegionInfo> partitions){
-        long perRowLocalLatency = 1;
-        long perRowRemoteLatency = StatsConstants.fallbackRemoteLatencyRatio*perRowLocalLatency;
+        long perRowRemoteLatency = StatsConstants.fallbackRemoteLatencyRatio*StatsConstants.fallbackLocalLatency;
 
 
         Collection<RegionLoad> cachedRegionLoadsForTable=HBaseRegionLoads.getCachedRegionLoadsForTable(table);
@@ -49,7 +48,7 @@ public class RegionLoadStatistics{
                     numRows,
                     heapBytes,
                     0l,
-                    perRowLocalLatency*numRows,
+                    StatsConstants.fallbackLocalLatency*numRows,
                     perRowRemoteLatency*numRows,
                     perRowRemoteLatency,1l,
                     perRowRemoteLatency,1l,

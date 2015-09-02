@@ -13,23 +13,26 @@ import java.text.DecimalFormat;
  */
 public class SimpleCostEstimate implements CostEstimate{
     private static final String[] displayHeapUnits = new String[]{" B"," KB"," MB"," GB"," TB"};
-
+    private boolean isOuterJoin;
+    private boolean isAntiJoin;
     private double localCost = Double.MAX_VALUE;
     private double remoteCost;
     private int numPartitions;
     private double numRows = Double.MAX_VALUE;
-
     private double singleScanRowCount = Double.MAX_VALUE;
     private RowOrdering rowOrdering;
-
-    private CostEstimate baseCost;
+    private SimpleCostEstimate baseCost;
     private boolean isRealCost=true;
-    private StoreCostController storeCost;
-    private SortCostController sortCost;
     private long estimatedHeapSize;
-
     private double openCost;
     private double closeCost;
+    protected double fromBaseTableCost =-1.0d;
+    protected double fromBaseTableRows =-1.0d;
+    protected double indexLookupCost =-1.0d;
+    protected double indexLookupRows =-1.0d;
+    protected double projectionCost =-1.0d;
+    protected double projectionRows =-1.0d;
+
 
     public SimpleCostEstimate(){ }
 
@@ -43,24 +46,6 @@ public class SimpleCostEstimate implements CostEstimate{
         this.numRows=numRows;
         this.singleScanRowCount=singleScanRowCount;
         this.numPartitions=numPartitions;
-    }
-
-    public SimpleCostEstimate(double localCost,
-                              double remoteCost,
-                              double numRows,
-                              double singleScanRowCount,
-                              int numPartitions,
-                              CostEstimate base){
-        this(localCost, remoteCost, numRows, singleScanRowCount, numPartitions);
-        this.baseCost = base;
-    }
-
-    public void setStoreCost(StoreCostController storeCost){
-        this.storeCost = storeCost;
-    }
-
-    public StoreCostController getStoreCost(){
-        return storeCost;
     }
 
     @Override public double getOpenCost(){ return openCost; }
@@ -100,16 +85,28 @@ public class SimpleCostEstimate implements CostEstimate{
 
         CostEstimate base=other.getBase();
         if(base!=null && base != other)
-            this.baseCost = base.cloneMe();
+            this.baseCost = (SimpleCostEstimate) base.cloneMe();
     }
 
+    @Override
+    public String prettyProcessingString(){
+        return prettyStringOutput(localCost, getEstimatedRowCount());
+    }
 
     @Override
-    public String prettyString(){
+    public String prettyFromBaseTableString() {
+        return prettyStringOutput(getFromBaseTableCost(), (long) Math.round(getFromBaseTableRows()));
+    }
+
+    @Override
+    public String prettyIndexLookupString() {
+        return prettyStringOutput(getIndexLookupCost(), (long) Math.round(getIndexLookupRows()));
+    }
+
+    private String prettyStringOutput(double cost,long rows) {
         DecimalFormat df = new DecimalFormat();
         df.setMaximumFractionDigits(3);
         df.setGroupingUsed(false);
-
         long estHeap = getEstimatedHeapSize();
         double eHeap = estHeap;
         int pos = 0;
@@ -120,12 +117,20 @@ public class SimpleCostEstimate implements CostEstimate{
         }
         String unit = displayHeapUnits[pos];
 
-        return "totalCost="+df.format(getEstimatedCost()/1000)
-                +",processingCost="+df.format(localCost()/1000)
-                +",transferCost="+df.format(remoteCost()/1000)
-                +",outputRows="+getEstimatedRowCount()
+        return "totalCost="+df.format(cost/1000)
+                +",outputRows="+rows
                 +",outputHeapSize="+df.format(eHeap)+unit
                 +",partitions="+partitionCount();
+    }
+
+    @Override
+    public String prettyProjectionString() {
+        return prettyStringOutput(getProjectionCost(), (long) Math.round(getProjectionRows()));
+    }
+
+    @Override
+    public String prettyScrollInsensitiveString(){
+        return prettyStringOutput(getEstimatedCost(), getEstimatedRowCount());
     }
 
     @Override
@@ -153,7 +158,7 @@ public class SimpleCostEstimate implements CostEstimate{
         this.rowOrdering = rowOrdering;
     }
     @Override public CostEstimate getBase(){ return baseCost==null?this:baseCost; }
-    @Override public void setBase(CostEstimate baseCost){ this.baseCost = baseCost; }
+    @Override public void setBase(CostEstimate baseCost){ this.baseCost = (SimpleCostEstimate) baseCost; }
     @Override public long getEstimatedRowCount(){
         return Math.round(numRows);
     }
@@ -182,6 +187,10 @@ public class SimpleCostEstimate implements CostEstimate{
         clone.setEstimatedHeapSize(estimatedHeapSize);
         clone.setOpenCost(openCost);
         clone.setCloseCost(closeCost);
+        clone.setFromBaseTableCost(fromBaseTableCost);
+        clone.setFromBaseTableRows(fromBaseTableRows);
+        clone.setIndexLookupCost(indexLookupCost);
+        clone.setIndexLookupRows(indexLookupRows);
         if(baseCost!=null)
             clone.setBase(baseCost.cloneMe());
         return clone;
@@ -280,4 +289,87 @@ public class SimpleCostEstimate implements CostEstimate{
     public void setEstimatedHeapSize(long estHeapSize){
         this.estimatedHeapSize = estHeapSize;
     }
+
+    @Override
+    public boolean isOuterJoin() {
+        return isOuterJoin;
+    }
+
+    @Override
+    public void setOuterJoin(boolean isOuterJoin) {
+        this.isOuterJoin = isOuterJoin;
+    }
+
+    @Override
+    public boolean isAntiJoin() {
+        return isAntiJoin;
+    }
+
+    @Override
+    public void setAntiJoin(boolean isAntiJoin) {
+        this.isAntiJoin = isAntiJoin;
+    }
+
+    public double getProjectionRows() {
+        return getBaseCostInternal().projectionRows == -1.0d?getBaseCostInternal().getEstimatedRowCount():getBaseCostInternal().projectionRows;
+    }
+
+    public void setProjectionRows(double projectionRows) {
+        this.projectionRows = projectionRows == 0.0d?1.0d:projectionRows;
+    }
+
+    public double getProjectionCost() {
+        return getBaseCostInternal().projectionCost == -1.0d?getBaseCostInternal().localCost:getBaseCostInternal().projectionCost;
+    }
+
+    public void setProjectionCost(double projectionCost) {
+        this.projectionCost = projectionCost;
+    }
+
+    public double getIndexLookupRows() {
+        return getBaseCostInternal().indexLookupRows == -1.0d?getBaseCostInternal().getEstimatedRowCount():getBaseCostInternal().indexLookupRows;
+    }
+
+    public void setIndexLookupRows(double indexLookupRows) {
+        this.indexLookupRows = indexLookupRows == 0.0d?1.0d:indexLookupRows;
+    }
+
+    public double getIndexLookupCost() {
+        return getBaseCostInternal().indexLookupCost == -1.0d?getBaseCostInternal().getLocalCost():getBaseCostInternal().indexLookupCost;
+    }
+
+    public void setIndexLookupCost(double indexLookupCost) {
+        this.indexLookupCost = indexLookupCost;
+    }
+
+    public double getFromBaseTableRows() {
+        return getBaseCostInternal().fromBaseTableRows == -1.0d?getBaseCostInternal().getEstimatedRowCount():getBaseCostInternal().fromBaseTableRows;
+    }
+
+    public void setFromBaseTableRows(double fromBaseTableRows) {
+        this.fromBaseTableRows = fromBaseTableRows == 0.0d?1.0d:fromBaseTableRows;
+    }
+
+    public double getFromBaseTableCost() {
+        return getBaseCostInternal().fromBaseTableCost == -1.0d?getBaseCostInternal().getLocalCost():getBaseCostInternal().fromBaseTableCost;
+    }
+
+    public void setFromBaseTableCost(double fromBaseTableCost) {
+        this.fromBaseTableCost = fromBaseTableCost;
+    }
+
+    @Override
+    public double getLocalCost() {
+        return localCost;
+    }
+
+    @Override
+    public double getRemoteCost() {
+        return remoteCost;
+    }
+
+    private SimpleCostEstimate getBaseCostInternal() {
+        return (SimpleCostEstimate) getBase();
+    }
+
 }

@@ -37,9 +37,13 @@ public class IndexTableStatistics implements OverheadManagedTableStatistics{
     @Override public double openScannerLatency(){ return baseTableStats.openScannerLatency(); }
     @Override public double closeScannerLatency(){ return baseTableStats.closeScannerLatency(); }
 
+    public double getBaseTableAvgRowWidth() {
+        return baseTableStats.avgRowWidth();
+    }
+
     @Override
     public double remoteReadLatency(){
-        return indexSizeFactor*baseTableStats.remoteReadLatency();
+        return baseTableStats.remoteReadLatency();
     }
     @Override
     public long remoteReadTime(){

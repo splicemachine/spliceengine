@@ -5,7 +5,6 @@ import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.IndexRowGenerator;
 import com.splicemachine.db.impl.sql.compile.*;
-
 import java.util.Arrays;
 import java.util.BitSet;
 
@@ -136,7 +135,8 @@ public class MergeJoinStrategy extends BaseCostedHashableJoinStrategy{
              */
             innerRowCount = 1d;
         }
-        double joinSelectivity = estimateJoinSelectivity(innerTable,cd,predList,innerRowCount);
+        double joinSelectivity =SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList,(long) innerRowCount,(long) outerRowCount, outerCost);
+
         double outerRemoteCost=outerCost.remoteCost();
 
         double rowCount = joinSelectivity*outerRowCount*innerRowCount;
@@ -161,8 +161,8 @@ public class MergeJoinStrategy extends BaseCostedHashableJoinStrategy{
                 rowCount)-5;
         double heapSize = getTotalHeapSize(outerCost.getEstimatedHeapSize(),
                 innerCost.getEstimatedHeapSize(),
-                outerRowCount,
                 innerRowCount,
+                outerRowCount,
                 rowCount);
         int numPartitions = outerCost.partitionCount()*innerCost.partitionCount();
 
