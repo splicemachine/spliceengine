@@ -26,6 +26,11 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
 		 */
 		private boolean isSink;
 		private Row scanStartOverride;
+		/*
+		 * Hash keys positions for right table in merge join (these might not be the same as primary keys
+		 * and can be any subset of accessed columns)
+		 */
+		private int[] scanKeys;
 		private byte[] currentTaskId;
         private byte[] parentTaskId;
 		/*Only non-null on the node where the JDBC connection is held*/
@@ -263,6 +268,21 @@ public class SpliceRuntimeContext<Row> implements Externalizable,MetricFactory {
 
 		public Row getScanStartOverride(){
 				return scanStartOverride;
+		}
+
+		/*
+		 * Add join hash keys positions for right joined table
+		 */
+		public void addScanKeys(int[] keys) {
+			if (scanKeys == null) {
+				scanKeys = keys;
+			} else {
+				throw new IllegalStateException("A scan start keys are already present in this context.");
+			}
+		}
+
+		public int[] getScanKeys() {
+			return scanKeys;
 		}
 
 		public boolean isFirstStepInMultistep() {

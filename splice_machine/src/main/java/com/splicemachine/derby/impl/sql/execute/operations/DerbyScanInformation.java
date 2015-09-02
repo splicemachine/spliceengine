@@ -12,6 +12,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.iapi.ScanInformation;
 import com.splicemachine.derby.impl.store.access.SpliceTransactionManager;
 import com.splicemachine.derby.impl.store.access.base.SpliceConglomerate;
 import com.splicemachine.derby.impl.store.access.btree.IndexConglomerate;
+import com.splicemachine.derby.utils.FormatableBitSetUtils;
 import com.splicemachine.derby.utils.Scans;
 import com.splicemachine.derby.utils.SerializationUtils;
 import com.splicemachine.pipeline.exception.Exceptions;
@@ -296,11 +297,11 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
 
     @Override
     public Scan getScan(TxnView txn) throws StandardException {
-        return getScan(txn, null, null);
+        return getScan(txn, null, null, null);
     }
 
     @Override
-    public Scan getScan(TxnView txn, ExecRow startKeyOverride, int[] keyDecodingMap) throws StandardException {
+    public Scan getScan(TxnView txn, ExecRow startKeyOverride, int[] keyDecodingMap, int[] startScanKeys) throws StandardException {
         boolean sameStartStop = startKeyOverride == null && sameStartStopPosition;
         ExecRow startPosition = getStartPosition();
         ExecRow stopPosition = sameStartStop ? startPosition : getStopPosition();
@@ -337,11 +338,12 @@ public class DerbyScanInformation implements ScanInformation<ExecRow>, Externali
                 stopSearchOperator,
                 qualifiers,
                 conglomerate.getAscDescInfo(),
-                getAccessedNonPkColumns(),
+                getAccessedColumns(),
                 txn, sameStartStop,
                 conglomerate.getFormat_ids(),
+                startScanKeys,
                 keyDecodingMap,
-                getColumnOrdering(),
+                FormatableBitSetUtils.toCompactedIntArray(getAccessedColumns()),
                 activation.getDataValueFactory(),
                 tableVersion,
                 rowIdKey);
