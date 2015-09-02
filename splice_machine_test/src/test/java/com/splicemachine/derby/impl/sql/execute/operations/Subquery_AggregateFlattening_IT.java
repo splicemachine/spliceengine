@@ -501,31 +501,10 @@ public class Subquery_AggregateFlattening_IT {
     //
     // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
-    /**
-     * Assert that the query executes with the expected result and that it executes using the expected number of
-     * subqueries
-     */
-    private void assertUnorderedResult(String query, int expectedSubqueryCountInPlan, String expectedResult) throws Exception {
-        ResultSet rs = methodWatcher.executeQuery(query);
-        assertEquals(expectedResult, TestUtils.FormattedResult.ResultFactory.toString(rs));
-
-        ResultSet rs2 = methodWatcher.executeQuery("explain " + query);
-        String explainPlanText = TestUtils.FormattedResult.ResultFactory.toString(rs2);
-        assertEquals(expectedSubqueryCountInPlan, countSubqueriesInPlan(explainPlanText));
-    }
-
-    /**
-     * Counts the number of Subquery nodes that appear in the explain plan text for a given query.
-     */
-    private static int countSubqueriesInPlan(String a) {
-        Pattern pattern = Pattern.compile("^.*?Subquery\\s*\\(", Pattern.MULTILINE | Pattern.CASE_INSENSITIVE);
-        int count = 0;
-        Matcher matcher = pattern.matcher(a);
-        while (matcher.find()) {
-            count++;
-
-        }
-        return count;
+    private void assertUnorderedResult(String sql, int expectedSubqueryCountInPlan, String expectedResult) throws Exception {
+        SubqueryITUtil.assertUnorderedResult(methodWatcher.getOrCreateConnection(),
+                sql, expectedSubqueryCountInPlan, expectedResult
+        );
     }
 
 }

@@ -28,6 +28,7 @@ import com.splicemachine.db.impl.sql.GenericColumnDescriptor;
 import com.splicemachine.db.impl.sql.execute.IteratorNoPutResultSet;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 
+import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.protobuf.generated.HBaseProtos;
@@ -232,8 +233,8 @@ public class BackupSystemProcedures {
                 throw StandardException.newException("Invalid backup type.");
             }
 
-            if (hour < 0) {
-                throw StandardException.newException("Hour must be greater than 0.");
+            if (hour < 0 || hour >= 24) {
+                throw StandardException.newException("Hour must be in range [0, 24).");
             }
 
             submitBackupJob(directory, type, hour);
@@ -305,7 +306,9 @@ public class BackupSystemProcedures {
         catch (Throwable t) {
 
             try{
-                txn.rollback();
+                if (txn != null) {
+                    txn.rollback();
+                }
             }
             catch (Exception e) {
                 throw StandardException.newException(e.getMessage());
@@ -611,7 +614,7 @@ public class BackupSystemProcedures {
                 }
             }, initialDelay, delay, TimeUnit.MILLISECONDS);
 
-            jobId = SpliceDriver.driver().getUUIDGenerator().nextUUID();
+            jobId = txn.getTxnId();
             backupJobMap.put(jobId, future);
             backupJobReporter.report(new BackupJob(jobId, directory, type, hour, new Timestamp(System.currentTimeMillis())), txn);
             txn.commit();
@@ -660,7 +663,12 @@ public class BackupSystemProcedures {
         if (fs.exists(path)) {
             fs.delete(path, true);
         }
+        FileStatus[] fileStatuses = fs.listStatus(new Path(directory));
+        if (fileStatuses.length == 2) {
+            fs.delete(new Path(directory), true);
+        }
         BackupUtils.deleteBackup(backupId);
         BackupUtils.deleteBackupItem(backupId);
+
     }
 }

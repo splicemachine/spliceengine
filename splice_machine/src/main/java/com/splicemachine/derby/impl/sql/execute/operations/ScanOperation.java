@@ -273,7 +273,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 
 		protected Scan getScan() throws StandardException {
 				return scanInformation.getScan(getCurrentTransaction(),
-                        null,getKeyDecodingMap());
+                        null,getKeyDecodingMap(),null);
 		}
 
 		@Override

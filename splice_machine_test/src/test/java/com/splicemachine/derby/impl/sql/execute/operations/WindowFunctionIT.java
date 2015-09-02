@@ -32,7 +32,6 @@ import com.splicemachine.homeless.TestUtils;
  *
  * Created by jyuan on 7/30/14.
  */
-@Ignore("DB-3226")
 public class WindowFunctionIT extends SpliceUnitTest {
     public static final String CLASS_NAME = WindowFunctionIT.class.getSimpleName().toUpperCase();
 
@@ -2066,7 +2065,7 @@ public class WindowFunctionIT extends SpliceUnitTest {
         rs.close();
     }
 
-    @Test
+    @Test @Ignore("DB-3226 window join order")
     public void testDB2472BufferUnderflow() throws Exception {
         String sqlText =
             String.format("SELECT  BIP.Individual_ID ,BIP.Residence_ID ,BIP.Household_ID ,BIP.FILE_ID ," +
