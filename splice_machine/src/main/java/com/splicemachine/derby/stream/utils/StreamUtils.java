@@ -17,6 +17,7 @@ public class StreamUtils {
     private static final Logger LOG = Logger.getLogger(StreamUtils.class);
     public static final DataSetProcessor controlDataSetProcessor = new ControlDataSetProcessor();
     public static final DataSetProcessor sparkDataSetProcessor = new SparkDataSetProcessor();
+    private static final double CONTROL_SIDE_THRESHOLD = 1E8; // based on a TPCC1000 run on an 8 node cluster
 
     public static DataSetProcessor getControlDataSetProcessor() {
         return controlDataSetProcessor;
@@ -27,15 +28,17 @@ public class StreamUtils {
     }
 
     public static <Op extends SpliceOperation> DataSetProcessor getDataSetProcessorFromActivation(Activation activation, SpliceOperation op) {
-        LOG.warn("activation" + activation.getMaxRows());
+        LOG.warn("op estimated cost " + op.getEstimatedCost());
         if (activation.getResultSet() != null) {
-            LOG.warn("activation2" + ((SpliceOperation) activation.getResultSet()).getEstimatedRowCount());
-            LOG.warn("activation3" + ((SpliceOperation) activation.getResultSet()).getEstimatedCost());
+            LOG.warn("resultset estimated cost " + ((SpliceOperation) activation.getResultSet()).getEstimatedCost());
         }
-//        if ( (activation.getResultSet() == null && op.getEstimatedCost() > 40000.00)  || ((SpliceOperation)activation.getResultSet()).getEstimatedCost() > 40000.00) {
-//            return sparkDataSetProcessor;
- //       }
-        return controlDataSetProcessor;
+        double estimatedCost = activation.getResultSet() == null ? op.getEstimatedCost() : ((SpliceOperation)activation.getResultSet()).getEstimatedCost();
+
+        if (estimatedCost > CONTROL_SIDE_THRESHOLD) {
+            return sparkDataSetProcessor;
+        } else {
+            return controlDataSetProcessor;
+        }
     }
 
 
