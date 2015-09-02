@@ -18,7 +18,7 @@ import java.sql.*;
  * @author Scott Fines
  *         Date: 4/1/15
  */
-public class ExplainTableScanIT{
+public class ExplainTableScanIT extends SpliceUnitTest{
     private static final int size=128;
     private static final SpliceWatcher classWatcher = new SpliceWatcher();
     private static final SpliceSchemaWatcher schema = new SpliceSchemaWatcher(ExplainTableScanIT.class.getSimpleName().toUpperCase());
@@ -335,12 +335,12 @@ public class ExplainTableScanIT{
         try(Statement s = conn.createStatement()){
             try(ResultSet rs = s.executeQuery(query)){
                 Assert.assertTrue("No Rows returned!",rs.next());
-                ExplainRow row = ExplainRow.parse(rs.getString(1));
-                Assert.assertEquals("Incorrect type!",ExplainRow.Type.TABLESCAN,row.type());
-                Assert.assertEquals("Incorrect returned row count!",expectedSize,(int)row.cost().rowCount());
-
+                Assert.assertTrue("Missing",rs.next());
+                Assert.assertTrue("Missing",rs.next());
+                Assert.assertTrue("Incorrect type!",rs.getString(1).contains("TableScan"));
+                Assert.assertTrue("Incorrect returned row count!",rs.getString(1).contains("outputRows="+expectedSize));
                 //this query is very simple, and should only have one entry --TableScan
-                Assert.assertFalse("More than one row returned!",rs.next());
+                Assert.assertFalse("More than three rows returned!",rs.next());
 
             }
         }

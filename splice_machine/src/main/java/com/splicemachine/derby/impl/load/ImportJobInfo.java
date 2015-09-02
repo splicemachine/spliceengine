@@ -72,6 +72,8 @@ public class ImportJobInfo extends JobInfo {
 		if (taskStatusThread != null) {
 			taskStatusThread.requestStop();  // Stop the task status logging thread.
 		}
+        if (jobImportAdmin != null)
+            jobImportAdmin.close();
 	}
 
 	/**
@@ -202,6 +204,11 @@ public class ImportJobInfo extends JobInfo {
 		 */
 		long sleepMillis = SpliceConstants.importTaskStatusLoggingInterval;
 
+        /**
+         * Number of milliseconds to spin before waking up to evaluate status checking interval
+         */
+        long spinPauseMillis = 50;
+
 		/**
 		 * Flag that tells the TaskStatusLoggerThread when it should exit.
 		 */
@@ -220,17 +227,21 @@ public class ImportJobInfo extends JobInfo {
 		@Override
 		public void run() {
 			ImportAdmin threadImportAdmin;
+            long currentTime = System.currentTimeMillis();
 			try {
 				threadImportAdmin = new ImportAdmin();  // This class is not thread safe, so we have our own instance.
 				try {
 
 					// Initially sleep a bit to give the import tasks some time to get some work done.
-					sleep(sleepMillis);
+                    sleep(spinPauseMillis);
 
 					while (runTaskStatusLoggerThread && !Thread.currentThread().isInterrupted()) {
-						logStatusOfImportTasks(threadImportAdmin, false);
-						sleep(sleepMillis);
-					}
+                        if (System.currentTimeMillis()-currentTime > sleepMillis) {
+                            currentTime = System.currentTimeMillis();
+                            logStatusOfImportTasks(threadImportAdmin, false);
+                        }
+                        sleep(spinPauseMillis);
+                    }
 				} finally {
 					threadImportAdmin.close();
 				}

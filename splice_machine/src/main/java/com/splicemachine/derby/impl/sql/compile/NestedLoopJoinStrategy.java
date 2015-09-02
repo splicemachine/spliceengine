@@ -6,15 +6,10 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
-import com.splicemachine.db.iapi.sql.execute.ExecRow;
-import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.store.access.TransactionController;
-import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
-
-import java.util.*;
 
 public class NestedLoopJoinStrategy extends BaseJoinStrategy{
     private static final Logger LOG=Logger.getLogger(NestedLoopJoinStrategy.class);
@@ -90,11 +85,6 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
     @Override
     public String getName(){
         return "NESTEDLOOP";
-    }
-
-    @Override
-    public int scanCostType(){
-        return StoreCostController.STORECOST_SCAN_NORMAL;
     }
 
     @Override
@@ -321,19 +311,12 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         double innerScanRemoteCost = innerCost.remoteCost();
         double innerScanHeapSize = innerCost.getEstimatedHeapSize();
         double innerScanOutputRows = innerCost.rowCount();
-//        ScanCostFunction scf = new ScanCostFunction(null,null,innerTable,
-//                ((FromTable)innerTable).getCompilerContext().getStoreCostController(cd),
-//                optimizer.newCostEstimate(),null,
-//                ((FromTable)innerTable).getOutputRowTemplate(cd),
-//                cd.getIndexDescriptor()!=null?cd.getIndexDescriptor().baseColumnPositions():null,
-//                (long)innerCost.rowCount(),
-//                false,
-//                )
-        double outputJoinSelectivity = estimateJoinSelectivity(innerTable,cd,predList, innerScanOutputRows);
+        double joinSelectivity =SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList,(long) innerScanOutputRows,(long) outerRowCount, outerCost);
+
         if(innerCost.getEstimatedRowCount()!=1l){
-            innerScanRemoteCost *= outputJoinSelectivity;
-            innerScanHeapSize *= outputJoinSelectivity;
-            innerScanOutputRows*=outputJoinSelectivity;
+            innerScanRemoteCost *= joinSelectivity;
+            innerScanHeapSize *= joinSelectivity;
+            innerScanOutputRows*=joinSelectivity;
         }
         double perOuterRowInnerCost = innerScanLocalCost+innerScanRemoteCost;
         perOuterRowInnerCost+=innerCost.partitionCount()*(innerCost.getOpenCost()+innerCost.getCloseCost());
@@ -346,7 +329,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
          * the predicates which are pushed to the right hand side. Therefore, the totalOutputRows
          * is actually outerCost.rowCount()*innerScanOutputRows
          */
-        double totalOutputRows=outputJoinSelectivity*(outerCost.rowCount()*innerCost.rowCount());
+        double totalOutputRows=joinSelectivity*(outerCost.rowCount()*innerCost.rowCount());
         double totalHeapSize=outerCost.getEstimatedHeapSize()+outerCost.rowCount()*innerScanHeapSize;
 
         double perRowRemoteCost = outerCost.remoteCost()/outerRowCount;

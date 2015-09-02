@@ -6,10 +6,7 @@ import com.splicemachine.derby.test.framework.*;
 import com.splicemachine.homeless.TestUtils;
 import org.apache.hadoop.hbase.util.Pair;
 import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -195,6 +192,7 @@ public class InnerJoinIT extends SpliceUnitTest {
 		}
 
 		@Test
+        @Ignore("DB-3729")
 		public void testMergeSortJoinOverIndexScan() throws Exception {
 				ResultSet rs = methodWatcher.executeQuery(
 								"select c.schemaid from sys.systables c , sys.sysschemas s  --SPLICE-PROPERTIES joinStrategy=SORTMERGE \n" +

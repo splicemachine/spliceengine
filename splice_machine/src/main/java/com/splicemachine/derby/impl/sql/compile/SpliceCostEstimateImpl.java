@@ -18,7 +18,7 @@ public class SpliceCostEstimateImpl extends Level2CostEstimateImpl implements So
     protected SpliceCostEstimateImpl baseCost;
 
     public SpliceCostEstimateImpl()  {
-        SpliceLogUtils.trace(LOG, "spliceCostEstimate created");
+        SpliceLogUtils.trace(LOG, "splicecostestimate created");
     }
 
     public SpliceCostEstimateImpl(double theCost,double theRowCount,double theSingleScanRowCount)  {

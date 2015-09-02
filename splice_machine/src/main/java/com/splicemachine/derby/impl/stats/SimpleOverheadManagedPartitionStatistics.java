@@ -29,15 +29,27 @@ public class SimpleOverheadManagedPartitionStatistics extends SimplePartitionSta
                                                     long closeScannerTimeMicros,
                                                     long closeScannerEvents,
                                                     List<ColumnStatistics> columnStatistics){
-        super(tableId,partitionId,rowCount,totalBytes,queryCount,totalLocalReadTime,totalRemoteReadLatency,columnStatistics);
+        super(tableId,partitionId,rowCount,totalBytes,queryCount,
+                StatsConstants.fallbackLocalLatency*rowCount,StatsConstants.fallbackRemoteLatencyRatio*StatsConstants.fallbackLocalLatency*rowCount,columnStatistics);
+        this.totalOpenScannerTime = StatsConstants.fallbackRemoteLatencyRatio*StatsConstants.fallbackLocalLatency;
+        this.totalCloseScannerTime = StatsConstants.fallbackRemoteLatencyRatio*StatsConstants.fallbackLocalLatency;
+        this.numOpenEvents = 1l;
+        this.numCloseEvents = 1l;
+
+
+        /*
+        super(tableId,partitionId,rowCount,totalBytes,queryCount,
+                totalLocalReadTime,totalRemoteReadLatency,columnStatistics);
         this.totalOpenScannerTime = openScannerTimeMicros;
         this.totalCloseScannerTime = closeScannerTimeMicros;
         this.numOpenEvents = openScannerEvents;
         this.numCloseEvents = closeScannerEvents;
+        */
     }
 
     @Override
     public double getOpenScannerLatency(){
+
         if(numOpenEvents<=0) return 0d;
         return totalOpenScannerTime/numOpenEvents;
     }

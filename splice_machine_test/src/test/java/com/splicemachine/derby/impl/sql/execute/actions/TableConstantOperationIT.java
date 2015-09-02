@@ -16,6 +16,9 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
+
 /**
  * @author Jeff Cunningham
  *         Date: 6/7/13
@@ -190,17 +193,17 @@ public class TableConstantOperationIT extends SpliceUnitTest {
     public void testRenameTable() throws Exception {
         Connection connection = methodWatcher.createConnection();
         try{
-            SQLClosures.query(connection,String.format("select * from %s.%s",tableSchema.schemaName,EMP_PRIV_TABLE1),new SQLClosures.SQLAction<ResultSet>() {
+            SQLClosures.query(connection, String.format("select * from %s.%s", tableSchema.schemaName, EMP_PRIV_TABLE1), new SQLClosures.SQLAction<ResultSet>() {
                 @Override
                 public void execute(ResultSet resultSet) throws Exception {
                     Assert.assertEquals(5, resultSetSize(resultSet));
                 }
             });
 
-            SQLClosures.execute(connection,new SQLClosures.SQLAction<Statement>() {
+            SQLClosures.execute(connection, new SQLClosures.SQLAction<Statement>() {
                 @Override
                 public void execute(Statement statement) throws Exception {
-                    statement.execute(String.format("rename table %s.%s to %s",tableSchema.schemaName,EMP_PRIV_TABLE1,"real_private"));
+                    statement.execute(String.format("rename table %s.%s to %s", tableSchema.schemaName, EMP_PRIV_TABLE1, "real_private"));
                 }
             });
             connection.commit();
@@ -289,6 +292,29 @@ public class TableConstantOperationIT extends SpliceUnitTest {
             connection.rollback();
         }finally{
             connection.close();
+        }
+    }
+
+    @Test
+    public void testDropTableAfterException() throws Exception {
+        try {
+            methodWatcher.execute("create table tableA (i integer)");
+            methodWatcher.execute("insert into tableA values (-2147483648)");
+
+            try {
+                methodWatcher.execute("select abs(-abs(i)) from tableA where i=-2147483648");
+                Assert.fail("Exception must be thrown");
+            } catch(Exception e) {
+                assertThat("Must have a proper error message", e.getMessage(), is(
+                        "The resulting value is outside the range for the data type INTEGER."));
+            }
+
+            methodWatcher.execute("drop table tableA");
+
+        } catch (SQLException se) {
+            Assert.fail("Drop table must be performed properly");
+        } finally {
+            methodWatcher.closeAll();
         }
     }
 }
