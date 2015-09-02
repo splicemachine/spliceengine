@@ -2,9 +2,11 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-import org.junit.*;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 
-@Ignore("fails, see DB-3628")
 public class Subquery_InListFlattening_IT {
 
     private static final String SCHEMA = Subquery_InListFlattening_IT.class.getSimpleName();
@@ -18,6 +20,8 @@ public class Subquery_InListFlattening_IT {
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA);
 
+    private static final int ZERO_SUBQUERY_NODES_IN_PLAN = 0;
+
     @BeforeClass
     public static void createSharedTables() throws Exception {
         classWatcher.executeUpdate("create table A(a1 int, a2 int)");
@@ -30,21 +34,21 @@ public class Subquery_InListFlattening_IT {
     public void simple() throws Exception {
         // subquery reads different table
         SubqueryITUtil.assertUnorderedResult(methodWatcher.getOrCreateConnection(),
-                "select * from A where a1 in (select b1 from B where b2 > 20)", 0, "" +
-                "A1 |A2 |\n" +
-                "--------\n" +
-                " 3 |30 |\n" +
-                " 4 |40 |\n" +
-                " 5 |50 |"
+                "select * from A where a1 in (select b1 from B where b2 > 20)", ZERO_SUBQUERY_NODES_IN_PLAN, "" +
+                        "A1 |A2 |\n" +
+                        "--------\n" +
+                        " 3 |30 |\n" +
+                        " 4 |40 |\n" +
+                        " 5 |50 |"
         );
         // subquery reads same table
         SubqueryITUtil.assertUnorderedResult(methodWatcher.getOrCreateConnection(),
-                "select * from A where a1 in (select a1 from A ai where ai.a2 > 20)", 0, "" +
-                "A1 |A2 |\n" +
-                "--------\n" +
-                " 3 |30 |\n" +
-                " 4 |40 |\n" +
-                " 5 |50 |"
+                "select * from A where a1 in (select a1 from A ai where ai.a2 > 20)", ZERO_SUBQUERY_NODES_IN_PLAN, "" +
+                        "A1 |A2 |\n" +
+                        "--------\n" +
+                        " 3 |30 |\n" +
+                        " 4 |40 |\n" +
+                        " 5 |50 |"
         );
     }
 
