@@ -111,13 +111,6 @@ public class SpliceUnitTest {
             Assert.assertFalse("failed query: " + query + " -> " + resultSet.getString(1), resultSet.getString(1).contains(notContains));
     }
 
-
-    protected void rowContainsQuery(int level, ResultSet resultSet, String contains,SpliceWatcher methodWatcher) throws Exception {
-        for (int i = 0; i< level;i++)
-            resultSet.next();
-        Assert.assertTrue("failed query: " + resultSet.getString(1),resultSet.getString(1).contains(contains));
-    }
-
     protected void rowManyContainsQuery(int level, String query, SpliceWatcher methodWatcher,String... contains) throws Exception {
         ResultSet resultSet = methodWatcher.executeQuery(query);
         for (int i = 0; i< level;i++)
