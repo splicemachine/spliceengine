@@ -372,5 +372,10 @@ public class SelectivityIT extends SpliceUnitTest {
         Assert.assertTrue("row count inaccurate " + rs.getString(1), rs.getString(1).contains("outputRows=1"));
     }
 
+    @Test
+    public void testLimitCosting() throws Exception {
+        rowsContainsQuery("explain select * from ts_low_cardinality {limit 10}", new Contains().add(1,"rows=10,").add(2,"totalCost=1978.24"), methodWatcher);
+    }
+
 
 }
