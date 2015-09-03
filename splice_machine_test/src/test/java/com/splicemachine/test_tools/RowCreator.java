@@ -28,4 +28,6 @@ public interface RowCreator{
      * @throws SQLException if something goes wrong
      */
     void setRow(PreparedStatement ps) throws SQLException;
+
+    void reset();
 }

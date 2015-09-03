@@ -115,6 +115,7 @@ public class TableCreator {
     private void insertRows() throws SQLException {
         String insertSql = tableName == null ?this.insertSql: String.format(this.insertSql, tableName);
         int batchSize = rowCreator.batchSize();
+        rowCreator.reset();
         try(PreparedStatement ps = connection.prepareStatement(insertSql)) {
             if(batchSize>1){
                 int size = 0;
