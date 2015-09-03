@@ -213,8 +213,6 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         return false;
     }
 
-    @Override public boolean allowsJoinPredicatePushdown(){ return true; }
-
     @Override
     public String toString(){
         return "NestedLoopJoin";
@@ -311,13 +309,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         double innerScanRemoteCost = innerCost.remoteCost();
         double innerScanHeapSize = innerCost.getEstimatedHeapSize();
         double innerScanOutputRows = innerCost.rowCount();
-        double joinSelectivity =SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList,(long) innerScanOutputRows,(long) outerRowCount, outerCost);
 
-        if(innerCost.getEstimatedRowCount()!=1l){
-            innerScanRemoteCost *= joinSelectivity;
-            innerScanHeapSize *= joinSelectivity;
-            innerScanOutputRows*=joinSelectivity;
-        }
         double perOuterRowInnerCost = innerScanLocalCost+innerScanRemoteCost;
         perOuterRowInnerCost+=innerCost.partitionCount()*(innerCost.getOpenCost()+innerCost.getCloseCost());
 
@@ -329,7 +321,7 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
          * the predicates which are pushed to the right hand side. Therefore, the totalOutputRows
          * is actually outerCost.rowCount()*innerScanOutputRows
          */
-        double totalOutputRows=joinSelectivity*(outerCost.rowCount()*innerCost.rowCount());
+        double totalOutputRows=outerCost.rowCount()*innerCost.rowCount();
         double totalHeapSize=outerCost.getEstimatedHeapSize()+outerCost.rowCount()*innerScanHeapSize;
 
         double perRowRemoteCost = outerCost.remoteCost()/outerRowCount;
