@@ -3,10 +3,15 @@ package com.splicemachine.derby.test.framework;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 import org.junit.Assert;
 import org.junit.runner.Description;
+
+import com.splicemachine.utils.Pair;
 
 public class SpliceUnitTest {
 	public String getSchemaName() {
@@ -93,14 +98,6 @@ public class SpliceUnitTest {
         rowContainsQuery(2,query,contains,methodWatcher);
     }
 
-    protected void thirdRowContainsQuery(String query, String contains,SpliceWatcher methodWatcher) throws Exception {
-        rowContainsQuery(3,query,contains,methodWatcher);
-    }
-
-    protected void fourthRowContainsQuery(String query, String contains,SpliceWatcher methodWatcher) throws Exception {
-        rowContainsQuery(4,query,contains,methodWatcher);
-    }
-
     protected void rowContainsQuery(int level, String query, String contains,SpliceWatcher methodWatcher) throws Exception {
         ResultSet resultSet = methodWatcher.executeQuery(query);
         for (int i = 0; i< level;i++)
@@ -129,5 +126,33 @@ public class SpliceUnitTest {
             Assert.assertTrue("failed query: " + query + " -> " + resultSet.getString(1),resultSet.getString(1).contains(contain));
     }
 
+    public static void rowsContainsQuery(String query, Contains mustContain, SpliceWatcher methodWatcher) throws Exception {
+        ResultSet resultSet = methodWatcher.executeQuery(query);
+        int i = 0;
+        for (Pair<Integer,String> p : mustContain.get()) {
+            for (; i< p.getFirst();i++)
+                resultSet.next();
+            Assert.assertTrue("failed query: " + query + " -> " + resultSet.getString(1), resultSet.getString(1).contains(p.getSecond()));
+        }
+    }
+
+    public static class Contains {
+        private List<Pair<Integer,String>> rows = new ArrayList<>();
+
+        public Contains add(Integer row, String shouldContain) {
+            rows.add(new Pair<>(row, shouldContain));
+            return this;
+        }
+
+        public List<Pair<Integer,String>> get() {
+            Collections.sort(this.rows, new Comparator<Pair<Integer, String>>() {
+                @Override
+                public int compare(Pair<Integer, String> p1, Pair<Integer, String> p2) {
+                    return p1.getFirst().compareTo(p2.getFirst());
+                }
+            });
+            return this.rows;
+        }
+    }
 
 }
