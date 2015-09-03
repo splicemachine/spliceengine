@@ -1,6 +1,7 @@
 package com.splicemachine.derby.test;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.homeless.TestUtils;
 
@@ -19,7 +20,7 @@ import static com.splicemachine.derby.test.framework.SpliceUnitTest.format;
 import static com.splicemachine.derby.test.framework.SpliceUnitTest.getResourceDirectory;
 import static org.junit.Assert.assertEquals;
 
-public class TPCHIT {
+public class TPCHIT extends SpliceUnitTest {
 
     private static final String SCHEMA_NAME = "TPCH1X";
     private static final String LINEITEM = "LINEITEM";
@@ -74,6 +75,7 @@ public class TPCHIT {
     @Test
     public void sql2() throws Exception {
         executeQuery(getContent("2.sql"), "", true);
+        queryDoesNotContainString("explain " + getContent("2.sql"),"SubQuery",methodWatcher);
     }
 
     @Test
