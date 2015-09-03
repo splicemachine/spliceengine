@@ -17,7 +17,7 @@ public class StreamUtils {
     private static final Logger LOG = Logger.getLogger(StreamUtils.class);
     public static final DataSetProcessor controlDataSetProcessor = new ControlDataSetProcessor();
     public static final DataSetProcessor sparkDataSetProcessor = new SparkDataSetProcessor();
-    private static final double CONTROL_SIDE_THRESHOLD = 1E8; // based on a TPCC1000 run on an 8 node cluster
+    private static final double CONTROL_SIDE_THRESHOLD = 1E14; // based on a TPCC1000 run on an 8 node cluster
 
     public static DataSetProcessor getControlDataSetProcessor() {
         return controlDataSetProcessor;
