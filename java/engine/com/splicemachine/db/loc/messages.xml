@@ -4595,6 +4595,11 @@ ln=lower-case two-letter ISO-639 language code, CO=upper-case two-letter ISO-316
                 <arg>fileName</arg>
             </msg>
 
+            <msg>
+                <name>XIE0U.S</name>
+                <text>The export operation was not performed, because the specified parameter (replicationCount) is less or equals than zero.</text>
+            </msg>
+
         </family>
 
 
