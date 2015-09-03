@@ -128,4 +128,14 @@ public class DistinctScalarAggregateOperationIT extends SpliceUnitTest {
         Assert.assertTrue("No rows returned!",rs.next());
         Assert.assertEquals("incorrect count returned",0,rs.getInt(1));
     }
+
+    @Test
+    public void testMultipleAggregate() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("select min(oid), max(oid), count(distinct catalog), sum(score)  from "+ this.getPaddedTableReference("ORDERSUMMARY"));
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals(1, rs.getInt(1));
+        Assert.assertEquals(4, rs.getInt(2));
+        Assert.assertEquals(4, rs.getInt(3));
+        Assert.assertEquals(30.0, rs.getFloat(4), 0.01);
+    }
 }
