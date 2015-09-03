@@ -24,4 +24,9 @@ public abstract class CountGeneratedRowCreator implements RowCreator{
     }
 
     @Override public int batchSize(){ return batchSize; }
+
+    @Override
+    public void reset(){
+       position = 0;
+    }
 }
