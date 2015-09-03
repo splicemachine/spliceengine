@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.compile;
 
+import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
@@ -11,6 +12,7 @@ import com.splicemachine.derby.impl.stats.StatisticsStorage;
 import com.splicemachine.derby.impl.store.access.TempGroupedAggregateCostController;
 import com.splicemachine.derby.impl.store.access.TempScalarAggregateCostController;
 import com.splicemachine.derby.impl.store.access.TempSortController;
+
 import org.apache.log4j.Level;
 import org.apache.log4j.Logger;
 import org.apache.log4j.Priority;
@@ -190,5 +192,32 @@ public class SpliceLevel2OptimizerImpl extends Level2OptimizerImpl{
             optimizerTrace = false;
         }
         return super.tracer();
+    }
+    
+    private long minTimeout = -1L;
+    private long maxTimeout = -1L;
+
+    /**
+     * Overridden to check splice configuration.
+     */
+    protected long getMinTimeout() {
+    	if (minTimeout == -1) {
+    		// These should be considered internal configurations, since providing a non default value
+    		// is only needed as a workaround for inaccurate cost estimates.
+    		minTimeout = SpliceConstants.config.getLong("splice.optimizer.minPlanTimeout", 0L); // milliseconds
+    	}
+    	return minTimeout;
+    }
+
+    /**
+     * Overridden to check splice configuration.
+     */
+    protected long getMaxTimeout() {
+    	if (maxTimeout == -1) {
+    		// These should be considered internal configurations, since providing a non default value
+    		// is only needed as a workaround for inaccurate cost estimates.
+    		maxTimeout = SpliceConstants.config.getLong("splice.optimizer.maxPlanTimeout", Long.MAX_VALUE); // milliseconds
+    	}
+    	return maxTimeout;
     }
 }
