@@ -335,6 +335,14 @@ public class ExportOperationIT {
         } catch (SQLException e) {
             assertEquals("Invalid parameter 'cannot create export directory'='/ExportOperationIT/'.", e.getMessage());
         }
+
+        // wrong replica count
+        try {
+            methodWatcher.executeQuery("export('/tmp/', false, -100, null, null, null) select 1 from sys.sysaliases ");
+            fail();
+        } catch (SQLException e) {
+            assertEquals("The export operation was not performed, because the specified parameter (replicationCount) is less or equals than zero.", e.getMessage());
+        }
     }
 
 

@@ -67,7 +67,7 @@ public class ExportOperation extends SpliceBaseOperation implements SinkingOpera
                            String quoteCharacter) throws StandardException {
         super(activation, rsNumber, 0d, 0d);
 
-        if (replicationCount <= 0) {
+        if (replicationCount <= 0 && replicationCount != -1) {
             throw StandardException.newException(SQLState.EXPORT_PARAMETER_IS_WRONG);
         }
 
