@@ -194,30 +194,17 @@ public class SpliceLevel2OptimizerImpl extends Level2OptimizerImpl{
         return super.tracer();
     }
     
-    private long minTimeout = -1L;
-    private long maxTimeout = -1L;
-
     /**
      * Overridden to check splice configuration.
      */
     protected long getMinTimeout() {
-    	if (minTimeout == -1) {
-    		// These should be considered internal configurations, since providing a non default value
-    		// is only needed as a workaround for inaccurate cost estimates.
-    		minTimeout = SpliceConstants.config.getLong("splice.optimizer.minPlanTimeout", 0L); // milliseconds
-    	}
-    	return minTimeout;
+    	return SpliceConstants.optimizerPlanMinimumTimeout; // milliseconds
     }
 
     /**
      * Overridden to check splice configuration.
      */
     protected long getMaxTimeout() {
-    	if (maxTimeout == -1) {
-    		// These should be considered internal configurations, since providing a non default value
-    		// is only needed as a workaround for inaccurate cost estimates.
-    		maxTimeout = SpliceConstants.config.getLong("splice.optimizer.maxPlanTimeout", Long.MAX_VALUE); // milliseconds
-    	}
-    	return maxTimeout;
+    	return SpliceConstants.optimizerPlanMaximumTimeout; // milliseconds
     }
 }

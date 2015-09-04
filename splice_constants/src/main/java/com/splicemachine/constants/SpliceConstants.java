@@ -1,6 +1,7 @@
 package com.splicemachine.constants;
 
 import com.google.common.collect.Lists;
+import com.splicemachine.db.impl.sql.compile.timeLimit;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import org.apache.hadoop.conf.Configuration;
@@ -666,6 +667,40 @@ public class SpliceConstants {
     public static long optimizerTableMinimalRows;
 
     /**
+     * Minimum fixed duration (in millisecomds) that should be allowed to lapse
+     * before the optimizer can determine that it should stop trying to find
+     * the best plan due to plan time taking longer than the expected
+     * query execution time. By default, this is zero, which means
+     * there is no fixed minimum, and the determination is made
+     * using cost estimates alone. Default value should generally
+     * be left alone, and would only need to be changed as a workaround
+     * for inaccurate cost estimates.
+     * 
+     * @return minimum plan timeout regardless of cost based time limit
+     */
+    @Parameter private static final String OPTIMIZER_PLAN_MINIMUM_TIMEOUT = "splice.optimizer.minPlanTimeout";
+    @DefaultValue(OPTIMIZER_PLAN_MINIMUM_TIMEOUT) public static final long DEFAULT_OPTIMIZER_PLAN_MINIMUM_TIMEOUT = 0L;
+    // Only used by the method OptimizerImpl.checkTimeout()
+    public static long optimizerPlanMinimumTimeout;
+    
+    /**
+     * Maximum fixed duration (in millisecomds) that should be allowed to lapse
+     * before the optimizer can determine that it should stop trying to find
+     * the best plan due to plan time taking longer than the expected
+     * query execution time. By default, this is {@link Long.MAX_VALUE}, which means
+     * there is no fixed maximum, and the determination is made
+     * using cost estimates alone. Default value should generally
+     * be left alone, and would only need to be changed as a workaround
+     * for inaccurate cost estimates.
+     * 
+     * @return maximum plan timeout regardless of cost based time limit
+     */
+    @Parameter private static final String OPTIMIZER_PLAN_MAXIMUM_TIMEOUT = "splice.optimizer.maxPlanTimeout";
+    @DefaultValue(OPTIMIZER_PLAN_MAXIMUM_TIMEOUT) public static final long DEFAULT_OPTIMIZER_PLAN_MAXIMUM_TIMEOUT = Long.MAX_VALUE;
+    // Only used by the method OptimizerImpl.checkTimeout()
+    public static long optimizerPlanMaximumTimeout;
+    
+    /**
      * The length of time (in seconds) to wait before killing a write thread which is not in use. Turning
      * this up will result in more threads being available for writes after longer periods of inactivity,
      * but will cause higher thread counts in the system overall. Turning this down will result in fewer
@@ -1132,6 +1167,9 @@ public class SpliceConstants {
         getBaseTableFetchFromFullKeyCost = SpliceConstants.config.getFloat(GET_BASE_TABLE_FETCH_FROM_FULL_KEY_COST, (float) DEFAULT_GET_BASE_TABLE_FETCH_FROM_FULL_KEY_COST);
         getIndexFetchFromFullKeyCost = SpliceConstants.config.getFloat(GET_INDEX_FETCH_FROM_FULL_KEY_COST, (float) DEFAULT_GET_INDEX_FETCH_FROM_FULL_KEY_COST);
         optimizerTableMinimalRows = SpliceConstants.config.getLong(OPTIMIZER_TABLE_MINIMAL_ROWS, DEFAULT_OPTIMIZER_TABLE_MINIMAL_ROWS);
+        optimizerPlanMinimumTimeout = SpliceConstants.config.getLong(OPTIMIZER_PLAN_MINIMUM_TIMEOUT, DEFAULT_OPTIMIZER_PLAN_MINIMUM_TIMEOUT);
+        optimizerPlanMaximumTimeout = SpliceConstants.config.getLong(OPTIMIZER_PLAN_MAXIMUM_TIMEOUT, DEFAULT_OPTIMIZER_PLAN_MAXIMUM_TIMEOUT);
+        
         if(ipcThreads < maxThreads){
             /*
              * Some of our writes will also write out to indices and/or read data from HBase, which
