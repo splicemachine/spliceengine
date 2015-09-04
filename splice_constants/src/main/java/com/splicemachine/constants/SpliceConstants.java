@@ -1,7 +1,6 @@
 package com.splicemachine.constants;
 
 import com.google.common.collect.Lists;
-import com.splicemachine.db.impl.sql.compile.timeLimit;
 import com.splicemachine.utils.SpliceLogUtils;
 
 import org.apache.hadoop.conf.Configuration;
