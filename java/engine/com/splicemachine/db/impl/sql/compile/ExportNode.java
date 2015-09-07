@@ -24,6 +24,7 @@ import java.util.List;
 public class ExportNode extends DMLStatementNode {
 
     private static final int EXPECTED_ARGUMENT_COUNT = 6;
+    public static final int DEFAULT_INT_VALUE = Integer.MIN_VALUE;
 
     private StatementNode node;
     /* HDFS, local, etc */
@@ -123,7 +124,7 @@ public class ExportNode extends DMLStatementNode {
     }
 
     private static int intValue(Object object) throws StandardException {
-        return isNullConstant(object) ? -1 : ((NumericConstantNode) object).getValue().getInt();
+        return isNullConstant(object) ? DEFAULT_INT_VALUE : ((NumericConstantNode) object).getValue().getInt();
     }
 
     private static boolean booleanValue(Object object) throws StandardException {
