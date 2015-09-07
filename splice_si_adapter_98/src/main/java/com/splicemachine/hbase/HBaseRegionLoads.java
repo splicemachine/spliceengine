@@ -158,11 +158,11 @@ public class HBaseRegionLoads {
                         public Pair<String, Long> call(SpliceMessage.SpliceDerbyCoprocessorService inctance) throws IOException{
                             SpliceRpcController controller = new SpliceRpcController();
                             SpliceMessage.SpliceRegionSizeRequest message = SpliceMessage.SpliceRegionSizeRequest.newBuilder().build();
-                            BlockingRpcCallback<SpliceMessage.SpliceRegionSizeResponse> rpcCallback = new BlockingRpcCallback();
+                            BlockingRpcCallback<SpliceMessage.SpliceRegionSizeResponse> rpcCallback = new BlockingRpcCallback<>();
                             inctance.computeRegionSize(controller, message, rpcCallback);
                             SpliceMessage.SpliceRegionSizeResponse response = rpcCallback.get();
-                            Pair<String, Long> ret = Pair.newPair(response.getEncodedName(), response.getSizeInBytes());
-                            return ret;
+
+                            return Pair.newPair(response.getEncodedName(),response.getSizeInBytes());
                         }
                     });
             Collection<Pair<String, Long>> collection = ret.values();

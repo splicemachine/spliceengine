@@ -85,15 +85,10 @@ public class SpliceDatabase extends BasicDatabase{
         final LanguageConnectionContext lctx=super.setupConnection(cm,user,drdaID,dbname);
 
         DDLCoordinationFactory.getWatcher().registerDDLListener(new DDLWatcher.DDLListener(){
-            @Override
-            public void startGlobalChange(){
-                lctx.startGlobalDDLChange();
-            }
-
-            @Override
-            public void finishGlobalChange(){
-                lctx.finishGlobalDDLChange();
-            }
+            @Override public void startGlobalChange(){ lctx.startGlobalDDLChange(); }
+            @Override public void finishGlobalChange(){ lctx.finishGlobalDDLChange(); }
+            @Override public void changeSuccessful(String changeId){ }
+            @Override public void changeFailed(String changeId){ }
 
             @Override
             public void startChange(DDLChange change) throws StandardException{
@@ -112,10 +107,6 @@ public class SpliceDatabase extends BasicDatabase{
                     default:
                         break; //no-op
                 }
-            }
-
-            @Override
-            public void finishChange(String changeId){
             }
         });
 
@@ -317,10 +308,8 @@ public class SpliceDatabase extends BasicDatabase{
                 }
             }
 
-            @Override
-            public void finishChange(String changeId){
-
-            }
+            @Override public void changeSuccessful(String changeId){ }
+            @Override public void changeFailed(String changeId){ }
         });
     }
 
