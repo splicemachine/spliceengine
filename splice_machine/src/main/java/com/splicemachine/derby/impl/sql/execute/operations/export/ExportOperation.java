@@ -3,6 +3,8 @@ package com.splicemachine.derby.impl.sql.execute.operations.export;
 
 import com.google.common.base.Strings;
 import com.google.common.collect.ImmutableList;
+import com.splicemachine.db.iapi.reference.SQLState;
+import com.splicemachine.db.impl.sql.compile.ExportNode;
 import com.splicemachine.derby.hbase.SpliceObserverInstructions;
 import com.splicemachine.derby.iapi.sql.execute.*;
 import com.splicemachine.derby.iapi.storage.RowProvider;
@@ -65,6 +67,11 @@ public class ExportOperation extends SpliceBaseOperation implements SinkingOpera
                            String fieldSeparator,
                            String quoteCharacter) throws StandardException {
         super(activation, rsNumber, 0d, 0d);
+
+        if (replicationCount <= 0 && replicationCount != ExportNode.DEFAULT_INT_VALUE) {
+            throw StandardException.newException(SQLState.EXPORT_PARAMETER_IS_WRONG);
+        }
+
         this.source = source;
         this.sourceColumnDescriptors = sourceColumnDescriptors;
         this.exportParams = new ExportParams(exportPath, compression, replicationCount, encoding, fieldSeparator, quoteCharacter);
