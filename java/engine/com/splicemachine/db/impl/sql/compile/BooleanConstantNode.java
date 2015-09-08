@@ -239,4 +239,9 @@ public final class BooleanConstantNode extends ConstantNode
 //		hcBuilder.append(value);
 //		return hcBuilder.toHashCode();
 	}
+
+    @Override
+    public String toHTMLString() {
+        return "value: " + getValueAsString() + "<br>" + super.toHTMLString();
+    }
 }

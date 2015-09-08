@@ -37,6 +37,7 @@ import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.store.access.SortCostController;
+import com.splicemachine.db.impl.sql.compile.subquery.aggregate.AggregateSubqueryFlatteningVisitor;
 
 import java.util.List;
 import java.util.Vector;
@@ -215,7 +216,7 @@ public interface CompilerContext extends Context
 
     /**
      * Utility method for Subquery Flattening.
-     * @see com.splicemachine.db.impl.sql.compile.AggregateSubqueryFlatteningVisitor#visit(Visitable)
+     * @see AggregateSubqueryFlatteningVisitor#visit(Visitable)
      *
      * @param num
      */

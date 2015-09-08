@@ -339,6 +339,14 @@ public class SelectNode extends ResultSetNode{
      */
     public ValueNode getWhereClause(){ return whereClause; }
 
+    public void setWhereClause(ValueNode whereClause) {
+        this.whereClause = whereClause;
+    }
+
+    public void setOriginalWhereClause(ValueNode originalWhereClause) {
+        this.originalWhereClause = originalWhereClause;
+    }
+
     /**
      * Return the wherePredicates for this SelectNode.
      *
@@ -2296,5 +2304,29 @@ public class SelectNode extends ResultSetNode{
             ProjectRestrictNode child = (ProjectRestrictNode) rsn;
             child.pullRowIdPredicates(prn.getRestrictionList());
         }
+    }
+
+    public GroupByList getGroupByList() {
+        return groupByList;
+    }
+
+    public void setGroupByList(GroupByList groupByList) {
+        this.groupByList = groupByList;
+    }
+
+    public List<AggregateNode> getSelectAggregates() {
+        return selectAggregates;
+    }
+
+    public List<AggregateNode> getWhereAggregates() {
+        return whereAggregates;
+    }
+
+    public List<AggregateNode> getHavingAggregates() {
+        return havingAggregates;
+    }
+
+    public OrderByList getOrderByList() {
+        return orderByList;
     }
 }

@@ -510,7 +510,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         assert bestPath!=null;
         setCostEstimate(bestPath.getCostEstimate());
 
-        bestPath.getOptimizer().tracer().trace(OptimizerFlag.REMEMBERING_BEST_ACCESS_PATH,tableNumber,planType,0.0,bestPath);
+        bestPath.getOptimizer().tracer().trace(OptimizerFlag.REMEMBERING_BEST_ACCESS_PATH, tableNumber, planType, 0.0, bestPath);
     }
 
     @Override
@@ -980,6 +980,10 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
     public void setTableNumber(int tableNumber){
 		/* This should only be called if the tableNumber has not been set yet */
         assert this.tableNumber==-1: "tableNumber is not expected to be already set";
+        this.tableNumber=tableNumber;
+    }
+
+    public void changeTableNumber(int tableNumber){
         this.tableNumber=tableNumber;
     }
 

@@ -1,12 +1,17 @@
-package com.splicemachine.db.impl.sql.compile;
+package com.splicemachine.db.impl.sql.compile.subquery.aggregate;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.impl.ast.RSUtils;
+import com.splicemachine.db.impl.sql.compile.*;
+import com.splicemachine.db.impl.sql.compile.subquery.CorrelationLevelPredicate;
+import com.splicemachine.db.impl.sql.compile.subquery.IsCorrelatedPredicate;
 import org.apache.log4j.Logger;
+
 import java.util.List;
+
 import static com.google.common.collect.Iterables.any;
 import static com.google.common.collect.Iterables.filter;
 
@@ -170,28 +175,4 @@ class AggregateSubqueryWhereVisitor implements Visitor {
         return foundUnsupported;
     }
 
-
-    private static class IsCorrelatedPredicate implements com.google.common.base.Predicate<ColumnReference> {
-        @Override
-        public boolean apply(ColumnReference columnReference) {
-            return columnReference.getCorrelated();
-        }
-    }
-
-    /**
-     * Returns true if the column reference is referring to a column MORE than one level up.
-     */
-    private static class CorrelationLevelPredicate implements com.google.common.base.Predicate<ColumnReference> {
-
-        private int subqueryLevel;
-
-        public CorrelationLevelPredicate(int subqueryLevel) {
-            this.subqueryLevel = subqueryLevel;
-        }
-
-        @Override
-        public boolean apply(ColumnReference columnReference) {
-            return columnReference.getCorrelated() && columnReference.getSourceLevel() < subqueryLevel - 1;
-        }
-    }
 }

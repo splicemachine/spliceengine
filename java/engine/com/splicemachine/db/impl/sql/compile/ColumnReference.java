@@ -221,7 +221,7 @@ public class ColumnReference extends ValueNode {
 	 *
 	 * @param nestingLevel	The Nesting level at which the CR appears.
 	 */
-	void setNestingLevel(int nestingLevel)
+	public void setNestingLevel(int nestingLevel)
 	{
 		if (SanityManager.DEBUG)
 		{
@@ -255,7 +255,7 @@ public class ColumnReference extends ValueNode {
 	 *
 	 * @param sourceLevel	The Nesting level of the source of the CR.
 	 */
-	void setSourceLevel(int sourceLevel)
+	public void setSourceLevel(int sourceLevel)
 	{
 		if (SanityManager.DEBUG)
 		{
@@ -270,7 +270,7 @@ public class ColumnReference extends ValueNode {
 	 *
 	 * @return	The source level for this CR.
 	 */
-	int getSourceLevel()
+	public int getSourceLevel()
 	{
 		return sourceLevel;
 	}

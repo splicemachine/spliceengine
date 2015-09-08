@@ -6,6 +6,7 @@ import com.splicemachine.db.iapi.sql.compile.OptimizablePredicate;
 import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.impl.sql.compile.OperatorToString;
 import com.splicemachine.db.impl.sql.compile.Predicate;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -84,5 +85,29 @@ public class PredicateUtils {
         }
         return preds;
     }
+
+
+    /**
+     * TRUE if the left operation is a ColumnReference with the specified nesting level.
+     */
+    public static boolean isLeftColRef(BinaryRelationalOperatorNode pred, int atNestingLevel) {
+        if (!(pred.getLeftOperand() instanceof ColumnReference)) {
+            return false;
+        }
+        ColumnReference left = (ColumnReference) pred.getLeftOperand();
+        return left.getSourceLevel() == atNestingLevel;
+    }
+
+    /**
+     * TRUE if the right operation is a ColumnReference with the specified nesting level.
+     */
+    public static boolean isRightColRef(BinaryRelationalOperatorNode pred, int atNestingLevel) {
+        if (!(pred.getRightOperand() instanceof ColumnReference)) {
+            return false;
+        }
+        ColumnReference right = (ColumnReference) pred.getRightOperand();
+        return right.getSourceLevel() == atNestingLevel;
+    }
+
 
 }

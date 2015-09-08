@@ -798,4 +798,8 @@ public class UnaryOperatorNode extends OperatorNode
     public long nonZeroCardinality(long numberOfRows) throws StandardException {
         return operand.nonZeroCardinality(numberOfRows);
     }
+
+    public void setOperand(ValueNode operand) {
+        this.operand = operand;
+    }
 }

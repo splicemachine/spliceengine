@@ -402,7 +402,11 @@ public class TernaryOperatorNode extends OperatorNode
 		return leftOperand;
 	}
 
-	@Override
+    public void setReceiver(ValueNode receiver) {
+        this.receiver = receiver;
+    }
+
+    @Override
 	public boolean checkCRLevel(int level){
 		return leftOperand.checkCRLevel(level) || rightOperand.checkCRLevel(level) || receiver.checkCRLevel(level);
 	}
