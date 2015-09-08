@@ -38,6 +38,7 @@
         <module>engine</module>
         <module>client</module>
         <module>testing</module>
+        <module>tools</module>
         <module>derbyLocale_cs</module>
         <module>derbyLocale_de_DE</module>
         <module>derbyLocale_es</module>

@@ -1,8 +1,10 @@
 package com.splicemachine.db.impl.sql.catalog;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.cache.CacheableFactory;
 import com.splicemachine.db.iapi.services.monitor.ModuleControl;
 import com.splicemachine.db.iapi.services.monitor.ModuleSupportable;
+import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
 import com.splicemachine.db.iapi.sql.dictionary.SchemaDescriptor;
 
@@ -166,5 +168,12 @@ public abstract class BaseDataDictionary implements DataDictionary, CacheableFac
 												};
 
 
-	
+	@Override
+	public void startWriting(LanguageConnectionContext lcc,boolean setDDMode) throws StandardException{
+		/*
+		 * By default, ignore the set dd mode flag and just assume it's true. This adheres to traditional
+		 * derby behavior
+		 */
+		startWriting(lcc);
+	}
 }
