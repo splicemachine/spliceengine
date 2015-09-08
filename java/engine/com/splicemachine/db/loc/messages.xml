@@ -532,7 +532,7 @@ Guide.
 
             <msg>
                 <name>0A000.C.6</name>
-                <text>The DRDA command {0} is not currently implemented.  The connection has been terminated.</text>
+                <text>The DRDA command {0} is not currently implemented. The connection has been terminated.</text>
                 <arg>commandName</arg>
             </msg>
 
@@ -4593,6 +4593,11 @@ ln=lower-case two-letter ISO-639 language code, CO=upper-case two-letter ISO-316
                 <name>XIE0T.S</name>
 		<text>The export operation was not performed, because the specified large object auxiliary file ({0}) already exists. Export processing will not overwrite an existing file, even if the process has permissions to write to that file, due to security concerns, and to avoid accidental file damage. Please either change the large object auxiliary file name in the export procedure arguments to specify a file which does not exist, or delete the existing file, then retry the export operation.</text> 
                 <arg>fileName</arg>
+            </msg>
+
+            <msg>
+                <name>XIE0U.S</name>
+                <text>The export operation was not performed, because the specified parameter (replicationCount) is less than or equal to zero.</text>
             </msg>
 
         </family>

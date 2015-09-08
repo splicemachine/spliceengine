@@ -164,6 +164,8 @@ public class OptimizerImpl implements Optimizer{
     protected boolean usingPredsPushedFromAbove;
     protected boolean bestJoinOrderUsedPredsFromAbove;
 
+    private static final int NANOS_TO_MILLIS = 1000000;
+
     protected OptimizerImpl(OptimizableList optimizableList,
                             OptimizablePredicateList predicateList,
                             DataDictionary dDictionary,
@@ -2055,8 +2057,22 @@ public class OptimizerImpl implements Optimizer{
         // don't spend more time optimizing this OptimizerImpl than we think
         // it's going to take to execute the best plan.  So if we've just
         // found a new "best" join order, use that to update our time limit.
-        if(bestCost.getEstimatedCost()<timeLimit)
-            timeLimit=bestCost.getEstimatedCost();
+        //
+        // Splice Notes:
+        //
+        // bestCode.getEstimatedCost() was in milliseconds in Derby
+        // but is in nanoseconds in Splice (and it is presented in
+        // Splice explain plans in microseconds).
+        //
+        // timeLimit is in milliseconds (in both Derby and Splice),
+        // because it is compared against millisecond values
+        // (e.g., timeOptimizationStarted) in checkTimeout() method.
+        //
+        // So we need to convert from nanoseconds to milliseconds here.
+        // Consider consolidating all these into nanoseconds in the future.
+        if((bestCost.getEstimatedCost()/NANOS_TO_MILLIS)<timeLimit) {
+            timeLimit=bestCost.getEstimatedCost()/NANOS_TO_MILLIS;
+        }
 
 		/*
 		** Remember the current join order and access path
@@ -2356,9 +2372,43 @@ public class OptimizerImpl implements Optimizer{
         if(timeExceeded || numTablesInQuery<=6) return timeExceeded;
 
         currentTime=System.currentTimeMillis();
-        timeExceeded=(currentTime-timeOptimizationStarted)>timeLimit && (currentTime-timeOptimizationStarted) > 600000;
+
+        // All of the following are assumed to be in milliseconds,
+        // even if originally derived from a different unit:
+        // currentTime, timeOptimizationStarted, timeLimit, getMinTimeout(), getMaxTimeout()
+        
+        long duration=currentTime-timeOptimizationStarted;
+        timeExceeded=
+        	duration > getMaxTimeout() ||
+        	(duration > timeLimit && duration > getMinTimeout());
         if(timeExceeded)
             tracer().trace(OptimizerFlag.TIME_EXCEEDED,0,0,0.0,null);
         return timeExceeded;
+    }
+    
+    /**
+     * Returns minimum duration that should be allowed to lapse before
+     * the method checkTimeout() returns true. By default, this returns
+     * zero, which means there's no minimum and the determination
+     * is made by using {@link timeLimit} alone, which is derived from
+     * a cost estimate. Should only be called by checkTimeout().
+     * 
+     * @return minimum timeout regardless of cost based time limit
+     */
+    protected long getMinTimeout() {
+    	return 0L; // milliseconds
+    }
+
+    /**
+     * Returns minimum duration that should be allowed to lapse before
+     * the method checkTimeout() returns true. By default, this returns
+     * {@link Long.MAX_VALUE}, which effectively means no maximum and determination
+     * is made by using {@link timeLimit} alone, which is derived from
+     * a cost estimate. Should only be called by checkTimeout().
+     * 
+     * @return maximum timeout regardless of cost based time limit
+     */
+    protected long getMaxTimeout() {
+    	return Long.MAX_VALUE; // milliseconds
     }
 }
