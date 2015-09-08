@@ -38,19 +38,28 @@ public class SingleDistinctScalarAggregateIterator extends AbstractStandardItera
 		}
 
 		public void merge(ExecRow newRow) throws StandardException{
-                if (currentValue == null) {
-                    if (currentRow != null) {
-                        currentValue = aggregates[0].getInputColumnValue(currentRow).cloneValue(false);
+
+            for (SpliceGenericAggregator aggregator : aggregates) {
+
+                if (aggregator.isDistinct()) {
+                    if (currentValue == null) {
+                        if (currentRow != null) {
+                            currentValue = aggregator.getInputColumnValue(currentRow).cloneValue(false);
+                        }
                     }
-                }
-                DataValueDescriptor newValue = aggregates[0].getInputColumnValue(newRow);
-                if (currentValue == null || currentValue.compare(newValue) != 0) {
-                    for (SpliceGenericAggregator aggregator : aggregates) {
-                        initialize(newRow);
-                        aggregator.merge(newRow, currentRow);
+
+                    DataValueDescriptor newValue = aggregator.getInputColumnValue(newRow);
+                    if (currentValue == null || currentValue.compare(newValue) != 0) {
+                        currentValue = newValue.cloneValue(false);
                     }
-                    currentValue = newValue.cloneValue(false);
+                    else
+                        continue;
                 }
+
+                initialize(newRow);
+                aggregator.merge(newRow, currentRow);
+            }
+
 		}
 
 		public void initialize(ExecRow newRow) throws StandardException{

@@ -12,6 +12,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
@@ -415,4 +416,26 @@ public class AddColumnTransactionIT {
         Assert.assertEquals("Salary Cannot Be Queried after added!", 3,count);
     }
 
+    @Test @Ignore("DB-3711: can't add column on table with unique constraint")
+    public void testAddColAfterUniqueConstraint() throws Exception {
+        // DB-3711: add UC on a col, can't add another col
+        String tableName = "employees".toUpperCase();
+        String tableRef = schemaWatcher.schemaName+"."+tableName;
+        tableDAO.drop(schemaWatcher.schemaName, tableName);
+
+        Connection c1 = classWatcher.createConnection();
+        c1.setAutoCommit(false);
+        Statement s1 = c1.createStatement();
+
+        s1.execute(String.format("create table %s(emplid INTEGER NOT NULL, lastname VARCHAR(25) NOT NULL, firstname VARCHAR(25) NOT NULL, reportsto INTEGER)", tableRef));
+
+        c1.commit();
+
+        s1.execute(String.format("insert into %s values(7725070,'Anuradha','Kottapalli',8852090)", tableRef));
+
+        c1.commit();
+
+        s1.execute(String.format("alter table %s add constraint emp_uniq unique(emplid)", tableRef));
+        s1.execute(String.format("alter table %s add column foo int", tableRef));
+    }
 }
