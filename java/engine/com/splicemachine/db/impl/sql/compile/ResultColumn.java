@@ -1983,6 +1983,5 @@ public class ResultColumn extends ValueNode
         return getTableColumnDescriptor()==null?null:getTableColumnDescriptor().getBaseConglomerateDescriptor();
     }
 
-
 }
 
