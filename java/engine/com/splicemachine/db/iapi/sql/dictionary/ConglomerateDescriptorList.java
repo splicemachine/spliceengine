@@ -150,6 +150,18 @@ public class ConglomerateDescriptorList extends ArrayList<ConglomerateDescriptor
 		return returnValue;
 	}
 
+    public ConglomerateDescriptor getBaseConglomerateDescriptor() {
+        ConglomerateDescriptor conglomerateDescriptor;
+        int size = size();
+        for (int index = 0; index < size; index++) {
+            conglomerateDescriptor = (ConglomerateDescriptor) get(index);
+            if (!conglomerateDescriptor.isIndex()) {
+                return conglomerateDescriptor;
+            }
+        }
+        throw new RuntimeException("Missing Base Conglomerate");
+    }
+
 	/**
 	 * Get an array of conglomerate descriptors by a UUID String.  We get
 	 * more than one descriptors if duplicate indexes share one conglomerate.

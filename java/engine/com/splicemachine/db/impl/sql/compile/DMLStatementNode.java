@@ -143,8 +143,6 @@ public abstract class DMLStatementNode extends StatementNode{
      */
     @Override
     public void optimizeStatement() throws StandardException{
-        InSubqueryUnroller inSubqueryUnroller = new InSubqueryUnroller();
-        resultSet.accept(inSubqueryUnroller);
         AggregateSubqueryFlatteningVisitor subqueryAggregateFlatteningVisitor = new AggregateSubqueryFlatteningVisitor();
         resultSet.accept(subqueryAggregateFlatteningVisitor);
         resultSet=resultSet.preprocess(getCompilerContext().getNumTables(),null,null);

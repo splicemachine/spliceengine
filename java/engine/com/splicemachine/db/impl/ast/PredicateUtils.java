@@ -26,6 +26,14 @@ public class PredicateUtils {
         }
     };
 
+    public static com.google.common.base.Predicate<Predicate> isJoinPred = new com.google.common.base.Predicate<Predicate>() {
+        @Override
+        public boolean apply(Predicate p) {
+            return p != null &&
+                    p.isJoinPredicate();
+        }
+    };
+
     /**
      * Return string representation of Derby Predicate
      */
@@ -67,6 +75,8 @@ public class PredicateUtils {
      * Return a List of Predicates for a Derby PredicateList
      */
     public static List<Predicate> PLtoList(PredicateList pl) {
+        if (pl==null)
+            return new ArrayList<Predicate>();
         List<Predicate> preds = new ArrayList<>(pl.size());
         for (int i = 0, s = pl.size(); i < s; i++) {
             OptimizablePredicate p = pl.getOptPredicate(i);
@@ -74,4 +84,5 @@ public class PredicateUtils {
         }
         return preds;
     }
+
 }

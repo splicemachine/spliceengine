@@ -134,4 +134,107 @@ public class SelectivityUtil {
         return fraction;
     }
 
+    public static double getTotalHeapSize(CostEstimate innerCostEstimate,
+                                          CostEstimate outerCostEstimate,
+                                          double totalOutputRows){
+        return getTotalHeapSize(outerCostEstimate.getEstimatedHeapSize(),innerCostEstimate.getEstimatedHeapSize(),
+                outerCostEstimate.rowCount(),innerCostEstimate.rowCount(),totalOutputRows);
+    }
+
+    public static double getTotalHeapSize(double outerHeapSize,
+                                      double innerHeapSize,
+                                      double outerRowCount,
+                                      double innerRowCount,
+                                      double totalOutputRows){
+        return totalOutputRows*(
+                (innerHeapSize/(innerRowCount<0?1.0d:innerRowCount)) +
+                        (outerHeapSize/(outerRowCount<0?1.0d:outerRowCount)));
+    }
+
+    public static double getTotalRemoteCost(CostEstimate innerCostEstimate,
+                                            CostEstimate outerCostEstimate,
+                                            double totalOutputRows){
+        return getTotalRemoteCost(outerCostEstimate.remoteCost(),innerCostEstimate.remoteCost(),
+                outerCostEstimate.rowCount(),innerCostEstimate.rowCount(),totalOutputRows);
+    }
+
+    public static double getTotalRemoteCost(double outerRemoteCost,
+                                        double innerRemoteCost,
+                                        double outerRowCount,
+                                        double innerRowCount,
+                                        double totalOutputRows){
+        return totalOutputRows*(
+                (innerRemoteCost/(innerRowCount<0?1.0d:innerRowCount)) +
+                        (outerRemoteCost/(outerRowCount<0?1.0d:outerRowCount)));
+    }
+
+    public static double getTotalRows(Double joinSelectivity, double outerRowCount, double innerRowCount) {
+        return joinSelectivity*
+                (outerRowCount<1.0d?1.0d:outerRowCount)*
+                (innerRowCount<1.0d?1.0d:innerRowCount);
+    }
+
+    /**
+     *
+     * Broadcast Join Local Cost Computation
+     *
+     * Total Cost = (Left Side Cost/Partition Count) + Right Side Cost + Right Side Transfer Cost + Open Cost + Close Cost + 0.1
+     *
+     * @param innerCost
+     * @param outerCost
+     * @return
+     */
+    public static double broadcastJoinStrategyLocalCost(CostEstimate innerCost, CostEstimate outerCost) {
+        return (outerCost.localCost())/outerCost.partitionCount()+innerCost.localCost()+innerCost.remoteCost()+innerCost.getOpenCost()+innerCost.getCloseCost()+.01; // .01 Hash Cost
+    }
+
+    /**
+     *
+     * Merge Join Local Cost Computation
+     *
+     * Total Cost = (Left Side Cost + Right Side Cost + Right Side Remote Cost)/Left Side Partition Count) + Open Cost + Close Cost
+     *
+     * @param innerCost
+     * @param outerCost
+     * @return
+     */
+
+    public static double mergeJoinStrategyLocalCost(CostEstimate innerCost, CostEstimate outerCost) {
+        return (outerCost.localCost()+innerCost.localCost()+innerCost.remoteCost())/outerCost.partitionCount()+innerCost.getOpenCost()+innerCost.getCloseCost();
+    }
+
+    /**
+     *
+     * Merge Sort Join Local Cost Computation
+     *
+     * Total Cost = Max( (Left Side Cost+ReplicationFactor*Left Transfer Cost)/Left Number of Partitions),
+     *              (Right Side Cost+ReplicationFactor*Right Transfer Cost)/Right Number of Partitions)
+     *
+     * Replication Factor Based
+     *
+     * @param innerCost
+     * @param outerCost
+     * @return
+     */
+    public static double mergeSortJoinStrategyLocalCost(CostEstimate innerCost, CostEstimate outerCost, double replicationFactor) {
+        return Math.max( (outerCost.localCost()+replicationFactor*outerCost.getRemoteCost())/outerCost.partitionCount(),
+                (innerCost.localCost()+replicationFactor*innerCost.getRemoteCost())/innerCost.partitionCount());
+    }
+
+    /**
+     *
+     * Nested Loop Join Local Cost Computation
+     *
+     * Total Cost = (Left Side Cost)/Left Side Partition Count) + (Left Side Row Count/Left Side Partition Count)*(Right Side Cost + Right Side Transfer Cost + Open Cost + Close Cost)
+     *
+     * @param innerCost
+     * @param outerCost
+     * @return
+     */
+
+    public static double nestedLoopJoinStrategyLocalCost(CostEstimate innerCost, CostEstimate outerCost) {
+        return outerCost.localCost()/outerCost.partitionCount() + (outerCost.rowCount()/outerCost.partitionCount())*(innerCost.localCost()+innerCost.getRemoteCost()+innerCost.getOpenCost()+innerCost.getCloseCost());
+    }
+
+
 }

@@ -308,4 +308,8 @@ public class VirtualColumnNode extends ValueNode
     }
 
 
+    @Override
+    public long nonZeroCardinality(long numberOfRows) throws StandardException {
+        return sourceColumn.nonZeroCardinality(numberOfRows);
+    }
 }

@@ -1950,9 +1950,10 @@ public class ResultColumn extends ValueNode
      * @return
      * @throws StandardException
      */
+    @Override
     public long nonZeroCardinality(long numberOfRows) throws StandardException {
-        long cardinality = cardinality();
-        return cardinality==0?numberOfRows:cardinality;
+        long c = cardinality();
+        return c> 0? c : expression.nonZeroCardinality(numberOfRows);
     }
 
     @Override
@@ -1976,6 +1977,12 @@ public class ResultColumn extends ValueNode
                 "virtualColumnId: " + virtualColumnId + "<br>" +
                 "resultSetNumber: " + resultSetNumber + "<br>";
     }
+
+
+    public ConglomerateDescriptor getBaseConglomerateDescriptor() {
+        return getTableColumnDescriptor()==null?null:getTableColumnDescriptor().getBaseConglomerateDescriptor();
+    }
+
 
 }
 

@@ -229,4 +229,9 @@ public interface StoreCostController extends RowCountable{
      */
     double baseTableColumnSizeFactor(BitSet validColumns);
 
+    /**
+     * @return the total number of rows in the base conglomerate (including null and non-null)
+     */
+    double baseRowCount();
+
 }

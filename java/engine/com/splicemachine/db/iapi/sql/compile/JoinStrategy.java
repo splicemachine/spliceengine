@@ -41,21 +41,26 @@ import com.splicemachine.db.iapi.error.StandardException;
 public interface JoinStrategy {
 
     public enum JoinStrategyType {
-        NESTED_LOOP ("NESTED_LOOP",0,"NestedLoop"),
-        MERGE_SORT ("MERGE_SORT",1,"MergeSort"),
-        BROADCAST ("BROADCAST",2,"Broadcast"),
-        MERGE ("MERGE",3, "Merge");
+        NESTED_LOOP ("NESTED_LOOP",0,"NestedLoop",true),
+        MERGE_SORT ("MERGE_SORT",1,"MergeSort",false),
+        BROADCAST ("BROADCAST",2,"Broadcast",false),
+        MERGE ("MERGE",3, "Merge",false);
         private final String name;
         private final int strategyId;
         private final String niceName;
-        JoinStrategyType(String name, int strategyId, String niceName) {
+        private final boolean allowsJoinPredicatePushdown;
+        JoinStrategyType(String name, int strategyId, String niceName, boolean allowsJoinPredicatePushdown) {
             this.name = name;
             this.strategyId = strategyId;
             this.niceName = niceName;
+            this.allowsJoinPredicatePushdown = allowsJoinPredicatePushdown;
         }
         public String getName() { return name;}
         public int getStrategyId() { return strategyId;}
         public String niceName() { return niceName;}
+        public boolean isAllowsJoinPredicatePushdown() {
+            return allowsJoinPredicatePushdown;
+        }
     }
 
 	/**
@@ -322,7 +327,13 @@ public interface JoinStrategy {
 	 */
 	boolean doesMaterialization();
 
-	boolean allowsJoinPredicatePushdown();
+    /**
+     *
+     * Defers to the join strategy type to determine if the join Predicates can be pushed down.
+     *
+     * @return
+     */
+    boolean allowsJoinPredicatePushdown();
 
 	/**
 	 * Sets the row ordering on the cost estimate. The row ordering which is set is the
@@ -331,7 +342,12 @@ public interface JoinStrategy {
 	 * @param costEstimate the cost estimate to set the ordering on.
 	 */
 	void setRowOrdering(CostEstimate costEstimate);
-
+    /**
+     *
+     * Grab the JoinStrategyType to allow for non reflection based testing of types.
+     *
+     * @return
+     */
     public abstract JoinStrategyType getJoinStrategyType();
 
 }

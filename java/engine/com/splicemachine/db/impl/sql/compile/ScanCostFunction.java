@@ -169,8 +169,8 @@ public class ScanCostFunction{
         assert projectionSelectivity >= 0 && projectionSelectivity <= 1.0:"projectionSelectivity Out of Bounds -> " + projectionSelectivity;
         assert totalSelectivity >= 0 && totalSelectivity <= 1.0:"totalSelectivity Out of Bounds -> " + totalSelectivity;
 
-
-        double totalRowCount = scc.rowCount();
+        // Total Row Count from the Base Conglomerate
+        double totalRowCount = scc.baseRowCount();
         // Rows Returned is always the totalSelectivity (Conglomerate Independent)
         scanCost.setEstimatedRowCount(Math.round(totalRowCount*totalSelectivity));
 

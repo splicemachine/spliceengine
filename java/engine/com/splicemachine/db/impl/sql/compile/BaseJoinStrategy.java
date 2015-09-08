@@ -193,9 +193,15 @@ public abstract class BaseJoinStrategy implements JoinStrategy{
         return false;
     }
 
+    /*
+    * Defers to the join strategy type to determine if the predicate costing should be pushed down to the right side.
+    * Currently this is focused on NLJ.
+            *
+            * @return
+     */
     @Override
     public boolean allowsJoinPredicatePushdown(){
-        return false;
+        return getJoinStrategyType().isAllowsJoinPredicatePushdown();
     }
 
     @Override

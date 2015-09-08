@@ -43,8 +43,7 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 
-
-import java.util.Vector;
+import java.util.*;
 
 /**
  * A DistinctNode represents a result set for a disinct operation
@@ -164,25 +163,32 @@ public class DistinctNode extends SingleChildResultSetNode
 									RowOrdering rowOrdering)
 			throws StandardException
 	{
-		// RESOLVE: WE NEED TO ADD IN THE COST OF SORTING HERE, AND FIGURE
-		// OUT HOW MANY ROWS WILL BE ELIMINATED.
-		CostEstimate childCost =
-			((Optimizable) childResult).estimateCost(predList,
-									cd,
-									outerCost,
-									optimizer,
-									rowOrdering);
+        costEstimate = getNewCostEstimate();
+        CostEstimate baseCost = childResult.getFinalCostEstimate();
+        double rc = baseCost.rowCount();
+        double outputHeapSizePerRow = baseCost.getEstimatedHeapSize()/rc;
+        double remoteCostPerRow=baseCost.remoteCost()/rc;
 
-		costEstimate = getCostEstimate(optimizer);
-		costEstimate.setCost(childCost.getEstimatedCost(),
-							 childCost.rowCount(),
-							 childCost.singleScanRowCount());
+        double sortCost = 0;
+        double outputHeapSize = 0d;
 
+        ResultColumnList rcl = childResult.getResultColumns();
+        double returnedRows = 1d;
+        for (int i = 1; i <= rcl.size(); ++i) {
+            ResultColumn resultColumn = rcl.getResultColumn(i);
+            returnedRows *= resultColumn.nonZeroCardinality((long)baseCost.rowCount());
+        }
+        sortCost = returnedRows * remoteCostPerRow;
+        outputHeapSize = returnedRows * outputHeapSizePerRow;
 
-		/*
-		** No need to use estimateCost on join strategy - that has already
-		** been done on the child.
-		*/
+        double totalLocalCost = baseCost.localCost()/baseCost.partitionCount();
+        double totalRemoteCost = sortCost + remoteCostPerRow * rc;
+        costEstimate.setLocalCost(totalLocalCost);
+        costEstimate.setRemoteCost(totalRemoteCost);
+        costEstimate.setNumPartitions(1);
+        costEstimate.setRowCount(returnedRows);
+        costEstimate.setEstimatedHeapSize((long)outputHeapSize);
+
 		return costEstimate;
 	}
 
@@ -284,7 +290,7 @@ public class DistinctNode extends SingleChildResultSetNode
 		assignResultSetNumber();
 
 		// Get the final cost estimate based on the child's cost.
-		costEstimate = childResult.getFinalCostEstimate();
+		costEstimate = getFinalCostEstimate();
 
 		/*
 			create the orderItem and stuff it in.
@@ -321,7 +327,14 @@ public class DistinctNode extends SingleChildResultSetNode
 
     @Override
     public CostEstimate getFinalCostEstimate() throws StandardException {
-        return super.getFinalCostEstimate();
+
+        if (costEstimate != null) {
+            finalCostEstimate = costEstimate;
+        }
+        else {
+            finalCostEstimate = childResult.getFinalCostEstimate();
+        }
+        return finalCostEstimate;
     }
 
     @Override

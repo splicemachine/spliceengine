@@ -853,7 +853,7 @@ public class FromBaseTable extends FromTable {
                     if(baseTableRestrictionList.isRedundantPredicate(i)) continue;
                 }
 
-                if(!p.isJoinPredicate()) //skip join predicates
+                if(!p.isJoinPredicate() || currentJoinStrategy.allowsJoinPredicatePushdown()) //skip join predicates unless they support predicate pushdown
                     scf.addPredicate(p);
             }
             scf.generateCost();
@@ -3376,7 +3376,7 @@ public class FromBaseTable extends FromTable {
                 .append("n=").append(order)
                 .append(",").append(getFinalCostEstimate().prettyFromBaseTableString());
         if (indexName != null)
-            sb.append("baseTable=").append(getPrettyTableName());
+            sb.append(",baseTable=").append(getPrettyTableName());
         List<String> qualifiers =  Lists.transform(PredicateUtils.PLtoList(RSUtils.getPreds(this)), PredicateUtils.predToString);
         if(qualifiers!=null && qualifiers.size()>0) //add
             sb.append(",preds=["+ Joiner.on(",").skipNulls().join(qualifiers)+"]");

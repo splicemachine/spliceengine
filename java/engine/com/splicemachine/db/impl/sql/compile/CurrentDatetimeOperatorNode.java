@@ -186,4 +186,8 @@ public class CurrentDatetimeOperatorNode extends ValueNode {
 		public List getChildren() {
 			return Collections.EMPTY_LIST;
 		}
+
+	public long nonZeroCardinality(long numberOfRows) throws StandardException {
+		return 1;
+	}
 }
