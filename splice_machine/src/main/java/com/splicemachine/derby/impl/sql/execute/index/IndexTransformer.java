@@ -8,6 +8,7 @@ import java.util.Arrays;
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
 import org.apache.hadoop.hbase.CellUtil;
+import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
 import org.apache.hadoop.hbase.client.Get;
 import org.apache.hadoop.hbase.client.Result;
@@ -211,25 +212,29 @@ public class IndexTransformer {
             keyDecoder.set(mutation.getRowKey());
             for (int sourceKeyColumnPos : srcPrimaryKeyIndices) {
                 int indexKeyPos = sourceKeyColumnPos < indexKeyEncodingMap.length ? indexKeyEncodingMap[sourceKeyColumnPos] : -1;
-                if (indexKeyPos < 0) {
-                    skip(keyDecoder, columnTypes[sourceKeyColumnPos]);
-                } else {
-                    int offset = keyDecoder.offset();
-                    boolean isNull = skip(keyDecoder, columnTypes[sourceKeyColumnPos]);
-                    hasNullKeyFields = isNull || hasNullKeyFields;
-                    if (!isNull) {
-                        int length = keyDecoder.offset() - offset - 1;
-                        accumulate(keyAccumulator, indexKeyPos,
-                                columnTypes[sourceKeyColumnPos],
-                                srcKeyColumnSortOrder != null && srcKeyColumnSortOrder[sourceKeyColumnPos] != indexKeySortOrder[sourceKeyColumnPos],
-                                keyDecoder.array(), offset, length);
-                    }
+                int offset = keyDecoder.offset();
+                boolean isNull = skip(keyDecoder, columnTypes[sourceKeyColumnPos]);
+                if(indexKeyPos>=0){
+                    /*
+                     * since primary keys have an implicit NOT NULL constraint here, we don't need to check for it,
+                     * and isNull==true would represent a programmer error, rather than an actual state the
+                     * system can be in.
+                     */
+                    assert !isNull: "Programmer error: Cannot update a primary key to a null value!";
+                    int length = keyDecoder.offset() - offset - 1;
+                    accumulate(keyAccumulator, indexKeyPos,
+                            columnTypes[sourceKeyColumnPos],
+                            srcKeyColumnSortOrder != null && srcKeyColumnSortOrder[sourceKeyColumnPos] != indexKeySortOrder[sourceKeyColumnPos],
+                            keyDecoder.array(), offset, length);
                 }
             }
         }
 
         /*
          * Handle non-null index columns from the source tables non-primary key columns.
+         *
+         * this will set indexed columns with values taken from the incoming mutation (rather than
+         * backfilling them with existing values, which would occur elsewhere).
          */
         EntryDecoder rowDecoder = getSrcValueDecoder();
         rowDecoder.set(mutation.getValue());
@@ -243,13 +248,32 @@ public class IndexTransformer {
                 int offset = rowFieldDecoder.offset();
                 boolean isNull = rowDecoder.seekForward(rowFieldDecoder, i);
                 hasNullKeyFields = isNull || hasNullKeyFields;
+                int length;
                 if (!isNull) {
-                    int length = rowFieldDecoder.offset() - offset - 1;
+                    length = rowFieldDecoder.offset() - offset - 1;
                     accumulate(keyAccumulator,
                             keyColumnPos,
                             columnTypes[i],
                             !indexKeySortOrder[keyColumnPos],
                             rowFieldDecoder.array(), offset, length);
+                } else{
+                    /*
+                     * because the field is NULL and it's source is the incoming mutation, we
+                     * still need to accumulate it. We must be careful, however, to accumulate the
+                     * proper null value.
+                     *
+                     * In theory, we could use a sparse encoding here--just accumulate a length 0 entry,
+                     * which will allow us to use a very short row key to determine nullity. However, that
+                     * doesn't work correctly, because doubles and floats at the end of the index might decode
+                     * the row key as a double, resulting in goofball answers.
+                     *
+                     * Instead, we must use the dense encoding approach here. That means that we must
+                     * select the proper dense type based on columnTypes[i]. For most data types, this is still
+                     * a length-0 array, but for floats and doubles it will put the proper type into place.
+                     */
+                    accumulateNull(keyAccumulator,
+                            keyColumnPos,
+                            columnTypes[i]);
                 }
             }
         }
@@ -337,6 +361,18 @@ public class IndexTransformer {
                     BitSet.newInstance(), BitSet.newInstance(), BitSet.newInstance());
         }
         return indexValueEncoder;
+    }
+
+    private void accumulateNull(EntryAccumulator keyAccumulator, int pos, int type){
+        if (typeProvider.isScalar(type))
+            keyAccumulator.addScalar(pos,HConstants.EMPTY_BYTE_ARRAY,0,0);
+        else if (typeProvider.isDouble(type))
+            keyAccumulator.addDouble(pos,Encoding.encodedNullDouble(),0,Encoding.encodedNullDoubleLength());
+        else if (typeProvider.isFloat(type))
+            keyAccumulator.addDouble(pos,Encoding.encodedNullFloat(),0,Encoding.encodedNullFloatLength());
+        else
+            keyAccumulator.add(pos,HConstants.EMPTY_BYTE_ARRAY,0,0);
+
     }
 
     private void accumulate(EntryAccumulator keyAccumulator, int pos,

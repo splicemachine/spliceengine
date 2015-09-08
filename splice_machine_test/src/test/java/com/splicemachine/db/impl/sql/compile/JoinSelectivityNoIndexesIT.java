@@ -19,8 +19,8 @@ import static com.splicemachine.test_tools.Rows.rows;
  *
  *
  */
-public class JoinSelectivityIT extends SpliceUnitTest {
-    public static final String CLASS_NAME = JoinSelectivityIT.class.getSimpleName().toUpperCase();
+public class JoinSelectivityNoIndexesIT extends SpliceUnitTest {
+    public static final String CLASS_NAME = JoinSelectivityNoIndexesIT.class.getSimpleName().toUpperCase();
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
     protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 

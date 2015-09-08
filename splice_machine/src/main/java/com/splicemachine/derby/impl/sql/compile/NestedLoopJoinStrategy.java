@@ -240,101 +240,13 @@ public class NestedLoopJoinStrategy extends BaseJoinStrategy{
         }
         //set the base costs for the join
         innerCost.setBase(innerCost.cloneMe());
-//        outerCost.setBase(outerCost.cloneMe());
+        double totalRowCount = outerCost.rowCount()*innerCost.rowCount();
 
-        /*
-         * NestedLoopJoins are very simple. For each outer row, we create a new scan of the inner
-         * table, looking for rows which match the join predicates. Therefore, for each outer row,
-         * we must pay the local penalty of
-         *
-         * innerCost.localCost
-         *
-         * and the remote penalty of
-         *
-         * innerCost.remoteCost * (number of rows matching join predicates)
-         *
-         * the number of rows matching the join predicate is the "join selectivity", so a better formulation is:
-         *
-         * innerScan.outputRows = joinSelectivity*innerCost.outputRows
-         * innerScan.localCost = innerCost.localCost
-         * innerScan.remoteCost = innerCost.remoteCost*innerCost.outputRows
-         * innerScan.heapSize = innerCost.heapSize*joinSelectivity
-         *
-         * Note,however, that some join predicates may be start and stop predicates, which will reduce
-         * the number of rows we have to touch during the inner scan. As a result, we have to keep
-         * 2 selectivities: the "output join selectivity" and the "input join selectivity". This adjusts the formulas
-         * to be:
-         *
-         * innerScan.outputRows = outputJoinSelectivity*innerCost.outputRows
-         * innerScan.localCost = inputJoinSelectivity*innerCost.localCost
-         * innerScan.remoteCost = outputJoinSelectivity*innerCost.remoteCost
-         * innerScan.heapSize = outputJoinSelectivity*innerCost.heapSize
-         *
-         * This the cost made *per outer row*, so our overall cost formula is:
-         *
-         * totalCost.localCost = outerCost.localCost + outerCost.outputRows*(innerScan.localCost+innerScan.remoteCost)
-         * totalCost.remoteCost = outerCost.remoteCost + outerCost.outputRows*(innerScan.remoteCost)
-         * totalCost.outputRows = outerCost.outputRows
-         * totalCost.heapSize = outerCost.heapSize
-         * totalCost.numPartitions = outerCost.numPartitions + innerCost.numPartitions
-         *
-         * Note that we add in the remote cost of the inner scan twice. This accounts for the fact that we have
-         * to read the innerScan's rows over the network twice--once to pull them to the outer table's region,
-         * and again to write that data across the network.
-         */
-
-        /*
-         * If the row count is 1l, then we are either a keyed lookup (a special case handled
-         * in FromBaseTable directly), or we are on a table with exactly 1 row returned (which is wild).
-         *
-         * If we are the latter, then not adjusting for start and stop key selectivity won't matter,
-         * and if we are the former, it'll screw up our costing model. So in both cases, don't
-         * adjust the selectivity if our estimated row count is 1
-         */
-
-        /*
-         * if the outer table claims to have no rows return, then
-         * we are in a bit of a dilemma. On the one hand, maybe nothing
-         * comes back, in which case that's correct. Or maybe there are no
-         * statistics, and we are just screwed anyway.
-         *
-         * Regardless, we don't want to mess up our own statistics by dividing by
-         * zero here and so forth, so we choose to accept some error for very small
-         * tables by resetting the output row count to 1 if it's less than that already.
-         */
-        double outerRowCount = outerCost.rowCount();
-        if(outerRowCount<1) outerRowCount=1d;
-
-        double innerScanLocalCost = innerCost.localCost();
-        double innerScanRemoteCost = innerCost.remoteCost();
-        double innerScanHeapSize = innerCost.getEstimatedHeapSize();
-        double innerScanOutputRows = innerCost.rowCount();
-
-        double perOuterRowInnerCost = innerScanLocalCost+innerScanRemoteCost;
-        perOuterRowInnerCost+=innerCost.partitionCount()*(innerCost.getOpenCost()+innerCost.getCloseCost());
-
-        double totalLocalCost=outerCost.localCost()+outerCost.rowCount()*perOuterRowInnerCost;
-        int totalPartitions=outerCost.partitionCount();
-
-        /*
-         * unlike other join strategies, NLJ's row count selectivity is determined entirely by
-         * the predicates which are pushed to the right hand side. Therefore, the totalOutputRows
-         * is actually outerCost.rowCount()*innerScanOutputRows
-         */
-        double totalOutputRows=outerCost.rowCount()*innerCost.rowCount();
-        double totalHeapSize=outerCost.getEstimatedHeapSize()+outerCost.rowCount()*innerScanHeapSize;
-
-        double perRowRemoteCost = outerCost.remoteCost()/outerRowCount;
-        if(innerScanOutputRows>0){
-            perRowRemoteCost+=innerCost.remoteCost()/innerCost.rowCount();
-        }
-        double totalRemoteCost=totalOutputRows*perRowRemoteCost;
-
-        innerCost.setEstimatedHeapSize((long)totalHeapSize);
-        innerCost.setNumPartitions(totalPartitions);
-        innerCost.setRowCount(totalOutputRows);
-        innerCost.setRemoteCost(totalRemoteCost);
-        innerCost.setLocalCost(totalLocalCost);
+        innerCost.setEstimatedHeapSize((long)SelectivityUtil.getTotalHeapSize(innerCost,outerCost,totalRowCount));
+        innerCost.setNumPartitions(outerCost.partitionCount());
+        innerCost.setRowCount(totalRowCount);
+        innerCost.setRemoteCost(SelectivityUtil.getTotalRemoteCost(innerCost,outerCost,totalRowCount));
+        innerCost.setLocalCost(SelectivityUtil.nestedLoopJoinStrategyLocalCost(innerCost,outerCost));
         innerCost.setRowOrdering(outerCost.getRowOrdering());
         innerCost.setSingleScanRowCount(innerCost.getEstimatedRowCount());
     }

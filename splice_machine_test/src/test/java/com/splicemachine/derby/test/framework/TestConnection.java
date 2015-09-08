@@ -185,12 +185,11 @@ public class TestConnection implements Connection{
     @Override public Array createArrayOf(String typeName, Object[] elements) throws SQLException { return delegate.createArrayOf(typeName,elements); }
     @Override public Struct createStruct(String typeName, Object[] attributes) throws SQLException { return delegate.createStruct(typeName, attributes); }
     public void setSchema(String schema) throws SQLException {
-
-//        delegate.setSchema(schema);
+        delegate.setSchema(schema);
     }
+
     public String getSchema() throws SQLException {
-        return null;
-//        return delegate.getSchema();
+        return delegate.getSchema();
     }
     public void abort(Executor executor) throws SQLException {
         //no-op

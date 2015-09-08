@@ -302,7 +302,8 @@ public class TempTableIT {
                 }
             });
             connection.commit();
-            SQLClosures.query(connection, String.format("select * from %s.%s", tableSchema.schemaName, SIMPLE_TEMP_TABLE),
+            SQLClosures.query(connection, String.format("select * from %s.%s", tableSchema.schemaName,
+                                                        SIMPLE_TEMP_TABLE),
                               new SQLClosures.SQLAction<ResultSet>() {
                                   @Override
                                   public void execute(ResultSet resultSet) throws Exception {
@@ -352,7 +353,8 @@ public class TempTableIT {
                 }
             });
             connection.commit();
-            SQLClosures.query(connection, String.format("select * from %s.%s", tableSchema.schemaName, SIMPLE_TEMP_TABLE),
+            SQLClosures.query(connection, String.format("select * from %s.%s", tableSchema.schemaName,
+                                                        SIMPLE_TEMP_TABLE),
                               new SQLClosures.SQLAction<ResultSet>() {
                                   @Override
                                   public void execute(ResultSet resultSet) throws Exception {
@@ -740,7 +742,7 @@ public class TempTableIT {
                     @Override
                     public void execute(Statement statement) throws Exception {
                         statement.execute(String.format("create view %s.%s ",
-                                                        tableSchema.schemaName,  EMP_NAME_PRIV_VIEW) + viewDef);
+                                                        tableSchema.schemaName, EMP_NAME_PRIV_VIEW) + viewDef);
                         fail("Expected exception trying to create a view that depends on a temp table.");
                     }
                 });
@@ -751,6 +753,54 @@ public class TempTableIT {
         } finally {
             methodWatcher.closeAll();
         }
+    }
+
+    /**
+     * Make sure a temp table is deleted after the end of the user session.
+     * @throws Exception
+     */
+    @Test
+    public void testTempTableGetsDropped() throws Exception {
+        // DB-3769: temp table is accessible after session termination
+        final String MY_TABLE = "MY_TABLE";
+        final String tmpCreate = "CREATE LOCAL TEMPORARY TABLE %s.%s %s ON COMMIT PRESERVE ROWS";
+        Connection connection1 = methodWatcher.createConnection();
+        SQLClosures.execute(connection1, new SQLClosures.SQLAction<Statement>() {
+                @Override
+                public void execute(Statement statement) throws Exception {
+                    statement.execute(String.format(tmpCreate, tableSchema.schemaName, MY_TABLE,
+                                                    ePrivDef));
+                SpliceUnitTest.loadTable(statement, tableSchema.schemaName + "." + MY_TABLE, empPrivVals);
+            }
+        });
+        connection1.commit();
+
+        SQLClosures.query(connection1, String.format("select id from %s.%s", tableSchema.schemaName, MY_TABLE),
+                          new SQLClosures.SQLAction<ResultSet>() {
+                              @Override
+                              public void execute(ResultSet resultSet) throws Exception {
+                                  Assert.assertEquals(5, SpliceUnitTest.resultSetSize(resultSet));
+                              }
+                          });
+        connection1.commit();
+        methodWatcher.closeAll();
+
+        Thread.sleep(1000);  // TODO: JC - This is what the bug is about now. We have to wait for table drop before connecting.
+        Connection connection2 = methodWatcher.createConnection();
+        try {
+            SQLClosures.query(connection2, String.format("select id from %s.%s", tableSchema.schemaName, MY_TABLE),
+                              new SQLClosures.SQLAction<ResultSet>() {
+                                  @Override
+                                  public void execute(ResultSet resultSet) throws Exception {
+                                      // expecting exception to be thrown from query
+                                      fail("Expected TEMP table to be gone.");
+                                  }
+                              });
+        } catch (SQLException e) {
+            // expected
+            Assert.assertEquals(e.getLocalizedMessage(),"42X05", e.getSQLState());
+        }
+        connection2.commit();
     }
 
     /**
@@ -782,7 +832,7 @@ public class TempTableIT {
         hbaseTempExists = hBaseAdmin.tableExists(tempConglomID);
         if (hbaseTempExists) {
             // HACK: wait a sec, try again.  It's going away, just takes some time.
-            Thread.sleep(2000);
+            Thread.sleep(1000);
             hbaseTempExists = hBaseAdmin.tableExists(tempConglomID);
         }
         Assert.assertFalse("HBase temp table [" + tempConglomID + "] still exists.", hbaseTempExists);

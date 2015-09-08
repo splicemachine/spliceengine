@@ -345,4 +345,9 @@ public class StatsStoreCostController extends GenericController implements Store
     public int getNumPartitions() {
         return conglomerateStatistics.partitionStatistics().size();
     }
+
+    @Override
+    public double baseRowCount() {
+        return conglomerateStatistics.rowCount();
+    }
 }
