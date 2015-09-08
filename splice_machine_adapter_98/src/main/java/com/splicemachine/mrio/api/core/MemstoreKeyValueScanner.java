@@ -63,4 +63,10 @@ public class MemstoreKeyValueScanner extends BaseMemstoreKeyValueScanner<Cell> {
 			SpliceLogUtils.debug(LOG, "seekToLastRow");		
 		return false;
 	}
+
+//    @Override
+    public byte[] getNextIndexedKey() {
+        // TODO: JC - fudged this to get compile against 0.98.12-mapr with HBASE-13420.patch
+        return null;
+    }
 }
