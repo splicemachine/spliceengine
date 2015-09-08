@@ -284,7 +284,8 @@ public class SpliceDatabase extends BasicDatabase{
             public void finishGlobalChange(){
                 Collection<LanguageConnectionContext> allContexts=ContextService.getFactory().getAllContexts(LanguageConnectionContext.CONTEXT_ID);
                 for(LanguageConnectionContext context : allContexts){
-                    context.finishGlobalDDLChange();
+                    if(context!=null)
+                        context.finishGlobalDDLChange();
                 }
             }
 

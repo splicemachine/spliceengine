@@ -73,7 +73,7 @@ public class PartitionStatsStore {
 				        		invalidateCachedStatistics(conglomId);
 			        		}
 			        	} catch (ExecutionException e) {
-			        		LOG.error(String.format("Error while trying to invalidate cached statistics", tableName), e);
+			        		LOG.error(String.format("Error while trying to invalidate cached statistics for table %s", tableName), e);
 			        	}
 			            break;
 			        default:
