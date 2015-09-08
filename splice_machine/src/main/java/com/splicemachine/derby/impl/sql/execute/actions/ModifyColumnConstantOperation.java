@@ -224,6 +224,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                     break;
                 case ColumnInfo.MODIFY_COLUMN_TYPE:
                     modifyColumnType(dd,tc,td,ix);
+                    break;
                 case ColumnInfo.MODIFY_COLUMN_CONSTRAINT:
                     modifyColumnConstraint(activation,td,columnInfo[ix].name,true);
                     break;

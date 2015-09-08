@@ -56,9 +56,9 @@ public class SortMergeJoinSelectivityIT extends BaseJoinSelectivityIT {
     @Test
     public void rightOuterJoin() throws Exception {
         rowContainsQuery(
-                new int[] {1,3},
+                new int[] {1,3,3},
                 "explain select * from ts_10_spk --splice-properties joinStrategy=SORTMERGE\n right outer join ts_5_spk on ts_10_spk.c1 = ts_5_spk.c1",methodWatcher,
-                "rows=10","MergeSortRightOuterJoin");
+                "rows=10","MergeSortRightOuterJoin","preds=[(TS_10_SPK.C1[4:1] = TS_5_SPK.C1[4:5])]");
     }
 
 }

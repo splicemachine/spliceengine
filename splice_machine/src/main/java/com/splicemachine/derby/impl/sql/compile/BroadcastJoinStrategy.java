@@ -5,12 +5,9 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.compile.*;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.sql.dictionary.TableDescriptor;
-import com.splicemachine.db.impl.sql.compile.FromBaseTable;
-import com.splicemachine.db.impl.sql.compile.Predicate;
-import com.splicemachine.db.impl.sql.compile.PredicateList;
-import com.splicemachine.db.impl.sql.compile.SelectivityUtil;
+import com.splicemachine.db.impl.sql.compile.*;
 
-public class BroadcastJoinStrategy extends BaseCostedHashableJoinStrategy {
+public class BroadcastJoinStrategy extends HashableJoinStrategy {
     public BroadcastJoinStrategy() { }
 
     /**
@@ -135,49 +132,14 @@ public class BroadcastJoinStrategy extends BaseCostedHashableJoinStrategy {
             return; //actually a scan, don't do anything
         }
         innerCost.setBase(innerCost.cloneMe());
-        double outerRowCount=outerCost.rowCount();
-        double innerRowCount=innerCost.rowCount();
-        if(innerRowCount==0d){
-            //we don't do anything to the base scan costs, but we DO affect the join
-            //selectivity, so we treat the inner row count as 1
-            innerRowCount = 1d;
-        }
-        if(outerRowCount==0d){
-            outerRowCount = 1d;
-        }
-
-        double outerRemoteCost=outerCost.remoteCost();
-        double innerRemoteCost=innerCost.remoteCost();
-
-        double joinSelectivity = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerRowCount, (long) outerRowCount, outerCost);
-
-        double totalLocalCost = outerCost.localCost()+innerCost.localCost()+innerRemoteCost;
-        //add in the overhead to open the inner table scan
-        totalLocalCost+= innerCost.partitionCount()*(innerCost.getOpenCost()+innerCost.getCloseCost());
-
-
-        double totalOutputRows = joinSelectivity*outerRowCount*innerRowCount;
-
-        double totalRemoteCost=getTotalRemoteCost(outerRemoteCost,innerRemoteCost,outerRowCount,innerRowCount,totalOutputRows);
-
-        //each partition of the outer table will see inner table's partitionCount
-        int totalPartitionCount = outerCost.partitionCount();
-
-        double totalHeapSize=getTotalHeapSize(outerCost.getEstimatedHeapSize(),
-                innerCost.getEstimatedHeapSize(),
-                innerRowCount,
-                outerRowCount,
-                totalOutputRows);
-
-        innerCost.setNumPartitions(totalPartitionCount);
-        innerCost.setLocalCost(totalLocalCost);
-        innerCost.setRemoteCost(totalRemoteCost);
-//        innerCost.setRowOrdering(null);
+        double joinSelectivity = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost);
+        double totalOutputRows = SelectivityUtil.getTotalRows(joinSelectivity,outerCost.rowCount(),innerCost.rowCount());
+        innerCost.setNumPartitions(outerCost.partitionCount());
+        innerCost.setLocalCost(SelectivityUtil.broadcastJoinStrategyLocalCost(innerCost,outerCost));
+        innerCost.setRemoteCost(SelectivityUtil.getTotalRemoteCost(innerCost,outerCost,totalOutputRows));
         innerCost.setRowOrdering(outerCost.getRowOrdering());
         innerCost.setRowCount(totalOutputRows);
-        innerCost.setEstimatedHeapSize((long)totalHeapSize);
-//        innerCost.setSingleScanRowCount(innerCost.rowCount());
-//        innerCost.setSingleScanRowCount(joinSelectivity*outerCost.singleScanRowCount());
+        innerCost.setEstimatedHeapSize((long)SelectivityUtil.getTotalHeapSize(innerCost,outerCost,totalOutputRows));
     }
 
     @Override

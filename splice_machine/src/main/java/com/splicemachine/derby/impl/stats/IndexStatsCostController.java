@@ -69,4 +69,9 @@ public class IndexStatsCostController extends StatsStoreCostController {
         return baseTableStatistics.avgRowWidth();
     }
 
+    @Override
+    public double baseRowCount() {
+        return baseTableStatistics.rowCount();
+    }
+
 }

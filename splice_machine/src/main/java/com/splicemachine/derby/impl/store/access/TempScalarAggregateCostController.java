@@ -8,7 +8,6 @@ import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.iapi.store.access.StoreCostController;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
 /**
@@ -54,7 +53,7 @@ public class TempScalarAggregateCostController implements AggregateCostControlle
         int mapRows = baseCost.partitionCount();
         double baseRc = baseCost.rowCount();
         double remoteCostPerRow;
-        double outputHeapSize;
+        double outputHeapSizePerRow;
         double localCostPerRow;
         if(baseRc==0d){
             /*
@@ -64,11 +63,11 @@ public class TempScalarAggregateCostController implements AggregateCostControlle
              * size which seems to empirically line up with the size of a single
              * aggregate
              */
-            outputHeapSize = 70;
+            outputHeapSizePerRow = 70;
             localCostPerRow = baseCost.localCost();
             remoteCostPerRow = baseCost.remoteCost();
         }else{
-            outputHeapSize=baseCost.getEstimatedHeapSize()/baseRc;
+            outputHeapSizePerRow=baseCost.getEstimatedHeapSize()/baseRc;
             localCostPerRow=baseCost.localCost()/baseRc;
             remoteCostPerRow=baseCost.remoteCost()/baseRc;
         }
@@ -80,57 +79,30 @@ public class TempScalarAggregateCostController implements AggregateCostControlle
          * we can just divide the total local cost by the partition count
          *
          */
-        double mapCost = baseCost.localCost()/baseCost.partitionCount()+remoteCostPerRow;
+        double mapLocalCost = baseCost.localCost()/baseCost.partitionCount();
+        double mapRemoteCost = remoteCostPerRow * baseRc;
 
         double reduceLocalCost = localCostPerRow*mapRows;
-
+        double heapSize = 0;
         // Distinct scalar aggregate operation removes duplicates and shuffle all unique rows for each region
         double shuffleCost = 0d;
         for (AggregateNode aggregateNode : aggregateVector) {
             if (aggregateNode.isDistinct()) {
                 ValueNode v = aggregateNode.getOperand();
-                List<ColumnReference> columnReferenceList = new ArrayList<>();
-                getReferencedColumns(v, columnReferenceList);
-                if (columnReferenceList.size() > 0) {
-                    double returnedRows = 0d;
-                    StoreCostController sc = null;
-                    for (ColumnReference cr : columnReferenceList) {
-                        ConglomerateDescriptor cd = cr.getSource().getTableColumnDescriptor().getTableDescriptor().getConglomerateDescriptorList().get(0);
-                        if (cr.nonZeroCardinality((long) baseCost.rowCount()) > returnedRows) {
-                            sc = cr.getCompilerContext().getStoreCostController(cd);
-                            returnedRows = cr.nonZeroCardinality((long) baseCost.rowCount());
-                        }
-                    }
-                    shuffleCost += returnedRows * sc.getRemoteLatency();
-                    outputHeapSize += returnedRows * sc.getConglomerateAvgRowWidth(); // TODO JL This is not right.
-                }
+                shuffleCost = v.nonZeroCardinality((long)baseRc) * remoteCostPerRow;
+                heapSize = v.nonZeroCardinality((long)baseRc) * outputHeapSizePerRow;
             }
         }
-        double totalLocalCost = reduceLocalCost+mapCost+shuffleCost;
+        double totalLocalCost = reduceLocalCost+mapLocalCost+shuffleCost;
+
+        double totalRemoteCost = mapRemoteCost + shuffleCost;
 
         newEstimate.setNumPartitions(1);
-        newEstimate.setRemoteCost(remoteCostPerRow);
+        newEstimate.setRemoteCost(totalRemoteCost);
         newEstimate.setLocalCost(totalLocalCost);
         newEstimate.setEstimatedRowCount(1);
-        newEstimate.setEstimatedHeapSize((long)outputHeapSize);
+        newEstimate.setEstimatedHeapSize((long)heapSize);
 
         return newEstimate;
-    }
-
-    private void getReferencedColumns(ValueNode v, List<ColumnReference> columnReferenceList) {
-
-        if (v == null) return;
-
-        if (v instanceof ColumnReference) {
-            columnReferenceList.add((ColumnReference)v);
-        }
-        else {
-            List valueNodeList = v.getChildren();
-            Iterator<ValueNode> valueNodeIterator = valueNodeList.iterator();
-            while (valueNodeIterator.hasNext()) {
-                ValueNode valueNode = valueNodeIterator.next();
-                getReferencedColumns(valueNode, columnReferenceList);
-            }
-        }
     }
 }
