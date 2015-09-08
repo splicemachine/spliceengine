@@ -912,11 +912,5 @@
 				<module>mapr0.98.4</module>
 			</modules>
 		</profile>
-		<profile>
-			<id>mapr0.98.12</id>
-			<modules>
-				<module>mapr0.98.12</module>
-			</modules>
-		</profile>
 	</profiles>
 </project>
