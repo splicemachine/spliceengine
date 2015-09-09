@@ -52,7 +52,6 @@ import java.util.Vector;
 import com.splicemachine.db.catalog.SystemProcedures;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.error.ExceptionSeverity;
-import com.splicemachine.db.iapi.jdbc.*;
 import com.splicemachine.db.iapi.reference.Attribute;
 import com.splicemachine.db.iapi.reference.DRDAConstants;
 import com.splicemachine.db.iapi.reference.JDBC30Translation;
@@ -62,13 +61,15 @@ import com.splicemachine.db.iapi.services.info.JVMInfo;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.services.stream.HeaderPrintWriter;
-import com.splicemachine.db.iapi.sql.conn.LanguageConnectionContext;
 import com.splicemachine.db.iapi.types.SQLRowId;
 import com.splicemachine.db.iapi.tools.i18n.LocalizedResource;
-import com.splicemachine.db.impl.jdbc.EmbedConnection;
+import com.splicemachine.db.iapi.jdbc.AuthenticationService;
+import com.splicemachine.db.iapi.jdbc.EngineLOB;
+import com.splicemachine.db.iapi.jdbc.EngineResultSet;
 import com.splicemachine.db.impl.jdbc.EmbedSQLException;
 import com.splicemachine.db.impl.jdbc.Util;
 import com.splicemachine.db.jdbc.InternalDriver;
+import com.splicemachine.db.iapi.jdbc.EnginePreparedStatement;
 
 /**
  * This class translates DRDA protocol from an application requester to JDBC
@@ -740,30 +741,12 @@ class DRDAConnThread extends Thread {
 		int updateCount = 0;
 		boolean PRPSQLSTTfailed = false;
 		boolean checkSecurityCodepoint = session.requiresSecurityCodepoint();
-        int i = 0;
-        String chainedCheckpoint = null;
 		do
 		{
-        i++;
-            correlationID = reader.readDssHeader();
-            int codePoint = reader.readLengthAndCodePoint( false );
-            int writerMark = writer.markDSSClearPoint();
-
-            if (database != null && (reader.isChainedWithSameID() || reader.isChainedWithDiffID()) && i==1 && codePoint == CodePoint.EXCSQLSTT) {
-                EngineConnection ec = database.getConnection();
-                //               System.out.println("connection ---> " + ec);
-                if (ec instanceof EmbedConnection) {
-                    LanguageConnectionContext lcc = ((EmbedConnection) ec).getLanguageConnection();
-                    chainedCheckpoint = lcc.getUniqueSavepointName();
-                    try {
-                        lcc.getTransactionExecute().setSavePoint(chainedCheckpoint, "BATCH_SAVEPOINT");
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                        throw DRDAProtocolException.newDisconnectException(this,null);
-                    }
-                }
-            }
-
+			correlationID = reader.readDssHeader();
+			int codePoint = reader.readLengthAndCodePoint( false );
+			int writerMark = writer.markDSSClearPoint();
+			
 			if (checkSecurityCodepoint)
 				verifyInOrderACCSEC_SECCHK(codePoint,session.getRequiredSecurityCodepoint());
 
@@ -1149,21 +1132,6 @@ class DRDAConnThread extends Thread {
 
 		}
 		while (reader.isChainedWithSameID() || reader.isChainedWithDiffID());
-
-        if (chainedCheckpoint != null) {
-            EngineConnection ec = database.getConnection();
-            //            System.out.println("afterChained ---> " + ec);
-            if (ec instanceof EmbedConnection) {
-                 LanguageConnectionContext lcc = ((EmbedConnection) ec).getLanguageConnection();
-                try {
-                    lcc.getTransactionExecute().releaseSavePoint(chainedCheckpoint, "BATCH_SAVEPOINT");
-                 } catch (Exception e) {
-                    e.printStackTrace();
-                    //                    throw DRDAProtocolException.newDisconnectException(this, null);
-                }
-            }
-        }
-
 	}
 
 	/**
