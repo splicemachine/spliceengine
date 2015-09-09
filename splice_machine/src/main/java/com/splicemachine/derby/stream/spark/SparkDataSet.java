@@ -95,11 +95,11 @@ public class SparkDataSet<V> implements DataSet<V>, Serializable {
     @Override
     public Iterator<V> toLocalIterator() {
         if (offset ==-1)
-            return rdd.toLocalIterator();
+            return rdd.collect().iterator();
         return Iterables.limit(Iterables.skip(new Iterable() {
             @Override
             public Iterator iterator() {
-                return rdd.toLocalIterator();
+                return rdd.collect().iterator();
             }
         },offset), fetch).iterator();
     }

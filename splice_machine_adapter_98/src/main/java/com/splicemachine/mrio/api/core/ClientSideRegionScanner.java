@@ -63,7 +63,7 @@ public class ClientSideRegionScanner extends BaseClientSideRegionScanner<Cell> {
 
 	@Override
 	public HRegion openHRegion() throws IOException {
-		return HRegion.openHRegion(conf, fs, rootDir, hri, htd, null,null, null);
+		return HRegion.openHRegion(conf, fs, rootDir, hri, new ReadOnlyTableDescriptor(htd), null,null, null);
 	}
 	
 	KeyValueScanner getMemStoreScanner() throws IOException {
@@ -71,5 +71,15 @@ public class ClientSideRegionScanner extends BaseClientSideRegionScanner<Cell> {
 		memScan.setAttribute( MRConstants.SPLICE_SCAN_MEMSTORE_ONLY,SIConstants.TRUE_BYTES);
 		return new MemstoreKeyValueScanner(table.getScanner(memScan));
 	}
-	
+
+	public static class ReadOnlyTableDescriptor extends HTableDescriptor {
+		ReadOnlyTableDescriptor(HTableDescriptor desc) {
+			super(desc.getTableName(), desc.getColumnFamilies(), desc.getValues());
+		}
+
+		@Override
+		public boolean isReadOnly() {
+			return true;
+		}
+	}
 }

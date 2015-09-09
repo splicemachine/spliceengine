@@ -79,11 +79,11 @@ public class SpliceTransaction extends BaseSpliceTransaction {
 
     @Override
     public int releaseSavePoint(String name, Object kindOfSavepoint) throws StandardException {
-        if (ignoreSavePoints)
-            return 0;
         if (kindOfSavepoint != null && SpliceConstants.BATCH_SAVEPOINT.equals(kindOfSavepoint)) {
             ignoreSavePoints = false;
         }
+        if (ignoreSavePoints)
+            return 0;
         if (LOG.isDebugEnabled())
 	        SpliceLogUtils.debug(LOG, "Before releaseSavePoint: name=%s, savePointStack=\n%s", name, getSavePointStackString());
 

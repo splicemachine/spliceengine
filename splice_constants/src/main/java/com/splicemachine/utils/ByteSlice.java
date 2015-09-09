@@ -195,7 +195,7 @@ public class ByteSlice implements Externalizable,Comparable<ByteSlice> {
         if(this.length<=0)
             return currentData.length<=0;
         if(equalsLength!=this.length) return false;
-        return equals(currentData.buffer,currentData.offset,currentData.length);
+        return equals(currentData.buffer,currentData.offset,equalsLength);
     }
 
     public boolean equals(byte[] data, int offset, int length) {

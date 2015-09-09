@@ -198,7 +198,12 @@ public class IndexRowReaderBuilder implements Externalizable {
             ArrayUtil.writeIntArray(out, mainTableRowDecodingMap);
             out.writeObject(mainTableAccessedRowColumns);
             ArrayUtil.writeIntArray(out, mainTableKeyColumnEncodingOrder);
-            ArrayUtil.writeBooleanArray(out, mainTableKeyColumnSortOrder);
+			if (mainTableKeyColumnSortOrder != null) {
+				out.writeBoolean(true);
+				ArrayUtil.writeBooleanArray(out, mainTableKeyColumnSortOrder);
+			} else {
+				out.writeBoolean(false);
+			}
             ArrayUtil.writeIntArray(out, mainTableKeyDecodingMap);
             out.writeObject(mainTableAccessedKeyColumns);
             ArrayUtil.writeIntArray(out, indexCols);
@@ -220,7 +225,9 @@ public class IndexRowReaderBuilder implements Externalizable {
         mainTableRowDecodingMap = ArrayUtil.readIntArray(in);
         mainTableAccessedRowColumns = (FormatableBitSet) in.readObject();
         mainTableKeyColumnEncodingOrder = ArrayUtil.readIntArray(in);
-        mainTableKeyColumnSortOrder = ArrayUtil.readBooleanArray(in);
+		if (in.readBoolean()) {
+			mainTableKeyColumnSortOrder = ArrayUtil.readBooleanArray(in);
+		}
         mainTableKeyDecodingMap = ArrayUtil.readIntArray(in);
         mainTableAccessedKeyColumns = (FormatableBitSet) in.readObject();
         indexCols = ArrayUtil.readIntArray(in);
