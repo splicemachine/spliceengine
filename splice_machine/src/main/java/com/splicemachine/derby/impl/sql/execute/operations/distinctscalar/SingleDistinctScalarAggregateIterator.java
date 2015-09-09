@@ -14,6 +14,7 @@ import com.splicemachine.derby.utils.StandardIterator;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import org.apache.log4j.Logger;
 
 import java.io.IOException;
 
@@ -28,20 +29,31 @@ public class SingleDistinctScalarAggregateIterator extends AbstractStandardItera
 		private WarningCollector warningCollector;
 		private long rowsRead;
         private DataValueDescriptor currentValue;
+        private static final Logger LOG = Logger.getLogger(SingleDistinctScalarAggregateIterator.class);
+        public static enum STEP {
+            TWO,
+            THREE,
+        }
+        private STEP step;
 
 
-		public SingleDistinctScalarAggregateIterator(StandardIterator<ExecRow> source, EmptyRowSupplier emptyRowSupplier, WarningCollector warningCollector, SpliceGenericAggregator[] aggregates) {
+    public SingleDistinctScalarAggregateIterator(StandardIterator<ExecRow> source,
+                                                 EmptyRowSupplier emptyRowSupplier,
+                                                 WarningCollector warningCollector,
+                                                 SpliceGenericAggregator[] aggregates,
+                                                 STEP step) {
 				super(source);
 				this.emptyRowSupplier = emptyRowSupplier;
 				this.aggregates = aggregates;
 				this.warningCollector = warningCollector;
+                this.step = step;
 		}
 
 		public void merge(ExecRow newRow) throws StandardException{
 
             for (SpliceGenericAggregator aggregator : aggregates) {
 
-                if (aggregator.isDistinct()) {
+                if (aggregator.isDistinct() && step == STEP.TWO) {
                     if (currentValue == null) {
                         if (currentRow != null) {
                             currentValue = aggregator.getInputColumnValue(currentRow).cloneValue(false);
