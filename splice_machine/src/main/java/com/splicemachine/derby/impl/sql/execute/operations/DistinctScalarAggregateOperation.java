@@ -264,7 +264,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
         if(step2Aggregator==null){
             scanner = getResultScanner(keyColumns,spliceRuntimeContext,extraUniqueSequenceID);
             StandardIterator<ExecRow> sourceIterator = new ScanIterator(scanner,OperationUtils.getPairDecoder(this,spliceRuntimeContext));
-            step2Aggregator = new SingleDistinctScalarAggregateIterator(sourceIterator,new EmptyRowSupplier(aggregateContext),new SpliceWarningCollector(activation),aggregates);
+            step2Aggregator = new SingleDistinctScalarAggregateIterator(sourceIterator, new EmptyRowSupplier(aggregateContext),new SpliceWarningCollector(activation),aggregates, SingleDistinctScalarAggregateIterator.STEP.TWO);
             step2Aggregator.open();
             timer = spliceRuntimeContext.newTimer();
         }
@@ -314,7 +314,7 @@ public class DistinctScalarAggregateOperation extends GenericAggregateOperation{
         if(step3Aggregator==null){
             scanner = getResultScanner(keyColumns,spliceRuntimeContext,uniqueSequenceID);
             StandardIterator<ExecRow> sourceIterator = new ScanIterator(scanner,OperationUtils.getPairDecoder(this,spliceRuntimeContext));
-            step3Aggregator = new SingleDistinctScalarAggregateIterator(sourceIterator,new EmptyRowSupplier(aggregateContext),new SpliceWarningCollector(activation),aggregates);
+            step3Aggregator = new SingleDistinctScalarAggregateIterator(sourceIterator,new EmptyRowSupplier(aggregateContext),new SpliceWarningCollector(activation),aggregates, SingleDistinctScalarAggregateIterator.STEP.THREE);
             step3Aggregator.open();
             timer = spliceRuntimeContext.newTimer();
         }
