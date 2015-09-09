@@ -1,5 +1,6 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import com.google.common.base.Joiner;
 import com.splicemachine.derby.test.framework.*;
 
 import org.junit.Assert;
@@ -12,6 +13,8 @@ import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
 import java.sql.ResultSet;
+import java.util.ArrayList;
+import java.util.List;
 
 import static org.hamcrest.core.AnyOf.anyOf;
 import static org.hamcrest.core.IsEqual.equalTo;
@@ -455,5 +458,34 @@ public class JoinSelectionIT extends SpliceUnitTest  {
         }
         Assert.assertTrue("Did not find join strategy in plan", joinCount > 0);
     }
+    
+    /* Regression test for DB-3614 */
+    @Test
+    public void testTenTableJoinExplainDuration() throws Exception {
+    	int size = 10;
+    	List<String> tables = new ArrayList<String>(size);
+    	List<String> joins = new ArrayList<String>(size - 1);
+    	for (int i = 0; i < size; i++) {
+	        methodWatcher.executeUpdate(format("create table tentab%s (c1 int primary key)", i));
+	        methodWatcher.executeUpdate(format("insert into tentab%s values (1)", i));
+	        tables.add(format("tentab%s", i));
+	        if (i > 0) {
+	        	joins.add(format("tentab%s.c1 = tentab%s.c1", i, i - 1));
+	        }
+		}
+        String fromClause = Joiner.on(", ").join(tables); 
+        String joinCriteria = Joiner.on(" AND ").join(joins); 
 
+        long start = System.currentTimeMillis();
+        String query = format("EXPLAIN SELECT * FROM %s WHERE %s ", fromClause, joinCriteria);
+		ResultSet rs = methodWatcher.executeQuery(query);
+        long duration = System.currentTimeMillis() - start;
+
+        // Loose check that explain statement took a few seconds or less,
+        // because we're just making sure the short circuit logic in
+        // OptimizerImpl.checkTimeout() blocks this from taking several minutes.
+		Assert.assertTrue("Explain did not return result!", rs.next());
+        Assert.assertTrue(format("Explain statement took %d millis which is too long", duration),
+        	duration < 5000L /* 5 seconds */);
+    }
 }
