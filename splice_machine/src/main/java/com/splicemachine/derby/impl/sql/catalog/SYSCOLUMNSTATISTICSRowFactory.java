@@ -88,8 +88,8 @@ public class SYSCOLUMNSTATISTICSRowFactory extends CatalogRowFactory {
         DataTypeDescriptor floatType = DataTypeDescriptor.getBuiltInDataTypeDescriptor(Types.REAL);
         return new ColumnDescriptor[]{
                 new ColumnDescriptor("SCHEMANAME"   ,1,varcharType,null,null,view,viewId,0,0),
-                new ColumnDescriptor("TABLENAME"    ,2,longType,null,null,view,viewId,0,0),
-                new ColumnDescriptor("COLUMNNAME"   ,3,longType,null,null,view,viewId,0,0),
+                new ColumnDescriptor("TABLENAME"    ,2,varcharType,null,null,view,viewId,0,0),
+                new ColumnDescriptor("COLUMNNAME"   ,3,varcharType,null,null,view,viewId,0,0),
                 new ColumnDescriptor("CARDINALITY"  ,4,longType,null,null,view,viewId,0,0),
                 new ColumnDescriptor("NULL_COUNT"   ,5,longType,null,null,view,viewId,0,0),
                 new ColumnDescriptor("NULL_FRACTION",6,floatType,null,null,view,viewId,0,0),
