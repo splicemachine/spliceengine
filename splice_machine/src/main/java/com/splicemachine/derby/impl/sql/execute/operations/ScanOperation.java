@@ -3,6 +3,7 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 import com.google.common.base.Strings;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.db.impl.sql.execute.BaseActivation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperationContext;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.OperationInformation;
@@ -273,7 +274,7 @@ public abstract class ScanOperation extends SpliceBaseOperation {
 
 		protected Scan getScan() throws StandardException {
 				return scanInformation.getScan(getCurrentTransaction(),
-                        null,getKeyDecodingMap(),null);
+                        ((BaseActivation)activation).getScanStartOverride(),getKeyDecodingMap(),null);
 		}
 
 		@Override

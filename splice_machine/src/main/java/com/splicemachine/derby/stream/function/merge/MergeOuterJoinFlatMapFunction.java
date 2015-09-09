@@ -46,7 +46,7 @@ public class MergeOuterJoinFlatMapFunction extends SpliceFlatMapFunction<MergeJo
             initialized = true;
             if (!leftPeekingIterator.hasNext())
                 return Collections.EMPTY_LIST;
-            ((BaseActivation)mergeJoinOperation.getActivation()).setScanStopOverride(mergeJoinOperation.getKeyRow(leftPeekingIterator.peek().getRow()));
+            ((BaseActivation)mergeJoinOperation.getActivation()).setScanStartOverride(mergeJoinOperation.getKeyRow(leftPeekingIterator.peek().getRow()));
         }
         return new MergeOuterJoinIterator(leftPeekingIterator,
                 Iterators.peekingIterator(mergeJoinOperation.getRightOperation().getDataSet().toLocalIterator()),
