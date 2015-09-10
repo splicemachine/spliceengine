@@ -100,26 +100,6 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
     }
 
     @Override
-    public TableScannerIterator getTableScannerIterator(TableScanOperation operation) throws StandardException {
-        Scan scan = operation.getNonSIScan();
-        HTableInterface htable = SpliceAccessManager.getHTable(operation.getTableName());
-
-        TableScannerBuilder builder = operation.getTableScannerBuilder();
-        try {
-            SpliceRegionScanner splitRegionScanner = DerbyFactoryDriver.derbyFactory.getSplitRegionScanner(scan, htable);
-            HRegion hregion = splitRegionScanner.getRegion();
-            SimpleMeasuredRegionScanner mrs = new SimpleMeasuredRegionScanner(splitRegionScanner, Metrics.noOpMetricFactory());
-            ExecRow template = SMSQLUtil.getExecRow(builder.getExecRowTypeFormatIds());
-            builder.tableVersion("2.0").region(TransactionalRegions.get(hregion)).template(template).scanner(mrs).scan(scan).metricFactory(Metrics.noOpMetricFactory());
-        } catch (IOException e) {
-            throw Exceptions.parseException(e);
-        }
-
-        return new TableScannerIterator(builder, operation);
-
-    }
-
-    @Override
     public <V> DataSet< V> createDataSet(Iterable<V> value) {
         return new SparkDataSet(SpliceSpark.getContext().parallelize(Lists.newArrayList(value)));
     }

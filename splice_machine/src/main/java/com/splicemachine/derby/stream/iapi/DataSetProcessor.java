@@ -24,6 +24,4 @@ public interface DataSetProcessor {
     void setJobGroup(String jobName, String jobDescription);
     PairDataSet<String,InputStream> readTextFile(String path);
     <K,V> PairDataSet<K, V> getEmptyPair();
-
-    TableScannerIterator getTableScannerIterator(TableScanOperation operation) throws StandardException;
 }
