@@ -2,7 +2,10 @@ package com.splicemachine.derby.stream.iapi;
 
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.TableScanOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.scanner.SITableScanner;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
+import com.splicemachine.derby.stream.iterator.TableScannerIterator;
 
 import java.io.InputStream;
 
@@ -21,4 +24,6 @@ public interface DataSetProcessor {
     void setJobGroup(String jobName, String jobDescription);
     PairDataSet<String,InputStream> readTextFile(String path);
     <K,V> PairDataSet<K, V> getEmptyPair();
+
+    TableScannerIterator getTableScannerIterator(TableScanOperation operation) throws StandardException;
 }

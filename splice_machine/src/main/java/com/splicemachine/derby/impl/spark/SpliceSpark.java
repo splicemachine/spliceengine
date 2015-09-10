@@ -114,6 +114,7 @@ public class SpliceSpark {
         conf.setAppName("SpliceMachine");
         conf.setMaster(master);
         conf.set("spark.scheduler.mode", "FAIR");
+        conf.set("spark.broadcast.factory", "org.apache.spark.broadcast.HttpBroadcastFactory");
         conf.set("spark.serializer", "org.apache.spark.serializer.KryoSerializer");
         conf.set("executor.source.splice-machine.class","com.splicemachine.derby.stream.spark.SpliceMachineSource");
         conf.set("driver.source.splice-machine.class","com.splicemachine.derby.stream.spark.SpliceMachineSource");

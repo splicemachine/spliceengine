@@ -27,7 +27,7 @@ public class MergeInnerJoinIterator extends AbstractMergeJoinIterator {
     }
 
     @Override
-    public boolean hasNext() {
+    public boolean internalHasNext() {
         try {
             if (left != null) {
                 while (currentRightIterator.hasNext()) {

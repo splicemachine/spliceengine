@@ -8,6 +8,8 @@ import com.splicemachine.derby.impl.sql.execute.operations.MergeJoinOperation;
 import com.splicemachine.derby.stream.iterator.merge.MergeOuterJoinIterator;
 import org.apache.log4j.Logger;
 import org.sparkproject.guava.common.collect.PeekingIterator;
+
+import java.io.Closeable;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -23,6 +25,8 @@ public abstract class AbstractMergeJoinIterator implements Iterator<LocatedRow>,
     protected Iterator<ExecRow> currentRightIterator;
     protected LocatedRow currentLocatedRow;
     protected MergeJoinOperation mergeJoinOperation;
+    private boolean closed = false;
+    private List<Closeable> closeables = new ArrayList<>();
 
     /**
      * MergeJoinRows constructor. Note that keys for left & right sides
@@ -89,7 +93,31 @@ public abstract class AbstractMergeJoinIterator implements Iterator<LocatedRow>,
     }
 
     @Override
-    public abstract boolean hasNext();
+    public final boolean hasNext() {
+        boolean result = internalHasNext();
+        if (!result && !closed) {
+            close();
+        }
+        return result;
+    }
+
+    private void close() {
+        closed = true;
+        IOException e = null;
+        for (Closeable c : closeables) {
+            try {
+                c.close();
+            } catch (IOException ioe) {
+                LOG.error("Error while closing " + c, e);
+                e = ioe;
+            }
+        }
+        if (e != null) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    protected abstract boolean internalHasNext();
 
     @Override
     public LocatedRow next() {
@@ -113,6 +141,10 @@ public abstract class AbstractMergeJoinIterator implements Iterator<LocatedRow>,
         } catch (Exception e ) {
             throw new RuntimeException(e);
         }
+    }
+
+    public void registerCloseable(Closeable closeable) {
+        closeables.add(closeable);
     }
 
 }
