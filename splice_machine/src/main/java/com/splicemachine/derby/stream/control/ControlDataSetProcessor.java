@@ -5,6 +5,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.load.spark.WholeTextInputFormat;
+import com.splicemachine.derby.impl.sql.execute.operations.TableScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
@@ -111,6 +112,17 @@ public class ControlDataSetProcessor implements DataSetProcessor {
     @Override
     public <K, V> PairDataSet<K, V> getEmptyPair() {
         return new ControlPairDataSet(Collections.emptyList());
+    }
+
+    @Override
+    public TableScannerIterator getTableScannerIterator(TableScanOperation operation) throws StandardException {
+        TxnRegion localRegion = new TxnRegion(null, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
+                TransactionStorage.getTxnSupplier(), TransactionStorage.getIgnoreTxnSupplier(), TxnDataStore.getDataStore(), HTransactorFactory.getTransactor());
+
+        TableScannerBuilder builder = operation.getTableScannerBuilder();
+        builder.scanner(new ControlMeasuredRegionScanner(Bytes.toBytes(operation.getTableName()), builder.getScan()))
+                .region(localRegion);
+        return new TableScannerIterator(builder, operation);
     }
 
     @Override

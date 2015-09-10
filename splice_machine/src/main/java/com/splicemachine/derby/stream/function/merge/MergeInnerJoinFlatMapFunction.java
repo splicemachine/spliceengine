@@ -1,12 +1,16 @@
 package com.splicemachine.derby.stream.function.merge;
 
 import com.splicemachine.db.impl.sql.execute.BaseActivation;
-import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.MergeJoinOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.TableScanOperation;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
+import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.iterator.TableScannerIterator;
 import com.splicemachine.derby.stream.iterator.merge.MergeInnerJoinIterator;
+import com.splicemachine.derby.stream.utils.StreamUtils;
+import com.splicemachine.mrio.api.core.MultiRegionRemoteScanner;
 import org.sparkproject.guava.common.collect.Iterators;
 import org.sparkproject.guava.common.collect.PeekingIterator;
 import java.io.IOException;
@@ -50,9 +54,15 @@ public class MergeInnerJoinFlatMapFunction extends SpliceFlatMapFunction<MergeJo
                 return Collections.EMPTY_LIST;
             ((BaseActivation)mergeJoinOperation.getActivation()).setScanStartOverride(mergeJoinOperation.getKeyRow(leftPeekingIterator.peek().getRow()));
         }
-        return new MergeInnerJoinIterator(leftPeekingIterator,
-                Iterators.peekingIterator(mergeJoinOperation.getRightOperation().getDataSet().toLocalIterator()),
+        TableScanOperation rightSide = (TableScanOperation)mergeJoinOperation.getRightOperation();
+        DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(getOperation().getActivation(), rightSide);
+        TableScannerIterator rightIterator = dsp.getTableScannerIterator((TableScanOperation) mergeJoinOperation.getRightOperation());
+
+        MergeInnerJoinIterator iterator = new MergeInnerJoinIterator(leftPeekingIterator,
+                Iterators.peekingIterator(rightIterator),
                 mergeJoinOperation.leftHashKeys, mergeJoinOperation.rightHashKeys,
                 mergeJoinOperation);
+        iterator.registerCloseable(rightIterator);
+        return iterator;
     }
 }

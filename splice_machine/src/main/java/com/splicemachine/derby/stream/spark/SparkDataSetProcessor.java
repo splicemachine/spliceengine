@@ -5,18 +5,32 @@ import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
+import com.splicemachine.derby.hbase.DerbyFactoryDriver;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.load.spark.WholeTextInputFormat;
 import com.splicemachine.derby.impl.spark.SpliceSpark;
+import com.splicemachine.derby.impl.sql.execute.operations.TableScanOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
+import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.function.TableScanTupleFunction;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
+import com.splicemachine.derby.stream.iterator.TableScannerIterator;
+import com.splicemachine.hbase.SimpleMeasuredRegionScanner;
+import com.splicemachine.metrics.Metrics;
+import com.splicemachine.mrio.api.core.MultiRegionRemoteScanner;
 import com.splicemachine.mrio.api.core.SMInputFormat;
 import com.splicemachine.db.iapi.types.RowLocation;
+import com.splicemachine.mrio.api.core.SMSQLUtil;
+import com.splicemachine.mrio.api.core.SpliceRegionScanner;
+import com.splicemachine.pipeline.exception.Exceptions;
+import com.splicemachine.si.impl.TransactionalRegions;
 import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.hbase.client.HTableInterface;
+import org.apache.hadoop.hbase.client.Scan;
+import org.apache.hadoop.hbase.regionserver.HRegion;
 import org.apache.spark.api.java.JavaPairRDD;
 import org.apache.spark.api.java.JavaSparkContext;
 import scala.Tuple2;
@@ -84,6 +98,26 @@ public class SparkDataSetProcessor implements DataSetProcessor, Serializable {
     @Override
     public <K, V> PairDataSet<K, V> getEmptyPair() {
         return new SparkPairDataSet(SpliceSpark.getContext().parallelizePairs(Collections.<Tuple2<K,V>>emptyList(), 1));
+    }
+
+    @Override
+    public TableScannerIterator getTableScannerIterator(TableScanOperation operation) throws StandardException {
+        Scan scan = operation.getNonSIScan();
+        HTableInterface htable = SpliceAccessManager.getHTable(operation.getTableName());
+
+        TableScannerBuilder builder = operation.getTableScannerBuilder();
+        try {
+            SpliceRegionScanner splitRegionScanner = DerbyFactoryDriver.derbyFactory.getSplitRegionScanner(scan, htable);
+            HRegion hregion = splitRegionScanner.getRegion();
+            SimpleMeasuredRegionScanner mrs = new SimpleMeasuredRegionScanner(splitRegionScanner, Metrics.noOpMetricFactory());
+            ExecRow template = SMSQLUtil.getExecRow(builder.getExecRowTypeFormatIds());
+            builder.tableVersion("2.0").region(TransactionalRegions.get(hregion)).template(template).scanner(mrs).scan(scan).metricFactory(Metrics.noOpMetricFactory());
+        } catch (IOException e) {
+            throw Exceptions.parseException(e);
+        }
+
+        return new TableScannerIterator(builder, operation);
+
     }
 
     @Override

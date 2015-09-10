@@ -1,5 +1,6 @@
 package com.splicemachine.derby.stream.iterator;
 
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
@@ -17,7 +18,7 @@ import java.util.Iterator;
  *
  */
 @NotThreadSafe
-public class TableScannerIterator implements Iterable<LocatedRow>, Iterator<LocatedRow> {
+public class TableScannerIterator implements Iterable<LocatedRow>, Iterator<LocatedRow>, Closeable {
     protected TableScannerBuilder siTableBuilder;
     protected SITableScanner tableScanner;
     protected boolean initialized;
@@ -87,5 +88,16 @@ public class TableScannerIterator implements Iterable<LocatedRow>, Iterator<Loca
     @Override
     public void remove() {
         throw new RuntimeException("Not Implemented");
+    }
+
+    @Override
+    public void close() throws IOException {
+        if (tableScanner != null) {
+            try {
+                tableScanner.close();
+            } catch (StandardException se) {
+                throw new IOException(se);
+            }
+        }
     }
 }
