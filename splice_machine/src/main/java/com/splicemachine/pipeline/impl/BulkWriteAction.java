@@ -258,8 +258,11 @@ public class BulkWriteAction implements Callable<WriteStats> {
 
                                     Collection<KVPair> toRetry = PipelineUtils.doPartialRetry(currentBulkWrite, bulkWriteResult,errors,id);
 //																		rowsSuccessfullyWritten +=currentBulkWrite.getSize()-toRetry.size();
-                                    addToRetryCallBuffer(toRetry,nextWrite.getTxn(),true);
-                                    sleeper.sleep(PipelineUtils.getWaitTime(maximumRetries-numAttempts+1,writeConfiguration.getPause()));
+                                    // only sleep and redo cache if you have a failure not a lock contention issue
+                                    boolean isFailure = bulkWriteResult.getFailedRows() != null && bulkWriteResult.getFailedRows().size() > 0;
+                                    addToRetryCallBuffer(toRetry,nextWrite.getTxn(),isFailure);
+                                    if (isFailure) // Retry immediately if you do not have failed rows!
+                                        sleeper.sleep(PipelineUtils.getWaitTime(maximumRetries-numAttempts+1,writeConfiguration.getPause()));
                                     break;
                                 default:
                                 	if (RETRY_LOG.isDebugEnabled())
