@@ -5,6 +5,7 @@ import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.*;
 import com.splicemachine.derby.stream.function.SpliceFlatMapFunction;
 import com.splicemachine.derby.stream.iapi.OperationContext;
+import com.splicemachine.derby.stream.iterator.merge.AbstractMergeJoinIterator;
 import com.splicemachine.derby.stream.iterator.merge.MergeOuterJoinIterator;
 import org.sparkproject.guava.common.collect.Iterators;
 import org.sparkproject.guava.common.collect.PeekingIterator;
@@ -16,10 +17,7 @@ import java.util.*;
 /**
  * Created by jleach on 6/9/15.
  */
-public class MergeOuterJoinFlatMapFunction extends SpliceFlatMapFunction<MergeJoinOperation,Iterator<LocatedRow>,LocatedRow> {
-    boolean initialized;
-    protected MergeJoinOperation mergeJoinOperation;
-
+public class MergeOuterJoinFlatMapFunction extends AbstractMergeJoinFlatMapFunction {
     public MergeOuterJoinFlatMapFunction() {
         super();
     }
@@ -29,27 +27,9 @@ public class MergeOuterJoinFlatMapFunction extends SpliceFlatMapFunction<MergeJo
     }
 
     @Override
-    public void writeExternal(ObjectOutput out) throws IOException {
-        super.writeExternal(out);
-    }
-
-    @Override
-    public void readExternal(ObjectInput in) throws IOException, ClassNotFoundException {
-        super.readExternal(in);
-    }
-
-    @Override
-    public Iterable<LocatedRow> call(Iterator<LocatedRow> locatedRows) throws Exception {
-        PeekingIterator<LocatedRow> leftPeekingIterator = Iterators.peekingIterator(locatedRows);
-        if (!initialized) {
-            mergeJoinOperation = getOperation();
-            initialized = true;
-            if (!leftPeekingIterator.hasNext())
-                return Collections.EMPTY_LIST;
-            ((BaseActivation)mergeJoinOperation.getActivation()).setScanStartOverride(mergeJoinOperation.getKeyRow(leftPeekingIterator.peek().getRow()));
-        }
+    protected AbstractMergeJoinIterator createMergeJoinIterator(PeekingIterator<LocatedRow> leftPeekingIterator, PeekingIterator<LocatedRow> rightPeekingIterator, int[] leftHashKeys, int[] rightHashKeys, MergeJoinOperation mergeJoinOperation) {
         return new MergeOuterJoinIterator(leftPeekingIterator,
-                Iterators.peekingIterator(mergeJoinOperation.getRightOperation().getDataSet().toLocalIterator()),
+                rightPeekingIterator,
                 mergeJoinOperation.leftHashKeys, mergeJoinOperation.rightHashKeys,
                 mergeJoinOperation);
     }

@@ -20,7 +20,6 @@ import com.splicemachine.derby.stream.iapi.PairDataSet;
 import com.splicemachine.derby.stream.iterator.TableScannerIterator;
 import com.splicemachine.hbase.SimpleMeasuredRegionScanner;
 import com.splicemachine.metrics.Metrics;
-import com.splicemachine.mrio.api.core.MultiRegionRemoteScanner;
 import com.splicemachine.mrio.api.core.SMInputFormat;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.mrio.api.core.SMSQLUtil;
