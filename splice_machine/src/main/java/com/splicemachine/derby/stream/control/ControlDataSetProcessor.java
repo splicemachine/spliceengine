@@ -115,17 +115,6 @@ public class ControlDataSetProcessor implements DataSetProcessor {
     }
 
     @Override
-    public TableScannerIterator getTableScannerIterator(TableScanOperation operation) throws StandardException {
-        TxnRegion localRegion = new TxnRegion(null, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
-                TransactionStorage.getTxnSupplier(), TransactionStorage.getIgnoreTxnSupplier(), TxnDataStore.getDataStore(), HTransactorFactory.getTransactor());
-
-        TableScannerBuilder builder = operation.getTableScannerBuilder();
-        builder.scanner(new ControlMeasuredRegionScanner(Bytes.toBytes(operation.getTableName()), builder.getScan()))
-                .region(localRegion);
-        return new TableScannerIterator(builder, operation);
-    }
-
-    @Override
     public <V> DataSet<V> createDataSet(Iterable<V> value) {
         return new ControlDataSet<>(value);
     }

@@ -1,6 +1,7 @@
 package com.splicemachine.derby.stream.function.merge;
 
 import com.splicemachine.db.impl.sql.execute.BaseActivation;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.MergeJoinOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.TableScanOperation;
@@ -56,9 +57,9 @@ public abstract class AbstractMergeJoinFlatMapFunction extends SpliceFlatMapFunc
                 return Collections.EMPTY_LIST;
             ((BaseActivation)mergeJoinOperation.getActivation()).setScanStartOverride(mergeJoinOperation.getKeyRow(leftPeekingIterator.peek().getRow()));
         }
-        TableScanOperation rightSide = (TableScanOperation)mergeJoinOperation.getRightOperation();
-        DataSetProcessor dsp = StreamUtils.getDataSetProcessorFromActivation(getOperation().getActivation(), rightSide);
-        TableScannerIterator rightIterator = dsp.getTableScannerIterator((TableScanOperation) mergeJoinOperation.getRightOperation());
+        SpliceOperation rightSide = mergeJoinOperation.getRightOperation();
+        DataSetProcessor dsp = StreamUtils.getLocalDataSetProcessorFromActivation(getOperation().getActivation(), rightSide);
+        Iterator<LocatedRow> rightIterator = rightSide.getDataSet(dsp).toLocalIterator();
 
         AbstractMergeJoinIterator iterator = createMergeJoinIterator(leftPeekingIterator,
                 Iterators.peekingIterator(rightIterator),
