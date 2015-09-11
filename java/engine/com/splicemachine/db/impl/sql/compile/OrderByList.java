@@ -221,15 +221,15 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
 		*/
         int position=0;
         int size=size();
-        for(int loc=0;loc<size;loc++){
-            OrderByColumn obc=getOrderByColumn(loc);
+        for(int loc=0;loc<size;loc++) {
+            OrderByColumn obc = getOrderByColumn(loc);
 
             // If the user specified NULLS FIRST or NULLS LAST in such a way
             // as to require NULL values to be re-sorted to be lower than
             // non-NULL values, then a sort is required, as the index holds
             // NULL values unconditionally higher than non-NULL values
             //
-            if(obc.isNullsOrderedLow())
+            if (obc.isNullsOrderedLow())
                 return RequiredRowOrdering.SORT_REQUIRED;
 
             // ResultColumn rc = obc.getResultColumn();
@@ -239,13 +239,13 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
 			** the base column, i.e. there is no intervening VirtualColumnNode.
 			*/
             // ValueNode expr = obc.getNonRedundantExpression();
-            ValueNode expr=obc.getResultColumn().getExpression();
+            ValueNode expr = obc.getResultColumn().getExpression();
 
-            if(!(expr instanceof ColumnReference)){
+            if (!(expr instanceof ColumnReference)) {
                 return RequiredRowOrdering.SORT_REQUIRED;
             }
 
-            ColumnReference cr=(ColumnReference)expr;
+            ColumnReference cr = (ColumnReference) expr;
 
 			/*
 			** Check whether the table referred to is in the table map (if any).
@@ -255,22 +255,22 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
 			** is found - if so, sorting is required (for example, in a
 			** case like ORDER BY S.A, T.B, S.C, sorting is required).
 			*/
-            int tableNumber=cr.getTableNumber();
-            if(tableMap!=null){
-                if(!tableMap.get(tableNumber)){
+            int tableNumber = cr.getTableNumber();
+            if (tableMap != null) {
+                if (!tableMap.get(tableNumber)) {
 					/* Table not in partial join order */
-                    for(int remainingPosition=loc+1;
-                        remainingPosition<size();
-                        remainingPosition++){
-                        OrderByColumn remainingobc=getOrderByColumn(loc);
+                    for (int remainingPosition = loc + 1;
+                         remainingPosition < size();
+                         remainingPosition++) {
+                        OrderByColumn remainingobc = getOrderByColumn(loc);
 
-                        ResultColumn remainingrc=remainingobc.getResultColumn();
+                        ResultColumn remainingrc = remainingobc.getResultColumn();
 
-                        ValueNode remainingexpr=remainingrc.getExpression();
+                        ValueNode remainingexpr = remainingrc.getExpression();
 
-                        if(remainingexpr instanceof ColumnReference){
-                            ColumnReference remainingcr=(ColumnReference)remainingexpr;
-                            if(tableMap.get(remainingcr.getTableNumber())){
+                        if (remainingexpr instanceof ColumnReference) {
+                            ColumnReference remainingcr = (ColumnReference) remainingexpr;
+                            if (tableMap.get(remainingcr.getTableNumber())) {
                                 return RequiredRowOrdering.SORT_REQUIRED;
                             }
                         }
@@ -279,102 +279,15 @@ public class OrderByList extends OrderedColumnList implements RequiredRowOrderin
                 }
             }
 			/*
-			 * Does this order by column belong to the outermost optimizable in
-			 * the current join order?
+			 * Does the order by columns match the sort order of the joins?  Big savings possible my friends...
 			 *
-			 * If yes, then we do not need worry about the ordering of the rows
-			 * feeding into it. Because the order by column is associated with
-			 * the outermost optimizable, optimizer will not have to deal with
-			 * the order of any rows coming in from the previous optimizables.
-			 *
-			 * But if the current order by column belongs to an inner
-			 * optimizable in the join order, then go through the following
-			 * if condition logic.
-			 */
+             */
 
-			/* If the following boolean is true, then it means that the join
-			 * order being considered has more than one table
-			 */
-            boolean moreThanOneTableInJoinOrder=tableMap!=null && (!tableMap.hasSingleBitSet());
-            int columnNumber=cr.getColumnNumber();
-            if(moreThanOneTableInJoinOrder){
-				/*
-				 * First check if the order by column has a constant comparison
-				 * predicate on it or it belongs to an optimizable which is
-				 * always ordered(that means it is a single row table) or the
-				 * column is involved in an equijoin with an optimizable which
-				 * is always ordered on the column on which the equijoin is
-				 * happening. If yes, then we know that the rows will always be
-				 * sorted and hence we do not need to worry if (any) prior
-				 * optimizables in join order are one-row resultsets or not.
-				 */
-                if((!rowOrdering.alwaysOrdered(tableNumber))
-                        && (!rowOrdering.isColumnAlwaysOrdered(tableNumber,columnNumber))){
-					/*
-					 * The current order by column is not always ordered which
-					 * means that the rows from it will not necessarily be in
-					 * the sorted order on that column. Because of this, we
-					 * need to make sure that the outer optimizables (outer to
-					 * the order by columns's optimizable) in the join order
-					 * are all one row optimizables, meaning that they can at
-					 * the most return only one row. If they return more than
-					 * one row, then it will require multiple scans of the
-					 * order by column's optimizable and the rows returned
-					 * from those multiple scans may not be ordered correctly.
-					 */
-                    for(int i=0;i<optimizableList.size();i++){
-                        //Get one outer optimizable at a time from the join
-                        //order
-                        Optimizable considerOptimizable=optimizableList.getOptimizable(i);
-                        //If we have come across the optimizable for the order
-                        //by column in the join order, then we do not need to
-                        //look at the inner optimizables in the join order. As
-                        //long as the outer optimizables are one row resultset,
-                        //we are fine to consider sort avoidance.
-                        if(considerOptimizable.getTableNumber()==tableNumber)
-                            break;
-						/*
-						 * The following if condition is checking if the
-						 * outer optimizable to the order by column's
-						 * optimizable is one row resultset or not.
-						 *
-						 * If the outer optimizable is one row resultset,
-						 * then move on to the next optimizable in the join
-						 * order and do the same check on that optimizable.
-						 * Continue this  until we are done checking that all
-						 * the outer optimizables in the join order are single
-						 * row resultsets. If we run into an outer optimizable
-						 * which is not one row resultset, then we can not
-						 * consider sort avoidance for the query.
-						 */
-                        if(!rowOrdering.alwaysOrdered(considerOptimizable.getTableNumber())){
-                            //This outer optimizable can return more than
-                            //one row. Because of this, we can't avoid the
-                            //sorting for this query.
-                            return RequiredRowOrdering.SORT_REQUIRED;
-                        }
-                    }
-                }
-            }
-            if(!rowOrdering.alwaysOrdered(tableNumber)){
-				/*
-				** Check whether the ordering is ordered on this column in
-				** this position.
-				*/
-                int direction=obc.isAscending()?RowOrdering.ASCENDING:RowOrdering.DESCENDING;
-                if(!rowOrdering.orderedOnColumn(direction,position,tableNumber,columnNumber)){
-                    return RequiredRowOrdering.SORT_REQUIRED;
-                }
-
-				/*
-				** The position to ask about is for the columns in tables
-				** that are *not* always ordered.  The always-ordered tables
-				** are not counted as part of the list of ordered columns
-				*/
+            if (rowOrdering.orderedOnColumn(obc.isAscending() ? RowOrdering.ASCENDING : RowOrdering.DESCENDING, position, tableNumber, cr.getColumnNumber()))
                 position++;
-            }
+            else
+                return RequiredRowOrdering.SORT_REQUIRED;
         }
-
         return RequiredRowOrdering.NOTHING_REQUIRED;
     }
 
