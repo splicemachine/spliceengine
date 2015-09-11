@@ -416,7 +416,7 @@ public class AddColumnTransactionIT {
         Assert.assertEquals("Salary Cannot Be Queried after added!", 3,count);
     }
 
-    @Test @Ignore("DB-3711: can't add column on table with unique constraint")
+    @Test // TODO: JC @Ignore("DB-3711: can't add column on table with unique constraint")
     public void testAddColAfterUniqueConstraint() throws Exception {
         // DB-3711: add UC on a col, can't add another col
         String tableName = "employees".toUpperCase();
@@ -427,7 +427,8 @@ public class AddColumnTransactionIT {
         c1.setAutoCommit(false);
         Statement s1 = c1.createStatement();
 
-        s1.execute(String.format("create table %s(emplid INTEGER NOT NULL, lastname VARCHAR(25) NOT NULL, firstname VARCHAR(25) NOT NULL, reportsto INTEGER)", tableRef));
+        s1.execute(String.format("create table %s(emplid INTEGER NOT NULL, lastname VARCHAR(25) NOT NULL, firstname " +
+                                     "VARCHAR(25) NOT NULL, reportsto INTEGER)", tableRef));
 
         c1.commit();
 
@@ -437,5 +438,25 @@ public class AddColumnTransactionIT {
 
         s1.execute(String.format("alter table %s add constraint emp_uniq unique(emplid)", tableRef));
         s1.execute(String.format("alter table %s add column foo int", tableRef));
+        c1.commit();
+
+        ResultSet rs = s1.executeQuery(String.format("select * from %s", tableRef));
+        int count = 0;
+        while (rs.next()) {
+            count++;
+            Assert.assertEquals("FOO col add!", 0, rs.getInt(5));
+        }
+        Assert.assertEquals("Expected one employee!", 1, count);
+
+        s1.execute(String.format("update %s set foo = 9 where emplid = 7725070", tableRef));
+        c1.commit();
+
+        rs = s1.executeQuery(String.format("select * from %s", tableRef));
+        count = 0;
+        while (rs.next()) {
+            count++;
+            Assert.assertEquals("FOO update!", 9, rs.getInt(5));
+        }
+        Assert.assertEquals("Expected one employee!", 1, count);
     }
 }

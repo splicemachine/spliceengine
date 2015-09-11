@@ -25,6 +25,7 @@ public interface WriteContextFactory<T> {
                         TxnView txn,
                         T key,
                         int expectedWrites,
+                        boolean skipIndexWrites,
                         RegionCoprocessorEnvironment env) throws IOException, InterruptedException;
 
     /**

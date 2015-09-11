@@ -390,7 +390,7 @@ public class BulkWriteAction implements Callable<WriteStats> {
 				if (LOG.isDebugEnabled())
                     SpliceLogUtils.debug(LOG, "[%d] addToRetryCallBuffer %d rows",id,retryBuffer==null?0:retryBuffer.size());
 				if (retryPipingCallBuffer == null)
-						retryPipingCallBuffer = new PipingCallBuffer(tableName,txn,null,regionCache,PipelineConstants.noOpFlushHook,writeConfiguration,null);
+						retryPipingCallBuffer = new PipingCallBuffer(tableName,txn,null,regionCache,PipelineConstants.noOpFlushHook,writeConfiguration,null, false);
 				if (refreshCache) {
 						retryPipingCallBuffer.rebuildBuffer();
 						regionCache.invalidate(tableName);

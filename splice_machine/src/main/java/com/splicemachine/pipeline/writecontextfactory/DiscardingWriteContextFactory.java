@@ -1,15 +1,14 @@
 package com.splicemachine.pipeline.writecontextfactory;
 
+import java.io.IOException;
+import java.util.concurrent.atomic.AtomicInteger;
+
+import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+
 import com.splicemachine.pipeline.api.WriteContext;
 import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.pipeline.writehandler.IndexCallBufferFactory;
 import com.splicemachine.si.api.TxnView;
-import com.splicemachine.db.iapi.sql.dictionary.ConstraintDescriptorList;
-import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * Simply delegates to another TransactionalRegion, keeps a reference count, only invokes real close() when ref count
@@ -52,8 +51,8 @@ class DiscardingWriteContextFactory<T> implements WriteContextFactory<T> {
     }
 
     @Override
-    public WriteContext create(IndexCallBufferFactory indexSharedCallBuffer, TxnView txn, T key, int expectedWrites, RegionCoprocessorEnvironment env) throws IOException, InterruptedException {
-        return delegate.create(indexSharedCallBuffer, txn, key, expectedWrites, env);
+    public WriteContext create(IndexCallBufferFactory indexSharedCallBuffer, TxnView txn, T key, int expectedWrites, boolean skipIndexWrites, RegionCoprocessorEnvironment env) throws IOException, InterruptedException {
+        return delegate.create(indexSharedCallBuffer, txn, key, expectedWrites, skipIndexWrites, env);
     }
 
     @Override

@@ -14,6 +14,7 @@ public class BulkWrite {
 
     public Collection<KVPair> mutations;
     private String encodedStringName;
+    private byte skipIndexWrite;
 
     /*non serialized field*/
     private transient long bufferHeapSize = -1;
@@ -22,11 +23,23 @@ public class BulkWrite {
         this(-1,mutations,encodedStringName);
     }
 
+    public BulkWrite(Collection<KVPair> mutations, String encodedStringName, byte skipIndexWrite) {
+        this(-1, mutations, encodedStringName);
+        this.skipIndexWrite = skipIndexWrite;
+    }
+
     public BulkWrite(int heapSizeEstimate,Collection<KVPair> mutations,String encodedStringName) {
         assert encodedStringName != null;
         this.mutations = mutations;
         this.encodedStringName = encodedStringName;
         this.bufferHeapSize = heapSizeEstimate;
+        this.skipIndexWrite = 0x02; // default to false - do not skip
+    }
+
+    public BulkWrite(int heapSizeEstimate,Collection<KVPair> mutations,String encodedStringName, boolean skipIndexWrite) {
+        this(heapSizeEstimate, mutations, encodedStringName);
+        if (skipIndexWrite)
+            this.skipIndexWrite = 0x01;  // true - skip writing to index
     }
 
     public Collection<KVPair> getMutations() {
@@ -62,4 +75,12 @@ public class BulkWrite {
     }
 
     public int getSize() { return mutations.size(); }
+
+    public boolean skipIndexWrite() {
+        return this.skipIndexWrite == 0x01;
+    }
+
+    public byte getSkipIndexWrite() {
+        return this.skipIndexWrite;
+    }
 }

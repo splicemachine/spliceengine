@@ -91,4 +91,5 @@ public interface WriteContext {
      */
     TxnView getTxn();
 
+    boolean skipIndexWrites();
 }

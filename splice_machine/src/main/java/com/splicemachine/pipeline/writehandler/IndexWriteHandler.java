@@ -46,7 +46,7 @@ public class IndexWriteHandler extends AbstractIndexWriteHandler {
 
     @Override
     protected void subFlush(WriteContext ctx) throws Exception {
-        if (indexBuffer != null) {
+        if (indexBuffer != null && ! ctx.skipIndexWrites()) {
             indexBuffer.flushBuffer();
             // indexBuffer.close(); // Do not block
         }
@@ -82,6 +82,9 @@ public class IndexWriteHandler extends AbstractIndexWriteHandler {
 
     @Override
     public boolean updateIndex(KVPair mutation, WriteContext ctx) {
+        if (ctx.skipIndexWrites()) {
+            return true;
+        }
         failed = false;
 
         if (transformer.isUniqueIndex() && mutation.getType() == KVPair.Type.CANCEL) {
