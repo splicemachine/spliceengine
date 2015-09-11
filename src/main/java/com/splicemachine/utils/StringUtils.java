@@ -6,6 +6,18 @@ package com.splicemachine.utils;
  */
 public class StringUtils{
 
+    public static String trimTrailingSpaces(String str){
+        int len = str.length()-1;
+
+        char ch;
+        while(len>=0){
+            ch = str.charAt(len);
+            if(ch > ' ') break;
+            len--;
+        }
+        return str.substring(0,len+1);
+    }
+
     public static String rightPad(String str, int size, char padChar) {
         if(str == null) {
             return null;
