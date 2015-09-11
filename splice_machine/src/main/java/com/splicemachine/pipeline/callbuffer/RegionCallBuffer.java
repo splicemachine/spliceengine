@@ -20,11 +20,13 @@ public class RegionCallBuffer {
     private int heapSize;
     private HRegionInfo hregionInfo;
     private PreFlushHook preFlushHook;
+    private boolean skipIndexWrites;
 
-    public RegionCallBuffer(HRegionInfo hregionInfo, PreFlushHook preFlushHook) {
+    public RegionCallBuffer(HRegionInfo hregionInfo, PreFlushHook preFlushHook, boolean skipIndexWrites) {
         this.hregionInfo = hregionInfo;
         this.buffer = new ArrayList<>();
         this.preFlushHook = preFlushHook;
+        this.skipIndexWrites = skipIndexWrites;
     }
 
     public void add(KVPair element) throws Exception {
@@ -68,7 +70,7 @@ public class RegionCallBuffer {
     }
 
     public BulkWrite getBulkWrite() throws Exception {
-        return new BulkWrite(heapSize, preFlushHook.transform(buffer), hregionInfo.getEncodedName());
+        return new BulkWrite(heapSize, preFlushHook.transform(buffer), hregionInfo.getEncodedName(), skipIndexWrites);
     }
 
     /**

@@ -51,7 +51,7 @@ public class RegionWriteHandlerTest {
         when(env.getRegion()).thenReturn(testRegion);
 		TransactionalRegion txnRegion = new TxnRegion(testRegion, NoopRollForward.INSTANCE, NoOpReadResolver.INSTANCE,
 								supplier,ignoreTxnCacheSupplier,mock(DataStore.class), mock(Transactor.class));
-        PipelineWriteContext testContext = new PipelineWriteContext(new IndexCallBufferFactory(),new ActiveWriteTxn(1l,1l),txnRegion, env);
+        PipelineWriteContext testContext = new PipelineWriteContext(new IndexCallBufferFactory(),new ActiveWriteTxn(1l,1l),txnRegion, false, env);
         testContext.addLast(new RegionWriteHandler(txnRegion,new ResettableCountDownLatch(0), null));
 
         ObjectArrayList<KVPair> pairs = ObjectArrayList.newInstance();
@@ -121,7 +121,7 @@ public class RegionWriteHandlerTest {
 
         RegionCoprocessorEnvironment env = mock(RegionCoprocessorEnvironment.class);
         when(env.getRegion()).thenReturn(testRegion);
-        PipelineWriteContext testContext = new PipelineWriteContext(new IndexCallBufferFactory(),new ActiveWriteTxn(1l,1l),txnRegion, env);
+        PipelineWriteContext testContext = new PipelineWriteContext(new IndexCallBufferFactory(),new ActiveWriteTxn(1l,1l),txnRegion, false, env);
         testContext.addLast(new RegionWriteHandler(txnRegion,new ResettableCountDownLatch(0), null));
 
         ObjectArrayList<KVPair> pairs = ObjectArrayList.newInstance();
@@ -155,7 +155,7 @@ public class RegionWriteHandlerTest {
 
         RegionCoprocessorEnvironment env = mock(RegionCoprocessorEnvironment.class);
         when(env.getRegion()).thenReturn(testRegion);
-        PipelineWriteContext testContext = new PipelineWriteContext(new IndexCallBufferFactory(),new ActiveWriteTxn(1l,1l),txnRegion, env);
+        PipelineWriteContext testContext = new PipelineWriteContext(new IndexCallBufferFactory(),new ActiveWriteTxn(1l,1l),txnRegion, false, env);
         testContext.addLast(new RegionWriteHandler(txnRegion,new ResettableCountDownLatch(0), null));
 
         ObjectArrayList<KVPair> pairs = ObjectArrayList.newInstance();
@@ -191,7 +191,7 @@ public class RegionWriteHandlerTest {
 
         RegionCoprocessorEnvironment env = mock(RegionCoprocessorEnvironment.class);
         when(env.getRegion()).thenReturn(testRegion);
-        PipelineWriteContext testContext = new PipelineWriteContext(new IndexCallBufferFactory(),new ActiveWriteTxn(1l,1l),txnRegion, env);
+        PipelineWriteContext testContext = new PipelineWriteContext(new IndexCallBufferFactory(),new ActiveWriteTxn(1l,1l),txnRegion, false, env);
         testContext.addLast(new RegionWriteHandler(txnRegion,new ResettableCountDownLatch(0), null));
 
         ObjectArrayList<KVPair> successfulPairs = ObjectArrayList.newInstance();
@@ -263,7 +263,7 @@ public class RegionWriteHandlerTest {
 								supplier,ignoreTxnCacheSupplier,mock(DataStore.class), mock(Transactor.class));
         RegionCoprocessorEnvironment env = mock(RegionCoprocessorEnvironment.class);
         when(env.getRegion()).thenReturn(testRegion);
-        PipelineWriteContext testContext = new PipelineWriteContext(new IndexCallBufferFactory(),new ActiveWriteTxn(1l,1l),txnRegion, env);
+        PipelineWriteContext testContext = new PipelineWriteContext(new IndexCallBufferFactory(),new ActiveWriteTxn(1l,1l),txnRegion, false, env);
         testContext.addLast(new RegionWriteHandler(txnRegion,new ResettableCountDownLatch(0), null));
 
         ObjectArrayList<KVPair> successfulPairs = ObjectArrayList.newInstance();

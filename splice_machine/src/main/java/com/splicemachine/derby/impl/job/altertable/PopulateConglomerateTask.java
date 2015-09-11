@@ -183,7 +183,7 @@ public class PopulateConglomerateTask extends ZkTask {
     private RecordingCallBuffer<KVPair> getWriteBuffer() {
         if (writeBuffer == null) {
             byte[] newTableLocation = Bytes.toBytes(Long.toString(ddlChange.getTentativeDDLDesc().getConglomerateNumber()));
-            writeBuffer = SpliceDriver.driver().getTableWriter().writeBuffer(newTableLocation, getTxn(),
+            writeBuffer = SpliceDriver.driver().getTableWriter().noIndexWriteBuffer(newTableLocation, getTxn(),
                                                                              Metrics.noOpMetricFactory());
         }
         return writeBuffer;

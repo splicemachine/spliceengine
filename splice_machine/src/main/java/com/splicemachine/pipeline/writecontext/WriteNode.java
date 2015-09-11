@@ -130,4 +130,9 @@ public class WriteNode implements WriteContext {
     public String toString() {
         return "WriteNode { pipelineWriteContext=" + pipelineWriteContext.toString() + " }";
     }
+
+    @Override
+    public boolean skipIndexWrites() {
+        return pipelineWriteContext.skipIndexWrites();
+    }
 }
