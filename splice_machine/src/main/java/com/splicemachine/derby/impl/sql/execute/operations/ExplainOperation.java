@@ -1,6 +1,8 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
 
+import com.google.common.base.Function;
+import com.google.common.collect.Iterables;
 import com.google.common.collect.Iterators;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.Activation;
@@ -16,8 +18,6 @@ import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
 import com.splicemachine.pipeline.exception.Exceptions;
 import org.apache.log4j.Logger;
-import org.sparkproject.guava.common.base.Function;
-import org.sparkproject.guava.common.collect.Iterables;
 import javax.annotation.Nullable;
 import java.io.IOException;
 import java.util.*;

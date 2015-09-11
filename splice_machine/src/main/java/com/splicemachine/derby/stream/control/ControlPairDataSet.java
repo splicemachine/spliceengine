@@ -16,10 +16,10 @@ import com.splicemachine.derby.stream.temporary.insert.InsertTableWriter;
 import com.splicemachine.derby.stream.temporary.insert.InsertTableWriterBuilder;
 import com.splicemachine.derby.stream.temporary.update.UpdateTableWriter;
 import com.splicemachine.derby.stream.temporary.update.UpdateTableWriterBuilder;
-import org.sparkproject.guava.common.base.Function;
-import org.sparkproject.guava.common.base.Predicate;
-import org.sparkproject.guava.common.base.Supplier;
-import org.sparkproject.guava.common.collect.*;
+import com.google.common.base.Function;
+import com.google.common.base.Predicate;
+import com.google.common.base.Supplier;
+import com.google.common.collect.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
 import scala.Tuple2;
@@ -37,9 +37,9 @@ import static com.splicemachine.derby.stream.control.ControlUtils.multimapFromIt
 /**
  *
  *
- * @see org.sparkproject.guava.common.collect.Multimap
- * @see org.sparkproject.guava.common.collect.Multimaps
- * @see org.sparkproject.guava.common.collect.Iterables
+ * @see com.google.common.collect.Multimap
+ * @see com.google.common.collect.Multimaps
+ * @see com.google.common.collect.Iterables
  *
  */
 public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {

@@ -7,7 +7,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
 import com.splicemachine.derby.impl.sql.execute.operations.MergeJoinOperation;
 import com.splicemachine.derby.stream.iterator.merge.MergeOuterJoinIterator;
 import org.apache.log4j.Logger;
-import org.sparkproject.guava.common.collect.PeekingIterator;
+import com.google.common.collect.PeekingIterator;
 
 import java.io.Closeable;
 import java.io.IOException;

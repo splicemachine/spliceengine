@@ -26,7 +26,7 @@ import org.apache.hadoop.hbase.util.*;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.io.compress.CompressionCodecFactory;
 import org.apache.log4j.Logger;
-import org.sparkproject.guava.common.collect.ArrayListMultimap;
+import com.google.common.collect.ArrayListMultimap;
 import scala.Tuple2;
 
 import java.io.BufferedInputStream;

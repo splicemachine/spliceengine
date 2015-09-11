@@ -5,7 +5,7 @@ import com.splicemachine.derby.impl.sql.execute.operations.MergeJoinOperation;
 import com.splicemachine.derby.stream.iapi.OperationContext;
 import com.splicemachine.derby.stream.iterator.merge.AbstractMergeJoinIterator;
 import com.splicemachine.derby.stream.iterator.merge.MergeInnerJoinIterator;
-import org.sparkproject.guava.common.collect.PeekingIterator;
+import com.google.common.collect.PeekingIterator;
 
 /**
  * Created by jleach on 6/9/15.
