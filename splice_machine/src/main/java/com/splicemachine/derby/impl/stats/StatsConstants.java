@@ -31,7 +31,7 @@ public class StatsConstants extends SpliceConstants {
      */
     public static int topKSize;
     @Parameter public static final String TOPK_SIZE = "splice.statistics.topKSize";
-    @DefaultValue(value = TOPK_SIZE)public static final int DEFAULT_TOPK_PRECISION = 5;
+    @DefaultValue(value = TOPK_SIZE)public static final int DEFAULT_TOPK_PRECISION = 10;
 
     /*
      * The size of the partition statistics cache. Partitions will be evicted when the total size
