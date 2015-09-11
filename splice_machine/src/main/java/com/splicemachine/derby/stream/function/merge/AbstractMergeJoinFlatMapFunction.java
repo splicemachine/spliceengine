@@ -13,8 +13,8 @@ import com.splicemachine.derby.stream.iterator.merge.AbstractMergeJoinIterator;
 import com.splicemachine.derby.stream.iterator.merge.MergeAntiJoinIterator;
 import com.splicemachine.derby.stream.iterator.merge.MergeInnerJoinIterator;
 import com.splicemachine.derby.stream.utils.StreamUtils;
-import org.sparkproject.guava.common.collect.Iterators;
-import org.sparkproject.guava.common.collect.PeekingIterator;
+import com.google.common.collect.Iterators;
+import com.google.common.collect.PeekingIterator;
 
 import java.io.IOException;
 import java.io.ObjectInput;

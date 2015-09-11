@@ -12,7 +12,7 @@ import java.io.Serializable;
  */
 public abstract class SpliceFunction<Op extends SpliceOperation, From, To>
     extends AbstractSpliceFunction<Op>
-		implements Function<From, To>, org.sparkproject.guava.common.base.Function<From,To>, Serializable {
+		implements Function<From, To>, com.google.common.base.Function<From,To>, Serializable {
 
 	public SpliceFunction() {
         super();

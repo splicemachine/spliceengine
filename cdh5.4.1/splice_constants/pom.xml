@@ -41,6 +41,10 @@
 					<groupId>org.slf4j</groupId>
 					<artifactId>slf4j-log4j12</artifactId>
 				</exclusion>
+				<exclusion>
+					<groupId>org.apache.hadoop</groupId>
+					<artifactId>hadoop-aws</artifactId>
+				</exclusion>
 			</exclusions>
 		</dependency>
 		<dependency>
@@ -187,7 +191,7 @@
 		<dependency>
 			<groupId>org.apache.spark</groupId>
 			<artifactId>${spark-assembly-id}</artifactId>
-			<version>1.2.0</version>
+			<version>1.5.0</version>
 		</dependency>
 	</dependencies>
 </project>
