@@ -130,47 +130,6 @@ public interface RowOrdering{
     void nextOrderPosition(int direction);
 
     /**
-     * Tell this RowOrdering that it is always ordered on the given optimizable
-     * This is useful when considering a unique index where there is an
-     * equality match on the entire key - in this case, all the columns
-     * are ordered, regardless of the direction or position,
-     * or even whether the columns are in the index.
-     *
-     * @param optimizable The table in question
-     */
-    void optimizableAlwaysOrdered(Optimizable optimizable);
-
-    /**
-     * Tell this RowOrdering that it is always ordered on the given column
-     * of the given optimizable.  This is useful when a column in the
-     * optimizable has an equals comparison with a constant expression or
-     * it is involved in a equijoin with an optimizable which is always
-     * ordered on the column on which the equijoin is happening. This is
-     * reset when the optimizable is removed from this RowOrdering.
-     *
-     * @param optimizable  The table in question
-     * @param columnNumber The number of the column in question.
-     */
-    void columnAlwaysOrdered(Optimizable optimizable,int columnNumber);
-
-    /**
-     * Return true if the column is always ordered. That will be true if the
-     * column has a constant comparison predicate on it or it is involved in
-     * a equijoin with an optimizable which is always ordered on the column
-     * on which the equijoin is happening.
-     *
-     * @param tableNumber  The table in question
-     * @param columnNumber The number of the column in question.
-     * @return true means this column is always ordered
-     */
-    boolean isColumnAlwaysOrdered(int tableNumber,int columnNumber);
-
-    /**
-     * Ask whether the given table is always ordered.
-     */
-    boolean alwaysOrdered(int tableNumber);
-
-    /**
      * Tell this row ordering that it is no longer ordered on the given
      * table.  Also, adjust the current order position, if necessary.
      * This only works to remove ordered columns from the end of the

@@ -140,11 +140,6 @@ public class RowResultSetNode extends FromTable {
 			costEstimate = optimizer.newCostEstimate();
 		}
 		costEstimate.setCost(0.1d, 1.0d, 1.0d);
-
-
-		/* A single row is always ordered */
-		rowOrdering.optimizableAlwaysOrdered(this);
-
 		return costEstimate;
 	}
 

@@ -795,12 +795,6 @@ public class FromBaseTable extends FromTable {
               * we are a non-covering index).
               */
 
-	         /*
-	         ** Tell the RowOrdering that this optimizable is always ordered.
-	         ** It will figure out whether it is really always ordered in the
-	         ** context of the outer tables and their orderings.
-	         */
-            rowOrdering.optimizableAlwaysOrdered(this);
             singleScanRowCount=1.0;
 
 			/* Yes, the cost is to fetch exactly one row */

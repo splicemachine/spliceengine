@@ -35,22 +35,6 @@ public class RowOrderingImpl implements RowOrdering{
     /* This vector contains ColumnOrderings */
     List<ColumnOrdering> ordering;
 
-    /*
-    ** This ColumnOrdering represents the columns that can be considered
-    ** ordered no matter what.  For example, columns that are compared to
-    ** constants with = are always ordered.  Also, all columns in a one-row
-    ** result set are ordered. Another instance of always ordered is when
-    ** the column is involved in an equijoin with an optimizable which is
-    ** always ordered on the column on which the equijoin is happening.
-    */
-    ColumnOrdering columnsAlwaysOrdered;
-
-    /*
-    ** This vector contains table numbers for tables that are always ordered.
-    ** This happens for one-row tables.
-    */
-    List<Optimizable> alwaysOrderedOptimizables;
-
     ColumnOrdering currentColumnOrdering;
 
     /* This vector contains unordered Optimizables */
@@ -61,14 +45,6 @@ public class RowOrderingImpl implements RowOrdering{
         ordering=new ArrayList<ColumnOrdering>();
         //noinspection Convert2Diamond
         unorderedOptimizables=new ArrayList<Optimizable>();
-        columnsAlwaysOrdered=new ColumnOrdering(RowOrdering.DONTCARE);
-        //noinspection Convert2Diamond
-        alwaysOrderedOptimizables=new ArrayList<Optimizable>();
-    }
-
-    @Override
-    public boolean isColumnAlwaysOrdered(int tableNumber,int columnNumber){
-        return (columnsAlwaysOrdered.contains(tableNumber,columnNumber));
     }
 
     @Override
@@ -78,29 +54,12 @@ public class RowOrderingImpl implements RowOrdering{
 
     @Override
     public ColumnOrdering ordering(int orderPosition,int tableNumber,int columnNumber) throws StandardException{
-        if(vectorContainsOptimizable(tableNumber,alwaysOrderedOptimizables)){
-
-        }
         return null;
     }
 
     @Override
     public boolean orderedOnColumn(int direction,int orderPosition,
                                    int tableNumber,int columnNumber) throws StandardException{
-
-		/*
-        ** Return true if the table is always ordered.
-		*/
-        if(vectorContainsOptimizable(tableNumber,alwaysOrderedOptimizables)){
-            return true;
-        }
-
-		/*
-		** Return true if the column is always ordered.
-		*/
-        if(columnsAlwaysOrdered.contains(tableNumber,columnNumber)){
-            return true;
-        }
 
 		/*
 		** Return false if we're looking for an ordering position that isn't
@@ -120,20 +79,6 @@ public class RowOrderingImpl implements RowOrdering{
 
     @Override
     public boolean orderedOnColumn(int direction, int tableNumber, int columnNumber) throws StandardException{
-		/*
-		** Return true if the table is always ordered.
-		*/
-        if(vectorContainsOptimizable(tableNumber,alwaysOrderedOptimizables)){
-            return true;
-        }
-
-		/*
-		** Return true if the column is always ordered.
-		*/
-        if(columnsAlwaysOrdered.contains(tableNumber,columnNumber)){
-            return true;
-        }
-
         boolean ordered=false;
 
         for(ColumnOrdering co : ordering){
@@ -154,21 +99,9 @@ public class RowOrderingImpl implements RowOrdering{
 
     @Override
     public int orderedPositionForColumn(int direction, int tableNumber, int columnNumber) throws StandardException{
-		/*
-		** Return true if the table is always ordered.
-		*/
-        int p = optimizablePosition(tableNumber,alwaysOrderedOptimizables);
-        if(p>=0) return p;
-
-		/*
-		** Return true if the column is always ordered.
-		*/
-        p = columnsAlwaysOrdered.position(tableNumber, columnNumber);
-        if(p>=0) return p;
-
         boolean ordered=false;
 
-        p = 0;
+        int p = 0;
         for(ColumnOrdering co : ordering){
             /*
             ** Is the column in question ordered with the given direction at
@@ -220,46 +153,6 @@ public class RowOrderingImpl implements RowOrdering{
     }
 
     @Override
-    public void optimizableAlwaysOrdered(Optimizable optimizable){
-        // A table can't be ordered if there is an outer unordered table
-        if(unorderedOptimizablesOtherThan(optimizable)){
-            return;
-        }
-
-		/*
-		** A table is not "always ordered" if any of the other ordered tables
-		** in the join order are not also "always ordered".  In other words,
-		** if any outer table is not a one-row table, this table is not
-		** always ordered.
-		**
-		** The table that was passed in as a parameter may have already been
-		** added as a table with ordered columns.  If it is the first table
-		** in the list of ordered columns, then there should be no other
-		** tables in this list, so we remove it from the list and add it
-		** to the list of always-ordered tables.
-		*/
-        boolean hasTableNumber=optimizable.hasTableNumber();
-        int tableNumber=(hasTableNumber?optimizable.getTableNumber():0);
-        if(((ordering.size()==0) ||(hasTableNumber && ordering.get(0).hasTable(tableNumber)))
-                && (hasTableNumber && !columnsAlwaysOrdered.hasAnyOtherTable(tableNumber))){
-            if(optimizable.hasTableNumber())
-                removeOptimizable(optimizable.getTableNumber());
-
-            alwaysOrderedOptimizables.add(optimizable);
-        }
-    }
-
-    @Override
-    public void columnAlwaysOrdered(Optimizable optimizable,int columnNumber){
-        columnsAlwaysOrdered.addColumn(optimizable.getTableNumber(), columnNumber);
-    }
-
-    @Override
-    public boolean alwaysOrdered(int tableNumber){
-        return vectorContainsOptimizable(tableNumber, alwaysOrderedOptimizables );
-    }
-
-    @Override
     public void removeOptimizable(int tableNumber){
 		/*
 		** Walk the list backwards, so we can remove elements
@@ -275,14 +168,9 @@ public class RowOrderingImpl implements RowOrdering{
                 ordering.remove(i);
         }
 
-		/* Remove from list of always-ordered columns */
-        columnsAlwaysOrdered.removeColumns(tableNumber);
-
 		/* Also remove from list of unordered optimizables */
         removeOptimizableFromVector(tableNumber,unorderedOptimizables);
 
-		/* Also remove from list of always ordered optimizables */
-        removeOptimizableFromVector(tableNumber,alwaysOrderedOptimizables);
     }
 
     @Override
@@ -300,12 +188,6 @@ public class RowOrderingImpl implements RowOrdering{
         dest.ordering.clear();
         dest.currentColumnOrdering=null;
 
-        dest.unorderedOptimizables.clear();
-        Collections.copy(unorderedOptimizables,dest.unorderedOptimizables);
-
-        dest.alwaysOrderedOptimizables.clear();
-        Collections.copy(alwaysOrderedOptimizables,dest.alwaysOrderedOptimizables);
-
         for(int i=0;i<ordering.size();i++){
             ColumnOrdering co=ordering.get(i);
 
@@ -314,10 +196,6 @@ public class RowOrderingImpl implements RowOrdering{
             if(co==currentColumnOrdering)
                 dest.rememberCurrentColumnOrdering(i);
         }
-
-        dest.columnsAlwaysOrdered=null;
-        if(columnsAlwaysOrdered!=null)
-            dest.columnsAlwaysOrdered=columnsAlwaysOrdered.cloneMe();
     }
 
     @Override
@@ -334,18 +212,6 @@ public class RowOrderingImpl implements RowOrdering{
         if(SanityManager.DEBUG){
             retval="Unordered optimizables: ";
             for(Optimizable opt : unorderedOptimizables){
-                if(opt.getBaseTableName()!=null){
-                    retval+=opt.getBaseTableName();
-                }else{
-                    retval+=opt.toString();
-                }
-                retval+=" ";
-            }
-            retval+="\n";
-
-            retval+="\nAlways ordered optimizables: ";
-
-            for(Optimizable opt : alwaysOrderedOptimizables){
                 if(opt.getBaseTableName()!=null){
                     retval+=opt.getBaseTableName();
                 }else{
@@ -431,4 +297,5 @@ public class RowOrderingImpl implements RowOrdering{
 
         return false;
     }
+
 }
