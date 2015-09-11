@@ -108,7 +108,7 @@ public class TPCHIT extends SpliceUnitTest {
         executeQuery(getContent("8.sql"), "", true);
     }
 
-    @Ignore("DB-3819")
+    @Test
     public void sql8InvalidMergeJoin() throws Exception {
     	try {
     		executeQuery(getContent("8-invalid-merge.sql"), "", true);
