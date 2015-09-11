@@ -9,8 +9,6 @@ import com.splicemachine.test.SerialTest;
 import com.splicemachine.test.SlowTest;
 import com.splicemachine.test_dao.StatementHistory;
 import com.splicemachine.test_dao.StatementHistoryDAO;
-
-import com.sun.source.tree.AssertTree;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.util.Bytes;
