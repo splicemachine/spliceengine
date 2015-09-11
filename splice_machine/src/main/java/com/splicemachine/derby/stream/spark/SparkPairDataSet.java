@@ -73,7 +73,7 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
 
     @Override
     public <W> PairDataSet< K, Tuple2<V, Optional<W>>> hashLeftOuterJoin(PairDataSet< K, W> rightDataSet) {
-        return new SparkPairDataSet(rdd.leftOuterJoin( ((SparkPairDataSet) rightDataSet).rdd));
+        return new SparkPairDataSet(rdd.leftOuterJoin(((SparkPairDataSet) rightDataSet).rdd));
     }
 
     @Override
@@ -122,8 +122,8 @@ public class SparkPairDataSet<K,V> implements PairDataSet<K,V> {
     public <W> PairDataSet< K, Tuple2<V, W>> broadcastJoin(PairDataSet< K, W> rightDataSet) {
         JavaPairRDD<K,W> rightPairDataSet = ((SparkPairDataSet) rightDataSet).rdd;
         JavaSparkContext context = SpliceSpark.getContext();
-        List<Tuple2<K, W>> rightBroadcast = rightPairDataSet.collect();
-        final Broadcast<List<Tuple2<K, W>>> broadcast = context.broadcast(rightBroadcast);
+        Multimap<K, W> rightBroadcast = generateMultimap(rightPairDataSet);
+        final Broadcast<Multimap<K, W>> broadcast = context.broadcast(rightBroadcast);
         return new SparkPairDataSet(rdd.flatMapToPair(new JoinPairFlatMapFunction(broadcast)));
     }
 

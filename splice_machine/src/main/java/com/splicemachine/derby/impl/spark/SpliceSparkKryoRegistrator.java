@@ -9,6 +9,7 @@ import com.esotericsoftware.kryo.serializers.DefaultSerializers;
 import com.esotericsoftware.kryo.serializers.FieldSerializer;
 import com.esotericsoftware.kryo.serializers.MapSerializer;
 
+import com.google.common.collect.ArrayListMultimap;
 import com.splicemachine.derby.ddl.DDLChangeType;
 import com.splicemachine.derby.ddl.TentativeAddColumnDesc;
 import com.splicemachine.derby.ddl.TentativeAddConstraintDesc;
@@ -650,5 +651,25 @@ public class SpliceSparkKryoRegistrator implements KryoRegistrator {
             }
         });
         instance.register(ImportResult.class);
+        instance.register(ArrayListMultimap.class, new Serializer<ArrayListMultimap>() {
+            @Override
+            public void write(Kryo kryo, Output output, ArrayListMultimap map) {
+                output.writeInt(map.size());
+                for (Map.Entry e : (Collection<Map.Entry>) map.entries()) {
+                    kryo.writeClassAndObject(output, e.getKey());
+                    kryo.writeClassAndObject(output, e.getValue());
+                }
+            }
+
+            @Override
+            public ArrayListMultimap read(Kryo kryo, Input input, Class aClass) {
+                int size = input.readInt();
+                ArrayListMultimap map = ArrayListMultimap.create();
+                for (int i = 0; i < size; ++i) {
+                    map.put(kryo.readClassAndObject(input), kryo.readClassAndObject(input));
+                }
+                return map;
+            }
+        });
     }
 }
