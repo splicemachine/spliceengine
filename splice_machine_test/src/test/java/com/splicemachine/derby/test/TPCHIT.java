@@ -108,6 +108,17 @@ public class TPCHIT extends SpliceUnitTest {
         executeQuery(getContent("8.sql"), "", true);
     }
 
+    @Ignore("DB-3819")
+    public void sql8InvalidMergeJoin() throws Exception {
+    	try {
+    		executeQuery(getContent("8-invalid-merge.sql"), "", true);
+        } catch (SQLException e) {
+            // Error expected due to invalid MERGE join:
+        	// ERROR 42Y69: No valid execution plan was found for this statement. 
+            assertEquals("42Y69", e.getSQLState());
+        }
+    }
+
     @Test
     public void sql9() throws Exception {
         executeQuery(getContent("9.sql"), "", true);
