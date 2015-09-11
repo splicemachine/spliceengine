@@ -488,4 +488,63 @@ public class JoinSelectionIT extends SpliceUnitTest  {
         Assert.assertTrue(format("Explain statement took %d millis which is too long", duration),
         	duration < 5000L /* 5 seconds */);
     }
+    
+    /*
+     * Regression test for DB-3812
+     * 
+     * Make sure the explain plan for hinted and unhinted versions of a certain query are the same,
+     * and make sure each query executes in no more than a few seconds (< 10 seconds is fine).
+     */
+    @Test
+    public void testNestedLoopJoinWithAndWithoutJoinOrderHint() throws Exception {
+        methodWatcher.executeUpdate("CREATE TABLE NLJ3812A (i bigint NOT NULL GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1), j bigint)");
+        methodWatcher.executeUpdate("CREATE TABLE NLJ3812B (i bigint NOT NULL GENERATED ALWAYS AS IDENTITY (START WITH 1, INCREMENT BY 1), j bigint)");
+        methodWatcher.executeUpdate("create table NLJ3812C1 (i bigint, j bigint, k bigint, l bigint)");
+        methodWatcher.executeUpdate("create table NLJ3812C2 (i bigint, j bigint, k bigint, l bigint)");
+
+        methodWatcher.executeUpdate("insert into NLJ3812A (j) values 1,2,3,4,5,6,7,8,9,10");
+        methodWatcher.executeUpdate("insert into NLJ3812A (j) select j from NLJ3812A");
+    	for (int i = 0; i < 16; i++) {
+            methodWatcher.executeUpdate("insert into NLJ3812A (j) select j from NLJ3812A");
+		}
+        methodWatcher.executeUpdate("insert into NLJ3812B (j) values 1");
+        
+		spliceClassWatcher.execute(format("call syscs_util.COLLECT_TABLE_STATISTICS('%s', 'NLJ3812A', false)", CLASS_NAME));
+		spliceClassWatcher.execute(format("call syscs_util.COLLECT_TABLE_STATISTICS('%s', 'NLJ3812B', false)", CLASS_NAME));
+
+		String query = "%s insert into %s (i, j, k, l) " +
+            "select a.i, a.j, b.i, b.j " +
+            "from %s " +
+            "NLJ3812B b, NLJ3812A a " +
+            "where b.i = a.j and b.i = 1";
+
+        String explainHinted = format(query, "explain", "NLJ3812C1", "--SPLICE-PROPERTIES joinOrder=FIXED\n");
+        String explainUnhinted = format(query, "explain", "NLJ3812C2", "");
+        String queryHinted = format(query, "", "NLJ3812C1", "--SPLICE-PROPERTIES joinOrder=FIXED\n");
+        String queryUnhinted = format(query, "", "NLJ3812C2", "");
+
+        rowContainsQuery(
+                new int[] {3, 4, 5},
+                explainHinted,
+                methodWatcher,
+                "NestedLoopJoin", "TableScan[NLJ3812A", "TableScan[NLJ3812B");
+
+        rowContainsQuery(
+                new int[] {3, 4, 5},
+                explainUnhinted,
+                methodWatcher,
+                "NestedLoopJoin", "TableScan[NLJ3812A", "TableScan[NLJ3812B");
+
+        long start = System.currentTimeMillis();
+		methodWatcher.executeUpdate(queryHinted);
+        long duration = System.currentTimeMillis() - start;
+        Assert.assertTrue(format("Explain statement took %d millis which is too long", duration),
+            duration < 10000L /* < 10 seconds is fine*/);
+
+        long start2 = System.currentTimeMillis();
+		methodWatcher.executeUpdate(queryUnhinted);
+        long duration2 = System.currentTimeMillis() - start2;
+        Assert.assertTrue(format("Explain statement took %d millis which is too long", duration2),
+            duration2 < 10000L /* < 10 seconds is fine*/);
+    }
 }
