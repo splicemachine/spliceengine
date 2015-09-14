@@ -10,6 +10,7 @@ import com.splicemachine.test.SlowTest;
 import com.splicemachine.test_dao.StatementHistory;
 import com.splicemachine.test_dao.StatementHistoryDAO;
 
+import com.sun.source.tree.AssertTree;
 import org.apache.hadoop.hbase.HRegionInfo;
 import org.apache.hadoop.hbase.client.HBaseAdmin;
 import org.apache.hadoop.hbase.util.Bytes;
@@ -41,19 +42,22 @@ public class MultiRegionIT {
 
     private static final String SCHEMA_NAME = MultiRegionIT.class.getSimpleName().toUpperCase();
     private static final SpliceWatcher spliceClassWatcher = new SpliceWatcher(SCHEMA_NAME);
-    private static final String TABLE_NAME = "TAB";
+    private static final String TABLE1_NAME = "TAB1";
+    private static final String TABLE2_NAME = "TAB2";
     private static final SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(SCHEMA_NAME);
-    private static final SpliceTableWatcher spliceTableWatcher = new SpliceTableWatcher(TABLE_NAME, SCHEMA_NAME, "(I INT, D DOUBLE)");
+    private static final SpliceTableWatcher spliceTableWatcher1 = new SpliceTableWatcher(TABLE1_NAME, SCHEMA_NAME, "(I INT, D DOUBLE)");
+    private static final SpliceTableWatcher spliceTableWatcher2 = new SpliceTableWatcher(TABLE2_NAME, SCHEMA_NAME, "(I INT, D DOUBLE)");
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
             .around(spliceSchemaWatcher)
-            .around(spliceTableWatcher).around(new SpliceDataWatcher() {
+            .around(spliceTableWatcher2)
+            .around(spliceTableWatcher1).around(new SpliceDataWatcher() {
                 @Override
                 protected void starting(Description description) {
                     PreparedStatement ps;
                     try {
-                        ps = spliceClassWatcher.prepareStatement(format("insert into %s (i, d) values (?, ?)", TABLE_NAME));
+                        ps = spliceClassWatcher.prepareStatement(format("insert into %s (i, d) values (?, ?)", TABLE1_NAME));
                         for (int j = 0; j < 100; ++j) {
                             for (int i = 0; i < 10; i++) {
                                 ps.setInt(1, i);
@@ -61,9 +65,9 @@ public class MultiRegionIT {
                                 ps.execute();
                             }
                         }
-                        spliceClassWatcher.splitTable(TABLE_NAME, SCHEMA_NAME, 250);
-                        spliceClassWatcher.splitTable(TABLE_NAME, SCHEMA_NAME, 500);
-                        spliceClassWatcher.splitTable(TABLE_NAME, SCHEMA_NAME, 750);
+                        spliceClassWatcher.splitTable(TABLE1_NAME, SCHEMA_NAME, 250);
+                        spliceClassWatcher.splitTable(TABLE1_NAME, SCHEMA_NAME, 500);
+                        spliceClassWatcher.splitTable(TABLE1_NAME, SCHEMA_NAME, 750);
 
                     } catch (Exception e) {
                         throw new RuntimeException(e);
@@ -83,12 +87,12 @@ public class MultiRegionIT {
         conn.createStatement().execute("call SYSCS_UTIL.SYSCS_PURGE_XPLAIN_TRACE()");
         conn.commit();
 
-        int numRegions = getNumOfRegions(SCHEMA_NAME, TABLE_NAME);
+        int numRegions = getNumOfRegions(SCHEMA_NAME, TABLE1_NAME);
 
-        Double popValue = methodWatcher.query(format("select stddev_pop(i) from %s", TABLE_NAME));
+        Double popValue = methodWatcher.query(format("select stddev_pop(i) from %s", TABLE1_NAME));
         assertEquals(2.8, popValue, .5);
 
-        Double sampleValue = methodWatcher.query(format("select stddev_samp(i) from %s", TABLE_NAME));
+        Double sampleValue = methodWatcher.query(format("select stddev_samp(i) from %s", TABLE1_NAME));
         assertEquals(2.8, sampleValue, .5);
 
         if (numRegions > 3) {
@@ -100,8 +104,27 @@ public class MultiRegionIT {
 
     @Test
     public void testDistinctCount() throws Exception {
-        Long count = methodWatcher.query(format("select count(distinct i) from %s", TABLE_NAME));
+        Long count = methodWatcher.query(format("select count(distinct i) from %s", TABLE1_NAME));
         assertEquals(10, count.intValue());
+    }
+
+    @Test
+    public void testInsertSelectLimit() throws Exception {
+        int count = methodWatcher.executeUpdate(format("insert into %s select * from %s {limit 100}", TABLE2_NAME, TABLE1_NAME));
+        assertEquals(100, count);
+
+        count = methodWatcher.executeUpdate(format("insert into %s select * from %s OFFSET 10 ROWS FETCH NEXT 10 ROWS ONLY", TABLE2_NAME, TABLE1_NAME));
+        assertEquals(10, count);
+
+        count = methodWatcher.executeUpdate(format("insert into %s select * from %s OFFSET 100 ROWS FETCH NEXT 3000 ROWS ONLY", TABLE2_NAME, TABLE1_NAME));
+        assertEquals(900, count);
+
+        count = methodWatcher.executeUpdate(format("insert into %s select * from %s OFFSET 100 ROWS", TABLE2_NAME, TABLE1_NAME));
+        assertEquals(900, count);
+
+        ResultSet rs = methodWatcher.executeQuery(format("select count(*) from %s", TABLE2_NAME));
+        assertTrue(rs.next());
+        assertEquals(1910, rs.getInt(1));
     }
 
     @Test
@@ -114,7 +137,7 @@ public class MultiRegionIT {
         // turn OFF auto trace
         conn.createStatement().execute("call SYSCS_UTIL.SYSCS_SET_AUTO_TRACE(0)");
 
-        Double sampleValue = methodWatcher.query(format("select stddev_samp(i) from %s", TABLE_NAME));
+        Double sampleValue = methodWatcher.query(format("select stddev_samp(i) from %s", TABLE1_NAME));
         assertEquals(2.8, sampleValue, .5);
 
         // turn ON auto trace
