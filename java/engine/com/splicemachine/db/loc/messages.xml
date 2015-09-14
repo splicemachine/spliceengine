@@ -4600,6 +4600,12 @@ ln=lower-case two-letter ISO-639 language code, CO=upper-case two-letter ISO-316
                 <text>The export operation was not performed, because the specified parameter (replicationCount) is less than or equal to zero.</text>
             </msg>
 
+            <msg>
+                <name>XIE0X.S</name>
+                <text>The export operation was not performed, because value of the specified parameter ({0}) is wrong.</text>
+                <arg>paramName</arg>
+            </msg>
+
         </family>
 
 
