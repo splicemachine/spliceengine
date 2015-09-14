@@ -38,7 +38,6 @@ public class FileImportReader implements ImportReader{
     private String[][] lines;
 	private int currentPosition;
 	private int mask = (lineBatchSize-1);
-	//private boolean finished = false;
 
 	@Override
     public void setup(FileSystem fileSystem, ImportContext ctx) throws IOException {
@@ -138,22 +137,22 @@ public class FileImportReader implements ImportReader{
     					SpliceConstants.importMaxQuotedColumnLines).useNullForEmptyColumns(false).build());
     }
 
-		@Override
-		public String toString() {
-				if(path!=null)
-						return path.toString();
-				return "FileImport";
-		}
+    @Override
+	public String toString() {
+	    if(path!=null)
+			return path.toString();
+		return "FileImport";
+    }
 
     @Override
     public String[] getFailMessages() {
         if (csvReader == null) {
-            return null;
+            return new String[0];
         }
 
         ArrayList<String> arr = csvReader.getFailMsg();
         if (arr == null || arr.size() <= 0) {
-            return null;
+            return new String[0];
         }
 
         return arr.toArray(new String[arr.size()]);
