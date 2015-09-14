@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.concurrent.Callable;
 
 import com.google.common.base.Strings;
+import com.splicemachine.derby.impl.sql.execute.operations.rowcount.RowCountOperation;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaRDD;
@@ -244,7 +245,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
         }
 
         /* If the optimizer knows we are only dealing with one row */
-        if (source.getEstimatedRowCount() == 1) {
+        if (source.getEstimatedRowCount() == 1 || source instanceof RowCountOperation) {
             try {
                 if(dmlWriteOperationControlSide == null) {
                     dmlWriteOperationControlSide = new DMLWriteOperationControlSide(this);
