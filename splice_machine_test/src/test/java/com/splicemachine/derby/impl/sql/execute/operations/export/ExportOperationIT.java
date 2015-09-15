@@ -342,7 +342,34 @@ public class ExportOperationIT {
             methodWatcher.executeQuery("export('/tmp/', false, -100, null, null, null) select 1 from sys.sysaliases ");
             fail();
         } catch (SQLException e) {
-            assertEquals("Invalid error message", "XIE0U", e.getSQLState());
+            assertEquals("Invalid error state", "XIE0U", e.getSQLState());
+        }
+
+        // wrong field separator
+        try {
+            methodWatcher.executeQuery("export('/tmp/', false, null, null, 10, null) select 1 from sys.sysaliases ");
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Invalid error state", "XIE0X", e.getSQLState());
+            assertEquals("Invalid error message", "The export operation was not performed, because value of the specified parameter (10) is wrong.", e.getMessage());
+        }
+
+        // wrong quote character
+        try {
+            methodWatcher.executeQuery("export('/tmp/', false, null, null, null, 100) select 1 from sys.sysaliases ");
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Invalid error state", "XIE0X", e.getSQLState());
+            assertEquals("Invalid error message", "The export operation was not performed, because value of the specified parameter (100) is wrong.", e.getMessage());
+        }
+
+        // wrong replication parameter
+        try {
+            methodWatcher.executeQuery("export('/tmp/', false, 'a', null, null, null) select 1 from sys.sysaliases ");
+            fail();
+        } catch (SQLException e) {
+            assertEquals("Invalid error state", "XIE0X", e.getSQLState());
+            assertEquals("Invalid error message", "The export operation was not performed, because value of the specified parameter (a) is wrong.", e.getMessage());
         }
     }
 
