@@ -222,9 +222,15 @@ public class IndexTransformer {
                      */
                     assert !isNull: "Programmer error: Cannot update a primary key to a null value!";
                     int length = keyDecoder.offset() - offset - 1;
+                    /*
+                     * A note about sort order:
+                     *
+                     * We are in the primary key section, which means that the element is ordered in
+                     * ASCENDING order. In an ideal world, that wouldn't matter because
+                     */
                     accumulate(keyAccumulator, indexKeyPos,
                             columnTypes[sourceKeyColumnPos],
-                            srcKeyColumnSortOrder != null && srcKeyColumnSortOrder[sourceKeyColumnPos] != indexKeySortOrder[sourceKeyColumnPos],
+                            !indexKeySortOrder[indexKeyPos],
                             keyDecoder.array(), offset, length);
                 }
             }

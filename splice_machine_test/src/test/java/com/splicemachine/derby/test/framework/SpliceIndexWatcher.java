@@ -53,7 +53,7 @@ public class SpliceIndexWatcher extends TestWatcher {
 			statement.setString(2, indexName);			
 			rs = statement.executeQuery();
 			if (rs.next()) {
-				executeDrop(indexSchemaName,indexName);
+				executeDrop(connection,indexSchemaName,indexName);
 			}
 			connection.commit();
 			statement2 = connection.createStatement();
@@ -61,7 +61,6 @@ public class SpliceIndexWatcher extends TestWatcher {
 			connection.commit();
 		} catch (Exception e) {
 			LOG.error("Create index statement is invalid ");
-			e.printStackTrace();
 			throw new RuntimeException(e);
 		} finally {
 			DbUtils.closeQuietly(rs);
@@ -74,7 +73,7 @@ public class SpliceIndexWatcher extends TestWatcher {
 	@Override
 	public void finished(Description description) {
 		LOG.trace("finished");
-		executeDrop(indexSchemaName,indexName);
+//		executeDrop(SpliceNetConnection.indexSchemaName,indexName);
 	}
 
     /**
@@ -90,48 +89,33 @@ public class SpliceIndexWatcher extends TestWatcher {
      */
     public static void createIndex(Connection connection, String schemaName, String tableName, String indexName, String definition, boolean unique) throws Exception {
         PreparedStatement statement = null;
-        Statement statement2 = null;
         ResultSet rs = null;
         try {
-            connection = SpliceNetConnection.getConnection();
+//            connection = SpliceNetConnection.getConnection();
             statement = connection.prepareStatement(SELECT_SPECIFIC_INDEX);
             statement.setString(1, schemaName);
             statement.setString(2, indexName);
             rs = statement.executeQuery();
             if (rs.next()) {
-                SpliceIndexWatcher.executeDrop(schemaName,indexName);
+                SpliceIndexWatcher.executeDrop(connection,schemaName,indexName);
             }
-            connection.commit();
-            statement2 = connection.createStatement();
-            statement2.execute(String.format("create "+(unique?"unique":"")+" index %s.%s on %s.%s %s",
-                    schemaName,indexName,schemaName,tableName,definition));
-            connection.commit();
-        } catch (Exception e) {
-            throw new RuntimeException("Create index failed.", e);
+			try(Statement s = connection.createStatement()){
+				s.execute(String.format("create "+(unique?"unique":"")+" index %s.%s on %s.%s %s",
+						schemaName,indexName,schemaName,tableName,definition));
+			}
         } finally {
             DbUtils.closeQuietly(rs);
             DbUtils.closeQuietly(statement);
-            DbUtils.closeQuietly(statement2);
-            DbUtils.commitAndCloseQuietly(connection);
         }
     }
 
-    public static void executeDrop(String indexSchemaName,String indexName) {
+    public static void executeDrop(Connection connection,String indexSchemaName,String indexName) {
 		LOG.trace("executeDrop");
-		Connection connection = null;
-		Statement statement = null;
-		try {
-			connection = SpliceNetConnection.getConnection();
-			statement = connection.createStatement();
+		try(Statement statement = connection.createStatement()) {
 			statement.execute(String.format("drop index %s.%s",indexSchemaName.toUpperCase(),indexName.toUpperCase()));
-			connection.commit();
 		} catch (Exception e) {
-			LOG.error("error Dropping " + e.getMessage());
-			e.printStackTrace();
+			LOG.error("error Dropping "+e.getMessage());
 			throw new RuntimeException(e);
-		} finally {
-			DbUtils.closeQuietly(statement);
-			DbUtils.commitAndCloseQuietly(connection);
 		}
 	}
 
