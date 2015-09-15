@@ -50,7 +50,7 @@
 		<dependency>
 			<groupId>org.splicetest.sqlj</groupId>
 			<artifactId>sqlj-it-procs</artifactId>
-			<version>1.0.2-SNAPSHOT</version>
+			<version>1.0.2</version>
 		</dependency>
 	</dependencies>
 	<profiles>
