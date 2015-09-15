@@ -55,14 +55,16 @@ public abstract class AlterTableDDLDescriptor implements TransformingDDLDescript
      *                      specified.
      * @param srcRow the source exec row template.
      * @param templateRow the target exec row template.
+     * @param keyEncoder the key encoder to use when not dealing with PKs - key is HBase rowKey.
      * @return the row transformer initialized and ready to accept rows to transform.
      */
     protected static RowTransformer createRowTransformer(String tableVersion,
-                                                      int[] sourceKeyOrdering,
-                                                      int[] targetKeyOrdering,
-                                                      int[] columnMapping,
-                                                      ExecRow srcRow,
-                                                      ExecRow templateRow) {
+                                                         int[] sourceKeyOrdering,
+                                                         int[] targetKeyOrdering,
+                                                         int[] columnMapping,
+                                                         ExecRow srcRow,
+                                                         ExecRow templateRow,
+                                                         KeyEncoder keyEncoder) {
 
         // Key decoder
         KeyHashDecoder keyDecoder;
@@ -86,15 +88,17 @@ public abstract class AlterTableDDLDescriptor implements TransformingDDLDescript
         KeyEncoder encoder;
         DescriptorSerializer[] newSerializers =
             VersionedSerializers.forVersion(tableVersion, true).getSerializers(templateRow);
-        if(targetKeyOrdering !=null&& targetKeyOrdering.length>0){
+        if(targetKeyOrdering != null && targetKeyOrdering.length>0){
             // We'll need target table key column order when we have keys (PK, unique) on target table
             // Must use dense encodings in the key serializer (sparse = false)
             DescriptorSerializer[] denseSerializers =
                 VersionedSerializers.forVersion(tableVersion, false).getSerializers(templateRow);
             encoder = new KeyEncoder(NoOpPrefix.INSTANCE, BareKeyHash.encoder(targetKeyOrdering, null,
                                                                               denseSerializers), NoOpPostfix.INSTANCE);
-        } else {
+        } else if (keyEncoder != null) {
             // Just use the no-op key decoder for new rows when no key in target table
+            encoder = keyEncoder;
+        } else {
             UUIDGenerator uuidGenerator = SpliceDriver.driver().getUUIDGenerator().newGenerator(100);
             encoder = new KeyEncoder(new SaltedPrefix(uuidGenerator), NoOpDataHash.INSTANCE,NoOpPostfix.INSTANCE);
         }
@@ -189,5 +193,4 @@ public abstract class AlterTableDDLDescriptor implements TransformingDDLDescript
         }
         return rowDecodingMap;
     }
-
 }

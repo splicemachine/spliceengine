@@ -14,6 +14,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
+import com.splicemachine.derby.utils.marshall.KeyEncoder;
 import com.splicemachine.pipeline.api.RowTransformer;
 import com.splicemachine.pipeline.api.WriteHandler;
 import com.splicemachine.pipeline.ddl.TransformingDDLDescriptor;
@@ -61,8 +62,13 @@ public class TentativeAddConstraintDesc extends AlterTableDDLDescriptor implemen
     }
 
     @Override
+    public RowTransformer createRowTransformer(KeyEncoder keyEncoder) throws IOException {
+        return create(tableVersion, srcColumnOrdering, targetColumnOrdering, columnInfos, keyEncoder);
+    }
+
+    @Override
     public RowTransformer createRowTransformer() throws IOException {
-        return create(tableVersion, srcColumnOrdering, targetColumnOrdering, columnInfos);
+        return create(tableVersion, srcColumnOrdering, targetColumnOrdering, columnInfos, null);
     }
 
     @Override
@@ -138,7 +144,7 @@ public class TentativeAddConstraintDesc extends AlterTableDDLDescriptor implemen
     private static RowTransformer create(String tableVersion,
                                          int[] sourceKeyOrdering,
                                          int[] targetKeyOrdering,
-                                         ColumnInfo[] columnInfos) throws IOException {
+                                         ColumnInfo[] columnInfos, KeyEncoder keyEncoder) throws IOException {
         // template rows : size is same when not dropping/adding columns
         ExecRow srcRow = new ValueRow(columnInfos.length);
         ExecRow templateRow = new ValueRow(columnInfos.length);
@@ -162,6 +168,7 @@ public class TentativeAddConstraintDesc extends AlterTableDDLDescriptor implemen
                                     targetKeyOrdering,
                                     columnMapping,
                                     srcRow,
-                                    templateRow);
+                                    templateRow,
+                                    keyEncoder);
     }
 }

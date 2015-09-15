@@ -15,6 +15,7 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
+import com.splicemachine.derby.utils.marshall.KeyEncoder;
 import com.splicemachine.pipeline.api.RowTransformer;
 import com.splicemachine.pipeline.api.WriteHandler;
 import com.splicemachine.pipeline.ddl.TransformingDDLDescriptor;
@@ -56,8 +57,13 @@ public class TentativeAddColumnDesc extends AlterTableDDLDescriptor implements T
     }
 
     @Override
+    public RowTransformer createRowTransformer(KeyEncoder keyEncoder) throws IOException {
+        return create(tableVersion, columnOrdering, columnInfos, keyEncoder);
+    }
+
+    @Override
     public RowTransformer createRowTransformer() throws IOException {
-        return create(tableVersion, columnOrdering, columnInfos);
+        return create(tableVersion, columnOrdering, columnInfos, null);
     }
 
     @Override
@@ -122,8 +128,9 @@ public class TentativeAddColumnDesc extends AlterTableDDLDescriptor implements T
     }
 
     private static RowTransformer create(String tableVersion,
-                                        int[] sourceKeyOrdering,
-                                        ColumnInfo[] columnInfos) throws IOException {
+                                         int[] sourceKeyOrdering,
+                                         ColumnInfo[] columnInfos,
+                                         KeyEncoder keyEncoder) throws IOException {
 
         // template rows
         ExecRow srcRow = new ValueRow(columnInfos.length-1);
@@ -155,7 +162,8 @@ public class TentativeAddColumnDesc extends AlterTableDDLDescriptor implements T
                                     sourceKeyOrdering,
                                     columnMapping,
                                     srcRow,
-                                    targetRow);
+                                    targetRow,
+                                    keyEncoder);
     }
 
 }
