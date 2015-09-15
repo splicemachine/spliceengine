@@ -1,15 +1,14 @@
 package com.splicemachine.derby.impl.sql.execute.operations;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.Statement;
 
 import com.splicemachine.test.SlowTest;
+import com.splicemachine.test_tools.TableCreator;
 import org.apache.log4j.Logger;
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
@@ -20,6 +19,9 @@ import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceTableWatcher;
 import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
+
+import static com.splicemachine.test_tools.Rows.row;
+import static com.splicemachine.test_tools.Rows.rows;
 
 public class DistinctScalarAggregateOperationIT extends SpliceUnitTest {
     protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher();
@@ -60,6 +62,35 @@ public class DistinctScalarAggregateOperationIT extends SpliceUnitTest {
             });
 
     @Rule public SpliceWatcher methodWatcher = new SpliceWatcher();
+
+    @BeforeClass
+    public static void createDataSet() throws Exception {
+        Connection conn = spliceClassWatcher.getOrCreateConnection();
+        new TableCreator(conn)
+                .withCreate("CREATE TABLE DistinctScalarAggregateOperationIT.t (i DOUBLE, j int)")
+                .withInsert("insert into DistinctScalarAggregateOperationIT.t (i,j) values(?, ?)")
+                .withRows(rows(
+                        row(null, 1),
+                        row(0.2533141765143777, 1),
+                        row(0.5948622082194885, 1),
+                        row(0.30925968785729474, 1),
+                        row(0.1619137273689144, 1),
+                        row(null, null),
+                        row(0.6232005241074771, 1),
+                        row(0.08817195574227321, 1),
+                        row(0.6470844263248035, 1),
+                        row(0.1385595309690708, 1),
+                        row(0.003724732605326908, 1),
+                        row(0.17947900748689327, 1),
+                        row(0.8705926880889353, 1),
+                        row(null, null),
+                        row(null, null),
+                        row(0.3032862585487939, 1),
+                        row(null, null),
+                        row(0.12924566497115575, 1),
+                        row(0.9670417796816004, 1),
+                        row(0.9089245098281875, 1))).create();
+    }
 
     @Test
     public void testDistinctScalarAggregate() throws Exception {
@@ -137,5 +168,12 @@ public class DistinctScalarAggregateOperationIT extends SpliceUnitTest {
         Assert.assertEquals(4, rs.getInt(2));
         Assert.assertEquals(4, rs.getInt(3));
         Assert.assertEquals(30.0, rs.getFloat(4), 0.01);
+    }
+
+    @Test
+    public void testColumnWithNullValues() throws Exception {
+        ResultSet rs = methodWatcher.executeQuery("select count(distinct i)  from "+ this.getPaddedTableReference("T"));
+        Assert.assertTrue(rs.next());
+        Assert.assertEquals(15, rs.getInt(1));
     }
 }
