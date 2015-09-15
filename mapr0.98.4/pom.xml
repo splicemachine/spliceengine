@@ -12,7 +12,7 @@
 		<hbase.version>0.98.4-mapr-1408-splice1.2.0</hbase.version>
 		<hive.version>0.13.0-mapr-1405</hive.version>
 		<zookeeper.version>3.4.5-mapr-1406</zookeeper.version>
-		<maprfs.version>4.0.2-mapr</maprfs.version>
+		<maprfs.version>4.0.1-mapr</maprfs.version>
 		<spark-assembly-id>spark-assembly-hadoop2.4.1-mapr-1408</spark-assembly-id>
 	</properties>
 	<parent>
