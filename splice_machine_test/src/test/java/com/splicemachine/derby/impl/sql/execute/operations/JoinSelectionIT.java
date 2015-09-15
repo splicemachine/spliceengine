@@ -20,7 +20,7 @@ import static org.hamcrest.core.AnyOf.anyOf;
 import static org.hamcrest.core.IsEqual.equalTo;
 
 // Note - we are using the format of the EXPLAIN output to pass these tests.  They will need to be updated if the EXPLAIN
-// output changes.
+// output changes
 
 public class JoinSelectionIT extends SpliceUnitTest  {
 
@@ -95,7 +95,6 @@ public class JoinSelectionIT extends SpliceUnitTest  {
                             "(6, 'FRANCE', 3)",
                             spliceTableNation));
 
-						//TODO: move call to statistics in setup here
 						spliceClassWatcher.execute(format("call syscs_util.COLLECT_SCHEMA_STATISTICS('%s',false)",CLASS_NAME));
                         
                     } catch (Exception e) {
@@ -112,22 +111,12 @@ public class JoinSelectionIT extends SpliceUnitTest  {
     // should be NestedLoopJoin
     @Test
     public void testInnerJoinWithSubqueryFilterExactCriteria() throws Exception {
-
-        ResultSet rs = methodWatcher.executeQuery(
-              format("explain select a2.pid from %s a2 join " +
+        fourthRowContainsQuery(
+            format("explain select a2.pid from %s a2 join " +
             		  "(select person.pid from %s) as a3 " +
             		  " on a2.pid = a3.pid " + 
-            		  " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher));
-        int count = 0;
-        while (rs.next()) {
-            count++;
-            if (count == 4) {
-    			String row = rs.getString(1);
-    			String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER)+PLAN_LINE_LEADER.length(),row.indexOf(JOIN_STRATEGY_TERMINATOR));
-    			Assert.assertEquals(NESTED_LOOP_JOIN, joinStrategy);
-            	break;
-            }
-        }   
+            		  " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher),
+            NESTED_LOOP_JOIN, methodWatcher);
     }
     
     @Test
@@ -154,134 +143,77 @@ public class JoinSelectionIT extends SpliceUnitTest  {
     // should be NLJ?  Comes back with MergeSortJoin
     @Test
     public void testLeftOuterJoinWithSubqueryFilterExactCriteria() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery(
-              format("explain select a2.pid from %s a2 left outer join " +
+        fourthRowContainsQuery(
+            format("explain select a2.pid from %s a2 left outer join " +
             		  "(select person.pid from %s) as a3 " +
             		  " on a2.pid = a3.pid " + 
-            		  " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher));
-        int count = 0;
-        while (rs.next()) {
-            count++;
-            if (count == 4) {
-    			String row = rs.getString(1);
-    			String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER)+PLAN_LINE_LEADER.length(),row.indexOf(JOIN_STRATEGY_TERMINATOR));
-    			Assert.assertEquals(LO_MERGE_SORT_JOIN, joinStrategy);
-            	break;
-            }
-        }     
+            		  " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher),
+		    LO_MERGE_SORT_JOIN, methodWatcher);
     }
     
     // should be Broadcast but comes back with MergeSort?
     @Test
     public void testLeftOuterJoinWithSubquery() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery(
-              format("explain select a2.pid from %s a2 left outer join " +
+        fourthRowContainsQuery(
+        	format("explain select a2.pid from %s a2 left outer join " +
             		  "(select person.pid from %s) as a3 " +
-            		  " on a2.pid = a3.pid " , spliceTableWatcher2, spliceTableWatcher));
-        int count = 0;
-        while (rs.next()) {
-            count++;
-            if (count == 4) {
-    			String row = rs.getString(1);
-    			String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER)+PLAN_LINE_LEADER.length(),row.indexOf(JOIN_STRATEGY_TERMINATOR));
-    			Assert.assertEquals(LO_MERGE_SORT_JOIN, joinStrategy);
-            	break;
-            }
-        }     
+            		  " on a2.pid = a3.pid ", spliceTableWatcher2, spliceTableWatcher),
+    		LO_MERGE_SORT_JOIN, methodWatcher);
     }
 
     @Test
     public void testRPLeftOuterJoinWithNestedSubqueries() throws Exception {
 		explainQueryNoNestedLoops(
-        		format("explain SELECT a2.pid FROM %s a2 " + 
+            format("explain SELECT a2.pid FROM %s a2 " + 
         			  "LEFT OUTER JOIN " +
             		  "(SELECT a4.PID FROM %s a4 WHERE EXISTS " +
             				  "(SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
-            				  "ON a2.PID = a3.PID", spliceTableWatcher2, spliceTableWatcher2, spliceTableWatcher), 0);
+            				  "ON a2.PID = a3.PID", spliceTableWatcher2, spliceTableWatcher2, spliceTableWatcher));
     }
     
     @Test
     public void testRPLeftOuterJoinWithNestedSubqueriesFilterExactCriteria() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery(
-              format("explain SELECT a2.pid FROM %s a2 " + 
+        fourthRowContainsQuery(
+            format("explain SELECT a2.pid FROM %s a2 " + 
             		  "LEFT OUTER JOIN " +
             		  "(SELECT a4.PID FROM %s a4 WHERE EXISTS " +
             				  "(SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
             				  "ON a2.PID = a3.PID " +
-            				  "WHERE a2.PID = 100", spliceTableWatcher2, spliceTableWatcher2, spliceTableWatcher));
-        int count = 0;
-        while (rs.next()) {
-            count++;
-            if (count == 4) {
-    			String row = rs.getString(1);
-    			String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER)+PLAN_LINE_LEADER.length(),row.indexOf(JOIN_STRATEGY_TERMINATOR));
-    			Assert.assertEquals(LO_MERGE_SORT_JOIN, joinStrategy);
-            	break;
-            }
-        }    
+            				  "WHERE a2.PID = 100", spliceTableWatcher2, spliceTableWatcher2, spliceTableWatcher),
+			  LO_MERGE_SORT_JOIN, methodWatcher);
     }
-
 
     @Test
     public void testInnerJoinWithNestedSubqueries() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery(
-              format("explain SELECT a2.pid FROM %s a2 " + 
+    	fourthRowContainsQuery(
+            format("explain SELECT a2.pid FROM %s a2 " + 
             		  "INNER JOIN " +
             		  "(SELECT a4.PID FROM %s a4 WHERE EXISTS " +
             				  "(SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
-            				  "ON a2.PID = a3.PID", spliceTableWatcher2, spliceTableWatcher2, spliceTableWatcher));
-        int count = 0;
-        while (rs.next()) {
-            count++;
-            if (count == 4) {
-    			String row = rs.getString(1);
-    			String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER)+PLAN_LINE_LEADER.length(),row.indexOf(JOIN_STRATEGY_TERMINATOR));
-    			Assert.assertEquals(BROADCAST_JOIN, joinStrategy);
-            	break;
-            }
-        }   
+            				  "ON a2.PID = a3.PID", spliceTableWatcher2, spliceTableWatcher2, spliceTableWatcher),
+            BROADCAST_JOIN, methodWatcher);
     }
     
     @Test
     public void testInnerJoinWithNestedSubqueriesFilterExactCriteria() throws Exception {
-        ResultSet rs = methodWatcher.executeQuery(
-              format("explain SELECT a2.pid FROM %s a2 " + 
+    	fourthRowContainsQuery(
+            format("explain SELECT a2.pid FROM %s a2 " + 
             		  "INNER JOIN " +
             		  "(SELECT a4.PID FROM %s a4 WHERE EXISTS " +
             				  "(SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
             				  "ON a2.PID = a3.PID" +
-            				  " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher2, spliceTableWatcher));
-        int count = 0;
-        while (rs.next()) {
-            count++;
-            if (count == 4) {
-    			String row = rs.getString(1);
-    			String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER)+PLAN_LINE_LEADER.length(),row.indexOf(JOIN_STRATEGY_TERMINATOR));
-    			Assert.assertEquals(NESTED_LOOP_JOIN, joinStrategy);
-            	break;
-            }
-        }   
+            				  " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher2, spliceTableWatcher),
+            NESTED_LOOP_JOIN, methodWatcher);
     }
-
 
     @Test
     public void testInnerJoinWithSubqueryLHSFilterExactCriteria() throws Exception {
-
-        ResultSet rs = methodWatcher.executeQuery(
-              format("explain select a2.pid from (select person.pid from %s) as a3 " +
+    	fourthRowContainsQuery(
+            format("explain select a2.pid from (select person.pid from %s) as a3 " +
             		  " join %s a2 " +
             		  " on a2.pid = a3.pid " + 
-            		  " where a2.pid = 100", spliceTableWatcher, spliceTableWatcher2));
-        int count = 0;
-        while (rs.next()) {
-            count++;
-            if (count == 4) {
-    			String row = rs.getString(1);
-    			String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER)+PLAN_LINE_LEADER.length(),row.indexOf(JOIN_STRATEGY_TERMINATOR));
-    			Assert.assertEquals(NESTED_LOOP_JOIN, joinStrategy);
-            	break;
-            }
-        }   
+            		  " where a2.pid = 100", spliceTableWatcher, spliceTableWatcher2),
+            NESTED_LOOP_JOIN, methodWatcher);
     }
     
     @Test
@@ -307,127 +239,67 @@ public class JoinSelectionIT extends SpliceUnitTest  {
     // should be NLJ
     @Test
     public void testLeftOuterJoinWithSubqueryLHSFilterExactCriteria() throws Exception {
-
-        ResultSet rs = methodWatcher.executeQuery(
-              format("explain select a2.pid from (select person.pid from %s) as a3 " +
+    	fourthRowContainsQuery(
+            format("explain select a2.pid from (select person.pid from %s) as a3 " +
             		  " left outer join %s a2 " +
             		  " on a2.pid = a3.pid " + 
-            		  " where a2.pid = 100", spliceTableWatcher, spliceTableWatcher2));
-        int count = 0;
-        while (rs.next()) {
-            count++;
-            if (count == 4) {
-    			String row = rs.getString(1);
-    			String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER)+PLAN_LINE_LEADER.length(),row.indexOf(JOIN_STRATEGY_TERMINATOR));
-    			Assert.assertEquals(NESTED_LOOP_JOIN, joinStrategy);
-            	break;
-            }
-        }   
+            		  " where a2.pid = 100", spliceTableWatcher, spliceTableWatcher2),
+            NESTED_LOOP_JOIN, methodWatcher);
     }
 
     @Test
     public void testLeftOuterJoinWithSubqueryLHS() throws Exception {
-
-        ResultSet rs = methodWatcher.executeQuery(
-              format("explain select a2.pid from (select person.pid from %s) as a3 " +
+    	fourthRowContainsQuery(
+            format("explain select a2.pid from (select person.pid from %s) as a3 " +
             		  " left outer join %s a2 " +
-            		  " on a2.pid = a3.pid ", spliceTableWatcher, spliceTableWatcher2));
-        int count = 0;
-        while (rs.next()) {
-            count++;
-            if (count == 4) {
-    			String row = rs.getString(1);
-    			String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER)+PLAN_LINE_LEADER.length(),row.indexOf(JOIN_STRATEGY_TERMINATOR));
-    			Assert.assertEquals(LO_BROADCAST_JOIN, joinStrategy);
-            	break;
-            }
-        }   
+            		  " on a2.pid = a3.pid ", spliceTableWatcher, spliceTableWatcher2),
+            LO_BROADCAST_JOIN, methodWatcher);
     }
 
     @Test
     public void testLeftOuterJoinWithNestedSubqueryLHSFilterExactCriteria() throws Exception {
-
-        ResultSet rs = methodWatcher.executeQuery(
-              format("explain select a2.pid from " +
+    	fourthRowContainsQuery(
+            format("explain select a2.pid from " +
             		  "(SELECT a4.PID FROM %s a4 WHERE EXISTS " +
             		  "   (SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
             		  " left outer join %s a2 " +
             		  " on a2.pid = a3.pid " + 
-            		  " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher, spliceTableWatcher2));
-        int count = 0;
-        while (rs.next()) {
-            count++;
-            if (count == 4) {
-    			String row = rs.getString(1);
-    			String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER)+PLAN_LINE_LEADER.length(),row.indexOf(JOIN_STRATEGY_TERMINATOR));
-    			Assert.assertEquals(NESTED_LOOP_JOIN, joinStrategy);
-            	break;
-            }
-        }   
+            		  " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher, spliceTableWatcher2),
+            NESTED_LOOP_JOIN, methodWatcher);
     }
     
     @Test
     public void testInnerJoinWithNestedSubqueryLHSFilterExactCriteria() throws Exception {
-
-        ResultSet rs = methodWatcher.executeQuery(
-              format("explain select a2.pid from " +
+    	fourthRowContainsQuery(
+            format("explain select a2.pid from " +
             		  "(SELECT a4.PID FROM %s a4 WHERE EXISTS " +
             		  "   (SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
             		  " join %s a2 " +
             		  " on a2.pid = a3.pid " + 
-            		  " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher, spliceTableWatcher2));
-        int count = 0;
-        while (rs.next()) {
-            count++;
-            if (count == 4) {
-    			String row = rs.getString(1);
-    			String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER)+PLAN_LINE_LEADER.length(),row.indexOf(JOIN_STRATEGY_TERMINATOR));
-    			Assert.assertEquals(NESTED_LOOP_JOIN, joinStrategy);
-            	break;
-            }
-        }   
+            		  " where a2.pid = 100", spliceTableWatcher2, spliceTableWatcher, spliceTableWatcher2),
+            NESTED_LOOP_JOIN, methodWatcher);
     }
 
     @Test
     public void testInnerJoinWithNestedSubqueryLHS() throws Exception {
-
-        ResultSet rs = methodWatcher.executeQuery(
-              format("explain select a2.pid from " +
+    	fourthRowContainsQuery(
+            format("explain select a2.pid from " +
             		  "(SELECT a4.PID FROM %s a4 WHERE EXISTS " +
             		  "   (SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
             		  " join %s a2 " +
-            		  " on a2.pid = a3.pid ", spliceTableWatcher2, spliceTableWatcher, spliceTableWatcher2));
-        int count = 0;
-        while (rs.next()) {
-            count++;
-            if (count == 4) {
-    			String row = rs.getString(1);
-    			String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER)+PLAN_LINE_LEADER.length(),row.indexOf(JOIN_STRATEGY_TERMINATOR));
-    			Assert.assertEquals(BROADCAST_JOIN, joinStrategy);
-            	break;
-            }
-        }   
+            		  " on a2.pid = a3.pid ", spliceTableWatcher2, spliceTableWatcher, spliceTableWatcher2),
+            BROADCAST_JOIN, methodWatcher);
     }
 
     @Test
     public void testLeftOuterJoinWithNestedSubqueryLHS() throws Exception {
-
-        ResultSet rs = methodWatcher.executeQuery(
-              format("explain select a2.pid from " +
+    	fourthRowContainsQuery(
+            format("explain select a2.pid from " +
             		  "(SELECT a4.PID FROM %s a4 WHERE EXISTS " +
             		  "   (SELECT a5.PID FROM %s a5 WHERE a4.PID = a5.PID)) AS a3 " +
             		  " left outer join %s a2 " +
-            		  " on a2.pid = a3.pid ", spliceTableWatcher2, spliceTableWatcher, spliceTableWatcher2));
-        int count = 0;
-        while (rs.next()) {
-            count++;
-            if (count == 4) {
-    			String row = rs.getString(1);
-    			String joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER)+PLAN_LINE_LEADER.length(),row.indexOf(JOIN_STRATEGY_TERMINATOR));
-    			Assert.assertEquals(LO_BROADCAST_JOIN, joinStrategy);
-            	break;
-            }
-        }   
+            		  " on a2.pid = a3.pid ", spliceTableWatcher2, spliceTableWatcher, spliceTableWatcher2),
+    	    LO_BROADCAST_JOIN, methodWatcher);
     }
 
     @Test
@@ -435,28 +307,11 @@ public class JoinSelectionIT extends SpliceUnitTest  {
     	// This tests DB-3608 (wrong row estimate for frequent element match of type varchar).
     	// If it fails, do not ignore it or comment it out. Let it fail until it is fixed.
     	explainQueryNoNestedLoops(
-            "explain select * from region2, nation2 where n_regionkey = r_regionkey and r_name = 'AMERICA'", 0);
+            "explain select * from region2, nation2 where n_regionkey = r_regionkey and r_name = 'AMERICA'");
     }
     
-    private void explainQueryNoNestedLoops(String query, int maxJoinChecks) throws Exception {
-        ResultSet rs = methodWatcher.executeQuery(query);
-
-        int rowCount = 0;
-        int joinCount = 0;
-        String joinStrategy = null;
-        while (rs.next()) {
-        	rowCount++;
-			String row = rs.getString(1);
-			if (!row.contains("Join")) continue;
-			if (rowCount == 1)
-			    joinStrategy = row.substring(0, row.indexOf(JOIN_STRATEGY_TERMINATOR));
-			else
-				joinStrategy = row.substring(row.indexOf(PLAN_LINE_LEADER) + PLAN_LINE_LEADER.length(), row.indexOf(JOIN_STRATEGY_TERMINATOR));
-			joinCount++;
-            Assert.assertNotEquals("Found unexpected bad join strategy", NESTED_LOOP_JOIN, joinStrategy);
-            if (maxJoinChecks > 0 && joinCount >= maxJoinChecks) break;
-        }
-        Assert.assertTrue("Did not find join strategy in plan", joinCount > 0);
+    private void explainQueryNoNestedLoops(String query) throws Exception {
+        queryDoesNotContainString(query, NESTED_LOOP_JOIN, methodWatcher);
     }
     
     /* Regression test for DB-3614 */
