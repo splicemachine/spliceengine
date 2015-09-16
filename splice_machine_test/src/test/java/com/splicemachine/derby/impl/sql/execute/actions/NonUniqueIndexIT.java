@@ -347,7 +347,7 @@ public class NonUniqueIndexIT extends SpliceUnitTest {
     		"  1  |  1  |  4  |";
     	
     	// Query without the index
-    	ResultSet rs = methodWatcher.executeQuery("select * from foo");
+    	ResultSet rs = methodWatcher.executeQuery("select * from foo --splice-properties index=null");
         assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
         // Query with index hint - results should be the same
     	rs = methodWatcher.executeQuery("select * from foo --splice-properties index=foo_ix");
