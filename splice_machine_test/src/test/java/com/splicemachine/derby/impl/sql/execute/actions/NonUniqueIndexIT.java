@@ -2,8 +2,10 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.test.SlowTest;
+
 import org.apache.hadoop.hbase.util.Pair;
 import org.junit.Assert;
 import org.junit.ClassRule;
@@ -325,8 +327,31 @@ public class NonUniqueIndexIT extends SpliceUnitTest {
 
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s where name = '%s'",this.getTableReference(TABLE_NAME_6),oldName));
         Assert.assertTrue("Rows returned incorrectly",!rs.next());
-
         assertSelectCorrect(spliceSchemaWatcher.schemaName,TABLE_NAME_6,newName,1);
+    }
+
+    @Test
+    public void testSelectAllAfterUpdateWithIndex() throws Exception {
+    	// This is a basic case, which also serves as
+    	// regression coverage for DB-3680.
+
+    	// Bypass schema and data used by nost of this class, to keep it really simple
+    	methodWatcher.executeUpdate("create table foo (col1 int, col2 int, col3 int)");
+    	methodWatcher.executeUpdate("insert into foo values (1,1,1)");
+    	methodWatcher.executeUpdate("create index foo_ix on foo (col2)");
+    	methodWatcher.executeUpdate("update foo set col3 = 4");
+
+    	String expected =
+    		"COL1 |COL2 |COL3 |\n" +
+    		"------------------\n" +
+    		"  1  |  1  |  4  |";
+    	
+    	// Query without the index
+    	ResultSet rs = methodWatcher.executeQuery("select * from foo");
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        // Query with index hint - results should be the same
+    	rs = methodWatcher.executeQuery("select * from foo --splice-properties index=foo_ix");
+        assertEquals("Select returns different results with index than without index", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
     @Test
