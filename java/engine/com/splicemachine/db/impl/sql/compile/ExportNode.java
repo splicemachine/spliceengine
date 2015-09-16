@@ -52,16 +52,13 @@ public class ExportNode extends DMLStatementNode {
         }
         List argsList = (List) argumentsVector;
         this.node = (StatementNode) statementNode;
-        try {
-            this.exportPath = stringValue(argsList.get(0));
-            this.compression = booleanValue(argsList.get(1));
-            this.replicationCount = intValue(argsList.get(2));
-            this.encoding = stringValue(argsList.get(3));
-            this.fieldSeparator = stringValue(argsList.get(4));
-            this.quoteCharacter = stringValue(argsList.get(5));
-        } catch (StandardException e) {
-            throw new RuntimeException(e);
-        }
+
+        this.exportPath = stringValue(argsList.get(0));
+        this.compression = booleanValue(argsList.get(1));
+        this.replicationCount = intValue(argsList.get(2));
+        this.encoding = stringValue(argsList.get(3));
+        this.fieldSeparator = stringValue(argsList.get(4));
+        this.quoteCharacter = stringValue(argsList.get(5));
     }
 
     @Override
@@ -118,17 +115,53 @@ public class ExportNode extends DMLStatementNode {
         return object instanceof ConstantNode && ((ConstantNode) object).isNull();
     }
 
+
+
     private static String stringValue(Object object) throws StandardException {
-        /* MethodBuilder can't handle null, so we use empty string when the user types NULL as argument */
-        return isNullConstant(object) ? "" : ((CharConstantNode) object).getString();
+        // MethodBuilder can't handle null, so we use empty string when the user types NULL as argument
+        if (isNullConstant(object)) {
+            return "";
+        }
+
+        if (object instanceof CharConstantNode) {
+           return ((CharConstantNode) object).getString();
+        }
+
+        throw newException(object);
     }
 
     private static int intValue(Object object) throws StandardException {
-        return isNullConstant(object) ? DEFAULT_INT_VALUE : ((NumericConstantNode) object).getValue().getInt();
+        if (isNullConstant(object)) {
+            return DEFAULT_INT_VALUE;
+        }
+
+        if (object instanceof NumericConstantNode) {
+            return ((NumericConstantNode) object).getValue().getInt();
+        }
+
+        throw newException(object);
     }
 
     private static boolean booleanValue(Object object) throws StandardException {
-        return isNullConstant(object) ? true : ((BooleanConstantNode) object).isBooleanTrue();
+        if (isNullConstant(object)) {
+            return true;
+        }
+
+        if (object instanceof BooleanConstantNode) {
+            return ((BooleanConstantNode) object).isBooleanTrue();
+        }
+
+        throw newException(object);
+    }
+
+
+    private static StandardException newException(Object object) {
+        if (object instanceof ConstantNode) {
+            ConstantNode constantNode = (ConstantNode) object;
+            return StandardException.newException(SQLState.EXPORT_PARAMETER_VALUE_IS_WRONG, constantNode.getValue().toString());
+        }
+
+        return StandardException.newException(SQLState.EXPORT_PARAMETER_VALUE_IS_WRONG, object.toString());
     }
 
 }

@@ -1866,6 +1866,7 @@ public interface SQLState {
 	String DATA_FILE_EXISTS                                        ="XIE0S.S";
 	String LOB_DATA_FILE_EXISTS                                    ="XIE0T.S";
     String EXPORT_PARAMETER_IS_WRONG                               ="XIE0U.S";
+    String EXPORT_PARAMETER_VALUE_IS_WRONG                         ="XIE0X.S";
 
 
 
@@ -1873,7 +1874,7 @@ public interface SQLState {
     ** Security XK...
     */
     String POLICY_NOT_RELOADED                                     ="XK000.S";
-    String NO_SUCH_USER                                                  ="XK001.S";
+    String NO_SUCH_USER                                            ="XK001.S";
 
     /*
     ** Replication XRExx
