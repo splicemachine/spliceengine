@@ -345,6 +345,7 @@ public class IndexTransformer {
             System.arraycopy(rowLocation, 0, newData, data.length + 1, rowLocation.length);
             data = newData;
         }
+        assert data != null && data.length>0:"getIndexRowKey returned invalid data";
         return data;
     }
 

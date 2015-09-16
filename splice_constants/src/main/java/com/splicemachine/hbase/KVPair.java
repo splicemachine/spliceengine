@@ -3,8 +3,6 @@ package com.splicemachine.hbase;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.CachedByteSlice;
 
-import java.util.Arrays;
-
 /**
  * @author Scott Fines
  *         Created on: 8/8/13
@@ -80,8 +78,8 @@ public class KVPair implements Comparable<KVPair> {
 
     public KVPair(byte[] rowKeyBuffer,int rowKeyOffset,int rowKeyLength,
                   byte[] valueBuffer,int valueOffset,int valueLength, Type type){
-        this(ByteSlice.wrap(rowKeyBuffer,rowKeyOffset,rowKeyLength),
-                ByteSlice.wrap(valueBuffer,valueOffset,valueLength),type);
+        this(ByteSlice.wrap(rowKeyBuffer, rowKeyOffset, rowKeyLength),
+                ByteSlice.wrap(valueBuffer, valueOffset, valueLength),type);
     }
 
     public KVPair() {
@@ -91,6 +89,9 @@ public class KVPair implements Comparable<KVPair> {
     public KVPair(ByteSlice rowKey,ByteSlice value,Type type) {
         assert rowKey!=null: "Cannot create a KVPair without a row key!";
         assert value!=null: "Cannot create a KVPair without a value!";
+        if (rowKey.length() < 1) {
+            assert rowKey.length() > 0: "KVPair Created with inappropriate length";
+        }
         this.rowKey = rowKey;
         this.value = value;
         this.type = type;
