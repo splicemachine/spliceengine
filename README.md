@@ -66,6 +66,7 @@ SpliceSQL Engine
 * `mvn -DskipTests exec:exec -DspliceFast -DsparkMasterURL=spark://localhost:7077 -Dsplice.spark.enabled=true`
 * Optional, start the splice machine command line (derby's ij)
 * `mvn exec:java -Dij` or if you have rlwrap installed `rlwrap mvn exec:java -Pij`
+
 ##### Other notes:
 * All dependencies will be pulled from splice nexus repo (http://nexus.splicemachine.com/nexus/).
 * There is no requirement to build any other packages to build splice.

@@ -4,6 +4,7 @@ import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.stats.ColumnStatistics;
 import com.splicemachine.stats.collector.ColumnStatsCollector;
+import com.splicemachine.utils.StringUtils;
 
 /**
  * @author Scott Fines
@@ -19,7 +20,12 @@ public abstract class StringStatsCollector extends DvdStatsCollector{
 
     @Override
     protected void doUpdate(DataValueDescriptor dataValueDescriptor, long count) throws StandardException {
-        baseCollector.update(dataValueDescriptor.getString(),count);
+        String string=getString(dataValueDescriptor);
+        baseCollector.update(string,count);
+    }
+
+    protected String getString(DataValueDescriptor dataValueDescriptor) throws StandardException{
+        return dataValueDescriptor.getString();
     }
 
     public static StringStatsCollector charCollector(ColumnStatsCollector<String> collector,final int strLen){
@@ -34,6 +40,14 @@ public abstract class StringStatsCollector extends DvdStatsCollector{
 
     public static StringStatsCollector varcharCollector(ColumnStatsCollector<String> collector,final int strLen){
         return new StringStatsCollector(collector) {
+            @Override
+            protected String getString(DataValueDescriptor dataValueDescriptor) throws StandardException{
+                /*
+                 * DB-3813. Trim trailing whitspace so that all the equivalent strings are grouped together
+                 */
+                return StringUtils.trimTrailingSpaces(super.getString(dataValueDescriptor));
+            }
+
             @Override
             @SuppressWarnings("unchecked")
             protected ColumnStatistics<DataValueDescriptor> newStats(ColumnStatistics build) {
