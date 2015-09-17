@@ -21,7 +21,7 @@ import com.splicemachine.utils.SpliceLogUtils;
 public abstract class AbstractIndexWriteHandler implements WriteHandler {
     private static final Logger LOG = Logger.getLogger(AbstractIndexWriteHandler.class);
     private final byte[] indexConglomBytes;
-    protected boolean failed;
+    private boolean failed = false;
     protected final ObjectObjectOpenHashMap<KVPair, KVPair> indexToMainMutationMap = ObjectObjectOpenHashMap.newInstance();
 
     /*
@@ -43,15 +43,14 @@ public abstract class AbstractIndexWriteHandler implements WriteHandler {
     public void next(KVPair mutation, WriteContext ctx) {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "next %s", mutation);
-        if (failed)
+        if (failed) // Do not run...
             ctx.notRun(mutation);
-        else {
-            if (!isHandledMutationType(mutation.getType())) {
-                ctx.sendUpstream(mutation);
-            } else if (updateIndex(mutation, ctx)) {
-                ctx.sendUpstream(mutation);
-            }
-        }
+        if (!isHandledMutationType(mutation.getType())) // Send Upstream
+            ctx.sendUpstream(mutation);
+        if (updateIndex(mutation, ctx))
+            ctx.sendUpstream(mutation);
+        else
+            failed=true;
     }
 
     @Override
