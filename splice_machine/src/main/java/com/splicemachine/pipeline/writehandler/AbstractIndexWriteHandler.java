@@ -45,12 +45,14 @@ public abstract class AbstractIndexWriteHandler implements WriteHandler {
             SpliceLogUtils.trace(LOG, "next %s", mutation);
         if (failed) // Do not run...
             ctx.notRun(mutation);
-        if (!isHandledMutationType(mutation.getType())) // Send Upstream
-            ctx.sendUpstream(mutation);
-        if (updateIndex(mutation, ctx))
-            ctx.sendUpstream(mutation);
-        else
-            failed=true;
+        else {
+            if (!isHandledMutationType(mutation.getType())) // Send Upstream
+                ctx.sendUpstream(mutation);
+            if (updateIndex(mutation, ctx))
+                ctx.sendUpstream(mutation);
+            else
+                failed = true;
+        }
     }
 
     @Override
