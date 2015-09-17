@@ -6,7 +6,6 @@ import com.splicemachine.pipeline.impl.WriteResult;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.client.Result;
 import org.apache.hadoop.hbase.regionserver.OperationStatus;
-
 import java.io.IOException;
 
 /**
@@ -29,8 +28,7 @@ public class UniqueConstraintChecker implements BatchConstraintChecker {
     @Override
     public OperationStatus checkConstraint(KVPair mutation, Result existingRow) throws IOException {
         // There is an existing row, if this is an insert then fail.
-        KVPair.Type type = mutation.getType();
-        return (type == KVPair.Type.INSERT || type == KVPair.Type.UNIQUE_UPDATE) ? failure : SUCCESS;
+        return mutation.getType() == KVPair.Type.INSERT ? failure : SUCCESS;
     }
 
     @Override

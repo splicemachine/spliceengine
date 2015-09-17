@@ -77,7 +77,7 @@ public class IndexWriteHandler extends AbstractIndexWriteHandler {
     protected boolean isHandledMutationType(KVPair.Type type) {
         return type == KVPair.Type.DELETE || type == KVPair.Type.CANCEL ||
             type == KVPair.Type.UPDATE || type == KVPair.Type.INSERT ||
-            type == KVPair.Type.UPSERT || type == KVPair.Type.UNIQUE_UPDATE;
+            type == KVPair.Type.UPSERT;
     }
 
     @Override
@@ -103,14 +103,6 @@ public class IndexWriteHandler extends AbstractIndexWriteHandler {
             //
             // Otherwise...
             if (! transformer.primaryKeyUpdateOnly(mutation, ctx, indexedColumns)) {
-                if(mutation.getType().equals(KVPair.Type.UNIQUE_UPDATE)) {
-                    // DB-3315: Primary Key constraint not enforced
-                    // If this is a unique index update, we need to change the type so that it passes constraint checking.
-                    // The mutation type is shared between main table update and the index update. Uniqueness constraint
-                    // check must be made against the main table update but, if that passes, there's no need to do it
-                    // against the unique index update.
-                    mutation.setType(KVPair.Type.UPDATE);
-                }
                 //
                 //  To update the index now, we must find the old index row and delete it, then
                 //  insert a new index row with the correct values.
