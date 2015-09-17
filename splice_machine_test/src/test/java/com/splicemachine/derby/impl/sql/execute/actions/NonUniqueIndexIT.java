@@ -2,12 +2,12 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 
 import com.google.common.collect.Lists;
 import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.homeless.TestUtils;
 import com.splicemachine.test.SerialTest;
 import com.splicemachine.test.SlowTest;
+import com.splicemachine.test_tools.TableCreator;
+
 import org.apache.hadoop.hbase.util.Pair;
-import org.junit.Assert;
-import org.junit.ClassRule;
-import org.junit.Rule;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -20,6 +20,8 @@ import java.sql.Statement;
 import java.sql.Time;
 import java.util.List;
 
+import static com.splicemachine.test_tools.Rows.row;
+import static com.splicemachine.test_tools.Rows.rows;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -325,8 +327,57 @@ public class NonUniqueIndexIT extends SpliceUnitTest {
 
         ResultSet rs = methodWatcher.executeQuery(format("select * from %s where name = '%s'",this.getTableReference(TABLE_NAME_6),oldName));
         Assert.assertTrue("Rows returned incorrectly",!rs.next());
-
         assertSelectCorrect(spliceSchemaWatcher.schemaName,TABLE_NAME_6,newName,1);
+    }
+
+    @Test
+    public void testSelectAfterUpdateWithIndexAfterInsert() throws Exception {
+    	// Regression coverage for DB-3680
+
+    	String table = "updatewithindex1";
+    	String index = "updatewithindex1_idx";
+    	methodWatcher.executeUpdate(format("create table %s (col1 int, col2 int, col3 int)", table));
+    	methodWatcher.executeUpdate(format("insert into %s values (1,1,1)", table));
+    	methodWatcher.executeUpdate(format("create index %s on %s (col2)", index, table));
+    	methodWatcher.executeUpdate(format("update %s set col3 = 4", table));
+
+    	String expected =
+    		"COL1 |COL2 |COL3 |\n" +
+    		"------------------\n" +
+    		"  1  |  1  |  4  |";
+    	
+    	// Query without the index
+    	ResultSet rs = methodWatcher.executeQuery(format("select * from %s --splice-properties index=%s", table, "null"));
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        
+        // Query with index hint - results should be the same
+    	rs = methodWatcher.executeQuery(format("select * from %s --splice-properties index=%s", table, index));
+        assertEquals("Select returns different results with index than without", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+    }
+
+    @Test
+    public void testSelectAfterUpdateWithIndexBeforeInsert() throws Exception {
+    	// Regression coverage for DB-3680
+
+    	String table = "updatewithindex2";
+    	String index = "updatewithindex2_idx";
+    	methodWatcher.executeUpdate(format("create table %s (col1 int, col2 int, col3 int)", table));
+    	methodWatcher.executeUpdate(format("create index %s on %s (col2)", index, table));
+    	methodWatcher.executeUpdate(format("insert into %s values (1,1,1)", table));
+    	methodWatcher.executeUpdate(format("update %s set col3 = 4", table));
+
+    	String expected =
+    		"COL1 |COL2 |COL3 |\n" +
+    		"------------------\n" +
+    		"  1  |  1  |  4  |";
+    	
+    	// Query without the index
+    	ResultSet rs = methodWatcher.executeQuery(format("select * from %s --splice-properties index=%s", table, "null"));
+        assertEquals(expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
+        
+        // Query with index hint - results should be the same
+    	rs = methodWatcher.executeQuery(format("select * from %s --splice-properties index=%s", table, index));
+        assertEquals("Select returns different results with index than without", expected, TestUtils.FormattedResult.ResultFactory.toString(rs));
     }
 
     @Test

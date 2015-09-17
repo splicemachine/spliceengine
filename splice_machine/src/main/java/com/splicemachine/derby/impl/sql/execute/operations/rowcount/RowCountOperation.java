@@ -314,7 +314,7 @@ public class RowCountOperation extends SpliceBaseOperation {
 
     @Override
     public RowProvider getMapRowProvider(SpliceOperation top, PairDecoder decoder, SpliceRuntimeContext spliceRuntimeContext) throws StandardException, IOException {
-        return source.getMapRowProvider(top, decoder, spliceRuntimeContext);
+        return getReduceRowProvider(top, decoder, spliceRuntimeContext, false);
     }
 
     @Override
