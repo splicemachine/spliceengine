@@ -14,13 +14,51 @@ import com.splicemachine.stats.frequency.LongFrequentElements;
 import org.junit.Assert;
 import org.junit.Test;
 
+import java.sql.Time;
 import java.util.Arrays;
+import java.util.Calendar;
+import java.util.GregorianCalendar;
 
 /**
  * @author Scott Fines
  *         Date: 6/25/15
  */
 public class UniformLongDistributionTest{
+
+    @Test
+    public void testCardinalityCorrectForTimeGeneratedFields() throws Exception{
+        /*
+         * Regression test for DB-3657, just to be safe.
+         */
+        LongColumnStatsCollector col = ColumnStatsCollectors.longCollector(0,14,5);
+
+        Calendar c = new GregorianCalendar();
+        c.set(Calendar.HOUR,15);
+        c.set(Calendar.MINUTE,10);
+        for(int i=1;i<=4;i++){
+            c.set(Calendar.SECOND,i);
+            Time t = new Time(c.getTimeInMillis());
+            col.update(t.getTime());
+        }
+        Assert.assertEquals("Cardinality is incorrect!",4,col.build().cardinality());
+    }
+
+    @Test
+    public void testCorrectStatisticsWhenFilledOnlyWithNulls() throws Exception{
+        LongColumnStatsCollector col = ColumnStatsCollectors.longCollector(0,14,5);
+
+        for(int i=0;i<100;i++){
+            col.updateNull();
+        }
+
+        LongColumnStatistics stats=col.build();
+        Assert.assertEquals("incorrect non-null count!",0l,stats.nonNullCount());
+        Assert.assertEquals("incorrect null count!",100,stats.nullCount());
+        Assert.assertEquals("incorrect null fraction!",1f,stats.nullFraction(),1e-6f);
+        Assert.assertEquals("incorrect cardinality!",0l,stats.cardinality());
+        Assert.assertEquals("incorrect max!",0l,stats.min());
+        Assert.assertEquals("incorrect min!",0l,stats.max());
+    }
 
     @Test
     public void testSelectivityRemainsBounded() throws Exception{

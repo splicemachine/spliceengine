@@ -48,8 +48,16 @@ public class LongMinMaxCollector implements MinMaxCollector<Long>,LongUpdateable
     @Override public long minCount() { return currentMinCount; }
     @Override public long maxCount() { return currentMaxCount; }
 
-    public long max(){ return currentMax; }
-    public long min(){ return currentMin; }
+    public long max(){
+        if(currentMaxCount==0l)
+            return 0l;
+        return currentMax;
+    }
+    public long min(){
+        if(currentMinCount==0l)
+            return 0l;
+        return currentMin;
+    }
 
     public static LongMinMaxCollector newInstance() {
         LongMinMaxCollector collector = new LongMinMaxCollector();
