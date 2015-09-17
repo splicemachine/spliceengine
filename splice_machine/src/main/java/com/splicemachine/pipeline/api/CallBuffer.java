@@ -1,6 +1,7 @@
 package com.splicemachine.pipeline.api;
 
 import com.carrotsearch.hppc.ObjectArrayList;
+import com.splicemachine.si.api.TxnView;
 
 import java.util.Collection;
 
@@ -65,4 +66,11 @@ public interface CallBuffer<E> extends AutoCloseable {
      */
     void close() throws Exception;
 
+
+    /**
+     *
+     * Retrieve the current transaction.
+     *
+     */
+    TxnView getTxn();
 }
