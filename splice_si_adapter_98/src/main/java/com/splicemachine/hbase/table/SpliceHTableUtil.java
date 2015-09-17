@@ -17,8 +17,8 @@ public class SpliceHTableUtil {
     }
 
     public static long getWaitTime(int tryNum,long pause){
-        long maxPause = Math.max(tryNum*pause,10*pause);
-        return ThreadLocalRandom.current().nextLong(100,maxPause);
+//        long maxPause = Math.max(tryNum*pause,10*pause);
+        return ThreadLocalRandom.current().nextLong(0,pause);
 //        return ThreadLocalRandom.current().nextLong(100, pause<=100?pause+100:pause);
     }
 

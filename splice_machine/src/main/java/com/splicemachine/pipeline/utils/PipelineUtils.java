@@ -9,6 +9,7 @@ import com.esotericsoftware.kryo.io.Output;
 import com.google.common.collect.Lists;
 import com.google.common.io.Closeables;
 import com.splicemachine.SpliceKryoRegistry;
+import com.splicemachine.concurrent.ThreadLocalRandom;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.hbase.regioninfocache.RegionCache;
 import com.splicemachine.hbase.table.SpliceHTableUtil;
@@ -87,7 +88,7 @@ public class PipelineUtils extends PipelineConstants {
 		}
 
 		public static long getWaitTime(int tryNum,long pause) {
-				return SpliceHTableUtil.getWaitTime(tryNum,pause);
+    			return SpliceHTableUtil.getWaitTime(tryNum,pause);
 		}
 
 	    /**
