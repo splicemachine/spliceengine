@@ -10,6 +10,7 @@ import com.splicemachine.derby.test.framework.SpliceUnitTest;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
 import com.splicemachine.test.SlowTest;
 
+import com.splicemachine.test_tools.TableCreator;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.ExpectedException;
@@ -23,6 +24,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 
+import static com.splicemachine.test_tools.Rows.row;
+import static com.splicemachine.test_tools.Rows.rows;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 public class HdfsImportIT extends SpliceUnitTest {
@@ -116,6 +120,47 @@ public class HdfsImportIT extends SpliceUnitTest {
 //        rule.dropTables();
 //    }
 
+	@BeforeClass
+	public static void createDataSet() throws Exception {
+        Connection conn = spliceClassWatcher.getOrCreateConnection();
+
+        new TableCreator(conn)
+                .withCreate("create table HdfsImportIT.num_dt1 (i smallint, j int, k bigint, primary key(j))")
+                .withInsert("insert into HdfsImportIT.num_dt1 values(?,?,?)")
+                .withRows(rows(
+                        row(4256, 42031, 87049),
+                        row(1140, 30751, 791),
+                        row(25, 81278, 975),
+                        row(-54, 62648, 3115),
+                        row(57, 21099, 1081),
+                        row(1430, 68915, null),
+                        row(49, 19765, null),
+                        row(-31, 10610, null),
+                        row(-47, 34483, 40801),
+                        row(7694, 20015, 52662),
+                        row(35, 14202, 80476),
+                        row(9393, 61174, 68211),
+                        row(7058, 75830, null),
+                        row(302, 5770, 53257),
+                        row(3567, 15812, null),
+                        row(-71, 92497, 85),
+                        row(6229, 65149, 1583),
+                        row(-36, 53846, 9128),
+                        row(57, 95839, null),
+                        row(3832, 90042, 433),
+                        row(4818, 1483, 71600),
+                        row(4493, 31875, 75291),
+                        row(58, 85771, 3383),
+                        row(9477, 77588, null),
+                        row(6150, 88770, null),
+                        row(8755, 44597, null),
+                        row(68, 51844, 29940),
+                        row(5926, 74926, 90887),
+                        row(6017, 45829, 146),
+                        row(8053, 45192,null)))
+                .withIndex("create index idx1 on HdfsImportIT.num_dt1(k)")
+                .create();
+	}
 	@Test
 	public void testHdfsImport() throws Exception{
 		testImport(spliceSchemaWatcher.schemaName,TABLE_1,getResourceDirectory()+"importTest.in","NAME,TITLE,AGE");
@@ -221,12 +266,12 @@ public class HdfsImportIT extends SpliceUnitTest {
 		}
 		Assert.assertEquals("wrong row count imported!", 2, results.size());
 		Assert.assertEquals("first row wrong","i:1,j:Hello", results.get(0));
-		Assert.assertEquals("second row wrong","i:2,j:There", results.get(1));
+		Assert.assertEquals("second row wrong", "i:2,j:There", results.get(1));
 	}
 
     @Test
 	public void testHdfsImportGzipFile() throws Exception{
-		testImport(spliceSchemaWatcher.schemaName,TABLE_6,getResourceDirectory()+"importTest.in.gz","NAME,TITLE,AGE");
+		testImport(spliceSchemaWatcher.schemaName, TABLE_6, getResourceDirectory() + "importTest.in.gz", "NAME,TITLE,AGE");
 	}
 
 	@Test
@@ -346,10 +391,10 @@ public class HdfsImportIT extends SpliceUnitTest {
 			Float j = rs.getFloat(2);
 			String k = rs.getString(3);
 			Timestamp l = rs.getTimestamp(4);
-			Assert.assertEquals(i.byteValue(),0);
+			Assert.assertEquals(i.byteValue(), 0);
 			Assert.assertEquals(j.byteValue(),0);
-			Assert.assertNull("String failure " + k,k);
-			Assert.assertNull("Timestamp failure " + l,l);
+			Assert.assertNull("String failure " + k, k);
+			Assert.assertNull("Timestamp failure " + l, l);
 			count++;
 		}
 		Assert.assertTrue("import failed!" + count, count == 1);
@@ -357,7 +402,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 
     @Test
 	public void testHdfsImportNullColList() throws Exception{
-		testImport(spliceSchemaWatcher.schemaName,TABLE_7,getResourceDirectory()+"importTest.in",null);
+		testImport(spliceSchemaWatcher.schemaName, TABLE_7, getResourceDirectory() + "importTest.in", null);
 	}
 
     @Test
@@ -418,7 +463,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 		Map<String,Integer>colNameToTypeMap = Maps.newHashMap();
 		colNameToTypeMap.put("SCHEMAID",Types.CHAR);
 		colNameToTypeMap.put("SCHEMANAME",Types.VARCHAR);
-		colNameToTypeMap.put("AUTHORIZATIONID",Types.VARCHAR);
+		colNameToTypeMap.put("AUTHORIZATIONID", Types.VARCHAR);
 		int count=0;
 		while(rs.next()){
 			String colName = rs.getString(4);
@@ -435,7 +480,7 @@ public class HdfsImportIT extends SpliceUnitTest {
     @Test
     public void testCallWithRestrictions() throws Exception{
         PreparedStatement ps = methodWatcher.prepareStatement("select schemaname,schemaid from sys.sysschemas where schemaname like ?");
-        ps.setString(1,"SYS");
+        ps.setString(1, "SYS");
         ResultSet rs = ps.executeQuery();
         int count = 0;
         while(rs.next()){
@@ -639,7 +684,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 
 	@Test
 	public void testNewImportCheckDirectory() throws Exception{
-		testNewImportCheck(spliceSchemaWatcher.schemaName,TABLE_17,getResourceDirectory()+"importdir","NAME,TITLE,AGE",baddir.newFolder().getCanonicalPath(),0,0);
+		testNewImportCheck(spliceSchemaWatcher.schemaName, TABLE_17, getResourceDirectory() + "importdir", "NAME,TITLE,AGE", baddir.newFolder().getCanonicalPath(), 0, 0);
 	}
 
 	// uses new stored procedure
@@ -741,6 +786,20 @@ public class HdfsImportIT extends SpliceUnitTest {
         }
 	}
 
+    //DB-3685
+    @Test
+    public void testImportTableWithPKAndIndex() throws Exception {
+        methodWatcher.executeUpdate("delete from HdfsImportIT.num_dt1");
+        methodWatcher.execute(format("call syscs_util.import_data('HdfsImportIT', 'num_dt1', null, '%s', ',', null, null,null,null,1000,'/BAD')", getResourceDirectory() + "numdt1.2.gz"));
+        methodWatcher.execute(format("call syscs_util.import_data('HdfsImportIT', 'num_dt1', null, '%s', ',', null, null,null,null,0,'/BAD')", getResourceDirectory() + "numdt1_12"));
+        ResultSet rs = methodWatcher.executeQuery("select count(*) from HdfsImportIT.num_dt1 --SPLICE-PROPERTIES index=null");
+        assertTrue(rs.next());
+        int c1 = rs.getInt(1);
+        rs = methodWatcher.executeQuery("select count(*) from HdfsImportIT.num_dt1 --SPLICE-PROPERTIES index=idx1");
+        assertTrue(rs.next());
+        int c2 = rs.getInt(1);
+        assertTrue(c1==c2);
+    }
 	/**
 	 * Worker method for import tests related to CSV files that are missing the end quote for a quoted column.
 	 *

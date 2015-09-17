@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.concurrent.Callable;
 
 import com.google.common.base.Strings;
+import com.splicemachine.derby.impl.sql.execute.operations.rowcount.RowCountOperation;
 import org.apache.hadoop.hbase.client.Scan;
 import org.apache.log4j.Logger;
 import org.apache.spark.api.java.JavaRDD;
@@ -84,8 +85,10 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 
         private TriggerHandler triggerHandler;
 
-    private SpliceMethod<ExecRow> generationClauses;
-    private String generationClausesFunMethodName;
+        private SpliceMethod<ExecRow> generationClauses;
+        private String generationClausesFunMethodName;
+        private SpliceMethod<ExecRow> checkGM;
+        private String checkGMFunMethodName;
 
 
     public DMLWriteOperation(){
@@ -115,6 +118,10 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
                 this.generationClausesFunMethodName = generationClauses.getMethodName();
                 this.generationClauses = new SpliceMethod<>(generationClausesFunMethodName, activation);
             }
+            if (checkGM != null) {
+                this.checkGMFunMethodName = checkGM.getMethodName();
+                this.checkGM = new SpliceMethod<>(checkGMFunMethodName, activation);
+            }
 
         }
 
@@ -138,7 +145,8 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 				source = (SpliceOperation)in.readObject();
 				writeInfo = (DMLWriteInfo)in.readObject();
             generationClausesFunMethodName = readNullableString(in);
-        heapConglom = in.readLong();
+            checkGMFunMethodName = readNullableString(in);
+            heapConglom = in.readLong();
 		}
 
 		@Override
@@ -147,7 +155,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
 				out.writeObject(source);
 				out.writeObject(writeInfo);
             writeNullableString(generationClausesFunMethodName, out);
-
+            writeNullableString(checkGMFunMethodName, out);
             out.writeLong(heapConglom);
 		}
 
@@ -237,7 +245,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
         }
 
         /* If the optimizer knows we are only dealing with one row */
-        if (source.getEstimatedRowCount() == 1) {
+        if (source.getEstimatedRowCount() == 1 || source instanceof RowCountOperation) {
             try {
                 if(dmlWriteOperationControlSide == null) {
                     dmlWriteOperationControlSide = new DMLWriteOperationControlSide(this);
@@ -354,33 +362,38 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation implements S
      * @param newRow the base row being evaluated
      */
     public void evaluateGenerationClauses(ExecRow newRow) throws StandardException {
+        if (generationClausesFunMethodName == null && checkGMFunMethodName == null)
+            return;
         if (generationClausesFunMethodName != null) {
-            // we only serialize the generated method name. if it's null, we don't have to generate
-            if (generationClauses == null) {
-                // create only if null
+            if (generationClauses == null)
                 this.generationClauses = new SpliceMethod<>(generationClausesFunMethodName, activation);
-            }
-            ExecRow oldRow = (ExecRow) activation.getCurrentRow(source.resultSetNumber());
-
-            //
-            // The generation clause may refer to other columns in this row.
-            //
-            try {
-                source.setCurrentRow(newRow);
-                // this is where the magic happens
+        }
+        if (checkGMFunMethodName != null) {
+            if (checkGM == null)
+                this.checkGM = new SpliceMethod<>(checkGMFunMethodName, activation);
+        }
+        ExecRow oldRow = (ExecRow) activation.getCurrentRow(source.resultSetNumber());
+        //
+        // The generation clause may refer to other columns in this row.
+        //
+        try {
+            source.setCurrentRow(newRow);
+            // this is where the magic happens
+            if (generationClausesFunMethodName != null)
                 generationClauses.invoke();
-            } finally {
-                //
-                // We restore the Activation to its state before we ran the generation
-                // clause. This may not be necessary but I don't understand all of
-                // the paths through the Insert and Update operations. This
-                // defensive coding seems prudent to me.
-                //
-                if ( oldRow == null ) {
-                    source.clearCurrentRow();
-                } else {
-                    source.setCurrentRow(oldRow);
-                }
+            if (checkGMFunMethodName != null)
+                checkGM.invoke();
+        } finally {
+            //
+            // We restore the Activation to its state before we ran the generation
+            // clause. This may not be necessary but I don't understand all of
+            // the paths through the Insert and Update operations. This
+            // defensive coding seems prudent to me.
+            //
+            if ( oldRow == null ) {
+                source.clearCurrentRow();
+            } else {
+                source.setCurrentRow(oldRow);
             }
         }
     }

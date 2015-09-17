@@ -258,7 +258,6 @@ public class ConstraintConstantOperationIT {
      * @throws Exception
      */
     @Test
-    @Ignore("Check Constraints not yet implemented.")
     public void testInsertRowCheckConstraintViolation() throws Exception {
         Connection connection = methodWatcher.createConnection();
         connection.setAutoCommit(false);
@@ -267,12 +266,13 @@ public class ConstraintConstantOperationIT {
         // insert bad row - start time after finished time
         try {
             statement.execute(
-                    String.format("insert into %s (TaskId, empId, StartedAt, FinishedAt) values (%d,%d,%d,%d)",
-                                  taskTable, 1245, 101, 700, 600));
+                String.format("insert into %s (TaskId, empId, StartedAt, FinishedAt) values (%d,%d,%d,%d)",
+                taskTable, 1245, 101, 700, 600));
             Assert.fail("Expected exception inserting check constraint violation.");
         } catch (SQLException e) {
-            // expected
-            Assert.assertEquals("<insert correct exception msg here after implementing check constraints>",e.getLocalizedMessage());
+        	String exMsg = e.getLocalizedMessage();
+        	String expectedMsgStart = "The check constraint \'CHK_STARTEDAT_BEFORE_FINISHEDAT\' was violated";
+            Assert.assertTrue(exMsg.startsWith(expectedMsgStart));
         }
     }
 }

@@ -472,7 +472,7 @@ public class ConstraintTransactionIT {
         c2.commit();
     }
 
-    @Test @Ignore("We have no check constraint validation")
+    @Test
     public void testVerifyCheckConstraint() throws Exception {
         String tableName = "testVerifyCheckConstraint".toUpperCase();
         String tableRef = schemaWatcher.schemaName+"."+tableName;
@@ -494,11 +494,8 @@ public class ConstraintTransactionIT {
             s1.execute(String.format("insert into %s values(-1, 3)", tableRef));
             Assert.fail("Expected check constraint violation");
         } catch (SQLException e) {
-            Assert.assertTrue(e.getLocalizedMessage(),e.getLocalizedMessage().startsWith("The statement was aborted because it would have " +
-                                                                     "caused a " +
-                                                                     "duplicate key value in a unique or primary key " +
-                                                                     "constraint or unique index " +
-                                                                     "identified by 'SQL"));
+            Assert.assertTrue(e.getLocalizedMessage(),e.getLocalizedMessage().startsWith(
+            	"The check constraint 'DELME' was violated while performing an INSERT or UPDATE on table"));
         }
 
         s1.execute(String.format("alter table %s drop constraint delme", tableRef));
@@ -507,4 +504,5 @@ public class ConstraintTransactionIT {
         // Now should be able to insert violating row
         s1.execute(String.format("insert into %s values(-1, 3)", tableRef));
     }
+    
 }
