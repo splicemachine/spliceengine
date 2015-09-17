@@ -12,7 +12,6 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
@@ -457,7 +456,7 @@ public class AddColumnTransactionIT {
         Assert.assertEquals("Expected one id equal to 1", 1, count);
     }
 
-    @Test @Ignore("DB-3711: can't add column on table with unique constraint")
+    @Test
     public void testAddColAfterUniqueConstraint() throws Exception {
         // DB-3711: add UC on a col, can't add another col
         String tableName = "employees".toUpperCase();
@@ -490,7 +489,7 @@ public class AddColumnTransactionIT {
         s1.execute(String.format("update %s set foo = 9 where emplid = 7725070", tableRef));
         c1.commit();
 
-        rs = s1.executeQuery(String.format("select * from %s where emplid = 772507", tableRef));
+        rs = s1.executeQuery(String.format("select * from %s where emplid = 7725070", tableRef));
         count = 0;
         while (rs.next()) {
             count++;
