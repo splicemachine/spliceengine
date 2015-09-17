@@ -1,11 +1,8 @@
 package com.splicemachine.derby.impl.sql.actions.index;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-
 import com.splicemachine.derby.test.framework.*;
+import com.splicemachine.homeless.TestUtils;
+import com.splicemachine.test.SlowTest;
 import org.apache.log4j.Logger;
 import org.junit.*;
 import org.junit.experimental.categories.Category;
@@ -13,12 +10,9 @@ import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
 import org.junit.runner.Description;
 
-import com.splicemachine.homeless.TestUtils;
-import com.splicemachine.test.SlowTest;
+import java.sql.*;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 /**
  * Test for index stuff, more or less encompassing:
@@ -79,7 +73,7 @@ public class IndexIT extends SpliceUnitTest {
         @Override
         protected void starting(Description description) {
             super.starting(description);
-            importData(getResourceDirectory()+ "/index/order-line.csv","yyyy-MM-dd HH:mm:ss.SSS");
+            importData(getResourceDirectory()+ "/index/order-line-small.csv","yyyy-MM-dd HH:mm:ss.SSS");
         }
     };
 
@@ -105,12 +99,24 @@ public class IndexIT extends SpliceUnitTest {
                                                                    "(8888)", SCHEMA_NAME, EmailableTable.TABLE_NAME));
             } catch (Exception e) {
                 LOG.error("Error inserting into EMAILABLE table", e);
+                throw new RuntimeException(e);
             }
         }
     };
 
     protected static final String A_TABLE_NAME = "A";
     protected static final SpliceTableWatcher A_TABLE = new SpliceTableWatcher("A",SCHEMA_NAME, "(i int)");
+    private static final SpliceTableWatcher descIndex = new SpliceTableWatcher("descTable",SCHEMA_NAME,"(a int, b varchar(20),PRIMARY KEY(b))"){
+        @Override
+        protected void starting(Description description){
+            super.starting(description);
+            try{
+                spliceClassWatcher.executeUpdate(String.format("INSERT INTO %s VALUES (80,'EFGH')",descIndex));
+            }catch(Exception e){
+                throw new RuntimeException(e);
+            }
+        }
+    };
 
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
@@ -121,141 +127,126 @@ public class IndexIT extends SpliceUnitTest {
             .around(orderLineTableWatcher)
             .around(headerTableWatcher)
             .around(A_TABLE)
-            .around(emailableTableWatcher);
+            .around(emailableTableWatcher)
+            .around(descIndex);
 
     @Rule
     public SpliceWatcher methodWatcher = new SpliceWatcher(SCHEMA_NAME);
-    
+
+    private Connection conn;
+
+    @Before
+    public void setUpTest() throws Exception{
+        conn = methodWatcher.getOrCreateConnection();
+        conn.setAutoCommit(false);
+    }
+
+    @After
+    public void tearDownTest() throws Exception{
+       conn.rollback();
+    }
+
     // ===============================================================================
     // Create Index Tests
     // ===============================================================================
-    
+
     @Test
     public void createIndexesInOrderNonUnique() throws Exception {
-        try {
-            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_DEF, false);
-            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderTable.TABLE_NAME, OrderTable.INDEX_NAME, OrderTable.INDEX_DEF, false);
-            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderLineTable.TABLE_NAME, OrderLineTable.INDEX_NAME, OrderLineTable.INDEX_DEF, false);
-        } finally {
-            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,CustomerTable.INDEX_NAME);
-            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OrderTable.INDEX_NAME);
-            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OrderLineTable.INDEX_NAME);
-        }
+            SpliceIndexWatcher.createIndex(conn, SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_DEF, false);
+            SpliceIndexWatcher.createIndex(conn, SCHEMA_NAME, OrderTable.TABLE_NAME, OrderTable.INDEX_NAME, OrderTable.INDEX_DEF, false);
+            SpliceIndexWatcher.createIndex(conn, SCHEMA_NAME, OrderLineTable.TABLE_NAME, OrderLineTable.INDEX_NAME, OrderLineTable.INDEX_DEF, false);
     }
     
     @Test
     public void createIndexesInOrderUnique() throws Exception {
-        try {
-            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_DEF, true);
-            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderTable.TABLE_NAME, OrderTable.INDEX_NAME, OrderTable.INDEX_DEF, true);
-            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderLineTable.TABLE_NAME, OrderLineTable.INDEX_NAME, OrderLineTable.INDEX_DEF, true);
-        } finally {
-            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,CustomerTable.INDEX_NAME);
-            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OrderTable.INDEX_NAME);
-            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OrderLineTable.INDEX_NAME);
-        }
+            SpliceIndexWatcher.createIndex(conn, SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_DEF, true);
+            SpliceIndexWatcher.createIndex(conn, SCHEMA_NAME, OrderTable.TABLE_NAME, OrderTable.INDEX_NAME, OrderTable.INDEX_DEF, true);
+            SpliceIndexWatcher.createIndex(conn, SCHEMA_NAME, OrderLineTable.TABLE_NAME, OrderLineTable.INDEX_NAME, OrderLineTable.INDEX_DEF, true);
     }
     
     @Test
     public void createIndexesOutOfOrderNonUnique() throws Exception {
-        try {
-            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF, false);
-            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderTable.TABLE_NAME, OrderTable.INDEX_NAME, OrderTable.INDEX_ORDER_DEF, false);
-            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderLineTable.TABLE_NAME, OrderLineTable.INDEX_NAME, OrderLineTable.INDEX_ORDER_DEF, false);
-        } finally {
-            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,CustomerTable.INDEX_NAME);
-            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OrderTable.INDEX_NAME);
-            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OrderLineTable.INDEX_NAME);
-        }
+            SpliceIndexWatcher.createIndex(conn, SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF, false);
+            SpliceIndexWatcher.createIndex(conn, SCHEMA_NAME, OrderTable.TABLE_NAME, OrderTable.INDEX_NAME, OrderTable.INDEX_ORDER_DEF, false);
+            SpliceIndexWatcher.createIndex(conn, SCHEMA_NAME, OrderLineTable.TABLE_NAME, OrderLineTable.INDEX_NAME, OrderLineTable.INDEX_ORDER_DEF, false);
     }
     
     @Test
     public void createIndexesOutOfOrderUnique() throws Exception {
-        try {
-            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF, true);
-            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderTable.TABLE_NAME, OrderTable.INDEX_NAME, OrderTable.INDEX_ORDER_DEF, true);
-            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderLineTable.TABLE_NAME, OrderLineTable.INDEX_NAME, OrderLineTable.INDEX_ORDER_DEF, true);
-        } finally {
-            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,CustomerTable.INDEX_NAME);
-            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OrderTable.INDEX_NAME);
-            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OrderLineTable.INDEX_NAME);
-        }
+            SpliceIndexWatcher.createIndex(conn, SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF, true);
+            SpliceIndexWatcher.createIndex(conn, SCHEMA_NAME, OrderTable.TABLE_NAME, OrderTable.INDEX_NAME, OrderTable.INDEX_ORDER_DEF, true);
+            SpliceIndexWatcher.createIndex(conn, SCHEMA_NAME, OrderLineTable.TABLE_NAME, OrderLineTable.INDEX_NAME, OrderLineTable.INDEX_ORDER_DEF, true);
     }
     
     @Test
     public void createIndexesAscNonUnique() throws Exception {
-        try {
-            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF_ASC, false);
-            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderTable.TABLE_NAME, OrderTable.INDEX_NAME, OrderTable.INDEX_ORDER_DEF_ASC, false);
-            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderLineTable.TABLE_NAME, OrderLineTable.INDEX_NAME, OrderLineTable.INDEX_ORDER_DEF_ASC, false);
-        } finally {
-            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,CustomerTable.INDEX_NAME);
-            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OrderTable.INDEX_NAME);
-            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OrderLineTable.INDEX_NAME);
-        }
+            SpliceIndexWatcher.createIndex(conn, SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF_ASC, false);
+            SpliceIndexWatcher.createIndex(conn, SCHEMA_NAME, OrderTable.TABLE_NAME, OrderTable.INDEX_NAME, OrderTable.INDEX_ORDER_DEF_ASC, false);
+            SpliceIndexWatcher.createIndex(conn, SCHEMA_NAME, OrderLineTable.TABLE_NAME, OrderLineTable.INDEX_NAME, OrderLineTable.INDEX_ORDER_DEF_ASC, false);
     }
     
     @Test
     public void createIndexesAscUnique() throws Exception {
-        try {
-            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF_ASC, true);
-            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderTable.TABLE_NAME, OrderTable.INDEX_NAME, OrderTable.INDEX_ORDER_DEF_ASC, true);
-            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderLineTable.TABLE_NAME, OrderLineTable.INDEX_NAME, OrderLineTable.INDEX_ORDER_DEF_ASC, true);
-        } finally {
-            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,CustomerTable.INDEX_NAME);
-            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OrderTable.INDEX_NAME);
-            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OrderLineTable.INDEX_NAME);
-        }
+            SpliceIndexWatcher.createIndex(conn, SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF_ASC, true);
+            SpliceIndexWatcher.createIndex(conn, SCHEMA_NAME, OrderTable.TABLE_NAME, OrderTable.INDEX_NAME, OrderTable.INDEX_ORDER_DEF_ASC, true);
+            SpliceIndexWatcher.createIndex(conn, SCHEMA_NAME, OrderLineTable.TABLE_NAME, OrderLineTable.INDEX_NAME, OrderLineTable.INDEX_ORDER_DEF_ASC, true);
     }
     
     @Test
     public void createIndexesDescNonUnique() throws Exception {
-        try {
-            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF_DESC, false);
-            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderTable.TABLE_NAME, OrderTable.INDEX_NAME, OrderTable.INDEX_ORDER_DEF_DESC, false);
-            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderLineTable.TABLE_NAME, OrderLineTable.INDEX_NAME, OrderLineTable.INDEX_ORDER_DEF_DESC, false);
-        } finally {
-            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,CustomerTable.INDEX_NAME);
-            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OrderTable.INDEX_NAME);
-            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OrderLineTable.INDEX_NAME);
-        }
+            SpliceIndexWatcher.createIndex(conn, SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF_DESC, false);
+            SpliceIndexWatcher.createIndex(conn, SCHEMA_NAME, OrderTable.TABLE_NAME, OrderTable.INDEX_NAME, OrderTable.INDEX_ORDER_DEF_DESC, false);
+            SpliceIndexWatcher.createIndex(conn, SCHEMA_NAME, OrderLineTable.TABLE_NAME, OrderLineTable.INDEX_NAME, OrderLineTable.INDEX_ORDER_DEF_DESC, false);
     }
     
     @Test
     public void createIndexesDescUnique() throws Exception {
-        try {
-            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF_DESC, true);
-            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderTable.TABLE_NAME, OrderTable.INDEX_NAME, OrderTable.INDEX_ORDER_DEF_DESC, true);
-            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderLineTable.TABLE_NAME, OrderLineTable.INDEX_NAME, OrderLineTable.INDEX_ORDER_DEF_DESC, true);
-        } finally {
-            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,CustomerTable.INDEX_NAME);
-            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OrderTable.INDEX_NAME);
-            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OrderLineTable.INDEX_NAME);
-        }
+            SpliceIndexWatcher.createIndex(conn, SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF_DESC, true);
+            SpliceIndexWatcher.createIndex(conn, SCHEMA_NAME, OrderTable.TABLE_NAME, OrderTable.INDEX_NAME, OrderTable.INDEX_ORDER_DEF_DESC, true);
+            SpliceIndexWatcher.createIndex(conn, SCHEMA_NAME, OrderLineTable.TABLE_NAME, OrderLineTable.INDEX_NAME, OrderLineTable.INDEX_ORDER_DEF_DESC, true);
     }
 
     // ===============================================================================
     // Query Tests
     // ===============================================================================
 
+
+    @Test
+    public void testDescendingIndexOverPrimaryKeyedColumn() throws Exception{
+        /*
+         * Regression test for DB-3845. Believe it or not, this simple test failed before the fix
+         * was implemented :)
+         *
+         * The idea is simple: create a descending index over a table with a primary key column, and
+         * make sure that it returns results.
+         */
+        SpliceIndexWatcher.createIndex(conn,SCHEMA_NAME,descIndex.tableName,"t_idx","(b desc)",false);
+        String query = "select * from "+ descIndex+" --SPLICE-PROPERTIES index=T_IDX\n";
+        query+="where b = 'EFGH'";
+        try(Statement s = conn.createStatement()){
+            try(ResultSet rs = s.executeQuery(query)){
+                Assert.assertTrue("No row returned!",rs.next());
+                String b = rs.getString("b");
+                Assert.assertFalse("Returned null!",rs.wasNull());
+                Assert.assertEquals("Incorrect returned value!","EFGH",b);
+                Assert.assertFalse("More than one row returned!",rs.next());
+            }
+        }
+    }
+
     @Test
     public void testQueryCustomerById() throws Exception {
-        String query = String.format(SELECT_UNIQUE_CUSTOMER,
-                SCHEMA_NAME,CustomerTable.TABLE_NAME);
+        String query = String.format(SELECT_UNIQUE_CUSTOMER, SCHEMA_NAME,CustomerTable.TABLE_NAME);
         ResultSet rs = methodWatcher.executeQuery(query);
         Assert.assertEquals(1, resultSetSize(rs));
     }
 
     @Test
     public void testQueryCustomerByIdWithIndex() throws Exception {
-        try {
-            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF_ASC, false);
+            SpliceIndexWatcher.createIndex(conn, SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF_ASC, false);
             String query = String.format(SELECT_UNIQUE_CUSTOMER, SCHEMA_NAME,CustomerTable.TABLE_NAME);
             ResultSet rs = methodWatcher.executeQuery(query);
             Assert.assertEquals(1, resultSetSize(rs));
-        } finally {
-            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,CustomerTable.INDEX_NAME);
-        }
     }
 
     @Test
@@ -290,8 +281,7 @@ public class IndexIT extends SpliceUnitTest {
     @Test
     public void testQueryCustomerByNameWithIndex() throws Exception {
         // Test for DB-1620
-        try {
-            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_DEF, false);
+            SpliceIndexWatcher.createIndex(conn, SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_DEF, false);
 
             String idxQuery = String.format("SELECT c_first, c_middle, c_id, c_street_1, c_street_2, c_city, "
                                                 + "c_state, c_zip, c_phone, c_credit, c_credit_lim, c_discount, "
@@ -309,16 +299,12 @@ public class IndexIT extends SpliceUnitTest {
             int cnt = resultSetSize(rs);
             System.out.println("Rows returned: "+cnt+" in "+duration);
             Assert.assertEquals(8,cnt);
-        } finally {
-            SpliceIndexWatcher.executeDrop(SCHEMA_NAME, CustomerTable.INDEX_NAME);
-        }
     }
 
     @Test
     public void testQueryCustomerSinceWithIndex() throws Exception {
         // Test for DB-1620
-        try {
-            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_DEF, false);
+            SpliceIndexWatcher.createIndex(conn, SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_DEF, false);
 
             String idxQuery = String.format(
                 "SELECT c_since FROM %s.%s --SPLICE-PROPERTIES index=%s",
@@ -330,9 +316,6 @@ public class IndexIT extends SpliceUnitTest {
             int cnt = resultSetSize(rs);
             System.out.println("Rows returned: "+cnt+" in "+duration);
             Assert.assertEquals(30000, cnt);
-        } finally {
-            SpliceIndexWatcher.executeDrop(SCHEMA_NAME, CustomerTable.INDEX_NAME);
-        }
     }
 
     @Test
@@ -349,8 +332,7 @@ public class IndexIT extends SpliceUnitTest {
 
     @Test
     public void testDistinctCustomerByIDWithIndex() throws Exception {
-        try {
-            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_DEF, false);
+            SpliceIndexWatcher.createIndex(conn, SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_DEF, false);
 
             String query = String.format("select distinct c_id from %s.%s", SCHEMA_NAME, CustomerTable.TABLE_NAME);
             long start = System.currentTimeMillis();
@@ -360,9 +342,6 @@ public class IndexIT extends SpliceUnitTest {
             int cnt = resultSetSize(rs);
             System.out.println("Rows returned: "+cnt+" in "+duration);
             Assert.assertTrue(cnt >= 3000);
-        } finally {
-            SpliceIndexWatcher.executeDrop(SCHEMA_NAME, CustomerTable.INDEX_NAME);
-        }
     }
 
     @Test
@@ -379,9 +358,8 @@ public class IndexIT extends SpliceUnitTest {
 
     @Test
     public void testJoinCustomerOrdersWithIndex() throws Exception {
-        try {
-            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_DEF, false);
-            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderTable.TABLE_NAME, OrderTable.INDEX_NAME, OrderTable.INDEX_DEF, false);
+            SpliceIndexWatcher.createIndex(conn, SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_DEF, false);
+            SpliceIndexWatcher.createIndex(conn, SCHEMA_NAME, OrderTable.TABLE_NAME, OrderTable.INDEX_NAME, OrderTable.INDEX_DEF, false);
 
             String query = String.format(CUSTOMER_ORDER_JOIN,
                     SCHEMA_NAME, CustomerTable.TABLE_NAME, OrderTable.TABLE_NAME);
@@ -391,10 +369,6 @@ public class IndexIT extends SpliceUnitTest {
             int cnt = resultSetSize(rs);
             System.out.println("Rows returned: "+cnt+" in "+duration);
             Assert.assertTrue(cnt >= 300000);
-        } finally {
-            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,CustomerTable.INDEX_NAME);
-            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OrderTable.INDEX_NAME);
-        }
     }
 
     public static final String HEADER_JOIN = String.format("select distinct a.customer_master_id\n" +
@@ -416,27 +390,19 @@ public class IndexIT extends SpliceUnitTest {
 
     @Test
     public void testHeaderJoinMSJWithIndex() throws Exception {
-        try {
-            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, HeaderTable.TABLE_NAME, HeaderTable.INDEX_NAME, HeaderTable.INDEX_DEF, false);
+            SpliceIndexWatcher.createIndex(conn, SCHEMA_NAME, HeaderTable.TABLE_NAME, HeaderTable.INDEX_NAME, HeaderTable.INDEX_DEF, false);
             long start = System.currentTimeMillis();
             ResultSet rs = methodWatcher.executeQuery(HEADER_JOIN);
             String duration = TestUtils.getDuration(start, System.currentTimeMillis());
             int cnt = resultSetSize(rs);
             System.out.println("Rows returned: "+cnt+" in "+duration);
             Assert.assertTrue(cnt == 1);
-        } catch (Exception e){
-            e.printStackTrace();
-						throw e;
-        } finally {
-            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,HeaderTable.INDEX_NAME);
-        }
     }
 
     @Test
     public void testJoinCustomerOrdersWithIndexNotInColumnOrder() throws Exception {
-        try {
-            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF, false);
-            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderTable.TABLE_NAME, OrderTable.INDEX_NAME, OrderTable.INDEX_ORDER_DEF, false);
+            SpliceIndexWatcher.createIndex(conn, SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF, false);
+            SpliceIndexWatcher.createIndex(conn, SCHEMA_NAME, OrderTable.TABLE_NAME, OrderTable.INDEX_NAME, OrderTable.INDEX_ORDER_DEF, false);
 
             String query = String.format(CUSTOMER_ORDER_JOIN,
                     SCHEMA_NAME, CustomerTable.TABLE_NAME, OrderTable.TABLE_NAME);
@@ -446,18 +412,13 @@ public class IndexIT extends SpliceUnitTest {
             int cnt = resultSetSize(rs);
             System.out.println("Rows returned: "+cnt+" in "+duration);
             Assert.assertTrue(cnt >= 300000);
-        } finally {
-            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,CustomerTable.INDEX_NAME);
-            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OrderTable.INDEX_NAME);
-        }
     }
 
     @Test(timeout=1000*60*5)  // Time out after 3 min
     public void testJoinCustomerOrdersOrderLineWithIndexNotInColumnOrder() throws Exception {
-        try {
-            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF, false);
-            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderTable.TABLE_NAME, OrderTable.INDEX_NAME, OrderTable.INDEX_ORDER_DEF, false);
-            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, OrderLineTable.TABLE_NAME, OrderLineTable.INDEX_NAME, OrderLineTable.INDEX_ORDER_DEF, false);
+            SpliceIndexWatcher.createIndex(conn, SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF, false);
+            SpliceIndexWatcher.createIndex(conn, SCHEMA_NAME, OrderTable.TABLE_NAME, OrderTable.INDEX_NAME, OrderTable.INDEX_ORDER_DEF, false);
+            SpliceIndexWatcher.createIndex(conn, SCHEMA_NAME, OrderLineTable.TABLE_NAME, OrderLineTable.INDEX_NAME, OrderLineTable.INDEX_ORDER_DEF, false);
 
             String query = String.format("select " +
                     "%1$s.c.c_last, %1$s.c.c_first, %1$s.o.o_id, %1$s.o.o_entry_d, %1$s.ol.ol_amount " +
@@ -474,19 +435,13 @@ public class IndexIT extends SpliceUnitTest {
             int cnt = resultSetSize(rs);
             System.out.println("Rows returned: "+cnt+" in "+duration);
             Assert.assertTrue(cnt>0);
-        } finally {
-            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,CustomerTable.INDEX_NAME);
-            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OrderTable.INDEX_NAME);
-            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,OrderLineTable.INDEX_NAME);
-        }
     }
 
     @Test
     public void testSysPropIndexEqualNull() throws Exception {
         // todo Test for DB-1636 and DB-857
         String indexName = "IA";
-        try {
-            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(),SCHEMA_NAME,A_TABLE_NAME,indexName,"(i)",false);
+            SpliceIndexWatcher.createIndex(conn,SCHEMA_NAME,A_TABLE_NAME,indexName,"(i)",false);
             methodWatcher.executeUpdate(String.format("insert into %s.%s values 1,2,3,4,5", SCHEMA_NAME, A_TABLE_NAME));
             ResultSet rs = methodWatcher.executeQuery(String.format("select count(*) from %s.%s --SPLICE-PROPERTIES index=%s",SCHEMA_NAME,A_TABLE_NAME,indexName));
             Assert.assertTrue(rs.next());
@@ -506,9 +461,6 @@ public class IndexIT extends SpliceUnitTest {
             rs = methodWatcher.executeQuery(String.format("select count(*) from %s.%s --SPLICE-PROPERTIES index=NULL",SCHEMA_NAME,A_TABLE_NAME));
             Assert.assertTrue(rs.next());
             Assert.assertEquals(5, rs.getInt(1));
-        } finally {
-            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,"ia");
-        }
 
     }
 
@@ -560,8 +512,7 @@ public class IndexIT extends SpliceUnitTest {
 
     @Test
     public void testUpdateCustomerWithIndex() throws Exception {
-        try {
-            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF_ASC, false);
+            SpliceIndexWatcher.createIndex(conn, SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF_ASC, false);
 
             String query = String.format(SELECT_UNIQUE_CUSTOMER, SCHEMA_NAME,CustomerTable.TABLE_NAME);
             ResultSet rs = methodWatcher.executeQuery(query);
@@ -575,9 +526,6 @@ public class IndexIT extends SpliceUnitTest {
                     SCHEMA_NAME,CustomerTable.TABLE_NAME);
             rs = methodWatcher.executeQuery(query);
             Assert.assertEquals(1, resultSetSize(rs));
-        } finally {
-            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,CustomerTable.INDEX_NAME);
-        }
     }
 
     // ===============================================================================
@@ -593,14 +541,10 @@ public class IndexIT extends SpliceUnitTest {
 
     @Test
     public void testInsertNewOrderWithIndex() throws Exception {
-        try {
-            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, NewOrderTable.TABLE_NAME, NewOrderTable.INDEX_NAME, NewOrderTable.INDEX_ORDER_DEF, false);
+            SpliceIndexWatcher.createIndex(conn, SCHEMA_NAME, NewOrderTable.TABLE_NAME, NewOrderTable.INDEX_NAME, NewOrderTable.INDEX_ORDER_DEF, false);
             int nCols = methodWatcher.getStatement().executeUpdate(String.format("insert into %s.%s values (%s)",
                     SCHEMA_NAME,NewOrderTable.TABLE_NAME, "1,2,2001"));
             Assert.assertEquals(1, nCols);
-        } finally {
-            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,NewOrderTable.INDEX_NAME);
-        }
     }
 
     @Test
@@ -629,7 +573,7 @@ public class IndexIT extends SpliceUnitTest {
         Assert.assertEquals(1, resultSetSize(rs));
     }
 
-    @Test
+    @Test(expected = SQLException.class)
     public void testIndexAfterInserts() throws Exception {
         try {
             methodWatcher.prepareStatement("drop index ia").execute();
@@ -646,33 +590,30 @@ public class IndexIT extends SpliceUnitTest {
         ps.execute();
         ps.execute();
         ps.execute();
-        try {
             methodWatcher.prepareStatement(String.format("create unique index ia on %s.a (i)", SCHEMA_NAME)).execute();
             Assert.fail("Index should have raised an exception");
-        } catch (SQLException se) {
-        }
     }
 
     @Test
     public void testFailedIndexRollbacks() throws Exception {
         try {
-            methodWatcher.prepareStatement("drop index ib").execute();
+            conn.prepareStatement("drop index ib").execute();
         } catch (Exception e1) {
             // ignore
         }
         try {
-            methodWatcher.prepareStatement(String.format("drop table %s.b", SCHEMA_NAME)).execute();
+            conn.prepareStatement(String.format("drop table %s.b",SCHEMA_NAME)).execute();
         } catch (Exception e1) {
             // ignore
         }
-        methodWatcher.prepareStatement(String.format("create table %s.b (i int)", SCHEMA_NAME)).execute();
+        conn.prepareStatement(String.format("create table %s.b (i int)",SCHEMA_NAME)).execute();
         PreparedStatement ps = methodWatcher.prepareStatement(String.format("insert into %s.b values 1", SCHEMA_NAME));
         ps.execute();
         ps.execute();
         ps.execute();
         for (int i = 0; i < 5; ++i) {
             try {
-                methodWatcher.prepareStatement(String.format("create unique index ib on %s.b (i)", SCHEMA_NAME)).execute();
+                conn.prepareStatement(String.format("create unique index ib on %s.b (i)",SCHEMA_NAME)).execute();
                 Assert.fail("Index should have raised an exception");
             } catch (SQLException se) {
                 Assert.assertEquals("Expected constraint violation exception", "23505", se.getSQLState());
@@ -683,8 +624,7 @@ public class IndexIT extends SpliceUnitTest {
     private static final String CUST_INSERT2 = "1,1,3002,0.1221,'GC','Jones','Fred',50000.0,-10.0,10.0,1,0,'qmvfraakwixzcrqxt','mamrsdfdsycaxrh','bcsyfdsdkurug','VL','843211111','3185126927164979','2013-08-01 10:33:44.813','OE','tktkdcbjqxbewxllutwigcdmzenarkhiklzfkaybefrppwtvdmecqfqaa'";
     @Test
     public void testInsertCustomerWithIndex() throws Exception {
-        try {
-            SpliceIndexWatcher.createIndex(methodWatcher.createConnection(), SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF, false);
+            SpliceIndexWatcher.createIndex(conn, SCHEMA_NAME, CustomerTable.TABLE_NAME, CustomerTable.INDEX_NAME, CustomerTable.INDEX_ORDER_DEF, false);
 
             String query = String.format("select c.c_last, c.c_first, c.c_since from %s.%s c where c.c_last = 'Jones'",
                     SCHEMA_NAME, CustomerTable.TABLE_NAME);
@@ -697,8 +637,5 @@ public class IndexIT extends SpliceUnitTest {
 
             rs = methodWatcher.executeQuery(query);
             Assert.assertEquals(1, resultSetSize(rs));
-        } finally {
-            SpliceIndexWatcher.executeDrop(SCHEMA_NAME,CustomerTable.INDEX_NAME);
-        }
     }
 }
