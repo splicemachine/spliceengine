@@ -92,7 +92,7 @@ public class IndexWriteHandler extends AbstractIndexWriteHandler {
             case INSERT:
                 return createIndex(mutation, ctx);
             case UPDATE:
-                if (transformer.areIndexKeysModified(mutation, ctx, indexedColumns)) { // Do I need to update?
+                if (transformer.areIndexKeysModified(mutation, indexedColumns)) { // Do I need to update?
                     deleteIndex(mutation, ctx);
                     return createIndex(mutation, ctx);
                 }
@@ -117,6 +117,7 @@ public class IndexWriteHandler extends AbstractIndexWriteHandler {
     private boolean createIndex(KVPair mutation, WriteContext ctx) {
         try {
             KVPair newIndex = transformer.translate(mutation);
+            newIndex.setType(KVPair.Type.INSERT);
             if(keepState) {
                 this.indexToMainMutationMap.put(newIndex, mutation);
             }
