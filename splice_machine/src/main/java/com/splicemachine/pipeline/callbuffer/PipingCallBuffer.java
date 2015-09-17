@@ -355,4 +355,9 @@ public class PipingCallBuffer implements RecordingCallBuffer<KVPair>, CanRebuild
     public WriteConfiguration getWriteConfiguration() {
         return writeConfiguration;
     }
+
+    @Override
+    public TxnView getTxn() {
+        return txn;
+    }
 }

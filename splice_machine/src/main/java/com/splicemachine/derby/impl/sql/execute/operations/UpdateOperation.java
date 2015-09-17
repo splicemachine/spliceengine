@@ -29,8 +29,11 @@ import com.splicemachine.metrics.Counter;
 import com.splicemachine.metrics.MetricFactory;
 import com.splicemachine.metrics.TimeView;
 import com.splicemachine.metrics.Timer;
+import com.splicemachine.pipeline.api.PreFlushHook;
 import com.splicemachine.pipeline.api.RecordingCallBuffer;
 import com.splicemachine.pipeline.callbuffer.ForwardRecordingCallBuffer;
+import com.splicemachine.pipeline.impl.WriteCoordinator;
+import com.splicemachine.si.api.TxnView;
 import com.splicemachine.storage.EntryDecoder;
 import com.splicemachine.storage.EntryEncoder;
 import com.splicemachine.storage.EntryPredicateFilter;
@@ -55,6 +58,8 @@ import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
 
 /**
  * @author jessiezhang
@@ -258,24 +263,31 @@ public class UpdateOperation extends DMLWriteOperation{
 
 
 		@Override
-		public RecordingCallBuffer<KVPair> transformWriteBuffer(RecordingCallBuffer<KVPair> bufferToTransform) throws StandardException {
+		public RecordingCallBuffer<KVPair> transformWriteBuffer(final RecordingCallBuffer<KVPair> bufferToTransform) throws StandardException {
 				if(modifiedPrimaryKeys(getHeapList())){
-						return new ForwardRecordingCallBuffer<KVPair>(bufferToTransform){
+                    TxnView txn = bufferToTransform.getTxn();
+                        WriteCoordinator writeCoordinator = SpliceDriver.driver().getTableWriter();
+                        return new ForwardRecordingCallBuffer<KVPair>(writeCoordinator.writeBuffer(getDestinationTable(),txn, new PreFlushHook() {
+                            @Override
+                            public Collection<KVPair> transform(Collection<KVPair> buffer) throws Exception {
+                                bufferToTransform.flushBufferAndWait();
+                                return new ArrayList<KVPair>(buffer); // Remove this but here to match no op...
+                            }
+                        })){
 								@Override
 								public void add(KVPair element) throws Exception {
 										byte[] oldLocation = ((RowLocation) currentRow.getColumn(currentRow.nColumns()).getObject()).getBytes();
                                         if (!Bytes.equals(oldLocation, element.getRowKey())) {
-                                            // only add the delete if we aren't overwriting the same row
-										    delegate.add(new KVPair(oldLocation, HConstants.EMPTY_BYTE_ARRAY, KVPair.Type.DELETE));
-                                            // ...then this is an update of a unique key/index, meaning
-                                            // that we'll be updating a unique col and may also have
-                                            // to update an index.  Say so.
-                                            element.setType(KVPair.Type.UNIQUE_UPDATE);
+                                            bufferToTransform.add(new KVPair(oldLocation, HConstants.EMPTY_BYTE_ARRAY, KVPair.Type.DELETE));
+                                            element.setType(KVPair.Type.INSERT);
+                                        } else {
+                                            element.setType(KVPair.Type.UPDATE);
                                         }
-										delegate.add(element);
+                                    delegate.add(element);
 								}
 						};
-				} else return bufferToTransform;
+				} else
+                    return bufferToTransform;
 		}
 
 		@Override

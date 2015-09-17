@@ -85,6 +85,10 @@ public class WriteCoordinator {
     }
 
     public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName, TxnView txn) {
+        return writeBuffer(tableName,txn,noOpFlushHook);
+    }
+
+    public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName, TxnView txn, PreFlushHook preFlushHook) {
         monitor.outstandingBuffers.incrementAndGet();
         return new MonitoredPipingCallBuffer(tableName, txn, asynchronousWriter, regionCache, noOpFlushHook, defaultWriteConfiguration, monitor, false);
     }
@@ -102,7 +106,8 @@ public class WriteCoordinator {
         }
         monitor.outstandingBuffers.incrementAndGet();
         return new MonitoredPipingCallBuffer(tableName, txn, asynchronousWriter, regionCache, noOpFlushHook, config, monitor, true);
-    }
+   }
+
 
     public RecordingCallBuffer<KVPair> writeBuffer(byte[] tableName, TxnView txn, final MetricFactory metricFactory) {
         WriteConfiguration config = defaultWriteConfiguration;

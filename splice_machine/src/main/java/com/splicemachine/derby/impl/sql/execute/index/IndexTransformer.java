@@ -310,7 +310,7 @@ public class IndexTransformer {
     }
 
 
-    public boolean primaryKeyUpdateOnly(KVPair mutation, WriteContext ctx, BitSet indexedColumns) {
+    public boolean areIndexKeysModified(KVPair mutation, WriteContext ctx, BitSet indexedColumns) {
         // This gives us the non-primary-key columns that this mutation modifies.
         EntryDecoder newPutDecoder = new EntryDecoder();
         newPutDecoder.set(mutation.getValue());

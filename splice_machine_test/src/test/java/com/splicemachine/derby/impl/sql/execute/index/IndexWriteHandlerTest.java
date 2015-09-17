@@ -348,6 +348,11 @@ public class IndexWriteHandlerTest {
         @Override public WriteConfiguration getWriteConfiguration() { return null; }
 
         @Override
+        public TxnView getTxn() {
+            return null;
+        }
+
+        @Override
         public void addAll(Iterable<E> elements) throws Exception {
             for(E element:elements){
                 list.add(element);
