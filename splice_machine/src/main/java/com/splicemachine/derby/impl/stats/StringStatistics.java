@@ -69,7 +69,7 @@ public abstract class StringStatistics extends BaseDvdStatistics{
     /* ****************************************************************************************************************/
     /*private helper methods*/
     public static class Freqs implements FrequentElements<DataValueDescriptor> {
-        private FrequentElements<String> frequentElements;
+        protected FrequentElements<String> frequentElements;
         private Function<FrequencyEstimate<String>, FrequencyEstimate<DataValueDescriptor>> conversionFunction;
 
         public Freqs(FrequentElements<String> freqs,Function<FrequencyEstimate<String>,FrequencyEstimate<DataValueDescriptor>> conversionFunction) {
@@ -125,6 +125,14 @@ public abstract class StringStatistics extends BaseDvdStatistics{
 
         private Set<? extends FrequencyEstimate<DataValueDescriptor>> convert(Set<? extends FrequencyEstimate<String>> other) {
             return new ConvertingSetView<>(other,conversionFunction);
+        }
+
+        protected String safeGetString(DataValueDescriptor element) {
+            try {
+                return element.getString();
+            } catch (StandardException e) {
+                throw new RuntimeException(e);
+            }
         }
     }
 
@@ -212,7 +220,7 @@ public abstract class StringStatistics extends BaseDvdStatistics{
         }
     }
 
-    private static String safeGetString(DataValueDescriptor element) {
+    protected String safeGetString(DataValueDescriptor element) {
         try {
             return element.getString();
         } catch (StandardException e) {
