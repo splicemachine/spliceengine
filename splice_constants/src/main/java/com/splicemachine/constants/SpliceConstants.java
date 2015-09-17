@@ -728,23 +728,12 @@ public class SpliceConstants {
     /**
      * The amount of time (in milliseconds) to pause before retrying a network operation.
      *
-     * This parameter is tightly connected to hbase.client.retries.number, as it determines
-     * how long to wait in between each retry. If the pause time is 1 second and the number
-     * of retries is 10, then the total time taken before a write can fail is 71 seconds. If
-     * the pause time is 500 ms, the total time before failing is 35.5 seconds. If the pause
-     * time is 2 seconds, the total time before failing is 142 seconds.
-     *
-     * Turning this setting up is recommended if you are seeing a large number of operations
-     * failing with NotServingRegionException or IndexNotSetUpException errors, or if it
-     * is known that the mean time to recovery of a single region is longer than the total
-     * time before failure.
-     *
      * This setting may be adjusted in real time using JMX.
      *
-     * Defaults to 1000 ms (1 second)
+     * Defaults to 100 ms
      */
-    @Parameter public static final String CLIENT_PAUSE = "hbase.client.pause";
-    @DefaultValue(CLIENT_PAUSE) public static final long DEFAULT_CLIENT_PAUSE = 1000;
+    @Parameter public static final String CLIENT_PAUSE = "splice.client.pause";
+    @DefaultValue(CLIENT_PAUSE) public static final long DEFAULT_CLIENT_PAUSE = 100;
     public static long pause;
 
     /**
