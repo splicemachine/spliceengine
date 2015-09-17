@@ -7,6 +7,7 @@ import java.util.Arrays;
 
 import com.carrotsearch.hppc.BitSet;
 import com.carrotsearch.hppc.ObjectArrayList;
+import org.apache.hadoop.hbase.Cell;
 import org.apache.hadoop.hbase.CellUtil;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.KeyValue;
@@ -165,8 +166,8 @@ public class IndexTransformer {
             return null;
         }
 
-        KeyValue resultValue = null;
-        for(KeyValue value:result.raw()){
+        Cell resultValue = null;
+        for(Cell value:result.rawCells()){
             if(CellUtil.matchingFamily(value, SpliceConstants.DEFAULT_FAMILY_BYTES)
                 && CellUtil.matchingQualifier(value,SpliceConstants.PACKED_COLUMN_BYTES)){
                 resultValue = value;
@@ -179,7 +180,10 @@ public class IndexTransformer {
         }
 
         // transform the results into an index row (as if we were inserting it) but create a delete for it
-        KVPair toTransform = new KVPair(get.getRow(),resultValue.getValue(), KVPair.Type.DELETE);
+
+        KVPair toTransform = new KVPair(
+                resultValue.getRowArray(),resultValue.getRowOffset(),resultValue.getRowLength(),
+                resultValue.getValueArray(),resultValue.getValueOffset(),resultValue.getValueLength(),KVPair.Type.DELETE);
         return translate(toTransform);
     }
 
@@ -309,21 +313,22 @@ public class IndexTransformer {
         return new KVPair(indexRowKey, indexValue, mutation.getType());
     }
 
-
-    public boolean areIndexKeysModified(KVPair mutation, WriteContext ctx, BitSet indexedColumns) {
-        // This gives us the non-primary-key columns that this mutation modifies.
+    /**
+     * Do we need to update the index, i.e. did any of the values change?
+     *
+     * @param mutation
+     * @param indexedColumns
+     * @return
+     */
+    public boolean areIndexKeysModified(KVPair mutation, BitSet indexedColumns) {
         EntryDecoder newPutDecoder = new EntryDecoder();
         newPutDecoder.set(mutation.getValue());
         BitIndex updateIndex = newPutDecoder.getCurrentIndex();
-
-        boolean primaryKeyIndexColumnUpdatedOnly = true;
         for (int i = updateIndex.nextSetBit(0); i >= 0; i = updateIndex.nextSetBit(i + 1)) {
-            if (indexedColumns.get(i)) {
-                primaryKeyIndexColumnUpdatedOnly = false;
-                break;
-            }
+            if (indexedColumns.get(i))
+                return true;
         }
-        return primaryKeyIndexColumnUpdatedOnly;
+        return false;
     }
 
     private boolean isSourceColumnPrimaryKey(int sourceColumnIndex) {
