@@ -294,22 +294,14 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
                         fkConstraints.add(cca);
                         break;
                     case DataDictionary.CHECK_CONSTRAINT:
-                        if (!tableScanned){
-                            tableScanned = true;
-                            numRows = getSemiRowCount(tc,td);
-                        }
-                        if (numRows > 0){
-                            /*
-                            ** We are assuming that there will only be one
-                            ** check constraint that we are adding, so it
-                            ** is ok to do the check now rather than try
-                            ** to lump together several checks.
-                            */
+                        // I need to be created here
+
+                        // Then Checked
                             ConstraintConstantOperation.validateConstraint(
                                     cca.getConstraintName(), cca.getConstraintText(),
                                     td, activation.getLanguageConnectionContext(), true);
-                        }
                         break;
+                        // failure should roll back txn, lets test it eh.
                 }
             } else {
                 // It's a DropConstraintConstantOperation (there are only two types)
