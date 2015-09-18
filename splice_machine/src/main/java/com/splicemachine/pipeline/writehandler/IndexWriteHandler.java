@@ -90,18 +90,18 @@ public class IndexWriteHandler extends AbstractIndexWriteHandler {
 
         switch(mutation.getType()) {
             case INSERT:
-                return createIndex(mutation, ctx);
+                return createIndexRecord(mutation, ctx);
             case UPDATE:
                 if (transformer.areIndexKeysModified(mutation, indexedColumns)) { // Do I need to update?
-                    deleteIndex(mutation, ctx);
-                    return createIndex(mutation, ctx);
+                    deleteIndexRecord(mutation, ctx);
+                    return createIndexRecord(mutation, ctx);
                 }
                 return true; // No index columns modifies ignore...
             case UPSERT:
-                deleteIndex(mutation, ctx);
-                return createIndex(mutation,ctx);
+                deleteIndexRecord(mutation, ctx);
+                return createIndexRecord(mutation, ctx);
             case DELETE:
-                return deleteIndex(mutation, ctx);
+                return deleteIndexRecord(mutation, ctx);
             case CANCEL:
                 if (transformer.isUniqueIndex())
                     return true;
@@ -114,7 +114,7 @@ public class IndexWriteHandler extends AbstractIndexWriteHandler {
         }
     }
 
-    private boolean createIndex(KVPair mutation, WriteContext ctx) {
+    private boolean createIndexRecord(KVPair mutation, WriteContext ctx) {
         try {
             KVPair newIndex = transformer.translate(mutation);
             newIndex.setType(KVPair.Type.INSERT);
@@ -129,7 +129,7 @@ public class IndexWriteHandler extends AbstractIndexWriteHandler {
         return true;
     }
 
-    private boolean deleteIndex(KVPair mutation, WriteContext ctx) {
+    private boolean deleteIndexRecord(KVPair mutation, WriteContext ctx) {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "index delete with %s", mutation);
 
