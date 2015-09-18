@@ -47,7 +47,7 @@ public abstract class AbstractIndexWriteHandler implements WriteHandler {
             ctx.notRun(mutation);
         else {
             if (!isHandledMutationType(mutation.getType())) { // Send Upstream
-            ctx.sendUpstream(mutation);
+                ctx.sendUpstream(mutation);
                 return;
             }
             if (updateIndex(mutation, ctx))
