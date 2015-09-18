@@ -293,9 +293,9 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
                         fkConstraints.add(cca);
                         break;
                     case DataDictionary.CHECK_CONSTRAINT:
+                        // TODO: Make this transactional
                         // create the check constraint
-                        createConstraint(activation, DDLChangeType.ADD_UNIQUE_CONSTRAINT,
-                                         "AddCheckConstraint", cca);
+                        createCheckConstraint(activation, cca);
 
                         // Validate the constraint
                         ConstraintConstantOperation.validateConstraint(
@@ -338,6 +338,48 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         }
 
    }
+
+    private void createCheckConstraint(Activation activation, CreateConstraintConstantOperation newConstraint) throws StandardException {
+        // Here we simply update the metadata - table descriptor and execute the new constraint creation
+        List<String> constraintColumnNames = Arrays.asList(newConstraint.columnNames);
+        if (constraintColumnNames.isEmpty()) {
+            return;
+        }
+
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        DataDictionary dd = lcc.getDataDictionary();
+        TransactionController tc = lcc.getTransactionExecute();
+        TableDescriptor tableDescriptor = activation.getDDLTableDescriptor();
+
+        /*
+         * Inform the data dictionary that we are about to write to it.
+         * There are several calls to data dictionary "get" methods here
+         * that might be done in "read" mode in the data dictionary, but
+         * it seemed safer to do this whole operation in "write" mode.
+         *
+         * We tell the data dictionary we're done writing at the end of
+         * the transaction.
+         */
+        dd.startWriting(lcc);
+
+        // Get the properties on the old heap
+        long oldCongNum = tableDescriptor.getHeapConglomerateId();
+
+        /*
+         * modify the conglomerate descriptor and add constraint
+         */
+        updateTableConglomerateDescriptor(tableDescriptor,
+                                          oldCongNum,
+                                          sd,
+                                          lcc,
+                                          newConstraint);
+        // refresh the activation's TableDescriptor now that we've modified it
+        activation.setDDLTableDescriptor(tableDescriptor);
+
+        // follow thru with remaining constraint actions, create, store, etc.
+        newConstraint.executeConstantAction(activation);
+
+    }
 
     private void executeDropPrimaryKey(Activation activation, DDLChangeType changeType, String changeMsg,
                                        DropConstraintConstantOperation constraint) throws StandardException {
