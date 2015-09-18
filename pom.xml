@@ -560,7 +560,6 @@
 				<module>hdp2.2.4</module>
 				<!--module>hdp2.3.0</module-->
 				<module>mapr0.98.4</module>
-				<module>mapr0.98.12</module>
 			</modules>
 		</profile>
 		<profile>
