@@ -182,14 +182,17 @@ public class CreateTableConstantOperation extends DDLConstantOperation {
          *
          * We tell the data dictionary we're done writing at the end of
          * the transaction.
+         *
+         * -sf- We don't need to set the ddl write mode in the lcc, because
+         * we don't need to do two phase commit for create table statements.
          */
-        dd.startWriting(lcc);
+        dd.startWriting(lcc,false);
 
-		    /* create the conglomerate to hold the table's rows
-		     * RESOLVE - If we ever have a conglomerate creator
-		     * that lets us specify the conglomerate number then
-		     * we will need to handle it here.
-		     */
+		/* create the conglomerate to hold the table's rows
+		 * RESOLVE - If we ever have a conglomerate creator
+		 * that lets us specify the conglomerate number then
+		 * we will need to handle it here.
+		 */
         long conglomId = tc.createConglomerate(
                 "heap", // we're requesting a heap conglomerate
                 template.getRowArray(), // row template

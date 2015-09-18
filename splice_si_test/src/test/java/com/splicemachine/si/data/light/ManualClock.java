@@ -1,8 +1,11 @@
 package com.splicemachine.si.data.light;
 
-import com.splicemachine.si.api.Clock;
 
-public class ManualClock implements Clock {
+import com.splicemachine.concurrent.Clock;
+
+import java.util.concurrent.TimeUnit;
+
+public class ManualClock implements Clock{
     private long time = 0;
 
     public void setTime(long time) {
@@ -10,7 +13,12 @@ public class ManualClock implements Clock {
     }
 
     @Override
-    public long getTime() {
+    public long currentTimeMillis() {
         return time;
+    }
+
+    @Override
+    public long nanoTime(){
+        return TimeUnit.MILLISECONDS.toNanos(time);
     }
 }
