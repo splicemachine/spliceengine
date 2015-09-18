@@ -866,7 +866,7 @@ abstract class DMLModStatementNode extends DMLStatementNode
 					C_NodeTypes.TEST_CONSTRAINT_NODE,
 					oneConstraint,
 					SQLState.LANG_CHECK_CONSTRAINT_VIOLATED,
-					td.getQualifiedName(),
+                    td.getSchemaName()==null?td.getName():td.getSchemaName()+"."+td.getName(),
 					cd.getConstraintName(),
 					getContextManager());
 					
