@@ -1,5 +1,6 @@
 package com.splicemachine.hbase;
 
+import com.google.common.base.Throwables;
 import com.google.common.collect.Maps;
 import com.google.protobuf.SpliceZeroCopyByteString;
 import com.splicemachine.concurrent.MoreExecutors;
@@ -158,11 +159,16 @@ public class HBaseRegionLoads {
                         public Pair<String, Long> call(SpliceMessage.SpliceDerbyCoprocessorService inctance) throws IOException{
                             SpliceRpcController controller = new SpliceRpcController();
                             SpliceMessage.SpliceRegionSizeRequest message = SpliceMessage.SpliceRegionSizeRequest.newBuilder().build();
-                            BlockingRpcCallback<SpliceMessage.SpliceRegionSizeResponse> rpcCallback = new BlockingRpcCallback();
+                            BlockingRpcCallback<SpliceMessage.SpliceRegionSizeResponse> rpcCallback = new BlockingRpcCallback<>();
                             inctance.computeRegionSize(controller, message, rpcCallback);
+                            if(controller.failed()){
+                                Throwable t =Throwables.getRootCause(controller.getThrowable());
+                                if(t instanceof IOException) throw (IOException)t;
+                                else throw new IOException(t);
+                            }
                             SpliceMessage.SpliceRegionSizeResponse response = rpcCallback.get();
-                            Pair<String, Long> ret = Pair.newPair(response.getEncodedName(), response.getSizeInBytes());
-                            return ret;
+
+                            return Pair.newPair(response.getEncodedName(),response.getSizeInBytes());
                         }
                     });
             Collection<Pair<String, Long>> collection = ret.values();
@@ -182,9 +188,14 @@ public class HBaseRegionLoads {
 
             return retMap;
         } catch (Throwable th){
-            th.printStackTrace();
+            SpliceLogUtils.error(LOG,"Unable to fetch region load info",th);
         }
-        return null;
+        /*
+         * When we fail for whatever reason, we don't want to blow up the query, we just return no
+         * cached information. This will screw up the planning phase (since there is nothing to work with), but
+         * at least it won't explode.
+         */
+        return Collections.emptyMap();
     }
 
     public static Collection<RegionLoad> getCachedRegionLoadsForTable(String tableName) {
@@ -195,17 +206,19 @@ public class HBaseRegionLoads {
             return Collections.emptyList();
         }
         Map<String, RegionLoad> regions = loads.get(tableName);
-        if(regions.isEmpty()){
+        if(regions==null || regions.isEmpty()){
             regions = getCostWhenNoCachedRegionLoadsFound(tableName);
         }
-        return regions == null ? null : regions.values();
+        return regions.values();
     }
 
     public static Map<String, RegionLoad> getCachedRegionLoadsMapForTable(String tableName){
         Map<String,Map<String,RegionLoad>> loads = cache.get();
-        if (loads == null){
+        if (loads == null||loads.isEmpty()){
             return getCostWhenNoCachedRegionLoadsFound(tableName);
         }
+        //we don't want to return null ever, so return an empty map when we don't have anything else
+        if(!loads.containsKey(tableName)) return Collections.emptyMap();
         return loads.get(tableName);
     }
     /**

@@ -55,7 +55,11 @@ public class CreateRoleConstantOperation extends DDLConstantOperation {
         //
         final String currentAuthId = lcc.getCurrentUserId(activation);
 
-        dd.startWriting(lcc);
+        /*
+         * We don't need to set the ddl mode here, because we don't need to do 2-phase commit
+         * for create role statements
+         */
+        dd.startWriting(lcc,false);
 
         //
         // Check if this role already exists. If it does, throw.
