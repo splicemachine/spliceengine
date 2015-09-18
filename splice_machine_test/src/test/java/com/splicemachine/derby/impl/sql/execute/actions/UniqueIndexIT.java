@@ -195,7 +195,7 @@ public class UniqueIndexIT extends SpliceUnitTest {
         }catch(SQLException se){
             Assert.assertEquals(ErrorState.LANG_DUPLICATE_KEY_CONSTRAINT.getSqlState(),se.getSQLState());
         }
-        indexWatcher.finished(null);
+        SpliceIndexWatcher.executeDrop(methodWatcher.getOrCreateConnection(), CLASS_NAME, INDEX_E);
 
         //validate that we can add duplicates now
         methodWatcher.getStatement().execute(format("insert into %s (name,val) values ('%s',%s)", TABLE_E, name, value));
