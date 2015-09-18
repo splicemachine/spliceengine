@@ -99,7 +99,7 @@ public class CheckConstraintIT extends SpliceUnitTest {
             Assert.assertTrue(e.getLocalizedMessage(), e.getLocalizedMessage().startsWith(String.format(msgStart, args)));
     	}
     }
-    
+
     protected static String MSG_START_DEFAULT = 
 		"The check constraint '%s' was violated while performing an INSERT or UPDATE on table";
 
@@ -127,7 +127,19 @@ public class CheckConstraintIT extends SpliceUnitTest {
 
     }
 
-    @Ignore("DB-3681 targeted for Lassen")
+    @Test
+    public void testAlterTableExistingDataViolatesConstraint() throws Exception {
+        try {
+            methodWatcher.executeUpdate("alter table table2 add constraint id_ge_ck check (id > 1000)");
+            Assert.fail("Expected add or enable constraint exception");
+        } catch (Exception e) {
+            Assert.assertTrue("Wrong Exception Message",e.getMessage().contains("Attempt to add or enable constraint(s) on table"));
+        }
+    }
+
+
+
+    @Test
     public void testSingleInsertsAfterAlterTable() throws Exception {
         methodWatcher.executeUpdate("alter table table2 add constraint id_ge_ck check (id >= 1000)");
         methodWatcher.executeUpdate("alter table table2 add constraint i_gt_ck check (i_gt > 100)");
