@@ -234,7 +234,7 @@ public class BackupSystemProcedures {
             }
 
             if (hour < 0 || hour >= 24) {
-                throw StandardException.newException("Hour must be in range [0, 24).");
+                throw StandardException.newException("Hour must be in range [0, 23].");
             }
 
             submitBackupJob(directory, type, hour);

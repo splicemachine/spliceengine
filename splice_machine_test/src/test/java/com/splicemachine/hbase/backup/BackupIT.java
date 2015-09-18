@@ -80,13 +80,13 @@ public class BackupIT extends SpliceUnitTest {
                 format("call SYSCS_UTIL.SYSCS_SCHEDULE_DAILY_BACKUP('%s', 'full', 200)", backupDir.getAbsolutePath()));
         rs = ps.executeQuery();
         Assert.assertNotNull(rs.next());
-        Assert.assertTrue(rs.getString(1).compareTo("Hour must be in range [0, 24).")==0);
+        Assert.assertTrue(rs.getString(1).compareTo("Hour must be in range [0, 23].")==0);
 
         ps = connection.prepareStatement(
                 format("call SYSCS_UTIL.SYSCS_SCHEDULE_DAILY_BACKUP('%s', 'full', -10)", backupDir.getAbsolutePath()));
         rs = ps.executeQuery();
         Assert.assertNotNull(rs.next());
-        Assert.assertTrue(rs.getString(1).compareTo("Hour must be in range [0, 24).")==0);
+        Assert.assertTrue(rs.getString(1).compareTo("Hour must be in range [0, 23].")==0);
 
     }
 

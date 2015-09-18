@@ -1,17 +1,16 @@
 package com.splicemachine.derby.ddl;
 
 import com.splicemachine.constants.SpliceConstants;
+import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.derby.hbase.SpliceBaseDerbyCoprocessor;
-import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.utils.ZkUtils;
-import com.splicemachine.db.iapi.error.StandardException;
-import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
 import org.apache.zookeeper.CreateMode;
 import org.apache.zookeeper.KeeperException;
 import org.apache.zookeeper.Watcher;
 import org.apache.zookeeper.ZooDefs;
+
 import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
@@ -20,20 +19,6 @@ import java.util.List;
  * Zookeeper logic used by our ZookeeperDDLWatcher. Just hides some of the ugly zoo exception handling and lets
  * ZookeeperDDLWatcher focus on the main business logic.
  *
- * <pre>
- *
- * /ddl/activeServers
- *    server-0001
- *    server-0002
- *
- * /ddl/ongoingChanges
- *    change-0001/
- *    change-0002/       -- JSON encoded DDL Change
- *    change-0003/
- *        server-0001   -- Servers that have acknowledged the change.
- *        server-0002
- *
- * </pre>
  */
 class DDLZookeeperClient {
 
@@ -43,16 +28,16 @@ class DDLZookeeperClient {
     private static final String CHANGES_PATH = SpliceConstants.zkSpliceDDLOngoingTransactionsPath;
     private static final String DDL_PATH = SpliceConstants.zkSpliceDDLPath;
 
-    static void createRequiredZooNodes() throws StandardException {
+    static void createRequiredZooNodes() throws IOException {
         for (String path : new String[]{DDL_PATH, CHANGES_PATH, SERVERS_PATH}) {
             try {
                 ZkUtils.create(path, new byte[0], ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT);
             } catch (KeeperException e) {
                 if (!e.code().equals(KeeperException.Code.NODEEXISTS)) {
-                    throw Exceptions.parseException(e);
+                    throw new IOException(e);
                 }
             } catch (InterruptedException e) {
-                throw Exceptions.parseException(e);
+                throw new IOException(e);
             }
         }
     }
@@ -64,9 +49,8 @@ class DDLZookeeperClient {
     /**
      * Returns this server id. If this isn't a server, returns null
      * @return null if not registered
-     * @throws StandardException
      */
-    static String registerThisServer() throws StandardException {
+    static String registerThisServer() {
         /*
          * See DB-1812: Instead of creating our own server registration, we merely fetch our own
          * label from the RegionServers list which hbase maintains for us.
@@ -90,43 +74,7 @@ class DDLZookeeperClient {
         try {
             String changeId = ZkUtils.create(CHANGES_PATH + "/", changeData, ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.PERSISTENT_SEQUENTIAL);
             return changeId.substring(changeId.lastIndexOf('/') + 1);
-        } catch (KeeperException e) {
-            throw Exceptions.parseException(e);
-        } catch (InterruptedException e) {
-            throw Exceptions.parseException(e);
-        }
-    }
-
-    static List<String> getOngoingDDLChangeIDs(Watcher watcher) throws Exception {
-        return ZkUtils.getChildren(CHANGES_PATH, watcher);
-    }
-
-    static DDLChange getOngoingDDLChange(String changeId) throws StandardException {
-        try {
-            byte[] data = ZkUtils.getData(CHANGES_PATH + "/" + changeId);
-            String jsonChange = Bytes.toString(data);
-            DDLChange ddlChange = DDLCoordinationFactory.GSON.fromJson(jsonChange, DDLChange.class);
-            ddlChange.setChangeId(changeId);
-            return ddlChange;
-        } catch (IOException e) {
-            throw Exceptions.parseException(e);
-        }
-    }
-
-    static void acknowledgeChange(String changeId, String serverId) throws StandardException {
-        try {
-            ZkUtils.create(CHANGES_PATH + "/" + changeId + "/" + serverId, new byte[0],
-                    ZooDefs.Ids.OPEN_ACL_UNSAFE, CreateMode.EPHEMERAL);
-        } catch (KeeperException e) {
-            switch (e.code()) {
-                case NODEEXISTS: //we may have already set the value, so ignore node exists issues
-                case NONODE: // someone already removed the notification, it's obsolete
-                    // ignore
-                    break;
-                default:
-                    throw Exceptions.parseException(e);
-            }
-        } catch (InterruptedException e) {
+        } catch (KeeperException | InterruptedException e) {
             throw Exceptions.parseException(e);
         }
     }

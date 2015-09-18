@@ -2,6 +2,8 @@ package com.splicemachine.derby.ddl;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.splicemachine.concurrent.ReentrantLockFactory;
+import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.derby.impl.db.SpliceDatabase;
 import com.splicemachine.derby.impl.store.access.SpliceAccessManager;
@@ -12,7 +14,6 @@ import com.splicemachine.db.iapi.reference.Property;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.store.access.AccessFactory;
 
-import com.splicemachine.derby.ddl.ZookeeperDDLWatcher;
 import com.splicemachine.pipeline.ddl.DDLChange;
 import com.splicemachine.pipeline.ddl.TentativeDDLDesc;
 
@@ -23,7 +24,8 @@ public class DDLCoordinationFactory {
             registerTypeAdapter(UUID.class, new InterfaceSerializer<UUID>()).
             create();
 
-    private static final DDLController DDL_CONTROLLER = new ZookeeperDDLController();
+    private static final DDLController DDL_CONTROLLER = new AsynchronousDDLController(new ZooKeeperDDLCommunicator(),
+            ReentrantLockFactory.instance(),SystemClock.INSTANCE);
     private static volatile DDLWatcher DDL_WATCHER = new ZookeeperDDLWatcher();
 
     public static DDLController getController() {
@@ -61,6 +63,10 @@ public class DDLCoordinationFactory {
             @Override public void startGlobalChange() {  }
             @Override public void finishGlobalChange() {  }
 
+            @Override
+            public void changeFailed(String changeId){
+               accessManager.cancelDDLChange(changeId);
+            }
 
             @Override
             public void startChange(DDLChange change) {
@@ -68,7 +74,7 @@ public class DDLCoordinationFactory {
             }
 
             @Override
-            public void finishChange(String changeId) {
+            public void changeSuccessful(String changeId) {
                 accessManager.finishDDLChange(changeId);
             }
         });

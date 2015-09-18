@@ -123,7 +123,6 @@
 								<option>-keep public class com.splicemachine.hbase.RegionScanIterator* { public *; }</option>
 								<option>-keep public class com.splicemachine.si.LStoreTest { public *; }</option>
 								<option>-keep public class com.splicemachine.si.api.CannotCommitException { public *; }</option>
-								<option>-keep public class com.splicemachine.si.api.Clock { public *; }</option>
 								<option>-keep public class com.splicemachine.si.api.ConstraintChecker { public *; }</option>
 								<option>-keep public class com.splicemachine.si.api.HTransactorFactory { public *; }</option>
 								<option>-keep public class com.splicemachine.si.api.ReadOnlyModificationException { public *; }</option>
@@ -181,7 +180,6 @@
 								<option>-keep public class com.splicemachine.si.data.light.LStore { public *; }</option>
 								<option>-keep public class com.splicemachine.si.data.light.LTable { public *; }</option>
 								<option>-keep public class com.splicemachine.si.data.light.LTuple { public *; }</option>
-								<option>-keep public class com.splicemachine.si.data.light.ManualClock { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.AbstractTxn { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.ActionFactory { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.ActiveWriteTxn { public *; }</option>
@@ -215,7 +213,6 @@
 								<option>-keep public class com.splicemachine.si.impl.SimpleOperationFactory { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.SimpleTxnFilter { public *; protected void doResolve(org.apache.hadoop.hbase.KeyValue, long); }</option>
 								<option>-keep public class com.splicemachine.si.impl.SparseTxn { public *; }</option>
-								<option>-keep public class com.splicemachine.si.impl.SystemClock { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.Tracer { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.TransactionLifecycle { public *; }</option>
 								<option>-keep public class com.splicemachine.si.impl.TransactionTimestamps { public *; }</option>
