@@ -737,10 +737,11 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
 
         // Initiate the copy from old conglomerate to new conglomerate and the interception
         // from old schema writes to new table with new column appended
+        HTableInterface hTable = null;
         try {
             String schemaName = tableDescriptor.getSchemaName();
             String tableName = tableDescriptor.getName();
-            HTableInterface hTable = SpliceAccessManager.getHTable(Long.toString(oldCongNum).getBytes());
+            hTable = SpliceAccessManager.getHTable(Long.toString(oldCongNum).getBytes());
 
             //Add a handler to intercept writes to old schema on all regions and forward them to new
             startCoprocessorJob(activation,
@@ -770,6 +771,8 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
             populateTxn.commit();
         } catch (IOException e) {
             throw Exceptions.parseException(e);
+        } finally {
+            Closeables.closeQuietly(hTable);
         }
 
         //notify other servers of the change
