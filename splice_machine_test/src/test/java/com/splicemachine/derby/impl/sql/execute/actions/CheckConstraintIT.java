@@ -1,29 +1,24 @@
 package com.splicemachine.derby.impl.sql.execute.actions;
 
-import static com.splicemachine.test_tools.Rows.row;
-import static com.splicemachine.test_tools.Rows.rows;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
-import com.splicemachine.derby.test.framework.*;
-
-import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.SQLIntegrityConstraintViolationException;
 
-import com.splicemachine.test.SerialTest;
-import com.splicemachine.test_dao.TableDAO;
-import com.splicemachine.test_tools.TableCreator;
-
 import org.junit.Assert;
-import org.junit.BeforeClass;
 import org.junit.ClassRule;
-import org.junit.Ignore;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.experimental.categories.Category;
 import org.junit.rules.RuleChain;
 import org.junit.rules.TestRule;
+
+import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
+import com.splicemachine.derby.test.framework.SpliceUnitTest;
+import com.splicemachine.derby.test.framework.SpliceWatcher;
+import com.splicemachine.test.SerialTest;
+import com.splicemachine.test_dao.TableDAO;
 
 /**
  * Integration tests specific to CHECK constraints.
@@ -35,56 +30,14 @@ import org.junit.rules.TestRule;
 @Category(SerialTest.class)
 public class CheckConstraintIT extends SpliceUnitTest {
     public static final String CLASS_NAME = CheckConstraintIT.class.getSimpleName().toUpperCase();
-    protected static SpliceWatcher spliceClassWatcher = new SpliceWatcher(CLASS_NAME);
-    protected static SpliceSchemaWatcher spliceSchemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
+    private static SpliceWatcher classWatcher = new SpliceWatcher(CLASS_NAME);
+    private static SpliceSchemaWatcher schemaWatcher = new SpliceSchemaWatcher(CLASS_NAME);
 
     @ClassRule
-    public static TestRule chain = RuleChain.outerRule(spliceClassWatcher)
-        .around(spliceSchemaWatcher);
+    public static TestRule chain = RuleChain.outerRule(classWatcher)
+        .around(schemaWatcher);
     
-    @Rule
-    public SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
-
-    @SuppressWarnings("unchecked")
-	public static void createData(Connection conn, String schemaName) throws Exception {
-
-        // Table2 has check constraints upon creation
-        new TableCreator(conn)
-            .withCreate(
-            	"create table table1 ( " +
-                "id int not null primary key constraint id_ge_ck check (id >= 1000), " +
-                "i_gt int constraint i_gt_ck check (i_gt > 100), " +
-                "i_eq int constraint i_eq_ck check (i_eq = 90), " +
-                "i_lt int constraint i_lt_ck check (i_lt < 80), " +
-                "v_neq varchar(32) constraint v_neq_ck check (v_neq <> 'bad'), " +
-                "v_in varchar(32) constraint v_in_ck check (v_in in ('good1', 'good2', 'good3')))")
-            .withInsert("insert into table1 values (?, ?, ?, ?, ?, ?)")
-            .withRows(rows(
-                row(1000, 200, 90, 79, "ok", "good1")))
-            .create();
-
-        // Table2 has no check constraints initially
-        new TableCreator(conn)
-        .withCreate(
-        	"create table table2 ( " +
-            "id int not null primary key, " +
-            "i_gt int, " +
-            "i_eq int, " +
-            "i_lt int, " +
-            "v_neq varchar(32), " +
-            "v_in varchar(32))")
-        .withInsert("insert into table2 values (?, ?, ?, ?, ?, ?)")
-        .withRows(rows(
-            row(1000, 200, 90, 79, "ok", "good1")))
-        .create();
-
-        conn.commit();
-    }
-
-    @BeforeClass
-    public static void createDataSet() throws Exception {
-        createData(spliceClassWatcher.getOrCreateConnection(), spliceSchemaWatcher.toString());
-    }
+    private SpliceWatcher methodWatcher = new SpliceWatcher(CLASS_NAME);
 
     private void verifyNoViolation(String query, int count) throws Exception {
     	Assert.assertEquals("Invalid row count", count, methodWatcher.executeUpdate(query));
@@ -96,7 +49,8 @@ public class CheckConstraintIT extends SpliceUnitTest {
             fail("Expected check constraint violation.");
     	} catch (SQLException e) {
     		Assert.assertTrue("Unexpected exception type", e instanceof SQLIntegrityConstraintViolationException);
-            Assert.assertTrue(e.getLocalizedMessage(), e.getLocalizedMessage().startsWith(String.format(msgStart, args)));
+            String expected = format(msgStart, args);
+            Assert.assertTrue(e.getLocalizedMessage()+" Expected:\n"+ expected, e.getLocalizedMessage().startsWith(expected));
     	}
     }
 
@@ -105,78 +59,91 @@ public class CheckConstraintIT extends SpliceUnitTest {
 
     @Test
     public void testSingleInserts() throws Exception {
-    	verifyNoViolation("insert into table1 values (1001, 101, 90, 79, 'ok', 'good2')", 1); // all good
+        String tableName = "table1".toUpperCase();
+        TableDAO tableDAO = new TableDAO(methodWatcher.getOrCreateConnection());
+        tableDAO.drop(schemaWatcher.schemaName, tableName);
+        methodWatcher.executeUpdate(format("create table %s ( " +
+                                               "id int not null primary key constraint id_ge_ck1 check (id >= 1000), " +
+                                               "i_gt int constraint i_gt_ck1 check (i_gt > 100), " +
+                                               "i_eq int constraint i_eq_ck1 check (i_eq = 90), " +
+                                               "i_lt int constraint i_lt_ck1 check (i_lt < 80), " +
+                                               "v_neq varchar(32) constraint v_neq_ck1 check (v_neq <> 'bad'), " +
+                                               "v_in varchar(32) constraint v_in_ck1 check (v_in in ('good1', " +
+                                               "'good2', 'good3')))", tableName));
+        methodWatcher.executeUpdate(format("insert into %s values(1000, 200, 90, 79, 'ok', 'good1')", tableName));
 
-    	verifyViolation("insert into table1 values (999, 101, 90, 79, 'ok', 'good1')", // col 1 (PK) bad
-    		MSG_START_DEFAULT, "ID_GE_CK");
+    	verifyNoViolation(format("insert into %s values (1001, 101, 90, 79, 'ok', 'good2')", tableName), 1); // all good
 
-    	verifyViolation("insert into table1 values (1002, 25, 90, 79, 'ok', 'good1')", // col 2 bad
-    		MSG_START_DEFAULT, "I_GT_CK");
+    	verifyViolation(format("insert into %s values (999, 101, 90, 79, 'ok', 'good1')", tableName), // col 1 (PK) bad
+    		MSG_START_DEFAULT, "ID_GE_CK1");
 
-    	verifyViolation("insert into table1 values (1003, 101, 901, 79, 'ok', 'good1')", // col 3 bad
-    		MSG_START_DEFAULT, "I_EQ_CK");
+    	verifyViolation(format("insert into %s values (1002, 25, 90, 79, 'ok', 'good1')", tableName), // col 2 bad
+    		MSG_START_DEFAULT, "I_GT_CK1");
 
-    	verifyViolation("insert into table1 values (1004, 101, 90, 85, 'ok', 'good2')", // col 4 bad
-    		MSG_START_DEFAULT, "I_LT_CK");
+    	verifyViolation(format("insert into %s values (1003, 101, 901, 79, 'ok', 'good1')", tableName), // col 3 bad
+    		MSG_START_DEFAULT, "I_EQ_CK1");
 
-    	verifyViolation("insert into table1 values (1005, 101, 90, 85, 'bad', 'good3')", // col 5 bad
-    		MSG_START_DEFAULT, "V_NEQ_CK");
+    	verifyViolation(format("insert into %s values (1004, 101, 90, 85, 'ok', 'good2')", tableName), // col 4 bad
+    		MSG_START_DEFAULT, "I_LT_CK1");
 
-    	verifyViolation("insert into table1 values (1005, 101, 90, 85, 'ok', 'notsogood')", // col 6 bad
-    		MSG_START_DEFAULT, "V_IN_CK");
+    	verifyViolation(format("insert into %s values (1005, 101, 90, 85, 'bad', 'good3')", tableName), // col 5 bad
+    		MSG_START_DEFAULT, "V_NEQ_CK1");
+
+    	verifyViolation(format("insert into %s values (1005, 101, 90, 85, 'ok', 'notsogood')", tableName), // col 6 bad
+    		MSG_START_DEFAULT, "V_IN_CK1");
 
     }
-
-    @Test
-    public void testAlterTableExistingDataViolatesConstraint() throws Exception {
-        try {
-            methodWatcher.executeUpdate("alter table table2 add constraint id_ge_ck check (id > 1000)");
-            Assert.fail("Expected add or enable constraint exception");
-        } catch (Exception e) {
-            Assert.assertTrue("Wrong Exception Message",e.getMessage().contains("Attempt to add or enable constraint(s) on table"));
-        }
-    }
-
-
 
     @Test
     public void testSingleInsertsAfterAlterTable() throws Exception {
-        methodWatcher.executeUpdate("alter table table2 add constraint id_ge_ck check (id >= 1000)");
-        methodWatcher.executeUpdate("alter table table2 add constraint i_gt_ck check (i_gt > 100)");
-        methodWatcher.executeUpdate("alter table table2 add constraint i_eq_ck check (i_eq = 90)");
-        methodWatcher.executeUpdate("alter table table2 add constraint i_lt_ck check (i_lt < 80)");
-        methodWatcher.executeUpdate("alter table table2 add constraint v_neq_ck check (v_neq <> 'bad')");
-        methodWatcher.executeUpdate("alter table table2 add constraint v_in_ck check (v_in in ('good1', 'good2', 'good3'))");
+        String tableName = "table2".toUpperCase();
+        TableDAO tableDAO = new TableDAO(methodWatcher.getOrCreateConnection());
+        tableDAO.drop(schemaWatcher.schemaName, tableName);
+        methodWatcher.executeUpdate(format("create table %s ( " +
+                                               "id int not null primary key, " +
+                                               "i_gt int, " +
+                                               "i_eq int, " +
+                                               "i_lt int, " +
+                                               "v_neq varchar(32), " +
+                                               "v_in varchar(32))", tableName));
+        methodWatcher.executeUpdate(format("insert into %s values(1000, 200, 90, 79, 'ok', 'good1')", tableName));
 
-        verifyNoViolation("insert into table2 values (1001, 101, 90, 79, 'ok', 'good2')", 1); // all good
+        methodWatcher.executeUpdate(format("alter table %s add constraint id_ge_ck check (id >= 1000)", tableName));
+        methodWatcher.executeUpdate(format("alter table %s add constraint i_gt_ck check (i_gt > 100)", tableName));
+        methodWatcher.executeUpdate(format("alter table %s add constraint i_eq_ck check (i_eq = 90)", tableName));
+        methodWatcher.executeUpdate(format("alter table %s add constraint i_lt_ck check (i_lt < 80)", tableName));
+        methodWatcher.executeUpdate(format("alter table %s add constraint v_neq_ck check (v_neq <> 'bad')", tableName));
+        methodWatcher.executeUpdate(format("alter table %s add constraint v_in_ck check (v_in in ('good1', 'good2', 'good3'))", tableName));
 
-    	verifyViolation("insert into table2 values (999, 101, 90, 79, 'ok', 'good1')", // col 1 (PK) bad
+        verifyNoViolation(format("insert into %s values (1001, 101, 90, 79, 'ok', 'good2')", tableName), 1); // all good
+
+    	verifyViolation(format("insert into %s values (999, 101, 90, 79, 'ok', 'good1')", tableName), // col 1 (PK) bad
     		MSG_START_DEFAULT, "ID_GE_CK");
 
-    	verifyViolation("insert into table2 values (1002, 25, 90, 79, 'ok', 'good1')", // col 2 bad
+    	verifyViolation(format("insert into %s values (1002, 25, 90, 79, 'ok', 'good1')", tableName), // col 2 bad
     		MSG_START_DEFAULT, "I_GT_CK");
 
-    	verifyViolation("insert into table2 values (1003, 101, 901, 79, 'ok', 'good1')", // col 3 bad
+    	verifyViolation(format("insert into %s values (1003, 101, 901, 79, 'ok', 'good1')", tableName), // col 3 bad
     		MSG_START_DEFAULT, "I_EQ_CK");
 
-    	verifyViolation("insert into table2 values (1004, 101, 90, 85, 'ok', 'good2')", // col 4 bad
-    		MSG_START_DEFAULT, "I_LT_CK");
+    	verifyViolation(format("insert into %s values (1004, 101, 90, 85, 'ok', 'good2')", tableName), // col 4 bad
+                        MSG_START_DEFAULT, "I_LT_CK");
 
-    	verifyViolation("insert into table2 values (1005, 101, 90, 85, 'bad', 'good3')", // col 5 bad
-    		MSG_START_DEFAULT, "V_NEQ_CK");
+    	verifyViolation(format("insert into %s values (1005, 101, 90, 79, 'bad', 'good3')", tableName), // col 5 bad
+                        MSG_START_DEFAULT, "V_NEQ_CK");
 
-    	verifyViolation("insert into table2 values (1005, 101, 90, 85, 'ok', 'notsogood')", // col 6 bad
-    		MSG_START_DEFAULT, "V_IN_CK");
+    	verifyViolation(format("insert into %s values (1005, 101, 90, 79, 'ok', 'notsogood')", tableName), // col 6 bad
+                        MSG_START_DEFAULT, "V_IN_CK");
 
     }
 
     @Test
     public void testViolationErrorMsg() throws Exception {
-        // DB-3864 - bad erorr msg
+        // DB-3864 - bad error msg
         String tableName = "table3".toUpperCase();
-        String tableRef = spliceSchemaWatcher.schemaName+"."+tableName;
+        String tableRef = schemaWatcher.schemaName+"."+tableName;
         TableDAO tableDAO = new TableDAO(methodWatcher.getOrCreateConnection());
-        tableDAO.drop(spliceSchemaWatcher.schemaName, tableName);
+        tableDAO.drop(schemaWatcher.schemaName, tableName);
 
         methodWatcher.executeUpdate(format("create table %s (int1_col int not null constraint constr_int1 check" +
                                                "(int1_col<5))", tableName));
@@ -188,7 +155,49 @@ public class CheckConstraintIT extends SpliceUnitTest {
         }
     }
 
-    // Additional tests to consider:
+    @Test
+    public void testAlterTableExistingDataViolatesConstraint() throws Exception {
+        String tableName = "table4".toUpperCase();
+        TableDAO tableDAO = new TableDAO(methodWatcher.getOrCreateConnection());
+        tableDAO.drop(schemaWatcher.schemaName, tableName);
+        methodWatcher.executeUpdate(format("create table %s ( " +
+                                               "id int not null primary key, " +
+                                               "i_gt int, " +
+                                               "i_eq int, " +
+                                               "i_lt int, " +
+                                               "v_neq varchar(32), " +
+                                               "v_in varchar(32))", tableName));
+        methodWatcher.executeUpdate(format("insert into %s values(1000, 200, 90, 79, 'ok', 'good1')", tableName));
+        try {
+            methodWatcher.executeUpdate(format("alter table %s add constraint id_ge_ck check (id > 1000)", tableName));
+            Assert.fail("Expected add or enable constraint exception");
+        } catch (SQLException e) {
+            Assert.assertEquals("Expected failed attempt to add check constraint.", "X0Y59", e.getSQLState());
+        }
+    }
+
+    @Test
+    public void testCreateAlterDropConstraint() throws Exception {
+        String tableName = "table5".toUpperCase();
+        TableDAO tableDAO = new TableDAO(methodWatcher.getOrCreateConnection());
+        tableDAO.drop(schemaWatcher.schemaName, tableName);
+        String constraintName = "ten_or_less";
+
+        methodWatcher.executeUpdate(format("create table %s (col1 int not null)", tableName));
+        methodWatcher.executeUpdate(format("insert into %s values(9)", tableName));
+        methodWatcher.executeUpdate(format("alter table %s add constraint %s check (col1 < 10)", tableName, constraintName));
+        try {
+            methodWatcher.executeUpdate(format("insert into %s values (11)", tableName));
+            fail("Expected check constraint violation.");
+        } catch (SQLException e) {
+            // expected
+            assertEquals("Expected constraint violation", "23513", e.getSQLState());
+        }
+        methodWatcher.executeUpdate(format("alter table %s drop constraint %s", tableName, constraintName));
+        methodWatcher.executeUpdate(format("insert into %s values (11)", tableName));
+    }
+
+    // TODO: Additional tests to consider:
     //
     // more data types and operators
     // alter table and create table usage

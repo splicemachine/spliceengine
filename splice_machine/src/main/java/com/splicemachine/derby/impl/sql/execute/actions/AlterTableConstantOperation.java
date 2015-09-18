@@ -10,7 +10,6 @@ import java.util.Properties;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 
-import com.google.common.io.Closeables;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
@@ -281,12 +280,12 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
                         }
 
                         // create the PK constraint
-                        createUniquenessConstraint(activation, DDLChangeType.ADD_PRIMARY_KEY, "AddPrimaryKey", cca);
+                        createConstraint(activation, DDLChangeType.ADD_PRIMARY_KEY, "AddPrimaryKey", cca);
 
                         break;
                     case DataDictionary.UNIQUE_CONSTRAINT:
                         // create the unique constraint
-                        createUniquenessConstraint(activation, DDLChangeType.ADD_UNIQUE_CONSTRAINT, "AddUniqueConstraint", cca);
+                        createConstraint(activation, DDLChangeType.ADD_UNIQUE_CONSTRAINT, "AddUniqueConstraint", cca);
 
                         break;
                     case DataDictionary.FOREIGNKEY_CONSTRAINT:
@@ -294,12 +293,15 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
                         fkConstraints.add(cca);
                         break;
                     case DataDictionary.CHECK_CONSTRAINT:
-                        // I need to be created here
+                        // create the check constraint
+                        createConstraint(activation, DDLChangeType.ADD_UNIQUE_CONSTRAINT,
+                                         "AddCheckConstraint", cca);
 
-                        // Then Checked
-                            ConstraintConstantOperation.validateConstraint(
-                                    cca.getConstraintName(), cca.getConstraintText(),
-                                    td, activation.getLanguageConnectionContext(), true);
+                        // Validate the constraint
+                        ConstraintConstantOperation.validateConstraint(
+                            cca.getConstraintName(), cca.getConstraintText(),
+                            td, activation.getLanguageConnectionContext(), true);
+
                         break;
                         // failure should roll back txn, lets test it eh.
                 }
@@ -602,10 +604,10 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         notifyMetadataChangeAndWait(ddlChange);
     }
 
-    private void createUniquenessConstraint(Activation activation,
-                                            DDLChangeType changeType,
-                                            String changeMsg,
-                                            CreateConstraintConstantOperation newConstraint) throws StandardException {
+    private void createConstraint(Activation activation,
+                                  DDLChangeType changeType,
+                                  String changeMsg,
+                                  CreateConstraintConstantOperation newConstraint) throws StandardException {
         List<String> constraintColumnNames = Arrays.asList(newConstraint.columnNames);
         if (constraintColumnNames.isEmpty()) {
             return;
