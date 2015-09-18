@@ -6,7 +6,7 @@ import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import com.splicemachine.collections.CloseableIterator;
 import com.splicemachine.collections.ForwardingCloseableIterator;
-import com.splicemachine.si.api.Clock;
+import com.splicemachine.concurrent.Clock;
 import com.splicemachine.si.api.Transactor;
 import com.splicemachine.si.data.api.SRowLock;
 import com.splicemachine.si.data.api.STableReader;
@@ -294,7 +294,7 @@ public class LStore implements STableReader<LTable, LGet, LGet>, STableWriter<LT
     }
 
     private long getCurrentTimestamp(){
-        return clock.getTime();
+        return clock.currentTimeMillis();
     }
 
     private List<LTuple> writeSingle(LTuple newTuple,List<LTuple> currentTuples){

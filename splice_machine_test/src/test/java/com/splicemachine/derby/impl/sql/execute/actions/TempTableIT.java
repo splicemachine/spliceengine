@@ -797,6 +797,7 @@ public class TempTableIT {
                                   }
                               });
         } catch (SQLException e) {
+            e.printStackTrace();
             // expected
             Assert.assertEquals(e.getLocalizedMessage(),"42X05", e.getSQLState());
         }

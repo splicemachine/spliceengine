@@ -64,6 +64,10 @@ public class SpliceConstants {
     @DefaultValue(MAX_DDL_WAIT) public static final int DEFAULT_MAX_DDL_WAIT=240;
     public static long maxDdlWait;
 
+    @Parameter public static final String DDL_REFRESH_INTERVAL = "splice.ddl.refreshIntervalSeconds";
+    @DefaultValue(MAX_DDL_WAIT) public static final int DEFAULT_DDL_REFRESH_INTERVAL=10;
+    public static long ddlRefreshInterval;
+
     @Parameter public static final String NUM_CLIENT_HCONNECTIONS = "splice.client.numConnections";
     @DefaultValue(MAX_DDL_WAIT) public static final int DEFAULT_NUM_HCONNECTIONS=5;
     public static int numHConnections;
@@ -1289,6 +1293,7 @@ public class SpliceConstants {
         rollForwardInterval = config.getLong(ROLL_FORWARD_INTERVAL,DEFAULT_ROLL_FORWARD_INTERVAL);
 
         maxDdlWait = config.getInt(MAX_DDL_WAIT,DEFAULT_MAX_DDL_WAIT);
+        ddlRefreshInterval  = config.getInt(DDL_REFRESH_INTERVAL,DEFAULT_DDL_REFRESH_INTERVAL);
 
         numHConnections = config.getInt(NUM_CLIENT_HCONNECTIONS,DEFAULT_NUM_HCONNECTIONS);
 

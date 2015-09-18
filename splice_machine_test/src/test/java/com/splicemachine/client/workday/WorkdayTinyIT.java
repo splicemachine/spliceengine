@@ -161,11 +161,7 @@ public class WorkdayTinyIT extends SpliceUnitTest {
     }
 
 		private void dropIndex(String schemaName, String tableName){
-				try{
-						SpliceIndexWatcher.executeDrop(schemaName,tableName);
-				}catch(Exception e){
-						e.printStackTrace();
-				}
+            SpliceIndexWatcher.executeDrop(methodWatcher.getOrCreateConnection(),schemaName,tableName);
 		}
 
 }

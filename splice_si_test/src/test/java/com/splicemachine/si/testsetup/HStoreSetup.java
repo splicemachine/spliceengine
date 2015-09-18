@@ -1,10 +1,11 @@
 package com.splicemachine.si.testsetup;
 
 import com.google.common.base.Function;
+import com.splicemachine.concurrent.*;
+import com.splicemachine.concurrent.SystemClock;
 import com.splicemachine.constants.SIConstants;
 import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.hbase.table.SpliceHTableFactory;
-import com.splicemachine.si.api.Clock;
 import com.splicemachine.si.api.TimestampSource;
 import com.splicemachine.si.api.TxnStore;
 import com.splicemachine.si.coprocessors.TxnLifecycleEndpoint;
