@@ -1,9 +1,8 @@
 package com.splicemachine.derby.ddl;
 
-import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.pipeline.ddl.DDLChange;
-import org.apache.mina.util.IdentityHashSet;
 
+import java.util.Collections;
 import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Set;
@@ -28,7 +27,7 @@ class CountingListener implements DDLWatcher.DDLListener{
         }
     };
 
-    private Set<DDLChange> failedChanges = new IdentityHashSet<>();
+    private Set<DDLChange> failedChanges =Collections.newSetFromMap(new IdentityHashMap<DDLChange, Boolean>());
 
     public int getStartGlobalCount(){
         return startGlobalCount;
@@ -53,7 +52,7 @@ class CountingListener implements DDLWatcher.DDLListener{
     }
 
     @Override
-    public void startChange(DDLChange change) throws StandardException{
+    public void startChange(DDLChange change){
         Integer startCount=countMap.get(change);
         startCount++;
         assertEquals("Initiated change more than once!",1,startCount.intValue());
