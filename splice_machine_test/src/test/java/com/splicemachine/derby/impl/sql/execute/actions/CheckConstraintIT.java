@@ -2,6 +2,8 @@ package com.splicemachine.derby.impl.sql.execute.actions;
 
 import static com.splicemachine.test_tools.Rows.row;
 import static com.splicemachine.test_tools.Rows.rows;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import com.splicemachine.derby.test.framework.*;
 
@@ -10,6 +12,7 @@ import java.sql.SQLException;
 import java.sql.SQLIntegrityConstraintViolationException;
 
 import com.splicemachine.test.SerialTest;
+import com.splicemachine.test_dao.TableDAO;
 import com.splicemachine.test_tools.TableCreator;
 
 import org.junit.Assert;
@@ -90,7 +93,7 @@ public class CheckConstraintIT extends SpliceUnitTest {
     protected void verifyViolation(String query, String msgStart, Object... args) throws Exception {
     	try {
     		methodWatcher.executeUpdate(query);
-            Assert.fail("Expected check constraint violation.");
+            fail("Expected check constraint violation.");
     	} catch (SQLException e) {
     		Assert.assertTrue("Unexpected exception type", e instanceof SQLIntegrityConstraintViolationException);
             Assert.assertTrue(e.getLocalizedMessage(), e.getLocalizedMessage().startsWith(String.format(msgStart, args)));
@@ -153,6 +156,24 @@ public class CheckConstraintIT extends SpliceUnitTest {
     	verifyViolation("insert into table2 values (1005, 101, 90, 85, 'ok', 'notsogood')", // col 6 bad
     		MSG_START_DEFAULT, "V_IN_CK");
 
+    }
+
+    @Test
+    public void testViolationErrorMsg() throws Exception {
+        // DB-3864 - bad erorr msg
+        String tableName = "table3".toUpperCase();
+        String tableRef = spliceSchemaWatcher.schemaName+"."+tableName;
+        TableDAO tableDAO = new TableDAO(methodWatcher.getOrCreateConnection());
+        tableDAO.drop(spliceSchemaWatcher.schemaName, tableName);
+
+        methodWatcher.executeUpdate(format("create table %s (int1_col int not null constraint constr_int1 check" +
+                                               "(int1_col<5))", tableName));
+        try {
+            methodWatcher.executeUpdate(format("insert into %s values(10)", tableName));
+            fail("Expected constraint violation");
+        } catch (Exception e) {
+            assertTrue("Expected single ticks around table ref.", e.getLocalizedMessage().contains(format("'%s'", tableRef)));
+        }
     }
 
     // Additional tests to consider:
