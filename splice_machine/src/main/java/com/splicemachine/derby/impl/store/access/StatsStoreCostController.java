@@ -150,17 +150,17 @@ public class StatsStoreCostController extends GenericController implements Store
 
     @Override
     public long cardinality(int columnNumber){
-        ColumnStatistics<DataValueDescriptor> colStats=getColumnStats(columnNumber);
+        ColumnStatistics<DataValueDescriptor> colStats=getColumnStats(conglomerateStatistics,columnNumber);
         if(colStats!=null)
             return colStats.cardinality();
         return 0;
     }
 
-    protected ColumnStatistics<DataValueDescriptor> getColumnStats(int columnNumber){
-        return conglomerateStatistics.columnStatistics(columnNumber);
+    protected static ColumnStatistics<DataValueDescriptor> getColumnStats(OverheadManagedTableStatistics stats,int columnNumber){
+        return stats.columnStatistics(columnNumber);
     }
 
-    protected double nullSelectivityFraction(TableStatistics stats,int columnNumber){
+    protected static double nullSelectivityFraction(TableStatistics stats,int columnNumber){
         List<? extends PartitionStatistics> partStats = stats.partitionStatistics();
         long nullCount = 0l;
         int missingStatsCount = partStats.size();
@@ -195,7 +195,7 @@ public class StatsStoreCostController extends GenericController implements Store
         return nc/stats.rowCount();
     }
 
-    protected double selectivityFraction(TableStatistics stats,
+    protected static double selectivityFraction(TableStatistics stats,
                                          int columnNumber,
                                          DataValueDescriptor start,boolean includeStart,
                                          DataValueDescriptor stop,boolean includeStop){
@@ -232,7 +232,7 @@ public class StatsStoreCostController extends GenericController implements Store
         return returnValue;
     }
 
-    protected double columnSizeFactor(TableStatistics tableStats,int totalColumns,BitSet validColumns){
+    protected static double columnSizeFactor(TableStatistics tableStats,int totalColumns,BitSet validColumns){
         //get the average columnSize factor across all regions
         double colFactorSum = 0d;
         List<? extends PartitionStatistics> partStats=tableStats.partitionStatistics();
@@ -244,7 +244,7 @@ public class StatsStoreCostController extends GenericController implements Store
         return colFactorSum/partStats.size();
     }
 
-    private double columnSizeFactor(int totalColumns,BitSet scanColumnList,PartitionStatistics partStats){
+    private static double columnSizeFactor(int totalColumns,BitSet scanColumnList,PartitionStatistics partStats){
         /*
          * Now that we have a base cost, we want to scale that cost down if we
          * are returning fewer columns than the total. To do this, we first
@@ -286,7 +286,7 @@ public class StatsStoreCostController extends GenericController implements Store
         return ((double)columnSize)/adjAvgRowWidth;
     }
 
-    private double getUnknownColumnWidth(PartitionStatistics pStats,int totalColumnCount){
+    private static double getUnknownColumnWidth(PartitionStatistics pStats,int totalColumnCount){
         List<ColumnStatistics> columnStats=pStats.columnStatistics();
         int avgRowWidth = pStats.avgRowWidth();
         int tcc = totalColumnCount;
@@ -317,7 +317,7 @@ public class StatsStoreCostController extends GenericController implements Store
             return ((double)avgRowWidth)/totalColumnCount;
     }
 
-    private int getAdjustedRowSize(PartitionStatistics pStats){
+    private static int getAdjustedRowSize(PartitionStatistics pStats){
         return pStats.avgRowWidth();
     }
 
