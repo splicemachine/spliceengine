@@ -247,6 +247,20 @@ public class MergeJoinStrategy extends HashableJoinStrategy{
             if(outerCol<lastOuterCol) return false; //we have a join out of order
             lastOuterCol = outerCol;
         }
+
+        /*
+         * Find the first inner join column, make sure all columns before it appear in innerColumns. These columns
+         * are referenced in equal predicates
+         */
+        int first = 0;
+        while(innerToOuterJoinColumnMap[first] == -1) {
+            first++;
+        }
+        for (int i = 0; i < first; ++i) {
+            if (!innerColumns.get(i)) {
+                return false;
+            }
+        }
         return true;
     }
 

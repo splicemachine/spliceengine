@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static com.splicemachine.homeless.TestUtils.o;
+import static org.junit.Assert.fail;
 
 /**
  * @author P Trolard
@@ -45,8 +46,9 @@ public class MergeJoinIT extends SpliceUnitTest {
     protected static final String FOO2_IDX = "FOO2_IDX";
     protected static final String TEST = "TEST";
     protected static final String TEST2 = "TEST2";
-
-
+    protected static final String A = "A";
+    protected static final String B = "B";
+    protected static final String A_IDX = "A_IDX";
 
     protected static SpliceTableWatcher lineItemTable = new SpliceTableWatcher(LINEITEM, CLASS_NAME,
             "( L_ORDERKEY INTEGER NOT NULL,L_PARTKEY INTEGER NOT NULL, L_SUPPKEY INTEGER NOT NULL, " +
@@ -74,6 +76,18 @@ public class MergeJoinIT extends SpliceUnitTest {
 
     protected static SpliceIndexWatcher foo2Index = new SpliceIndexWatcher(FOO2,CLASS_NAME,FOO2_IDX,CLASS_NAME,"(col3, col2, col1)");
 
+    protected static SpliceTableWatcher aTable = new SpliceTableWatcher(A, CLASS_NAME,
+            "(c1 int, c2 int, c3 int, c4 int)");
+
+    protected static SpliceIndexWatcher aIndex = new SpliceIndexWatcher(A, CLASS_NAME, A_IDX,CLASS_NAME,"(c1, c2, c3)");
+
+    protected static SpliceTableWatcher bTable = new SpliceTableWatcher(B, CLASS_NAME,
+            "(c1 int, c2 int, c3 int, primary key(c1, c2))");
+
+    protected static String MERGE_INDEX_RIGHT_SIDE_NEGATIVE_TEST = format("select sum(a.c4) from --SPLICE-PROPERTIES joinOrder=fixed\n" +
+            " %s.%s b inner join %s.%s a --SPLICE-PROPERTIES index=%s, joinStrategy=MERGE\n" +
+            " on b.c1 = a.c3 and a.c1=1",CLASS_NAME,B,CLASS_NAME,A,A_IDX);
+
     protected static String MERGE_INDEX_RIGHT_SIDE_TEST = format("select * from --SPLICE-PROPERTIES joinOrder=fixed\n" +
             " %s.%s inner join %s.%s --SPLICE-PROPERTIES index=%s, joinStrategy=MERGE\n" +
             " on foo.col1 = foo2.col3",CLASS_NAME,FOO,CLASS_NAME,FOO2,FOO2_IDX);
@@ -87,6 +101,9 @@ public class MergeJoinIT extends SpliceUnitTest {
     @ClassRule
     public static TestRule chain = RuleChain.outerRule(spliceSchemaWatcher)
             .around(spliceClassWatcher)
+            .around(aTable)
+            .around(bTable)
+            .around(aIndex)
             .around(lineItemTable)
             .around(orderTable)
             .around(fooTable)
@@ -300,13 +317,24 @@ public class MergeJoinIT extends SpliceUnitTest {
     @Test
     public void testMergeWithRightCoveringIndex() throws Exception {
         List<Object[]> data = TestUtils.resultSetToArrays(methodWatcher.executeQuery(MERGE_INDEX_RIGHT_SIDE_TEST));
-        Assert.assertTrue("does not return 1 row for merge, position problems in MergeSortJoinStrategy/Operation?",data.size()==1);
+        Assert.assertTrue("does not return 1 row for merge, position problems in MergeSortJoinStrategy/Operation?", data.size() == 1);
     }
 
     @Test
     public void testMergeWithUnorderedPredicates() throws Exception {
         List<Object[]> data = TestUtils.resultSetToArrays(methodWatcher.executeQuery(MERGE_WITH_UNORDERED));
         Assert.assertTrue("does not return 1 row for merge, position problems in MergeSortJoinStrategy/Operation?",data.size()==1);
+    }
+
+    @Test
+    public void testMergeWithRightIndexNegative() throws Exception {
+        try {
+            TestUtils.resultSetToArrays(methodWatcher.executeQuery(MERGE_INDEX_RIGHT_SIDE_NEGATIVE_TEST));
+            fail("Expected infeasible join strategy exception");
+        }
+        catch (Exception e) {
+            Assert.assertTrue(e.getMessage().compareTo("No valid execution plan was found for this statement. This is usually because an infeasible join strategy was chosen, or because an index was chosen which prevents the chosen join strategy from being used.")==0);
+        }
     }
 
     private static String getResource(String name) {
