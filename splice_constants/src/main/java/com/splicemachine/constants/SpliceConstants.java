@@ -36,6 +36,15 @@ public class SpliceConstants {
     @DefaultValue(UPGRADE_FORCED) public static final boolean DEFAULT_UPGRADE_FORCED = false;
     public static boolean upgradeForced;
 
+
+    /**
+     * Ignore SavePts flag for experimental TPCC testing.
+     */
+    @Parameter public static final String IGNORE_SAVEPTS = "splice.ignore.savepts";
+    @DefaultValue(IGNORE_SAVEPTS) public static final boolean DEFAULT_IGNORE_SAVEPTS = false;
+    public static boolean ignoreSavePts;
+
+
     /**
      * If the upgrade process is being forced, this tells which version to begin the upgrade process from.
      * Default is "0.0.0", which means that all upgrades will be executed.
@@ -1114,6 +1123,7 @@ public class SpliceConstants {
         siDelayRollForwardMaxSize = config.getInt(SI_DELAY_ROLL_FORWARD_MAX_SIZE, DEFAULT_SI_DELAY_ROLL_FORWARD_MAX_SIZE);
         ipcThreads = config.getInt("hbase.regionserver.handler.count",maxThreads);
 
+        ignoreSavePts = config.getBoolean(IGNORE_SAVEPTS,DEFAULT_IGNORE_SAVEPTS);
         // Optimizer Settings
 
         hashNLJLeftRowBufferSize = SpliceConstants.config.getInt(HASHNLJ_LEFTROWBUFFER_SIZE, DEFAULT_HASHNLJ_LEFTROWBUFFER_SIZE);
