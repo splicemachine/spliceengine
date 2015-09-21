@@ -135,8 +135,6 @@ public abstract class DMLStatementNode extends StatementNode {
         ExistsSubqueryFlatteningVisitor existsAggregateFlatteningVisitor = new ExistsSubqueryFlatteningVisitor();
         resultSet.accept(existsAggregateFlatteningVisitor);
 
-        saveTree(resultSet);
-
         resultSet = resultSet.preprocess(getCompilerContext().getNumTables(), null, null);
         // Evaluate expressions with constant operands here to simplify the
         // query tree and to reduce the runtime cost. Do it before optimize()
@@ -151,21 +149,6 @@ public abstract class DMLStatementNode extends StatementNode {
         resultSet = resultSet.modifyAccessPaths();
 
     }
-
-
-    private void saveTree(Visitable queryTree) throws StandardException {
-        try {
-            JsonTreeBuilderVisitor jsonVisitor = new JsonTreeBuilderVisitor();
-            queryTree.accept(jsonVisitor);
-            String destinationFileName = "keith" + ".json";
-            Files.write(Paths.get(destinationFileName), jsonVisitor.toJson().getBytes("UTF-8"));
-        } catch (IOException e) {
-                /* Don't let the exception propagate.  If we are trying to use this tool on a server where we can't
-                   write to the destination, for example, then warn but let the query run. */
-            throw new IllegalStateException(e);
-        }
-    }
-
 
     /**
      * Make a ResultDescription for use in a PreparedStatement. <p/> ResultDescriptions are visible to JDBC only for

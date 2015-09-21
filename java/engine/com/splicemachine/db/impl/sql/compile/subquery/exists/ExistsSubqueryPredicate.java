@@ -5,7 +5,7 @@ import com.splicemachine.db.impl.sql.compile.*;
 import org.apache.log4j.Logger;
 
 /**
- * This predicate determines if we attempt to flatten a given aggregate SubqueryNode or not.
+ * This predicate determines if we attempt to flatten a given exists SubqueryNode or not.
  */
 class ExistsSubqueryPredicate implements com.google.common.base.Predicate<SubqueryNode> {
 
@@ -49,8 +49,6 @@ class ExistsSubqueryPredicate implements com.google.common.base.Predicate<Subque
 
         /* subquery where clause must meet several conditions */
         SelectNode subquerySelectNode = (SelectNode) subqueryResultSet;
-
-        /* subquery where clause must meet several conditions */
         ValueNode whereClause = subquerySelectNode.getWhereClause();
 
         /* If there is no where clause on the exist subquery then it is not correlated and we can't flatten */

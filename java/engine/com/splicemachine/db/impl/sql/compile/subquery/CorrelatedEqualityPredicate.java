@@ -5,7 +5,7 @@ import com.splicemachine.db.impl.sql.compile.ColumnReference;
 import com.splicemachine.db.impl.sql.compile.RelationalOperator;
 
 /**
- * A predicate that evaluates to true if it has this shape.
+ * A predicate that evaluates to true if a given BinaryRelationalOperatorNode has this shape:
  * <pre>
  * BRON(=)
  *  /  \
