@@ -99,12 +99,21 @@ public class StatsConstants extends SpliceConstants {
      */
     public static long fallbackRemoteLatencyRatio;
     @Parameter public static final String FALLBACK_REMOTE_LATENCY_RATIO="splice.statistics.fallbackRemoteLatencyRatio";
-    @DefaultValue(value =FALLBACK_REMOTE_LATENCY_RATIO) public static final long DEFAULT_FALLBACK_REMOTE_LATENCY_RATIO= 80l;
+    @DefaultValue(value =FALLBACK_REMOTE_LATENCY_RATIO) public static final long DEFAULT_FALLBACK_REMOTE_LATENCY_RATIO= 10l;
 
     public static long fallbackLocalLatency;
     @Parameter public static final String FALLBACK_LOCAL_LATENCY="splice.statistics.fallbackLocalLatency";
-    @DefaultValue(value =FALLBACK_LOCAL_LATENCY) public static final long DEFAULT_FALLBACK_LOCAL_LATENCY= 10l;
+    @DefaultValue(value =FALLBACK_LOCAL_LATENCY) public static final long DEFAULT_FALLBACK_LOCAL_LATENCY= 1l;
 
+    /**
+     *
+     * Open Close Latency in Microseconds
+     *
+     * 2 ms default
+     */
+    public static long fallbackOpenCloseLatency;
+    @Parameter public static final String FALLBACK_OPENCLOSE_LATENCY="splice.statistics.fallbackOpenCloseLatency";
+    @DefaultValue(value =FALLBACK_OPENCLOSE_LATENCY) public static final long DEFAULT_FALLBACK_OPENCLOSE_LATENCY= 2*1000;
 
 
     /**
@@ -138,6 +147,7 @@ public class StatsConstants extends SpliceConstants {
 
         fallbackRemoteLatencyRatio= config.getLong(FALLBACK_REMOTE_LATENCY_RATIO,DEFAULT_FALLBACK_REMOTE_LATENCY_RATIO);
         fallbackLocalLatency = config.getLong(FALLBACK_LOCAL_LATENCY,DEFAULT_FALLBACK_LOCAL_LATENCY);
+        fallbackOpenCloseLatency = config.getLong(FALLBACK_OPENCLOSE_LATENCY,DEFAULT_FALLBACK_OPENCLOSE_LATENCY);
         fallbackCardinalityFraction = config.getDouble(FALLBACK_CARDINALITY_FRACTION,DEFAULT_FALLBACK_CARDINALITY_FRACTION);
         fallbackNullFraction = config.getDouble(FALLBACK_NULL_FRACTION,DEFAULT_FALLBACK_NULL_FRACTION);
         fallbackIndexSelectivityFraction = config.getDouble(FALLBACK_INDEX_SELECTIVITY_FRACTION,DEFAULT_FALLBACK_INDEX_SELECTIVITY_FRACTION);
