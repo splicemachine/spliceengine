@@ -2,7 +2,10 @@ package com.splicemachine.derby.impl.sql.execute.operations;
 
 import com.splicemachine.derby.test.framework.SpliceSchemaWatcher;
 import com.splicemachine.derby.test.framework.SpliceWatcher;
-import org.junit.*;
+import org.junit.BeforeClass;
+import org.junit.ClassRule;
+import org.junit.Rule;
+import org.junit.Test;
 
 public class Subquery_InListFlattening_IT {
 
@@ -52,7 +55,6 @@ public class Subquery_InListFlattening_IT {
     }
 
     @Test
-    @Ignore
     public void testBetweenFlattenAndNode() throws Exception {
         SubqueryITUtil.assertUnorderedResult(methodWatcher.getOrCreateConnection(),
                 "select * from A where a1 between 0 and 10 and a1 in (select a1 from A ai where ai.a2 > 20)", ZERO_SUBQUERY_NODES_IN_PLAN, "" +
@@ -65,7 +67,6 @@ public class Subquery_InListFlattening_IT {
     }
 
     @Test
-    @Ignore
     public void testBetweenNotFlattenOrNode() throws Exception {
         SubqueryITUtil.assertUnorderedResult(methodWatcher.getOrCreateConnection(),
                 "select * from A where a1 between 0 and 4 or a1 in (select a1 from A ai where ai.a2 > 20)", 1, "" +
@@ -81,7 +82,6 @@ public class Subquery_InListFlattening_IT {
     }
 
     @Test
-    @Ignore
     public void testLikeFlattenAndNode() throws Exception {
         SubqueryITUtil.assertUnorderedResult(methodWatcher.getOrCreateConnection(),
                 "select * from C where surname like 'S%' and surname in (select surname from C where name = 'Jon')", ZERO_SUBQUERY_NODES_IN_PLAN, "" +
@@ -92,7 +92,6 @@ public class Subquery_InListFlattening_IT {
     }
 
     @Test
-    @Ignore
     public void testLikeNotFlattenOrNode() throws Exception {
         SubqueryITUtil.assertUnorderedResult(methodWatcher.getOrCreateConnection(),
                 "select * from C where surname like 'A%' or surname in (select surname from C where name = 'Robb')", 1, "" +
