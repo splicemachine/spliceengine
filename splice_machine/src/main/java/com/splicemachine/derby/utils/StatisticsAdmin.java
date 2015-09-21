@@ -177,7 +177,7 @@ public class StatisticsAdmin extends BaseAdminProcedures {
             //get a list of all the TableDescriptors in the schema
             List<TableDescriptor> tds = getAllTableDescriptors(sd,conn);
             if (tds.isEmpty()) {
-                // DEBUG: JC - No point in continuing with empty TableDescriptor list, possible NPE
+                // No point in continuing with empty TableDescriptor list, possible NPE
                 return;
             }
             authorize(tds);
@@ -504,49 +504,15 @@ public class StatisticsAdmin extends BaseAdminProcedures {
                      * don't collect statistics for those views
                      */
 
-                    if (tableDescriptor == null || tableDescriptor.getConglomerateDescriptorList() == null) {
-                        // DEBUG: JC - changed logging to ERROR to make sure we get this message logged
-                        SpliceLogUtils.error(LOG,"tableDescriptor is null for this table/view tableid=%s, tableDescriptor=%s",tableId,tableDescriptor);
-                    }
-                    else if(tableDescriptor.getConglomerateDescriptorList().size() > 0){
+                    if(tableDescriptor != null && tableDescriptor.getConglomerateDescriptorList().size() > 0){
                         tds.add(tableDescriptor);
                     }
-                }
-                if (tds.isEmpty()) {
-                    // DEBUG: JC - changed logging to ERROR to make sure we get this message logged
-                    SpliceLogUtils.error(LOG,"No tables in schema ID=%s", sd.getUUID().toString());
-                } else {
-                    // DEBUG: JC - changed logging to ERROR to make sure we get this message logged
-                    SpliceLogUtils.error(LOG,"TableDescriptors: %s", printTDs(tds));
                 }
                 return tds;
             }
         }catch(StandardException e){
             throw PublicAPI.wrapStandardException(e);
         }
-    }
-
-    private static String printTDs(List<TableDescriptor> tds) {
-        StringBuilder buf = new StringBuilder();
-        for (TableDescriptor td : tds) {
-            try {
-                buf.append("[").append(td.getName()).append("(").append(td.getHeapConglomerateId()).append(")");
-            } catch (StandardException e) {
-                e.printStackTrace();
-            }
-            ConglomerateDescriptor[] cds = td.getConglomerateDescriptors();
-            if (cds == null || cds.length == 0) {
-                buf.append("No congloms in descriptor");
-            } else {
-                buf.append(" congloms: ");
-                for (ConglomerateDescriptor cd : cds) {
-                    buf.append(cd.getConglomerateName()).append(" ").append(cd.getConglomerateNumber()).append(",");
-                }
-                buf.append(" | ");
-            }
-            buf.append("]");
-        }
-        return buf.toString();
     }
 
     private static StatisticsJob getIndexJob(IndexRowGenerator irg,
