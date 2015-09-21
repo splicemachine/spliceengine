@@ -22,7 +22,7 @@ import java.util.LinkedList;
 
 public class SpliceTransaction extends BaseSpliceTransaction {
     private static Logger LOG = Logger.getLogger(SpliceTransaction.class);
-    protected boolean ignoreSavePoints = false;
+    protected boolean ignoreSavePoints = SpliceConstants.ignoreSavePts;
 
     public void setIgnoreSavePoints(boolean ignoreSavePoints) {
         this.ignoreSavePoints = ignoreSavePoints;
