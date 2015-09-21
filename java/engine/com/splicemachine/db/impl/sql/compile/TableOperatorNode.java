@@ -706,11 +706,9 @@ public abstract class TableOperatorNode extends FromTable{
 			** Set the estimated number of outer rows from the outer part of
 			** the plan.
 			*/
-            optimizer.setOuterRows(outerCost.rowCount());
 
-            optimizer.setOuterRowOrdering(outerCost.getRowOrdering());
-
-            optimizer.setIsOuterJoin(outerCost.isOuterJoin());
+            // Encapsulate this transfer logic.
+            optimizer.transferOuterCost(outerCost);
 
 			/* Optimize the underlying result set */
             while(optimizer.nextJoinOrder()){
