@@ -766,6 +766,7 @@ public class HdfsImportIT extends SpliceUnitTest {
 		 *     https://github.com/junit-team/junit/pull/778
 		 */
 		//try {
+            // no exceptions now, we just skipping wrong lines
 			testMissingEndQuoteForQuotedColumn(
 					spliceSchemaWatcher.schemaName,
 					TABLE_18,

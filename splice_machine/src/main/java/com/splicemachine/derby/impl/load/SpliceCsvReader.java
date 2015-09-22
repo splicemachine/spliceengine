@@ -66,8 +66,6 @@ public class SpliceCsvReader extends CsvListReader {
         try {
             res = readRow();
         } catch (Exception e) {
-            //System.out.println("Read CSV-file error:" + e.getMessage());
-            //throw e;
             failMsg.add(e.getMessage());
         }
 
