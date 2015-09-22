@@ -84,7 +84,7 @@ public class SpliceConstants {
     public static int sampleTimingSize = 10000;
 
     @Parameter public static final String IMPORT_MAX_QUOTED_COLUMN_LINES="splice.import.maxQuotedColumnLines";
-    @DefaultValue(IMPORT_MAX_QUOTED_COLUMN_LINES) public static final int DEFAULT_IMPORT_MAX_QUOTED_COLUMN_LINES = 200000;
+    @DefaultValue(IMPORT_MAX_QUOTED_COLUMN_LINES) public static final int DEFAULT_IMPORT_MAX_QUOTED_COLUMN_LINES = 1000; //200000;
     public static int importMaxQuotedColumnLines;
 
     @SpliceConstants.Parameter public static final String CONSTRAINTS_ENABLED ="splice.constraints.enabled";
