@@ -29,12 +29,10 @@ import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.Optimizable;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
 import com.splicemachine.db.iapi.store.access.ScanController;
-import com.splicemachine.db.iapi.store.access.conglomerate.Conglomerate;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.Orderable;
 import com.splicemachine.db.iapi.types.TypeId;
 import com.splicemachine.db.iapi.util.JBitSet;
-
 import java.sql.Types;
 
 /**
@@ -269,10 +267,8 @@ public class BinaryRelationalOperatorNode
 
         if(leftOperand instanceof CastNode){
             if(((CastNode) leftOperand).castOperand instanceof ColumnReference){
-
-                cr = (ColumnReference)((CastNode) leftOperand).castOperand;
-                if(valNodeReferencesOptTable(cr, (FromTable) optTable, false, walkSubtree)){
-
+                cr = (ColumnReference)(((CastNode) leftOperand).castOperand);
+                if(valNodeReferencesOptTable(cr, (FromTable)optTable, false, walkSubtree)){
                     return cr;
                 }
             }
@@ -280,8 +276,8 @@ public class BinaryRelationalOperatorNode
 
         if(rightOperand instanceof CastNode){
             if(((CastNode) rightOperand).castOperand instanceof ColumnReference){
-                cr = (ColumnReference)((CastNode) rightOperand).castOperand;
-                if(valNodeReferencesOptTable(cr, (FromTable) optTable, false, walkSubtree)){
+                cr = (ColumnReference)(((CastNode) rightOperand).castOperand);
+                if(valNodeReferencesOptTable(cr, (FromTable)optTable, false, walkSubtree)){
                     return cr;
                 }
             }
@@ -1266,8 +1262,36 @@ public class BinaryRelationalOperatorNode
     /**
      * @see RelationalOperator#getOperator
      */
+    @Override
     public int getOperator(){
         return operatorType;
+    }
+
+    /**
+     *
+     * Computes the selectivity of the Binary RelationalOperatorNode.
+     *
+     * @param optTable
+     * @return
+     * @throws StandardException
+     */
+    public double getReferenceSelectivity(Optimizable optTable) throws StandardException {
+        if (leftOperand instanceof ColumnReference && rightOperand instanceof ColumnReference && optTable instanceof FromBaseTable) {
+            ConglomerateDescriptor cdLeft = ((ColumnReference) leftOperand).getBaseConglomerateDescriptor();
+            ConglomerateDescriptor cdRight = ((ColumnReference) rightOperand).getBaseConglomerateDescriptor();
+            if (cdLeft ==null || cdRight==null)
+                return -1.0d;
+            boolean leftFromBaseTable = cdLeft.equals(((FromBaseTable) optTable).baseConglomerateDescriptor);
+            boolean rightFromBaseTable = cdRight.equals(((FromBaseTable) optTable).baseConglomerateDescriptor);
+            if (leftFromBaseTable && rightFromBaseTable) {
+                return Math.max(((ColumnReference) leftOperand).columnReferenceEqualityPredicateSelectivity(),((ColumnReference) rightOperand).columnReferenceEqualityPredicateSelectivity());
+            } else if (leftFromBaseTable) {
+                return ((ColumnReference) leftOperand).columnReferenceEqualityPredicateSelectivity();
+            } else if (rightFromBaseTable) {
+                return ((ColumnReference) rightOperand).columnReferenceEqualityPredicateSelectivity();
+            }
+        }
+        return -1.0d;
     }
 
     /**
@@ -1275,13 +1299,14 @@ public class BinaryRelationalOperatorNode
      */
     public double selectivity(Optimizable optTable) throws StandardException{
         double retval=booleanSelectivity(optTable);
-
         if(retval>=0.0d)
             return retval;
-
         switch(operatorType){
             case RelationalOperator.EQUALS_RELOP:
-                return 0.1;
+                double selectivity = getReferenceSelectivity(optTable);
+                if (selectivity ==-1.0d) // No Stats, lets just guess 10%
+                    return 0.1;
+                return selectivity;
             case RelationalOperator.NOT_EQUALS_RELOP:
             case RelationalOperator.LESS_THAN_RELOP:
             case RelationalOperator.LESS_EQUALS_RELOP:
@@ -1292,7 +1317,6 @@ public class BinaryRelationalOperatorNode
             case RelationalOperator.GREATER_THAN_RELOP:
                 return 0.33;
         }
-
         return 0.0;
     }
 

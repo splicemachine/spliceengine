@@ -95,7 +95,9 @@ public class AndNode extends BinaryLogicalOperatorNode{
 		 * such as the ones for LIKE and BETWEEN, underneath us.
 		 */
         if(leftOperand instanceof AndNode){
-            changeToCNF(false);
+            // OrNode Cannot be Transformed to an AndNode.
+            // This allows us to always believe we are a top AndNode...
+            changeToCNF(true);
         }
         rightOperand=rightOperand.preprocess(numTables,
                 outerFromList,outerSubqueryList,

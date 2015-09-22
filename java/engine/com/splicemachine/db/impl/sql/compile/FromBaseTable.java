@@ -795,12 +795,6 @@ public class FromBaseTable extends FromTable {
               * we are a non-covering index).
               */
 
-	         /*
-	         ** Tell the RowOrdering that this optimizable is always ordered.
-	         ** It will figure out whether it is really always ordered in the
-	         ** context of the outer tables and their orderings.
-	         */
-            rowOrdering.optimizableAlwaysOrdered(this);
             singleScanRowCount=1.0;
 
 			/* Yes, the cost is to fetch exactly one row */
@@ -853,7 +847,7 @@ public class FromBaseTable extends FromTable {
                     if(baseTableRestrictionList.isRedundantPredicate(i)) continue;
                 }
 
-                if(!p.isJoinPredicate()) //skip join predicates
+                if(!p.isJoinPredicate() || currentJoinStrategy.allowsJoinPredicatePushdown()) //skip join predicates unless they support predicate pushdown
                     scf.addPredicate(p);
             }
             scf.generateCost();
@@ -3376,7 +3370,7 @@ public class FromBaseTable extends FromTable {
                 .append("n=").append(order)
                 .append(",").append(getFinalCostEstimate().prettyFromBaseTableString());
         if (indexName != null)
-            sb.append("baseTable=").append(getPrettyTableName());
+            sb.append(",baseTable=").append(getPrettyTableName());
         List<String> qualifiers =  Lists.transform(PredicateUtils.PLtoList(RSUtils.getPreds(this)), PredicateUtils.predToString);
         if(qualifiers!=null && qualifiers.size()>0) //add
             sb.append(",preds=["+ Joiner.on(",").skipNulls().join(qualifiers)+"]");

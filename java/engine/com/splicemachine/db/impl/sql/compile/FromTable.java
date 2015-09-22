@@ -510,7 +510,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         assert bestPath!=null;
         setCostEstimate(bestPath.getCostEstimate());
 
-        bestPath.getOptimizer().tracer().trace(OptimizerFlag.REMEMBERING_BEST_ACCESS_PATH,tableNumber,planType,0.0,bestPath);
+        bestPath.getOptimizer().tracer().trace(OptimizerFlag.REMEMBERING_BEST_ACCESS_PATH, tableNumber, planType, 0.0, bestPath);
     }
 
     @Override
@@ -983,6 +983,10 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
         this.tableNumber=tableNumber;
     }
 
+    public void changeTableNumber(int tableNumber){
+        this.tableNumber=tableNumber;
+    }
+
     /**
      * Return a TableName node representing this FromTable.
      * Expect this to be overridden (and used) by subclasses
@@ -1183,28 +1187,7 @@ public abstract class FromTable extends ResultSetNode implements Optimizable{
      * due to their being equality comparisons with constant expressions.
      */
     protected void tellRowOrderingAboutConstantColumns(RowOrdering rowOrdering, OptimizablePredicateList predList){
-		/*
-		** Tell the RowOrdering about columns that are equal to constant
-		** expressions.
-		*/
-        if(predList!=null){
-            for(int i=0;i<predList.size();i++){
-                Predicate pred=(Predicate)predList.getOptPredicate(i);
-
-				/* Is it an = comparison with a constant expression? */
-                if(pred.equalsComparisonWithConstantExpression(this)){
-					/* Get the column being compared to the constant */
-                    //noinspection ConstantConditions
-                    ColumnReference cr=pred.getRelop().getColumnOperand(this);
-
-                    if(cr!=null){
-						/* Tell RowOrdering that the column is always ordered */
-                        rowOrdering.columnAlwaysOrdered(this,cr.getColumnNumber());
-                    }
-                }
-            }
-        }
-
+		return;
     }
 
     public boolean needsSpecialRCLBinding(){

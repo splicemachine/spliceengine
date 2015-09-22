@@ -29,23 +29,19 @@ public class FindHashJoinColumns extends AbstractSpliceVisitor {
     private static Logger LOG = Logger.getLogger(FindHashJoinColumns.class);
 
     @Override
-    public JoinNode visit(final JoinNode node) throws StandardException {
+    public JoinNode visit(JoinNode node) throws StandardException {
         if (!RSUtils.isHashableJoin(((Optimizable) node.getRightResultSet()).getTrulyTheBestAccessPath())) {
             return node;
         }
         Set<Predicate> equiJoinPreds =
                 Sets.filter(Sets.newLinkedHashSet(PredicateUtils.PLtoList(node.joinPredicates)),
                         PredicateUtils.isEquiJoinPred);
+
         Pair<List<Integer>, List<Integer>> indices = findHashIndices(node, equiJoinPreds);
-        LOG.info(String.format("Hash key indices found for Join n=%s: %s", node.getResultSetNumber(), indices));
+        if (LOG.isDebugEnabled())
+            LOG.debug(String.format("Hash key indices found for Join n=%s: %s", node.getResultSetNumber(), indices));
         node.leftHashKeys = Ints.toArray(indices.getLeft());
         node.rightHashKeys = Ints.toArray(indices.getRight());
-
-        for (Predicate p : equiJoinPreds) {
-            // cleanup joinPredicates, as equijoin preds are handled by hashing
-            //node.joinPredicates.removeOptPredicate(p);
-        }
-
         return node;
     }
 

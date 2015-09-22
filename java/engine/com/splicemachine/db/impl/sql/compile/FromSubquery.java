@@ -389,16 +389,13 @@ public class FromSubquery extends FromTable
 			HashMap<String, ResultColumn> hs = new HashMap<>();
 
 			for(ResultColumn rc : rcl){
-
-				String cName = rc.name;
-				hs.put(cName, rc);
+				hs.put(rc.name, rc);
 			}
 
 			if(((SelectNode) subquery).groupByList != null){
 				for(OrderedColumn gbc : ((SelectNode) subquery).groupByList){
 					if(gbc.getColumnExpression() instanceof ColumnReference
-
-							&& hs.containsKey(((ColumnReference) gbc.getColumnExpression()).getSource().getName())){
+							&& (hs.containsKey(((ColumnReference) gbc.getColumnExpression()).columnName))){
 							ResultColumn rc = hs.get(((ColumnReference) gbc.getColumnExpression()).columnName);
 							rc.isGenerated = false;
 							rc.isReferenced = false;

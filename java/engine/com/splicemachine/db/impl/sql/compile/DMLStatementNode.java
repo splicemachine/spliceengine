@@ -26,97 +26,88 @@ import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.sql.ResultColumnDescriptor;
 import com.splicemachine.db.iapi.sql.ResultDescription;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
+import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.iapi.sql.compile.Visitor;
 import com.splicemachine.db.iapi.sql.conn.Authorizer;
 import com.splicemachine.db.iapi.sql.dictionary.DataDictionary;
+import com.splicemachine.db.impl.ast.JsonTreeBuilderVisitor;
+import com.splicemachine.db.impl.sql.compile.subquery.aggregate.AggregateSubqueryFlatteningVisitor;
+import com.splicemachine.db.impl.sql.compile.subquery.exists.ExistsSubqueryFlatteningVisitor;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Collection;
 import java.util.Vector;
 
 /**
- * A DMLStatementNode represents any type of DML statement: a cursor declaration,
- * an INSERT statement, and UPDATE statement, or a DELETE statement.  All DML
- * statements have result sets, but they do different things with them.  A
- * SELECT statement sends its result set to the client, an INSERT statement
- * inserts its result set into a table, a DELETE statement deletes from a
- * table the rows corresponding to the rows in its result set, and an UPDATE
- * statement updates the rows in a base table corresponding to the rows in its
- * result set.
+ * A DMLStatementNode represents any type of DML statement: a cursor declaration, an INSERT statement, and UPDATE
+ * statement, or a DELETE statement.  All DML statements have result sets, but they do different things with them.  A
+ * SELECT statement sends its result set to the client, an INSERT statement inserts its result set into a table, a
+ * DELETE statement deletes from a table the rows corresponding to the rows in its result set, and an UPDATE statement
+ * updates the rows in a base table corresponding to the rows in its result set.
  */
 
-public abstract class DMLStatementNode extends StatementNode{
+public abstract class DMLStatementNode extends StatementNode {
 
     /**
-     * The result set is the rows that result from running the
-     * statement.  What this means for SELECT statements is fairly obvious.
-     * For a DELETE, there is one result column representing the
-     * key of the row to be deleted (most likely, the location of the
-     * row in the underlying heap).  For an UPDATE, the row consists of
-     * the key of the row to be updated plus the updated columns.  For
-     * an INSERT, the row consists of the new column values to be
-     * inserted, with no key (the system generates a key).
-     * <p/>
-     * The parser doesn't know anything about keys, so the columns
-     * representing the keys will be added after parsing (perhaps in
-     * the binding phase?).
+     * The result set is the rows that result from running the statement.  What this means for SELECT statements is
+     * fairly obvious. For a DELETE, there is one result column representing the key of the row to be deleted (most
+     * likely, the location of the row in the underlying heap).  For an UPDATE, the row consists of the key of the row
+     * to be updated plus the updated columns.  For an INSERT, the row consists of the new column values to be inserted,
+     * with no key (the system generates a key). <p/> The parser doesn't know anything about keys, so the columns
+     * representing the keys will be added after parsing (perhaps in the binding phase?).
      */
     ResultSetNode resultSet;
 
     /**
      * Initializer for a DMLStatementNode
      *
-     * @param resultSet A ResultSetNode for the result set of the
-     *                  DML statement
+     * @param resultSet A ResultSetNode for the result set of the DML statement
      */
 
-    public void init(Object resultSet){
-        this.resultSet=(ResultSetNode)resultSet;
+    public void init(Object resultSet) {
+        this.resultSet = (ResultSetNode) resultSet;
     }
 
     /**
-     * Prints the sub-nodes of this object.  See QueryTreeNode.java for
-     * how tree printing is supposed to work.
+     * Prints the sub-nodes of this object.  See QueryTreeNode.java for how tree printing is supposed to work.
      *
      * @param depth The depth of this node in the tree
      */
 
-    public void printSubNodes(int depth){
-        if(SanityManager.DEBUG){
+    public void printSubNodes(int depth) {
+        if (SanityManager.DEBUG) {
             super.printSubNodes(depth);
-            if(resultSet!=null){
-                printLabel(depth,"resultSet: ");
-                resultSet.treePrint(depth+1);
+            if (resultSet != null) {
+                printLabel(depth, "resultSet: ");
+                resultSet.treePrint(depth + 1);
             }
         }
     }
 
     /**
-     * Get the ResultSetNode from this DML Statement.
-     * (Useful for view resolution after parsing the view definition.)
+     * Get the ResultSetNode from this DML Statement. (Useful for view resolution after parsing the view definition.)
      *
      * @return ResultSetNode    The ResultSetNode from this DMLStatementNode.
      */
-    public ResultSetNode getResultSetNode(){
+    public ResultSetNode getResultSetNode() {
         return resultSet;
     }
 
     /**
-     * Bind only the underlying ResultSets with tables.  This is necessary for
-     * INSERT, where the binding order depends on the underlying ResultSets.
-     * This means looking up tables and columns and
-     * getting their types, and figuring out the result types of all
-     * expressions, as well as doing view resolution, permissions checking,
-     * etc.
+     * Bind only the underlying ResultSets with tables.  This is necessary for INSERT, where the binding order depends
+     * on the underlying ResultSets. This means looking up tables and columns and getting their types, and figuring out
+     * the result types of all expressions, as well as doing view resolution, permissions checking, etc.
      *
-     * @param dataDictionary The DataDictionary to use to look up
-     *                       columns, tables, etc.
-     * @throws StandardException Thrown on error
+     * @param dataDictionary The DataDictionary to use to look up columns, tables, etc.
      * @return The bound query tree
+     * @throws StandardException Thrown on error
      */
 
     public QueryTreeNode bindResultSetsWithTables(DataDictionary dataDictionary)
-            throws StandardException{
-		/* Okay to bindly bind the tables, since ResultSets without tables
+            throws StandardException {
+        /* Okay to bindly bind the tables, since ResultSets without tables
 		 * know to handle the call.
 		 */
         bindTables(dataDictionary);
@@ -128,26 +119,23 @@ public abstract class DMLStatementNode extends StatementNode{
     }
 
     /**
-     * Optimize a DML statement (which is the only type of statement that
-     * should need optimizing, I think). This method over-rides the one
-     * in QueryTreeNode.
-     * <p/>
-     * This method takes a bound tree, and returns an optimized tree.
-     * It annotates the bound tree rather than creating an entirely
-     * new tree.
-     * <p/>
-     * Throws an exception if the tree is not bound, or if the binding
-     * is out of date.
+     * Optimize a DML statement (which is the only type of statement that should need optimizing, I think). This method
+     * over-rides the one in QueryTreeNode. <p/> This method takes a bound tree, and returns an optimized tree. It
+     * annotates the bound tree rather than creating an entirely new tree. <p/> Throws an exception if the tree is not
+     * bound, or if the binding is out of date.
      *
      * @throws StandardException Thrown on error
      */
     @Override
-    public void optimizeStatement() throws StandardException{
-        InSubqueryUnroller inSubqueryUnroller = new InSubqueryUnroller();
-        resultSet.accept(inSubqueryUnroller);
+    public void optimizeStatement() throws StandardException {
+
         AggregateSubqueryFlatteningVisitor subqueryAggregateFlatteningVisitor = new AggregateSubqueryFlatteningVisitor();
         resultSet.accept(subqueryAggregateFlatteningVisitor);
-        resultSet=resultSet.preprocess(getCompilerContext().getNumTables(),null,null);
+
+        ExistsSubqueryFlatteningVisitor existsAggregateFlatteningVisitor = new ExistsSubqueryFlatteningVisitor();
+        resultSet.accept(existsAggregateFlatteningVisitor);
+
+        resultSet = resultSet.preprocess(getCompilerContext().getNumTables(), null, null);
         // Evaluate expressions with constant operands here to simplify the
         // query tree and to reduce the runtime cost. Do it before optimize()
         // since the simpler tree may have more accurate information for
@@ -157,49 +145,42 @@ public abstract class DMLStatementNode extends StatementNode{
         // selectivity 1.0.)
         accept(new ConstantExpressionVisitor());
 
-        resultSet=resultSet.optimize(getDataDictionary(),null,1.0d);
-        resultSet=resultSet.modifyAccessPaths();
+        resultSet = resultSet.optimize(getDataDictionary(), null, 1.0d);
+        resultSet = resultSet.modifyAccessPaths();
 
     }
 
     /**
-     * Make a ResultDescription for use in a PreparedStatement.
-     * <p/>
-     * ResultDescriptions are visible to JDBC only for cursor statements.
-     * For other types of statements, they are only used internally to
-     * get descriptions of the base tables being affected.  For example,
-     * for an INSERT statement, the ResultDescription describes the
-     * rows in the table being inserted into, which is useful when
-     * the values being inserted are of a different type or length
-     * than the columns in the base table.
+     * Make a ResultDescription for use in a PreparedStatement. <p/> ResultDescriptions are visible to JDBC only for
+     * cursor statements. For other types of statements, they are only used internally to get descriptions of the base
+     * tables being affected.  For example, for an INSERT statement, the ResultDescription describes the rows in the
+     * table being inserted into, which is useful when the values being inserted are of a different type or length than
+     * the columns in the base table.
      *
      * @return A ResultDescription for this DML statement
      */
 
-    public ResultDescription makeResultDescription(){
-        ResultColumnDescriptor[] colDescs=resultSet.makeResultDescriptors();
-        String statementType=statementToString();
+    public ResultDescription makeResultDescription() {
+        ResultColumnDescriptor[] colDescs = resultSet.makeResultDescriptors();
+        String statementType = statementToString();
 
         return getExecutionFactory().getResultDescription(
-                colDescs,statementType);
+                colDescs, statementType);
     }
 
     /**
-     * A read statement is atomic (DMLMod overrides us) if there
-     * are no work units, and no SELECT nodes, or if its SELECT nodes
-     * are all arguments to a function.  This is admittedly
+     * A read statement is atomic (DMLMod overrides us) if there are no work units, and no SELECT nodes, or if its
+     * SELECT nodes are all arguments to a function.  This is admittedly
      * a bit simplistic, what if someone has: <pre>
      * 	VALUES myfunc(SELECT max(c.commitFunc()) FROM T)
      * </pre>
-     * but we aren't going too far out of our way to
-     * catch every possible wierd case.  We basically
-     * want to be permissive w/o allowing someone to partially
-     * commit a write.
+     * but we aren't going too far out of our way to catch every possible wierd case.  We basically want to be
+     * permissive w/o allowing someone to partially commit a write.
      *
      * @return true if the statement is atomic
      * @throws StandardException on error
      */
-    public boolean isAtomic() throws StandardException{
+    public boolean isAtomic() throws StandardException {
 		/*
 		** If we have a FromBaseTable then we have
 		** a SELECT, so we want to consider ourselves
@@ -207,7 +188,7 @@ public abstract class DMLStatementNode extends StatementNode{
 		** to allow a SELECT in an argument to a method
 		** call that can be atomic.
 		*/
-        HasNodeVisitor visitor=new HasNodeVisitor(FromBaseTable.class,StaticMethodCallNode.class);
+        HasNodeVisitor visitor = new HasNodeVisitor(FromBaseTable.class, StaticMethodCallNode.class);
 
         this.accept(visitor, null);
         return visitor.hasNode();
@@ -219,11 +200,11 @@ public abstract class DMLStatementNode extends StatementNode{
      * @param v the visitor
      */
     @Override
-    public void acceptChildren(Visitor v) throws StandardException{
+    public void acceptChildren(Visitor v) throws StandardException {
         super.acceptChildren(v);
 
-        if(resultSet!=null){
-            resultSet=(ResultSetNode)resultSet.accept(v, this);
+        if (resultSet != null) {
+            resultSet = (ResultSetNode) resultSet.accept(v, this);
         }
     }
 
@@ -234,7 +215,7 @@ public abstract class DMLStatementNode extends StatementNode{
      * @throws StandardException Thrown on error
      */
 
-    protected void bindTables(DataDictionary dataDictionary) throws StandardException{
+    protected void bindTables(DataDictionary dataDictionary) throws StandardException {
 		/* Bind the tables in the resultSet
 		 * (DMLStatementNode is above all ResultSetNodes, so table numbering
 		 * will begin at 0.)
@@ -243,14 +224,14 @@ public abstract class DMLStatementNode extends StatementNode{
 		 * the same context.
 		 */
 
-        resultSet=resultSet.bindNonVTITables(
+        resultSet = resultSet.bindNonVTITables(
                 dataDictionary,
-                (FromList)getNodeFactory().getNode(
+                (FromList) getNodeFactory().getNode(
                         C_NodeTypes.FROM_LIST,
                         getNodeFactory().doJoinOrderOptimization(),
                         getContextManager()));
-        resultSet=resultSet.bindVTITables(
-                (FromList)getNodeFactory().getNode(
+        resultSet = resultSet.bindVTITables(
+                (FromList) getNodeFactory().getNode(
                         C_NodeTypes.FROM_LIST,
                         getNodeFactory().doJoinOrderOptimization(),
                         getContextManager()));
@@ -262,8 +243,8 @@ public abstract class DMLStatementNode extends StatementNode{
      * @throws StandardException Thrown on error
      */
 
-    protected void bindExpressions() throws StandardException{
-        FromList fromList=(FromList)getNodeFactory().getNode(
+    protected void bindExpressions() throws StandardException {
+        FromList fromList = (FromList) getNodeFactory().getNode(
                 C_NodeTypes.FROM_LIST,
                 getNodeFactory().doJoinOrderOptimization(),
                 getContextManager());
@@ -272,9 +253,9 @@ public abstract class DMLStatementNode extends StatementNode{
         resultSet.bindExpressions(fromList);
 
 		/* Verify that all underlying ResultSets reclaimed their FromList */
-        if(SanityManager.DEBUG)
-            SanityManager.ASSERT(fromList.size()==0,
-                    "fromList.size() is expected to be 0, not "+fromList.size()+
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(fromList.size() == 0,
+                    "fromList.size() is expected to be 0, not " + fromList.size() +
                             " on return from RS.bindExpressions()");
     }
 
@@ -283,8 +264,8 @@ public abstract class DMLStatementNode extends StatementNode{
      *
      * @throws StandardException Thrown on error
      */
-    protected void bindExpressionsWithTables() throws StandardException{
-        FromList fromList=(FromList)getNodeFactory().getNode(
+    protected void bindExpressionsWithTables() throws StandardException {
+        FromList fromList = (FromList) getNodeFactory().getNode(
                 C_NodeTypes.FROM_LIST,
                 getNodeFactory().doJoinOrderOptimization(),
                 getContextManager());
@@ -293,28 +274,25 @@ public abstract class DMLStatementNode extends StatementNode{
         resultSet.bindExpressionsWithTables(fromList);
 
 		/* Verify that all underlying ResultSets reclaimed their FromList */
-        if(SanityManager.DEBUG)
-            SanityManager.ASSERT(fromList.size()==0,
-                    "fromList.size() is expected to be 0, not "+fromList.size()+
+        if (SanityManager.DEBUG)
+            SanityManager.ASSERT(fromList.size() == 0,
+                    "fromList.size() is expected to be 0, not " + fromList.size() +
                             " on return from RS.bindExpressions()");
     }
 
     /**
-     * Bind this DMLStatementNode.  This means looking up tables and columns and
-     * getting their types, and figuring out the result types of all
-     * expressions, as well as doing view resolution, permissions checking,
-     * etc.
+     * Bind this DMLStatementNode.  This means looking up tables and columns and getting their types, and figuring out
+     * the result types of all expressions, as well as doing view resolution, permissions checking, etc.
      *
-     * @param dataDictionary The DataDictionary to use to look up
-     *                       columns, tables, etc.
-     * @throws StandardException Thrown on error
+     * @param dataDictionary The DataDictionary to use to look up columns, tables, etc.
      * @return The bound query tree
+     * @throws StandardException Thrown on error
      */
 
-    QueryTreeNode bind(DataDictionary dataDictionary) throws StandardException{
+    QueryTreeNode bind(DataDictionary dataDictionary) throws StandardException {
         // We just need select privilege on most columns and tables
         getCompilerContext().pushCurrentPrivType(getPrivType());
-        try{
+        try {
             /*
 			** Bind the tables before binding the expressions, so we can
 			** use the results of table binding to look up columns.
@@ -323,7 +301,7 @@ public abstract class DMLStatementNode extends StatementNode{
 
 			/* Bind the expressions */
             bindExpressions();
-        }finally{
+        } finally {
             getCompilerContext().popCurrentPrivType();
         }
 
@@ -331,52 +309,49 @@ public abstract class DMLStatementNode extends StatementNode{
     }
 
     /**
-     * Returns the type of activation this class
-     * generates.
+     * Returns the type of activation this class generates.
      *
-     * @return either (NEED_ROW_ACTIVATION | NEED_PARAM_ACTIVATION) or
-     * (NEED_ROW_ACTIVATION) depending on params
+     * @return either (NEED_ROW_ACTIVATION | NEED_PARAM_ACTIVATION) or (NEED_ROW_ACTIVATION) depending on params
      */
-    int activationKind(){
-        Vector parameterList=getCompilerContext().getParameterList();
+    int activationKind() {
+        Vector parameterList = getCompilerContext().getParameterList();
 		/*
 		** We need rows for all types of DML activations.  We need parameters
 		** only for those that have parameters.
 		*/
-        if(parameterList!=null && parameterList.size()>0){
+        if (parameterList != null && parameterList.size() > 0) {
             return StatementNode.NEED_PARAM_ACTIVATION;
-        }else{
+        } else {
             return StatementNode.NEED_ROW_ACTIVATION;
         }
     }
 
     /**
-     * Generate the code to create the ParameterValueSet, if necessary,
-     * when constructing the activation.  Also generate the code to call
-     * a method that will throw an exception if we try to execute without
-     * all the parameters being set.
+     * Generate the code to create the ParameterValueSet, if necessary, when constructing the activation.  Also generate
+     * the code to call a method that will throw an exception if we try to execute without all the parameters being
+     * set.
      *
      * @param acb The ActivationClassBuilder for the class we're building
      */
 
-    void generateParameterValueSet(ActivationClassBuilder acb) throws StandardException{
-        Vector parameterList=getCompilerContext().getParameterList();
-        int numberOfParameters=(parameterList==null)?0:parameterList.size();
+    void generateParameterValueSet(ActivationClassBuilder acb) throws StandardException {
+        Vector parameterList = getCompilerContext().getParameterList();
+        int numberOfParameters = (parameterList == null) ? 0 : parameterList.size();
 
-        if(numberOfParameters<=0)
+        if (numberOfParameters <= 0)
             return;
 
         ParameterNode.generateParameterValueSet
-                (acb,numberOfParameters,parameterList);
+                (acb, numberOfParameters, parameterList);
     }
 
     /**
-     * Return default privilege needed for this node. Other DML nodes can override
-     * this method to set their own default privilege.
+     * Return default privilege needed for this node. Other DML nodes can override this method to set their own default
+     * privilege.
      *
      * @return true if the statement is atomic
      */
-    int getPrivType(){
+    int getPrivType() {
         return Authorizer.SELECT_PRIV;
     }
 
@@ -384,7 +359,7 @@ public abstract class DMLStatementNode extends StatementNode{
     public void buildTree(Collection<QueryTreeNode> tree, int depth) throws StandardException {
         setDepth(depth);
         tree.add(this);
-        if(resultSet!=null)
-            resultSet.buildTree(tree,depth+1);
+        if (resultSet != null)
+            resultSet.buildTree(tree, depth + 1);
     }
 }

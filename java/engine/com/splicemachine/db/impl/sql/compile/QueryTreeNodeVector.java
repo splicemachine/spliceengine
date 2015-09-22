@@ -42,11 +42,15 @@ abstract class QueryTreeNodeVector<T extends QueryTreeNode> extends QueryTreeNod
         return v.size();
     }
 
-    T elementAt(int index){
+    public boolean isEmpty() {
+        return size() == 0;
+    }
+
+    public T elementAt(int index){
         return v.get(index);
     }
 
-    final void addElement(T qt){
+    public final void addElement(T qt){
         v.add(qt);
     }
 
@@ -54,7 +58,7 @@ abstract class QueryTreeNodeVector<T extends QueryTreeNode> extends QueryTreeNod
         v.remove(index);
     }
 
-    final void removeElement(T qt){
+    public final void removeElement(T qt){
         v.remove(qt);
     }
 

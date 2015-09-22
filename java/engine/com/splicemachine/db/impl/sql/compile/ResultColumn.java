@@ -1977,5 +1977,15 @@ public class ResultColumn extends ValueNode
                 "virtualColumnId: " + virtualColumnId + "<br>" +
                 "resultSetNumber: " + resultSetNumber + "<br>";
     }
+
+
+    public ConglomerateDescriptor getBaseConglomerateDescriptor() {
+        return getTableColumnDescriptor()==null?null:getTableColumnDescriptor().getBaseConglomerateDescriptor();
+    }
+
+
+    public void setColumnDescriptor(ColumnDescriptor columnDescriptor) {
+        this.columnDescriptor = columnDescriptor;
+    }
 }
 

@@ -279,6 +279,7 @@ public interface DataDictionary{
      */
     void startWriting(LanguageConnectionContext lcc) throws StandardException;
 
+    void startWriting(LanguageConnectionContext lcc, boolean setDDMode) throws StandardException;
     /**
      * Inform this DataDictionary that the transaction in which writes have
      * been done (or may have been done) has been committed or rolled back.

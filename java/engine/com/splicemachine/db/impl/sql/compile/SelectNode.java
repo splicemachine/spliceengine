@@ -54,7 +54,6 @@ public class SelectNode extends ResultSetNode{
      */
     FromList fromList;
     FromTable targetTable;
-    boolean isFlattenedInSubquery;
 
     /* Aggregate Vectors for select and where clauses */
     List<AggregateNode> selectAggregates;
@@ -151,7 +150,6 @@ public class SelectNode extends ResultSetNode{
         this.originalWhereClause=(ValueNode)whereClause;
         this.groupByList=(GroupByList)groupByList;
         this.havingClause=(ValueNode)havingClause;
-        this.isFlattenedInSubquery = false;
 
         // This initially represents an explicit <window definition list>, as
         // opposed to <in-line window specifications>, see 2003, 6.10 and 6.11.
@@ -340,6 +338,14 @@ public class SelectNode extends ResultSetNode{
      * @return ValueNode    The whereClause for this SelectNode.
      */
     public ValueNode getWhereClause(){ return whereClause; }
+
+    public void setWhereClause(ValueNode whereClause) {
+        this.whereClause = whereClause;
+    }
+
+    public void setOriginalWhereClause(ValueNode originalWhereClause) {
+        this.originalWhereClause = originalWhereClause;
+    }
 
     /**
      * Return the wherePredicates for this SelectNode.
@@ -2298,5 +2304,29 @@ public class SelectNode extends ResultSetNode{
             ProjectRestrictNode child = (ProjectRestrictNode) rsn;
             child.pullRowIdPredicates(prn.getRestrictionList());
         }
+    }
+
+    public GroupByList getGroupByList() {
+        return groupByList;
+    }
+
+    public void setGroupByList(GroupByList groupByList) {
+        this.groupByList = groupByList;
+    }
+
+    public List<AggregateNode> getSelectAggregates() {
+        return selectAggregates;
+    }
+
+    public List<AggregateNode> getWhereAggregates() {
+        return whereAggregates;
+    }
+
+    public List<AggregateNode> getHavingAggregates() {
+        return havingAggregates;
+    }
+
+    public OrderByList getOrderByList() {
+        return orderByList;
     }
 }

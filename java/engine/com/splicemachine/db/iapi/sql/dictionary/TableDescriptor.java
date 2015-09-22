@@ -1332,5 +1332,10 @@ public class TableDescriptor extends TupleDescriptor implements UniqueSQLObjectD
     public void setSchemaDesctiptor(SchemaDescriptor schemaDesctiptor){
         this.schemaDesctiptor=schemaDesctiptor;
     }
+
+    public ConglomerateDescriptor getBaseConglomerateDescriptor() {
+        return getConglomerateDescriptorList()==null?null:getConglomerateDescriptorList().getBaseConglomerateDescriptor();
+    }
+
 }
 

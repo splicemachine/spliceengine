@@ -6,6 +6,7 @@ import com.splicemachine.db.iapi.sql.compile.OptimizablePredicate;
 import com.splicemachine.db.impl.sql.compile.*;
 import com.splicemachine.db.impl.sql.compile.OperatorToString;
 import com.splicemachine.db.impl.sql.compile.Predicate;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,6 +24,14 @@ public class PredicateUtils {
             return p != null &&
                     p.isJoinPredicate() &&
                     p.getAndNode().getLeftOperand().isBinaryEqualsOperatorNode();
+        }
+    };
+
+    public static com.google.common.base.Predicate<Predicate> isJoinPred = new com.google.common.base.Predicate<Predicate>() {
+        @Override
+        public boolean apply(Predicate p) {
+            return p != null &&
+                    p.isJoinPredicate();
         }
     };
 
@@ -67,6 +76,8 @@ public class PredicateUtils {
      * Return a List of Predicates for a Derby PredicateList
      */
     public static List<Predicate> PLtoList(PredicateList pl) {
+        if (pl==null)
+            return new ArrayList<Predicate>();
         List<Predicate> preds = new ArrayList<>(pl.size());
         for (int i = 0, s = pl.size(); i < s; i++) {
             OptimizablePredicate p = pl.getOptPredicate(i);
@@ -74,4 +85,29 @@ public class PredicateUtils {
         }
         return preds;
     }
+
+
+    /**
+     * TRUE if the left operation is a ColumnReference with the specified nesting level.
+     */
+    public static boolean isLeftColRef(BinaryRelationalOperatorNode pred, int atNestingLevel) {
+        if (!(pred.getLeftOperand() instanceof ColumnReference)) {
+            return false;
+        }
+        ColumnReference left = (ColumnReference) pred.getLeftOperand();
+        return left.getSourceLevel() == atNestingLevel;
+    }
+
+    /**
+     * TRUE if the right operation is a ColumnReference with the specified nesting level.
+     */
+    public static boolean isRightColRef(BinaryRelationalOperatorNode pred, int atNestingLevel) {
+        if (!(pred.getRightOperand() instanceof ColumnReference)) {
+            return false;
+        }
+        ColumnReference right = (ColumnReference) pred.getRightOperand();
+        return right.getSourceLevel() == atNestingLevel;
+    }
+
+
 }

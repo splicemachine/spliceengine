@@ -171,7 +171,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
     volatile int cacheMode=DataDictionary.COMPILE_ONLY_MODE;
 
     /* Number of DDL users */
-    volatile int ddlUsers;
+    protected volatile int ddlUsers;
     /* Number of readers that start in DDL_MODE */
     volatile int readersInDDLMode;
 
@@ -1035,7 +1035,7 @@ public abstract class DataDictionaryImpl extends BaseDataDictionary{
         return cacheMode;
     }
 
-    private void setCacheMode(int newMode){
+    protected void setCacheMode(int newMode){
         cacheMode=newMode;
     }
 

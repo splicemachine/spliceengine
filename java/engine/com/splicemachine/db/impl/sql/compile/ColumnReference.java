@@ -24,7 +24,6 @@ package com.splicemachine.db.impl.sql.compile;
 import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.NodeFactory;
 import com.splicemachine.db.iapi.sql.dictionary.ConglomerateDescriptor;
-import com.splicemachine.db.iapi.store.access.StoreCostController;
 import com.splicemachine.db.iapi.types.DataTypeDescriptor;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.reference.SQLState;
@@ -32,10 +31,8 @@ import com.splicemachine.db.iapi.services.compiler.MethodBuilder;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
 import com.splicemachine.db.iapi.store.access.Qualifier;
 import com.splicemachine.db.iapi.util.JBitSet;
-
 import java.util.Collections;
 import java.util.List;
-import java.util.Vector;
 
 /**
  * A ColumnReference represents a column in the query tree.  The parser generates a
@@ -95,7 +92,7 @@ public class ColumnReference extends ValueNode {
 	private boolean		replacesAggregate;
 	private boolean		replacesWindowFunctionCall;
 
-	int			nestingLevel = -1;
+	private int			nestingLevel = -1;
 	private int			sourceLevel = -1;
 
 	/* Whether or not this column reference been scoped for the
@@ -224,7 +221,7 @@ public class ColumnReference extends ValueNode {
 	 *
 	 * @param nestingLevel	The Nesting level at which the CR appears.
 	 */
-	void setNestingLevel(int nestingLevel)
+	public void setNestingLevel(int nestingLevel)
 	{
 		if (SanityManager.DEBUG)
 		{
@@ -258,7 +255,7 @@ public class ColumnReference extends ValueNode {
 	 *
 	 * @param sourceLevel	The Nesting level of the source of the CR.
 	 */
-	void setSourceLevel(int sourceLevel)
+	public void setSourceLevel(int sourceLevel)
 	{
 		if (SanityManager.DEBUG)
 		{
@@ -273,7 +270,7 @@ public class ColumnReference extends ValueNode {
 	 *
 	 * @return	The source level for this CR.
 	 */
-	int getSourceLevel()
+	public int getSourceLevel()
 	{
 		return sourceLevel;
 	}
@@ -736,7 +733,7 @@ public class ColumnReference extends ValueNode {
 			{
 				// if dummy cr generated to replace aggregate, it may not have table number
 				// because underneath can be more than 1 table.
-				if (tableNumber == -1 && ! cr.getGeneratedToReplaceAggregate())
+				if (tableNumber == -1 && !cr.getGeneratedToReplaceAggregate() && !cr.getGeneratedToReplaceWindowFunctionCall())
 				{
 					SanityManager.THROWASSERT(
 						"tableNumber not expected to be -1, origName = " + origName);
@@ -1301,27 +1298,34 @@ public class ColumnReference extends ValueNode {
 
 
     /**
-     *
      * Returns the cardinality of the column reference from statistics if available.  If not, it returns 0.
-     *
-     * @return
-     * @throws StandardException
      */
     public long cardinality() throws StandardException {
-            if (source == null || source.getTableColumnDescriptor() ==null) // Temporary JL
+            if (source == null || source.getTableColumnDescriptor() ==null)
                 return 0;
-            ConglomerateDescriptor cd = getSource().getTableColumnDescriptor().getTableDescriptor().getConglomerateDescriptorList().get(0);
+            ConglomerateDescriptor cd = getSource().getTableColumnDescriptor().getTableDescriptor().getConglomerateDescriptorList().getBaseConglomerateDescriptor();
             int leftPosition = getSource().getColumnPosition();
             return getCompilerContext().getStoreCostController(cd).cardinality(leftPosition);
     }
 
     /**
-     * Returns the cardinality of the column reference from statistics and if none available it will return the number
-     * of rows passed in.
      *
-     * @param numberOfRows
+     * Returns columnReferenceEqualityPredicate
+     *
      * @return
      * @throws StandardException
+     */
+    public double columnReferenceEqualityPredicateSelectivity() throws StandardException {
+        long cardinality = cardinality();
+        if (cardinality==0)
+            return -1.0d;
+        else
+            return (1.0d/(double)cardinality);
+    }
+
+    /**
+     * Returns the cardinality of the column reference from statistics and if none available it will return the number
+     * of rows passed in.
      */
 	@Override
     public long nonZeroCardinality(long numberOfRows) throws StandardException {
@@ -1330,31 +1334,23 @@ public class ColumnReference extends ValueNode {
     }
 
     /**
-     *
      * Null Selectivity calculation from statistics.  It does check the type on the column and if it is not nullable it
      * will automatically return 0.0.
-     *
-     * @return
-     * @throws StandardException
      */
     public double nullSelectivity() throws StandardException {
         // Check for not null in declaration
         if (!getSource().getType().isNullable())
             return 0.0;
-        ConglomerateDescriptor cd = getSource().getTableColumnDescriptor().getTableDescriptor().getConglomerateDescriptorList().get(0);
+        ConglomerateDescriptor cd = getSource().getTableColumnDescriptor().getTableDescriptor().getConglomerateDescriptorList().getBaseConglomerateDescriptor();
         int leftPosition = getSource().getColumnPosition();
         return getCompilerContext().getStoreCostController(cd).nullSelectivity(leftPosition);
     }
 
     /**
-     *
      * Get the row count estimate from the statistics for this column reference.
-     *
-     * @return
-     * @throws StandardException
      */
     public double rowCountEstimate() throws StandardException {
-        ConglomerateDescriptor cd = getSource().getTableColumnDescriptor().getTableDescriptor().getConglomerateDescriptorList().get(0);
+        ConglomerateDescriptor cd = getSource().getTableColumnDescriptor().getTableDescriptor().getConglomerateDescriptorList().getBaseConglomerateDescriptor();
         return getCompilerContext().getStoreCostController(cd).rowCount();
     }
 
@@ -1371,5 +1367,9 @@ public class ColumnReference extends ValueNode {
                 "null") + "<br>" +
                 "nestingLevel: " + nestingLevel + "<br>" +
                 "sourceLevel: " + sourceLevel + "<br>";
+    }
+
+    public ConglomerateDescriptor getBaseConglomerateDescriptor() {
+        return getSource() == null ? null : getSource().getBaseConglomerateDescriptor();
     }
 }

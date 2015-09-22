@@ -1168,7 +1168,7 @@ public class JoinNode extends TableOperatorNode{
 		/* Put the predicates back into the tree */
         if(joinPredicates!=null){
             joinClause=joinPredicates.restorePredicates();
-            joinPredicates=null;
+  //          joinPredicates=null;
         }
 
 		/* Get the next ResultSet #, so that we can number this ResultSetNode, its
@@ -1898,7 +1898,7 @@ public class JoinNode extends TableOperatorNode{
         if (joinPredicates !=null) {
             List<String> joinPreds = Lists.transform(PredicateUtils.PLtoList(joinPredicates), PredicateUtils.predToString);
             if (joinPreds != null && joinPreds.size() > 0) //add
-                sb.append("preds=[" + Joiner.on(",").skipNulls().join(joinPreds) + "]");
+                sb.append(",preds=[" + Joiner.on(",").skipNulls().join(joinPreds) + "]");
         }
         sb.append(")");
         return sb.toString();
