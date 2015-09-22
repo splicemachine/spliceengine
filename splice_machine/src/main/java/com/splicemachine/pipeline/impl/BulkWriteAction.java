@@ -235,7 +235,7 @@ public class BulkWriteAction implements Callable<WriteStats> {
                                 		id, bulkWriteResult, currentBulkWrite);
 
                             addToRetryCallBuffer(currentBulkWrite.getMutations(),nextWrite.getTxn(),bulkWriteResult.getGlobalResult().refreshCache());
-                            sleeper.sleep(PipelineUtils.getWaitTime(maximumRetries - numAttempts + 1, writeConfiguration.getPause()));
+                            sleeper.sleep(PipelineUtils.getWaitTime(numAttempts, writeConfiguration.getPause()));
                             continue;
                         case PARTIAL:
                             partialFailureCounter.increment();
@@ -262,7 +262,7 @@ public class BulkWriteAction implements Callable<WriteStats> {
                                     boolean isFailure = bulkWriteResult.getFailedRows() != null && bulkWriteResult.getFailedRows().size() > 0;
                                     addToRetryCallBuffer(toRetry,nextWrite.getTxn(),isFailure);
                                     if (isFailure) // Retry immediately if you do not have failed rows!
-                                        sleeper.sleep(PipelineUtils.getWaitTime(maximumRetries-numAttempts+1,writeConfiguration.getPause()));
+                                        sleeper.sleep(PipelineUtils.getWaitTime(numAttempts,writeConfiguration.getPause()));
                                     break;
                                 default:
                                 	if (RETRY_LOG.isDebugEnabled())
@@ -289,7 +289,7 @@ public class BulkWriteAction implements Callable<WriteStats> {
                 if (derbyFactory.getExceptionHandler().isRegionTooBusyException(e)) {
                     if(RETRY_LOG.isDebugEnabled())
                         SpliceLogUtils.debug(RETRY_LOG, "Retrying write after receiving RegionTooBusyException: id=%d", id);
-                    sleeper.sleep(PipelineUtils.getWaitTime(maximumRetries - numAttempts + 1, writeConfiguration.getPause()));
+                    sleeper.sleep(PipelineUtils.getWaitTime(numAttempts, writeConfiguration.getPause()));
                     writesToPerform.add(nextWrite);
                     continue;
                 }
@@ -316,7 +316,7 @@ public class BulkWriteAction implements Callable<WriteStats> {
                             addToRetryCallBuffer(bw.getMutations(),nextTxn,first);
                             first=false;
                         }
-                        sleeper.sleep(PipelineUtils.getWaitTime(maximumRetries - numAttempts + 1, writeConfiguration.getPause()));
+                        sleeper.sleep(PipelineUtils.getWaitTime(numAttempts, writeConfiguration.getPause()));
                         break;
                     default:
                         if(LOG.isInfoEnabled())

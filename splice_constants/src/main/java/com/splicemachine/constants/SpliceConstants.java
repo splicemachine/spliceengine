@@ -726,7 +726,9 @@ public class SpliceConstants {
     @DefaultValue(HBASE_HTABLE_THREADS_KEEPALIVETIME) public static final long DEFAULT_HBASE_HTABLE_THREADS_KEEPALIVETIME = 60;
 
     /**
-     * The amount of time (in milliseconds) to pause before retrying a network operation.
+     * The amount of time (in milliseconds) to pause before retrying a network operation.  100 ms was chosen
+     * as a reasonable mean time.  We will in actuality pick a time between 0-100 randomly to make sure we provide
+     * a bit of jitter.
      *
      * This setting may be adjusted in real time using JMX.
      *
