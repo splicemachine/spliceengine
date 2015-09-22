@@ -70,7 +70,6 @@ public class NestedLoopJoinOperation extends JoinOperation {
 		@Override
 		public void init(SpliceOperationContext context) throws IOException, StandardException{
 				super.init(context);
-				startExecutionTime = System.currentTimeMillis();
 		}
 
 		@Override

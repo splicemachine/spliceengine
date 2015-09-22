@@ -18,7 +18,6 @@ import com.splicemachine.derby.stream.temporary.update.UpdateTableWriter;
 import com.splicemachine.derby.stream.temporary.update.UpdateTableWriterBuilder;
 import org.sparkproject.guava.common.base.Function;
 import org.sparkproject.guava.common.base.Predicate;
-import org.sparkproject.guava.common.base.Supplier;
 import org.sparkproject.guava.common.collect.*;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.PairDataSet;
@@ -29,8 +28,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.TreeMap;
-
 import static com.splicemachine.derby.stream.control.ControlUtils.entryToTuple;
 import static com.splicemachine.derby.stream.control.ControlUtils.multimapFromIterable;
 
@@ -277,8 +274,9 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     public DataSet<V> insertData(InsertTableWriterBuilder builder, OperationContext operationContext) {
         InsertTableWriter insertTableWriter = null;
         try {
+            operationContext.getOperation().fireBeforeStatementTriggers();
             insertTableWriter = builder.build();
-            insertTableWriter.open();
+            insertTableWriter.open(operationContext.getOperation().getTriggerHandler(),operationContext.getOperation());
             insertTableWriter.write((Iterator < ExecRow >) values().toLocalIterator());
             ValueRow valueRow = new ValueRow(1);
             valueRow.setColumn(1,new SQLInteger((int) operationContext.getRecordsWritten()));
@@ -289,6 +287,7 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
             try {
                 if (insertTableWriter != null)
                         insertTableWriter.close();
+                operationContext.getOperation().fireAfterStatementTriggers();
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -299,8 +298,9 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     public DataSet<V> updateData(UpdateTableWriterBuilder builder, OperationContext operationContext) {
         UpdateTableWriter updateTableWriter = null;
         try {
+            operationContext.getOperation().fireBeforeStatementTriggers();
             updateTableWriter = builder.build();
-            updateTableWriter.open();
+            updateTableWriter.open(operationContext.getOperation().getTriggerHandler(),operationContext.getOperation());
             updateTableWriter.update((Iterator < ExecRow >) values().toLocalIterator());
             ValueRow valueRow = new ValueRow(1);
             valueRow.setColumn(1,new SQLInteger((int) operationContext.getRecordsWritten()));
@@ -311,6 +311,7 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
             try {
                 if (updateTableWriter != null)
                     updateTableWriter.close();
+                operationContext.getOperation().fireAfterStatementTriggers();
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }
@@ -321,8 +322,9 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
     public DataSet<V> deleteData(DeleteTableWriterBuilder builder, OperationContext operationContext) {
         DeleteTableWriter deleteTableWriter = null;
         try {
+            operationContext.getOperation().fireBeforeStatementTriggers();
             deleteTableWriter = builder.build();
-            deleteTableWriter.open();
+            deleteTableWriter.open(operationContext.getOperation().getTriggerHandler(),operationContext.getOperation());
             deleteTableWriter.delete((Iterator < ExecRow >) values().toLocalIterator());
             ValueRow valueRow = new ValueRow(1);
             valueRow.setColumn(1,new SQLInteger((int) operationContext.getRecordsWritten()));
@@ -333,6 +335,7 @@ public class ControlPairDataSet<K,V> implements PairDataSet<K,V> {
             try {
                 if (deleteTableWriter != null)
                     deleteTableWriter.close();
+                operationContext.getOperation().fireAfterStatementTriggers();
             } catch (Exception e) {
                 throw new RuntimeException(e);
             }

@@ -3,14 +3,14 @@ package com.splicemachine.derby.stream.temporary.delete;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.TriggerHandler;
 import com.splicemachine.derby.stream.temporary.AbstractTableWriter;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.metrics.Metrics;
-import com.splicemachine.pipeline.api.RecordingCallBuffer;
 import com.splicemachine.pipeline.exception.Exceptions;
-import com.splicemachine.pipeline.impl.WriteCoordinator;
 import com.splicemachine.si.api.TxnView;
 import java.io.IOException;
 import java.util.Iterator;
@@ -21,20 +21,22 @@ import java.util.Iterator;
 public class DeleteTableWriter extends AbstractTableWriter {
     private static final FixedDataHash EMPTY_VALUES_ENCODER = new FixedDataHash(new byte[]{});
     protected static final KVPair.Type dataType = KVPair.Type.DELETE;
-    protected WriteCoordinator writeCoordinator;
-    protected RecordingCallBuffer<KVPair> writeBuffer;
     protected PairEncoder encoder;
     public int rowsDeleted = 0;
 
     public DeleteTableWriter(TxnView txn, long heapConglom) throws StandardException {
         super(txn,heapConglom);
     }
+
     public void open() throws StandardException {
-        writeCoordinator = SpliceDriver.driver().getTableWriter();
+        open(null,null);
+    }
+
+    public void open(TriggerHandler triggerHandler, SpliceOperation operation) throws StandardException {
+        super.open(triggerHandler, operation);
         writeBuffer = writeCoordinator.writeBuffer(destinationTable,
                 txn, Metrics.noOpMetricFactory());
         encoder = new PairEncoder(getKeyEncoder(), getRowHash(), dataType);
-
     }
     public KeyEncoder getKeyEncoder() throws StandardException {
         return new KeyEncoder(NoOpPrefix.INSTANCE,new DataHash<ExecRow>(){
@@ -75,9 +77,11 @@ public class DeleteTableWriter extends AbstractTableWriter {
 
     public void delete(ExecRow execRow) throws StandardException {
         try {
+            beforeRow(execRow);
             KVPair encode = encoder.encode(execRow);
             rowsDeleted++;
             writeBuffer.add(encode);
+            TriggerHandler.fireAfterRowTriggers(triggerHandler, execRow, flushCallback);
         } catch (Exception e) {
             throw Exceptions.parseException(e);
         }

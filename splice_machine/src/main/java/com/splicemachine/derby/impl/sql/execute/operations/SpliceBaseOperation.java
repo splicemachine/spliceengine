@@ -57,8 +57,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 		public int numOpens;
 		public int inputRows;
 		public int rowsFiltered;
-		protected long startExecutionTime;
-		protected long endExecutionTime;
 		public long beginTime;
 		public long constructorTime;
 		public long openTime;
@@ -103,15 +101,6 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
 															 int resultSetNumber,
 															 double optimizerEstimatedRowCount,
 															 double optimizerEstimatedCost) throws StandardException {
-
-                statisticsTimingOn = activation.isTraced();
-                List<XplainOperationChainInfo> opChain = operationChain.get();
-                if (opChain != null) {
-                    statisticsTimingOn = statisticsTimingOn || opChain.size() > 0;
-                }
-				if (statisticsTimingOn){
-						beginTime = startExecutionTime = getCurrentTimeMillis();
-				}
 				this.operationInformation = new DerbyOperationInformation(activation,optimizerEstimatedRowCount,optimizerEstimatedCost,resultSetNumber);
 				this.activation = activation;
 				this.resultSetNumber = resultSetNumber;
@@ -928,4 +917,17 @@ public abstract class SpliceBaseOperation implements SpliceOperation, Externaliz
         return ((SpliceTransaction)rawTxn).elevate(table);
     }
 
+    @Override
+    public void fireBeforeStatementTriggers () throws StandardException {
+        // No Op
+    }
+    @Override
+    public void fireAfterStatementTriggers () throws StandardException {
+        // No Op
+    }
+
+    @Override
+    public TriggerHandler getTriggerHandler() throws StandardException {
+        return null;
+    }
 }

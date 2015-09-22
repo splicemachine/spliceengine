@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.util.Iterator;
 import java.util.List;
 import com.splicemachine.derby.impl.sql.execute.operations.LocatedRow;
+import com.splicemachine.derby.impl.sql.execute.operations.TriggerHandler;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.OperationInformation;
 import com.splicemachine.derby.stream.iapi.DataSet;
 import com.splicemachine.derby.stream.iapi.DataSetProcessor;
@@ -171,5 +172,11 @@ public interface SpliceOperation extends StandardCloseable, NoPutResultSet, Conv
     public void openCore(DataSetProcessor dsp) throws StandardException;
 
     public void registerCloseable(AutoCloseable closeable) throws StandardException;
+
+    public void fireBeforeStatementTriggers () throws StandardException;
+
+    public void fireAfterStatementTriggers () throws StandardException;
+
+    public TriggerHandler getTriggerHandler() throws StandardException;
 
 }

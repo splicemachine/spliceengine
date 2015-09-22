@@ -110,7 +110,6 @@ public class RowCountOperation extends SpliceBaseOperation {
         rowsFetched = 0;
         //determine our offset
         this.spliceScanner = context.getSpliceRegionScanner();
-        startExecutionTime = System.currentTimeMillis();
     }
 
 

@@ -6,6 +6,8 @@ import java.io.ObjectOutput;
 import java.util.Collections;
 import java.util.List;
 import com.google.common.base.Strings;
+import com.splicemachine.db.impl.sql.execute.TriggerInfo;
+import com.splicemachine.utils.SpliceLogUtils;
 import org.apache.log4j.Logger;
 import com.splicemachine.db.iapi.error.StandardException;
 import com.splicemachine.db.iapi.services.loader.GeneratedMethod;
@@ -24,6 +26,8 @@ import com.splicemachine.derby.impl.sql.execute.actions.WriteCursorConstantOpera
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.DMLWriteInfo;
 import com.splicemachine.derby.impl.sql.execute.operations.iapi.OperationInformation;
 import com.splicemachine.pipeline.exception.Exceptions;
+import static com.splicemachine.derby.impl.sql.execute.operations.DMLTriggerEventMapper.getAfterEvent;
+import static com.splicemachine.derby.impl.sql.execute.operations.DMLTriggerEventMapper.getBeforeEvent;
 
 
 /**
@@ -41,10 +45,7 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 		protected TableDescriptor td;
 		private boolean isScan = true;
 		protected DMLWriteInfo writeInfo;
-        protected long writeRowsFiltered;
-
         private TriggerHandler triggerHandler;
-
         private SpliceMethod<ExecRow> generationClauses;
         private String generationClausesFunMethodName;
         private SpliceMethod<ExecRow> checkGM;
@@ -122,21 +123,18 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 				writeInfo.initialize(context);
 
             WriteCursorConstantOperation constantAction = (WriteCursorConstantOperation) writeInfo.getConstantAction();
-/*            WriteCursorConstantOperation constantAction = (WriteCursorConstantOperation) writeInfo.getConstantAction();
->>>>>>> Added Remaining Merges
+
             TriggerInfo triggerInfo = constantAction.getTriggerInfo();
 
             if(this.triggerHandler == null && triggerInfo != null) {
-                    this.triggerHandler = new TriggerHandler(
-                            triggerInfo,
-                            writeInfo,
-                            getActivation(),
-                            getBeforeEvent(getClass()),
-                            getAfterEvent(getClass())
-                    );
-                }
-*/
-            startExecutionTime = System.currentTimeMillis();
+                this.triggerHandler = new TriggerHandler(
+                        triggerInfo,
+                        writeInfo,
+                        getActivation(),
+                        getBeforeEvent(getClass()),
+                        getAfterEvent(getClass())
+                );
+            }
 		}
 
     public byte[] getDestinationTable(){
@@ -195,5 +193,63 @@ public abstract class DMLWriteOperation extends SpliceBaseOperation {
 				return source.isReferencingTable(tableNumber);
 		}
 
+        public void fireBeforeStatementTriggers () throws StandardException {
+            if (triggerHandler != null)
+                triggerHandler.fireBeforeStatementTriggers();
+        }
 
+        public void fireAfterStatementTriggers () throws StandardException {
+            if (triggerHandler != null)
+               triggerHandler.fireAfterStatementTriggers();
+        }
+
+        public void fireBeforeRowTriggers() throws StandardException {
+                TriggerHandler.fireBeforeRowTriggers(triggerHandler,getCurrentRow());
+        }
+        @Override
+        public TriggerHandler getTriggerHandler() {
+            return triggerHandler;
+        }
+    /**
+     * Compute the generation clauses, if any, on the current row in order to fill in
+     * computed columns.
+     *
+     * @param newRow the base row being evaluated
+     */
+    public void evaluateGenerationClauses(ExecRow newRow) throws StandardException {
+        if (generationClausesFunMethodName == null && checkGMFunMethodName == null)
+            return;
+        if (generationClausesFunMethodName != null) {
+            if (generationClauses == null)
+                this.generationClauses = new SpliceMethod<>(generationClausesFunMethodName, activation);
+        }
+        if (checkGMFunMethodName != null) {
+            if (checkGM == null)
+                this.checkGM = new SpliceMethod<>(checkGMFunMethodName, activation);
+        }
+        ExecRow oldRow = (ExecRow) activation.getCurrentRow(source.resultSetNumber());
+        //
+        // The generation clause may refer to other columns in this row.
+        //
+        try {
+            source.setCurrentRow(newRow);
+            // this is where the magic happens
+            if (generationClausesFunMethodName != null)
+                generationClauses.invoke();
+            if (checkGMFunMethodName != null)
+                checkGM.invoke();
+        } finally {
+            //
+            // We restore the Activation to its state before we ran the generation
+            // clause. This may not be necessary but I don't understand all of
+            // the paths through the Insert and Update operations. This
+            // defensive coding seems prudent to me.
+            //
+            if (oldRow == null) {
+                source.clearCurrentRow();
+            } else {
+                source.setCurrentRow(oldRow);
+            }
+        }
+    }
 }

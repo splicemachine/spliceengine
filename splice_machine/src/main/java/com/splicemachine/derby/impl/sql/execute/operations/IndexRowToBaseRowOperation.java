@@ -257,7 +257,6 @@ public class IndexRowToBaseRowOperation extends SpliceBaseOperation{
         } catch (StandardException e) {
             SpliceLogUtils.logAndThrowRuntime(LOG, "Operation Init Failed!",e);
         }
-        startExecutionTime = System.currentTimeMillis();
     }
 
     @Override

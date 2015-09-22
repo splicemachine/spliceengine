@@ -6,22 +6,26 @@ import com.splicemachine.db.iapi.services.io.FormatableBitSet;
 import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
-import com.splicemachine.derby.hbase.SpliceDriver;
+import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
+import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
+import com.splicemachine.derby.impl.sql.execute.operations.TriggerHandler;
 import com.splicemachine.derby.stream.temporary.AbstractTableWriter;
 import com.splicemachine.derby.utils.marshall.*;
 import com.splicemachine.derby.utils.marshall.dvd.DescriptorSerializer;
 import com.splicemachine.derby.utils.marshall.dvd.VersionedSerializers;
 import com.splicemachine.hbase.KVPair;
 import com.splicemachine.metrics.Metrics;
+import com.splicemachine.pipeline.api.PreFlushHook;
 import com.splicemachine.pipeline.api.RecordingCallBuffer;
 import com.splicemachine.pipeline.callbuffer.ForwardRecordingCallBuffer;
 import com.splicemachine.pipeline.exception.Exceptions;
-import com.splicemachine.pipeline.impl.WriteCoordinator;
 import com.splicemachine.si.api.TxnView;
 import org.apache.hadoop.hbase.HConstants;
 import org.apache.hadoop.hbase.util.Bytes;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Iterator;
 
 /**
@@ -40,8 +44,6 @@ public class UpdateTableWriter extends AbstractTableWriter {
     protected int[] finalPkColumns;
     protected String tableVersion;
     protected ExecRow execRowDefinition;
-    WriteCoordinator writeCoordinator;
-    protected RecordingCallBuffer<KVPair> writeBuffer;
     protected PairEncoder encoder;
     protected ExecRow currentRow;
     public int rowsUpdated = 0;
@@ -61,7 +63,11 @@ public class UpdateTableWriter extends AbstractTableWriter {
     }
 
     public void open() throws StandardException {
-        writeCoordinator = SpliceDriver.driver().getTableWriter();
+        open(null,null);
+    }
+
+    public void open(TriggerHandler triggerHandler, SpliceOperation operation) throws StandardException {
+        super.open(triggerHandler,operation);
         kdvds = new DataValueDescriptor[columnOrdering.length];
         // Get the DVDS for the primary keys...
         for (int i = 0; i < columnOrdering.length; ++i)
@@ -138,29 +144,40 @@ public class UpdateTableWriter extends AbstractTableWriter {
         return new PkRowHash(finalPkColumns,null,heapList,colPositionMap,resultSupplier,serializers);
     }
 
-    public RecordingCallBuffer<KVPair> transformWriteBuffer(RecordingCallBuffer<KVPair> bufferToTransform) throws StandardException {
+    public RecordingCallBuffer<KVPair> transformWriteBuffer(final RecordingCallBuffer<KVPair> bufferToTransform) throws StandardException {
         if(modifiedPrimaryKeys){
-            return new ForwardRecordingCallBuffer<KVPair>(bufferToTransform){
+            return new ForwardRecordingCallBuffer<KVPair>(writeCoordinator.writeBuffer(getDestinationTable(),txn, new PreFlushHook() {
+                @Override
+                public Collection<KVPair> transform(Collection<KVPair> buffer) throws Exception {
+                    bufferToTransform.flushBufferAndWait();
+                    return new ArrayList<KVPair>(buffer); // Remove this but here to match no op...
+                }
+            })){
                 @Override
                 public void add(KVPair element) throws Exception {
                     byte[] oldLocation = ((RowLocation) currentRow.getColumn(currentRow.nColumns()).getObject()).getBytes();
                     if (!Bytes.equals(oldLocation, element.getRowKey())) {
-                        // only add the delete if we aren't overwriting the same row
-                        delegate.add(new KVPair(oldLocation, HConstants.EMPTY_BYTE_ARRAY, KVPair.Type.DELETE));
+                        bufferToTransform.add(new KVPair(oldLocation, HConstants.EMPTY_BYTE_ARRAY, KVPair.Type.DELETE));
+                        element.setType(KVPair.Type.INSERT);
+                    } else {
+                        element.setType(KVPair.Type.UPDATE);
                     }
                     delegate.add(element);
                 }
             };
-        } else return bufferToTransform;
+        } else
+            return bufferToTransform;
     }
 
     public void update(ExecRow execRow) throws StandardException {
         try {
+            beforeRow(execRow);
             currentRow = execRow;
             rowsUpdated++;
             KVPair encode = encoder.encode(execRow);
             assert encode.getRowKey() != null && encode.getRowKey().length > 0: "Tried to buffer incorrect row key";
             writeBuffer.add(encode);
+            TriggerHandler.fireAfterRowTriggers(triggerHandler, execRow, flushCallback);
         } catch (Exception e) {
             throw Exceptions.parseException(e);
         }
