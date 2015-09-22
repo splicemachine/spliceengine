@@ -1,0 +1,1057 @@
+15/06/03 16:04:01 INFO executor.CoarseGrainedExecutorBackend: Registered signal handlers for [TERM, HUP, INT]
+15/06/03 16:04:13 WARN util.NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+15/06/03 16:04:13 INFO spark.SecurityManager: Changing view acls to: jleach
+15/06/03 16:04:13 INFO spark.SecurityManager: Changing modify acls to: jleach
+15/06/03 16:04:13 INFO spark.SecurityManager: SecurityManager: authentication disabled; ui acls disabled; users with view permissions: Set(jleach); users with modify permissions: Set(jleach)
+15/06/03 16:04:14 INFO slf4j.Slf4jLogger: Slf4jLogger started
+15/06/03 16:04:14 INFO Remoting: Starting remoting
+15/06/03 16:04:14 INFO Remoting: Remoting started; listening on addresses :[akka.tcp://driverPropsFetcher@10.0.1.14:64023]
+15/06/03 16:04:14 INFO util.Utils: Successfully started service 'driverPropsFetcher' on port 64023.
+15/06/03 16:04:14 INFO spark.SecurityManager: Changing view acls to: jleach
+15/06/03 16:04:14 INFO spark.SecurityManager: Changing modify acls to: jleach
+15/06/03 16:04:14 INFO spark.SecurityManager: SecurityManager: authentication disabled; ui acls disabled; users with view permissions: Set(jleach); users with modify permissions: Set(jleach)
+15/06/03 16:04:14 INFO remote.RemoteActorRefProvider$RemotingTerminator: Shutting down remote daemon.
+15/06/03 16:04:14 INFO remote.RemoteActorRefProvider$RemotingTerminator: Remote daemon shut down; proceeding with flushing remote transports.
+15/06/03 16:04:14 INFO slf4j.Slf4jLogger: Slf4jLogger started
+15/06/03 16:04:14 INFO Remoting: Starting remoting
+15/06/03 16:04:14 INFO Remoting: Remoting started; listening on addresses :[akka.tcp://sparkExecutor@10.0.1.14:64025]
+15/06/03 16:04:14 INFO util.Utils: Successfully started service 'sparkExecutor' on port 64025.
+15/06/03 16:04:14 INFO executor.CoarseGrainedExecutorBackend: Connecting to driver: akka.tcp://sparkDriver@10.0.1.14:64019/user/CoarseGrainedScheduler
+15/06/03 16:04:14 INFO worker.WorkerWatcher: Connecting to worker akka.tcp://sparkWorker@10.0.1.14:63967/user/Worker
+15/06/03 16:04:14 INFO remote.RemoteActorRefProvider$RemotingTerminator: Remoting shut down.
+15/06/03 16:04:14 INFO worker.WorkerWatcher: Successfully connected to akka.tcp://sparkWorker@10.0.1.14:63967/user/Worker
+15/06/03 16:04:14 INFO executor.CoarseGrainedExecutorBackend: Successfully registered with driver
+15/06/03 16:04:14 INFO spark.SecurityManager: Changing view acls to: jleach
+15/06/03 16:04:14 INFO spark.SecurityManager: Changing modify acls to: jleach
+15/06/03 16:04:14 INFO spark.SecurityManager: SecurityManager: authentication disabled; ui acls disabled; users with view permissions: Set(jleach); users with modify permissions: Set(jleach)
+15/06/03 16:04:14 INFO util.AkkaUtils: Connecting to MapOutputTracker: akka.tcp://sparkDriver@10.0.1.14:64019/user/MapOutputTracker
+15/06/03 16:04:14 INFO util.AkkaUtils: Connecting to BlockManagerMaster: akka.tcp://sparkDriver@10.0.1.14:64019/user/BlockManagerMaster
+15/06/03 16:04:14 INFO storage.DiskBlockManager: Created local directory at /tmp/spark-local-20150603160414-fb0a
+15/06/03 16:04:14 INFO storage.MemoryStore: MemoryStore started with capacity 706.6 MB
+15/06/03 16:04:14 INFO netty.NettyBlockTransferService: Server created on 64028
+15/06/03 16:04:14 INFO storage.BlockManagerMaster: Trying to register BlockManager
+15/06/03 16:04:14 INFO storage.BlockManagerMaster: Registered BlockManager
+15/06/03 16:04:14 INFO util.AkkaUtils: Connecting to HeartbeatReceiver: akka.tcp://sparkDriver@10.0.1.14:64019/user/HeartbeatReceiver
+15/06/03 16:04:14 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 0
+15/06/03 16:04:14 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 1
+15/06/03 16:04:14 INFO executor.Executor: Running task 0.0 in stage 0.0 (TID 0)
+15/06/03 16:04:14 INFO executor.Executor: Running task 1.0 in stage 0.0 (TID 1)
+15/06/03 16:04:14 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 2
+15/06/03 16:04:14 INFO executor.Executor: Running task 2.0 in stage 0.0 (TID 2)
+15/06/03 16:04:14 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 3
+15/06/03 16:04:14 INFO executor.Executor: Running task 3.0 in stage 0.0 (TID 3)
+15/06/03 16:04:14 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 4
+15/06/03 16:04:14 INFO executor.Executor: Running task 4.0 in stage 0.0 (TID 4)
+15/06/03 16:04:14 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 5
+15/06/03 16:04:14 INFO executor.Executor: Running task 5.0 in stage 0.0 (TID 5)
+15/06/03 16:04:14 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 6
+15/06/03 16:04:14 INFO executor.Executor: Running task 6.0 in stage 0.0 (TID 6)
+15/06/03 16:04:14 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 7
+15/06/03 16:04:14 INFO executor.Executor: Running task 7.0 in stage 0.0 (TID 7)
+15/06/03 16:04:15 INFO Configuration.deprecation: hadoop.native.lib is deprecated. Instead, use io.native.lib.available
+15/06/03 16:04:15 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 1
+15/06/03 16:04:15 INFO storage.MemoryStore: ensureFreeSpace(6736) called with curMem=0, maxMem=740960501
+15/06/03 16:04:15 INFO storage.MemoryStore: Block broadcast_1_piece0 stored as bytes in memory (estimated size 6.6 KB, free 706.6 MB)
+15/06/03 16:04:15 INFO storage.BlockManagerMaster: Updated info of block broadcast_1_piece0
+15/06/03 16:04:15 INFO broadcast.TorrentBroadcast: Reading broadcast variable 1 took 208 ms
+15/06/03 16:04:15 INFO storage.MemoryStore: ensureFreeSpace(14768) called with curMem=6736, maxMem=740960501
+15/06/03 16:04:15 INFO storage.MemoryStore: Block broadcast_1 stored as values in memory (estimated size 14.4 KB, free 706.6 MB)
+15/06/03 16:04:16 INFO zookeeper.RecoverableZooKeeper: Process identifier=hconnection-0x1067cab3 connecting to ZooKeeper ensemble=localhost:2181
+15/06/03 16:04:16 INFO zookeeper.ZooKeeper: Client environment:zookeeper.version=3.4.5-cdh5.3.2--1, built on 02/24/2015 20:43 GMT
+15/06/03 16:04:16 INFO zookeeper.ZooKeeper: Client environment:host.name=10.0.1.14
+15/06/03 16:04:16 INFO zookeeper.ZooKeeper: Client environment:java.version=1.7.0_71
+15/06/03 16:04:16 INFO zookeeper.ZooKeeper: Client environment:java.vendor=Oracle Corporation
+15/06/03 16:04:16 INFO zookeeper.ZooKeeper: Client environment:java.home=/Library/Java/JavaVirtualMachines/jdk1.7.0_71.jdk/Contents/Home/jre
+15/06/03 16:04:16 INFO zookeeper.ZooKeeper: Client environment:java.class.path=/Users/jleach/.m2/repository/com/splicemachine/splice_machine_adapter_98-cdh5.3.2/1.1.1-SNAPSHOT/splice_machine_adapter_98-cdh5.3.2-1.1.1-SNAPSHOT.jar:/Users/jleach/.m2/repository/com/splicemachine/splice_machine-cdh5.3.2/1.1.1-SNAPSHOT/splice_machine-cdh5.3.2-1.1.1-SNAPSHOT.jar:/Users/jleach/.m2/repository/com/splicemachine/splice_si_adapter_98-cdh5.3.2/1.1.1-SNAPSHOT/splice_si_adapter_98-cdh5.3.2-1.1.1-SNAPSHOT.jar:/Users/jleach/.m2/repository/com/splicemachine/splice_si-cdh5.3.2/1.1.1-SNAPSHOT/splice_si-cdh5.3.2-1.1.1-SNAPSHOT.jar:/Users/jleach/.m2/repository/com/splicemachine/splice_constants-cdh5.3.2/1.1.1-SNAPSHOT/splice_constants-cdh5.3.2-1.1.1-SNAPSHOT.jar:/Users/jleach/.m2/repository/com/googlecode/concurrentlinkedhashmap/concurrentlinkedhashmap-lru/1.4.2/concurrentlinkedhashmap-lru-1.4.2.jar:/Users/jleach/.m2/repository/joda-time/joda-time/2.3/joda-time-2.3.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-client/2.5.0-cdh5.3.2/hadoop-client-2.5.0-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-mapreduce-client-app/2.5.0-cdh5.3.2/hadoop-mapreduce-client-app-2.5.0-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-mapreduce-client-common/2.5.0-cdh5.3.2/hadoop-mapreduce-client-common-2.5.0-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-yarn-client/2.5.0-cdh5.3.2/hadoop-yarn-client-2.5.0-cdh5.3.2.jar:/Users/jleach/.m2/repository/com/sun/jersey/jersey-client/1.9/jersey-client-1.9.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-yarn-server-common/2.5.0-cdh5.3.2/hadoop-yarn-server-common-2.5.0-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-mapreduce-client-shuffle/2.5.0-cdh5.3.2/hadoop-mapreduce-client-shuffle-2.5.0-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/fusesource/leveldbjni/leveldbjni-all/1.8/leveldbjni-all-1.8.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-yarn-api/2.5.0-cdh5.3.2/hadoop-yarn-api-2.5.0-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-mapreduce-client-core/2.5.0-cdh5.3.2/hadoop-mapreduce-client-core-2.5.0-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-yarn-common/2.5.0-cdh5.3.2/hadoop-yarn-common-2.5.0-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-mapreduce-client-jobclient/2.5.0-cdh5.3.2/hadoop-mapreduce-client-jobclient-2.5.0-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-aws/2.5.0-cdh5.3.2/hadoop-aws-2.5.0-cdh5.3.2.jar:/Users/jleach/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.2.3/jackson-databind-2.2.3.jar:/Users/jleach/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.2.3/jackson-core-2.2.3.jar:/Users/jleach/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.2.3/jackson-annotations-2.2.3.jar:/Users/jleach/.m2/repository/com/amazonaws/aws-java-sdk/1.7.4/aws-java-sdk-1.7.4.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-annotations/2.5.0-cdh5.3.2/hadoop-annotations-2.5.0-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-common/2.5.0-cdh5.3.2/hadoop-common-2.5.0-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/commons/commons-math3/3.1.1/commons-math3-3.1.1.jar:/Users/jleach/.m2/repository/xmlenc/xmlenc/0.52/xmlenc-0.52.jar:/Users/jleach/.m2/repository/commons-httpclient/commons-httpclient/3.1/commons-httpclient-3.1.jar:/Users/jleach/.m2/repository/commons-codec/commons-codec/1.4/commons-codec-1.4.jar:/Users/jleach/.m2/repository/commons-net/commons-net/3.1/commons-net-3.1.jar:/Users/jleach/.m2/repository/commons-collections/commons-collections/3.2.1/commons-collections-3.2.1.jar:/Users/jleach/.m2/repository/org/mortbay/jetty/jetty/6.1.26.cloudera.4/jetty-6.1.26.cloudera.4.jar:/Users/jleach/.m2/repository/org/mortbay/jetty/jetty-util/6.1.26.cloudera.4/jetty-util-6.1.26.cloudera.4.jar:/Users/jleach/.m2/repository/javax/servlet/jsp/jsp-api/2.1/jsp-api-2.1.jar:/Users/jleach/.m2/repository/commons-el/commons-el/1.0/commons-el-1.0.jar:/Users/jleach/.m2/repository/net/java/dev/jets3t/jets3t/0.9.0/jets3t-0.9.0.jar:/Users/jleach/.m2/repository/com/jamesmurty/utils/java-xmlbuilder/0.4/java-xmlbuilder-0.4.jar:/Users/jleach/.m2/repository/commons-configuration/commons-configuration/1.6/commons-configuration-1.6.jar:/Users/jleach/.m2/repository/commons-digester/commons-digester/1.8/commons-digester-1.8.jar:/Users/jleach/.m2/repository/commons-beanutils/commons-beanutils/1.7.0/commons-beanutils-1.7.0.jar:/Users/jleach/.m2/repository/commons-beanutils/commons-beanutils-core/1.8.0/commons-beanutils-core-1.8.0.jar:/Users/jleach/.m2/repository/org/slf4j/slf4j-api/1.7.5/slf4j-api-1.7.5.jar:/Users/jleach/.m2/repository/org/slf4j/slf4j-log4j12/1.7.5/slf4j-log4j12-1.7.5.jar:/Users/jleach/.m2/repository/org/apache/avro/avro/1.7.6-cdh5.3.2/avro-1.7.6-cdh5.3.2.jar:/Users/jleach/.m2/repository/com/thoughtworks/paranamer/paranamer/2.3/paranamer-2.3.jar:/Users/jleach/.m2/repository/org/xerial/snappy/snappy-java/1.0.5/snappy-java-1.0.5.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-auth/2.5.0-cdh5.3.2/hadoop-auth-2.5.0-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/directory/server/apacheds-kerberos-codec/2.0.0-M15/apacheds-kerberos-codec-2.0.0-M15.jar:/Users/jleach/.m2/repository/org/apache/directory/server/apacheds-i18n/2.0.0-M15/apacheds-i18n-2.0.0-M15.jar:/Users/jleach/.m2/repository/org/apache/directory/api/api-asn1-api/1.0.0-M20/api-asn1-api-1.0.0-M20.jar:/Users/jleach/.m2/repository/org/apache/directory/api/api-util/1.0.0-M20/api-util-1.0.0-M20.jar:/Users/jleach/.m2/repository/org/apache/curator/curator-framework/2.6.0/curator-framework-2.6.0.jar:/Users/jleach/.m2/repository/com/jcraft/jsch/0.1.42/jsch-0.1.42.jar:/Users/jleach/.m2/repository/org/apache/curator/curator-client/2.6.0/curator-client-2.6.0.jar:/Users/jleach/.m2/repository/org/apache/curator/curator-recipes/2.6.0/curator-recipes-2.6.0.jar:/Users/jleach/.m2/repository/org/apache/commons/commons-compress/1.4.1/commons-compress-1.4.1.jar:/Users/jleach/.m2/repository/org/tukaani/xz/1.0/xz-1.0.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-hdfs/2.5.0-cdh5.3.2/hadoop-hdfs-2.5.0-cdh5.3.2.jar:/Users/jleach/.m2/repository/commons-daemon/commons-daemon/1.0.13/commons-daemon-1.0.13.jar:/Users/jleach/.m2/repository/org/apache/hbase/hbase-client/0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT/hbase-client-0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT.jar:/Users/jleach/.m2/repository/org/apache/hbase/hbase-common/0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT/hbase-common-0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT.jar:/Users/jleach/.m2/repository/org/cloudera/htrace/htrace-core/2.04/htrace-core-2.04.jar:/Users/jleach/.m2/repository/com/github/stephenc/findbugs/findbugs-annotations/1.3.9-1/findbugs-annotations-1.3.9-1.jar:/Users/jleach/.m2/repository/org/apache/hbase/hbase-common/0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT/hbase-common-0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT-tests.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-core/2.5.0-mr1-cdh5.3.2/hadoop-core-2.5.0-mr1-cdh5.3.2.jar:/Users/jleach/.m2/repository/hsqldb/hsqldb/1.8.0.10/hsqldb-1.8.0.10.jar:/Users/jleach/.m2/repository/org/eclipse/jdt/core/3.1.1/core-3.1.1.jar:/Users/jleach/.m2/repository/org/apache/hbase/hbase-protocol/0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT/hbase-protocol-0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT.jar:/Users/jleach/.m2/repository/org/apache/hbase/hbase-server/0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT/hbase-server-0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT.jar:/Users/jleach/.m2/repository/org/apache/hbase/hbase-prefix-tree/0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT/hbase-prefix-tree-0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT.jar:/Users/jleach/.m2/repository/org/apache/hbase/hbase-hadoop-compat/0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT/hbase-hadoop-compat-0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT.jar:/Users/jleach/.m2/repository/org/apache/hbase/hbase-hadoop2-compat/0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT/hbase-hadoop2-compat-0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT.jar:/Users/jleach/.m2/repository/com/yammer/metrics/metrics-core/2.1.2/metrics-core-2.1.2.jar:/Users/jleach/.m2/repository/org/apache/commons/commons-math/2.1/commons-math-2.1.jar:/Users/jleach/.m2/repository/org/mortbay/jetty/jetty-sslengine/6.1.26.cloudera.4/jetty-sslengine-6.1.26.cloudera.4.jar:/Users/jleach/.m2/repository/org/mortbay/jetty/jsp-2.1/6.1.14/jsp-2.1-6.1.14.jar:/Users/jleach/.m2/repository/org/mortbay/jetty/jsp-api-2.1/6.1.14/jsp-api-2.1-6.1.14.jar:/Users/jleach/.m2/repository/org/jamon/jamon-runtime/2.3.1/jamon-runtime-2.3.1.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-hdfs/2.5.0-cdh5.3.2/hadoop-hdfs-2.5.0-cdh5.3.2-tests.jar:/Users/jleach/.m2/repository/org/apache/hbase/hbase-testing-util/0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT/hbase-testing-util-0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT.jar:/Users/jleach/.m2/repository/org/apache/hbase/hbase-server/0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT/hbase-server-0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT-tests.jar:/Users/jleach/.m2/repository/org/apache/hbase/hbase-hadoop-compat/0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT/hbase-hadoop-compat-0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT-tests.jar:/Users/jleach/.m2/repository/org/apache/hbase/hbase-hadoop2-compat/0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT/hbase-hadoop2-compat-0.98.6-cdh5.3.2-splice1.0.2-SNAPSHOT-tests.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-minicluster/2.5.0-mr1-cdh5.3.2/hadoop-minicluster-2.5.0-mr1-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-test/2.5.0-mr1-cdh5.3.2/hadoop-test-2.5.0-mr1-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/ftpserver/ftplet-api/1.0.0/ftplet-api-1.0.0.jar:/Users/jleach/.m2/repository/org/apache/mina/mina-core/2.0.0-M5/mina-core-2.0.0-M5.jar:/Users/jleach/.m2/repository/org/apache/ftpserver/ftpserver-core/1.0.0/ftpserver-core-1.0.0.jar:/Users/jleach/.m2/repository/org/apache/ftpserver/ftpserver-deprecated/1.0.0-M2/ftpserver-deprecated-1.0.0-M2.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-common/2.5.0-cdh5.3.2/hadoop-common-2.5.0-cdh5.3.2-tests.jar:/Users/jleach/.m2/repository/org/apache/hive/hive-beeline/0.13.1-cdh5.3.2/hive-beeline-0.13.1-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/hive/hive-metastore/0.13.1-cdh5.3.2/hive-metastore-0.13.1-cdh5.3.2.jar:/Users/jleach/.m2/repository/com/jolbox/bonecp/0.8.0.RELEASE/bonecp-0.8.0.RELEASE.jar:/Users/jleach/.m2/repository/org/apache/derby/derby/10.10.1.1/derby-10.10.1.1.jar:/Users/jleach/.m2/repository/org/datanucleus/datanucleus-api-jdo/3.2.6/datanucleus-api-jdo-3.2.6.jar:/Users/jleach/.m2/repository/org/datanucleus/datanucleus-core/3.2.10/datanucleus-core-3.2.10.jar:/Users/jleach/.m2/repository/org/datanucleus/datanucleus-rdbms/3.2.9/datanucleus-rdbms-3.2.9.jar:/Users/jleach/.m2/repository/javax/jdo/jdo-api/3.0.1/jdo-api-3.0.1.jar:/Users/jleach/.m2/repository/javax/transaction/jta/1.1/jta-1.1.jar:/Users/jleach/.m2/repository/org/antlr/antlr-runtime/3.4/antlr-runtime-3.4.jar:/Users/jleach/.m2/repository/org/antlr/stringtemplate/3.2.1/stringtemplate-3.2.1.jar:/Users/jleach/.m2/repository/antlr/antlr/2.7.7/antlr-2.7.7.jar:/Users/jleach/.m2/repository/jline/jline/0.9.94/jline-0.9.94.jar:/Users/jleach/.m2/repository/org/apache/thrift/libthrift/0.9.0-cdh5-2/libthrift-0.9.0-cdh5-2.jar:/Users/jleach/.m2/repository/org/apache/hive/hive-cli/0.13.1-cdh5.3.2/hive-cli-0.13.1-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/hive/hive-serde/0.13.1-cdh5.3.2/hive-serde-0.13.1-cdh5.3.2.jar:/Users/jleach/.m2/repository/com/sun/jersey/jersey-servlet/1.14/jersey-servlet-1.14.jar:/Users/jleach/.m2/repository/org/apache/hive/hive-exec/0.13.1-cdh5.3.2/hive-exec-0.13.1-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/hive/hive-ant/0.13.1-cdh5.3.2/hive-ant-0.13.1-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/velocity/velocity/1.5/velocity-1.5.jar:/Users/jleach/.m2/repository/oro/oro/2.0.8/oro-2.0.8.jar:/Users/jleach/.m2/repository/org/apache/commons/commons-lang3/3.1/commons-lang3-3.1.jar:/Users/jleach/.m2/repository/org/antlr/ST4/4.0.4/ST4-4.0.4.jar:/Users/jleach/.m2/repository/org/apache/ant/ant/1.9.1/ant-1.9.1.jar:/Users/jleach/.m2/repository/org/apache/ant/ant-launcher/1.9.1/ant-launcher-1.9.1.jar:/Users/jleach/.m2/repository/org/codehaus/groovy/groovy-all/2.1.6/groovy-all-2.1.6.jar:/Users/jleach/.m2/repository/org/apache/hive/hive-common/0.13.1-cdh5.3.2/hive-common-0.13.1-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/hive/hive-contrib/0.13.1-cdh5.3.2/hive-contrib-0.13.1-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/hive/hive-hbase-handler/0.13.1-cdh5.3.2/hive-hbase-handler-0.13.1-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/hive/hive-hwi/0.13.1-cdh5.3.2/hive-hwi-0.13.1-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/hive/hive-jdbc/0.13.1-cdh5.3.2/hive-jdbc-0.13.1-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/httpcomponents/httpclient/4.2.5/httpclient-4.2.5.jar:/Users/jleach/.m2/repository/org/apache/httpcomponents/httpcore/4.2.5/httpcore-4.2.5.jar:/Users/jleach/.m2/repository/org/apache/hive/hive-service/0.13.1-cdh5.3.2/hive-service-0.13.1-cdh5.3.2.jar:/Users/jleach/.m2/repository/net/sf/jpam/jpam/1.1/jpam-1.1.jar:/Users/jleach/.m2/repository/org/eclipse/jetty/aggregate/jetty-all/7.6.0.v20120127/jetty-all-7.6.0.v20120127.jar:/Users/jleach/.m2/repository/org/apache/geronimo/specs/geronimo-jta_1.1_spec/1.1.1/geronimo-jta_1.1_spec-1.1.1.jar:/Users/jleach/.m2/repository/javax/mail/mail/1.4.1/mail-1.4.1.jar:/Users/jleach/.m2/repository/org/apache/geronimo/specs/geronimo-jaspic_1.0_spec/1.0/geronimo-jaspic_1.0_spec-1.0.jar:/Users/jleach/.m2/repository/org/apache/geronimo/specs/geronimo-annotation_1.0_spec/1.1.1/geronimo-annotation_1.0_spec-1.1.1.jar:/Users/jleach/.m2/repository/asm/asm-commons/3.1/asm-commons-3.1.jar:/Users/jleach/.m2/repository/asm/asm-tree/3.1/asm-tree-3.1.jar:/Users/jleach/.m2/repository/org/apache/thrift/libfb303/0.9.0/libfb303-0.9.0.jar:/Users/jleach/.m2/repository/org/apache/hive/hive-shims/0.13.1-cdh5.3.2/hive-shims-0.13.1-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/hive/shims/hive-shims-common/0.13.1-cdh5.3.2/hive-shims-common-0.13.1-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/hive/shims/hive-shims-common-secure/0.13.1-cdh5.3.2/hive-shims-common-secure-0.13.1-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/hive/shims/hive-shims-0.23/0.13.1-cdh5.3.2/hive-shims-0.23-0.13.1-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/hive/shims/hive-shims-scheduler/0.13.1-cdh5.3.2/hive-shims-scheduler-0.13.1-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/zookeeper/zookeeper/3.4.5-cdh5.3.2/zookeeper-3.4.5-cdh5.3.2.jar:/Users/jleach/.m2/repository/org/apache/spark/spark-assembly-hadoop2.5.0-cdh5.3.2/1.2.0/spark-assembly-hadoop2.5.0-cdh5.3.2-1.2.0.jar:/Users/jleach/.m2/repository/com/splicemachine/splice_protocol-cdh5.3.2/1.1.1-SNAPSHOT/splice_protocol-cdh5.3.2-1.1.1-SNAPSHOT.jar:/Users/jleach/.m2/repository/com/splicemachine/asynchbase/1.5.5/asynchbase-1.5.5.jar:/Users/jleach/.m2/repository/com/stumbleupon/async/1.4.0/async-1.4.0.jar:/Users/jleach/.m2/repository/org/scala-lang/scala-library/2.10.4/scala-library-2.10.4.jar:/Users/jleach/.m2/repository/com/splicemachine/splice_machine_adapter_98-cdh5.3.2/1.1.1-SNAPSHOT/splice_machine_adapter_98-cdh5.3.2-1.1.1-SNAPSHOT-tests.jar:/Users/jleach/.m2/repository/org/splicetest/sqlj/sqlj-it-procs/1.0.2-SNAPSHOT/sqlj-it-procs-1.0.2-SNAPSHOT.jar:/Users/jleach/.m2/repository/com/google/protobuf/protobuf-java/2.5.0/protobuf-java-2.5.0.jar:/Users/jleach/.m2/repository/com/carrotsearch/hppc/0.5.2/hppc-0.5.2.jar:/Users/jleach/.m2/repository/com/carrotsearch/java-sizeof/0.0.4/java-sizeof-0.0.4.jar:/Users/jleach/.m2/repository/com/esotericsoftware/kryo/kryo/2.21/kryo-2.21.jar:/Users/jleach/.m2/repository/com/esotericsoftware/reflectasm/reflectasm/1.07/reflectasm-1.07-shaded.jar:/Users/jleach/.m2/repository/org/ow2/asm/asm/4.0/asm-4.0.jar:/Users/jleach/.m2/repository/com/esotericsoftware/minlog/minlog/1.2/minlog-1.2.jar:/Users/jleach/.m2/repository/org/objenesis/objenesis/1.2/objenesis-1.2.jar:/Users/jleach/.m2/repository/com/github/stephenc/high-scale-lib/high-scale-lib/1.1.1/high-scale-lib-1.1.1.jar:/Users/jleach/.m2/repository/com/google/code/findbugs/jsr305/1.3.9/jsr305-1.3.9.jar:/Users/jleach/.m2/repository/com/google/code/gson/gson/2.2.2/gson-2.2.2.jar:/Users/jleach/.m2/repository/com/google/guava/guava/11.0.2/guava-11.0.2.jar:/Users/jleach/.m2/repository/com/lmax/disruptor/3.2.1/disruptor-3.2.1.jar:/Users/jleach/.m2/repository/com/splicemachine/utilities/1.1.2-SNAPSHOT/utilities-1.1.2-SNAPSHOT.jar:/Users/jleach/.m2/repository/com/splicemachine/stats/1.0.0-SNAPSHOT/stats-1.0.0-SNAPSHOT.jar:/Users/jleach/.m2/repository/com/splicemachine/splice-web/1.1.0-SNAPSHOT/splice-web-1.1.0-SNAPSHOT.tar.gz:/Users/jleach/.m2/repository/com/sun/jersey/jersey-core/1.8/jersey-core-1.8.jar:/Users/jleach/.m2/repository/com/sun/jersey/jersey-json/1.8/jersey-json-1.8.jar:/Users/jleach/.m2/repository/org/codehaus/jettison/jettison/1.1/jettison-1.1.jar:/Users/jleach/.m2/repository/stax/stax-api/1.0.1/stax-api-1.0.1.jar:/Users/jleach/.m2/repository/com/sun/xml/bind/jaxb-impl/2.2.3-1/jaxb-impl-2.2.3-1.jar:/Users/jleach/.m2/repository/javax/xml/bind/jaxb-api/2.2.2/jaxb-api-2.2.2.jar:/Users/jleach/.m2/repository/javax/xml/stream/stax-api/1.0-2/stax-api-1.0-2.jar:/Users/jleach/.m2/repository/javax/activation/activation/1.1/activation-1.1.jar:/Users/jleach/.m2/repository/org/codehaus/jackson/jackson-jaxrs/1.7.1/jackson-jaxrs-1.7.1.jar:/Users/jleach/.m2/repository/org/codehaus/jackson/jackson-xc/1.7.1/jackson-xc-1.7.1.jar:/Users/jleach/.m2/repository/com/sun/jersey/jersey-server/1.8/jersey-server-1.8.jar:/Users/jleach/.m2/repository/asm/asm/3.1/asm-3.1.jar:/Users/jleach/.m2/repository/org/codehaus/jackson/jackson-core-asl/1.8.8/jackson-core-asl-1.8.8.jar:/Users/jleach/.m2/repository/org/codehaus/jackson/jackson-mapper-asl/1.8.8/jackson-mapper-asl-1.8.8.jar:/Users/jleach/.m2/repository/commons-cli/commons-cli/1.2/commons-cli-1.2.jar:/Users/jleach/.m2/repository/commons-dbutils/commons-dbutils/1.5/commons-dbutils-1.5.jar:/Users/jleach/.m2/repository/commons-io/commons-io/2.1/commons-io-2.1.jar:/Users/jleach/.m2/repository/commons-lang/commons-lang/2.5/commons-lang-2.5.jar:/Users/jleach/.m2/repository/commons-logging/commons-logging/1.1.1/commons-logging-1.1.1.jar:/Users/jleach/.m2/repository/de/javakaffee/kryo-serializers/0.26/kryo-serializers-0.26.jar:/Users/jleach/.m2/repository/io/netty/netty/3.6.6.Final/netty-3.6.6.Final.jar:/Users/jleach/.m2/repository/net/sf/ehcache/ehcache-core/2.6.6/ehcache-core-2.6.6.jar:/Users/jleach/.m2/repository/net/sf/opencsv/opencsv/2.3/opencsv-2.3.jar:/Users/jleach/.m2/repository/net/sf/supercsv/super-csv/2.3.2-SNAPSHOT-splice/super-csv-2.3.2-SNAPSHOT-splice.jar:/Users/jleach/.m2/repository/com/splicemachine/db/1.1.1.2-SNAPSHOT/db-1.1.1.2-SNAPSHOT.jar:/Users/jleach/.m2/repository/com/splicemachine/dbclient/1.1.1.2-SNAPSHOT/dbclient-1.1.1.2-SNAPSHOT.jar:/Users/jleach/.m2/repository/org/apache/lucene/lucene-core/4.3.1/lucene-core-4.3.1.jar:/Users/jleach/.m2/repository/org/apache/mrunit/mrunit/1.0.0/mrunit-1.0.0-hadoop2.jar:/Users/jleach/.m2/repository/org/uncommons/maths/uncommons-maths/1.2.1/uncommons-maths-1.2.1.jar:/Users/jleach/.m2/repository/org/uncommons/watchmaker/watchmaker-framework/0.7.1/watchmaker-framework-0.7.1.jar:/Users/jleach/.m2/repository/junit/junit/4.11/junit-4.11.jar:/Users/jleach/.m2/repository/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar:/Users/jleach/.m2/repository/org/mockito/mockito-all/1.9.5/mockito-all-1.9.5.jar:/Users/jleach/.m2/repository/log4j/log4j/1.2.17/log4j-1.2.17.jar:/Users/jleach/Documents/workspace/spliceengine/cdh5.3.2/splice_machine_test/target/classes
+15/06/03 16:04:16 INFO zookeeper.ZooKeeper: Client environment:java.library.path=:/Users/jleach/Library/Java/Extensions:/Library/Java/Extensions:/Network/Library/Java/Extensions:/System/Library/Java/Extensions:/usr/lib/java:.
+15/06/03 16:04:16 INFO zookeeper.ZooKeeper: Client environment:java.io.tmpdir=/var/folders/01/td1fd0hx6z72c6g58vqc1tnr0000gp/T/
+15/06/03 16:04:16 INFO zookeeper.ZooKeeper: Client environment:java.compiler=<NA>
+15/06/03 16:04:16 INFO zookeeper.ZooKeeper: Client environment:os.name=Mac OS X
+15/06/03 16:04:16 INFO zookeeper.ZooKeeper: Client environment:os.arch=x86_64
+15/06/03 16:04:16 INFO zookeeper.ZooKeeper: Client environment:os.version=10.10.3
+15/06/03 16:04:16 INFO zookeeper.ZooKeeper: Client environment:user.name=jleach
+15/06/03 16:04:16 INFO zookeeper.ZooKeeper: Client environment:user.home=/Users/jleach
+15/06/03 16:04:16 INFO zookeeper.ZooKeeper: Client environment:user.dir=/Users/jleach/Documents/workspace/spliceengine/cdh5.3.2/splice_machine_test/work/app-20150603160355-0000/0
+15/06/03 16:04:16 INFO zookeeper.ZooKeeper: Initiating client connection, connectString=localhost:2181 sessionTimeout=90000 watcher=hconnection-0x1067cab3, quorum=localhost:2181, baseZNode=/hbase
+15/06/03 16:04:16 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/0:0:0:0:0:0:0:1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/03 16:04:16 WARN zookeeper.ClientCnxn: Session 0x0 for server null, unexpected error, closing socket connection and attempting reconnect
+java.net.ConnectException: Connection refused
+	at sun.nio.ch.SocketChannelImpl.checkConnect(Native Method)
+	at sun.nio.ch.SocketChannelImpl.finishConnect(SocketChannelImpl.java:739)
+	at org.apache.zookeeper.ClientCnxnSocketNIO.doTransport(ClientCnxnSocketNIO.java:350)
+	at org.apache.zookeeper.ClientCnxn$SendThread.run(ClientCnxn.java:1081)
+15/06/03 16:04:16 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/127.0.0.1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/03 16:04:16 INFO zookeeper.ClientCnxn: Socket connection established to localhost/127.0.0.1:2181, initiating session
+15/06/03 16:04:16 WARN zookeeper.RecoverableZooKeeper: Possibly transient ZooKeeper, quorum=localhost:2181, exception=org.apache.zookeeper.KeeperException$ConnectionLossException: KeeperErrorCode = ConnectionLoss for /hbase/hbaseid
+15/06/03 16:04:16 INFO util.RetryCounter: Sleeping 1000ms before retry #0...
+15/06/03 16:04:16 INFO zookeeper.ClientCnxn: Session establishment complete on server localhost/127.0.0.1:2181, sessionid = 0x14dbb3b45fc0011, negotiated timeout = 60000
+15/06/03 16:04:17 INFO zookeeper.RecoverableZooKeeper: Process identifier=hconnection-0x2a3709d7 connecting to ZooKeeper ensemble=localhost:2181
+15/06/03 16:04:17 INFO zookeeper.ZooKeeper: Initiating client connection, connectString=localhost:2181 sessionTimeout=90000 watcher=hconnection-0x2a3709d7, quorum=localhost:2181, baseZNode=/hbase
+15/06/03 16:04:17 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/127.0.0.1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/03 16:04:17 INFO zookeeper.ClientCnxn: Socket connection established to localhost/127.0.0.1:2181, initiating session
+15/06/03 16:04:17 INFO zookeeper.ClientCnxn: Session establishment complete on server localhost/127.0.0.1:2181, sessionid = 0x14dbb3b45fc0012, negotiated timeout = 60000
+15/06/03 16:04:17 INFO zookeeper.RecoverableZooKeeper: Process identifier=hconnection-0x4e300535 connecting to ZooKeeper ensemble=localhost:2181
+15/06/03 16:04:17 INFO zookeeper.ZooKeeper: Initiating client connection, connectString=localhost:2181 sessionTimeout=90000 watcher=hconnection-0x4e300535, quorum=localhost:2181, baseZNode=/hbase
+15/06/03 16:04:17 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/0:0:0:0:0:0:0:1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/03 16:04:17 WARN zookeeper.ClientCnxn: Session 0x0 for server null, unexpected error, closing socket connection and attempting reconnect
+java.net.ConnectException: Connection refused
+	at sun.nio.ch.SocketChannelImpl.checkConnect(Native Method)
+	at sun.nio.ch.SocketChannelImpl.finishConnect(SocketChannelImpl.java:739)
+	at org.apache.zookeeper.ClientCnxnSocketNIO.doTransport(ClientCnxnSocketNIO.java:350)
+	at org.apache.zookeeper.ClientCnxn$SendThread.run(ClientCnxn.java:1081)
+15/06/03 16:04:17 WARN zookeeper.RecoverableZooKeeper: Possibly transient ZooKeeper, quorum=localhost:2181, exception=org.apache.zookeeper.KeeperException$ConnectionLossException: KeeperErrorCode = ConnectionLoss for /hbase/hbaseid
+15/06/03 16:04:17 INFO util.RetryCounter: Sleeping 1000ms before retry #0...
+15/06/03 16:04:17 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/127.0.0.1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/03 16:04:17 INFO zookeeper.ClientCnxn: Socket connection established to localhost/127.0.0.1:2181, initiating session
+15/06/03 16:04:17 INFO zookeeper.ClientCnxn: Session establishment complete on server localhost/127.0.0.1:2181, sessionid = 0x14dbb3b45fc0013, negotiated timeout = 60000
+15/06/03 16:04:18 INFO zookeeper.RecoverableZooKeeper: Process identifier=hconnection-0x2524beed connecting to ZooKeeper ensemble=localhost:2181
+15/06/03 16:04:18 INFO zookeeper.ZooKeeper: Initiating client connection, connectString=localhost:2181 sessionTimeout=90000 watcher=hconnection-0x2524beed, quorum=localhost:2181, baseZNode=/hbase
+15/06/03 16:04:18 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/0:0:0:0:0:0:0:1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/03 16:04:18 WARN zookeeper.ClientCnxn: Session 0x0 for server null, unexpected error, closing socket connection and attempting reconnect
+java.net.ConnectException: Connection refused
+	at sun.nio.ch.SocketChannelImpl.checkConnect(Native Method)
+	at sun.nio.ch.SocketChannelImpl.finishConnect(SocketChannelImpl.java:739)
+	at org.apache.zookeeper.ClientCnxnSocketNIO.doTransport(ClientCnxnSocketNIO.java:350)
+	at org.apache.zookeeper.ClientCnxn$SendThread.run(ClientCnxn.java:1081)
+15/06/03 16:04:18 WARN zookeeper.RecoverableZooKeeper: Possibly transient ZooKeeper, quorum=localhost:2181, exception=org.apache.zookeeper.KeeperException$ConnectionLossException: KeeperErrorCode = ConnectionLoss for /hbase/hbaseid
+15/06/03 16:04:18 INFO util.RetryCounter: Sleeping 1000ms before retry #0...
+15/06/03 16:04:18 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/127.0.0.1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/03 16:04:18 INFO zookeeper.ClientCnxn: Socket connection established to localhost/127.0.0.1:2181, initiating session
+15/06/03 16:04:18 INFO zookeeper.ClientCnxn: Session establishment complete on server localhost/127.0.0.1:2181, sessionid = 0x14dbb3b45fc0014, negotiated timeout = 60000
+15/06/03 16:04:19 INFO zookeeper.RecoverableZooKeeper: Process identifier=hconnection-0x32cab467 connecting to ZooKeeper ensemble=localhost:2181
+15/06/03 16:04:19 INFO zookeeper.ZooKeeper: Initiating client connection, connectString=localhost:2181 sessionTimeout=90000 watcher=hconnection-0x32cab467, quorum=localhost:2181, baseZNode=/hbase
+15/06/03 16:04:19 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/0:0:0:0:0:0:0:1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/03 16:04:19 WARN zookeeper.ClientCnxn: Session 0x0 for server null, unexpected error, closing socket connection and attempting reconnect
+java.net.ConnectException: Connection refused
+	at sun.nio.ch.SocketChannelImpl.checkConnect(Native Method)
+	at sun.nio.ch.SocketChannelImpl.finishConnect(SocketChannelImpl.java:739)
+	at org.apache.zookeeper.ClientCnxnSocketNIO.doTransport(ClientCnxnSocketNIO.java:350)
+	at org.apache.zookeeper.ClientCnxn$SendThread.run(ClientCnxn.java:1081)
+15/06/03 16:04:19 WARN zookeeper.RecoverableZooKeeper: Possibly transient ZooKeeper, quorum=localhost:2181, exception=org.apache.zookeeper.KeeperException$ConnectionLossException: KeeperErrorCode = ConnectionLoss for /hbase/hbaseid
+15/06/03 16:04:19 INFO util.RetryCounter: Sleeping 1000ms before retry #0...
+15/06/03 16:04:19 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/127.0.0.1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/03 16:04:19 INFO zookeeper.ClientCnxn: Socket connection established to localhost/127.0.0.1:2181, initiating session
+15/06/03 16:04:19 INFO zookeeper.ClientCnxn: Session establishment complete on server localhost/127.0.0.1:2181, sessionid = 0x14dbb3b45fc0015, negotiated timeout = 60000
+15/06/03 16:04:20 INFO temp.TempTable: Temp Table initial bucket count: 16
+15/06/03 16:04:20 INFO zookeeper.RecoverableZooKeeper: Process identifier=spliceconnection connecting to ZooKeeper ensemble=localhost:2181
+15/06/03 16:04:20 INFO zookeeper.ZooKeeper: Initiating client connection, connectString=localhost:2181 sessionTimeout=90000 watcher=spliceconnection, quorum=localhost:2181, baseZNode=/hbase
+15/06/03 16:04:20 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/127.0.0.1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/03 16:04:20 INFO zookeeper.ClientCnxn: Socket connection established to localhost/127.0.0.1:2181, initiating session
+15/06/03 16:04:20 INFO zookeeper.ClientCnxn: Session establishment complete on server localhost/127.0.0.1:2181, sessionid = 0x14dbb3b45fc0016, negotiated timeout = 60000
+15/06/03 16:04:20 INFO zookeeper.RecoverableZooKeeper: Process identifier=hconnection-0x2c16bad1 connecting to ZooKeeper ensemble=localhost:2181
+15/06/03 16:04:20 INFO zookeeper.ZooKeeper: Initiating client connection, connectString=localhost:2181 sessionTimeout=90000 watcher=hconnection-0x2c16bad1, quorum=localhost:2181, baseZNode=/hbase
+15/06/03 16:04:20 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/127.0.0.1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/03 16:04:20 INFO zookeeper.ClientCnxn: Socket connection established to localhost/127.0.0.1:2181, initiating session
+15/06/03 16:04:20 INFO zookeeper.ClientCnxn: Session establishment complete on server localhost/127.0.0.1:2181, sessionid = 0x14dbb3b45fc0017, negotiated timeout = 60000
+15/06/03 16:04:20 INFO zookeeper.RecoverableZooKeeper: Process identifier=hconnection-0xf2d863d connecting to ZooKeeper ensemble=localhost:2181
+15/06/03 16:04:20 INFO zookeeper.ZooKeeper: Initiating client connection, connectString=localhost:2181 sessionTimeout=90000 watcher=hconnection-0xf2d863d, quorum=localhost:2181, baseZNode=/hbase
+15/06/03 16:04:20 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/127.0.0.1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/03 16:04:20 INFO zookeeper.ClientCnxn: Socket connection established to localhost/127.0.0.1:2181, initiating session
+15/06/03 16:04:20 INFO zookeeper.ClientCnxn: Session establishment complete on server localhost/127.0.0.1:2181, sessionid = 0x14dbb3b45fc0018, negotiated timeout = 60000
+15/06/03 16:04:20 ERROR utils.PipelineConstants: No Native Snappy Installed: Splice Machine's Write Pipeline will not compress data over the wire.
+15/06/03 16:04:21 INFO hbase.SpliceDriver: Booting the SpliceDriver
+15/06/03 16:04:21 INFO zookeeper.RecoverableZooKeeper: Node /ddl already exists and this is not a retry
+15/06/03 16:04:21 INFO zookeeper.RecoverableZooKeeper: Node /ddl/ongoingChanges already exists and this is not a retry
+15/06/03 16:04:21 INFO zookeeper.RecoverableZooKeeper: Node /ddl/activeServers already exists and this is not a retry
+15/06/03 16:04:21 INFO zookeeper.RecoverableZooKeeper: Node /spliceTasks already exists and this is not a retry
+15/06/03 16:04:21 INFO zookeeper.RecoverableZooKeeper: Node /spliceJobs already exists and this is not a retry
+15/06/03 16:04:21 INFO zookeeper.RecoverableZooKeeper: Node /conglomerates already exists and this is not a retry
+15/06/03 16:04:21 INFO zookeeper.RecoverableZooKeeper: Node /conglomerates/__CONGLOM_SEQUENCE already exists and this is not a retry
+15/06/03 16:04:21 INFO zookeeper.RecoverableZooKeeper: Node /derbyPropertyPath already exists and this is not a retry
+15/06/03 16:04:21 INFO zookeeper.RecoverableZooKeeper: Node /conglomerates already exists and this is not a retry
+15/06/03 16:04:21 INFO zookeeper.RecoverableZooKeeper: Node /transactions already exists and this is not a retry
+15/06/03 16:04:21 INFO zookeeper.RecoverableZooKeeper: Node /transactions/maxReservedTimestamp already exists and this is not a retry
+15/06/03 16:04:21 INFO zookeeper.RecoverableZooKeeper: Node /transactions/minimum already exists and this is not a retry
+15/06/03 16:04:21 INFO db.SpliceDatabase: Booting the Splice Machine database
+15/06/03 16:04:21 INFO txn.SpliceTimestampSource: Creating the TimestampClient...
+15/06/03 16:04:21 INFO timestamp.TimestampClient: TimestampClient on region server successfully registered with JMX
+15/06/03 16:04:21 INFO timestamp.TimestampClient: Attempting to connect to server (host localhost, port 60012)
+15/06/03 16:04:21 INFO timestamp.TimestampClient: Successfully connected to server
+15/06/03 16:04:21 INFO catalog.SpliceDataDictionary: Splice Software Version = 1.1.1
+15/06/03 16:04:21 INFO catalog.SpliceDataDictionary: Splice Catalog Version = 1.1.1
+15/06/03 16:04:21 INFO hbase.SpliceDriver: Splice Engine is Running, Enabling Services
+15/06/03 16:04:21 INFO hbase.SpliceDriver: Splice Machine Release = 1.1.1-SNAPSHOT
+15/06/03 16:04:21 INFO hbase.SpliceDriver: Splice Machine Version Hash = 08c20a115b
+15/06/03 16:04:21 INFO hbase.SpliceDriver: Splice Machine Build Time = 2015-06-03 17:28 +0000
+15/06/03 16:04:21 INFO hbase.SpliceDriver: Splice Machine URL = http://www.splicemachine.com
+15/06/03 16:04:21 INFO hbase.SpliceDriver: Services successfully started, enabling JDBC connections...
+15/06/03 16:04:21 INFO rdd.NewHadoopRDD: Input split: localhost:,\xE4\x0B\xAA\xC1\x00\x84
+15/06/03 16:04:21 INFO rdd.NewHadoopRDD: Input split: localhost:\xE46\xDE!\x00\x83,\xE4=\xD3\xE7
+15/06/03 16:04:21 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 0
+15/06/03 16:04:21 INFO rdd.NewHadoopRDD: Input split: localhost:\xE4W\xCF\x00\x00\x84,\xE4f9\xC6
+15/06/03 16:04:21 INFO rdd.NewHadoopRDD: Input split: localhost:\xE4\x1A\x15\x07,\xE4(\x7F\xE1\x00\x85
+15/06/03 16:04:21 INFO rdd.NewHadoopRDD: Input split: localhost:\xE4\x0B\xAA\xC1\x00\x84,\xE4\x1A\x15\x07
+15/06/03 16:04:21 INFO rdd.NewHadoopRDD: Input split: localhost:\xE4(\x7F\xE1\x00\x85,\xE46\xDE!\x00\x83
+15/06/03 16:04:21 INFO rdd.NewHadoopRDD: Input split: localhost:\xE4I_'\x00\x84,\xE4W\xCF\x00\x00\x84
+15/06/03 16:04:21 INFO rdd.NewHadoopRDD: Input split: localhost:\xE4=\xD3\xE7,\xE4I_'\x00\x84
+15/06/03 16:04:21 INFO storage.MemoryStore: ensureFreeSpace(24552) called with curMem=21504, maxMem=740960501
+15/06/03 16:04:21 INFO storage.MemoryStore: Block broadcast_0_piece0 stored as bytes in memory (estimated size 24.0 KB, free 706.6 MB)
+15/06/03 16:04:21 INFO storage.BlockManagerMaster: Updated info of block broadcast_0_piece0
+15/06/03 16:04:21 INFO broadcast.TorrentBroadcast: Reading broadcast variable 0 took 12 ms
+15/06/03 16:04:21 INFO hbase.SpliceDriver: Ready to accept JDBC connections on 0.0.0.0:1527
+15/06/03 16:04:21 INFO storage.MemoryStore: ensureFreeSpace(389795) called with curMem=46056, maxMem=740960501
+15/06/03 16:04:21 INFO storage.MemoryStore: Block broadcast_0 stored as values in memory (estimated size 380.7 KB, free 706.2 MB)
+15/06/03 16:04:22 INFO zookeeper.RecoverableZooKeeper: Process identifier=hconnection-0x6fdef5a5 connecting to ZooKeeper ensemble=127.0.0.1:2181
+15/06/03 16:04:22 INFO zookeeper.ZooKeeper: Initiating client connection, connectString=127.0.0.1:2181 sessionTimeout=90000 watcher=hconnection-0x6fdef5a5, quorum=127.0.0.1:2181, baseZNode=/hbase
+15/06/03 16:04:22 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/127.0.0.1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/03 16:04:22 INFO zookeeper.ClientCnxn: Socket connection established to localhost/127.0.0.1:2181, initiating session
+15/06/03 16:04:22 INFO zookeeper.ClientCnxn: Session establishment complete on server localhost/127.0.0.1:2181, sessionid = 0x14dbb3b45fc0019, negotiated timeout = 60000
+15/06/03 16:04:22 INFO hfile.CacheConfig: Allocating LruBlockCache with maximum size 1.9 G
+15/06/03 16:04:22 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:22 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:22 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:22 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:22 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:22 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:22 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:22 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:22 INFO util.ChecksumType: Checksum using org.apache.hadoop.util.PureJavaCrc32
+15/06/03 16:04:22 INFO util.ChecksumType: Checksum can use org.apache.hadoop.util.PureJavaCrc32C
+15/06/03 16:04:22 INFO regionserver.HRegion: Onlined 923bbab361cd623ce638fbea6d814952; next sequenceid=1698
+15/06/03 16:04:22 INFO regionserver.HRegion: Onlined cc0da1066d3a8aaeca2c1d28ae422956; next sequenceid=1697
+15/06/03 16:04:22 INFO regionserver.HRegion: Onlined 923bbab361cd623ce638fbea6d814952; next sequenceid=1698
+15/06/03 16:04:22 INFO regionserver.HRegion: Onlined cc0da1066d3a8aaeca2c1d28ae422956; next sequenceid=1697
+15/06/03 16:04:22 INFO regionserver.HRegion: Onlined 923bbab361cd623ce638fbea6d814952; next sequenceid=1698
+15/06/03 16:04:22 INFO regionserver.HRegion: Onlined cc0da1066d3a8aaeca2c1d28ae422956; next sequenceid=1697
+15/06/03 16:04:22 INFO regionserver.HRegion: Onlined cc0da1066d3a8aaeca2c1d28ae422956; next sequenceid=1697
+15/06/03 16:04:22 INFO regionserver.HRegion: Onlined cc0da1066d3a8aaeca2c1d28ae422956; next sequenceid=1697
+15/06/03 16:04:22 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:22 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:22 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:22 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:22 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:22 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:22 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:22 INFO regionserver.HRegion: Onlined cc0da1066d3a8aaeca2c1d28ae422956; next sequenceid=1697
+15/06/03 16:04:22 INFO regionserver.HRegion: Onlined 923bbab361cd623ce638fbea6d814952; next sequenceid=1698
+15/06/03 16:04:22 INFO regionserver.HRegion: Onlined cc0da1066d3a8aaeca2c1d28ae422956; next sequenceid=1697
+15/06/03 16:04:22 INFO regionserver.HRegion: Onlined cc0da1066d3a8aaeca2c1d28ae422956; next sequenceid=1697
+15/06/03 16:04:22 INFO regionserver.HRegion: Onlined 923bbab361cd623ce638fbea6d814952; next sequenceid=1698
+15/06/03 16:04:22 INFO regionserver.HRegion: Onlined 923bbab361cd623ce638fbea6d814952; next sequenceid=1698
+15/06/03 16:04:22 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:22 INFO regionserver.HRegion: Onlined cc0da1066d3a8aaeca2c1d28ae422956; next sequenceid=1697
+15/06/03 16:04:22 INFO regionserver.HRegion: Onlined cc0da1066d3a8aaeca2c1d28ae422956; next sequenceid=1697
+15/06/03 16:04:27 INFO regionserver.HStore: Closed V
+15/06/03 16:04:27 INFO regionserver.HRegion: Closed 1360,,1433353618381.cc0da1066d3a8aaeca2c1d28ae422956.
+15/06/03 16:04:27 WARN regionserver.HRegion: Region 1360,,1433353618381.cc0da1066d3a8aaeca2c1d28ae422956. already closed
+15/06/03 16:04:28 INFO executor.Executor: Finished task 4.0 in stage 0.0 (TID 4). 1848 bytes result sent to driver
+15/06/03 16:04:28 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 8
+15/06/03 16:04:28 INFO executor.Executor: Running task 8.0 in stage 0.0 (TID 8)
+15/06/03 16:04:28 INFO rdd.NewHadoopRDD: Input split: localhost:\xE4f9\xC6,\xE4t\xA2B\x00\x82
+15/06/03 16:04:28 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:28 INFO regionserver.HRegion: Onlined 923bbab361cd623ce638fbea6d814952; next sequenceid=1698
+15/06/03 16:04:28 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:28 INFO regionserver.HRegion: Onlined 923bbab361cd623ce638fbea6d814952; next sequenceid=1698
+15/06/03 16:04:30 INFO regionserver.HStore: Closed V
+15/06/03 16:04:30 INFO regionserver.HRegion: Closed 1360,\xE4=\xD3\xE7,1433353618381.923bbab361cd623ce638fbea6d814952.
+15/06/03 16:04:30 WARN regionserver.HRegion: Region 1360,\xE4=\xD3\xE7,1433353618381.923bbab361cd623ce638fbea6d814952. already closed
+15/06/03 16:04:31 INFO executor.Executor: Finished task 5.0 in stage 0.0 (TID 5). 2011 bytes result sent to driver
+15/06/03 16:04:31 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 9
+15/06/03 16:04:31 INFO executor.Executor: Running task 9.0 in stage 0.0 (TID 9)
+15/06/03 16:04:31 INFO regionserver.HStore: Closed V
+15/06/03 16:04:31 INFO regionserver.HRegion: Closed 1360,,1433353618381.cc0da1066d3a8aaeca2c1d28ae422956.
+15/06/03 16:04:31 WARN regionserver.HRegion: Region 1360,,1433353618381.cc0da1066d3a8aaeca2c1d28ae422956. already closed
+15/06/03 16:04:31 INFO rdd.NewHadoopRDD: Input split: localhost:\xE4t\xA2B\x00\x82,\xE4{\xA2C\x00\x83
+15/06/03 16:04:31 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:31 INFO regionserver.HRegion: Onlined 923bbab361cd623ce638fbea6d814952; next sequenceid=1698
+15/06/03 16:04:31 INFO executor.Executor: Finished task 0.0 in stage 0.0 (TID 0). 2011 bytes result sent to driver
+15/06/03 16:04:31 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 10
+15/06/03 16:04:31 INFO executor.Executor: Running task 10.0 in stage 0.0 (TID 10)
+15/06/03 16:04:31 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:31 INFO regionserver.HRegion: Onlined 923bbab361cd623ce638fbea6d814952; next sequenceid=1698
+15/06/03 16:04:31 INFO rdd.NewHadoopRDD: Input split: localhost:\xE4{\xA2C\x00\x83,\xE4\x80\xCB\xE7\x00\x83
+15/06/03 16:04:31 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:31 INFO regionserver.HRegion: Onlined f0f26897a5648fe2d9ae0e1138fe7f72; next sequenceid=1777
+15/06/03 16:04:31 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:31 INFO regionserver.HRegion: Onlined f0f26897a5648fe2d9ae0e1138fe7f72; next sequenceid=1777
+15/06/03 16:04:31 INFO regionserver.HStore: Closed V
+15/06/03 16:04:31 INFO regionserver.HRegion: Closed 1360,\xE4=\xD3\xE7,1433353618381.923bbab361cd623ce638fbea6d814952.
+15/06/03 16:04:31 WARN regionserver.HRegion: Region 1360,\xE4=\xD3\xE7,1433353618381.923bbab361cd623ce638fbea6d814952. already closed
+15/06/03 16:04:31 INFO regionserver.HStore: Closed V
+15/06/03 16:04:31 INFO regionserver.HRegion: Closed 1360,,1433353618381.cc0da1066d3a8aaeca2c1d28ae422956.
+15/06/03 16:04:31 WARN regionserver.HRegion: Region 1360,,1433353618381.cc0da1066d3a8aaeca2c1d28ae422956. already closed
+15/06/03 16:04:31 INFO executor.Executor: Finished task 7.0 in stage 0.0 (TID 7). 2011 bytes result sent to driver
+15/06/03 16:04:31 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 11
+15/06/03 16:04:31 INFO executor.Executor: Running task 11.0 in stage 0.0 (TID 11)
+15/06/03 16:04:31 INFO executor.Executor: Finished task 3.0 in stage 0.0 (TID 3). 2011 bytes result sent to driver
+15/06/03 16:04:31 INFO rdd.NewHadoopRDD: Input split: localhost:\xE4\x80\xCB\xE7\x00\x83,\xE4\x8CK\xE5\x00\x86
+15/06/03 16:04:31 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 12
+15/06/03 16:04:31 INFO executor.Executor: Running task 12.0 in stage 0.0 (TID 12)
+15/06/03 16:04:31 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:31 INFO regionserver.HRegion: Onlined 2d3265a729c7a00e07ac954027bca4d3; next sequenceid=2727
+15/06/03 16:04:31 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:31 INFO regionserver.HRegion: Onlined 2d3265a729c7a00e07ac954027bca4d3; next sequenceid=2727
+15/06/03 16:04:31 INFO rdd.NewHadoopRDD: Input split: localhost:\xE4\x8CK\xE5\x00\x86,\xE4\x9A\xB2c\x00\x85
+15/06/03 16:04:31 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:31 INFO regionserver.HRegion: Onlined 2d3265a729c7a00e07ac954027bca4d3; next sequenceid=2727
+15/06/03 16:04:31 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:31 INFO regionserver.HRegion: Onlined 2d3265a729c7a00e07ac954027bca4d3; next sequenceid=2727
+15/06/03 16:04:31 INFO regionserver.HStore: Closed V
+15/06/03 16:04:31 INFO regionserver.HRegion: Closed 1360,,1433353618381.cc0da1066d3a8aaeca2c1d28ae422956.
+15/06/03 16:04:31 WARN regionserver.HRegion: Region 1360,,1433353618381.cc0da1066d3a8aaeca2c1d28ae422956. already closed
+15/06/03 16:04:32 INFO regionserver.HStore: Closed V
+15/06/03 16:04:32 INFO regionserver.HRegion: Closed 1360,\xE4=\xD3\xE7,1433353618381.923bbab361cd623ce638fbea6d814952.
+15/06/03 16:04:32 WARN regionserver.HRegion: Region 1360,\xE4=\xD3\xE7,1433353618381.923bbab361cd623ce638fbea6d814952. already closed
+15/06/03 16:04:32 INFO regionserver.HStore: Closed V
+15/06/03 16:04:32 INFO regionserver.HRegion: Closed 1360,,1433353618381.cc0da1066d3a8aaeca2c1d28ae422956.
+15/06/03 16:04:32 WARN regionserver.HRegion: Region 1360,,1433353618381.cc0da1066d3a8aaeca2c1d28ae422956. already closed
+15/06/03 16:04:32 INFO executor.Executor: Finished task 1.0 in stage 0.0 (TID 1). 2011 bytes result sent to driver
+15/06/03 16:04:32 INFO executor.Executor: Finished task 6.0 in stage 0.0 (TID 6). 2011 bytes result sent to driver
+15/06/03 16:04:32 INFO executor.Executor: Finished task 2.0 in stage 0.0 (TID 2). 2011 bytes result sent to driver
+15/06/03 16:04:32 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 13
+15/06/03 16:04:32 INFO executor.Executor: Running task 13.0 in stage 0.0 (TID 13)
+15/06/03 16:04:32 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 14
+15/06/03 16:04:32 INFO executor.Executor: Running task 14.0 in stage 0.0 (TID 14)
+15/06/03 16:04:32 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 15
+15/06/03 16:04:32 INFO executor.Executor: Running task 15.0 in stage 0.0 (TID 15)
+15/06/03 16:04:32 INFO rdd.NewHadoopRDD: Input split: localhost:\xE4\xB2\xBAC\x00\x82,\xE4\xC1(\x85\x00\x85
+15/06/03 16:04:32 INFO rdd.NewHadoopRDD: Input split: localhost:\xE4\xA7.\xA7\x00\x82,\xE4\xB2\xBAC\x00\x82
+15/06/03 16:04:32 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:32 INFO regionserver.HRegion: Onlined 4ff9a2d55537ac9f127d8c05431c5b79; next sequenceid=4349
+15/06/03 16:04:32 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:32 INFO regionserver.HRegion: Onlined 4ff9a2d55537ac9f127d8c05431c5b79; next sequenceid=4349
+15/06/03 16:04:32 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:32 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:32 INFO regionserver.HRegion: Onlined 4ff9a2d55537ac9f127d8c05431c5b79; next sequenceid=4349
+15/06/03 16:04:32 INFO regionserver.HRegion: Onlined 4ff9a2d55537ac9f127d8c05431c5b79; next sequenceid=4349
+15/06/03 16:04:32 INFO rdd.NewHadoopRDD: Input split: localhost:\xE4\x9A\xB2c\x00\x85,\xE4\xA7.\xA7\x00\x82
+15/06/03 16:04:32 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:32 INFO regionserver.HRegion: Onlined 2d3265a729c7a00e07ac954027bca4d3; next sequenceid=2727
+15/06/03 16:04:32 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:32 INFO regionserver.HRegion: Onlined 2d3265a729c7a00e07ac954027bca4d3; next sequenceid=2727
+15/06/03 16:04:33 INFO regionserver.HStore: Closed V
+15/06/03 16:04:33 INFO regionserver.HRegion: Closed 1360,\xE4{\xA2C\x00\x83,1433352934349.f0f26897a5648fe2d9ae0e1138fe7f72.
+15/06/03 16:04:33 WARN regionserver.HRegion: Region 1360,\xE4{\xA2C\x00\x83,1433352934349.f0f26897a5648fe2d9ae0e1138fe7f72. already closed
+15/06/03 16:04:33 INFO executor.Executor: Finished task 10.0 in stage 0.0 (TID 10). 1848 bytes result sent to driver
+15/06/03 16:04:33 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 16
+15/06/03 16:04:33 INFO executor.Executor: Running task 16.0 in stage 0.0 (TID 16)
+15/06/03 16:04:33 INFO rdd.NewHadoopRDD: Input split: localhost:\xE4\xC1(\x85\x00\x85,\xE4\xCF\x8E\xE5\x00\x83
+15/06/03 16:04:33 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:33 INFO regionserver.HRegion: Onlined 4ff9a2d55537ac9f127d8c05431c5b79; next sequenceid=4349
+15/06/03 16:04:33 INFO regionserver.HStore: Closed V
+15/06/03 16:04:33 INFO regionserver.HRegion: Closed 1360,\xE4=\xD3\xE7,1433353618381.923bbab361cd623ce638fbea6d814952.
+15/06/03 16:04:33 WARN regionserver.HRegion: Region 1360,\xE4=\xD3\xE7,1433353618381.923bbab361cd623ce638fbea6d814952. already closed
+15/06/03 16:04:33 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:33 INFO regionserver.HRegion: Onlined 4ff9a2d55537ac9f127d8c05431c5b79; next sequenceid=4349
+15/06/03 16:04:33 INFO executor.Executor: Finished task 9.0 in stage 0.0 (TID 9). 1848 bytes result sent to driver
+15/06/03 16:04:33 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 17
+15/06/03 16:04:33 INFO executor.Executor: Running task 17.0 in stage 0.0 (TID 17)
+15/06/03 16:04:33 INFO rdd.NewHadoopRDD: Input split: localhost:\xE4\xCF\x8E\xE5\x00\x83,\xE4\xDD\xF5\xC2\x00\x85
+15/06/03 16:04:33 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:33 INFO regionserver.HRegion: Onlined 4ff9a2d55537ac9f127d8c05431c5b79; next sequenceid=4349
+15/06/03 16:04:33 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:33 INFO regionserver.HRegion: Onlined 4ff9a2d55537ac9f127d8c05431c5b79; next sequenceid=4349
+15/06/03 16:04:34 INFO regionserver.HStore: Closed V
+15/06/03 16:04:34 INFO regionserver.HRegion: Closed 1360,\xE4=\xD3\xE7,1433353618381.923bbab361cd623ce638fbea6d814952.
+15/06/03 16:04:34 WARN regionserver.HRegion: Region 1360,\xE4=\xD3\xE7,1433353618381.923bbab361cd623ce638fbea6d814952. already closed
+15/06/03 16:04:34 INFO executor.Executor: Finished task 8.0 in stage 0.0 (TID 8). 2011 bytes result sent to driver
+15/06/03 16:04:34 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 18
+15/06/03 16:04:34 INFO executor.Executor: Running task 18.0 in stage 0.0 (TID 18)
+15/06/03 16:04:34 INFO rdd.NewHadoopRDD: Input split: localhost:\xE4\xDD\xF5\xC2\x00\x85,\xE4\xECc\xA7
+15/06/03 16:04:34 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:34 INFO regionserver.HRegion: Onlined 4ff9a2d55537ac9f127d8c05431c5b79; next sequenceid=4349
+15/06/03 16:04:34 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:34 INFO regionserver.HRegion: Onlined 4ff9a2d55537ac9f127d8c05431c5b79; next sequenceid=4349
+15/06/03 16:04:36 INFO regionserver.HStore: Closed V
+15/06/03 16:04:36 INFO regionserver.HRegion: Closed 1360,\xE4\x80\xCB\xE7\x00\x83,1433353018488.2d3265a729c7a00e07ac954027bca4d3.
+15/06/03 16:04:36 WARN regionserver.HRegion: Region 1360,\xE4\x80\xCB\xE7\x00\x83,1433353018488.2d3265a729c7a00e07ac954027bca4d3. already closed
+15/06/03 16:04:36 INFO executor.Executor: Finished task 11.0 in stage 0.0 (TID 11). 1848 bytes result sent to driver
+15/06/03 16:04:36 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 19
+15/06/03 16:04:36 INFO executor.Executor: Running task 19.0 in stage 0.0 (TID 19)
+15/06/03 16:04:36 INFO rdd.NewHadoopRDD: Input split: localhost:\xE4\xECc\xA7,\xE4\xF7k\x86\x00\x85
+15/06/03 16:04:36 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:36 INFO regionserver.HRegion: Onlined 4ff9a2d55537ac9f127d8c05431c5b79; next sequenceid=4349
+15/06/03 16:04:37 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:37 INFO regionserver.HRegion: Onlined 4ff9a2d55537ac9f127d8c05431c5b79; next sequenceid=4349
+15/06/03 16:04:37 INFO regionserver.HStore: Closed V
+15/06/03 16:04:37 INFO regionserver.HStore: Closed V
+15/06/03 16:04:37 INFO regionserver.HRegion: Closed 1360,\xE4\x80\xCB\xE7\x00\x83,1433353018488.2d3265a729c7a00e07ac954027bca4d3.
+15/06/03 16:04:37 WARN regionserver.HRegion: Region 1360,\xE4\x80\xCB\xE7\x00\x83,1433353018488.2d3265a729c7a00e07ac954027bca4d3. already closed
+15/06/03 16:04:37 INFO regionserver.HRegion: Closed 1360,\xE4\xA7.\xA7\x00\x82,1433353107608.4ff9a2d55537ac9f127d8c05431c5b79.
+15/06/03 16:04:37 WARN regionserver.HRegion: Region 1360,\xE4\xA7.\xA7\x00\x82,1433353107608.4ff9a2d55537ac9f127d8c05431c5b79. already closed
+15/06/03 16:04:37 INFO executor.Executor: Finished task 14.0 in stage 0.0 (TID 14). 1848 bytes result sent to driver
+15/06/03 16:04:37 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 20
+15/06/03 16:04:37 INFO executor.Executor: Running task 20.0 in stage 0.0 (TID 20)
+15/06/03 16:04:37 INFO executor.Executor: Finished task 13.0 in stage 0.0 (TID 13). 1848 bytes result sent to driver
+15/06/03 16:04:37 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 21
+15/06/03 16:04:37 INFO executor.Executor: Running task 21.0 in stage 0.0 (TID 21)
+15/06/03 16:04:37 INFO rdd.NewHadoopRDD: Input split: localhost:\xE4\xF7k\x86\x00\x85,\xE5\x02\xF4\x83\x00\x82
+15/06/03 16:04:37 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:37 INFO regionserver.HRegion: Onlined f6b425b8ae9ca19d5b3e66c328d168d5; next sequenceid=5297
+15/06/03 16:04:37 INFO rdd.NewHadoopRDD: Input split: localhost:\xE5\x02\xF4\x83\x00\x82,\xE5\x11ae
+15/06/03 16:04:37 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:37 INFO regionserver.HRegion: Onlined f6b425b8ae9ca19d5b3e66c328d168d5; next sequenceid=5297
+15/06/03 16:04:37 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:37 INFO regionserver.HRegion: Onlined f6b425b8ae9ca19d5b3e66c328d168d5; next sequenceid=5297
+15/06/03 16:04:37 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:37 INFO regionserver.HRegion: Onlined f6b425b8ae9ca19d5b3e66c328d168d5; next sequenceid=5297
+15/06/03 16:04:37 INFO regionserver.HStore: Closed V
+15/06/03 16:04:37 INFO regionserver.HRegion: Closed 1360,\xE4\x80\xCB\xE7\x00\x83,1433353018488.2d3265a729c7a00e07ac954027bca4d3.
+15/06/03 16:04:37 WARN regionserver.HRegion: Region 1360,\xE4\x80\xCB\xE7\x00\x83,1433353018488.2d3265a729c7a00e07ac954027bca4d3. already closed
+15/06/03 16:04:38 INFO executor.Executor: Finished task 12.0 in stage 0.0 (TID 12). 1848 bytes result sent to driver
+15/06/03 16:04:38 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 22
+15/06/03 16:04:38 INFO executor.Executor: Running task 22.0 in stage 0.0 (TID 22)
+15/06/03 16:04:38 INFO rdd.NewHadoopRDD: Input split: localhost:\xE5\x11ae,\xE5\x1F\xCB\xA1\x00\x83
+15/06/03 16:04:38 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:38 INFO regionserver.HRegion: Onlined f6b425b8ae9ca19d5b3e66c328d168d5; next sequenceid=5297
+15/06/03 16:04:38 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:38 INFO regionserver.HRegion: Onlined f6b425b8ae9ca19d5b3e66c328d168d5; next sequenceid=5297
+15/06/03 16:04:38 INFO regionserver.HStore: Closed V
+15/06/03 16:04:38 INFO regionserver.HRegion: Closed 1360,\xE4\xA7.\xA7\x00\x82,1433353107608.4ff9a2d55537ac9f127d8c05431c5b79.
+15/06/03 16:04:38 WARN regionserver.HRegion: Region 1360,\xE4\xA7.\xA7\x00\x82,1433353107608.4ff9a2d55537ac9f127d8c05431c5b79. already closed
+15/06/03 16:04:38 INFO executor.Executor: Finished task 15.0 in stage 0.0 (TID 15). 1848 bytes result sent to driver
+15/06/03 16:04:38 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 23
+15/06/03 16:04:38 INFO executor.Executor: Running task 23.0 in stage 0.0 (TID 23)
+15/06/03 16:04:38 INFO rdd.NewHadoopRDD: Input split: localhost:\xE5\x1F\xCB\xA1\x00\x83,\xE5.:\x08
+15/06/03 16:04:38 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:38 INFO regionserver.HRegion: Onlined f6b425b8ae9ca19d5b3e66c328d168d5; next sequenceid=5297
+15/06/03 16:04:38 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:38 INFO regionserver.HRegion: Onlined f6b425b8ae9ca19d5b3e66c328d168d5; next sequenceid=5297
+15/06/03 16:04:38 INFO regionserver.HStore: Closed V
+15/06/03 16:04:38 INFO regionserver.HRegion: Closed 1360,\xE4\xA7.\xA7\x00\x82,1433353107608.4ff9a2d55537ac9f127d8c05431c5b79.
+15/06/03 16:04:38 WARN regionserver.HRegion: Region 1360,\xE4\xA7.\xA7\x00\x82,1433353107608.4ff9a2d55537ac9f127d8c05431c5b79. already closed
+15/06/03 16:04:38 INFO executor.Executor: Finished task 16.0 in stage 0.0 (TID 16). 1848 bytes result sent to driver
+15/06/03 16:04:38 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 24
+15/06/03 16:04:38 INFO executor.Executor: Running task 24.0 in stage 0.0 (TID 24)
+15/06/03 16:04:38 INFO rdd.NewHadoopRDD: Input split: localhost:\xE5.:\x08,\xE5<\xA2D\x00\x85
+15/06/03 16:04:38 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:38 INFO regionserver.HRegion: Onlined f6b425b8ae9ca19d5b3e66c328d168d5; next sequenceid=5297
+15/06/03 16:04:38 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:38 INFO regionserver.HRegion: Onlined f6b425b8ae9ca19d5b3e66c328d168d5; next sequenceid=5297
+15/06/03 16:04:39 INFO regionserver.HStore: Closed V
+15/06/03 16:04:39 INFO regionserver.HRegion: Closed 1360,\xE4\xA7.\xA7\x00\x82,1433353107608.4ff9a2d55537ac9f127d8c05431c5b79.
+15/06/03 16:04:39 WARN regionserver.HRegion: Region 1360,\xE4\xA7.\xA7\x00\x82,1433353107608.4ff9a2d55537ac9f127d8c05431c5b79. already closed
+15/06/03 16:04:39 INFO executor.Executor: Finished task 17.0 in stage 0.0 (TID 17). 1848 bytes result sent to driver
+15/06/03 16:04:39 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 25
+15/06/03 16:04:39 INFO executor.Executor: Running task 25.0 in stage 0.0 (TID 25)
+15/06/03 16:04:39 INFO rdd.NewHadoopRDD: Input split: localhost:\xE5<\xA2D\x00\x85,\xE5CNa\x00\x85
+15/06/03 16:04:39 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:39 INFO regionserver.HRegion: Onlined f6b425b8ae9ca19d5b3e66c328d168d5; next sequenceid=5297
+15/06/03 16:04:39 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:39 INFO regionserver.HRegion: Onlined f6b425b8ae9ca19d5b3e66c328d168d5; next sequenceid=5297
+15/06/03 16:04:39 INFO regionserver.HStore: Closed V
+15/06/03 16:04:39 INFO regionserver.HRegion: Closed 1360,\xE4\xA7.\xA7\x00\x82,1433353107608.4ff9a2d55537ac9f127d8c05431c5b79.
+15/06/03 16:04:39 WARN regionserver.HRegion: Region 1360,\xE4\xA7.\xA7\x00\x82,1433353107608.4ff9a2d55537ac9f127d8c05431c5b79. already closed
+15/06/03 16:04:39 INFO executor.Executor: Finished task 18.0 in stage 0.0 (TID 18). 2011 bytes result sent to driver
+15/06/03 16:04:39 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 26
+15/06/03 16:04:39 INFO executor.Executor: Running task 26.0 in stage 0.0 (TID 26)
+15/06/03 16:04:39 INFO rdd.NewHadoopRDD: Input split: localhost:\xE5CNa\x00\x85,\xE5N\xD3\x85\x00\x85
+15/06/03 16:04:39 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:39 INFO regionserver.HRegion: Onlined af91a06d02c07e393d45275a8cee2ed8; next sequenceid=6081
+15/06/03 16:04:39 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:39 INFO regionserver.HRegion: Onlined af91a06d02c07e393d45275a8cee2ed8; next sequenceid=6081
+15/06/03 16:04:40 INFO regionserver.HStore: Closed V
+15/06/03 16:04:40 INFO regionserver.HRegion: Closed 1360,\xE4\xA7.\xA7\x00\x82,1433353107608.4ff9a2d55537ac9f127d8c05431c5b79.
+15/06/03 16:04:40 WARN regionserver.HRegion: Region 1360,\xE4\xA7.\xA7\x00\x82,1433353107608.4ff9a2d55537ac9f127d8c05431c5b79. already closed
+15/06/03 16:04:40 INFO executor.Executor: Finished task 19.0 in stage 0.0 (TID 19). 2011 bytes result sent to driver
+15/06/03 16:04:40 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 27
+15/06/03 16:04:40 INFO executor.Executor: Running task 27.0 in stage 0.0 (TID 27)
+15/06/03 16:04:40 INFO rdd.NewHadoopRDD: Input split: localhost:\xE5N\xD3\x85\x00\x85,\xE5]:\xC7\x00\x82
+15/06/03 16:04:40 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:40 INFO regionserver.HRegion: Onlined af91a06d02c07e393d45275a8cee2ed8; next sequenceid=6081
+15/06/03 16:04:40 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:40 INFO regionserver.HRegion: Onlined af91a06d02c07e393d45275a8cee2ed8; next sequenceid=6081
+15/06/03 16:04:41 INFO regionserver.HStore: Closed V
+15/06/03 16:04:41 INFO regionserver.HRegion: Closed 1360,\xE4\xF7k\x86\x00\x85,1433353203344.f6b425b8ae9ca19d5b3e66c328d168d5.
+15/06/03 16:04:41 WARN regionserver.HRegion: Region 1360,\xE4\xF7k\x86\x00\x85,1433353203344.f6b425b8ae9ca19d5b3e66c328d168d5. already closed
+15/06/03 16:04:41 INFO executor.Executor: Finished task 20.0 in stage 0.0 (TID 20). 2011 bytes result sent to driver
+15/06/03 16:04:41 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 28
+15/06/03 16:04:41 INFO executor.Executor: Running task 28.0 in stage 0.0 (TID 28)
+15/06/03 16:04:41 INFO rdd.NewHadoopRDD: Input split: localhost:\xE5]:\xC7\x00\x82,\xE5k\xA2\xE1\x00\x83
+15/06/03 16:04:41 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:41 INFO regionserver.HRegion: Onlined af91a06d02c07e393d45275a8cee2ed8; next sequenceid=6081
+15/06/03 16:04:41 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:41 INFO regionserver.HRegion: Onlined af91a06d02c07e393d45275a8cee2ed8; next sequenceid=6081
+15/06/03 16:04:41 INFO regionserver.HStore: Closed V
+15/06/03 16:04:41 INFO regionserver.HRegion: Closed 1360,\xE4\xF7k\x86\x00\x85,1433353203344.f6b425b8ae9ca19d5b3e66c328d168d5.
+15/06/03 16:04:41 WARN regionserver.HRegion: Region 1360,\xE4\xF7k\x86\x00\x85,1433353203344.f6b425b8ae9ca19d5b3e66c328d168d5. already closed
+15/06/03 16:04:41 INFO executor.Executor: Finished task 25.0 in stage 0.0 (TID 25). 2011 bytes result sent to driver
+15/06/03 16:04:41 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 29
+15/06/03 16:04:41 INFO executor.Executor: Running task 29.0 in stage 0.0 (TID 29)
+15/06/03 16:04:41 INFO rdd.NewHadoopRDD: Input split: localhost:\xE5k\xA2\xE1\x00\x83,\xE5z\x00G\x00\x81
+15/06/03 16:04:41 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:41 INFO regionserver.HRegion: Onlined af91a06d02c07e393d45275a8cee2ed8; next sequenceid=6081
+15/06/03 16:04:41 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:41 INFO regionserver.HRegion: Onlined af91a06d02c07e393d45275a8cee2ed8; next sequenceid=6081
+15/06/03 16:04:42 INFO regionserver.HStore: Closed V
+15/06/03 16:04:42 INFO regionserver.HRegion: Closed 1360,\xE4\xF7k\x86\x00\x85,1433353203344.f6b425b8ae9ca19d5b3e66c328d168d5.
+15/06/03 16:04:42 WARN regionserver.HRegion: Region 1360,\xE4\xF7k\x86\x00\x85,1433353203344.f6b425b8ae9ca19d5b3e66c328d168d5. already closed
+15/06/03 16:04:42 INFO executor.Executor: Finished task 21.0 in stage 0.0 (TID 21). 2011 bytes result sent to driver
+15/06/03 16:04:42 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 30
+15/06/03 16:04:42 INFO executor.Executor: Running task 30.0 in stage 0.0 (TID 30)
+15/06/03 16:04:42 INFO rdd.NewHadoopRDD: Input split: localhost:\xE5z\x00G\x00\x81,\xE5\x86\x8B\x06
+15/06/03 16:04:42 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:42 INFO regionserver.HRegion: Onlined af91a06d02c07e393d45275a8cee2ed8; next sequenceid=6081
+15/06/03 16:04:42 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:42 INFO regionserver.HRegion: Onlined af91a06d02c07e393d45275a8cee2ed8; next sequenceid=6081
+15/06/03 16:04:42 INFO regionserver.HStore: Closed V
+15/06/03 16:04:42 INFO regionserver.HRegion: Closed 1360,\xE4\xF7k\x86\x00\x85,1433353203344.f6b425b8ae9ca19d5b3e66c328d168d5.
+15/06/03 16:04:42 WARN regionserver.HRegion: Region 1360,\xE4\xF7k\x86\x00\x85,1433353203344.f6b425b8ae9ca19d5b3e66c328d168d5. already closed
+15/06/03 16:04:42 INFO executor.Executor: Finished task 23.0 in stage 0.0 (TID 23). 2011 bytes result sent to driver
+15/06/03 16:04:42 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 31
+15/06/03 16:04:42 INFO executor.Executor: Running task 31.0 in stage 0.0 (TID 31)
+15/06/03 16:04:42 INFO regionserver.HStore: Closed V
+15/06/03 16:04:42 INFO regionserver.HRegion: Closed 1360,\xE4\xF7k\x86\x00\x85,1433353203344.f6b425b8ae9ca19d5b3e66c328d168d5.
+15/06/03 16:04:42 WARN regionserver.HRegion: Region 1360,\xE4\xF7k\x86\x00\x85,1433353203344.f6b425b8ae9ca19d5b3e66c328d168d5. already closed
+15/06/03 16:04:42 INFO rdd.NewHadoopRDD: Input split: localhost:\xE5\x86\x8B\x06,\xE5\x92\x0Cc\x00\x82
+15/06/03 16:04:43 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:43 INFO executor.Executor: Finished task 24.0 in stage 0.0 (TID 24). 2011 bytes result sent to driver
+15/06/03 16:04:43 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 32
+15/06/03 16:04:43 INFO regionserver.HRegion: Onlined e997096226a6761f8a165c700f026167; next sequenceid=6082
+15/06/03 16:04:43 INFO executor.Executor: Running task 32.0 in stage 0.0 (TID 32)
+15/06/03 16:04:43 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:43 INFO regionserver.HRegion: Onlined e997096226a6761f8a165c700f026167; next sequenceid=6082
+15/06/03 16:04:43 INFO rdd.NewHadoopRDD: Input split: localhost:\xE5\x92\x0Cc\x00\x82,\xE5\xA0q\x06\x00\x86
+15/06/03 16:04:43 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:43 INFO regionserver.HRegion: Onlined e997096226a6761f8a165c700f026167; next sequenceid=6082
+15/06/03 16:04:43 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:43 INFO regionserver.HRegion: Onlined e997096226a6761f8a165c700f026167; next sequenceid=6082
+15/06/03 16:04:43 INFO regionserver.HStore: Closed V
+15/06/03 16:04:43 INFO regionserver.HRegion: Closed 1360,\xE4\xF7k\x86\x00\x85,1433353203344.f6b425b8ae9ca19d5b3e66c328d168d5.
+15/06/03 16:04:43 WARN regionserver.HRegion: Region 1360,\xE4\xF7k\x86\x00\x85,1433353203344.f6b425b8ae9ca19d5b3e66c328d168d5. already closed
+15/06/03 16:04:43 INFO executor.Executor: Finished task 22.0 in stage 0.0 (TID 22). 2011 bytes result sent to driver
+15/06/03 16:04:43 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 33
+15/06/03 16:04:43 INFO executor.Executor: Running task 33.0 in stage 0.0 (TID 33)
+15/06/03 16:04:43 INFO rdd.NewHadoopRDD: Input split: localhost:\xE5\xA0q\x06\x00\x86,\xE5\xAE\xD6B\x00\x82
+15/06/03 16:04:43 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:43 INFO regionserver.HRegion: Onlined e997096226a6761f8a165c700f026167; next sequenceid=6082
+15/06/03 16:04:43 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:43 INFO regionserver.HRegion: Onlined e997096226a6761f8a165c700f026167; next sequenceid=6082
+15/06/03 16:04:43 INFO regionserver.HStore: Closed V
+15/06/03 16:04:43 INFO regionserver.HRegion: Closed 1360,\xE5CNa\x00\x85,1433353279839.af91a06d02c07e393d45275a8cee2ed8.
+15/06/03 16:04:43 WARN regionserver.HRegion: Region 1360,\xE5CNa\x00\x85,1433353279839.af91a06d02c07e393d45275a8cee2ed8. already closed
+15/06/03 16:04:43 INFO executor.Executor: Finished task 26.0 in stage 0.0 (TID 26). 1848 bytes result sent to driver
+15/06/03 16:04:43 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 34
+15/06/03 16:04:43 INFO executor.Executor: Running task 34.0 in stage 0.0 (TID 34)
+15/06/03 16:04:43 INFO rdd.NewHadoopRDD: Input split: localhost:\xE5\xAE\xD6B\x00\x82,\xE5\xBDA`\x00\x85
+15/06/03 16:04:43 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:43 INFO regionserver.HRegion: Onlined e997096226a6761f8a165c700f026167; next sequenceid=6082
+15/06/03 16:04:43 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:43 INFO regionserver.HRegion: Onlined e997096226a6761f8a165c700f026167; next sequenceid=6082
+15/06/03 16:04:45 INFO regionserver.HStore: Closed V
+15/06/03 16:04:45 INFO regionserver.HRegion: Closed 1360,\xE5CNa\x00\x85,1433353279839.af91a06d02c07e393d45275a8cee2ed8.
+15/06/03 16:04:45 WARN regionserver.HRegion: Region 1360,\xE5CNa\x00\x85,1433353279839.af91a06d02c07e393d45275a8cee2ed8. already closed
+15/06/03 16:04:45 INFO executor.Executor: Finished task 27.0 in stage 0.0 (TID 27). 1848 bytes result sent to driver
+15/06/03 16:04:45 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 35
+15/06/03 16:04:45 INFO executor.Executor: Running task 35.0 in stage 0.0 (TID 35)
+15/06/03 16:04:45 INFO rdd.NewHadoopRDD: Input split: localhost:\xE5\xBDA`\x00\x85,
+15/06/03 16:04:45 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:45 INFO regionserver.HRegion: Onlined e997096226a6761f8a165c700f026167; next sequenceid=6082
+15/06/03 16:04:45 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:04:45 INFO regionserver.HRegion: Onlined e997096226a6761f8a165c700f026167; next sequenceid=6082
+15/06/03 16:04:46 INFO regionserver.HStore: Closed V
+15/06/03 16:04:46 INFO regionserver.HRegion: Closed 1360,\xE5CNa\x00\x85,1433353279839.af91a06d02c07e393d45275a8cee2ed8.
+15/06/03 16:04:46 WARN regionserver.HRegion: Region 1360,\xE5CNa\x00\x85,1433353279839.af91a06d02c07e393d45275a8cee2ed8. already closed
+15/06/03 16:04:46 INFO executor.Executor: Finished task 28.0 in stage 0.0 (TID 28). 1848 bytes result sent to driver
+15/06/03 16:04:46 INFO regionserver.HStore: Closed V
+15/06/03 16:04:46 INFO regionserver.HRegion: Closed 1360,\xE5CNa\x00\x85,1433353279839.af91a06d02c07e393d45275a8cee2ed8.
+15/06/03 16:04:46 WARN regionserver.HRegion: Region 1360,\xE5CNa\x00\x85,1433353279839.af91a06d02c07e393d45275a8cee2ed8. already closed
+15/06/03 16:04:46 INFO executor.Executor: Finished task 30.0 in stage 0.0 (TID 30). 1848 bytes result sent to driver
+15/06/03 16:04:46 INFO regionserver.HStore: Closed V
+15/06/03 16:04:46 INFO regionserver.HRegion: Closed 1360,\xE5CNa\x00\x85,1433353279839.af91a06d02c07e393d45275a8cee2ed8.
+15/06/03 16:04:46 WARN regionserver.HRegion: Region 1360,\xE5CNa\x00\x85,1433353279839.af91a06d02c07e393d45275a8cee2ed8. already closed
+15/06/03 16:04:47 INFO executor.Executor: Finished task 29.0 in stage 0.0 (TID 29). 1848 bytes result sent to driver
+15/06/03 16:04:47 INFO regionserver.HStore: Closed V
+15/06/03 16:04:47 INFO regionserver.HRegion: Closed 1360,\xE5\x86\x8B\x06,1433353279839.e997096226a6761f8a165c700f026167.
+15/06/03 16:04:47 WARN regionserver.HRegion: Region 1360,\xE5\x86\x8B\x06,1433353279839.e997096226a6761f8a165c700f026167. already closed
+15/06/03 16:04:47 INFO executor.Executor: Finished task 31.0 in stage 0.0 (TID 31). 1848 bytes result sent to driver
+15/06/03 16:04:48 INFO regionserver.HStore: Closed V
+15/06/03 16:04:48 INFO regionserver.HRegion: Closed 1360,\xE5\x86\x8B\x06,1433353279839.e997096226a6761f8a165c700f026167.
+15/06/03 16:04:48 WARN regionserver.HRegion: Region 1360,\xE5\x86\x8B\x06,1433353279839.e997096226a6761f8a165c700f026167. already closed
+15/06/03 16:04:48 INFO executor.Executor: Finished task 33.0 in stage 0.0 (TID 33). 1848 bytes result sent to driver
+15/06/03 16:04:48 INFO regionserver.HStore: Closed V
+15/06/03 16:04:48 INFO regionserver.HRegion: Closed 1360,\xE5\x86\x8B\x06,1433353279839.e997096226a6761f8a165c700f026167.
+15/06/03 16:04:48 WARN regionserver.HRegion: Region 1360,\xE5\x86\x8B\x06,1433353279839.e997096226a6761f8a165c700f026167. already closed
+15/06/03 16:04:48 INFO regionserver.HStore: Closed V
+15/06/03 16:04:48 INFO regionserver.HRegion: Closed 1360,\xE5\x86\x8B\x06,1433353279839.e997096226a6761f8a165c700f026167.
+15/06/03 16:04:48 WARN regionserver.HRegion: Region 1360,\xE5\x86\x8B\x06,1433353279839.e997096226a6761f8a165c700f026167. already closed
+15/06/03 16:04:48 INFO executor.Executor: Finished task 34.0 in stage 0.0 (TID 34). 1848 bytes result sent to driver
+15/06/03 16:04:48 INFO executor.Executor: Finished task 32.0 in stage 0.0 (TID 32). 1848 bytes result sent to driver
+15/06/03 16:04:48 INFO client.HConnectionManager$HConnectionImplementation: Closing master protocol: MasterService
+15/06/03 16:04:48 INFO client.HConnectionManager$HConnectionImplementation: Closing zookeeper sessionid=0x14dbb3b45fc0019
+15/06/03 16:04:48 INFO zookeeper.ZooKeeper: Session: 0x14dbb3b45fc0019 closed
+15/06/03 16:04:48 INFO zookeeper.ClientCnxn: EventThread shut down
+15/06/03 16:04:48 INFO regionserver.HStore: Closed V
+15/06/03 16:04:48 INFO regionserver.HRegion: Closed 1360,\xE5\x86\x8B\x06,1433353279839.e997096226a6761f8a165c700f026167.
+15/06/03 16:04:48 WARN regionserver.HRegion: Region 1360,\xE5\x86\x8B\x06,1433353279839.e997096226a6761f8a165c700f026167. already closed
+15/06/03 16:04:48 INFO executor.Executor: Finished task 35.0 in stage 0.0 (TID 35). 1848 bytes result sent to driver
+15/06/03 16:04:48 INFO storage.BlockManager: Removing broadcast 1
+15/06/03 16:04:48 INFO storage.BlockManager: Removing block broadcast_1_piece0
+15/06/03 16:04:48 INFO storage.MemoryStore: Block broadcast_1_piece0 of size 6736 dropped from memory (free 740531386)
+15/06/03 16:04:48 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 36
+15/06/03 16:04:48 INFO executor.Executor: Running task 0.0 in stage 1.0 (TID 36)
+15/06/03 16:04:48 INFO storage.BlockManagerMaster: Updated info of block broadcast_1_piece0
+15/06/03 16:04:48 INFO storage.BlockManager: Removing block broadcast_1
+15/06/03 16:04:48 INFO storage.MemoryStore: Block broadcast_1 of size 14768 dropped from memory (free 740546154)
+15/06/03 16:04:48 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 2
+15/06/03 16:04:48 INFO storage.MemoryStore: ensureFreeSpace(5964) called with curMem=414347, maxMem=740960501
+15/06/03 16:04:48 INFO storage.MemoryStore: Block broadcast_2_piece0 stored as bytes in memory (estimated size 5.8 KB, free 706.2 MB)
+15/06/03 16:04:48 INFO storage.BlockManagerMaster: Updated info of block broadcast_2_piece0
+15/06/03 16:04:48 INFO broadcast.TorrentBroadcast: Reading broadcast variable 2 took 10 ms
+15/06/03 16:04:48 INFO storage.MemoryStore: ensureFreeSpace(12160) called with curMem=420311, maxMem=740960501
+15/06/03 16:04:48 INFO storage.MemoryStore: Block broadcast_2 stored as values in memory (estimated size 11.9 KB, free 706.2 MB)
+15/06/03 16:04:48 INFO executor.Executor: Finished task 0.0 in stage 1.0 (TID 36). 715 bytes result sent to driver
+15/06/03 16:05:42 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 37
+15/06/03 16:05:42 INFO executor.Executor: Running task 0.0 in stage 2.0 (TID 37)
+15/06/03 16:05:42 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 38
+15/06/03 16:05:42 INFO executor.Executor: Running task 1.0 in stage 2.0 (TID 38)
+15/06/03 16:05:42 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 39
+15/06/03 16:05:42 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 4
+15/06/03 16:05:42 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 40
+15/06/03 16:05:42 INFO executor.Executor: Running task 2.0 in stage 2.0 (TID 39)
+15/06/03 16:05:42 INFO executor.Executor: Running task 3.0 in stage 2.0 (TID 40)
+15/06/03 16:05:42 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 41
+15/06/03 16:05:42 INFO executor.Executor: Running task 4.0 in stage 2.0 (TID 41)
+15/06/03 16:05:42 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 42
+15/06/03 16:05:42 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 43
+15/06/03 16:05:42 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 44
+15/06/03 16:05:42 INFO executor.Executor: Running task 5.0 in stage 2.0 (TID 42)
+15/06/03 16:05:42 INFO executor.Executor: Running task 6.0 in stage 2.0 (TID 43)
+15/06/03 16:05:42 INFO executor.Executor: Running task 7.0 in stage 2.0 (TID 44)
+15/06/03 16:05:42 INFO storage.MemoryStore: ensureFreeSpace(6747) called with curMem=432471, maxMem=740960501
+15/06/03 16:05:42 INFO storage.MemoryStore: Block broadcast_4_piece0 stored as bytes in memory (estimated size 6.6 KB, free 706.2 MB)
+15/06/03 16:05:42 INFO storage.BlockManagerMaster: Updated info of block broadcast_4_piece0
+15/06/03 16:05:42 INFO broadcast.TorrentBroadcast: Reading broadcast variable 4 took 16 ms
+15/06/03 16:05:42 INFO storage.MemoryStore: ensureFreeSpace(14768) called with curMem=439218, maxMem=740960501
+15/06/03 16:05:42 INFO storage.MemoryStore: Block broadcast_4 stored as values in memory (estimated size 14.4 KB, free 706.2 MB)
+15/06/03 16:05:42 INFO rdd.NewHadoopRDD: Input split: localhost:,\xE4\x0B\xAA\xC1\x00\x84
+15/06/03 16:05:42 INFO rdd.NewHadoopRDD: Input split: localhost:\xE4\x1A\x15\x07,\xE4(\x7F\xE1\x00\x85
+15/06/03 16:05:42 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 3
+15/06/03 16:05:42 INFO rdd.NewHadoopRDD: Input split: localhost:\xE4(\x7F\xE1\x00\x85,\xE46\xDE!\x00\x83
+15/06/03 16:05:42 INFO rdd.NewHadoopRDD: Input split: localhost:\xE4W\xCF\x00\x00\x84,\xE4f9\xC6
+15/06/03 16:05:42 INFO rdd.NewHadoopRDD: Input split: localhost:\xE4I_'\x00\x84,\xE4W\xCF\x00\x00\x84
+15/06/03 16:05:42 INFO rdd.NewHadoopRDD: Input split: localhost:\xE4=\xD3\xE7,\xE4I_'\x00\x84
+15/06/03 16:05:42 INFO rdd.NewHadoopRDD: Input split: localhost:\xE46\xDE!\x00\x83,\xE4=\xD3\xE7
+15/06/03 16:05:42 INFO rdd.NewHadoopRDD: Input split: localhost:\xE4\x0B\xAA\xC1\x00\x84,\xE4\x1A\x15\x07
+15/06/03 16:05:42 INFO storage.MemoryStore: ensureFreeSpace(24552) called with curMem=453986, maxMem=740960501
+15/06/03 16:05:42 INFO storage.MemoryStore: Block broadcast_3_piece0 stored as bytes in memory (estimated size 24.0 KB, free 706.2 MB)
+15/06/03 16:05:42 INFO storage.BlockManagerMaster: Updated info of block broadcast_3_piece0
+15/06/03 16:05:42 INFO broadcast.TorrentBroadcast: Reading broadcast variable 3 took 9 ms
+15/06/03 16:05:42 INFO storage.MemoryStore: ensureFreeSpace(389795) called with curMem=478538, maxMem=740960501
+15/06/03 16:05:42 INFO storage.MemoryStore: Block broadcast_3 stored as values in memory (estimated size 380.7 KB, free 705.8 MB)
+15/06/03 16:05:42 INFO zookeeper.RecoverableZooKeeper: Process identifier=hconnection-0x5e3666d9 connecting to ZooKeeper ensemble=127.0.0.1:2181
+15/06/03 16:05:42 INFO zookeeper.ZooKeeper: Initiating client connection, connectString=127.0.0.1:2181 sessionTimeout=90000 watcher=hconnection-0x5e3666d9, quorum=127.0.0.1:2181, baseZNode=/hbase
+15/06/03 16:05:42 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/127.0.0.1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/06/03 16:05:42 INFO zookeeper.ClientCnxn: Socket connection established to localhost/127.0.0.1:2181, initiating session
+15/06/03 16:05:42 INFO zookeeper.ClientCnxn: Session establishment complete on server localhost/127.0.0.1:2181, sessionid = 0x14dbb3b45fc001a, negotiated timeout = 60000
+15/06/03 16:05:42 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:42 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:42 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:42 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:42 INFO storage.BlockManager: Removing broadcast 2
+15/06/03 16:05:42 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:42 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:42 INFO storage.BlockManager: Removing block broadcast_2
+15/06/03 16:05:42 INFO storage.MemoryStore: Block broadcast_2 of size 12160 dropped from memory (free 740104328)
+15/06/03 16:05:42 INFO storage.BlockManager: Removing block broadcast_2_piece0
+15/06/03 16:05:42 INFO storage.MemoryStore: Block broadcast_2_piece0 of size 5964 dropped from memory (free 740110292)
+15/06/03 16:05:42 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:42 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:42 INFO regionserver.HRegion: Onlined 923bbab361cd623ce638fbea6d814952; next sequenceid=1698
+15/06/03 16:05:42 INFO regionserver.HRegion: Onlined cc0da1066d3a8aaeca2c1d28ae422956; next sequenceid=1697
+15/06/03 16:05:42 INFO regionserver.HRegion: Onlined cc0da1066d3a8aaeca2c1d28ae422956; next sequenceid=1697
+15/06/03 16:05:42 INFO regionserver.HRegion: Onlined 923bbab361cd623ce638fbea6d814952; next sequenceid=1698
+15/06/03 16:05:42 INFO regionserver.HRegion: Onlined 923bbab361cd623ce638fbea6d814952; next sequenceid=1698
+15/06/03 16:05:42 INFO regionserver.HRegion: Onlined cc0da1066d3a8aaeca2c1d28ae422956; next sequenceid=1697
+15/06/03 16:05:42 INFO regionserver.HRegion: Onlined cc0da1066d3a8aaeca2c1d28ae422956; next sequenceid=1697
+15/06/03 16:05:42 INFO regionserver.HRegion: Onlined cc0da1066d3a8aaeca2c1d28ae422956; next sequenceid=1697
+15/06/03 16:05:42 INFO storage.BlockManagerMaster: Updated info of block broadcast_2_piece0
+15/06/03 16:05:42 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:42 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:42 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:42 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:42 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:42 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:42 INFO regionserver.HRegion: Onlined cc0da1066d3a8aaeca2c1d28ae422956; next sequenceid=1697
+15/06/03 16:05:42 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:42 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:42 INFO regionserver.HRegion: Onlined 923bbab361cd623ce638fbea6d814952; next sequenceid=1698
+15/06/03 16:05:42 INFO regionserver.HRegion: Onlined cc0da1066d3a8aaeca2c1d28ae422956; next sequenceid=1697
+15/06/03 16:05:42 INFO regionserver.HRegion: Onlined 923bbab361cd623ce638fbea6d814952; next sequenceid=1698
+15/06/03 16:05:42 INFO regionserver.HRegion: Onlined cc0da1066d3a8aaeca2c1d28ae422956; next sequenceid=1697
+15/06/03 16:05:42 INFO regionserver.HRegion: Onlined cc0da1066d3a8aaeca2c1d28ae422956; next sequenceid=1697
+15/06/03 16:05:42 INFO regionserver.HRegion: Onlined 923bbab361cd623ce638fbea6d814952; next sequenceid=1698
+15/06/03 16:05:42 INFO regionserver.HRegion: Onlined cc0da1066d3a8aaeca2c1d28ae422956; next sequenceid=1697
+15/06/03 16:05:44 INFO regionserver.HStore: Closed V
+15/06/03 16:05:44 INFO regionserver.HRegion: Closed 1360,,1433353618381.cc0da1066d3a8aaeca2c1d28ae422956.
+15/06/03 16:05:44 WARN regionserver.HRegion: Region 1360,,1433353618381.cc0da1066d3a8aaeca2c1d28ae422956. already closed
+15/06/03 16:05:44 INFO executor.Executor: Finished task 4.0 in stage 2.0 (TID 41). 1848 bytes result sent to driver
+15/06/03 16:05:44 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 45
+15/06/03 16:05:44 INFO executor.Executor: Running task 8.0 in stage 2.0 (TID 45)
+15/06/03 16:05:44 INFO rdd.NewHadoopRDD: Input split: localhost:\xE4f9\xC6,\xE4t\xA2B\x00\x82
+15/06/03 16:05:44 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:44 INFO regionserver.HRegion: Onlined 923bbab361cd623ce638fbea6d814952; next sequenceid=1698
+15/06/03 16:05:44 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:44 INFO regionserver.HRegion: Onlined 923bbab361cd623ce638fbea6d814952; next sequenceid=1698
+15/06/03 16:05:47 INFO regionserver.HStore: Closed V
+15/06/03 16:05:47 INFO regionserver.HRegion: Closed 1360,,1433353618381.cc0da1066d3a8aaeca2c1d28ae422956.
+15/06/03 16:05:47 WARN regionserver.HRegion: Region 1360,,1433353618381.cc0da1066d3a8aaeca2c1d28ae422956. already closed
+15/06/03 16:05:47 INFO executor.Executor: Finished task 3.0 in stage 2.0 (TID 40). 1848 bytes result sent to driver
+15/06/03 16:05:47 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 46
+15/06/03 16:05:47 INFO executor.Executor: Running task 9.0 in stage 2.0 (TID 46)
+15/06/03 16:05:47 INFO rdd.NewHadoopRDD: Input split: localhost:\xE4t\xA2B\x00\x82,\xE4{\xA2C\x00\x83
+15/06/03 16:05:47 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:47 INFO regionserver.HRegion: Onlined 923bbab361cd623ce638fbea6d814952; next sequenceid=1698
+15/06/03 16:05:47 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:47 INFO regionserver.HStore: Closed V
+15/06/03 16:05:47 INFO regionserver.HRegion: Closed 1360,,1433353618381.cc0da1066d3a8aaeca2c1d28ae422956.
+15/06/03 16:05:47 WARN regionserver.HRegion: Region 1360,,1433353618381.cc0da1066d3a8aaeca2c1d28ae422956. already closed
+15/06/03 16:05:47 INFO regionserver.HRegion: Onlined 923bbab361cd623ce638fbea6d814952; next sequenceid=1698
+15/06/03 16:05:47 INFO regionserver.HStore: Closed V
+15/06/03 16:05:47 INFO regionserver.HRegion: Closed 1360,\xE4=\xD3\xE7,1433353618381.923bbab361cd623ce638fbea6d814952.
+15/06/03 16:05:47 WARN regionserver.HRegion: Region 1360,\xE4=\xD3\xE7,1433353618381.923bbab361cd623ce638fbea6d814952. already closed
+15/06/03 16:05:47 INFO executor.Executor: Finished task 0.0 in stage 2.0 (TID 37). 1848 bytes result sent to driver
+15/06/03 16:05:47 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 47
+15/06/03 16:05:47 INFO executor.Executor: Running task 10.0 in stage 2.0 (TID 47)
+15/06/03 16:05:47 INFO executor.Executor: Finished task 5.0 in stage 2.0 (TID 42). 1848 bytes result sent to driver
+15/06/03 16:05:47 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 48
+15/06/03 16:05:47 INFO executor.Executor: Running task 11.0 in stage 2.0 (TID 48)
+15/06/03 16:05:47 INFO rdd.NewHadoopRDD: Input split: localhost:\xE4\x80\xCB\xE7\x00\x83,\xE4\x8CK\xE5\x00\x86
+15/06/03 16:05:47 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:47 INFO rdd.NewHadoopRDD: Input split: localhost:\xE4{\xA2C\x00\x83,\xE4\x80\xCB\xE7\x00\x83
+15/06/03 16:05:47 INFO regionserver.HRegion: Onlined 2d3265a729c7a00e07ac954027bca4d3; next sequenceid=2727
+15/06/03 16:05:47 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:47 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:47 INFO regionserver.HRegion: Onlined 2d3265a729c7a00e07ac954027bca4d3; next sequenceid=2727
+15/06/03 16:05:47 INFO regionserver.HRegion: Onlined f0f26897a5648fe2d9ae0e1138fe7f72; next sequenceid=1777
+15/06/03 16:05:47 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:47 INFO regionserver.HRegion: Onlined f0f26897a5648fe2d9ae0e1138fe7f72; next sequenceid=1777
+15/06/03 16:05:47 INFO regionserver.HStore: Closed V
+15/06/03 16:05:47 INFO regionserver.HRegion: Closed 1360,,1433353618381.cc0da1066d3a8aaeca2c1d28ae422956.
+15/06/03 16:05:47 WARN regionserver.HRegion: Region 1360,,1433353618381.cc0da1066d3a8aaeca2c1d28ae422956. already closed
+15/06/03 16:05:47 INFO executor.Executor: Finished task 2.0 in stage 2.0 (TID 39). 1848 bytes result sent to driver
+15/06/03 16:05:47 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 49
+15/06/03 16:05:47 INFO executor.Executor: Running task 12.0 in stage 2.0 (TID 49)
+15/06/03 16:05:47 INFO regionserver.HStore: Closed V
+15/06/03 16:05:47 INFO regionserver.HRegion: Closed 1360,\xE4=\xD3\xE7,1433353618381.923bbab361cd623ce638fbea6d814952.
+15/06/03 16:05:47 WARN regionserver.HRegion: Region 1360,\xE4=\xD3\xE7,1433353618381.923bbab361cd623ce638fbea6d814952. already closed
+15/06/03 16:05:47 INFO rdd.NewHadoopRDD: Input split: localhost:\xE4\x8CK\xE5\x00\x86,\xE4\x9A\xB2c\x00\x85
+15/06/03 16:05:48 INFO executor.Executor: Finished task 7.0 in stage 2.0 (TID 44). 1848 bytes result sent to driver
+15/06/03 16:05:48 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:48 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 50
+15/06/03 16:05:48 INFO executor.Executor: Running task 13.0 in stage 2.0 (TID 50)
+15/06/03 16:05:48 INFO regionserver.HRegion: Onlined 2d3265a729c7a00e07ac954027bca4d3; next sequenceid=2727
+15/06/03 16:05:48 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:48 INFO rdd.NewHadoopRDD: Input split: localhost:\xE4\x9A\xB2c\x00\x85,\xE4\xA7.\xA7\x00\x82
+15/06/03 16:05:48 INFO regionserver.HRegion: Onlined 2d3265a729c7a00e07ac954027bca4d3; next sequenceid=2727
+15/06/03 16:05:48 INFO regionserver.HStore: Closed V
+15/06/03 16:05:48 INFO regionserver.HRegion: Closed 1360,\xE4=\xD3\xE7,1433353618381.923bbab361cd623ce638fbea6d814952.
+15/06/03 16:05:48 WARN regionserver.HRegion: Region 1360,\xE4=\xD3\xE7,1433353618381.923bbab361cd623ce638fbea6d814952. already closed
+15/06/03 16:05:48 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:48 INFO regionserver.HRegion: Onlined 2d3265a729c7a00e07ac954027bca4d3; next sequenceid=2727
+15/06/03 16:05:48 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:48 INFO regionserver.HRegion: Onlined 2d3265a729c7a00e07ac954027bca4d3; next sequenceid=2727
+15/06/03 16:05:48 INFO executor.Executor: Finished task 6.0 in stage 2.0 (TID 43). 1848 bytes result sent to driver
+15/06/03 16:05:48 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 51
+15/06/03 16:05:48 INFO executor.Executor: Running task 14.0 in stage 2.0 (TID 51)
+15/06/03 16:05:48 INFO regionserver.HStore: Closed V
+15/06/03 16:05:48 INFO regionserver.HRegion: Closed 1360,,1433353618381.cc0da1066d3a8aaeca2c1d28ae422956.
+15/06/03 16:05:48 WARN regionserver.HRegion: Region 1360,,1433353618381.cc0da1066d3a8aaeca2c1d28ae422956. already closed
+15/06/03 16:05:48 INFO rdd.NewHadoopRDD: Input split: localhost:\xE4\xA7.\xA7\x00\x82,\xE4\xB2\xBAC\x00\x82
+15/06/03 16:05:48 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:48 INFO executor.Executor: Finished task 1.0 in stage 2.0 (TID 38). 1848 bytes result sent to driver
+15/06/03 16:05:48 INFO regionserver.HRegion: Onlined 4ff9a2d55537ac9f127d8c05431c5b79; next sequenceid=4349
+15/06/03 16:05:48 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 52
+15/06/03 16:05:48 INFO executor.Executor: Running task 15.0 in stage 2.0 (TID 52)
+15/06/03 16:05:48 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:48 INFO regionserver.HRegion: Onlined 4ff9a2d55537ac9f127d8c05431c5b79; next sequenceid=4349
+15/06/03 16:05:48 INFO rdd.NewHadoopRDD: Input split: localhost:\xE4\xB2\xBAC\x00\x82,\xE4\xC1(\x85\x00\x85
+15/06/03 16:05:48 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:48 INFO regionserver.HRegion: Onlined 4ff9a2d55537ac9f127d8c05431c5b79; next sequenceid=4349
+15/06/03 16:05:48 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:48 INFO regionserver.HRegion: Onlined 4ff9a2d55537ac9f127d8c05431c5b79; next sequenceid=4349
+15/06/03 16:05:48 INFO regionserver.HStore: Closed V
+15/06/03 16:05:48 INFO regionserver.HRegion: Closed 1360,\xE4{\xA2C\x00\x83,1433352934349.f0f26897a5648fe2d9ae0e1138fe7f72.
+15/06/03 16:05:48 WARN regionserver.HRegion: Region 1360,\xE4{\xA2C\x00\x83,1433352934349.f0f26897a5648fe2d9ae0e1138fe7f72. already closed
+15/06/03 16:05:49 INFO executor.Executor: Finished task 10.0 in stage 2.0 (TID 47). 1848 bytes result sent to driver
+15/06/03 16:05:49 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 53
+15/06/03 16:05:49 INFO executor.Executor: Running task 16.0 in stage 2.0 (TID 53)
+15/06/03 16:05:49 INFO rdd.NewHadoopRDD: Input split: localhost:\xE4\xC1(\x85\x00\x85,\xE4\xCF\x8E\xE5\x00\x83
+15/06/03 16:05:49 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:49 INFO regionserver.HRegion: Onlined 4ff9a2d55537ac9f127d8c05431c5b79; next sequenceid=4349
+15/06/03 16:05:49 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:49 INFO regionserver.HRegion: Onlined 4ff9a2d55537ac9f127d8c05431c5b79; next sequenceid=4349
+15/06/03 16:05:49 INFO regionserver.HStore: Closed V
+15/06/03 16:05:49 INFO regionserver.HRegion: Closed 1360,\xE4=\xD3\xE7,1433353618381.923bbab361cd623ce638fbea6d814952.
+15/06/03 16:05:49 WARN regionserver.HRegion: Region 1360,\xE4=\xD3\xE7,1433353618381.923bbab361cd623ce638fbea6d814952. already closed
+15/06/03 16:05:49 INFO executor.Executor: Finished task 9.0 in stage 2.0 (TID 46). 2011 bytes result sent to driver
+15/06/03 16:05:49 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 54
+15/06/03 16:05:49 INFO executor.Executor: Running task 17.0 in stage 2.0 (TID 54)
+15/06/03 16:05:49 INFO rdd.NewHadoopRDD: Input split: localhost:\xE4\xCF\x8E\xE5\x00\x83,\xE4\xDD\xF5\xC2\x00\x85
+15/06/03 16:05:49 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:49 INFO regionserver.HRegion: Onlined 4ff9a2d55537ac9f127d8c05431c5b79; next sequenceid=4349
+15/06/03 16:05:49 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:49 INFO regionserver.HRegion: Onlined 4ff9a2d55537ac9f127d8c05431c5b79; next sequenceid=4349
+15/06/03 16:05:50 INFO regionserver.HStore: Closed V
+15/06/03 16:05:50 INFO regionserver.HRegion: Closed 1360,\xE4=\xD3\xE7,1433353618381.923bbab361cd623ce638fbea6d814952.
+15/06/03 16:05:50 WARN regionserver.HRegion: Region 1360,\xE4=\xD3\xE7,1433353618381.923bbab361cd623ce638fbea6d814952. already closed
+15/06/03 16:05:50 INFO executor.Executor: Finished task 8.0 in stage 2.0 (TID 45). 2011 bytes result sent to driver
+15/06/03 16:05:50 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 55
+15/06/03 16:05:50 INFO executor.Executor: Running task 18.0 in stage 2.0 (TID 55)
+15/06/03 16:05:50 INFO rdd.NewHadoopRDD: Input split: localhost:\xE4\xDD\xF5\xC2\x00\x85,\xE4\xECc\xA7
+15/06/03 16:05:50 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:50 INFO regionserver.HRegion: Onlined 4ff9a2d55537ac9f127d8c05431c5b79; next sequenceid=4349
+15/06/03 16:05:50 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:50 INFO regionserver.HRegion: Onlined 4ff9a2d55537ac9f127d8c05431c5b79; next sequenceid=4349
+15/06/03 16:05:51 INFO regionserver.HStore: Closed V
+15/06/03 16:05:51 INFO regionserver.HRegion: Closed 1360,\xE4\x80\xCB\xE7\x00\x83,1433353018488.2d3265a729c7a00e07ac954027bca4d3.
+15/06/03 16:05:51 WARN regionserver.HRegion: Region 1360,\xE4\x80\xCB\xE7\x00\x83,1433353018488.2d3265a729c7a00e07ac954027bca4d3. already closed
+15/06/03 16:05:51 INFO executor.Executor: Finished task 11.0 in stage 2.0 (TID 48). 2011 bytes result sent to driver
+15/06/03 16:05:51 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 56
+15/06/03 16:05:51 INFO executor.Executor: Running task 19.0 in stage 2.0 (TID 56)
+15/06/03 16:05:51 INFO rdd.NewHadoopRDD: Input split: localhost:\xE4\xECc\xA7,\xE4\xF7k\x86\x00\x85
+15/06/03 16:05:51 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:51 INFO regionserver.HRegion: Onlined 4ff9a2d55537ac9f127d8c05431c5b79; next sequenceid=4349
+15/06/03 16:05:51 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:51 INFO regionserver.HRegion: Onlined 4ff9a2d55537ac9f127d8c05431c5b79; next sequenceid=4349
+15/06/03 16:05:52 INFO regionserver.HStore: Closed V
+15/06/03 16:05:52 INFO regionserver.HRegion: Closed 1360,\xE4\xA7.\xA7\x00\x82,1433353107608.4ff9a2d55537ac9f127d8c05431c5b79.
+15/06/03 16:05:52 WARN regionserver.HRegion: Region 1360,\xE4\xA7.\xA7\x00\x82,1433353107608.4ff9a2d55537ac9f127d8c05431c5b79. already closed
+15/06/03 16:05:52 INFO executor.Executor: Finished task 14.0 in stage 2.0 (TID 51). 2011 bytes result sent to driver
+15/06/03 16:05:52 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 57
+15/06/03 16:05:52 INFO executor.Executor: Running task 20.0 in stage 2.0 (TID 57)
+15/06/03 16:05:52 INFO regionserver.HStore: Closed V
+15/06/03 16:05:52 INFO regionserver.HRegion: Closed 1360,\xE4\x80\xCB\xE7\x00\x83,1433353018488.2d3265a729c7a00e07ac954027bca4d3.
+15/06/03 16:05:52 WARN regionserver.HRegion: Region 1360,\xE4\x80\xCB\xE7\x00\x83,1433353018488.2d3265a729c7a00e07ac954027bca4d3. already closed
+15/06/03 16:05:52 INFO rdd.NewHadoopRDD: Input split: localhost:\xE4\xF7k\x86\x00\x85,\xE5\x02\xF4\x83\x00\x82
+15/06/03 16:05:52 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:52 INFO regionserver.HRegion: Onlined f6b425b8ae9ca19d5b3e66c328d168d5; next sequenceid=5297
+15/06/03 16:05:52 INFO executor.Executor: Finished task 13.0 in stage 2.0 (TID 50). 2011 bytes result sent to driver
+15/06/03 16:05:52 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 58
+15/06/03 16:05:52 INFO executor.Executor: Running task 21.0 in stage 2.0 (TID 58)
+15/06/03 16:05:52 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:52 INFO regionserver.HRegion: Onlined f6b425b8ae9ca19d5b3e66c328d168d5; next sequenceid=5297
+15/06/03 16:05:52 INFO rdd.NewHadoopRDD: Input split: localhost:\xE5\x02\xF4\x83\x00\x82,\xE5\x11ae
+15/06/03 16:05:52 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:52 INFO regionserver.HRegion: Onlined f6b425b8ae9ca19d5b3e66c328d168d5; next sequenceid=5297
+15/06/03 16:05:52 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:52 INFO regionserver.HRegion: Onlined f6b425b8ae9ca19d5b3e66c328d168d5; next sequenceid=5297
+15/06/03 16:05:53 INFO regionserver.HStore: Closed V
+15/06/03 16:05:53 INFO regionserver.HRegion: Closed 1360,\xE4\x80\xCB\xE7\x00\x83,1433353018488.2d3265a729c7a00e07ac954027bca4d3.
+15/06/03 16:05:53 WARN regionserver.HRegion: Region 1360,\xE4\x80\xCB\xE7\x00\x83,1433353018488.2d3265a729c7a00e07ac954027bca4d3. already closed
+15/06/03 16:05:53 INFO executor.Executor: Finished task 12.0 in stage 2.0 (TID 49). 2011 bytes result sent to driver
+15/06/03 16:05:53 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 59
+15/06/03 16:05:53 INFO executor.Executor: Running task 22.0 in stage 2.0 (TID 59)
+15/06/03 16:05:53 INFO rdd.NewHadoopRDD: Input split: localhost:\xE5\x11ae,\xE5\x1F\xCB\xA1\x00\x83
+15/06/03 16:05:53 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:53 INFO regionserver.HRegion: Onlined f6b425b8ae9ca19d5b3e66c328d168d5; next sequenceid=5297
+15/06/03 16:05:53 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:53 INFO regionserver.HRegion: Onlined f6b425b8ae9ca19d5b3e66c328d168d5; next sequenceid=5297
+15/06/03 16:05:53 INFO regionserver.HStore: Closed V
+15/06/03 16:05:53 INFO regionserver.HRegion: Closed 1360,\xE4\xA7.\xA7\x00\x82,1433353107608.4ff9a2d55537ac9f127d8c05431c5b79.
+15/06/03 16:05:53 WARN regionserver.HRegion: Region 1360,\xE4\xA7.\xA7\x00\x82,1433353107608.4ff9a2d55537ac9f127d8c05431c5b79. already closed
+15/06/03 16:05:53 INFO executor.Executor: Finished task 15.0 in stage 2.0 (TID 52). 2011 bytes result sent to driver
+15/06/03 16:05:53 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 60
+15/06/03 16:05:53 INFO executor.Executor: Running task 23.0 in stage 2.0 (TID 60)
+15/06/03 16:05:53 INFO rdd.NewHadoopRDD: Input split: localhost:\xE5\x1F\xCB\xA1\x00\x83,\xE5.:\x08
+15/06/03 16:05:53 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:53 INFO regionserver.HRegion: Onlined f6b425b8ae9ca19d5b3e66c328d168d5; next sequenceid=5297
+15/06/03 16:05:53 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:53 INFO regionserver.HRegion: Onlined f6b425b8ae9ca19d5b3e66c328d168d5; next sequenceid=5297
+15/06/03 16:05:54 INFO regionserver.HStore: Closed V
+15/06/03 16:05:54 INFO regionserver.HRegion: Closed 1360,\xE4\xA7.\xA7\x00\x82,1433353107608.4ff9a2d55537ac9f127d8c05431c5b79.
+15/06/03 16:05:54 WARN regionserver.HRegion: Region 1360,\xE4\xA7.\xA7\x00\x82,1433353107608.4ff9a2d55537ac9f127d8c05431c5b79. already closed
+15/06/03 16:05:54 INFO executor.Executor: Finished task 16.0 in stage 2.0 (TID 53). 2011 bytes result sent to driver
+15/06/03 16:05:54 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 61
+15/06/03 16:05:54 INFO executor.Executor: Running task 24.0 in stage 2.0 (TID 61)
+15/06/03 16:05:54 INFO rdd.NewHadoopRDD: Input split: localhost:\xE5.:\x08,\xE5<\xA2D\x00\x85
+15/06/03 16:05:54 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:54 INFO regionserver.HRegion: Onlined f6b425b8ae9ca19d5b3e66c328d168d5; next sequenceid=5297
+15/06/03 16:05:54 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:54 INFO regionserver.HRegion: Onlined f6b425b8ae9ca19d5b3e66c328d168d5; next sequenceid=5297
+15/06/03 16:05:54 INFO regionserver.HStore: Closed V
+15/06/03 16:05:54 INFO regionserver.HRegion: Closed 1360,\xE4\xA7.\xA7\x00\x82,1433353107608.4ff9a2d55537ac9f127d8c05431c5b79.
+15/06/03 16:05:54 WARN regionserver.HRegion: Region 1360,\xE4\xA7.\xA7\x00\x82,1433353107608.4ff9a2d55537ac9f127d8c05431c5b79. already closed
+15/06/03 16:05:54 INFO executor.Executor: Finished task 19.0 in stage 2.0 (TID 56). 1848 bytes result sent to driver
+15/06/03 16:05:54 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 62
+15/06/03 16:05:54 INFO executor.Executor: Running task 25.0 in stage 2.0 (TID 62)
+15/06/03 16:05:54 INFO rdd.NewHadoopRDD: Input split: localhost:\xE5<\xA2D\x00\x85,\xE5CNa\x00\x85
+15/06/03 16:05:54 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:54 INFO regionserver.HRegion: Onlined f6b425b8ae9ca19d5b3e66c328d168d5; next sequenceid=5297
+15/06/03 16:05:54 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:54 INFO regionserver.HRegion: Onlined f6b425b8ae9ca19d5b3e66c328d168d5; next sequenceid=5297
+15/06/03 16:05:54 INFO regionserver.HStore: Closed V
+15/06/03 16:05:54 INFO regionserver.HRegion: Closed 1360,\xE4\xA7.\xA7\x00\x82,1433353107608.4ff9a2d55537ac9f127d8c05431c5b79.
+15/06/03 16:05:54 WARN regionserver.HRegion: Region 1360,\xE4\xA7.\xA7\x00\x82,1433353107608.4ff9a2d55537ac9f127d8c05431c5b79. already closed
+15/06/03 16:05:55 INFO executor.Executor: Finished task 18.0 in stage 2.0 (TID 55). 1848 bytes result sent to driver
+15/06/03 16:05:55 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 63
+15/06/03 16:05:55 INFO executor.Executor: Running task 26.0 in stage 2.0 (TID 63)
+15/06/03 16:05:55 INFO regionserver.HStore: Closed V
+15/06/03 16:05:55 INFO regionserver.HRegion: Closed 1360,\xE4\xA7.\xA7\x00\x82,1433353107608.4ff9a2d55537ac9f127d8c05431c5b79.
+15/06/03 16:05:55 WARN regionserver.HRegion: Region 1360,\xE4\xA7.\xA7\x00\x82,1433353107608.4ff9a2d55537ac9f127d8c05431c5b79. already closed
+15/06/03 16:05:55 INFO rdd.NewHadoopRDD: Input split: localhost:\xE5CNa\x00\x85,\xE5N\xD3\x85\x00\x85
+15/06/03 16:05:55 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:55 INFO regionserver.HRegion: Onlined af91a06d02c07e393d45275a8cee2ed8; next sequenceid=6081
+15/06/03 16:05:55 INFO executor.Executor: Finished task 17.0 in stage 2.0 (TID 54). 1848 bytes result sent to driver
+15/06/03 16:05:55 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:55 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 64
+15/06/03 16:05:55 INFO executor.Executor: Running task 27.0 in stage 2.0 (TID 64)
+15/06/03 16:05:55 INFO regionserver.HRegion: Onlined af91a06d02c07e393d45275a8cee2ed8; next sequenceid=6081
+15/06/03 16:05:55 INFO rdd.NewHadoopRDD: Input split: localhost:\xE5N\xD3\x85\x00\x85,\xE5]:\xC7\x00\x82
+15/06/03 16:05:55 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:55 INFO regionserver.HRegion: Onlined af91a06d02c07e393d45275a8cee2ed8; next sequenceid=6081
+15/06/03 16:05:55 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:55 INFO regionserver.HRegion: Onlined af91a06d02c07e393d45275a8cee2ed8; next sequenceid=6081
+15/06/03 16:05:56 INFO regionserver.HStore: Closed V
+15/06/03 16:05:56 INFO regionserver.HRegion: Closed 1360,\xE4\xF7k\x86\x00\x85,1433353203344.f6b425b8ae9ca19d5b3e66c328d168d5.
+15/06/03 16:05:56 WARN regionserver.HRegion: Region 1360,\xE4\xF7k\x86\x00\x85,1433353203344.f6b425b8ae9ca19d5b3e66c328d168d5. already closed
+15/06/03 16:05:56 INFO executor.Executor: Finished task 20.0 in stage 2.0 (TID 57). 1848 bytes result sent to driver
+15/06/03 16:05:56 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 65
+15/06/03 16:05:56 INFO executor.Executor: Running task 28.0 in stage 2.0 (TID 65)
+15/06/03 16:05:56 INFO rdd.NewHadoopRDD: Input split: localhost:\xE5]:\xC7\x00\x82,\xE5k\xA2\xE1\x00\x83
+15/06/03 16:05:56 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:56 INFO regionserver.HRegion: Onlined af91a06d02c07e393d45275a8cee2ed8; next sequenceid=6081
+15/06/03 16:05:56 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:56 INFO regionserver.HRegion: Onlined af91a06d02c07e393d45275a8cee2ed8; next sequenceid=6081
+15/06/03 16:05:56 INFO regionserver.HStore: Closed V
+15/06/03 16:05:56 INFO regionserver.HRegion: Closed 1360,\xE4\xF7k\x86\x00\x85,1433353203344.f6b425b8ae9ca19d5b3e66c328d168d5.
+15/06/03 16:05:56 WARN regionserver.HRegion: Region 1360,\xE4\xF7k\x86\x00\x85,1433353203344.f6b425b8ae9ca19d5b3e66c328d168d5. already closed
+15/06/03 16:05:56 INFO executor.Executor: Finished task 25.0 in stage 2.0 (TID 62). 1848 bytes result sent to driver
+15/06/03 16:05:56 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 66
+15/06/03 16:05:56 INFO executor.Executor: Running task 29.0 in stage 2.0 (TID 66)
+15/06/03 16:05:56 INFO rdd.NewHadoopRDD: Input split: localhost:\xE5k\xA2\xE1\x00\x83,\xE5z\x00G\x00\x81
+15/06/03 16:05:56 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:56 INFO regionserver.HRegion: Onlined af91a06d02c07e393d45275a8cee2ed8; next sequenceid=6081
+15/06/03 16:05:57 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:57 INFO regionserver.HRegion: Onlined af91a06d02c07e393d45275a8cee2ed8; next sequenceid=6081
+15/06/03 16:05:57 INFO regionserver.HStore: Closed V
+15/06/03 16:05:57 INFO regionserver.HRegion: Closed 1360,\xE4\xF7k\x86\x00\x85,1433353203344.f6b425b8ae9ca19d5b3e66c328d168d5.
+15/06/03 16:05:57 WARN regionserver.HRegion: Region 1360,\xE4\xF7k\x86\x00\x85,1433353203344.f6b425b8ae9ca19d5b3e66c328d168d5. already closed
+15/06/03 16:05:57 INFO executor.Executor: Finished task 21.0 in stage 2.0 (TID 58). 1848 bytes result sent to driver
+15/06/03 16:05:57 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 67
+15/06/03 16:05:57 INFO executor.Executor: Running task 30.0 in stage 2.0 (TID 67)
+15/06/03 16:05:57 INFO rdd.NewHadoopRDD: Input split: localhost:\xE5z\x00G\x00\x81,\xE5\x86\x8B\x06
+15/06/03 16:05:57 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:57 INFO regionserver.HRegion: Onlined af91a06d02c07e393d45275a8cee2ed8; next sequenceid=6081
+15/06/03 16:05:57 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:57 INFO regionserver.HRegion: Onlined af91a06d02c07e393d45275a8cee2ed8; next sequenceid=6081
+15/06/03 16:05:57 INFO regionserver.HStore: Closed V
+15/06/03 16:05:57 INFO regionserver.HRegion: Closed 1360,\xE4\xF7k\x86\x00\x85,1433353203344.f6b425b8ae9ca19d5b3e66c328d168d5.
+15/06/03 16:05:57 WARN regionserver.HRegion: Region 1360,\xE4\xF7k\x86\x00\x85,1433353203344.f6b425b8ae9ca19d5b3e66c328d168d5. already closed
+15/06/03 16:05:57 INFO executor.Executor: Finished task 22.0 in stage 2.0 (TID 59). 1848 bytes result sent to driver
+15/06/03 16:05:57 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 68
+15/06/03 16:05:57 INFO executor.Executor: Running task 31.0 in stage 2.0 (TID 68)
+15/06/03 16:05:57 INFO rdd.NewHadoopRDD: Input split: localhost:\xE5\x86\x8B\x06,\xE5\x92\x0Cc\x00\x82
+15/06/03 16:05:57 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:57 INFO regionserver.HRegion: Onlined e997096226a6761f8a165c700f026167; next sequenceid=6082
+15/06/03 16:05:58 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:58 INFO regionserver.HRegion: Onlined e997096226a6761f8a165c700f026167; next sequenceid=6082
+15/06/03 16:05:58 INFO regionserver.HStore: Closed V
+15/06/03 16:05:58 INFO regionserver.HRegion: Closed 1360,\xE4\xF7k\x86\x00\x85,1433353203344.f6b425b8ae9ca19d5b3e66c328d168d5.
+15/06/03 16:05:58 WARN regionserver.HRegion: Region 1360,\xE4\xF7k\x86\x00\x85,1433353203344.f6b425b8ae9ca19d5b3e66c328d168d5. already closed
+15/06/03 16:05:58 INFO executor.Executor: Finished task 23.0 in stage 2.0 (TID 60). 1848 bytes result sent to driver
+15/06/03 16:05:58 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 69
+15/06/03 16:05:58 INFO executor.Executor: Running task 32.0 in stage 2.0 (TID 69)
+15/06/03 16:05:58 INFO rdd.NewHadoopRDD: Input split: localhost:\xE5\x92\x0Cc\x00\x82,\xE5\xA0q\x06\x00\x86
+15/06/03 16:05:58 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:58 INFO regionserver.HRegion: Onlined e997096226a6761f8a165c700f026167; next sequenceid=6082
+15/06/03 16:05:58 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:58 INFO regionserver.HRegion: Onlined e997096226a6761f8a165c700f026167; next sequenceid=6082
+15/06/03 16:05:59 INFO regionserver.HStore: Closed V
+15/06/03 16:05:59 INFO regionserver.HRegion: Closed 1360,\xE4\xF7k\x86\x00\x85,1433353203344.f6b425b8ae9ca19d5b3e66c328d168d5.
+15/06/03 16:05:59 WARN regionserver.HRegion: Region 1360,\xE4\xF7k\x86\x00\x85,1433353203344.f6b425b8ae9ca19d5b3e66c328d168d5. already closed
+15/06/03 16:05:59 INFO regionserver.HStore: Closed V
+15/06/03 16:05:59 INFO regionserver.HRegion: Closed 1360,\xE5CNa\x00\x85,1433353279839.af91a06d02c07e393d45275a8cee2ed8.
+15/06/03 16:05:59 WARN regionserver.HRegion: Region 1360,\xE5CNa\x00\x85,1433353279839.af91a06d02c07e393d45275a8cee2ed8. already closed
+15/06/03 16:05:59 INFO executor.Executor: Finished task 24.0 in stage 2.0 (TID 61). 1848 bytes result sent to driver
+15/06/03 16:05:59 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 70
+15/06/03 16:05:59 INFO executor.Executor: Running task 33.0 in stage 2.0 (TID 70)
+15/06/03 16:05:59 INFO rdd.NewHadoopRDD: Input split: localhost:\xE5\xA0q\x06\x00\x86,\xE5\xAE\xD6B\x00\x82
+15/06/03 16:05:59 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:59 INFO regionserver.HRegion: Onlined e997096226a6761f8a165c700f026167; next sequenceid=6082
+15/06/03 16:05:59 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:59 INFO regionserver.HRegion: Onlined e997096226a6761f8a165c700f026167; next sequenceid=6082
+15/06/03 16:05:59 INFO executor.Executor: Finished task 26.0 in stage 2.0 (TID 63). 1848 bytes result sent to driver
+15/06/03 16:05:59 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 71
+15/06/03 16:05:59 INFO executor.Executor: Running task 34.0 in stage 2.0 (TID 71)
+15/06/03 16:05:59 INFO rdd.NewHadoopRDD: Input split: localhost:\xE5\xAE\xD6B\x00\x82,\xE5\xBDA`\x00\x85
+15/06/03 16:05:59 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:59 INFO regionserver.HRegion: Onlined e997096226a6761f8a165c700f026167; next sequenceid=6082
+15/06/03 16:05:59 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:05:59 INFO regionserver.HRegion: Onlined e997096226a6761f8a165c700f026167; next sequenceid=6082
+15/06/03 16:06:00 INFO regionserver.HStore: Closed V
+15/06/03 16:06:00 INFO regionserver.HRegion: Closed 1360,\xE5CNa\x00\x85,1433353279839.af91a06d02c07e393d45275a8cee2ed8.
+15/06/03 16:06:00 WARN regionserver.HRegion: Region 1360,\xE5CNa\x00\x85,1433353279839.af91a06d02c07e393d45275a8cee2ed8. already closed
+15/06/03 16:06:00 INFO executor.Executor: Finished task 27.0 in stage 2.0 (TID 64). 2011 bytes result sent to driver
+15/06/03 16:06:00 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 72
+15/06/03 16:06:00 INFO executor.Executor: Running task 35.0 in stage 2.0 (TID 72)
+15/06/03 16:06:00 INFO rdd.NewHadoopRDD: Input split: localhost:\xE5\xBDA`\x00\x85,
+15/06/03 16:06:00 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:06:00 INFO regionserver.HRegion: Onlined e997096226a6761f8a165c700f026167; next sequenceid=6082
+15/06/03 16:06:00 INFO compactions.CompactionConfiguration: size [16777216, 260046848); files [5, 10); ratio 1.250000; off-peak ratio 5.000000; throttle point 2684354560; delete expired; major period 604800000, major jitter 0.500000
+15/06/03 16:06:00 INFO regionserver.HRegion: Onlined e997096226a6761f8a165c700f026167; next sequenceid=6082
+15/06/03 16:06:00 INFO regionserver.HStore: Closed V
+15/06/03 16:06:00 INFO regionserver.HRegion: Closed 1360,\xE5CNa\x00\x85,1433353279839.af91a06d02c07e393d45275a8cee2ed8.
+15/06/03 16:06:00 WARN regionserver.HRegion: Region 1360,\xE5CNa\x00\x85,1433353279839.af91a06d02c07e393d45275a8cee2ed8. already closed
+15/06/03 16:06:00 INFO executor.Executor: Finished task 28.0 in stage 2.0 (TID 65). 2011 bytes result sent to driver
+15/06/03 16:06:02 INFO regionserver.HStore: Closed V
+15/06/03 16:06:02 INFO regionserver.HRegion: Closed 1360,\xE5CNa\x00\x85,1433353279839.af91a06d02c07e393d45275a8cee2ed8.
+15/06/03 16:06:02 WARN regionserver.HRegion: Region 1360,\xE5CNa\x00\x85,1433353279839.af91a06d02c07e393d45275a8cee2ed8. already closed
+15/06/03 16:06:02 INFO executor.Executor: Finished task 29.0 in stage 2.0 (TID 66). 2011 bytes result sent to driver
+15/06/03 16:06:02 INFO regionserver.HStore: Closed V
+15/06/03 16:06:02 INFO regionserver.HRegion: Closed 1360,\xE5\x86\x8B\x06,1433353279839.e997096226a6761f8a165c700f026167.
+15/06/03 16:06:02 WARN regionserver.HRegion: Region 1360,\xE5\x86\x8B\x06,1433353279839.e997096226a6761f8a165c700f026167. already closed
+15/06/03 16:06:02 INFO executor.Executor: Finished task 31.0 in stage 2.0 (TID 68). 2011 bytes result sent to driver
+15/06/03 16:06:02 INFO regionserver.HStore: Closed V
+15/06/03 16:06:02 INFO regionserver.HRegion: Closed 1360,\xE5CNa\x00\x85,1433353279839.af91a06d02c07e393d45275a8cee2ed8.
+15/06/03 16:06:02 WARN regionserver.HRegion: Region 1360,\xE5CNa\x00\x85,1433353279839.af91a06d02c07e393d45275a8cee2ed8. already closed
+15/06/03 16:06:02 INFO executor.Executor: Finished task 30.0 in stage 2.0 (TID 67). 2011 bytes result sent to driver
+15/06/03 16:06:02 INFO regionserver.HStore: Closed V
+15/06/03 16:06:02 INFO regionserver.HRegion: Closed 1360,\xE5\x86\x8B\x06,1433353279839.e997096226a6761f8a165c700f026167.
+15/06/03 16:06:02 WARN regionserver.HRegion: Region 1360,\xE5\x86\x8B\x06,1433353279839.e997096226a6761f8a165c700f026167. already closed
+15/06/03 16:06:02 INFO executor.Executor: Finished task 34.0 in stage 2.0 (TID 71). 2011 bytes result sent to driver
+15/06/03 16:06:02 INFO regionserver.HStore: Closed V
+15/06/03 16:06:02 INFO regionserver.HRegion: Closed 1360,\xE5\x86\x8B\x06,1433353279839.e997096226a6761f8a165c700f026167.
+15/06/03 16:06:02 WARN regionserver.HRegion: Region 1360,\xE5\x86\x8B\x06,1433353279839.e997096226a6761f8a165c700f026167. already closed
+15/06/03 16:06:02 INFO executor.Executor: Finished task 35.0 in stage 2.0 (TID 72). 1848 bytes result sent to driver
+15/06/03 16:06:03 INFO regionserver.HStore: Closed V
+15/06/03 16:06:03 INFO regionserver.HRegion: Closed 1360,\xE5\x86\x8B\x06,1433353279839.e997096226a6761f8a165c700f026167.
+15/06/03 16:06:03 WARN regionserver.HRegion: Region 1360,\xE5\x86\x8B\x06,1433353279839.e997096226a6761f8a165c700f026167. already closed
+15/06/03 16:06:03 INFO executor.Executor: Finished task 32.0 in stage 2.0 (TID 69). 2011 bytes result sent to driver
+15/06/03 16:06:03 INFO client.HConnectionManager$HConnectionImplementation: Closing master protocol: MasterService
+15/06/03 16:06:03 INFO client.HConnectionManager$HConnectionImplementation: Closing zookeeper sessionid=0x14dbb3b45fc001a
+15/06/03 16:06:03 INFO zookeeper.ZooKeeper: Session: 0x14dbb3b45fc001a closed
+15/06/03 16:06:03 INFO zookeeper.ClientCnxn: EventThread shut down
+15/06/03 16:06:03 INFO regionserver.HStore: Closed V
+15/06/03 16:06:03 INFO regionserver.HRegion: Closed 1360,\xE5\x86\x8B\x06,1433353279839.e997096226a6761f8a165c700f026167.
+15/06/03 16:06:03 WARN regionserver.HRegion: Region 1360,\xE5\x86\x8B\x06,1433353279839.e997096226a6761f8a165c700f026167. already closed
+15/06/03 16:06:03 INFO executor.Executor: Finished task 33.0 in stage 2.0 (TID 70). 2011 bytes result sent to driver
+15/06/03 16:06:03 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 73
+15/06/03 16:06:03 INFO executor.Executor: Running task 0.0 in stage 3.0 (TID 73)
+15/06/03 16:06:03 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 5
+15/06/03 16:06:03 INFO storage.MemoryStore: ensureFreeSpace(5959) called with curMem=850209, maxMem=740960501
+15/06/03 16:06:03 INFO storage.MemoryStore: Block broadcast_5_piece0 stored as bytes in memory (estimated size 5.8 KB, free 705.8 MB)
+15/06/03 16:06:03 INFO storage.BlockManagerMaster: Updated info of block broadcast_5_piece0
+15/06/03 16:06:03 INFO broadcast.TorrentBroadcast: Reading broadcast variable 5 took 9 ms
+15/06/03 16:06:03 INFO storage.MemoryStore: ensureFreeSpace(12160) called with curMem=856168, maxMem=740960501
+15/06/03 16:06:03 INFO storage.MemoryStore: Block broadcast_5 stored as values in memory (estimated size 11.9 KB, free 705.8 MB)
+15/06/03 16:06:03 INFO executor.Executor: Finished task 0.0 in stage 3.0 (TID 73). 715 bytes result sent to driver
+15/06/03 16:06:32 INFO storage.BlockManager: Removing broadcast 3
+15/06/03 16:06:32 INFO storage.BlockManager: Removing block broadcast_3_piece0
+15/06/03 16:06:32 INFO storage.MemoryStore: Block broadcast_3_piece0 of size 24552 dropped from memory (free 740116725)
+15/06/03 16:06:32 INFO storage.BlockManagerMaster: Updated info of block broadcast_3_piece0
+15/06/03 16:06:32 INFO storage.BlockManager: Removing block broadcast_3
+15/06/03 16:06:32 INFO storage.MemoryStore: Block broadcast_3 of size 389795 dropped from memory (free 740506520)
+15/06/03 16:06:32 INFO storage.BlockManager: Removing broadcast 4
+15/06/03 16:06:32 INFO storage.BlockManager: Removing block broadcast_4
+15/06/03 16:06:32 INFO storage.MemoryStore: Block broadcast_4 of size 14768 dropped from memory (free 740521288)
+15/06/03 16:06:32 INFO storage.BlockManager: Removing block broadcast_4_piece0
+15/06/03 16:06:32 INFO storage.MemoryStore: Block broadcast_4_piece0 of size 6747 dropped from memory (free 740528035)
+15/06/03 16:06:32 INFO storage.BlockManagerMaster: Updated info of block broadcast_4_piece0
+15/06/03 16:06:32 INFO storage.BlockManager: Removing broadcast 5
+15/06/03 16:06:32 INFO storage.BlockManager: Removing block broadcast_5_piece0
+15/06/03 16:06:32 INFO storage.MemoryStore: Block broadcast_5_piece0 of size 5959 dropped from memory (free 740533994)
+15/06/03 16:06:32 INFO storage.BlockManagerMaster: Updated info of block broadcast_5_piece0
+15/06/03 16:06:32 INFO storage.BlockManager: Removing block broadcast_5
+15/06/03 16:06:32 INFO storage.MemoryStore: Block broadcast_5 of size 12160 dropped from memory (free 740546154)
+15/06/03 16:15:59 WARN util.AkkaUtils: Error sending message in 1 attempts
+java.util.concurrent.TimeoutException: Futures timed out after [30 seconds]
+	at scala.concurrent.impl.Promise$DefaultPromise.ready(Promise.scala:219)
+	at scala.concurrent.impl.Promise$DefaultPromise.result(Promise.scala:223)
+	at scala.concurrent.Await$$anonfun$result$1.apply(package.scala:107)
+	at scala.concurrent.BlockContext$DefaultBlockContext$.blockOn(BlockContext.scala:53)
+	at scala.concurrent.Await$.result(package.scala:107)
+	at org.apache.spark.util.AkkaUtils$.askWithReply(AkkaUtils.scala:187)
+	at org.apache.spark.executor.Executor$$anon$1.run(Executor.scala:398)
+15/06/03 16:16:24 ERROR executor.CoarseGrainedExecutorBackend: Driver Disassociated [akka.tcp://sparkExecutor@10.0.1.14:64025] -> [akka.tcp://sparkDriver@10.0.1.14:64019] disassociated! Shutting down.
+15/06/03 16:16:24 WARN remote.ReliableDeliverySupervisor: Association with remote system [akka.tcp://sparkDriver@10.0.1.14:64019] has failed, address is now gated for [5000] ms. Reason is: [Disassociated].

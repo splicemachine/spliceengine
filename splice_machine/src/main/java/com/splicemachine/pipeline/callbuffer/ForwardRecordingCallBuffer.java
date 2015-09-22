@@ -5,6 +5,7 @@ import com.splicemachine.pipeline.api.PreFlushHook;
 import com.splicemachine.pipeline.api.RecordingCallBuffer;
 import com.splicemachine.pipeline.api.WriteConfiguration;
 import com.splicemachine.pipeline.api.WriteStats;
+import com.splicemachine.si.api.TxnView;
 
 /**
  * @author Scott Fines
@@ -27,8 +28,7 @@ public class ForwardRecordingCallBuffer<E> implements RecordingCallBuffer<E> {
 		@Override public double getAverageSizePerFlush() { return delegate.getAverageSizePerFlush(); }
 		@Override public CallBuffer<E> unwrap() { return delegate.unwrap(); }
 		@Override public WriteStats getWriteStats() { return delegate.getWriteStats(); }
-
 		@Override public PreFlushHook getPreFlushHook() {return delegate.getPreFlushHook(); }
 		@Override public WriteConfiguration getWriteConfiguration() { return delegate.getWriteConfiguration();}
-
+        @Override public TxnView getTxn() { return delegate.getTxn();}
 }

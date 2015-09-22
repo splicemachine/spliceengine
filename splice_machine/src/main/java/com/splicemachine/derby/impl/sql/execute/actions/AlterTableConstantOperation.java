@@ -10,7 +10,6 @@ import java.util.Properties;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.ExecutionException;
 
-import com.google.common.io.Closeables;
 import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.hadoop.hbase.util.Bytes;
 import org.apache.log4j.Logger;
@@ -281,12 +280,12 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
                         }
 
                         // create the PK constraint
-                        createUniquenessConstraint(activation, DDLChangeType.ADD_PRIMARY_KEY, "AddPrimaryKey", cca);
+                        createConstraint(activation, DDLChangeType.ADD_PRIMARY_KEY, "AddPrimaryKey", cca);
 
                         break;
                     case DataDictionary.UNIQUE_CONSTRAINT:
                         // create the unique constraint
-                        createUniquenessConstraint(activation, DDLChangeType.ADD_UNIQUE_CONSTRAINT, "AddUniqueConstraint", cca);
+                        createConstraint(activation, DDLChangeType.ADD_UNIQUE_CONSTRAINT, "AddUniqueConstraint", cca);
 
                         break;
                     case DataDictionary.FOREIGNKEY_CONSTRAINT:
@@ -294,22 +293,17 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
                         fkConstraints.add(cca);
                         break;
                     case DataDictionary.CHECK_CONSTRAINT:
-                        if (!tableScanned){
-                            tableScanned = true;
-                            numRows = getSemiRowCount(tc,td);
-                        }
-                        if (numRows > 0){
-                            /*
-                            ** We are assuming that there will only be one
-                            ** check constraint that we are adding, so it
-                            ** is ok to do the check now rather than try
-                            ** to lump together several checks.
-                            */
-                            ConstraintConstantOperation.validateConstraint(
-                                    cca.getConstraintName(), cca.getConstraintText(),
-                                    td, activation.getLanguageConnectionContext(), true);
-                        }
+                        // TODO: Make this transactional
+                        // create the check constraint
+                        createCheckConstraint(activation, cca);
+
+                        // Validate the constraint
+                        ConstraintConstantOperation.validateConstraint(
+                            cca.getConstraintName(), cca.getConstraintText(),
+                            td, activation.getLanguageConnectionContext(), true);
+
                         break;
+                        // failure should roll back txn, lets test it eh.
                 }
             } else {
                 // It's a DropConstraintConstantOperation (there are only two types)
@@ -344,6 +338,48 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         }
 
    }
+
+    private void createCheckConstraint(Activation activation, CreateConstraintConstantOperation newConstraint) throws StandardException {
+        // Here we simply update the metadata - table descriptor and execute the new constraint creation
+        List<String> constraintColumnNames = Arrays.asList(newConstraint.columnNames);
+        if (constraintColumnNames.isEmpty()) {
+            return;
+        }
+
+        LanguageConnectionContext lcc = activation.getLanguageConnectionContext();
+        DataDictionary dd = lcc.getDataDictionary();
+        TransactionController tc = lcc.getTransactionExecute();
+        TableDescriptor tableDescriptor = activation.getDDLTableDescriptor();
+
+        /*
+         * Inform the data dictionary that we are about to write to it.
+         * There are several calls to data dictionary "get" methods here
+         * that might be done in "read" mode in the data dictionary, but
+         * it seemed safer to do this whole operation in "write" mode.
+         *
+         * We tell the data dictionary we're done writing at the end of
+         * the transaction.
+         */
+        dd.startWriting(lcc);
+
+        // Get the properties on the old heap
+        long oldCongNum = tableDescriptor.getHeapConglomerateId();
+
+        /*
+         * modify the conglomerate descriptor and add constraint
+         */
+        updateTableConglomerateDescriptor(tableDescriptor,
+                                          oldCongNum,
+                                          sd,
+                                          lcc,
+                                          newConstraint);
+        // refresh the activation's TableDescriptor now that we've modified it
+        activation.setDDLTableDescriptor(tableDescriptor);
+
+        // follow thru with remaining constraint actions, create, store, etc.
+        newConstraint.executeConstantAction(activation);
+
+    }
 
     private void executeDropPrimaryKey(Activation activation, DDLChangeType changeType, String changeMsg,
                                        DropConstraintConstantOperation constraint) throws StandardException {
@@ -466,10 +502,9 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
 
         // Initiate the copy from old conglomerate to new conglomerate and the interception
         // from old schema writes to new table with new column appended
-        try {
+        try (HTableInterface hTable = SpliceAccessManager.getHTable(Long.toString(oldCongNum).getBytes())) {
             String schemaName = tableDescriptor.getSchemaName();
             String tableName = tableDescriptor.getName();
-            HTableInterface hTable = SpliceAccessManager.getHTable(Long.toString(oldCongNum).getBytes());
 
             //Add a handler to intercept writes to old schema on all regions and forward them to new
             startCoprocessorJob(activation,
@@ -586,10 +621,9 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
 
         // Initiate the copy from old conglomerate to new conglomerate and the interception
         // from old schema writes to new table with new column appended
-        try {
+        try (HTableInterface hTable = SpliceAccessManager.getHTable(Long.toString(oldCongNum).getBytes())) {
             String schemaName = tableDescriptor.getSchemaName();
             String tableName = tableDescriptor.getName();
-            HTableInterface hTable = SpliceAccessManager.getHTable(Long.toString(oldCongNum).getBytes());
 
             //Add a handler to intercept writes to old schema on all regions and forward them to new
             startCoprocessorJob(activation,
@@ -612,10 +646,10 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
         notifyMetadataChangeAndWait(ddlChange);
     }
 
-    private void createUniquenessConstraint(Activation activation,
-                                            DDLChangeType changeType,
-                                            String changeMsg,
-                                            CreateConstraintConstantOperation newConstraint) throws StandardException {
+    private void createConstraint(Activation activation,
+                                  DDLChangeType changeType,
+                                  String changeMsg,
+                                  CreateConstraintConstantOperation newConstraint) throws StandardException {
         List<String> constraintColumnNames = Arrays.asList(newConstraint.columnNames);
         if (constraintColumnNames.isEmpty()) {
             return;
@@ -737,10 +771,9 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
 
         // Initiate the copy from old conglomerate to new conglomerate and the interception
         // from old schema writes to new table with new column appended
-        try {
+        try (HTableInterface hTable = SpliceAccessManager.getHTable(Long.toString(oldCongNum).getBytes())) {
             String schemaName = tableDescriptor.getSchemaName();
             String tableName = tableDescriptor.getName();
-            HTableInterface hTable = SpliceAccessManager.getHTable(Long.toString(oldCongNum).getBytes());
 
             //Add a handler to intercept writes to old schema on all regions and forward them to new
             startCoprocessorJob(activation,
@@ -849,8 +882,7 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
 
             notifyMetadataChangeAndWait(ddlChange);
 
-            HTableInterface table = SpliceAccessManager.getHTable(writeTable);
-            try{
+            try (HTableInterface table = SpliceAccessManager.getHTable(writeTable)) {
                 // Add the indexes to the exisiting regions
                 createIndex(activation, ddlChange, table, td);
 
@@ -861,8 +893,6 @@ public class AlterTableConstantOperation extends IndexConstantOperation implemen
                         indexTransaction, tentativeTransaction.getCommitTimestamp(),tentativeIndexDesc);
                 //only commit the index transaction if the job actually completed
                 indexTransaction.commit();
-            }finally{
-                Closeables.closeQuietly(table);
             }
         }catch (Throwable t) {
             throw Exceptions.parseException(t);

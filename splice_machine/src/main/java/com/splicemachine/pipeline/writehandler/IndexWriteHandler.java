@@ -46,7 +46,7 @@ public class IndexWriteHandler extends AbstractIndexWriteHandler {
 
     @Override
     protected void subFlush(WriteContext ctx) throws Exception {
-        if (indexBuffer != null) {
+        if (indexBuffer != null && ! ctx.skipIndexWrites()) {
             indexBuffer.flushBuffer();
             // indexBuffer.close(); // Do not block
         }
@@ -77,88 +77,59 @@ public class IndexWriteHandler extends AbstractIndexWriteHandler {
     protected boolean isHandledMutationType(KVPair.Type type) {
         return type == KVPair.Type.DELETE || type == KVPair.Type.CANCEL ||
             type == KVPair.Type.UPDATE || type == KVPair.Type.INSERT ||
-            type == KVPair.Type.UPSERT || type == KVPair.Type.UNIQUE_UPDATE;
+            type == KVPair.Type.UPSERT;
     }
 
     @Override
     public boolean updateIndex(KVPair mutation, WriteContext ctx) {
-        failed = false;
-
-        if (transformer.isUniqueIndex() && mutation.getType() == KVPair.Type.CANCEL) {
+        if (ctx.skipIndexWrites()) {
             return true;
         }
+        if (!ensureBufferReader(mutation, ctx))
+            return false;
 
-        ensureBufferReader(mutation, ctx);
-
-        if (mutation.getType() == KVPair.Type.DELETE) {
-            // If it's a DELETE, we can just delete the index and move on
-            deleteIndex(mutation, ctx);
-            return !failed;
-        }
-
-        if (mutation.getType().isUpdateOrUpsert()) {
-            // Is this an UPDATE, UNIQUE_UPDATE or an UPSERT and we have ONLY updated primary key columns?  If so,
-            // send the mutation to the index as it is.  The old value will have been deleted by the UpdateOperation
-            // which sends a delete mutation when it sees that primary keys have changed.
-            //
-            // Otherwise...
-            if (! transformer.primaryKeyUpdateOnly(mutation, ctx, indexedColumns)) {
-                if(mutation.getType().equals(KVPair.Type.UNIQUE_UPDATE)) {
-                    // DB-3315: Primary Key constraint not enforced
-                    // If this is a unique index update, we need to change the type so that it passes constraint checking.
-                    // The mutation type is shared between main table update and the index update. Uniqueness constraint
-                    // check must be made against the main table update but, if that passes, there's no need to do it
-                    // against the unique index update.
-                    mutation.setType(KVPair.Type.UPDATE);
+        switch(mutation.getType()) {
+            case INSERT:
+                return createIndexRecord(mutation, ctx);
+            case UPDATE:
+                if (transformer.areIndexKeysModified(mutation, indexedColumns)) { // Do I need to update?
+                    deleteIndexRecord(mutation, ctx);
+                    return createIndexRecord(mutation, ctx);
                 }
-                //
-                //  To update the index now, we must find the old index row and delete it, then
-                //  insert a new index row with the correct values.
-                //
-                //  The order of ops goes like:
-                //
-                //  1. Execute a get with all the indexed columns that are currently present (before the update)
-                //  2. Create a KVPair reflecting the old get (old KVPair)
-                //  3. Delete the old index row with the old KVPair
-                //  4. Create a KVPair reflecting the mutation as an INSERT get (new KVPair)
-                //  5. Insert the new index KVPair
-                //
-                // If the index delete does not find a row to delete, we send the mutation to the index as it is,
-                // that is, instead of creating an INSERT with the mutation, we create a new index row with the
-                // mutation as it came to us.
-                if (deleteIndex(mutation, ctx)) {
-                    // If the index was successfully deleted, we need to create an INSERT index row
-                    createIndex(mutation, ctx, true);
-                    return !failed;
-                }
-            }
+                return true; // No index columns modifies ignore...
+            case UPSERT:
+                deleteIndexRecord(mutation, ctx);
+                return createIndexRecord(mutation, ctx);
+            case DELETE:
+                return deleteIndexRecord(mutation, ctx);
+            case CANCEL:
+                if (transformer.isUniqueIndex())
+                    return true;
+                throw new RuntimeException("Not Valid Execution Path");
+            case EMPTY_COLUMN:
+            case FOREIGN_KEY_PARENT_EXISTENCE_CHECK:
+            case FOREIGN_KEY_CHILDREN_EXISTENCE_CHECK:
+            default:
+                throw new RuntimeException("Not Valid Execution Path");
         }
-
-        // If we arrive here we are an INSERT or an UPDATE/UPSERT that has not yet updated the index.
-        // This is the catchall for the branches that don't return above...
-        createIndex(mutation, ctx, false);
-        return !failed;
     }
 
-    private boolean createIndex(KVPair mutation, WriteContext ctx, boolean toInsert) {
-        KVPair toTranslate = mutation;
-        if (toInsert) {
-            toTranslate = new KVPair(mutation.getRowKey(),mutation.getValue(), KVPair.Type.INSERT);
-        }
+    private boolean createIndexRecord(KVPair mutation, WriteContext ctx) {
         try {
-            KVPair newIndex = transformer.translate(toTranslate);
+            KVPair newIndex = transformer.translate(mutation);
+            newIndex.setType(KVPair.Type.INSERT);
             if(keepState) {
                 this.indexToMainMutationMap.put(newIndex, mutation);
             }
             indexBuffer.add(newIndex);
         } catch (Exception e) {
-            failed = true;
             ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName() + ":" + e.getMessage()));
+            return false;
         }
-        return !failed;
+        return true;
     }
 
-    private boolean deleteIndex(KVPair mutation, WriteContext ctx) {
+    private boolean deleteIndexRecord(KVPair mutation, WriteContext ctx) {
         if (LOG.isTraceEnabled())
             SpliceLogUtils.trace(LOG, "index delete with %s", mutation);
 
@@ -184,20 +155,21 @@ public class IndexWriteHandler extends AbstractIndexWriteHandler {
             ensureBufferReader(indexDelete, ctx);
             indexBuffer.add(indexDelete);
         } catch (Exception e) {
-            failed=true;
             ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName()+":"+e.getMessage()));
+            return false;
         }
-        return !failed;
+        return true;
     }
 
-    private void ensureBufferReader(KVPair mutation, WriteContext ctx) {
+    private boolean ensureBufferReader(KVPair mutation, WriteContext ctx) {
         if (indexBuffer == null) {
             try {
                 indexBuffer = getWriteBuffer(ctx, expectedWrites);
             } catch (Exception e) {
                 ctx.failed(mutation, WriteResult.failed(e.getClass().getSimpleName() + ":" + e.getMessage()));
-                failed = true;
+                return false;
             }
         }
+        return true;
     }
 }

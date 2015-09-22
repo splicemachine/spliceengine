@@ -434,6 +434,7 @@ public class SITransactor<Data, Table,
                     visibleColumns.add(data);
             }
         }
+        constraintStateFilter.nextRow();
         if (!additiveConflict && visibleColumns.size() <= 0) return false; //no visible values to check
 
         OperationStatus operationStatus = constraintChecker.checkConstraint(mutation, dataLib.newResult(visibleColumns));

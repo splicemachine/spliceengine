@@ -12,6 +12,10 @@ import com.splicemachine.pipeline.writehandler.SnapshotIsolatedWriteHandler;
 import com.splicemachine.si.impl.DDLFilter;
 import com.splicemachine.si.impl.HTransactorFactory;
 
+/**
+ * The write intercepting side of alter table.<br/>
+ * Intercepts writes to old conglom and forwards them to new.
+ */
 public class AlterTableWriteFactory implements LocalWriteFactory {
     private final DDLChange ddlChange;
 

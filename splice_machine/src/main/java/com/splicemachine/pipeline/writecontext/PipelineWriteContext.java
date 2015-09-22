@@ -40,21 +40,23 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
     private final TxnView txn;
     private final IndexCallBufferFactory indexSharedCallBuffer;
     private final int id = idGen.incrementAndGet();
+    private final boolean skipIndexWrites;
     private final RegionCoprocessorEnvironment env;
     private final WriteNode head;
 
     private WriteNode tail;
 
-    public PipelineWriteContext(IndexCallBufferFactory indexSharedCallBuffer, TxnView txn, TransactionalRegion rce, RegionCoprocessorEnvironment env) {
-        this(indexSharedCallBuffer, txn, rce, env, true);
+    public PipelineWriteContext(IndexCallBufferFactory indexSharedCallBuffer, TxnView txn, TransactionalRegion rce, boolean skipIndexWrites, RegionCoprocessorEnvironment env) {
+        this(indexSharedCallBuffer, txn, rce, skipIndexWrites, env, true);
     }
 
-    private PipelineWriteContext(IndexCallBufferFactory indexSharedCallBuffer, TxnView txn, TransactionalRegion rce, RegionCoprocessorEnvironment env, boolean keepState) {
+    private PipelineWriteContext(IndexCallBufferFactory indexSharedCallBuffer, TxnView txn, TransactionalRegion rce, boolean skipIndexWrites, RegionCoprocessorEnvironment env, boolean keepState) {
         this.indexSharedCallBuffer = indexSharedCallBuffer;
         this.env = env;
         this.rce = rce;
         this.resultsMap = Maps.newIdentityHashMap();
         this.txn = txn;
+        this.skipIndexWrites = skipIndexWrites;
         this.head = this.tail = new WriteNode(null, this);
     }
 
@@ -198,5 +200,10 @@ public class PipelineWriteContext implements WriteContext, Comparable<PipelineWr
 
     public TransactionalRegion getTransactionalRegion() {
         return rce;
+    }
+
+    @Override
+    public boolean skipIndexWrites() {
+        return this.skipIndexWrites;
     }
 }

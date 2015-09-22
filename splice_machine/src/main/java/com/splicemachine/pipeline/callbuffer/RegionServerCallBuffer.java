@@ -180,4 +180,9 @@ class RegionServerCallBuffer implements CallBuffer<Pair<byte[], RegionCallBuffer
     public WriteConfiguration getWriteConfiguration() {
         return writeConfiguration;
     }
+
+    @Override
+    public TxnView getTxn() {
+        return txn;
+    }
 }

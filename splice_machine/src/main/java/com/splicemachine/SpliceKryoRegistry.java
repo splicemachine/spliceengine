@@ -588,15 +588,17 @@ public class SpliceKryoRegistry implements KryoPool.KryoRegistry{
         instance.register(BulkWrite.class, new Serializer<BulkWrite>() {
             @Override
             public void write(Kryo kryo, Output output, BulkWrite object) {
+                output.writeByte(object.getSkipIndexWrite());
                 output.writeString(object.getEncodedStringName());
                 kryo.writeClassAndObject(output, object.getMutations());
             }
 
             @Override
             public BulkWrite read(Kryo kryo, Input input, Class type) {
+                byte skipWrite = input.readByte();
                 String eSn = input.readString();
                 Collection<KVPair> kvPairs = (Collection<KVPair>)kryo.readClassAndObject(input);
-                return new BulkWrite(kvPairs, eSn);
+                return new BulkWrite(kvPairs, eSn, skipWrite);
             }
         }, 142);
         instance.register(KVPair.class, new Serializer<KVPair>() {

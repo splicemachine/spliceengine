@@ -52,8 +52,12 @@ public class DDLChange implements Externalizable {
         return changeType;
     }
 
-    public boolean isTentative() {
-        return changeType != null && changeType.isTentative();
+    public boolean isPreCommit() {
+        return changeType != null && changeType.isPreCommit();
+    }
+
+    public boolean isPostCommit() {
+        return changeType != null && changeType.isPostCommit();
     }
 
     public TentativeDDLDesc getTentativeDDLDesc() {

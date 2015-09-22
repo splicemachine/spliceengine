@@ -14,6 +14,7 @@ import com.splicemachine.db.iapi.sql.execute.ExecRow;
 import com.splicemachine.db.impl.sql.execute.ColumnInfo;
 import com.splicemachine.db.impl.sql.execute.ValueRow;
 import com.splicemachine.derby.impl.sql.execute.operations.scanner.TableScannerBuilder;
+import com.splicemachine.derby.utils.marshall.KeyEncoder;
 import com.splicemachine.pipeline.api.RowTransformer;
 import com.splicemachine.pipeline.api.WriteHandler;
 import com.splicemachine.pipeline.ddl.TransformingDDLDescriptor;
@@ -62,8 +63,13 @@ public class TentativeDropColumnDesc extends AlterTableDDLDescriptor implements 
     }
 
     @Override
+    public RowTransformer createRowTransformer(KeyEncoder keyEncoder) throws IOException {
+        return create(tableVersion, srcColumnOrdering, targetColumnOrdering, columnInfos, droppedColumnPosition, keyEncoder);
+    }
+
+    @Override
     public RowTransformer createRowTransformer() throws IOException {
-        return create(tableVersion, srcColumnOrdering, targetColumnOrdering, columnInfos, droppedColumnPosition);
+        return create(tableVersion, srcColumnOrdering, targetColumnOrdering, columnInfos, droppedColumnPosition, null);
     }
 
     @Override
@@ -132,10 +138,10 @@ public class TentativeDropColumnDesc extends AlterTableDDLDescriptor implements 
     }
 
     private static RowTransformer create(String tableVersion,
-                                        int[] sourceKeyOrdering,
-                                        int[] targetKeyOrdering,
-                                        ColumnInfo[] columnInfos,
-                                        int droppedColumnPosition) throws IOException {
+                                         int[] sourceKeyOrdering,
+                                         int[] targetKeyOrdering,
+                                         ColumnInfo[] columnInfos,
+                                         int droppedColumnPosition, KeyEncoder keyEncoder) throws IOException {
 
         // template rows
         ExecRow srcRow = new ValueRow(columnInfos.length);
@@ -163,6 +169,7 @@ public class TentativeDropColumnDesc extends AlterTableDDLDescriptor implements 
                                     targetKeyOrdering,
                                     columnMapping,
                                     srcRow,
-                                    templateRow);
+                                    templateRow,
+                                    keyEncoder);
     }
 }

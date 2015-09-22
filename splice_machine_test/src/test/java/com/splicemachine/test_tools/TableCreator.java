@@ -45,7 +45,7 @@ public class TableCreator {
     private String createSql;
     private String insertSql;
     private List<String> indexSqlList = Lists.newArrayList();
-    private Iterable<Iterable<Object>> rowProvider;
+    private RowCreator rowCreator;
 
     public TableCreator(Connection connection) {
         this.connection = connection;
@@ -72,14 +72,19 @@ public class TableCreator {
     }
 
     public TableCreator withRows(Iterable<Iterable<Object>> rowProvider) {
-        this.rowProvider = rowProvider;
+        this.rowCreator = new IterableRowCreator(rowProvider);
+        return this;
+    }
+
+    public TableCreator withRows(RowCreator rowProvider) {
+        this.rowCreator = rowProvider;
         return this;
     }
 
     public void create() throws SQLException {
         createTable();
         createIndexes();
-        if (rowProvider != null) {
+        if (rowCreator != null) {
             checkState(insertSql != null, "must provide insert statement if providing rows");
             insertRows();
         }
@@ -108,20 +113,27 @@ public class TableCreator {
     }
 
     private void insertRows() throws SQLException {
-        String INSERT_SQL = tableName == null ? insertSql : String.format(insertSql, tableName);
-        PreparedStatement ps = connection.prepareStatement(INSERT_SQL);
-        try {
-            for (Iterable<?> row : rowProvider) {
-                int i = 1;
-                for (Object value : row) {
-                    ps.setObject(i++, value);
+        String insertSql = tableName == null ?this.insertSql: String.format(this.insertSql, tableName);
+        int batchSize = rowCreator.batchSize();
+        rowCreator.reset();
+        try(PreparedStatement ps = connection.prepareStatement(insertSql)) {
+            if(batchSize>1){
+                int size = 0;
+                while(rowCreator.advanceRow()){
+                    rowCreator.setRow(ps);
+                    ps.addBatch();
+                    size++;
+                    if((size%batchSize)==0){
+                        ps.executeBatch();
+                    }
                 }
-                ps.execute();
+            }else{
+                while(rowCreator.advanceRow()){
+                    rowCreator.setRow(ps);
+                    ps.execute();
+                }
+
             }
-        } finally {
-            DbUtils.close(ps);
         }
     }
-
-
 }

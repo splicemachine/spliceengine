@@ -224,6 +224,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
                     break;
                 case ColumnInfo.MODIFY_COLUMN_TYPE:
                     modifyColumnType(dd,tc,td,ix);
+                    break;
                 case ColumnInfo.MODIFY_COLUMN_CONSTRAINT:
                     modifyColumnConstraint(activation,td,columnInfo[ix].name,true);
                     break;
@@ -266,7 +267,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         ColumnInfo colInfo = columnInfo[infoIndex];
         ColumnDescriptor columnDescriptor = tableDescriptor.getColumnDescriptor(colInfo.name);
         DataValueDescriptor storableDV;
-        int colNumber = tableDescriptor.getMaxColumnID() + infoIndex;
+        int colNumber = tableDescriptor.getMaxColumnID() + infoIndex + 1;
 
         /* We need to verify that the table does not have an existing
          * column with the same name before we try to add the new
@@ -342,7 +343,7 @@ public class ModifyColumnConstantOperation extends AlterTableConstantOperation{
         // Add the column to syscolumns.
         // Column ids in system tables are 1-based
         columnDescriptor =  new ColumnDescriptor(colInfo.name,
-                                                 colNumber + 1,
+                                                 colNumber,
                                                  colInfo.dataType,
                                                  colInfo.defaultValue,
                                                  colInfo.defaultInfo,

@@ -8,7 +8,7 @@ import com.splicemachine.db.impl.sql.compile.*;
 import java.util.Arrays;
 import java.util.BitSet;
 
-public class MergeJoinStrategy extends BaseCostedHashableJoinStrategy{
+public class MergeJoinStrategy extends HashableJoinStrategy{
 
     public MergeJoinStrategy(){
     }
@@ -103,83 +103,16 @@ public class MergeJoinStrategy extends BaseCostedHashableJoinStrategy{
         }
         //preserve the underlying CostEstimate for the inner table
         innerCost.setBase(innerCost.cloneMe());
+        double joinSelectivity = SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList, (long) innerCost.rowCount(), (long) outerCost.rowCount(), outerCost);
+        double totalOutputRows = SelectivityUtil.getTotalRows(joinSelectivity,outerCost.rowCount(),innerCost.rowCount());
+        innerCost.setNumPartitions(outerCost.partitionCount());
+        innerCost.setLocalCost(SelectivityUtil.mergeJoinStrategyLocalCost(innerCost,outerCost));
+        innerCost.setRemoteCost(SelectivityUtil.getTotalRemoteCost(innerCost,outerCost,totalOutputRows));
+        innerCost.setRowOrdering(outerCost.getRowOrdering());
+        innerCost.setRowCount(totalOutputRows);
+        innerCost.setEstimatedHeapSize((long)SelectivityUtil.getTotalHeapSize(innerCost,outerCost,totalOutputRows));
 
-        /*
-         * The Merge Join algorithm is quite simple--for each outer row, we read rows until
-         * either A) we reach a row which matches the join predicates, or B) we reach a row
-         * which is past the join predicates. In all cases, we read the outer table fully,
-         * and we read the inner row equally fully (although we terminate early once we exceed the
-         * other table scan's stop key, and we start the inner table scan at the correct point
-         * for the first outer row). As a result, we know that we touch each inner row exactly once,
-         * and we touch each outer row exactly once. Therefore, we have an additive cost as follows:
-         *
-         * totalLocalCost = outer.localCost+inner.localCost+inner.remoteCost
-         * totalRemoteCost = outer.remoteCost + inner.remoteCost
-         *
-         * Which includes network traffic to the outer table's region and network traffic from
-         * that region to the control node
-         */
-        double outerRowCount=outerCost.rowCount();
-        double innerRowCount=innerCost.rowCount();
-        if(outerRowCount==0){
-            /*
-             * There is no way that merge will do anything, so we can just stop here
-             */
-            return;
-        }
-        if(innerRowCount==0){
-            /*
-             * We don't modify the scan any, but it's possible that the inner side
-             * has non-negligible costs in order to generate 0 rows, so we can't disregard it.
-             * Instead, we just assume that innerRowCount==1
-             */
-            innerRowCount = 1d;
-        }
-        double joinSelectivity =SelectivityUtil.estimateJoinSelectivity(innerTable, cd, predList,(long) innerRowCount,(long) outerRowCount, outerCost);
 
-        double outerRemoteCost=outerCost.remoteCost();
-
-        double rowCount = joinSelectivity*outerRowCount*innerRowCount;
-
-        double innerRemoteCost=innerCost.remoteCost();
-        double totalLocalCost = outerCost.localCost()+innerCost.localCost()+innerRemoteCost;
-        totalLocalCost+=innerCost.partitionCount()*(innerCost.getOpenCost()+innerCost.getCloseCost());
-
-        /*
-         * The costing for broadcast and merge joins are essentially identical, so
-         * it's possible (particularly in the event of high-selectivity joins)
-         * that merge and broadcast joins will cost identicaly. In these situations, we want to
-         * favor merge join, since it can start late and stop early, and thus shave off a few
-         * microseconds of latency. We do this by downshifting the remote cost by a very small
-         * factor (just 5). That way, the costing strategies are slightly different, and we
-         * can favor merge join when all other things are equal
-         */
-        double totalRemoteCost = getTotalRemoteCost(outerRemoteCost,
-                innerRemoteCost,
-                outerRowCount,
-                innerRowCount,
-                rowCount)-5;
-        double heapSize = getTotalHeapSize(outerCost.getEstimatedHeapSize(),
-                innerCost.getEstimatedHeapSize(),
-                innerRowCount,
-                outerRowCount,
-                rowCount);
-        int numPartitions = outerCost.partitionCount()*innerCost.partitionCount();
-
-        /*
-         * MergeJoin is sorted according to the outer table first, then the inner table
-         */
-        RowOrdering outerRowOrdering = outerCost.getRowOrdering();
-        RowOrdering innerRowOrdering = innerCost.getRowOrdering();
-        RowOrdering outputOrder = outerRowOrdering.getClone();
-        innerRowOrdering.copy(outputOrder);
-
-        innerCost.setRowOrdering(outputOrder);
-        innerCost.setLocalCost(totalLocalCost);
-        innerCost.setRemoteCost(totalRemoteCost);
-        innerCost.setRowCount(rowCount);
-        innerCost.setEstimatedHeapSize((long)heapSize);
-        innerCost.setNumPartitions(numPartitions);
     }
 
     /* ****************************************************************************************************************/
@@ -313,6 +246,20 @@ public class MergeJoinStrategy extends BaseCostedHashableJoinStrategy{
             if(outerCol==-1) continue;
             if(outerCol<lastOuterCol) return false; //we have a join out of order
             lastOuterCol = outerCol;
+        }
+
+        /*
+         * Find the first inner join column, make sure all columns before it appear in innerColumns. These columns
+         * are referenced in equal predicates
+         */
+        int first = 0;
+        while(innerToOuterJoinColumnMap[first] == -1) {
+            first++;
+        }
+        for (int i = 0; i < first; ++i) {
+            if (!innerColumns.get(i)) {
+                return false;
+            }
         }
         return true;
     }

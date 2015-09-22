@@ -1,0 +1,593 @@
+15/09/09 14:07:33 INFO executor.CoarseGrainedExecutorBackend: Registered signal handlers for [TERM, HUP, INT]
+15/09/09 14:07:44 WARN util.NativeCodeLoader: Unable to load native-hadoop library for your platform... using builtin-java classes where applicable
+15/09/09 14:07:44 INFO spark.SecurityManager: Changing view acls to: jleach
+15/09/09 14:07:44 INFO spark.SecurityManager: Changing modify acls to: jleach
+15/09/09 14:07:44 INFO spark.SecurityManager: SecurityManager: authentication disabled; ui acls disabled; users with view permissions: Set(jleach); users with modify permissions: Set(jleach)
+15/09/09 14:07:45 INFO slf4j.Slf4jLogger: Slf4jLogger started
+15/09/09 14:07:45 INFO Remoting: Starting remoting
+15/09/09 14:07:45 INFO Remoting: Remoting started; listening on addresses :[akka.tcp://driverPropsFetcher@10.0.1.12:62100]
+15/09/09 14:07:45 INFO util.Utils: Successfully started service 'driverPropsFetcher' on port 62100.
+15/09/09 14:07:45 INFO spark.SecurityManager: Changing view acls to: jleach
+15/09/09 14:07:45 INFO spark.SecurityManager: Changing modify acls to: jleach
+15/09/09 14:07:45 INFO spark.SecurityManager: SecurityManager: authentication disabled; ui acls disabled; users with view permissions: Set(jleach); users with modify permissions: Set(jleach)
+15/09/09 14:07:45 INFO remote.RemoteActorRefProvider$RemotingTerminator: Shutting down remote daemon.
+15/09/09 14:07:45 INFO remote.RemoteActorRefProvider$RemotingTerminator: Remote daemon shut down; proceeding with flushing remote transports.
+15/09/09 14:07:45 INFO slf4j.Slf4jLogger: Slf4jLogger started
+15/09/09 14:07:45 INFO Remoting: Starting remoting
+15/09/09 14:07:45 INFO Remoting: Remoting started; listening on addresses :[akka.tcp://sparkExecutor@10.0.1.12:62102]
+15/09/09 14:07:45 INFO util.Utils: Successfully started service 'sparkExecutor' on port 62102.
+15/09/09 14:07:45 INFO executor.CoarseGrainedExecutorBackend: Connecting to driver: akka.tcp://sparkDriver@10.0.1.12:62092/user/CoarseGrainedScheduler
+15/09/09 14:07:45 INFO worker.WorkerWatcher: Connecting to worker akka.tcp://sparkWorker@10.0.1.12:61149/user/Worker
+15/09/09 14:07:45 INFO remote.RemoteActorRefProvider$RemotingTerminator: Remoting shut down.
+15/09/09 14:07:45 INFO worker.WorkerWatcher: Successfully connected to akka.tcp://sparkWorker@10.0.1.12:61149/user/Worker
+15/09/09 14:07:45 INFO executor.CoarseGrainedExecutorBackend: Successfully registered with driver
+15/09/09 14:07:45 INFO spark.SecurityManager: Changing view acls to: jleach
+15/09/09 14:07:45 INFO spark.SecurityManager: Changing modify acls to: jleach
+15/09/09 14:07:45 INFO spark.SecurityManager: SecurityManager: authentication disabled; ui acls disabled; users with view permissions: Set(jleach); users with modify permissions: Set(jleach)
+15/09/09 14:07:45 INFO util.AkkaUtils: Connecting to MapOutputTracker: akka.tcp://sparkDriver@10.0.1.12:62092/user/MapOutputTracker
+15/09/09 14:07:45 INFO util.AkkaUtils: Connecting to BlockManagerMaster: akka.tcp://sparkDriver@10.0.1.12:62092/user/BlockManagerMaster
+15/09/09 14:07:45 INFO storage.DiskBlockManager: Created local directory at /tmp/spark-local-20150909140745-d413
+15/09/09 14:07:45 INFO storage.MemoryStore: MemoryStore started with capacity 706.6 MB
+15/09/09 14:07:46 INFO netty.NettyBlockTransferService: Server created on 62105
+15/09/09 14:07:46 INFO storage.BlockManagerMaster: Trying to register BlockManager
+15/09/09 14:07:46 INFO storage.BlockManagerMaster: Registered BlockManager
+15/09/09 14:07:46 INFO util.AkkaUtils: Connecting to HeartbeatReceiver: akka.tcp://sparkDriver@10.0.1.12:62092/user/HeartbeatReceiver
+15/09/09 14:07:46 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 0
+15/09/09 14:07:46 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 1
+15/09/09 14:07:46 INFO executor.Executor: Running task 0.0 in stage 0.0 (TID 0)
+15/09/09 14:07:46 INFO executor.Executor: Running task 1.0 in stage 0.0 (TID 1)
+15/09/09 14:07:46 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 2
+15/09/09 14:07:46 INFO executor.Executor: Running task 2.0 in stage 0.0 (TID 2)
+15/09/09 14:07:46 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 3
+15/09/09 14:07:46 INFO executor.Executor: Running task 3.0 in stage 0.0 (TID 3)
+15/09/09 14:07:46 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 4
+15/09/09 14:07:46 INFO executor.Executor: Running task 4.0 in stage 0.0 (TID 4)
+15/09/09 14:07:46 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 5
+15/09/09 14:07:46 INFO executor.Executor: Running task 5.0 in stage 0.0 (TID 5)
+15/09/09 14:07:46 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 6
+15/09/09 14:07:46 INFO executor.Executor: Running task 6.0 in stage 0.0 (TID 6)
+15/09/09 14:07:46 INFO Configuration.deprecation: hadoop.native.lib is deprecated. Instead, use io.native.lib.available
+15/09/09 14:07:46 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 1
+15/09/09 14:07:46 INFO storage.MemoryStore: ensureFreeSpace(6749) called with curMem=0, maxMem=740960501
+15/09/09 14:07:46 INFO storage.MemoryStore: Block broadcast_1_piece0 stored as bytes in memory (estimated size 6.6 KB, free 706.6 MB)
+15/09/09 14:07:46 INFO storage.BlockManagerMaster: Updated info of block broadcast_1_piece0
+15/09/09 14:07:46 INFO broadcast.TorrentBroadcast: Reading broadcast variable 1 took 223 ms
+15/09/09 14:07:47 INFO storage.MemoryStore: ensureFreeSpace(14784) called with curMem=6749, maxMem=740960501
+15/09/09 14:07:47 INFO storage.MemoryStore: Block broadcast_1 stored as values in memory (estimated size 14.4 KB, free 706.6 MB)
+15/09/09 14:07:47 INFO zookeeper.RecoverableZooKeeper: Process identifier=hconnection-0x1e342cbc connecting to ZooKeeper ensemble=localhost:2181
+15/09/09 14:07:47 INFO zookeeper.ZooKeeper: Client environment:zookeeper.version=3.4.5-cdh5.4.1--1, built on 05/08/2015 05:50 GMT
+15/09/09 14:07:47 INFO zookeeper.ZooKeeper: Client environment:host.name=10.0.1.12
+15/09/09 14:07:47 INFO zookeeper.ZooKeeper: Client environment:java.version=1.7.0_71
+15/09/09 14:07:47 INFO zookeeper.ZooKeeper: Client environment:java.vendor=Oracle Corporation
+15/09/09 14:07:47 INFO zookeeper.ZooKeeper: Client environment:java.home=/Library/Java/JavaVirtualMachines/jdk1.7.0_71.jdk/Contents/Home/jre
+15/09/09 14:07:47 INFO zookeeper.ZooKeeper: Client environment:java.class.path=/Users/jleach/.m2/repository/com/splicemachine/splice_machine_adapter_98-cdh5.4.1/1.5.0-SNAPSHOT/splice_machine_adapter_98-cdh5.4.1-1.5.0-SNAPSHOT.jar:/Users/jleach/.m2/repository/com/splicemachine/splice_machine-cdh5.4.1/1.5.0-SNAPSHOT/splice_machine-cdh5.4.1-1.5.0-SNAPSHOT.jar:/Users/jleach/.m2/repository/com/splicemachine/splice_si_adapter_98-cdh5.4.1/1.5.0-SNAPSHOT/splice_si_adapter_98-cdh5.4.1-1.5.0-SNAPSHOT.jar:/Users/jleach/.m2/repository/com/splicemachine/splice_si-cdh5.4.1/1.5.0-SNAPSHOT/splice_si-cdh5.4.1-1.5.0-SNAPSHOT.jar:/Users/jleach/.m2/repository/com/splicemachine/splice_constants-cdh5.4.1/1.5.0-SNAPSHOT/splice_constants-cdh5.4.1-1.5.0-SNAPSHOT.jar:/Users/jleach/.m2/repository/com/googlecode/concurrentlinkedhashmap/concurrentlinkedhashmap-lru/1.4.2/concurrentlinkedhashmap-lru-1.4.2.jar:/Users/jleach/.m2/repository/joda-time/joda-time/2.3/joda-time-2.3.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-client/2.6.0-cdh5.4.1/hadoop-client-2.6.0-cdh5.4.1.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-mapreduce-client-app/2.6.0-cdh5.4.1/hadoop-mapreduce-client-app-2.6.0-cdh5.4.1.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-mapreduce-client-common/2.6.0-cdh5.4.1/hadoop-mapreduce-client-common-2.6.0-cdh5.4.1.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-yarn-client/2.6.0-cdh5.4.1/hadoop-yarn-client-2.6.0-cdh5.4.1.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-yarn-server-common/2.6.0-cdh5.4.1/hadoop-yarn-server-common-2.6.0-cdh5.4.1.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-mapreduce-client-shuffle/2.6.0-cdh5.4.1/hadoop-mapreduce-client-shuffle-2.6.0-cdh5.4.1.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-yarn-api/2.6.0-cdh5.4.1/hadoop-yarn-api-2.6.0-cdh5.4.1.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-mapreduce-client-core/2.6.0-cdh5.4.1/hadoop-mapreduce-client-core-2.6.0-cdh5.4.1.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-yarn-common/2.6.0-cdh5.4.1/hadoop-yarn-common-2.6.0-cdh5.4.1.jar:/Users/jleach/.m2/repository/com/sun/jersey/jersey-client/1.9/jersey-client-1.9.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-mapreduce-client-jobclient/2.6.0-cdh5.4.1/hadoop-mapreduce-client-jobclient-2.6.0-cdh5.4.1.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-aws/2.6.0-cdh5.4.1/hadoop-aws-2.6.0-cdh5.4.1.jar:/Users/jleach/.m2/repository/com/fasterxml/jackson/core/jackson-databind/2.2.3/jackson-databind-2.2.3.jar:/Users/jleach/.m2/repository/com/fasterxml/jackson/core/jackson-core/2.2.3/jackson-core-2.2.3.jar:/Users/jleach/.m2/repository/com/fasterxml/jackson/core/jackson-annotations/2.2.3/jackson-annotations-2.2.3.jar:/Users/jleach/.m2/repository/com/amazonaws/aws-java-sdk/1.7.4/aws-java-sdk-1.7.4.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-annotations/2.6.0-cdh5.4.1/hadoop-annotations-2.6.0-cdh5.4.1.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-common/2.6.0-cdh5.4.1/hadoop-common-2.6.0-cdh5.4.1.jar:/Users/jleach/.m2/repository/org/apache/commons/commons-math3/3.1.1/commons-math3-3.1.1.jar:/Users/jleach/.m2/repository/xmlenc/xmlenc/0.52/xmlenc-0.52.jar:/Users/jleach/.m2/repository/commons-httpclient/commons-httpclient/3.1/commons-httpclient-3.1.jar:/Users/jleach/.m2/repository/commons-codec/commons-codec/1.4/commons-codec-1.4.jar:/Users/jleach/.m2/repository/commons-net/commons-net/3.1/commons-net-3.1.jar:/Users/jleach/.m2/repository/commons-collections/commons-collections/3.2.1/commons-collections-3.2.1.jar:/Users/jleach/.m2/repository/org/mortbay/jetty/jetty/6.1.26.cloudera.4/jetty-6.1.26.cloudera.4.jar:/Users/jleach/.m2/repository/org/mortbay/jetty/jetty-util/6.1.26.cloudera.4/jetty-util-6.1.26.cloudera.4.jar:/Users/jleach/.m2/repository/javax/servlet/jsp/jsp-api/2.1/jsp-api-2.1.jar:/Users/jleach/.m2/repository/commons-el/commons-el/1.0/commons-el-1.0.jar:/Users/jleach/.m2/repository/net/java/dev/jets3t/jets3t/0.9.0/jets3t-0.9.0.jar:/Users/jleach/.m2/repository/com/jamesmurty/utils/java-xmlbuilder/0.4/java-xmlbuilder-0.4.jar:/Users/jleach/.m2/repository/commons-configuration/commons-configuration/1.6/commons-configuration-1.6.jar:/Users/jleach/.m2/repository/commons-digester/commons-digester/1.8/commons-digester-1.8.jar:/Users/jleach/.m2/repository/commons-beanutils/commons-beanutils/1.7.0/commons-beanutils-1.7.0.jar:/Users/jleach/.m2/repository/commons-beanutils/commons-beanutils-core/1.8.0/commons-beanutils-core-1.8.0.jar:/Users/jleach/.m2/repository/org/slf4j/slf4j-api/1.7.5/slf4j-api-1.7.5.jar:/Users/jleach/.m2/repository/org/slf4j/slf4j-log4j12/1.7.5/slf4j-log4j12-1.7.5.jar:/Users/jleach/.m2/repository/org/apache/avro/avro/1.7.6-cdh5.4.1/avro-1.7.6-cdh5.4.1.jar:/Users/jleach/.m2/repository/com/thoughtworks/paranamer/paranamer/2.3/paranamer-2.3.jar:/Users/jleach/.m2/repository/org/xerial/snappy/snappy-java/1.0.5/snappy-java-1.0.5.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-auth/2.6.0-cdh5.4.1/hadoop-auth-2.6.0-cdh5.4.1.jar:/Users/jleach/.m2/repository/org/apache/directory/server/apacheds-kerberos-codec/2.0.0-M15/apacheds-kerberos-codec-2.0.0-M15.jar:/Users/jleach/.m2/repository/org/apache/directory/server/apacheds-i18n/2.0.0-M15/apacheds-i18n-2.0.0-M15.jar:/Users/jleach/.m2/repository/org/apache/directory/api/api-asn1-api/1.0.0-M20/api-asn1-api-1.0.0-M20.jar:/Users/jleach/.m2/repository/org/apache/directory/api/api-util/1.0.0-M20/api-util-1.0.0-M20.jar:/Users/jleach/.m2/repository/com/jcraft/jsch/0.1.42/jsch-0.1.42.jar:/Users/jleach/.m2/repository/org/apache/curator/curator-client/2.7.1/curator-client-2.7.1.jar:/Users/jleach/.m2/repository/org/apache/curator/curator-recipes/2.7.1/curator-recipes-2.7.1.jar:/Users/jleach/.m2/repository/org/htrace/htrace-core/3.0.4/htrace-core-3.0.4.jar:/Users/jleach/.m2/repository/org/apache/commons/commons-compress/1.4.1/commons-compress-1.4.1.jar:/Users/jleach/.m2/repository/org/tukaani/xz/1.0/xz-1.0.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-hdfs/2.6.0-cdh5.4.1/hadoop-hdfs-2.6.0-cdh5.4.1.jar:/Users/jleach/.m2/repository/commons-daemon/commons-daemon/1.0.13/commons-daemon-1.0.13.jar:/Users/jleach/.m2/repository/org/fusesource/leveldbjni/leveldbjni-all/1.8/leveldbjni-all-1.8.jar:/Users/jleach/.m2/repository/org/apache/hbase/hbase-client/1.0.0-cdh5.4.1-splice1.0.2-SNAPSHOT/hbase-client-1.0.0-cdh5.4.1-splice1.0.2-SNAPSHOT.jar:/Users/jleach/.m2/repository/org/apache/hbase/hbase-annotations/1.0.0-cdh5.4.1-splice1.0.2-SNAPSHOT/hbase-annotations-1.0.0-cdh5.4.1-splice1.0.2-SNAPSHOT.jar:/Library/Java/JavaVirtualMachines/jdk1.7.0_71.jdk/Contents/Home/jre/../lib/tools.jar:/Users/jleach/.m2/repository/org/apache/hbase/hbase-common/1.0.0-cdh5.4.1-splice1.0.2-SNAPSHOT/hbase-common-1.0.0-cdh5.4.1-splice1.0.2-SNAPSHOT.jar:/Users/jleach/.m2/repository/org/apache/htrace/htrace-core/3.1.0-incubating/htrace-core-3.1.0-incubating.jar:/Users/jleach/.m2/repository/org/jruby/jcodings/jcodings/1.0.8/jcodings-1.0.8.jar:/Users/jleach/.m2/repository/org/jruby/joni/joni/2.1.2/joni-2.1.2.jar:/Users/jleach/.m2/repository/com/github/stephenc/findbugs/findbugs-annotations/1.3.9-1/findbugs-annotations-1.3.9-1.jar:/Users/jleach/.m2/repository/org/apache/hbase/hbase-common/1.0.0-cdh5.4.1-splice1.0.2-SNAPSHOT/hbase-common-1.0.0-cdh5.4.1-splice1.0.2-SNAPSHOT-tests.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-core/2.6.0-mr1-cdh5.4.1/hadoop-core-2.6.0-mr1-cdh5.4.1.jar:/Users/jleach/.m2/repository/hsqldb/hsqldb/1.8.0.10/hsqldb-1.8.0.10.jar:/Users/jleach/.m2/repository/org/eclipse/jdt/core/3.1.1/core-3.1.1.jar:/Users/jleach/.m2/repository/org/apache/hbase/hbase-protocol/1.0.0-cdh5.4.1-splice1.0.2-SNAPSHOT/hbase-protocol-1.0.0-cdh5.4.1-splice1.0.2-SNAPSHOT.jar:/Users/jleach/.m2/repository/org/apache/hbase/hbase-server/1.0.0-cdh5.4.1-splice1.0.2-SNAPSHOT/hbase-server-1.0.0-cdh5.4.1-splice1.0.2-SNAPSHOT.jar:/Users/jleach/.m2/repository/org/apache/hbase/hbase-prefix-tree/1.0.0-cdh5.4.1-splice1.0.2-SNAPSHOT/hbase-prefix-tree-1.0.0-cdh5.4.1-splice1.0.2-SNAPSHOT.jar:/Users/jleach/.m2/repository/org/apache/hbase/hbase-hadoop-compat/1.0.0-cdh5.4.1-splice1.0.2-SNAPSHOT/hbase-hadoop-compat-1.0.0-cdh5.4.1-splice1.0.2-SNAPSHOT.jar:/Users/jleach/.m2/repository/org/apache/hbase/hbase-hadoop2-compat/1.0.0-cdh5.4.1-splice1.0.2-SNAPSHOT/hbase-hadoop2-compat-1.0.0-cdh5.4.1-splice1.0.2-SNAPSHOT.jar:/Users/jleach/.m2/repository/com/yammer/metrics/metrics-core/2.1.2/metrics-core-2.1.2.jar:/Users/jleach/.m2/repository/org/apache/commons/commons-math/2.1/commons-math-2.1.jar:/Users/jleach/.m2/repository/org/mortbay/jetty/jetty-sslengine/6.1.26.cloudera.4/jetty-sslengine-6.1.26.cloudera.4.jar:/Users/jleach/.m2/repository/org/mortbay/jetty/jsp-2.1/6.1.14/jsp-2.1-6.1.14.jar:/Users/jleach/.m2/repository/org/mortbay/jetty/jsp-api-2.1/6.1.14/jsp-api-2.1-6.1.14.jar:/Users/jleach/.m2/repository/org/jamon/jamon-runtime/2.3.1/jamon-runtime-2.3.1.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-hdfs/2.6.0-cdh5.4.1/hadoop-hdfs-2.6.0-cdh5.4.1-tests.jar:/Users/jleach/.m2/repository/org/apache/hbase/hbase-testing-util/1.0.0-cdh5.4.1-splice1.0.2-SNAPSHOT/hbase-testing-util-1.0.0-cdh5.4.1-splice1.0.2-SNAPSHOT.jar:/Users/jleach/.m2/repository/org/apache/hbase/hbase-annotations/1.0.0-cdh5.4.1-splice1.0.2-SNAPSHOT/hbase-annotations-1.0.0-cdh5.4.1-splice1.0.2-SNAPSHOT-tests.jar:/Users/jleach/.m2/repository/org/apache/hbase/hbase-server/1.0.0-cdh5.4.1-splice1.0.2-SNAPSHOT/hbase-server-1.0.0-cdh5.4.1-splice1.0.2-SNAPSHOT-tests.jar:/Users/jleach/.m2/repository/org/apache/hbase/hbase-hadoop-compat/1.0.0-cdh5.4.1-splice1.0.2-SNAPSHOT/hbase-hadoop-compat-1.0.0-cdh5.4.1-splice1.0.2-SNAPSHOT-tests.jar:/Users/jleach/.m2/repository/org/apache/hbase/hbase-hadoop2-compat/1.0.0-cdh5.4.1-splice1.0.2-SNAPSHOT/hbase-hadoop2-compat-1.0.0-cdh5.4.1-splice1.0.2-SNAPSHOT-tests.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-minicluster/2.6.0-mr1-cdh5.4.1/hadoop-minicluster-2.6.0-mr1-cdh5.4.1.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-test/2.6.0-mr1-cdh5.4.1/hadoop-test-2.6.0-mr1-cdh5.4.1.jar:/Users/jleach/.m2/repository/org/apache/ftpserver/ftplet-api/1.0.0/ftplet-api-1.0.0.jar:/Users/jleach/.m2/repository/org/apache/mina/mina-core/2.0.0-M5/mina-core-2.0.0-M5.jar:/Users/jleach/.m2/repository/org/apache/ftpserver/ftpserver-core/1.0.0/ftpserver-core-1.0.0.jar:/Users/jleach/.m2/repository/org/apache/ftpserver/ftpserver-deprecated/1.0.0-M2/ftpserver-deprecated-1.0.0-M2.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-common/2.6.0-cdh5.4.1/hadoop-common-2.6.0-cdh5.4.1-tests.jar:/Users/jleach/.m2/repository/org/apache/hive/hive-beeline/1.1.0-cdh5.4.1/hive-beeline-1.1.0-cdh5.4.1.jar:/Users/jleach/.m2/repository/org/apache/hive/hive-metastore/1.1.0-cdh5.4.1/hive-metastore-1.1.0-cdh5.4.1.jar:/Users/jleach/.m2/repository/com/jolbox/bonecp/0.8.0.RELEASE/bonecp-0.8.0.RELEASE.jar:/Users/jleach/.m2/repository/org/apache/derby/derby/10.11.1.1/derby-10.11.1.1.jar:/Users/jleach/.m2/repository/org/datanucleus/datanucleus-api-jdo/3.2.6/datanucleus-api-jdo-3.2.6.jar:/Users/jleach/.m2/repository/org/datanucleus/datanucleus-core/3.2.10/datanucleus-core-3.2.10.jar:/Users/jleach/.m2/repository/org/datanucleus/datanucleus-rdbms/3.2.9/datanucleus-rdbms-3.2.9.jar:/Users/jleach/.m2/repository/commons-pool/commons-pool/1.5.4/commons-pool-1.5.4.jar:/Users/jleach/.m2/repository/commons-dbcp/commons-dbcp/1.4/commons-dbcp-1.4.jar:/Users/jleach/.m2/repository/javax/jdo/jdo-api/3.0.1/jdo-api-3.0.1.jar:/Users/jleach/.m2/repository/javax/transaction/jta/1.1/jta-1.1.jar:/Users/jleach/.m2/repository/org/antlr/antlr-runtime/3.4/antlr-runtime-3.4.jar:/Users/jleach/.m2/repository/org/antlr/stringtemplate/3.2.1/stringtemplate-3.2.1.jar:/Users/jleach/.m2/repository/antlr/antlr/2.7.7/antlr-2.7.7.jar:/Users/jleach/.m2/repository/jline/jline/2.12/jline-2.12.jar:/Users/jleach/.m2/repository/org/apache/thrift/libthrift/0.9.2/libthrift-0.9.2.jar:/Users/jleach/.m2/repository/org/apache/hive/hive-cli/1.1.0-cdh5.4.1/hive-cli-1.1.0-cdh5.4.1.jar:/Users/jleach/.m2/repository/org/apache/hive/hive-serde/1.1.0-cdh5.4.1/hive-serde-1.1.0-cdh5.4.1.jar:/Users/jleach/.m2/repository/com/twitter/parquet-hadoop-bundle/1.5.0-cdh5.4.1/parquet-hadoop-bundle-1.5.0-cdh5.4.1.jar:/Users/jleach/.m2/repository/com/sun/jersey/jersey-servlet/1.14/jersey-servlet-1.14.jar:/Users/jleach/.m2/repository/org/apache/hive/hive-exec/1.1.0-cdh5.4.1/hive-exec-1.1.0-cdh5.4.1.jar:/Users/jleach/.m2/repository/org/apache/hive/hive-ant/1.1.0-cdh5.4.1/hive-ant-1.1.0-cdh5.4.1.jar:/Users/jleach/.m2/repository/org/apache/velocity/velocity/1.5/velocity-1.5.jar:/Users/jleach/.m2/repository/oro/oro/2.0.8/oro-2.0.8.jar:/Users/jleach/.m2/repository/org/cloudera/logredactor/logredactor/1.0.2/logredactor-1.0.2.jar:/Users/jleach/.m2/repository/org/antlr/ST4/4.0.4/ST4-4.0.4.jar:/Users/jleach/.m2/repository/org/apache/curator/apache-curator/2.6.0/apache-curator-2.6.0.pom:/Users/jleach/.m2/repository/org/codehaus/groovy/groovy-all/2.1.6/groovy-all-2.1.6.jar:/Users/jleach/.m2/repository/org/apache/calcite/calcite-core/1.0.0-incubating/calcite-core-1.0.0-incubating.jar:/Users/jleach/.m2/repository/org/apache/calcite/calcite-linq4j/1.0.0-incubating/calcite-linq4j-1.0.0-incubating.jar:/Users/jleach/.m2/repository/org/pentaho/pentaho-aggdesigner-algorithm/5.1.5-jhyde/pentaho-aggdesigner-algorithm-5.1.5-jhyde.jar:/Users/jleach/.m2/repository/eigenbase/eigenbase-properties/1.1.4/eigenbase-properties-1.1.4.jar:/Users/jleach/.m2/repository/org/codehaus/janino/janino/2.7.6/janino-2.7.6.jar:/Users/jleach/.m2/repository/org/codehaus/janino/commons-compiler/2.7.6/commons-compiler-2.7.6.jar:/Users/jleach/.m2/repository/org/apache/calcite/calcite-avatica/1.0.0-incubating/calcite-avatica-1.0.0-incubating.jar:/Users/jleach/.m2/repository/org/apache/hive/hive-common/1.1.0-cdh5.4.1/hive-common-1.1.0-cdh5.4.1.jar:/Users/jleach/.m2/repository/log4j/apache-log4j-extras/1.2.17/apache-log4j-extras-1.2.17.jar:/Users/jleach/.m2/repository/org/apache/ant/ant/1.9.1/ant-1.9.1.jar:/Users/jleach/.m2/repository/org/apache/ant/ant-launcher/1.9.1/ant-launcher-1.9.1.jar:/Users/jleach/.m2/repository/org/apache/hive/hive-contrib/1.1.0-cdh5.4.1/hive-contrib-1.1.0-cdh5.4.1.jar:/Users/jleach/.m2/repository/org/apache/hive/hive-hbase-handler/1.1.0-cdh5.4.1/hive-hbase-handler-1.1.0-cdh5.4.1.jar:/Users/jleach/.m2/repository/org/apache/hive/hive-hwi/1.1.0-cdh5.4.1/hive-hwi-1.1.0-cdh5.4.1.jar:/Users/jleach/.m2/repository/org/eclipse/jetty/aggregate/jetty-all-server/7.6.0.v20120127/jetty-all-server-7.6.0.v20120127.jar:/Users/jleach/.m2/repository/org/apache/geronimo/specs/geronimo-jta_1.1_spec/1.1.1/geronimo-jta_1.1_spec-1.1.1.jar:/Users/jleach/.m2/repository/javax/mail/mail/1.4.1/mail-1.4.1.jar:/Users/jleach/.m2/repository/org/apache/geronimo/specs/geronimo-jaspic_1.0_spec/1.0/geronimo-jaspic_1.0_spec-1.0.jar:/Users/jleach/.m2/repository/org/apache/geronimo/specs/geronimo-annotation_1.0_spec/1.1.1/geronimo-annotation_1.0_spec-1.1.1.jar:/Users/jleach/.m2/repository/asm/asm-commons/3.1/asm-commons-3.1.jar:/Users/jleach/.m2/repository/asm/asm-tree/3.1/asm-tree-3.1.jar:/Users/jleach/.m2/repository/org/apache/hive/hive-jdbc/1.1.0-cdh5.4.1/hive-jdbc-1.1.0-cdh5.4.1.jar:/Users/jleach/.m2/repository/org/apache/httpcomponents/httpclient/4.2.5/httpclient-4.2.5.jar:/Users/jleach/.m2/repository/org/apache/httpcomponents/httpcore/4.2.5/httpcore-4.2.5.jar:/Users/jleach/.m2/repository/org/apache/curator/curator-framework/2.6.0/curator-framework-2.6.0.jar:/Users/jleach/.m2/repository/org/apache/hive/hive-service/1.1.0-cdh5.4.1/hive-service-1.1.0-cdh5.4.1.jar:/Users/jleach/.m2/repository/net/sf/jpam/jpam/1.1/jpam-1.1.jar:/Users/jleach/.m2/repository/org/eclipse/jetty/aggregate/jetty-all/7.6.0.v20120127/jetty-all-7.6.0.v20120127.jar:/Users/jleach/.m2/repository/org/apache/thrift/libfb303/0.9.2/libfb303-0.9.2.jar:/Users/jleach/.m2/repository/org/apache/hive/hive-shims/1.1.0-cdh5.4.1/hive-shims-1.1.0-cdh5.4.1.jar:/Users/jleach/.m2/repository/org/apache/hive/shims/hive-shims-common/1.1.0-cdh5.4.1/hive-shims-common-1.1.0-cdh5.4.1.jar:/Users/jleach/.m2/repository/org/apache/hive/shims/hive-shims-0.23/1.1.0-cdh5.4.1/hive-shims-0.23-1.1.0-cdh5.4.1.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-yarn-server-resourcemanager/2.6.0-cdh5.4.1/hadoop-yarn-server-resourcemanager-2.6.0-cdh5.4.1.jar:/Users/jleach/.m2/repository/com/google/inject/extensions/guice-servlet/3.0/guice-servlet-3.0.jar:/Users/jleach/.m2/repository/com/google/inject/guice/3.0/guice-3.0.jar:/Users/jleach/.m2/repository/javax/inject/javax.inject/1/javax.inject-1.jar:/Users/jleach/.m2/repository/aopalliance/aopalliance/1.0/aopalliance-1.0.jar:/Users/jleach/.m2/repository/com/sun/jersey/contribs/jersey-guice/1.9/jersey-guice-1.9.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-yarn-server-applicationhistoryservice/2.6.0-cdh5.4.1/hadoop-yarn-server-applicationhistoryservice-2.6.0-cdh5.4.1.jar:/Users/jleach/.m2/repository/org/apache/hadoop/hadoop-yarn-server-web-proxy/2.6.0-cdh5.4.1/hadoop-yarn-server-web-proxy-2.6.0-cdh5.4.1.jar:/Users/jleach/.m2/repository/org/apache/hive/shims/hive-shims-scheduler/1.1.0-cdh5.4.1/hive-shims-scheduler-1.1.0-cdh5.4.1.jar:/Users/jleach/.m2/repository/org/apache/zookeeper/zookeeper/3.4.5-cdh5.4.1/zookeeper-3.4.5-cdh5.4.1.jar:/Users/jleach/.m2/repository/org/apache/spark/spark-assembly-hadoop2.6.0-cdh5.4.1/1.2.0/spark-assembly-hadoop2.6.0-cdh5.4.1-1.2.0.jar:/Users/jleach/.m2/repository/com/splicemachine/splice_protocol-cdh5.4.1/1.5.0-SNAPSHOT/splice_protocol-cdh5.4.1-1.5.0-SNAPSHOT.jar:/Users/jleach/.m2/repository/com/splicemachine/asynchbase/1.5.6-SNAPSHOT/asynchbase-1.5.6-SNAPSHOT.jar:/Users/jleach/.m2/repository/com/stumbleupon/async/1.4.0/async-1.4.0.jar:/Users/jleach/.m2/repository/org/scala-lang/scala-library/2.10.4/scala-library-2.10.4.jar:/Users/jleach/.m2/repository/com/splicemachine/splice_machine_adapter_98-cdh5.4.1/1.5.0-SNAPSHOT/splice_machine_adapter_98-cdh5.4.1-1.5.0-SNAPSHOT-tests.jar:/Users/jleach/.m2/repository/org/splicetest/sqlj/sqlj-it-procs/1.0.2-SNAPSHOT/sqlj-it-procs-1.0.2-SNAPSHOT.jar:/Users/jleach/.m2/repository/com/google/protobuf/protobuf-java/2.5.0/protobuf-java-2.5.0.jar:/Users/jleach/.m2/repository/com/carrotsearch/hppc/0.5.2/hppc-0.5.2.jar:/Users/jleach/.m2/repository/com/carrotsearch/java-sizeof/0.0.4/java-sizeof-0.0.4.jar:/Users/jleach/.m2/repository/com/esotericsoftware/kryo/kryo/2.21/kryo-2.21.jar:/Users/jleach/.m2/repository/com/esotericsoftware/reflectasm/reflectasm/1.07/reflectasm-1.07-shaded.jar:/Users/jleach/.m2/repository/org/ow2/asm/asm/4.0/asm-4.0.jar:/Users/jleach/.m2/repository/com/esotericsoftware/minlog/minlog/1.2/minlog-1.2.jar:/Users/jleach/.m2/repository/org/objenesis/objenesis/1.2/objenesis-1.2.jar:/Users/jleach/.m2/repository/com/github/stephenc/high-scale-lib/high-scale-lib/1.1.1/high-scale-lib-1.1.1.jar:/Users/jleach/.m2/repository/com/google/code/findbugs/jsr305/1.3.9/jsr305-1.3.9.jar:/Users/jleach/.m2/repository/com/google/code/gson/gson/2.2.2/gson-2.2.2.jar:/Users/jleach/.m2/repository/com/google/guava/guava/11.0.2/guava-11.0.2.jar:/Users/jleach/.m2/repository/com/lmax/disruptor/3.2.1/disruptor-3.2.1.jar:/Users/jleach/.m2/repository/com/splicemachine/utilities/1.2.0-SNAPSHOT/utilities-1.2.0-SNAPSHOT.jar:/Users/jleach/.m2/repository/com/splicemachine/stats/1.0.0-SNAPSHOT/stats-1.0.0-SNAPSHOT.jar:/Users/jleach/.m2/repository/com/splicemachine/splice-web/1.1.0-SNAPSHOT/splice-web-1.1.0-SNAPSHOT.tar.gz:/Users/jleach/.m2/repository/com/sun/jersey/jersey-core/1.8/jersey-core-1.8.jar:/Users/jleach/.m2/repository/com/sun/jersey/jersey-json/1.8/jersey-json-1.8.jar:/Users/jleach/.m2/repository/org/codehaus/jettison/jettison/1.1/jettison-1.1.jar:/Users/jleach/.m2/repository/stax/stax-api/1.0.1/stax-api-1.0.1.jar:/Users/jleach/.m2/repository/com/sun/xml/bind/jaxb-impl/2.2.3-1/jaxb-impl-2.2.3-1.jar:/Users/jleach/.m2/repository/javax/xml/bind/jaxb-api/2.2.2/jaxb-api-2.2.2.jar:/Users/jleach/.m2/repository/javax/xml/stream/stax-api/1.0-2/stax-api-1.0-2.jar:/Users/jleach/.m2/repository/javax/activation/activation/1.1/activation-1.1.jar:/Users/jleach/.m2/repository/org/codehaus/jackson/jackson-jaxrs/1.7.1/jackson-jaxrs-1.7.1.jar:/Users/jleach/.m2/repository/org/codehaus/jackson/jackson-xc/1.7.1/jackson-xc-1.7.1.jar:/Users/jleach/.m2/repository/com/sun/jersey/jersey-server/1.8/jersey-server-1.8.jar:/Users/jleach/.m2/repository/asm/asm/3.1/asm-3.1.jar:/Users/jleach/.m2/repository/org/codehaus/jackson/jackson-core-asl/1.8.8/jackson-core-asl-1.8.8.jar:/Users/jleach/.m2/repository/org/codehaus/jackson/jackson-mapper-asl/1.8.8/jackson-mapper-asl-1.8.8.jar:/Users/jleach/.m2/repository/commons-cli/commons-cli/1.2/commons-cli-1.2.jar:/Users/jleach/.m2/repository/commons-dbutils/commons-dbutils/1.5/commons-dbutils-1.5.jar:/Users/jleach/.m2/repository/commons-io/commons-io/2.1/commons-io-2.1.jar:/Users/jleach/.m2/repository/commons-lang/commons-lang/2.5/commons-lang-2.5.jar:/Users/jleach/.m2/repository/commons-logging/commons-logging/1.1.1/commons-logging-1.1.1.jar:/Users/jleach/.m2/repository/de/javakaffee/kryo-serializers/0.26/kryo-serializers-0.26.jar:/Users/jleach/.m2/repository/io/netty/netty/3.6.6.Final/netty-3.6.6.Final.jar:/Users/jleach/.m2/repository/net/sf/ehcache/ehcache-core/2.6.6/ehcache-core-2.6.6.jar:/Users/jleach/.m2/repository/net/sf/opencsv/opencsv/2.3/opencsv-2.3.jar:/Users/jleach/.m2/repository/net/sf/supercsv/super-csv/2.3.2-SNAPSHOT-splice/super-csv-2.3.2-SNAPSHOT-splice.jar:/Users/jleach/.m2/repository/com/splicemachine/db/1.5.0.0-SNAPSHOT/db-1.5.0.0-SNAPSHOT.jar:/Users/jleach/.m2/repository/com/splicemachine/dbclient/1.5.0.0-SNAPSHOT/dbclient-1.5.0.0-SNAPSHOT.jar:/Users/jleach/.m2/repository/org/apache/lucene/lucene-core/4.3.1/lucene-core-4.3.1.jar:/Users/jleach/.m2/repository/org/apache/mrunit/mrunit/1.0.0/mrunit-1.0.0-hadoop2.jar:/Users/jleach/.m2/repository/org/uncommons/maths/uncommons-maths/1.2.1/uncommons-maths-1.2.1.jar:/Users/jleach/.m2/repository/org/uncommons/watchmaker/watchmaker-framework/0.7.1/watchmaker-framework-0.7.1.jar:/Users/jleach/.m2/repository/junit/junit/4.12/junit-4.12.jar:/Users/jleach/.m2/repository/org/hamcrest/hamcrest-core/1.3/hamcrest-core-1.3.jar:/Users/jleach/.m2/repository/org/mockito/mockito-all/1.9.5/mockito-all-1.9.5.jar:/Users/jleach/.m2/repository/log4j/log4j/1.2.17/log4j-1.2.17.jar:/Users/jleach/Documents/workspace/spliceengine/cdh5.4.1/splice_machine_test/target/classes
+15/09/09 14:07:47 INFO zookeeper.ZooKeeper: Client environment:java.library.path=:/Users/jleach/Library/Java/Extensions:/Library/Java/Extensions:/Network/Library/Java/Extensions:/System/Library/Java/Extensions:/usr/lib/java:.
+15/09/09 14:07:47 INFO zookeeper.ZooKeeper: Client environment:java.io.tmpdir=/var/folders/01/td1fd0hx6z72c6g58vqc1tnr0000gp/T/
+15/09/09 14:07:47 INFO zookeeper.ZooKeeper: Client environment:java.compiler=<NA>
+15/09/09 14:07:47 INFO zookeeper.ZooKeeper: Client environment:os.name=Mac OS X
+15/09/09 14:07:47 INFO zookeeper.ZooKeeper: Client environment:os.arch=x86_64
+15/09/09 14:07:47 INFO zookeeper.ZooKeeper: Client environment:os.version=10.10.5
+15/09/09 14:07:47 INFO zookeeper.ZooKeeper: Client environment:user.name=jleach
+15/09/09 14:07:47 INFO zookeeper.ZooKeeper: Client environment:user.home=/Users/jleach
+15/09/09 14:07:47 INFO zookeeper.ZooKeeper: Client environment:user.dir=/Users/jleach/Documents/workspace/spliceengine/cdh5.4.1/splice_machine_test/work/app-20150909140728-0001/0
+15/09/09 14:07:47 INFO zookeeper.ZooKeeper: Initiating client connection, connectString=localhost:2181 sessionTimeout=90000 watcher=hconnection-0x1e342cbc0x0, quorum=localhost:2181, baseZNode=/hbase
+15/09/09 14:07:47 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/127.0.0.1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/09/09 14:07:47 INFO zookeeper.ClientCnxn: Socket connection established, initiating session, client: /127.0.0.1:62107, server: localhost/127.0.0.1:2181
+15/09/09 14:07:47 INFO zookeeper.ClientCnxn: Session establishment complete on server localhost/127.0.0.1:2181, sessionid = 0x14fb3667cba0068, negotiated timeout = 60000
+15/09/09 14:07:47 INFO zookeeper.RecoverableZooKeeper: Process identifier=hconnection-0x3f1c66c0 connecting to ZooKeeper ensemble=localhost:2181
+15/09/09 14:07:47 INFO zookeeper.ZooKeeper: Initiating client connection, connectString=localhost:2181 sessionTimeout=90000 watcher=hconnection-0x3f1c66c00x0, quorum=localhost:2181, baseZNode=/hbase
+15/09/09 14:07:47 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/127.0.0.1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/09/09 14:07:47 INFO zookeeper.ClientCnxn: Socket connection established, initiating session, client: /127.0.0.1:62108, server: localhost/127.0.0.1:2181
+15/09/09 14:07:47 INFO zookeeper.ClientCnxn: Session establishment complete on server localhost/127.0.0.1:2181, sessionid = 0x14fb3667cba0069, negotiated timeout = 60000
+15/09/09 14:07:47 INFO zookeeper.RecoverableZooKeeper: Process identifier=hconnection-0x2930574 connecting to ZooKeeper ensemble=localhost:2181
+15/09/09 14:07:47 INFO zookeeper.ZooKeeper: Initiating client connection, connectString=localhost:2181 sessionTimeout=90000 watcher=hconnection-0x29305740x0, quorum=localhost:2181, baseZNode=/hbase
+15/09/09 14:07:47 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/127.0.0.1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/09/09 14:07:47 INFO zookeeper.ClientCnxn: Socket connection established, initiating session, client: /127.0.0.1:62109, server: localhost/127.0.0.1:2181
+15/09/09 14:07:47 INFO zookeeper.ClientCnxn: Session establishment complete on server localhost/127.0.0.1:2181, sessionid = 0x14fb3667cba006a, negotiated timeout = 60000
+15/09/09 14:07:47 INFO zookeeper.RecoverableZooKeeper: Process identifier=hconnection-0x51566515 connecting to ZooKeeper ensemble=localhost:2181
+15/09/09 14:07:47 INFO zookeeper.ZooKeeper: Initiating client connection, connectString=localhost:2181 sessionTimeout=90000 watcher=hconnection-0x515665150x0, quorum=localhost:2181, baseZNode=/hbase
+15/09/09 14:07:47 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/0:0:0:0:0:0:0:1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/09/09 14:07:47 WARN zookeeper.ClientCnxn: Session 0x0 for server null, unexpected error, closing socket connection and attempting reconnect
+java.net.ConnectException: Connection refused
+	at sun.nio.ch.SocketChannelImpl.checkConnect(Native Method)
+	at sun.nio.ch.SocketChannelImpl.finishConnect(SocketChannelImpl.java:739)
+	at org.apache.zookeeper.ClientCnxnSocketNIO.doTransport(ClientCnxnSocketNIO.java:350)
+	at org.apache.zookeeper.ClientCnxn$SendThread.run(ClientCnxn.java:1081)
+15/09/09 14:07:47 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/127.0.0.1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/09/09 14:07:47 INFO zookeeper.ClientCnxn: Socket connection established, initiating session, client: /127.0.0.1:62111, server: localhost/127.0.0.1:2181
+15/09/09 14:07:47 INFO zookeeper.ClientCnxn: Session establishment complete on server localhost/127.0.0.1:2181, sessionid = 0x14fb3667cba006b, negotiated timeout = 60000
+15/09/09 14:07:47 WARN zookeeper.RecoverableZooKeeper: Possibly transient ZooKeeper, quorum=localhost:2181, exception=org.apache.zookeeper.KeeperException$ConnectionLossException: KeeperErrorCode = ConnectionLoss for /hbase/hbaseid
+15/09/09 14:07:47 INFO util.RetryCounter: Sleeping 1000ms before retry #0...
+15/09/09 14:07:48 INFO zookeeper.RecoverableZooKeeper: Process identifier=hconnection-0x3208a6c4 connecting to ZooKeeper ensemble=localhost:2181
+15/09/09 14:07:48 INFO zookeeper.ZooKeeper: Initiating client connection, connectString=localhost:2181 sessionTimeout=90000 watcher=hconnection-0x3208a6c40x0, quorum=localhost:2181, baseZNode=/hbase
+15/09/09 14:07:48 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/127.0.0.1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/09/09 14:07:48 INFO zookeeper.ClientCnxn: Socket connection established, initiating session, client: /127.0.0.1:62116, server: localhost/127.0.0.1:2181
+15/09/09 14:07:48 INFO zookeeper.ClientCnxn: Session establishment complete on server localhost/127.0.0.1:2181, sessionid = 0x14fb3667cba006c, negotiated timeout = 60000
+15/09/09 14:07:48 INFO temp.TempTable: Temp Table initial bucket count: 16
+15/09/09 14:07:48 INFO zookeeper.RecoverableZooKeeper: Process identifier=spliceconnection connecting to ZooKeeper ensemble=localhost:2181
+15/09/09 14:07:48 INFO zookeeper.ZooKeeper: Initiating client connection, connectString=localhost:2181 sessionTimeout=90000 watcher=spliceconnection0x0, quorum=localhost:2181, baseZNode=/hbase
+15/09/09 14:07:48 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/127.0.0.1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/09/09 14:07:48 INFO zookeeper.ClientCnxn: Socket connection established, initiating session, client: /127.0.0.1:62117, server: localhost/127.0.0.1:2181
+15/09/09 14:07:48 INFO zookeeper.ClientCnxn: Session establishment complete on server localhost/127.0.0.1:2181, sessionid = 0x14fb3667cba006d, negotiated timeout = 60000
+15/09/09 14:07:48 INFO zookeeper.RecoverableZooKeeper: Process identifier=hconnection-0x4b3ae910 connecting to ZooKeeper ensemble=localhost:2181
+15/09/09 14:07:48 INFO zookeeper.ZooKeeper: Initiating client connection, connectString=localhost:2181 sessionTimeout=90000 watcher=hconnection-0x4b3ae9100x0, quorum=localhost:2181, baseZNode=/hbase
+15/09/09 14:07:48 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/127.0.0.1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/09/09 14:07:48 INFO zookeeper.ClientCnxn: Socket connection established, initiating session, client: /127.0.0.1:62118, server: localhost/127.0.0.1:2181
+15/09/09 14:07:48 INFO zookeeper.ClientCnxn: Session establishment complete on server localhost/127.0.0.1:2181, sessionid = 0x14fb3667cba006e, negotiated timeout = 60000
+15/09/09 14:07:48 INFO zookeeper.RecoverableZooKeeper: Process identifier=hconnection-0x36e74c70 connecting to ZooKeeper ensemble=localhost:2181
+15/09/09 14:07:48 INFO zookeeper.ZooKeeper: Initiating client connection, connectString=localhost:2181 sessionTimeout=90000 watcher=hconnection-0x36e74c700x0, quorum=localhost:2181, baseZNode=/hbase
+15/09/09 14:07:48 INFO zookeeper.ClientCnxn: Opening socket connection to server localhost/127.0.0.1:2181. Will not attempt to authenticate using SASL (unknown error)
+15/09/09 14:07:48 INFO zookeeper.ClientCnxn: Socket connection established, initiating session, client: /127.0.0.1:62119, server: localhost/127.0.0.1:2181
+15/09/09 14:07:48 INFO zookeeper.ClientCnxn: Session establishment complete on server localhost/127.0.0.1:2181, sessionid = 0x14fb3667cba006f, negotiated timeout = 60000
+15/09/09 14:07:48 ERROR utils.PipelineConstants: No Native Snappy Installed: Splice Machine's Write Pipeline will not compress data over the wire.
+15/09/09 14:07:49 INFO hbase.SpliceDriver: Booting the SpliceDriver
+15/09/09 14:07:49 INFO db.SpliceDatabase: Booting the Splice Machine database
+15/09/09 14:07:49 INFO txn.SpliceTimestampSource: Creating the TimestampClient...
+15/09/09 14:07:49 INFO timestamp.TimestampClient: TimestampClient on region server successfully registered with JMX
+15/09/09 14:07:49 INFO timestamp.TimestampClient: Attempting to connect to server (host localhost, port 60012)
+15/09/09 14:07:49 INFO timestamp.TimestampClient: Successfully connected to server
+15/09/09 14:07:49 INFO catalog.SpliceDataDictionary: Splice Software Version = 1.5.0
+15/09/09 14:07:49 INFO catalog.SpliceDataDictionary: Splice Catalog Version = 1.5.0
+15/09/09 14:07:49 INFO rdd.NewHadoopRDD: Input split: HBase table split(table name: 1504, scan: , start row: \xE4Tr\x80\x00\x83, end row: , region location: localhost)
+15/09/09 14:07:49 INFO rdd.NewHadoopRDD: Input split: HBase table split(table name: 1504, scan: , start row: , end row: \xE4\x0B\xCCG\x00\x82, region location: localhost)
+15/09/09 14:07:49 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 0
+15/09/09 14:07:49 INFO rdd.NewHadoopRDD: Input split: HBase table split(table name: 1504, scan: , start row: \xE4(\xDF\xE4\x00\x83, end row: \xE47c#\x00\x82, region location: localhost)
+15/09/09 14:07:49 INFO rdd.NewHadoopRDD: Input split: HBase table split(table name: 1504, scan: , start row: \xE4E\xEAB\x00\x84, end row: \xE4Tr\x80\x00\x83, region location: localhost)
+15/09/09 14:07:49 INFO rdd.NewHadoopRDD: Input split: HBase table split(table name: 1504, scan: , start row: \xE4\x0B\xCCG\x00\x82, end row: \xE4\x1AP\xC3\x00\x82, region location: localhost)
+15/09/09 14:07:49 INFO rdd.NewHadoopRDD: Input split: HBase table split(table name: 1504, scan: , start row: \xE4\x1AP\xC3\x00\x82, end row: \xE4(\xDF\xE4\x00\x83, region location: localhost)
+15/09/09 14:07:49 INFO rdd.NewHadoopRDD: Input split: HBase table split(table name: 1504, scan: , start row: \xE47c#\x00\x82, end row: \xE4E\xEAB\x00\x84, region location: localhost)
+15/09/09 14:07:49 INFO storage.MemoryStore: ensureFreeSpace(23652) called with curMem=21533, maxMem=740960501
+15/09/09 14:07:49 INFO storage.MemoryStore: Block broadcast_0_piece0 stored as bytes in memory (estimated size 23.1 KB, free 706.6 MB)
+15/09/09 14:07:49 INFO storage.BlockManagerMaster: Updated info of block broadcast_0_piece0
+15/09/09 14:07:49 INFO broadcast.TorrentBroadcast: Reading broadcast variable 0 took 10 ms
+15/09/09 14:07:49 INFO hbase.SpliceDriver: Splice Engine is Running, Enabling Services
+15/09/09 14:07:49 INFO hbase.SpliceDriver: Splice Machine Release      = 1.5.0-SNAPSHOT
+15/09/09 14:07:49 INFO hbase.SpliceDriver: Splice Machine Version Hash = 23d6442c28
+15/09/09 14:07:49 INFO hbase.SpliceDriver: Splice Machine Build Time   = 2015-09-09 18:36 +0000
+15/09/09 14:07:49 INFO hbase.SpliceDriver: Splice Machine URL          = http://www.splicemachine.com
+15/09/09 14:07:49 INFO hbase.SpliceDriver: Services successfully started, enabling JDBC connections...
+15/09/09 14:07:49 INFO hbase.SpliceDriver: Ready to accept JDBC connections on 0.0.0.0:1527
+15/09/09 14:07:49 INFO storage.MemoryStore: ensureFreeSpace(407025) called with curMem=45185, maxMem=740960501
+15/09/09 14:07:49 INFO storage.MemoryStore: Block broadcast_0 stored as values in memory (estimated size 397.5 KB, free 706.2 MB)
+15/09/09 14:07:50 INFO hfile.CacheConfig: Allocating LruBlockCache size=3.07 GB, blockSize=64 KB
+15/09/09 14:07:50 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:07:50 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:07:50 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:07:50 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:07:50 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:07:50 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:07:50 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:07:50 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:07:50 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:07:50 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:07:50 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:07:50 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:07:50 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:07:50 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:07:50 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:07:50 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:07:50 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:07:50 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:07:50 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:07:50 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:07:50 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:07:50 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:07:50 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:07:50 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:07:50 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:07:50 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:07:50 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:07:50 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:07:50 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:07:50 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:07:50 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:07:50 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:07:50 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:07:50 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:07:50 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:07:50 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:07:50 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:07:50 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:07:50 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:07:50 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:07:50 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:07:50 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:07:50 INFO executor.Executor: Finished task 3.0 in stage 0.0 (TID 3). 1814 bytes result sent to driver
+15/09/09 14:07:50 INFO executor.Executor: Finished task 2.0 in stage 0.0 (TID 2). 1814 bytes result sent to driver
+15/09/09 14:07:50 INFO executor.Executor: Finished task 1.0 in stage 0.0 (TID 1). 1814 bytes result sent to driver
+15/09/09 14:07:50 INFO executor.Executor: Finished task 4.0 in stage 0.0 (TID 4). 1814 bytes result sent to driver
+15/09/09 14:07:50 INFO executor.Executor: Finished task 0.0 in stage 0.0 (TID 0). 1814 bytes result sent to driver
+15/09/09 14:07:50 INFO executor.Executor: Finished task 6.0 in stage 0.0 (TID 6). 1814 bytes result sent to driver
+15/09/09 14:07:50 INFO executor.Executor: Finished task 5.0 in stage 0.0 (TID 5). 1814 bytes result sent to driver
+15/09/09 14:07:50 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 7
+15/09/09 14:07:50 INFO executor.Executor: Running task 0.0 in stage 1.0 (TID 7)
+15/09/09 14:07:50 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 2
+15/09/09 14:07:50 INFO storage.MemoryStore: ensureFreeSpace(5939) called with curMem=452210, maxMem=740960501
+15/09/09 14:07:50 INFO storage.MemoryStore: Block broadcast_2_piece0 stored as bytes in memory (estimated size 5.8 KB, free 706.2 MB)
+15/09/09 14:07:50 INFO storage.BlockManagerMaster: Updated info of block broadcast_2_piece0
+15/09/09 14:07:50 INFO broadcast.TorrentBroadcast: Reading broadcast variable 2 took 9 ms
+15/09/09 14:07:50 INFO storage.MemoryStore: ensureFreeSpace(12040) called with curMem=458149, maxMem=740960501
+15/09/09 14:07:50 INFO storage.MemoryStore: Block broadcast_2 stored as values in memory (estimated size 11.8 KB, free 706.2 MB)
+15/09/09 14:07:50 INFO executor.Executor: Finished task 0.0 in stage 1.0 (TID 7). 712 bytes result sent to driver
+15/09/09 14:08:02 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 8
+15/09/09 14:08:02 INFO executor.Executor: Running task 0.0 in stage 2.0 (TID 8)
+15/09/09 14:08:02 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 9
+15/09/09 14:08:02 INFO executor.Executor: Running task 1.0 in stage 2.0 (TID 9)
+15/09/09 14:08:02 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 10
+15/09/09 14:08:02 INFO executor.Executor: Running task 2.0 in stage 2.0 (TID 10)
+15/09/09 14:08:02 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 11
+15/09/09 14:08:02 INFO executor.Executor: Running task 3.0 in stage 2.0 (TID 11)
+15/09/09 14:08:02 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 4
+15/09/09 14:08:02 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 12
+15/09/09 14:08:02 INFO executor.Executor: Running task 4.0 in stage 2.0 (TID 12)
+15/09/09 14:08:02 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 13
+15/09/09 14:08:02 INFO executor.Executor: Running task 5.0 in stage 2.0 (TID 13)
+15/09/09 14:08:02 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 14
+15/09/09 14:08:03 INFO executor.Executor: Running task 6.0 in stage 2.0 (TID 14)
+15/09/09 14:08:03 INFO storage.MemoryStore: ensureFreeSpace(6761) called with curMem=470189, maxMem=740960501
+15/09/09 14:08:03 INFO storage.MemoryStore: Block broadcast_4_piece0 stored as bytes in memory (estimated size 6.6 KB, free 706.2 MB)
+15/09/09 14:08:03 INFO storage.BlockManagerMaster: Updated info of block broadcast_4_piece0
+15/09/09 14:08:03 INFO broadcast.TorrentBroadcast: Reading broadcast variable 4 took 14 ms
+15/09/09 14:08:03 INFO storage.MemoryStore: ensureFreeSpace(14784) called with curMem=476950, maxMem=740960501
+15/09/09 14:08:03 INFO storage.MemoryStore: Block broadcast_4 stored as values in memory (estimated size 14.4 KB, free 706.2 MB)
+15/09/09 14:08:03 INFO rdd.NewHadoopRDD: Input split: HBase table split(table name: 1504, scan: , start row: \xE4Tr\x80\x00\x83, end row: , region location: localhost)
+15/09/09 14:08:03 INFO rdd.NewHadoopRDD: Input split: HBase table split(table name: 1504, scan: , start row: , end row: \xE4\x0B\xCCG\x00\x82, region location: localhost)
+15/09/09 14:08:03 INFO rdd.NewHadoopRDD: Input split: HBase table split(table name: 1504, scan: , start row: \xE47c#\x00\x82, end row: \xE4E\xEAB\x00\x84, region location: localhost)
+15/09/09 14:08:03 INFO rdd.NewHadoopRDD: Input split: HBase table split(table name: 1504, scan: , start row: \xE4\x0B\xCCG\x00\x82, end row: \xE4\x1AP\xC3\x00\x82, region location: localhost)
+15/09/09 14:08:03 INFO rdd.NewHadoopRDD: Input split: HBase table split(table name: 1504, scan: , start row: \xE4E\xEAB\x00\x84, end row: \xE4Tr\x80\x00\x83, region location: localhost)
+15/09/09 14:08:03 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 3
+15/09/09 14:08:03 INFO rdd.NewHadoopRDD: Input split: HBase table split(table name: 1504, scan: , start row: \xE4(\xDF\xE4\x00\x83, end row: \xE47c#\x00\x82, region location: localhost)
+15/09/09 14:08:03 INFO rdd.NewHadoopRDD: Input split: HBase table split(table name: 1504, scan: , start row: \xE4\x1AP\xC3\x00\x82, end row: \xE4(\xDF\xE4\x00\x83, region location: localhost)
+15/09/09 14:08:03 INFO storage.MemoryStore: ensureFreeSpace(23660) called with curMem=491734, maxMem=740960501
+15/09/09 14:08:03 INFO storage.MemoryStore: Block broadcast_3_piece0 stored as bytes in memory (estimated size 23.1 KB, free 706.1 MB)
+15/09/09 14:08:03 INFO storage.BlockManagerMaster: Updated info of block broadcast_3_piece0
+15/09/09 14:08:03 INFO broadcast.TorrentBroadcast: Reading broadcast variable 3 took 10 ms
+15/09/09 14:08:03 INFO storage.MemoryStore: ensureFreeSpace(407025) called with curMem=515394, maxMem=740960501
+15/09/09 14:08:03 INFO storage.MemoryStore: Block broadcast_3 stored as values in memory (estimated size 397.5 KB, free 705.8 MB)
+15/09/09 14:08:03 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:08:03 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:08:03 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:08:03 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:08:03 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:08:03 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:08:03 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:08:03 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:08:03 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:08:03 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:08:03 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:08:03 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:08:03 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:08:03 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:08:03 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:08:03 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:08:03 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:08:03 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:08:03 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:08:03 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:08:03 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:08:03 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:08:03 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:08:03 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:08:03 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:08:03 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:08:03 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:08:03 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:08:03 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:08:03 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:08:03 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:08:03 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:08:03 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:08:03 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:08:03 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:08:03 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:08:03 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:08:03 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:08:03 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:08:03 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:08:03 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:08:03 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:08:03 INFO executor.Executor: Finished task 4.0 in stage 2.0 (TID 12). 1814 bytes result sent to driver
+15/09/09 14:08:03 INFO executor.Executor: Finished task 1.0 in stage 2.0 (TID 9). 1814 bytes result sent to driver
+15/09/09 14:08:03 INFO executor.Executor: Finished task 3.0 in stage 2.0 (TID 11). 1814 bytes result sent to driver
+15/09/09 14:08:03 INFO executor.Executor: Finished task 6.0 in stage 2.0 (TID 14). 1814 bytes result sent to driver
+15/09/09 14:08:03 INFO executor.Executor: Finished task 5.0 in stage 2.0 (TID 13). 1814 bytes result sent to driver
+15/09/09 14:08:03 INFO executor.Executor: Finished task 2.0 in stage 2.0 (TID 10). 1814 bytes result sent to driver
+15/09/09 14:08:03 INFO executor.Executor: Finished task 0.0 in stage 2.0 (TID 8). 1814 bytes result sent to driver
+15/09/09 14:08:03 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 15
+15/09/09 14:08:03 INFO executor.Executor: Running task 0.0 in stage 3.0 (TID 15)
+15/09/09 14:08:03 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 5
+15/09/09 14:08:03 INFO storage.MemoryStore: ensureFreeSpace(5934) called with curMem=922419, maxMem=740960501
+15/09/09 14:08:03 INFO storage.MemoryStore: Block broadcast_5_piece0 stored as bytes in memory (estimated size 5.8 KB, free 705.7 MB)
+15/09/09 14:08:03 INFO storage.BlockManagerMaster: Updated info of block broadcast_5_piece0
+15/09/09 14:08:03 INFO broadcast.TorrentBroadcast: Reading broadcast variable 5 took 8 ms
+15/09/09 14:08:03 INFO storage.MemoryStore: ensureFreeSpace(12040) called with curMem=928353, maxMem=740960501
+15/09/09 14:08:03 INFO storage.MemoryStore: Block broadcast_5 stored as values in memory (estimated size 11.8 KB, free 705.7 MB)
+15/09/09 14:08:03 INFO executor.Executor: Finished task 0.0 in stage 3.0 (TID 15). 712 bytes result sent to driver
+15/09/09 14:08:11 INFO storage.BlockManager: Removing broadcast 1
+15/09/09 14:08:11 INFO storage.BlockManager: Removing block broadcast_1_piece0
+15/09/09 14:08:11 INFO storage.MemoryStore: Block broadcast_1_piece0 of size 6749 dropped from memory (free 740026857)
+15/09/09 14:08:11 INFO storage.BlockManagerMaster: Updated info of block broadcast_1_piece0
+15/09/09 14:08:11 INFO storage.BlockManager: Removing block broadcast_1
+15/09/09 14:08:11 INFO storage.MemoryStore: Block broadcast_1 of size 14784 dropped from memory (free 740041641)
+15/09/09 14:08:11 INFO storage.BlockManager: Removing broadcast 2
+15/09/09 14:08:11 INFO storage.BlockManager: Removing block broadcast_2
+15/09/09 14:08:11 INFO storage.MemoryStore: Block broadcast_2 of size 12040 dropped from memory (free 740053681)
+15/09/09 14:08:11 INFO storage.BlockManager: Removing block broadcast_2_piece0
+15/09/09 14:08:11 INFO storage.MemoryStore: Block broadcast_2_piece0 of size 5939 dropped from memory (free 740059620)
+15/09/09 14:08:11 INFO storage.BlockManagerMaster: Updated info of block broadcast_2_piece0
+15/09/09 14:08:11 INFO storage.BlockManager: Removing broadcast 3
+15/09/09 14:08:11 INFO storage.BlockManager: Removing block broadcast_3_piece0
+15/09/09 14:08:11 INFO storage.MemoryStore: Block broadcast_3_piece0 of size 23660 dropped from memory (free 740083280)
+15/09/09 14:08:11 INFO storage.BlockManagerMaster: Updated info of block broadcast_3_piece0
+15/09/09 14:08:11 INFO storage.BlockManager: Removing block broadcast_3
+15/09/09 14:08:11 INFO storage.MemoryStore: Block broadcast_3 of size 407025 dropped from memory (free 740490305)
+15/09/09 14:08:11 INFO storage.BlockManager: Removing broadcast 4
+15/09/09 14:08:11 INFO storage.BlockManager: Removing block broadcast_4
+15/09/09 14:08:11 INFO storage.MemoryStore: Block broadcast_4 of size 14784 dropped from memory (free 740505089)
+15/09/09 14:08:11 INFO storage.BlockManager: Removing block broadcast_4_piece0
+15/09/09 14:08:11 INFO storage.MemoryStore: Block broadcast_4_piece0 of size 6761 dropped from memory (free 740511850)
+15/09/09 14:08:11 INFO storage.BlockManagerMaster: Updated info of block broadcast_4_piece0
+15/09/09 14:08:11 INFO storage.BlockManager: Removing broadcast 5
+15/09/09 14:08:11 INFO storage.BlockManager: Removing block broadcast_5_piece0
+15/09/09 14:08:11 INFO storage.MemoryStore: Block broadcast_5_piece0 of size 5934 dropped from memory (free 740517784)
+15/09/09 14:08:11 INFO storage.BlockManagerMaster: Updated info of block broadcast_5_piece0
+15/09/09 14:08:11 INFO storage.BlockManager: Removing block broadcast_5
+15/09/09 14:08:11 INFO storage.MemoryStore: Block broadcast_5 of size 12040 dropped from memory (free 740529824)
+15/09/09 14:08:12 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 16
+15/09/09 14:08:12 INFO executor.Executor: Running task 0.0 in stage 4.0 (TID 16)
+15/09/09 14:08:12 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 17
+15/09/09 14:08:12 INFO executor.Executor: Running task 1.0 in stage 4.0 (TID 17)
+15/09/09 14:08:12 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 18
+15/09/09 14:08:12 INFO executor.Executor: Running task 2.0 in stage 4.0 (TID 18)
+15/09/09 14:08:12 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 19
+15/09/09 14:08:12 INFO executor.Executor: Running task 3.0 in stage 4.0 (TID 19)
+15/09/09 14:08:12 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 7
+15/09/09 14:08:12 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 20
+15/09/09 14:08:12 INFO executor.Executor: Running task 4.0 in stage 4.0 (TID 20)
+15/09/09 14:08:12 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 21
+15/09/09 14:08:12 INFO executor.Executor: Running task 5.0 in stage 4.0 (TID 21)
+15/09/09 14:08:12 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 22
+15/09/09 14:08:12 INFO executor.Executor: Running task 6.0 in stage 4.0 (TID 22)
+15/09/09 14:08:12 INFO storage.MemoryStore: ensureFreeSpace(6759) called with curMem=430677, maxMem=740960501
+15/09/09 14:08:12 INFO storage.MemoryStore: Block broadcast_7_piece0 stored as bytes in memory (estimated size 6.6 KB, free 706.2 MB)
+15/09/09 14:08:12 INFO storage.BlockManagerMaster: Updated info of block broadcast_7_piece0
+15/09/09 14:08:12 INFO broadcast.TorrentBroadcast: Reading broadcast variable 7 took 13 ms
+15/09/09 14:08:12 INFO storage.MemoryStore: ensureFreeSpace(14784) called with curMem=437436, maxMem=740960501
+15/09/09 14:08:12 INFO storage.MemoryStore: Block broadcast_7 stored as values in memory (estimated size 14.4 KB, free 706.2 MB)
+15/09/09 14:08:12 INFO rdd.NewHadoopRDD: Input split: HBase table split(table name: 1504, scan: , start row: \xE4Tr\x80\x00\x83, end row: , region location: localhost)
+15/09/09 14:08:12 INFO rdd.NewHadoopRDD: Input split: HBase table split(table name: 1504, scan: , start row: , end row: \xE4\x0B\xCCG\x00\x82, region location: localhost)
+15/09/09 14:08:12 INFO rdd.NewHadoopRDD: Input split: HBase table split(table name: 1504, scan: , start row: \xE4(\xDF\xE4\x00\x83, end row: \xE47c#\x00\x82, region location: localhost)
+15/09/09 14:08:12 INFO rdd.NewHadoopRDD: Input split: HBase table split(table name: 1504, scan: , start row: \xE47c#\x00\x82, end row: \xE4E\xEAB\x00\x84, region location: localhost)
+15/09/09 14:08:12 INFO rdd.NewHadoopRDD: Input split: HBase table split(table name: 1504, scan: , start row: \xE4\x0B\xCCG\x00\x82, end row: \xE4\x1AP\xC3\x00\x82, region location: localhost)
+15/09/09 14:08:12 INFO rdd.NewHadoopRDD: Input split: HBase table split(table name: 1504, scan: , start row: \xE4E\xEAB\x00\x84, end row: \xE4Tr\x80\x00\x83, region location: localhost)
+15/09/09 14:08:12 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 6
+15/09/09 14:08:12 INFO rdd.NewHadoopRDD: Input split: HBase table split(table name: 1504, scan: , start row: \xE4\x1AP\xC3\x00\x82, end row: \xE4(\xDF\xE4\x00\x83, region location: localhost)
+15/09/09 14:08:12 INFO storage.MemoryStore: ensureFreeSpace(23668) called with curMem=452220, maxMem=740960501
+15/09/09 14:08:12 INFO storage.MemoryStore: Block broadcast_6_piece0 stored as bytes in memory (estimated size 23.1 KB, free 706.2 MB)
+15/09/09 14:08:12 INFO storage.BlockManagerMaster: Updated info of block broadcast_6_piece0
+15/09/09 14:08:12 INFO broadcast.TorrentBroadcast: Reading broadcast variable 6 took 10 ms
+15/09/09 14:08:12 INFO storage.MemoryStore: ensureFreeSpace(407025) called with curMem=475888, maxMem=740960501
+15/09/09 14:08:12 INFO storage.MemoryStore: Block broadcast_6 stored as values in memory (estimated size 397.5 KB, free 705.8 MB)
+15/09/09 14:08:12 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:08:12 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:08:12 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:08:12 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:08:12 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:08:12 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:08:12 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:08:12 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:08:12 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:08:12 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:08:12 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:08:12 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:08:12 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:08:12 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:08:12 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:08:12 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:08:12 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:08:12 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:08:12 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:08:12 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:08:12 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:08:12 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:08:12 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:08:12 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:08:12 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:08:12 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:08:12 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:08:12 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:08:12 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:08:12 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:08:12 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:08:12 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:08:12 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:08:12 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:08:12 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:08:12 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:08:12 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:08:12 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:08:12 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:08:12 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:08:12 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:08:12 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:08:12 INFO executor.Executor: Finished task 5.0 in stage 4.0 (TID 21). 1814 bytes result sent to driver
+15/09/09 14:08:12 INFO executor.Executor: Finished task 3.0 in stage 4.0 (TID 19). 1814 bytes result sent to driver
+15/09/09 14:08:12 INFO executor.Executor: Finished task 0.0 in stage 4.0 (TID 16). 1814 bytes result sent to driver
+15/09/09 14:08:12 INFO executor.Executor: Finished task 2.0 in stage 4.0 (TID 18). 1814 bytes result sent to driver
+15/09/09 14:08:12 INFO executor.Executor: Finished task 1.0 in stage 4.0 (TID 17). 1814 bytes result sent to driver
+15/09/09 14:08:12 INFO executor.Executor: Finished task 6.0 in stage 4.0 (TID 22). 1814 bytes result sent to driver
+15/09/09 14:08:12 INFO executor.Executor: Finished task 4.0 in stage 4.0 (TID 20). 1814 bytes result sent to driver
+15/09/09 14:08:12 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 23
+15/09/09 14:08:12 INFO executor.Executor: Running task 0.0 in stage 5.0 (TID 23)
+15/09/09 14:08:12 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 8
+15/09/09 14:08:12 INFO storage.MemoryStore: ensureFreeSpace(5934) called with curMem=882913, maxMem=740960501
+15/09/09 14:08:12 INFO storage.MemoryStore: Block broadcast_8_piece0 stored as bytes in memory (estimated size 5.8 KB, free 705.8 MB)
+15/09/09 14:08:12 INFO storage.BlockManagerMaster: Updated info of block broadcast_8_piece0
+15/09/09 14:08:12 INFO broadcast.TorrentBroadcast: Reading broadcast variable 8 took 9 ms
+15/09/09 14:08:12 INFO storage.MemoryStore: ensureFreeSpace(12040) called with curMem=888847, maxMem=740960501
+15/09/09 14:08:12 INFO storage.MemoryStore: Block broadcast_8 stored as values in memory (estimated size 11.8 KB, free 705.8 MB)
+15/09/09 14:08:12 INFO executor.Executor: Finished task 0.0 in stage 5.0 (TID 23). 712 bytes result sent to driver
+15/09/09 14:09:19 INFO storage.BlockManager: Removing broadcast 6
+15/09/09 14:09:19 INFO storage.BlockManager: Removing block broadcast_6_piece0
+15/09/09 14:09:19 INFO storage.MemoryStore: Block broadcast_6_piece0 of size 23668 dropped from memory (free 740083282)
+15/09/09 14:09:19 INFO storage.BlockManagerMaster: Updated info of block broadcast_6_piece0
+15/09/09 14:09:19 INFO storage.BlockManager: Removing block broadcast_6
+15/09/09 14:09:19 INFO storage.MemoryStore: Block broadcast_6 of size 407025 dropped from memory (free 740490307)
+15/09/09 14:09:19 INFO storage.BlockManager: Removing broadcast 7
+15/09/09 14:09:19 INFO storage.BlockManager: Removing block broadcast_7
+15/09/09 14:09:19 INFO storage.MemoryStore: Block broadcast_7 of size 14784 dropped from memory (free 740505091)
+15/09/09 14:09:19 INFO storage.BlockManager: Removing block broadcast_7_piece0
+15/09/09 14:09:19 INFO storage.MemoryStore: Block broadcast_7_piece0 of size 6759 dropped from memory (free 740511850)
+15/09/09 14:09:19 INFO storage.BlockManagerMaster: Updated info of block broadcast_7_piece0
+15/09/09 14:09:19 INFO storage.BlockManager: Removing broadcast 8
+15/09/09 14:09:19 INFO storage.BlockManager: Removing block broadcast_8
+15/09/09 14:09:19 INFO storage.MemoryStore: Block broadcast_8 of size 12040 dropped from memory (free 740523890)
+15/09/09 14:09:19 INFO storage.BlockManager: Removing block broadcast_8_piece0
+15/09/09 14:09:19 INFO storage.MemoryStore: Block broadcast_8_piece0 of size 5934 dropped from memory (free 740529824)
+15/09/09 14:09:19 INFO storage.BlockManagerMaster: Updated info of block broadcast_8_piece0
+15/09/09 14:11:51 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 24
+15/09/09 14:11:51 INFO executor.Executor: Running task 0.0 in stage 6.0 (TID 24)
+15/09/09 14:11:51 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 25
+15/09/09 14:11:51 INFO executor.Executor: Running task 1.0 in stage 6.0 (TID 25)
+15/09/09 14:11:51 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 26
+15/09/09 14:11:51 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 27
+15/09/09 14:11:51 INFO executor.Executor: Running task 2.0 in stage 6.0 (TID 26)
+15/09/09 14:11:51 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 10
+15/09/09 14:11:51 INFO executor.Executor: Running task 3.0 in stage 6.0 (TID 27)
+15/09/09 14:11:51 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 28
+15/09/09 14:11:51 INFO executor.Executor: Running task 4.0 in stage 6.0 (TID 28)
+15/09/09 14:11:51 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 29
+15/09/09 14:11:51 INFO executor.Executor: Running task 5.0 in stage 6.0 (TID 29)
+15/09/09 14:11:51 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 30
+15/09/09 14:11:51 INFO executor.Executor: Running task 6.0 in stage 6.0 (TID 30)
+15/09/09 14:11:51 INFO storage.MemoryStore: ensureFreeSpace(6755) called with curMem=430677, maxMem=740960501
+15/09/09 14:11:51 INFO storage.MemoryStore: Block broadcast_10_piece0 stored as bytes in memory (estimated size 6.6 KB, free 706.2 MB)
+15/09/09 14:11:51 INFO storage.BlockManagerMaster: Updated info of block broadcast_10_piece0
+15/09/09 14:11:51 INFO broadcast.TorrentBroadcast: Reading broadcast variable 10 took 12 ms
+15/09/09 14:11:51 INFO storage.MemoryStore: ensureFreeSpace(14784) called with curMem=437432, maxMem=740960501
+15/09/09 14:11:51 INFO storage.MemoryStore: Block broadcast_10 stored as values in memory (estimated size 14.4 KB, free 706.2 MB)
+15/09/09 14:11:51 INFO rdd.NewHadoopRDD: Input split: HBase table split(table name: 1504, scan: , start row: \xE4E\xEAB\x00\x84, end row: \xE4Tr\x80\x00\x83, region location: localhost)
+15/09/09 14:11:51 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 9
+15/09/09 14:11:51 INFO rdd.NewHadoopRDD: Input split: HBase table split(table name: 1504, scan: , start row: \xE47c#\x00\x82, end row: \xE4E\xEAB\x00\x84, region location: localhost)
+15/09/09 14:11:51 INFO rdd.NewHadoopRDD: Input split: HBase table split(table name: 1504, scan: , start row: \xE4\x1AP\xC3\x00\x82, end row: \xE4(\xDF\xE4\x00\x83, region location: localhost)
+15/09/09 14:11:51 INFO rdd.NewHadoopRDD: Input split: HBase table split(table name: 1504, scan: , start row: , end row: \xE4\x0B\xCCG\x00\x82, region location: localhost)
+15/09/09 14:11:51 INFO rdd.NewHadoopRDD: Input split: HBase table split(table name: 1504, scan: , start row: \xE4Tr\x80\x00\x83, end row: , region location: localhost)
+15/09/09 14:11:51 INFO rdd.NewHadoopRDD: Input split: HBase table split(table name: 1504, scan: , start row: \xE4\x0B\xCCG\x00\x82, end row: \xE4\x1AP\xC3\x00\x82, region location: localhost)
+15/09/09 14:11:51 INFO rdd.NewHadoopRDD: Input split: HBase table split(table name: 1504, scan: , start row: \xE4(\xDF\xE4\x00\x83, end row: \xE47c#\x00\x82, region location: localhost)
+15/09/09 14:11:51 INFO storage.MemoryStore: ensureFreeSpace(23658) called with curMem=452216, maxMem=740960501
+15/09/09 14:11:51 INFO storage.MemoryStore: Block broadcast_9_piece0 stored as bytes in memory (estimated size 23.1 KB, free 706.2 MB)
+15/09/09 14:11:51 INFO storage.BlockManagerMaster: Updated info of block broadcast_9_piece0
+15/09/09 14:11:51 INFO broadcast.TorrentBroadcast: Reading broadcast variable 9 took 9 ms
+15/09/09 14:11:51 INFO storage.MemoryStore: ensureFreeSpace(407025) called with curMem=475874, maxMem=740960501
+15/09/09 14:11:51 INFO storage.MemoryStore: Block broadcast_9 stored as values in memory (estimated size 397.5 KB, free 705.8 MB)
+15/09/09 14:11:51 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:11:51 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:11:51 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:11:51 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:11:51 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:11:51 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:11:51 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:11:51 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:11:51 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:11:51 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:11:51 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:11:51 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:11:51 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:11:51 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:11:51 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:11:51 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:11:51 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:11:51 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:11:51 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:11:51 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:11:51 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:11:51 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:11:51 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:11:51 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:11:51 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:11:51 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:11:51 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:11:51 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:11:51 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:11:51 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:11:51 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:11:51 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:11:51 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:11:51 INFO hfile.CacheConfig: blockCache=LruBlockCache{blockCount=0, currentSize=3378064, freeSize=3289779824, maxSize=3293157888, heapSize=3378064, minSize=3128499968, minFactor=0.95, multiSize=1564249984, multiFactor=0.5, singleSize=782124992, singleFactor=0.25}, cacheDataOnRead=true, cacheDataOnWrite=false, cacheIndexesOnWrite=false, cacheBloomsOnWrite=false, cacheEvictOnClose=false, cacheDataCompressed=false, prefetchOnOpen=false
+15/09/09 14:11:51 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:11:51 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:11:51 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:11:51 INFO compactions.CompactionConfiguration: size [134217728, 9223372036854775807); files [3, 10); ratio 1.200000; off-peak ratio 5.000000; throttle point 2684354560; major period 604800000, major jitter 0.500000, min locality to compact 0.000000
+15/09/09 14:11:51 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:11:51 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:11:51 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:11:51 INFO regionserver.HRegion: Onlined 5dc8c1f32f900a3191e4acf1b5972d1b; next sequenceid=2
+15/09/09 14:11:51 INFO executor.Executor: Finished task 0.0 in stage 6.0 (TID 24). 1814 bytes result sent to driver
+15/09/09 14:11:51 INFO executor.Executor: Finished task 6.0 in stage 6.0 (TID 30). 1814 bytes result sent to driver
+15/09/09 14:11:51 INFO executor.Executor: Finished task 4.0 in stage 6.0 (TID 28). 1814 bytes result sent to driver
+15/09/09 14:11:51 INFO executor.Executor: Finished task 3.0 in stage 6.0 (TID 27). 1814 bytes result sent to driver
+15/09/09 14:11:51 INFO executor.Executor: Finished task 5.0 in stage 6.0 (TID 29). 1814 bytes result sent to driver
+15/09/09 14:11:51 INFO executor.Executor: Finished task 1.0 in stage 6.0 (TID 25). 1814 bytes result sent to driver
+15/09/09 14:11:51 INFO executor.Executor: Finished task 2.0 in stage 6.0 (TID 26). 1814 bytes result sent to driver
+15/09/09 14:11:51 INFO storage.BlockManager: Removing broadcast 9
+15/09/09 14:11:51 INFO storage.BlockManager: Removing block broadcast_9
+15/09/09 14:11:51 INFO storage.MemoryStore: Block broadcast_9 of size 407025 dropped from memory (free 740484627)
+15/09/09 14:11:51 INFO storage.BlockManager: Removing block broadcast_9_piece0
+15/09/09 14:11:51 INFO storage.MemoryStore: Block broadcast_9_piece0 of size 23658 dropped from memory (free 740508285)
+15/09/09 14:11:51 INFO storage.BlockManagerMaster: Updated info of block broadcast_9_piece0
+15/09/09 14:11:51 INFO storage.BlockManager: Removing broadcast 10
+15/09/09 14:11:51 INFO storage.BlockManager: Removing block broadcast_10
+15/09/09 14:11:51 INFO storage.MemoryStore: Block broadcast_10 of size 14784 dropped from memory (free 740523069)
+15/09/09 14:11:51 INFO storage.BlockManager: Removing block broadcast_10_piece0
+15/09/09 14:11:51 INFO storage.MemoryStore: Block broadcast_10_piece0 of size 6755 dropped from memory (free 740529824)
+15/09/09 14:11:51 INFO storage.BlockManagerMaster: Updated info of block broadcast_10_piece0
+15/09/09 14:11:51 INFO executor.CoarseGrainedExecutorBackend: Got assigned task 31
+15/09/09 14:11:51 INFO executor.Executor: Running task 0.0 in stage 7.0 (TID 31)
+15/09/09 14:11:51 INFO broadcast.TorrentBroadcast: Started reading broadcast variable 11
+15/09/09 14:11:51 INFO storage.MemoryStore: ensureFreeSpace(5933) called with curMem=430677, maxMem=740960501
+15/09/09 14:11:51 INFO storage.MemoryStore: Block broadcast_11_piece0 stored as bytes in memory (estimated size 5.8 KB, free 706.2 MB)
+15/09/09 14:11:51 INFO storage.BlockManagerMaster: Updated info of block broadcast_11_piece0
+15/09/09 14:11:51 INFO broadcast.TorrentBroadcast: Reading broadcast variable 11 took 7 ms
+15/09/09 14:11:51 INFO storage.MemoryStore: ensureFreeSpace(12040) called with curMem=436610, maxMem=740960501
+15/09/09 14:11:51 INFO storage.MemoryStore: Block broadcast_11 stored as values in memory (estimated size 11.8 KB, free 706.2 MB)
+15/09/09 14:11:51 INFO executor.Executor: Finished task 0.0 in stage 7.0 (TID 31). 712 bytes result sent to driver
+15/09/09 14:12:50 INFO hfile.LruBlockCache: totalSize=3.22 MB, freeSize=3.06 GB, max=3.07 GB, blockCount=0, accesses=0, hits=0, hitRatio=0, cachingAccesses=0, cachingHits=0, cachingHitsRatio=0,evictions=29, evicted=0, evictedPerRun=0.0
+15/09/09 14:14:08 INFO storage.BlockManager: Removing broadcast 11
+15/09/09 14:14:08 INFO storage.BlockManager: Removing block broadcast_11
+15/09/09 14:14:08 INFO storage.MemoryStore: Block broadcast_11 of size 12040 dropped from memory (free 740523891)
+15/09/09 14:14:08 INFO storage.BlockManager: Removing block broadcast_11_piece0
+15/09/09 14:14:08 INFO storage.MemoryStore: Block broadcast_11_piece0 of size 5933 dropped from memory (free 740529824)
+15/09/09 14:14:08 INFO storage.BlockManagerMaster: Updated info of block broadcast_11_piece0
+15/09/09 14:14:09 INFO timestamp.TimestampClient: TimestampClient was disconnected from the server
+15/09/09 14:14:09 WARN client.ConnectionManager$HConnectionImplementation: Checking master connection
+com.google.protobuf.ServiceException: org.apache.hadoop.hbase.exceptions.ConnectionClosingException: Call to localhost/127.0.0.1:62059 failed on local exception: org.apache.hadoop.hbase.exceptions.ConnectionClosingException: Connection to localhost/127.0.0.1:62059 is closing. Call id=174, waitTime=192
+	at org.apache.hadoop.hbase.ipc.AbstractRpcClient.callBlockingMethod(AbstractRpcClient.java:231)
+	at org.apache.hadoop.hbase.ipc.AbstractRpcClient$BlockingRpcChannelImplementation.callBlockingMethod(AbstractRpcClient.java:300)
+	at org.apache.hadoop.hbase.protobuf.generated.MasterProtos$MasterService$BlockingStub.isMasterRunning(MasterProtos.java:46470)
+	at org.apache.hadoop.hbase.client.ConnectionManager$HConnectionImplementation$MasterServiceState.isMasterRunning(ConnectionManager.java:1479)
+	at org.apache.hadoop.hbase.client.ConnectionManager$HConnectionImplementation.isKeepAliveMasterConnectedAndRunning(ConnectionManager.java:2119)
+	at org.apache.hadoop.hbase.client.ConnectionManager$HConnectionImplementation.getKeepAliveMasterService(ConnectionManager.java:1798)
+	at org.apache.hadoop.hbase.client.MasterCallable.prepare(MasterCallable.java:38)
+	at org.apache.hadoop.hbase.client.RpcRetryingCaller.callWithRetries(RpcRetryingCaller.java:124)
+	at org.apache.hadoop.hbase.client.HBaseAdmin.executeCallable(HBaseAdmin.java:3678)
+	at org.apache.hadoop.hbase.client.HBaseAdmin.getClusterStatus(HBaseAdmin.java:2382)
+	at com.splicemachine.hbase.HBaseRegionLoads.fetchRegionLoads(HBaseRegionLoads.java:128)
+	at com.splicemachine.hbase.HBaseRegionLoads.access$000(HBaseRegionLoads.java:38)
+	at com.splicemachine.hbase.HBaseRegionLoads$1.run(HBaseRegionLoads.java:49)
+	at com.splicemachine.concurrent.LoggingScheduledThreadPoolExecutor$LoggingRunnable.run(LoggingScheduledThreadPoolExecutor.java:60)
+	at java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:471)
+	at java.util.concurrent.FutureTask.runAndReset(FutureTask.java:304)
+	at java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.access$301(ScheduledThreadPoolExecutor.java:178)
+	at java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:293)
+	at java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1145)
+	at java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:615)
+	at java.lang.Thread.run(Thread.java:745)
+Caused by: org.apache.hadoop.hbase.exceptions.ConnectionClosingException: Call to localhost/127.0.0.1:62059 failed on local exception: org.apache.hadoop.hbase.exceptions.ConnectionClosingException: Connection to localhost/127.0.0.1:62059 is closing. Call id=174, waitTime=192
+	at org.apache.hadoop.hbase.ipc.RpcClientImpl.wrapException(RpcClientImpl.java:1233)
+	at org.apache.hadoop.hbase.ipc.RpcClientImpl.call(RpcClientImpl.java:1204)
+	at org.apache.hadoop.hbase.ipc.AbstractRpcClient.callBlockingMethod(AbstractRpcClient.java:216)
+	... 20 more
+Caused by: org.apache.hadoop.hbase.exceptions.ConnectionClosingException: Connection to localhost/127.0.0.1:62059 is closing. Call id=174, waitTime=192
+	at org.apache.hadoop.hbase.ipc.RpcClientImpl$Connection.cleanupCalls(RpcClientImpl.java:1033)
+	at org.apache.hadoop.hbase.ipc.RpcClientImpl$Connection.close(RpcClientImpl.java:840)
+	at org.apache.hadoop.hbase.ipc.RpcClientImpl$Connection.run(RpcClientImpl.java:568)

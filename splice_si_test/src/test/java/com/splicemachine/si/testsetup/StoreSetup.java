@@ -1,6 +1,6 @@
 package com.splicemachine.si.testsetup;
 
-import com.splicemachine.si.api.Clock;
+import com.splicemachine.concurrent.Clock;
 import com.splicemachine.si.api.TimestampSource;
 import com.splicemachine.si.api.TxnStore;
 import com.splicemachine.si.data.api.SDataLib;

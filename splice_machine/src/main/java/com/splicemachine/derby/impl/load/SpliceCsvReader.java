@@ -2,6 +2,7 @@ package com.splicemachine.derby.impl.load;
 
 import java.io.IOException;
 import java.io.Reader;
+import java.util.ArrayList;
 import java.util.List;
 
 import org.supercsv.exception.SuperCsvException;
@@ -15,6 +16,8 @@ import org.supercsv.prefs.CsvPreference;
  * @author dwinters
  */
 public class SpliceCsvReader extends CsvListReader {
+
+    private ArrayList<String> failMsg = new ArrayList<String>();
 
 	/**
 	 * Constructs a new <tt>SpliceCsvReader</tt> with the supplied Reader and CSV preferences. Note that the
@@ -58,8 +61,15 @@ public class SpliceCsvReader extends CsvListReader {
 	 *             if there was a general exception while reading/processing
 	 */
 	public String[] readAsStringArray() throws IOException {
+        boolean res = false;
 
-		if (readRow()) {
+        try {
+            res = readRow();
+        } catch (Exception e) {
+            failMsg.add(e.getMessage());
+        }
+
+		if (res) {
 			List<String> rowAsList = getColumns();
 			String[] row = new String[rowAsList.size()];
 			rowAsList.toArray(row);
@@ -68,4 +78,9 @@ public class SpliceCsvReader extends CsvListReader {
 		
 		return null; // EOF
 	}
+
+
+    public ArrayList<String> getFailMsg() {
+        return failMsg;
+    }
 }

@@ -10,6 +10,7 @@ import com.splicemachine.stats.estimate.Distribution;
 import com.splicemachine.stats.estimate.UniformShortDistribution;
 import com.splicemachine.stats.frequency.*;
 import com.splicemachine.utils.ComparableComparator;
+import com.splicemachine.utils.StringUtils;
 
 import java.math.BigDecimal;
 import java.sql.Time;
@@ -585,8 +586,12 @@ public abstract class ColumnAverage implements ColumnStatistics<DataValueDescrip
             super(columnId);
             FrequentElements<String> empty = ObjectFrequentElements.topK(0,0,
                     Collections.<FrequencyEstimate<String>>emptyList(),ComparableComparator.<String>newComparator());
-            this.empty = new StringStatistics.Freqs(empty,conversionFunction);
+            this.empty = newFreqs(empty,conversionFunction);
             this.maxLength = maxLength;
+        }
+
+        protected FrequentElements<DataValueDescriptor> newFreqs(FrequentElements<String> empty,Function<FrequencyEstimate<String>, FrequencyEstimate<DataValueDescriptor>> conversionFunction){
+            return new StringStatistics.Freqs(empty,conversionFunction);
         }
 
         @Override
@@ -631,7 +636,7 @@ public abstract class ColumnAverage implements ColumnStatistics<DataValueDescrip
 
         protected abstract DataValueDescriptor getDvd(String value);
 
-        private String safeString(DataValueDescriptor min)  {
+        protected String safeString(DataValueDescriptor min)  {
             try {
                 return min.getString();
             } catch (StandardException e) {
@@ -661,8 +666,18 @@ public abstract class ColumnAverage implements ColumnStatistics<DataValueDescrip
         }
 
         @Override
+        protected FrequentElements<DataValueDescriptor> newFreqs(FrequentElements<String> empty,Function<FrequencyEstimate<String>, FrequencyEstimate<DataValueDescriptor>> conversionFunction){
+            return new VarcharStats.Freqs(empty,conversionFunction);
+        }
+
+        @Override
         protected Distribution<DataValueDescriptor> newDistribution(ColumnStatistics<String> scs){
             return new VarcharStats(scs,maxLength).getDistribution();
+        }
+
+        @Override
+        protected String safeString(DataValueDescriptor min){
+            return StringUtils.trimTrailingSpaces(super.safeString(min));
         }
     }
 

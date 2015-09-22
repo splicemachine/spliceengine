@@ -5,6 +5,7 @@ import com.splicemachine.constants.SpliceConstants;
 import com.splicemachine.db.catalog.AliasInfo;
 import com.splicemachine.db.catalog.UUID;
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.reference.SQLState;
 import com.splicemachine.db.iapi.services.context.ContextService;
 import com.splicemachine.db.iapi.services.monitor.Monitor;
 import com.splicemachine.db.iapi.services.sanity.SanityManager;
@@ -33,6 +34,7 @@ import com.splicemachine.pipeline.exception.Exceptions;
 import com.splicemachine.tools.version.ManifestReader;
 import com.splicemachine.tools.version.SpliceMachineVersion;
 import com.splicemachine.utils.SpliceLogUtils;
+import org.apache.hadoop.hbase.client.HTableInterface;
 import org.apache.log4j.Logger;
 import java.util.Collections;
 import java.util.List;
@@ -59,10 +61,13 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
     private volatile TabInfoImpl physicalStatsTable=null;
     private Splice_DD_Version spliceSoftwareVersion;
     private Properties defaultProperties;
+    @SuppressWarnings("deprecation")
+    private HTableInterface spliceSequencesTable;
+
     public static final String SPLICE_DATA_DICTIONARY_VERSION="SpliceDataDictionaryVersion";
     private volatile StatisticsStore statsStore;
-    private ConcurrentLinkedHashMap<String, byte[]> sequenceRowLocationBytesMap = null;
-    private ConcurrentLinkedHashMap<String, SequenceDescriptor[]> sequenceDescriptorMap = null;
+    private ConcurrentLinkedHashMap<String, byte[]> sequenceRowLocationBytesMap=null;
+    private ConcurrentLinkedHashMap<String, SequenceDescriptor[]> sequenceDescriptorMap=null;
 
     @Override
     public SystemProcedureGenerator getSystemProcedures(){
@@ -93,64 +98,64 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     @Override
     protected void addSubKeyConstraint(KeyConstraintDescriptor descriptor,
-                                       TransactionController tc) throws StandardException {
+                                       TransactionController tc) throws StandardException{
         ExecRow row;
         TabInfoImpl ti;
 
         /*
          * Foreign keys get a row in SYSFOREIGNKEYS, and all others get a row in SYSKEYS.
          */
-        if (descriptor.getConstraintType() == DataDictionary.FOREIGNKEY_CONSTRAINT) {
-            if (SanityManager.DEBUG) {
-                if (!(descriptor instanceof ForeignKeyConstraintDescriptor)) {
-                    SanityManager.THROWASSERT("descriptor not an fk descriptor, is " + descriptor.getClass().getName());
+        if(descriptor.getConstraintType()==DataDictionary.FOREIGNKEY_CONSTRAINT){
+            if(SanityManager.DEBUG){
+                if(!(descriptor instanceof ForeignKeyConstraintDescriptor)){
+                    SanityManager.THROWASSERT("descriptor not an fk descriptor, is "+descriptor.getClass().getName());
                 }
             }
             @SuppressWarnings("ConstantConditions")
-            ForeignKeyConstraintDescriptor fkDescriptor = (ForeignKeyConstraintDescriptor) descriptor;
+            ForeignKeyConstraintDescriptor fkDescriptor=(ForeignKeyConstraintDescriptor)descriptor;
 
-            ti = getNonCoreTI(SYSFOREIGNKEYS_CATALOG_NUM);
-            SYSFOREIGNKEYSRowFactory fkkeysRF = (SYSFOREIGNKEYSRowFactory) ti.getCatalogRowFactory();
+            ti=getNonCoreTI(SYSFOREIGNKEYS_CATALOG_NUM);
+            SYSFOREIGNKEYSRowFactory fkkeysRF=(SYSFOREIGNKEYSRowFactory)ti.getCatalogRowFactory();
 
-            row = fkkeysRF.makeRow(fkDescriptor, null);
+            row=fkkeysRF.makeRow(fkDescriptor,null);
 
             /*
              * Now we need to bump the reference count of the constraint that this FK references
              */
-            ReferencedKeyConstraintDescriptor refDescriptor = fkDescriptor.getReferencedConstraint();
+            ReferencedKeyConstraintDescriptor refDescriptor=fkDescriptor.getReferencedConstraint();
             refDescriptor.incrementReferenceCount();
-            int[] colsToSet = new int[1];
-            colsToSet[0] = SYSCONSTRAINTSRowFactory.SYSCONSTRAINTS_REFERENCECOUNT;
+            int[] colsToSet=new int[1];
+            colsToSet[0]=SYSCONSTRAINTSRowFactory.SYSCONSTRAINTS_REFERENCECOUNT;
 
             /* Have to update the reference count in a nested transaction here because the SYSCONSTRAINTS row we are
              * updating (a primary key constraint or unique index constraint) may have been created in the same
              * statement as the FK (create table for self referencing FK, for example). In that case the KeyValue for
              * that constraint row will have the same rowKey AND timestamp. Updating here with the same ts would REPLACE
              * the entire row with just the updated reference count column, corrupting the row (DB-3345). */
-            TransactionController transactionController = tc.startNestedUserTransaction(false, true);
-            try {
-                updateConstraintDescriptor(refDescriptor, refDescriptor.getUUID(), colsToSet, transactionController);
-            } finally {
+            TransactionController transactionController=tc.startNestedUserTransaction(false,true);
+            try{
+                updateConstraintDescriptor(refDescriptor,refDescriptor.getUUID(),colsToSet,transactionController);
+            }finally{
                 transactionController.commit();
                 transactionController.destroy();
             }
 
-        } else if (descriptor.getConstraintType() == DataDictionary.PRIMARYKEY_CONSTRAINT) {
-            ti = getPkTable();
+        }else if(descriptor.getConstraintType()==DataDictionary.PRIMARYKEY_CONSTRAINT){
+            ti=getPkTable();
             faultInTabInfo(ti);
-            SYSPRIMARYKEYSRowFactory pkRF = (SYSPRIMARYKEYSRowFactory) ti.getCatalogRowFactory();
+            SYSPRIMARYKEYSRowFactory pkRF=(SYSPRIMARYKEYSRowFactory)ti.getCatalogRowFactory();
 
-            row = pkRF.makeRow(descriptor, null);
-        } else {
-            ti = getNonCoreTI(SYSKEYS_CATALOG_NUM);
-            SYSKEYSRowFactory keysRF = (SYSKEYSRowFactory) ti.getCatalogRowFactory();
+            row=pkRF.makeRow(descriptor,null);
+        }else{
+            ti=getNonCoreTI(SYSKEYS_CATALOG_NUM);
+            SYSKEYSRowFactory keysRF=(SYSKEYSRowFactory)ti.getCatalogRowFactory();
 
             // build the row to be stuffed into SYSKEYS
-            row = keysRF.makeRow(descriptor, null);
+            row=keysRF.makeRow(descriptor,null);
         }
 
         // insert row into catalog and all its indices
-        ti.insertRow(row, tc);
+        ti.insertRow(row,tc);
     }
 
     public void createStatisticsTables(TransactionController tc) throws StandardException{
@@ -250,74 +255,74 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         return backupStatesTable;
     }
 
-    private TabInfoImpl getBackupJobsTable() throws StandardException {
-        if (backupJobsTable == null) {
-            backupJobsTable = new TabInfoImpl(new SYSBACKUPJOBSRowFactory(uuidFactory, exFactory, dvf));
+    private TabInfoImpl getBackupJobsTable() throws StandardException{
+        if(backupJobsTable==null){
+            backupJobsTable=new TabInfoImpl(new SYSBACKUPJOBSRowFactory(uuidFactory,exFactory,dvf));
         }
         initSystemIndexVariables(backupJobsTable);
         return backupJobsTable;
     }
 
     public void createLassenTables(TransactionController tc) throws StandardException{
-        SchemaDescriptor systemSchemaDescriptor = getSystemSchemaDescriptor();
+        SchemaDescriptor systemSchemaDescriptor=getSystemSchemaDescriptor();
 
         // Create BACKUP table
-        TabInfoImpl backupTabInfo = getBackupTable();
-        if (getTableDescriptor(backupTabInfo.getTableName(), systemSchemaDescriptor, tc) == null ) {
-            if (LOG.isTraceEnabled()) {
+        TabInfoImpl backupTabInfo=getBackupTable();
+        if(getTableDescriptor(backupTabInfo.getTableName(),systemSchemaDescriptor,tc)==null){
+            if(LOG.isTraceEnabled()){
                 LOG.trace(String.format("Creating system table %s.%s",
-                        systemSchemaDescriptor.getSchemaName(), backupTabInfo.getTableName()));
+                        systemSchemaDescriptor.getSchemaName(),backupTabInfo.getTableName()));
             }
-            makeCatalog(backupTabInfo, systemSchemaDescriptor, tc);
-        } else {
-            if (LOG.isTraceEnabled()) {
+            makeCatalog(backupTabInfo,systemSchemaDescriptor,tc);
+        }else{
+            if(LOG.isTraceEnabled()){
                 LOG.trace(String.format("Skipping table creation since system table %s.%s already exists.",
-                        systemSchemaDescriptor.getSchemaName(), backupTabInfo.getTableName()));
+                        systemSchemaDescriptor.getSchemaName(),backupTabInfo.getTableName()));
             }
         }
 
         // Create BACKUPITEMS
-        TabInfoImpl backupItemsTabInfo = getBackupItemsTable();
-        if (getTableDescriptor(backupItemsTabInfo.getTableName(), systemSchemaDescriptor, tc) == null ) {
-            if (LOG.isTraceEnabled()) {
-                LOG.trace(String.format("Creating system table %s.%s", systemSchemaDescriptor.getSchemaName(),
+        TabInfoImpl backupItemsTabInfo=getBackupItemsTable();
+        if(getTableDescriptor(backupItemsTabInfo.getTableName(),systemSchemaDescriptor,tc)==null){
+            if(LOG.isTraceEnabled()){
+                LOG.trace(String.format("Creating system table %s.%s",systemSchemaDescriptor.getSchemaName(),
                         backupItemsTabInfo.getTableName()));
             }
-            makeCatalog(backupItemsTabInfo, systemSchemaDescriptor, tc);
-        } else {
-            if (LOG.isTraceEnabled()) {
+            makeCatalog(backupItemsTabInfo,systemSchemaDescriptor,tc);
+        }else{
+            if(LOG.isTraceEnabled()){
                 LOG.trace(String.format("Skipping table creation since system table %s.%s already exists.",
-                        systemSchemaDescriptor.getSchemaName(), backupItemsTabInfo.getTableName()));
+                        systemSchemaDescriptor.getSchemaName(),backupItemsTabInfo.getTableName()));
             }
         }
 
         // Create BACKUPFILESET
-        TabInfoImpl backupStatesTabInfo = getBackupStatesTable();
-        if (getTableDescriptor(backupStatesTabInfo.getTableName(), systemSchemaDescriptor, tc) == null ) {
-            if (LOG.isTraceEnabled()) {
-                LOG.trace(String.format("Creating system table %s.%s", systemSchemaDescriptor.getSchemaName(),
+        TabInfoImpl backupStatesTabInfo=getBackupStatesTable();
+        if(getTableDescriptor(backupStatesTabInfo.getTableName(),systemSchemaDescriptor,tc)==null){
+            if(LOG.isTraceEnabled()){
+                LOG.trace(String.format("Creating system table %s.%s",systemSchemaDescriptor.getSchemaName(),
                         backupStatesTabInfo.getTableName()));
             }
-            makeCatalog(backupStatesTabInfo, systemSchemaDescriptor, tc);
-        } else {
-            if (LOG.isTraceEnabled()) {
+            makeCatalog(backupStatesTabInfo,systemSchemaDescriptor,tc);
+        }else{
+            if(LOG.isTraceEnabled()){
                 LOG.trace(String.format("Skipping table creation since system table %s.%s already exists.",
-                        systemSchemaDescriptor.getSchemaName(), backupStatesTabInfo.getTableName()));
+                        systemSchemaDescriptor.getSchemaName(),backupStatesTabInfo.getTableName()));
             }
         }
 
         // Create BACKUPJOBS
-        TabInfoImpl backupJobsTabInfo = getBackupJobsTable();
-        if (getTableDescriptor(backupJobsTabInfo.getTableName(), systemSchemaDescriptor, tc) == null ) {
-            if (LOG.isTraceEnabled()) {
-                LOG.trace(String.format("Creating system table %s.%s", systemSchemaDescriptor.getSchemaName(),
+        TabInfoImpl backupJobsTabInfo=getBackupJobsTable();
+        if(getTableDescriptor(backupJobsTabInfo.getTableName(),systemSchemaDescriptor,tc)==null){
+            if(LOG.isTraceEnabled()){
+                LOG.trace(String.format("Creating system table %s.%s",systemSchemaDescriptor.getSchemaName(),
                         backupJobsTabInfo.getTableName()));
             }
-            makeCatalog(backupJobsTabInfo, systemSchemaDescriptor, tc);
-        } else {
-            if (LOG.isTraceEnabled()) {
+            makeCatalog(backupJobsTabInfo,systemSchemaDescriptor,tc);
+        }else{
+            if(LOG.isTraceEnabled()){
                 LOG.trace(String.format("Skipping table creation since system table %s.%s already exists.",
-                        systemSchemaDescriptor.getSchemaName(), backupJobsTabInfo.getTableName()));
+                        systemSchemaDescriptor.getSchemaName(),backupJobsTabInfo.getTableName()));
             }
         }
     }
@@ -347,7 +352,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     @Override
     public SchemaDescriptor locateSchemaRow(String schemaName,TransactionController tc) throws StandardException{
-    	/*
+        /*
     	Cache cache = SpliceDriver.driver().getCache(SpliceConstants.SYSSCHEMAS_INDEX1_ID_CACHE);
     	Element element;
     	if ( (element = cache.get(schemaName)) != null) {
@@ -369,7 +374,7 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
         // XXX - TODO Cache Lookup
 
-        SchemaDescriptor desc=(SchemaDescriptor)
+        return (SchemaDescriptor)
                 getDescriptorViaIndex(
                         SYSSCHEMASRowFactory.SYSSCHEMAS_INDEX1_ID,
                         keyRow,
@@ -380,8 +385,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
                         false,
                         TransactionController.ISOLATION_REPEATABLE_READ,
                         tc);
-
-        return desc;
     }
 
     @Override
@@ -400,8 +403,8 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
      * implicitly defined in {@link BaseDataDictionary#SYSFUN_FUNCTIONS},
      * which are not actually in the system catalog.
      */
-    public List getRoutineList(String schemaID,String routineName,char nameSpace)
-            throws StandardException{
+    @SuppressWarnings("unchecked")
+    public List getRoutineList(String schemaID,String routineName,char nameSpace) throws StandardException{
 
         List list=super.getRoutineList(schemaID,routineName,nameSpace);
         if(list.isEmpty()){
@@ -425,7 +428,6 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     @Override
     public void boot(boolean create,Properties startParams) throws StandardException{
-        defaultProperties=startParams;
         SpliceLogUtils.trace(LOG,"boot with create=%s,startParams=%s",create,startParams);
         SpliceMachineVersion spliceMachineVersion=(new ManifestReader()).createVersion();
         if(!spliceMachineVersion.isUnknown()){
@@ -452,25 +454,42 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     @Override
     public void startWriting(LanguageConnectionContext lcc) throws StandardException{
-        BaseSpliceTransaction rawTransaction=((SpliceTransactionManager)lcc.getTransactionExecute()).getRawTransaction();
-        assert rawTransaction instanceof SpliceTransaction:"Programmer Error: Cannot perform a data dictionary write with a non-SpliceTransaction";
-        SpliceTransaction txn=(SpliceTransaction)rawTransaction;
+        startWriting(lcc,true);
+    }
+
+    @Override
+    public void startWriting(LanguageConnectionContext lcc,boolean setDDMode) throws StandardException{
+        elevateTxnForDictionaryOperations(lcc);
         /*
-         * This is a bit of an awkward hack--at this stage, we need to ensure that the transaction
-         * allows writes, but we don't really know where it's going, except to the data dictionary (and
-         * therefore to system tables only)
+         * Stolen from Superclass.
          *
-         * Thankfully, we only use the write-table transaction field to determine whether or not to
-         * pause DDL operations, which can only occur against non-system tables. Since we are indicating
-         * that this transaction will be writing to system tables, we don't have to worry about it.
-         *
-         * HOWEVER, it's possible that a transaction could modify both dictionary and non-dictionary tables.
-         * In that situation, we don't want to confuse people with which table is being modified. So to do this,
-         * we just only elevate the transaction if we absolutely have to.
+         * The Superclass(DataDictionaryImpl) does some weird actions with a loop and the lock factory. This
+         * code doesn't really do anything in Splice (because our lock factory doesn't do anything meaningful),
+         * but it's confusing and difficult. Thus, we move the main bulk of the logic (minus the nonapplicable lock
+         * logic) directly here to execute. If at some point in the future we *do* implement a real lock factory,
+         * we probably will want to move back to the super class code (and figure out exactly what it does and why
+         * the magic numbers in Thread.sleep()).
          */
-        if(!txn.allowsWrites())
-            txn.elevate("dictionary".getBytes());
-        super.startWriting(lcc);
+        if(lcc.getBindCount()!=0)
+            throw StandardException.newException(SQLState.LANG_DDL_IN_BIND);
+
+        if(lcc.dataDictionaryInWriteMode()){
+            if(SanityManager.DEBUG){
+                SanityManager.ASSERT(getCacheMode()==DataDictionary.DDL_MODE,
+                        "lcc.getDictionaryInWriteMode() but DataDictionary is COMPILE_MODE");
+            }
+            return; //we are already in write mode, so nothing to do
+        }
+        //TODO -sf- remove the need for synchronization here
+        synchronized(this){
+            if(getCacheMode()==DataDictionary.COMPILE_ONLY_MODE){
+                setCacheMode(DataDictionary.DDL_MODE);
+                clearCaches();
+            }
+            ddlUsers++;
+        }
+        if(setDDMode)
+            lcc.setDataDictionaryWriteMode();
     }
 
     @Override
@@ -478,33 +497,33 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
             throws StandardException{
 
         try{
-            if (sequenceRowLocationBytesMap == null) {
-                sequenceRowLocationBytesMap = new ConcurrentLinkedHashMap.Builder<String, byte[]>()
+            if(sequenceRowLocationBytesMap==null){
+                sequenceRowLocationBytesMap=new ConcurrentLinkedHashMap.Builder<String, byte[]>()
                         .maximumWeightedCapacity(1024)
                         .concurrencyLevel(64)
                         .build();
             }
 
-            if (sequenceDescriptorMap == null) {
-                sequenceDescriptorMap = new ConcurrentLinkedHashMap.Builder<String, SequenceDescriptor[]>()
+            if(sequenceDescriptorMap==null){
+                sequenceDescriptorMap=new ConcurrentLinkedHashMap.Builder<String, SequenceDescriptor[]>()
                         .maximumWeightedCapacity(1024)
                         .concurrencyLevel(64)
                         .build();
             }
-            byte[] sequenceRowLocationBytes = sequenceRowLocationBytesMap.get(sequenceUUIDstring);
-            SequenceDescriptor[] sequenceDescriptor = sequenceDescriptorMap.get(sequenceUUIDstring);
-            if (sequenceRowLocationBytes == null || sequenceDescriptor == null) {
-                RowLocation[] rowLocation = new RowLocation[1];
-                sequenceDescriptor = new SequenceDescriptor[1];
+            byte[] sequenceRowLocationBytes=sequenceRowLocationBytesMap.get(sequenceUUIDstring);
+            SequenceDescriptor[] sequenceDescriptor=sequenceDescriptorMap.get(sequenceUUIDstring);
+            if(sequenceRowLocationBytes==null || sequenceDescriptor==null){
+                RowLocation[] rowLocation=new RowLocation[1];
+                sequenceDescriptor=new SequenceDescriptor[1];
 
-                LanguageConnectionContext llc = (LanguageConnectionContext)
+                LanguageConnectionContext llc=(LanguageConnectionContext)
                         ContextService.getContextOrNull(LanguageConnectionContext.CONTEXT_ID);
 
-                TransactionController tc = llc.getTransactionExecute();
-                computeSequenceRowLocation(tc, sequenceUUIDstring, rowLocation, sequenceDescriptor);
-                sequenceRowLocationBytes = rowLocation[0].getBytes();
-                sequenceRowLocationBytesMap.put(sequenceUUIDstring, sequenceRowLocationBytes);
-                sequenceDescriptorMap.put(sequenceUUIDstring, sequenceDescriptor);
+                TransactionController tc=llc.getTransactionExecute();
+                computeSequenceRowLocation(tc,sequenceUUIDstring,rowLocation,sequenceDescriptor);
+                sequenceRowLocationBytes=rowLocation[0].getBytes();
+                sequenceRowLocationBytesMap.put(sequenceUUIDstring,sequenceRowLocationBytes);
+                sequenceDescriptorMap.put(sequenceUUIDstring,sequenceDescriptor);
             }
 
             long start=sequenceDescriptor[0].getStartValue();
@@ -527,12 +546,12 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
 
     @Override
     public StatisticsStore getStatisticsStore(){
-        StatisticsStore store = statsStore; //volatile read
+        StatisticsStore store=statsStore; //volatile read
         if(store==null){
             synchronized(this){
-                store = statsStore; //2nd volatile read
+                store=statsStore; //2nd volatile read
                 if(store!=null){
-                    store = statsStore = new SpliceDerbyStatisticsStore(StatisticsStorage.getPartitionStore());
+                    store=statsStore=new SpliceDerbyStatisticsStore(StatisticsStorage.getPartitionStore());
                 }
             }
         }
@@ -694,5 +713,26 @@ public class SpliceDataDictionary extends DataDictionaryImpl{
         addDescriptor(vd,sysSchema,DataDictionary.SYSVIEWS_CATALOG_NUM,true,tc);
     }
 
+    private void elevateTxnForDictionaryOperations(LanguageConnectionContext lcc) throws StandardException{
+        BaseSpliceTransaction rawTransaction=((SpliceTransactionManager)lcc.getTransactionExecute()).getRawTransaction();
+        assert rawTransaction instanceof SpliceTransaction:
+                "Programmer Error: Cannot perform a data dictionary write with a non-SpliceTransaction";
+        SpliceTransaction txn=(SpliceTransaction)rawTransaction;
+        /*
+         * This is a bit of an awkward hack--at this stage, we need to ensure that the transaction
+         * allows writes, but we don't really know where it's going, except to the data dictionary (and
+         * therefore to system tables only)
+         *
+         * Thankfully, we only use the write-table transaction field to determine whether or not to
+         * pause DDL operations, which can only occur against non-system tables. Since we are indicating
+         * that this transaction will be writing to system tables, we don't have to worry about it.
+         *
+         * HOWEVER, it's possible that a transaction could modify both dictionary and non-dictionary tables.
+         * In that situation, we don't want to confuse people with which table is being modified. So to do this,
+         * we just only elevate the transaction if we absolutely have to.
+         */
+        if(!txn.allowsWrites())
+            txn.elevate("dictionary".getBytes());
+    }
 
 }

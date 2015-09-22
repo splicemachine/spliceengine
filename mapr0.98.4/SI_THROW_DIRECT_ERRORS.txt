@@ -1,0 +1,56 @@
+diff --git a/splice_si/src/main/java/com/splicemachine/si/impl/region/RegionTxnStore.java b/splice_si/src/main/java/com/splicemachine/si/impl/region/RegionTxnStore.java
+index 9c46ccd..cf4351a 100644
+--- a/splice_si/src/main/java/com/splicemachine/si/impl/region/RegionTxnStore.java
++++ b/splice_si/src/main/java/com/splicemachine/si/impl/region/RegionTxnStore.java
+@@ -196,9 +196,11 @@ public class RegionTxnStore<TxnInfo,Transaction,TableBuffer,Data,Put extends Ope
+ 				get.addColumn(FAMILY,AbstractV1TxnDecoder.OLD_KEEP_ALIVE_COLUMN);
+ 
+ 				Result result = region.get(get);
+-				if(result==null)
+-						return null; //indicates that the transaction was probably read only--external callers can figure out what that means
++				if(result==null || result.isEmpty()) { // Result cannot be null (at least in mapR codeline)
++                    SpliceLogUtils.error(LOG,"cannot find txn=%d, this should not happen",txnId);
++                    return null; //indicates that the transaction was probably read only--external callers can figure out what that means
+ 
++                }
+ 				boolean oldForm = false;
+ 				Data keepAliveKv;
+ 				Data stateKv = dataLib.getColumnLatest(result, FAMILY,AbstractV2TxnDecoder.STATE_QUALIFIER_BYTES);
+diff --git a/splice_si_adapter_98/src/main/java/com/splicemachine/si/coprocessors/TxnLifecycleEndpoint.java b/splice_si_adapter_98/src/main/java/com/splicemachine/si/coprocessors/TxnLifecycleEndpoint.java
+index 08b6a0e..79a3ed4 100644
+--- a/splice_si_adapter_98/src/main/java/com/splicemachine/si/coprocessors/TxnLifecycleEndpoint.java
++++ b/splice_si_adapter_98/src/main/java/com/splicemachine/si/coprocessors/TxnLifecycleEndpoint.java
+@@ -23,6 +23,7 @@ import com.splicemachine.utils.Source;
+ import com.splicemachine.utils.SpliceLogUtils;
+ import org.apache.hadoop.hbase.Coprocessor;
+ import org.apache.hadoop.hbase.CoprocessorEnvironment;
++import org.apache.hadoop.hbase.DoNotRetryIOException;
+ import org.apache.hadoop.hbase.coprocessor.CoprocessorService;
+ import org.apache.hadoop.hbase.coprocessor.RegionCoprocessorEnvironment;
+ import org.apache.hadoop.hbase.protobuf.ResponseConverter;
+@@ -230,10 +231,8 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
+         acquireLock(lock);
+         try{
+             Txn.State state=regionStore.getState(txnId);
+-            if(state==null){
+-                LOG.warn("Attempting to commit a read-only transaction. Waste of a network call");
+-                return -1l; //no need to acquire a new timestamp if we have a read-only transaction
+-            }
++            if(state==null)
++                throw new DoNotRetryIOException("attempting to commit a txn that does not exist " + txnId);
+             if(state==Txn.State.COMMITTED){
+                 LOG.info("Attempting to commit an already committed transaction. Possibly this is a waste of a network call");
+                 return regionStore.getCommitTimestamp(txnId);
+@@ -254,10 +253,8 @@ public class TxnLifecycleEndpoint extends TxnMessage.TxnLifecycleService impleme
+         acquireLock(lock);
+         try{
+             Txn.State state=regionStore.getState(txnId);
+-            if(state==null){
+-                LOG.warn("Attempting to roll back a read-only transaction. Waste of a network call");
+-                return;
+-            }
++            if(state==null)
++                throw new DoNotRetryIOException("attempting to roll-back a txn that does not exist " + txnId);
+             switch(state){
+                 case COMMITTED:
+                     LOG.info("Attempting to roll back a committed transaction. Possibly a waste of a network call");

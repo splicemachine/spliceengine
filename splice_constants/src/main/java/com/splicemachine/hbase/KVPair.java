@@ -3,8 +3,6 @@ package com.splicemachine.hbase;
 import com.splicemachine.utils.ByteSlice;
 import com.splicemachine.utils.CachedByteSlice;
 
-import java.util.Arrays;
-
 /**
  * @author Scott Fines
  *         Created on: 8/8/13
@@ -23,9 +21,7 @@ public class KVPair implements Comparable<KVPair> {
         /* For checking the existence of the rowKey in the FK backing-index(s) of referencing child table(s) */
         FOREIGN_KEY_CHILDREN_EXISTENCE_CHECK((byte)0x07),
         /* For import process to cancel out an inserted row that violates a unique constraint */
-        CANCEL((byte)0x08),
-        /* For checking for update of a unique column(s) */
-        UNIQUE_UPDATE((byte)0x09);
+        CANCEL((byte)0x08);
 
         private final byte typeCode;
 
@@ -47,7 +43,7 @@ public class KVPair implements Comparable<KVPair> {
         }
 
         public boolean isUpdateOrUpsert() {
-            return UPDATE.equals(this) || UPSERT.equals(this) || UNIQUE_UPDATE.equals(this);
+            return UPDATE.equals(this) || UPSERT.equals(this);
         }
     }
 
@@ -80,8 +76,8 @@ public class KVPair implements Comparable<KVPair> {
 
     public KVPair(byte[] rowKeyBuffer,int rowKeyOffset,int rowKeyLength,
                   byte[] valueBuffer,int valueOffset,int valueLength, Type type){
-        this(ByteSlice.wrap(rowKeyBuffer,rowKeyOffset,rowKeyLength),
-                ByteSlice.wrap(valueBuffer,valueOffset,valueLength),type);
+        this(ByteSlice.wrap(rowKeyBuffer, rowKeyOffset, rowKeyLength),
+                ByteSlice.wrap(valueBuffer, valueOffset, valueLength),type);
     }
 
     public KVPair() {

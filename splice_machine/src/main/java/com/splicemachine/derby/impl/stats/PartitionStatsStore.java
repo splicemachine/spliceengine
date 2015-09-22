@@ -54,14 +54,11 @@ public class PartitionStatsStore {
 		LOG.debug("Registering listener for CLEAR_STATS_CACHE change type.");
 		DDLCoordinationFactory.getWatcher().registerDDLListener(
             new DDLWatcher.DDLListener(){
-			    @Override
-			    public void startGlobalChange() {
-			    }
-			
-			    @Override
-			    public void finishGlobalChange() {
-			    }
-			
+			    @Override public void startGlobalChange() { }
+			    @Override public void finishGlobalChange() { }
+                @Override public void changeSuccessful(String changeId) { }
+                @Override public void changeFailed(String changeId){ }
+
 			    @Override
 			    public void startChange(DDLChange change) throws StandardException {
 			        DDLChangeType changeType = change.getChangeType();
@@ -76,7 +73,7 @@ public class PartitionStatsStore {
 				        		invalidateCachedStatistics(conglomId);
 			        		}
 			        	} catch (ExecutionException e) {
-			        		LOG.error(String.format("Error while trying to invalidate cached statistics", tableName), e);
+			        		LOG.error(String.format("Error while trying to invalidate cached statistics for table %s", tableName), e);
 			        	}
 			            break;
 			        default:
@@ -84,10 +81,7 @@ public class PartitionStatsStore {
 			        }
 			    }
 			
-			    @Override
-			    public void finishChange(String changeId) {
-			    }
-			}
+            }
         );
     }
     
