@@ -1,6 +1,7 @@
 package com.splicemachine.db.impl.ast;
 
 import com.splicemachine.db.iapi.error.StandardException;
+import com.splicemachine.db.iapi.sql.compile.C_NodeTypes;
 import com.splicemachine.db.iapi.sql.compile.Visitable;
 import com.splicemachine.db.impl.sql.compile.AndNode;
 import com.splicemachine.db.impl.sql.compile.BinaryListOperatorNode;
@@ -119,10 +120,6 @@ public class RepeatedPredicateVisitor extends AbstractSpliceVisitor {
      * For a given node, check each possible path to ensure that the possibly duplicated
      * predicate occurs down that path.  If it is found down each path in the plan, it
      * can be pulled out, then 'anded' with the rest of the predicate(s)
-     *
-     * @param node
-     * @return
-     * @throws StandardException
      */
     @Override
     public Visitable defaultVisit(Visitable node) throws StandardException {
@@ -141,8 +138,11 @@ public class RepeatedPredicateVisitor extends AbstractSpliceVisitor {
                 if(foundInPath(me.getKey(), newNode)){
                     AndOrReplacementVisitor aor = new AndOrReplacementVisitor(me.getKey());
                     newNode.accept(new SpliceDerbyVisitorAdapter(aor));
-                    AndNode newAndNode = new AndNode();
-                    newAndNode.init(me.getKey(), newNode);
+                    AndNode newAndNode = (AndNode) ((ValueNode) node).getNodeFactory().getNode(
+                            C_NodeTypes.AND_NODE,
+                            me.getKey(),
+                            newNode,
+                            ((ValueNode) node).getContextManager());
                     newNode = newAndNode;
                 }
             }
