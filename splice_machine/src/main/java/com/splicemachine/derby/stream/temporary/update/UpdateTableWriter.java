@@ -8,7 +8,6 @@ import com.splicemachine.db.iapi.types.DataValueDescriptor;
 import com.splicemachine.db.iapi.types.RowLocation;
 import com.splicemachine.derby.iapi.sql.execute.SpliceOperation;
 import com.splicemachine.derby.impl.sql.execute.LazyDataValueFactory;
-import com.splicemachine.derby.impl.sql.execute.operations.DMLWriteOperation;
 import com.splicemachine.derby.impl.sql.execute.operations.TriggerHandler;
 import com.splicemachine.derby.stream.temporary.AbstractTableWriter;
 import com.splicemachine.derby.utils.marshall.*;
